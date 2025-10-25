@@ -3,7 +3,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <cstdlib>
 #include <iostream>
-#include <Armadillo>
+#include <armadillo>
 #include <boost/math/tools/numerical_differentiation.hpp>
 /*#include <armadillo>
 #include <rapidcsv.h>
