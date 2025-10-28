@@ -1,0 +1,19 @@
+ADCS.satellite\_hardware.actuators package
+==========================================
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 4
+
+   ADCS.satellite_hardware.actuators.actuator
+   ADCS.satellite_hardware.actuators.reaction_wheel
+
+Module contents
+---------------
+
+.. automodule:: ADCS.satellite_hardware.actuators
+   :members:
+   :show-inheritance:
+   :undoc-members:
