@@ -79,6 +79,8 @@ class EarthConstants:
     J2coeff: float = 1.082635854e-3
     J2: float = J2coeff * R_e**2 * mu_e  # km⁵/s²
     m_earth: float = 5.9736e24  # kg
+    solar_constant: float = 1361.0 # W/m^2
+    c: float = 299792458.0 #speed of light, m/s
 
 
 # ===============================================================

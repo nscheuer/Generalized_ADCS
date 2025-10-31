@@ -1,4 +1,7 @@
 __all__ = ["Disturbance"]
+from typing import List
 
 class Disturbance:
-    pass
+    def __init__(self, config):
+        pass
+    

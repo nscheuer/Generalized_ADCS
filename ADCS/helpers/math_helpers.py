@@ -418,3 +418,32 @@ def normalize(v: np.ndarray) -> np.ndarray:
     if sn == 0:
         return v
     return v/sn
+
+
+def normed_vec_jac(v,dv=None):
+    l = v.size
+    normv = norm(v)
+    if normv>num_eps:
+        dndv = np.eye(l)/normv - np.outer(v,v)/normv**3
+    else:
+        dndv = np.eye(l)
+    if dv is None:
+        return dndv
+    return dv@dndv
+
+
+def normed_vec_hess(v,dv=None,ddv=None):
+    l = v.size
+    normv = norm(v)
+    dndv = np.eye(l)/normv - np.outer(v,v)/normv**3
+
+    tmp = -np.multiply.outer(dndv,v/normv**2)
+    ddndvdv = tmp + np.transpose(tmp,(2,0,1)) + np.transpose(tmp,(1,2,0))
+    if dv is None:
+        if ddv is not None:
+            raise ValueError('if jacobian of v is none, hessian must also be none')
+        return ddndvdv
+    else:
+        if ddv is None:
+            raise ValueError('if jacobian of v is provided, hessian must also be provided')
+        return np.tensordot(dv,dv@ddndvdv,([1],[0])) + ddv@dndv

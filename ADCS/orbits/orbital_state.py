@@ -6,11 +6,11 @@ import ppigrf
 from ADCS.orbits.density_model import DensityModel
 from ADCS.orbits.universal_constants import EarthConstants, TimeConstants
 from ADCS.orbits.ephemeris import Ephemeris
-from ADCS.helpers.math_helpers import normalize
+from ADCS.helpers.math_helpers import normalize, rot_mat, drotmatTvecdq, ddrotmatTvecdqdq
 from skyfield import api, units, positionlib, toposlib, framelib, vectorlib
 from skyfield.functions import T as sffT
 from datetime import timezone
-from typing import Union
+from typing import Union, Dict
 
 class Orbital_State:
     r"""
@@ -111,21 +111,21 @@ class Orbital_State:
         else:
             self.density_model = DensityModel()
 
-        if S:
+        if S is not None:
             self.S = S
         else:
             self.S = self.get_sun_eci()
 
-        if B:
+        if B is not None:
             self.B = B
         else:
             self.B = self.get_b_eci()
 
-        if rho:
+        if rho is not None:
             self.rho = rho
         else: 
             altitude_from_core = np.linalg.norm(self.R)
-            self.B = self.density_model.interpolate(altitude_from_core - EarthConstants.R_e)
+            self.rho = self.density_model.interpolate(altitude_from_core - EarthConstants.R_e)
 
     def copy(self):
         return self.average(self, 0)
@@ -744,4 +744,35 @@ class Orbital_State:
 
         # Extract Sun position vector (km) in ECI coordinates
         sun_eci: np.ndarray = sun_icrf.position.km
+        return sun_eci
 
+
+    def get_state_vector(self, q0: np.ndarray) -> Dict[str, np.ndarray]:
+        R = self.R
+        V = self.V
+        B = self.B
+        S = self.S
+        rho = self.rho
+
+        rmat_ECI2B = rot_mat(q0).T
+        R_B = rmat_ECI2B@R
+        B_B = rmat_ECI2B@B
+        S_B = rmat_ECI2B@S
+        V_B = rmat_ECI2B@V
+
+        dR_B__dq = drotmatTvecdq(q0,R)
+        dB_B__dq = drotmatTvecdq(q0,B)
+        dV_B__dq = drotmatTvecdq(q0,V)
+        dS_B__dq = drotmatTvecdq(q0,S)
+        ddR_B__dqdq = ddrotmatTvecdqdq(q0,R)
+        ddB_B__dqdq = ddrotmatTvecdqdq(q0,B)
+        ddV_B__dqdq = ddrotmatTvecdqdq(q0,V)
+        ddS_B__dqdq = ddrotmatTvecdqdq(q0,S)
+
+        vecs = {"b":B_B,"r":R_B,"s":S_B,"v":V_B,"rho":rho,"db":dB_B__dq,"ds":dS_B__dq,"dv":dV_B__dq,"dr":dR_B__dq,"ddb":ddB_B__dqdq,"dds":ddS_B__dqdq,"ddv":ddV_B__dqdq,"ddr":ddR_B__dqdq}
+
+        return vecs
+
+
+    def is_sunlit(self) -> bool:
+        return self.sf_pos.is_sunlit(self.ephem.planets)

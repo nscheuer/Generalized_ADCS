@@ -89,13 +89,14 @@ class Satellite:
         self.orbit_sensors_ind = [j for j in sensors if isinstance(j,GPS)]
 
         # Filter actuators
-        self.momentum_actuators_ind = [j for j in range(len(self.actuators)) if self.actuators[j].has_momentum]
-        self.num_RW = sum([1 for j in self.actuators if isinstance(j,RW)])
+        self.momentum_inds = [j for j, act in enumerate(self.actuators) if isinstance(act, RW)]
+        self.number_RW = sum([1 for j in self.actuators if isinstance(j,RW)])
 
         # Initialize state
-        self.state_len = 7 + self.num_RW
+        self.state_len = 7 + self.number_RW
+        self.update_J(J_0=J_0, COM=COM)
 
-    def update_J(self, J: np.ndarray = None, COM: np.ndarray = None) -> None:
+    def update_J(self, J_0: np.ndarray = None, COM: np.ndarray = None) -> None:
         """
         Update the satellite's inertia matrices.
 
@@ -124,27 +125,27 @@ class Satellite:
             - ``self.J_noRW`` : inertia without reaction wheels,
             - Inverse matrices for each of these for efficient dynamics.
         """
-        if J is None: J = self.J_0
+        if J_0 is None: J_0 = self.J_0
         if COM is None: COM = self.COM
 
         try:
-            J = np.array(J, dtype=float).reshape((3,3))
+            J_0 = np.array(J_0, dtype=float).reshape((3,3))
         except:
             raise ValueError("J must be convertible to a (3,3) array")
         
         # Physical validity checks
-        if not np.all(np.isreal(J)):
+        if not np.all(np.isreal(J_0)):
             raise ValueError("J contains non-real values")
-        if not np.allclose(J, J.T, rtol=1e-5, atol=1e-8):
+        if not np.allclose(J_0, J_0.T, rtol=1e-5, atol=1e-8):
             raise ValueError("J must be symmetric")
-        J = 0.5 * (J + J.T)  # enforce symmetry
+        J = 0.5 * (J_0 + J_0.T)  # enforce symmetry
 
         eigvals = np.linalg.eigvals(J)
         if not np.all(eigvals > 0):
             print("Inertia eigenvalues:", eigvals)
             raise ValueError("J must be positive definite")
         
-        self.J_0 = J
+        self.J_0 = J_0
         self.invJ_0 = np.linalg.inv(J)
 
         # Apply the parallel axis theorem to move to COM
@@ -210,7 +211,7 @@ class Satellite:
         self.disturbances[ind].turn_off()
 
     def RWhs(self):
-        return np.array([self.actuators[j].momentum for j in self.momentum_inds])
+        return np.array([self.actuators[j].h for j in self.momentum_inds])
 
     def update_RWhs(self,state_or_RWhs):
         if np.size(state_or_RWhs) == self.state_len:
@@ -372,7 +373,7 @@ class Satellite:
         rho = orbital_state.rho # Atmospheric density [kg/m^3]
 
         w = x[0:3]
-        q = x[4:7]
+        q = x[3:7]
         h = x[7:]
         J = self.J_0
         invJ_noRW = self.invJ_noRW
@@ -385,11 +386,11 @@ class Satellite:
 
         vecs: Dict[str, np.ndarray] = {"b":B_B,"r":R_B,"s":S_B,"v":V_B,"rho":rho,"os":orbital_state}
 
-        disturbance_torque: np.ndarray = self.dist_torques(x, vecs, log)
+        disturbance_torque: np.ndarray = self.dist_torques(x, vecs)
         actuator_torque: np.ndarray = self.act_torque(x, u, vecs)
 
         # Dynamics
-        qdot = 0.5*Wmat(q).T
+        qdot = 0.5*w@Wmat(q).T
         total_torque = disturbance_torque + actuator_torque
 
         # Reaction wheels
@@ -399,8 +400,8 @@ class Satellite:
         else:
             RWjs = np.array([self.actuators[j].J for j in self.momentum_inds])
             RWaxes = np.vstack([self.actuators[j].axis for j in self.momentum_inds])
-            # H_from_RW = sum([j.body_momentum() for j in self.actuators if j.has_momentum],np.zeros(3))
-            u_RW = np.concatenate([self.actuators[j].storage_torque(u[j],self,x,vecs) for j in self.momentum_inds])
+            storage_torques = [self.actuators[j].storage_torque(u[j]) for j in self.momentum_inds]
+            u_RW = np.array(storage_torques)
             wdot = (-np.cross(w,w@J + h@RWaxes) + total_torque)@invJ_noRW
             RW_hdot = u_RW-wdot@RWaxes.T@np.diagflat(RWjs) #u_RW-wdot@RWaxes.T@np.diagflat(RWjs)
             if verbose:

@@ -12,9 +12,12 @@ from ADCS.orbits.universal_constants import EarthConstants
 from ADCS.orbits.orbital_state import Orbital_State
 
 
-def closest_approach(R0, traj):
-    """Return index and distance of the closest approach to R0."""
+def closest_approach(R0, traj, min_skip=1):
+    """Return index and distance of the closest approach to R0.
+    Skips the first `min_skip` samples to avoid matching the same point."""
     d2 = np.sum((traj - R0) ** 2, axis=1)
+    if min_skip > 0:
+        d2[:min_skip] = np.inf
     i_star = np.argmin(d2)
     return i_star, np.sqrt(d2[i_star])
 
@@ -65,7 +68,7 @@ def main():
     for method in ["euler", "rk4"]:
         for use_J2 in [False, True]:
             key = f"{method}_{'J2' if use_J2 else 'noJ2'}"
-            times, positions = test_orbit(method=method, use_J2=use_J2, dt=20.0)
+            times, positions = test_orbit(method=method, use_J2=use_J2, dt=120.0)
             results[key] = {"times": times, "positions": positions}
 
     # === 1. Altitude vs Time Plot ===
