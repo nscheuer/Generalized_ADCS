@@ -7,6 +7,7 @@ Subpackages
 .. toctree::
    :maxdepth: 4
 
+   ADCS.helpers
    ADCS.logging
    ADCS.orbits
    ADCS.satellite_hardware

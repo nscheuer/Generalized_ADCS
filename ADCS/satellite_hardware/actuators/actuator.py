@@ -3,6 +3,7 @@ __all__ = ["Actuator"]
 import numpy as np
 from ADCS.satellite_hardware.actuators.bias import Bias
 from ADCS.satellite_hardware.actuators.noise import Noise
+from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.universal_constants import TimeConstants
 
 class Actuator:
@@ -20,7 +21,7 @@ class Actuator:
         self.estimate_bias: bool = estimate_bias
         self.last_bias_time: float = float('nan')
 
-    def torque(self, command: float, j2000: float, bias: bool = False, noise: bool = False) -> float:
+    def torque(self, command: float, x: np.ndarray, os: Orbital_State, bias: bool = False, noise: bool = False) -> float:
         return np.ndarray([0, 0, 0])
     
     def storage_torque(self, command: float, j2000: float, bias: bool = False, noise: bool = False) -> float:

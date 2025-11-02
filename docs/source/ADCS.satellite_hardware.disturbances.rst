@@ -7,8 +7,11 @@ Submodules
 .. toctree::
    :maxdepth: 4
 
+   ADCS.satellite_hardware.disturbances.dipole_disturbance
    ADCS.satellite_hardware.disturbances.disturbance
+   ADCS.satellite_hardware.disturbances.drag_disturbance
    ADCS.satellite_hardware.disturbances.general_disturbance
+   ADCS.satellite_hardware.disturbances.geometry_config
    ADCS.satellite_hardware.disturbances.prop_disturbance
    ADCS.satellite_hardware.disturbances.srp_disturbance
 

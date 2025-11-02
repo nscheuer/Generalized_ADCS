@@ -147,7 +147,7 @@ def test_resdipole():
     assert np.all(sat.disturbances[0].noise.std_noise == 0.0)
 
 if __name__ == "__main__":
-    test_resdipole()
+    test_update_RWhs_from_state()
 
 
 

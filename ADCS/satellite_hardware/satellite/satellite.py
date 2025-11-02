@@ -366,28 +366,14 @@ class Satellite:
         - The function supports both reaction-wheel and wheel-less configurations.
         """
 
-        R = orbital_state.R # Position in ECI [km]
-        V = orbital_state.V # Velocity in body frame [km/s]
-        B = orbital_state.B # Magnetic field in ECI [T]
-        S = orbital_state.S # Sun Vector in ECI [km]
-        rho = orbital_state.rho # Atmospheric density [kg/m^3]
-
         w = x[0:3]
         q = x[3:7]
         h = x[7:]
         J = self.J_0
         invJ_noRW = self.invJ_noRW
 
-        rmat_ECI2B = rot_mat(q).T
-        R_B = rmat_ECI2B@R
-        B_B = rmat_ECI2B@B
-        S_B = rmat_ECI2B@S
-        V_B = rmat_ECI2B@V
-
-        vecs: Dict[str, np.ndarray] = {"b":B_B,"r":R_B,"s":S_B,"v":V_B,"rho":rho,"os":orbital_state}
-
-        disturbance_torque: np.ndarray = self.dist_torques(x, vecs)
-        actuator_torque: np.ndarray = self.act_torque(x, u, vecs)
+        disturbance_torque: np.ndarray = self.dist_torques(x, orbital_state)
+        actuator_torque: np.ndarray = self.act_torque(x, u, orbital_state)
 
         # Dynamics
         qdot = 0.5*w@Wmat(q).T
@@ -412,12 +398,13 @@ class Satellite:
             return np.concatenate([wdot,qdot,RW_hdot])
 
 
-    def dist_torques(self, x: np.ndarray, vecs: Dict[str, np.ndarray]) -> np.ndarray:
-        dist_list = [j.torque(self.vecs) for j in self.disturbances]
+    def dist_torques(self, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+        q = x[3:7]
+        dist_list = [j.torque(q=q, os=os) for j in self.disturbances]
         return sum(dist_list,np.zeros(3))
     
-    def act_torque(self, x: np.ndarray, u: np.ndarray, vecs: Dict[str, np.ndarray]) -> np.ndarray:
-        act_list = [self.actuators[j].torque(u[j], x, vecs) for j in range(len(self.actuators))]
+    def act_torque(self, x: np.ndarray, u: np.ndarray, os: Orbital_State) -> np.ndarray:
+        act_list = [self.actuators[j].torque(u[j], x, os=os) for j in range(len(self.actuators))]
         return sum(act_list, np.zeros(3))
     
     def dist_torques_jacobian(self, x: np.ndarray, vecs: Dict[str, np.ndarray]) -> Union[np.ndarray, np.ndarray]:

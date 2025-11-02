@@ -1,15 +1,19 @@
-ADCS.helpers namespace
-======================
-
-.. py:module:: ADCS.helpers
+ADCS.helpers package
+====================
 
 Submodules
 ----------
 
-ADCS.helpers.math\_helpers module
----------------------------------
+.. toctree::
+   :maxdepth: 4
 
-.. automodule:: ADCS.helpers.math_helpers
+   ADCS.helpers.math_constants
+   ADCS.helpers.math_helpers
+
+Module contents
+---------------
+
+.. automodule:: ADCS.helpers
    :members:
    :show-inheritance:
    :undoc-members:

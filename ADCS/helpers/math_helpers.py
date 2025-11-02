@@ -447,3 +447,7 @@ def normed_vec_hess(v,dv=None,ddv=None):
         if ddv is None:
             raise ValueError('if jacobian of v is provided, hessian must also be provided')
         return np.tensordot(dv,dv@ddndvdv,([1],[0])) + ddv@dndv
+
+
+def random_n_unit_vec(n: int) -> np.ndarray:
+    return normalize(np.array([np.random.normal() for j in range(n)]))
