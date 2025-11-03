@@ -8,6 +8,9 @@ class Bias:
         self.std_bias = std_bias
         self.last_bias_time = float('nan')
 
+    def __bool__(self):
+        return not (self.bias == 0.0 and self.std_bias == 0.0)
+
     def _update_bias(self, j2000: float) -> None:
         """Random Walk"""
         if not np.isfinite(self.last_bias_time):

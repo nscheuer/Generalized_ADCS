@@ -7,6 +7,9 @@ class Noise:
         self.std_noise = std_noise
         self.bounds = bounds
 
+    def __bool__(self):
+        return not (self.noise == 0.0 and self.std_noise == 0.0)
+
     def _update_noise(self) -> None:
         """Update actuator noise with a fresh Gaussian sample."""
         self.noise = np.random.normal(

@@ -5,10 +5,11 @@ from ADCS.satellite_hardware.actuators.bias import Bias
 from ADCS.satellite_hardware.actuators.noise import Noise
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.universal_constants import TimeConstants
+from ADCS.helpers.math_helpers import normalize
 
 class Actuator:
     def __init__(self, axis: np.ndarray, u_max: float, bias: Bias = None, noise: Noise = None, estimate_bias: bool = False) -> None:
-        self.axis = axis
+        self.axis = normalize(axis)
         self.u_max = u_max
         if bias:
             self.bias: Bias = bias

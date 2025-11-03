@@ -103,7 +103,7 @@ class MTQ(Actuator):
 
     def torque(
         self,
-        command: float,
+        u: float,
         x: np.ndarray,
         os: Orbital_State,
         bias: bool = False,
@@ -128,7 +128,7 @@ class MTQ(Actuator):
 
         Parameters
         ----------
-        command : float
+        u : float
             Commanded magnetic moment [A·m²].
 
         x : :class:`numpy.ndarray`
@@ -152,7 +152,7 @@ class MTQ(Actuator):
         --------
         Emits a :class:`UserWarning` if ``|command| > self.u_max``.
         """
-        if abs(command) > self.u_max:
+        if abs(u) > self.u_max:
             warnings.warn("requested torque exceeds actuation limit")
 
         q = x[3:7]
@@ -160,9 +160,9 @@ class MTQ(Actuator):
         b_body = vecs["b"]
 
         if bias:
-            command += self.bias.get_bias(j2000=os.J2000)
+            u += self.bias.get_bias(j2000=os.J2000)
 
-        torque = -np.cross(b_body, self.axis) * command
+        torque = -np.cross(b_body, self.axis) * u
 
         if noise:
             torque += self.noise.get_noise()
@@ -282,3 +282,48 @@ class MTQ(Actuator):
         )
 
         return ddtorq__dudbasestate, ddtorq__dbasestatedbasestate
+    
+
+    def dtorq__du(self, command: float, q: np.ndarray, os: Orbital_State) -> np.ndarray:
+        vecs = os.get_state_vector(q0=q)
+        b_body = vecs["b"]
+        return -np.cross(b_body, self.axis).reshape((1, 3))
+    
+    def dtorq__dbias(self, command: float, q: np.ndarray, os: Orbital_State) -> np.ndarray:
+        if self.bias:
+            return self.dtorq__du(command=command, q=q, os=os)
+        else:
+            return np.zeros((0,3))
+    
+    def dtorq__dbasestate(self, command: float, q: np.ndarray, os: Orbital_State) -> np.ndarray:
+        vecs = os.get_state_vector(q0=q)
+        db_body__dq = vecs["db"]
+
+        biased_command = command + self.bias.get_bias(os.J2000)
+        return np.vstack(
+            [np.zeros((3, 3)), -np.cross(db_body__dq, self.axis) * biased_command]
+        )
+    
+    def dtorq__dh(self, command: float, q: np.ndarray, os: Orbital_State) -> np.ndarray:
+        return np.zeros((0,3))
+    
+    def ddtorq__dudbasestate(self, command: float, q: np.ndarray, os: Orbital_State) -> np.ndarray:
+        vecs = os.get_state_vector(q0=q)
+        db_body__dq = vecs["db"]
+
+        return np.vstack(
+            [np.zeros((3, 3)), -np.cross(db_body__dq, self.axis)]
+        ).reshape((1, 7, 3))
+    
+    def ddtorq__dbasestatedbasestate(self, command: float, q: np.ndarray, os: Orbital_State) -> np.ndarray:
+        vecs = os.get_state_vector(q0=q)
+        ddb_body__dqdq = vecs["ddb"]
+
+        biased_command = command + self.bias.get_bias(j2000=os.J2000)
+        ddtorq__dbasestatedbasestate = np.zeros((7, 7, 3))
+        ddtorq__dbasestatedbasestate[3:7, 3:7, :] = (
+            -np.cross(ddb_body__dqdq, self.axis) * biased_command
+        )
+
+        return ddtorq__dbasestatedbasestate
+
