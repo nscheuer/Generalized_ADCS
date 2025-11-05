@@ -218,3 +218,78 @@ class RW(Actuator):
         if h > self.h_max:
             warnings.warn("RW Angular Momentum exceeds saturation limit")
         self.h = h
+
+    def dtorq__dh(self, command: float, q: np.ndarray, os: Orbital_State) -> np.ndarray:
+        return np.zeros((1,3))
+    
+    def ddtorq__dudh(self, command: float, q: np.ndarray, os: Orbital_State) -> np.ndarray:
+        return np.zeros((1, 1, 3))
+    
+    def ddtotq__dbiasdh(self, command: float, q: np.ndarray, os: Orbital_State) -> np.ndarray:
+        if self.bias:
+            return self.ddtorq__dudh(command=command, q=q, os=os)
+        else:
+            return np.zeros((0, 1, 3))
+        
+    def ddtorq__dbasestatedh(self, command: float, q: np.ndarray, os: Orbital_State) -> np.ndarray:
+        return np.zeros((7, 1, 3))
+    
+    def ddtorq__dhdh(self, command: float, q: np.ndarray, os: Orbital_State) -> np.ndarray:
+        return np.zeros((1, 1, 3))
+    
+    def dstor_torq__du(self, command: float, q: np.ndarray, os: Orbital_State) -> np.ndarray:
+        return np.zeros(1, 1)
+    
+    def dstor_torq__dbias(self, command: float, q: np.ndarray, os: Orbital_State) -> np.ndarray:
+        if self.bias:
+            return self.dstor_torq__du(command=command, q=q, os=os)
+        else:
+            return np.zeros((0, 1))
+        
+    def dstor_torq__dbasestate(self, command: float, q: np.ndarray, os: Orbital_State) -> np.ndarray:
+        return np.zeros((7, 1))
+    
+    def dstor_torq__dh(self, command: float, q: np.ndarray, os: Orbital_State) -> np.ndarray:
+        return np.zeros((1, 1))
+    
+    def ddstor_torq__dudu(self, command: float, q: np.ndarray, os: Orbital_State) -> np.ndarray:
+        return np.zeros((1, 1, 1))
+    
+    def ddstor_torq__dudbias(self, command: float, q: np.ndarray, os: Orbital_State) -> np.ndarray:
+        if self.bias:
+            return self.ddstor_torq__dudu(command=command, q=q, os=os)
+        else:
+            return np.zeros((1, 0, 1))
+        
+    def ddstor_torq__dudbasestate(self, command: float, q: np.ndarray, os: Orbital_State) -> np.ndarray:
+        return np.zeros((1, 7, 1))
+    
+    def ddstor_torq__dudh(self, command: float, q: np.ndarray, os: Orbital_State) -> np.ndarray:
+        return np.zeros((1, 1, 1))
+    
+    def ddstor_torq__dbiasdbias(self, command: float, q: np.ndarray, os: Orbital_State) -> np.ndarray:
+        if self.bias:
+            return self.ddstor_torq__dudu(command=command, q=q, os=os)
+        else:
+            return np.zeros((0, 0, 1))
+        
+    def ddstor_torq__dbiasdbasestate(self, command: float, q: np.ndarray, os: Orbital_State) -> np.ndarray:
+        if self.bias:
+            return self.ddstor_torq__dudbasestate(command=command, q=q, os=os)
+        else:
+            return np.zeros((0, 7, 1))
+        
+    def ddstor_torq__dbiasdh(self, command: float, q: np.ndarray, os: Orbital_State) -> np.ndarray:
+        if self.bias:
+            return self.ddstor_torq__dudh(command=command, q=q, os=os)
+        else:
+            return np.zeros((0, 1, 1))
+
+    def ddstor_torq__dbasestatedbasestate(self, command: float, q: np.ndarray, os: Orbital_State) -> np.ndarray:
+        return np.zeros((7, 7, 1))
+    
+    def ddstor_torq__dbasestatedh(self, command: float, q: np.ndarray, os: Orbital_State) -> np.ndarray:
+        return np.zeros((7, 1, 1))
+    
+    def ddstor_torq__dhdh(self, command: float, q: np.ndarray, os: Orbital_State) -> np.ndarray:
+        return np.zeros((1, 1, 1))

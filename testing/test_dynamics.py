@@ -277,7 +277,166 @@ def test_MTQ_torque_clean():
         hfunjjx = lambda c: np.dot(mtq.dtorq__dbasestate(command=m0, x=x0, os=os),j)
         hfunjjh = lambda c: np.dot(mtq.dtorq__dh(command=m0, x=x0, os=os),j)
 
-        
+        bfunjju = lambda c: np.dot(MTQ(axis=ax, max_torque=max_torque).dtorq__du(command=m0, q=q0, os=os), j).item()
+        bfunjjx = lambda c: np.dot(MTQ(axis=ax, max_torque=max_torque).dtorq__dbasestate(command=m0, q=q0, os=os), j)
+
+        Jxfunjju = np.array(nd.Jacobian(xfunjju)(x0.flatten().tolist()))
+        Jxfunjjx = np.array(nd.Jacobian(xfunjjx)(x0.flatten().tolist()))
+
+        assert np.allclose(Jxfunjju, np.dot(mtq.ddtorq__dudbasestate(command=m0, q=q0, os=os), j))
+        assert np.allclose(Jxfunjjx, np.dot(mtq.ddtorq__dbasestatedbasestate(command=m0, q=q0, os=os), j))
+
+        Jufunjju = np.array(nd.Jacobian(ufunjju)(m0))
+        Jufunjjx = np.array(nd.Jacobian(ufunjjx)(m0))
+
+        assert np.allclose(Jufunjju, np.dot(mtq.ddtorq__dudu(command=m0, q=q0, os=os), j))
+        assert np.allclose(Jufunjjx.T, np.dot(mtq.ddtorq__dudbasestate(command=m0, q=q0, os=os), j))
+
+        Jbfunjju = np.array(nd.Jacobian(bfunjju)(20000))
+        Jbfunjjx = np.array(nd.Jacobian(bfunjjx)(20000))
+
+        assert np.allclose(Jbfunjju, np.dot(mtq.ddtorq__dudbias(command=m0, q=q0, os=os), j))
+        assert np.allclose(Jbfunjjx.T, np.dot(mtq.ddtorq__dbiasdbasestate(command=m0, q=q0, os=os), j))
+
+        Jhfunjju = np.array(nd.Jacobian(hfunjju)(500.2))
+        Jhfunjjx = np.array(nd.Jacobian(hfunjjx)(500.2))
+
+        assert np.allclose(Jhfunjju, np.dot(mtq.ddtorq__dudh(command=m0, q=q0, os=os), j))
+        assert np.allclose(Jhfunjjx, np.dot(mtq.ddtorq__dbasestatedh(command=m0, q=q0, os=os), j))
+
+        Hfun = np.array(nd.Hessian(fun_hj)(np.concatenate([[m0], x0, [500.2]]).flatten().tolist()))
+        Hguess = np.block([
+            [
+                mtq.ddtorq__dudu(command=m0, q=q0, os=os) @ j,
+                mtq.ddtorq__dudbias(command=m0, q=q0, os=os) @ j,
+                mtq.ddtorq__dudbasestate(command=m0, q=q0, os=os) @ j,
+                mtq.ddtorq__dudh(command=m0, q=q0, os=os) @ j
+            ],
+            [
+                (mtq.ddtorq__dudbias(command=m0, q=q0, os=os) @ j).T,
+                mtq.ddtorq__dbiasdbias(command=m0, q=q0, os=os) @ j,
+                mtq.ddtorq__dbiasdbasestate(command=m0, q=q0, os=os) @ j,
+                mtq.ddtorq__dbiasdh(command=m0, q=q0, os=os) @ j
+            ],
+            [
+                (mtq.ddtorq__dudbasestate(command=m0, q=q0, os=os) @ j).T,
+                (mtq.ddtorq__dbiasdbasestate(command=m0, q=q0, os=os) @ j).T,
+                mtq.ddtorq__dbasestatedbasestate(command=m0, q=q0, os=os) @ j,
+                mtq.ddtorq__dbasestatedh(command=m0, q=q0, os=os) @ j
+            ],
+            [
+                (mtq.ddtorq__dudh(command=m0, q=q0, os=os) @ j).T,
+                (mtq.ddtorq__dbiasdh(command=m0, q=q0, os=os) @ j).T,
+                (mtq.ddtorq__dbasestatedh(command=m0, q=q0, os=os) @ j).T,
+                mtq.ddtorq__dhdh(command=m0, q=q0, os=os) @ j
+            ]
+        ])
+
+        assert np.allclose(Hfun[8,:],0)
+        assert np.allclose(Hfun[:,8],0)
+        assert np.allclose(Hfun[0:8, 0:8], Hguess)
+
+    # Torque and first-order derivatives
+    assert np.all(np.isclose(mtq.dtorq__du(command=m0, q=q0, os=os), np.cross(ax/3, B_B)))
+    assert np.all(np.isclose(mtq.dtorq__dbias(command=m0, q=q0, os=os), np.cross(ax/3, B_B)))
+    assert np.all(
+        np.isclose(
+            mtq.dtorq__dbasestate(command=m0, q=q0, os=os),
+            np.vstack([np.zeros((3, 3)), np.cross(ax/3 * (m0), drotmatTvecdq(q0, B_ECI))]),
+        )
+    )
+
+    # Derivative wrt h (should be zero for MTQ)
+    assert np.all(np.isclose(mtq.dtorq__dh(command=m0, q=q0, os=os), np.zeros((0, 3))))
+    assert mtq.dtorq__dh(command=m0, q=q0, os=os).shape == (0, 3)
+
+    # Second-order derivatives (Hessians)
+    assert np.all(np.isclose(mtq.ddtorq__dudu(command=m0, q=q0, os=os), np.zeros((1, 1, 3))))
+    assert mtq.ddtorq__dudu(command=m0, q=q0, os=os).shape == (1, 1, 3)
+
+    assert np.all(np.isclose(mtq.ddtorq__dudbias(command=m0, q=q0, os=os), np.zeros((1, 0, 3))))
+    assert mtq.ddtorq__dudbias(command=m0, q=q0, os=os).shape == (1, 0, 3)
+
+    assert np.all(
+        np.isclose(
+            mtq.ddtorq__dudbasestate(command=m0, q=q0, os=os),
+            np.expand_dims(np.vstack([np.zeros((3, 3)), np.cross(ax/3, drotmatTvecdq(q0, B_ECI))]), 0),
+        )
+    )
+    assert mtq.ddtorq__dudbasestate(command=m0, q=q0, os=os).shape == (1, 7, 3)
+
+    assert np.all(np.isclose(mtq.ddtorq__dudh(command=m0, q=q0, os=os), np.zeros((1, 0, 3))))
+    assert mtq.ddtorq__dudh(command=m0, q=q0, os=os).shape == (1, 0, 3)
+
+    assert np.all(np.isclose(mtq.ddtorq__dbiasdbias(command=m0, q=q0, os=os), np.zeros((0, 0, 3))))
+    assert mtq.ddtorq__dbiasdbias(command=m0, q=q0, os=os).shape == (0, 0, 3)
+
+    assert np.all(np.isclose(mtq.ddtorq__dbiasdbasestate(command=m0, q=q0, os=os), np.zeros((0, 7, 3))))
+    assert mtq.ddtorq__dbiasdbasestate(command=m0, q=q0, os=os).shape == (0, 7, 3)
+
+    assert np.all(np.isclose(mtq.ddtorq__dbiasdh(command=m0, q=q0, os=os), np.zeros((0, 0, 3))))
+    assert mtq.ddtorq__dbiasdh(command=m0, q=q0, os=os).shape == (0, 0, 3)
+
+    # Base state Hessian
+    dxdx = np.zeros((7, 7, 3))
+    dxdx[3:7, 3:7, :] = np.cross(ax/3 * (m0), ddrotmatTvecdqdq(q0, B_ECI))
+    assert np.all(np.isclose(mtq.ddtorq__dbasestatedbasestate(command=m0, q=q0, os=os), dxdx))
+    assert mtq.ddtorq__dbasestatedbasestate(command=m0, q=q0, os=os).shape == (7, 7, 3)
+
+    assert np.all(np.isclose(mtq.ddtorq__dbasestatedh(command=m0, q=q0, os=os), np.zeros((7, 0, 3))))
+    assert mtq.ddtorq__dbasestatedh(command=m0, q=q0, os=os).shape == (7, 0, 3)
+
+    assert np.all(np.isclose(mtq.ddtorq__dhdh(command=m0, q=q0, os=os), np.zeros((0, 0, 3))))
+    assert mtq.ddtorq__dhdh(command=m0, q=q0, os=os).shape == (0, 0, 3)
+
+    # Momentum storage torque (MTQ has none)
+    assert np.all(mtq.storage_torque(command=m0, j2000=os.J2000) == np.zeros(0))
+    assert mtq.storage_torque(command=m0, j2000=os.J2000).shape == (0,)
+
+    # First-order derivatives of storage torque
+    assert np.all(np.isclose(mtq.dstor_torq__du(command=m0, q=q0, os=os), np.zeros((1, 0))))
+    assert mtq.dstor_torq__du(command=m0, q=q0, os=os).shape == (1, 0)
+
+    assert np.all(np.isclose(mtq.dstor_torq__dbias(command=m0, q=q0, os=os), np.zeros((0, 0))))
+    assert mtq.dstor_torq__dbias(command=m0, q=q0, os=os).shape == (0, 0)
+
+    assert np.all(np.isclose(mtq.dstor_torq__dbasestate(command=m0, q=q0, os=os), np.zeros((7, 0))))
+    assert mtq.dstor_torq__dbasestate(command=m0, q=q0, os=os).shape == (7, 0)
+
+    assert np.all(np.isclose(mtq.dstor_torq__dh(command=m0, q=q0, os=os), np.zeros((0, 0))))
+    assert mtq.dstor_torq__dh(command=m0, q=q0, os=os).shape == (0, 0)
+
+    # Second-order derivatives of storage torque
+    assert np.all(np.isclose(mtq.ddstor_torq__dudu(command=m0, q=q0, os=os), np.zeros((1, 1, 0))))
+    assert mtq.ddstor_torq__dudu(command=m0, q=q0, os=os).shape == (1, 1, 0)
+
+    assert np.all(np.isclose(mtq.ddstor_torq__dudbias(command=m0, q=q0, os=os), np.zeros((1, 0, 0))))
+    assert mtq.ddstor_torq__dudbias(command=m0, q=q0, os=os).shape == (1, 0, 0)
+
+    assert np.all(np.isclose(mtq.ddstor_torq__dudbasestate(command=m0, q=q0, os=os), np.zeros((1, 7, 0))))
+    assert mtq.ddstor_torq__dudbasestate(command=m0, q=q0, os=os).shape == (1, 7, 0)
+
+    assert np.all(np.isclose(mtq.ddstor_torq__dudh(command=m0, q=q0, os=os), np.zeros((1, 0, 0))))
+    assert mtq.ddstor_torq__dudh(command=m0, q=q0, os=os).shape == (1, 0, 0)
+
+    assert np.all(np.isclose(mtq.ddstor_torq__dbiasdbias(command=m0, q=q0, os=os), np.zeros((0, 0, 0))))
+    assert mtq.ddstor_torq__dbiasdbias(command=m0, q=q0, os=os).shape == (0, 0, 0)
+
+    assert np.all(np.isclose(mtq.ddstor_torq__dbiasdbasestate(command=m0, q=q0, os=os), np.zeros((0, 7, 0))))
+    assert mtq.ddstor_torq__dbiasdbasestate(command=m0, q=q0, os=os).shape == (0, 7, 0)
+
+    assert np.all(np.isclose(mtq.ddstor_torq__dbiasdh(command=m0, q=q0, os=os), np.zeros((0, 0, 0))))
+    assert mtq.ddstor_torq__dbiasdh(command=m0, q=q0, os=os).shape == (0, 0, 0)
+
+    dxdx = np.zeros((7, 7, 0))
+    assert np.all(np.isclose(mtq.ddstor_torq__dbasestatedbasestate(command=m0, q=q0, os=os), dxdx))
+    assert mtq.ddstor_torq__dbasestatedbasestate(command=m0, q=q0, os=os).shape == (7, 7, 0)
+
+    assert np.all(np.isclose(mtq.ddstor_torq__dbasestatedh(command=m0, q=q0, os=os), np.zeros((7, 0, 0))))
+    assert mtq.ddstor_torq__dbasestatedh(command=m0, q=q0, os=os).shape == (7, 0, 0)
+
+    assert np.all(np.isclose(mtq.ddstor_torq__dhdh(command=m0, q=q0, os=os), np.zeros((0, 0, 0))))
+    assert mtq.ddstor_torq__dhdh(command=m0, q=q0, os=os).shape == (0, 0, 0)
 
 
 

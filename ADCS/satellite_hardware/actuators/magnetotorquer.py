@@ -289,12 +289,6 @@ class MTQ(Actuator):
         b_body = vecs["b"]
         return -np.cross(b_body, self.axis).reshape((1, 3))
     
-    def dtorq__dbias(self, command: float, q: np.ndarray, os: Orbital_State) -> np.ndarray:
-        if self.bias:
-            return self.dtorq__du(command=command, q=q, os=os)
-        else:
-            return np.zeros((0,3))
-    
     def dtorq__dbasestate(self, command: float, q: np.ndarray, os: Orbital_State) -> np.ndarray:
         vecs = os.get_state_vector(q0=q)
         db_body__dq = vecs["db"]
@@ -303,9 +297,6 @@ class MTQ(Actuator):
         return np.vstack(
             [np.zeros((3, 3)), -np.cross(db_body__dq, self.axis) * biased_command]
         )
-    
-    def dtorq__dh(self, command: float, q: np.ndarray, os: Orbital_State) -> np.ndarray:
-        return np.zeros((0,3))
     
     def ddtorq__dudbasestate(self, command: float, q: np.ndarray, os: Orbital_State) -> np.ndarray:
         vecs = os.get_state_vector(q0=q)
@@ -326,4 +317,22 @@ class MTQ(Actuator):
         )
 
         return ddtorq__dbasestatedbasestate
+
+    def ddtorq__dbiasdbias(self, command: float, q: np.ndarray, os: Orbital_State) -> np.ndarray:
+        if self.bias:
+            return self.ddtorq__dudu(command=command, q=q, os=os)
+        else:
+            return np.zeros((0, 0, 3))
+        
+    def ddtorq__dbiasdbasestate(self, command: float, q: np.ndarray, os: Orbital_State) -> np.ndarray:
+        if self.bias:
+            return self.ddtorq__dudbasestate(command=command, q=q, os=os)
+        else:
+            return np.zeros((0, 7, 3))
+        
+    def ddtorq__dudh(self, command: float, q: np.ndarray, os: Orbital_State) -> np.ndarray:
+        return np.zeros((1, 0, 3))
+        
+    
+
 
