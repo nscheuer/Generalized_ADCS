@@ -60,7 +60,7 @@ def run_orbit_rk4_J2(dt=60.0):
 
 
 def main():
-    times, positions = run_orbit_rk4_J2(dt=60.0)
+    times, positions = run_orbit_rk4_J2(dt=10.0)
 
     R0 = positions[0]
     i_star, d_min = closest_approach(R0, positions, min_skip=5)

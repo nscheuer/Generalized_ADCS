@@ -747,7 +747,9 @@ class Orbital_State:
         return sun_eci
 
 
-    def get_state_vector(self, q0: np.ndarray) -> Dict[str, np.ndarray]:
+    def get_state_vector(self, x: np.ndarray) -> Dict[str, np.ndarray]:
+        q0 = x[3:7]
+
         R = self.R
         V = self.V
         B = self.B
