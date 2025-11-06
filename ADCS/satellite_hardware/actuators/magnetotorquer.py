@@ -1,3 +1,5 @@
+__all__ = ["MTQ"]
+
 import numpy as np
 import warnings
 from typing import Union
@@ -166,7 +168,7 @@ class MTQ(Actuator):
 
         return torque
     
-    def storage_torque(self, u: float, j2000: float, bias: bool = False, noise: bool = False) -> float:
+    def storage_torque(self, u: float, x: np.ndarray, os: Orbital_State) -> float:
         return np.zeros((0,))
 
     def jacobians(
@@ -285,11 +287,64 @@ class MTQ(Actuator):
     
 
     def dtorq__du(self, u: float, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+        r"""
+        First derivative :math:`\displaystyle \frac{\partial\boldsymbol{\tau}}{\partial u}`.
+
+        **Model.** The actuator torque is modeled as
+        :math:`\boldsymbol{\tau}(u,\mathbf{x}) = (u + b)\,\mathbf{a}\times\mathbf{B}_\mathcal{B}(\mathbf{q})`,
+        where :math:`\mathbf{a}=\texttt{self.axis}` (unit), :math:`b=\texttt{bias.get_bias(J2000)}` is a
+        scalar bias, and :math:`\mathbf{B}_\mathcal{B}(\mathbf{q})=\mathbf{C}(\mathbf{q})^\top\mathbf{B}_\text{ECI}` is the
+        geomagnetic field expressed in the body frame. (Here :math:`\mathbf{C}(\mathbf{q})` maps body→ECI.)
+
+        Since :math:`\boldsymbol{\tau}` is affine in :math:`u`, we have
+        :math:`\frac{\partial\boldsymbol{\tau}}{\partial u}=\mathbf{a}\times\mathbf{B}_\mathcal{B}(\mathbf{q})`.
+
+        **Returned form.** The implementation returns
+        :math:`-\mathbf{B}_\mathcal{B}(\mathbf{q})\times\mathbf{a}`, which is equal to
+        :math:`\mathbf{a}\times\mathbf{B}_\mathcal{B}(\mathbf{q})` by the identity
+        :math:`\mathbf{x}\times\mathbf{y}=-\,\mathbf{y}\times\mathbf{x}`.
+
+        Returns
+        -------
+        (1, 3) ndarray
+            Row-Jacobian w.r.t. the scalar input :math:`u`.
+        """
         vecs = os.get_state_vector(x=x)
         b_body = vecs["b"]
         return -np.cross(b_body, self.axis).reshape((1, 3))
-    
+
     def dtorq__dbasestate(self, u: float, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+        r"""
+        First derivative :math:`\displaystyle \frac{\partial\boldsymbol{\tau}}{\partial \mathbf{x}}`
+        with :math:`\mathbf{x}=[\boldsymbol{\omega};\mathbf{q}] \in \mathbb{R}^7`.
+
+        **Notation.**
+        Let :math:`b=\texttt{bias.get_bias(J2000)}`, :math:`\mathbf{a}=\texttt{self.axis}`,
+        :math:`\mathbf{B}_\mathcal{B}(\mathbf{q})=\mathbf{C}(\mathbf{q})^\top\mathbf{B}_\text{ECI}`,
+        and :math:`D_\mathbf{q}\mathbf{B}_\mathcal{B}(\mathbf{q})\in\mathbb{R}^{4\times 3}` denote the Jacobian
+        of :math:`\mathbf{B}_\mathcal{B}` w.r.t. the quaternion components (this is ``vecs["db"]``).
+        Define the *rowwise cross* between a matrix :math:`\mathbf{M}\in\mathbb{R}^{n\times 3}` and a vector
+        :math:`\mathbf{v}\in\mathbb{R}^3` as :math:`(\mathbf{M}\times\mathbf{v})_{i:}=\mathbf{M}_{i:}\times\mathbf{v}`.
+
+        **Result.**
+        Since :math:`\boldsymbol{\tau}(u,\mathbf{x}) = (u+b)\,\mathbf{a}\times\mathbf{B}_\mathcal{B}(\mathbf{q})`
+        depends on :math:`\mathbf{q}` but not on :math:`\boldsymbol{\omega}`, we obtain
+
+        .. math::
+
+            \frac{\partial\boldsymbol{\tau}}{\partial\boldsymbol{\omega}}=\mathbf{0}_{3\times 3},\qquad
+            \frac{\partial\boldsymbol{\tau}}{\partial\mathbf{q}}
+            = (u+b)\,\mathbf{a}\times D_\mathbf{q}\mathbf{B}_\mathcal{B}(\mathbf{q})
+            = -\,\big(D_\mathbf{q}\mathbf{B}_\mathcal{B}(\mathbf{q}) \times \mathbf{a}\big)\,(u+b).
+
+        The implementation returns the vertically stacked matrix
+        :math:`\begin{bmatrix}\mathbf{0}_{3\times 3}\\ -\,D_\mathbf{q}\mathbf{B}_\mathcal{B}\times\mathbf{a}\,(u+b)\end{bmatrix}`.
+
+        Returns
+        -------
+        (7, 3) ndarray
+            Rows correspond to :math:`(\partial/\partial\boldsymbol{\omega},\,\partial/\partial\mathbf{q})`.
+        """
         vecs = os.get_state_vector(x=x)
         db_body__dq = vecs["db"]
 
@@ -297,16 +352,71 @@ class MTQ(Actuator):
         return np.vstack(
             [np.zeros((3, 3)), -np.cross(db_body__dq, self.axis) * biased_command]
         )
-    
+
     def ddtorq__dudbasestate(self, u: float, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+        r"""
+        Mixed second derivative :math:`\displaystyle \frac{\partial^2\boldsymbol{\tau}}{\partial u\,\partial \mathbf{x}}`.
+
+        **Derivation.**
+        Because :math:`\boldsymbol{\tau}(u,\mathbf{x})=(u+b)\,\mathbf{a}\times\mathbf{B}_\mathcal{B}(\mathbf{q})`,
+
+        .. math::
+
+        \frac{\partial\boldsymbol{\tau}}{\partial u}=\mathbf{a}\times\mathbf{B}_\mathcal{B}(\mathbf{q})
+        = -\,\mathbf{B}_\mathcal{B}(\mathbf{q})\times\mathbf{a}.
+
+        Differentiating w.r.t. :math:`\mathbf{x}` gives
+
+        .. math::
+
+            \frac{\partial^2\boldsymbol{\tau}}{\partial u\,\partial\boldsymbol{\omega}}=\mathbf{0}_{1\times 3\times 3},\qquad
+            \frac{\partial^2\boldsymbol{\tau}}{\partial u\,\partial\mathbf{q}}
+            = \mathbf{a}\times D_\mathbf{q}\mathbf{B}_\mathcal{B}(\mathbf{q})
+            = -\,\big(D_\mathbf{q}\mathbf{B}_\mathcal{B}(\mathbf{q})\times\mathbf{a}\big).
+
+        **Returned form.** Implemented as
+        :math:`\begin{bmatrix}\mathbf{0}_{3\times 3}\\ -\,D_\mathbf{q}\mathbf{B}_\mathcal{B}\times\mathbf{a}\end{bmatrix}`
+        with an added leading singleton dimension.
+
+        Returns
+        -------
+        (1, 7, 3) ndarray
+            Mixed Hessian stacked by :math:`(\boldsymbol{\omega}, \mathbf{q})`.
+        """
         vecs = os.get_state_vector(x=x)
         db_body__dq = vecs["db"]
 
         return np.vstack(
             [np.zeros((3, 3)), -np.cross(db_body__dq, self.axis)]
         ).reshape((1, 7, 3))
-    
+
     def ddtorq__dbasestatedbasestate(self, u: float, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+        r"""
+        Pure base-state Hessian :math:`\displaystyle \frac{\partial^2\boldsymbol{\tau}}{\partial \mathbf{x}\,\partial \mathbf{x}}`.
+
+        **Notation.**
+        Let :math:`D^2_{\mathbf{q}\mathbf{q}}\mathbf{B}_\mathcal{B}(\mathbf{q})\in\mathbb{R}^{4\times 4\times 3}` denote the
+        Hessian of :math:`\mathbf{B}_\mathcal{B}` w.r.t. quaternion components (this is ``vecs["ddb"]``).
+
+        **Derivation.**
+        Since :math:`\boldsymbol{\tau}(u,\mathbf{x})=(u+b)\,\mathbf{a}\times\mathbf{B}_\mathcal{B}(\mathbf{q})`,
+        all second derivatives involving :math:`\boldsymbol{\omega}` vanish and the only nonzero block is
+        the quaternion–quaternion block:
+
+        .. math::
+
+            \frac{\partial^2\boldsymbol{\tau}}{\partial \mathbf{q}\,\partial \mathbf{q}}
+            \;=\; (u+b)\,\mathbf{a}\times D^2_{\mathbf{q}\mathbf{q}}\mathbf{B}_\mathcal{B}(\mathbf{q})
+            \;=\; -\,(u+b)\,\big(D^2_{\mathbf{q}\mathbf{q}}\mathbf{B}_\mathcal{B}(\mathbf{q})\times\mathbf{a}\big).
+
+        The implementation fills the :math:`[3\!:\!7,\,3\!:\!7,:]` block with
+        :math:`-\,(D^2_{\mathbf{q}\mathbf{q}}\mathbf{B}_\mathcal{B}\times\mathbf{a})\,(u+b)` and zeros elsewhere.
+
+        Returns
+        -------
+        (7, 7, 3) ndarray
+            Base-state Hessian; only the :math:`4\times 4` quaternion block is nonzero.
+        """
         vecs = os.get_state_vector(x=x)
         ddb_body__dqdq = vecs["ddb"]
 
@@ -319,20 +429,72 @@ class MTQ(Actuator):
         return ddtorq__dbasestatedbasestate
 
     def ddtorq__dbiasdbias(self, u: float, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+        r"""
+        Second derivative :math:`\displaystyle \frac{\partial^2\boldsymbol{\tau}}{\partial b^2}`.
+
+        **Result.**
+        With :math:`\boldsymbol{\tau}=(u+b)\,\mathbf{a}\times\mathbf{B}_\mathcal{B}(\mathbf{q})`, the dependence on
+        :math:`b` is linear; hence :math:`\partial^2\boldsymbol{\tau}/\partial b^2=\mathbf{0}`. The method mirrors
+        :meth:`ddtorq__dudu` when a bias model is present (all zeros there), and returns an empty
+        :math:`(0,0,3)` array otherwise.
+
+        Returns
+        -------
+        (1, 1, 3) or (0, 0, 3) ndarray
+            Zero tensor if bias exists; empty when bias is not modeled.
+        """
         if self.bias:
             return self.ddtorq__dudu(u=u, x=x, os=os)
         else:
             return np.zeros((0, 0, 3))
-        
+
     def ddtorq__dbiasdbasestate(self, u: float, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+        r"""
+        Mixed second derivative :math:`\displaystyle \frac{\partial^2\boldsymbol{\tau}}{\partial b\,\partial \mathbf{x}}`.
+
+        **Result.**
+        Since :math:`\boldsymbol{\tau}=(u+b)\,\mathbf{a}\times\mathbf{B}_\mathcal{B}(\mathbf{q})` and :math:`b` enters
+        multiplicatively like :math:`u`, we have
+
+        .. math::
+
+            \frac{\partial^2\boldsymbol{\tau}}{\partial b\,\partial \mathbf{x}}
+            \;=\;\frac{\partial^2\boldsymbol{\tau}}{\partial u\,\partial \mathbf{x}}
+            \;=\; \begin{bmatrix}
+            \mathbf{0}_{3\times 3}\\[2pt] \mathbf{a}\times D_\mathbf{q}\mathbf{B}_\mathcal{B}(\mathbf{q})
+            \end{bmatrix}
+            \;=\; \begin{bmatrix}
+            \mathbf{0}_{3\times 3}\\[2pt] -\,D_\mathbf{q}\mathbf{B}_\mathcal{B}(\mathbf{q})\times\mathbf{a}
+            \end{bmatrix}.
+
+        The implementation returns :meth:`ddtorq__dudbasestate` when bias exists, and an empty
+        :math:`(0,7,3)` tensor otherwise.
+
+        Returns
+        -------
+        (1, 7, 3) or (0, 7, 3) ndarray
+            Mixed Hessian w.r.t. bias and base state (or empty if no bias).
+        """
         if self.bias:
             return self.ddtorq__dudbasestate(u=u, x=x, os=os)
         else:
             return np.zeros((0, 7, 3))
-        
+
     def ddtorq__dudh(self, u: float, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+        r"""
+        Mixed second derivative :math:`\displaystyle \frac{\partial^2\boldsymbol{\tau}}{\partial u\,\partial \mathbf{h}}`.
+
+        **Result.**
+        The actuator has no momentum-storage state in this model; hence
+        :math:`\partial\boldsymbol{\tau}/\partial \mathbf{h}=\mathbf{0}` and therefore
+        :math:`\partial^2\boldsymbol{\tau}/\partial u\,\partial \mathbf{h}=\mathbf{0}`.
+
+        Returns
+        -------
+        (1, 0, 3) ndarray
+            Empty along the storage-state dimension.
+        """
         return np.zeros((1, 0, 3))
-        
-    
+
 
 

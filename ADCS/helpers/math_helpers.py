@@ -414,6 +414,22 @@ def quat_inv(q: np.ndarray) -> np.ndarray:
 
 
 def normalize(v: np.ndarray) -> np.ndarray:
+    r"""
+    Normalize a vector to unit length.
+
+    Parameters
+    ----------
+    v : ndarray
+        Input vector :math:`\mathbf{v}`.
+
+    Returns
+    -------
+    ndarray
+        Normalized vector
+        :math:`\hat{\mathbf{v}} = \frac{\mathbf{v}}{\|\mathbf{v}\|}`.
+        If :math:`\|\mathbf{v}\|=0`, the zero vector is returned unchanged.
+    """
+
     sn = norm(v)
     if sn == 0:
         return v
@@ -421,6 +437,28 @@ def normalize(v: np.ndarray) -> np.ndarray:
 
 
 def normed_vec_jac(v,dv=None):
+    r"""
+    Compute the Jacobian of the normalized vector :math:`\hat{\mathbf{v}}`.
+
+    .. math::
+        \frac{\partial \hat{\mathbf{v}}}{\partial \mathbf{v}}
+        = \frac{1}{\|\mathbf{v}\|}\mathbf{I}
+        - \frac{\mathbf{v}\mathbf{v}^\mathsf{T}}{\|\mathbf{v}\|^3}.
+
+    Parameters
+    ----------
+    v : ndarray
+        Vector :math:`\mathbf{v}` whose normalized derivative is taken.
+    dv : ndarray, optional
+        External Jacobian of :math:`\mathbf{v}` to be post-multiplied
+        by the above term, if provided.
+
+    Returns
+    -------
+    ndarray
+        The Jacobian :math:`\partial \hat{\mathbf{v}}/\partial \mathbf{v}`
+        (or ``dv @ dndv`` if ``dv`` is supplied).
+    """
     l = v.size
     normv = norm(v)
     if normv>num_eps:
@@ -433,6 +471,35 @@ def normed_vec_jac(v,dv=None):
 
 
 def normed_vec_hess(v,dv=None,ddv=None):
+    r"""
+    Compute the Hessian of the normalized vector :math:`\hat{\mathbf{v}}`.
+
+    The second derivative tensor satisfies
+
+    .. math::
+        \frac{\partial^2 \hat{\mathbf{v}}}{\partial v_i\,\partial v_j}
+        = -\frac{v_i\,\mathbf{I}+v_j\,\mathbf{I}}{\|\mathbf{v}\|^3}
+          + 3\,\frac{\mathbf{v}v_i v_j}{\|\mathbf{v}\|^5},
+
+    which is symmetrized across indices.
+    When external derivatives ``dv`` and ``ddv`` are provided,
+    the chain rule is applied to yield the composed Hessian.
+
+    Parameters
+    ----------
+    v : ndarray
+        Vector :math:`\mathbf{v}`.
+    dv : ndarray, optional
+        Jacobian of :math:`\mathbf{v}` with respect to higher variables.
+    ddv : ndarray, optional
+        Hessian of :math:`\mathbf{v}` with respect to higher variables.
+
+    Returns
+    -------
+    ndarray
+        The Hessian tensor :math:`\partial^2 \hat{\mathbf{v}}/\partial \mathbf{v}^2`
+        or its propagated form using ``dv``/``ddv``.
+    """
     l = v.size
     normv = norm(v)
     dndv = np.eye(l)/normv - np.outer(v,v)/normv**3
@@ -450,4 +517,24 @@ def normed_vec_hess(v,dv=None,ddv=None):
 
 
 def random_n_unit_vec(n: int) -> np.ndarray:
+    r"""
+    Generate a random unit-norm vector in :math:`\mathbb{R}^n`.
+
+    The components are sampled from a standard normal distribution and normalized:
+
+    .. math::
+        \mathbf{v} = \frac{\mathbf{z}}{\|\mathbf{z}\|},
+        \qquad  z_i \sim \mathcal{N}(0,1).
+
+    Parameters
+    ----------
+    n : int
+        Dimension of the vector space.
+
+    Returns
+    -------
+    ndarray
+        A random unit vector :math:`\mathbf{v}\in\mathbb{R}^n`
+        with :math:`\|\mathbf{v}\|=1`.
+    """
     return normalize(np.array([np.random.normal() for j in range(n)]))

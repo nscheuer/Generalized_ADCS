@@ -1,3 +1,5 @@
+__all__ = ["GeometryConfig"]
+
 import numpy as np
 from typing import List, Dict, Any
 

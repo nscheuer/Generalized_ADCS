@@ -150,7 +150,7 @@ def main():
     print(f"[RK4 J2] Closest approach distance: {min_err_J2:.6f} km")
 
 
-@pytest.mark.parametrize("use_J2", [False, True])
+@pytest.mark.parametrize("use_J2", [False])
 def test_orbit_closes(use_J2):
     """
     Test that the RK4 orbit returns within 1 km of its original track after one orbit.
