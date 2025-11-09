@@ -189,7 +189,7 @@ class Actuator:
         else:
             return np.zeros((0, 0, 3))
         
-    def ddtorq_dbiasdbasestate(self, u: float, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+    def ddtorq__dbiasdbasestate(self, u: float, x: np.ndarray, os: Orbital_State) -> np.ndarray:
         r"""
         Mixed second derivative :math:`\partial^2\boldsymbol{\tau}/\partial\text{bias}\,\partial \mathbf{x}`.
 
@@ -216,6 +216,9 @@ class Actuator:
             return self.ddtorq__dudh(u=u, x=x, os=os)
         else:
             return np.zeros((0, 0, 3))
+        
+    def ddtorq__dbasestatedbasestate(self, u: float, x: np.ndarray, os: Orbital_State):
+        return np.zeros((7,7,3))
         
     def ddtorq__dbasestatedh(self, u: float, x: np.ndarray, os: Orbital_State) -> np.ndarray:
         r"""

@@ -386,7 +386,7 @@ class Satellite:
         else:
             RWjs = np.array([self.actuators[j].J for j in self.momentum_inds])
             RWaxes = np.vstack([self.actuators[j].axis for j in self.momentum_inds])
-            storage_torques = [self.actuators[j].storage_torque(u[j]) for j in self.momentum_inds]
+            storage_torques = [self.actuators[j].storage_torque(u=u[j], x=x, os=orbital_state) for j in self.momentum_inds]
             u_RW = np.array(storage_torques)
             wdot = (-np.cross(w,w@J + h@RWaxes) + total_torque)@invJ_noRW
             RW_hdot = u_RW-wdot@RWaxes.T@np.diagflat(RWjs) #u_RW-wdot@RWaxes.T@np.diagflat(RWjs)

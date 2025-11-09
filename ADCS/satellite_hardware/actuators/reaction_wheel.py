@@ -117,7 +117,7 @@ class RW(Actuator):
         self.h_max = h_max
         super().__init__(axis=axis, u_max=max_torque, bias=bias, noise=noise, estimate_bias=estimate_bias)
 
-    def torque(self, u: float, x: np.ndarray, os: Orbital_State, bias: bool = False, noise: bool = False) -> float:
+    def torque(self, u: float, x: np.ndarray, os: Orbital_State) -> float:
         r"""
         Compute the **reaction wheel body torque**.
 
@@ -145,12 +145,6 @@ class RW(Actuator):
         os : :class:`~ADCS.orbits.orbital_state.Orbital_State`
             Current orbital state, providing access to ``os.J2000`` for bias evolution.
 
-        bias : bool, optional
-            If ``True``, adds actuator bias to the torque output.
-
-        noise : bool, optional
-            If ``True``, adds random noise to the torque output.
-
         Returns
         -------
         :class:`numpy.ndarray`
@@ -165,15 +159,15 @@ class RW(Actuator):
 
         torque = u
 
-        if bias:
+        if self.bias:
             torque += self.bias.get_bias(j2000=os.J2000)
 
-        if noise:
+        if self.noise:
             torque += self.noise.get_noise()
 
-        return torque
+        return self.axis*torque
 
-    def storage_torque(self, u: float) -> float:
+    def storage_torque(self, u: float, x: np.ndarray, os: Orbital_State) -> float:
         r"""
         Compute the **internal torque acting on the wheel** (equal and opposite to
         body torque).
@@ -200,7 +194,17 @@ class RW(Actuator):
         """
         if abs(u) > self.u_max:
             warnings.warn("RW Requested Torque exceeds actuation limit")
-        return -u
+        
+        command = u
+
+        if self.bias:
+            command += self.bias.get_bias(j2000=os.J2000)
+
+        if self.noise:
+            command += self.noise.get_noise()
+
+        return -command
+        
 
     def update_momentum(self, h: float) -> None:
         r"""
@@ -219,13 +223,16 @@ class RW(Actuator):
             warnings.warn("RW Angular Momentum exceeds saturation limit")
         self.h = h
 
+    def dtorq__du(self, u: float, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+        return self.axis.reshape((1,3))
+
     def dtorq__dh(self, u: float, x: np.ndarray, os: Orbital_State) -> np.ndarray:
         return np.zeros((1,3))
     
     def ddtorq__dudh(self, u: float, x: np.ndarray, os: Orbital_State) -> np.ndarray:
         return np.zeros((1, 1, 3))
     
-    def ddtotq__dbiasdh(self, u: float, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+    def ddtorq__dbiasdh(self, u: float, x: np.ndarray, os: Orbital_State) -> np.ndarray:
         if self.bias:
             return self.ddtorq__dudh(u=u, x=x, os=os)
         else:
@@ -238,7 +245,7 @@ class RW(Actuator):
         return np.zeros((1, 1, 3))
     
     def dstor_torq__du(self, u: float, x: np.ndarray, os: Orbital_State) -> np.ndarray:
-        return np.zeros(1, 1)
+        return -np.ones((1,1))
     
     def dstor_torq__dbias(self, u: float, x: np.ndarray, os: Orbital_State) -> np.ndarray:
         if self.bias:

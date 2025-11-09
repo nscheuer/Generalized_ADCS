@@ -934,9 +934,6 @@ def test_MTQ_torque_clean():
     actual_torque = mtq.torque(u=m0, x=x0, os=os)
     assert np.all(np.isclose(expected_torque, actual_torque))
 
-    vecsxfun = lambda c: {"b":rot_mat(np.array([c[3],c[4],c[5],c[6]])).T@B,"r":rot_mat(np.array([c[3],c[4],c[5],c[6]])).T@R,"s":rot_mat(np.array([c[3],c[4],c[5],c[6]])).T@S,"v":rot_mat(np.array([c[3],c[4],c[5],c[6]])).T@V,"rho":rho,"db":drotmatTvecdq(np.array([c[3],c[4],c[5],c[6]]),B),"ds":drotmatTvecdq(np.array([c[3],c[4],c[5],c[6]]),S),"dv":drotmatTvecdq(np.array([c[3],c[4],c[5],c[6]]),V),"dr":drotmatTvecdq(np.array([c[3],c[4],c[5],c[6]]),R),\
-                "ddb":ddrotmatTvecdqdq(np.array([c[3],c[4],c[5],c[6]]),B),"dds":ddrotmatTvecdqdq(np.array([c[3],c[4],c[5],c[6]]),S),"ddv":ddrotmatTvecdqdq(np.array([c[3],c[4],c[5],c[6]]),V),"ddr":ddrotmatTvecdqdq(np.array([c[3],c[4],c[5],c[6]]),R)}
-    
     ufun = lambda c: mtq.torque(u=c, x=x0, os=os)
     xfun = lambda c: mtq.torque(u=m0, x=np.array([c[0],c[1],c[2],c[3],c[4],c[5],c[6]]), os=os)
     hfun = lambda c: mtq.torque(u=m0, x=x0, os=os)
@@ -1184,9 +1181,6 @@ def test_MTQ_torque_bias():
    actual_torque = mtq.torque(u=m0, x=x0, os=os)
    assert np.all(np.isclose(expected_torque, actual_torque))
 
-   vecsxfun = lambda c: {"b":rot_mat(np.array([c[3],c[4],c[5],c[6]])).T@B,"r":rot_mat(np.array([c[3],c[4],c[5],c[6]])).T@R,"s":rot_mat(np.array([c[3],c[4],c[5],c[6]])).T@S,"v":rot_mat(np.array([c[3],c[4],c[5],c[6]])).T@V,"rho":rho,"db":drotmatTvecdq(np.array([c[3],c[4],c[5],c[6]]),B),"ds":drotmatTvecdq(np.array([c[3],c[4],c[5],c[6]]),S),"dv":drotmatTvecdq(np.array([c[3],c[4],c[5],c[6]]),V),"dr":drotmatTvecdq(np.array([c[3],c[4],c[5],c[6]]),R),\
-               "ddb":ddrotmatTvecdqdq(np.array([c[3],c[4],c[5],c[6]]),B),"dds":ddrotmatTvecdqdq(np.array([c[3],c[4],c[5],c[6]]),S),"ddv":ddrotmatTvecdqdq(np.array([c[3],c[4],c[5],c[6]]),V),"ddr":ddrotmatTvecdqdq(np.array([c[3],c[4],c[5],c[6]]),R)}
-   
    ufun = lambda c: mtq.torque(u=c, x=x0, os=os)
    xfun = lambda c: mtq.torque(u=m0, x=np.array([c[0],c[1],c[2],c[3],c[4],c[5],c[6]]), os=os)
    hfun = lambda c: mtq.torque(u=m0, x=x0, os=os)
@@ -1600,8 +1594,5 @@ def test_MTQ_bias_noise_KS():
     assert ksz.pvalue > 0.05 or abs(ksz.statistic) < threshold
 
 
-
-
-
 if __name__ == "__main__":
-   test_MTQ_torque_clean()
+   test_MTQ_torque_bias()
