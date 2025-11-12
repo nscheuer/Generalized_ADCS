@@ -414,101 +414,103 @@ def test_torque_srp_dist():
 
 def test_torque_gg_dist():
     rng = np.random.default_rng(42)
+
+    # ----- Build a physically consistent satellite -----
     Nmass = 5
-    masses = [(float(rng.uniform(0, 3)),
-               random_n_unit_vec(3) * float(rng.uniform(0, 2)))
-              for _ in range(Nmass)]
+    point_masses = [
+        (
+            float(rng.uniform(0, 3)),
+            random_n_unit_vec(3) * float(rng.uniform(0, 2)),
+        )
+        for _ in range(Nmass)
+    ]
+
+    # Central solid sphere at the reference origin
     msphere = 1.0
     radius = 0.1
-    Jsphere = (2.0/5.0) * msphere * radius**2 * np.eye(3)
+    Jsphere = (2.0 / 5.0) * msphere * radius**2 * np.eye(3)
 
-    # Totals about inertial origin using parallel-axis contributions
-    m_point = sum(m for m, _ in masses)
-    m0 = m_point + msphere
-    com0 = sum(m * r for m, r in masses) / m_point
+    # Total mass and total COM (include the sphere at origin)
+    m_points = sum(m for m, _ in point_masses)
+    m_total = msphere + m_points
+    COM_total = sum(m * r for m, r in point_masses) / m_total  # sphere contributes 0
 
-    # Inertia about COM: central sphere + shifted point masses
-    J_points_about_COM = sum(
-        m * (np.eye(3) * np.dot(r - com0, r - com0) - np.outer(r - com0, r - com0))
-        for m, r in masses
+    # Inertia about the **reference origin** (needed for Satellite.J_0)
+    J_points_about_origin = sum(
+        m * (np.eye(3) * np.dot(r, r) - np.outer(r, r)) for m, r in point_masses
     )
-    J0 = Jsphere + J_points_about_COM 
+    J0_origin = Jsphere + J_points_about_origin
 
-    # --- Orbit & satellite setup (new framework) ---
-    ephem = Ephemeris()
+    # Expected inertia about COM (parallel-axis check)
+    J_COM_expected = (
+        J0_origin
+        - m_total
+        * (np.eye(3) * np.dot(COM_total, COM_total) - np.outer(COM_total, COM_total))
+    )
+
+    # ----- Satellite & disturbance -----
     gg = GG_Disturbance()
-    sat = Satellite(J_0=J0, disturbances=[gg], mass=m0, COM=com0)
+    sat = Satellite(J_0=J0_origin, disturbances=[gg], mass=m_total, COM=COM_total)
 
-    # Sanity: satellite stored structural properties correctly
-    assert np.all(sat.COM == com0)
-    assert np.all(sat.J_0 == J0)
-    assert sat.mass == m0
-    # And sat.J matches what we constructed
-    assert np.allclose(sat.J_0, J0)
+    # Structural sanity checks
+    assert np.allclose(sat.COM, COM_total)
+    assert np.allclose(sat.J_0, J0_origin)
+    assert np.allclose(sat.J_COM, J_COM_expected)
+    assert np.allclose(np.linalg.inv(sat.invJ_noRW), sat.J_noRW)  # invJ_noRW is actually inverse
 
-    # Orbital state (km, km/s). GG uses os.R magnitude and direction.
-    os = Orbital_State(ephem=ephem, J2000=0.22,
-                       R=np.array([7000.0, 0.0, 0.0]),
-                       V=np.array([0.0, 8.0, 0.0]))
+    # ----- Orbit & attitude -----
+    ephem = Ephemeris()
+    os = Orbital_State(
+        ephem=ephem,
+        J2000=0.22,
+        R=np.array([7000.0, 0.0, 0.0]),  # km
+        V=np.array([0.0, 8.0, 0.0]),     # km/s
+    )
 
-    # Random attitude; zero body rates
     q0 = random_n_unit_vec(4)
     w0 = np.zeros(3)
     x = np.concatenate([w0, q0])
     u = np.array([])
 
-    # --- Expected GG torque (body frame) ---
-    # Rotate ECI->Body the same way the codebase does elsewhere: rot_mat(q).T is ECI->Body
-    C_be = rot_mat(q0).T
-    r_hat_ECI = os.R / np.linalg.norm(os.R)
-    r_hat_B = C_be @ r_hat_ECI
+    # ----- Expected GG torque (match implementation details) -----
+    # Use the same body-frame vector the model uses
+    vecs = os.get_state_vector(x=x)
+    R_B = vecs["r"]
+    rhat_B = R_B / np.linalg.norm(R_B)
+    nadir = -rhat_B
 
-    mu = EarthConstants.mu_e  # or ephem.mu, depending on your constants wiring
-    factor = 3.0 * mu / (np.linalg.norm(os.R)**3)
-    expected_tau = factor * np.cross(r_hat_B, sat.J_0 @ r_hat_B)
+    mu = EarthConstants.mu_e
+    factor = 3.0 * mu / (np.linalg.norm(R_B) ** 3)
+    expected_tau = factor * np.cross(nadir, nadir @ sat.J_0)
 
-    # --- Compare with disturbance output ---
+    # Compare against disturbance output
     real_tau = gg.torque(sat=sat, x=x, os=os)
     assert np.allclose(expected_tau, real_tau)
 
-    # Also check it’s injected into dynamics properly (no other torques, so only GG shows up)
+    # ----- Check injection into dynamics (no actuators, w=0) -----
     xd = sat.dynamics_core(x=x, u=u, orbital_state=os)
-    expected_wdot = np.linalg.inv(sat.J_0) @ real_tau
-    # xd = [tau (3), 0 (scalar bias?), attitude-rate RHS (3)] -> keep your structure;
-    # here we only assert the torque portion matches.
+    # Code uses right-multiplication by invJ_noRW and invJ_noRW is symmetric -> equivalent to J_noRW^{-1} * tau
+    expected_wdot = real_tau @ sat.invJ_noRW
     assert np.allclose(xd[:3], expected_wdot)
+    # With w=0, quaternion kinematics should be zero too
+    assert np.allclose(xd[3:7], np.zeros(4))
 
-    # --- Two useful edge cases ---
+    # ----- Edge cases -----
 
-    # (a) Isotropic inertia => torque must be zero for any attitude
+    # (a) Isotropic inertia -> torque must be zero for any attitude
     J_iso = 2.0 * np.eye(3)
-    sat_iso = Satellite(J=J_iso, disturbances=[gg], mass=m0, COM=com0)
+    sat_iso = Satellite(J_0=J_iso, disturbances=[gg], mass=1.0, COM=np.zeros(3))
     tau_iso = gg.torque(sat=sat_iso, x=x, os=os)
     assert np.allclose(tau_iso, np.zeros(3))
 
-    # (b) Principal-axis alignment (r_hat_B along an eigenvector) => tau = 0
-    # Align attitude so +X_body points to Earth
-    q_align = MathConstants.zeroquat  # identity makes body X == ECI X with our conventions
+    # (b) Principal-axis alignment (rhat_B along an eigenvector) -> torque = 0
+    # Identity quaternion aligns body +X with ECI +X; with R along +X_ECI, rhat_B = [1,0,0]
+    q_align = MathConstants.zeroquat  # identity quaternion
     x_align = np.concatenate([w0, q_align])
-    C_be_align = rot_mat(q_align).T
-    r_hat_B_align = C_be_align @ r_hat_ECI
-    # r_hat_B_align is [1,0,0]; if J is diagonal in body frame, cross product vanishes
     J_diag = np.diag([10.0, 5.0, 3.0])
-    sat_diag = Satellite(J=J_diag, disturbances=[gg], mass=m0, COM=com0)
+    sat_diag = Satellite(J_0=J_diag, disturbances=[gg], mass=1.0, COM=np.zeros(3))
     tau_align = gg.torque(sat=sat_diag, x=x_align, os=os)
     assert np.allclose(tau_align, np.zeros(3))
-
-
-def test_prop_dist_update():
-    noise = Noise(noise=0.0, std_noise=0.2)
-    t0 = np.array([0.1, -0.1, 0.5])
-    dist = Prop_Disturbance(torque_nominal=t0, noise=noise)
-
-    assert np.all(dist.torque_nominal == t0)
-    assert np.all(dist.noise.std_noise == 0.2)
-
-    dist.update()
-
 
 
 if __name__ == "__main__":

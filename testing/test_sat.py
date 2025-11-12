@@ -8,7 +8,7 @@ from typing import List
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from ADCS.satellite_hardware.satellite.satellite import Satellite
 from ADCS.satellite_hardware.actuators import Actuator, RW, MTQ, Noise, Bias
-from ADCS.satellite_hardware.disturbances import SRP_Disturbance, Drag_Disturbance, Prop_Disturbance, Dipole_Disturbance, GeometryConfig
+from ADCS.satellite_hardware.disturbances import SRP_Disturbance, Drag_Disturbance, Prop_Disturbance, Dipole_Disturbance, GeometryConfig, GeometryFace
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.helpers.math_helpers import random_n_unit_vec, rot_mat
@@ -520,11 +520,30 @@ def test_dynamics_RW():
 
 
 def test_srp():
-    faces = [{"index": 0, "area": 0.1, "centroid": np.array([1.0, 0.2, 0.0]), "normal": np.array([1, 0, 0]), "eta_s": 0.0, "eta_d": 0.5, "eta_a": 0.5, "cd": 2},
-    {"index": 1, "area": 0.03, "centroid": np.array([-0.05, 0.1, 0.3]), "normal": np.array([0, 1, 0]), "eta_s": 0.1, "eta_d": 0.2, "eta_a": 0.1, "cd": 0.1},
-    {"index": 2, "area": 10, "centroid": np.array([0.25,-0.01,-0.7]), "normal": np.array([0, 0, 1]), "eta_s": 0.3, "eta_d": 0.1, "eta_a": 0.6, "cd": 0.3}]
-
-    config = GeometryConfig(geometry=faces)
+    faces = [
+        GeometryFace(
+            area=0.1,
+            centroid=np.array([1.0, 0.2, 0.0]),
+            normal=np.array([1, 0, 0]),
+            eta_s=0.0, eta_d=0.5, eta_a=0.5,
+            CD=2
+        ),
+        GeometryFace(
+            area=0.03,
+            centroid=np.array([-0.05, 0.1, 0.3]),
+            normal=np.array([0, 1, 0]),
+            eta_s=0.1, eta_d=0.2, eta_a=0.1,
+            CD=0.1
+        ),
+        GeometryFace(
+            area=10.0,
+            centroid=np.array([0.25, -0.01, -0.7]),
+            normal=np.array([0, 0, 1]),
+            eta_s=0.3, eta_d=0.1, eta_a=0.6,
+            CD=0.3
+        ),
+    ]
+    config = GeometryConfig(geometry_faces=faces)
     dist = [SRP_Disturbance(config=config)]
     sat = Satellite(disturbances=dist)
 
@@ -532,15 +551,42 @@ def test_srp():
     assert np.all(sat.disturbances[0].eta_d == [0.5,0.2,0.1])
     assert np.all(sat.disturbances[0].eta_a == [0.5,0.1,0.6])
     assert np.all(sat.disturbances[0].areas == [0.1,0.03,10])
-    assert np.all([sat.disturbances[0].normals[j] == MathConstants.unitvecs[j] for j in range(3)])
-    assert np.all([sat.disturbances[0].centroids[j] == faces[j]["centroid"] for j in range(3)])
+    assert np.all([
+      np.allclose(sat.disturbances[0].normals[j], MathConstants.unitvecs[j])
+      for j in range(3)
+    ])
+
+    assert np.all([
+      np.allclose(sat.disturbances[0].centroids[j], faces[j].centroid)
+      for j in range(3)
+    ])
     
 def test_drag():
-    faces = [{"index": 0, "area": 0.1, "centroid": np.array([1.0, 0.2, 0.0]), "normal": np.array([1, 0, 0]), "eta_s": 0.0, "eta_d": 0.5, "eta_a": 0.5, "cd": 2},
-    {"index": 1, "area": 0.03, "centroid": np.array([-0.05, 0.1, 0.3]), "normal": np.array([0, 1, 0]), "eta_s": 0.1, "eta_d": 0.2, "eta_a": 0.1, "cd": 0.1},
-    {"index": 2, "area": 10, "centroid": np.array([0.25,-0.01,-0.7]), "normal": np.array([0, 0, 1]), "eta_s": 0.3, "eta_d": 0.1, "eta_a": 0.6, "cd": 0.3}]
-    
-    config = GeometryConfig(geometry=faces)
+    faces = [
+        GeometryFace(
+            area=0.1,
+            centroid=np.array([1.0, 0.2, 0.0]),
+            normal=np.array([1, 0, 0]),
+            eta_s=0.0, eta_d=0.5, eta_a=0.5,
+            CD=2
+        ),
+        GeometryFace(
+            area=0.03,
+            centroid=np.array([-0.05, 0.1, 0.3]),
+            normal=np.array([0, 1, 0]),
+            eta_s=0.1, eta_d=0.2, eta_a=0.1,
+            CD=0.1
+        ),
+        GeometryFace(
+            area=10.0,
+            centroid=np.array([0.25, -0.01, -0.7]),
+            normal=np.array([0, 0, 1]),
+            eta_s=0.3, eta_d=0.1, eta_a=0.6,
+            CD=0.3
+        ),
+    ]
+
+    config = GeometryConfig(geometry_faces=faces)
     dist = [Drag_Disturbance(config=config)]
     sat = Satellite(disturbances=dist)
 

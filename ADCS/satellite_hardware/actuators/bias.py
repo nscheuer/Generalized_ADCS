@@ -17,11 +17,33 @@ class Bias:
     bounds : (float, float), optional
         Clipping range :math:`[b_{\min}, b_{\max}]` applied after updates.
     """
-    def __init__(self, bias: float = 0.0, std_bias: float = 0.0, bounds: Sequence[float] = (-np.inf, np.inf)) -> None:
+    def __init__(self, bias: np.ndarray | float = np.array([0.0]), std_bias: np.ndarray | float = np.array([0.0]), bounds: Sequence[np.ndarray | float] = (-np.array([np.inf]), np.array([np.inf]))) -> None:
+        if isinstance(bias, (float, int)):
+            bias = np.array([bias])
+        else:
+            bias = np.asarray(bias, dtype=float)
+        if isinstance(std_bias, (float, int)):
+            std_bias = np.array([std_bias])
+        else:
+            std_bias = np.asarray(std_bias, dtype=float)
+        lo, hi = bounds
+        lo = np.asarray(lo, dtype=float)
+        hi = np.asarray(hi, dtype=float)
+
+        try:
+            bias, std_bias, lo, hi = np.broadcast_arrays(bias, std_bias, lo, hi)
+        except ValueError:
+            raise ValueError(
+                "bias, std_bias, and bounds must be broadcastable to the same shape."
+            )
+        
+        if np.any(lo > hi):
+            raise ValueError("Each lower bound must be <= the corresponding upper bound.")
+        
         self.bias = bias
         self.std_bias = std_bias
         self.last_bias_time = float('nan')
-        self.bounds = bounds
+        self.bounds = (lo, hi)
 
     def __bool__(self):
         r"""
@@ -32,7 +54,7 @@ class Bias:
         The model is considered *inactive* (i.e. returns ``False``)
         when both :math:`b_0 = 0` and :math:`\sigma_b = 0`.
         """
-        return not (self.bias == 0.0 and self.std_bias == 0.0)
+        return not (np.all(self.bias == 0.0) and np.all(self.std_bias == 0.0))
 
     def _update_bias(self, j2000: float) -> None:
         r"""
@@ -66,12 +88,8 @@ class Bias:
             return
 
         dt_sec = dt_centuries * TimeConstants.cent2sec
-
-        self.bias = np.random.normal(
-            loc=self.bias,
-            scale=self.std_bias * np.sqrt(dt_sec)
-        )
-        self.bias = np.clip(self.bias, self.bounds[0], self.bounds[1])
+        delta = np.random.normal(loc=0.0, scale=self.std_bias*np.sqrt(dt_sec))
+        self.bias = np.clip(self.bias + delta, self.bounds[0], self.bounds[1])
         self.last_bias_time = j2000
 
     def get_bias(self, j2000: float) -> float:
@@ -89,4 +107,7 @@ class Bias:
             The updated bias value :math:`b_k`.
         """
         self._update_bias(j2000=j2000)
-        return self.bias
+        if self.bias.size == 1:
+            return self.bias.item()
+        else:
+            return self.bias

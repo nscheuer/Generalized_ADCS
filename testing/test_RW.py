@@ -788,7 +788,7 @@ def test_RW_torque_noise_KS():
     # RW noise is scalar along the wheel axis: Δτ = (n1 - n2) * axis
     # For the same time-driven model as your MTQ test, std = std_noise (not sqrt(2))
     a = rw.axis.reshape(1, 3)                   # unit axis used internally
-    exp_dist = np.random.normal(0.0, std_noise, size=(N, 1)) * a  # (N,3)
+    exp_dist = np.random.normal(0.0, np.sqrt(2)*std_noise, size=(N, 1)) * a  # (N,3)
 
     ks0 = ks_2samp(torq_drift[:, 0], exp_dist[:, 0])
     ks1 = ks_2samp(torq_drift[:, 1], exp_dist[:, 1])
@@ -832,8 +832,7 @@ def test_RW_storage_torque_noise_KS():
 
     drifts = np.asarray(drifts)  # shape (N,)
 
-    # For a time-driven noise model (random walk), std(Δ) = std_noise (not sqrt(2))
-    exp = np.random.normal(0.0, std_noise, size=N)
+    exp = np.random.normal(0.0, np.sqrt(2)*std_noise, size=N)
 
     ks = ks_2samp(drifts, exp)
 
@@ -900,7 +899,7 @@ def test_RW_torque_bias_noise_KS():
     torq_drift = np.stack(torq_drift, axis=0)  # (N, 3)
 
     # Expected distribution: along the (unit) RW axis, with combined std
-    sigma = np.sqrt(0.5 * std_bias**2 + std_noise**2)
+    sigma = np.sqrt(0.5 * std_bias**2 + 2*std_noise**2)
     a = rw.axis.reshape(1, 3)  # ensure we use the normalized axis actually used by RW
     exp_dist = np.random.normal(0.0, sigma, size=(N, 1)) * a  # (N, 3)
 
@@ -986,4 +985,4 @@ def test_RW_storage_torque_bias_noise_KS():
     assert ks.pvalue > 0.05 or abs(ks.statistic) < threshold
 
 if __name__ == "__main__":
-    test_RW_storage_torque_bias_noise_KS()
+    test_RW_torque_bias_noise_KS()

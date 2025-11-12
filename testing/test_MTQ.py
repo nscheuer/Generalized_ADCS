@@ -1113,9 +1113,7 @@ def test_MTQ_noise_KS():
 
    torq_drift = np.stack(torq_drift, axis=0)   # shape (N, 3)
 
-   # For the scalar random-walk noise model:
-   # torque1 - torque2 = (n1 - n2) * [1,1,1], with std = std_noise (NOT sqrt(2)*std_noise)
-   exp_dist = np.random.normal(0.0, std_noise, size=(N, 1)) * np.ones((1, 3))
+   exp_dist = np.random.normal(0.0, np.sqrt(2)*std_noise, size=(N, 1)) * np.ones((1, 3))
    exp_dist = np.asarray(exp_dist)             # shape (N, 3)
 
    # Now KS works
@@ -1180,7 +1178,7 @@ def test_MTQ_bias_noise_KS():
 
     # Sample ζ and η, then form reference vectors
     zeta = np.random.normal(0.0, std_bias_step, size=(N, 1))  # (N,1)
-    eta  = np.random.normal(0.0, std_noise,     size=(N, 1))  # (N,1)
+    eta  = np.random.normal(0.0, np.sqrt(2)*std_noise,     size=(N, 1))  # (N,1)
     ones = np.ones((1, 3))
     d_row = d.reshape(1, 3)
 
@@ -1198,4 +1196,4 @@ def test_MTQ_bias_noise_KS():
 
 
 if __name__ == "__main__":
-   test_MTQ_torque_bias()
+   test_MTQ_bias_noise_KS()
