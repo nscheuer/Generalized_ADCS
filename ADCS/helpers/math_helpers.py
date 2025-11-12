@@ -538,3 +538,30 @@ def random_n_unit_vec(n: int) -> np.ndarray:
         with :math:`\|\mathbf{v}\|=1`.
     """
     return normalize(np.array([np.random.normal() for j in range(n)]))
+
+
+def vec_norm_jac(v: np.ndarray, dv: np.ndarray = None) -> np.ndarray:
+    l = v.size
+    normv = norm(v)
+    if normv > num_eps:
+        dndv = v/normv
+    else:
+        dndv = np.ones(l)
+    if dv is None:
+        return dndv
+    return dv@dndv
+
+
+def vec_norm_hess(v: np.ndarray, dv: np.ndarray = None, ddv: np.ndarray = None) -> np.ndarray:
+    l = v.size
+    normv = norm(v)
+    dndv = v/normv
+    ddndvdv = np.eye(l)/normv - np.outer(v, v)/normv**3.0
+    if dv is None:
+        if ddv is not None:
+            raise ValueError("If Jacobian of v is None, Hessian must also be None")
+        return ddndvdv
+    else:
+        if ddv is None:
+            raise ValueError("If Jacobian of v is provided, Hessian must also be provided")
+        return dv@ddndvdv@dv.T + ddv@dndv

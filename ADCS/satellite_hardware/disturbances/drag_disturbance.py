@@ -88,7 +88,7 @@ class Drag_Disturbance(Disturbance):
         self.areas = np.array([p["area"] for p in params])
         self.centroids = np.vstack([p["centroid"] for p in params])
         self.normals = np.vstack([normalize(p["normal"]) for p in params])
-        self.CDs = np.array([p["cd"] for p in params])
+        self.CDs = np.array([p["CD"] for p in params])
 
     def torque(self, sat: Satellite, x: np.ndarray, os: Orbital_State) -> np.ndarray:
         r"""
@@ -124,11 +124,11 @@ class Drag_Disturbance(Disturbance):
         """
         vecs = os.get_state_vector(x=x)
 
-        V_B = vecs["v"]
+        V_B = vecs["v"] * 1000.0 # km/s to m/s
         rho = vecs["rho"]
 
-        cos_alpha = np.maximum(0, np.dot(self.normals, V_B))
-        F = self.CDs*self.areas*cos_alpha
+        v_proj = np.maximum(0, np.dot(self.normals, V_B))
+        F = self.CDs*self.areas*v_proj
         cents = self.centroids - sat.COM
         ct = 0.5*rho
         return -ct*np.cross(F@cents, V_B)

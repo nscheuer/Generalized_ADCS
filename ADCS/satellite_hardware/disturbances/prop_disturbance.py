@@ -52,7 +52,7 @@ class Prop_Disturbance(Disturbance):
         Current disturbance torque (nominal + noise) [N·m].
     """
 
-    def __init__(self, torque_nominal: np.ndarray, noise: Noise):
+    def __init__(self, torque_nominal: np.ndarray, noise: Noise = None):
         r"""
         Initialize the propulsion disturbance model.
 
@@ -65,7 +65,10 @@ class Prop_Disturbance(Disturbance):
             Noise model instance providing additive random torque fluctuations.
         """
         self.torque_nominal = torque_nominal
-        self.noise = noise
+        if noise:
+            self.noise = noise
+        else:
+            self.noise = Noise()
         self.current_torque = self.torque_nominal.copy()
 
     def update(self) -> None:
@@ -82,7 +85,7 @@ class Prop_Disturbance(Disturbance):
         """
         self.current_torque = self.torque_nominal + self.noise.get_noise()
 
-    def torque(self) -> np.ndarray:
+    def torque(self, x: np.ndarray, os: Orbital_State) -> np.ndarray:
         r"""
         Return the **current disturbance torque** due to propulsion effects.
 

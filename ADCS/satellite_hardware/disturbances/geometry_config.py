@@ -1,7 +1,51 @@
-__all__ = ["GeometryConfig"]
+__all__ = ["GeometryFace", "GeometryConfig"]
 
 import numpy as np
 from typing import List, Dict, Any
+
+class GeometryFace:
+    def __init__(self, area: float, centroid: np.ndarray, normal: np.ndarray, eta_s: float = 0, eta_d: float = 0, eta_a: float = 0, CD: float = 0):
+        self.area = area
+        self.centroid = centroid
+        self.normal = normal
+        self.eta_s = eta_s
+        self.eta_d = eta_d
+        self.eta_a = eta_a
+        self.CD = CD
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "GeometryFace":
+        """
+        Create a GeometryFace from a dictionary.
+
+        Accepts either 'CD' or 'CD' for drag coefficient, and defaults
+        unspecified eta/CD values to 0.
+        """
+        return cls(
+            area=data["area"],
+            centroid=np.array(data["centroid"]),
+            normal=np.array(data["normal"]),
+            eta_s=data.get("eta_s", 0),
+            eta_d=data.get("eta_d", 0),
+            eta_a=data.get("eta_a", 0),
+            CD=data.get("CD", data.get("CD", 0)),
+        )
+
+    def to_dict(self) -> Dict[str, Any]:
+        """
+        Convert this GeometryFace to a dictionary representation.
+        """
+        return {
+            "area": self.area,
+            "centroid": np.array(self.centroid),
+            "normal": np.array(self.normal),
+            "eta_s": self.eta_s,
+            "eta_d": self.eta_d,
+            "eta_a": self.eta_a,
+            "CD": self.CD,
+        }
+    
+
 
 class GeometryConfig:
     r"""
@@ -51,7 +95,7 @@ class GeometryConfig:
         Each entry must include the keys listed above.
     """
 
-    def __init__(self, geometry: List[Dict[str, Any]]) -> None:
+    def __init__(self, geometry_faces: List[GeometryFace]) -> None:
         r"""
         Initialize a :class:`GeometryConfig` instance.
 
@@ -60,62 +104,18 @@ class GeometryConfig:
         geometry : list[dict[str, any]]
             List of dictionaries describing each surface element.
             See :ref:`Structure of a Geometry Entry <geometry_entry>` above.
-        """
-        self.params = geometry
-
-    def add_geometry(self, geometry: List[Dict[str, Any]]) -> None:
-        r"""
-        Add new surface geometry elements to the configuration.
-
-        This method appends additional surface definitions to the existing
-        configuration.  
-        Each input face must contain **8 elements** in the order:
-
-        .. code-block:: python
-
-            [index, area, centroid, normal, eta_s, eta_d, eta_a, CD]
-
-        The new surface is stored internally as a dictionary:
-
-        .. code-block:: python
-
-            {
-                "index": int,
-                "area": float,
-                "centroid": np.ndarray,
-                "normal": np.ndarray,
-                "eta_s": float,
-                "eta_d": float,
-                "eta_a": float,
-                "cd": float
-            }
-
-        Parameters
-        ----------
-        geometry : list[list[any]]
-            List of surface definitions, each containing exactly 8 elements
-            (index, area, centroid, normal, eta_s, eta_d, eta_a, CD).
-
-        Raises
-        ------
-        ValueError
-            If any geometry element does not contain exactly 8 parameters.
-        """
-        for face in geometry:
-            if len(face) != 8:
-                raise ValueError(
-                    "Each geometry element must have 8 values: "
-                    "[index, area, centroid, normal, eta_s, eta_d, eta_a, CD]"
-                )
-
-            face_dict = {
-                "index": face[0],
-                "area": face[1],
-                "centroid": np.array(face[2]),
-                "normal": np.array(face[3]),
-                "eta_s": face[4],
-                "eta_d": face[5],
-                "eta_a": face[6],
-                "cd": face[7],
-            }
-            self.params.append(face_dict)
+        """ 
+        self.faces = geometry_faces
+        self.params: List[Dict[str, Any]] = []
+        for f in self.faces:
+            # prefer 'CD' (lowercase) in params for back-compat
+            cd_val = getattr(f, "CD", getattr(f, "CD", 0))
+            self.params.append({
+                "area": float(f.area),
+                "centroid": np.array(f.centroid, dtype=float),
+                "normal": np.array(f.normal, dtype=float),
+                "eta_s": float(getattr(f, "eta_s", 0)),
+                "eta_d": float(getattr(f, "eta_d", 0)),
+                "eta_a": float(getattr(f, "eta_a", 0)),
+                "CD": float(cd_val),
+            })

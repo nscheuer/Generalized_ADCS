@@ -399,8 +399,12 @@ class Satellite:
 
 
     def dist_torques(self, x: np.ndarray, os: Orbital_State) -> np.ndarray:
-        q = x[3:7]
-        dist_list = [j.torque(q=q, os=os) for j in self.disturbances]
+        dist_list = []
+        for j in self.disturbances:
+            if 'sat' in j.torque.__code__.co_varnames:
+                dist_list.append(j.torque(sat=self, x=x, os=os))
+            else:
+                dist_list.append(j.torque(x=x, os=os))
         return sum(dist_list,np.zeros(3))
     
     def act_torque(self, x: np.ndarray, u: np.ndarray, os: Orbital_State) -> np.ndarray:
