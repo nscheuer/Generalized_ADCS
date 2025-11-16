@@ -1,4 +1,8 @@
 from .sensor import Sensor
 from .gps import GPS
+from .gyro import Gyro
+from .sunsensor import SunSensor
+from .sunpair import SunPair
+from .magnetometer import MTM
 
-__all__ = ["Sensor", "GPS"]
+__all__ = ["Sensor", "SunSensor", "SunPair", "GPS", "Gyro", "MTM"]

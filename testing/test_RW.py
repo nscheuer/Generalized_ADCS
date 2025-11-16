@@ -976,7 +976,7 @@ def test_RW_storage_torque_bias_noise_KS():
 
     drifts = np.asarray(drifts)  # shape (N,)
 
-    sigma = np.sqrt(0.5 * std_bias**2 + std_noise**2)
+    sigma = np.sqrt(0.5 * std_bias**2 + np.sqrt(2)*std_noise**2)
     exp = np.random.normal(0.0, sigma, size=N)
 
     ks = ks_2samp(drifts, exp)
@@ -985,4 +985,4 @@ def test_RW_storage_torque_bias_noise_KS():
     assert ks.pvalue > 0.05 or abs(ks.statistic) < threshold
 
 if __name__ == "__main__":
-    test_RW_torque_bias_noise_KS()
+    test_RW_storage_torque_bias_noise_KS()

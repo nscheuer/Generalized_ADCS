@@ -8,7 +8,11 @@ Submodules
    :maxdepth: 4
 
    ADCS.satellite_hardware.sensors.gps
+   ADCS.satellite_hardware.sensors.gyro
+   ADCS.satellite_hardware.sensors.magnetometer
    ADCS.satellite_hardware.sensors.sensor
+   ADCS.satellite_hardware.sensors.sunpair
+   ADCS.satellite_hardware.sensors.sunsensor
 
 Module contents
 ---------------

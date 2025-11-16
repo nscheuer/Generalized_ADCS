@@ -12,6 +12,7 @@ Submodules
    ADCS.satellite_hardware.disturbances.drag_disturbance
    ADCS.satellite_hardware.disturbances.general_disturbance
    ADCS.satellite_hardware.disturbances.geometry_config
+   ADCS.satellite_hardware.disturbances.gg_disturbance
    ADCS.satellite_hardware.disturbances.prop_disturbance
    ADCS.satellite_hardware.disturbances.srp_disturbance
 
