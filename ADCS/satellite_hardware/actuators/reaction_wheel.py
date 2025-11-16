@@ -72,7 +72,7 @@ class RW(Actuator):
         self,
         axis: np.ndarray,
         max_torque: float,
-        J: np.ndarray,
+        J: float,
         h: np.ndarray,
         h_max: np.ndarray,
         bias: Bias = None,
@@ -91,7 +91,7 @@ class RW(Actuator):
         max_torque : float
             Maximum torque the wheel motor can produce [N·m].
 
-        J : np.ndarray
+        J : float
             Wheel moment of inertia [kg·m²].
 
         h : np.ndarray

@@ -108,22 +108,30 @@ class Orbital_State:
 
         if density_model:
             self.density_model = density_model
-        else:
+        elif not fast:
             self.density_model = DensityModel()
+        else:
+            self.density_model = None
 
         if S is not None:
             self.S = S
+        elif fast:
+            self.S = np.zeros(3)
         else:
             self.S = self.get_sun_eci()
 
         if B is not None:
             self.B = B
+        elif fast:
+            self.B = np.zeros(3)
         else:
             self.B = self.get_b_eci()
 
         if rho is not None:
             self.rho = rho
-        else: 
+        elif fast or self.density_model is None:
+            self.rho = 0.0
+        else:
             altitude_from_core = np.linalg.norm(self.R)
             self.rho = self.density_model.interpolate(altitude_from_core - EarthConstants.R_e)
 
@@ -296,7 +304,7 @@ class Orbital_State:
         # Gravitational constant (Earth)
         mu_e = EarthConstants.mu_e
         R_e = EarthConstants.R_e
-        J2coeff = EarthConstants.J2
+        J2coeff = EarthConstants.J2coeff
 
         # --- Core Two-body dynamics ---
         v_dot = -mu_e * r_ECI / rn**3

@@ -410,8 +410,7 @@ class Actuator:
             Empty in this base class.
         """
         return np.zeros((0, 0, 0))
-    
-        
+
     
 
 

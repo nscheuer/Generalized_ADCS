@@ -1,6 +1,7 @@
 import sys
 import os
 import numpy as np
+import numdifftools as nd
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 import pytest
@@ -10,6 +11,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.universal_constants import EarthConstants
 from ADCS.orbits.orbital_state import Orbital_State
+from ADCS.helpers.math_helpers import random_n_unit_vec, normalize
 
 
 def closest_approach(R0, traj, min_skip=1):
@@ -36,7 +38,7 @@ def test_orbit(method="rk4", use_J2=False, dt=60.0):
 
     orbit = Orbital_State(ephem, J2000=0.0, R=R0, V=V0,
                           S=None, B=None, rho=None,
-                          density_model=None, fast=False)
+                          density_model=None, fast=True)
 
     # === Orbital period and adjusted dt ===
     T_orbit = 2 * np.pi * np.sqrt(r_mag ** 3 / mu)
@@ -60,7 +62,58 @@ def test_orbit(method="rk4", use_J2=False, dt=60.0):
     return times, positions
 
 
+def test_orbit_dyn_Jacobians():
+    for k in range(1):
+        pos = 7000*random_n_unit_vec(3)
+        vel = 8*normalize(np.cross(random_n_unit_vec(3), pos))
+        ephem = Ephemeris()
+        os = Orbital_State(ephem=ephem, J2000=0.22, R=pos, V=vel)
+
+        rfun = lambda c: Orbital_State(ephem=ephem, J2000=0.22, R=np.array([c[0],c[1],c[2]]), V=np.array([c[3],c[4],c[5]]), fast=True).orbit_dynamics(J2_perturbation_on=True)[0]
+        vfun = lambda c: Orbital_State(ephem=ephem, J2000=0.22, R=np.array([c[0],c[1],c[2]]), V=np.array([c[3],c[4],c[5]]), fast=True).orbit_dynamics(J2_perturbation_on=True)[1]
+
+        Jrfun = nd.Jacobian(rfun)(pos.flatten().tolist() + vel.flatten().tolist())
+        Jvfun = nd.Jacobian(vfun)(pos.flatten().tolist() + vel.flatten().tolist())
+        drd_dr, drd_dv, dvd_dr, dvd_dv = os.orbit_dynamics_jacobians(J2_perturbation_on=True)
+
+        # Build full 6×6 analytic Jacobian
+        combined_results = np.block([
+            [drd_dr, dvd_dr],
+            [drd_dv, dvd_dv],
+        ])
+
+        Jrfuntest = np.array(Jrfun)
+        Jvfuntest = np.array(Jvfun)
+        assert np.allclose(Jrfuntest.T,combined_results[:,0:3])
+        assert np.allclose(Jvfuntest.T,combined_results[:,3:6])
+
+def test_orbit_rk4_Jacobians():
+    for k in range(1):
+        pos = 7000*random_n_unit_vec(3)
+        vel = 8*normalize(np.cross(random_n_unit_vec(3), pos))
+        ephem = Ephemeris()
+        os = Orbital_State(ephem=ephem, J2000=0.22, R=pos, V=vel)
+        dt = 1.0
+
+        rfun = lambda c: Orbital_State(ephem=ephem, J2000=0.22, R=np.array([c[0],c[1],c[2]]), V=np.array([c[3],c[4],c[5]]), fast=True).propagate_orbit_rk4(dt=dt, J2_perturbation_on=True).R
+        vfun = lambda c: Orbital_State(ephem=ephem, J2000=0.22, R=np.array([c[0],c[1],c[2]]), V=np.array([c[3],c[4],c[5]]), fast=True).propagate_orbit_rk4(dt=dt, J2_perturbation_on=True).V
+
+        Jrfun = nd.Jacobian(rfun)(pos.flatten().tolist() + vel.flatten().tolist())
+        Jvfun = nd.Jacobian(vfun)(pos.flatten().tolist() + vel.flatten().tolist())
+        [drd__dr,drd__dv,dvd__dr,dvd__dv] = os.propagate_jacobians_rk4(dt=dt, J2_perturbation_on=True)
+
+        Jrfuntest = np.array(Jrfun)
+        Jvfuntest = np.array(Jvfun)
+
+        assert np.allclose(Jrfuntest.T, np.vstack([drd__dr, drd__dv]))
+        assert np.allclose(Jvfuntest.T, np.vstack([dvd__dr, dvd__dv]))
+
+
+
+
 def main():
+    test_orbit_rk4_Jacobians()
+    return
     """Run visual orbit propagation comparisons (for human run)."""
     results = {}
 
