@@ -46,6 +46,14 @@ class GPS(Sensor):
     """
     def __init__(self, sample_time: float = 0.1, bias: Bias = None, noise: Noise = None, estimate_bias: bool = False):
         self.attitude_sensor = False
+        if bias:
+            self.bias = bias
+        else:
+            self.bias = Bias(bias=np.zeros(6), std_bias=np.zeros(6))
+        if noise:
+            self.noise = noise
+        else:
+            self.noise = Noise(noise=np.zeros(6), std_noise=np.zeros(6))
         super().__init__(sample_time=sample_time, output_length=6, bias=bias, noise=noise, estimate_bias=estimate_bias)
 
     def clean_reading(self, x: np.ndarray, os: Orbital_State) -> np.ndarray:

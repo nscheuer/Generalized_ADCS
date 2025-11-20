@@ -106,7 +106,6 @@ class Bias:
         float
             The updated bias value :math:`b_k`.
         """
-        self._update_bias(j2000=j2000)
         if self.bias.size == 1:
             return self.bias.item()
         else:

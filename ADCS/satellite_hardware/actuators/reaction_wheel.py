@@ -77,6 +77,7 @@ class RW(Actuator):
         h_max: np.ndarray,
         bias: Bias = None,
         noise: Noise = None,
+        h_meas_noise: Noise = None,
         estimate_bias: bool = False,
     ) -> None:
         r"""
@@ -115,9 +116,10 @@ class RW(Actuator):
         self.J = J
         self.h = h
         self.h_max = h_max
+        self.h_meas_noise = h_meas_noise
         super().__init__(axis=axis, u_max=max_torque, bias=bias, noise=noise, estimate_bias=estimate_bias)
 
-    def torque(self, u: float, x: np.ndarray, os: Orbital_State) -> float:
+    def torque(self, u: float, x: np.ndarray, os: Orbital_State, update_bias: bool = True, update_noise: bool = True) -> float:
         r"""
         Compute the **reaction wheel body torque**.
 
@@ -161,13 +163,17 @@ class RW(Actuator):
 
         if self.bias:
             torque += self.bias.get_bias(j2000=os.J2000)
+        if update_bias:
+            self.bias._update_bias(j2000=os.J2000)
 
         if self.noise:
             torque += self.noise.get_noise()
+        if update_noise:
+            self.noise._update_noise()
 
         return self.axis*torque
 
-    def storage_torque(self, u: float, x: np.ndarray, os: Orbital_State) -> float:
+    def storage_torque(self, u: float, x: np.ndarray, os: Orbital_State, bias: bool = True, noise: bool = True) -> float:
         r"""
         Compute the **internal torque acting on the wheel** (equal and opposite to
         body torque).
@@ -197,15 +203,21 @@ class RW(Actuator):
         
         command = u
 
-        if self.bias:
+        if self.bias and bias:
             command += self.bias.get_bias(j2000=os.J2000)
 
-        if self.noise:
+        if self.noise and noise:
             command += self.noise.get_noise()
 
         return -command
-        
+    
 
+    def measure_momentum(self):
+        return self.h + self.h_meas_noise.get_noise()
+    
+    def measure_momentum_noiseless(self):
+        return self.h
+        
     def update_momentum(self, h: float) -> None:
         r"""
         Update the wheel’s stored angular momentum.

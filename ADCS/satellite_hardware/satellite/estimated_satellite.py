@@ -1,7 +1,7 @@
 __all__ = ["EstimatedSatellite"]
 import numpy as np
 
-from typing import List, Dict, Union, Tuple, Any
+from typing import List, Dict, Union, Tuple, Any, Optional
 from scipy.linalg import block_diag
 
 from .satellite import Satellite
@@ -97,12 +97,12 @@ class EstimatedSatellite(Satellite):
         super().__init__(mass, COM, J_0, disturbances, sensors, actuators)
 
         # Add estimated states
-        self.act_bias_inds = [j for j in range(len(self.actuators)) if self.actuators[j].estimated_bias] # Indices with actuator bias
+        self.act_bias_inds = [j for j in range(len(self.actuators)) if self.actuators[j].estimate_bias] # Indices with actuator bias
         self.act_bias_len = sum([self.actuators[j].input_len for j in self.act_bias_inds]) # Number of actuators with biases
-        self.att_sens_bias_inds = [j for j in range(len(self.attitude_sensors)) if self.sensors[j].estimated_bias] # Indices with sensor bias
+        self.att_sens_bias_inds = [j for j in range(len(self.attitude_sensors)) if self.sensors[j].estimate_bias] # Indices with sensor bias
         self.att_sens_bias_len = sum([self.attitude_sensors[j].output_length for j in self.att_sens_bias_inds]) # Number of sensors with bias
-        self.dist_param_inds = [j for j in range(len(self.disturbances)) if self.disturbances[j].estimated_param] # Indices with sensor disturbaces
-        self.dist_param_len = sum([self.disturbances[j].main_param.size for j in self.dist_param_inds]) # Number of sensors with bias
+        self.dist_param_inds = [j for j in range(len(self.disturbances)) if self.disturbances[j].estimate_dist] # Indices with sensor disturbaces
+        self.dist_param_len = sum([self.disturbances[j].estimated_vector_length for j in self.dist_param_inds]) # Number of sensors with bias
 
     def match_estimate(self, est_state: EstimatedArray, dt: float) -> None:
         """
@@ -377,15 +377,15 @@ class EstimatedSatellite(Satellite):
         # Reaction Wheels
         if self.number_RW>0:
             dact_torq__dh = np.vstack([self.actuators[j].dtorq__dh(u[j],self,x,vecs) for j in range(len(self.actuators))])
-            RWjs = np.array([self.actuators[j].J for j in self.momentum_inds])
-            RWaxes = np.vstack([self.actuators[j].axis for j in self.momentum_inds])
+            RWjs = np.array([rw.J for rw in self.rw_actuators])
+            RWaxes = np.vstack([rw.axis for rw in self.rw_actuators])
             mRWjs = np.diagflat(RWjs)
             dxdot__dx[0:3,0:3] += -skewsym(RWhs@RWaxes)@invJ_noRW
             dxdot__dx[7:,0:3] += (dact_torq__dh+np.cross(RWaxes,w))@invJ_noRW
             dxdot__du[:,7:] = block_diag(*[self.actuators[j].dstor_torq__du(u[j],self,x,vecs) for j in range(len(self.actuators))])
             dxdot__du[:,7:] -= dxdot__du[:,0:3]@RWaxes.T@mRWjs
-            dxdot__dx[0:7,7:] = np.hstack([self.actuators[j].dstor_torq__dbasestate(u[j],self,x,vecs) for j in range(len(self.actuators))])
-            dxdot__dx[7:,7:] = np.diagflat([self.actuators[j].dstor_torq__dh(u[j],self,x,vecs) for j in self.momentum_inds])
+            dxdot__dx[0:7,7:] = np.hstack([act.dstor_torq__dbasestate(u[j],self,x,vecs) for act in self.actuators])
+            dxdot__dx[7:,7:] = np.diagflat([rw.dstor_torq__dh(u[j],self,x,vecs) for rw in self.rw_actuators])
             dxdot__dx[:,7:] -= dxdot__dx[:,0:3]@RWaxes.T@mRWjs
         dxdot__dab = np.zeros((self.act_bias_len,self.state_len))
         dxdot__dsb = np.zeros((self.att_sens_bias_len,self.state_len))
@@ -793,3 +793,68 @@ class EstimatedSatellite(Satellite):
 
             return [[ddxdot__dxdx,ddxdot__dxdu,ddxdot__dxdab,ddxdot__dxdsb,ddxdot__dxddmp],[ddxdot__dxdu.T,ddxdot__dudu,ddxdot__dudab,ddxdot__dudsb,ddxdot__duddmp],[0,0,ddxdot__dabdab,ddxdot__dabdsb,ddxdot__dabddmp],[0,0,0,ddxdot__dsbdsb,ddxdot__dsbddmp],[0,0,0,0,ddxdot__ddmpddmp]]
         return [[ddxdot__dxdx,ddxdot__dxdu],[ddxdot__dxdu.T,ddxdot__dudu]]
+
+    def sensor_bias_slice(self, att_sensor_index: int) -> Optional[slice]:
+        """
+        Return the [start:stop] slice in the *full* estimator state vector
+        corresponding to the bias of attitude_sensors[att_sensor_index].
+
+        Full estimator state is ordered as:
+            [ base_state (state_len),
+              actuator_bias (act_bias_len),
+              attitude_sensor_bias (att_sens_bias_len),
+              disturbance_params (dist_param_len) ]
+
+        If the sensor has no associated bias state, returns None.
+        """
+        if att_sensor_index not in self.att_sens_bias_inds:
+            return None
+
+        # Start of the sensor–bias block in the full state vector
+        base = self.state_len + self.act_bias_len
+
+        offset = 0
+        for j in self.att_sens_bias_inds:
+            out_len = self.attitude_sensors[j].output_length
+            if j == att_sensor_index:
+                start = base + offset
+                return slice(start, start + out_len)
+            offset += out_len
+
+        # Should never be reached
+        raise RuntimeError(
+            f"Sensor index {att_sensor_index} is in att_sens_bias_inds, "
+            "but its bias slice could not be constructed."
+        )
+    
+    def control_cov(self) -> np.ndarray:
+        """
+        Block-diagonal covariance matrix for all actuator noises.
+        """
+        blocks = [actuator.noise.cov() for actuator in self.actuators]
+        return np.array(block_diag(*blocks))
+
+    def control_srcov(self) -> np.ndarray:
+        """
+        Block-diagonal square-root covariance matrix for all actuator noises.
+        """
+        blocks = [actuator.noise.srcov() for actuator in self.actuators]
+        return np.array(block_diag(*blocks))
+
+    def sensor_cov(self) -> np.ndarray:
+        """
+        Block-diagonal covariance matrix for all attitude sensor noises.
+        """
+        blocks = []
+        blocks.extend([attitude_sensor.noise.cov() for attitude_sensor in self.attitude_sensors])
+        blocks.extend([np.atleast_2d(rw_sensor.h_meas_noise.cov()) for rw_sensor in self.rw_actuators])
+        return np.array(block_diag(*blocks))
+
+    def sensor_srcov(self) -> np.ndarray:
+        """
+        Block-diagonal square-root covariance matrix for all attitude sensor noises.
+        """
+        blocks = []
+        blocks.extend([attitude_sensor.noise.srcov() for attitude_sensor in self.attitude_sensors])
+        blocks.extend([np.atleast_2d(rw_sensor.h_meas_noise.srcov()) for rw_sensor in self.rw_actuators])
+        return np.array(block_diag(*blocks))

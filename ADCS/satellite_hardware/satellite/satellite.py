@@ -4,13 +4,15 @@ import numpy as np
 
 from typing import List, Dict, Union, Tuple, Any
 from scipy.linalg import block_diag
+import time
 
 import ADCS.orbits.universal_constants as uc
 from ADCS.helpers.math_helpers import *
 from ADCS.satellite_hardware.disturbances import Disturbance, SRP_Disturbance, General_Disturbance, Prop_Disturbance
-from ADCS.satellite_hardware.sensors import Sensor, GPS
-from ADCS.satellite_hardware.actuators import Actuator, RW
+from ADCS.satellite_hardware.sensors import Sensor, GPS, Gyro, MTM, SunPair, SunSensor
+from ADCS.satellite_hardware.actuators import Actuator, RW, MTQ
 from ADCS.orbits.orbital_state import Orbital_State
+from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.logging.logger import ADCSLogger
 
 class Satellite:
@@ -80,16 +82,15 @@ class Satellite:
                 raise ValueError(f"J must be a numpy array of shape (3, 3), got {self.J_0.shape}")
         self.disturbances = disturbances
         self.sensors = sensors
+        self.attitude_sensors: List[Sensor] = [s for s in sensors if not isinstance(s, GPS)]
+        self.GPS_sensors: List[GPS] = [s for s in sensors if isinstance(s, GPS)]
+        
         self.actuators = actuators
+        self.rw_actuators: List[RW] = [s for s in actuators if isinstance(s, RW)]
+        self.mtq_actuators: List[MTQ] = [s for s in actuators if not isinstance(s, RW)]
+        self.momentum_inds = np.array([j for j in range(len(self.actuators)) if isinstance(self.actuators[j], RW)])
         self.logger = logger
 
-        # Filter sensors
-        self.attitude_sensors_ind = [j for j in sensors if j.attitude_sensor]
-        self.other_sensors_ind = [j for j in sensors if not j.attitude_sensor and not isinstance(j,GPS)]
-        self.orbit_sensors_ind = [j for j in sensors if isinstance(j,GPS)]
-
-        # Filter actuators
-        self.momentum_inds = [j for j, act in enumerate(self.actuators) if isinstance(act, RW)]
         self.number_RW = sum([1 for j in self.actuators if isinstance(j,RW)])
 
         # Initialize state
@@ -153,17 +154,18 @@ class Satellite:
         self.invJ_COM = np.linalg.inv(self.J_COM)
 
         # Subtract reaction wheel contributions (if applicable)
-        self.J_noRW = self.J_COM - np.sum(
-            np.array([
-                self.actuators[j].J * np.outer(self.actuators[j].axis, self.actuators[j].axis)
-                for j in getattr(self, "momentum_inds", [])
-            ]),
-            axis=0
-        ) if getattr(self, "momentum_inds", None) else self.J_COM
+        self.J_noRW = self.J_COM - np.sum(np.array([rw.J*np.outer(rw.axis, rw.axis) for rw in self.rw_actuators]), axis = 0)
+        # self.J_noRW = self.J_COM - np.sum(
+        #     np.array([
+        #         self.actuators[j].J * np.outer(self.actuators[j].axis, self.actuators[j].axis)
+        #         for j in getattr(self, "momentum_inds", [])
+        #     ]),
+        #     axis=0
+        # ) if getattr(self, "momentum_inds", None) else self.J_COM
 
         self.invJ_noRW = np.linalg.inv(self.J_noRW)
 
-    def _toggle_disturbances(self, dist_class: Disturbance, on: bool, ind: int | None = None) -> None:
+    def _toggle_disturbance(self, dist_class: Disturbance, on: bool, ind: int | None = None) -> None:
         if ind is not None:
             d = self.disturbances[ind]
             if not isinstance(d, dist_class):
@@ -178,42 +180,42 @@ class Satellite:
             if isinstance(d, dist_class):
                 getattr(d, "turn_on" if on else "turn_off")()
 
-    def srp_dist_on(self):
+    def srp_dist_on(self) -> None:
         """Turn on all Solar Radiation Pressure disturbances."""
         self._toggle_disturbance(SRP_Disturbance, on=True)
 
-    def srp_dist_off(self):
+    def srp_dist_off(self) -> None:
         """Turn off all Solar Radiation Pressure disturbances."""
         self._toggle_disturbance(SRP_Disturbance, on=False)
 
-    def gen_dist_on(self, ind: int | None = None):
+    def gen_dist_on(self, ind: int | None = None) -> None:
         """Turn on general disturbances."""
         self._toggle_disturbance(General_Disturbance, on=True, ind=ind)
 
-    def gen_dist_off(self, ind: int | None = None):
+    def gen_dist_off(self, ind: int | None = None) -> None:
         """Turn off general disturbances."""
         self._toggle_disturbance(General_Disturbance, on=False, ind=ind)
 
-    def prop_dist_on(self, ind: int | None = None):
+    def prop_dist_on(self, ind: int | None = None) -> None:
         """Turn on propulsion disturbances."""
         self._toggle_disturbance(Prop_Disturbance, on=True, ind=ind)
 
-    def prop_dist_off(self, ind: int | None = None):
+    def prop_dist_off(self, ind: int | None = None) -> None:
         """Turn off propulsion disturbances."""
         self._toggle_disturbance(Prop_Disturbance, on=False, ind=ind)
 
-    def specific_dist_on(self, ind: int):
+    def specific_dist_on(self, ind: int) -> None:
         """Turn on a specific disturbance by index."""
         self.disturbances[ind].turn_on()
 
-    def specific_dist_off(self, ind: int):
+    def specific_dist_off(self, ind: int) -> None:
         """Turn off a specific disturbance by index."""
         self.disturbances[ind].turn_off()
 
-    def RWhs(self):
+    def RWhs(self) -> np.ndarray:
         return np.array([self.actuators[j].h for j in self.momentum_inds])
 
-    def update_RWhs(self,state_or_RWhs):
+    def update_RWhs(self,state_or_RWhs) -> None:
         if np.size(state_or_RWhs) == self.state_len:
             RWhs = self.RWhs_from_state(state_or_RWhs)
         else:
@@ -222,10 +224,10 @@ class Satellite:
             raise ValueError("wrong number of RWhs to update")
         [self.actuators[self.momentum_inds[i]].update_momentum(RWhs[i]) for i in range(len(self.momentum_inds))]
 
-    def RWhs_from_state(self,state):
+    def RWhs_from_state(self,state) -> np.ndarray:
         return state[7:]
     
-    def dynamics_core(self, x: np.ndarray, u: np.ndarray, orbital_state: Orbital_State, verbose: bool = False, log: bool = False) -> np.ndarray:
+    def dynamics_core(self, x: np.ndarray, u: np.ndarray, orbital_state: Orbital_State, update_bias: bool = True, update_noise: bool = True, verbose: bool = False) -> np.ndarray:
         r"""
         Compute the full spacecraft rotational dynamics including attitude kinematics,
         external disturbances, and actuator torques, with optional reaction wheel coupling.
@@ -372,8 +374,8 @@ class Satellite:
         J = self.J_0
         invJ_noRW = self.invJ_noRW
 
-        disturbance_torque: np.ndarray = self.dist_torques(x, orbital_state)
-        actuator_torque: np.ndarray = self.act_torque(x, u, orbital_state)
+        disturbance_torque: np.ndarray = self.dist_torques(x=x, os=orbital_state)
+        actuator_torque: np.ndarray = self.act_torque(x=x, u=u, os=orbital_state, update_noise=update_noise, update_bias=update_bias)
 
         # Dynamics
         qdot = 0.5*w@Wmat(q).T
@@ -396,7 +398,17 @@ class Satellite:
                 print('comp1',u_RW)
                 print('comp2',-wdot@RWaxes.T@np.diagflat(RWjs))
             return np.concatenate([wdot,qdot,RW_hdot])
+        
+    def dynamics_for_solver(self, t: float, x: np.ndarray, u: np.ndarray, os0: Orbital_State, os1: Orbital_State) -> np.ndarray:
+        delta_t_between_os = (os1.J2000 - os0.J2000)*TimeConstants.cent2sec
+        time_frac = t/delta_t_between_os
 
+        os = os0.average(os1, time_frac, True)
+
+        x_dot = self.dynamics_core(x=x, u=u, orbital_state=os, update_bias=False, update_noise=False, verbose=False)
+        
+        return x_dot
+    
 
     def dist_torques(self, x: np.ndarray, os: Orbital_State) -> np.ndarray:
         dist_list = []
@@ -407,9 +419,10 @@ class Satellite:
                 dist_list.append(j.torque(x=x, os=os))
         return sum(dist_list,np.zeros(3))
     
-    def act_torque(self, x: np.ndarray, u: np.ndarray, os: Orbital_State) -> np.ndarray:
-        act_list = [self.actuators[j].torque(u[j], x, os=os) for j in range(len(self.actuators))]
+    def act_torque(self, x: np.ndarray, u: np.ndarray, os: Orbital_State, update_bias: bool = True, update_noise: bool = True) -> np.ndarray:
+        act_list = [self.actuators[j].torque(u[j], x, os=os, update_bias=update_bias, update_noise=update_noise) for j in range(len(self.actuators))]
         return sum(act_list, np.zeros(3))
+
     
     def dist_torques_jacobian(self, x: np.ndarray, vecs: Dict[str, np.ndarray]) -> Union[np.ndarray, np.ndarray]:
         r"""
@@ -510,7 +523,7 @@ class Satellite:
         rho = orbital_state.rho # Atmospheric density [kg/m^3]
 
         w = x[0:3]
-        q = x[4:7]
+        q = x[3:7]
         RWhs = x[7:]
         J = self.J_0
         invJ_noRW = self.invJ_noRW
@@ -846,7 +859,7 @@ class Satellite:
         return [[ddxdot__dxdx,ddxdot__dxdu],[ddxdot__dxdu.T,ddxdot__dudu]]
 
 
-    def rk4(self, x: np.ndarray, u: np.ndarray, dt: float, orbital_state0: Orbital_State, orbital_state1: Orbital_State, verbose: bool=False,mid_orbital_state: Orbital_State = None, quat_as_vec: bool = True, give_err_est = False) -> np.ndarray:
+    def noiseless_rk4(self, x: np.ndarray, u: np.ndarray, dt: float, orbital_state0: Orbital_State, orbital_state1: Orbital_State, verbose: bool=False,mid_orbital_state: Orbital_State = None, quat_as_vec: bool = True, give_err_est = False) -> np.ndarray:
         r"""
         Integrate the spacecraft rotational dynamics forward in time using a **fourth-order Runge–Kutta (RK4)**
         method or an optional **commutator-free fifth-order (CG5)** scheme for quaternion propagation.
@@ -974,9 +987,9 @@ class Satellite:
 
         .. code-block:: python
 
-            x_next = sat.rk4(x, u, 0.1, orb0, orb1)
+            x_next = sat.noiseless_rk4(x, u, 0.1, orb0, orb1)
             # or with embedded error estimate
-            x_next, err = sat.rk4(x, u, 0.1, orb0, orb1, give_err_est=True)
+            x_next, err = sat.noiseless_rk4(x, u, 0.1, orb0, orb1, give_err_est=True)
 
         ---
         **References**
@@ -990,18 +1003,18 @@ class Satellite:
             if mid_orbital_state is None:
                 mid_orbital_state = orbital_state0.average(orbital_state1)
 
-            k1 = self.dynamics(x, u, orbital_state0, verbose=verbose)
+            k1 = self.dynamics_core(x=x, u=u, orbital_state=orbital_state0, verbose=verbose)
             k2_in = x + 0.5 * dt * k1
             k2_in[3:7] = normalize(k2_in[3:7])
-            k2 = self.dynamics(k2_in, u, mid_orbital_state, verbose=verbose)
+            k2 = self.dynamics_core(x=k2_in, u=u, orbital_state=mid_orbital_state, verbose=verbose)
 
             k3_in = x + 0.5 * dt * k2
             k3_in[3:7] = normalize(k3_in[3:7])
-            k3 = self.dynamics(k3_in, u, mid_orbital_state, verbose=verbose)
+            k3 = self.dynamics_core(x=k3_in, u=u, orbital_state=mid_orbital_state, verbose=verbose)
 
             k4_in = x + dt * k3
             k4_in[3:7] = normalize(k4_in[3:7])
-            k4 = self.dynamics(k4_in, u, orbital_state1, verbose=verbose,)
+            k4 = self.dynamics_core(x=k4_in, u=u, orbital_state=orbital_state1, verbose=verbose,)
 
             out = x + (dt / 6.0) * (k1 + 2 * k2 + 2 * k3 + k4)
             out[3:7] = normalize(out[3:7])
@@ -1055,3 +1068,40 @@ class Satellite:
             )
 
             return out
+        
+    
+
+        
+    def sensor_readings(self, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+        sensor_readings: List[np.ndarray] = [self.attitude_sensors[j].reading(x=x, os=os) for j in range(len(self.attitude_sensors))]
+        rw_readings: List[np.ndarray] = [self.rw_actuators[j].measure_momentum() for j in range(len(self.rw_actuators))]
+        return np.concatenate([sensor_readings, rw_readings])
+    
+    def noiseless_sensor_readings(self, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+        sensor_readings: List[np.ndarray] = [self.attitude_sensors[j].clean_reading(x=x, os=os) for j in range(len(self.attitude_sensors))]
+        rw_readings: List[np.ndarray] = [self.rw_actuators[j].measure_momentum_noiseless() for j in range(len(self.rw_actuators))]
+        return np.concatenate([sensor_readings, rw_readings])
+    
+    def RW_readings(self, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+        rw_readings: List[np.ndarray] = [self.rw_actuators[j].measure_momentum() for j in range(len(self.rw_actuators))]
+        return rw_readings
+
+    def GPS_readings(self, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+        gps_readings: List[np.ndarray] = [self.GPS_sensors[j].reading(x=x, os=os) for j in range(len(self.GPS_sensors))]
+        return gps_readings
+    
+    def gyro_readings(self, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+        gyro_readings: List[np.ndarray] = [self.attitude_sensors[j].reading(x=x, os=os) for j in self(len(self.attitude_sensors)) if isinstance(self.attitude_sensors[j], Gyro)]
+        return gyro_readings
+    
+    def mtm_readings(self, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+        mtm_readings: List[np.ndarray] = [self.attitude_sensors[j].reading(x=x, os=os) for j in self(len(self.attitude_sensors)) if isinstance(self.attitude_sensors[j], MTM)]
+        return mtm_readings
+    
+    def sunpair_readings(self, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+        sunpair_readings: List[np.ndarray] = [self.attitude_sensors[j].reading(x=x, os=os) for j in self(len(self.attitude_sensors)) if isinstance(self.attitude_sensors[j], SunPair)]
+        return sunpair_readings
+    
+    def sunsensor_readings(self, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+        sunsensor_readings: List[np.ndarray] = [self.attitude_sensors[j].reading(x=x, os=os) for j in self(len(self.attitude_sensors)) if isinstance(self.attitude_sensors[j], SunSensor)]
+        return sunsensor_readings

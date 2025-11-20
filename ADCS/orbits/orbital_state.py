@@ -10,7 +10,8 @@ from ADCS.helpers.math_helpers import normalize, rot_mat, drotmatTvecdq, ddrotma
 from skyfield import api, units, positionlib, toposlib, framelib, vectorlib
 from skyfield.functions import T as sffT
 from datetime import timezone
-from typing import Union, Dict
+from typing import Union, Dict, Optional
+from numba import njit
 
 class Orbital_State:
     r"""
@@ -108,10 +109,8 @@ class Orbital_State:
 
         if density_model:
             self.density_model = density_model
-        elif not fast:
-            self.density_model = DensityModel()
         else:
-            self.density_model = None
+            self.density_model = DensityModel()
 
         if S is not None:
             self.S = S
@@ -135,10 +134,13 @@ class Orbital_State:
             altitude_from_core = np.linalg.norm(self.R)
             self.rho = self.density_model.interpolate(altitude_from_core - EarthConstants.R_e)
 
+        self.vecs: Dict[str, np.ndarray] | None = None
+        self._last_x: np.ndarray | None = None
+
     def copy(self):
         return self.average(self, 0)
     
-    def average(self, orbital_state_2, ratio: float = 0.5):
+    def average(self, orbital_state_2, ratio: float = 0.5, fast: bool = False):
         r"""
         Compute the weighted average between this orbital state and another
         :class:`Orbital_State` instance.
@@ -191,7 +193,7 @@ class Orbital_State:
             warnings.warn('non-matching air density vs altitude in atmospheric model between 2 orbital states')
         density_model = self.density_model
 
-        return Orbital_State(self.ephem, j2000, R, V, S, B, rho, density_model)
+        return Orbital_State(self.ephem, j2000, R, V, S, B, rho, density_model, fast=fast)
 
     def orbit_dynamics(self, J2_perturbation_on: bool = True) -> Union[np.ndarray, np.ndarray]:
         r"""
@@ -344,7 +346,7 @@ class Orbital_State:
         # Return the 4 sub-Jacobian blocks
         return drd_dr, drd_dv, dvd_dr, dvd_dv
         
-    def propagate_orbit(self, dt: float, J2_perturbation_on: bool = True):
+    def propagate_orbit(self, dt: float, J2_perturbation_on: bool = True, fast: bool = True):
         r"""
         Propagate the orbital state forward in time using first-order integration.
 
@@ -376,9 +378,9 @@ class Orbital_State:
         r_out = r_ECI+k1a*dt
         v_out = v_ECI+k1b*dt
 
-        return Orbital_State(self.ephem, self.J2000 + (dt/TimeConstants.cent2sec), r_out, v_out, S=None, B=None, rho=None, density_model=None, fast=True)
+        return Orbital_State(self.ephem, self.J2000 + (dt/TimeConstants.cent2sec), r_out, v_out, S=None, B=None, rho=None, density_model=None, fast=fast)
 
-    def propagate_orbit_rk4(self, dt: float, J2_perturbation_on: bool = True):
+    def propagate_orbit_rk4(self, dt: float, J2_perturbation_on: bool = True, fast: bool = True):
         r"""
         Propagate the orbit using 4th-order Runge–Kutta (RK4) integration.
 
@@ -413,23 +415,23 @@ class Orbital_State:
         k1a, k1b = self.orbit_dynamics(J2_perturbation_on)
         k2a_in = r_ECI+k1a*0.5*dt
         k2b_in = v_ECI+k1b*0.5*dt
-        os2_in = Orbital_State(self.ephem, self.J2000 + (0.5*dt/TimeConstants.cent2sec), k2a_in, k2b_in, S=None, B=None, rho=None, density_model=None, fast=True)
+        os2_in = Orbital_State(self.ephem, self.J2000 + (0.5*dt/TimeConstants.cent2sec), k2a_in, k2b_in, S=None, B=None, rho=None, density_model=None, fast=fast)
 
         k2a, k2b = os2_in.orbit_dynamics(J2_perturbation_on)
         k3a_in = r_ECI+k2a*0.5*dt
         k3b_in = v_ECI+k2b*0.5*dt
-        os3_in = Orbital_State(self.ephem, self.J2000 + (0.5*dt/TimeConstants.cent2sec), k3a_in, k3b_in, S=None, B=None, rho=None, density_model=None, fast=True)
+        os3_in = Orbital_State(self.ephem, self.J2000 + (0.5*dt/TimeConstants.cent2sec), k3a_in, k3b_in, S=None, B=None, rho=None, density_model=None, fast=fast)
 
         k3a, k3b = os3_in.orbit_dynamics(J2_perturbation_on)
         k4a_in = r_ECI+k3a*dt
         k4b_in = v_ECI+k3b*dt
-        os4_in = Orbital_State(self.ephem, self.J2000 + (1.0*dt/TimeConstants.cent2sec), k4a_in, k4b_in, S=None, B=None, rho=None, density_model=None, fast=True)
+        os4_in = Orbital_State(self.ephem, self.J2000 + (1.0*dt/TimeConstants.cent2sec), k4a_in, k4b_in, S=None, B=None, rho=None, density_model=None, fast=fast)
 
         k4a, k4b = os4_in.orbit_dynamics(J2_perturbation_on)
         r_out = r_ECI + (dt/6.0)*(k1a+k2a*2.0+k3a*2.0+k4a)
         v_out = v_ECI + (dt/6.0)*(k1b+k2b*2.0+k3b*2.0+k4b)
 
-        return Orbital_State(self.ephem, self.J2000 + (dt/TimeConstants.cent2sec), r_out, v_out, S=None, B=None, rho=None, density_model=None, fast=True)
+        return Orbital_State(self.ephem, self.J2000 + (dt/TimeConstants.cent2sec), r_out, v_out, S=None, B=None, rho=None, density_model=None, fast=fast)
     
     def propagate_jacobians(self, dt: float, J2_perturbation_on: bool = True) -> Union[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         r"""
@@ -755,7 +757,7 @@ class Orbital_State:
         return sun_eci
 
 
-    def get_state_vector(self, x: np.ndarray) -> Dict[str, np.ndarray]:
+    def update_vecs(self, x: np.ndarray) -> None:
         q0 = x[3:7]
 
         R = self.R
@@ -779,9 +781,13 @@ class Orbital_State:
         ddV_B__dqdq = ddrotmatTvecdqdq(q0,V)
         ddS_B__dqdq = ddrotmatTvecdqdq(q0,S)
 
-        vecs = {"b":B_B,"r":R_B,"s":S_B,"v":V_B,"rho":rho,"db":dB_B__dq,"ds":dS_B__dq,"dv":dV_B__dq,"dr":dR_B__dq,"ddb":ddB_B__dqdq,"dds":ddS_B__dqdq,"ddv":ddV_B__dqdq,"ddr":ddR_B__dqdq}
-
-        return vecs
+        self.vecs = {"b":B_B,"r":R_B,"s":S_B,"v":V_B,"rho":rho,"db":dB_B__dq,"ds":dS_B__dq,"dv":dV_B__dq,"dr":dR_B__dq,"ddb":ddB_B__dqdq,"dds":ddS_B__dqdq,"ddv":ddV_B__dqdq,"ddr":ddR_B__dqdq}
+        self._last_x = x
+    
+    def get_state_vector(self, x: Optional[np.ndarray]) -> Dict[str, np.ndarray]:
+        if not np.array_equal(x, self._last_x):
+            self.update_vecs(x=x)
+        return self.vecs
 
 
     def is_sunlit(self) -> bool:

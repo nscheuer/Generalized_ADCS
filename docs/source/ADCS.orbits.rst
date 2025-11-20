@@ -9,6 +9,7 @@ Submodules
 
    ADCS.orbits.density_model
    ADCS.orbits.ephemeris
+   ADCS.orbits.orbit
    ADCS.orbits.orbital_state
    ADCS.orbits.universal_constants
 

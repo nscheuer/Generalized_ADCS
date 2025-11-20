@@ -1196,4 +1196,4 @@ def test_MTQ_bias_noise_KS():
 
 
 if __name__ == "__main__":
-   test_MTQ_bias_noise_KS()
+   test_MTQ_torque()

@@ -102,6 +102,8 @@ class SRP_Disturbance(Disturbance):
         self.eta_d = np.array([p["eta_d"] for p in params])
         self.eta_a = np.array([p["eta_a"] for p in params])
 
+        super().__init__()
+
     def torque(self, sat: Satellite, x: np.ndarray, os: Orbital_State) -> np.ndarray:
         r"""
         Compute the **solar radiation pressure (SRP) torque** on the spacecraft in the body frame.

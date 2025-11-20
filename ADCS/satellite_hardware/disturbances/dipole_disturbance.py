@@ -39,7 +39,7 @@ class Dipole_Disturbance(Disturbance):
         Noise model instance used to perturb the nominal dipole vector.
     """
 
-    def __init__(self, dipole_torque: np.ndarray, noise: Noise = None):
+    def __init__(self, dipole_torque: np.ndarray, noise: Noise = None, estimate_dist: bool = False):
         r"""
         Initialize the dipole disturbance model.
 
@@ -56,6 +56,8 @@ class Dipole_Disturbance(Disturbance):
         else:
             self.noise = Noise()
         self.current_torque = self.torque_nominal.copy()
+
+        super().__init__(estimate_dist=estimate_dist, estimated_vector_length=3)
 
     def update(self) -> None:
         r"""

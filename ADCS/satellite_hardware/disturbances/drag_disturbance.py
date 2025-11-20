@@ -2,6 +2,7 @@ from __future__ import annotations
 __all__ = ["Drag_Disturbance"]
 
 import numpy as np
+import time
 from typing import TYPE_CHECKING
 from ADCS.satellite_hardware.disturbances.disturbance import Disturbance
 from ADCS.satellite_hardware.disturbances.geometry_config import GeometryConfig
@@ -89,8 +90,10 @@ class Drag_Disturbance(Disturbance):
         self.centroids = np.vstack([p["centroid"] for p in params])
         self.normals = np.vstack([normalize(p["normal"]) for p in params])
         self.CDs = np.array([p["CD"] for p in params])
+        
+        super().__init__()
 
-    def torque(self, sat: Satellite, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+    def torque(self, sat: Satellite, x: np.ndarray, os: Orbital_State | Dict[str, np.ndarray]) -> np.ndarray:
         r"""
         Compute the **aerodynamic drag torque** in the body frame.
 
@@ -131,7 +134,11 @@ class Drag_Disturbance(Disturbance):
         F = self.CDs*self.areas*v_proj
         cents = self.centroids - sat.COM
         ct = 0.5*rho
-        return -ct*np.cross(F@cents, V_B)
+        torque = -ct*np.cross(F@cents, V_B)
+
+        t1 = time.process_time()
+        
+        return torque
     
     def torque_qjac(self, sat: Satellite, x: np.ndarray, os: Orbital_State) -> np.ndarray:
         r"""

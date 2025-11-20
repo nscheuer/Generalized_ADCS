@@ -15,6 +15,8 @@ and simulator modules.
 import numpy as np
 import math
 import ADCS.orbits.universal_constants as uc
+from typing import List
+
 
 num_eps = uc.TIME.num_eps
 zeroquat = uc.DEFAULT.zeroquat
@@ -326,6 +328,46 @@ def quat_to_vec3(quat: np.ndarray, mode: int) -> np.ndarray:
     return quat_to_mrp(quat)
 
 
+def vec3_to_quat(v3,mode):
+    if mode == 6:
+        q = mrp_to_quat(v3/2.0)
+        sq = np.sign(q[0])
+        if np.abs(sq)>0.0:
+            q *= sq
+        return q
+    if mode == 5:
+        return mrp_to_quat(v3/2.0)
+    if mode == 4:
+        return np.concatenate([[math.sqrt(1.0-norm(v3)**2.0)],v3])
+    if mode == 3:
+        return np.concatenate([[math.sqrt(1.0-norm(v3)**2.0)],v3])
+    if mode == 2:
+        return cayley_to_quat(v3)
+    elif mode == 1:
+        return mrp_to_quat(v3)
+    else:
+        q = mrp_to_quat(v3)
+        sq = np.sign(q[0])
+        if np.abs(sq)>0.0:
+            q *= sq
+        return q
+    
+
+def mrp_to_quat(mrp):
+    #https://ntrs.nasa.gov/api/citations/19960035754/downloads/19960035754.pdf
+    # return (1/np.sqrt(1+norm(mrp)**2))*np.vstack([np.array([1]),mrp]).reshape((4,1))
+    thetad2 = 2*math.atan(norm(mrp)*0.5)
+    nhat = normalize(mrp)
+    costd2 = math.cos(thetad2)
+    return np.concatenate([[costd2],nhat*np.abs(math.sin(thetad2))])#.reshape((4,1))
+
+
+def cayley_to_quat(cly):
+    #https://ntrs.nasa.gov/api/citations/19960035754/downloads/19960035754.pdf
+    # return (1/np.sqrt(1+norm(mrp)**2))*np.vstack([np.array([1]),mrp]).reshape((4,1))
+    return np.concatenate([[1],cly])/np.sqrt(1+norm(cly)**2)
+
+
 def quat_mult(p: np.ndarray, q: np.ndarray, *extra) -> np.ndarray:
     r"""
     Multiply one or more quaternions using the **Hamilton product**.
@@ -565,3 +607,64 @@ def vec_norm_hess(v: np.ndarray, dv: np.ndarray = None, ddv: np.ndarray = None) 
         if ddv is None:
             raise ValueError("If Jacobian of v is provided, Hessian must also be provided")
         return dv@ddndvdv@dv.T + ddv@dndv
+    
+def matrix_row_normalize(m: np.ndarray) -> np.ndarray:
+    return m/np.expand_dims(matrix_row_norm(m), axis=1)
+
+def matrix_row_norm(m: np.ndarray) -> np.ndarray:
+    if len(m.shape) != 2:
+        raise ValueError("Not a 2D matrix")
+    return np.linalg.norm(m, ord=2, axis=1)
+
+def wahbas_svd(weights, body, inertial):
+    """
+    Solves Wahba's problem using SVD and returns a quaternion [q0, q1, q2, q3].
+    """
+
+    # Build attitude profile matrix B
+    B = np.zeros((3,3))
+    for w, b, r in zip(weights, body, inertial):
+        B += w * np.outer(b, r)
+
+    # SVD
+    U, S, Vt = np.linalg.svd(B)
+    M = np.eye(3)
+    M[2,2] = np.linalg.det(U) * np.linalg.det(Vt)
+    R = U @ M @ Vt   # rotation matrix
+
+    # Convert rotation matrix → quaternion
+    tr = np.trace(R)
+
+    if tr > 0:
+        q0 = 0.5 * np.sqrt(1 + tr)
+        q1 = (R[2,1] - R[1,2]) / (4*q0)
+        q2 = (R[0,2] - R[2,0]) / (4*q0)
+        q3 = (R[1,0] - R[0,1]) / (4*q0)
+        return np.array([q0, q1, q2, q3])
+
+    # Otherwise, pick largest diagonal
+    i = np.argmax([R[0,0], R[1,1], R[2,2]])
+
+    if i == 0:
+        q1 = 0.5*np.sqrt(1 + 2*R[0,0] - tr)
+        q0 = (R[2,1] - R[1,2]) / (4*q1)
+        q2 = (R[0,1] + R[1,0]) / (4*q1)
+        q3 = (R[0,2] + R[2,0]) / (4*q1)
+
+    elif i == 1:
+        q2 = 0.5*np.sqrt(1 + 2*R[1,1] - tr)
+        q0 = (R[0,2] - R[2,0]) / (4*q2)
+        q1 = (R[0,1] + R[1,0]) / (4*q2)
+        q3 = (R[1,2] + R[2,1]) / (4*q2)
+
+    else:
+        q3 = 0.5*np.sqrt(1 + 2*R[2,2] - tr)
+        q0 = (R[1,0] - R[0,1]) / (4*q3)
+        q1 = (R[0,2] + R[2,0]) / (4*q3)
+        q2 = (R[1,2] + R[2,1]) / (4*q3)
+
+    return np.array([q0, q1, q2, q3])
+
+def square_mat_sections(mat: np.ndarray, vals: np.ndarray):
+    tmp = mat[vals,:]
+    return tmp[:,vals]

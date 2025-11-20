@@ -624,7 +624,7 @@ def test_resdipole():
     assert np.all(sat.disturbances[0].noise.std_noise == 0.0)
 
 if __name__ == "__main__":
-    test_dynamics_plain()
+    test_J_with_RW()
 
 
 

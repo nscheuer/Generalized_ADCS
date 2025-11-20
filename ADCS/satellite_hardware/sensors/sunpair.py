@@ -78,21 +78,6 @@ class SunPair(Sensor):
             estimate_bias=estimate_bias,
         )
 
-    def _clean_scalar(self, x: np.ndarray, os: Orbital_State) -> float:
-        """
-        Clean reading as a scalar (helper to simplify finite-diff Jacobian).
-        """
-        if not os.is_sunlit():
-            return 0.0
-
-        vecs = os.get_state_vector(x=x)
-
-        sun_dir = normalize(vecs["s"] - vecs["r"])
-
-        proj = float(np.dot(self.axis, sun_dir))
-        eff = self.efficiency[0] if proj > 0.0 else self.efficiency[1]
-        return proj * eff
-
     def clean_reading(self, x: np.ndarray, os: Orbital_State) -> np.ndarray:
         r"""
         Compute the clean (noise- and bias-free) Sun sensor reading.
@@ -113,11 +98,20 @@ class SunPair(Sensor):
 
         Returns
         -------
-        numpy.ndarray
-            A 1-element array ``[y]`` containing the clean measurement.
+        float
+            Element containing the clean measurement.
         """
 
-        return np.array([self._clean_scalar(x, os)])
+        if not os.is_sunlit():
+            return 0.0
+
+        vecs = os.get_state_vector(x=x)
+
+        sun_dir = normalize(vecs["s"] - vecs["r"])
+
+        proj = float(np.dot(self.axis, sun_dir))
+        eff = self.efficiency[0] if proj > 0.0 else self.efficiency[1]
+        return proj * eff
 
     def bias_jac(self, x: np.ndarray, os: Orbital_State) -> np.ndarray:
         r"""

@@ -57,10 +57,10 @@ class MTM(Sensor):
     * The attribute :attr:`axis` is always stored as a normalized vector,
       regardless of the magnitude of the input ``axis``.
     """
-    def __init__(self, axis: np.ndarray,  sample_time: float = 0.1, bias: Bias = None, noise: Noise = None, estimate_bias: bool = False):
+    def __init__(self, axis: np.ndarray,  sample_time: float = 0.1, bias: Bias = None, noise: Noise = None, scale: float = 1, estimate_bias: bool = False):
         self.axis = normalize(axis)
         self.attitude_sensor = False
-        super().__init__(sample_time=sample_time, output_length=1, bias=bias, noise=noise, estimate_bias=estimate_bias)
+        super().__init__(sample_time=sample_time, output_length=1, bias=bias, noise=noise, scale=scale, estimate_bias=estimate_bias)
 
     def clean_reading(self, x: np.ndarray, os: Orbital_State) -> np.ndarray:
         r"""

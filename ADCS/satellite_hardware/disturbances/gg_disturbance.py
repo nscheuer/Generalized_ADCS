@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 
 class GG_Disturbance(Disturbance):
     def __init__(self):
-        pass
+        super().__init__()
 
     def torque(self, sat: Satellite, x: np.ndarray, os: Orbital_State) -> np.ndarray:
         vecs = os.get_state_vector(x=x)

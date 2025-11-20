@@ -53,7 +53,7 @@ class Actuator:
         self.estimate_bias: bool = estimate_bias
         self.last_bias_time: float = float('nan')
 
-    def torque(self, u: float, x: np.ndarray, os: Orbital_State, bias: bool = False, noise: bool = False) -> float:
+    def torque(self, u: float, x: np.ndarray, os: Orbital_State, update_bias: bool = True, update_noise: bool = True) -> float:
         r"""
         Body-frame torque :math:`\boldsymbol{\tau}(u,\mathbf{x},\mathrm{os})`.
 
@@ -69,7 +69,7 @@ class Actuator:
         """
         return np.ndarray([0, 0, 0])
     
-    def storage_torque(self, u: float, j2000: float, bias: bool = False, noise: bool = False) -> float:
+    def storage_torque(self, u: float, j2000: float, update_bias: bool = True, update_noise: bool = True)-> float:
         r"""
         Momentum-storage torque contribution (e.g., reaction wheels).
 
@@ -410,7 +410,6 @@ class Actuator:
             Empty in this base class.
         """
         return np.zeros((0, 0, 0))
-
     
 
 

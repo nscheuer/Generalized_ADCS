@@ -83,8 +83,25 @@ class Noise:
         float
             The updated noise value :math:`n` after random sampling and clipping.
         """
-        self._update_noise()
         if self.noise.size == 1:
             return self.noise.item()
         else:
             return self.noise
+        
+    def cov(self) -> np.ndarray:
+        std2 = self.std_noise * self.std_noise
+
+        if std2.size == 1:
+            # scalar covariance
+            return np.array([[std2.item()]])
+        else:
+            # diagonal covariance matrix
+            return np.diagflat(std2)
+        
+    def srcov(self) -> float | np.ndarray:
+        if self.std_noise.size == 1:
+            # scalar square-root covariance
+            return np.array([[self.std_noise.item()]])
+        else:
+            # diagonal matrix of std deviations
+            return np.diagflat(self.std_noise)

@@ -1,3 +1,5 @@
+__all__ = ["EstimatedArray"]
+
 from dataclasses import dataclass, field
 import numpy as np
 from typing import Optional
@@ -22,18 +24,26 @@ class EstimatedArray:
 
     def __post_init__(self):
         self.val = np.asarray(self.val, dtype=float)
-
         n = self.val.size
+
         if self.cov is None:
+            # default: same dimension as state
             self.cov = np.zeros((n, n))
+        else:
+            self.cov = np.asarray(self.cov, dtype=float)
+
         if self.int_cov is None:
             self.int_cov = np.zeros_like(self.cov)
+        else:
+            self.int_cov = np.asarray(self.int_cov, dtype=float)
 
-        # Sanity checks
-        if self.cov.shape != (n, n):
-            raise ValueError(f"cov must be {n}x{n}, got {self.cov.shape}")
-        if self.int_cov.shape != (n, n):
-            raise ValueError(f"int_cov must be {n}x{n}, got {self.int_cov.shape}")
+        # Sanity checks, but no longer force (n,n):
+        if self.cov.shape[0] != self.cov.shape[1]:
+            raise ValueError(f"cov must be square, got {self.cov.shape}")
+        if self.int_cov.shape != self.cov.shape:
+            raise ValueError(
+                f"int_cov must have same shape as cov, got {self.int_cov.shape} vs {self.cov.shape}"
+            )
 
     # ---- Methods ----
 
