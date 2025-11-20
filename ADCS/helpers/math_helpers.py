@@ -668,3 +668,10 @@ def wahbas_svd(weights, body, inertial):
 def square_mat_sections(mat: np.ndarray, vals: np.ndarray):
     tmp = mat[vals,:]
     return tmp[:,vals]
+
+def state_norm_jac(xk):
+    l = xk.shape[0]
+    q = xk[3:7]
+    out = np.eye(l)
+    out[3:7,3:7] = quat_norm_jac(q)#np.eye(4)/norm(q) - np.outer(q,q)/norm(q)**3
+    return out

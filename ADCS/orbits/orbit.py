@@ -2,42 +2,81 @@ import numpy as np
 import ppigrf as ppigrf
 import warnings
 from typing import List, Union
+from tqdm import tqdm
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.helpers.math_constants import MathConstants
 from ADCS.helpers.math_helpers import matrix_row_normalize
 
 class Orbit:
-    def __init__(self, os0: Union[Orbital_State, List[Orbital_State]], end_time: float = None, dt: float = None, use_J2: bool = True, fast: bool = True) -> None:
+    def __init__(
+        self,
+        os0: Union[Orbital_State, List[Orbital_State]],
+        end_time: float = None,
+        dt: float = None,
+        use_J2: bool = True,
+        fast: bool = True
+    ) -> None:
+
         if isinstance(os0, Orbital_State):
+
             start_time = os0.J2000
-            if end_time is None or dt is None or end_time == os0.J2000:
-                # Singleton Orbit
+
+            # ---------------------------------------------------------
+            # Case 1: Singleton orbit (no propagation)
+            # ---------------------------------------------------------
+            if end_time is None or dt is None or end_time == start_time:
                 self.states = {os0.J2000: os0.copy()}
                 self.times = np.array([os0.J2000])
-            else:
-                # Propagate orbit
-                duration = end_time - start_time
-                l = np.floor(duration/(dt/TimeConstants.cent2sec))
-                times = [start_time] + [start_time + j*(dt/TimeConstants.cent2sec) for j in range(1+int(l))] + [end_time]
-                times = list(set(times))
-                times.sort()
+                return
 
-                states0: List[Orbital_State] = [np.nan for j in times]
-                states0[0] = os0.copy()
-                times[0] = os0.J2000
+            # ---------------------------------------------------------
+            # Case 2: Propagate orbit with RK4
+            # ---------------------------------------------------------
+            duration = end_time - start_time
+            l = np.floor(duration / (dt / TimeConstants.cent2sec))
 
-                for j in list(range(1, len(times))):
-                    dt_step = (times[j] - times[j-1])*TimeConstants.cent2sec
-                    states0[j] = states0[j-1].propagate_orbit_rk4(dt=dt_step, J2_perturbation_on=use_J2, fast=fast)
-                self.states = {j.J2000 : j for j in states0}
-                self.times = np.array(sorted([*self.states]))
-        elif isinstance(os0, list) and all([isinstance(j, Orbital_State) for j in os0]):
-            unique_times = set([j.J2000 for j in os0])
-            self.states = {j.J2000 : j.copy() for j in os0 if j.J2000 in unique_times}
-            self.times = np.array(sorted([*self.states]))
+            times = (
+                [start_time]
+                + [start_time + j * (dt / TimeConstants.cent2sec) for j in range(1 + int(l))]
+                + [end_time]
+            )
+
+            # Remove duplicates and sort
+            times = sorted(list(set(times)))
+
+            # Storage for states
+            states0: List[Orbital_State] = [np.nan for _ in times]
+            states0[0] = os0.copy()
+            times[0] = os0.J2000
+
+            # ---------------------------------------------------------
+            # tqdm progress bar added HERE
+            # ---------------------------------------------------------
+            for j in tqdm(range(1, len(times)), desc="Propagating Orbit", unit="step"):
+
+                dt_step = (times[j] - times[j - 1]) * TimeConstants.cent2sec
+
+                states0[j] = states0[j - 1].propagate_orbit_rk4(
+                    dt=dt_step,
+                    J2_perturbation_on=use_J2,
+                    fast=fast
+                )
+
+            # Build time-indexed dictionary
+            self.states = {state.J2000: state for state in states0}
+            self.times = np.array(sorted(self.states.keys()))
+
+        # ---------------------------------------------------------
+        # Case 3: List of Orbital_State objects
+        # ---------------------------------------------------------
+        elif isinstance(os0, list) and all(isinstance(j, Orbital_State) for j in os0):
+            unique_times = {j.J2000 for j in os0}
+            self.states = {j.J2000: j.copy() for j in os0 if j.J2000 in unique_times}
+            self.times = np.array(sorted(self.states.keys()))
+
         else:
-            raise ValueError("Orbit has to be initialized with Orbital_State or List[Orbital_State]")
+            raise ValueError("Orbit must be initialized with Orbital_State or List[Orbital_State]")
         
     def get_os(self, J2000: float) -> Orbital_State:
         t = J2000

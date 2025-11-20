@@ -118,9 +118,10 @@ class Estimator():
         Whether to keep or zero cross–covariance blocks between certain
         bias/parameter groups.
     """
-    def __init__(self, est_sat: EstimatedSatellite, J2000: float, x_hat: np.ndarray, P_hat: np.ndarray, Q_hat: np.ndarray, dt: float = 1, cross_term: bool = False) -> None:
+    def __init__(self, est_sat: EstimatedSatellite, J2000: float, x_hat: np.ndarray, P_hat: np.ndarray, Q_hat: np.ndarray, dt: float = 1, cross_term: bool = False, quat_as_vec: bool = False) -> None:
         self.est_sat = est_sat
         self.cross_term = cross_term
+        self.quat_as_vec = quat_as_vec
         self.dt = dt
         self.len_before_sens_bias = self.est_sat.state_len + self.est_sat.act_bias_len
 
@@ -188,12 +189,16 @@ class Estimator():
             raise ValueError("x_hat length does not match estimate length in EstimatedSatellite")
         
         # Verify P_hat matrix. It should be one shorter than x_hat, since x_hat uses quaternions, which are 3 DOF
-        if P_hat.shape != (len(x_hat) - 1, len(x_hat) - 1):
-            raise ValueError("P_hat shape does not match MEKF x_hat")
-        
-        # Verify Q_hat matrix. It should be one shorter than x_hat
-        if Q_hat.shape != (len(x_hat) - 1, len(x_hat) - 1):
-            raise ValueError("Q_hat shape does not match MEKF x_hat")
+        if self.quat_as_vec:
+            if P_hat.shape != (len(x_hat), len(x_hat)):
+                raise ValueError("P_hat shape does not match MEKF x_hat")
+            if Q_hat.shape != (len(x_hat), len(x_hat)):
+                raise ValueError("Q_hat shape does not match MEKF x_hat")
+        else:
+            if P_hat.shape != (len(x_hat) - 1, len(x_hat) - 1):
+                raise ValueError("P_hat shape does not match MEKF x_hat")
+            if Q_hat.shape != (len(x_hat) - 1, len(x_hat) - 1):
+                raise ValueError("Q_hat shape does not match MEKF x_hat")
         
         self.x0_hat = EstimatedArray(val=x_hat, cov=P_hat, int_cov=Q_hat)
         # Full estimated state

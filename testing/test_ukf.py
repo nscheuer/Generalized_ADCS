@@ -28,7 +28,7 @@ from ADCS.helpers.math_constants import MathConstants
 from ADCS.estimators.attitude_SRUKF import SRUKF
 from ADCS.estimators.attitude_UKF import UKF
 
-def test_srukf_basic_quat_not_vec_w_dist_w_real_orbit():
+def test_ukf():
     t0 = 0
     tf = 60*10
     tlim00 = 5
@@ -81,16 +81,28 @@ def test_srukf_basic_quat_not_vec_w_dist_w_real_orbit():
 
     # Initial State
     w0 = random_n_unit_vec(3)*np.random.uniform(0, 1.0)*np.pi/180.0
+    w0 = np.array([0, 0, 0])
     q0 = random_n_unit_vec(4)
+    q0 = np.array([np.sqrt(2)/2,np.sqrt(2)/2,0,0])
+
     x = np.concatenate([w0, q0])
     ephem = Ephemeris()
     start_time = 0.22 - 1*TimeConstants.sec2cent
     end_time = 0.22 + (tf-t0)*TimeConstants.sec2cent
     R = 7000*np.array([0, np.sqrt(2)/2, np.sqrt(2)/2])
     V = np.array([8, 0, 0])
-    os0 = Orbital_State(ephem=ephem, J2000=start_time, R=R, V=V)
-    orb = Orbit(os0=os0, end_time=end_time, dt=dt, use_J2=True)
+    # Real Orbit Generation
+    #os0 = Orbital_State(ephem=ephem, J2000=start_time, R=R, V=V)
+    #orb = Orbit(os0=os0, end_time=end_time, dt=dt, use_J2=True, fast=False)
 
+    # Quick Orbit Generation
+    os0 = Orbital_State(ephem=ephem, J2000=0.22-1*TimeConstants.sec2cent, R=np.array([0, 1e5, 0]), V=np.array([1, 0, 0]), B=np.array([0.01, 0, 0]), S=np.array([0, 1e5+1, 0]), rho=1e-7)
+    dur = int((tf-t0)/dt)+10
+    orbs = [os0]*(dur+10)
+    for j in range(dur):
+        orbs[j] = os0.copy()
+        orbs[j].J2000 = os0.J2000 + j*dt*TimeConstants.sec2cent
+    orb = Orbit(orbs)
 
     ## ESTIMATED SATELLITE
     # Actuators
@@ -112,14 +124,12 @@ def test_srukf_basic_quat_not_vec_w_dist_w_real_orbit():
     # Initial Estimated State
     x_hat = np.zeros(7)
     x_hat[3] = 1
-    x_hat = x
-    P_est = block_diag(np.eye(3)*(np.pi/180.0)**2.0, np.eye(3)*10.0)
-    Q_est = block_diag(np.eye(3)*(1e-5)**2.0, np.eye(3)*1e-20)
-
+    P_est = block_diag(np.eye(3)*(0.01)**2.0, np.eye(3)*3)
+    Q_est = block_diag(np.eye(3)*(1e-4)**2.0, 1e-4*np.eye(3))
 
     ## Build Estimator
     J2000 = 0.22 + t0*TimeConstants.sec2cent
-    srukf = UKF(est_sat=est_sat, J2000=J2000, x_hat=x_hat, P_hat=P_est, Q_hat=Q_est, dt=dt, cross_term=True)
+    srukf = UKF(est_sat=est_sat, J2000=J2000, x_hat=x_hat, P_hat=P_est, Q_hat=Q_est, dt=dt, cross_term=True, quat_as_vec=False)
 
     # Create history vectors
     time_hist = np.nan*np.zeros(N)
@@ -180,4 +190,4 @@ def test_srukf_basic_quat_not_vec_w_dist_w_real_orbit():
 
     
 if __name__ == "__main__":
-    test_srukf_basic_quat_not_vec_w_dist_w_real_orbit()
+    test_ukf()

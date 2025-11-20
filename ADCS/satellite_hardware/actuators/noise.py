@@ -43,6 +43,7 @@ class Noise:
         self.noise = noise
         self.std_noise = std_noise
         self.bounds = (lo, hi)
+        self._update_noise()
 
     def __bool__(self):
         r"""

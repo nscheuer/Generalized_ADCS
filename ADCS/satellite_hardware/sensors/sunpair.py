@@ -67,7 +67,10 @@ class SunPair(Sensor):
         estimate_bias: bool = False,
     ):
         self.axis = normalize(axis)
-        self.efficiency = efficiency  # (front, back)
+        if isinstance(efficiency, tuple):
+            self.efficiency = efficiency # (front, back)
+        else:
+            self.efficiency = (efficiency, efficiency)
         self.attitude_sensor = False
 
         super().__init__(

@@ -227,7 +227,7 @@ class Satellite:
     def RWhs_from_state(self,state) -> np.ndarray:
         return state[7:]
     
-    def dynamics_core(self, x: np.ndarray, u: np.ndarray, orbital_state: Orbital_State, update_bias: bool = True, update_noise: bool = True, verbose: bool = False) -> np.ndarray:
+    def dynamics_core(self, x: np.ndarray, u: np.ndarray, orbital_state: Orbital_State, update_bias: bool = True, update_noise: bool = True, use_bias: bool = True, use_noise: bool = True, verbose: bool = False) -> np.ndarray:
         r"""
         Compute the full spacecraft rotational dynamics including attitude kinematics,
         external disturbances, and actuator torques, with optional reaction wheel coupling.
@@ -419,7 +419,7 @@ class Satellite:
                 dist_list.append(j.torque(x=x, os=os))
         return sum(dist_list,np.zeros(3))
     
-    def act_torque(self, x: np.ndarray, u: np.ndarray, os: Orbital_State, update_bias: bool = True, update_noise: bool = True) -> np.ndarray:
+    def act_torque(self, x: np.ndarray, u: np.ndarray, os: Orbital_State, update_bias: bool = True, update_noise: bool = True, use_bias: bool = True, use_noise: bool = True) -> np.ndarray:
         act_list = [self.actuators[j].torque(u[j], x, os=os, update_bias=update_bias, update_noise=update_noise) for j in range(len(self.actuators))]
         return sum(act_list, np.zeros(3))
 
@@ -1059,7 +1059,7 @@ class Satellite:
                     midstate[3:7] = normalize(
                         quat_mult(x[3:7], *[rot_exp(uc.CG5_a[j, i] * F[i]) for i in range(j)])
                     )
-                ki[j] = self.dynamics(midstate, u, mid_orbital_state[j], verbose=verbose)
+                ki[j] = self.dynamics_core(x=midstate, u=u, orbital_state=mid_orbital_state[j], update_noise = False, verbose=verbose)
                 F[j] = dt * midstate[0:3]
 
             out = x + dt * sum([uc.CG5_b[i] * ki[i] for i in range(5)], np.zeros_like(x))
