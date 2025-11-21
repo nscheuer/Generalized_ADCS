@@ -40,24 +40,28 @@ def test_ukf():
 
     dt = 1
     N = int((tf-t0)/dt)
-    np.set_printoptions(precision=3)
+    np.set_printoptions(precision=6)
 
     ## REAL SATELLITE
     # Actuators: Magnetorquers
     mtq_noise = Noise(noise=0.0, std_noise=0.0001)
+    mtq_noise = Noise(noise=0.0, std_noise=0.0)
     mtq_max_torque = 1.0
     acts = [MTQ(axis=j, max_torque=mtq_max_torque, noise=mtq_noise) for j in MathConstants.unitvecs]
 
     # Sensors: Magnetometers
     mtm_noise = Noise(noise=0.0, std_noise=1e-8)
+    mtm_noise = Noise(noise=0.0, std_noise=0.0)
     mtms = [MTM(axis=j, noise=mtm_noise, scale=5e2) for j in MathConstants.unitvecs]
 
     # Sensors: Gyroscopes
     gyro_noise = Noise(noise=0.0, std_noise=0.0001)
+    gyro_noise = Noise(noise=0.0, std_noise=0.0)
     gyros = [Gyro(axis=j, noise=gyro_noise) for j in MathConstants.unitvecs]
 
     # Sensors: SunPair
     sun_noise = Noise(noise=0.0, std_noise=0.0001)
+    sun_noise = Noise(noise=0.0, std_noise=0.0)
     sun_eff = 1.0
     suns = [SunPair(axis=j, efficiency=sun_eff, noise=sun_noise) for j in MathConstants.unitvecs]
 
