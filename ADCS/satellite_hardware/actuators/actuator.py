@@ -5,6 +5,7 @@ from ADCS.satellite_hardware.actuators.bias import Bias
 from ADCS.satellite_hardware.actuators.noise import Noise
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.universal_constants import TimeConstants
+from ADCS.satellite_hardware.disturbances.disturbance_mode import DisturbanceMode
 from ADCS.helpers.math_helpers import normalize
 
 class Actuator:
@@ -53,7 +54,7 @@ class Actuator:
         self.estimate_bias: bool = estimate_bias
         self.last_bias_time: float = float('nan')
 
-    def torque(self, u: float, x: np.ndarray, os: Orbital_State, update_bias: bool = True, update_noise: bool = True) -> float:
+    def torque(self, u: float, x: np.ndarray, os: Orbital_State, dmode: DisturbanceMode = None) -> float:
         r"""
         Body-frame torque :math:`\boldsymbol{\tau}(u,\mathbf{x},\mathrm{os})`.
 
@@ -69,7 +70,7 @@ class Actuator:
         """
         return np.ndarray([0, 0, 0])
     
-    def storage_torque(self, u: float, j2000: float, update_bias: bool = True, update_noise: bool = True)-> float:
+    def storage_torque(self, u: float, j2000: float, dmode: DisturbanceMode = None)-> float:
         r"""
         Momentum-storage torque contribution (e.g., reaction wheels).
 

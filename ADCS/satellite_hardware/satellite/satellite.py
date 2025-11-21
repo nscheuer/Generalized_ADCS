@@ -11,6 +11,7 @@ from ADCS.helpers.math_helpers import *
 from ADCS.satellite_hardware.disturbances import Disturbance, SRP_Disturbance, General_Disturbance, Prop_Disturbance
 from ADCS.satellite_hardware.sensors import Sensor, GPS, Gyro, MTM, SunPair, SunSensor
 from ADCS.satellite_hardware.actuators import Actuator, RW, MTQ
+from ADCS.satellite_hardware.disturbances.disturbance_mode import DisturbanceMode
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.logging.logger import ADCSLogger
@@ -227,7 +228,7 @@ class Satellite:
     def RWhs_from_state(self,state) -> np.ndarray:
         return state[7:]
     
-    def dynamics_core(self, x: np.ndarray, u: np.ndarray, orbital_state: Orbital_State, update_bias: bool = True, update_noise: bool = True, use_bias: bool = True, use_noise: bool = True, verbose: bool = False) -> np.ndarray:
+    def dynamics_core(self, x: np.ndarray, u: np.ndarray, orbital_state: Orbital_State, dmode: DisturbanceMode = None, verbose: bool = False) -> np.ndarray:
         r"""
         Compute the full spacecraft rotational dynamics including attitude kinematics,
         external disturbances, and actuator torques, with optional reaction wheel coupling.
@@ -374,8 +375,11 @@ class Satellite:
         J = self.J_0
         invJ_noRW = self.invJ_noRW
 
-        disturbance_torque: np.ndarray = self.dist_torques(x=x, os=orbital_state)
-        actuator_torque: np.ndarray = self.act_torque(x=x, u=u, os=orbital_state, update_noise=update_noise, update_bias=update_bias)
+        if dmode is None:
+            dmode = DisturbanceMode(add_bias=True, add_noise=True, update_bias=True, update_noise=True)
+
+        disturbance_torque: np.ndarray = self.dist_torques(x=x, os=orbital_state, dmode=dmode)
+        actuator_torque: np.ndarray = self.act_torque(x=x, u=u, os=orbital_state, dmode=dmode)
 
         # Dynamics
         qdot = 0.5*w@Wmat(q).T
@@ -400,17 +404,19 @@ class Satellite:
             return np.concatenate([wdot,qdot,RW_hdot])
         
     def dynamics_for_solver(self, t: float, x: np.ndarray, u: np.ndarray, os0: Orbital_State, os1: Orbital_State) -> np.ndarray:
+        # solve_ivp() should use one sample of bias and noise
+        dmode = DisturbanceMode(add_bias=True, add_noise=True, update_bias=False, update_noise=False)
         delta_t_between_os = (os1.J2000 - os0.J2000)*TimeConstants.cent2sec
         time_frac = t/delta_t_between_os
 
         os = os0.average(os1, time_frac, True)
 
-        x_dot = self.dynamics_core(x=x, u=u, orbital_state=os, update_bias=False, update_noise=False, verbose=False)
+        x_dot = self.dynamics_core(x=x, u=u, orbital_state=os, dmode=dmode, verbose=False)
         
         return x_dot
     
 
-    def dist_torques(self, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+    def dist_torques(self, x: np.ndarray, os: Orbital_State, dmode: DisturbanceMode = None) -> np.ndarray:
         dist_list = []
         for j in self.disturbances:
             if 'sat' in j.torque.__code__.co_varnames:
@@ -419,8 +425,8 @@ class Satellite:
                 dist_list.append(j.torque(x=x, os=os))
         return sum(dist_list,np.zeros(3))
     
-    def act_torque(self, x: np.ndarray, u: np.ndarray, os: Orbital_State, update_bias: bool = True, update_noise: bool = True, use_bias: bool = True, use_noise: bool = True) -> np.ndarray:
-        act_list = [self.actuators[j].torque(u[j], x, os=os, update_bias=update_bias, update_noise=update_noise) for j in range(len(self.actuators))]
+    def act_torque(self, x: np.ndarray, u: np.ndarray, os: Orbital_State, dmode: DisturbanceMode = None) -> np.ndarray:
+        act_list = [self.actuators[j].torque(u[j], x, os=os, dmode=dmode) for j in range(len(self.actuators))]
         return sum(act_list, np.zeros(3))
 
     
@@ -999,22 +1005,24 @@ class Satellite:
         - Celledoni, E., et al., “Commutator-Free Lie Group Methods,” *J. Comput. Phys.*, 2003.  
         """
         x[3:7] = normalize(x[3:7])
+        # Use no noise, no bias, no updates to either
+        dmode = DisturbanceMode(add_bias=False, add_noise=False, update_bias=False, update_noise=False)
         if quat_as_vec:
             if mid_orbital_state is None:
                 mid_orbital_state = orbital_state0.average(orbital_state1)
 
-            k1 = self.dynamics_core(x=x, u=u, orbital_state=orbital_state0, verbose=verbose)
+            k1 = self.dynamics_core(x=x, u=u, orbital_state=orbital_state0, dmode=dmode, verbose=verbose)
             k2_in = x + 0.5 * dt * k1
             k2_in[3:7] = normalize(k2_in[3:7])
-            k2 = self.dynamics_core(x=k2_in, u=u, orbital_state=mid_orbital_state, verbose=verbose)
+            k2 = self.dynamics_core(x=k2_in, u=u, orbital_state=mid_orbital_state, dmode=dmode, verbose=verbose)
 
             k3_in = x + 0.5 * dt * k2
             k3_in[3:7] = normalize(k3_in[3:7])
-            k3 = self.dynamics_core(x=k3_in, u=u, orbital_state=mid_orbital_state, verbose=verbose)
+            k3 = self.dynamics_core(x=k3_in, u=u, orbital_state=mid_orbital_state, dmode=dmode, verbose=verbose)
 
             k4_in = x + dt * k3
             k4_in[3:7] = normalize(k4_in[3:7])
-            k4 = self.dynamics_core(x=k4_in, u=u, orbital_state=orbital_state1, verbose=verbose,)
+            k4 = self.dynamics_core(x=k4_in, u=u, orbital_state=orbital_state1, dmode=dmode, verbose=verbose,)
 
             out = x + (dt / 6.0) * (k1 + 2 * k2 + 2 * k3 + k4)
             out[3:7] = normalize(out[3:7])
@@ -1028,7 +1036,7 @@ class Satellite:
             if give_err_est:
                 k33_in = x + dt * (2 * k2 - k1)
                 k33_in[3:7] = normalize(k33_in[3:7])
-                k33 = self.dynamics(k33_in, u, orbital_state1, verbose=verbose)
+                k33 = self.dynamics(k33_in, u, orbital_state1, dmode=dmode, verbose=verbose)
 
                 out3 = x + (dt / 6.0) * (k1 + 4 * k2 + k33)
                 out3[3:7] = normalize(out3[3:7])
@@ -1059,7 +1067,7 @@ class Satellite:
                     midstate[3:7] = normalize(
                         quat_mult(x[3:7], *[rot_exp(uc.CG5_a[j, i] * F[i]) for i in range(j)])
                     )
-                ki[j] = self.dynamics_core(x=midstate, u=u, orbital_state=mid_orbital_state[j], update_noise = False, verbose=verbose)
+                ki[j] = self.dynamics_core(x=midstate, u=u, orbital_state=mid_orbital_state[j], dmode=dmode, verbose=verbose)
                 F[j] = dt * midstate[0:3]
 
             out = x + dt * sum([uc.CG5_b[i] * ki[i] for i in range(5)], np.zeros_like(x))

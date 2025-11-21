@@ -4,6 +4,7 @@ import numpy as np
 
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.satellite_hardware.actuators import Noise, Bias
+from ADCS.satellite_hardware.disturbances.disturbance_mode import DisturbanceMode
 
 class Sensor:
     r"""
@@ -47,7 +48,7 @@ class Sensor:
         self.scale = scale
         self.estimate_bias = estimate_bias
 
-    def reading(self, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+    def reading(self, x: np.ndarray, os: Orbital_State, dmode: DisturbanceMode = None) -> np.ndarray:
         r"""
         Compute the full sensor measurement, including bias and noise.
 
@@ -70,12 +71,19 @@ class Sensor:
         numpy.ndarray
             The final sensor measurement, shape ``(output_length,)``.
         """
-        reading = self.clean_reading(x=x, os=os)
-        if self.bias:
-            reading += self.bias.get_bias(os.J2000)
+        if dmode is None:
+            dmode = DisturbanceMode(add_bias=True, add_noise=True, update_bias=True, update_noise=True)
 
-        if self.noise:
+        reading = self.clean_reading(x=x, os=os)
+        if self.bias and dmode.add_bias:
+            reading += self.bias.get_bias(os.J2000)
+        if dmode.update_bias:
+            self.bias._update_bias(os.J2000)
+
+        if self.noise and dmode.add_noise:
             reading += self.noise.get_noise()
+        if dmode.update_noise:
+            self.noise._update_noise()
 
         return reading
     

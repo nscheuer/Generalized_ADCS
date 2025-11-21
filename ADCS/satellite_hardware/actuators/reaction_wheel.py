@@ -5,6 +5,7 @@ import warnings
 from ADCS.satellite_hardware.actuators.actuator import Actuator
 from ADCS.satellite_hardware.actuators.bias import Bias
 from ADCS.satellite_hardware.actuators.noise import Noise
+from ADCS.satellite_hardware.disturbances.disturbance_mode import DisturbanceMode
 from ADCS.orbits.orbital_state import Orbital_State
 
 class RW(Actuator):
@@ -119,7 +120,7 @@ class RW(Actuator):
         self.h_meas_noise = h_meas_noise
         super().__init__(axis=axis, u_max=max_torque, bias=bias, noise=noise, estimate_bias=estimate_bias)
 
-    def torque(self, u: float, x: np.ndarray, os: Orbital_State, update_bias: bool = True, update_noise: bool = True) -> float:
+    def torque(self, u: float, x: np.ndarray, os: Orbital_State, dmode: DisturbanceMode = None) -> float:
         r"""
         Compute the **reaction wheel body torque**.
 
@@ -159,21 +160,24 @@ class RW(Actuator):
         if abs(u) > self.u_max:
             warnings.warn("requested torque exceeds actuation limit")
 
+        if dmode is None:
+            dmode = DisturbanceMode(add_bias=True, add_noise=True, update_bias=True, update_noise=True)
+
         torque = u
 
-        if self.bias:
+        if self.bias and dmode.add_bias:
             torque += self.bias.get_bias(j2000=os.J2000)
-        if update_bias:
+        if dmode.update_bias:
             self.bias._update_bias(j2000=os.J2000)
 
-        if self.noise:
+        if self.noise and dmode.add_noise:
             torque += self.noise.get_noise()
-        if update_noise:
+        if dmode.update_noise:
             self.noise._update_noise()
 
         return self.axis*torque
 
-    def storage_torque(self, u: float, x: np.ndarray, os: Orbital_State, bias: bool = True, noise: bool = True) -> float:
+    def storage_torque(self, u: float, x: np.ndarray, os: Orbital_State, dmode: DisturbanceMode = None) -> float:
         r"""
         Compute the **internal torque acting on the wheel** (equal and opposite to
         body torque).
@@ -200,14 +204,21 @@ class RW(Actuator):
         """
         if abs(u) > self.u_max:
             warnings.warn("RW Requested Torque exceeds actuation limit")
+
+        if dmode is None:
+            dmode = DisturbanceMode(add_bias=True, add_noise=True, update_bias=True, update_noise=True)
         
         command = u
 
-        if self.bias and bias:
+        if self.bias and dmode.add_bias:
             command += self.bias.get_bias(j2000=os.J2000)
+        if dmode.add_bias:
+            self.bias._update_bias(os.J2000)
 
-        if self.noise and noise:
+        if self.noise and dmode.add_noise:
             command += self.noise.get_noise()
+        if dmode.add_noise:
+            self.noise._update_noise()
 
         return -command
     

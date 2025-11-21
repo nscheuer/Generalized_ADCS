@@ -29,6 +29,8 @@ from ADCS.estimators.attitude_SRUKF import SRUKF
 from ADCS.estimators.attitude_UKF import UKF
 
 def test_ukf():
+    np.random.seed(1)
+
     t0 = 0
     tf = 60*10
     tlim00 = 5
@@ -42,8 +44,8 @@ def test_ukf():
 
     ## REAL SATELLITE
     # Actuators: Magnetorquers
-    mtq_noise = Noise(noise=0.0, std_noise=0.1)
-    mtq_max_torque = 10.0
+    mtq_noise = Noise(noise=0.0, std_noise=0.0001)
+    mtq_max_torque = 1.0
     acts = [MTQ(axis=j, max_torque=mtq_max_torque, noise=mtq_noise) for j in MathConstants.unitvecs]
 
     # Sensors: Magnetometers
@@ -51,11 +53,11 @@ def test_ukf():
     mtms = [MTM(axis=j, noise=mtm_noise, scale=5e2) for j in MathConstants.unitvecs]
 
     # Sensors: Gyroscopes
-    gyro_noise = Noise(noise=0.0, std_noise=0.03*np.pi/180.0)
+    gyro_noise = Noise(noise=0.0, std_noise=0.0001)
     gyros = [Gyro(axis=j, noise=gyro_noise) for j in MathConstants.unitvecs]
 
     # Sensors: SunPair
-    sun_noise = Noise(noise=0.0, std_noise=0.001)
+    sun_noise = Noise(noise=0.0, std_noise=0.0001)
     sun_eff = 1.0
     suns = [SunPair(axis=j, efficiency=sun_eff, noise=sun_noise) for j in MathConstants.unitvecs]
 
@@ -106,7 +108,7 @@ def test_ukf():
 
     ## ESTIMATED SATELLITE
     # Actuators
-    est_acts = [MTQ(axis=j, max_torque=mtq_max_torque) for j in MathConstants.unitvecs]
+    est_acts = [MTQ(axis=j, max_torque=mtq_max_torque, noise=mtq_noise) for j in MathConstants.unitvecs]
     # Sensors
     est_mtms = [MTM(axis=j, noise=mtm_noise, scale=5e2) for j in MathConstants.unitvecs]
     est_gyros = [Gyro(axis=j, noise=gyro_noise) for j in MathConstants.unitvecs]
@@ -141,13 +143,14 @@ def test_ukf():
     
     t = t0
     ind = 0
+    
     while t < tf:
+        # One Step Propagation
         J2000 = 0.22 + t*TimeConstants.sec2cent
         os = orb.get_os(J2000=J2000)
 
         # Determine control
         u = np.zeros(len(acts))
-
 
         noisy_sensor_readings = real_sat.sensor_readings(x=x, os=os)
         clean_sensor_readings = real_sat.noiseless_sensor_readings(x=x, os=os)

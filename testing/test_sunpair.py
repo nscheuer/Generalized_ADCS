@@ -87,9 +87,9 @@ def test_sunpair_reading_bias_KS():
     drifts = []
     for _ in range(N):
         os.J2000 += 0.5 * TimeConstants.sec2cent
-        b1 = sunpair.bias.get_bias(os.J2000)
+        b1 = sunpair.reading(x=x, os=os)
         os.J2000 += 0.5 * TimeConstants.sec2cent
-        b2 = sunpair.bias.get_bias(os.J2000)
+        b2 = sunpair.reading(x=x, os=os)
         drifts.append(b1 - b2)
     drifts = np.array(drifts).reshape(N, 1)
 

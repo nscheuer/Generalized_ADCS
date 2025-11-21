@@ -200,3 +200,18 @@ class SunPair(Sensor):
             grad[i] = (fp - fm) / (2.0 * eps)
 
         return grad.reshape(7, 1)
+    
+    def _clean_scalar(self, x: np.ndarray, os: Orbital_State) -> float:
+        """
+        Clean reading as a scalar (helper to simplify finite-diff Jacobian).
+        """
+        if not os.is_sunlit():
+            return 0.0
+
+        vecs = os.get_state_vector(x=x)
+
+        sun_dir = normalize(vecs["s"] - vecs["r"])
+
+        proj = float(np.dot(self.axis, sun_dir))
+        eff = self.efficiency[0] if proj > 0.0 else self.efficiency[1]
+        return proj * eff

@@ -14,6 +14,7 @@ from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.orbit import Orbit
 from ADCS.helpers.math_helpers import random_n_unit_vec, normalize
 
+@pytest.mark.slow
 def test_orbit_creation():
     n_n = random_n_unit_vec(3)
     ecc = np.random.uniform(0.1, 0.4)
@@ -38,7 +39,7 @@ def test_orbit_creation():
     ephem = Ephemeris()
     os = Orbital_State(ephem=ephem, J2000=zero_time, R=rvec, V=vvec)
     os0 = os.copy()
-    orb0 = Orbit(os0=os)
+    orb0 = Orbit(os0=os, fast=True)
 
     dt = 3600
     N_dt = 24*5

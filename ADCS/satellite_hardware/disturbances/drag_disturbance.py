@@ -127,7 +127,7 @@ class Drag_Disturbance(Disturbance):
         """
         vecs = os.get_state_vector(x=x)
 
-        V_B = vecs["v"] * 1000.0 # km/s to m/s
+        V_B = vecs["v"] #km/s
         rho = vecs["rho"]
 
         v_proj = np.maximum(0, np.dot(self.normals, V_B))

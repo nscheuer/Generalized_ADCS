@@ -1,14 +1,21 @@
 __all__ = ["UKF"]
 
 import numpy as np
+import copy
+import scipy
 from typing import List
 
 from ADCS.estimators.estimator import Estimator
 from ADCS.estimators.estimator_helpers.estimator_helpers import EstimatedArray
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
+from ADCS.satellite_hardware.sensors import SunSensor, SunPair
 from ADCS.orbits.orbital_state import Orbital_State
-from ADCS.helpers.math_helpers import quat_to_vec3, vec3_to_quat
+from ADCS.orbits.universal_constants import CG5Coefficients
+from ADCS.helpers.math_helpers import quat_to_vec3, vec3_to_quat, quat_mult, quat_inv, normalize, state_norm_jac, matrix_row_normalize
 
+class extra:
+    def __init__(self):
+        pass
 
 class UKF(Estimator):
     def __init__(
@@ -20,8 +27,16 @@ class UKF(Estimator):
         Q_hat: np.ndarray,
         dt: float = 1.0,
         cross_term: bool = False,
-        quat_as_vec: bool = False
+        quat_as_vec: bool = False,
     ) -> None:
+        """
+        Unscented Kalman Filter with an error-state attitude representation.
+
+        - self.x_hat.val is always the FULL state: [w(3), q(4), rest].
+        - self.x_hat.cov is the covariance of the REDUCED error state:
+            * quat_as_vec == False: [dw(3), dtheta(3), drest]  (dim = N-1)
+            * quat_as_vec == True : [dw(3), dq(4),     drest]  (dim = N)
+        """
         super().__init__(
             est_sat=est_sat,
             J2000=J2000,
@@ -30,250 +45,202 @@ class UKF(Estimator):
             Q_hat=Q_hat,
             dt=dt,
             cross_term=cross_term,
-            quat_as_vec=quat_as_vec
+            quat_as_vec=quat_as_vec,
         )
-
-        self.dt = dt
-        self.al = 1.0
-        self.kap = 1.0
+        self.al = 1e-3
+        self.kap = 0
         self.bet = 2.0
         self.vec_mode = 6
 
-    @staticmethod
-    def _chol_from_cov(P_hat: np.ndarray) -> np.ndarray:
-        """
-        Robust Cholesky-like factorization for possibly PSD covariances.
-        Returns a matrix L such that P ≈ L L^T.
-        """
-        if P_hat.size == 0:
-            return P_hat.reshape(0, 0)
+    def make_pts_and_wts(self,pt0,which_sensors):
+        state_cov = self.x_hat.cov.copy()
+        int_cov = self.x_hat.int_cov.copy()*0.0
+        control_cov = self.est_sat.control_cov()
+        sens_cov = self.est_sat.sensor_cov()*0.0
 
-        try:
-            return np.linalg.cholesky(P_hat)
-        except np.linalg.LinAlgError:
-            # Fallback: eigen-decomposition, clamp small negatives
-            w, v = np.linalg.eig(P_hat)
-            w = np.maximum(np.real(w), 0.0)
-            srw = np.diag(np.sqrt(w))
-            v = np.real(v)
-            L = v @ srw @ v.T
-            return L
+        include_cov = [True,False,True,False]
+        covs = [state_cov,sens_cov,control_cov,int_cov]
+        zeros = [pt0,sens_cov[0,:]*0,control_cov[0,:]*0,int_cov[0,:]*0]
 
-    def _x_to_y(self, x: np.ndarray) -> np.ndarray:
-        """
-        Map full state x = [w(3), q(4), rest] to reduced state
-        y = [w(3), v3(3), rest], where v3 is a 3-parameter attitude
-        representation (log map).
+        L = np.sum([include_cov[j]*np.size(covs[j],0) for j in range(4)])
 
-        NEW: enforce a quaternion hemisphere convention before conversion
-        to avoid q / -q ambiguity causing ~180 deg flips.
-        """
-        w = x[0:3]
-        q = x[3:7].copy()
-        rest = x[7:]
+        lam = self.al**2.0*(self.kap+L)-L#3#3-L#self.al**2.0*(k+L)-L
 
-        # Normalize quaternion and enforce scalar >= 0 (hemisphere)
-        nq = np.linalg.norm(q)
-        if nq > 0.0:
-            q = q / nq
-        if q[0] < 0.0:
-            q = -q
+        # lam = self.al**2.0*(self.kap)-L#3#3-L#self.al**2.0*(k+L)-L
+        offsets = [0,0,0,0]
+        pts = [zeros]
+        self.scale = L+lam
 
-        v3 = quat_to_vec3(q, self.vec_mode)
-        return np.concatenate([w, v3, rest])
+        for j in range(4):
+            if include_cov[j]:
+                mat = np.linalg.cholesky(self.scale*covs[j])
 
-    def _y_to_x(self, y: np.ndarray) -> np.ndarray:
-        """
-        Map reduced state y = [w(3), v3(3), rest] back to full state
-        x = [w(3), q(4), rest].
+                offsets[j] = np.hstack([mat,-mat]).T
+                if j == 0:
+                    states = self.add_to_state(pt0,offsets[0])
+                    pts += [zeros[:j]+[k]+zeros[j+1:] for k in states]
+                else:
+                    pts += [zeros[:j]+[k]+zeros[j+1:] for k in offsets[j]]
 
-        NEW: normalize and enforce hemisphere convention on q.
-        """
-        w = y[0:3]
-        v3 = y[3:6]
-        rest = y[6:]
+        wts_m = np.array([lam/(L+lam)]+[0.5/(L+lam) for j in range(2*L)])
+        wts_c = np.array([lam/(L+lam) + (1.0-self.al**2.0 + self.bet)]+[0.5/(L+lam) for j in range(2*L)])
+        self.wts_m = wts_m
+        self.wts_c = wts_c
 
-        q = vec3_to_quat(v3, self.vec_mode)
+        return L,pts,wts_m,wts_c,np.vstack([pt0,states]+[pt0]*(2*L-states.shape[0]))
 
-        # Normalize and enforce scalar >= 0
-        nq = np.linalg.norm(q)
-        if nq > 0.0:
-            q = q / nq
-        if q[0] < 0.0:
-            q = -q
+    def reunite_states(self,dynstate,rest_state,quatref):
+        if self.quat_as_vec:
+            return np.concatenate([dynstate,rest_state])
+        else:
+            quatdiff = quat_mult(quat_inv(quatref),dynstate[3:7])
+            v3diff = quat_to_vec3(quatdiff,self.vec_mode)
+            return np.concatenate([dynstate[0:3],v3diff,rest_state])
+        
+    def add_to_state(self,state,add):
+        add = np.squeeze(add)
+        state = np.squeeze(state)
+        if add.ndim == 1:
+            if self.quat_as_vec:
+                result = state+add
+                result[3:7] = normalize(result[3:7])
+            else:
+                result = state.copy()
+                result[0:3] = state[0:3] + add[0:3]
+                result[7:] = state[7:] + add[6:]
+                result[3:7] = quat_mult(state[3:7],vec3_to_quat(add[3:6],self.vec_mode))
+        else:
+            if self.quat_as_vec:
+                result = state+add
+                result[3:7] = matrix_row_normalize(result[3:7])
+            else:
+                result = np.zeros((np.size(add,0),np.size(state,0)))
+                result[:,0:3] = state[0:3] + add[:,0:3]
+                result[:,7:] = state[7:] + add[:,6:]
+                result[:,3:7] = np.vstack([quat_mult(state[3:7],vec3_to_quat(add[j,3:6],self.vec_mode)) for j in range(np.size(add,0))])
+        return result
 
-        return np.concatenate([w, q, rest])
-
-    @staticmethod
-    def _flatten_sensors(sensors) -> np.ndarray:
-        """
-        Stack a list of sensor arrays into one 1D measurement vector.
-        """
-        if isinstance(sensors, np.ndarray):
-            return sensors.ravel()
-        return np.concatenate([np.asarray(s).ravel() for s in sensors])
-
-    def make_pts_and_wts(self, y0: np.ndarray):
-        """
-        Standard (unscented) sigma-point generation around y0 using the
-        current covariance self.x_hat.cov in reduced space.
-        """
-        P = self.x_hat.cov
-        n = P.shape[0]
-
-        if n == 0:
-            pts = y0.reshape(1, -1)
-            w_m = np.array([1.0])
-            w_c = np.array([1.0])
-            return pts, w_m, w_c
-
-        L = n
-        lam = self.al ** 2 * (L + self.kap) - L
-        c = L + lam
-        scale = np.sqrt(c)
-
-        # Cholesky factor: P ≈ Lmat Lmatᵀ (L lower-triangular-like)
-        Lmat = self._chol_from_cov(P)
-
-        pts = np.zeros((2 * L + 1, n))
-        pts[0] = y0
-
-        for i in range(L):
-            col = Lmat[:, i]
-            pts[1 + i] = y0 + scale * col
-            pts[1 + L + i] = y0 - scale * col
-
-        w_m = np.full(2 * L + 1, 0.5 / c)
-        w_c = np.full(2 * L + 1, 0.5 / c)
-        w_m[0] = lam / c
-        w_c[0] = lam / c + (1.0 - self.al ** 2 + self.bet)
-
-        return pts, w_m, w_c
-
-    def _propagate_dynamics(self, x: np.ndarray, u: np.ndarray, os: Orbital_State) -> np.ndarray:
-        """
-        One-step propagation of the full augmented state using the
-        noiseless dynamics model on the EstimatedSatellite.
-        """
-        mid_os = self.prev_os.average(orbital_state_2=os)
-        return self.est_sat.noiseless_rk4(
-            x=x,
-            u=u,
-            dt=self.dt,
-            orbital_state0=self.prev_os,
-            orbital_state1=os,
-            mid_orbital_state=mid_os,
-        )
-
-    def _predict_measurement(self, x: np.ndarray, os: Orbital_State) -> np.ndarray:
-        """
-        Noiseless measurement prediction for the full augmented state.
-        """
-        noiseless = self.est_sat.noiseless_sensor_readings(x=x, os=os)
-        return noiseless
+    def new_post_state(self,pre_rest_state,post_dynstate,int_err,quatref):
+        post_dyn_state_w_int_err = self.add_to_state(post_dynstate,int_err[0:self.est_sat.state_len - 1 + self.quat_as_vec])
+        post_state = self.reunite_states(post_dyn_state_w_int_err,pre_rest_state+int_err[self.est_sat.state_len - 1 + self.quat_as_vec:],quatref)
+        s0len = np.zeros(np.size(post_state) + 1 - self.quat_as_vec)
+        s0len[3:7] = quatref
+        full_state = self.add_to_state(s0len,post_state)#these are backwards on purpose
+        return post_state,full_state
+    
+    def sat_match(self,est_sat: EstimatedSatellite,state):
+        full_statej = self.x_hat.copy()
+        full_statej.val[self.use] = state
+        est_sat.match_estimate(full_statej,self.dt)
 
     def update_core(self, u: np.ndarray, sensors: List[np.ndarray], os: Orbital_State) -> EstimatedArray:
-        """
-        Core UKF step in reduced state space (y), with quaternion handled
-        via a 3-parameter mapping and hemisphere enforcement.
+        u = np.copy(u)
+        os = os.copy()
 
-        Returns an EstimatedArray corresponding to the FULL augmented state
-        (not just the physical state). Estimator.update() will handle
-        insertion into self.x_hat and cross-term zeroing.
-        """
-        # Current full state and its reduced representation
-        x0 = self.x_hat.val.copy()
-        y0 = self._x_to_y(x0)
+        state0 = self.x_hat.val.copy()
+        quat0 = state0[3:7].copy()
+        
+        # Find Middle Orbital State Once
+        mid_os = self.prev_os.average(os)
+        CG5 = CG5Coefficients()
+        mid_os = [self.prev_os.average(os,CG5.c[j]) for j in range(5)]
 
-        # Sigma points in reduced space
-        sigma_y, w_m, w_c = self.make_pts_and_wts(y0)
-        num_pts, n = sigma_y.shape
+        dyn_state0 = self.est_sat.noiseless_rk4(x=state0[0:self.est_sat.state_len], u=u, dt=self.dt, orbital_state0=self.prev_os, orbital_state1=os, mid_orbital_state=mid_os, quat_as_vec=False)        
 
-        sigma_y_pred = np.zeros_like(sigma_y)
-        sigma_z = None
+        which_sensors: List[bool] = [True for j in self.est_sat.attitude_sensors]
 
-        # Propagate each sigma point through dynamics and measurement models
-        for i in range(num_pts):
-            x_i = self._y_to_x(sigma_y[i])
-            x_pred = self._propagate_dynamics(x_i, u, os)
-            y_pred_i = self._x_to_y(x_pred)      # re-map with hemisphere enforcement
-            sigma_y_pred[i] = y_pred_i
+        for j, sensor in enumerate(self.est_sat.attitude_sensors):
+            if isinstance(sensor, SunSensor):
+                if sensor.clean_reading(x=dyn_state0, os=os)<1e-10:
+                    which_sensors[j] = False
 
-            z_i = self._predict_measurement(x_pred, os).ravel()
-            if sigma_z is None:
-                m_meas = z_i.size
-                sigma_z = np.zeros((num_pts, m_meas))
-            sigma_z[i, :] = z_i
+        sens_vec_len = sum([self.est_sat.sensors[j].output_length for j in range(len(self.est_sat.sensors)) if which_sensors[j]])
+        #generate sigma points of augmemted state--state itself, including actuator bias values, disturbance values, sensor bias values; sensor noise , control noise to use, snesor noise to use, possibly integration noise to use.
+        L,pts,wts_m,wts_c,sig0 = self.make_pts_and_wts(state0,which_sensors)
+        sigma_state_len = len(state0) - 1 + self.quat_as_vec
+        post_pts = np.nan*np.ones((2*L+1,sigma_state_len))
+        post_sens = np.nan*np.ones((2*L+1,sens_vec_len))
+        satj = copy.deepcopy(self.est_sat)
+        whichj = which_sensors.copy()
 
-        # Predicted mean in reduced space and measurement space
-        y_mean = np.sum(w_m[:, None] * sigma_y_pred, axis=0)
-        z_mean = np.sum(w_m[:, None] * sigma_z, axis=0)
+        extra_obj = extra()
+        extra_obj.cov0 = self.x_hat.cov.copy()
+        extra_obj.sig0 = sig0
+        extra_obj.mean0 = sig0[0,:].copy()
+        for j in range(2*L+1): #TODO vectorize
+            [full_pre_statej,sens_noise_j,control_noise_j,int_noise_extra_j] = pts[j]
 
-        Dy = sigma_y_pred - y_mean
-        Dz = sigma_z - z_mean
+            self.sat_match(satj,full_pre_statej)
+            if j==5:
+                pass
+            post_dyn_state_j = satj.noiseless_rk4(x=full_pre_statej[0:self.est_sat.state_len],u=u + control_noise_j,dt=self.dt,orbital_state0=self.prev_os,orbital_state1=os,mid_orbital_state = mid_os,quat_as_vec = False)
 
-        # Predicted covariance in reduced state space
-        if n == 0:
-            P_pred = self.x_hat.cov
-        else:
-            P_pred = np.zeros((n, n))
-            for i in range(num_pts):
-                P_pred += w_c[i] * np.outer(Dy[i], Dy[i])
-            P_pred += self.x_hat.int_cov
+            if j == 0:
+                post_quat = post_dyn_state_j[3:7]#can happen before integration noise is added because j=0 has 0 integration noise
+            post_statej,post_full_statej = self.new_post_state(full_pre_statej[self.est_sat.state_len:],post_dyn_state_j,int_noise_extra_j,post_quat)
+            post_pts[j,:] = post_statej.copy()
 
-        # Form measurement covariance and cross-covariance
-        z_meas = self._flatten_sensors(sensors)
-        if z_meas.size != sigma_z.shape[1]:
-            raise ValueError(
-                f"Measurement dimension mismatch: got {z_meas.size}, "
-                f"expected {sigma_z.shape[1]}"
-            )
+            self.sat_match(satj,post_full_statej)
+            sensj = satj.noiseless_sensor_readings(x=post_full_statej[0:self.est_sat.state_len], os=os)
+            post_sens[j,:] = sensj.copy()
 
-        sens_srcov = self.est_sat.sensor_srcov()
-        m_meas = sens_srcov.shape[0]
+        state1 = np.dot(wts_m,post_pts)
+        dquat1 = vec3_to_quat(state1[3:6],self.vec_mode)
+        quat1 = quat_mult(post_quat,dquat1)
+        pred_dyn_state = np.concatenate([state1[0:3],quat1,state1[6:self.est_sat.state_len-1],state1[self.est_sat.state_len-1:]])
 
-        if m_meas != sigma_z.shape[1]:
-            raise ValueError(
-                f"sensor_srcov() dimension {m_meas} does not match measurement dim {sigma_z.shape[1]}"
-            )
+        sens1 = np.dot(wts_m,post_sens)
+        extra_obj.mean1 = pred_dyn_state.copy()
 
-        # R = L_R L_R^T
-        R_meas = sens_srcov.T @ sens_srcov
+        pts_diff = post_pts - state1
+        sens_diff = post_sens - sens1
+        cov1 = sum([wts_c[j]*np.outer(pts_diff[j,:],pts_diff[j,:]) for j in range(2*L+1)])
 
-        P_zz = np.zeros((m_meas, m_meas))
-        for i in range(num_pts):
-            P_zz += w_c[i] * np.outer(Dz[i], Dz[i])
-        P_zz += R_meas
+        covyy = sum([wts_c[j]*np.outer(sens_diff[j,:],sens_diff[j,:]) for j in range(2*L+1)],0*np.eye(sens_vec_len))#sum([wts_c[i]*(post_sens[j,:]-sens1)@(sens_pts[i]-sens1).T for i in range(2*L+1)])
+        covyy += self.est_sat.sensor_cov()
+        covyx = sum([wts_c[j]*np.outer(sens_diff[j,:],pts_diff[j,:]) for j in range(2*L+1)],np.zeros((sens_vec_len,sigma_state_len)))#sum([wts_c[i]*(state_pts_err[i]-x1_cut_red)@(sens_pts[i]-sens1).T for i in range(2*L+1)])
 
-        P_yz = np.zeros((n, m_meas))
-        for i in range(num_pts):
-            P_yz += w_c[i] * np.outer(Dy[i], Dz[i])
-
-        # Kalman gain
         try:
-            K = P_yz @ np.linalg.inv(P_zz)
-        except np.linalg.LinAlgError:
-            # Fall back if P_zz is near singular
-            K = np.linalg.lstsq(P_zz, P_yz.T, rcond=None)[0].T
+            Kk = scipy.linalg.solve(covyy,covyx)
+        except:
+            raise np.linalg.LinAlgError('Matrix is singular. (probably)')
 
-        # Innovation and posterior reduced-state
-        innov = z_meas - z_mean
-        y_post = y_mean + K @ innov
 
-        # Posterior covariance
-        P_post = P_pred - K @ P_zz @ K.T
-        P_post = 0.5 * (P_post + P_post.T)  # symmetrize
+        extra_obj.senscov = covyy.copy()
+        # extra_obj.sens_state = state1 +  (sensors[which_sensors]-sens1)@covyx
+        extra_obj.sens1 = sens1.copy()
+        self.sat_match(satj,pred_dyn_state)
+        extra_obj.sens_of_state1 = satj.sensor_readings(x=pred_dyn_state[0:self.est_sat.state_len], os=os)
 
-        # Map reduced-state posterior back to full state, with normalized, hemisphere-consistent quaternion
-        x_post = self._y_to_x(y_post)
+        extra_obj.sens_sig = post_sens.copy()
 
-        # Optionally enforce continuity w.r.t previous quaternion
-        q_prev = x0[3:7]
-        q_new = x_post[3:7].copy()
-        if np.dot(q_prev, q_new) < 0.0:
-            q_new = -q_new
-            x_post[3:7] = q_new
+        state2 = state1 + (sensors[which_sensors]-sens1)@Kk
+        cov2 = cov1 - Kk.T@covyy@Kk
+        cov2 = 0.5*(cov2 + cov2.T)
 
-        # Update the internal array; Estimator.update will push into est_sat
-        # and handle cross-term zeroing on the full covariance.
-        return EstimatedArray(val=x_post, cov=P_post, int_cov=self.x_hat.int_cov)
+        if not self.quat_as_vec:
+            dvec3 = state2[3:6]
+            dquat = vec3_to_quat(dvec3,self.vec_mode)
+            quat = quat_mult(post_quat,dquat)
+            state2 = np.concatenate([state2[0:3],quat,state2[6:self.est_sat.state_len-1],state2[self.est_sat.state_len-1:]])
+        else:
+            state20 = np.copy(state2)
+            state2[3:7] = normalize(state2[3:7])
+            norm_jac = state_norm_jac(state20)
+            cov2 = norm_jac.T@cov2@norm_jac
+
+
+        self.sat_match(satj,state2)
+        extra_obj.sens_of_state2 = satj.sensor_readings(x=state2[0:self.est_sat.state_len], os=os).copy()
+
+        extra_obj.cov1 = cov1
+        extra_obj.cov2 = cov2
+        tmp = np.zeros(state2.shape[0])
+        tmp[3:7] = post_quat
+        extra_obj.sig1 = self.add_to_state(tmp,post_pts).copy()
+        extra_obj.mean2 = state2.copy()
+        extra_obj.sens_state = self.add_to_state(tmp,state1 +  (sensors[which_sensors]-sens1)@covyx)
+
+
+
+        return EstimatedArray(val=state2, cov=cov2)

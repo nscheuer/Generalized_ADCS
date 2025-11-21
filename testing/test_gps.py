@@ -107,9 +107,9 @@ def test_gps_reading_etc_bias():
     # Repeatedly advance time and record bias drift
     for _ in range(N):
         os.J2000 += 0.5 * TimeConstants.sec2cent
-        b1 = gps.bias.get_bias(os.J2000).copy()
+        b1 = gps.reading(x=x, os=os)
         os.J2000 += 0.5 * TimeConstants.sec2cent
-        b2 = gps.bias.get_bias(os.J2000).copy()
+        b2 = gps.reading(x=x, os=os)
         drifts.append(b1 - b2)
 
     drifts = np.array(drifts)  # shape (N,6)
@@ -264,4 +264,4 @@ def test_gps_reading_bias_noise():
 
 
 if __name__ == "__main__":
-    test_gps_reading_bias_noise()
+    test_gps_reading_etc_noise()
