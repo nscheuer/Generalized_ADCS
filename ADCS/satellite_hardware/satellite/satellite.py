@@ -1080,15 +1080,15 @@ class Satellite:
     
 
         
-    def sensor_readings(self, x: np.ndarray, os: Orbital_State) -> np.ndarray:
-        sensor_readings: List[np.ndarray] = [self.attitude_sensors[j].reading(x=x, os=os) for j in range(len(self.attitude_sensors))]
+    def sensor_readings(self, x: np.ndarray, os: Orbital_State, dmode: DisturbanceMode = None) -> np.ndarray:
+        gyro_reading = self.attitude_sensors[4].reading(x=x, os=os, dmode=dmode)
+        sensor_readings: List[np.ndarray] = [self.attitude_sensors[j].reading(x=x, os=os, dmode=dmode) for j in range(len(self.attitude_sensors))]
         rw_readings: List[np.ndarray] = [self.rw_actuators[j].measure_momentum() for j in range(len(self.rw_actuators))]
         return np.concatenate([sensor_readings, rw_readings])
     
     def noiseless_sensor_readings(self, x: np.ndarray, os: Orbital_State) -> np.ndarray:
-        sensor_readings: List[np.ndarray] = [self.attitude_sensors[j].clean_reading(x=x, os=os) for j in range(len(self.attitude_sensors))]
-        rw_readings: List[np.ndarray] = [self.rw_actuators[j].measure_momentum_noiseless() for j in range(len(self.rw_actuators))]
-        return np.concatenate([sensor_readings, rw_readings])
+        dmode = DisturbanceMode(add_bias=True, add_noise=False, update_bias=False, update_noise=False)
+        return self.sensor_readings(x=x, os=os, dmode=dmode)
     
     def RW_readings(self, x: np.ndarray, os: Orbital_State) -> List[np.ndarray]:
         return [rw.measure_momentum() for rw in self.rw_actuators]

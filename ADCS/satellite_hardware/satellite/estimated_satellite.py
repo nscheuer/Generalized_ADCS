@@ -99,7 +99,7 @@ class EstimatedSatellite(Satellite):
         # Add estimated states
         self.act_bias_inds = [j for j in range(len(self.actuators)) if self.actuators[j].estimate_bias] # Indices with actuator bias
         self.act_bias_len = sum([self.actuators[j].input_len for j in self.act_bias_inds]) # Number of actuators with biases
-        self.att_sens_bias_inds = [j for j in range(len(self.attitude_sensors)) if self.sensors[j].estimate_bias] # Indices with sensor bias
+        self.att_sens_bias_inds = [j for j in range(len(self.attitude_sensors)) if self.attitude_sensors[j].estimate_bias] # Indices with sensor bias
         self.att_sens_bias_len = sum([self.attitude_sensors[j].output_length for j in self.att_sens_bias_inds]) # Number of sensors with bias
         self.dist_param_inds = [j for j in range(len(self.disturbances)) if self.disturbances[j].estimate_dist] # Indices with sensor disturbaces
         self.dist_param_len = sum([self.disturbances[j].estimated_vector_length for j in self.dist_param_inds]) # Number of sensors with bias
@@ -200,8 +200,8 @@ class EstimatedSatellite(Satellite):
         for j in self.act_bias_inds:
             act = self.actuators[j]
             l = act.input_len
-            act.set_bias(act_bias[ind : ind + l])
-            act.bias_std_rate = np.sqrt(act_bias_ic[ind : ind + l, ind : ind + l])
+            act.bias.bias = act_bias[ind : ind + l]
+            act.bias.std_bias = np.sqrt(act_bias_ic[ind : ind + l, ind : ind + l])
             ind += l
 
         # --- Update sensor biases ---
@@ -209,8 +209,8 @@ class EstimatedSatellite(Satellite):
         for j in self.att_sens_bias_inds:
             sens = self.attitude_sensors[j]
             l = sens.output_length
-            sens.bias = sens_bias[ind : ind + l]
-            sens.bias_std_rate = np.sqrt(sens_bias_ic[ind : ind + l, ind : ind + l])
+            sens.bias.bias = sens_bias[ind : ind + l]
+            sens.bias.std_bias = np.sqrt(sens_bias_ic[ind : ind + l, ind : ind + l])
             ind += l
 
         # --- Update disturbance parameters ---

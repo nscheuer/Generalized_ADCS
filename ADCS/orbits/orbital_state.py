@@ -695,10 +695,10 @@ class Orbital_State:
         """
 
         r = self.geocentric[0]
-        theta_deg = np.rad2deg(self.geocentric[1])
-        phi_deg = np.rad2deg(self.geocentric[2])
+        theta_rad = self.geocentric[1]
+        phi_rad = self.geocentric[2]
 
-        b_r, b_th, b_ph = ppigrf.igrf_gc(r, theta_deg, phi_deg, self.datetime)
+        b_r, b_th, b_ph = ppigrf.igrf_gc(r, theta_rad*180.0/np.pi, phi_rad*180.0/np.pi, self.datetime)
         b_array = np.array([b_r, b_th, b_ph])
 
         b_ecef = self.geocentric_to_ecef(np.squeeze(b_array))
