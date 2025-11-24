@@ -675,3 +675,24 @@ def state_norm_jac(xk):
     out = np.eye(l)
     out[3:7,3:7] = quat_norm_jac(q)#np.eye(4)/norm(q) - np.outer(q,q)/norm(q)**3
     return out
+
+def limit(u, umax):
+    u = np.asarray(u)
+
+    # CASE 1: umax is a scalar → symmetric clip
+    if np.isscalar(umax):
+        umax = float(umax)
+        return np.clip(u, -umax, umax)
+
+    # CASE 2: umax is a tuple/list → may be (umin, umax)
+    if isinstance(umax, (tuple, list)):
+        if len(umax) != 2:
+            raise ValueError("When umax is tuple/list, must be (umin, umax).")
+        umin, umax_val = umax
+        umin = np.asarray(umin)
+        umax_val = np.asarray(umax_val)
+        return np.clip(u, umin, umax_val)
+
+    # CASE 3: umax is an array → symmetric elementwise
+    umax = np.asarray(umax)
+    return np.clip(u, -umax, umax)

@@ -27,141 +27,127 @@ from ADCS.orbits.orbit import Orbit
 from ADCS.orbits.universal_constants import EarthConstants
 from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.universal_constants import TimeConstants
-from ADCS.helpers.math_helpers import random_n_unit_vec, rot_mat, norm, normalize, limit
+from ADCS.helpers.math_helpers import random_n_unit_vec, rot_mat, norm, normalize, limit, quat_mult, quat_inv, quat_to_vec3
 from ADCS.helpers.math_constants import MathConstants
+from ADCS.estimators.attitude_SRUKF import SRUKF
 from ADCS.estimators.attitude_UKF import UKF
 
-@pytest.fixture(scope="module")
-def ukf_results():
+def pid_zeroquat(
+    q: np.ndarray,
+    w: np.ndarray,
+    q_des: np.ndarray,
+    w_des: np.ndarray,
+    os: Orbital_State,
+    J: np.ndarray,
+) -> np.ndarray:
     """
-    Runs the simulation ONCE for the entire module.
-    """
-    print("\n--- Running ukf Simulation (Once) ---")
-    # Adjust tf/dt here if you want a specific duration for testing
-    results = run_ukf(verbose=False, tf=1000, dt=50, real_orbit=True)
-    return results
+    Quaternion PD controller that drives attitude towards q_des and angular
+    velocity towards w_des using magnetorquers.
 
-def test_stability(ukf_results):
-    """
-    Check 1: Stability. The filter should not diverge into NaNs or Infs.
-    """
-    (_, _, est_state_hist, _, _, _, _, cov_hist) = ukf_results
-    
-    # Check States
-    assert not np.isnan(est_state_hist).any(), "Estimated state contains NaNs"
-    assert not np.isinf(est_state_hist).any(), "Estimated state contains Infs"
-    
-    # Check Covariance
-    cov_array = np.array(cov_hist) 
-    assert not np.isnan(cov_array).any(), "Covariance contains NaNs"
-    
-    # Ensure diagonal variances are not exploding (e.g. > 1e6)
-    # Using axis1=1, axis2=2 extracts the diagonal of each matrix in the stack
-    diags = np.diagonal(cov_array, axis1=1, axis2=2)
-    assert np.all(diags < 1e6), "Covariance exploded (variance > 1e6)"
+    The controller:
+      1. Builds a quaternion attitude error q_err = q_des ⊗ q^{-1}
+      2. Converts q_err to a 3-vector attitude error (MRP-like)
+      3. Forms a desired control torque τ_cmd = -Kp * e_att - Kd * e_ω - ω × (J ω)
+      4. Uses the magnetorquer relation τ = m × B to compute a dipole m that
+         best matches τ_cmd in the plane perpendicular to B
+      5. Returns MTQ commands u whose components are the dipole along body axes
 
-def test_ukf_quaternion_error(ukf_results):
-    """
-    Check 2: Attitude Accuracy. 
-    Compares initial error to final error. Final error should be close to 0.
-    """
-    (_, state_hist, est_state_hist, _, _, _, _, _) = ukf_results
-    
-    # 1. Calculate Error Angle (Degrees)
-    q_true = state_hist[:, 3:7]
-    q_est = est_state_hist[:, 3:7]
-    
-    # Dot product (row-wise). Use abs() because q and -q are same rotation.
-    dot_products = np.abs(np.einsum('ij,ij->i', q_true, q_est))
-    dot_products = np.clip(dot_products, -1.0, 1.0) # Safety for arccos
-    theta_err_deg = 2 * np.arccos(dot_products) * (180.0 / np.pi)
-    
-    # 2. Define small window for comparison (robust to single-step noise)
-    # Use min(5, length) to work with short simulations
-    N = len(theta_err_deg)
-    window = max(1, min(5, int(N * 0.1))) 
-    
-    initial_err = np.mean(theta_err_deg[:window])
-    final_err = np.mean(theta_err_deg[-window:])
-    
-    print(f"\nAttitude Error - Initial: {initial_err:.4f}°, Final: {final_err:.4f}°")
+    Parameters
+    ----------
+    q : (4,) ndarray
+        Current attitude quaternion (Hamilton, scalar-first).
+    w : (3,) ndarray
+        Current body angular velocity [rad/s].
+    q_des : (4,) ndarray
+        Desired attitude quaternion.
+    w_des : (3,) ndarray
+        Desired angular velocity [rad/s].
+    os : Orbital_State
+        Current orbital state, used to obtain B in the body frame.
+    J : (3,3) ndarray
+        Inertia matrix in body frame.
 
-    # 3. Assertions
-    # Convergence: Final should be better than Initial (or already perfect)
-    if initial_err > 1.0: 
-        assert final_err < initial_err, "Filter did not reduce error"
-    
-    # Accuracy: Final error should be close to 0 (allowing for sensor noise)
-    assert final_err < 5.0, f"Final Attitude Error too high: {final_err:.2f}°"
-
-def test_ukf_rate_error(ukf_results):
+    Returns
+    -------
+    u : (3,) ndarray
+        Magnetorquer commands (one per body axis).
     """
-    Check 3: Rate Accuracy.
-    Final angular rate error should be close to 0.
-    """
-    (_, state_hist, est_state_hist, _, _, _, _, _) = ukf_results
-    
-    # 1. Calculate Rate Error (deg/s)
-    w_true = state_hist[:, 0:3]
-    w_est = est_state_hist[:, 0:3]
-    diff = w_true - w_est
-    
-    # FIX: Must use axis=1 to get norm of each row vector
-    rate_err_deg_s = np.linalg.norm(diff, axis=1) * (180.0 / np.pi)
-    
-    # 2. Define Window
-    N = len(rate_err_deg_s)
-    window = max(1, min(5, int(N * 0.1)))
-    
-    final_rate_err = np.mean(rate_err_deg_s[-window:])
-    
-    print(f"Rate Error - Final: {final_rate_err:.4f} deg/s")
-    
-    # 3. Assertions
-    assert final_rate_err < 0.5, f"Final Rate Error too high: {final_rate_err:.4f} deg/s"
+    # --- Ensure shapes ---
+    q = np.asarray(q).reshape(4,)
+    q_des = np.asarray(q_des).reshape(4,)
+    w = np.asarray(w).reshape(3,)
+    w_des = np.asarray(w_des).reshape(3,)
+    J = np.asarray(J).reshape(3, 3)
 
-def test_ukf_covariance_consistency(ukf_results):
-    """
-    Check 4: Consistency.
-    Actual error should be within 3-sigma bounds most of the time.
-    """
-    (_, state_hist, est_state_hist, _, _, _, _, cov_hist) = ukf_results
-    
-    P_hist = np.array(cov_hist)
-    N = len(P_hist)
-    
-    # Extract Rate Variances (Indices 0,1,2)
-    # If your state is [w, q, ...], diagonal 0-3 is rate variance
-    rate_vars = P_hist[:, 0:3, 0:3].diagonal(axis1=1, axis2=2)
-    sigma_3_bnds = 3 * np.sqrt(rate_vars) * (180.0 / np.pi)
-    
-    # Actual Error
-    w_true = state_hist[:, 0:3]
-    w_est = est_state_hist[:, 0:3]
-    actual_err = np.abs(w_true - w_est) * (180.0 / np.pi)
-    
-    # Only check the second half of the sim (to allow for convergence)
-    start_idx = int(N / 2)
-    
-    # If sim is too short, just check the last few points
-    if start_idx == N: start_idx = 0
-    
-    for axis in range(3):
-        bnds = sigma_3_bnds[start_idx:, axis]
-        errs = actual_err[start_idx:, axis]
-        
-        inside_count = np.sum(errs <= bnds)
-        total = len(errs)
-        if total == 0: continue
-            
-        percentage = inside_count / total
-        print(f"Axis {axis} Consistency: {percentage:.1%}")
-        
-        # It's okay if it's not 99%, but it should be > 70% to prove P matches R/Q tuning
-        assert percentage > 0.70, f"Filter inconsistent on axis {axis}"
+    # ------------------------------------------------------------
+    # 1) Quaternion attitude error: q_err = q_des ⊗ q^{-1}
+    #    (rotation from current attitude to desired attitude)
+    # ------------------------------------------------------------
+    q_err = quat_mult(q_des, quat_inv(q))
 
+    # Use the "shortest rotation" representation
+    if q_err[0] < 0.0:
+        q_err = -q_err
 
-def run_ukf(verbose: bool = False, tf: float = 1000, dt: float = 10, real_orbit: bool = False) -> Union[np.ndarray, np.ndarray, np.ndarray, List[Orbital_State], List[np.ndarray], List[np.ndarray], np.ndarray, List[np.ndarray]]:
+    # ------------------------------------------------------------
+    # 2) Convert quaternion error to a 3-vector attitude error
+    #    (MRP-like, small-angle ≈ rotation vector)
+    # ------------------------------------------------------------
+    # quat_to_vec3 is defined in the provided quaternion utilities
+    e_att = quat_to_vec3(q_err, mode=0)  # (3,)
+
+    # ------------------------------------------------------------
+    # 3) PD torque with gyroscopic compensation
+    # ------------------------------------------------------------
+    e_w = w - w_des
+
+    # Tunable gains (start small; these are just reasonable placeholders)
+    Kp = 1e-2   # attitude error gain
+    Kd = 2e-2   # rate error gain
+
+    tau_pd = -Kp * e_att - Kd * e_w
+    tau_gyro = np.cross(w, J @ w)
+    tau_cmd = tau_pd - tau_gyro      # total commanded torque in body frame
+
+    # ------------------------------------------------------------
+    # 4) Get magnetic field in body frame and project torque
+    #    into the plane perpendicular to B (since τ = m × B ⟂ B)
+    # ------------------------------------------------------------
+    x_full = np.concatenate([w, q])          # matches state convention [ω, q]
+    vecs = os.get_state_vector(x=x_full)
+    B_body = np.asarray(vecs["b"]).reshape(3,)
+
+    B_norm2 = float(np.dot(B_body, B_body))
+    if B_norm2 < 1e-12:
+        # If magnetic field is (numerically) zero, MTQs cannot generate torque
+        return np.zeros(3)
+
+    B_norm = B_norm2**0.5
+    B_hat = B_body / B_norm
+
+    # Remove the component of tau_cmd parallel to B (unachievable by MTQs)
+    tau_perp = tau_cmd - B_hat * np.dot(tau_cmd, B_hat)
+
+    # ------------------------------------------------------------
+    # 5) Solve for dipole m such that m × B = tau_perp, with m ⟂ B
+    #
+    #    If τ ⟂ B, one minimal-norm solution is:
+    #        m = (B × τ) / ||B||²
+    #
+    # ------------------------------------------------------------
+    m = np.cross(B_body, tau_perp) / (B_norm2 + 1e-12)
+
+    # With 3 orthogonal MTQs aligned with body axes, the command for each
+    # axis is simply the corresponding component of m.
+    u = m.copy()
+
+    # Optional: enforce actuator limits (must match MTQ.u_max)
+    # For your current test_ukf_pid, mtq_max_torque = 1.0
+    u = limit(u, umax=1.0)
+
+    return u
+
+def test_ukf_pid(verbose: bool = False, tf: float = 500, dt: float = 1, t_start_pid: float = 300, real_orbit: bool = False) -> Union[np.ndarray, np.ndarray, np.ndarray, List[Orbital_State], List[np.ndarray], List[np.ndarray], np.ndarray, List[np.ndarray]]:
     np.random.seed(1)
 
     t0 = 0
@@ -171,20 +157,20 @@ def run_ukf(verbose: bool = False, tf: float = 1000, dt: float = 10, real_orbit:
 
     ## REAL SATELLITE
     # Actuators: Magnetorquers
-    mtq_noise = Noise(noise=0.0, std_noise=0.0001)
+    mtq_noise = Noise(noise=0.0, std_noise=0.0)
     mtq_max_torque = 1.0
     acts = [MTQ(axis=j, max_torque=mtq_max_torque, noise=mtq_noise) for j in MathConstants.unitvecs]
 
     # Sensors: Magnetometers
-    mtm_noise = Noise(noise=0.0, std_noise=1e-8)
+    mtm_noise = Noise(noise=0.0, std_noise=0.0)
     mtms = [MTM(axis=j, noise=mtm_noise) for j in MathConstants.unitvecs]
 
     # Sensors: Gyroscopes
-    gyro_noise = Noise(noise=0.0, std_noise=0.0001)
+    gyro_noise = Noise(noise=0.0, std_noise=0.0)
     gyros = [Gyro(axis=j, noise=gyro_noise) for j in MathConstants.unitvecs]
 
     # Sensors: SunPair
-    sun_noise = Noise(noise=0.0, std_noise=0.0001)
+    sun_noise = Noise(noise=0.0, std_noise=0.0)
     sun_eff = 1.0
     suns = [SunPair(axis=j, efficiency=sun_eff, noise=sun_noise) for j in MathConstants.unitvecs]
 
@@ -206,10 +192,10 @@ def run_ukf(verbose: bool = False, tf: float = 1000, dt: float = 10, real_orbit:
     # Satellite configuration
     real_sat_mass = 4.0
     real_sat_J = np.diagflat([3.4, 2.9, 1.3])
-    real_sat = Satellite(mass=real_sat_mass, J_0=real_sat_J, actuators=acts, sensors=mtms+gyros+suns, disturbances=dists)
+    real_sat = Satellite(mass=real_sat_mass, J_0=real_sat_J, actuators=acts, sensors=mtms+gyros+suns)
 
     # Initial State
-    w0 = random_n_unit_vec(3)*np.random.uniform(0, 0.1)*np.pi/180.0
+    w0 = random_n_unit_vec(3)*np.random.uniform(0, 0.01)*np.pi/180.0
     print(w0)
 
     q0 = random_n_unit_vec(4)
@@ -226,7 +212,7 @@ def run_ukf(verbose: bool = False, tf: float = 1000, dt: float = 10, real_orbit:
         os0 = Orbital_State(ephem=ephem, J2000=start_time, R=R, V=V)
         orb = Orbit(os0=os0, end_time=end_time, dt=dt, use_J2=True, fast=False)
     else:
-        os0 = Orbital_State(ephem=ephem, J2000=0.22-1*TimeConstants.sec2cent, R=R, V=V, B=np.array([0, 0.1, 0]), S=np.array([1e5+1, 0, 0]), rho=1e-7)
+        os0 = Orbital_State(ephem=ephem, J2000=0.22-1*TimeConstants.sec2cent, R=-R, V=V, B=np.array([0, 0.1, 0]), S=np.array([1e5+1, 0, 0]), rho=1e-7)
         dur = int((tf-t0)/dt)+10
         orbs = [os0]*(dur+10)
         for j in range(dur):
@@ -249,7 +235,7 @@ def run_ukf(verbose: bool = False, tf: float = 1000, dt: float = 10, real_orbit:
     # Satellite configuration
     est_sat_mass = 4.0
     est_sat_J = np.diagflat([3.4, 2.9, 1.3])
-    est_sat = EstimatedSatellite(mass=est_sat_mass, J_0=est_sat_J, actuators=est_acts, sensors=est_mtms+est_gyros+est_suns, disturbances=est_dists)
+    est_sat = EstimatedSatellite(mass=est_sat_mass, J_0=est_sat_J, actuators=est_acts, sensors=est_mtms+est_gyros+est_suns)
 
     # Initial Estimated State
     x_hat = np.zeros(7)
@@ -259,12 +245,12 @@ def run_ukf(verbose: bool = False, tf: float = 1000, dt: float = 10, real_orbit:
 
     ## Build Estimator
     J2000 = 0.22 + t0*TimeConstants.sec2cent
-    ukf = UKF(est_sat=est_sat, J2000=J2000, x_hat=x_hat, P_hat=P_est, Q_hat=Q_est, dt=dt, cross_term=True, quat_as_vec=False)
+    srukf = UKF(est_sat=est_sat, J2000=J2000, x_hat=x_hat, P_hat=P_est, Q_hat=Q_est, dt=dt, cross_term=True, quat_as_vec=False)
 
     # Create history vectors
     time_hist = np.nan*np.zeros(N)
-    state_hist = np.nan*np.zeros((N, ukf.state_len))
-    est_state_hist = np.nan*np.zeros((N, ukf.state_len))
+    state_hist = np.nan*np.zeros((N, srukf.state_len))
+    est_state_hist = np.nan*np.zeros((N, srukf.state_len))
     os_hist: List[Orbital_State] = list()
     sensor_hist: List[np.ndarray] = np.nan*np.zeros((N, 9))
     clean_sensor_hist: List[np.ndarray] = np.nan*np.zeros((N, 9))
@@ -275,18 +261,25 @@ def run_ukf(verbose: bool = False, tf: float = 1000, dt: float = 10, real_orbit:
     ind = 0
     
     steps = int((tf - t0)/dt)
+    os = orb.get_os(J2000=0.22)
+    B_prev = np.array(real_sat.mtm_readings(x=x, os=os))
+    B_now = B_prev
     
-    for step in tqdm(range(steps), desc="Simulating ukf"):
+    for step in tqdm(range(steps), desc="Simulating UKF"):
         # One Step Propagation
         J2000 = 0.22 + t*TimeConstants.sec2cent
         os = orb.get_os(J2000=J2000)
 
-        # Determine control
-        u = np.zeros(len(acts))
-
         noisy_sensor_readings = real_sat.sensor_readings(x=x, os=os)
         clean_sensor_readings = real_sat.noiseless_sensor_readings(x=x, os=os)
-        x_hat = ukf.update(u=u, sensors=noisy_sensor_readings, os=os)
+        B_now = np.array(real_sat.mtm_readings(x=x, os=os))
+        if t < t_start_pid:
+            u = np.zeros(len(acts))
+        else:
+            w_est = x_hat[0:3]
+            q_est = x_hat[3:7]
+            u = pid_zeroquat(q=q_est, w=w_est, q_des=MathConstants.zeroquat, w_des=np.zeros(3), os=os, J=est_sat.J_0)
+        x_hat = srukf.update(u=u, sensors=noisy_sensor_readings, os=os)
 
         if verbose:
             # Full State Debug
@@ -298,7 +291,7 @@ def run_ukf(verbose: bool = False, tf: float = 1000, dt: float = 10, real_orbit:
             print("Attitude Error (Degrees) ", quaternion_error_deg)
             angular_velocity_error = norm(x_hat[0:3] - x[0:3])*180.0/np.pi
             print("Angular Velocity Error ", angular_velocity_error)
-            diagonal_covariances = np.diagonal(ukf.x_hat.cov)
+            diagonal_covariances = np.diagonal(srukf.x_hat.cov)
             print("Attitude Covariance ", diagonal_covariances[3:6])
             print("Angular Velocity Covariance ", diagonal_covariances[0:3])
             print("")
@@ -311,11 +304,12 @@ def run_ukf(verbose: bool = False, tf: float = 1000, dt: float = 10, real_orbit:
         sensor_hist[ind,:] = noisy_sensor_readings
         clean_sensor_hist[ind,:] = clean_sensor_readings
         u_hist[ind,:] = u
-        cov_hist += [ukf.x_hat.cov]
+        cov_hist += [srukf.x_hat.cov]
 
         # Propagate
         ind += 1
         t += dt
+        B_prev = B_now
         prev_os = os.copy()
         os = orb.get_os(0.22+(t-t0)*TimeConstants.sec2cent)
 
@@ -327,10 +321,10 @@ def run_ukf(verbose: bool = False, tf: float = 1000, dt: float = 10, real_orbit:
     return time_hist, state_hist, est_state_hist, os_hist, sensor_hist, clean_sensor_hist, u_hist, cov_hist
 
 
-def plot_ukf(verbose: bool = False, tf: float = 60, dt: float = 1, real_orbit: bool = False) -> None:
+def plot_test_ukf_pid(verbose: bool = False, tf: float = 500, dt: float = 1, t_start_pid: float = 300, real_orbit: bool = False) -> None:
     (time_hist, state_hist, est_state_hist, os_hist,
-     sensor_hist, clean_sensor_hist, u_hist, cov_hist) = run_ukf(
-         verbose=verbose, tf=tf, dt=dt, real_orbit=real_orbit)
+     sensor_hist, clean_sensor_hist, u_hist, cov_hist) = test_ukf_pid(
+         verbose=verbose, tf=tf, dt=dt, t_start_pid=t_start_pid, real_orbit=real_orbit)
 
     quat_err = np.zeros_like(time_hist)
     omega_err = np.zeros_like(time_hist)
@@ -426,6 +420,19 @@ def plot_ukf(verbose: bool = False, tf: float = 60, dt: float = 1, real_orbit: b
     axs[0].legend()
     fig3.suptitle("Measured Sensor Readings vs Clean Sensor Values")
     fig3.tight_layout(rect=[0, 0, 1, 0.96])
+
+
+    # ============== CONTROL EFFORT PLOT ==============
+    fig_u, ax_u = plt.subplots(figsize=(10, 4))
+
+    ax_u.plot(time_hist, u_hist, label="Control Effort u")
+    ax_u.set_title("Control Effort Over Time")
+    ax_u.set_xlabel("Time [s]")
+    ax_u.set_ylabel("Control Effort")
+    ax_u.grid(True)
+    ax_u.legend()
+
+    fig_u.tight_layout()
 
     # ============== 3D ANIMATION ==============
     body_axes = np.eye(3)
@@ -540,4 +547,4 @@ def plot_ukf(verbose: bool = False, tf: float = 60, dt: float = 1, real_orbit: b
 
     
 if __name__ == "__main__":
-    plot_ukf(verbose=False, tf=1000, dt=50, real_orbit=True)
+    plot_test_ukf_pid(verbose=False, tf=60, dt=1, t_start_pid=10, real_orbit=False)

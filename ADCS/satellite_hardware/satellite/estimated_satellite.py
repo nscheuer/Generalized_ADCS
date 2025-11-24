@@ -93,7 +93,7 @@ class EstimatedSatellite(Satellite):
     3  # number of bias parameters found
     """
 
-    def __init__(self, mass: float = 1.0, COM: np.ndarray = None, J_0: np.ndarray = None, disturbances: List[Disturbance] = None, sensors: List[Sensor] = None, actuators: List[Actuator] = None) -> None:
+    def __init__(self, mass: float = 1.0, COM: np.ndarray = None, J_0: np.ndarray = None, disturbances: List[Disturbance] = [], sensors: List[Sensor] = [], actuators: List[Actuator] = []) -> None:
         super().__init__(mass, COM, J_0, disturbances, sensors, actuators)
 
         # Add estimated states
@@ -841,20 +841,36 @@ class EstimatedSatellite(Satellite):
         blocks = [actuator.noise.srcov() for actuator in self.actuators]
         return np.array(block_diag(*blocks))
 
-    def sensor_cov(self) -> np.ndarray:
+    def sensor_cov(self, which_sensors: List[bool]) -> np.ndarray:
         """
         Block-diagonal covariance matrix for all attitude sensor noises.
         """
+        if which_sensors is None:
+            which_sensors = [True for j in self.attitude_sensors]
         blocks = []
-        blocks.extend([attitude_sensor.noise.cov() for attitude_sensor in self.attitude_sensors])
-        blocks.extend([np.atleast_2d(rw_sensor.h_meas_noise.cov()) for rw_sensor in self.rw_actuators])
-        return np.array(block_diag(*blocks))
+        for j, attitude_sensor in enumerate(self.attitude_sensors):
+            if which_sensors[j]:
+                blocks.append(attitude_sensor.noise.cov())
 
-    def sensor_srcov(self) -> np.ndarray:
+        # Reaction wheel sensors (if any)
+        for rw_sensor in self.rw_actuators:
+            blocks.append(np.atleast_2d(rw_sensor.h_meas_noise.cov()))
+
+        return block_diag(*blocks) if blocks else np.zeros((0, 0))
+
+    def sensor_srcov(self, which_sensors: List[bool]) -> np.ndarray:
         """
         Block-diagonal square-root covariance matrix for all attitude sensor noises.
         """
+        if which_sensors is None:
+            which_sensors = [True for j in self.attitude_sensors]
         blocks = []
-        blocks.extend([attitude_sensor.noise.srcov() for attitude_sensor in self.attitude_sensors])
-        blocks.extend([np.atleast_2d(rw_sensor.h_meas_noise.srcov()) for rw_sensor in self.rw_actuators])
-        return np.array(block_diag(*blocks))
+        for j, attitude_sensor in enumerate(self.attitude_sensors):
+            if which_sensors[j]:
+                blocks.append(attitude_sensor.noise.srcov())
+
+        # Reaction wheel sensors
+        for rw_sensor in self.rw_actuators:
+            blocks.append(np.atleast_2d(rw_sensor.h_meas_noise.srcov()))
+
+        return block_diag(*blocks) if blocks else np.zeros((0, 0))

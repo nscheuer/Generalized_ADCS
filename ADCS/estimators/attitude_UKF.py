@@ -22,11 +22,6 @@ from ADCS.helpers.math_helpers import (
 )
 
 
-class extra:
-    def __init__(self):
-        pass
-
-
 class UKF(Estimator):
     def __init__(
         self,
@@ -39,13 +34,47 @@ class UKF(Estimator):
         cross_term: bool = False,
         quat_as_vec: bool = False,
     ) -> None:
-        """
-        Unscented Kalman Filter with an error-state attitude representation.
+        r"""
+        Unscented Kalman Filter (UKF) with an error-state attitude representation.
 
-        - self.x_hat.val is always the FULL state: [w(3), q(4), rest].
-        - self.x_hat.cov is the covariance of the REDUCED error state:
-            * quat_as_vec == False: [dw(3), dtheta(3), drest]  (dim = N-1)
-            * quat_as_vec == True : [dw(3), dq(4),     drest]  (dim = N)
+        This class implements a UKF for spacecraft attitude determination, handling
+        the nonlinearity of attitude dynamics and quaternion normalization. It inherits
+        structure from :class:`~ADCS.estimators.estimator.Estimator`.
+
+        The augmented state vector :math:`\mathbf{x}` is managed as follows:
+
+        * **Full State** (``self.x_hat.val``): Always stores the full state including the
+            4-component quaternion: :math:`[\boldsymbol{\omega}, \mathbf{q}, \dots]`.
+        * **Covariance** (``self.x_hat.cov``): Stores the covariance of the **reduced**
+            error state. The structure depends on ``quat_as_vec``:
+
+            * If ``quat_as_vec`` is ``False`` (Standard MEKF):
+                The covariance corresponds to :math:`[\delta\boldsymbol{\omega}, \delta\boldsymbol{\theta}, \dots]`,
+                where :math:`\delta\boldsymbol{\theta}` is a 3-parameter attitude error representation.
+                Dimension is :math:`N-1`.
+            * If ``quat_as_vec`` is ``True``:
+                The covariance corresponds to :math:`[\delta\boldsymbol{\omega}, \delta\mathbf{q}, \dots]`.
+                Dimension is :math:`N`.
+
+        Parameters
+        ----------
+        est_sat : :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+            Estimated satellite model defining state structure and dynamics.
+        J2000 : float
+            Initial time [s].
+        x_hat : numpy.ndarray
+            Initial full augmented state.
+        P_hat : numpy.ndarray
+            Initial reduced error-state covariance.
+        Q_hat : numpy.ndarray
+            Process noise covariance (reduced state).
+        dt : float, optional
+            Time step [s]. Default 1.0.
+        cross_term : bool, optional
+            Whether to maintain cross-covariance terms between bias blocks. Default False.
+        quat_as_vec : bool, optional
+            If True, treats quaternion as a 4-vector in covariance (unconstrained).
+            If False, uses error-state 3-vector (standard). Default False.
         """
         super().__init__(
             est_sat=est_sat,
@@ -64,6 +93,25 @@ class UKF(Estimator):
         self.vec_mode = 6
 
     def determine_covariances_to_use(self, state_cov: np.ndarray, sens_cov: np.ndarray, control_cov: np.ndarray, int_cov: np.ndarray) -> List[bool]:
+        r"""
+        Determine which noise covariance components to include in the sigma point generation.
+
+        Parameters
+        ----------
+        state_cov : numpy.ndarray
+            State covariance matrix :math:`P`.
+        sens_cov : numpy.ndarray
+            Sensor noise covariance :math:`R`.
+        control_cov : numpy.ndarray
+            Control noise covariance.
+        int_cov : numpy.ndarray
+            Process (integration) noise covariance :math:`Q`.
+
+        Returns
+        -------
+        list of bool
+            A 4-element list indicating inclusion of [state, sensor, control, process] noise.
+        """
         use_state_cov = True
         use_sens_cov = False
         use_control_cov = np.size(control_cov)>0 and not np.all(control_cov==0)
@@ -74,26 +122,39 @@ class UKF(Estimator):
     # Sigma-point generation
     # ------------------------------------------------------------------ #
     def make_pts_and_wts(self, pt0: np.ndarray, which_sensors: List[bool]):
-        """
+        r"""
         Build augmented sigma points and weights.
+
+        Constructs the set of sigma points :math:`\mathcal{X}` based on the current
+        state covariance and active noise sources.
+
+        Parameters
+        ----------
+        pt0 : numpy.ndarray
+            Current mean state vector (reduced or full depending on context, usually reduced error mean is zero).
+        which_sensors : list of bool
+            Mask indicating which sensors are currently active/valid.
 
         Returns
         -------
         L : int
             Dimension of the augmented error state.
         pts : list
-            List length 2L+1; each entry is
-            [full_state, sens_noise, control_noise, int_noise].
-        wts_m, wts_c : np.ndarray
-            Mean and covariance weights (length 2L+1).
-        sig0 : np.ndarray
-            First-block state sigma points, padded to (2L+1, len(pt0)).
+            List of length :math:`2L+1`. Each entry is a list containing:
+            ``[full_state, sens_noise, control_noise, int_noise]``.
+        wts_m : numpy.ndarray
+            Weights for the mean reconstruction (length :math:`2L+1`).
+        wts_c : numpy.ndarray
+            Weights for the covariance reconstruction (length :math:`2L+1`).
+        sig0 : numpy.ndarray
+            The first block of sigma points (state part only), padded to shape
+            ``(2L+1, len(pt0))``.
         """
         # Copy covariances (same shapes/values as original)
         state_cov = self.x_hat.cov.copy()
         int_cov = self.x_hat.int_cov.copy() * 0.0
         control_cov = self.est_sat.control_cov()
-        sens_cov = self.est_sat.sensor_cov() * 0.0
+        sens_cov = self.est_sat.sensor_cov(which_sensors=which_sensors) * 0.0
 
         include_cov = self.determine_covariances_to_use(state_cov, sens_cov, control_cov, int_cov)
         covs = [state_cov, sens_cov, control_cov, int_cov]
@@ -183,6 +244,24 @@ class UKF(Estimator):
         rest_state: np.ndarray,
         quatref: np.ndarray,
     ) -> np.ndarray:
+        r"""
+        Reassemble the full state from dynamic and static components, handling quaternion mapping.
+
+        Parameters
+        ----------
+        dynstate : numpy.ndarray
+            The dynamic part of the state (angular rate + attitude).
+            Expected to contain the full quaternion.
+        rest_state : numpy.ndarray
+            The remaining static/bias states.
+        quatref : numpy.ndarray
+            The reference quaternion used for error-state mapping (if ``quat_as_vec`` is False).
+
+        Returns
+        -------
+        numpy.ndarray
+            The concatenated full state vector in the format required for :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`.
+        """
         if self.quat_as_vec:
             return np.concatenate((dynstate, rest_state))
         else:
@@ -192,6 +271,24 @@ class UKF(Estimator):
             return np.concatenate((dynstate[0:3], v3diff, rest_state))
 
     def add_to_state(self, state: np.ndarray, add: np.ndarray) -> np.ndarray:
+        r"""
+        Add a perturbation (error state) to a base state on the manifold.
+
+        This handles the multiplicative update for quaternions:
+        :math:`q_{new} = q_{old} \otimes \delta q(\delta \theta)`.
+
+        Parameters
+        ----------
+        state : numpy.ndarray
+            Base state vector(s). Can be 1D or 2D (sigma points).
+        add : numpy.ndarray
+            Perturbation/Error vector(s). Can be 1D or 2D.
+
+        Returns
+        -------
+        numpy.ndarray
+            The updated state vector(s).
+        """
         add = np.squeeze(add)
         state = np.squeeze(state)
 
@@ -235,6 +332,27 @@ class UKF(Estimator):
         int_err: np.ndarray,
         quatref: np.ndarray,
     ):
+        r"""
+        Reconstruct the posterior state after propagation, incorporating integration error noise.
+
+        Parameters
+        ----------
+        pre_rest_state : numpy.ndarray
+            The bias/parameter states before propagation (assumed constant in dynamics).
+        post_dynstate : numpy.ndarray
+            The propagated dynamic state (rate + quaternion).
+        int_err : numpy.ndarray
+            Integration error/process noise vector sampled for this sigma point.
+        quatref : numpy.ndarray
+            Reference quaternion for the sigma point generation.
+
+        Returns
+        -------
+        post_state : numpy.ndarray
+            The reduced error-state representation of the posterior.
+        full_state : numpy.ndarray
+            The full augmented state representation of the posterior.
+        """
         # integration error is in reduced error-state coordinates
         state_len = self.est_sat.state_len
         head_len = state_len - 1 + self.quat_as_vec
@@ -257,6 +375,19 @@ class UKF(Estimator):
     # Satellite helpers
     # ------------------------------------------------------------------ #
     def sat_match(self, est_sat: EstimatedSatellite, state: np.ndarray) -> None:
+        r"""
+        Synchronize an EstimatedSatellite instance with a raw state vector.
+
+        Updates ``est_sat`` to match the provided ``state``, ensuring that
+        sensor models and dynamics use the specific sigma-point configuration.
+
+        Parameters
+        ----------
+        est_sat : :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+            The satellite model instance to update.
+        state : numpy.ndarray
+            The full augmented state vector to apply.
+        """
         full_statej = self.x_hat.copy()
         full_statej.val[self.use] = state
         est_sat.match_estimate(full_statej, self.dt)
@@ -270,11 +401,31 @@ class UKF(Estimator):
         sensors: np.ndarray,   # was effectively used as a NumPy array already
         os: Orbital_State,
     ) -> EstimatedArray:
-        """
-        Perform one UKF predict/update step.
+        r"""
+        Perform one UKF predict/update cycle.
 
-        Same math as the original, but with the linear-algebra parts
-        vectorized and a tighter hot loop.
+        Executes the Unscented Transformation:
+        1.  Generates sigma points around the current estimate.
+        2.  Propagates sigma points through nonlinear dynamics via
+            :meth:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.noiseless_rk4`.
+        3.  Predicts measurements for each sigma point via
+            :meth:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.noiseless_sensor_readings`.
+        4.  Computes predicted mean, covariance, and Kalman gain.
+        5.  Updates the state estimate and covariance using the sensor residuals.
+
+        Parameters
+        ----------
+        u : numpy.ndarray
+            Control input vector.
+        sensors : numpy.ndarray
+            Stacked array of actual sensor measurements.
+        os : :class:`~ADCS.orbits.orbital_state.Orbital_State`
+            Current orbital environment state.
+
+        Returns
+        -------
+        :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray`
+            The updated state estimate and reduced covariance matrix.
         """
         u = np.asarray(u, dtype=float).copy()
         os = os.copy()
@@ -300,8 +451,9 @@ class UKF(Estimator):
         # Determine which attitude sensors are active
         which_sensors = [True] * len(self.est_sat.attitude_sensors)
         for j, sensor in enumerate(self.est_sat.attitude_sensors):
-            if isinstance(sensor, SunSensor):
-                if sensor.clean_reading(x=dyn_state0, os=os) < 1e-10:
+            if isinstance(sensor, SunSensor) or isinstance(sensor, SunPair):
+                reading = sensor.clean_reading(x=dyn_state0, os=os)
+                if np.isnan(reading).any():
                     which_sensors[j] = False
 
         # Total attitude measurement dimension
@@ -362,7 +514,7 @@ class UKF(Estimator):
                 x=post_full_statej[:state_len],
                 os=os,
             )
-            post_sens[j, :] = sensj
+            post_sens[j, :] = sensj[which_sensors]
 
         # Predicted reduced error state
         state1 = wts_m @ post_pts
@@ -391,7 +543,7 @@ class UKF(Estimator):
 
         # Measurement covariance
         covyy = sum([wts_c[j]*np.outer(sens_diff[j,:],sens_diff[j,:]) for j in range(2*L+1)],0*np.eye(sens_vec_len))
-        covyy += self.est_sat.sensor_cov()
+        covyy += self.est_sat.sensor_cov(which_sensors=which_sensors)
 
         # Cross covariance between measurements and state
         covyx = sum([wts_c[j]*np.outer(sens_diff[j,:],pts_diff[j,:]) for j in range(2*L+1)],np.zeros((sens_vec_len,sigma_state_len)))

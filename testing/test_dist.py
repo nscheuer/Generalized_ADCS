@@ -113,7 +113,7 @@ def test_torque_drag_dist():
     ephem = Ephemeris()
     sat = Satellite(disturbances=[drag])
     B_ECI = np.array([1, 0, 0])*1e-5
-    rho = 0.0034
+    rho = 1e-13
     os = Orbital_State(ephem=ephem, J2000=0.22, R=np.array([7000, 0, 0]), V=np.array([0, 8, 0]), B=B_ECI, rho=rho)
 
     q0 = MathConstants.zeroquat
@@ -514,4 +514,4 @@ def test_torque_gg_dist():
 
 
 if __name__ == "__main__":
-    test_torque_gg_dist()
+    test_torque_drag_dist()

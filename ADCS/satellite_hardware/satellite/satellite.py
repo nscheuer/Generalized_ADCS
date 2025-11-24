@@ -1090,26 +1090,41 @@ class Satellite:
         rw_readings: List[np.ndarray] = [self.rw_actuators[j].measure_momentum_noiseless() for j in range(len(self.rw_actuators))]
         return np.concatenate([sensor_readings, rw_readings])
     
-    def RW_readings(self, x: np.ndarray, os: Orbital_State) -> np.ndarray:
-        rw_readings: List[np.ndarray] = [self.rw_actuators[j].measure_momentum() for j in range(len(self.rw_actuators))]
-        return rw_readings
+    def RW_readings(self, x: np.ndarray, os: Orbital_State) -> List[np.ndarray]:
+        return [rw.measure_momentum() for rw in self.rw_actuators]
 
-    def GPS_readings(self, x: np.ndarray, os: Orbital_State) -> np.ndarray:
-        gps_readings: List[np.ndarray] = [self.GPS_sensors[j].reading(x=x, os=os) for j in range(len(self.GPS_sensors))]
-        return gps_readings
-    
-    def gyro_readings(self, x: np.ndarray, os: Orbital_State) -> np.ndarray:
-        gyro_readings: List[np.ndarray] = [self.attitude_sensors[j].reading(x=x, os=os) for j in self(len(self.attitude_sensors)) if isinstance(self.attitude_sensors[j], Gyro)]
-        return gyro_readings
-    
-    def mtm_readings(self, x: np.ndarray, os: Orbital_State) -> np.ndarray:
-        mtm_readings: List[np.ndarray] = [self.attitude_sensors[j].reading(x=x, os=os) for j in self(len(self.attitude_sensors)) if isinstance(self.attitude_sensors[j], MTM)]
-        return mtm_readings
-    
-    def sunpair_readings(self, x: np.ndarray, os: Orbital_State) -> np.ndarray:
-        sunpair_readings: List[np.ndarray] = [self.attitude_sensors[j].reading(x=x, os=os) for j in self(len(self.attitude_sensors)) if isinstance(self.attitude_sensors[j], SunPair)]
-        return sunpair_readings
-    
-    def sunsensor_readings(self, x: np.ndarray, os: Orbital_State) -> np.ndarray:
-        sunsensor_readings: List[np.ndarray] = [self.attitude_sensors[j].reading(x=x, os=os) for j in self(len(self.attitude_sensors)) if isinstance(self.attitude_sensors[j], SunSensor)]
-        return sunsensor_readings
+
+    def GPS_readings(self, x: np.ndarray, os: Orbital_State) -> List[np.ndarray]:
+        return [gps.reading(x=x, os=os) for gps in self.GPS_sensors]
+
+
+    def gyro_readings(self, x: np.ndarray, os: Orbital_State) -> List[np.ndarray]:
+        return [
+            sensor.reading(x=x, os=os)
+            for sensor in self.attitude_sensors
+            if isinstance(sensor, Gyro)
+        ]
+
+
+    def mtm_readings(self, x: np.ndarray, os: Orbital_State) -> List[np.ndarray]:
+        return [
+            sensor.reading(x=x, os=os)
+            for sensor in self.attitude_sensors
+            if isinstance(sensor, MTM)
+        ]
+
+
+    def sunpair_readings(self, x: np.ndarray, os: Orbital_State) -> List[np.ndarray]:
+        return [
+            sensor.reading(x=x, os=os)
+            for sensor in self.attitude_sensors
+            if isinstance(sensor, SunPair)
+        ]
+
+
+    def sunsensor_readings(self, x: np.ndarray, os: Orbital_State) -> List[np.ndarray]:
+        return [
+            sensor.reading(x=x, os=os)
+            for sensor in self.attitude_sensors
+            if isinstance(sensor, SunSensor)
+        ]

@@ -29,23 +29,23 @@ from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.helpers.math_helpers import random_n_unit_vec, rot_mat, norm, normalize, limit
 from ADCS.helpers.math_constants import MathConstants
-from ADCS.estimators.attitude_UKF import UKF
+from ADCS.estimators.attitude_SRUKF import SRUKF
 
 @pytest.fixture(scope="module")
-def ukf_results():
+def srukf_results():
     """
     Runs the simulation ONCE for the entire module.
     """
-    print("\n--- Running ukf Simulation (Once) ---")
+    print("\n--- Running SRUKF Simulation (Once) ---")
     # Adjust tf/dt here if you want a specific duration for testing
-    results = run_ukf(verbose=False, tf=1000, dt=50, real_orbit=True)
+    results = run_srukf(verbose=False, tf=1000, dt=50, real_orbit=True)
     return results
 
-def test_stability(ukf_results):
+def test_stability(srukf_results):
     """
     Check 1: Stability. The filter should not diverge into NaNs or Infs.
     """
-    (_, _, est_state_hist, _, _, _, _, cov_hist) = ukf_results
+    (_, _, est_state_hist, _, _, _, _, cov_hist) = srukf_results
     
     # Check States
     assert not np.isnan(est_state_hist).any(), "Estimated state contains NaNs"
@@ -60,12 +60,12 @@ def test_stability(ukf_results):
     diags = np.diagonal(cov_array, axis1=1, axis2=2)
     assert np.all(diags < 1e6), "Covariance exploded (variance > 1e6)"
 
-def test_ukf_quaternion_error(ukf_results):
+def test_srukf_quaternion_error(srukf_results):
     """
     Check 2: Attitude Accuracy. 
     Compares initial error to final error. Final error should be close to 0.
     """
-    (_, state_hist, est_state_hist, _, _, _, _, _) = ukf_results
+    (_, state_hist, est_state_hist, _, _, _, _, _) = srukf_results
     
     # 1. Calculate Error Angle (Degrees)
     q_true = state_hist[:, 3:7]
@@ -94,12 +94,12 @@ def test_ukf_quaternion_error(ukf_results):
     # Accuracy: Final error should be close to 0 (allowing for sensor noise)
     assert final_err < 5.0, f"Final Attitude Error too high: {final_err:.2f}°"
 
-def test_ukf_rate_error(ukf_results):
+def test_srukf_rate_error(srukf_results):
     """
     Check 3: Rate Accuracy.
     Final angular rate error should be close to 0.
     """
-    (_, state_hist, est_state_hist, _, _, _, _, _) = ukf_results
+    (_, state_hist, est_state_hist, _, _, _, _, _) = srukf_results
     
     # 1. Calculate Rate Error (deg/s)
     w_true = state_hist[:, 0:3]
@@ -120,12 +120,12 @@ def test_ukf_rate_error(ukf_results):
     # 3. Assertions
     assert final_rate_err < 0.5, f"Final Rate Error too high: {final_rate_err:.4f} deg/s"
 
-def test_ukf_covariance_consistency(ukf_results):
+def test_srukf_covariance_consistency(srukf_results):
     """
     Check 4: Consistency.
     Actual error should be within 3-sigma bounds most of the time.
     """
-    (_, state_hist, est_state_hist, _, _, _, _, cov_hist) = ukf_results
+    (_, state_hist, est_state_hist, _, _, _, _, cov_hist) = srukf_results
     
     P_hist = np.array(cov_hist)
     N = len(P_hist)
@@ -161,7 +161,7 @@ def test_ukf_covariance_consistency(ukf_results):
         assert percentage > 0.70, f"Filter inconsistent on axis {axis}"
 
 
-def run_ukf(verbose: bool = False, tf: float = 1000, dt: float = 10, real_orbit: bool = False) -> Union[np.ndarray, np.ndarray, np.ndarray, List[Orbital_State], List[np.ndarray], List[np.ndarray], np.ndarray, List[np.ndarray]]:
+def run_srukf(verbose: bool = False, tf: float = 1000, dt: float = 10, real_orbit: bool = False) -> Union[np.ndarray, np.ndarray, np.ndarray, List[Orbital_State], List[np.ndarray], List[np.ndarray], np.ndarray, List[np.ndarray]]:
     np.random.seed(1)
 
     t0 = 0
@@ -259,12 +259,12 @@ def run_ukf(verbose: bool = False, tf: float = 1000, dt: float = 10, real_orbit:
 
     ## Build Estimator
     J2000 = 0.22 + t0*TimeConstants.sec2cent
-    ukf = UKF(est_sat=est_sat, J2000=J2000, x_hat=x_hat, P_hat=P_est, Q_hat=Q_est, dt=dt, cross_term=True, quat_as_vec=False)
+    srukf = SRUKF(est_sat=est_sat, J2000=J2000, x_hat=x_hat, P_hat=P_est, Q_hat=Q_est, dt=dt, cross_term=True, quat_as_vec=False)
 
     # Create history vectors
     time_hist = np.nan*np.zeros(N)
-    state_hist = np.nan*np.zeros((N, ukf.state_len))
-    est_state_hist = np.nan*np.zeros((N, ukf.state_len))
+    state_hist = np.nan*np.zeros((N, srukf.state_len))
+    est_state_hist = np.nan*np.zeros((N, srukf.state_len))
     os_hist: List[Orbital_State] = list()
     sensor_hist: List[np.ndarray] = np.nan*np.zeros((N, 9))
     clean_sensor_hist: List[np.ndarray] = np.nan*np.zeros((N, 9))
@@ -276,7 +276,7 @@ def run_ukf(verbose: bool = False, tf: float = 1000, dt: float = 10, real_orbit:
     
     steps = int((tf - t0)/dt)
     
-    for step in tqdm(range(steps), desc="Simulating ukf"):
+    for step in tqdm(range(steps), desc="Simulating SRUKF"):
         # One Step Propagation
         J2000 = 0.22 + t*TimeConstants.sec2cent
         os = orb.get_os(J2000=J2000)
@@ -286,7 +286,7 @@ def run_ukf(verbose: bool = False, tf: float = 1000, dt: float = 10, real_orbit:
 
         noisy_sensor_readings = real_sat.sensor_readings(x=x, os=os)
         clean_sensor_readings = real_sat.noiseless_sensor_readings(x=x, os=os)
-        x_hat = ukf.update(u=u, sensors=noisy_sensor_readings, os=os)
+        x_hat = srukf.update(u=u, sensors=noisy_sensor_readings, os=os)
 
         if verbose:
             # Full State Debug
@@ -298,7 +298,7 @@ def run_ukf(verbose: bool = False, tf: float = 1000, dt: float = 10, real_orbit:
             print("Attitude Error (Degrees) ", quaternion_error_deg)
             angular_velocity_error = norm(x_hat[0:3] - x[0:3])*180.0/np.pi
             print("Angular Velocity Error ", angular_velocity_error)
-            diagonal_covariances = np.diagonal(ukf.x_hat.cov)
+            diagonal_covariances = np.diagonal(srukf.x_hat.cov)
             print("Attitude Covariance ", diagonal_covariances[3:6])
             print("Angular Velocity Covariance ", diagonal_covariances[0:3])
             print("")
@@ -311,7 +311,7 @@ def run_ukf(verbose: bool = False, tf: float = 1000, dt: float = 10, real_orbit:
         sensor_hist[ind,:] = noisy_sensor_readings
         clean_sensor_hist[ind,:] = clean_sensor_readings
         u_hist[ind,:] = u
-        cov_hist += [ukf.x_hat.cov]
+        cov_hist += [srukf.x_hat.cov]
 
         # Propagate
         ind += 1
@@ -327,9 +327,9 @@ def run_ukf(verbose: bool = False, tf: float = 1000, dt: float = 10, real_orbit:
     return time_hist, state_hist, est_state_hist, os_hist, sensor_hist, clean_sensor_hist, u_hist, cov_hist
 
 
-def plot_ukf(verbose: bool = False, tf: float = 60, dt: float = 1, real_orbit: bool = False) -> None:
+def plot_srukf(verbose: bool = False, tf: float = 60, dt: float = 1, real_orbit: bool = False) -> None:
     (time_hist, state_hist, est_state_hist, os_hist,
-     sensor_hist, clean_sensor_hist, u_hist, cov_hist) = run_ukf(
+     sensor_hist, clean_sensor_hist, u_hist, cov_hist) = run_srukf(
          verbose=verbose, tf=tf, dt=dt, real_orbit=real_orbit)
 
     quat_err = np.zeros_like(time_hist)
@@ -540,4 +540,4 @@ def plot_ukf(verbose: bool = False, tf: float = 60, dt: float = 1, real_orbit: b
 
     
 if __name__ == "__main__":
-    plot_ukf(verbose=False, tf=1000, dt=50, real_orbit=True)
+    plot_srukf(verbose=False, tf=1000, dt=50, real_orbit=True)

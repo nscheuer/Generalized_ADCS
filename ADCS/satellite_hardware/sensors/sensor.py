@@ -34,7 +34,7 @@ class Sensor:
         Indicates whether the filter should include bias as part of the
         estimated state. (Stored by subclasses; not used directly here.)
     """
-    def __init__(self, sample_time: float = 0.1, output_length: int = 1, bias: Bias = None, noise: Noise = None, scale: float = 1, estimate_bias: bool = False):
+    def __init__(self, sample_time: float = 0.1, output_length: int = 1, bias: Bias = None, noise: Noise = None, estimate_bias: bool = False):
         if bias:
             self.bias = bias
         else:
@@ -45,7 +45,6 @@ class Sensor:
             self.noise = Noise()
         self.sample_time = sample_time
         self.output_length = output_length
-        self.scale = scale
         self.estimate_bias = estimate_bias
 
     def reading(self, x: np.ndarray, os: Orbital_State, dmode: DisturbanceMode = None) -> np.ndarray:

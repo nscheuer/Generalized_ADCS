@@ -11,7 +11,6 @@ from skyfield import api, units, positionlib, toposlib, framelib, vectorlib
 from skyfield.functions import T as sffT
 from datetime import timezone
 from typing import Union, Dict, Optional
-from numba import njit
 
 class Orbital_State:
     r"""

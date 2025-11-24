@@ -112,7 +112,7 @@ class SunSensor(Sensor):
         if os.is_sunlit():
             return self.efficiency * illumination
         else:
-            return np.zeros_like(illumination)
+            return np.nan
     
     def bias_jac(self, x: np.ndarray, os: Orbital_State) -> np.ndarray:
         r"""

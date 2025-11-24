@@ -89,7 +89,7 @@ class SunPair(Sensor):
         computed by :meth:`_clean_scalar`.
 
         If the spacecraft is in darkness (``os.is_sunlit() == False``),
-        the clean reading is defined to be zero.
+        the clean reading is defined to be np.nan.
 
         Parameters
         ----------
@@ -106,7 +106,7 @@ class SunPair(Sensor):
         """
 
         if not os.is_sunlit():
-            return 0.0
+            return np.nan
 
         vecs = os.get_state_vector(x=x)
 

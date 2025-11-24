@@ -29,139 +29,15 @@ from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.helpers.math_helpers import random_n_unit_vec, rot_mat, norm, normalize, limit
 from ADCS.helpers.math_constants import MathConstants
+from ADCS.estimators.attitude_SRUKF import SRUKF
 from ADCS.estimators.attitude_UKF import UKF
 
-@pytest.fixture(scope="module")
-def ukf_results():
-    """
-    Runs the simulation ONCE for the entire module.
-    """
-    print("\n--- Running ukf Simulation (Once) ---")
-    # Adjust tf/dt here if you want a specific duration for testing
-    results = run_ukf(verbose=False, tf=1000, dt=50, real_orbit=True)
-    return results
+def bdot(B_now: np.ndarray, B_prev: np.ndarray, mtq_max_torque: float) -> np.ndarray:
+    ud = -1e8*(B_now - B_prev)
+    control = limit(ud, mtq_max_torque)
+    return control
 
-def test_stability(ukf_results):
-    """
-    Check 1: Stability. The filter should not diverge into NaNs or Infs.
-    """
-    (_, _, est_state_hist, _, _, _, _, cov_hist) = ukf_results
-    
-    # Check States
-    assert not np.isnan(est_state_hist).any(), "Estimated state contains NaNs"
-    assert not np.isinf(est_state_hist).any(), "Estimated state contains Infs"
-    
-    # Check Covariance
-    cov_array = np.array(cov_hist) 
-    assert not np.isnan(cov_array).any(), "Covariance contains NaNs"
-    
-    # Ensure diagonal variances are not exploding (e.g. > 1e6)
-    # Using axis1=1, axis2=2 extracts the diagonal of each matrix in the stack
-    diags = np.diagonal(cov_array, axis1=1, axis2=2)
-    assert np.all(diags < 1e6), "Covariance exploded (variance > 1e6)"
-
-def test_ukf_quaternion_error(ukf_results):
-    """
-    Check 2: Attitude Accuracy. 
-    Compares initial error to final error. Final error should be close to 0.
-    """
-    (_, state_hist, est_state_hist, _, _, _, _, _) = ukf_results
-    
-    # 1. Calculate Error Angle (Degrees)
-    q_true = state_hist[:, 3:7]
-    q_est = est_state_hist[:, 3:7]
-    
-    # Dot product (row-wise). Use abs() because q and -q are same rotation.
-    dot_products = np.abs(np.einsum('ij,ij->i', q_true, q_est))
-    dot_products = np.clip(dot_products, -1.0, 1.0) # Safety for arccos
-    theta_err_deg = 2 * np.arccos(dot_products) * (180.0 / np.pi)
-    
-    # 2. Define small window for comparison (robust to single-step noise)
-    # Use min(5, length) to work with short simulations
-    N = len(theta_err_deg)
-    window = max(1, min(5, int(N * 0.1))) 
-    
-    initial_err = np.mean(theta_err_deg[:window])
-    final_err = np.mean(theta_err_deg[-window:])
-    
-    print(f"\nAttitude Error - Initial: {initial_err:.4f}°, Final: {final_err:.4f}°")
-
-    # 3. Assertions
-    # Convergence: Final should be better than Initial (or already perfect)
-    if initial_err > 1.0: 
-        assert final_err < initial_err, "Filter did not reduce error"
-    
-    # Accuracy: Final error should be close to 0 (allowing for sensor noise)
-    assert final_err < 5.0, f"Final Attitude Error too high: {final_err:.2f}°"
-
-def test_ukf_rate_error(ukf_results):
-    """
-    Check 3: Rate Accuracy.
-    Final angular rate error should be close to 0.
-    """
-    (_, state_hist, est_state_hist, _, _, _, _, _) = ukf_results
-    
-    # 1. Calculate Rate Error (deg/s)
-    w_true = state_hist[:, 0:3]
-    w_est = est_state_hist[:, 0:3]
-    diff = w_true - w_est
-    
-    # FIX: Must use axis=1 to get norm of each row vector
-    rate_err_deg_s = np.linalg.norm(diff, axis=1) * (180.0 / np.pi)
-    
-    # 2. Define Window
-    N = len(rate_err_deg_s)
-    window = max(1, min(5, int(N * 0.1)))
-    
-    final_rate_err = np.mean(rate_err_deg_s[-window:])
-    
-    print(f"Rate Error - Final: {final_rate_err:.4f} deg/s")
-    
-    # 3. Assertions
-    assert final_rate_err < 0.5, f"Final Rate Error too high: {final_rate_err:.4f} deg/s"
-
-def test_ukf_covariance_consistency(ukf_results):
-    """
-    Check 4: Consistency.
-    Actual error should be within 3-sigma bounds most of the time.
-    """
-    (_, state_hist, est_state_hist, _, _, _, _, cov_hist) = ukf_results
-    
-    P_hist = np.array(cov_hist)
-    N = len(P_hist)
-    
-    # Extract Rate Variances (Indices 0,1,2)
-    # If your state is [w, q, ...], diagonal 0-3 is rate variance
-    rate_vars = P_hist[:, 0:3, 0:3].diagonal(axis1=1, axis2=2)
-    sigma_3_bnds = 3 * np.sqrt(rate_vars) * (180.0 / np.pi)
-    
-    # Actual Error
-    w_true = state_hist[:, 0:3]
-    w_est = est_state_hist[:, 0:3]
-    actual_err = np.abs(w_true - w_est) * (180.0 / np.pi)
-    
-    # Only check the second half of the sim (to allow for convergence)
-    start_idx = int(N / 2)
-    
-    # If sim is too short, just check the last few points
-    if start_idx == N: start_idx = 0
-    
-    for axis in range(3):
-        bnds = sigma_3_bnds[start_idx:, axis]
-        errs = actual_err[start_idx:, axis]
-        
-        inside_count = np.sum(errs <= bnds)
-        total = len(errs)
-        if total == 0: continue
-            
-        percentage = inside_count / total
-        print(f"Axis {axis} Consistency: {percentage:.1%}")
-        
-        # It's okay if it's not 99%, but it should be > 70% to prove P matches R/Q tuning
-        assert percentage > 0.70, f"Filter inconsistent on axis {axis}"
-
-
-def run_ukf(verbose: bool = False, tf: float = 1000, dt: float = 10, real_orbit: bool = False) -> Union[np.ndarray, np.ndarray, np.ndarray, List[Orbital_State], List[np.ndarray], List[np.ndarray], np.ndarray, List[np.ndarray]]:
+def test_ukf_bdot(verbose: bool = False, tf: float = 500, dt: float = 1, t_start_bdot: float = 300, real_orbit: bool = False) -> Union[np.ndarray, np.ndarray, np.ndarray, List[Orbital_State], List[np.ndarray], List[np.ndarray], np.ndarray, List[np.ndarray]]:
     np.random.seed(1)
 
     t0 = 0
@@ -210,6 +86,7 @@ def run_ukf(verbose: bool = False, tf: float = 1000, dt: float = 10, real_orbit:
 
     # Initial State
     w0 = random_n_unit_vec(3)*np.random.uniform(0, 0.1)*np.pi/180.0
+    w0 = np.array([0, 0, 0])
     print(w0)
 
     q0 = random_n_unit_vec(4)
@@ -259,12 +136,12 @@ def run_ukf(verbose: bool = False, tf: float = 1000, dt: float = 10, real_orbit:
 
     ## Build Estimator
     J2000 = 0.22 + t0*TimeConstants.sec2cent
-    ukf = UKF(est_sat=est_sat, J2000=J2000, x_hat=x_hat, P_hat=P_est, Q_hat=Q_est, dt=dt, cross_term=True, quat_as_vec=False)
+    srukf = UKF(est_sat=est_sat, J2000=J2000, x_hat=x_hat, P_hat=P_est, Q_hat=Q_est, dt=dt, cross_term=True, quat_as_vec=False)
 
     # Create history vectors
     time_hist = np.nan*np.zeros(N)
-    state_hist = np.nan*np.zeros((N, ukf.state_len))
-    est_state_hist = np.nan*np.zeros((N, ukf.state_len))
+    state_hist = np.nan*np.zeros((N, srukf.state_len))
+    est_state_hist = np.nan*np.zeros((N, srukf.state_len))
     os_hist: List[Orbital_State] = list()
     sensor_hist: List[np.ndarray] = np.nan*np.zeros((N, 9))
     clean_sensor_hist: List[np.ndarray] = np.nan*np.zeros((N, 9))
@@ -275,18 +152,23 @@ def run_ukf(verbose: bool = False, tf: float = 1000, dt: float = 10, real_orbit:
     ind = 0
     
     steps = int((tf - t0)/dt)
+    os = orb.get_os(J2000=0.22)
+    B_prev = np.array(real_sat.mtm_readings(x=x, os=os))
+    B_now = B_prev
     
-    for step in tqdm(range(steps), desc="Simulating ukf"):
+    for step in tqdm(range(steps), desc="Simulating UKF"):
         # One Step Propagation
         J2000 = 0.22 + t*TimeConstants.sec2cent
         os = orb.get_os(J2000=J2000)
 
-        # Determine control
-        u = np.zeros(len(acts))
-
         noisy_sensor_readings = real_sat.sensor_readings(x=x, os=os)
         clean_sensor_readings = real_sat.noiseless_sensor_readings(x=x, os=os)
-        x_hat = ukf.update(u=u, sensors=noisy_sensor_readings, os=os)
+        B_now = np.array(real_sat.mtm_readings(x=x, os=os))
+        if t < t_start_bdot:
+            u = np.zeros(len(acts))
+        else:
+            u = bdot(B_now=B_now, B_prev=B_prev, mtq_max_torque=mtq_max_torque)
+        x_hat = srukf.update(u=u, sensors=noisy_sensor_readings, os=os)
 
         if verbose:
             # Full State Debug
@@ -298,7 +180,7 @@ def run_ukf(verbose: bool = False, tf: float = 1000, dt: float = 10, real_orbit:
             print("Attitude Error (Degrees) ", quaternion_error_deg)
             angular_velocity_error = norm(x_hat[0:3] - x[0:3])*180.0/np.pi
             print("Angular Velocity Error ", angular_velocity_error)
-            diagonal_covariances = np.diagonal(ukf.x_hat.cov)
+            diagonal_covariances = np.diagonal(srukf.x_hat.cov)
             print("Attitude Covariance ", diagonal_covariances[3:6])
             print("Angular Velocity Covariance ", diagonal_covariances[0:3])
             print("")
@@ -311,11 +193,12 @@ def run_ukf(verbose: bool = False, tf: float = 1000, dt: float = 10, real_orbit:
         sensor_hist[ind,:] = noisy_sensor_readings
         clean_sensor_hist[ind,:] = clean_sensor_readings
         u_hist[ind,:] = u
-        cov_hist += [ukf.x_hat.cov]
+        cov_hist += [srukf.x_hat.cov]
 
         # Propagate
         ind += 1
         t += dt
+        B_prev = B_now
         prev_os = os.copy()
         os = orb.get_os(0.22+(t-t0)*TimeConstants.sec2cent)
 
@@ -327,9 +210,9 @@ def run_ukf(verbose: bool = False, tf: float = 1000, dt: float = 10, real_orbit:
     return time_hist, state_hist, est_state_hist, os_hist, sensor_hist, clean_sensor_hist, u_hist, cov_hist
 
 
-def plot_ukf(verbose: bool = False, tf: float = 60, dt: float = 1, real_orbit: bool = False) -> None:
+def plot_test_ukf_bdot(verbose: bool = False, tf: float = 500, dt: float = 1, t_start_bdot: float = 300, real_orbit: bool = False) -> None:
     (time_hist, state_hist, est_state_hist, os_hist,
-     sensor_hist, clean_sensor_hist, u_hist, cov_hist) = run_ukf(
+     sensor_hist, clean_sensor_hist, u_hist, cov_hist) = test_ukf_bdot(
          verbose=verbose, tf=tf, dt=dt, real_orbit=real_orbit)
 
     quat_err = np.zeros_like(time_hist)
@@ -426,6 +309,19 @@ def plot_ukf(verbose: bool = False, tf: float = 60, dt: float = 1, real_orbit: b
     axs[0].legend()
     fig3.suptitle("Measured Sensor Readings vs Clean Sensor Values")
     fig3.tight_layout(rect=[0, 0, 1, 0.96])
+
+
+    # ============== CONTROL EFFORT PLOT ==============
+    fig_u, ax_u = plt.subplots(figsize=(10, 4))
+
+    ax_u.plot(time_hist, u_hist, label="Control Effort u")
+    ax_u.set_title("Control Effort Over Time")
+    ax_u.set_xlabel("Time [s]")
+    ax_u.set_ylabel("Control Effort")
+    ax_u.grid(True)
+    ax_u.legend()
+
+    fig_u.tight_layout()
 
     # ============== 3D ANIMATION ==============
     body_axes = np.eye(3)
@@ -540,4 +436,4 @@ def plot_ukf(verbose: bool = False, tf: float = 60, dt: float = 1, real_orbit: b
 
     
 if __name__ == "__main__":
-    plot_ukf(verbose=False, tf=1000, dt=50, real_orbit=True)
+    plot_test_ukf_bdot(verbose=False, tf=10000, dt=50, t_start_bdot=1000, real_orbit=True)

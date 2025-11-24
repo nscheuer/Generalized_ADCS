@@ -59,7 +59,7 @@ class Estimator():
 
     Parameters
     ----------
-    est_sat : EstimatedSatellite
+    est_sat : :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
         Estimated satellite model that defines the structure of the state
         (number of reaction wheels, bias lengths, disturbance parameters).
     J2000 : float
@@ -89,20 +89,19 @@ class Estimator():
 
     Attributes
     ----------
-    est_sat : EstimatedSatellite
+    est_sat : :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
         Underlying satellite model used to propagate dynamics and predict
         measurements.
-    x_hat : EstimatedArray
+    x_hat : :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray`
         Current estimated state, covariance and process noise.
-        See :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray`.
-    x0_hat : EstimatedArray
+    x0_hat : :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray`
         Initial estimate (copy of the input at reset time).
     use : numpy.ndarray of bool, shape (N,)
         Boolean mask indicating which elements of the full state are active
         in the estimation. Used by :meth:`cov_use`.
-    prev_os : Orbital_State
+    prev_os : :class:`~ADCS.orbits.orbital_state.Orbital_State`
         Last orbital state used for propagation; some estimators may interpolate
-        between ``prev_os`` and the current :class:`Orbital_State`.
+        between ``prev_os`` and the current :class:`~ADCS.orbits.orbital_state.Orbital_State`.
     len_before_sens_bias : int
         Convenience length
 
@@ -136,9 +135,9 @@ class Estimator():
 
         This method enforces dimensional consistency between the augmented
         state vector and the reduced covariance/process-noise matrices, then
-        stores them into :class:`EstimatedArray` objects and synchronizes the
-        internal :class:`EstimatedSatellite` model via
-        :meth:`EstimatedSatellite.match_estimate`.
+        stores them into :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray` 
+        objects and synchronizes the internal :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite` 
+        model via :meth:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.match_estimate`.
 
         Let
 
@@ -179,9 +178,9 @@ class Estimator():
         -----
         After validation, the method:
 
-        1. Creates :class:`EstimatedArray` ``x0_hat`` and ``x_hat`` objects.
+        1. Creates :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray` ``x0_hat`` and ``x_hat`` objects.
         2. Sets the mask :attr:`use` to all ``True`` (all state entries active).
-        3. Calls :meth:`EstimatedSatellite.match_estimate` to update the
+        3. Calls :meth:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.match_estimate` to update the
            internal satellite model with the new estimate.
         """
         # Verify x_hat vector
@@ -253,7 +252,7 @@ class Estimator():
             Reference magnetic field vector in ECI/frame used for Wahba.
         S_ECI : numpy.ndarray or None, shape (3,), optional
             Reference sun direction vector in ECI/frame used for Wahba.
-        os : Orbital_State
+        os : :class:`~ADCS.orbits.orbital_state.Orbital_State`
             Current orbital state (not directly used here, but included for
             interface consistency and potential future extensions).
         q : numpy.ndarray or None, shape (4,), optional
@@ -299,7 +298,7 @@ class Estimator():
         rate covariance are combined to form a simple linear estimator for the
         bias and an approximate initial angular rate. The corresponding entries
         in :attr:`x_hat.val` are updated and pushed to the satellite model via
-        :meth:`EstimatedSatellite.match_estimate`.
+        :meth:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.match_estimate`.
         """
 
         # ---- 1. Build lists of available vectors for Wahba ----------------------
@@ -311,7 +310,7 @@ class Estimator():
         # ---- Magnetometer ----
         if mtm_readings is not None and B_ECI is not None:
             sens = self.est_sat.mtm_sensor   # You will have this reference
-            var = sens.noise.std_noise**2 * sens.scale**2
+            var = sens.noise.std_noise**2 #* sens.scale**2
 
             bias_idx = sens.bias_state_index  # precomputed during satellite setup
             P_bias = self.x_hat.cov[bias_idx, bias_idx]
@@ -323,7 +322,7 @@ class Estimator():
         # ---- Sun sensor (simple) ----
         if sunsensor_readings is not None and S_ECI is not None:
             sens = self.est_sat.sun_sensor
-            var  = sens.noise.std_noise**2 * sens.scale**2
+            var  = sens.noise.std_noise**2 #* sens.scale**2
             bias_idx = sens.bias_state_index
             P_bias = self.x_hat.cov[bias_idx, bias_idx]
 
@@ -334,7 +333,7 @@ class Estimator():
         # ---- Sun sensor pair ----
         if sunpair_readings is not None and S_ECI is not None:
             sens = self.est_sat.sunpair_sensor
-            var  = sens.noise.std_noise**2 * sens.scale**2
+            var  = sens.noise.std_noise**2 #* sens.scale**2
             bias_idx = sens.bias_state_index
             P_bias = self.x_hat.cov[bias_idx, bias_idx]
 
@@ -394,9 +393,9 @@ class Estimator():
         This method delegates the actual filtering step to a subclass‐defined
         :meth:`update_core` method (e.g., EKF, SRUKF), then optionally enforces
         a block-structured covariance by zeroing cross terms between selected
-        bias/parameter groups, updates the internal :class:`EstimatedArray`
+        bias/parameter groups, updates the internal :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray`
         instance, and synchronizes the associated
-        :class:`EstimatedSatellite` model.
+        :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite` model.
 
         Parameters
         ----------
@@ -407,8 +406,8 @@ class Estimator():
             Collection of sensor measurements used by the estimator. The
             contents, order, and stacking convention are determined by the
             subclass implementation of :meth:`update_core` and the satellite
-            measurement model (e.g. :meth:`EstimatedSatellite.noiseless_sensor_readings`).
-        os : Orbital_State
+            measurement model (e.g. :meth:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.noiseless_sensor_readings`).
+        os : :class:`~ADCS.orbits.orbital_state.Orbital_State`
             Current orbital/environmental state used for propagation and
             measurement prediction.
 
@@ -424,7 +423,7 @@ class Estimator():
         Notes
         -----
         1. The subclass :meth:`update_core` is expected to return a new
-           :class:`EstimatedArray` ``x_hat`` with:
+           :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray` ``x_hat`` with:
 
            - ``x_hat.val`` : full augmented state,
            - ``x_hat.cov`` : reduced covariance in :math:`\mathbb{R}^{N-1}`,
@@ -440,9 +439,9 @@ class Estimator():
            :attr:`est_sat.att_sens_bias_len`, and :attr:`est_sat.dist_param_len`.
 
         4. The final estimate is inserted back into the main
-           :attr:`x_hat` via :meth:`EstimatedArray.set_indices` using a
+           :attr:`x_hat` via :meth:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray.set_indices` using a
            reduced covariance mask given by :meth:`cov_use`. Afterwards
-           :meth:`EstimatedSatellite.match_estimate` is called to update the
+           :meth:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.match_estimate` is called to update the
            satellite model (e.g., biases, disturbance parameters).
         """
         if self.prev_os.J2000 == 0:
