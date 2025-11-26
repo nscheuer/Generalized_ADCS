@@ -485,7 +485,7 @@ class UKF(Estimator):
         for j in range(num_sigma):
             full_pre_statej, sens_noise_j, control_noise_j, int_noise_extra_j = pts[j]
 
-            if j == 23:
+            if j == 18:
                 pass
             self.sat_match(satj, full_pre_statej)
 
@@ -513,7 +513,7 @@ class UKF(Estimator):
             post_pts[j, :] = post_statej.copy()
 
             self.sat_match(satj, post_full_statej)
-            dmode = DisturbanceMode(add_bias=True, add_noise=True, update_bias=False, update_noise=False)
+            dmode = DisturbanceMode(add_bias=True, add_noise=False, update_bias=False, update_noise=False)
             sensj = satj.sensor_readings(x=post_full_statej[:state_len],os=os, dmode=dmode)
             post_sens[j, :] = sensj[which_sensors] + sens_noise_j
 

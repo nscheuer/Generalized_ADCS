@@ -54,6 +54,9 @@ class Noise:
         :math:`n_0 = 0` and :math:`\sigma_n = 0`.
         """
         return not (np.all(self.noise == 0.0) and np.all(self.std_noise == 0.0))
+    
+    def copy(self):
+        return Noise(noise=self.noise, std_noise=self.std_noise, bounds=self.bounds)
 
     def _update_noise(self) -> None:
         r"""

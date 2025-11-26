@@ -696,3 +696,12 @@ def limit(u, umax):
     # CASE 3: umax is an array → symmetric elementwise
     umax = np.asarray(umax)
     return np.clip(u, -umax, umax)
+
+
+def quat_to_euler(q: np.ndarray) -> np.ndarray:
+    """Convert quaternion to Euler angles [deg]."""
+    R = rot_mat(q)
+    roll = np.arctan2(R[2, 1], R[2, 2])
+    pitch = -np.arcsin(R[2, 0])
+    yaw = np.arctan2(R[1, 0], R[0, 0])
+    return np.array([roll, pitch, yaw]) * 180/np.pi

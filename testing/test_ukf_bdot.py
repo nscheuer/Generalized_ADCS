@@ -37,6 +37,7 @@ def bdot(B_now: np.ndarray, B_prev: np.ndarray, mtq_max_torque: float) -> np.nda
     control = limit(ud, mtq_max_torque)
     return control
 
+@pytest.mark.slow
 def test_ukf_bdot(verbose: bool = False, tf: float = 500, dt: float = 1, t_start_bdot: float = 300, real_orbit: bool = False) -> Union[np.ndarray, np.ndarray, np.ndarray, List[Orbital_State], List[np.ndarray], List[np.ndarray], np.ndarray, List[np.ndarray]]:
     np.random.seed(1)
 

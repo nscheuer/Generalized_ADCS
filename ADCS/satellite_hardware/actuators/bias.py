@@ -55,6 +55,9 @@ class Bias:
         when both :math:`b_0 = 0` and :math:`\sigma_b = 0`.
         """
         return not (np.all(self.bias == 0.0) and np.all(self.std_bias == 0.0))
+    
+    def copy(self):
+        return Bias(bias=self.bias, std_bias=self.std_bias, bounds=self.bounds)
 
     def _update_bias(self, j2000: float) -> None:
         r"""
@@ -88,8 +91,8 @@ class Bias:
             return
 
         dt_sec = dt_centuries * TimeConstants.cent2sec
-        delta = np.random.normal(loc=0.0, scale=self.std_bias*np.sqrt(dt_sec))
-        self.bias = np.clip(self.bias + delta, self.bounds[0], self.bounds[1])
+        self.bias = np.random.normal(loc=self.bias, scale=self.std_bias*np.sqrt(dt_sec))
+        self.bias = np.clip(self.bias, self.bounds[0], self.bounds[1])
         self.last_bias_time = j2000
 
     def get_bias(self, j2000: float) -> float:

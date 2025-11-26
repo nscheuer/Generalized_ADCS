@@ -449,6 +449,7 @@ class Estimator():
 
         x_hat: EstimatedArray = self.update_core(u=u, sensors=sensors, os=os)
 
+        self.prev_os = os
         oc = x_hat.cov
         if not self.cross_term:
             ab0 = self.est_sat.state_len - 1
@@ -465,7 +466,7 @@ class Estimator():
             oc[sb0:sb1,d0:] = 0
             oc[d0:,sb0:sb1] = 0
 
-        self.x_hat.set_indices(self.use, x_hat.val, oc, square_mat_sections(self.x_hat.int_cov, self.cov_use()),[3])
+        self.x_hat.set_indices(self.use, x_hat.val, oc, square_mat_sections(self.x_hat.int_cov, self.cov_use()),[3]*(not self.quat_as_vec))
         self.est_sat.match_estimate(self.x_hat, self.dt)
 
         return self.x_hat.val
