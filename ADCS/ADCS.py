@@ -19,4 +19,5 @@ class ADCS():
         self.orbit_estimator: Orbit_Estimator = self.orbit_estimators[0]
 
 
-    def update(self, t: float, sensor_readings: np.ndarray)
+    def update(self, t: float, sensor_readings: np.ndarray):
+        pass

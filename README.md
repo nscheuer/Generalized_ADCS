@@ -4,3 +4,6 @@ Simulation suite for satellite control and estimation. Based on work by Patrick 
 # Installation Instructions
 Installation instructions for [Windows](/documentation/INSTALL_Windows.md).
 Installation instructions for [WSL/Linux](/documentation/INSTALL_WSL.md).
+
+# Compiling Documentation
+Instructions on how to compile the Sphinx documentation [here](/documentation/SPHINX.md).

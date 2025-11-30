@@ -31,8 +31,8 @@ from ADCS.helpers.math_helpers import random_n_unit_vec, rot_mat, norm, normaliz
 from ADCS.helpers.math_constants import MathConstants
 from ADCS.estimators.attitude_estimators import UAKF, SRUAKF
 
-from plotting.estimator_plots import plot_state_comparison, plot_error_and_sun, plot_sensor_data, plot_bias_comparison
-from plotting.estimator_animations import animate_attitude
+from plotting.plot_estimator import plot_state_comparison, plot_error_and_sun, plot_sensor_data, plot_bias_comparison
+from plotting.animate_estimator import animate_attitude
 from plotting.close_all_plots import create_close_all_button_window
 
 def run_ukf(verbose: bool = False, tf: float = 1000, dt: float = 10, real_orbit: bool = False) -> Union[np.ndarray, np.ndarray, np.ndarray, List[Orbital_State], List[np.ndarray], List[np.ndarray], np.ndarray, List[np.ndarray]]:

@@ -7,17 +7,9 @@ Subpackages
 .. toctree::
    :maxdepth: 4
 
+   ADCS.estimators.attitude_estimators
    ADCS.estimators.estimator_helpers
-
-Submodules
-----------
-
-.. toctree::
-   :maxdepth: 4
-
-   ADCS.estimators.attitude_SRUKF
-   ADCS.estimators.attitude_UKF
-   ADCS.estimators.estimator
+   ADCS.estimators.orbit_estimators
 
 Module contents
 ---------------

@@ -12,3 +12,6 @@ In order to register new Python modules (generate new .rst files):
 cd docs/
 sphinx-apidoc -f -e -o source/ ../ADCS/
 ```
+
+## Viewing Documentation
+Open the [index.html](../docs/build/html/index.html) file in a browser or IDE.

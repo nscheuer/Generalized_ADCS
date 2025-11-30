@@ -1,5 +1,5 @@
-ADCS package
-============
+ADCS.CONOPS package
+===================
 
 Subpackages
 -----------
@@ -7,13 +7,7 @@ Subpackages
 .. toctree::
    :maxdepth: 4
 
-   ADCS.CONOPS
-   ADCS.controller
-   ADCS.estimators
-   ADCS.helpers
-   ADCS.logging
-   ADCS.orbits
-   ADCS.satellite_hardware
+   ADCS.CONOPS.rules
 
 Submodules
 ----------
@@ -21,12 +15,12 @@ Submodules
 .. toctree::
    :maxdepth: 4
 
-   ADCS.ADCS
+   ADCS.CONOPS.rulebook
 
 Module contents
 ---------------
 
-.. automodule:: ADCS
+.. automodule:: ADCS.CONOPS
    :members:
    :show-inheritance:
    :undoc-members:

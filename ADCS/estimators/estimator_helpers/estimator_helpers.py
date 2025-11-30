@@ -8,17 +8,19 @@ from ADCS.orbits.orbital_state import Orbital_State
 
 @dataclass
 class EstimatedArray:
-    """
+    r"""
     Represents an estimated vector with associated covariance and integrated covariance.
 
-    Attributes
-    ----------
-    val : np.ndarray
-        The estimated state or parameter vector.
-    cov : np.ndarray
-        The covariance matrix representing uncertainty in `val`.
-    int_cov : np.ndarray
-        The integrated process covariance (e.g., accumulated process noise).
+    This structure is commonly used for parameter estimation where the state is a generic vector
+    rather than a specific orbital state.
+
+    :param val: The estimated state or parameter vector :math:`\hat{\mathbf{x}}`.
+    :type val: np.ndarray
+    :param cov: The covariance matrix :math:`P` representing uncertainty in ``val``.
+                Must be square and match the dimensions of ``val``.
+    :type cov: np.ndarray
+    :param int_cov: The integrated process covariance :math:`Q_{int}` (e.g., accumulated process noise over time).
+    :type int_cov: np.ndarray
     """
     val: np.ndarray
     cov: np.ndarray = field(default_factory=lambda: None)
@@ -50,7 +52,19 @@ class EstimatedArray:
     # ---- Methods ----
 
     def pull_indices(self, inds_mask, cov_missing_inds=None):
-        """Extract a sub-estimate and associated covariance blocks."""
+        """
+        Extracts a sub-estimate and associated covariance blocks based on a mask.
+
+        This is useful for isolating specific parameters from a larger state vector.
+
+        :param inds_mask: Indices of the values to extract.
+        :type inds_mask: list or np.ndarray
+        :param cov_missing_inds: Indices to exclude from the covariance extraction (optional).
+                                 If None, ``inds_mask`` is used for covariance as well.
+        :type cov_missing_inds: list or np.ndarray, optional
+        :return: A new EstimatedArray containing only the selected elements.
+        :rtype: ~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray
+        """
         if cov_missing_inds is None:
             cov_inds_mask = inds_mask
         else:
@@ -63,7 +77,20 @@ class EstimatedArray:
         )
 
     def set_indices(self, inds_mask, val, cov, int_cov, cov_missing_inds=None):
-        """Insert values and covariance blocks back into this estimate."""
+        """
+        Inserts values and covariance blocks back into this estimate.
+
+        :param inds_mask: Indices in the full vector where data should be inserted.
+        :type inds_mask: list or np.ndarray
+        :param val: The sub-vector of values to insert.
+        :type val: np.ndarray
+        :param cov: The covariance block corresponding to the inserted values.
+        :type cov: np.ndarray
+        :param int_cov: The integrated covariance block to insert.
+        :type int_cov: np.ndarray
+        :param cov_missing_inds: Indices to exclude from the covariance insertion mapping (optional).
+        :type cov_missing_inds: list or np.ndarray, optional
+        """
         if cov_missing_inds is None:
             cov_inds_mask = inds_mask
         else:
@@ -74,7 +101,12 @@ class EstimatedArray:
         self.int_cov[np.ix_(cov_inds_mask, cov_inds_mask)] = int_cov
 
     def copy(self):
-        """Return a deep copy."""
+        """
+        Creates a deep copy of the EstimatedArray.
+
+        :return: A new instance with independent data copies.
+        :rtype: ~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray
+        """
         return EstimatedArray(
             self.val.copy(),
             self.cov.copy(),
@@ -84,6 +116,20 @@ class EstimatedArray:
 
 @dataclass
 class EstimatedOrbital_State:
+    r"""
+    A container for an Orbital State and its associated estimation uncertainty.
+
+    This class wraps the physical :class:`~ADCS.orbits.orbital_state.Orbital_State` with
+    estimation statistics, specifically the state covariance :math:`P` and process noise :math:`Q`.
+
+    :param os: The estimated physical state (Position :math:`\mathbf{r}` and Velocity :math:`\mathbf{v}`).
+    :type os: ~ADCS.orbits.orbital_state.Orbital_State
+    :param P: The :math:`6 \times 6` state covariance matrix.
+              .. math:: P = E[(\hat{x} - x)(\hat{x} - x)^T]
+    :type P: np.ndarray
+    :param Q: The :math:`6 \times 6` process noise covariance matrix.
+    :type Q: np.ndarray
+    """
     os: Orbital_State
     P: np.ndarray = field(default_factory=lambda: None)
     Q: np.ndarray = field(default_factory=lambda: None)
@@ -99,12 +145,25 @@ class EstimatedOrbital_State:
         else:
             self.Q = np.asarray(self.Q, dtype=float)
         if self.P.shape != (6, 6):
-            raise ValueError(f"P must be 6×6, got {self.P.shape}")
+            raise ValueError(f"P must be 6x6, got {self.P.shape}")
         if self.Q.shape != (6, 6):
-            raise ValueError(f"Q must be 6×6, got {self.Q.shape}")
+            raise ValueError(f"Q must be 6x6, got {self.Q.shape}")
         
 
     def pull_indices(self, inds_mask, cov_missing_inds=None):
+        """
+        Extracts a partial state estimate based on indices mapping to [R, V].
+
+        The mapping is linear: indices 0-2 correspond to Position (R), and 3-5 to Velocity (V).
+
+        :param inds_mask: The indices of the 6-element state vector to extract.
+        :type inds_mask: list or np.ndarray
+        :param cov_missing_inds: Indices to exclude from covariance slicing (optional).
+        :type cov_missing_inds: list or np.ndarray, optional
+        :return: A new EstimatedOrbital_State containing the subset of state and covariance.
+                 Note: The underlying Orbital_State will have 0.0 in unselected components.
+        :rtype: ~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedOrbital_State
+        """
         inds_mask = np.asarray(inds_mask)
 
         if cov_missing_inds is None:
@@ -112,7 +171,7 @@ class EstimatedOrbital_State:
         else:
             cov_inds_mask = np.delete(inds_mask, cov_missing_inds)
 
-        # pull out R and V based on mask (first 3 → R, last 3 → V)
+        # pull out R and V based on mask (first 3 -> R, last 3 -> V)
         new_R = self.os.R.copy()
         new_V = self.os.V.copy()
 
@@ -136,8 +195,19 @@ class EstimatedOrbital_State:
 
 
     def set_indices(self, inds_mask, val, P, Q, cov_missing_inds=None):
-        """
-        Insert values and covariance blocks back into the full estimate.
+        r"""
+        Inserts values and covariance blocks back into the full 6-state estimate.
+
+        :param inds_mask: Indices in the full 6-element vector where data should be inserted.
+        :type inds_mask: list or np.ndarray
+        :param val: The values to insert into Position/Velocity.
+        :type val: np.ndarray
+        :param P: The covariance block :math:`P_{sub}` to insert.
+        :type P: np.ndarray
+        :param Q: The process noise block :math:`Q_{sub}` to insert.
+        :type Q: np.ndarray
+        :param cov_missing_inds: Indices to exclude from covariance insertion (optional).
+        :type cov_missing_inds: list or np.ndarray, optional
         """
 
         inds_mask = np.asarray(inds_mask)
@@ -159,6 +229,12 @@ class EstimatedOrbital_State:
         self.Q[np.ix_(cov_inds_mask, cov_inds_mask)] = Q
 
     def copy(self):
+        """
+        Creates a deep copy of the EstimatedOrbital_State.
+
+        :return: A new instance with deep-copied state and matrices.
+        :rtype: ~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedOrbital_State
+        """
         return EstimatedOrbital_State(
             self.os.copy(),
             self.P.copy(),

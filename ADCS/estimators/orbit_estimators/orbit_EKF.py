@@ -7,8 +7,24 @@ from scipy.linalg import block_diag
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.estimators.estimator_helpers.estimator_helpers import EstimatedArray, EstimatedOrbital_State
+from ADCS.estimators.orbit_estimators import Orbit_Estimator
 
-class Orbit_EKF:
+class Orbit_EKF(Orbit_Estimator):
+    r"""
+    Extended Kalman Filter (EKF) for Satellite Orbit Determination.
+
+    This class implements a continuous-discrete Extended Kalman Filter to estimate 
+    the satellite's state vector :math:`\mathbf{x} \in \mathbb{R}^6` (ECI Position and Velocity).
+
+    The filter linearizes the non-linear orbital dynamics :math:`f(\mathbf{x}, t)` 
+    (including J2 perturbations) to propagate the error covariance matrix :math:`\mathbf{P}`.
+
+    Attributes:
+        est_sat (EstimatedSatellite): Satellite model containing sensor specifications.
+        R (np.ndarray): Measurement noise covariance matrix :math:`\mathbf{R}`.
+        os_hat (EstimatedOrbital_State): Current state estimate :math:`\hat{\mathbf{x}}` 
+            and covariance :math:`\mathbf{P}`.
+    """
     def __init__(
         self,
         est_sat: EstimatedSatellite,
@@ -18,10 +34,20 @@ class Orbit_EKF:
         Q_hat: np.ndarray,
         dt: float = 1.0
     ) -> None:
-        self.est_sat = est_sat
+        r"""
+        Initialize the Orbit EKF.
+
+        :param est_sat: Satellite object with GPS sensors.
+        :param J2000: Initial epoch time [s].
+        :param os_hat: Initial orbital state estimate :math:`\hat{\mathbf{x}}_0`.
+        :param P_hat: Initial state error covariance matrix :math:`\mathbf{P}_0` (6x6).
+        :param Q_hat: Process noise covariance matrix :math:`\mathbf{Q}` (6x6).
+        :param dt: Propagation time step [s].
+        :raises ValueError: If the satellite has no GPS sensors.
+        """
+        super().__init__(est_sat=est_sat, dt=dt)
         if not self.est_sat.GPS_sensors:
             return ValueError("Satellite must have at least one GPS sensor!")
-        self.dt = dt
 
         self.reset(est_sat=est_sat, J2000=J2000, os_hat=os_hat, P_hat=P_hat, Q_hat=Q_hat, dt=dt)
 
@@ -34,6 +60,23 @@ class Orbit_EKF:
         Q_hat: np.ndarray,
         dt: float = 1.0
     ) -> None:
+        r"""
+        Reset the filter state and matrices.
+
+        Initializes the estimate :math:`\hat{\mathbf{x}}` and constructs the measurement 
+        noise matrix :math:`\mathbf{R}` based on the standard deviation of the 
+        onboard GPS sensors.
+
+        .. math::
+            \mathbf{R} = \text{block\_diag}(\sigma_{GPS,1}^2 \mathbf{I}, \dots)
+
+        :param est_sat: Satellite hardware model.
+        :param J2000: Current J2000 epoch.
+        :param os_hat: Initial state guess.
+        :param P_hat: Initial covariance :math:`\mathbf{P}` (must be 6x6).
+        :param Q_hat: Process noise :math:`\mathbf{Q}` (must be 6x6).
+        :param dt: Time step.
+        """
         if P_hat.shape != (6, 6):
             raise ValueError(f"P must be 6×6, got {self.P.shape}")
         if Q_hat.shape != (6, 6):
@@ -55,6 +98,30 @@ class Orbit_EKF:
         GPS_measurements: List[np.ndarray],
         J2000: float
     ) -> EstimatedOrbital_State:
+        r"""
+        Perform the EKF Time Update and Measurement Update steps.
+
+        **1. Time Update (Prediction):**
+        Propagates the state using RK4 integration and the covariance using the 
+        state transition matrix approximation:
+
+        .. math::
+            \hat{\mathbf{x}}_k^- &= f(\hat{\mathbf{x}}_{k-1}, u_{k-1}) \
+            \mathbf{P}_k^- &= \mathbf{F}_k \mathbf{P}_{k-1} \mathbf{F}_k^T + \mathbf{Q}
+
+        **2. Measurement Update (Correction):**
+        Updates the estimate using the Kalman Gain :math:`\mathbf{K}` derived from 
+        the measurement residual (innovation) :math:`\mathbf{y}`:
+
+        .. math::
+            \mathbf{K}_k &= \mathbf{P}_k^- \mathbf{H}^T (\mathbf{H} \mathbf{P}_k^- \mathbf{H}^T + \mathbf{R})^{-1} \
+            \hat{\mathbf{x}}_k &= \hat{\mathbf{x}}_k^- + \mathbf{K}_k (\mathbf{z}_k - \mathbf{H}\hat{\mathbf{x}}_k^-) \
+            \mathbf{P}_k &= (\mathbf{I} - \mathbf{K}_k \mathbf{H}) \mathbf{P}_k^-
+
+        :param GPS_measurements: List of sensor measurements (Position or PV) in ECEF frame.
+        :param J2000: Current epoch time [s].
+        :return: The updated :class:`EstimatedOrbital_State`.
+        """
 
         # --- 1. Propagate the orbital state ---
         os0: Orbital_State = self.os_hat.os

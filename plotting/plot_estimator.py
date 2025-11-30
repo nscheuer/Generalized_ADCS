@@ -3,18 +3,23 @@ import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 from matplotlib.widgets import Button, RadioButtons
 from numpy.linalg import norm
-from typing import Callable, Tuple, List
+from typing import Callable, Tuple, List, Optional
 from ADCS.helpers.math_helpers import quat_to_euler
 
 
 def plot_state_comparison(
     time: np.ndarray,
     state_hist: np.ndarray,
-    est_state_hist: np.ndarray
+    est_state_hist: Optional[np.ndarray] = None
 ) -> None:
-    """Plot real vs estimated angular velocity and Euler angles."""
+    """
+    Plot angular velocity and Euler angles.
+    If est_state_hist is provided, also overlay estimated values.
+    """
     euler_real = np.array([quat_to_euler(q) for q in state_hist[:, 3:7]])
-    euler_est  = np.array([quat_to_euler(q) for q in est_state_hist[:, 3:7]])
+
+    if est_state_hist is not None:
+        euler_est = np.array([quat_to_euler(q) for q in est_state_hist[:, 3:7]])
 
     fig, axs = plt.subplots(3, 2, figsize=(12, 10))
     axs = axs.flatten()
@@ -25,20 +30,33 @@ def plot_state_comparison(
     # Angular velocity
     for i in range(3):
         axs[i].plot(time, state_hist[:, i], label="Real")
-        axs[i].plot(time, est_state_hist[:, i], "--", label="Estimated")
+
+        if est_state_hist is not None:
+            axs[i].plot(time, est_state_hist[:, i], "--", label="Estimated")
+
         axs[i].set_title(state_labels[i])
         axs[i].grid(True)
 
     # Euler angles
     for i in range(3):
         axs[i+3].plot(time, euler_real[:, i], label="Real")
-        axs[i+3].plot(time, euler_est[:, i], "--", label="Estimated")
+
+        if est_state_hist is not None:
+            axs[i+3].plot(time, euler_est[:, i], "--", label="Estimated")
+
         axs[i+3].set_title(euler_labels[i])
         axs[i+3].grid(True)
         axs[i+3].set_xlabel("Time [s]")
 
-    axs[0].legend()
-    fig.suptitle("Real vs Estimated States (ω and Euler Angles)")
+    # Only show legend if we have estimates too
+    if est_state_hist is not None:
+        axs[0].legend()
+
+    title = "State Time Series (ω and Euler Angles)"
+    if est_state_hist is not None:
+        title = "Real vs Estimated States (ω and Euler Angles)"
+
+    fig.suptitle(title)
     fig.tight_layout(rect=[0, 0, 1, 0.97])
 
 
