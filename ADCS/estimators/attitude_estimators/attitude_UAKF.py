@@ -1,11 +1,11 @@
-__all__ = ["UKF"]
+__all__ = ["UAKF"]
 
 import numpy as np
 import copy
 import scipy
 from typing import List
 
-from ADCS.estimators.estimator import Estimator
+from ADCS.estimators.attitude_estimators.attitude_estimator import Attitude_Estimator
 from ADCS.estimators.estimator_helpers.estimator_helpers import EstimatedArray
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
 from ADCS.satellite_hardware.disturbances import DisturbanceMode
@@ -23,7 +23,7 @@ from ADCS.helpers.math_helpers import (
 )
 
 
-class UKF(Estimator):
+class UAKF(Attitude_Estimator):
     def __init__(
         self,
         est_sat: EstimatedSatellite,

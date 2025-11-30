@@ -1,4 +1,4 @@
-__all__ = ["Estimator"]
+__all__ = ["Attitude_Estimator"]
 
 import numpy as np
 from typing import List, Optional
@@ -7,7 +7,7 @@ from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatel
 from ADCS.estimators.estimator_helpers.estimator_helpers import EstimatedArray
 from ADCS.helpers.math_helpers import square_mat_sections, wahbas_svd
 
-class Estimator():
+class Attitude_Estimator():
     r"""
     Abstract base class for spacecraft attitude and bias estimators.
 

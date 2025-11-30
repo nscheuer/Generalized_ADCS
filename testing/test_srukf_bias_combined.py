@@ -30,7 +30,7 @@ from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.helpers.math_helpers import random_n_unit_vec, rot_mat, norm, normalize, limit
 from ADCS.helpers.math_constants import MathConstants
-from ADCS.estimators.attitude_estimators import UAKF
+from ADCS.estimators.attitude_estimators import SRUAKF
 
 from plotting.estimator_plots import plot_state_comparison, plot_error_and_sun, plot_sensor_data, plot_bias_comparison
 from plotting.estimator_animations import animate_attitude
@@ -468,7 +468,7 @@ from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.helpers.math_helpers import random_n_unit_vec, rot_mat, norm, normalize, limit
 from ADCS.helpers.math_constants import MathConstants
-from ADCS.estimators.attitude_estimators import UAKF
+from ADCS.estimators.attitude_estimators import SRUAKF
 
 def run_ukf(verbose: bool = False, tf: float = 1000, dt: float = 10, real_orbit: bool = False) -> Union[np.ndarray, np.ndarray, np.ndarray, List[Orbital_State], List[np.ndarray], List[np.ndarray], np.ndarray, List[np.ndarray]]:
     np.random.seed(67)
@@ -601,7 +601,7 @@ def run_ukf(verbose: bool = False, tf: float = 1000, dt: float = 10, real_orbit:
 
     ## Build Estimator
     J2000 = 0.22 + t0*TimeConstants.sec2cent
-    ukf = UAKF(est_sat=est_sat, J2000=J2000, x_hat=x_hat, P_hat=P_est, Q_hat=Q_est, dt=dt, cross_term=True, quat_as_vec=False)
+    ukf = SRUAKF(est_sat=est_sat, J2000=J2000, x_hat=x_hat, P_hat=P_est, Q_hat=Q_est, dt=dt, cross_term=True, quat_as_vec=False)
 
     # Create history vectors
     time_hist = np.nan*np.zeros(N)

@@ -1,8 +1,10 @@
-__all__ = ["EstimatedArray"]
+__all__ = ["EstimatedArray", "EstimatedOrbital_State"]
 
 from dataclasses import dataclass, field
 import numpy as np
 from typing import Optional
+
+from ADCS.orbits.orbital_state import Orbital_State
 
 @dataclass
 class EstimatedArray:
@@ -77,4 +79,88 @@ class EstimatedArray:
             self.val.copy(),
             self.cov.copy(),
             self.int_cov.copy(),
+        )
+    
+
+@dataclass
+class EstimatedOrbital_State:
+    os: Orbital_State
+    P: np.ndarray = field(default_factory=lambda: None)
+    Q: np.ndarray = field(default_factory=lambda: None)
+
+    def __post_init__(self):
+        if self.P is None:
+            self.P = np.zeros((6, 6))
+        else:
+            self.P = np.asarray(self.P, dtype=float)
+
+        if self.Q is None:
+            self.Q = np.zeros_like(self.P)
+        else:
+            self.Q = np.asarray(self.Q, dtype=float)
+        if self.P.shape != (6, 6):
+            raise ValueError(f"P must be 6×6, got {self.P.shape}")
+        if self.Q.shape != (6, 6):
+            raise ValueError(f"Q must be 6×6, got {self.Q.shape}")
+        
+
+    def pull_indices(self, inds_mask, cov_missing_inds=None):
+        inds_mask = np.asarray(inds_mask)
+
+        if cov_missing_inds is None:
+            cov_inds_mask = inds_mask
+        else:
+            cov_inds_mask = np.delete(inds_mask, cov_missing_inds)
+
+        # pull out R and V based on mask (first 3 → R, last 3 → V)
+        new_R = self.os.R.copy()
+        new_V = self.os.V.copy()
+
+        # modify based on mask
+        for i, idx in enumerate(inds_mask):
+            if idx < 3:
+                new_R[idx] = np.hstack([self.os.R, self.os.V])[inds_mask][i]
+            else:
+                new_V[idx - 3] = np.hstack([self.os.R, self.os.V])[inds_mask][i]
+
+        # new Orbital_State
+        new_os = self.os.copy()
+        new_os.R = new_R
+        new_os.V = new_V
+
+        return EstimatedOrbital_State(
+            os=new_os,
+            P=self.P[np.ix_(cov_inds_mask, cov_inds_mask)],
+            Q=self.Q[np.ix_(cov_inds_mask, cov_inds_mask)],
+        )
+
+
+    def set_indices(self, inds_mask, val, P, Q, cov_missing_inds=None):
+        """
+        Insert values and covariance blocks back into the full estimate.
+        """
+
+        inds_mask = np.asarray(inds_mask)
+
+        if cov_missing_inds is None:
+            cov_inds_mask = inds_mask
+        else:
+            cov_inds_mask = np.delete(inds_mask, cov_missing_inds)
+
+        # insert R and V
+        full_x = np.hstack([self.os.R, self.os.V])
+        full_x[inds_mask] = val
+
+        self.os.R = full_x[:3]
+        self.os.V = full_x[3:]
+
+        # update covariance blocks
+        self.P[np.ix_(cov_inds_mask, cov_inds_mask)] = P
+        self.Q[np.ix_(cov_inds_mask, cov_inds_mask)] = Q
+
+    def copy(self):
+        return EstimatedOrbital_State(
+            self.os.copy(),
+            self.P.copy(),
+            self.Q.copy(),
         )

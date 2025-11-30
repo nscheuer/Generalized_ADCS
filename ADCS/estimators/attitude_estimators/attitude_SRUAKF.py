@@ -1,4 +1,4 @@
-__all__ = ["SRUKF"]
+__all__ = ["SRUAKF"]
 
 import numpy as np
 import scipy.linalg
@@ -21,9 +21,9 @@ from ADCS.helpers.math_helpers import (
 )
 
 # Import the base UKF
-from ADCS.estimators.attitude_UKF import UKF 
+from ADCS.estimators.attitude_estimators import UAKF
 
-class SRUKF(UKF):
+class SRUAKF(UAKF):
     r"""
     Square Root Unscented Kalman Filter (SRUKF) using ``choldate``.
 
@@ -436,7 +436,7 @@ class SRUKF(UKF):
             t1 = scipy.linalg.solve_triangular(srcov_sens, covyx, lower=False, trans='T')
             Kk = scipy.linalg.solve_triangular(srcov_sens, t1, lower=False)
         except np.linalg.LinAlgError:
-             raise np.linalg.LinAlgError('SRUKF: Singular Matrix in Update')
+             raise np.linalg.LinAlgError('SRUAKF: Singular Matrix in Update')
 
         # --- 7. State Update ---
         # Note: Kk here is (n_meas, n_state).

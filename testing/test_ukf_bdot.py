@@ -29,8 +29,7 @@ from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.helpers.math_helpers import random_n_unit_vec, rot_mat, norm, normalize, limit
 from ADCS.helpers.math_constants import MathConstants
-from ADCS.estimators.attitude_SRUKF import SRUKF
-from ADCS.estimators.attitude_UKF import UKF
+from ADCS.estimators.attitude_estimators import UAKF
 
 def bdot(B_now: np.ndarray, B_prev: np.ndarray, mtq_max_torque: float) -> np.ndarray:
     ud = -1e8*(B_now - B_prev)
@@ -137,12 +136,12 @@ def test_ukf_bdot(verbose: bool = False, tf: float = 500, dt: float = 1, t_start
 
     ## Build Estimator
     J2000 = 0.22 + t0*TimeConstants.sec2cent
-    srukf = UKF(est_sat=est_sat, J2000=J2000, x_hat=x_hat, P_hat=P_est, Q_hat=Q_est, dt=dt, cross_term=True, quat_as_vec=False)
+    ukf = UAKF(est_sat=est_sat, J2000=J2000, x_hat=x_hat, P_hat=P_est, Q_hat=Q_est, dt=dt, cross_term=True, quat_as_vec=False)
 
     # Create history vectors
     time_hist = np.nan*np.zeros(N)
-    state_hist = np.nan*np.zeros((N, srukf.state_len))
-    est_state_hist = np.nan*np.zeros((N, srukf.state_len))
+    state_hist = np.nan*np.zeros((N, ukf.state_len))
+    est_state_hist = np.nan*np.zeros((N, ukf.state_len))
     os_hist: List[Orbital_State] = list()
     sensor_hist: List[np.ndarray] = np.nan*np.zeros((N, 9))
     clean_sensor_hist: List[np.ndarray] = np.nan*np.zeros((N, 9))
@@ -169,7 +168,7 @@ def test_ukf_bdot(verbose: bool = False, tf: float = 500, dt: float = 1, t_start
             u = np.zeros(len(acts))
         else:
             u = bdot(B_now=B_now, B_prev=B_prev, mtq_max_torque=mtq_max_torque)
-        x_hat = srukf.update(u=u, sensors=noisy_sensor_readings, os=os)
+        x_hat = ukf.update(u=u, sensors=noisy_sensor_readings, os=os)
 
         if verbose:
             # Full State Debug
@@ -181,7 +180,7 @@ def test_ukf_bdot(verbose: bool = False, tf: float = 500, dt: float = 1, t_start
             print("Attitude Error (Degrees) ", quaternion_error_deg)
             angular_velocity_error = norm(x_hat[0:3] - x[0:3])*180.0/np.pi
             print("Angular Velocity Error ", angular_velocity_error)
-            diagonal_covariances = np.diagonal(srukf.x_hat.cov)
+            diagonal_covariances = np.diagonal(ukf.x_hat.cov)
             print("Attitude Covariance ", diagonal_covariances[3:6])
             print("Angular Velocity Covariance ", diagonal_covariances[0:3])
             print("")
@@ -194,7 +193,7 @@ def test_ukf_bdot(verbose: bool = False, tf: float = 500, dt: float = 1, t_start
         sensor_hist[ind,:] = noisy_sensor_readings
         clean_sensor_hist[ind,:] = clean_sensor_readings
         u_hist[ind,:] = u
-        cov_hist += [srukf.x_hat.cov]
+        cov_hist += [ukf.x_hat.cov]
 
         # Propagate
         ind += 1
