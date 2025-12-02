@@ -19,5 +19,5 @@ if __name__ == "__main__":
     sat = Satellite(mass, COM, J_0)
 
     ephem = Ephemeris()
-    print(type(ephem.planets['earth']))
+    print(type(tplaunch.Planner))
 

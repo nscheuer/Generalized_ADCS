@@ -238,7 +238,7 @@ def test_mtq_w_rw_complex_align(verbose: bool = False, tf: float = 1000, dt: flo
         orb = Orbit(orbs)
 
     # Controller
-    controller = MTQ_w_RW(est_sat=real_sat, p_gain=0.1, d_gain=1, c_gain=0.0, h_target=np.array([0, 0, 0]))
+    controller = MTQ_w_RW(est_sat=real_sat, p_gain=0.1, d_gain=0.5, c_gain=0.0, h_target=np.array([0, 0, 0]))
 
     time_hist = np.nan*np.zeros(N)
     state_hist = np.nan*np.zeros((N, 10))
@@ -499,4 +499,4 @@ def plot_mtq_w_rw_full(verbose: bool = False, tf: float = 1000, dt: float = 10, 
     create_close_all_button_window()
 
 if __name__ == "__main__":
-    plot_mtq_w_rw_full(verbose=False, tf = 100, dt = 1, real_orbit= False)
+    plot_mtq_w_rw_complex_align(verbose=False, tf = 100, dt = 1, real_orbit= False)

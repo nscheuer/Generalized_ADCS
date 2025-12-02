@@ -96,6 +96,7 @@ class Satellite:
 
         # Initialize state
         self.state_len = 7 + self.number_RW
+        self.control_len = len(actuators)
         self.update_J(J_0=J_0, COM=COM)
 
     def update_J(self, J_0: np.ndarray = None, COM: np.ndarray = None) -> None:

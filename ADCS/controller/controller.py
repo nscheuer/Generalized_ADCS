@@ -3,6 +3,7 @@ __all__ = ["Controller"]
 import numpy as np
 from typing import List, Tuple, Type
 
+from ADCS.CONOPS.goals import Goal
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.satellite_hardware.sensors import Sensor
@@ -45,7 +46,7 @@ class Controller():
         pass
 
 
-    def find_u(self, x_hat: np.ndarray, sens: np.ndarray, est_sat: EstimatedSatellite, os_hat: Orbital_State, goal_vector_eci: np.ndarray | None = None, w_ref: np.ndarray | None = None, **kwargs) -> np.ndarray:
+    def find_u(self, x_hat: np.ndarray, sens: np.ndarray, est_sat: EstimatedSatellite, os_hat: Orbital_State, goal: Goal | None, **kwargs) -> np.ndarray:
         r"""
         Computes actuator inputs required to satisfy the control objective.
 

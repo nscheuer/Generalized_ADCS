@@ -3,6 +3,7 @@ __all__ = ["MTQ_w_RW"]
 import numpy as np
 from typing import List
 
+from ADCS.CONOPS.goals import Goal
 from ADCS.controller import Controller
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
 from ADCS.orbits.orbital_state import Orbital_State
@@ -137,7 +138,7 @@ class MTQ_w_RW(Controller):
         self.n_actuators = len(est_sat.actuators)
 
     
-    def find_u(self, x_hat: np.ndarray, sens: np.ndarray, est_sat: EstimatedSatellite, os_hat: Orbital_State, goal_vector_eci: np.ndarray | None = None, w_ref: np.ndarray | None = None) -> np.ndarray:
+    def find_u(self, x_hat: np.ndarray, sens: np.ndarray, est_sat: EstimatedSatellite, os_hat: Orbital_State, goal: Goal | None = None) -> np.ndarray:
         r"""
         Compute actuator commands for reaction wheels and magnetic torquers.
 
@@ -253,8 +254,10 @@ class MTQ_w_RW(Controller):
         w = x_hat[0:3]
         q = x_hat[3:7]
 
-        if w_ref is None:
-            w_ref = np.zeros(3)
+        if goal is None:
+            goal = Goal()
+
+        goal_vector_eci, w_ref = goal.to_ref(x_hat=x_hat, os0=os_hat)
 
         b_body = self.M_mtm_read @ sens # Already filters out only MTM readings
 
