@@ -334,14 +334,555 @@
 <h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading">¶</a></h2>
 <div class="toctree-wrapper compound">
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="ADCS.controller.bdot.html">ADCS.controller.bdot module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="ADCS.controller.controller.html">ADCS.controller.controller module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="ADCS.controller.mtq_w_rw.html">ADCS.controller.mtq_w_rw module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ADCS.controller.bdot.html">ADCS.controller.bdot module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="ADCS.controller.bdot.html#ADCS.controller.bdot.BDot"><code class="docutils literal notranslate"><span class="pre">BDot</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.controller.bdot.html#ADCS.controller.bdot.BDot.find_u"><code class="docutils literal notranslate"><span class="pre">find_u()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="ADCS.controller.controller.html">ADCS.controller.controller module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="ADCS.controller.controller.html#ADCS.controller.controller.Controller"><code class="docutils literal notranslate"><span class="pre">Controller</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.controller.controller.html#ADCS.controller.controller.Controller.build_sensor_matrix_pinv"><code class="docutils literal notranslate"><span class="pre">build_sensor_matrix_pinv()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.controller.controller.html#ADCS.controller.controller.Controller.build_torque_to_u_matrix_pinv"><code class="docutils literal notranslate"><span class="pre">build_torque_to_u_matrix_pinv()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.controller.controller.html#ADCS.controller.controller.Controller.build_u_to_torque_matrix_pinv"><code class="docutils literal notranslate"><span class="pre">build_u_to_torque_matrix_pinv()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.controller.controller.html#ADCS.controller.controller.Controller.find_max_torque"><code class="docutils literal notranslate"><span class="pre">find_max_torque()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.controller.controller.html#ADCS.controller.controller.Controller.find_u"><code class="docutils literal notranslate"><span class="pre">find_u()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="ADCS.controller.mtq_w_rw.html">ADCS.controller.mtq_w_rw module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="ADCS.controller.mtq_w_rw.html#ADCS.controller.mtq_w_rw.MTQ_w_RW"><code class="docutils literal notranslate"><span class="pre">MTQ_w_RW</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.controller.mtq_w_rw.html#ADCS.controller.mtq_w_rw.MTQ_w_RW.find_u"><code class="docutils literal notranslate"><span class="pre">find_u()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 </div>
 </section>
-<section id="module-contents">
-<h2>Module contents<a class="headerlink" href="#module-contents" title="Link to this heading">¶</a></h2>
+<section id="module-ADCS.controller">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-ADCS.controller" title="Link to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="ADCS.controller.BDot">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ADCS.controller.</span></span><span class="sig-name descname"><span class="pre">BDot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">est_sat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gain</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/controller/bdot.html#BDot"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.controller.BDot" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="ADCS.controller.controller.html#ADCS.controller.controller.Controller" title="ADCS.controller.controller.Controller"><code class="xref py py-class docutils literal notranslate"><span class="pre">Controller</span></code></a></p>
+<p>Implements the B-Dot detumbling controller.</p>
+<p>The B-Dot algorithm is a magnetic control law used primarily for detumbling a satellite
+(reducing angular velocity) after deployment. It relies on the interaction between
+magnetic actuators (magnetorquers) and the Earth’s magnetic field.</p>
+<p><strong>Control Law</strong></p>
+<p>The controller calculates a desired magnetic dipole moment <span class="math notranslate nohighlight">\(\mathbf{m}\)</span> based on the
+rate of change of the measured magnetic field body vector <span class="math notranslate nohighlight">\(\mathbf{B}\)</span>.</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\mathbf{m}_{req} = -K \dot{\mathbf{B}}\]</div>
+</div>
+<dl class="simple">
+<dt>Where:</dt><dd><ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(\mathbf{m}_{req}\)</span> is the requested magnetic dipole moment (<span class="math notranslate nohighlight">\(Am^2\)</span>).</p></li>
+<li><p><span class="math notranslate nohighlight">\(K\)</span> is the control gain (positive scalar).</p></li>
+<li><p><span class="math notranslate nohighlight">\(\dot{\mathbf{B}}\)</span> is the time derivative of the magnetic field vector in the body frame.</p></li>
+</ul>
+</dd>
+</dl>
+<p><strong>Physical Principle</strong></p>
+<p>The torque generated is <span class="math notranslate nohighlight">\(\boldsymbol{\tau} = \mathbf{m} \times \mathbf{B}\)</span>.
+Substituting the control law:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\boldsymbol{\tau} = -K (\dot{\mathbf{B}} \times \mathbf{B})\]</div>
+</div>
+<p>For a tumbling satellite, the change in the magnetic field vector is dominated by the
+satellite’s rotation <span class="math notranslate nohighlight">\(\boldsymbol{\omega}\)</span> rather than the orbital change of the
+magnetic field. Therefore, <span class="math notranslate nohighlight">\(\dot{\mathbf{B}} \approx \boldsymbol{\omega} \times \mathbf{B}\)</span>.
+This results in a torque that opposes the angular velocity perpendicular to the magnetic field,
+dissipating kinetic energy.</p>
+<p><strong>Hardware Prerequisites</strong></p>
+<p>This controller requires specific hardware interfaces defined in the <a class="reference internal" href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite" title="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite"><code class="xref py py-class docutils literal notranslate"><span class="pre">EstimatedSatellite</span></code></a>:</p>
+<ol class="arabic simple">
+<li><p><strong>Sensors:</strong> At least one <a class="reference internal" href="ADCS.satellite_hardware.sensors.html#ADCS.satellite_hardware.sensors.MTM" title="ADCS.satellite_hardware.sensors.MTM"><code class="xref py py-class docutils literal notranslate"><span class="pre">MTM</span></code></a> (Magnetometer) to measure <span class="math notranslate nohighlight">\(\mathbf{B}\)</span>.</p></li>
+<li><p><strong>Actuators:</strong> At least one <a class="reference internal" href="ADCS.satellite_hardware.actuators.html#ADCS.satellite_hardware.actuators.MTQ" title="ADCS.satellite_hardware.actuators.MTQ"><code class="xref py py-class docutils literal notranslate"><span class="pre">MTQ</span></code></a> (Magnetorquer) to generate <span class="math notranslate nohighlight">\(\mathbf{m}\)</span>.</p></li>
+</ol>
+<p><strong>Matrix Mapping</strong></p>
+<p>This class automatically builds mapping matrices using the Moore-Penrose pseudoinverse to handle
+configurations with redundant sensors or coupled actuator axes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>est_sat</strong> (<a class="reference internal" href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite" title="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite"><em>EstimatedSatellite</em></a>) – The estimated satellite object containing hardware definitions.</p></li>
+<li><p><strong>gain</strong> (<em>float</em>) – The proportional gain <span class="math notranslate nohighlight">\(K\)</span> applied to the B-field derivative.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.controller.BDot.find_u">
+<span class="sig-name descname"><span class="pre">find_u</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x_hat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sens</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">est_sat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os_hat</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/controller/bdot.html#BDot.find_u"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.controller.BDot.find_u" title="Link to this definition">¶</a></dt>
+<dd><p>Computes the control signal based on the B-Dot law.</p>
+<p>This method performs the following steps:</p>
+<ol class="arabic">
+<li><p><strong>Reconstruct B-field:</strong> Transforms raw sensor data <code class="docutils literal notranslate"><span class="pre">sens</span></code> into the magnetic field vector
+<span class="math notranslate nohighlight">\(\mathbf{B}_{curr}\)</span> using the pre-computed <span class="math notranslate nohighlight">\(M_{read}\)</span>.</p></li>
+<li><p><strong>Calculate Derivative:</strong> Computes the discrete time derivative <span class="math notranslate nohighlight">\(\dot{\mathbf{B}}\)</span>
+using a backward difference approximation:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\dot{\mathbf{B}} \approx \frac{\mathbf{B}_{curr} - \mathbf{B}_{prev}}{\Delta t}\]</div>
+</div>
+</li>
+<li><p><strong>Compute Dipole:</strong> Applies the gain <span class="math notranslate nohighlight">\(\mathbf{m}_{desired} = -K \dot{\mathbf{B}}\)</span>.</p></li>
+<li><p><strong>Map to Actuators:</strong> Converts the desired dipole to specific actuator commands via <span class="math notranslate nohighlight">\(M_{act}\)</span>.</p></li>
+<li><p><strong>Saturate:</strong> Limits the output to <span class="math notranslate nohighlight">\(u_{max}\)</span> of the specific magnetorquers.</p></li>
+</ol>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x_hat</strong> (<em>np.ndarray</em>) – The current state estimate vector (unused in B-Dot, relies on raw sensors).</p></li>
+<li><p><strong>sens</strong> (<em>np.ndarray</em>) – The raw sensor measurements array.</p></li>
+<li><p><strong>est_sat</strong> (<a class="reference internal" href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite" title="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite"><em>EstimatedSatellite</em></a>) – The estimated satellite object (unused in loop, required by interface).</p></li>
+<li><p><strong>os_hat</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>) – The current orbital state estimate (used for J2000 timestamps).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The computed control signal <span class="math notranslate nohighlight">\(\mathbf{u}\)</span> (e.g., duty cycles or voltages).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="ADCS.controller.Controller">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ADCS.controller.</span></span><span class="sig-name descname"><span class="pre">Controller</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">est_sat</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/controller/controller.html#Controller"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.controller.Controller" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Base abstract controller for all ADCS control law implementations.</p>
+<p>This class defines the core interface required in every ADCS controller.
+Controllers are expected to compute actuator input commands that achieve
+a desired torque or attitude regulation objective.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>est_sat</strong> (<a class="reference internal" href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite" title="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite"><code class="xref py py-class docutils literal notranslate"><span class="pre">EstimatedSatellite</span></code></a>) – Estimated satellite model containing inertia, actuator layout,
+and sensor configuration.</p></li>
+<li><p><strong>**kwargs</strong> (<em>dict</em>) – Optional keyword parameters forwarded to derived controllers.</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>Controllers that inherit from this base must override
+<a class="reference internal" href="#ADCS.controller.Controller.find_u" title="ADCS.controller.Controller.find_u"><code class="xref py py-meth docutils literal notranslate"><span class="pre">find_u()</span></code></a>.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.controller.Controller.build_sensor_matrix_pinv">
+<span class="sig-name descname"><span class="pre">build_sensor_matrix_pinv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sensors</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sensor_type</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/controller/controller.html#Controller.build_sensor_matrix_pinv"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.controller.Controller.build_sensor_matrix_pinv" title="Link to this definition">¶</a></dt>
+<dd><p>Constructs a measurement reconstruction matrix for a specific
+class of sensors by computing a Moore–Penrose pseudoinverse
+based on their sensing axes.</p>
+<p>Given a stacked sensor measurement vector <span class="math notranslate nohighlight">\(y\)</span>, this matrix
+maps sensor outputs to a physical 3-vector (e.g. the estimated
+magnetic field in body coordinates).</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\mathbf{v}_{body} \approx M_{\mathrm{sens}} \, y\]</div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sensors</strong> (list[<a class="reference internal" href="ADCS.satellite_hardware.sensors.html#ADCS.satellite_hardware.sensors.Sensor" title="ADCS.satellite_hardware.sensors.Sensor"><code class="xref py py-class docutils literal notranslate"><span class="pre">Sensor</span></code></a>]) – List of all satellite sensors.</p></li>
+<li><p><strong>sensor_type</strong> (<em>type</em>) – Sensor type to extract. Must inherit from
+<a class="reference internal" href="ADCS.satellite_hardware.sensors.html#ADCS.satellite_hardware.sensors.Sensor" title="ADCS.satellite_hardware.sensors.Sensor"><code class="xref py py-class docutils literal notranslate"><span class="pre">Sensor</span></code></a>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>M_sens</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Pseudoinverse reconstruction matrix of shape (3, N), mapping
+measurements to a 3-vector physical estimate.</p></li>
+<li><p><strong>indices</strong> (<em>list[int]</em>) – Flattened measurement indices belonging to the selected sensor type.</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>TypeError</strong> – If <cite>sensor_type</cite> does not subclass Sensor.</p></li>
+<li><p><strong>ValueError</strong> – If no sensors of the given type are found.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>Tuple</em>[<em>ndarray</em>, <em>List</em>[int]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.controller.Controller.build_torque_to_u_matrix_pinv">
+<span class="sig-name descname"><span class="pre">build_torque_to_u_matrix_pinv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">actuators</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">actuator_type</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/controller/controller.html#Controller.build_torque_to_u_matrix_pinv"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.controller.Controller.build_torque_to_u_matrix_pinv" title="Link to this definition">¶</a></dt>
+<dd><p>Builds the actuator allocation matrix that maps desired body torques
+into actuator command space via the pseudoinverse of the actuator
+direction matrix.</p>
+<p>The columns of the internal matrix correspond to the unit axis
+directions along which the selected actuators can impart torque.
+Its Moore–Penrose pseudoinverse yields the minimum-norm command
+vector that best matches a desired torque.</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\mathbf{u} \approx A^{\dagger} \, \boldsymbol{\tau}\]</div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>actuators</strong> (list[<a class="reference internal" href="ADCS.satellite_hardware.actuators.html#ADCS.satellite_hardware.actuators.Actuator" title="ADCS.satellite_hardware.actuators.Actuator"><code class="xref py py-class docutils literal notranslate"><span class="pre">Actuator</span></code></a>]) – List of all satellite actuators.</p></li>
+<li><p><strong>actuator_type</strong> (<em>type</em>) – Target actuator type (e.g. <a class="reference internal" href="ADCS.satellite_hardware.actuators.html#ADCS.satellite_hardware.actuators.RW" title="ADCS.satellite_hardware.actuators.RW"><code class="xref py py-class docutils literal notranslate"><span class="pre">RW</span></code></a>
+or <a class="reference internal" href="ADCS.satellite_hardware.actuators.html#ADCS.satellite_hardware.actuators.MTQ" title="ADCS.satellite_hardware.actuators.MTQ"><code class="xref py py-class docutils literal notranslate"><span class="pre">MTQ</span></code></a>).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>M_act</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Allocation pseudoinverse of size (N, 3), mapping desired torque to commands.</p></li>
+<li><p><strong>indices</strong> (<em>list[int]</em>) – Indices of the actuator channels belonging to the selected type.</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>TypeError</strong> – If <cite>actuator_type</cite> does not subclass Actuator.</p></li>
+<li><p><strong>ValueError</strong> – If no actuators of the given type exist.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>Tuple</em>[<em>ndarray</em>, <em>List</em>[int]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.controller.Controller.build_u_to_torque_matrix_pinv">
+<span class="sig-name descname"><span class="pre">build_u_to_torque_matrix_pinv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">actuators</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">actuator_type</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/controller/controller.html#Controller.build_u_to_torque_matrix_pinv"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.controller.Controller.build_u_to_torque_matrix_pinv" title="Link to this definition">¶</a></dt>
+<dd><p>Builds the forward mapping matrix that converts actuator inputs directly
+into the physical torque contribution direction in the body frame.</p>
+<p>Unlike <a class="reference internal" href="#ADCS.controller.Controller.build_torque_to_u_matrix_pinv" title="ADCS.controller.Controller.build_torque_to_u_matrix_pinv"><code class="xref py py-meth docutils literal notranslate"><span class="pre">build_torque_to_u_matrix_pinv()</span></code></a>,
+which gives the inverse allocation mapping from torque to commands,
+this matrix is used in the forward physical model:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\boldsymbol{\tau} = A \, \mathbf{u}\]</div>
+</div>
+<p class="rubric">Examples</p>
+<ul class="simple">
+<li><p>For reaction wheels:
+each column of <span class="math notranslate nohighlight">\(A\)</span> is the torque axis direction.</p></li>
+<li><p>For magnetorquers:
+each column represents the direction of the magnetic dipole.
+Body torque is then computed by</p></li>
+</ul>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\boldsymbol{\tau} = \left[\mathbf{B}\right]_{\times} A \mathbf{u}\]</div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>actuators</strong> (list[<a class="reference internal" href="ADCS.satellite_hardware.actuators.html#ADCS.satellite_hardware.actuators.Actuator" title="ADCS.satellite_hardware.actuators.Actuator"><code class="xref py py-class docutils literal notranslate"><span class="pre">Actuator</span></code></a>]) – List of all satellite actuators.</p></li>
+<li><p><strong>actuator_type</strong> (<em>type</em>) – Target actuator type.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Matrix of stacked axis vectors, shape (3, N). If no actuators
+of the requested type are found, returns an empty (3, 0) matrix.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.controller.Controller.find_max_torque">
+<span class="sig-name descname"><span class="pre">find_max_torque</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">actuators</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">actuator_type</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/controller/controller.html#Controller.find_max_torque"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.controller.Controller.find_max_torque" title="Link to this definition">¶</a></dt>
+<dd><p>Extracts the maximum actuator command magnitude for the given actuator type.</p>
+<p>The returned vector matches the number of command channels for that type.
+This value is typically used to clip, saturate, or normalize actuator
+control inputs.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>actuators</strong> (list[<a class="reference internal" href="ADCS.satellite_hardware.actuators.html#ADCS.satellite_hardware.actuators.Actuator" title="ADCS.satellite_hardware.actuators.Actuator"><code class="xref py py-class docutils literal notranslate"><span class="pre">Actuator</span></code></a>]) – List of all actuators.</p></li>
+<li><p><strong>actuator_type</strong> (<em>type</em>) – Target actuator type.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Vector of maximum allowable actuator input values.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – If no actuators of the requested type are present.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.controller.Controller.find_u">
+<span class="sig-name descname"><span class="pre">find_u</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x_hat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sens</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">est_sat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os_hat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">goal_vector_eci</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w_ref</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/controller/controller.html#Controller.find_u"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.controller.Controller.find_u" title="Link to this definition">¶</a></dt>
+<dd><p>Computes actuator inputs required to satisfy the control objective.</p>
+<p>This function must be overridden by subclasses. Implementations
+typically compute a torque objective in the body frame and then
+allocate actuator commands accordingly.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x_hat</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Estimated spacecraft state vector. Conventionally includes angular
+velocity and quaternion attitude estimates.</p></li>
+<li><p><strong>sens</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Flattened sensor measurement vector from onboard hardware such as
+magnetometers, sun sensors, star trackers, etc.</p></li>
+<li><p><strong>est_sat</strong> (<a class="reference internal" href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite" title="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite"><code class="xref py py-class docutils literal notranslate"><span class="pre">EstimatedSatellite</span></code></a>) – Estimated satellite object providing inertia, actuator geometries,
+and possible reaction wheel momentum estimates.</p></li>
+<li><p><strong>os_hat</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbital_State</span></code></a>) – Estimated orbital state (e.g. ECI position, velocity).</p></li>
+<li><p><strong>goal_vector_eci</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code> or None) – Desired pointing direction expressed in the ECI frame.</p></li>
+<li><p><strong>w_ref</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code> or None) – Desired angular rate reference in the body frame.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Actuator command vector. The internal indexing convention must
+match that of the satellite model.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>NotImplementedError</strong> – If the method is not implemented in the derived controller.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="ADCS.controller.MTQ_w_RW">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ADCS.controller.</span></span><span class="sig-name descname"><span class="pre">MTQ_w_RW</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">est_sat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">p_gain</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d_gain</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c_gain</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">h_target</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/controller/mtq_w_rw.html#MTQ_w_RW"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.controller.MTQ_w_RW" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="ADCS.controller.controller.html#ADCS.controller.controller.Controller" title="ADCS.controller.controller.Controller"><code class="xref py py-class docutils literal notranslate"><span class="pre">Controller</span></code></a></p>
+<p>Hybrid magnetic torque and reaction wheel controller.</p>
+<p>This controller implements a three-axis ADCS control law which blends
+reaction wheel torque allocation with continuous momentum dumping via
+magnetic torquers. The implementation follows the core concepts of
+redundant wheel momentum management described by Hogan &amp; Schaub <a href="#id4"><span class="problematic" id="id1">[1]_</span></a>,
+where wheel momentum states are actively controlled to remain bounded
+using MTQ torque authority.</p>
+<p>The controller performs:</p>
+<ul class="simple">
+<li><p>quaternion-based attitude regulation or target alignment,</p></li>
+<li><p>PD angular rate feedback,</p></li>
+<li><p>reaction wheel momentum reconstruction from state,</p></li>
+<li><p>gyroscopic coupling compensation,</p></li>
+<li><p>active momentum unloading,</p></li>
+<li><p>magnetic dipole allocation via pseudo-inverse torque mapping,</p></li>
+<li><p>actuator saturation handling.</p></li>
+</ul>
+<p>The torque law can be summarized as:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\tau_{\text{att}} =
+-K_p \mathbf{q}_{\text{err}}
+-K_d (\boldsymbol{\omega} - \boldsymbol{\omega}_{\text{ref}})
++ \tau_{\text{gyro}}\]</div>
+</div>
+<p>where</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\tau_{\text{gyro}} =
+\boldsymbol{\omega} \times (J\boldsymbol{\omega} + \mathbf{h}_{rw})\]</div>
+</div>
+<p>and the commanded magnetic dipole vector <span class="math notranslate nohighlight">\(\mathbf{u}_{mtq}\)</span> is computed
+from a pseudo-inverse allocation of the momentum dumping torque</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\tau_{dump} = -K_c(\mathbf{h}_{rw} - \mathbf{h}_{tgt})\]</div>
+</div>
+<p>subject to MTQ torque constraints</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\tau_{mag} = \mathbf{u}_{mtq} \times \mathbf{B}\]</div>
+</div>
+<p>yielding the linearized form</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\tau_{mag} = -[B]_\times \, \mathbf{A}_{mtq} \, \mathbf{u}_{mtq}
+           = M_{mag} \, \mathbf{u}_{mtq}.\]</div>
+</div>
+<p>Reaction wheels apply the remaining torque after MTQ authority:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\tau_{rw} =
+\tau_{att} - \tau_{mag}.\]</div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>est_sat</strong> (<a class="reference internal" href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite" title="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite"><code class="xref py py-class docutils literal notranslate"><span class="pre">EstimatedSatellite</span></code></a>) – Estimated satellite object containing inertia, actuator geometry,
+and sensor configuration.</p></li>
+<li><p><strong>p_gain</strong> (<em>float</em>) – Proportional gain <span class="math notranslate nohighlight">\(K_p\)</span> used for quaternion error feedback.</p></li>
+<li><p><strong>d_gain</strong> (<em>float</em>) – Derivative gain <span class="math notranslate nohighlight">\(K_d\)</span> used for angular rate feedback.</p></li>
+<li><p><strong>c_gain</strong> (<em>float</em>) – Momentum dumping gain <span class="math notranslate nohighlight">\(K_c\)</span> applied to wheel momentum deviation.</p></li>
+<li><p><strong>h_target</strong> (<em>np.ndarray</em><em> (</em><em>shape:</em><em> (</em><em>3</em><em>,</em><em>)</em><em>)</em>) – Desired body-frame reaction wheel momentum target in units of
+angular momentum. Dimensionality must match the number of RW axes.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – If any dimension of <code class="docutils literal notranslate"><span class="pre">h_target</span></code> exceeds the maximum permitted
+    reaction wheel storage, as determined by
+    <code class="xref py py-attr docutils literal notranslate"><span class="pre">h_max</span></code>.</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<dl class="simple">
+<dt>This implementation assumes:</dt><dd><ul class="simple">
+<li><p>Wheel momentum states begin at index 7 of <code class="docutils literal notranslate"><span class="pre">x_hat</span></code>
+(i.e. <code class="docutils literal notranslate"><span class="pre">x_hat[7:]</span></code> maps directly to ordered RW indices)</p></li>
+<li><p>Wheel axes align with internally-tracked actuator axis vectors</p></li>
+<li><p>MTQs are torque-limited and can only generate torque orthogonal
+to the local magnetic field</p></li>
+</ul>
+</dd>
+</dl>
+<p>The pseudo-inverse allocation is robust for full tri-axial MTQ
+configurations or over-actuated cases.</p>
+<p class="rubric">References</p>
+<aside class="footnote-list brackets">
+<aside class="footnote brackets" id="id2" role="doc-footnote">
+<span class="label"><span class="fn-bracket">[</span>1<span class="fn-bracket">]</span></span>
+<p>E. A. Hogan and H. Schaub,
+<em>Three-Axis Attitude Control Using Redundant Reaction Wheels
+with Continuous Momentum Dumping</em>,
+Journal of Guidance, Control, and Dynamics, Vol. 44, No. 3, 2021.</p>
+</aside>
+</aside>
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.controller.MTQ_w_RW.find_u">
+<span class="sig-name descname"><span class="pre">find_u</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x_hat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sens</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">est_sat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os_hat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">goal_vector_eci</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w_ref</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/controller/mtq_w_rw.html#MTQ_w_RW.find_u"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.controller.MTQ_w_RW.find_u" title="Link to this definition">¶</a></dt>
+<dd><p>Compute actuator commands for reaction wheels and magnetic torquers.</p>
+<p>This method evaluates the sensor state, angular rate, quaternion
+orientation, and reaction wheel stored momenta to provide the hybrid
+torque solution. Magnetic torquers continuously unload reaction wheel
+momentum while reaction wheels primarily provide fine torque authority.</p>
+<p>The spacecraft wheel momentum vector is reconstructed from the state:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\mathbf{h}_{rw} =
+\sum_i h_i \, \hat{a}_i\]</div>
+</div>
+<p>where <code class="docutils literal notranslate"><span class="pre">h_i</span></code> are the scalar momentum states <code class="docutils literal notranslate"><span class="pre">x_hat[7:]</span></code> and
+<span class="math notranslate nohighlight">\(\hat{a}_i\)</span> are normalized RW axis vectors.</p>
+<p>Components of the total torque model:</p>
+<ol class="arabic">
+<li><p>Attitude stabilization
+.. math:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>\<span class="n">tau_</span><span class="p">{</span>\<span class="n">text</span><span class="p">{</span><span class="n">att</span><span class="p">}}</span> <span class="o">=</span>
+<span class="o">-</span><span class="n">K_p</span> \<span class="n">mathbf</span><span class="p">{</span><span class="n">q</span><span class="p">}</span><span class="n">_</span><span class="p">{</span><span class="n">err</span><span class="p">}</span> <span class="o">-</span> <span class="n">K_d</span> <span class="p">(</span>\<span class="n">omega</span> <span class="o">-</span> \<span class="n">omega_</span><span class="p">{</span>\<span class="n">text</span><span class="p">{</span><span class="n">ref</span><span class="p">}})</span>
+<span class="o">+</span> \<span class="n">tau_</span><span class="p">{</span>\<span class="n">text</span><span class="p">{</span><span class="n">gyro</span><span class="p">}}</span>
+</pre></div>
+</div>
+</li>
+<li><p>Gyroscopic coupling from wheels and body
+.. math:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>\<span class="n">tau_</span><span class="p">{</span>\<span class="n">text</span><span class="p">{</span><span class="n">gyro</span><span class="p">}}</span> <span class="o">=</span>
+\<span class="n">omega</span> \<span class="n">times</span> <span class="p">(</span><span class="n">J</span>\<span class="n">omega</span> <span class="o">+</span> <span class="n">h_</span><span class="p">{</span><span class="n">rw</span><span class="p">})</span>
+</pre></div>
+</div>
+</li>
+<li><p>Momentum dumping
+.. math:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>\<span class="n">tau_</span><span class="p">{</span>\<span class="n">text</span><span class="p">{</span><span class="n">dump</span><span class="p">}}</span> <span class="o">=</span>
+<span class="o">-</span><span class="n">K_c</span><span class="p">(</span>\<span class="n">mathbf</span><span class="p">{</span><span class="n">h</span><span class="p">}</span><span class="n">_</span><span class="p">{</span><span class="n">rw</span><span class="p">}</span> <span class="o">-</span> \<span class="n">mathbf</span><span class="p">{</span><span class="n">h</span><span class="p">}</span><span class="n">_</span><span class="p">{</span><span class="n">tgt</span><span class="p">})</span>
+</pre></div>
+</div>
+</li>
+<li><p>Magnetic allocation
+.. math:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>\<span class="n">tau_</span><span class="p">{</span><span class="n">mag</span><span class="p">}</span> <span class="o">=</span> <span class="n">M_</span><span class="p">{</span><span class="n">mag</span><span class="p">}</span> \<span class="p">,</span> <span class="n">u_</span><span class="p">{</span><span class="n">mtq</span><span class="p">}</span>
+</pre></div>
+</div>
+<p>where</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[M_{mag} = -[B]_\times A_{mtq}\]</div>
+</div>
+</li>
+</ol>
+<p>Reaction wheel torque request is then</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\tau_{rw} = \tau_{\text{att}} - \tau_{\text{mag}}\]</div>
+</div>
+<p>and actuator command vectors follow:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\begin{split}u_{rw} = M_{rw} \, \tau_{rw}\\
+u_{mtq} = M_{mag}^+ \, \tau_{dump}\end{split}\]</div>
+</div>
+<p>Saturation is enforced using element-wise limiting.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x_hat</strong> (<em>np.ndarray</em><em> (</em><em>shape:</em><em> (</em><em>10</em><em>,</em><em>)</em><em>)</em>) – <dl class="simple">
+<dt>Estimated spacecraft state vector containing:</dt><dd><ul>
+<li><p>angular rates,</p></li>
+<li><p>quaternion attitude,</p></li>
+<li><p>reaction wheel momentum states.</p></li>
+</ul>
+</dd>
+</dl>
+</p></li>
+<li><p><strong>sens</strong> (<em>np.ndarray</em>) – Raw sensor readouts. Only MTM channels are used to reconstruct
+the body magnetic field using the precomputed pseudo-inverse
+mapping.</p></li>
+<li><p><strong>est_sat</strong> (<a class="reference internal" href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite" title="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite"><code class="xref py py-class docutils literal notranslate"><span class="pre">EstimatedSatellite</span></code></a>) – Satellite model containing inertia and actuator geometry.</p></li>
+<li><p><strong>os_hat</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbital_State</span></code></a>) – Orbital state estimate providing the magnetic field <span class="math notranslate nohighlight">\(B\)</span>
+and atmospheric density for drag estimation if applicable.</p></li>
+<li><p><strong>goal_vector_eci</strong> (<em>np.ndarray</em><em>, </em><em>optional</em>) – Optional inertial-frame target direction. If provided, the
+controller operates in a pointing mode, forming the quaternion
+error from the boresight cross product.</p></li>
+<li><p><strong>w_ref</strong> (<em>np.ndarray</em><em>, </em><em>optional</em>) – Desired angular rate vector. Defaults to zero if omitted.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>u_total</strong> – Full actuator command vector ordered by actuator index in
+<code class="docutils literal notranslate"><span class="pre">est_sat.actuators</span></code>. Reaction wheel torques occupy the RW
+allocation slots and MTQ current/command magnitudes occupy the
+MTQ slots.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray</p>
+</dd>
+</dl>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="ADCS.helpers.math_helpers.html#ADCS.helpers.math_helpers.skewsym" title="ADCS.helpers.math_helpers.skewsym"><code class="xref py py-meth docutils literal notranslate"><span class="pre">skewsym()</span></code></a>, <a class="reference internal" href="ADCS.helpers.math_helpers.html#ADCS.helpers.math_helpers.normalize" title="ADCS.helpers.math_helpers.normalize"><code class="xref py py-meth docutils literal notranslate"><span class="pre">normalize()</span></code></a>, <a class="reference internal" href="#ADCS.controller.Controller.build_torque_to_u_matrix_pinv" title="ADCS.controller.Controller.build_torque_to_u_matrix_pinv"><code class="xref py py-meth docutils literal notranslate"><span class="pre">build_torque_to_u_matrix_pinv()</span></code></a>, <a class="reference internal" href="ADCS.satellite_hardware.actuators.html#ADCS.satellite_hardware.actuators.RW" title="ADCS.satellite_hardware.actuators.RW"><code class="xref py py-class docutils literal notranslate"><span class="pre">RW</span></code></a>, <a class="reference internal" href="ADCS.satellite_hardware.actuators.html#ADCS.satellite_hardware.actuators.MTQ" title="ADCS.satellite_hardware.actuators.MTQ"><code class="xref py py-class docutils literal notranslate"><span class="pre">MTQ</span></code></a></p>
+</div>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>MTQs produce no torque component parallel to <span class="math notranslate nohighlight">\(\mathbf{B}\)</span>.</p></li>
+<li><p>Reaction wheel torque authority is constrained by
+<code class="docutils literal notranslate"><span class="pre">rw.max_torque</span></code> and their energy storage <code class="docutils literal notranslate"><span class="pre">h_max</span></code>.</p></li>
+<li><p>This controller assumes RW momenta are stored in
+<code class="docutils literal notranslate"><span class="pre">x_hat[7:]</span></code> in the same order as RW indices.</p></li>
+</ul>
+<p class="rubric">References</p>
+<aside class="footnote-list brackets">
+<aside class="footnote brackets" id="id3" role="doc-footnote">
+<span class="label"><span class="fn-bracket">[</span>1<span class="fn-bracket">]</span></span>
+<p>E. A. Hogan and H. Schaub,
+<em>Three-Axis Attitude Control Using Redundant Reaction Wheels
+with Continuous Momentum Dumping</em>,
+Journal of Guidance, Control, and Dynamics, Vol. 44, No. 3, 2021.</p>
+</aside>
+</aside>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 </section>
 
@@ -402,7 +943,25 @@
             <ul>
 <li><a class="reference internal" href="#">ADCS.controller package</a><ul>
 <li><a class="reference internal" href="#submodules">Submodules</a></li>
-<li><a class="reference internal" href="#module-contents">Module contents</a></li>
+<li><a class="reference internal" href="#module-ADCS.controller">Module contents</a><ul>
+<li><a class="reference internal" href="#ADCS.controller.BDot"><code class="docutils literal notranslate"><span class="pre">BDot</span></code></a><ul>
+<li><a class="reference internal" href="#ADCS.controller.BDot.find_u"><code class="docutils literal notranslate"><span class="pre">find_u()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#ADCS.controller.Controller"><code class="docutils literal notranslate"><span class="pre">Controller</span></code></a><ul>
+<li><a class="reference internal" href="#ADCS.controller.Controller.build_sensor_matrix_pinv"><code class="docutils literal notranslate"><span class="pre">build_sensor_matrix_pinv()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.controller.Controller.build_torque_to_u_matrix_pinv"><code class="docutils literal notranslate"><span class="pre">build_torque_to_u_matrix_pinv()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.controller.Controller.build_u_to_torque_matrix_pinv"><code class="docutils literal notranslate"><span class="pre">build_u_to_torque_matrix_pinv()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.controller.Controller.find_max_torque"><code class="docutils literal notranslate"><span class="pre">find_max_torque()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.controller.Controller.find_u"><code class="docutils literal notranslate"><span class="pre">find_u()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#ADCS.controller.MTQ_w_RW"><code class="docutils literal notranslate"><span class="pre">MTQ_w_RW</span></code></a><ul>
+<li><a class="reference internal" href="#ADCS.controller.MTQ_w_RW.find_u"><code class="docutils literal notranslate"><span class="pre">find_u()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -418,5 +977,6 @@
     <script src="_static/doctools.js?v=9bcbadda"></script>
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/scripts/furo.js?v=46bd48cc"></script>
+    <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     </body>
 </html>

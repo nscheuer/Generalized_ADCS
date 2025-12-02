@@ -174,7 +174,7 @@
           <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
         </button>
       </div>
-      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
         <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
       </label>
     </div>
@@ -323,13 +323,158 @@
               <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
             </button>
           </div>
-          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
             <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <section id="adcs-satellite-hardware-sensors-gps-module">
-<h1>ADCS.satellite_hardware.sensors.gps module<a class="headerlink" href="#adcs-satellite-hardware-sensors-gps-module" title="Link to this heading">¶</a></h1>
+          <section id="module-ADCS.satellite_hardware.sensors.gps">
+<span id="adcs-satellite-hardware-sensors-gps-module"></span><h1>ADCS.satellite_hardware.sensors.gps module<a class="headerlink" href="#module-ADCS.satellite_hardware.sensors.gps" title="Link to this heading">¶</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.sensors.gps.GPS">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ADCS.satellite_hardware.sensors.gps.</span></span><span class="sig-name descname"><span class="pre">GPS</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sample_time</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noise</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">estimate_bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/sensors/gps.html#GPS"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.sensors.gps.GPS" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="ADCS.satellite_hardware.sensors.sensor.html#ADCS.satellite_hardware.sensors.sensor.Sensor" title="ADCS.satellite_hardware.sensors.sensor.Sensor"><code class="xref py py-class docutils literal notranslate"><span class="pre">Sensor</span></code></a></p>
+<p>GPS position–velocity sensor model.</p>
+<p>This sensor provides a 6-element measurement consisting of</p>
+<ul class="simple">
+<li><p>the satellite position in ECEF coordinates, and</p></li>
+<li><p>the satellite velocity expressed in ECEF coordinates.</p></li>
+</ul>
+<p>The <em>clean</em> measurement is constructed from the orbital state as</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\begin{split}\mathbf{z}
+=
+\begin{bmatrix}
+    \mathbf{r}_{\mathrm{ECEF}} \\
+    \mathbf{v}_{\mathrm{ECEF}}
+\end{bmatrix}
+\in \mathbb{R}^6.\end{split}\]</div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sample_time</strong> (<em>float</em><em>, </em><em>optional</em>) – Sampling period of the GPS sensor in seconds (default: <code class="docutils literal notranslate"><span class="pre">0.1</span></code>).</p></li>
+<li><p><strong>bias</strong> (<a class="reference internal" href="ADCS.satellite_hardware.actuators.html#ADCS.satellite_hardware.actuators.Bias" title="ADCS.satellite_hardware.actuators.Bias"><em>Bias</em></a><em>, </em><em>optional</em>) – Bias model (6-element bias vector). If omitted, a zero-bias model is
+used.</p></li>
+<li><p><strong>noise</strong> (<a class="reference internal" href="ADCS.satellite_hardware.actuators.html#ADCS.satellite_hardware.actuators.Noise" title="ADCS.satellite_hardware.actuators.Noise"><em>Noise</em></a><em>, </em><em>optional</em>) – Noise model (6-element noise vector). If omitted, a zero-noise model is
+used.</p></li>
+<li><p><strong>estimate_bias</strong> (<em>bool</em><em>, </em><em>optional</em>) – If <code class="docutils literal notranslate"><span class="pre">True</span></code>, the GPS bias is included as part of the estimated state
+in filtering algorithms. Otherwise it is treated as known or zero.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.sensors.gps.GPS.bias_jac">
+<span class="sig-name descname"><span class="pre">bias_jac</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/sensors/gps.html#GPS.bias_jac"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.sensors.gps.GPS.bias_jac" title="Link to this definition">¶</a></dt>
+<dd><p>Jacobian of the measurement with respect to the GPS bias state.</p>
+<p>The GPS measurement is modeled as</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\mathbf{z} = \mathbf{z}_{\text{clean}} + \mathbf{b},\]</div>
+</div>
+<p>where <span class="math notranslate nohighlight">\(\mathbf{b} \in \mathbb{R}^6\)</span> is a 6-element bias vector.
+Therefore,</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\frac{\partial \mathbf{z}}{\partial \mathbf{b}}
+= I_6.\]</div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>numpy.ndarray</em>) – Full system state (unused).</p></li>
+<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbital_State" title="ADCS.orbits.orbit.Orbital_State"><em>Orbital_State</em></a>) – Orbital state object (unused).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">6</span> <span class="pre">×</span> <span class="pre">6</span></code> identity matrix if a bias model exists,
+otherwise a <code class="docutils literal notranslate"><span class="pre">0</span> <span class="pre">×</span> <span class="pre">6</span></code> empty matrix.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.sensors.gps.GPS.clean_reading">
+<span class="sig-name descname"><span class="pre">clean_reading</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/sensors/gps.html#GPS.clean_reading"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.sensors.gps.GPS.clean_reading" title="Link to this definition">¶</a></dt>
+<dd><p>Compute the clean GPS measurement (position + velocity in ECEF).</p>
+<p>This method uses the orbital state to extract</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">os.ECEF</span></code> – satellite position expressed in ECEF coordinates, and</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">os.V</span></code> – satellite velocity in ECI, which is transformed to ECEF
+using <code class="xref py py-meth docutils literal notranslate"><span class="pre">Orbital_State.eci_to_ecef()</span></code>.</p></li>
+</ul>
+<p>The returned measurement is</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\begin{split}\mathbf{z}_{\text{clean}}
+=
+\begin{bmatrix}
+    \mathbf{r}_{\mathrm{ECEF}} \\
+    \mathbf{v}_{\mathrm{ECEF}}
+\end{bmatrix}.\end{split}\]</div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>numpy.ndarray</em>) – Full system state vector (unused for GPS computation).</p></li>
+<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbital_State" title="ADCS.orbits.orbit.Orbital_State"><em>Orbital_State</em></a>) – Orbital and environment model that provides position, velocity,
+and reference-frame transforms.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Clean 6-element GPS measurement <code class="docutils literal notranslate"><span class="pre">[pos_ECEF,</span> <span class="pre">vel_ECEF]</span></code>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.sensors.gps.GPS.orbitRV_jac">
+<span class="sig-name descname"><span class="pre">orbitRV_jac</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/sensors/gps.html#GPS.orbitRV_jac"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.sensors.gps.GPS.orbitRV_jac" title="Link to this definition">¶</a></dt>
+<dd><p>Jacobian of the GPS measurement with respect to the orbital position
+and velocity in the ECI frame.</p>
+<p>The position and velocity transformations are:</p>
+<ul class="simple">
+<li><p>Position: <span class="math notranslate nohighlight">\(\mathbf{r}_{\mathrm{ECEF}} = \mathbf{r}_{\mathrm{ECEF}}(\mathbf{r}_{\mathrm{ECI}})\)</span></p></li>
+<li><p>Velocity: <span class="math notranslate nohighlight">\(\mathbf{v}_{\mathrm{ECEF}} = C_{\mathrm{ECI}\rightarrow\mathrm{ECEF}} \, \mathbf{v}_{\mathrm{ECI}}\)</span></p></li>
+</ul>
+<p>The Jacobian therefore consists of two identical blocks:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\begin{split}\frac{\partial \mathbf{z}}{\partial [\mathbf{r}_{\mathrm{ECI}},\mathbf{v}_{\mathrm{ECI}}]}
+=
+\begin{bmatrix}
+    C_{\mathrm{ECI}\rightarrow\mathrm{ECEF}} &amp; 0 \\
+    0 &amp; C_{\mathrm{ECI}\rightarrow\mathrm{ECEF}}
+\end{bmatrix},\end{split}\]</div>
+</div>
+<p>where <span class="math notranslate nohighlight">\(C_{\mathrm{ECI}\rightarrow\mathrm{ECEF}}\)</span> is the
+coordinate-frame rotation matrix.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>numpy.ndarray</em>) – Full system state vector (unused).</p></li>
+<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbital_State" title="ADCS.orbits.orbit.Orbital_State"><em>Orbital_State</em></a>) – Orbital state containing the frame-transformation function
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">eci_to_ecef()</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A <code class="docutils literal notranslate"><span class="pre">6</span> <span class="pre">×</span> <span class="pre">6</span></code> block-diagonal Jacobian matrix.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 
         </article>
@@ -375,8 +520,32 @@
         
       </footer>
     </div>
-    <aside class="toc-drawer no-toc">
+    <aside class="toc-drawer">
       
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">ADCS.satellite_hardware.sensors.gps module</a><ul>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.sensors.gps.GPS"><code class="docutils literal notranslate"><span class="pre">GPS</span></code></a><ul>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.sensors.gps.GPS.bias_jac"><code class="docutils literal notranslate"><span class="pre">bias_jac()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.sensors.gps.GPS.clean_reading"><code class="docutils literal notranslate"><span class="pre">clean_reading()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.sensors.gps.GPS.orbitRV_jac"><code class="docutils literal notranslate"><span class="pre">orbitRV_jac()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
       
       
     </aside>
@@ -385,5 +554,6 @@
     <script src="_static/doctools.js?v=9bcbadda"></script>
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/scripts/furo.js?v=46bd48cc"></script>
+    <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     </body>
 </html>

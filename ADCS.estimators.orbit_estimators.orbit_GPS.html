@@ -174,7 +174,7 @@
           <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
         </button>
       </div>
-      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
         <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
       </label>
     </div>
@@ -323,13 +323,101 @@
               <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
             </button>
           </div>
-          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
             <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <section id="adcs-estimators-orbit-estimators-orbit-gps-module">
-<h1>ADCS.estimators.orbit_estimators.orbit_GPS module<a class="headerlink" href="#adcs-estimators-orbit-estimators-orbit-gps-module" title="Link to this heading">¶</a></h1>
+          <section id="module-ADCS.estimators.orbit_estimators.orbit_GPS">
+<span id="adcs-estimators-orbit-estimators-orbit-gps-module"></span><h1>ADCS.estimators.orbit_estimators.orbit_GPS module<a class="headerlink" href="#module-ADCS.estimators.orbit_estimators.orbit_GPS" title="Link to this heading">¶</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="ADCS.estimators.orbit_estimators.orbit_GPS.Orbit_GPS">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ADCS.estimators.orbit_estimators.orbit_GPS.</span></span><span class="sig-name descname"><span class="pre">Orbit_GPS</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">est_sat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">J2000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os_template</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/estimators/orbit_estimators/orbit_GPS.html#Orbit_GPS"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.estimators.orbit_estimators.orbit_GPS.Orbit_GPS" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="ADCS.estimators.orbit_estimators.orbit_estimator.html#ADCS.estimators.orbit_estimators.orbit_estimator.Orbit_Estimator" title="ADCS.estimators.orbit_estimators.orbit_estimator.Orbit_Estimator"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbit_Estimator</span></code></a></p>
+<p>A ‘Pass-Through’ Estimator that directly converts GPS measurements into an Inertial State.</p>
+<p>This estimator does not perform filtering (such as an Extended Kalman Filter) or propagate state dynamics
+over time. Instead, it accepts the current GPS measurement vector (typically in the Earth-Centered,
+Earth-Fixed frame) and transforms it into the Earth-Centered Inertial (ECI) frame to form the estimate.</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\hat{\mathbf{x}}_{ECI} = T_{ECEF \to ECI}(t) \cdot \mathbf{m}_{meas}\]</div>
+</div>
+<dl class="simple">
+<dt>This class is primarily utilized for:</dt><dd><ul class="simple">
+<li><p>System initialization (providing an initial seed for other propagators).</p></li>
+<li><p>Scenarios where GPS data is trusted implicitly without dynamic modeling.</p></li>
+<li><p>Debugging coordinate frame transformations.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>est_sat</strong> (<a class="reference internal" href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite" title="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite"><em>EstimatedSatellite</em></a>)</p></li>
+<li><p><strong>J2000</strong> (<em>float</em>)</p></li>
+<li><p><strong>os_template</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.estimators.orbit_estimators.orbit_GPS.Orbit_GPS.reset">
+<span class="sig-name descname"><span class="pre">reset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">est_sat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os_template</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/estimators/orbit_estimators/orbit_GPS.html#Orbit_GPS.reset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.estimators.orbit_estimators.orbit_GPS.Orbit_GPS.reset" title="Link to this definition">¶</a></dt>
+<dd><p>Resets the estimator configuration and noise parameters.</p>
+<p>This method extracts the standard deviation of the noise from the first available GPS sensor
+in the provided satellite model to populate the internal covariance settings.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>est_sat</strong> (<a class="reference internal" href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite" title="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite"><em>EstimatedSatellite</em></a>) – The satellite model containing hardware specifications.</p></li>
+<li><p><strong>os_template</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>) – A template orbital state for environment models.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – If <code class="docutils literal notranslate"><span class="pre">est_sat</span></code> does not contain any GPS sensors.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.estimators.orbit_estimators.orbit_GPS.Orbit_GPS.update">
+<span class="sig-name descname"><span class="pre">update</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">GPS_measurements</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">J2000</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/estimators/orbit_estimators/orbit_GPS.html#Orbit_GPS.update"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.estimators.orbit_estimators.orbit_GPS.Orbit_GPS.update" title="Link to this definition">¶</a></dt>
+<dd><p>Updates the state estimate using the latest GPS measurements.</p>
+<p>The update process involves:</p>
+<ol class="arabic simple">
+<li><p>Creating a temporary <a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbital_State</span></code></a> at the current time <code class="docutils literal notranslate"><span class="pre">J2000</span></code>.</p></li>
+<li><p>Converting the input ECEF measurement (Position <span class="math notranslate nohighlight">\(\mathbf{r}\)</span> or Position+Velocity <span class="math notranslate nohighlight">\(\mathbf{r}, \mathbf{v}\)</span>)
+into the ECI frame.</p></li>
+<li><p>Constructing the covariance matrix <span class="math notranslate nohighlight">\(P\)</span> based on sensor noise specifications.</p></li>
+</ol>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[P = \text{diag}(\sigma_{pos}^2, \dots, \sigma_{vel}^2)\]</div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>GPS_measurements</strong> (<em>list</em><em>[</em><em>np.ndarray</em><em>]</em>) – A list of raw GPS measurements.
+Shape is typically <code class="docutils literal notranslate"><span class="pre">(1,</span> <span class="pre">3)</span></code> for position only or <code class="docutils literal notranslate"><span class="pre">(1,</span> <span class="pre">6)</span></code> for pos+vel.</p></li>
+<li><p><strong>J2000</strong> (<em>float</em>) – The current J2000 time epoch [s].</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The estimated orbital state containing the state vector <span class="math notranslate nohighlight">\(\hat{\mathbf{x}}\)</span> and covariance <span class="math notranslate nohighlight">\(P\)</span>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="ADCS.estimators.estimator_helpers.estimator_helpers.html#ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedOrbital_State" title="ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedOrbital_State"><em>EstimatedOrbital_State</em></a></p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – If the measurement vector size is neither 3 nor 6.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 
         </article>
@@ -375,8 +463,31 @@
         
       </footer>
     </div>
-    <aside class="toc-drawer no-toc">
+    <aside class="toc-drawer">
       
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">ADCS.estimators.orbit_estimators.orbit_GPS module</a><ul>
+<li><a class="reference internal" href="#ADCS.estimators.orbit_estimators.orbit_GPS.Orbit_GPS"><code class="docutils literal notranslate"><span class="pre">Orbit_GPS</span></code></a><ul>
+<li><a class="reference internal" href="#ADCS.estimators.orbit_estimators.orbit_GPS.Orbit_GPS.reset"><code class="docutils literal notranslate"><span class="pre">reset()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.estimators.orbit_estimators.orbit_GPS.Orbit_GPS.update"><code class="docutils literal notranslate"><span class="pre">update()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
       
       
     </aside>
@@ -385,5 +496,6 @@
     <script src="_static/doctools.js?v=9bcbadda"></script>
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/scripts/furo.js?v=46bd48cc"></script>
+    <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     </body>
 </html>

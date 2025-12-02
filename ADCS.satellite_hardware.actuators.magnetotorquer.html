@@ -174,7 +174,7 @@
           <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
         </button>
       </div>
-      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
         <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
       </label>
     </div>
@@ -323,13 +323,450 @@
               <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
             </button>
           </div>
-          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
             <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <section id="adcs-satellite-hardware-actuators-magnetotorquer-module">
-<h1>ADCS.satellite_hardware.actuators.magnetotorquer module<a class="headerlink" href="#adcs-satellite-hardware-actuators-magnetotorquer-module" title="Link to this heading">¶</a></h1>
+          <section id="module-ADCS.satellite_hardware.actuators.magnetotorquer">
+<span id="adcs-satellite-hardware-actuators-magnetotorquer-module"></span><h1>ADCS.satellite_hardware.actuators.magnetotorquer module<a class="headerlink" href="#module-ADCS.satellite_hardware.actuators.magnetotorquer" title="Link to this heading">¶</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.actuators.magnetotorquer.MTQ">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ADCS.satellite_hardware.actuators.magnetotorquer.</span></span><span class="sig-name descname"><span class="pre">MTQ</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">axis</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_torque</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noise</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">estimate_bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/actuators/magnetotorquer.html#MTQ"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.actuators.magnetotorquer.MTQ" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="ADCS.satellite_hardware.actuators.actuator.html#ADCS.satellite_hardware.actuators.actuator.Actuator" title="ADCS.satellite_hardware.actuators.actuator.Actuator"><code class="xref py py-class docutils literal notranslate"><span class="pre">Actuator</span></code></a></p>
+<p><strong>Magnetorquer (MTQ) Actuator Model</strong></p>
+<p>This class represents a single-axis <strong>Magnetorquer (MTQ)</strong> used for satellite attitude
+control. The MTQ generates torque through the interaction between its magnetic
+dipole moment and the Earth’s geomagnetic field.</p>
+<p><strong>Physical Model</strong></p>
+<p>The torque produced by a magnetorquer is defined as:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\mathbf{T}_{\mathrm{MTQ}} = -(\mathbf{B}_b \times \mathbf{m})\]</div>
+</div>
+<p>where:</p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(\mathbf{B}_b\)</span> — Magnetic field vector in the body frame [T]</p></li>
+<li><p><span class="math notranslate nohighlight">\(\mathbf{m}\)</span> — Magnetic dipole moment vector [A·m²]</p></li>
+<li><p>The negative sign accounts for the coil winding convention</p></li>
+</ul>
+<p>The commanded magnetic dipole moment is modeled as:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\mathbf{m} = \mathbf{a}_{\mathrm{axis}} (u + b)\]</div>
+</div>
+<p>where:</p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(\mathbf{a}_{\mathrm{axis}}\)</span> — Magnetorquer unit axis direction</p></li>
+<li><p><span class="math notranslate nohighlight">\(u\)</span> — Commanded magnetic dipole magnitude [A·m²]</p></li>
+<li><p><span class="math notranslate nohighlight">\(b\)</span> — Bias term (constant or slowly varying)</p></li>
+</ul>
+<p>Combining both expressions gives:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\mathbf{T}_{\mathrm{MTQ}} = -(\mathbf{B}_b \times \mathbf{a}_{\mathrm{axis}})(u + b) + \mathbf{n}\]</div>
+</div>
+<p>where <span class="math notranslate nohighlight">\(\mathbf{n}\)</span> is a random noise term representing actuator uncertainty.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>axis</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Unit vector <code class="docutils literal notranslate"><span class="pre">(3,)</span></code> defining the magnetorquer alignment in the body frame.</p></li>
+<li><p><strong>max_torque</strong> (<em>float</em>) – Maximum allowable torque magnitude [N·m].</p></li>
+<li><p><strong>bias</strong> (<a class="reference internal" href="ADCS.satellite_hardware.actuators.bias.html#ADCS.satellite_hardware.actuators.bias.Bias" title="ADCS.satellite_hardware.actuators.bias.Bias"><code class="xref py py-class docutils literal notranslate"><span class="pre">Bias</span></code></a>, optional) – Bias model representing constant or slowly varying offset in magnetic moment.</p></li>
+<li><p><strong>noise</strong> (<a class="reference internal" href="ADCS.satellite_hardware.actuators.noise.html#ADCS.satellite_hardware.actuators.noise.Noise" title="ADCS.satellite_hardware.actuators.noise.Noise"><code class="xref py py-class docutils literal notranslate"><span class="pre">Noise</span></code></a>, optional) – Noise model representing stochastic fluctuations in actuation.</p></li>
+<li><p><strong>estimate_bias</strong> (<em>bool</em><em>, </em><em>optional</em>) – If <code class="docutils literal notranslate"><span class="pre">True</span></code>, includes this actuator’s bias term in the estimator state vector.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.actuators.magnetotorquer.MTQ.ddtorq__dbasestatedbasestate">
+<span class="sig-name descname"><span class="pre">ddtorq__dbasestatedbasestate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/actuators/magnetotorquer.html#MTQ.ddtorq__dbasestatedbasestate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.actuators.magnetotorquer.MTQ.ddtorq__dbasestatedbasestate" title="Link to this definition">¶</a></dt>
+<dd><p>Pure base-state Hessian <span class="math notranslate nohighlight">\(\displaystyle \frac{\partial^2\boldsymbol{\tau}}{\partial \mathbf{x}\,\partial \mathbf{x}}\)</span>.</p>
+<p><strong>Notation.</strong>
+Let <span class="math notranslate nohighlight">\(D^2_{\mathbf{q}\mathbf{q}}\mathbf{B}_\mathcal{B}(\mathbf{q})\in\mathbb{R}^{4\times 4\times 3}\)</span> denote the
+Hessian of <span class="math notranslate nohighlight">\(\mathbf{B}_\mathcal{B}\)</span> w.r.t. quaternion components (this is <code class="docutils literal notranslate"><span class="pre">vecs[&quot;ddb&quot;]</span></code>).</p>
+<p><strong>Derivation.</strong>
+Since <span class="math notranslate nohighlight">\(\boldsymbol{\tau}(u,\mathbf{x})=(u+b)\,\mathbf{a}\times\mathbf{B}_\mathcal{B}(\mathbf{q})\)</span>,
+all second derivatives involving <span class="math notranslate nohighlight">\(\boldsymbol{\omega}\)</span> vanish and the only nonzero block is
+the quaternion–quaternion block:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\frac{\partial^2\boldsymbol{\tau}}{\partial \mathbf{q}\,\partial \mathbf{q}}
+\;=\; (u+b)\,\mathbf{a}\times D^2_{\mathbf{q}\mathbf{q}}\mathbf{B}_\mathcal{B}(\mathbf{q})
+\;=\; -\,(u+b)\,\big(D^2_{\mathbf{q}\mathbf{q}}\mathbf{B}_\mathcal{B}(\mathbf{q})\times\mathbf{a}\big).\]</div>
+</div>
+<p>The implementation fills the <span class="math notranslate nohighlight">\([3\!:\!7,\,3\!:\!7,:]\)</span> block with
+<span class="math notranslate nohighlight">\(-\,(D^2_{\mathbf{q}\mathbf{q}}\mathbf{B}_\mathcal{B}\times\mathbf{a})\,(u+b)\)</span> and zeros elsewhere.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Base-state Hessian; only the <span class="math notranslate nohighlight">\(4\times 4\)</span> quaternion block is nonzero.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>(7, 7, 3) ndarray</p>
+</dd>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>u</strong> (<em>float</em>)</p></li>
+<li><p><strong>x</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.actuators.magnetotorquer.MTQ.ddtorq__dbiasdbasestate">
+<span class="sig-name descname"><span class="pre">ddtorq__dbiasdbasestate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/actuators/magnetotorquer.html#MTQ.ddtorq__dbiasdbasestate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.actuators.magnetotorquer.MTQ.ddtorq__dbiasdbasestate" title="Link to this definition">¶</a></dt>
+<dd><p>Mixed second derivative <span class="math notranslate nohighlight">\(\displaystyle \frac{\partial^2\boldsymbol{\tau}}{\partial b\,\partial \mathbf{x}}\)</span>.</p>
+<p><strong>Result.</strong>
+Since <span class="math notranslate nohighlight">\(\boldsymbol{\tau}=(u+b)\,\mathbf{a}\times\mathbf{B}_\mathcal{B}(\mathbf{q})\)</span> and <span class="math notranslate nohighlight">\(b\)</span> enters
+multiplicatively like <span class="math notranslate nohighlight">\(u\)</span>, we have</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\begin{split}\frac{\partial^2\boldsymbol{\tau}}{\partial b\,\partial \mathbf{x}}
+\;=\;\frac{\partial^2\boldsymbol{\tau}}{\partial u\,\partial \mathbf{x}}
+\;=\; \begin{bmatrix}
+\mathbf{0}_{3\times 3}\\[2pt] \mathbf{a}\times D_\mathbf{q}\mathbf{B}_\mathcal{B}(\mathbf{q})
+\end{bmatrix}
+\;=\; \begin{bmatrix}
+\mathbf{0}_{3\times 3}\\[2pt] -\,D_\mathbf{q}\mathbf{B}_\mathcal{B}(\mathbf{q})\times\mathbf{a}
+\end{bmatrix}.\end{split}\]</div>
+</div>
+<p>The implementation returns <a class="reference internal" href="#ADCS.satellite_hardware.actuators.magnetotorquer.MTQ.ddtorq__dudbasestate" title="ADCS.satellite_hardware.actuators.magnetotorquer.MTQ.ddtorq__dudbasestate"><code class="xref py py-meth docutils literal notranslate"><span class="pre">ddtorq__dudbasestate()</span></code></a> when bias exists, and an empty
+<span class="math notranslate nohighlight">\((0,7,3)\)</span> tensor otherwise.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Mixed Hessian w.r.t. bias and base state (or empty if no bias).</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>(1, 7, 3) or (0, 7, 3) ndarray</p>
+</dd>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>u</strong> (<em>float</em>)</p></li>
+<li><p><strong>x</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.actuators.magnetotorquer.MTQ.ddtorq__dbiasdbias">
+<span class="sig-name descname"><span class="pre">ddtorq__dbiasdbias</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/actuators/magnetotorquer.html#MTQ.ddtorq__dbiasdbias"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.actuators.magnetotorquer.MTQ.ddtorq__dbiasdbias" title="Link to this definition">¶</a></dt>
+<dd><p>Second derivative <span class="math notranslate nohighlight">\(\displaystyle \frac{\partial^2\boldsymbol{\tau}}{\partial b^2}\)</span>.</p>
+<p><strong>Result.</strong>
+With <span class="math notranslate nohighlight">\(\boldsymbol{\tau}=(u+b)\,\mathbf{a}\times\mathbf{B}_\mathcal{B}(\mathbf{q})\)</span>, the dependence on
+<span class="math notranslate nohighlight">\(b\)</span> is linear; hence <span class="math notranslate nohighlight">\(\partial^2\boldsymbol{\tau}/\partial b^2=\mathbf{0}\)</span>. The method mirrors
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">ddtorq__dudu()</span></code> when a bias model is present (all zeros there), and returns an empty
+<span class="math notranslate nohighlight">\((0,0,3)\)</span> array otherwise.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Zero tensor if bias exists; empty when bias is not modeled.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>(1, 1, 3) or (0, 0, 3) ndarray</p>
+</dd>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>u</strong> (<em>float</em>)</p></li>
+<li><p><strong>x</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.actuators.magnetotorquer.MTQ.ddtorq__dudbasestate">
+<span class="sig-name descname"><span class="pre">ddtorq__dudbasestate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/actuators/magnetotorquer.html#MTQ.ddtorq__dudbasestate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.actuators.magnetotorquer.MTQ.ddtorq__dudbasestate" title="Link to this definition">¶</a></dt>
+<dd><p>Mixed second derivative <span class="math notranslate nohighlight">\(\displaystyle \frac{\partial^2\boldsymbol{\tau}}{\partial u\,\partial \mathbf{x}}\)</span>.</p>
+<p><strong>Derivation.</strong>
+Because <span class="math notranslate nohighlight">\(\boldsymbol{\tau}(u,\mathbf{x})=(u+b)\,\mathbf{a}\times\mathbf{B}_\mathcal{B}(\mathbf{q})\)</span>,</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\]</div>
+</div>
+<p>frac{partialboldsymbol{tau}}{partial u}=mathbf{a}timesmathbf{B}_mathcal{B}(mathbf{q})
+= -,mathbf{B}_mathcal{B}(mathbf{q})timesmathbf{a}.</p>
+<p>Differentiating w.r.t. <span class="math notranslate nohighlight">\(\mathbf{x}\)</span> gives</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\frac{\partial^2\boldsymbol{\tau}}{\partial u\,\partial\boldsymbol{\omega}}=\mathbf{0}_{1\times 3\times 3},\qquad
+\frac{\partial^2\boldsymbol{\tau}}{\partial u\,\partial\mathbf{q}}
+= \mathbf{a}\times D_\mathbf{q}\mathbf{B}_\mathcal{B}(\mathbf{q})
+= -\,\big(D_\mathbf{q}\mathbf{B}_\mathcal{B}(\mathbf{q})\times\mathbf{a}\big).\]</div>
+</div>
+<p><strong>Returned form.</strong> Implemented as
+<span class="math notranslate nohighlight">\(\begin{bmatrix}\mathbf{0}_{3\times 3}\\ -\,D_\mathbf{q}\mathbf{B}_\mathcal{B}\times\mathbf{a}\end{bmatrix}\)</span>
+with an added leading singleton dimension.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Mixed Hessian stacked by <span class="math notranslate nohighlight">\((\boldsymbol{\omega}, \mathbf{q})\)</span>.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>(1, 7, 3) ndarray</p>
+</dd>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>u</strong> (<em>float</em>)</p></li>
+<li><p><strong>x</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.actuators.magnetotorquer.MTQ.ddtorq__dudh">
+<span class="sig-name descname"><span class="pre">ddtorq__dudh</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/actuators/magnetotorquer.html#MTQ.ddtorq__dudh"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.actuators.magnetotorquer.MTQ.ddtorq__dudh" title="Link to this definition">¶</a></dt>
+<dd><p>Mixed second derivative <span class="math notranslate nohighlight">\(\displaystyle \frac{\partial^2\boldsymbol{\tau}}{\partial u\,\partial \mathbf{h}}\)</span>.</p>
+<p><strong>Result.</strong>
+The actuator has no momentum-storage state in this model; hence
+<span class="math notranslate nohighlight">\(\partial\boldsymbol{\tau}/\partial \mathbf{h}=\mathbf{0}\)</span> and therefore
+<span class="math notranslate nohighlight">\(\partial^2\boldsymbol{\tau}/\partial u\,\partial \mathbf{h}=\mathbf{0}\)</span>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Empty along the storage-state dimension.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>(1, 0, 3) ndarray</p>
+</dd>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>u</strong> (<em>float</em>)</p></li>
+<li><p><strong>x</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.actuators.magnetotorquer.MTQ.dtorq__dbasestate">
+<span class="sig-name descname"><span class="pre">dtorq__dbasestate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/actuators/magnetotorquer.html#MTQ.dtorq__dbasestate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.actuators.magnetotorquer.MTQ.dtorq__dbasestate" title="Link to this definition">¶</a></dt>
+<dd><p>First derivative <span class="math notranslate nohighlight">\(\displaystyle \frac{\partial\boldsymbol{\tau}}{\partial \mathbf{x}}\)</span>
+with <span class="math notranslate nohighlight">\(\mathbf{x}=[\boldsymbol{\omega};\mathbf{q}] \in \mathbb{R}^7\)</span>.</p>
+<p><strong>Notation.</strong>
+Let <span class="math notranslate nohighlight">\(b=\texttt{bias.get_bias(J2000)}\)</span>, <span class="math notranslate nohighlight">\(\mathbf{a}=\texttt{self.axis}\)</span>,
+<span class="math notranslate nohighlight">\(\mathbf{B}_\mathcal{B}(\mathbf{q})=\mathbf{C}(\mathbf{q})^\top\mathbf{B}_\text{ECI}\)</span>,
+and <span class="math notranslate nohighlight">\(D_\mathbf{q}\mathbf{B}_\mathcal{B}(\mathbf{q})\in\mathbb{R}^{4\times 3}\)</span> denote the Jacobian
+of <span class="math notranslate nohighlight">\(\mathbf{B}_\mathcal{B}\)</span> w.r.t. the quaternion components (this is <code class="docutils literal notranslate"><span class="pre">vecs[&quot;db&quot;]</span></code>).
+Define the <em>rowwise cross</em> between a matrix <span class="math notranslate nohighlight">\(\mathbf{M}\in\mathbb{R}^{n\times 3}\)</span> and a vector
+<span class="math notranslate nohighlight">\(\mathbf{v}\in\mathbb{R}^3\)</span> as <span class="math notranslate nohighlight">\((\mathbf{M}\times\mathbf{v})_{i:}=\mathbf{M}_{i:}\times\mathbf{v}\)</span>.</p>
+<p><strong>Result.</strong>
+Since <span class="math notranslate nohighlight">\(\boldsymbol{\tau}(u,\mathbf{x}) = (u+b)\,\mathbf{a}\times\mathbf{B}_\mathcal{B}(\mathbf{q})\)</span>
+depends on <span class="math notranslate nohighlight">\(\mathbf{q}\)</span> but not on <span class="math notranslate nohighlight">\(\boldsymbol{\omega}\)</span>, we obtain</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\frac{\partial\boldsymbol{\tau}}{\partial\boldsymbol{\omega}}=\mathbf{0}_{3\times 3},\qquad
+\frac{\partial\boldsymbol{\tau}}{\partial\mathbf{q}}
+= (u+b)\,\mathbf{a}\times D_\mathbf{q}\mathbf{B}_\mathcal{B}(\mathbf{q})
+= -\,\big(D_\mathbf{q}\mathbf{B}_\mathcal{B}(\mathbf{q}) \times \mathbf{a}\big)\,(u+b).\]</div>
+</div>
+<p>The implementation returns the vertically stacked matrix
+<span class="math notranslate nohighlight">\(\begin{bmatrix}\mathbf{0}_{3\times 3}\\ -\,D_\mathbf{q}\mathbf{B}_\mathcal{B}\times\mathbf{a}\,(u+b)\end{bmatrix}\)</span>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Rows correspond to <span class="math notranslate nohighlight">\((\partial/\partial\boldsymbol{\omega},\,\partial/\partial\mathbf{q})\)</span>.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>(7, 3) ndarray</p>
+</dd>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>u</strong> (<em>float</em>)</p></li>
+<li><p><strong>x</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.actuators.magnetotorquer.MTQ.dtorq__du">
+<span class="sig-name descname"><span class="pre">dtorq__du</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/actuators/magnetotorquer.html#MTQ.dtorq__du"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.actuators.magnetotorquer.MTQ.dtorq__du" title="Link to this definition">¶</a></dt>
+<dd><p>First derivative <span class="math notranslate nohighlight">\(\displaystyle \frac{\partial\boldsymbol{\tau}}{\partial u}\)</span>.</p>
+<p><strong>Model.</strong> The actuator torque is modeled as
+<span class="math notranslate nohighlight">\(\boldsymbol{\tau}(u,\mathbf{x}) = (u + b)\,\mathbf{a}\times\mathbf{B}_\mathcal{B}(\mathbf{q})\)</span>,
+where <span class="math notranslate nohighlight">\(\mathbf{a}=\texttt{self.axis}\)</span> (unit), <span class="math notranslate nohighlight">\(b=\texttt{bias.get_bias(J2000)}\)</span> is a
+scalar bias, and <span class="math notranslate nohighlight">\(\mathbf{B}_\mathcal{B}(\mathbf{q})=\mathbf{C}(\mathbf{q})^\top\mathbf{B}_\text{ECI}\)</span> is the
+geomagnetic field expressed in the body frame. (Here <span class="math notranslate nohighlight">\(\mathbf{C}(\mathbf{q})\)</span> maps body→ECI.)</p>
+<p>Since <span class="math notranslate nohighlight">\(\boldsymbol{\tau}\)</span> is affine in <span class="math notranslate nohighlight">\(u\)</span>, we have
+<span class="math notranslate nohighlight">\(\frac{\partial\boldsymbol{\tau}}{\partial u}=\mathbf{a}\times\mathbf{B}_\mathcal{B}(\mathbf{q})\)</span>.</p>
+<p><strong>Returned form.</strong> The implementation returns
+<span class="math notranslate nohighlight">\(-\mathbf{B}_\mathcal{B}(\mathbf{q})\times\mathbf{a}\)</span>, which is equal to
+<span class="math notranslate nohighlight">\(\mathbf{a}\times\mathbf{B}_\mathcal{B}(\mathbf{q})\)</span> by the identity
+<span class="math notranslate nohighlight">\(\mathbf{x}\times\mathbf{y}=-\,\mathbf{y}\times\mathbf{x}\)</span>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Row-Jacobian w.r.t. the scalar input <span class="math notranslate nohighlight">\(u\)</span>.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>(1, 3) ndarray</p>
+</dd>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>u</strong> (<em>float</em>)</p></li>
+<li><p><strong>x</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.actuators.magnetotorquer.MTQ.hessians">
+<span class="sig-name descname"><span class="pre">hessians</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/actuators/magnetotorquer.html#MTQ.hessians"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.actuators.magnetotorquer.MTQ.hessians" title="Link to this definition">¶</a></dt>
+<dd><p>Compute <strong>second-order derivatives (Hessians)</strong> of the magnetorquer torque.</p>
+<ol class="arabic simple">
+<li><p><strong>Mixed derivative (torque w.r.t. control and state):</strong></p></li>
+</ol>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\begin{split}\frac{\partial^2 \mathbf{T}}{\partial u \, \partial \mathbf{x}} =
+\begin{bmatrix}
+\mathbf{0}_{3\times3} \\
+-\left( \frac{\partial \mathbf{B}_b}{\partial q} \times \mathbf{a}_{\mathrm{axis}} \right)
+\end{bmatrix}\end{split}\]</div>
+</div>
+<ol class="arabic simple" start="2">
+<li><p><strong>Second derivative w.r.t. base state:</strong></p></li>
+</ol>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\frac{\partial^2 \mathbf{T}}{\partial \mathbf{x}^2} =
+-\left( \frac{\partial^2 \mathbf{B}_b}{\partial q^2} \times \mathbf{a}_{\mathrm{axis}} \right)(u + b)\]</div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>u</strong> (<em>float</em>) – Commanded magnetic moment [A·m²].</p></li>
+<li><p><strong>x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Satellite state vector (7,).</p></li>
+<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbital_State</span></code></a>) – Orbital state instance providing higher-order magnetic field derivatives.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">ddT_du_dx</span></code> : shape <code class="docutils literal notranslate"><span class="pre">(1,</span> <span class="pre">7,</span> <span class="pre">3)</span></code> — Mixed Hessian of torque w.r.t. control and state</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ddT_dx2</span></code> : shape <code class="docutils literal notranslate"><span class="pre">(7,</span> <span class="pre">7,</span> <span class="pre">3)</span></code> — Hessian of torque w.r.t. base state</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple[np.ndarray, np.ndarray]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.actuators.magnetotorquer.MTQ.jacobians">
+<span class="sig-name descname"><span class="pre">jacobians</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/actuators/magnetotorquer.html#MTQ.jacobians"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.actuators.magnetotorquer.MTQ.jacobians" title="Link to this definition">¶</a></dt>
+<dd><p>Compute <strong>first-order derivatives (Jacobians)</strong> of the magnetorquer torque.</p>
+<ol class="arabic simple">
+<li><p><strong>Jacobian of torque w.r.t. control input</strong>:</p></li>
+</ol>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\frac{\partial \mathbf{T}}{\partial u} = -(\mathbf{B}_b \times \mathbf{a}_{\mathrm{axis}})\]</div>
+</div>
+<ol class="arabic simple" start="2">
+<li><p><strong>Jacobian of torque w.r.t. base state</strong> (e.g., attitude quaternion):</p></li>
+</ol>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\begin{split}\frac{\partial \mathbf{T}}{\partial \mathbf{x}} =
+\begin{bmatrix}
+\mathbf{0}_{3\times3} \\
+-\left( \frac{\partial \mathbf{B}_b}{\partial q} \times \mathbf{a}_{\mathrm{axis}} \right)(u + b)
+\end{bmatrix}\end{split}\]</div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>u</strong> (<em>float</em>) – Commanded magnetic moment [A·m²].</p></li>
+<li><p><strong>x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Satellite state (7,).</p></li>
+<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbital_State</span></code></a>) – Orbital state instance providing field vectors and their derivatives.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">dT_du</span></code> : shape <code class="docutils literal notranslate"><span class="pre">(1,</span> <span class="pre">3)</span></code> — Jacobian of torque w.r.t. control input</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">dT_dx</span></code> : shape <code class="docutils literal notranslate"><span class="pre">(7,</span> <span class="pre">3)</span></code> — Jacobian of torque w.r.t. base state</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple[np.ndarray, np.ndarray]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.actuators.magnetotorquer.MTQ.storage_torque">
+<span class="sig-name descname"><span class="pre">storage_torque</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dmode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/actuators/magnetotorquer.html#MTQ.storage_torque"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.actuators.magnetotorquer.MTQ.storage_torque" title="Link to this definition">¶</a></dt>
+<dd><p>Momentum-storage torque contribution (e.g., reaction wheels).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Empty vector (no storage DOFs in this base class).</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>(0,) ndarray</p>
+</dd>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>u</strong> (<em>float</em>)</p></li>
+<li><p><strong>x</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>)</p></li>
+<li><p><strong>dmode</strong> (<a class="reference internal" href="ADCS.satellite_hardware.disturbances.disturbance_mode.html#ADCS.satellite_hardware.disturbances.disturbance_mode.DisturbanceMode" title="ADCS.satellite_hardware.disturbances.disturbance_mode.DisturbanceMode"><em>DisturbanceMode</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.actuators.magnetotorquer.MTQ.torque">
+<span class="sig-name descname"><span class="pre">torque</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dmode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/actuators/magnetotorquer.html#MTQ.torque"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.actuators.magnetotorquer.MTQ.torque" title="Link to this definition">¶</a></dt>
+<dd><p>Compute the <strong>torque generated by the magnetorquer</strong>.</p>
+<p>The magnetorquer produces a body torque defined as:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\mathbf{T}_{\mathrm{MTQ}} = -(\mathbf{B}_b \times \mathbf{a}_{\mathrm{axis}})(u + b) + \mathbf{n}\]</div>
+</div>
+<p>where:</p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(u\)</span> — Commanded magnetic moment magnitude [A·m²]</p></li>
+<li><p><span class="math notranslate nohighlight">\(b\)</span> — Actuator bias term (if <code class="docutils literal notranslate"><span class="pre">bias=True</span></code>)</p></li>
+<li><p><span class="math notranslate nohighlight">\(\mathbf{n}\)</span> — Noise term (if <code class="docutils literal notranslate"><span class="pre">noise=True</span></code>)</p></li>
+<li><p><span class="math notranslate nohighlight">\(\mathbf{B}_b\)</span> — Magnetic field vector in body frame [T]</p></li>
+<li><p><span class="math notranslate nohighlight">\(\mathbf{a}_{\mathrm{axis}}\)</span> — Magnetorquer axis direction</p></li>
+</ul>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>u</strong> (<em>float</em>) – Commanded magnetic moment [A·m²].</p></li>
+<li><p><strong>x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Full spacecraft state vector containing attitude quaternion.</p></li>
+<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbital_State</span></code></a>) – Provides local magnetic field vector <code class="docutils literal notranslate"><span class="pre">\mathbf{B}_b</span></code> and related derivatives.</p></li>
+<li><p><strong>bias</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to include bias effects (default is False).</p></li>
+<li><p><strong>noise</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to include noise effects (default is False).</p></li>
+<li><p><strong>dmode</strong> (<a class="reference internal" href="ADCS.satellite_hardware.disturbances.disturbance_mode.html#ADCS.satellite_hardware.disturbances.disturbance_mode.DisturbanceMode" title="ADCS.satellite_hardware.disturbances.disturbance_mode.DisturbanceMode"><em>DisturbanceMode</em></a>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Torque vector in body frame [N·m], shape <code class="docutils literal notranslate"><span class="pre">(3,)</span></code>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></p>
+</dd>
+</dl>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Emits a <code class="xref py py-class docutils literal notranslate"><span class="pre">UserWarning</span></code> if <code class="docutils literal notranslate"><span class="pre">|u|</span> <span class="pre">&gt;</span> <span class="pre">self.u_max</span></code>.</p>
+</div>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 
         </article>
@@ -375,8 +812,40 @@
         
       </footer>
     </div>
-    <aside class="toc-drawer no-toc">
+    <aside class="toc-drawer">
       
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">ADCS.satellite_hardware.actuators.magnetotorquer module</a><ul>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.actuators.magnetotorquer.MTQ"><code class="docutils literal notranslate"><span class="pre">MTQ</span></code></a><ul>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.actuators.magnetotorquer.MTQ.ddtorq__dbasestatedbasestate"><code class="docutils literal notranslate"><span class="pre">ddtorq__dbasestatedbasestate()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.actuators.magnetotorquer.MTQ.ddtorq__dbiasdbasestate"><code class="docutils literal notranslate"><span class="pre">ddtorq__dbiasdbasestate()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.actuators.magnetotorquer.MTQ.ddtorq__dbiasdbias"><code class="docutils literal notranslate"><span class="pre">ddtorq__dbiasdbias()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.actuators.magnetotorquer.MTQ.ddtorq__dudbasestate"><code class="docutils literal notranslate"><span class="pre">ddtorq__dudbasestate()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.actuators.magnetotorquer.MTQ.ddtorq__dudh"><code class="docutils literal notranslate"><span class="pre">ddtorq__dudh()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.actuators.magnetotorquer.MTQ.dtorq__dbasestate"><code class="docutils literal notranslate"><span class="pre">dtorq__dbasestate()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.actuators.magnetotorquer.MTQ.dtorq__du"><code class="docutils literal notranslate"><span class="pre">dtorq__du()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.actuators.magnetotorquer.MTQ.hessians"><code class="docutils literal notranslate"><span class="pre">hessians()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.actuators.magnetotorquer.MTQ.jacobians"><code class="docutils literal notranslate"><span class="pre">jacobians()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.actuators.magnetotorquer.MTQ.storage_torque"><code class="docutils literal notranslate"><span class="pre">storage_torque()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.actuators.magnetotorquer.MTQ.torque"><code class="docutils literal notranslate"><span class="pre">torque()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
       
       
     </aside>
@@ -385,5 +854,6 @@
     <script src="_static/doctools.js?v=9bcbadda"></script>
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/scripts/furo.js?v=46bd48cc"></script>
+    <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     </body>
 </html>

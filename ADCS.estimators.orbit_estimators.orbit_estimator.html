@@ -174,7 +174,7 @@
           <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
         </button>
       </div>
-      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
         <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
       </label>
     </div>
@@ -323,13 +323,113 @@
               <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
             </button>
           </div>
-          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
             <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <section id="adcs-estimators-orbit-estimators-orbit-estimator-module">
-<h1>ADCS.estimators.orbit_estimators.orbit_estimator module<a class="headerlink" href="#adcs-estimators-orbit-estimators-orbit-estimator-module" title="Link to this heading">¶</a></h1>
+          <section id="module-ADCS.estimators.orbit_estimators.orbit_estimator">
+<span id="adcs-estimators-orbit-estimators-orbit-estimator-module"></span><h1>ADCS.estimators.orbit_estimators.orbit_estimator module<a class="headerlink" href="#module-ADCS.estimators.orbit_estimators.orbit_estimator" title="Link to this heading">¶</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="ADCS.estimators.orbit_estimators.orbit_estimator.Orbit_Estimator">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ADCS.estimators.orbit_estimators.orbit_estimator.</span></span><span class="sig-name descname"><span class="pre">Orbit_Estimator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">est_sat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/estimators/orbit_estimators/orbit_estimator.html#Orbit_Estimator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.estimators.orbit_estimators.orbit_estimator.Orbit_Estimator" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">ABC</span></code></p>
+<p>Abstract Base Class for Orbit Determination algorithms.</p>
+<p>This class defines the standard interface for estimators (filters) that determine
+the satellite’s orbital state vector <span class="math notranslate nohighlight">\(\mathbf{x}\)</span>, defined as:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\begin{split}\mathbf{x} = \begin{bmatrix} \mathbf{r} \\ \mathbf{v} \end{bmatrix} \in \mathbb{R}^6\end{split}\]</div>
+</div>
+<p>where <span class="math notranslate nohighlight">\(\mathbf{r}\)</span> is the position vector and <span class="math notranslate nohighlight">\(\mathbf{v}\)</span> is the velocity vector
+in the Earth-Centered Inertial (ECI) frame.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>est_sat</strong> (<a class="reference internal" href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite" title="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite"><em>EstimatedSatellite</em></a>)</p></li>
+<li><p><strong>dt</strong> (<em>float</em>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ADCS.estimators.orbit_estimators.orbit_estimator.Orbit_Estimator.est_sat">
+<span class="sig-name descname"><span class="pre">est_sat</span></span><a class="headerlink" href="#ADCS.estimators.orbit_estimators.orbit_estimator.Orbit_Estimator.est_sat" title="Link to this definition">¶</a></dt>
+<dd><p>The satellite hardware model containing sensor noise parameters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite" title="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite">EstimatedSatellite</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ADCS.estimators.orbit_estimators.orbit_estimator.Orbit_Estimator.dt">
+<span class="sig-name descname"><span class="pre">dt</span></span><a class="headerlink" href="#ADCS.estimators.orbit_estimators.orbit_estimator.Orbit_Estimator.dt" title="Link to this definition">¶</a></dt>
+<dd><p>The propagation time step <span class="math notranslate nohighlight">\(\Delta t\)</span> in seconds.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ADCS.estimators.orbit_estimators.orbit_estimator.Orbit_Estimator.os_hat">
+<span class="sig-name descname"><span class="pre">os_hat</span></span><a class="headerlink" href="#ADCS.estimators.orbit_estimators.orbit_estimator.Orbit_Estimator.os_hat" title="Link to this definition">¶</a></dt>
+<dd><p>The current estimated state <span class="math notranslate nohighlight">\(\hat{\mathbf{x}}\)</span>
+and covariance <span class="math notranslate nohighlight">\(\mathbf{P}\)</span>. Initially <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[<a class="reference internal" href="ADCS.estimators.estimator_helpers.html#ADCS.estimators.estimator_helpers.EstimatedOrbital_State" title="ADCS.estimators.estimator_helpers.EstimatedOrbital_State">EstimatedOrbital_State</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.estimators.orbit_estimators.orbit_estimator.Orbit_Estimator.reset">
+<em class="property"><span class="k"><span class="pre">abstractmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">reset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/estimators/orbit_estimators/orbit_estimator.html#Orbit_Estimator.reset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.estimators.orbit_estimators.orbit_estimator.Orbit_Estimator.reset" title="Link to this definition">¶</a></dt>
+<dd><p>Reset the estimator internal state and covariance.</p>
+<p>This allows for re-initialization of the filter without instantiating a new object.
+Specific implementations should handle the setup of initial covariance matrices
+<span class="math notranslate nohighlight">\(\mathbf{P}_0\)</span> and process noise <span class="math notranslate nohighlight">\(\mathbf{Q}\)</span> here.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>kwargs</strong> – Keyword arguments specific to the implementation (e.g., initial state vector,
+specific covariance tuning parameters).</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.estimators.orbit_estimators.orbit_estimator.Orbit_Estimator.update">
+<em class="property"><span class="k"><span class="pre">abstractmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">update</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">GPS_measurements</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">J2000</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/estimators/orbit_estimators/orbit_estimator.html#Orbit_Estimator.update"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.estimators.orbit_estimators.orbit_estimator.Orbit_Estimator.update" title="Link to this definition">¶</a></dt>
+<dd><p>Propagate dynamics and update the state estimate using new sensor measurements.</p>
+<p>This method performs the core estimation cycle:
+1. <strong>Time Update</strong>: Propagate state <span class="math notranslate nohighlight">\(\hat{\mathbf{x}}_{k-1} \to \hat{\mathbf{x}}_k^-\)</span>.
+2. <strong>Measurement Update</strong>: Correct the predicted state using measurement <span class="math notranslate nohighlight">\(\mathbf{z}_k\)</span>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>GPS_measurements</strong> (<em>List</em><em>[</em><em>ndarray</em><em>]</em>) – A list of measurement vectors <span class="math notranslate nohighlight">\(\mathbf{z}_k\)</span> from available sensors.
+Can be Position-only (<span class="math notranslate nohighlight">\(\mathbb{R}^3\)</span>) or PV (<span class="math notranslate nohighlight">\(\mathbb{R}^6\)</span>).</p></li>
+<li><p><strong>J2000</strong> (<em>float</em>) – The current epoch time <span class="math notranslate nohighlight">\(t_k\)</span> in J2000 seconds.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The updated estimated orbital state object containing <span class="math notranslate nohighlight">\(\hat{\mathbf{x}}_k\)</span>
+and <span class="math notranslate nohighlight">\(\mathbf{P}_k\)</span>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="ADCS.estimators.estimator_helpers.estimator_helpers.html#ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedOrbital_State" title="ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedOrbital_State"><em>EstimatedOrbital_State</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 
         </article>
@@ -375,8 +475,34 @@
         
       </footer>
     </div>
-    <aside class="toc-drawer no-toc">
+    <aside class="toc-drawer">
       
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">ADCS.estimators.orbit_estimators.orbit_estimator module</a><ul>
+<li><a class="reference internal" href="#ADCS.estimators.orbit_estimators.orbit_estimator.Orbit_Estimator"><code class="docutils literal notranslate"><span class="pre">Orbit_Estimator</span></code></a><ul>
+<li><a class="reference internal" href="#ADCS.estimators.orbit_estimators.orbit_estimator.Orbit_Estimator.est_sat"><code class="docutils literal notranslate"><span class="pre">est_sat</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.estimators.orbit_estimators.orbit_estimator.Orbit_Estimator.dt"><code class="docutils literal notranslate"><span class="pre">dt</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.estimators.orbit_estimators.orbit_estimator.Orbit_Estimator.os_hat"><code class="docutils literal notranslate"><span class="pre">os_hat</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.estimators.orbit_estimators.orbit_estimator.Orbit_Estimator.reset"><code class="docutils literal notranslate"><span class="pre">reset()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.estimators.orbit_estimators.orbit_estimator.Orbit_Estimator.update"><code class="docutils literal notranslate"><span class="pre">update()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
       
       
     </aside>
@@ -385,5 +511,6 @@
     <script src="_static/doctools.js?v=9bcbadda"></script>
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/scripts/furo.js?v=46bd48cc"></script>
+    <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     </body>
 </html>

@@ -174,7 +174,7 @@
           <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
         </button>
       </div>
-      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
         <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
       </label>
     </div>
@@ -323,13 +323,190 @@
               <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
             </button>
           </div>
-          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
             <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <section id="adcs-satellite-hardware-sensors-magnetometer-module">
-<h1>ADCS.satellite_hardware.sensors.magnetometer module<a class="headerlink" href="#adcs-satellite-hardware-sensors-magnetometer-module" title="Link to this heading">¶</a></h1>
+          <section id="module-ADCS.satellite_hardware.sensors.magnetometer">
+<span id="adcs-satellite-hardware-sensors-magnetometer-module"></span><h1>ADCS.satellite_hardware.sensors.magnetometer module<a class="headerlink" href="#module-ADCS.satellite_hardware.sensors.magnetometer" title="Link to this heading">¶</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.sensors.magnetometer.MTM">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ADCS.satellite_hardware.sensors.magnetometer.</span></span><span class="sig-name descname"><span class="pre">MTM</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">axis</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sample_time</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noise</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">estimate_bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/sensors/magnetometer.html#MTM"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.sensors.magnetometer.MTM" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="ADCS.satellite_hardware.sensors.sensor.html#ADCS.satellite_hardware.sensors.sensor.Sensor" title="ADCS.satellite_hardware.sensors.sensor.Sensor"><code class="xref py py-class docutils literal notranslate"><span class="pre">Sensor</span></code></a></p>
+<p>Magnetometer (MTM) sensor model.</p>
+<p>This sensor measures the component of the local magnetic field along a
+specified body–fixed axis. The <em>clean</em> (noise– and bias–free) measurement
+is given by</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[y = \mathbf{b}^\top \hat{\mathbf{a}},\]</div>
+</div>
+<p>where</p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(\mathbf{b} \in \mathbb{R}^3\)</span> is the magnetic field vector in the
+body frame, and</p></li>
+<li><p><span class="math notranslate nohighlight">\(\hat{\mathbf{a}} \in \mathbb{R}^3\)</span> is a <strong>unit vector</strong>
+representing the sensitive axis of the magnetometer.</p></li>
+</ul>
+<p>When combined with <a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><code class="xref py py-class docutils literal notranslate"><span class="pre">ADCS.orbits.orbital_state.Orbital_State</span></code></a>, this
+class can also provide Jacobians for use in extended Kalman filters (EKF).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>axis</strong> (<em>numpy.ndarray</em>) – Body–frame axis of the magnetometer, shape <code class="docutils literal notranslate"><span class="pre">(3,)</span></code>.
+This will be internally normalized to unit length.</p></li>
+<li><p><strong>sample_time</strong> (<em>float</em><em>, </em><em>optional</em>) – Sampling period of the sensor in seconds (default: <code class="docutils literal notranslate"><span class="pre">0.1</span></code> s).</p></li>
+<li><p><strong>bias</strong> (<a class="reference internal" href="ADCS.satellite_hardware.actuators.html#ADCS.satellite_hardware.actuators.Bias" title="ADCS.satellite_hardware.actuators.Bias"><em>Bias</em></a><em>, </em><em>optional</em>) – Bias model associated with the sensor. If provided, the bias state
+will be added to the base state and propagated according to
+<a class="reference internal" href="ADCS.satellite_hardware.actuators.html#ADCS.satellite_hardware.actuators.Bias" title="ADCS.satellite_hardware.actuators.Bias"><code class="xref py py-class docutils literal notranslate"><span class="pre">ADCS.satellite_hardware.actuators.Bias</span></code></a>.</p></li>
+<li><p><strong>noise</strong> (<a class="reference internal" href="ADCS.satellite_hardware.actuators.html#ADCS.satellite_hardware.actuators.Noise" title="ADCS.satellite_hardware.actuators.Noise"><em>Noise</em></a><em>, </em><em>optional</em>) – Noise model associated with the sensor. If provided, the measurement
+will be corrupted according to <a class="reference internal" href="ADCS.satellite_hardware.actuators.html#ADCS.satellite_hardware.actuators.Noise" title="ADCS.satellite_hardware.actuators.Noise"><code class="xref py py-class docutils literal notranslate"><span class="pre">ADCS.satellite_hardware.actuators.Noise</span></code></a>.</p></li>
+<li><p><strong>estimate_bias</strong> (<em>bool</em><em>, </em><em>optional</em>) – If <code class="docutils literal notranslate"><span class="pre">True</span></code>, the bias is included as an estimated state for filtering
+(e.g. EKF). If <code class="docutils literal notranslate"><span class="pre">False</span></code>, the bias is treated as known (or zero).</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">output_length</span></code> is set to <code class="docutils literal notranslate"><span class="pre">1</span></code> because this is a single–axis
+magnetometer.</p></li>
+<li><p>The attribute <code class="xref py py-attr docutils literal notranslate"><span class="pre">axis</span></code> is always stored as a normalized vector,
+regardless of the magnitude of the input <code class="docutils literal notranslate"><span class="pre">axis</span></code>.</p></li>
+</ul>
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.sensors.magnetometer.MTM.basestate_jac">
+<span class="sig-name descname"><span class="pre">basestate_jac</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/sensors/magnetometer.html#MTM.basestate_jac"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.sensors.magnetometer.MTM.basestate_jac" title="Link to this definition">¶</a></dt>
+<dd><p>Jacobian of the measurement with respect to the base (non–bias) states.</p>
+<p>The base–state Jacobian is defined as</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\begin{split}\frac{\partial y}{\partial \mathbf{x}_\text{base}}
+=
+\begin{bmatrix}
+    \mathbf{0}_{3 \times 1} \\
+    \frac{\partial \mathbf{b}}{\partial \mathbf{x}_\text{base}}
+    \hat{\mathbf{a}}
+\end{bmatrix},\end{split}\]</div>
+</div>
+<p>where <span class="math notranslate nohighlight">\(\mathbf{b}\)</span> is the body–frame magnetic field and
+<span class="math notranslate nohighlight">\(\hat{\mathbf{a}}\)</span> is the unit axis of the MTM.</p>
+<p>This assumes that</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">vecs</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">get_state_vector</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">)</span>
+<span class="n">vecs</span><span class="p">[</span><span class="s2">&quot;db&quot;</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>returns <span class="math notranslate nohighlight">\(\partial \mathbf{b} / \partial \mathbf{x}_\text{base}\)</span>
+with shape <code class="docutils literal notranslate"><span class="pre">(3,</span> <span class="pre">n_base)</span></code>. Post–multiplication by <code class="docutils literal notranslate"><span class="pre">axis</span></code> yields a
+column vector of length <code class="docutils literal notranslate"><span class="pre">n_base</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>numpy.ndarray</em>) – Current full state vector of the system.</p></li>
+<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbital_State" title="ADCS.orbits.orbit.Orbital_State"><em>Orbital_State</em></a>) – Orbital and environmental model providing both the magnetic field
+and its Jacobian with respect to the base states. Must supply
+keys <code class="docutils literal notranslate"><span class="pre">&quot;b&quot;</span></code> and <code class="docutils literal notranslate"><span class="pre">&quot;db&quot;</span></code> in the dictionary returned by
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">Orbital_State.get_state_vector()</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Jacobian of the measurement with respect to the base states.
+The returned array has shape <code class="docutils literal notranslate"><span class="pre">(n_state_base,</span> <span class="pre">1)</span></code>, where the first
+three rows are zeros and the remaining rows correspond to
+<span class="math notranslate nohighlight">\(\partial \mathbf{b} / \partial \mathbf{x}_\text{base}
+\; \hat{\mathbf{a}}\)</span>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.sensors.magnetometer.MTM.bias_jac">
+<span class="sig-name descname"><span class="pre">bias_jac</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/sensors/magnetometer.html#MTM.bias_jac"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.sensors.magnetometer.MTM.bias_jac" title="Link to this definition">¶</a></dt>
+<dd><blockquote>
+<div><p>Jacobian of the measurement with respect to the sensor bias state.</p>
+<p>If a bias model is present, the measurement is assumed to be</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[z = y + b,\]</div>
+</div>
+<p>where <span class="math notranslate nohighlight">\(b\)</span> is a scalar bias. Hence</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\]</div>
+</div>
+</div></blockquote>
+<p>rac{partial z}{partial b} = 1.</p>
+<blockquote>
+<div><p>If no bias is present, an empty Jacobian is returned.</p>
+<dl class="simple">
+<dt>x<span class="classifier">numpy.ndarray</span></dt><dd><p>Current full state vector (unused here, included for interface
+consistency).</p>
+</dd>
+<dt>os<span class="classifier">Orbital_State</span></dt><dd><p>Orbital state object (unused here, included for interface
+consistency).</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>numpy.ndarray</dt><dd><p>Bias Jacobian matrix:</p>
+<ul class="simple">
+<li><p>shape <code class="docutils literal notranslate"><span class="pre">(1,</span> <span class="pre">1)</span></code> with value <code class="docutils literal notranslate"><span class="pre">1</span></code> if <code class="docutils literal notranslate"><span class="pre">self.bias</span></code> is not
+<code class="docutils literal notranslate"><span class="pre">None</span></code>;</p></li>
+<li><p>shape <code class="docutils literal notranslate"><span class="pre">(0,</span> <span class="pre">1)</span></code> (empty) otherwise.</p></li>
+</ul>
+</dd>
+</dl>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>ndarray</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.sensors.magnetometer.MTM.clean_reading">
+<span class="sig-name descname"><span class="pre">clean_reading</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/sensors/magnetometer.html#MTM.clean_reading"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.sensors.magnetometer.MTM.clean_reading" title="Link to this definition">¶</a></dt>
+<dd><p>Compute the bias– and noise–free magnetometer measurement.</p>
+<p>This method evaluates</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[y = \mathbf{b}^\top \hat{\mathbf{a}},\]</div>
+</div>
+<p>where <span class="math notranslate nohighlight">\(\mathbf{b}\)</span> is obtained from the orbital state and
+expressed in the body frame.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>numpy.ndarray</em>) – Current full state vector of the system (satellite attitude,
+angular velocity, and any additional states required by
+<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><code class="xref py py-class docutils literal notranslate"><span class="pre">ADCS.orbits.orbital_state.Orbital_State</span></code></a>).</p></li>
+<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbital_State" title="ADCS.orbits.orbit.Orbital_State"><em>Orbital_State</em></a>) – Orbital and environmental model used to compute the magnetic field.
+The call <code class="docutils literal notranslate"><span class="pre">os.get_state_vector(x=x)</span></code> must return a dictionary with
+key <code class="docutils literal notranslate"><span class="pre">&quot;b&quot;</span></code> corresponding to the body–frame magnetic field
+<span class="math notranslate nohighlight">\(\mathbf{b}\)</span>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Clean measurement of the magnetic field along <code class="xref py py-attr docutils literal notranslate"><span class="pre">axis</span></code>,
+shape <code class="docutils literal notranslate"><span class="pre">(1,)</span></code>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 
         </article>
@@ -375,8 +552,32 @@
         
       </footer>
     </div>
-    <aside class="toc-drawer no-toc">
+    <aside class="toc-drawer">
       
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">ADCS.satellite_hardware.sensors.magnetometer module</a><ul>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.sensors.magnetometer.MTM"><code class="docutils literal notranslate"><span class="pre">MTM</span></code></a><ul>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.sensors.magnetometer.MTM.basestate_jac"><code class="docutils literal notranslate"><span class="pre">basestate_jac()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.sensors.magnetometer.MTM.bias_jac"><code class="docutils literal notranslate"><span class="pre">bias_jac()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.sensors.magnetometer.MTM.clean_reading"><code class="docutils literal notranslate"><span class="pre">clean_reading()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
       
       
     </aside>
@@ -385,5 +586,6 @@
     <script src="_static/doctools.js?v=9bcbadda"></script>
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/scripts/furo.js?v=46bd48cc"></script>
+    <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     </body>
 </html>

@@ -174,7 +174,7 @@
           <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
         </button>
       </div>
-      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
         <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
       </label>
     </div>
@@ -323,13 +323,124 @@
               <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
             </button>
           </div>
-          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
             <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <section id="adcs-satellite-hardware-disturbances-geometry-config-module">
-<h1>ADCS.satellite_hardware.disturbances.geometry_config module<a class="headerlink" href="#adcs-satellite-hardware-disturbances-geometry-config-module" title="Link to this heading">¶</a></h1>
+          <section id="module-ADCS.satellite_hardware.disturbances.geometry_config">
+<span id="adcs-satellite-hardware-disturbances-geometry-config-module"></span><h1>ADCS.satellite_hardware.disturbances.geometry_config module<a class="headerlink" href="#module-ADCS.satellite_hardware.disturbances.geometry_config" title="Link to this heading">¶</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.disturbances.geometry_config.GeometryConfig">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ADCS.satellite_hardware.disturbances.geometry_config.</span></span><span class="sig-name descname"><span class="pre">GeometryConfig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">geometry_faces</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/disturbances/geometry_config.html#GeometryConfig"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.disturbances.geometry_config.GeometryConfig" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p><strong>Satellite Geometry Configuration</strong></p>
+<p>The <a class="reference internal" href="#ADCS.satellite_hardware.disturbances.geometry_config.GeometryConfig" title="ADCS.satellite_hardware.disturbances.geometry_config.GeometryConfig"><code class="xref py py-class docutils literal notranslate"><span class="pre">GeometryConfig</span></code></a> class defines the geometric and aerodynamic
+properties of the satellite’s external surfaces.
+This configuration is used by disturbance and actuator models such as
+<a class="reference internal" href="ADCS.satellite_hardware.disturbances.drag_disturbance.html#ADCS.satellite_hardware.disturbances.drag_disturbance.Drag_Disturbance" title="ADCS.satellite_hardware.disturbances.drag_disturbance.Drag_Disturbance"><code class="xref py py-class docutils literal notranslate"><span class="pre">Drag_Disturbance</span></code></a>
+to compute forces and torques.</p>
+<p>Each entry in the geometry configuration represents one <strong>surface element</strong>
+(e.g., a panel or face) with attributes describing its physical and
+aerodynamic properties.</p>
+<p><strong>Structure of a Geometry Entry</strong></p>
+<p>Each geometry element is expected to contain the following ordered parameters:</p>
+<div class="table-wrapper colwidths-given docutils container">
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 80.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Key</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">index</span></code></p></td>
+<td><p>Unique integer identifier for the surface element.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">area</span></code></p></td>
+<td><p>Surface area <span class="math notranslate nohighlight">\(A_i\)</span> [m²].</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">centroid</span></code></p></td>
+<td><p>Centroid position vector <span class="math notranslate nohighlight">\(\mathbf{r}_i\)</span> in body frame [m].</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">normal</span></code></p></td>
+<td><p>Surface normal unit vector <span class="math notranslate nohighlight">\(\mathbf{n}_i\)</span> in body frame.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">eta_s</span></code></p></td>
+<td><p>Specular reflection coefficient (0–1).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">eta_d</span></code></p></td>
+<td><p>Diffuse reflection coefficient (0–1).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">eta_a</span></code></p></td>
+<td><p>Absorptivity coefficient (0–1).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">CD</span></code></p></td>
+<td><p>Drag coefficient <span class="math notranslate nohighlight">\(C_{D,i}\)</span> of the surface.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>geometry</strong> (<em>list</em><em>[</em><em>dict</em><em>[</em><em>str</em><em>, </em><em>any</em><em>]</em><em>]</em>) – List of dictionaries defining geometry parameters for all satellite surfaces.
+Each entry must include the keys listed above.</p></li>
+<li><p><strong>geometry_faces</strong> (<em>List</em><em>[</em><a class="reference internal" href="#ADCS.satellite_hardware.disturbances.geometry_config.GeometryFace" title="ADCS.satellite_hardware.disturbances.geometry_config.GeometryFace"><em>GeometryFace</em></a><em>]</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.disturbances.geometry_config.GeometryFace">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ADCS.satellite_hardware.disturbances.geometry_config.</span></span><span class="sig-name descname"><span class="pre">GeometryFace</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">area</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">centroid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normal</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta_d</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta_a</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">CD</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/disturbances/geometry_config.html#GeometryFace"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.disturbances.geometry_config.GeometryFace" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>area</strong> (<em>float</em>)</p></li>
+<li><p><strong>centroid</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>normal</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>eta_s</strong> (<em>float</em>)</p></li>
+<li><p><strong>eta_d</strong> (<em>float</em>)</p></li>
+<li><p><strong>eta_a</strong> (<em>float</em>)</p></li>
+<li><p><strong>CD</strong> (<em>float</em>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.disturbances.geometry_config.GeometryFace.from_dict">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/disturbances/geometry_config.html#GeometryFace.from_dict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.disturbances.geometry_config.GeometryFace.from_dict" title="Link to this definition">¶</a></dt>
+<dd><p>Create a GeometryFace from a dictionary.</p>
+<p>Accepts either ‘CD’ or ‘CD’ for drag coefficient, and defaults
+unspecified eta/CD values to 0.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>data</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#ADCS.satellite_hardware.disturbances.geometry_config.GeometryFace" title="ADCS.satellite_hardware.disturbances.geometry_config.GeometryFace"><em>GeometryFace</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.disturbances.geometry_config.GeometryFace.to_dict">
+<span class="sig-name descname"><span class="pre">to_dict</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/disturbances/geometry_config.html#GeometryFace.to_dict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.disturbances.geometry_config.GeometryFace.to_dict" title="Link to this definition">¶</a></dt>
+<dd><p>Convert this GeometryFace to a dictionary representation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>Dict</em>[str, <em>Any</em>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 
         </article>
@@ -375,8 +486,32 @@
         
       </footer>
     </div>
-    <aside class="toc-drawer no-toc">
+    <aside class="toc-drawer">
       
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">ADCS.satellite_hardware.disturbances.geometry_config module</a><ul>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.disturbances.geometry_config.GeometryConfig"><code class="docutils literal notranslate"><span class="pre">GeometryConfig</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.disturbances.geometry_config.GeometryFace"><code class="docutils literal notranslate"><span class="pre">GeometryFace</span></code></a><ul>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.disturbances.geometry_config.GeometryFace.from_dict"><code class="docutils literal notranslate"><span class="pre">from_dict()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.disturbances.geometry_config.GeometryFace.to_dict"><code class="docutils literal notranslate"><span class="pre">to_dict()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
       
       
     </aside>
@@ -385,5 +520,6 @@
     <script src="_static/doctools.js?v=9bcbadda"></script>
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/scripts/furo.js?v=46bd48cc"></script>
+    <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     </body>
 </html>

@@ -174,7 +174,7 @@
           <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
         </button>
       </div>
-      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
         <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
       </label>
     </div>
@@ -323,13 +323,125 @@
               <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
             </button>
           </div>
-          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
             <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <section id="adcs-satellite-hardware-sensors-sensor-module">
-<h1>ADCS.satellite_hardware.sensors.sensor module<a class="headerlink" href="#adcs-satellite-hardware-sensors-sensor-module" title="Link to this heading">¶</a></h1>
+          <section id="module-ADCS.satellite_hardware.sensors.sensor">
+<span id="adcs-satellite-hardware-sensors-sensor-module"></span><h1>ADCS.satellite_hardware.sensors.sensor module<a class="headerlink" href="#module-ADCS.satellite_hardware.sensors.sensor" title="Link to this heading">¶</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.sensors.sensor.Sensor">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ADCS.satellite_hardware.sensors.sensor.</span></span><span class="sig-name descname"><span class="pre">Sensor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sample_time</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_length</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noise</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">estimate_bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/sensors/sensor.html#Sensor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.sensors.sensor.Sensor" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Base class for all ADCS sensor models.</p>
+<p>This class defines a standard interface for sensor measurement generation,
+including clean (noise– and bias–free) readings, application of stochastic
+bias and noise models, and measurement Jacobians for filtering (e.g., EKF).</p>
+<p>Concrete sensor subclasses (e.g., <code class="xref py py-class docutils literal notranslate"><span class="pre">Gyro</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">MTM</span></code>,
+star trackers, sun sensors) must implement at least
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">clean_reading()</span></code> and may override Jacobian functions as needed.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sample_time</strong> (<em>float</em><em>, </em><em>optional</em>) – Sampling period of the sensor in seconds (default: <code class="docutils literal notranslate"><span class="pre">0.1</span></code>).</p></li>
+<li><p><strong>output_length</strong> (<em>int</em><em>, </em><em>optional</em>) – Dimension of the sensor measurement output (default: <code class="docutils literal notranslate"><span class="pre">1</span></code>).</p></li>
+<li><p><strong>bias</strong> (<a class="reference internal" href="ADCS.satellite_hardware.actuators.html#ADCS.satellite_hardware.actuators.Bias" title="ADCS.satellite_hardware.actuators.Bias"><em>Bias</em></a><em>, </em><em>optional</em>) – Bias model that provides additive measurement bias and bias evolution.
+If not provided, initializes with a zero bias model.</p></li>
+<li><p><strong>noise</strong> (<a class="reference internal" href="ADCS.satellite_hardware.actuators.html#ADCS.satellite_hardware.actuators.Noise" title="ADCS.satellite_hardware.actuators.Noise"><em>Noise</em></a><em>, </em><em>optional</em>) – Noise model providing measurement noise with a chosen distribution.
+If not provided, initializes with a zero-noise model.</p></li>
+<li><p><strong>estimate_bias</strong> (<em>bool</em><em>, </em><em>optional</em>) – Indicates whether the filter should include bias as part of the
+estimated state. (Stored by subclasses; not used directly here.)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.sensors.sensor.Sensor.basestate_jac">
+<span class="sig-name descname"><span class="pre">basestate_jac</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/sensors/sensor.html#Sensor.basestate_jac"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.sensors.sensor.Sensor.basestate_jac" title="Link to this definition">¶</a></dt>
+<dd><p>Jacobian of the clean sensor measurement with respect to the
+base (non-bias) states.</p>
+<p>This base implementation returns a zero matrix, corresponding to a
+measurement independent of the satellite state. Subclasses should
+override this method to provide the correct Jacobian.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>numpy.ndarray</em>) – Full system state vector.</p></li>
+<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbital_State" title="ADCS.orbits.orbit.Orbital_State"><em>Orbital_State</em></a>) – Orbital and environmental model.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Zero matrix of shape <code class="docutils literal notranslate"><span class="pre">(7,</span> <span class="pre">output_length)</span></code> by default.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.sensors.sensor.Sensor.bias_jac">
+<span class="sig-name descname"><span class="pre">bias_jac</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/sensors/sensor.html#Sensor.bias_jac"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.sensors.sensor.Sensor.bias_jac" title="Link to this definition">¶</a></dt>
+<dd><p>Jacobian of the measurement with respect to the sensor bias state.</p>
+<p>If the sensor has a bias model, the measurement is assumed to be</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[z = y + b,\]</div>
+</div>
+<p>where <span class="math notranslate nohighlight">\(b\)</span> is a vector of length <code class="docutils literal notranslate"><span class="pre">output_length</span></code>. Therefore,</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\frac{\partial z}{\partial b} = I,\]</div>
+</div>
+<p>the identity matrix. If no bias model is present, an empty Jacobian is
+returned.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>numpy.ndarray</em>) – Full system state vector (unused).</p></li>
+<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbital_State" title="ADCS.orbits.orbit.Orbital_State"><em>Orbital_State</em></a>) – Orbital state object (unused).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">(output_length,</span> <span class="pre">output_length)</span></code> identity matrix if bias exists,
+otherwise a <code class="docutils literal notranslate"><span class="pre">(0,</span> <span class="pre">output_length)</span></code> empty matrix.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.sensors.sensor.Sensor.reading">
+<span class="sig-name descname"><span class="pre">reading</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dmode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/sensors/sensor.html#Sensor.reading"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.sensors.sensor.Sensor.reading" title="Link to this definition">¶</a></dt>
+<dd><p>Compute the full sensor measurement, including bias and noise.</p>
+<p>The process is:</p>
+<ol class="arabic simple">
+<li><p>Compute the clean measurement using <code class="xref py py-meth docutils literal notranslate"><span class="pre">clean_reading()</span></code>.</p></li>
+<li><p>Add the current sensor bias, obtained via <code class="xref py py-meth docutils literal notranslate"><span class="pre">Bias.get_bias()</span></code>.</p></li>
+<li><p>Add measurement noise, via <code class="xref py py-meth docutils literal notranslate"><span class="pre">Noise.get_noise()</span></code>.</p></li>
+</ol>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>numpy.ndarray</em>) – Full system state vector.</p></li>
+<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbital_State" title="ADCS.orbits.orbit.Orbital_State"><em>Orbital_State</em></a>) – Orbital and environmental model. Provides the time (<code class="docutils literal notranslate"><span class="pre">os.J2000</span></code>)
+required for time-varying bias processes.</p></li>
+<li><p><strong>dmode</strong> (<a class="reference internal" href="ADCS.satellite_hardware.disturbances.disturbance_mode.html#ADCS.satellite_hardware.disturbances.disturbance_mode.DisturbanceMode" title="ADCS.satellite_hardware.disturbances.disturbance_mode.DisturbanceMode"><em>DisturbanceMode</em></a>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The final sensor measurement, shape <code class="docutils literal notranslate"><span class="pre">(output_length,)</span></code>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 
         </article>
@@ -375,8 +487,32 @@
         
       </footer>
     </div>
-    <aside class="toc-drawer no-toc">
+    <aside class="toc-drawer">
       
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">ADCS.satellite_hardware.sensors.sensor module</a><ul>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.sensors.sensor.Sensor"><code class="docutils literal notranslate"><span class="pre">Sensor</span></code></a><ul>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.sensors.sensor.Sensor.basestate_jac"><code class="docutils literal notranslate"><span class="pre">basestate_jac()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.sensors.sensor.Sensor.bias_jac"><code class="docutils literal notranslate"><span class="pre">bias_jac()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.sensors.sensor.Sensor.reading"><code class="docutils literal notranslate"><span class="pre">reading()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
       
       
     </aside>
@@ -385,5 +521,6 @@
     <script src="_static/doctools.js?v=9bcbadda"></script>
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/scripts/furo.js?v=46bd48cc"></script>
+    <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     </body>
 </html>

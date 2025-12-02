@@ -174,7 +174,7 @@
           <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
         </button>
       </div>
-      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
         <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
       </label>
     </div>
@@ -323,13 +323,81 @@
               <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
             </button>
           </div>
-          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
             <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <section id="adcs-orbits-ephemeris-module">
-<h1>ADCS.orbits.ephemeris module<a class="headerlink" href="#adcs-orbits-ephemeris-module" title="Link to this heading">¶</a></h1>
+          <section id="module-ADCS.orbits.ephemeris">
+<span id="adcs-orbits-ephemeris-module"></span><h1>ADCS.orbits.ephemeris module<a class="headerlink" href="#module-ADCS.orbits.ephemeris" title="Link to this heading">¶</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="ADCS.orbits.ephemeris.Ephemeris">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ADCS.orbits.ephemeris.</span></span><span class="sig-name descname"><span class="pre">Ephemeris</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filepath</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/orbits/ephemeris.html#Ephemeris"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.orbits.ephemeris.Ephemeris" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Provides access to high-precision planetary ephemerides using the
+<a class="reference external" href="https://rhodesmill.org/skyfield/">Skyfield</a> library.</p>
+<p>This class manages loading (or downloading) the JPL DE421 ephemeris
+file and initializes planetary objects such as the Earth and the Sun.
+It first attempts to load a local copy from
+<code class="docutils literal notranslate"><span class="pre">{project_root}/external_files/de421.bsp</span></code>. If the file or directory
+does not exist, it is downloaded and stored there automatically.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>filepath</strong> (<em>Path</em><em>, </em><em>optional</em>) – Path to a pre-downloaded ephemeris file. If <code class="docutils literal notranslate"><span class="pre">None</span></code>, the loader
+searches for <code class="docutils literal notranslate"><span class="pre">external_files/de421.bsp</span></code> relative to the project
+root. If not found, it downloads the file to that location.</p>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ADCS.orbits.ephemeris.Ephemeris.planets">
+<span class="sig-name descname"><span class="pre">planets</span></span><a class="headerlink" href="#ADCS.orbits.ephemeris.Ephemeris.planets" title="Link to this definition">¶</a></dt>
+<dd><p>Loaded planetary ephemeris data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>skyfield.jpllib.SpiceKernel</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ADCS.orbits.ephemeris.Ephemeris.sun">
+<span class="sig-name descname"><span class="pre">sun</span></span><a class="headerlink" href="#ADCS.orbits.ephemeris.Ephemeris.sun" title="Link to this definition">¶</a></dt>
+<dd><p>The Sun body object from the loaded ephemeris.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>skyfield.jpllib.Body</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ADCS.orbits.ephemeris.Ephemeris.earth">
+<span class="sig-name descname"><span class="pre">earth</span></span><a class="headerlink" href="#ADCS.orbits.ephemeris.Ephemeris.earth" title="Link to this definition">¶</a></dt>
+<dd><p>The Earth body object from the loaded ephemeris.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>skyfield.jpllib.Body</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ADCS.orbits.ephemeris.Ephemeris.ts">
+<span class="sig-name descname"><span class="pre">ts</span></span><a class="headerlink" href="#ADCS.orbits.ephemeris.Ephemeris.ts" title="Link to this definition">¶</a></dt>
+<dd><p>The Skyfield timescale object for creating <code class="docutils literal notranslate"><span class="pre">Time</span></code> instances.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>skyfield.timelib.Timescale</p>
+</dd>
+</dl>
+</dd></dl>
+
+<p class="rubric">Notes</p>
+<p>The DE421 model covers the years 1900–2050 and provides accurate
+positions and velocities of major solar system bodies in the
+<span class="math notranslate nohighlight">\(\text{ICRF}\)</span> reference frame.</p>
+</dd></dl>
+
 </section>
 
         </article>
@@ -375,8 +443,33 @@
         
       </footer>
     </div>
-    <aside class="toc-drawer no-toc">
+    <aside class="toc-drawer">
       
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">ADCS.orbits.ephemeris module</a><ul>
+<li><a class="reference internal" href="#ADCS.orbits.ephemeris.Ephemeris"><code class="docutils literal notranslate"><span class="pre">Ephemeris</span></code></a><ul>
+<li><a class="reference internal" href="#ADCS.orbits.ephemeris.Ephemeris.planets"><code class="docutils literal notranslate"><span class="pre">planets</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.orbits.ephemeris.Ephemeris.sun"><code class="docutils literal notranslate"><span class="pre">sun</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.orbits.ephemeris.Ephemeris.earth"><code class="docutils literal notranslate"><span class="pre">earth</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.orbits.ephemeris.Ephemeris.ts"><code class="docutils literal notranslate"><span class="pre">ts</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
       
       
     </aside>
@@ -385,5 +478,6 @@
     <script src="_static/doctools.js?v=9bcbadda"></script>
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/scripts/furo.js?v=46bd48cc"></script>
+    <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     </body>
 </html>

@@ -174,7 +174,7 @@
           <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
         </button>
       </div>
-      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
         <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
       </label>
     </div>
@@ -323,13 +323,282 @@
               <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
             </button>
           </div>
-          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
             <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <section id="adcs-satellite-hardware-disturbances-srp-disturbance-module">
-<h1>ADCS.satellite_hardware.disturbances.srp_disturbance module<a class="headerlink" href="#adcs-satellite-hardware-disturbances-srp-disturbance-module" title="Link to this heading">¶</a></h1>
+          <section id="module-ADCS.satellite_hardware.disturbances.srp_disturbance">
+<span id="adcs-satellite-hardware-disturbances-srp-disturbance-module"></span><h1>ADCS.satellite_hardware.disturbances.srp_disturbance module<a class="headerlink" href="#module-ADCS.satellite_hardware.disturbances.srp_disturbance" title="Link to this heading">¶</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.disturbances.srp_disturbance.SRP_Disturbance">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ADCS.satellite_hardware.disturbances.srp_disturbance.</span></span><span class="sig-name descname"><span class="pre">SRP_Disturbance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/disturbances/srp_disturbance.html#SRP_Disturbance"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.disturbances.srp_disturbance.SRP_Disturbance" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="ADCS.satellite_hardware.disturbances.disturbance.html#ADCS.satellite_hardware.disturbances.disturbance.Disturbance" title="ADCS.satellite_hardware.disturbances.disturbance.Disturbance"><code class="xref py py-class docutils literal notranslate"><span class="pre">Disturbance</span></code></a></p>
+<p><strong>Solar Radiation Pressure (SRP) Disturbance Model</strong></p>
+<p>This class models the <strong>solar radiation pressure (SRP)</strong> torque acting on a
+satellite. The SRP torque arises from the momentum exchange between sunlight
+and the satellite’s external surfaces due to reflection and absorption.</p>
+<p>The model computes the total torque by summing contributions from all
+illuminated surfaces defined in a <a class="reference internal" href="ADCS.satellite_hardware.disturbances.geometry_config.html#ADCS.satellite_hardware.disturbances.geometry_config.GeometryConfig" title="ADCS.satellite_hardware.disturbances.geometry_config.GeometryConfig"><code class="xref py py-class docutils literal notranslate"><span class="pre">GeometryConfig</span></code></a>.</p>
+<p><strong>Physical Model</strong></p>
+<p>The solar radiation pressure force on a surface element is given by:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\mathbf{F}_i =
+-P_{\odot} A_i \max(0, \mathbf{n}_i \cdot \mathbf{s}_b)
+\left[
+    (1 - \eta_s) \mathbf{s}_b
+    + 2 \eta_s (\mathbf{n}_i \cdot \mathbf{s}_b) \mathbf{n}_i
+    + \tfrac{2}{3} \eta_d \mathbf{n}_i
+\right]\]</div>
+</div>
+<p>where:</p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(P_{\odot} = \dfrac{S_0}{c}\)</span> is the solar radiation pressure [N/m²],</p></li>
+<li><p><span class="math notranslate nohighlight">\(S_0\)</span> — Solar constant (<span class="math notranslate nohighlight">\(1367~\mathrm{W/m^2}\)</span>),</p></li>
+<li><p><span class="math notranslate nohighlight">\(c\)</span> — Speed of light in vacuum [m/s],</p></li>
+<li><p><span class="math notranslate nohighlight">\(A_i\)</span> — Area of the i-th surface [m²],</p></li>
+<li><p><span class="math notranslate nohighlight">\(\mathbf{n}_i\)</span> — Surface normal vector in body frame,</p></li>
+<li><p><span class="math notranslate nohighlight">\(\mathbf{s}_b\)</span> — Unit Sun direction vector in body frame,</p></li>
+<li><p><span class="math notranslate nohighlight">\(\eta_s, \eta_d, \eta_a\)</span> — Specular, diffuse, and absorptive coefficients.</p></li>
+</ul>
+<p>The total torque on the spacecraft is:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\mathbf{T}_{\mathrm{SRP}} =
+\sum_i (\mathbf{r}_i - \mathbf{r}_{\mathrm{COM}}) \times \mathbf{F}_i\]</div>
+</div>
+<p>Only surfaces facing the Sun (<span class="math notranslate nohighlight">\(\mathbf{n}_i \cdot \mathbf{s}_b &gt; 0\)</span>) contribute
+to the disturbance. If the spacecraft is in eclipse, the torque is zero.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config</strong> (<a class="reference internal" href="ADCS.satellite_hardware.disturbances.geometry_config.html#ADCS.satellite_hardware.disturbances.geometry_config.GeometryConfig" title="ADCS.satellite_hardware.disturbances.geometry_config.GeometryConfig"><code class="xref py py-class docutils literal notranslate"><span class="pre">GeometryConfig</span></code></a>) – Configuration containing surface properties (areas, centroids, normals,
+and optical coefficients).</p>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.disturbances.srp_disturbance.SRP_Disturbance.numfaces">
+<span class="sig-name descname"><span class="pre">numfaces</span></span><a class="headerlink" href="#ADCS.satellite_hardware.disturbances.srp_disturbance.SRP_Disturbance.numfaces" title="Link to this definition">¶</a></dt>
+<dd><p>Number of modeled surface elements.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.disturbances.srp_disturbance.SRP_Disturbance.areas">
+<span class="sig-name descname"><span class="pre">areas</span></span><a class="headerlink" href="#ADCS.satellite_hardware.disturbances.srp_disturbance.SRP_Disturbance.areas" title="Link to this definition">¶</a></dt>
+<dd><p>Surface areas of each face [m²], shape <code class="docutils literal notranslate"><span class="pre">(N,)</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.disturbances.srp_disturbance.SRP_Disturbance.centroids">
+<span class="sig-name descname"><span class="pre">centroids</span></span><a class="headerlink" href="#ADCS.satellite_hardware.disturbances.srp_disturbance.SRP_Disturbance.centroids" title="Link to this definition">¶</a></dt>
+<dd><p>Surface centroids in body coordinates [m], shape <code class="docutils literal notranslate"><span class="pre">(N,</span> <span class="pre">3)</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.disturbances.srp_disturbance.SRP_Disturbance.normals">
+<span class="sig-name descname"><span class="pre">normals</span></span><a class="headerlink" href="#ADCS.satellite_hardware.disturbances.srp_disturbance.SRP_Disturbance.normals" title="Link to this definition">¶</a></dt>
+<dd><p>Surface normal unit vectors in body frame, shape <code class="docutils literal notranslate"><span class="pre">(N,</span> <span class="pre">3)</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">eta_s,</span> <span class="pre">eta_d,</span> <span class="pre">eta_a</span></span></dt>
+<dd><p>Specular, diffuse, and absorptive reflection coefficients.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.disturbances.srp_disturbance.SRP_Disturbance.torque">
+<span class="sig-name descname"><span class="pre">torque</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/disturbances/srp_disturbance.html#SRP_Disturbance.torque"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.disturbances.srp_disturbance.SRP_Disturbance.torque" title="Link to this definition">¶</a></dt>
+<dd><p>Compute the <strong>solar radiation pressure (SRP) torque</strong> on the spacecraft in the body frame.</p>
+<p>The implemented model forms the Sun-look direction
+<span class="math notranslate nohighlight">\(\mathbf{s}_b = \frac{\mathbf{S}_b - \mathbf{R}_b}{\lVert \mathbf{S}_b - \mathbf{R}_b\rVert}\)</span>
+(using <a class="reference internal" href="ADCS.helpers.math_helpers.html#ADCS.helpers.math_helpers.normalize" title="ADCS.helpers.math_helpers.normalize"><code class="xref py py-func docutils literal notranslate"><span class="pre">normalize()</span></code></a>) and uses
+<span class="math notranslate nohighlight">\(\cos\gamma_i = \mathbf{n}_i^\top \mathbf{s}_b\)</span>. With the <em>clamped</em> incidence
+<span class="math notranslate nohighlight">\(\cos^+ \gamma_i = \max(0,\cos\gamma_i)\)</span>, the per-face scalar multipliers are</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[m_{s,i} \;=\; A_i\,(\eta_a+\eta_d)\,\cos^+\gamma_i, \qquad
+m_{n,i} \;=\; A_i\!\left(2\,\eta_s\,(\cos^+\gamma_i)^2 + \tfrac{2}{3}\,\eta_d\right),\]</div>
+</div>
+<p>and the SRP torque is</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\mathbf{T}_{\mathrm{SRP}}
+\;=\;
+-\frac{S_0}{c}\;
+\sum_i \Big[
+    m_{s,i}\,(\mathbf{r}_i-\mathbf{r}_{\mathrm{COM}})\times \mathbf{s}_b
+    \;+\;
+    m_{n,i}\,(\mathbf{r}_i-\mathbf{r}_{\mathrm{COM}})\times \mathbf{n}_i
+\Big],\]</div>
+</div>
+<p>where <span class="math notranslate nohighlight">\(S_0\)</span> is the solar constant and <span class="math notranslate nohighlight">\(c\)</span> the speed of light.</p>
+<p>Illumination is checked via <a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.is_sunlit" title="ADCS.orbits.orbital_state.Orbital_State.is_sunlit"><code class="xref py py-meth docutils literal notranslate"><span class="pre">is_sunlit()</span></code></a>;
+if the spacecraft is not sunlit, the torque is zero.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sat</strong> (<a class="reference internal" href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite" title="ADCS.satellite_hardware.satellite.satellite.Satellite"><code class="xref py py-class docutils literal notranslate"><span class="pre">Satellite</span></code></a>) – Satellite object providing the center-of-mass <code class="docutils literal notranslate"><span class="pre">sat.COM</span></code> (body frame) and geometry.</p></li>
+<li><p><strong>x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Full spacecraft state (contains the attitude quaternion used to form body-frame vectors).</p></li>
+<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbital_State</span></code></a>) – Provides <span class="math notranslate nohighlight">\(\mathbf{S}_b\)</span> (Sun vector), <span class="math notranslate nohighlight">\(\mathbf{R}_b\)</span> (spacecraft position),
+and illumination status.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>SRP torque vector in the body frame [N·m], shape <code class="docutils literal notranslate"><span class="pre">(3,)</span></code>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.disturbances.srp_disturbance.SRP_Disturbance.torque_qjav">
+<span class="sig-name descname"><span class="pre">torque_qjav</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/disturbances/srp_disturbance.html#SRP_Disturbance.torque_qjav"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.disturbances.srp_disturbance.SRP_Disturbance.torque_qjav" title="Link to this definition">¶</a></dt>
+<dd><p>Jacobian of the <strong>SRP torque</strong> with respect to the <strong>attitude quaternion</strong>.</p>
+<p>Let <span class="math notranslate nohighlight">\(\mathbf{q}\)</span> be the attitude quaternion inside <span class="math notranslate nohighlight">\(x\)</span>.
+Define <span class="math notranslate nohighlight">\(\mathbf{s}_b(\mathbf{q}) = \frac{\mathbf{S}_b-\mathbf{R}_b}{\lVert \mathbf{S}_b-\mathbf{R}_b\rVert}\)</span>
+and <span class="math notranslate nohighlight">\(\cos\gamma_i(\mathbf{q})=\mathbf{n}_i^\top\mathbf{s}_b(\mathbf{q})\)</span>.
+Using the clamped incidence <span class="math notranslate nohighlight">\(\cos^+\gamma_i=\max(0,\cos\gamma_i)\)</span>, its derivative is</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\frac{\partial \cos^+\gamma_i}{\partial \mathbf{q}}
+\;=\;
+H\!\big(\cos\gamma_i\big)\;
+\mathbf{n}_i^\top\frac{\partial \mathbf{s}_b}{\partial \mathbf{q}},\]</div>
+</div>
+<p>where <span class="math notranslate nohighlight">\(H(\cdot)\)</span> is the Heaviside function (subgradient at zero).
+With</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[m_{s,i} = A_i(\eta_a+\eta_d)\,\cos^+\gamma_i, \qquad
+m_{n,i} = A_i\!\left(2\,\eta_s(\cos^+\gamma_i)^2 + \tfrac{2}{3}\eta_d\right),\]</div>
+</div>
+<p>the Jacobian follows from the product rule</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\frac{\partial \mathbf{T}_{\mathrm{SRP}}}{\partial \mathbf{q}}
+\;=\;
+-\frac{S_0}{c}\sum_i \Big[
+    \frac{\partial m_{s,i}}{\partial \mathbf{q}}\,
+    (\mathbf{r}_i-\mathbf{r}_{\mathrm{COM}})\times \mathbf{s}_b
+    \;+\;
+    m_{s,i}\,(\mathbf{r}_i-\mathbf{r}_{\mathrm{COM}})\times
+    \frac{\partial \mathbf{s}_b}{\partial \mathbf{q}}
+    \;+\;
+    \frac{\partial m_{n,i}}{\partial \mathbf{q}}\,
+    (\mathbf{r}_i-\mathbf{r}_{\mathrm{COM}})\times \mathbf{n}_i
+\Big],\]</div>
+</div>
+<p>with</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\frac{\partial m_{s,i}}{\partial \mathbf{q}}
+= A_i(\eta_a+\eta_d)\,H(\cos\gamma_i)\,
+\mathbf{n}_i^\top\frac{\partial \mathbf{s}_b}{\partial \mathbf{q}}, \qquad
+\frac{\partial m_{n,i}}{\partial \mathbf{q}}
+= A_i\Big[
+    4\eta_s\,\cos^+\gamma_i\,H(\cos\gamma_i)\,
+    \mathbf{n}_i^\top\frac{\partial \mathbf{s}_b}{\partial \mathbf{q}}
+\Big].\]</div>
+</div>
+<p>In code, <span class="math notranslate nohighlight">\(\frac{\partial \mathbf{s}_b}{\partial \mathbf{q}}\)</span>
+is produced via <a class="reference internal" href="ADCS.helpers.math_helpers.html#ADCS.helpers.math_helpers.normed_vec_jac" title="ADCS.helpers.math_helpers.normed_vec_jac"><code class="xref py py-func docutils literal notranslate"><span class="pre">normed_vec_jac()</span></code></a>
+applied to <span class="math notranslate nohighlight">\(\mathbf{S}_b-\mathbf{R}_b\)</span>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sat</strong> (<a class="reference internal" href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite" title="ADCS.satellite_hardware.satellite.satellite.Satellite"><code class="xref py py-class docutils literal notranslate"><span class="pre">Satellite</span></code></a>) – Satellite instance providing the COM location.</p></li>
+<li><p><strong>x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Full spacecraft state containing the quaternion <span class="math notranslate nohighlight">\(\mathbf{q}\)</span>.</p></li>
+<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbital_State</span></code></a>) – Provides <span class="math notranslate nohighlight">\(\mathbf{S}_b, \mathbf{R}_b\)</span> and their quaternion derivatives.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Jacobian matrix <code class="docutils literal notranslate"><span class="pre">∂T_SRP/∂q</span></code>, shape <code class="docutils literal notranslate"><span class="pre">(3,</span> <span class="pre">4)</span></code>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.disturbances.srp_disturbance.SRP_Disturbance.torque_qqhess">
+<span class="sig-name descname"><span class="pre">torque_qqhess</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/disturbances/srp_disturbance.html#SRP_Disturbance.torque_qqhess"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.disturbances.srp_disturbance.SRP_Disturbance.torque_qqhess" title="Link to this definition">¶</a></dt>
+<dd><p>Hessian of the <strong>SRP torque</strong> with respect to the <strong>attitude quaternion</strong>.</p>
+<p>Let <span class="math notranslate nohighlight">\(\mathbf{q}\)</span> be the attitude quaternion and abbreviate
+<span class="math notranslate nohighlight">\(\mathbf{r}_i'=\mathbf{r}_i-\mathbf{r}_{\mathrm{COM}}\)</span>,
+<span class="math notranslate nohighlight">\(\mathbf{s}_b=\mathbf{s}_b(\mathbf{q})\)</span>,
+<span class="math notranslate nohighlight">\(\cos^+\gamma_i=\max(0,\mathbf{n}_i^\top\mathbf{s}_b)\)</span>.
+Using the Jacobian in <a class="reference internal" href="#ADCS.satellite_hardware.disturbances.srp_disturbance.SRP_Disturbance.torque_qjav" title="ADCS.satellite_hardware.disturbances.srp_disturbance.SRP_Disturbance.torque_qjav"><code class="xref py py-meth docutils literal notranslate"><span class="pre">torque_qjav()</span></code></a> and the product rule, the second derivative is</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\frac{\partial^2 \mathbf{T}_{\mathrm{SRP}}}{\partial \mathbf{q}^2}
+\;=\;
+-\frac{S_0}{c}\sum_i \Big[
+    \frac{\partial^2 m_{s,i}}{\partial \mathbf{q}^2}\,
+    (\mathbf{r}_i'\times \mathbf{s}_b)
+    \;+\;
+    2\,\frac{\partial m_{s,i}}{\partial \mathbf{q}}\times
+    \frac{\partial (\mathbf{r}_i'\times \mathbf{s}_b)}{\partial \mathbf{q}}
+    \;+\;
+    m_{s,i}\,\mathbf{r}_i'\times
+    \frac{\partial^2 \mathbf{s}_b}{\partial \mathbf{q}^2}
+    \;+\;
+    \frac{\partial^2 m_{n,i}}{\partial \mathbf{q}^2}\,
+    (\mathbf{r}_i'\times \mathbf{n}_i)
+\Big],\]</div>
+</div>
+<p>where the terms involving <span class="math notranslate nohighlight">\(\cos^+\gamma_i\)</span> inherit a Heaviside factor
+<span class="math notranslate nohighlight">\(H(\cos\gamma_i)\)</span> and are undefined exactly at <span class="math notranslate nohighlight">\(\cos\gamma_i=0\)</span>
+(a measure-zero set in practice). The implementation follows this structure by
+building first- and second-order derivatives of the clamped incidence and of
+<span class="math notranslate nohighlight">\(\mathbf{s}_b(\mathbf{q})\)</span>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sat</strong> (<a class="reference internal" href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite" title="ADCS.satellite_hardware.satellite.satellite.Satellite"><code class="xref py py-class docutils literal notranslate"><span class="pre">Satellite</span></code></a>) – Satellite instance providing the COM location.</p></li>
+<li><p><strong>x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Full spacecraft state containing the quaternion <span class="math notranslate nohighlight">\(\mathbf{q}\)</span>.</p></li>
+<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbital_State</span></code></a>) – Provides <span class="math notranslate nohighlight">\(\mathbf{S}_b, \mathbf{R}_b\)</span> and their first/second quaternion derivatives.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Quaternion Hessian tensor of the SRP torque, shape <code class="docutils literal notranslate"><span class="pre">(3,</span> <span class="pre">4,</span> <span class="pre">4)</span></code>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 
         </article>
@@ -375,8 +644,36 @@
         
       </footer>
     </div>
-    <aside class="toc-drawer no-toc">
+    <aside class="toc-drawer">
       
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">ADCS.satellite_hardware.disturbances.srp_disturbance module</a><ul>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.disturbances.srp_disturbance.SRP_Disturbance"><code class="docutils literal notranslate"><span class="pre">SRP_Disturbance</span></code></a><ul>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.disturbances.srp_disturbance.SRP_Disturbance.numfaces"><code class="docutils literal notranslate"><span class="pre">numfaces</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.disturbances.srp_disturbance.SRP_Disturbance.areas"><code class="docutils literal notranslate"><span class="pre">areas</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.disturbances.srp_disturbance.SRP_Disturbance.centroids"><code class="docutils literal notranslate"><span class="pre">centroids</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.disturbances.srp_disturbance.SRP_Disturbance.normals"><code class="docutils literal notranslate"><span class="pre">normals</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.disturbances.srp_disturbance.SRP_Disturbance.torque"><code class="docutils literal notranslate"><span class="pre">torque()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.disturbances.srp_disturbance.SRP_Disturbance.torque_qjav"><code class="docutils literal notranslate"><span class="pre">torque_qjav()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.disturbances.srp_disturbance.SRP_Disturbance.torque_qqhess"><code class="docutils literal notranslate"><span class="pre">torque_qqhess()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
       
       
     </aside>
@@ -385,5 +682,6 @@
     <script src="_static/doctools.js?v=9bcbadda"></script>
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/scripts/furo.js?v=46bd48cc"></script>
+    <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     </body>
 </html>

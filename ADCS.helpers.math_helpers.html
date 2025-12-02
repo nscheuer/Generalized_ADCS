@@ -174,7 +174,7 @@
           <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
         </button>
       </div>
-      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
         <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
       </label>
     </div>
@@ -323,13 +323,542 @@
               <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
             </button>
           </div>
-          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
             <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <section id="adcs-helpers-math-helpers-module">
-<h1>ADCS.helpers.math_helpers module<a class="headerlink" href="#adcs-helpers-math-helpers-module" title="Link to this heading">¶</a></h1>
+          <section id="module-ADCS.helpers.math_helpers">
+<span id="adcs-helpers-math-helpers-module"></span><h1>ADCS.helpers.math_helpers module<a class="headerlink" href="#module-ADCS.helpers.math_helpers" title="Link to this heading">¶</a></h1>
+<section id="quaternion-utils-py">
+<h2>quaternion_utils.py<a class="headerlink" href="#quaternion-utils-py" title="Link to this heading">¶</a></h2>
+<p>Core quaternion and rotation math utilities for the ADCS framework.</p>
+<p>This module provides quaternion algebra, rotation matrix conversions,
+and associated differential operations such as Jacobians and Hessians.</p>
+<p>All functions are standalone and compatible with onboard estimator
+and simulator modules.</p>
+</section>
+<dl class="py function">
+<dt class="sig sig-object py" id="ADCS.helpers.math_helpers.Wmat">
+<span class="sig-prename descclassname"><span class="pre">ADCS.helpers.math_helpers.</span></span><span class="sig-name descname"><span class="pre">Wmat</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">q</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/helpers/math_helpers.html#Wmat"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.helpers.math_helpers.Wmat" title="Link to this definition">¶</a></dt>
+<dd><p>Compute the quaternion kinematic matrix <span class="math notranslate nohighlight">\(\mathbf{W}(\mathbf{q})\)</span>
+such that:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\dot{\mathbf{q}} = \tfrac{1}{2}\,\mathbf{W}(\mathbf{q})\,\boldsymbol{\omega}\]</div>
+</div>
+<p>where <span class="math notranslate nohighlight">\(\boldsymbol{\omega}\)</span> is the angular velocity in body frame.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>q</strong> (<em>numpy.ndarray</em><em>, </em><em>shape</em><em> (</em><em>4</em><em>,</em><em>)</em>) – Quaternion in Hamilton form.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>W</strong> – Quaternion kinematic matrix.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray, shape (4, 3)</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>The derivative satisfies <span class="math notranslate nohighlight">\(\dot{\mathbf{q}} = \frac{1}{2}W(q)\omega\)</span>.</p></li>
+<li><p>Consistent with the same quaternion convention as <a class="reference internal" href="#ADCS.helpers.math_helpers.rot_mat" title="ADCS.helpers.math_helpers.rot_mat"><code class="xref py py-func docutils literal notranslate"><span class="pre">rot_mat()</span></code></a>.</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ADCS.helpers.math_helpers.cayley_to_quat">
+<span class="sig-prename descclassname"><span class="pre">ADCS.helpers.math_helpers.</span></span><span class="sig-name descname"><span class="pre">cayley_to_quat</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cly</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/helpers/math_helpers.html#cayley_to_quat"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.helpers.math_helpers.cayley_to_quat" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ADCS.helpers.math_helpers.ddrotmatTvecdqdq">
+<span class="sig-prename descclassname"><span class="pre">ADCS.helpers.math_helpers.</span></span><span class="sig-name descname"><span class="pre">ddrotmatTvecdqdq</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">q</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">v</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/helpers/math_helpers.html#ddrotmatTvecdqdq"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.helpers.math_helpers.ddrotmatTvecdqdq" title="Link to this definition">¶</a></dt>
+<dd><p>Compute the second derivative (Hessian) of
+<span class="math notranslate nohighlight">\(\mathbf{R}^\top(\mathbf{q})\mathbf{v}\)</span> with respect to the quaternion.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>q</strong> (<em>numpy.ndarray</em><em>, </em><em>shape</em><em> (</em><em>4</em><em>,</em><em>)</em>) – Quaternion.</p></li>
+<li><p><strong>v</strong> (<em>numpy.ndarray</em><em>, </em><em>shape</em><em> (</em><em>3</em><em>,</em><em>)</em>) – Vector to be rotated.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>H</strong> – Hessian of rotated vector with respect to quaternion.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray, shape (4, 4, 3)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ADCS.helpers.math_helpers.drotmatTvecdq">
+<span class="sig-prename descclassname"><span class="pre">ADCS.helpers.math_helpers.</span></span><span class="sig-name descname"><span class="pre">drotmatTvecdq</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">q</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">v</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/helpers/math_helpers.html#drotmatTvecdq"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.helpers.math_helpers.drotmatTvecdq" title="Link to this definition">¶</a></dt>
+<dd><p>Compute the derivative of the rotated vector
+<span class="math notranslate nohighlight">\(\mathbf{v}_B = \mathbf{R}^\top(\mathbf{q}) \mathbf{v}\)</span>
+with respect to the quaternion <span class="math notranslate nohighlight">\(\mathbf{q}\)</span>.</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\begin{split}\frac{\partial (\mathbf{R}^\top(\mathbf{q}) \mathbf{v})}{\partial \mathbf{q}}
+= 2
+\begin{bmatrix}
+q_0\,\mathbf{v} - \boldsymbol{q}_v \times \mathbf{v} \\
+(\boldsymbol{q}_v \cdot \mathbf{v})\mathbf{I}_3
+- \boldsymbol{q}_v \mathbf{v}^\top
++ \mathbf{v}\boldsymbol{q}_v^\top
+- q_0\,\text{skew}(\mathbf{v})
+\end{bmatrix}\end{split}\]</div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>q</strong> (<em>numpy.ndarray</em><em>, </em><em>shape</em><em> (</em><em>4</em><em>,</em><em>)</em>) – Quaternion in Hamilton form.</p></li>
+<li><p><strong>v</strong> (<em>numpy.ndarray</em><em>, </em><em>shape</em><em> (</em><em>3</em><em>,</em><em>)</em>) – Vector to be rotated.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>dRBTv__dq</strong> – Partial derivative of <span class="math notranslate nohighlight">\(\mathbf{R}^\top(\mathbf{q})\mathbf{v}\)</span> w.r.t. quaternion.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray, shape (4, 3)</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>Used for computing Jacobians of disturbance torques or forces.</p></li>
+<li><p><a class="reference internal" href="#ADCS.helpers.math_helpers.skewsym" title="ADCS.helpers.math_helpers.skewsym"><code class="xref py py-func docutils literal notranslate"><span class="pre">skewsym()</span></code></a> builds the skew-symmetric cross-product matrix.</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ADCS.helpers.math_helpers.limit">
+<span class="sig-prename descclassname"><span class="pre">ADCS.helpers.math_helpers.</span></span><span class="sig-name descname"><span class="pre">limit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">umax</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/helpers/math_helpers.html#limit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.helpers.math_helpers.limit" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ADCS.helpers.math_helpers.matrix_row_norm">
+<span class="sig-prename descclassname"><span class="pre">ADCS.helpers.math_helpers.</span></span><span class="sig-name descname"><span class="pre">matrix_row_norm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">m</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/helpers/math_helpers.html#matrix_row_norm"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.helpers.math_helpers.matrix_row_norm" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>m</strong> (<em>ndarray</em>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>ndarray</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ADCS.helpers.math_helpers.matrix_row_normalize">
+<span class="sig-prename descclassname"><span class="pre">ADCS.helpers.math_helpers.</span></span><span class="sig-name descname"><span class="pre">matrix_row_normalize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">m</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/helpers/math_helpers.html#matrix_row_normalize"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.helpers.math_helpers.matrix_row_normalize" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>m</strong> (<em>ndarray</em>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>ndarray</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ADCS.helpers.math_helpers.mrp_to_quat">
+<span class="sig-prename descclassname"><span class="pre">ADCS.helpers.math_helpers.</span></span><span class="sig-name descname"><span class="pre">mrp_to_quat</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mrp</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/helpers/math_helpers.html#mrp_to_quat"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.helpers.math_helpers.mrp_to_quat" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ADCS.helpers.math_helpers.norm">
+<span class="sig-prename descclassname"><span class="pre">ADCS.helpers.math_helpers.</span></span><span class="sig-name descname"><span class="pre">norm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">v</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/helpers/math_helpers.html#norm"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.helpers.math_helpers.norm" title="Link to this definition">¶</a></dt>
+<dd><p>Compute the Euclidean norm of a vector.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>v</strong> (<em>numpy.ndarray</em>) – Input vector.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>n</strong> – Euclidean norm (magnitude) of the vector.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ADCS.helpers.math_helpers.normalize">
+<span class="sig-prename descclassname"><span class="pre">ADCS.helpers.math_helpers.</span></span><span class="sig-name descname"><span class="pre">normalize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">v</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/helpers/math_helpers.html#normalize"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.helpers.math_helpers.normalize" title="Link to this definition">¶</a></dt>
+<dd><p>Normalize a vector to unit length.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>v</strong> (<em>ndarray</em>) – Input vector <span class="math notranslate nohighlight">\(\mathbf{v}\)</span>.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Normalized vector
+<span class="math notranslate nohighlight">\(\hat{\mathbf{v}} = \frac{\mathbf{v}}{\|\mathbf{v}\|}\)</span>.
+If <span class="math notranslate nohighlight">\(\|\mathbf{v}\|=0\)</span>, the zero vector is returned unchanged.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ADCS.helpers.math_helpers.normed_vec_hess">
+<span class="sig-prename descclassname"><span class="pre">ADCS.helpers.math_helpers.</span></span><span class="sig-name descname"><span class="pre">normed_vec_hess</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">v</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dv</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ddv</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/helpers/math_helpers.html#normed_vec_hess"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.helpers.math_helpers.normed_vec_hess" title="Link to this definition">¶</a></dt>
+<dd><p>Compute the Hessian of the normalized vector <span class="math notranslate nohighlight">\(\hat{\mathbf{v}}\)</span>.</p>
+<p>The second derivative tensor satisfies</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\frac{\partial^2 \hat{\mathbf{v}}}{\partial v_i\,\partial v_j}
+= -\frac{v_i\,\mathbf{I}+v_j\,\mathbf{I}}{\|\mathbf{v}\|^3}
+  + 3\,\frac{\mathbf{v}v_i v_j}{\|\mathbf{v}\|^5},\]</div>
+</div>
+<p>which is symmetrized across indices.
+When external derivatives <code class="docutils literal notranslate"><span class="pre">dv</span></code> and <code class="docutils literal notranslate"><span class="pre">ddv</span></code> are provided,
+the chain rule is applied to yield the composed Hessian.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>v</strong> (<em>ndarray</em>) – Vector <span class="math notranslate nohighlight">\(\mathbf{v}\)</span>.</p></li>
+<li><p><strong>dv</strong> (<em>ndarray</em><em>, </em><em>optional</em>) – Jacobian of <span class="math notranslate nohighlight">\(\mathbf{v}\)</span> with respect to higher variables.</p></li>
+<li><p><strong>ddv</strong> (<em>ndarray</em><em>, </em><em>optional</em>) – Hessian of <span class="math notranslate nohighlight">\(\mathbf{v}\)</span> with respect to higher variables.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The Hessian tensor <span class="math notranslate nohighlight">\(\partial^2 \hat{\mathbf{v}}/\partial \mathbf{v}^2\)</span>
+or its propagated form using <code class="docutils literal notranslate"><span class="pre">dv</span></code>/<code class="docutils literal notranslate"><span class="pre">ddv</span></code>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ADCS.helpers.math_helpers.normed_vec_jac">
+<span class="sig-prename descclassname"><span class="pre">ADCS.helpers.math_helpers.</span></span><span class="sig-name descname"><span class="pre">normed_vec_jac</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">v</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dv</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/helpers/math_helpers.html#normed_vec_jac"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.helpers.math_helpers.normed_vec_jac" title="Link to this definition">¶</a></dt>
+<dd><p>Compute the Jacobian of the normalized vector <span class="math notranslate nohighlight">\(\hat{\mathbf{v}}\)</span>.</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\frac{\partial \hat{\mathbf{v}}}{\partial \mathbf{v}}
+= \frac{1}{\|\mathbf{v}\|}\mathbf{I}
+- \frac{\mathbf{v}\mathbf{v}^\mathsf{T}}{\|\mathbf{v}\|^3}.\]</div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>v</strong> (<em>ndarray</em>) – Vector <span class="math notranslate nohighlight">\(\mathbf{v}\)</span> whose normalized derivative is taken.</p></li>
+<li><p><strong>dv</strong> (<em>ndarray</em><em>, </em><em>optional</em>) – External Jacobian of <span class="math notranslate nohighlight">\(\mathbf{v}\)</span> to be post-multiplied
+by the above term, if provided.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The Jacobian <span class="math notranslate nohighlight">\(\partial \hat{\mathbf{v}}/\partial \mathbf{v}\)</span>
+(or <code class="docutils literal notranslate"><span class="pre">dv</span> <span class="pre">&#64;</span> <span class="pre">dndv</span></code> if <code class="docutils literal notranslate"><span class="pre">dv</span></code> is supplied).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ADCS.helpers.math_helpers.quat_inv">
+<span class="sig-prename descclassname"><span class="pre">ADCS.helpers.math_helpers.</span></span><span class="sig-name descname"><span class="pre">quat_inv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">q</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/helpers/math_helpers.html#quat_inv"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.helpers.math_helpers.quat_inv" title="Link to this definition">¶</a></dt>
+<dd><p>Compute the inverse (conjugate) of a quaternion.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>q</strong> (<em>numpy.ndarray</em><em>, </em><em>shape</em><em> (</em><em>4</em><em>,</em><em>)</em>) – Quaternion.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>q_inv</strong> – Inverse quaternion <span class="math notranslate nohighlight">\(q^{-1}\)</span>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray, shape (4,)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ADCS.helpers.math_helpers.quat_mult">
+<span class="sig-prename descclassname"><span class="pre">ADCS.helpers.math_helpers.</span></span><span class="sig-name descname"><span class="pre">quat_mult</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">extra</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/helpers/math_helpers.html#quat_mult"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.helpers.math_helpers.quat_mult" title="Link to this definition">¶</a></dt>
+<dd><p>Multiply one or more quaternions using the <strong>Hamilton product</strong>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>p</strong> (<em>numpy.ndarray</em><em>, </em><em>shape</em><em> (</em><em>4</em><em>,</em><em>)</em>) – Input quaternions.</p></li>
+<li><p><strong>q</strong> (<em>numpy.ndarray</em><em>, </em><em>shape</em><em> (</em><em>4</em><em>,</em><em>)</em>) – Input quaternions.</p></li>
+<li><p><strong>*extra</strong> (<em>numpy.ndarray</em><em> or </em><em>list</em>) – Additional quaternions to multiply.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>pq</strong> – Resulting quaternion from successive multiplications.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray, shape (4,)</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – If input arguments are not valid quaternions.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ADCS.helpers.math_helpers.quat_to_cayley">
+<span class="sig-prename descclassname"><span class="pre">ADCS.helpers.math_helpers.</span></span><span class="sig-name descname"><span class="pre">quat_to_cayley</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">quat</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/helpers/math_helpers.html#quat_to_cayley"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.helpers.math_helpers.quat_to_cayley" title="Link to this definition">¶</a></dt>
+<dd><p>Convert a quaternion to <strong>Cayley parameters</strong>.</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\mathbf{p} = \frac{\boldsymbol{q}_v}{q_0}\]</div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>quat</strong> (<em>numpy.ndarray</em><em>, </em><em>shape</em><em> (</em><em>4</em><em>,</em><em>)</em>) – Quaternion in Hamilton form.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>p</strong> – Cayley parameters.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray, shape (3,)</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>Ensures nonzero scalar part by applying a numerical epsilon if needed.</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ADCS.helpers.math_helpers.quat_to_euler">
+<span class="sig-prename descclassname"><span class="pre">ADCS.helpers.math_helpers.</span></span><span class="sig-name descname"><span class="pre">quat_to_euler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">q</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/helpers/math_helpers.html#quat_to_euler"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.helpers.math_helpers.quat_to_euler" title="Link to this definition">¶</a></dt>
+<dd><p>Convert quaternion to Euler angles [deg].</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>q</strong> (<em>ndarray</em>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>ndarray</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ADCS.helpers.math_helpers.quat_to_mrp">
+<span class="sig-prename descclassname"><span class="pre">ADCS.helpers.math_helpers.</span></span><span class="sig-name descname"><span class="pre">quat_to_mrp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">quat</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/helpers/math_helpers.html#quat_to_mrp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.helpers.math_helpers.quat_to_mrp" title="Link to this definition">¶</a></dt>
+<dd><p>Convert a quaternion to <strong>Modified Rodrigues parameters (MRP)</strong>.</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\boldsymbol{\sigma} = \frac{2\boldsymbol{q}_v}{1 + q_0}\]</div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>quat</strong> (<em>numpy.ndarray</em><em>, </em><em>shape</em><em> (</em><em>4</em><em>,</em><em>)</em>) – Quaternion in Hamilton form.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>sigma</strong> – Modified Rodrigues parameters.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray, shape (3,)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ADCS.helpers.math_helpers.quat_to_vec3">
+<span class="sig-prename descclassname"><span class="pre">ADCS.helpers.math_helpers.</span></span><span class="sig-name descname"><span class="pre">quat_to_vec3</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">quat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/helpers/math_helpers.html#quat_to_vec3"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.helpers.math_helpers.quat_to_vec3" title="Link to this definition">¶</a></dt>
+<dd><p>Convert a quaternion to a 3D attitude parameter vector according to mode.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>quat</strong> (<em>numpy.ndarray</em><em>, </em><em>shape</em><em> (</em><em>4</em><em>,</em><em>)</em>) – Quaternion.</p></li>
+<li><p><strong>mode</strong> (<em>int</em>) – <p>Conversion mode:</p>
+<ul>
+<li><p>6 → 2×MRP (with positive scalar part)</p></li>
+<li><p>5 → 2×MRP</p></li>
+<li><p>4 → Vector component</p></li>
+<li><p>3 → Vector component (positive scalar)</p></li>
+<li><p>2 → Cayley parameters</p></li>
+<li><p>1 → MRP</p></li>
+<li><p>0 → Default: MRP (positive scalar)</p></li>
+</ul>
+</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>v</strong> – Equivalent attitude parameter vector.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray, shape (3,)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ADCS.helpers.math_helpers.random_n_unit_vec">
+<span class="sig-prename descclassname"><span class="pre">ADCS.helpers.math_helpers.</span></span><span class="sig-name descname"><span class="pre">random_n_unit_vec</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/helpers/math_helpers.html#random_n_unit_vec"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.helpers.math_helpers.random_n_unit_vec" title="Link to this definition">¶</a></dt>
+<dd><p>Generate a random unit-norm vector in <span class="math notranslate nohighlight">\(\mathbb{R}^n\)</span>.</p>
+<p>The components are sampled from a standard normal distribution and normalized:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\mathbf{v} = \frac{\mathbf{z}}{\|\mathbf{z}\|},
+\qquad  z_i \sim \mathcal{N}(0,1).\]</div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>n</strong> (<em>int</em>) – Dimension of the vector space.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A random unit vector <span class="math notranslate nohighlight">\(\mathbf{v}\in\mathbb{R}^n\)</span>
+with <span class="math notranslate nohighlight">\(\|\mathbf{v}\|=1\)</span>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ADCS.helpers.math_helpers.rot_exp">
+<span class="sig-prename descclassname"><span class="pre">ADCS.helpers.math_helpers.</span></span><span class="sig-name descname"><span class="pre">rot_exp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">v</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/helpers/math_helpers.html#rot_exp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.helpers.math_helpers.rot_exp" title="Link to this definition">¶</a></dt>
+<dd><p>Compute the exponential map <span class="math notranslate nohighlight">\(\exp(\frac{\phi}{2}\hat{\mathbf{u}})\)</span>
+to obtain a quaternion from a rotation vector.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>v</strong> (<em>numpy.ndarray</em><em>, </em><em>shape</em><em> (</em><em>3</em><em>,</em><em>)</em>) – Rotation vector <span class="math notranslate nohighlight">\(\boldsymbol{\phi}\)</span> (axis × angle).</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>q</strong> – Quaternion representing the rotation.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray, shape (4,)</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>For <span class="math notranslate nohighlight">\(\|\boldsymbol{\phi}\| = 0\)</span>, returns identity quaternion.</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ADCS.helpers.math_helpers.rot_mat">
+<span class="sig-prename descclassname"><span class="pre">ADCS.helpers.math_helpers.</span></span><span class="sig-name descname"><span class="pre">rot_mat</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">q</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/helpers/math_helpers.html#rot_mat"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.helpers.math_helpers.rot_mat" title="Link to this definition">¶</a></dt>
+<dd><p>Compute the direction cosine matrix (rotation matrix) corresponding
+to a given quaternion, using the <strong>Hamilton convention</strong>.</p>
+<p>This defines the rotation from <strong>body frame → inertial (ECI) frame</strong>, so
+the returned matrix <span class="math notranslate nohighlight">\(\mathbf{A}\)</span> transforms body-frame vectors
+into the inertial frame:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\mathbf{v}_{\text{ECI}} = \mathbf{A}\,\mathbf{v}_{\text{body}}\]</div>
+</div>
+<p>Conversely, to rotate from ECI to body frame, use <span class="math notranslate nohighlight">\(\mathbf{A}^\top\)</span>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>q</strong> (<em>numpy.ndarray</em><em>, </em><em>shape</em><em> (</em><em>4</em><em>,</em><em>)</em>) – Quaternion in Hamilton form, <span class="math notranslate nohighlight">\([q_0, q_1, q_2, q_3]\)</span>, normalized.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>A</strong> – Direction cosine matrix mapping body-frame vectors to ECI frame.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray, shape (3, 3)</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>Quaternion follows Hamilton convention with scalar first.</p></li>
+<li><p><span class="math notranslate nohighlight">\(q_0\)</span> is the scalar part, <span class="math notranslate nohighlight">\([q_1, q_2, q_3]\)</span> are the vector parts.</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ADCS.helpers.math_helpers.skewsym">
+<span class="sig-prename descclassname"><span class="pre">ADCS.helpers.math_helpers.</span></span><span class="sig-name descname"><span class="pre">skewsym</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">v</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/helpers/math_helpers.html#skewsym"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.helpers.math_helpers.skewsym" title="Link to this definition">¶</a></dt>
+<dd><p>Return the skew-symmetric matrix corresponding to a 3D vector.</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\begin{split}\text{skew}(\mathbf{v}) =
+\begin{bmatrix}
+0 &amp; -v_3 &amp; v_2 \\
+v_3 &amp; 0 &amp; -v_1 \\
+-v_2 &amp; v_1 &amp; 0
+\end{bmatrix}\end{split}\]</div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>v</strong> (<em>numpy.ndarray</em><em>, </em><em>shape</em><em> (</em><em>3</em><em>,</em><em>)</em>) – 3D vector.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>S</strong> – Skew-symmetric matrix such that <span class="math notranslate nohighlight">\(S\mathbf{a} = \mathbf{v} \times \mathbf{a}\)</span>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray, shape (3, 3)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ADCS.helpers.math_helpers.square_mat_sections">
+<span class="sig-prename descclassname"><span class="pre">ADCS.helpers.math_helpers.</span></span><span class="sig-name descname"><span class="pre">square_mat_sections</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vals</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/helpers/math_helpers.html#square_mat_sections"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.helpers.math_helpers.square_mat_sections" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mat</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>vals</strong> (<em>ndarray</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ADCS.helpers.math_helpers.state_norm_jac">
+<span class="sig-prename descclassname"><span class="pre">ADCS.helpers.math_helpers.</span></span><span class="sig-name descname"><span class="pre">state_norm_jac</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xk</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/helpers/math_helpers.html#state_norm_jac"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.helpers.math_helpers.state_norm_jac" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ADCS.helpers.math_helpers.vec3_to_quat">
+<span class="sig-prename descclassname"><span class="pre">ADCS.helpers.math_helpers.</span></span><span class="sig-name descname"><span class="pre">vec3_to_quat</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">v3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/helpers/math_helpers.html#vec3_to_quat"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.helpers.math_helpers.vec3_to_quat" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ADCS.helpers.math_helpers.vec_norm_hess">
+<span class="sig-prename descclassname"><span class="pre">ADCS.helpers.math_helpers.</span></span><span class="sig-name descname"><span class="pre">vec_norm_hess</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">v</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dv</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ddv</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/helpers/math_helpers.html#vec_norm_hess"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.helpers.math_helpers.vec_norm_hess" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>v</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>dv</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>ddv</strong> (<em>ndarray</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>ndarray</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ADCS.helpers.math_helpers.vec_norm_jac">
+<span class="sig-prename descclassname"><span class="pre">ADCS.helpers.math_helpers.</span></span><span class="sig-name descname"><span class="pre">vec_norm_jac</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">v</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dv</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/helpers/math_helpers.html#vec_norm_jac"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.helpers.math_helpers.vec_norm_jac" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>v</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>dv</strong> (<em>ndarray</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>ndarray</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ADCS.helpers.math_helpers.wahbas_svd">
+<span class="sig-prename descclassname"><span class="pre">ADCS.helpers.math_helpers.</span></span><span class="sig-name descname"><span class="pre">wahbas_svd</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">weights</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">body</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inertial</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/helpers/math_helpers.html#wahbas_svd"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.helpers.math_helpers.wahbas_svd" title="Link to this definition">¶</a></dt>
+<dd><p>Solves Wahba’s problem using SVD and returns a quaternion [q0, q1, q2, q3].</p>
+</dd></dl>
+
 </section>
 
         </article>
@@ -375,8 +904,55 @@
         
       </footer>
     </div>
-    <aside class="toc-drawer no-toc">
+    <aside class="toc-drawer">
       
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">ADCS.helpers.math_helpers module</a><ul>
+<li><a class="reference internal" href="#quaternion-utils-py">quaternion_utils.py</a></li>
+<li><a class="reference internal" href="#ADCS.helpers.math_helpers.Wmat"><code class="docutils literal notranslate"><span class="pre">Wmat()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.helpers.math_helpers.cayley_to_quat"><code class="docutils literal notranslate"><span class="pre">cayley_to_quat()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.helpers.math_helpers.ddrotmatTvecdqdq"><code class="docutils literal notranslate"><span class="pre">ddrotmatTvecdqdq()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.helpers.math_helpers.drotmatTvecdq"><code class="docutils literal notranslate"><span class="pre">drotmatTvecdq()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.helpers.math_helpers.limit"><code class="docutils literal notranslate"><span class="pre">limit()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.helpers.math_helpers.matrix_row_norm"><code class="docutils literal notranslate"><span class="pre">matrix_row_norm()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.helpers.math_helpers.matrix_row_normalize"><code class="docutils literal notranslate"><span class="pre">matrix_row_normalize()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.helpers.math_helpers.mrp_to_quat"><code class="docutils literal notranslate"><span class="pre">mrp_to_quat()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.helpers.math_helpers.norm"><code class="docutils literal notranslate"><span class="pre">norm()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.helpers.math_helpers.normalize"><code class="docutils literal notranslate"><span class="pre">normalize()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.helpers.math_helpers.normed_vec_hess"><code class="docutils literal notranslate"><span class="pre">normed_vec_hess()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.helpers.math_helpers.normed_vec_jac"><code class="docutils literal notranslate"><span class="pre">normed_vec_jac()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.helpers.math_helpers.quat_inv"><code class="docutils literal notranslate"><span class="pre">quat_inv()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.helpers.math_helpers.quat_mult"><code class="docutils literal notranslate"><span class="pre">quat_mult()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.helpers.math_helpers.quat_to_cayley"><code class="docutils literal notranslate"><span class="pre">quat_to_cayley()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.helpers.math_helpers.quat_to_euler"><code class="docutils literal notranslate"><span class="pre">quat_to_euler()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.helpers.math_helpers.quat_to_mrp"><code class="docutils literal notranslate"><span class="pre">quat_to_mrp()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.helpers.math_helpers.quat_to_vec3"><code class="docutils literal notranslate"><span class="pre">quat_to_vec3()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.helpers.math_helpers.random_n_unit_vec"><code class="docutils literal notranslate"><span class="pre">random_n_unit_vec()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.helpers.math_helpers.rot_exp"><code class="docutils literal notranslate"><span class="pre">rot_exp()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.helpers.math_helpers.rot_mat"><code class="docutils literal notranslate"><span class="pre">rot_mat()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.helpers.math_helpers.skewsym"><code class="docutils literal notranslate"><span class="pre">skewsym()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.helpers.math_helpers.square_mat_sections"><code class="docutils literal notranslate"><span class="pre">square_mat_sections()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.helpers.math_helpers.state_norm_jac"><code class="docutils literal notranslate"><span class="pre">state_norm_jac()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.helpers.math_helpers.vec3_to_quat"><code class="docutils literal notranslate"><span class="pre">vec3_to_quat()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.helpers.math_helpers.vec_norm_hess"><code class="docutils literal notranslate"><span class="pre">vec_norm_hess()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.helpers.math_helpers.vec_norm_jac"><code class="docutils literal notranslate"><span class="pre">vec_norm_jac()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.helpers.math_helpers.wahbas_svd"><code class="docutils literal notranslate"><span class="pre">wahbas_svd()</span></code></a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
       
       
     </aside>
@@ -385,5 +961,6 @@
     <script src="_static/doctools.js?v=9bcbadda"></script>
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/scripts/furo.js?v=46bd48cc"></script>
+    <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     </body>
 </html>

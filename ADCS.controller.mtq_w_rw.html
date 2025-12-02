@@ -174,7 +174,7 @@
           <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
         </button>
       </div>
-      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
         <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
       </label>
     </div>
@@ -323,13 +323,236 @@
               <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
             </button>
           </div>
-          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
             <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <section id="adcs-controller-mtq-w-rw-module">
-<h1>ADCS.controller.mtq_w_rw module<a class="headerlink" href="#adcs-controller-mtq-w-rw-module" title="Link to this heading">¶</a></h1>
+          <section id="module-ADCS.controller.mtq_w_rw">
+<span id="adcs-controller-mtq-w-rw-module"></span><h1>ADCS.controller.mtq_w_rw module<a class="headerlink" href="#module-ADCS.controller.mtq_w_rw" title="Link to this heading">¶</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="ADCS.controller.mtq_w_rw.MTQ_w_RW">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ADCS.controller.mtq_w_rw.</span></span><span class="sig-name descname"><span class="pre">MTQ_w_RW</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">est_sat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">p_gain</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d_gain</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c_gain</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">h_target</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/controller/mtq_w_rw.html#MTQ_w_RW"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.controller.mtq_w_rw.MTQ_w_RW" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="ADCS.controller.controller.html#ADCS.controller.controller.Controller" title="ADCS.controller.controller.Controller"><code class="xref py py-class docutils literal notranslate"><span class="pre">Controller</span></code></a></p>
+<p>Hybrid magnetic torque and reaction wheel controller.</p>
+<p>This controller implements a three-axis ADCS control law which blends
+reaction wheel torque allocation with continuous momentum dumping via
+magnetic torquers. The implementation follows the core concepts of
+redundant wheel momentum management described by Hogan &amp; Schaub <a href="#id4"><span class="problematic" id="id1">[1]_</span></a>,
+where wheel momentum states are actively controlled to remain bounded
+using MTQ torque authority.</p>
+<p>The controller performs:</p>
+<ul class="simple">
+<li><p>quaternion-based attitude regulation or target alignment,</p></li>
+<li><p>PD angular rate feedback,</p></li>
+<li><p>reaction wheel momentum reconstruction from state,</p></li>
+<li><p>gyroscopic coupling compensation,</p></li>
+<li><p>active momentum unloading,</p></li>
+<li><p>magnetic dipole allocation via pseudo-inverse torque mapping,</p></li>
+<li><p>actuator saturation handling.</p></li>
+</ul>
+<p>The torque law can be summarized as:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\tau_{\text{att}} =
+-K_p \mathbf{q}_{\text{err}}
+-K_d (\boldsymbol{\omega} - \boldsymbol{\omega}_{\text{ref}})
++ \tau_{\text{gyro}}\]</div>
+</div>
+<p>where</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\tau_{\text{gyro}} =
+\boldsymbol{\omega} \times (J\boldsymbol{\omega} + \mathbf{h}_{rw})\]</div>
+</div>
+<p>and the commanded magnetic dipole vector <span class="math notranslate nohighlight">\(\mathbf{u}_{mtq}\)</span> is computed
+from a pseudo-inverse allocation of the momentum dumping torque</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\tau_{dump} = -K_c(\mathbf{h}_{rw} - \mathbf{h}_{tgt})\]</div>
+</div>
+<p>subject to MTQ torque constraints</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\tau_{mag} = \mathbf{u}_{mtq} \times \mathbf{B}\]</div>
+</div>
+<p>yielding the linearized form</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\tau_{mag} = -[B]_\times \, \mathbf{A}_{mtq} \, \mathbf{u}_{mtq}
+           = M_{mag} \, \mathbf{u}_{mtq}.\]</div>
+</div>
+<p>Reaction wheels apply the remaining torque after MTQ authority:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\tau_{rw} =
+\tau_{att} - \tau_{mag}.\]</div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>est_sat</strong> (<a class="reference internal" href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite" title="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite"><code class="xref py py-class docutils literal notranslate"><span class="pre">EstimatedSatellite</span></code></a>) – Estimated satellite object containing inertia, actuator geometry,
+and sensor configuration.</p></li>
+<li><p><strong>p_gain</strong> (<em>float</em>) – Proportional gain <span class="math notranslate nohighlight">\(K_p\)</span> used for quaternion error feedback.</p></li>
+<li><p><strong>d_gain</strong> (<em>float</em>) – Derivative gain <span class="math notranslate nohighlight">\(K_d\)</span> used for angular rate feedback.</p></li>
+<li><p><strong>c_gain</strong> (<em>float</em>) – Momentum dumping gain <span class="math notranslate nohighlight">\(K_c\)</span> applied to wheel momentum deviation.</p></li>
+<li><p><strong>h_target</strong> (<em>np.ndarray</em><em> (</em><em>shape:</em><em> (</em><em>3</em><em>,</em><em>)</em><em>)</em>) – Desired body-frame reaction wheel momentum target in units of
+angular momentum. Dimensionality must match the number of RW axes.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – If any dimension of <code class="docutils literal notranslate"><span class="pre">h_target</span></code> exceeds the maximum permitted
+    reaction wheel storage, as determined by
+    <code class="xref py py-attr docutils literal notranslate"><span class="pre">h_max</span></code>.</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<dl class="simple">
+<dt>This implementation assumes:</dt><dd><ul class="simple">
+<li><p>Wheel momentum states begin at index 7 of <code class="docutils literal notranslate"><span class="pre">x_hat</span></code>
+(i.e. <code class="docutils literal notranslate"><span class="pre">x_hat[7:]</span></code> maps directly to ordered RW indices)</p></li>
+<li><p>Wheel axes align with internally-tracked actuator axis vectors</p></li>
+<li><p>MTQs are torque-limited and can only generate torque orthogonal
+to the local magnetic field</p></li>
+</ul>
+</dd>
+</dl>
+<p>The pseudo-inverse allocation is robust for full tri-axial MTQ
+configurations or over-actuated cases.</p>
+<p class="rubric">References</p>
+<aside class="footnote-list brackets">
+<aside class="footnote brackets" id="id2" role="doc-footnote">
+<span class="label"><span class="fn-bracket">[</span>1<span class="fn-bracket">]</span></span>
+<p>E. A. Hogan and H. Schaub,
+<em>Three-Axis Attitude Control Using Redundant Reaction Wheels
+with Continuous Momentum Dumping</em>,
+Journal of Guidance, Control, and Dynamics, Vol. 44, No. 3, 2021.</p>
+</aside>
+</aside>
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.controller.mtq_w_rw.MTQ_w_RW.find_u">
+<span class="sig-name descname"><span class="pre">find_u</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x_hat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sens</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">est_sat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os_hat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">goal_vector_eci</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w_ref</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/controller/mtq_w_rw.html#MTQ_w_RW.find_u"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.controller.mtq_w_rw.MTQ_w_RW.find_u" title="Link to this definition">¶</a></dt>
+<dd><p>Compute actuator commands for reaction wheels and magnetic torquers.</p>
+<p>This method evaluates the sensor state, angular rate, quaternion
+orientation, and reaction wheel stored momenta to provide the hybrid
+torque solution. Magnetic torquers continuously unload reaction wheel
+momentum while reaction wheels primarily provide fine torque authority.</p>
+<p>The spacecraft wheel momentum vector is reconstructed from the state:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\mathbf{h}_{rw} =
+\sum_i h_i \, \hat{a}_i\]</div>
+</div>
+<p>where <code class="docutils literal notranslate"><span class="pre">h_i</span></code> are the scalar momentum states <code class="docutils literal notranslate"><span class="pre">x_hat[7:]</span></code> and
+<span class="math notranslate nohighlight">\(\hat{a}_i\)</span> are normalized RW axis vectors.</p>
+<p>Components of the total torque model:</p>
+<ol class="arabic">
+<li><p>Attitude stabilization
+.. math:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>\<span class="n">tau_</span><span class="p">{</span>\<span class="n">text</span><span class="p">{</span><span class="n">att</span><span class="p">}}</span> <span class="o">=</span>
+<span class="o">-</span><span class="n">K_p</span> \<span class="n">mathbf</span><span class="p">{</span><span class="n">q</span><span class="p">}</span><span class="n">_</span><span class="p">{</span><span class="n">err</span><span class="p">}</span> <span class="o">-</span> <span class="n">K_d</span> <span class="p">(</span>\<span class="n">omega</span> <span class="o">-</span> \<span class="n">omega_</span><span class="p">{</span>\<span class="n">text</span><span class="p">{</span><span class="n">ref</span><span class="p">}})</span>
+<span class="o">+</span> \<span class="n">tau_</span><span class="p">{</span>\<span class="n">text</span><span class="p">{</span><span class="n">gyro</span><span class="p">}}</span>
+</pre></div>
+</div>
+</li>
+<li><p>Gyroscopic coupling from wheels and body
+.. math:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>\<span class="n">tau_</span><span class="p">{</span>\<span class="n">text</span><span class="p">{</span><span class="n">gyro</span><span class="p">}}</span> <span class="o">=</span>
+\<span class="n">omega</span> \<span class="n">times</span> <span class="p">(</span><span class="n">J</span>\<span class="n">omega</span> <span class="o">+</span> <span class="n">h_</span><span class="p">{</span><span class="n">rw</span><span class="p">})</span>
+</pre></div>
+</div>
+</li>
+<li><p>Momentum dumping
+.. math:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>\<span class="n">tau_</span><span class="p">{</span>\<span class="n">text</span><span class="p">{</span><span class="n">dump</span><span class="p">}}</span> <span class="o">=</span>
+<span class="o">-</span><span class="n">K_c</span><span class="p">(</span>\<span class="n">mathbf</span><span class="p">{</span><span class="n">h</span><span class="p">}</span><span class="n">_</span><span class="p">{</span><span class="n">rw</span><span class="p">}</span> <span class="o">-</span> \<span class="n">mathbf</span><span class="p">{</span><span class="n">h</span><span class="p">}</span><span class="n">_</span><span class="p">{</span><span class="n">tgt</span><span class="p">})</span>
+</pre></div>
+</div>
+</li>
+<li><p>Magnetic allocation
+.. math:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>\<span class="n">tau_</span><span class="p">{</span><span class="n">mag</span><span class="p">}</span> <span class="o">=</span> <span class="n">M_</span><span class="p">{</span><span class="n">mag</span><span class="p">}</span> \<span class="p">,</span> <span class="n">u_</span><span class="p">{</span><span class="n">mtq</span><span class="p">}</span>
+</pre></div>
+</div>
+<p>where</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[M_{mag} = -[B]_\times A_{mtq}\]</div>
+</div>
+</li>
+</ol>
+<p>Reaction wheel torque request is then</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\tau_{rw} = \tau_{\text{att}} - \tau_{\text{mag}}\]</div>
+</div>
+<p>and actuator command vectors follow:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\begin{split}u_{rw} = M_{rw} \, \tau_{rw}\\
+u_{mtq} = M_{mag}^+ \, \tau_{dump}\end{split}\]</div>
+</div>
+<p>Saturation is enforced using element-wise limiting.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x_hat</strong> (<em>np.ndarray</em><em> (</em><em>shape:</em><em> (</em><em>10</em><em>,</em><em>)</em><em>)</em>) – <dl class="simple">
+<dt>Estimated spacecraft state vector containing:</dt><dd><ul>
+<li><p>angular rates,</p></li>
+<li><p>quaternion attitude,</p></li>
+<li><p>reaction wheel momentum states.</p></li>
+</ul>
+</dd>
+</dl>
+</p></li>
+<li><p><strong>sens</strong> (<em>np.ndarray</em>) – Raw sensor readouts. Only MTM channels are used to reconstruct
+the body magnetic field using the precomputed pseudo-inverse
+mapping.</p></li>
+<li><p><strong>est_sat</strong> (<a class="reference internal" href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite" title="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite"><code class="xref py py-class docutils literal notranslate"><span class="pre">EstimatedSatellite</span></code></a>) – Satellite model containing inertia and actuator geometry.</p></li>
+<li><p><strong>os_hat</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbital_State</span></code></a>) – Orbital state estimate providing the magnetic field <span class="math notranslate nohighlight">\(B\)</span>
+and atmospheric density for drag estimation if applicable.</p></li>
+<li><p><strong>goal_vector_eci</strong> (<em>np.ndarray</em><em>, </em><em>optional</em>) – Optional inertial-frame target direction. If provided, the
+controller operates in a pointing mode, forming the quaternion
+error from the boresight cross product.</p></li>
+<li><p><strong>w_ref</strong> (<em>np.ndarray</em><em>, </em><em>optional</em>) – Desired angular rate vector. Defaults to zero if omitted.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>u_total</strong> – Full actuator command vector ordered by actuator index in
+<code class="docutils literal notranslate"><span class="pre">est_sat.actuators</span></code>. Reaction wheel torques occupy the RW
+allocation slots and MTQ current/command magnitudes occupy the
+MTQ slots.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray</p>
+</dd>
+</dl>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="ADCS.helpers.math_helpers.html#ADCS.helpers.math_helpers.skewsym" title="ADCS.helpers.math_helpers.skewsym"><code class="xref py py-meth docutils literal notranslate"><span class="pre">skewsym()</span></code></a>, <a class="reference internal" href="ADCS.helpers.math_helpers.html#ADCS.helpers.math_helpers.normalize" title="ADCS.helpers.math_helpers.normalize"><code class="xref py py-meth docutils literal notranslate"><span class="pre">normalize()</span></code></a>, <a class="reference internal" href="ADCS.controller.html#ADCS.controller.Controller.build_torque_to_u_matrix_pinv" title="ADCS.controller.Controller.build_torque_to_u_matrix_pinv"><code class="xref py py-meth docutils literal notranslate"><span class="pre">build_torque_to_u_matrix_pinv()</span></code></a>, <a class="reference internal" href="ADCS.satellite_hardware.actuators.html#ADCS.satellite_hardware.actuators.RW" title="ADCS.satellite_hardware.actuators.RW"><code class="xref py py-class docutils literal notranslate"><span class="pre">RW</span></code></a>, <a class="reference internal" href="ADCS.satellite_hardware.actuators.html#ADCS.satellite_hardware.actuators.MTQ" title="ADCS.satellite_hardware.actuators.MTQ"><code class="xref py py-class docutils literal notranslate"><span class="pre">MTQ</span></code></a></p>
+</div>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>MTQs produce no torque component parallel to <span class="math notranslate nohighlight">\(\mathbf{B}\)</span>.</p></li>
+<li><p>Reaction wheel torque authority is constrained by
+<code class="docutils literal notranslate"><span class="pre">rw.max_torque</span></code> and their energy storage <code class="docutils literal notranslate"><span class="pre">h_max</span></code>.</p></li>
+<li><p>This controller assumes RW momenta are stored in
+<code class="docutils literal notranslate"><span class="pre">x_hat[7:]</span></code> in the same order as RW indices.</p></li>
+</ul>
+<p class="rubric">References</p>
+<aside class="footnote-list brackets">
+<aside class="footnote brackets" id="id3" role="doc-footnote">
+<span class="label"><span class="fn-bracket">[</span>1<span class="fn-bracket">]</span></span>
+<p>E. A. Hogan and H. Schaub,
+<em>Three-Axis Attitude Control Using Redundant Reaction Wheels
+with Continuous Momentum Dumping</em>,
+Journal of Guidance, Control, and Dynamics, Vol. 44, No. 3, 2021.</p>
+</aside>
+</aside>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 
         </article>
@@ -375,8 +598,30 @@
         
       </footer>
     </div>
-    <aside class="toc-drawer no-toc">
+    <aside class="toc-drawer">
       
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">ADCS.controller.mtq_w_rw module</a><ul>
+<li><a class="reference internal" href="#ADCS.controller.mtq_w_rw.MTQ_w_RW"><code class="docutils literal notranslate"><span class="pre">MTQ_w_RW</span></code></a><ul>
+<li><a class="reference internal" href="#ADCS.controller.mtq_w_rw.MTQ_w_RW.find_u"><code class="docutils literal notranslate"><span class="pre">find_u()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
       
       
     </aside>
@@ -385,5 +630,6 @@
     <script src="_static/doctools.js?v=9bcbadda"></script>
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/scripts/furo.js?v=46bd48cc"></script>
+    <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     </body>
 </html>

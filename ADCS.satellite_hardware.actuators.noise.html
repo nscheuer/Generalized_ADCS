@@ -174,7 +174,7 @@
           <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
         </button>
       </div>
-      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
         <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
       </label>
     </div>
@@ -323,13 +323,68 @@
               <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
             </button>
           </div>
-          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
             <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <section id="adcs-satellite-hardware-actuators-noise-module">
-<h1>ADCS.satellite_hardware.actuators.noise module<a class="headerlink" href="#adcs-satellite-hardware-actuators-noise-module" title="Link to this heading">¶</a></h1>
+          <section id="module-ADCS.satellite_hardware.actuators.noise">
+<span id="adcs-satellite-hardware-actuators-noise-module"></span><h1>ADCS.satellite_hardware.actuators.noise module<a class="headerlink" href="#module-ADCS.satellite_hardware.actuators.noise" title="Link to this heading">¶</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.actuators.noise.Noise">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ADCS.satellite_hardware.actuators.noise.</span></span><span class="sig-name descname"><span class="pre">Noise</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">noise</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">array([0.])</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">std_noise</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">array([0.])</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bounds</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(array([-inf]),</span> <span class="pre">array([inf]))</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/actuators/noise.html#Noise"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.actuators.noise.Noise" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Represents additive actuator noise with optional Gaussian randomness and bounds.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>noise</strong> (<em>float</em><em>, </em><em>optional</em>) – Mean or nominal noise offset <span class="math notranslate nohighlight">\(n_0\)</span> (default 0).</p></li>
+<li><p><strong>std_noise</strong> (<em>float</em><em>, </em><em>optional</em>) – Standard deviation <span class="math notranslate nohighlight">\(\sigma_n\)</span> of the Gaussian perturbation (default 0).</p></li>
+<li><p><strong>bounds</strong> (<em>(</em><em>float</em><em>, </em><em>float</em><em>)</em><em>, </em><em>optional</em>) – Lower and upper limits <span class="math notranslate nohighlight">\([n_{\min}, n_{\max}]\)</span> applied after sampling.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.actuators.noise.Noise.copy">
+<span class="sig-name descname"><span class="pre">copy</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/actuators/noise.html#Noise.copy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.actuators.noise.Noise.copy" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.actuators.noise.Noise.cov">
+<span class="sig-name descname"><span class="pre">cov</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/actuators/noise.html#Noise.cov"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.actuators.noise.Noise.cov" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>ndarray</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.actuators.noise.Noise.get_noise">
+<span class="sig-name descname"><span class="pre">get_noise</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/actuators/noise.html#Noise.get_noise"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.actuators.noise.Noise.get_noise" title="Link to this definition">¶</a></dt>
+<dd><p>Return a fresh bounded Gaussian noise sample.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The updated noise value <span class="math notranslate nohighlight">\(n\)</span> after random sampling and clipping.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.actuators.noise.Noise.srcov">
+<span class="sig-name descname"><span class="pre">srcov</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/actuators/noise.html#Noise.srcov"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.actuators.noise.Noise.srcov" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float | <em>ndarray</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 
         </article>
@@ -375,8 +430,33 @@
         
       </footer>
     </div>
-    <aside class="toc-drawer no-toc">
+    <aside class="toc-drawer">
       
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">ADCS.satellite_hardware.actuators.noise module</a><ul>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.actuators.noise.Noise"><code class="docutils literal notranslate"><span class="pre">Noise</span></code></a><ul>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.actuators.noise.Noise.copy"><code class="docutils literal notranslate"><span class="pre">copy()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.actuators.noise.Noise.cov"><code class="docutils literal notranslate"><span class="pre">cov()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.actuators.noise.Noise.get_noise"><code class="docutils literal notranslate"><span class="pre">get_noise()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.actuators.noise.Noise.srcov"><code class="docutils literal notranslate"><span class="pre">srcov()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
       
       
     </aside>
@@ -385,5 +465,6 @@
     <script src="_static/doctools.js?v=9bcbadda"></script>
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/scripts/furo.js?v=46bd48cc"></script>
+    <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     </body>
 </html>

@@ -174,7 +174,7 @@
           <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
         </button>
       </div>
-      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
         <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
       </label>
     </div>
@@ -323,13 +323,146 @@
               <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
             </button>
           </div>
-          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
             <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <section id="adcs-satellite-hardware-disturbances-prop-disturbance-module">
-<h1>ADCS.satellite_hardware.disturbances.prop_disturbance module<a class="headerlink" href="#adcs-satellite-hardware-disturbances-prop-disturbance-module" title="Link to this heading">¶</a></h1>
+          <section id="module-ADCS.satellite_hardware.disturbances.prop_disturbance">
+<span id="adcs-satellite-hardware-disturbances-prop-disturbance-module"></span><h1>ADCS.satellite_hardware.disturbances.prop_disturbance module<a class="headerlink" href="#module-ADCS.satellite_hardware.disturbances.prop_disturbance" title="Link to this heading">¶</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.disturbances.prop_disturbance.Prop_Disturbance">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ADCS.satellite_hardware.disturbances.prop_disturbance.</span></span><span class="sig-name descname"><span class="pre">Prop_Disturbance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">torque_nominal</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noise</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">estimate_dist</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/disturbances/prop_disturbance.html#Prop_Disturbance"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.disturbances.prop_disturbance.Prop_Disturbance" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="ADCS.satellite_hardware.disturbances.disturbance.html#ADCS.satellite_hardware.disturbances.disturbance.Disturbance" title="ADCS.satellite_hardware.disturbances.disturbance.Disturbance"><code class="xref py py-class docutils literal notranslate"><span class="pre">Disturbance</span></code></a></p>
+<p><strong>Propulsion Disturbance Model</strong></p>
+<p>This class represents residual or imperfectly modeled <strong>propulsion-induced torques</strong>
+acting on the spacecraft body.
+These torques can arise due to thrust misalignment, asymmetric propellant expulsion,
+or reaction forces during maneuvering.</p>
+<p>The model assumes a constant nominal disturbance torque with optional stochastic noise.</p>
+<p><strong>Model Overview</strong></p>
+<p>The total disturbance torque is expressed as:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\mathbf{T}_{\mathrm{prop}} = \mathbf{T}_{0} + \mathbf{n}(t)\]</div>
+</div>
+<p>where:</p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(\mathbf{T}_{0}\)</span> — Nominal (constant) propulsion disturbance torque [N·m],</p></li>
+<li><p><span class="math notranslate nohighlight">\(\mathbf{n}(t)\)</span> — Zero-mean stochastic noise term [N·m].</p></li>
+</ul>
+<p>This disturbance is independent of attitude or orbital parameters, and thus its
+attitude derivatives are zero.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>torque_nominal</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Nominal propulsion disturbance torque vector [N·m], shape <code class="docutils literal notranslate"><span class="pre">(3,)</span></code>.</p></li>
+<li><p><strong>noise</strong> (<a class="reference internal" href="ADCS.satellite_hardware.actuators.noise.html#ADCS.satellite_hardware.actuators.noise.Noise" title="ADCS.satellite_hardware.actuators.noise.Noise"><code class="xref py py-class docutils literal notranslate"><span class="pre">Noise</span></code></a>) – Noise model instance providing stochastic variations in the disturbance torque.</p></li>
+<li><p><strong>estimate_dist</strong> (<em>bool</em>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.disturbances.prop_disturbance.Prop_Disturbance.torque_nominal">
+<span class="sig-name descname"><span class="pre">torque_nominal</span></span><a class="headerlink" href="#ADCS.satellite_hardware.disturbances.prop_disturbance.Prop_Disturbance.torque_nominal" title="Link to this definition">¶</a></dt>
+<dd><p>Constant nominal torque vector [N·m].</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.disturbances.prop_disturbance.Prop_Disturbance.current_torque">
+<span class="sig-name descname"><span class="pre">current_torque</span></span><a class="headerlink" href="#ADCS.satellite_hardware.disturbances.prop_disturbance.Prop_Disturbance.current_torque" title="Link to this definition">¶</a></dt>
+<dd><p>Current disturbance torque (nominal + noise) [N·m].</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.disturbances.prop_disturbance.Prop_Disturbance.torque">
+<span class="sig-name descname"><span class="pre">torque</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/disturbances/prop_disturbance.html#Prop_Disturbance.torque"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.disturbances.prop_disturbance.Prop_Disturbance.torque" title="Link to this definition">¶</a></dt>
+<dd><p>Return the <strong>current disturbance torque</strong> due to propulsion effects.</p>
+<p>Since this model represents a static (non-attitude-dependent) torque,
+it directly returns the last updated value.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Current propulsion disturbance torque [N·m], shape <code class="docutils literal notranslate"><span class="pre">(3,)</span></code>.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></p>
+</dd>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.disturbances.prop_disturbance.Prop_Disturbance.torque_qjac">
+<span class="sig-name descname"><span class="pre">torque_qjac</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/disturbances/prop_disturbance.html#Prop_Disturbance.torque_qjac"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.disturbances.prop_disturbance.Prop_Disturbance.torque_qjac" title="Link to this definition">¶</a></dt>
+<dd><p>Compute the <strong>Jacobian of the propulsion disturbance torque</strong> with respect to the attitude quaternion.</p>
+<p>Since the torque is constant and not a function of orientation:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\frac{\partial \mathbf{T}_{\mathrm{prop}}}{\partial q} = \mathbf{0}_{3 \times 4}\]</div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Quaternion Jacobian matrix (3×4), all zeros.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.disturbances.prop_disturbance.Prop_Disturbance.torque_qqHess">
+<span class="sig-name descname"><span class="pre">torque_qqHess</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/disturbances/prop_disturbance.html#Prop_Disturbance.torque_qqHess"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.disturbances.prop_disturbance.Prop_Disturbance.torque_qqHess" title="Link to this definition">¶</a></dt>
+<dd><p>Compute the <strong>Hessian of the propulsion disturbance torque</strong> with respect to the attitude quaternion.</p>
+<p>Since <span class="math notranslate nohighlight">\(\mathbf{T}_{\mathrm{prop}}\)</span> is constant:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\frac{\partial^2 \mathbf{T}_{\mathrm{prop}}}{\partial q^2} = \mathbf{0}_{3 \times 4 \times 4}\]</div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Quaternion Hessian tensor (3×4×4), all zeros.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.disturbances.prop_disturbance.Prop_Disturbance.update">
+<span class="sig-name descname"><span class="pre">update</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/disturbances/prop_disturbance.html#Prop_Disturbance.update"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.disturbances.prop_disturbance.Prop_Disturbance.update" title="Link to this definition">¶</a></dt>
+<dd><p>Update the current propulsion disturbance torque.</p>
+<p>Adds a random noise realization to the nominal torque vector:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\mathbf{T}_{\mathrm{prop}}(t) = \mathbf{T}_{0} + \mathbf{n}(t)\]</div>
+</div>
+<p>where <span class="math notranslate nohighlight">\(\mathbf{n}(t)\)</span> is generated by the noise model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 
         </article>
@@ -375,8 +508,35 @@
         
       </footer>
     </div>
-    <aside class="toc-drawer no-toc">
+    <aside class="toc-drawer">
       
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">ADCS.satellite_hardware.disturbances.prop_disturbance module</a><ul>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.disturbances.prop_disturbance.Prop_Disturbance"><code class="docutils literal notranslate"><span class="pre">Prop_Disturbance</span></code></a><ul>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.disturbances.prop_disturbance.Prop_Disturbance.torque_nominal"><code class="docutils literal notranslate"><span class="pre">torque_nominal</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.disturbances.prop_disturbance.Prop_Disturbance.current_torque"><code class="docutils literal notranslate"><span class="pre">current_torque</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.disturbances.prop_disturbance.Prop_Disturbance.torque"><code class="docutils literal notranslate"><span class="pre">torque()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.disturbances.prop_disturbance.Prop_Disturbance.torque_qjac"><code class="docutils literal notranslate"><span class="pre">torque_qjac()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.disturbances.prop_disturbance.Prop_Disturbance.torque_qqHess"><code class="docutils literal notranslate"><span class="pre">torque_qqHess()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.disturbances.prop_disturbance.Prop_Disturbance.update"><code class="docutils literal notranslate"><span class="pre">update()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
       
       
     </aside>
@@ -385,5 +545,6 @@
     <script src="_static/doctools.js?v=9bcbadda"></script>
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/scripts/furo.js?v=46bd48cc"></script>
+    <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     </body>
 </html>

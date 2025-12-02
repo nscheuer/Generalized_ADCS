@@ -174,7 +174,7 @@
           <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
         </button>
       </div>
-      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
         <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
       </label>
     </div>
@@ -323,13 +323,403 @@
               <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
             </button>
           </div>
-          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
             <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <section id="adcs-orbits-universal-constants-module">
-<h1>ADCS.orbits.universal_constants module<a class="headerlink" href="#adcs-orbits-universal-constants-module" title="Link to this heading">¶</a></h1>
+          <section id="module-ADCS.orbits.universal_constants">
+<span id="adcs-orbits-universal-constants-module"></span><h1>ADCS.orbits.universal_constants module<a class="headerlink" href="#module-ADCS.orbits.universal_constants" title="Link to this heading">¶</a></h1>
+<p>Global, immutable constants used throughout the spacecraft dynamics and control codebase.</p>
+<p>This module provides:</p>
+<ul class="simple">
+<li><p><strong>Physical constants</strong> (e.g., gravitational constant, speed of light)</p></li>
+<li><p><strong>Planetary constants</strong> (Earth radius, mass, J2 term)</p></li>
+<li><p><strong>Numerical tolerances</strong> (machine epsilon, time epsilon)</p></li>
+<li><p><strong>Integration coefficients</strong> (for CG5 Lie-group integrator)</p></li>
+</ul>
+<p>All constants are grouped into dataclasses for clarity and immutability.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="ADCS.orbits.universal_constants.CG5Coefficients">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ADCS.orbits.universal_constants.</span></span><span class="sig-name descname"><span class="pre">CG5Coefficients</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a=&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b=&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c=&lt;factory&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/orbits/universal_constants.html#CG5Coefficients"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.orbits.universal_constants.CG5Coefficients" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Coefficients for the 5-stage Commutator-Free Lie-Group (CG5) Integrator.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>a</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>b</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>c</strong> (<em>ndarray</em>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ADCS.orbits.universal_constants.CG5Coefficients.a">
+<span class="sig-name descname"><span class="pre">a</span></span><a class="headerlink" href="#ADCS.orbits.universal_constants.CG5Coefficients.a" title="Link to this definition">¶</a></dt>
+<dd><p>Coefficient matrix for intermediate stages.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ADCS.orbits.universal_constants.CG5Coefficients.b">
+<span class="sig-name descname"><span class="pre">b</span></span><a class="headerlink" href="#ADCS.orbits.universal_constants.CG5Coefficients.b" title="Link to this definition">¶</a></dt>
+<dd><p>Final combination weights.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ADCS.orbits.universal_constants.CG5Coefficients.c">
+<span class="sig-name descname"><span class="pre">c</span></span><a class="headerlink" href="#ADCS.orbits.universal_constants.CG5Coefficients.c" title="Link to this definition">¶</a></dt>
+<dd><p>Time nodes (fractional step positions).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id0">
+<span class="sig-name descname"><span class="pre">a</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ndarray</span></em><a class="headerlink" href="#id0" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id1">
+<span class="sig-name descname"><span class="pre">b</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ndarray</span></em><a class="headerlink" href="#id1" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id2">
+<span class="sig-name descname"><span class="pre">c</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ndarray</span></em><a class="headerlink" href="#id2" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="ADCS.orbits.universal_constants.DefaultStates">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ADCS.orbits.universal_constants.</span></span><span class="sig-name descname"><span class="pre">DefaultStates</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">zeroquat=&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">err_J_var=0.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/orbits/universal_constants.html#DefaultStates"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.orbits.universal_constants.DefaultStates" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Default zero-state and small perturbation quantities.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>zeroquat</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>err_J_var</strong> (<em>float</em>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ADCS.orbits.universal_constants.DefaultStates.zeroquat">
+<span class="sig-name descname"><span class="pre">zeroquat</span></span><a class="headerlink" href="#ADCS.orbits.universal_constants.DefaultStates.zeroquat" title="Link to this definition">¶</a></dt>
+<dd><p>Default quaternion (no rotation): <span class="math notranslate nohighlight">\([1,0,0,0]\)</span></p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ADCS.orbits.universal_constants.DefaultStates.err_J_var">
+<span class="sig-name descname"><span class="pre">err_J_var</span></span><a class="headerlink" href="#ADCS.orbits.universal_constants.DefaultStates.err_J_var" title="Link to this definition">¶</a></dt>
+<dd><p>Default error variance for inertia matrix terms</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id3">
+<span class="sig-name descname"><span class="pre">err_J_var</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.0</span></em><a class="headerlink" href="#id3" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id4">
+<span class="sig-name descname"><span class="pre">zeroquat</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ndarray</span></em><a class="headerlink" href="#id4" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="ADCS.orbits.universal_constants.EarthConstants">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ADCS.orbits.universal_constants.</span></span><span class="sig-name descname"><span class="pre">EarthConstants</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">R_e</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">6378.1363</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mu_e</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">398600.4415</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">J2coeff</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.001082635854</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">J2</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">17555280486.257942</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">m_earth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5.9736e+24</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">solar_constant</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1361.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">299792458.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/orbits/universal_constants.html#EarthConstants"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.orbits.universal_constants.EarthConstants" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Standard geophysical constants for Earth.</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\begin{split}R_E &amp;= 6378.1363\ \text{km} \\
+\mu_E &amp;= 398600.4415\ \text{km}^3/\text{s}^2 \\
+J_2 &amp;= 1.082635854\times10^{-3}\end{split}\]</div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>R_e</strong> (<em>float</em>)</p></li>
+<li><p><strong>mu_e</strong> (<em>float</em>)</p></li>
+<li><p><strong>J2coeff</strong> (<em>float</em>)</p></li>
+<li><p><strong>J2</strong> (<em>float</em>)</p></li>
+<li><p><strong>m_earth</strong> (<em>float</em>)</p></li>
+<li><p><strong>solar_constant</strong> (<em>float</em>)</p></li>
+<li><p><strong>c</strong> (<em>float</em>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ADCS.orbits.universal_constants.EarthConstants.R_e">
+<span class="sig-name descname"><span class="pre">R_e</span></span><a class="headerlink" href="#ADCS.orbits.universal_constants.EarthConstants.R_e" title="Link to this definition">¶</a></dt>
+<dd><p>Mean equatorial radius [km]</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ADCS.orbits.universal_constants.EarthConstants.mu_e">
+<span class="sig-name descname"><span class="pre">mu_e</span></span><a class="headerlink" href="#ADCS.orbits.universal_constants.EarthConstants.mu_e" title="Link to this definition">¶</a></dt>
+<dd><p>Standard gravitational parameter [km³/s²]</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ADCS.orbits.universal_constants.EarthConstants.J2coeff">
+<span class="sig-name descname"><span class="pre">J2coeff</span></span><a class="headerlink" href="#ADCS.orbits.universal_constants.EarthConstants.J2coeff" title="Link to this definition">¶</a></dt>
+<dd><p>Dimensionless J2 zonal harmonic coefficient [-]</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ADCS.orbits.universal_constants.EarthConstants.J2">
+<span class="sig-name descname"><span class="pre">J2</span></span><a class="headerlink" href="#ADCS.orbits.universal_constants.EarthConstants.J2" title="Link to this definition">¶</a></dt>
+<dd><p>Precomputed <span class="math notranslate nohighlight">\(J_2 R_E^2 \mu_E\)</span> term [km⁵/s²]</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ADCS.orbits.universal_constants.EarthConstants.m_earth">
+<span class="sig-name descname"><span class="pre">m_earth</span></span><a class="headerlink" href="#ADCS.orbits.universal_constants.EarthConstants.m_earth" title="Link to this definition">¶</a></dt>
+<dd><p>Mass of Earth [kg]</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id5">
+<span class="sig-name descname"><span class="pre">J2</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">17555280486.257942</span></em><a class="headerlink" href="#id5" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id6">
+<span class="sig-name descname"><span class="pre">J2coeff</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.001082635854</span></em><a class="headerlink" href="#id6" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id7">
+<span class="sig-name descname"><span class="pre">R_e</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">6378.1363</span></em><a class="headerlink" href="#id7" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ADCS.orbits.universal_constants.EarthConstants.c">
+<span class="sig-name descname"><span class="pre">c</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">299792458.0</span></em><a class="headerlink" href="#ADCS.orbits.universal_constants.EarthConstants.c" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id8">
+<span class="sig-name descname"><span class="pre">m_earth</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">5.9736e+24</span></em><a class="headerlink" href="#id8" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id9">
+<span class="sig-name descname"><span class="pre">mu_e</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">398600.4415</span></em><a class="headerlink" href="#id9" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ADCS.orbits.universal_constants.EarthConstants.solar_constant">
+<span class="sig-name descname"><span class="pre">solar_constant</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1361.0</span></em><a class="headerlink" href="#ADCS.orbits.universal_constants.EarthConstants.solar_constant" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="ADCS.orbits.universal_constants.PhysicalConstants">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ADCS.orbits.universal_constants.</span></span><span class="sig-name descname"><span class="pre">PhysicalConstants</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">c</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">299792458.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grav_const</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">6.6742e-11</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">solar_constant</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1361.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/orbits/universal_constants.html#PhysicalConstants"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.orbits.universal_constants.PhysicalConstants" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Physical constants in SI or derived units.</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\begin{split}G &amp;= 6.6742\times10^{-11}\ \text{m}^3\text{kg}^{-1}\text{s}^{-2} \\
+c &amp;= 2.99792458\times10^{8}\ \text{m/s}\end{split}\]</div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>c</strong> (<em>float</em>)</p></li>
+<li><p><strong>grav_const</strong> (<em>float</em>)</p></li>
+<li><p><strong>solar_constant</strong> (<em>float</em>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ADCS.orbits.universal_constants.PhysicalConstants.c">
+<span class="sig-name descname"><span class="pre">c</span></span><a class="headerlink" href="#ADCS.orbits.universal_constants.PhysicalConstants.c" title="Link to this definition">¶</a></dt>
+<dd><p>Speed of light <span class="math notranslate nohighlight">\([m/s]\)</span></p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ADCS.orbits.universal_constants.PhysicalConstants.grav_const">
+<span class="sig-name descname"><span class="pre">grav_const</span></span><a class="headerlink" href="#ADCS.orbits.universal_constants.PhysicalConstants.grav_const" title="Link to this definition">¶</a></dt>
+<dd><p>Universal gravitational constant <span class="math notranslate nohighlight">\(G\ [m^3/kg/s^2]\)</span></p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ADCS.orbits.universal_constants.PhysicalConstants.solar_constant">
+<span class="sig-name descname"><span class="pre">solar_constant</span></span><a class="headerlink" href="#ADCS.orbits.universal_constants.PhysicalConstants.solar_constant" title="Link to this definition">¶</a></dt>
+<dd><p>Solar irradiance constant <span class="math notranslate nohighlight">\(S_0\ [W/m^2]\)</span></p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id10">
+<span class="sig-name descname"><span class="pre">c</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">299792458.0</span></em><a class="headerlink" href="#id10" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id11">
+<span class="sig-name descname"><span class="pre">grav_const</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">6.6742e-11</span></em><a class="headerlink" href="#id11" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id12">
+<span class="sig-name descname"><span class="pre">solar_constant</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1361.0</span></em><a class="headerlink" href="#id12" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="ADCS.orbits.universal_constants.TimeConstants">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ADCS.orbits.universal_constants.</span></span><span class="sig-name descname"><span class="pre">TimeConstants</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cent2sec</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3155760000.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sec2cent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3.168808781402895e-10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time_eps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_eps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-16</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/orbits/universal_constants.html#TimeConstants"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.orbits.universal_constants.TimeConstants" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Time conversion factors and numerical tolerances.</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[1\ \text{century} &amp;= 100\ \text{years} = 3.15576\times10^9\ \text{s}\]</div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cent2sec</strong> (<em>float</em>)</p></li>
+<li><p><strong>sec2cent</strong> (<em>float</em>)</p></li>
+<li><p><strong>time_eps</strong> (<em>float</em>)</p></li>
+<li><p><strong>num_eps</strong> (<em>float</em>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ADCS.orbits.universal_constants.TimeConstants.cent2sec">
+<span class="sig-name descname"><span class="pre">cent2sec</span></span><a class="headerlink" href="#ADCS.orbits.universal_constants.TimeConstants.cent2sec" title="Link to this definition">¶</a></dt>
+<dd><p>Seconds per Julian century [s/century]</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ADCS.orbits.universal_constants.TimeConstants.sec2cent">
+<span class="sig-name descname"><span class="pre">sec2cent</span></span><a class="headerlink" href="#ADCS.orbits.universal_constants.TimeConstants.sec2cent" title="Link to this definition">¶</a></dt>
+<dd><p>Inverse of <code class="docutils literal notranslate"><span class="pre">cent2sec</span></code></p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ADCS.orbits.universal_constants.TimeConstants.time_eps">
+<span class="sig-name descname"><span class="pre">time_eps</span></span><a class="headerlink" href="#ADCS.orbits.universal_constants.TimeConstants.time_eps" title="Link to this definition">¶</a></dt>
+<dd><p>Time tolerance used in integration comparisons</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ADCS.orbits.universal_constants.TimeConstants.num_eps">
+<span class="sig-name descname"><span class="pre">num_eps</span></span><a class="headerlink" href="#ADCS.orbits.universal_constants.TimeConstants.num_eps" title="Link to this definition">¶</a></dt>
+<dd><p>Numerical tolerance / machine epsilon</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id13">
+<span class="sig-name descname"><span class="pre">cent2sec</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">3155760000.0</span></em><a class="headerlink" href="#id13" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id14">
+<span class="sig-name descname"><span class="pre">num_eps</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1e-16</span></em><a class="headerlink" href="#id14" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id15">
+<span class="sig-name descname"><span class="pre">sec2cent</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">3.168808781402895e-10</span></em><a class="headerlink" href="#id15" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id16">
+<span class="sig-name descname"><span class="pre">time_eps</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.001</span></em><a class="headerlink" href="#id16" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
 </section>
 
         </article>
@@ -375,8 +765,77 @@
         
       </footer>
     </div>
-    <aside class="toc-drawer no-toc">
+    <aside class="toc-drawer">
       
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">ADCS.orbits.universal_constants module</a><ul>
+<li><a class="reference internal" href="#ADCS.orbits.universal_constants.CG5Coefficients"><code class="docutils literal notranslate"><span class="pre">CG5Coefficients</span></code></a><ul>
+<li><a class="reference internal" href="#ADCS.orbits.universal_constants.CG5Coefficients.a"><code class="docutils literal notranslate"><span class="pre">a</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.orbits.universal_constants.CG5Coefficients.b"><code class="docutils literal notranslate"><span class="pre">b</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.orbits.universal_constants.CG5Coefficients.c"><code class="docutils literal notranslate"><span class="pre">c</span></code></a></li>
+<li><a class="reference internal" href="#id0"><code class="docutils literal notranslate"><span class="pre">a</span></code></a></li>
+<li><a class="reference internal" href="#id1"><code class="docutils literal notranslate"><span class="pre">b</span></code></a></li>
+<li><a class="reference internal" href="#id2"><code class="docutils literal notranslate"><span class="pre">c</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#ADCS.orbits.universal_constants.DefaultStates"><code class="docutils literal notranslate"><span class="pre">DefaultStates</span></code></a><ul>
+<li><a class="reference internal" href="#ADCS.orbits.universal_constants.DefaultStates.zeroquat"><code class="docutils literal notranslate"><span class="pre">zeroquat</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.orbits.universal_constants.DefaultStates.err_J_var"><code class="docutils literal notranslate"><span class="pre">err_J_var</span></code></a></li>
+<li><a class="reference internal" href="#id3"><code class="docutils literal notranslate"><span class="pre">err_J_var</span></code></a></li>
+<li><a class="reference internal" href="#id4"><code class="docutils literal notranslate"><span class="pre">zeroquat</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#ADCS.orbits.universal_constants.EarthConstants"><code class="docutils literal notranslate"><span class="pre">EarthConstants</span></code></a><ul>
+<li><a class="reference internal" href="#ADCS.orbits.universal_constants.EarthConstants.R_e"><code class="docutils literal notranslate"><span class="pre">R_e</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.orbits.universal_constants.EarthConstants.mu_e"><code class="docutils literal notranslate"><span class="pre">mu_e</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.orbits.universal_constants.EarthConstants.J2coeff"><code class="docutils literal notranslate"><span class="pre">J2coeff</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.orbits.universal_constants.EarthConstants.J2"><code class="docutils literal notranslate"><span class="pre">J2</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.orbits.universal_constants.EarthConstants.m_earth"><code class="docutils literal notranslate"><span class="pre">m_earth</span></code></a></li>
+<li><a class="reference internal" href="#id5"><code class="docutils literal notranslate"><span class="pre">J2</span></code></a></li>
+<li><a class="reference internal" href="#id6"><code class="docutils literal notranslate"><span class="pre">J2coeff</span></code></a></li>
+<li><a class="reference internal" href="#id7"><code class="docutils literal notranslate"><span class="pre">R_e</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.orbits.universal_constants.EarthConstants.c"><code class="docutils literal notranslate"><span class="pre">c</span></code></a></li>
+<li><a class="reference internal" href="#id8"><code class="docutils literal notranslate"><span class="pre">m_earth</span></code></a></li>
+<li><a class="reference internal" href="#id9"><code class="docutils literal notranslate"><span class="pre">mu_e</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.orbits.universal_constants.EarthConstants.solar_constant"><code class="docutils literal notranslate"><span class="pre">solar_constant</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#ADCS.orbits.universal_constants.PhysicalConstants"><code class="docutils literal notranslate"><span class="pre">PhysicalConstants</span></code></a><ul>
+<li><a class="reference internal" href="#ADCS.orbits.universal_constants.PhysicalConstants.c"><code class="docutils literal notranslate"><span class="pre">c</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.orbits.universal_constants.PhysicalConstants.grav_const"><code class="docutils literal notranslate"><span class="pre">grav_const</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.orbits.universal_constants.PhysicalConstants.solar_constant"><code class="docutils literal notranslate"><span class="pre">solar_constant</span></code></a></li>
+<li><a class="reference internal" href="#id10"><code class="docutils literal notranslate"><span class="pre">c</span></code></a></li>
+<li><a class="reference internal" href="#id11"><code class="docutils literal notranslate"><span class="pre">grav_const</span></code></a></li>
+<li><a class="reference internal" href="#id12"><code class="docutils literal notranslate"><span class="pre">solar_constant</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#ADCS.orbits.universal_constants.TimeConstants"><code class="docutils literal notranslate"><span class="pre">TimeConstants</span></code></a><ul>
+<li><a class="reference internal" href="#ADCS.orbits.universal_constants.TimeConstants.cent2sec"><code class="docutils literal notranslate"><span class="pre">cent2sec</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.orbits.universal_constants.TimeConstants.sec2cent"><code class="docutils literal notranslate"><span class="pre">sec2cent</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.orbits.universal_constants.TimeConstants.time_eps"><code class="docutils literal notranslate"><span class="pre">time_eps</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.orbits.universal_constants.TimeConstants.num_eps"><code class="docutils literal notranslate"><span class="pre">num_eps</span></code></a></li>
+<li><a class="reference internal" href="#id13"><code class="docutils literal notranslate"><span class="pre">cent2sec</span></code></a></li>
+<li><a class="reference internal" href="#id14"><code class="docutils literal notranslate"><span class="pre">num_eps</span></code></a></li>
+<li><a class="reference internal" href="#id15"><code class="docutils literal notranslate"><span class="pre">sec2cent</span></code></a></li>
+<li><a class="reference internal" href="#id16"><code class="docutils literal notranslate"><span class="pre">time_eps</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
       
       
     </aside>
@@ -385,5 +844,6 @@
     <script src="_static/doctools.js?v=9bcbadda"></script>
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/scripts/furo.js?v=46bd48cc"></script>
+    <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     </body>
 </html>

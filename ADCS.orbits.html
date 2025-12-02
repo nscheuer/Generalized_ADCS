@@ -334,11 +334,215 @@
 <h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading">¶</a></h2>
 <div class="toctree-wrapper compound">
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="ADCS.orbits.density_model.html">ADCS.orbits.density_model module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="ADCS.orbits.ephemeris.html">ADCS.orbits.ephemeris module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="ADCS.orbits.orbit.html">ADCS.orbits.orbit module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="ADCS.orbits.orbital_state.html">ADCS.orbits.orbital_state module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="ADCS.orbits.universal_constants.html">ADCS.orbits.universal_constants module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ADCS.orbits.density_model.html">ADCS.orbits.density_model module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="ADCS.orbits.density_model.html#ADCS.orbits.density_model.DensityModel"><code class="docutils literal notranslate"><span class="pre">DensityModel</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.density_model.html#ADCS.orbits.density_model.DensityModel.altitude_range"><code class="docutils literal notranslate"><span class="pre">altitude_range</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.density_model.html#ADCS.orbits.density_model.DensityModel.rho_range"><code class="docutils literal notranslate"><span class="pre">rho_range</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.density_model.html#ADCS.orbits.density_model.DensityModel.interpolate"><code class="docutils literal notranslate"><span class="pre">interpolate()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="ADCS.orbits.ephemeris.html">ADCS.orbits.ephemeris module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="ADCS.orbits.ephemeris.html#ADCS.orbits.ephemeris.Ephemeris"><code class="docutils literal notranslate"><span class="pre">Ephemeris</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.ephemeris.html#ADCS.orbits.ephemeris.Ephemeris.planets"><code class="docutils literal notranslate"><span class="pre">planets</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.ephemeris.html#ADCS.orbits.ephemeris.Ephemeris.sun"><code class="docutils literal notranslate"><span class="pre">sun</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.ephemeris.html#ADCS.orbits.ephemeris.Ephemeris.earth"><code class="docutils literal notranslate"><span class="pre">earth</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.ephemeris.html#ADCS.orbits.ephemeris.Ephemeris.ts"><code class="docutils literal notranslate"><span class="pre">ts</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="ADCS.orbits.orbit.html">ADCS.orbits.orbit module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.MathConstants"><code class="docutils literal notranslate"><span class="pre">MathConstants</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.MathConstants.unitvecs"><code class="docutils literal notranslate"><span class="pre">unitvecs</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.MathConstants.zeroquat"><code class="docutils literal notranslate"><span class="pre">zeroquat</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbit"><code class="docutils literal notranslate"><span class="pre">Orbit</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbit.ecef_to_eci_orbit"><code class="docutils literal notranslate"><span class="pre">ecef_to_eci_orbit()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbit.geocentric_to_ecef_orbit"><code class="docutils literal notranslate"><span class="pre">geocentric_to_ecef_orbit()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbit.get_b_eci_orbit"><code class="docutils literal notranslate"><span class="pre">get_b_eci_orbit()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbit.get_os"><code class="docutils literal notranslate"><span class="pre">get_os()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbit.get_range"><code class="docutils literal notranslate"><span class="pre">get_range()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbit.get_vecs"><code class="docutils literal notranslate"><span class="pre">get_vecs()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbit.max_time"><code class="docutils literal notranslate"><span class="pre">max_time()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbit.min_time"><code class="docutils literal notranslate"><span class="pre">min_time()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbit.new_orbit_from_times"><code class="docutils literal notranslate"><span class="pre">new_orbit_from_times()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbit.next_state"><code class="docutils literal notranslate"><span class="pre">next_state()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbit.time_in_span"><code class="docutils literal notranslate"><span class="pre">time_in_span()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbital_State"><code class="docutils literal notranslate"><span class="pre">Orbital_State</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbital_State.ephem"><code class="docutils literal notranslate"><span class="pre">ephem</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbital_State.J2000"><code class="docutils literal notranslate"><span class="pre">J2000</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbital_State.R"><code class="docutils literal notranslate"><span class="pre">R</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbital_State.V"><code class="docutils literal notranslate"><span class="pre">V</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbital_State.S"><code class="docutils literal notranslate"><span class="pre">S</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbital_State.B"><code class="docutils literal notranslate"><span class="pre">B</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbital_State.rho"><code class="docutils literal notranslate"><span class="pre">rho</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbital_State.density_model"><code class="docutils literal notranslate"><span class="pre">density_model</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbital_State.ECI2ENUmat"><code class="docutils literal notranslate"><span class="pre">ECI2ENUmat</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbital_State.geocentric"><code class="docutils literal notranslate"><span class="pre">geocentric</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbital_State.LLA"><code class="docutils literal notranslate"><span class="pre">LLA</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbital_State.datetime"><code class="docutils literal notranslate"><span class="pre">datetime</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbital_State.average"><code class="docutils literal notranslate"><span class="pre">average()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbital_State.copy"><code class="docutils literal notranslate"><span class="pre">copy()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbital_State.ecef_to_eci"><code class="docutils literal notranslate"><span class="pre">ecef_to_eci()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbital_State.ecef_to_geocentric"><code class="docutils literal notranslate"><span class="pre">ecef_to_geocentric()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbital_State.eci_to_ecef"><code class="docutils literal notranslate"><span class="pre">eci_to_ecef()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbital_State.eci_to_enu"><code class="docutils literal notranslate"><span class="pre">eci_to_enu()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbital_State.enu_to_eci"><code class="docutils literal notranslate"><span class="pre">enu_to_eci()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbital_State.geocentric_to_ecef"><code class="docutils literal notranslate"><span class="pre">geocentric_to_ecef()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbital_State.get_b_eci"><code class="docutils literal notranslate"><span class="pre">get_b_eci()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbital_State.get_state_vector"><code class="docutils literal notranslate"><span class="pre">get_state_vector()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbital_State.get_sun_eci"><code class="docutils literal notranslate"><span class="pre">get_sun_eci()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbital_State.is_sunlit"><code class="docutils literal notranslate"><span class="pre">is_sunlit()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbital_State.j2000_to_tai"><code class="docutils literal notranslate"><span class="pre">j2000_to_tai()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbital_State.orbit_dynamics"><code class="docutils literal notranslate"><span class="pre">orbit_dynamics()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbital_State.orbit_dynamics_jacobians"><code class="docutils literal notranslate"><span class="pre">orbit_dynamics_jacobians()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbital_State.propagate_jacobians"><code class="docutils literal notranslate"><span class="pre">propagate_jacobians()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbital_State.propagate_jacobians_rk4"><code class="docutils literal notranslate"><span class="pre">propagate_jacobians_rk4()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbital_State.propagate_orbit"><code class="docutils literal notranslate"><span class="pre">propagate_orbit()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbital_State.propagate_orbit_rk4"><code class="docutils literal notranslate"><span class="pre">propagate_orbit_rk4()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbital_State.update_vecs"><code class="docutils literal notranslate"><span class="pre">update_vecs()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.TimeConstants"><code class="docutils literal notranslate"><span class="pre">TimeConstants</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.TimeConstants.cent2sec"><code class="docutils literal notranslate"><span class="pre">cent2sec</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.TimeConstants.sec2cent"><code class="docutils literal notranslate"><span class="pre">sec2cent</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.TimeConstants.time_eps"><code class="docutils literal notranslate"><span class="pre">time_eps</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.TimeConstants.num_eps"><code class="docutils literal notranslate"><span class="pre">num_eps</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#id0"><code class="docutils literal notranslate"><span class="pre">cent2sec</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#id1"><code class="docutils literal notranslate"><span class="pre">num_eps</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#id2"><code class="docutils literal notranslate"><span class="pre">sec2cent</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#id3"><code class="docutils literal notranslate"><span class="pre">time_eps</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.tqdm"><code class="docutils literal notranslate"><span class="pre">tqdm</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.tqdm.external_write_mode"><code class="docutils literal notranslate"><span class="pre">external_write_mode()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.tqdm.get_lock"><code class="docutils literal notranslate"><span class="pre">get_lock()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.tqdm.pandas"><code class="docutils literal notranslate"><span class="pre">pandas()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.tqdm.set_lock"><code class="docutils literal notranslate"><span class="pre">set_lock()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.tqdm.wrapattr"><code class="docutils literal notranslate"><span class="pre">wrapattr()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.tqdm.write"><code class="docutils literal notranslate"><span class="pre">write()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.tqdm.format_interval"><code class="docutils literal notranslate"><span class="pre">format_interval()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.tqdm.format_meter"><code class="docutils literal notranslate"><span class="pre">format_meter()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.tqdm.format_num"><code class="docutils literal notranslate"><span class="pre">format_num()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.tqdm.format_sizeof"><code class="docutils literal notranslate"><span class="pre">format_sizeof()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.tqdm.status_printer"><code class="docutils literal notranslate"><span class="pre">status_printer()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.tqdm.clear"><code class="docutils literal notranslate"><span class="pre">clear()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.tqdm.close"><code class="docutils literal notranslate"><span class="pre">close()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.tqdm.display"><code class="docutils literal notranslate"><span class="pre">display()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.tqdm.moveto"><code class="docutils literal notranslate"><span class="pre">moveto()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.tqdm.refresh"><code class="docutils literal notranslate"><span class="pre">refresh()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.tqdm.reset"><code class="docutils literal notranslate"><span class="pre">reset()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.tqdm.set_description"><code class="docutils literal notranslate"><span class="pre">set_description()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.tqdm.set_description_str"><code class="docutils literal notranslate"><span class="pre">set_description_str()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.tqdm.set_postfix"><code class="docutils literal notranslate"><span class="pre">set_postfix()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.tqdm.set_postfix_str"><code class="docutils literal notranslate"><span class="pre">set_postfix_str()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.tqdm.unpause"><code class="docutils literal notranslate"><span class="pre">unpause()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.tqdm.update"><code class="docutils literal notranslate"><span class="pre">update()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.tqdm.format_dict"><code class="docutils literal notranslate"><span class="pre">format_dict</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.tqdm.monitor"><code class="docutils literal notranslate"><span class="pre">monitor</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.tqdm.monitor_interval"><code class="docutils literal notranslate"><span class="pre">monitor_interval</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.matrix_row_normalize"><code class="docutils literal notranslate"><span class="pre">matrix_row_normalize()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="ADCS.orbits.orbital_state.html">ADCS.orbits.orbital_state module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State"><code class="docutils literal notranslate"><span class="pre">Orbital_State</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.ephem"><code class="docutils literal notranslate"><span class="pre">ephem</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.J2000"><code class="docutils literal notranslate"><span class="pre">J2000</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.R"><code class="docutils literal notranslate"><span class="pre">R</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.V"><code class="docutils literal notranslate"><span class="pre">V</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.S"><code class="docutils literal notranslate"><span class="pre">S</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.B"><code class="docutils literal notranslate"><span class="pre">B</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.rho"><code class="docutils literal notranslate"><span class="pre">rho</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.density_model"><code class="docutils literal notranslate"><span class="pre">density_model</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.ECI2ENUmat"><code class="docutils literal notranslate"><span class="pre">ECI2ENUmat</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.geocentric"><code class="docutils literal notranslate"><span class="pre">geocentric</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.LLA"><code class="docutils literal notranslate"><span class="pre">LLA</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.datetime"><code class="docutils literal notranslate"><span class="pre">datetime</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.average"><code class="docutils literal notranslate"><span class="pre">average()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.copy"><code class="docutils literal notranslate"><span class="pre">copy()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.ecef_to_eci"><code class="docutils literal notranslate"><span class="pre">ecef_to_eci()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.ecef_to_geocentric"><code class="docutils literal notranslate"><span class="pre">ecef_to_geocentric()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.eci_to_ecef"><code class="docutils literal notranslate"><span class="pre">eci_to_ecef()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.eci_to_enu"><code class="docutils literal notranslate"><span class="pre">eci_to_enu()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.enu_to_eci"><code class="docutils literal notranslate"><span class="pre">enu_to_eci()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.geocentric_to_ecef"><code class="docutils literal notranslate"><span class="pre">geocentric_to_ecef()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.get_b_eci"><code class="docutils literal notranslate"><span class="pre">get_b_eci()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.get_state_vector"><code class="docutils literal notranslate"><span class="pre">get_state_vector()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.get_sun_eci"><code class="docutils literal notranslate"><span class="pre">get_sun_eci()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.is_sunlit"><code class="docutils literal notranslate"><span class="pre">is_sunlit()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.j2000_to_tai"><code class="docutils literal notranslate"><span class="pre">j2000_to_tai()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.orbit_dynamics"><code class="docutils literal notranslate"><span class="pre">orbit_dynamics()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.orbit_dynamics_jacobians"><code class="docutils literal notranslate"><span class="pre">orbit_dynamics_jacobians()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.propagate_jacobians"><code class="docutils literal notranslate"><span class="pre">propagate_jacobians()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.propagate_jacobians_rk4"><code class="docutils literal notranslate"><span class="pre">propagate_jacobians_rk4()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.propagate_orbit"><code class="docutils literal notranslate"><span class="pre">propagate_orbit()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.propagate_orbit_rk4"><code class="docutils literal notranslate"><span class="pre">propagate_orbit_rk4()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.update_vecs"><code class="docutils literal notranslate"><span class="pre">update_vecs()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="ADCS.orbits.universal_constants.html">ADCS.orbits.universal_constants module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="ADCS.orbits.universal_constants.html#ADCS.orbits.universal_constants.CG5Coefficients"><code class="docutils literal notranslate"><span class="pre">CG5Coefficients</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.universal_constants.html#ADCS.orbits.universal_constants.CG5Coefficients.a"><code class="docutils literal notranslate"><span class="pre">a</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.universal_constants.html#ADCS.orbits.universal_constants.CG5Coefficients.b"><code class="docutils literal notranslate"><span class="pre">b</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.universal_constants.html#ADCS.orbits.universal_constants.CG5Coefficients.c"><code class="docutils literal notranslate"><span class="pre">c</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.universal_constants.html#id0"><code class="docutils literal notranslate"><span class="pre">a</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.universal_constants.html#id1"><code class="docutils literal notranslate"><span class="pre">b</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.universal_constants.html#id2"><code class="docutils literal notranslate"><span class="pre">c</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="ADCS.orbits.universal_constants.html#ADCS.orbits.universal_constants.DefaultStates"><code class="docutils literal notranslate"><span class="pre">DefaultStates</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.universal_constants.html#ADCS.orbits.universal_constants.DefaultStates.zeroquat"><code class="docutils literal notranslate"><span class="pre">zeroquat</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.universal_constants.html#ADCS.orbits.universal_constants.DefaultStates.err_J_var"><code class="docutils literal notranslate"><span class="pre">err_J_var</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.universal_constants.html#id3"><code class="docutils literal notranslate"><span class="pre">err_J_var</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.universal_constants.html#id4"><code class="docutils literal notranslate"><span class="pre">zeroquat</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="ADCS.orbits.universal_constants.html#ADCS.orbits.universal_constants.EarthConstants"><code class="docutils literal notranslate"><span class="pre">EarthConstants</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.universal_constants.html#ADCS.orbits.universal_constants.EarthConstants.R_e"><code class="docutils literal notranslate"><span class="pre">R_e</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.universal_constants.html#ADCS.orbits.universal_constants.EarthConstants.mu_e"><code class="docutils literal notranslate"><span class="pre">mu_e</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.universal_constants.html#ADCS.orbits.universal_constants.EarthConstants.J2coeff"><code class="docutils literal notranslate"><span class="pre">J2coeff</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.universal_constants.html#ADCS.orbits.universal_constants.EarthConstants.J2"><code class="docutils literal notranslate"><span class="pre">J2</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.universal_constants.html#ADCS.orbits.universal_constants.EarthConstants.m_earth"><code class="docutils literal notranslate"><span class="pre">m_earth</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.universal_constants.html#id5"><code class="docutils literal notranslate"><span class="pre">J2</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.universal_constants.html#id6"><code class="docutils literal notranslate"><span class="pre">J2coeff</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.universal_constants.html#id7"><code class="docutils literal notranslate"><span class="pre">R_e</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.universal_constants.html#ADCS.orbits.universal_constants.EarthConstants.c"><code class="docutils literal notranslate"><span class="pre">c</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.universal_constants.html#id8"><code class="docutils literal notranslate"><span class="pre">m_earth</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.universal_constants.html#id9"><code class="docutils literal notranslate"><span class="pre">mu_e</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.universal_constants.html#ADCS.orbits.universal_constants.EarthConstants.solar_constant"><code class="docutils literal notranslate"><span class="pre">solar_constant</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="ADCS.orbits.universal_constants.html#ADCS.orbits.universal_constants.PhysicalConstants"><code class="docutils literal notranslate"><span class="pre">PhysicalConstants</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.universal_constants.html#ADCS.orbits.universal_constants.PhysicalConstants.c"><code class="docutils literal notranslate"><span class="pre">c</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.universal_constants.html#ADCS.orbits.universal_constants.PhysicalConstants.grav_const"><code class="docutils literal notranslate"><span class="pre">grav_const</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.universal_constants.html#ADCS.orbits.universal_constants.PhysicalConstants.solar_constant"><code class="docutils literal notranslate"><span class="pre">solar_constant</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.universal_constants.html#id10"><code class="docutils literal notranslate"><span class="pre">c</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.universal_constants.html#id11"><code class="docutils literal notranslate"><span class="pre">grav_const</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.universal_constants.html#id12"><code class="docutils literal notranslate"><span class="pre">solar_constant</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="ADCS.orbits.universal_constants.html#ADCS.orbits.universal_constants.TimeConstants"><code class="docutils literal notranslate"><span class="pre">TimeConstants</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.universal_constants.html#ADCS.orbits.universal_constants.TimeConstants.cent2sec"><code class="docutils literal notranslate"><span class="pre">cent2sec</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.universal_constants.html#ADCS.orbits.universal_constants.TimeConstants.sec2cent"><code class="docutils literal notranslate"><span class="pre">sec2cent</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.universal_constants.html#ADCS.orbits.universal_constants.TimeConstants.time_eps"><code class="docutils literal notranslate"><span class="pre">time_eps</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.universal_constants.html#ADCS.orbits.universal_constants.TimeConstants.num_eps"><code class="docutils literal notranslate"><span class="pre">num_eps</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.universal_constants.html#id13"><code class="docutils literal notranslate"><span class="pre">cent2sec</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.universal_constants.html#id14"><code class="docutils literal notranslate"><span class="pre">num_eps</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.universal_constants.html#id15"><code class="docutils literal notranslate"><span class="pre">sec2cent</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.universal_constants.html#id16"><code class="docutils literal notranslate"><span class="pre">time_eps</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 </div>
 </section>

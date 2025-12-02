@@ -174,7 +174,7 @@
           <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
         </button>
       </div>
-      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
         <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
       </label>
     </div>
@@ -323,13 +323,1029 @@
               <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
             </button>
           </div>
-          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
             <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <section id="adcs-satellite-hardware-satellite-satellite-module">
-<h1>ADCS.satellite_hardware.satellite.satellite module<a class="headerlink" href="#adcs-satellite-hardware-satellite-satellite-module" title="Link to this heading">¶</a></h1>
+          <section id="module-ADCS.satellite_hardware.satellite.satellite">
+<span id="adcs-satellite-hardware-satellite-satellite-module"></span><h1>ADCS.satellite_hardware.satellite.satellite module<a class="headerlink" href="#module-ADCS.satellite_hardware.satellite.satellite" title="Link to this heading">¶</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.satellite.satellite.Satellite">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ADCS.satellite_hardware.satellite.satellite.</span></span><span class="sig-name descname"><span class="pre">Satellite</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mass</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">COM</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">J_0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">disturbances</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sensors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">actuators</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logger</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/satellite/satellite.html#Satellite"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.satellite.satellite.Satellite" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Represents a rigid satellite with inertia, actuators, and sensors.</p>
+<p>This class defines the physical parameters of a spacecraft,
+including its mass, center of mass (COM), inertia matrix, and
+associated subsystems. It also provides utilities to compute
+derived inertial properties such as the inertia at the center
+of mass and bus-only inertia (excluding reaction wheels).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mass</strong> (<em>float</em><em>, </em><em>optional</em>) – Total satellite mass [kg]. Defaults to 1.0.</p></li>
+<li><p><strong>COM</strong> (<em>np.ndarray</em><em>, </em><em>optional</em>) – Center of mass vector (shape (3,)). Defaults to [0, 0, 0].</p></li>
+<li><p><strong>J_0</strong> (<em>np.ndarray</em><em>, </em><em>optional</em>) – Inertia tensor about the reference origin (shape (3,3)).
+Defaults to identity.</p></li>
+<li><p><strong>disturbances</strong> (<em>List</em><em>[</em><a class="reference internal" href="ADCS.satellite_hardware.disturbances.html#ADCS.satellite_hardware.disturbances.Disturbance" title="ADCS.satellite_hardware.disturbances.Disturbance"><em>Disturbance</em></a><em>]</em><em>, </em><em>optional</em>) – List of environmental disturbance models (e.g., drag, SRP).</p></li>
+<li><p><strong>sensors</strong> (<em>List</em><em>[</em><a class="reference internal" href="ADCS.satellite_hardware.sensors.html#ADCS.satellite_hardware.sensors.Sensor" title="ADCS.satellite_hardware.sensors.Sensor"><em>Sensor</em></a><em>]</em><em>, </em><em>optional</em>) – List of sensor models (e.g., gyros, star trackers, GPS).</p></li>
+<li><p><strong>actuators</strong> (<em>List</em><em>[</em><a class="reference internal" href="ADCS.satellite_hardware.actuators.html#ADCS.satellite_hardware.actuators.Actuator" title="ADCS.satellite_hardware.actuators.Actuator"><em>Actuator</em></a><em>]</em><em>, </em><em>optional</em>) – List of actuator models (e.g., reaction wheels, thrusters).</p></li>
+<li><p><strong>logger</strong> (<a class="reference internal" href="ADCS.logging.logger.html#ADCS.logging.logger.ADCSLogger" title="ADCS.logging.logger.ADCSLogger"><em>ADCSLogger</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.satellite.satellite.Satellite.mass">
+<span class="sig-name descname"><span class="pre">mass</span></span><a class="headerlink" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.mass" title="Link to this definition">¶</a></dt>
+<dd><p>Satellite total mass [kg].</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.satellite.satellite.Satellite.COM">
+<span class="sig-name descname"><span class="pre">COM</span></span><a class="headerlink" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.COM" title="Link to this definition">¶</a></dt>
+<dd><p>Center of mass vector (3,).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.satellite.satellite.Satellite.J_0">
+<span class="sig-name descname"><span class="pre">J_0</span></span><a class="headerlink" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.J_0" title="Link to this definition">¶</a></dt>
+<dd><p>Inertia tensor about the reference origin (3,3).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.satellite.satellite.Satellite.J_COM">
+<span class="sig-name descname"><span class="pre">J_COM</span></span><a class="headerlink" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.J_COM" title="Link to this definition">¶</a></dt>
+<dd><p>Inertia tensor about the center of mass (3,3).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.satellite.satellite.Satellite.J_noRW">
+<span class="sig-name descname"><span class="pre">J_noRW</span></span><a class="headerlink" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.J_noRW" title="Link to this definition">¶</a></dt>
+<dd><p>Inertia tensor without reaction wheel contributions (3,3).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.satellite.satellite.Satellite.invJ_COM">
+<span class="sig-name descname"><span class="pre">invJ_COM</span></span><a class="headerlink" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.invJ_COM" title="Link to this definition">¶</a></dt>
+<dd><p>Inverse of the inertia tensor at the center of mass.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.satellite.satellite.Satellite.state_len">
+<span class="sig-name descname"><span class="pre">state_len</span></span><a class="headerlink" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.state_len" title="Link to this definition">¶</a></dt>
+<dd><p>Dimension of the satellite’s full state vector.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ValueError</strong> – If COM or J_0 are not of the correct shape.</p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>mass</strong> (<em>float</em>)</p></li>
+<li><p><strong>COM</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>J_0</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>disturbances</strong> (<em>List</em><em>[</em><a class="reference internal" href="ADCS.satellite_hardware.disturbances.disturbance.html#ADCS.satellite_hardware.disturbances.disturbance.Disturbance" title="ADCS.satellite_hardware.disturbances.disturbance.Disturbance"><em>Disturbance</em></a><em>]</em>)</p></li>
+<li><p><strong>sensors</strong> (<em>List</em><em>[</em><a class="reference internal" href="ADCS.satellite_hardware.sensors.sensor.html#ADCS.satellite_hardware.sensors.sensor.Sensor" title="ADCS.satellite_hardware.sensors.sensor.Sensor"><em>Sensor</em></a><em>]</em>)</p></li>
+<li><p><strong>actuators</strong> (<em>List</em><em>[</em><a class="reference internal" href="ADCS.satellite_hardware.actuators.actuator.html#ADCS.satellite_hardware.actuators.actuator.Actuator" title="ADCS.satellite_hardware.actuators.actuator.Actuator"><em>Actuator</em></a><em>]</em>)</p></li>
+<li><p><strong>logger</strong> (<a class="reference internal" href="ADCS.logging.logger.html#ADCS.logging.logger.ADCSLogger" title="ADCS.logging.logger.ADCSLogger"><em>ADCSLogger</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.satellite.satellite.Satellite.GPS_readings">
+<span class="sig-name descname"><span class="pre">GPS_readings</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/satellite/satellite.html#Satellite.GPS_readings"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.GPS_readings" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>List</em>[<em>ndarray</em>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.satellite.satellite.Satellite.RW_readings">
+<span class="sig-name descname"><span class="pre">RW_readings</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/satellite/satellite.html#Satellite.RW_readings"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.RW_readings" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>List</em>[<em>ndarray</em>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.satellite.satellite.Satellite.RWhs">
+<span class="sig-name descname"><span class="pre">RWhs</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/satellite/satellite.html#Satellite.RWhs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.RWhs" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>ndarray</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.satellite.satellite.Satellite.RWhs_from_state">
+<span class="sig-name descname"><span class="pre">RWhs_from_state</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/satellite/satellite.html#Satellite.RWhs_from_state"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.RWhs_from_state" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>ndarray</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.satellite.satellite.Satellite.act_torque">
+<span class="sig-name descname"><span class="pre">act_torque</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dmode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/satellite/satellite.html#Satellite.act_torque"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.act_torque" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>u</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>)</p></li>
+<li><p><strong>dmode</strong> (<a class="reference internal" href="ADCS.satellite_hardware.disturbances.disturbance_mode.html#ADCS.satellite_hardware.disturbances.disturbance_mode.DisturbanceMode" title="ADCS.satellite_hardware.disturbances.disturbance_mode.DisturbanceMode"><em>DisturbanceMode</em></a>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>ndarray</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.satellite.satellite.Satellite.dist_torque_hess">
+<span class="sig-name descname"><span class="pre">dist_torque_hess</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vecs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/satellite/satellite.html#Satellite.dist_torque_hess"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.dist_torque_hess" title="Link to this definition">¶</a></dt>
+<dd><p>Compute the Hessian tensors of the total disturbance torque with respect
+to the state vector and disturbance parameters.</p>
+<p>The function aggregates second-order derivatives of all registered
+disturbance models. The output consists of three 3D tensors representing
+second-order sensitivities with respect to state, parameter, and
+mixed (state–parameter) terms.</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\frac{\partial^2 \boldsymbol{\tau}_d}{\partial \mathbf{x}^2}, \qquad
+\frac{\partial^2 \boldsymbol{\tau}_d}{\partial \mathbf{x}\,\partial \boldsymbol{\theta}_d}, \qquad
+\frac{\partial^2 \boldsymbol{\tau}_d}{\partial \boldsymbol{\theta}_d^2}\]</div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>numpy.ndarray</em>) – Current system state vector of length <code class="docutils literal notranslate"><span class="pre">state_len</span></code>.</p></li>
+<li><p><strong>vecs</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>numpy.ndarray</em><em>]</em>) – Dictionary of environmental vectors required by the disturbance models.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>dddist_torq__dxdx</strong> (<em>numpy.ndarray, shape (state_len, state_len, 3)</em>) – Second derivative of disturbance torque with respect to the state vector.</p></li>
+<li><p><strong>dddist_torq__dxddmp</strong> (<em>numpy.ndarray, shape (state_len, dist_param_len, 3)</em>) – Mixed derivative tensor (state–parameter coupling).</p></li>
+<li><p><strong>dddist_torq__ddmpddmp</strong> (<em>numpy.ndarray, shape (dist_param_len, dist_param_len, 3)</em>) – Second derivative of disturbance torque with respect to disturbance
+model parameters.</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>Tuple</em>[<em>ndarray</em>, <em>ndarray</em>, <em>ndarray</em>]</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>Only the quaternion portion of the state contributes to second-order terms.</p></li>
+<li><p>Each disturbance model <code class="docutils literal notranslate"><span class="pre">j</span></code> must implement:</p></li>
+</ul>
+<p><code class="docutils literal notranslate"><span class="pre">torque_qqhess(self,</span> <span class="pre">vecs)</span></code> for quaternion–quaternion derivatives.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.satellite.satellite.Satellite.dist_torques">
+<span class="sig-name descname"><span class="pre">dist_torques</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dmode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/satellite/satellite.html#Satellite.dist_torques"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.dist_torques" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>)</p></li>
+<li><p><strong>dmode</strong> (<a class="reference internal" href="ADCS.satellite_hardware.disturbances.disturbance_mode.html#ADCS.satellite_hardware.disturbances.disturbance_mode.DisturbanceMode" title="ADCS.satellite_hardware.disturbances.disturbance_mode.DisturbanceMode"><em>DisturbanceMode</em></a>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>ndarray</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.satellite.satellite.Satellite.dist_torques_jacobian">
+<span class="sig-name descname"><span class="pre">dist_torques_jacobian</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vecs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/satellite/satellite.html#Satellite.dist_torques_jacobian"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.dist_torques_jacobian" title="Link to this definition">¶</a></dt>
+<dd><p>Compute the Jacobian of the total disturbance torque with respect to the
+system state and disturbance model parameters.</p>
+<p>The function aggregates the first-order derivatives of all registered
+disturbance models and returns a pair of Jacobian matrices. The state
+derivative includes only the quaternion components (indices 3–6),
+as these determine the attitude-dependent disturbance torque.</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\frac{\partial \boldsymbol{\tau}_d}{\partial \mathbf{x}}, \qquad
+\frac{\partial \boldsymbol{\tau}_d}{\partial \boldsymbol{\theta}_d}\]</div>
+</div>
+<p>where <span class="math notranslate nohighlight">\(\boldsymbol{\tau}_d\)</span> is the total disturbance torque,
+<span class="math notranslate nohighlight">\(\mathbf{x}\)</span> is the state vector, and
+<span class="math notranslate nohighlight">\(\boldsymbol{\theta}_d\)</span> are disturbance model parameters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>numpy.ndarray</em>) – Current system state vector of length <code class="docutils literal notranslate"><span class="pre">state_len</span></code>.</p></li>
+<li><p><strong>vecs</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>numpy.ndarray</em><em>]</em>) – Dictionary of environment vectors (e.g., magnetic field, sun vector,
+aerodynamic flow) required by each disturbance model.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>ddist_torq__dx</strong> (<em>numpy.ndarray, shape (state_len, 3)</em>) – Jacobian of disturbance torque with respect to the state vector.</p></li>
+<li><p><strong>ddist_torq__ddmp</strong> (<em>numpy.ndarray, shape (dist_param_len, 3)</em>) – Jacobian of disturbance torque with respect to disturbance model
+parameters. Empty if no parameters are estimated.</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>ndarray</em></p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>Only the quaternion part of the state contributes to the torque derivative.</p></li>
+<li><p>Each disturbance model <code class="docutils literal notranslate"><span class="pre">j</span></code> must implement <code class="docutils literal notranslate"><span class="pre">torque_qjac(self,</span> <span class="pre">vecs)</span></code>.</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.satellite.satellite.Satellite.dynJacCore">
+<span class="sig-name descname"><span class="pre">dynJacCore</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orbital_state</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/satellite/satellite.html#Satellite.dynJacCore"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.dynJacCore" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>u</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>orbital_state</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>ndarray</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.satellite.satellite.Satellite.dynamics_Hessians">
+<span class="sig-name descname"><span class="pre">dynamics_Hessians</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orbital_state</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/satellite/satellite.html#Satellite.dynamics_Hessians"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.dynamics_Hessians" title="Link to this definition">¶</a></dt>
+<dd><p>Compute the <strong>second-order partial derivatives (Hessians)</strong> of the spacecraft attitude dynamics
+with respect to the system state and control inputs.</p>
+<p>This function analytically evaluates the <strong>Hessian tensors</strong> of the spacecraft’s nonlinear
+rotational dynamics model:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\dot{\mathbf{x}} = f(\mathbf{x}, \mathbf{u}, \mathbf{p})\]</div>
+</div>
+<p>where the state vector <span class="math notranslate nohighlight">\(\mathbf{x}\)</span> includes angular velocity, quaternion, and reaction
+wheel angular momenta, and <span class="math notranslate nohighlight">\(\mathbf{u}\)</span> represents actuator torques or control inputs.</p>
+<p>The Hessians quantify the <strong>second-order curvature</strong> of the dynamics — i.e., how the Jacobians
+(first derivatives) themselves change with respect to the state and control. These tensors are
+essential for second-order estimation or control algorithms such as Differential Dynamic
+Programming (DDP), iterative LQR (iLQR), and nonlinear uncertainty propagation.</p>
+<p><strong>Mathematical Formulation</strong></p>
+<p>The rotational dynamics are defined as:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{aligned}
+\dot{\boldsymbol{\omega}} &amp;= J^{-1} \left[
+    -\boldsymbol{\omega} \times \left(J \boldsymbol{\omega} + A_{RW}^T \mathbf{h}_{RW}\right)
+    + \boldsymbol{\tau}_{act}(\mathbf{x}, \mathbf{u})
+    + \boldsymbol{\tau}_{dist}(\mathbf{x})
+\right] \\
+\dot{\mathbf{q}} &amp;= \tfrac{1}{2} W(\mathbf{q})^T \boldsymbol{\omega} \\
+\dot{\mathbf{h}}_{RW} &amp;= \mathbf{u}_{RW}
+    - \mathrm{diag}(J_{RW}) A_{RW}^T \dot{\boldsymbol{\omega}}
+\end{aligned}\end{split}\]</div>
+</div>
+<p>The second derivatives are computed for each component of <span class="math notranslate nohighlight">\(f(\mathbf{x}, \mathbf{u})\)</span>:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\frac{\partial^2 f_i}{\partial z_j \, \partial z_k},
+\quad
+\mathbf{z} = [\mathbf{x}, \mathbf{u}]\]</div>
+</div>
+<p>where each element of the returned Hessian tensors represents a mixed second derivative of the
+system dynamics with respect to state and/or control variables.</p>
+<p>—
+<strong>Inputs</strong></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>np.ndarray</em>) – <p>Current spacecraft state vector.</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\begin{split}\mathbf{x} =
+\begin{bmatrix}
+    \boldsymbol{\omega} \\[3pt]
+    \mathbf{q} \\[3pt]
+    \mathbf{h}_{RW}
+\end{bmatrix}
+\in \mathbb{R}^{n_x}\end{split}\]</div>
+</div>
+<ul>
+<li><p><span class="math notranslate nohighlight">\(\boldsymbol{\omega}\)</span> — body angular velocity (rad/s), shape <code class="docutils literal notranslate"><span class="pre">(3,)</span></code></p></li>
+<li><p><span class="math notranslate nohighlight">\(\mathbf{q}\)</span> — attitude quaternion (Hamilton convention, body→ECI), shape <code class="docutils literal notranslate"><span class="pre">(4,)</span></code></p></li>
+<li><p><span class="math notranslate nohighlight">\(\mathbf{h}_{RW}\)</span> — reaction wheel momenta, shape <code class="docutils literal notranslate"><span class="pre">(n_{RW},)</span></code></p></li>
+</ul>
+</p></li>
+<li><p><strong>u</strong> (<em>np.ndarray</em>) – Control input vector representing actuator torque commands, wheel speed commands,
+or other control variables. Shape <code class="docutils literal notranslate"><span class="pre">(n_u,)</span></code>.</p></li>
+<li><p><strong>orbital_state</strong> (<a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbital_State" title="ADCS.orbits.orbit.Orbital_State"><em>Orbital_State</em></a>) – <p>Object containing current orbital and environmental parameters:
+- <code class="docutils literal notranslate"><span class="pre">R</span></code> — position vector in ECI [m]
+- <code class="docutils literal notranslate"><span class="pre">V</span></code> — velocity vector in ECI [m/s]
+- <code class="docutils literal notranslate"><span class="pre">B</span></code> — magnetic field vector in ECI [T]
+- <code class="docutils literal notranslate"><span class="pre">S</span></code> — Sun direction vector in ECI
+- <code class="docutils literal notranslate"><span class="pre">rho</span></code> — atmospheric density [kg/m³]</p>
+<p>These are internally transformed into the body frame and their first and second
+derivatives with respect to the quaternion are computed.</p>
+</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>List</em>[<em>List</em>[<em>ndarray</em>]]</p>
+</dd>
+</dl>
+<p>—
+<strong>Outputs</strong></p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><p>Nested list of Hessian tensors for each derivative block.
+When estimation extensions are disabled (<cite>self.estimated == False</cite>):</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>[
+[ddxdot__dxdx, ddxdot__dxdu],
+[ddxdot__dxdu.T, ddxdot__dudu]
+]
+</pre></div>
+</div>
+<p>where each element is a 3D array:</p>
+<p>Each 3D tensor’s third index corresponds to a state derivative component.</p>
+</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>List[List[np.ndarray]]</p>
+</dd>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>u</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>orbital_state</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+<p>—
+<strong>Computation Steps</strong></p>
+<ol class="arabic simple">
+<li><p><strong>Frame transformation</strong></p></li>
+</ol>
+<p>Environmental vectors are rotated from ECI to body frame using:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\mathbf{v}_B = R_{ECI\to B} \, \mathbf{v}_{ECI}\]</div>
+</div>
+<p>and both their first and second quaternion derivatives
+(<code class="xref py py-func docutils literal notranslate"><span class="pre">drotmatTvecdq()</span></code>, <code class="xref py py-func docutils literal notranslate"><span class="pre">ddrotmatTvecdqdq()</span></code>) are evaluated.</p>
+<ol class="arabic simple" start="2">
+<li><p><strong>Torque derivatives</strong></p></li>
+</ol>
+<p>For each actuator and disturbance source:
+- Compute first- and second-order derivatives of the generated torque:</p>
+<blockquote>
+<div><p><span class="math notranslate nohighlight">\(\frac{\partial \boldsymbol{\tau}}{\partial \mathbf{x}}\)</span>,
+<span class="math notranslate nohighlight">\(\frac{\partial^2 \boldsymbol{\tau}}{\partial \mathbf{x}^2}\)</span>,
+<span class="math notranslate nohighlight">\(\frac{\partial^2 \boldsymbol{\tau}}{\partial \mathbf{u}^2}\)</span>,
+and mixed derivatives.</p>
+</div></blockquote>
+<ol class="arabic simple" start="3">
+<li><p><strong>Hessian assembly</strong></p></li>
+</ol>
+<p>Populate the combined second derivative tensors:
+- <code class="docutils literal notranslate"><span class="pre">ddxdot__dxdx</span></code> — curvature of dynamics wrt state
+- <code class="docutils literal notranslate"><span class="pre">ddxdot__dxdu</span></code> — curvature wrt state–control interaction
+- <code class="docutils literal notranslate"><span class="pre">ddxdot__dudu</span></code> — curvature wrt control inputs</p>
+<ol class="arabic simple" start="4">
+<li><p><strong>Reaction wheel coupling</strong></p></li>
+</ol>
+<p>If reaction wheels are present (<code class="xref py py-attr docutils literal notranslate"><span class="pre">self.number_RW</span> <span class="pre">&gt;</span> <span class="pre">0</span></code>),
+additional second-order coupling terms are added to capture
+body–wheel cross-dynamics via the wheel inertia, spin axes,
+and stored momentum.</p>
+<ol class="arabic simple" start="5">
+<li><p><strong>Final tensor contraction</strong></p></li>
+</ol>
+<p>All torques are pre-multiplied by <span class="math notranslate nohighlight">\(J^{-1}\)</span> (the inverse of the bus inertia
+tensor excluding reaction wheels) to yield accelerations in body coordinates.</p>
+<p>—
+<strong>Notes</strong></p>
+<ul class="simple">
+<li><p>The quaternion formulation follows the <strong>Hamilton convention</strong>, where</p></li>
+</ul>
+<p><span class="math notranslate nohighlight">\(\mathbf{q}\)</span> represents the body-to-ECI rotation.
+- Returned tensors are symmetric along appropriate axes for physical consistency.
+- Designed for use in second-order dynamic linearization and trajectory optimization.</p>
+<p>—
+<strong>Example</strong></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">ddH</span> <span class="o">=</span> <span class="n">sat</span><span class="o">.</span><span class="n">dynamics_Hessians</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">orb</span><span class="p">)</span>
+<span class="n">ddx_dx</span><span class="p">,</span> <span class="n">dx_du</span> <span class="o">=</span> <span class="n">ddH</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">ddx_dx</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>   <span class="c1"># (n_x, n_x, n_x)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">dx_du</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>    <span class="c1"># (n_x, n_u, n_x)</span>
+</pre></div>
+</div>
+<p>—
+<strong>References</strong></p>
+<ul class="simple">
+<li><p>Wie, B. <em>Space Vehicle Dynamics and Control</em>, 2nd Ed. AIAA, 2008.</p></li>
+<li><p>Diebel, J. “Representing Attitude: Euler Angles, Unit Quaternions, and Rotation Vectors.” Stanford University, 2006.</p></li>
+<li><p>Tassa, Y. <em>et al.</em> “Synthesis and Stabilization of Complex Behaviors through Online Trajectory Optimization.” IROS, 2012.</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.satellite.satellite.Satellite.dynamics_core">
+<span class="sig-name descname"><span class="pre">dynamics_core</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orbital_state</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dmode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/satellite/satellite.html#Satellite.dynamics_core"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.dynamics_core" title="Link to this definition">¶</a></dt>
+<dd><p>Compute the full spacecraft rotational dynamics including attitude kinematics,
+external disturbances, and actuator torques, with optional reaction wheel coupling.</p>
+<p>This method forms the <strong>core of the spacecraft attitude dynamics model</strong>, computing
+the time derivative of the state vector:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\begin{split}\dot{\mathbf{x}} =
+\begin{bmatrix}
+\dot{\boldsymbol{\omega}} \\
+\dot{\mathbf{q}} \\
+\dot{\mathbf{h}}_{\text{RW}}
+\end{bmatrix}\end{split}\]</div>
+</div>
+<p>where:</p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(\boldsymbol{\omega}\)</span> is the body angular velocity vector (rad/s),</p></li>
+<li><p><span class="math notranslate nohighlight">\(\mathbf{q}\)</span> is the attitude quaternion,</p></li>
+<li><p><span class="math notranslate nohighlight">\(\mathbf{h}_{\text{RW}}\)</span> is the stored angular momentum in reaction wheels.</p></li>
+</ul>
+<p>The model includes:
+- Coordinate transformation from ECI to body frame,
+- Disturbance torques (aerodynamic, magnetic, solar, etc.),
+- Actuator torques (reaction wheels, magnetorquers, etc.),
+- Coupled rigid-body dynamics with or without reaction wheels.</p>
+<p>—
+<strong>1. Environmental Vector Transformation</strong></p>
+<p>The orbital state provides environmental quantities in the Earth-Centered Inertial (ECI) frame:
+position <span class="math notranslate nohighlight">\(\mathbf{R}\)</span>, velocity <span class="math notranslate nohighlight">\(\mathbf{V}\)</span>, magnetic field <span class="math notranslate nohighlight">\(\mathbf{B}\)</span>,
+Sun vector <span class="math notranslate nohighlight">\(\mathbf{S}\)</span>, and atmospheric density <span class="math notranslate nohighlight">\(\rho\)</span>.</p>
+<p>These are rotated into the body frame using the quaternion-based rotation matrix:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\mathbf{v}_B = \mathbf{R}_{\text{ECI}\rightarrow B}\, \mathbf{v}_{\text{ECI}}, \quad
+\mathbf{R}_{\text{ECI}\rightarrow B} = \text{rot\_mat}(\mathbf{q})^\top\]</div>
+</div>
+<p>yielding:
+<span class="math notranslate nohighlight">\(\mathbf{R}_B, \mathbf{V}_B, \mathbf{B}_B, \mathbf{S}_B\)</span>.</p>
+<p>—
+<strong>2. Quaternion Kinematics</strong></p>
+<p>The quaternion derivative is computed from angular velocity:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\dot{\mathbf{q}} = \tfrac{1}{2}\,\mathbf{W}(\mathbf{q})^\top \boldsymbol{\omega}\]</div>
+</div>
+<p>where <span class="math notranslate nohighlight">\(\mathbf{W}(\mathbf{q})\)</span> is the standard quaternion kinematic matrix.</p>
+<p>—
+<strong>3. Rigid-Body Rotational Dynamics</strong></p>
+<p>The core Euler rotational dynamics are:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\dot{\boldsymbol{\omega}} =
+\mathbf{J}^{-1}\left(
+\boldsymbol{\tau}_{\text{tot}} -
+\boldsymbol{\omega} \times (\mathbf{J}\boldsymbol{\omega})
+\right)\]</div>
+</div>
+<p>where:
+- <span class="math notranslate nohighlight">\(\mathbf{J}\)</span> is the spacecraft inertia tensor,
+- <span class="math notranslate nohighlight">\(\boldsymbol{\tau}_{\text{tot}}\)</span> is the total torque acting on the body:
+(boldsymbol{tau}_{text{tot}} = boldsymbol{tau}_{text{act}} + boldsymbol{tau}_{text{dist}}).</p>
+<p>—
+<strong>4. Reaction Wheel Coupling (if present)</strong></p>
+<p>When the spacecraft has reaction wheels, the body dynamics are coupled to wheel angular momentum <span class="math notranslate nohighlight">\(\mathbf{h}_{\text{RW}}\)</span>:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\dot{\boldsymbol{\omega}} =
+\mathbf{J}_b^{-1}\left(
+\boldsymbol{\tau}_{\text{tot}} -
+\boldsymbol{\omega} \times
+(\mathbf{J}_b\boldsymbol{\omega} + \mathbf{A}^\top \mathbf{h}_{\text{RW}})
+\right)\]</div>
+</div>
+<p>where:
+- <span class="math notranslate nohighlight">\(\mathbf{J}_b\)</span> is the bus (no-RW) inertia tensor,
+- <span class="math notranslate nohighlight">\(\mathbf{A}\)</span> is the matrix of wheel spin axes (3×N),
+- <span class="math notranslate nohighlight">\(\mathbf{h}_{\text{RW}} = \text{diag}(J_{\text{RW}})\, \boldsymbol{\omega}_{\text{RW}}\)</span>.</p>
+<p>The time derivative of stored wheel momentum is given by:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\dot{\mathbf{h}}_{\text{RW}} =
+\mathbf{u}_{\text{RW}} -
+\text{diag}(J_{\text{RW}})\,\mathbf{A}^\top \dot{\boldsymbol{\omega}}\]</div>
+</div>
+<p>where <span class="math notranslate nohighlight">\(\mathbf{u}_{\text{RW}}\)</span> is the motor torque command vector.</p>
+<p>—
+<strong>5. State Derivative Assembly</strong></p>
+<p>The total derivative vector is returned as:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\begin{split}\dot{\mathbf{x}} =
+\begin{cases}
+    [\dot{\boldsymbol{\omega}}, \dot{\mathbf{q}}]^\top, &amp; N_{\text{RW}} = 0 \\
+    [\dot{\boldsymbol{\omega}}, \dot{\mathbf{q}}, \dot{\mathbf{h}}_{\text{RW}}]^\top, &amp; N_{\text{RW}} &gt; 0
+\end{cases}\end{split}\]</div>
+</div>
+<p>—</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>numpy.ndarray</em>) – Full spacecraft state vector:
+<span class="math notranslate nohighlight">\(\mathbf{x} = [\boldsymbol{\omega}, \mathbf{q}, \mathbf{h}_{\text{RW}}]\)</span>.</p></li>
+<li><p><strong>u</strong> (<em>numpy.ndarray</em>) – Control input vector (actuator commands).</p></li>
+<li><p><strong>orbital_state</strong> (<a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbital_State" title="ADCS.orbits.orbit.Orbital_State"><em>Orbital_State</em></a>) – Object containing orbital and environmental parameters:
+position, velocity, magnetic field, Sun vector, and density.</p></li>
+<li><p><strong>verbose</strong> (<em>bool</em><em>, </em><em>optional</em>) – If <code class="docutils literal notranslate"><span class="pre">True</span></code>, print diagnostic information (default: <code class="docutils literal notranslate"><span class="pre">False</span></code>).</p></li>
+<li><p><strong>log</strong> (<em>bool</em><em>, </em><em>optional</em>) – If <code class="docutils literal notranslate"><span class="pre">True</span></code>, log intermediate data for debugging or analysis.</p></li>
+<li><p><strong>dmode</strong> (<a class="reference internal" href="ADCS.satellite_hardware.disturbances.disturbance_mode.html#ADCS.satellite_hardware.disturbances.disturbance_mode.DisturbanceMode" title="ADCS.satellite_hardware.disturbances.disturbance_mode.DisturbanceMode"><em>DisturbanceMode</em></a>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Time derivative of the spacecraft state vector <span class="math notranslate nohighlight">\(\dot{\mathbf{x}}\)</span>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>All vectors are represented in the body reference frame.</p></li>
+<li><p>Reaction wheel torques are internally computed by each actuator using</p></li>
+</ul>
+<p><code class="xref py py-func docutils literal notranslate"><span class="pre">Actuator.storage_torque()</span></code>.
+- The function supports both reaction-wheel and wheel-less configurations.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.satellite.satellite.Satellite.dynamics_for_solver">
+<span class="sig-name descname"><span class="pre">dynamics_for_solver</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/satellite/satellite.html#Satellite.dynamics_for_solver"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.dynamics_for_solver" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>t</strong> (<em>float</em>)</p></li>
+<li><p><strong>x</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>u</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>os0</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>)</p></li>
+<li><p><strong>os1</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>ndarray</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.satellite.satellite.Satellite.gen_dist_off">
+<span class="sig-name descname"><span class="pre">gen_dist_off</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ind</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/satellite/satellite.html#Satellite.gen_dist_off"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.gen_dist_off" title="Link to this definition">¶</a></dt>
+<dd><p>Turn off general disturbances.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ind</strong> (<em>int</em><em> | </em><em>None</em>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.satellite.satellite.Satellite.gen_dist_on">
+<span class="sig-name descname"><span class="pre">gen_dist_on</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ind</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/satellite/satellite.html#Satellite.gen_dist_on"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.gen_dist_on" title="Link to this definition">¶</a></dt>
+<dd><p>Turn on general disturbances.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ind</strong> (<em>int</em><em> | </em><em>None</em>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.satellite.satellite.Satellite.gyro_readings">
+<span class="sig-name descname"><span class="pre">gyro_readings</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/satellite/satellite.html#Satellite.gyro_readings"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.gyro_readings" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>List</em>[<em>ndarray</em>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.satellite.satellite.Satellite.mtm_readings">
+<span class="sig-name descname"><span class="pre">mtm_readings</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/satellite/satellite.html#Satellite.mtm_readings"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.mtm_readings" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>List</em>[<em>ndarray</em>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.satellite.satellite.Satellite.noiseless_RW_readings">
+<span class="sig-name descname"><span class="pre">noiseless_RW_readings</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/satellite/satellite.html#Satellite.noiseless_RW_readings"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.noiseless_RW_readings" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>List</em>[<em>ndarray</em>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.satellite.satellite.Satellite.noiseless_rk4">
+<span class="sig-name descname"><span class="pre">noiseless_rk4</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orbital_state0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orbital_state1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mid_orbital_state</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quat_as_vec</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">give_err_est</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/satellite/satellite.html#Satellite.noiseless_rk4"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.noiseless_rk4" title="Link to this definition">¶</a></dt>
+<dd><p>Integrate the spacecraft rotational dynamics forward in time using a <strong>fourth-order Runge–Kutta (RK4)</strong>
+method or an optional <strong>commutator-free fifth-order (CG5)</strong> scheme for quaternion propagation.</p>
+<p>This method advances the state vector <span class="math notranslate nohighlight">\(\mathbf{x}\)</span> over one time step <span class="math notranslate nohighlight">\(\Delta t\)</span>
+according to the nonlinear dynamics model</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\dot{\mathbf{x}} = f(\mathbf{x}, \mathbf{u}, t),\]</div>
+</div>
+<p>where <span class="math notranslate nohighlight">\(\mathbf{x}\)</span> contains the spacecraft angular velocity, quaternion attitude, and (optionally)
+reaction wheel states. The quaternion is renormalized at each substep to prevent numerical drift.</p>
+<p><strong>Integration Formulas</strong></p>
+<p><em>For standard RK4:</em></p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{aligned}
+k_1 &amp;= f(\mathbf{x}_n, \mathbf{u}, t_n) \\
+k_2 &amp;= f(\mathbf{x}_n + \tfrac{1}{2} \Delta t\, k_1, \mathbf{u}, t_n + \tfrac{1}{2}\Delta t) \\
+k_3 &amp;= f(\mathbf{x}_n + \tfrac{1}{2} \Delta t\, k_2, \mathbf{u}, t_n + \tfrac{1}{2}\Delta t) \\
+k_4 &amp;= f(\mathbf{x}_n + \Delta t\, k_3, \mathbf{u}, t_n + \Delta t) \\
+\mathbf{x}_{n+1} &amp;= \mathbf{x}_n + \tfrac{\Delta t}{6}(k_1 + 2k_2 + 2k_3 + k_4)
+\end{aligned}\end{split}\]</div>
+</div>
+<p><em>For quaternion integration</em>, each intermediate state’s quaternion is renormalized and the final quaternion
+is normalized again after the update.</p>
+<p><em>For CG5 (Lie group) variant:</em>
+Quaternion increments are represented using rotational exponentials <span class="math notranslate nohighlight">\(\exp(\mathbf{F}_i)\)</span> to ensure
+attitude integration on the manifold <span class="math notranslate nohighlight">\(\mathrm{SO}(3)\)</span> via the commutator-free Runge–Kutta method.</p>
+<p>—</p>
+<p>Parameters</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>numpy.ndarray</em>) – <p>Current state vector <span class="math notranslate nohighlight">\(\mathbf{x}\)</span> containing:
+- <span class="math notranslate nohighlight">\(\boldsymbol{\omega}\)</span> — angular velocity in body frame [rad/s]
+- <span class="math notranslate nohighlight">\(\mathbf{q}\)</span> — attitude quaternion (Hamilton form, body→ECI)
+- (optional) reaction wheel states</p>
+<p>Shape: <code class="docutils literal notranslate"><span class="pre">(n_x,)</span></code></p>
+</p></li>
+<li><p><strong>u</strong> (<em>numpy.ndarray</em>) – Control input vector <span class="math notranslate nohighlight">\(\mathbf{u}\)</span> (e.g., actuator or wheel torques).
+Shape: <code class="docutils literal notranslate"><span class="pre">(n_u,)</span></code></p></li>
+<li><p><strong>dt</strong> (<em>float</em>) – Integration time step [s]</p></li>
+<li><p><strong>orbital_state0</strong> (<a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbital_State" title="ADCS.orbits.orbit.Orbital_State"><em>Orbital_State</em></a>) – Orbital/environmental state at the beginning of the step.
+Provides quantities such as <span class="math notranslate nohighlight">\(\mathbf{R}, \mathbf{V}, \mathbf{B}, \mathbf{S}, \rho\)</span>
+used in environmental torque models.</p></li>
+<li><p><strong>orbital_state1</strong> (<a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbital_State" title="ADCS.orbits.orbit.Orbital_State"><em>Orbital_State</em></a>) – Orbital/environmental state at the end of the step.</p></li>
+<li><p><strong>verbose</strong> (<em>bool</em><em>, </em><em>optional</em>) – If <code class="docutils literal notranslate"><span class="pre">True</span></code>, prints intermediate derivative stages <span class="math notranslate nohighlight">\(k_1, k_2, k_3, k_4\)</span>.</p></li>
+<li><p><strong>mid_orbital_state</strong> (<em>Optional</em><em>[</em><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbital_State" title="ADCS.orbits.orbit.Orbital_State"><em>Orbital_State</em></a><em>]</em><em>, </em><em>optional</em>) – Precomputed midpoint orbital state.
+If <code class="docutils literal notranslate"><span class="pre">None</span></code>, computed as <code class="docutils literal notranslate"><span class="pre">orbital_state0.average(orbital_state1)</span></code>.</p></li>
+<li><p><strong>quat_as_vec</strong> (<em>bool</em><em>, </em><em>optional</em>) – If <code class="docutils literal notranslate"><span class="pre">True</span></code>, uses standard RK4 with quaternion normalization.
+If <code class="docutils literal notranslate"><span class="pre">False</span></code>, uses commutator-free fifth-order (CG5) method with exponential maps.</p></li>
+<li><p><strong>give_err_est</strong> (<em>bool</em><em>, </em><em>optional</em>) – If <code class="docutils literal notranslate"><span class="pre">True</span></code>, performs a third-order embedded RK method for <strong>error estimation</strong>, returning an additional
+error vector <span class="math notranslate nohighlight">\(\hat{e}\)</span> representing the difference between the 4th- and 3rd-order solutions.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>ndarray</em></p>
+</dd>
+</dl>
+<p>—
+<strong>Returns</strong></p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>If <code class="docutils literal notranslate"><span class="pre">give_err_est</span> <span class="pre">=</span> <span class="pre">False</span></code> → Updated state vector <span class="math notranslate nohighlight">\(\mathbf{x}_{n+1}\)</span> (shape <code class="docutils literal notranslate"><span class="pre">(n_x,)</span></code>).</p></li>
+<li><p>If <code class="docutils literal notranslate"><span class="pre">give_err_est</span> <span class="pre">=</span> <span class="pre">True</span></code> → Tuple <code class="docutils literal notranslate"><span class="pre">(x_next,</span> <span class="pre">err_est)</span></code>:</p></li>
+</ul>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(x_{\text{next}}\)</span> — next-step state vector</p></li>
+<li><p><span class="math notranslate nohighlight">\(\hat{e}\)</span> — elementwise integration error estimate</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]</p>
+</dd>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>u</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>dt</strong> (<em>float</em>)</p></li>
+<li><p><strong>orbital_state0</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>)</p></li>
+<li><p><strong>orbital_state1</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>)</p></li>
+<li><p><strong>verbose</strong> (<em>bool</em>)</p></li>
+<li><p><strong>mid_orbital_state</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>)</p></li>
+<li><p><strong>quat_as_vec</strong> (<em>bool</em>)</p></li>
+</ul>
+</dd>
+</dl>
+<p>—
+<strong>Computation Notes</strong></p>
+<ol class="arabic simple">
+<li><p>Quaternion components are renormalized after each substep to prevent drift.</p></li>
+<li><p>The error estimate (when enabled) uses an embedded RK3 formula:</p></li>
+</ol>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\mathbf{x}_{n+1}^{(3)} = \mathbf{x}_n + \tfrac{\Delta t}{6}(k_1 + 4k_2 + k_{33})\]</div>
+</div>
+<p>The elementwise difference <span class="math notranslate nohighlight">\(|\mathbf{x}_{n+1}^{(4)} - \mathbf{x}_{n+1}^{(3)}|\)</span> provides
+a per-state local truncation error estimate.
+3. The CG5 variant propagates quaternions directly on the Lie group using exponential maps
+<span class="math notranslate nohighlight">\(\exp(\mathbf{F}_i)\)</span>, avoiding small-angle linearizations.</p>
+<p>—
+<strong>Example</strong></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">x_next</span> <span class="o">=</span> <span class="n">sat</span><span class="o">.</span><span class="n">noiseless_rk4</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="n">orb0</span><span class="p">,</span> <span class="n">orb1</span><span class="p">)</span>
+<span class="c1"># or with embedded error estimate</span>
+<span class="n">x_next</span><span class="p">,</span> <span class="n">err</span> <span class="o">=</span> <span class="n">sat</span><span class="o">.</span><span class="n">noiseless_rk4</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="n">orb0</span><span class="p">,</span> <span class="n">orb1</span><span class="p">,</span> <span class="n">give_err_est</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>—
+<strong>References</strong></p>
+<ul class="simple">
+<li><p>Hairer, E., Lubich, C., Wanner, G., <em>Geometric Numerical Integration</em>, 2nd Ed., Springer, 2006.</p></li>
+<li><p>Wie, B., <em>Space Vehicle Dynamics and Control</em>, AIAA, 2008.</p></li>
+<li><p>Celledoni, E., et al., “Commutator-Free Lie Group Methods,” <em>J. Comput. Phys.</em>, 2003.</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.satellite.satellite.Satellite.noiseless_sensor_readings">
+<span class="sig-name descname"><span class="pre">noiseless_sensor_readings</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/satellite/satellite.html#Satellite.noiseless_sensor_readings"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.noiseless_sensor_readings" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>ndarray</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.satellite.satellite.Satellite.prop_dist_off">
+<span class="sig-name descname"><span class="pre">prop_dist_off</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ind</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/satellite/satellite.html#Satellite.prop_dist_off"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.prop_dist_off" title="Link to this definition">¶</a></dt>
+<dd><p>Turn off propulsion disturbances.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ind</strong> (<em>int</em><em> | </em><em>None</em>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.satellite.satellite.Satellite.prop_dist_on">
+<span class="sig-name descname"><span class="pre">prop_dist_on</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ind</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/satellite/satellite.html#Satellite.prop_dist_on"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.prop_dist_on" title="Link to this definition">¶</a></dt>
+<dd><p>Turn on propulsion disturbances.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ind</strong> (<em>int</em><em> | </em><em>None</em>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.satellite.satellite.Satellite.sensor_readings">
+<span class="sig-name descname"><span class="pre">sensor_readings</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dmode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/satellite/satellite.html#Satellite.sensor_readings"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.sensor_readings" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>)</p></li>
+<li><p><strong>dmode</strong> (<a class="reference internal" href="ADCS.satellite_hardware.disturbances.disturbance_mode.html#ADCS.satellite_hardware.disturbances.disturbance_mode.DisturbanceMode" title="ADCS.satellite_hardware.disturbances.disturbance_mode.DisturbanceMode"><em>DisturbanceMode</em></a>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>ndarray</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.satellite.satellite.Satellite.specific_dist_off">
+<span class="sig-name descname"><span class="pre">specific_dist_off</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ind</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/satellite/satellite.html#Satellite.specific_dist_off"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.specific_dist_off" title="Link to this definition">¶</a></dt>
+<dd><p>Turn off a specific disturbance by index.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ind</strong> (<em>int</em>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.satellite.satellite.Satellite.specific_dist_on">
+<span class="sig-name descname"><span class="pre">specific_dist_on</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ind</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/satellite/satellite.html#Satellite.specific_dist_on"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.specific_dist_on" title="Link to this definition">¶</a></dt>
+<dd><p>Turn on a specific disturbance by index.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ind</strong> (<em>int</em>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.satellite.satellite.Satellite.srp_dist_off">
+<span class="sig-name descname"><span class="pre">srp_dist_off</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/satellite/satellite.html#Satellite.srp_dist_off"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.srp_dist_off" title="Link to this definition">¶</a></dt>
+<dd><p>Turn off all Solar Radiation Pressure disturbances.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.satellite.satellite.Satellite.srp_dist_on">
+<span class="sig-name descname"><span class="pre">srp_dist_on</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/satellite/satellite.html#Satellite.srp_dist_on"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.srp_dist_on" title="Link to this definition">¶</a></dt>
+<dd><p>Turn on all Solar Radiation Pressure disturbances.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.satellite.satellite.Satellite.sunpair_readings">
+<span class="sig-name descname"><span class="pre">sunpair_readings</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/satellite/satellite.html#Satellite.sunpair_readings"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.sunpair_readings" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>List</em>[<em>ndarray</em>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.satellite.satellite.Satellite.sunsensor_readings">
+<span class="sig-name descname"><span class="pre">sunsensor_readings</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/satellite/satellite.html#Satellite.sunsensor_readings"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.sunsensor_readings" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>List</em>[<em>ndarray</em>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.satellite.satellite.Satellite.update_J">
+<span class="sig-name descname"><span class="pre">update_J</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">J_0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">COM</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/satellite/satellite.html#Satellite.update_J"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.update_J" title="Link to this definition">¶</a></dt>
+<dd><p>Update the satellite’s inertia matrices.</p>
+<p>Applies physical validation, symmetry checks, and the
+parallel axis theorem to shift the inertia tensor from
+the reference origin to the center of mass (COM).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>J</strong> (<em>np.ndarray</em><em>, </em><em>optional</em>) – Inertia tensor about the reference origin (3,3). If None,
+uses the stored <code class="docutils literal notranslate"><span class="pre">self.J_0</span></code>.</p></li>
+<li><p><strong>COM</strong> (<em>np.ndarray</em><em>, </em><em>optional</em>) – Center of mass offset (3,). If None, uses the stored <code class="docutils literal notranslate"><span class="pre">self.COM</span></code>.</p></li>
+<li><p><strong>J_0</strong> (<em>ndarray</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – If J cannot be reshaped to (3,3), contains non-real values,
+    is non-symmetric, or not positive definite.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<dl class="simple">
+<dt>This method also computes:</dt><dd><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">self.J_COM</span></code> : inertia about the COM,</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">self.J_noRW</span></code> : inertia without reaction wheels,</p></li>
+<li><p>Inverse matrices for each of these for efficient dynamics.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.satellite.satellite.Satellite.update_RWhs">
+<span class="sig-name descname"><span class="pre">update_RWhs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state_or_RWhs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/satellite/satellite.html#Satellite.update_RWhs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.update_RWhs" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 
         </article>
@@ -375,8 +1391,66 @@
         
       </footer>
     </div>
-    <aside class="toc-drawer no-toc">
+    <aside class="toc-drawer">
       
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">ADCS.satellite_hardware.satellite.satellite module</a><ul>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.satellite.satellite.Satellite"><code class="docutils literal notranslate"><span class="pre">Satellite</span></code></a><ul>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.mass"><code class="docutils literal notranslate"><span class="pre">mass</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.COM"><code class="docutils literal notranslate"><span class="pre">COM</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.J_0"><code class="docutils literal notranslate"><span class="pre">J_0</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.J_COM"><code class="docutils literal notranslate"><span class="pre">J_COM</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.J_noRW"><code class="docutils literal notranslate"><span class="pre">J_noRW</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.invJ_COM"><code class="docutils literal notranslate"><span class="pre">invJ_COM</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.state_len"><code class="docutils literal notranslate"><span class="pre">state_len</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.GPS_readings"><code class="docutils literal notranslate"><span class="pre">GPS_readings()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.RW_readings"><code class="docutils literal notranslate"><span class="pre">RW_readings()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.RWhs"><code class="docutils literal notranslate"><span class="pre">RWhs()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.RWhs_from_state"><code class="docutils literal notranslate"><span class="pre">RWhs_from_state()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.act_torque"><code class="docutils literal notranslate"><span class="pre">act_torque()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.dist_torque_hess"><code class="docutils literal notranslate"><span class="pre">dist_torque_hess()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.dist_torques"><code class="docutils literal notranslate"><span class="pre">dist_torques()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.dist_torques_jacobian"><code class="docutils literal notranslate"><span class="pre">dist_torques_jacobian()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.dynJacCore"><code class="docutils literal notranslate"><span class="pre">dynJacCore()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.dynamics_Hessians"><code class="docutils literal notranslate"><span class="pre">dynamics_Hessians()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.dynamics_core"><code class="docutils literal notranslate"><span class="pre">dynamics_core()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.dynamics_for_solver"><code class="docutils literal notranslate"><span class="pre">dynamics_for_solver()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.gen_dist_off"><code class="docutils literal notranslate"><span class="pre">gen_dist_off()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.gen_dist_on"><code class="docutils literal notranslate"><span class="pre">gen_dist_on()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.gyro_readings"><code class="docutils literal notranslate"><span class="pre">gyro_readings()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.mtm_readings"><code class="docutils literal notranslate"><span class="pre">mtm_readings()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.noiseless_RW_readings"><code class="docutils literal notranslate"><span class="pre">noiseless_RW_readings()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.noiseless_rk4"><code class="docutils literal notranslate"><span class="pre">noiseless_rk4()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.noiseless_sensor_readings"><code class="docutils literal notranslate"><span class="pre">noiseless_sensor_readings()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.prop_dist_off"><code class="docutils literal notranslate"><span class="pre">prop_dist_off()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.prop_dist_on"><code class="docutils literal notranslate"><span class="pre">prop_dist_on()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.sensor_readings"><code class="docutils literal notranslate"><span class="pre">sensor_readings()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.specific_dist_off"><code class="docutils literal notranslate"><span class="pre">specific_dist_off()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.specific_dist_on"><code class="docutils literal notranslate"><span class="pre">specific_dist_on()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.srp_dist_off"><code class="docutils literal notranslate"><span class="pre">srp_dist_off()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.srp_dist_on"><code class="docutils literal notranslate"><span class="pre">srp_dist_on()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.sunpair_readings"><code class="docutils literal notranslate"><span class="pre">sunpair_readings()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.sunsensor_readings"><code class="docutils literal notranslate"><span class="pre">sunsensor_readings()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.update_J"><code class="docutils literal notranslate"><span class="pre">update_J()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.satellite.satellite.Satellite.update_RWhs"><code class="docutils literal notranslate"><span class="pre">update_RWhs()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
       
       
     </aside>
@@ -385,5 +1459,6 @@
     <script src="_static/doctools.js?v=9bcbadda"></script>
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/scripts/furo.js?v=46bd48cc"></script>
+    <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     </body>
 </html>

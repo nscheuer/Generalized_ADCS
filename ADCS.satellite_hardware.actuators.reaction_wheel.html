@@ -174,7 +174,7 @@
           <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
         </button>
       </div>
-      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
         <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
       </label>
     </div>
@@ -323,13 +323,577 @@
               <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
             </button>
           </div>
-          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
             <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <section id="adcs-satellite-hardware-actuators-reaction-wheel-module">
-<h1>ADCS.satellite_hardware.actuators.reaction_wheel module<a class="headerlink" href="#adcs-satellite-hardware-actuators-reaction-wheel-module" title="Link to this heading">¶</a></h1>
+          <section id="module-ADCS.satellite_hardware.actuators.reaction_wheel">
+<span id="adcs-satellite-hardware-actuators-reaction-wheel-module"></span><h1>ADCS.satellite_hardware.actuators.reaction_wheel module<a class="headerlink" href="#module-ADCS.satellite_hardware.actuators.reaction_wheel" title="Link to this heading">¶</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.actuators.reaction_wheel.RW">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ADCS.satellite_hardware.actuators.reaction_wheel.</span></span><span class="sig-name descname"><span class="pre">RW</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">axis</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_torque</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">J</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">h</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">h_max</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noise</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">h_meas_noise</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">estimate_bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/actuators/reaction_wheel.html#RW"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.actuators.reaction_wheel.RW" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="ADCS.satellite_hardware.actuators.actuator.html#ADCS.satellite_hardware.actuators.actuator.Actuator" title="ADCS.satellite_hardware.actuators.actuator.Actuator"><code class="xref py py-class docutils literal notranslate"><span class="pre">Actuator</span></code></a></p>
+<p><strong>Reaction Wheel (RW) Actuator Model</strong></p>
+<p>This class represents a single-axis <strong>Reaction Wheel (RW)</strong> used in satellite attitude
+control systems. It models how torque commands generate body torques and internal
+momentum changes through conservation of angular momentum.</p>
+<p><strong>Model Description</strong></p>
+<p>The reaction wheel applies a control torque to the spacecraft body by changing
+its spin rate. The torque applied to the spacecraft is defined as:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\mathbf{T}_{\mathrm{RW}} = \mathbf{a}_{\mathrm{axis}} \, u\]</div>
+</div>
+<p>where:</p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(\mathbf{a}_{\mathrm{axis}}\)</span> — Reaction wheel spin axis (unit vector in body frame)</p></li>
+<li><p><span class="math notranslate nohighlight">\(u\)</span> — Commanded motor torque input [N·m]</p></li>
+</ul>
+<p>The change in wheel angular momentum is governed by:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\dot{\mathbf{h}} = -\mathbf{T}_{\mathrm{RW}}\]</div>
+</div>
+<p>ensuring <strong>angular momentum conservation</strong> between the spacecraft and the wheel.</p>
+<p>Optional <strong>bias</strong> and <strong>noise</strong> models can be included to represent realistic
+actuator imperfections such as constant offsets or stochastic disturbances.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>axis</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Unit vector <code class="docutils literal notranslate"><span class="pre">(3,)</span></code> defining the spin axis of the reaction wheel in the
+spacecraft body frame.</p></li>
+<li><p><strong>max_torque</strong> (<em>float</em>) – Maximum torque u the motor can produce [N·m].</p></li>
+<li><p><strong>J</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Moment of inertia of the wheel [kg·m²].</p></li>
+<li><p><strong>h</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Current angular momentum of the wheel [N·m·s].</p></li>
+<li><p><strong>h_max</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Maximum allowable stored momentum (saturation limit) [N·m·s].</p></li>
+<li><p><strong>bias</strong> (<a class="reference internal" href="ADCS.satellite_hardware.actuators.bias.html#ADCS.satellite_hardware.actuators.bias.Bias" title="ADCS.satellite_hardware.actuators.bias.Bias"><code class="xref py py-class docutils literal notranslate"><span class="pre">Bias</span></code></a>, optional) – Bias model instance representing constant or time-varying actuator offset.</p></li>
+<li><p><strong>noise</strong> (<a class="reference internal" href="ADCS.satellite_hardware.actuators.noise.html#ADCS.satellite_hardware.actuators.noise.Noise" title="ADCS.satellite_hardware.actuators.noise.Noise"><code class="xref py py-class docutils literal notranslate"><span class="pre">Noise</span></code></a>, optional) – Noise model instance representing stochastic torque fluctuations.</p></li>
+<li><p><strong>estimate_bias</strong> (<em>bool</em><em>, </em><em>optional</em>) – If <code class="docutils literal notranslate"><span class="pre">True</span></code>, includes actuator bias in the state estimation process.</p></li>
+<li><p><strong>h_meas_noise</strong> (<a class="reference internal" href="ADCS.satellite_hardware.actuators.noise.html#ADCS.satellite_hardware.actuators.noise.Noise" title="ADCS.satellite_hardware.actuators.noise.Noise"><em>Noise</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddstor_torq__dbasestatedbasestate">
+<span class="sig-name descname"><span class="pre">ddstor_torq__dbasestatedbasestate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/actuators/reaction_wheel.html#RW.ddstor_torq__dbasestatedbasestate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddstor_torq__dbasestatedbasestate" title="Link to this definition">¶</a></dt>
+<dd><p>Second derivative <span class="math notranslate nohighlight">\(\partial^2 \mathbf{t}_s/\partial \mathbf{x}\,\partial \mathbf{x}\)</span>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Empty last dimension.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>(7, 7, 0) ndarray</p>
+</dd>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>u</strong> (<em>float</em>)</p></li>
+<li><p><strong>x</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddstor_torq__dbasestatedh">
+<span class="sig-name descname"><span class="pre">ddstor_torq__dbasestatedh</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/actuators/reaction_wheel.html#RW.ddstor_torq__dbasestatedh"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddstor_torq__dbasestatedh" title="Link to this definition">¶</a></dt>
+<dd><p>Mixed <span class="math notranslate nohighlight">\(\partial^2 \mathbf{t}_s/\partial \mathbf{x}\,\partial \mathbf{h}\)</span>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Empty in this base class.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>(7, 0, 0) ndarray</p>
+</dd>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>u</strong> (<em>float</em>)</p></li>
+<li><p><strong>x</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddstor_torq__dbiasdbasestate">
+<span class="sig-name descname"><span class="pre">ddstor_torq__dbiasdbasestate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/actuators/reaction_wheel.html#RW.ddstor_torq__dbiasdbasestate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddstor_torq__dbiasdbasestate" title="Link to this definition">¶</a></dt>
+<dd><p>Mixed <span class="math notranslate nohighlight">\(\partial^2 \mathbf{t}_s/\partial\text{bias}\,\partial \mathbf{x}\)</span>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>If bias exists, mirrors <a class="reference internal" href="#ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddstor_torq__dudbasestate" title="ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddstor_torq__dudbasestate"><code class="xref py py-meth docutils literal notranslate"><span class="pre">ddstor_torq__dudbasestate()</span></code></a>; else empty along bias dim.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>(1, 7, 0) or (0, 7, 0) ndarray</p>
+</dd>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>u</strong> (<em>float</em>)</p></li>
+<li><p><strong>x</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddstor_torq__dbiasdbias">
+<span class="sig-name descname"><span class="pre">ddstor_torq__dbiasdbias</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/actuators/reaction_wheel.html#RW.ddstor_torq__dbiasdbias"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddstor_torq__dbiasdbias" title="Link to this definition">¶</a></dt>
+<dd><p>Second derivative <span class="math notranslate nohighlight">\(\partial^2 \mathbf{t}_s/\partial\text{bias}^2\)</span>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>If bias exists, mirrors <a class="reference internal" href="#ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddstor_torq__dudu" title="ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddstor_torq__dudu"><code class="xref py py-meth docutils literal notranslate"><span class="pre">ddstor_torq__dudu()</span></code></a>; else empty.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>(1, 1, 0) or (0, 0, 0) ndarray</p>
+</dd>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>u</strong> (<em>float</em>)</p></li>
+<li><p><strong>x</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddstor_torq__dbiasdh">
+<span class="sig-name descname"><span class="pre">ddstor_torq__dbiasdh</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/actuators/reaction_wheel.html#RW.ddstor_torq__dbiasdh"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddstor_torq__dbiasdh" title="Link to this definition">¶</a></dt>
+<dd><p>Mixed <span class="math notranslate nohighlight">\(\partial^2 \mathbf{t}_s/\partial\text{bias}\,\partial \mathbf{h}\)</span>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>If bias exists, mirrors <a class="reference internal" href="#ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddstor_torq__dudh" title="ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddstor_torq__dudh"><code class="xref py py-meth docutils literal notranslate"><span class="pre">ddstor_torq__dudh()</span></code></a>; else empty.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>(1, 0, 0) or (0, 0, 0) ndarray</p>
+</dd>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>u</strong> (<em>float</em>)</p></li>
+<li><p><strong>x</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddstor_torq__dhdh">
+<span class="sig-name descname"><span class="pre">ddstor_torq__dhdh</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/actuators/reaction_wheel.html#RW.ddstor_torq__dhdh"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddstor_torq__dhdh" title="Link to this definition">¶</a></dt>
+<dd><p>Second derivative <span class="math notranslate nohighlight">\(\partial^2 \mathbf{t}_s/\partial \mathbf{h}^2\)</span>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Empty in this base class.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>(0, 0, 0) ndarray</p>
+</dd>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>u</strong> (<em>float</em>)</p></li>
+<li><p><strong>x</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddstor_torq__dudbasestate">
+<span class="sig-name descname"><span class="pre">ddstor_torq__dudbasestate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/actuators/reaction_wheel.html#RW.ddstor_torq__dudbasestate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddstor_torq__dudbasestate" title="Link to this definition">¶</a></dt>
+<dd><p>Mixed <span class="math notranslate nohighlight">\(\partial^2 \mathbf{t}_s/\partial u\,\partial \mathbf{x}\)</span>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Empty last dimension.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>(1, 7, 0) ndarray</p>
+</dd>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>u</strong> (<em>float</em>)</p></li>
+<li><p><strong>x</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddstor_torq__dudbias">
+<span class="sig-name descname"><span class="pre">ddstor_torq__dudbias</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/actuators/reaction_wheel.html#RW.ddstor_torq__dudbias"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddstor_torq__dudbias" title="Link to this definition">¶</a></dt>
+<dd><p>Mixed <span class="math notranslate nohighlight">\(\partial^2 \mathbf{t}_s/\partial u\,\partial\text{bias}\)</span>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>If bias exists, mirrors <a class="reference internal" href="#ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddstor_torq__dudu" title="ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddstor_torq__dudu"><code class="xref py py-meth docutils literal notranslate"><span class="pre">ddstor_torq__dudu()</span></code></a>; else empty along bias dim.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>(1, 1, 0) or (1, 0, 0) ndarray</p>
+</dd>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>u</strong> (<em>float</em>)</p></li>
+<li><p><strong>x</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddstor_torq__dudh">
+<span class="sig-name descname"><span class="pre">ddstor_torq__dudh</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/actuators/reaction_wheel.html#RW.ddstor_torq__dudh"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddstor_torq__dudh" title="Link to this definition">¶</a></dt>
+<dd><p>Mixed <span class="math notranslate nohighlight">\(\partial^2 \mathbf{t}_s/\partial u\,\partial \mathbf{h}\)</span>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Empty in this base class.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>(1, 0, 0) ndarray</p>
+</dd>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>u</strong> (<em>float</em>)</p></li>
+<li><p><strong>x</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddstor_torq__dudu">
+<span class="sig-name descname"><span class="pre">ddstor_torq__dudu</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/actuators/reaction_wheel.html#RW.ddstor_torq__dudu"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddstor_torq__dudu" title="Link to this definition">¶</a></dt>
+<dd><p>Second derivative <span class="math notranslate nohighlight">\(\partial^2 \mathbf{t}_s/\partial u^2\)</span>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Empty last dimension (no storage DOFs).</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>(1, 1, 0) ndarray</p>
+</dd>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>u</strong> (<em>float</em>)</p></li>
+<li><p><strong>x</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddtorq__dbasestatedh">
+<span class="sig-name descname"><span class="pre">ddtorq__dbasestatedh</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/actuators/reaction_wheel.html#RW.ddtorq__dbasestatedh"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddtorq__dbasestatedh" title="Link to this definition">¶</a></dt>
+<dd><p>Mixed second derivative <span class="math notranslate nohighlight">\(\partial^2\boldsymbol{\tau}/\partial \mathbf{x}\,\partial \mathbf{h}\)</span>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Empty in this base class.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>(7, 0, 3) ndarray</p>
+</dd>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>u</strong> (<em>float</em>)</p></li>
+<li><p><strong>x</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddtorq__dbiasdh">
+<span class="sig-name descname"><span class="pre">ddtorq__dbiasdh</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/actuators/reaction_wheel.html#RW.ddtorq__dbiasdh"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddtorq__dbiasdh" title="Link to this definition">¶</a></dt>
+<dd><p>Mixed second derivative <span class="math notranslate nohighlight">\(\partial^2\boldsymbol{\tau}/\partial\text{bias}\,\partial \mathbf{h}\)</span>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>If bias exists, mirrors <a class="reference internal" href="#ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddtorq__dudh" title="ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddtorq__dudh"><code class="xref py py-meth docutils literal notranslate"><span class="pre">ddtorq__dudh()</span></code></a>; else empty.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>(1, 0, 3) or (0, 0, 3) ndarray</p>
+</dd>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>u</strong> (<em>float</em>)</p></li>
+<li><p><strong>x</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddtorq__dhdh">
+<span class="sig-name descname"><span class="pre">ddtorq__dhdh</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/actuators/reaction_wheel.html#RW.ddtorq__dhdh"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddtorq__dhdh" title="Link to this definition">¶</a></dt>
+<dd><p>Second derivative <span class="math notranslate nohighlight">\(\partial^2\boldsymbol{\tau}/\partial \mathbf{h}^2\)</span>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Empty in this base class.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>(0, 0, 3) ndarray</p>
+</dd>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>u</strong> (<em>float</em>)</p></li>
+<li><p><strong>x</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddtorq__dudh">
+<span class="sig-name descname"><span class="pre">ddtorq__dudh</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/actuators/reaction_wheel.html#RW.ddtorq__dudh"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddtorq__dudh" title="Link to this definition">¶</a></dt>
+<dd><p>Mixed second derivative <span class="math notranslate nohighlight">\(\partial^2\boldsymbol{\tau}/\partial u\,\partial \mathbf{h}\)</span>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Empty in this base class.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>(1, 0, 3) ndarray</p>
+</dd>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>u</strong> (<em>float</em>)</p></li>
+<li><p><strong>x</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.actuators.reaction_wheel.RW.dstor_torq__dbasestate">
+<span class="sig-name descname"><span class="pre">dstor_torq__dbasestate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/actuators/reaction_wheel.html#RW.dstor_torq__dbasestate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.actuators.reaction_wheel.RW.dstor_torq__dbasestate" title="Link to this definition">¶</a></dt>
+<dd><p>Derivative <span class="math notranslate nohighlight">\(\partial \mathbf{t}_s/\partial \mathbf{x}\)</span>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Empty in this base class.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>(7, 0) ndarray</p>
+</dd>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>u</strong> (<em>float</em>)</p></li>
+<li><p><strong>x</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.actuators.reaction_wheel.RW.dstor_torq__dbias">
+<span class="sig-name descname"><span class="pre">dstor_torq__dbias</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/actuators/reaction_wheel.html#RW.dstor_torq__dbias"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.actuators.reaction_wheel.RW.dstor_torq__dbias" title="Link to this definition">¶</a></dt>
+<dd><p>Derivative <span class="math notranslate nohighlight">\(\partial \mathbf{t}_s/\partial \text{bias}\)</span>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>If bias exists, mirrors <a class="reference internal" href="#ADCS.satellite_hardware.actuators.reaction_wheel.RW.dstor_torq__du" title="ADCS.satellite_hardware.actuators.reaction_wheel.RW.dstor_torq__du"><code class="xref py py-meth docutils literal notranslate"><span class="pre">dstor_torq__du()</span></code></a>; else empty.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>(1, 0) or (0, 0) ndarray</p>
+</dd>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>u</strong> (<em>float</em>)</p></li>
+<li><p><strong>x</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.actuators.reaction_wheel.RW.dstor_torq__dh">
+<span class="sig-name descname"><span class="pre">dstor_torq__dh</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/actuators/reaction_wheel.html#RW.dstor_torq__dh"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.actuators.reaction_wheel.RW.dstor_torq__dh" title="Link to this definition">¶</a></dt>
+<dd><p>Derivative <span class="math notranslate nohighlight">\(\partial \mathbf{t}_s/\partial \mathbf{h}\)</span>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Empty in this base class.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>(0, 0) ndarray</p>
+</dd>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>u</strong> (<em>float</em>)</p></li>
+<li><p><strong>x</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.actuators.reaction_wheel.RW.dstor_torq__du">
+<span class="sig-name descname"><span class="pre">dstor_torq__du</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/actuators/reaction_wheel.html#RW.dstor_torq__du"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.actuators.reaction_wheel.RW.dstor_torq__du" title="Link to this definition">¶</a></dt>
+<dd><p>Derivative of storage torque w.r.t. input: <span class="math notranslate nohighlight">\(\partial \mathbf{t}_s/\partial u\)</span>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Empty because <span class="math notranslate nohighlight">\(\mathbf{t}_s\in\mathbb{R}^0\)</span> here.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>(1, 0) ndarray</p>
+</dd>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>u</strong> (<em>float</em>)</p></li>
+<li><p><strong>x</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.actuators.reaction_wheel.RW.dtorq__dh">
+<span class="sig-name descname"><span class="pre">dtorq__dh</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/actuators/reaction_wheel.html#RW.dtorq__dh"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.actuators.reaction_wheel.RW.dtorq__dh" title="Link to this definition">¶</a></dt>
+<dd><p>First derivative <span class="math notranslate nohighlight">\(\partial\boldsymbol{\tau}/\partial \mathbf{h}\)</span> (storage state).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Empty in this base class (no storage state).</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>(0, 3) ndarray</p>
+</dd>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>u</strong> (<em>float</em>)</p></li>
+<li><p><strong>x</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.actuators.reaction_wheel.RW.dtorq__du">
+<span class="sig-name descname"><span class="pre">dtorq__du</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/actuators/reaction_wheel.html#RW.dtorq__du"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.actuators.reaction_wheel.RW.dtorq__du" title="Link to this definition">¶</a></dt>
+<dd><p>First derivative <span class="math notranslate nohighlight">\(\partial\boldsymbol{\tau}/\partial u\)</span>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Row-Jacobian w.r.t. scalar input <span class="math notranslate nohighlight">\(u\)</span>.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>(1, 3) ndarray</p>
+</dd>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>u</strong> (<em>float</em>)</p></li>
+<li><p><strong>x</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.actuators.reaction_wheel.RW.measure_momentum">
+<span class="sig-name descname"><span class="pre">measure_momentum</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/actuators/reaction_wheel.html#RW.measure_momentum"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.actuators.reaction_wheel.RW.measure_momentum" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.actuators.reaction_wheel.RW.measure_momentum_noiseless">
+<span class="sig-name descname"><span class="pre">measure_momentum_noiseless</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/actuators/reaction_wheel.html#RW.measure_momentum_noiseless"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.actuators.reaction_wheel.RW.measure_momentum_noiseless" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.actuators.reaction_wheel.RW.storage_torque">
+<span class="sig-name descname"><span class="pre">storage_torque</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dmode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/actuators/reaction_wheel.html#RW.storage_torque"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.actuators.reaction_wheel.RW.storage_torque" title="Link to this definition">¶</a></dt>
+<dd><p>Compute the <strong>internal torque acting on the wheel</strong> (equal and opposite to
+body torque).</p>
+<p>By conservation of angular momentum:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\mathbf{T}_{\mathrm{wheel}} = -\mathbf{T}_{\mathrm{body}} = -\mathbf{a}_{\mathrm{axis}} \, u\]</div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>u</strong> (<em>float</em>) – Commanded torque [N·m].</p></li>
+<li><p><strong>x</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>)</p></li>
+<li><p><strong>dmode</strong> (<a class="reference internal" href="ADCS.satellite_hardware.disturbances.disturbance_mode.html#ADCS.satellite_hardware.disturbances.disturbance_mode.DisturbanceMode" title="ADCS.satellite_hardware.disturbances.disturbance_mode.DisturbanceMode"><em>DisturbanceMode</em></a>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Internal torque acting on the wheel, shape <code class="docutils literal notranslate"><span class="pre">(3,)</span></code>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></p>
+</dd>
+</dl>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Emits a <code class="xref py py-class docutils literal notranslate"><span class="pre">UserWarning</span></code> if <code class="docutils literal notranslate"><span class="pre">|u|</span> <span class="pre">&gt;</span> <span class="pre">self.u_max</span></code>.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.actuators.reaction_wheel.RW.torque">
+<span class="sig-name descname"><span class="pre">torque</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dmode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/actuators/reaction_wheel.html#RW.torque"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.actuators.reaction_wheel.RW.torque" title="Link to this definition">¶</a></dt>
+<dd><p>Compute the <strong>reaction wheel body torque</strong>.</p>
+<p>The torque generated by the wheel and applied to the spacecraft body is:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\mathbf{T}_{\mathrm{RW}} = \mathbf{a}_{\mathrm{axis}} (u + b) + \mathbf{n}\]</div>
+</div>
+<p>where:</p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(u\)</span> — Commanded motor torque [N·m]</p></li>
+<li><p><span class="math notranslate nohighlight">\(b\)</span> — Bias term (if <code class="docutils literal notranslate"><span class="pre">bias=True</span></code>)</p></li>
+<li><p><span class="math notranslate nohighlight">\(\mathbf{n}\)</span> — Stochastic noise (if <code class="docutils literal notranslate"><span class="pre">noise=True</span></code>)</p></li>
+<li><p><span class="math notranslate nohighlight">\(\mathbf{a}_{\mathrm{axis}}\)</span> — Wheel axis in body frame</p></li>
+</ul>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>u</strong> (<em>float</em>) – Commanded torque applied to the wheel motor [N·m].</p></li>
+<li><p><strong>x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Current spacecraft state vector.</p></li>
+<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbital_State</span></code></a>) – Current orbital state, providing access to <code class="docutils literal notranslate"><span class="pre">os.J2000</span></code> for bias evolution.</p></li>
+<li><p><strong>dmode</strong> (<a class="reference internal" href="ADCS.satellite_hardware.disturbances.disturbance_mode.html#ADCS.satellite_hardware.disturbances.disturbance_mode.DisturbanceMode" title="ADCS.satellite_hardware.disturbances.disturbance_mode.DisturbanceMode"><em>DisturbanceMode</em></a>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Torque vector applied to the spacecraft body [N·m], shape <code class="docutils literal notranslate"><span class="pre">(3,)</span></code>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></p>
+</dd>
+</dl>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Emits a <code class="xref py py-class docutils literal notranslate"><span class="pre">UserWarning</span></code> if <code class="docutils literal notranslate"><span class="pre">|u|</span> <span class="pre">&gt;</span> <span class="pre">self.u_max</span></code>.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.actuators.reaction_wheel.RW.update_momentum">
+<span class="sig-name descname"><span class="pre">update_momentum</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">h</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/actuators/reaction_wheel.html#RW.update_momentum"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.actuators.reaction_wheel.RW.update_momentum" title="Link to this definition">¶</a></dt>
+<dd><p>Update the wheel’s stored angular momentum.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>h</strong> (<em>float</em>) – New angular momentum [N·m·s].</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Emits a <code class="xref py py-class docutils literal notranslate"><span class="pre">UserWarning</span></code> if <code class="docutils literal notranslate"><span class="pre">h</span> <span class="pre">&gt;</span> <span class="pre">self.h_max</span></code>.</p>
+</div>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 
         </article>
@@ -375,8 +939,54 @@
         
       </footer>
     </div>
-    <aside class="toc-drawer no-toc">
+    <aside class="toc-drawer">
       
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">ADCS.satellite_hardware.actuators.reaction_wheel module</a><ul>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.actuators.reaction_wheel.RW"><code class="docutils literal notranslate"><span class="pre">RW</span></code></a><ul>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddstor_torq__dbasestatedbasestate"><code class="docutils literal notranslate"><span class="pre">ddstor_torq__dbasestatedbasestate()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddstor_torq__dbasestatedh"><code class="docutils literal notranslate"><span class="pre">ddstor_torq__dbasestatedh()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddstor_torq__dbiasdbasestate"><code class="docutils literal notranslate"><span class="pre">ddstor_torq__dbiasdbasestate()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddstor_torq__dbiasdbias"><code class="docutils literal notranslate"><span class="pre">ddstor_torq__dbiasdbias()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddstor_torq__dbiasdh"><code class="docutils literal notranslate"><span class="pre">ddstor_torq__dbiasdh()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddstor_torq__dhdh"><code class="docutils literal notranslate"><span class="pre">ddstor_torq__dhdh()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddstor_torq__dudbasestate"><code class="docutils literal notranslate"><span class="pre">ddstor_torq__dudbasestate()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddstor_torq__dudbias"><code class="docutils literal notranslate"><span class="pre">ddstor_torq__dudbias()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddstor_torq__dudh"><code class="docutils literal notranslate"><span class="pre">ddstor_torq__dudh()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddstor_torq__dudu"><code class="docutils literal notranslate"><span class="pre">ddstor_torq__dudu()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddtorq__dbasestatedh"><code class="docutils literal notranslate"><span class="pre">ddtorq__dbasestatedh()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddtorq__dbiasdh"><code class="docutils literal notranslate"><span class="pre">ddtorq__dbiasdh()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddtorq__dhdh"><code class="docutils literal notranslate"><span class="pre">ddtorq__dhdh()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddtorq__dudh"><code class="docutils literal notranslate"><span class="pre">ddtorq__dudh()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.actuators.reaction_wheel.RW.dstor_torq__dbasestate"><code class="docutils literal notranslate"><span class="pre">dstor_torq__dbasestate()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.actuators.reaction_wheel.RW.dstor_torq__dbias"><code class="docutils literal notranslate"><span class="pre">dstor_torq__dbias()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.actuators.reaction_wheel.RW.dstor_torq__dh"><code class="docutils literal notranslate"><span class="pre">dstor_torq__dh()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.actuators.reaction_wheel.RW.dstor_torq__du"><code class="docutils literal notranslate"><span class="pre">dstor_torq__du()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.actuators.reaction_wheel.RW.dtorq__dh"><code class="docutils literal notranslate"><span class="pre">dtorq__dh()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.actuators.reaction_wheel.RW.dtorq__du"><code class="docutils literal notranslate"><span class="pre">dtorq__du()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.actuators.reaction_wheel.RW.measure_momentum"><code class="docutils literal notranslate"><span class="pre">measure_momentum()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.actuators.reaction_wheel.RW.measure_momentum_noiseless"><code class="docutils literal notranslate"><span class="pre">measure_momentum_noiseless()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.actuators.reaction_wheel.RW.storage_torque"><code class="docutils literal notranslate"><span class="pre">storage_torque()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.actuators.reaction_wheel.RW.torque"><code class="docutils literal notranslate"><span class="pre">torque()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.actuators.reaction_wheel.RW.update_momentum"><code class="docutils literal notranslate"><span class="pre">update_momentum()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
       
       
     </aside>
@@ -385,5 +995,6 @@
     <script src="_static/doctools.js?v=9bcbadda"></script>
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/scripts/furo.js?v=46bd48cc"></script>
+    <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     </body>
 </html>

@@ -174,7 +174,7 @@
           <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
         </button>
       </div>
-      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
         <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
       </label>
     </div>
@@ -323,13 +323,62 @@
               <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
             </button>
           </div>
-          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
             <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <section id="adcs-logging-logger-module">
-<h1>ADCS.logging.logger module<a class="headerlink" href="#adcs-logging-logger-module" title="Link to this heading">¶</a></h1>
+          <section id="module-ADCS.logging.logger">
+<span id="adcs-logging-logger-module"></span><h1>ADCS.logging.logger module<a class="headerlink" href="#module-ADCS.logging.logger" title="Link to this heading">¶</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="ADCS.logging.logger.ADCSLogger">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ADCS.logging.logger.</span></span><span class="sig-name descname"><span class="pre">ADCSLogger</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">autoconvert_numpy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flatten_scalars</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/logging/logger.html#ADCSLogger"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.logging.logger.ADCSLogger" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Log one timestep of data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>t</strong> (<em>float</em>) – Simulation time.</p></li>
+<li><p><strong>**kwargs</strong> – Any number of named variables (arrays, objects, etc.)</p></li>
+<li><p><strong>autoconvert_numpy</strong> (<em>bool</em>)</p></li>
+<li><p><strong>flatten_scalars</strong> (<em>bool</em>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.logging.logger.ADCSLogger.load">
+<span class="sig-name descname"><span class="pre">load</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/logging/logger.html#ADCSLogger.load"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.logging.logger.ADCSLogger.load" title="Link to this definition">¶</a></dt>
+<dd><p>Load a previously saved log.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.logging.logger.ADCSLogger.log">
+<span class="sig-name descname"><span class="pre">log</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/logging/logger.html#ADCSLogger.log"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.logging.logger.ADCSLogger.log" title="Link to this definition">¶</a></dt>
+<dd><p>Log one timestep of data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>t</strong> (<em>float</em>) – Simulation time.</p></li>
+<li><p><strong>**kwargs</strong> – Any number of named variables (arrays, objects, etc.)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.logging.logger.ADCSLogger.save">
+<span class="sig-name descname"><span class="pre">save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/logging/logger.html#ADCSLogger.save"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.logging.logger.ADCSLogger.save" title="Link to this definition">¶</a></dt>
+<dd><p>Save the log to a pickle (for arbitrary objects).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.logging.logger.ADCSLogger.to_dataframe">
+<span class="sig-name descname"><span class="pre">to_dataframe</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/logging/logger.html#ADCSLogger.to_dataframe"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.logging.logger.ADCSLogger.to_dataframe" title="Link to this definition">¶</a></dt>
+<dd><p>Convert logged data to a pandas DataFrame.</p>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 
         </article>
@@ -375,8 +424,33 @@
         
       </footer>
     </div>
-    <aside class="toc-drawer no-toc">
+    <aside class="toc-drawer">
       
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">ADCS.logging.logger module</a><ul>
+<li><a class="reference internal" href="#ADCS.logging.logger.ADCSLogger"><code class="docutils literal notranslate"><span class="pre">ADCSLogger</span></code></a><ul>
+<li><a class="reference internal" href="#ADCS.logging.logger.ADCSLogger.load"><code class="docutils literal notranslate"><span class="pre">load()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.logging.logger.ADCSLogger.log"><code class="docutils literal notranslate"><span class="pre">log()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.logging.logger.ADCSLogger.save"><code class="docutils literal notranslate"><span class="pre">save()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.logging.logger.ADCSLogger.to_dataframe"><code class="docutils literal notranslate"><span class="pre">to_dataframe()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
       
       
     </aside>

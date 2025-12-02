@@ -174,7 +174,7 @@
           <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
         </button>
       </div>
-      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
         <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
       </label>
     </div>
@@ -323,13 +323,218 @@
               <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
             </button>
           </div>
-          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
             <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <section id="adcs-controller-controller-module">
-<h1>ADCS.controller.controller module<a class="headerlink" href="#adcs-controller-controller-module" title="Link to this heading">¶</a></h1>
+          <section id="module-ADCS.controller.controller">
+<span id="adcs-controller-controller-module"></span><h1>ADCS.controller.controller module<a class="headerlink" href="#module-ADCS.controller.controller" title="Link to this heading">¶</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="ADCS.controller.controller.Controller">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ADCS.controller.controller.</span></span><span class="sig-name descname"><span class="pre">Controller</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">est_sat</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/controller/controller.html#Controller"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.controller.controller.Controller" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Base abstract controller for all ADCS control law implementations.</p>
+<p>This class defines the core interface required in every ADCS controller.
+Controllers are expected to compute actuator input commands that achieve
+a desired torque or attitude regulation objective.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>est_sat</strong> (<a class="reference internal" href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite" title="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite"><code class="xref py py-class docutils literal notranslate"><span class="pre">EstimatedSatellite</span></code></a>) – Estimated satellite model containing inertia, actuator layout,
+and sensor configuration.</p></li>
+<li><p><strong>**kwargs</strong> (<em>dict</em>) – Optional keyword parameters forwarded to derived controllers.</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>Controllers that inherit from this base must override
+<a class="reference internal" href="ADCS.controller.html#ADCS.controller.Controller.find_u" title="ADCS.controller.Controller.find_u"><code class="xref py py-meth docutils literal notranslate"><span class="pre">find_u()</span></code></a>.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.controller.controller.Controller.build_sensor_matrix_pinv">
+<span class="sig-name descname"><span class="pre">build_sensor_matrix_pinv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sensors</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sensor_type</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/controller/controller.html#Controller.build_sensor_matrix_pinv"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.controller.controller.Controller.build_sensor_matrix_pinv" title="Link to this definition">¶</a></dt>
+<dd><p>Constructs a measurement reconstruction matrix for a specific
+class of sensors by computing a Moore–Penrose pseudoinverse
+based on their sensing axes.</p>
+<p>Given a stacked sensor measurement vector <span class="math notranslate nohighlight">\(y\)</span>, this matrix
+maps sensor outputs to a physical 3-vector (e.g. the estimated
+magnetic field in body coordinates).</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\mathbf{v}_{body} \approx M_{\mathrm{sens}} \, y\]</div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sensors</strong> (list[<a class="reference internal" href="ADCS.satellite_hardware.sensors.html#ADCS.satellite_hardware.sensors.Sensor" title="ADCS.satellite_hardware.sensors.Sensor"><code class="xref py py-class docutils literal notranslate"><span class="pre">Sensor</span></code></a>]) – List of all satellite sensors.</p></li>
+<li><p><strong>sensor_type</strong> (<em>type</em>) – Sensor type to extract. Must inherit from
+<a class="reference internal" href="ADCS.satellite_hardware.sensors.html#ADCS.satellite_hardware.sensors.Sensor" title="ADCS.satellite_hardware.sensors.Sensor"><code class="xref py py-class docutils literal notranslate"><span class="pre">Sensor</span></code></a>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>M_sens</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Pseudoinverse reconstruction matrix of shape (3, N), mapping
+measurements to a 3-vector physical estimate.</p></li>
+<li><p><strong>indices</strong> (<em>list[int]</em>) – Flattened measurement indices belonging to the selected sensor type.</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>TypeError</strong> – If <cite>sensor_type</cite> does not subclass Sensor.</p></li>
+<li><p><strong>ValueError</strong> – If no sensors of the given type are found.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>Tuple</em>[<em>ndarray</em>, <em>List</em>[int]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.controller.controller.Controller.build_torque_to_u_matrix_pinv">
+<span class="sig-name descname"><span class="pre">build_torque_to_u_matrix_pinv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">actuators</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">actuator_type</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/controller/controller.html#Controller.build_torque_to_u_matrix_pinv"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.controller.controller.Controller.build_torque_to_u_matrix_pinv" title="Link to this definition">¶</a></dt>
+<dd><p>Builds the actuator allocation matrix that maps desired body torques
+into actuator command space via the pseudoinverse of the actuator
+direction matrix.</p>
+<p>The columns of the internal matrix correspond to the unit axis
+directions along which the selected actuators can impart torque.
+Its Moore–Penrose pseudoinverse yields the minimum-norm command
+vector that best matches a desired torque.</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\mathbf{u} \approx A^{\dagger} \, \boldsymbol{\tau}\]</div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>actuators</strong> (list[<a class="reference internal" href="ADCS.satellite_hardware.actuators.html#ADCS.satellite_hardware.actuators.Actuator" title="ADCS.satellite_hardware.actuators.Actuator"><code class="xref py py-class docutils literal notranslate"><span class="pre">Actuator</span></code></a>]) – List of all satellite actuators.</p></li>
+<li><p><strong>actuator_type</strong> (<em>type</em>) – Target actuator type (e.g. <a class="reference internal" href="ADCS.satellite_hardware.actuators.html#ADCS.satellite_hardware.actuators.RW" title="ADCS.satellite_hardware.actuators.RW"><code class="xref py py-class docutils literal notranslate"><span class="pre">RW</span></code></a>
+or <a class="reference internal" href="ADCS.satellite_hardware.actuators.html#ADCS.satellite_hardware.actuators.MTQ" title="ADCS.satellite_hardware.actuators.MTQ"><code class="xref py py-class docutils literal notranslate"><span class="pre">MTQ</span></code></a>).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>M_act</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Allocation pseudoinverse of size (N, 3), mapping desired torque to commands.</p></li>
+<li><p><strong>indices</strong> (<em>list[int]</em>) – Indices of the actuator channels belonging to the selected type.</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>TypeError</strong> – If <cite>actuator_type</cite> does not subclass Actuator.</p></li>
+<li><p><strong>ValueError</strong> – If no actuators of the given type exist.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>Tuple</em>[<em>ndarray</em>, <em>List</em>[int]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.controller.controller.Controller.build_u_to_torque_matrix_pinv">
+<span class="sig-name descname"><span class="pre">build_u_to_torque_matrix_pinv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">actuators</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">actuator_type</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/controller/controller.html#Controller.build_u_to_torque_matrix_pinv"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.controller.controller.Controller.build_u_to_torque_matrix_pinv" title="Link to this definition">¶</a></dt>
+<dd><p>Builds the forward mapping matrix that converts actuator inputs directly
+into the physical torque contribution direction in the body frame.</p>
+<p>Unlike <a class="reference internal" href="ADCS.controller.html#ADCS.controller.Controller.build_torque_to_u_matrix_pinv" title="ADCS.controller.Controller.build_torque_to_u_matrix_pinv"><code class="xref py py-meth docutils literal notranslate"><span class="pre">build_torque_to_u_matrix_pinv()</span></code></a>,
+which gives the inverse allocation mapping from torque to commands,
+this matrix is used in the forward physical model:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\boldsymbol{\tau} = A \, \mathbf{u}\]</div>
+</div>
+<p class="rubric">Examples</p>
+<ul class="simple">
+<li><p>For reaction wheels:
+each column of <span class="math notranslate nohighlight">\(A\)</span> is the torque axis direction.</p></li>
+<li><p>For magnetorquers:
+each column represents the direction of the magnetic dipole.
+Body torque is then computed by</p></li>
+</ul>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\boldsymbol{\tau} = \left[\mathbf{B}\right]_{\times} A \mathbf{u}\]</div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>actuators</strong> (list[<a class="reference internal" href="ADCS.satellite_hardware.actuators.html#ADCS.satellite_hardware.actuators.Actuator" title="ADCS.satellite_hardware.actuators.Actuator"><code class="xref py py-class docutils literal notranslate"><span class="pre">Actuator</span></code></a>]) – List of all satellite actuators.</p></li>
+<li><p><strong>actuator_type</strong> (<em>type</em>) – Target actuator type.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Matrix of stacked axis vectors, shape (3, N). If no actuators
+of the requested type are found, returns an empty (3, 0) matrix.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.controller.controller.Controller.find_max_torque">
+<span class="sig-name descname"><span class="pre">find_max_torque</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">actuators</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">actuator_type</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/controller/controller.html#Controller.find_max_torque"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.controller.controller.Controller.find_max_torque" title="Link to this definition">¶</a></dt>
+<dd><p>Extracts the maximum actuator command magnitude for the given actuator type.</p>
+<p>The returned vector matches the number of command channels for that type.
+This value is typically used to clip, saturate, or normalize actuator
+control inputs.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>actuators</strong> (list[<a class="reference internal" href="ADCS.satellite_hardware.actuators.html#ADCS.satellite_hardware.actuators.Actuator" title="ADCS.satellite_hardware.actuators.Actuator"><code class="xref py py-class docutils literal notranslate"><span class="pre">Actuator</span></code></a>]) – List of all actuators.</p></li>
+<li><p><strong>actuator_type</strong> (<em>type</em>) – Target actuator type.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Vector of maximum allowable actuator input values.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – If no actuators of the requested type are present.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.controller.controller.Controller.find_u">
+<span class="sig-name descname"><span class="pre">find_u</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x_hat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sens</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">est_sat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os_hat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">goal_vector_eci</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w_ref</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/controller/controller.html#Controller.find_u"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.controller.controller.Controller.find_u" title="Link to this definition">¶</a></dt>
+<dd><p>Computes actuator inputs required to satisfy the control objective.</p>
+<p>This function must be overridden by subclasses. Implementations
+typically compute a torque objective in the body frame and then
+allocate actuator commands accordingly.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x_hat</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Estimated spacecraft state vector. Conventionally includes angular
+velocity and quaternion attitude estimates.</p></li>
+<li><p><strong>sens</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Flattened sensor measurement vector from onboard hardware such as
+magnetometers, sun sensors, star trackers, etc.</p></li>
+<li><p><strong>est_sat</strong> (<a class="reference internal" href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite" title="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite"><code class="xref py py-class docutils literal notranslate"><span class="pre">EstimatedSatellite</span></code></a>) – Estimated satellite object providing inertia, actuator geometries,
+and possible reaction wheel momentum estimates.</p></li>
+<li><p><strong>os_hat</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbital_State</span></code></a>) – Estimated orbital state (e.g. ECI position, velocity).</p></li>
+<li><p><strong>goal_vector_eci</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code> or None) – Desired pointing direction expressed in the ECI frame.</p></li>
+<li><p><strong>w_ref</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code> or None) – Desired angular rate reference in the body frame.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Actuator command vector. The internal indexing convention must
+match that of the satellite model.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>NotImplementedError</strong> – If the method is not implemented in the derived controller.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 
         </article>
@@ -375,8 +580,34 @@
         
       </footer>
     </div>
-    <aside class="toc-drawer no-toc">
+    <aside class="toc-drawer">
       
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">ADCS.controller.controller module</a><ul>
+<li><a class="reference internal" href="#ADCS.controller.controller.Controller"><code class="docutils literal notranslate"><span class="pre">Controller</span></code></a><ul>
+<li><a class="reference internal" href="#ADCS.controller.controller.Controller.build_sensor_matrix_pinv"><code class="docutils literal notranslate"><span class="pre">build_sensor_matrix_pinv()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.controller.controller.Controller.build_torque_to_u_matrix_pinv"><code class="docutils literal notranslate"><span class="pre">build_torque_to_u_matrix_pinv()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.controller.controller.Controller.build_u_to_torque_matrix_pinv"><code class="docutils literal notranslate"><span class="pre">build_u_to_torque_matrix_pinv()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.controller.controller.Controller.find_max_torque"><code class="docutils literal notranslate"><span class="pre">find_max_torque()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.controller.controller.Controller.find_u"><code class="docutils literal notranslate"><span class="pre">find_u()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
       
       
     </aside>
@@ -385,5 +616,6 @@
     <script src="_static/doctools.js?v=9bcbadda"></script>
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/scripts/furo.js?v=46bd48cc"></script>
+    <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     </body>
 </html>

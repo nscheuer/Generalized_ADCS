@@ -174,7 +174,7 @@
           <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
         </button>
       </div>
-      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
         <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
       </label>
     </div>
@@ -323,13 +323,227 @@
               <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
             </button>
           </div>
-          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
             <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <section id="adcs-satellite-hardware-disturbances-drag-disturbance-module">
-<h1>ADCS.satellite_hardware.disturbances.drag_disturbance module<a class="headerlink" href="#adcs-satellite-hardware-disturbances-drag-disturbance-module" title="Link to this heading">¶</a></h1>
+          <section id="module-ADCS.satellite_hardware.disturbances.drag_disturbance">
+<span id="adcs-satellite-hardware-disturbances-drag-disturbance-module"></span><h1>ADCS.satellite_hardware.disturbances.drag_disturbance module<a class="headerlink" href="#module-ADCS.satellite_hardware.disturbances.drag_disturbance" title="Link to this heading">¶</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.disturbances.drag_disturbance.Drag_Disturbance">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ADCS.satellite_hardware.disturbances.drag_disturbance.</span></span><span class="sig-name descname"><span class="pre">Drag_Disturbance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/disturbances/drag_disturbance.html#Drag_Disturbance"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.disturbances.drag_disturbance.Drag_Disturbance" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="ADCS.satellite_hardware.disturbances.disturbance.html#ADCS.satellite_hardware.disturbances.disturbance.Disturbance" title="ADCS.satellite_hardware.disturbances.disturbance.Disturbance"><code class="xref py py-class docutils literal notranslate"><span class="pre">Disturbance</span></code></a></p>
+<p><strong>Aerodynamic Drag Disturbance Model</strong></p>
+<p>This class models the <strong>aerodynamic drag torque</strong> acting on a satellite in
+low Earth orbit (LEO). The drag force on each exposed surface is computed
+from the relative atmospheric flow in the body frame, and the net disturbance
+torque is obtained as the cross product of surface forces with their lever arms
+from the satellite’s center of mass.</p>
+<p><strong>Physical Model</strong></p>
+<p>The drag force acting on a satellite surface is modeled as:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\mathbf{F}_i = -\tfrac{1}{2} \rho \, C_{D,i} \, A_i \,
+\max(0, \mathbf{n}_i \cdot \mathbf{V}_b) \, \frac{\mathbf{V}_b}{\|\mathbf{V}_b\|}\]</div>
+</div>
+<p>where:</p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(\rho\)</span> — Atmospheric density [kg/m³]</p></li>
+<li><p><span class="math notranslate nohighlight">\(C_{D,i}\)</span> — Drag coefficient of the <em>i</em>-th surface</p></li>
+<li><p><span class="math notranslate nohighlight">\(A_i\)</span> — Area of the <em>i</em>-th surface [m²]</p></li>
+<li><p><span class="math notranslate nohighlight">\(\mathbf{n}_i\)</span> — Surface normal (unit vector) in the body frame</p></li>
+<li><p><span class="math notranslate nohighlight">\(\mathbf{V}_b\)</span> — Relative velocity vector in the body frame [m/s]</p></li>
+</ul>
+<p>The <strong>total drag torque</strong> acting on the spacecraft is:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\mathbf{T}_{\mathrm{drag}}
+= \sum_i (\mathbf{r}_i - \mathbf{r}_{\mathrm{COM}}) \times \mathbf{F}_i\]</div>
+</div>
+<p>where <span class="math notranslate nohighlight">\(\mathbf{r}_i\)</span> is the centroid of the i-th surface and
+<span class="math notranslate nohighlight">\(\mathbf{r}_{\mathrm{COM}}\)</span> is the satellite center of mass.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">GeometryConfig</span></code>) – Configuration object containing face areas, centroids, normals, and drag coefficients
+for each surface element.</p>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.disturbances.drag_disturbance.Drag_Disturbance.numfaces">
+<span class="sig-name descname"><span class="pre">numfaces</span></span><a class="headerlink" href="#ADCS.satellite_hardware.disturbances.drag_disturbance.Drag_Disturbance.numfaces" title="Link to this definition">¶</a></dt>
+<dd><p>Number of discrete surface faces modeled.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.disturbances.drag_disturbance.Drag_Disturbance.areas">
+<span class="sig-name descname"><span class="pre">areas</span></span><a class="headerlink" href="#ADCS.satellite_hardware.disturbances.drag_disturbance.Drag_Disturbance.areas" title="Link to this definition">¶</a></dt>
+<dd><p>Surface areas of each face [m²], shape <code class="docutils literal notranslate"><span class="pre">(N,)</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.disturbances.drag_disturbance.Drag_Disturbance.centroids">
+<span class="sig-name descname"><span class="pre">centroids</span></span><a class="headerlink" href="#ADCS.satellite_hardware.disturbances.drag_disturbance.Drag_Disturbance.centroids" title="Link to this definition">¶</a></dt>
+<dd><p>Centroid positions of each face in body coordinates [m], shape <code class="docutils literal notranslate"><span class="pre">(N,</span> <span class="pre">3)</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.disturbances.drag_disturbance.Drag_Disturbance.normals">
+<span class="sig-name descname"><span class="pre">normals</span></span><a class="headerlink" href="#ADCS.satellite_hardware.disturbances.drag_disturbance.Drag_Disturbance.normals" title="Link to this definition">¶</a></dt>
+<dd><p>Unit normal vectors of each face in the body frame, shape <code class="docutils literal notranslate"><span class="pre">(N,</span> <span class="pre">3)</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.disturbances.drag_disturbance.Drag_Disturbance.CDs">
+<span class="sig-name descname"><span class="pre">CDs</span></span><a class="headerlink" href="#ADCS.satellite_hardware.disturbances.drag_disturbance.Drag_Disturbance.CDs" title="Link to this definition">¶</a></dt>
+<dd><p>Drag coefficients <span class="math notranslate nohighlight">\(C_D\)</span> for each face.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.disturbances.drag_disturbance.Drag_Disturbance.torque">
+<span class="sig-name descname"><span class="pre">torque</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/disturbances/drag_disturbance.html#Drag_Disturbance.torque"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.disturbances.drag_disturbance.Drag_Disturbance.torque" title="Link to this definition">¶</a></dt>
+<dd><p>Compute the <strong>aerodynamic drag torque</strong> in the body frame.</p>
+<p>Using the force model above, the implemented torque expression is</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\mathbf{T}_{\mathrm{drag}}
+= -\tfrac{1}{2}\,\rho
+  \sum_i C_{D,i}A_i
+  \max\!\big(0,\ \mathbf{n}_i^\top\mathbf{V}_b\big)
+  \big(\mathbf{r}_i-\mathbf{r}_{\mathrm{COM}}\big)\times \mathbf{V}_b.\]</div>
+</div>
+<p><strong>State dependency.</strong> The full state <span class="math notranslate nohighlight">\(x\)</span> contains the attitude quaternion
+<span class="math notranslate nohighlight">\(\mathbf{q}\)</span>; the relative flow <span class="math notranslate nohighlight">\(\mathbf{V}_b=\mathbf{V}_b(\mathbf{q})\)</span>
+is provided by <a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbital_State</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sat</strong> (<a class="reference internal" href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite" title="ADCS.satellite_hardware.satellite.satellite.Satellite"><code class="xref py py-class docutils literal notranslate"><span class="pre">Satellite</span></code></a>) – Satellite instance providing the COM position via <code class="docutils literal notranslate"><span class="pre">sat.COM</span></code>.</p></li>
+<li><p><strong>x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Full spacecraft state; must contain the attitude quaternion.</p></li>
+<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbital_State</span></code></a>) – Provides body-frame relative velocity <span class="math notranslate nohighlight">\(\mathbf{V}_b\)</span> and density <span class="math notranslate nohighlight">\(\rho\)</span>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Total aerodynamic drag torque [N·m], shape <code class="docutils literal notranslate"><span class="pre">(3,)</span></code>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.disturbances.drag_disturbance.Drag_Disturbance.torque_qjac">
+<span class="sig-name descname"><span class="pre">torque_qjac</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/disturbances/drag_disturbance.html#Drag_Disturbance.torque_qjac"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.disturbances.drag_disturbance.Drag_Disturbance.torque_qjac" title="Link to this definition">¶</a></dt>
+<dd><p>Compute the <strong>Jacobian of drag torque with respect to the attitude quaternion</strong>.</p>
+<p>Let <span class="math notranslate nohighlight">\(\mathbf{q}\)</span> be the attitude quaternion inside <span class="math notranslate nohighlight">\(x\)</span>. The torque depends
+on <span class="math notranslate nohighlight">\(\mathbf{q}\)</span> via <span class="math notranslate nohighlight">\(\mathbf{V}_b(\mathbf{q})\)</span> and via the term
+<span class="math notranslate nohighlight">\(\max(0,\,\mathbf{n}_i^\top\mathbf{V}_b)\)</span>.
+Using <span class="math notranslate nohighlight">\(H(\cdot)\)</span> for the Heaviside function,</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\frac{\partial}{\partial \mathbf{q}}
+\max\!\big(0,\ \mathbf{n}_i^\top\mathbf{V}_b\big)
+= H\!\big(\mathbf{n}_i^\top\mathbf{V}_b\big)\,
+  \mathbf{n}_i^\top\frac{\partial \mathbf{V}_b}{\partial \mathbf{q}}.\]</div>
+</div>
+<p>The resulting Jacobian is consistent with the implemented expression</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\frac{\partial \mathbf{T}_{\mathrm{drag}}}{\partial \mathbf{q}}
+= -\tfrac{1}{2}\rho\Big[
+    \big(\tfrac{\partial F}{\partial \mathbf{q}}\cdot\mathbf{r}\big)\times\mathbf{V}_b
+    + \big(F\cdot\mathbf{r}\big)\times
+      \frac{\partial \mathbf{V}_b}{\partial \mathbf{q}}
+\Big],\]</div>
+</div>
+<p>where <span class="math notranslate nohighlight">\(F_i = C_{D,i}A_i\max(0,\mathbf{n}_i^\top\mathbf{V}_b)\)</span> and
+<span class="math notranslate nohighlight">\(\mathbf{r}\)</span> stacks the lever arms <span class="math notranslate nohighlight">\((\mathbf{r}_i-\mathbf{r}_{\mathrm{COM}})\)</span>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sat</strong> (<a class="reference internal" href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite" title="ADCS.satellite_hardware.satellite.satellite.Satellite"><code class="xref py py-class docutils literal notranslate"><span class="pre">Satellite</span></code></a>) – Satellite instance providing the COM.</p></li>
+<li><p><strong>x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Full spacecraft state containing the attitude quaternion <span class="math notranslate nohighlight">\(\mathbf{q}\)</span>.</p></li>
+<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbital_State</span></code></a>) – Provides <span class="math notranslate nohighlight">\(\mathbf{V}_b\)</span>, density <span class="math notranslate nohighlight">\(\rho\)</span>,
+and the quaternion derivative <span class="math notranslate nohighlight">\(\partial \mathbf{V}_b / \partial \mathbf{q}\)</span>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Quaternion Jacobian <code class="docutils literal notranslate"><span class="pre">∂T_drag/∂q</span></code>, shape <code class="docutils literal notranslate"><span class="pre">(3,</span> <span class="pre">4)</span></code>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.disturbances.drag_disturbance.Drag_Disturbance.torque_qqhess">
+<span class="sig-name descname"><span class="pre">torque_qqhess</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/disturbances/drag_disturbance.html#Drag_Disturbance.torque_qqhess"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.disturbances.drag_disturbance.Drag_Disturbance.torque_qqhess" title="Link to this definition">¶</a></dt>
+<dd><p>Compute the <strong>Hessian of drag torque with respect to the attitude quaternion</strong>.</p>
+<p>With <span class="math notranslate nohighlight">\(\mathbf{q}\)</span> the attitude quaternion, define
+<span class="math notranslate nohighlight">\(F_i(\mathbf{q}) = C_{D,i}A_i\max(0,\mathbf{n}_i^\top\mathbf{V}_b(\mathbf{q}))\)</span>.
+Then</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\frac{\partial^2 \mathbf{T}_{\mathrm{drag}}}{\partial \mathbf{q}^2}
+= -\tfrac{1}{2}\rho\Big[
+    \frac{\partial^2 (F\cdot\mathbf{r})}{\partial \mathbf{q}^2}\times\mathbf{V}_b
+    + \frac{\partial (F\cdot\mathbf{r})}{\partial \mathbf{q}}\times
+      \frac{\partial \mathbf{V}_b}{\partial \mathbf{q}}
+    + \big(\cdot\big)^\top
+    + (F\cdot\mathbf{r})\times
+      \frac{\partial^2 \mathbf{V}_b}{\partial \mathbf{q}^2}
+\Big],\]</div>
+</div>
+<p>where <span class="math notranslate nohighlight">\((\cdot)^\top\)</span> denotes the term with the cross-product factors swapped,
+matching the implemented symmetric pairing.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sat</strong> (<a class="reference internal" href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite" title="ADCS.satellite_hardware.satellite.satellite.Satellite"><code class="xref py py-class docutils literal notranslate"><span class="pre">Satellite</span></code></a>) – Satellite instance providing the COM.</p></li>
+<li><p><strong>x</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) – Full spacecraft state containing the attitude quaternion <span class="math notranslate nohighlight">\(\mathbf{q}\)</span>.</p></li>
+<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbital_State</span></code></a>) – Provides <span class="math notranslate nohighlight">\(\mathbf{V}_b\)</span>, <span class="math notranslate nohighlight">\(\rho\)</span>,
+and derivatives <span class="math notranslate nohighlight">\(\partial \mathbf{V}_b / \partial \mathbf{q}\)</span>,
+<span class="math notranslate nohighlight">\(\partial^2 \mathbf{V}_b / \partial \mathbf{q}^2\)</span>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Quaternion Hessian tensor <code class="docutils literal notranslate"><span class="pre">∂²T_drag/∂q²</span></code>, shape <code class="docutils literal notranslate"><span class="pre">(3,</span> <span class="pre">4,</span> <span class="pre">4)</span></code>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 
         </article>
@@ -375,8 +589,37 @@
         
       </footer>
     </div>
-    <aside class="toc-drawer no-toc">
+    <aside class="toc-drawer">
       
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">ADCS.satellite_hardware.disturbances.drag_disturbance module</a><ul>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.disturbances.drag_disturbance.Drag_Disturbance"><code class="docutils literal notranslate"><span class="pre">Drag_Disturbance</span></code></a><ul>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.disturbances.drag_disturbance.Drag_Disturbance.numfaces"><code class="docutils literal notranslate"><span class="pre">numfaces</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.disturbances.drag_disturbance.Drag_Disturbance.areas"><code class="docutils literal notranslate"><span class="pre">areas</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.disturbances.drag_disturbance.Drag_Disturbance.centroids"><code class="docutils literal notranslate"><span class="pre">centroids</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.disturbances.drag_disturbance.Drag_Disturbance.normals"><code class="docutils literal notranslate"><span class="pre">normals</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.disturbances.drag_disturbance.Drag_Disturbance.CDs"><code class="docutils literal notranslate"><span class="pre">CDs</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.disturbances.drag_disturbance.Drag_Disturbance.torque"><code class="docutils literal notranslate"><span class="pre">torque()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.disturbances.drag_disturbance.Drag_Disturbance.torque_qjac"><code class="docutils literal notranslate"><span class="pre">torque_qjac()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.disturbances.drag_disturbance.Drag_Disturbance.torque_qqhess"><code class="docutils literal notranslate"><span class="pre">torque_qqhess()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
       
       
     </aside>
@@ -385,5 +628,6 @@
     <script src="_static/doctools.js?v=9bcbadda"></script>
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/scripts/furo.js?v=46bd48cc"></script>
+    <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     </body>
 </html>

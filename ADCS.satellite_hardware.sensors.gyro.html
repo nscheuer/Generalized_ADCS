@@ -174,7 +174,7 @@
           <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
         </button>
       </div>
-      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
         <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
       </label>
     </div>
@@ -323,13 +323,149 @@
               <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
             </button>
           </div>
-          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
             <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <section id="adcs-satellite-hardware-sensors-gyro-module">
-<h1>ADCS.satellite_hardware.sensors.gyro module<a class="headerlink" href="#adcs-satellite-hardware-sensors-gyro-module" title="Link to this heading">¶</a></h1>
+          <section id="module-ADCS.satellite_hardware.sensors.gyro">
+<span id="adcs-satellite-hardware-sensors-gyro-module"></span><h1>ADCS.satellite_hardware.sensors.gyro module<a class="headerlink" href="#module-ADCS.satellite_hardware.sensors.gyro" title="Link to this heading">¶</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.sensors.gyro.Gyro">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ADCS.satellite_hardware.sensors.gyro.</span></span><span class="sig-name descname"><span class="pre">Gyro</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">axis</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sample_time</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noise</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">estimate_bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/sensors/gyro.html#Gyro"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.sensors.gyro.Gyro" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="ADCS.satellite_hardware.sensors.sensor.html#ADCS.satellite_hardware.sensors.sensor.Sensor" title="ADCS.satellite_hardware.sensors.sensor.Sensor"><code class="xref py py-class docutils literal notranslate"><span class="pre">Sensor</span></code></a></p>
+<p>Single–axis gyroscope sensor model.</p>
+<p>This sensor measures the component of the satellite’s angular velocity
+vector <span class="math notranslate nohighlight">\(\boldsymbol{\omega}\)</span> along a specified body–fixed axis.
+The <em>clean</em> (noise– and bias–free) measurement is</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[y = \boldsymbol{\omega}^\top \hat{\mathbf{a}},\]</div>
+</div>
+<p>where <span class="math notranslate nohighlight">\(\hat{\mathbf{a}}\)</span> is the unit measurement axis.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>axis</strong> (<em>numpy.ndarray</em>) – Body–frame sensing axis of the gyroscope, shape <code class="docutils literal notranslate"><span class="pre">(3,)</span></code>.
+Automatically normalized to unit length.</p></li>
+<li><p><strong>sample_time</strong> (<em>float</em><em>, </em><em>optional</em>) – Sensor sampling period in seconds (default: <code class="docutils literal notranslate"><span class="pre">0.1</span></code>).</p></li>
+<li><p><strong>bias</strong> (<a class="reference internal" href="ADCS.satellite_hardware.actuators.html#ADCS.satellite_hardware.actuators.Bias" title="ADCS.satellite_hardware.actuators.Bias"><em>Bias</em></a><em>, </em><em>optional</em>) – Bias model for the sensor (if present). Treated as an additive scalar
+bias to the measurement.</p></li>
+<li><p><strong>noise</strong> (<a class="reference internal" href="ADCS.satellite_hardware.actuators.html#ADCS.satellite_hardware.actuators.Noise" title="ADCS.satellite_hardware.actuators.Noise"><em>Noise</em></a><em>, </em><em>optional</em>) – Noise model specifying additive measurement noise statistics.</p></li>
+<li><p><strong>estimate_bias</strong> (<em>bool</em><em>, </em><em>optional</em>) – If <code class="docutils literal notranslate"><span class="pre">True</span></code>, includes the bias as an estimated state for filtering
+(e.g., in an EKF). Otherwise the bias is treated as fixed or zero.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.sensors.gyro.Gyro.basestate_jac">
+<span class="sig-name descname"><span class="pre">basestate_jac</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/sensors/gyro.html#Gyro.basestate_jac"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.sensors.gyro.Gyro.basestate_jac" title="Link to this definition">¶</a></dt>
+<dd><p>Jacobian of the clean gyroscope measurement with respect to the
+base states (non–bias states).</p>
+<p>The measurement depends only on angular velocity:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[y = \boldsymbol{\omega}^\top \hat{\mathbf{a}},\]</div>
+</div>
+<p>so</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\frac{\partial y}{\partial \boldsymbol{\omega}}
+= \hat{\mathbf{a}}, \qquad
+\frac{\partial y}{\partial q} = \mathbf{0}_{4 \times 1}.\]</div>
+</div>
+<p>Thus, the Jacobian returned is</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{bmatrix}
+    \hat{\mathbf{a}} \\
+    \mathbf{0}_{4 \times 1}
+\end{bmatrix}.\end{split}\]</div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>numpy.ndarray</em>) – Full system state vector.</p></li>
+<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbital_State" title="ADCS.orbits.orbit.Orbital_State"><em>Orbital_State</em></a>) – Orbital state object (unused).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Base–state Jacobian of shape <code class="docutils literal notranslate"><span class="pre">(7,</span> <span class="pre">1)</span></code>, consisting of the
+3-component gyroscope axis followed by four zeros.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.sensors.gyro.Gyro.bias_jac">
+<span class="sig-name descname"><span class="pre">bias_jac</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/sensors/gyro.html#Gyro.bias_jac"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.sensors.gyro.Gyro.bias_jac" title="Link to this definition">¶</a></dt>
+<dd><p>Jacobian of the measurement with respect to the gyroscope bias.</p>
+<p>If a bias model is present, the measurement is modeled as</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[z = y + b,\]</div>
+</div>
+<p>with scalar bias <span class="math notranslate nohighlight">\(b\)</span>. Therefore</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\frac{\partial z}{\partial b} = 1.\]</div>
+</div>
+<p>If no bias is included, returns an empty Jacobian.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>numpy.ndarray</em>) – Current full state vector (unused).</p></li>
+<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbital_State" title="ADCS.orbits.orbit.Orbital_State"><em>Orbital_State</em></a>) – Orbital state object (unused).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A <code class="docutils literal notranslate"><span class="pre">(1,1)</span></code> matrix containing <code class="docutils literal notranslate"><span class="pre">1</span></code> if bias is present,
+or a <code class="docutils literal notranslate"><span class="pre">(0,1)</span></code> empty matrix otherwise.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.sensors.gyro.Gyro.clean_reading">
+<span class="sig-name descname"><span class="pre">clean_reading</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/sensors/gyro.html#Gyro.clean_reading"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.sensors.gyro.Gyro.clean_reading" title="Link to this definition">¶</a></dt>
+<dd><p>Compute the bias– and noise–free gyroscope measurement.</p>
+<p>This method extracts the angular velocity</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\boldsymbol{\omega} = x_{0:3}\]</div>
+</div>
+<p>from the satellite state vector <code class="docutils literal notranslate"><span class="pre">x</span></code> and computes its projection onto
+the sensor axis:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[y = \boldsymbol{\omega}^\top \hat{\mathbf{a}}.\]</div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>numpy.ndarray</em>) – Full system state vector. The first three entries must be the
+body–frame angular velocity <span class="math notranslate nohighlight">\(\boldsymbol{\omega}\)</span>.</p></li>
+<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbital_State" title="ADCS.orbits.orbit.Orbital_State"><em>Orbital_State</em></a>) – Unused for gyroscope measurements (provided for interface
+consistency).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Clean single–axis angular rate measurement, shape <code class="docutils literal notranslate"><span class="pre">(1,)</span></code>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 
         </article>
@@ -375,8 +511,32 @@
         
       </footer>
     </div>
-    <aside class="toc-drawer no-toc">
+    <aside class="toc-drawer">
       
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">ADCS.satellite_hardware.sensors.gyro module</a><ul>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.sensors.gyro.Gyro"><code class="docutils literal notranslate"><span class="pre">Gyro</span></code></a><ul>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.sensors.gyro.Gyro.basestate_jac"><code class="docutils literal notranslate"><span class="pre">basestate_jac()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.sensors.gyro.Gyro.bias_jac"><code class="docutils literal notranslate"><span class="pre">bias_jac()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.sensors.gyro.Gyro.clean_reading"><code class="docutils literal notranslate"><span class="pre">clean_reading()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
       
       
     </aside>
@@ -385,5 +545,6 @@
     <script src="_static/doctools.js?v=9bcbadda"></script>
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/scripts/furo.js?v=46bd48cc"></script>
+    <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     </body>
 </html>

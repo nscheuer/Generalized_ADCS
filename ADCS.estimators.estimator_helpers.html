@@ -334,12 +334,206 @@
 <h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading">¶</a></h2>
 <div class="toctree-wrapper compound">
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="ADCS.estimators.estimator_helpers.estimator_helpers.html">ADCS.estimators.estimator_helpers.estimator_helpers module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ADCS.estimators.estimator_helpers.estimator_helpers.html">ADCS.estimators.estimator_helpers.estimator_helpers module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="ADCS.estimators.estimator_helpers.estimator_helpers.html#ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray"><code class="docutils literal notranslate"><span class="pre">EstimatedArray</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.estimator_helpers.estimator_helpers.html#ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray.copy"><code class="docutils literal notranslate"><span class="pre">copy()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.estimator_helpers.estimator_helpers.html#ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray.pull_indices"><code class="docutils literal notranslate"><span class="pre">pull_indices()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.estimator_helpers.estimator_helpers.html#ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray.set_indices"><code class="docutils literal notranslate"><span class="pre">set_indices()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.estimator_helpers.estimator_helpers.html#ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray.cov"><code class="docutils literal notranslate"><span class="pre">cov</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.estimator_helpers.estimator_helpers.html#ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray.int_cov"><code class="docutils literal notranslate"><span class="pre">int_cov</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.estimator_helpers.estimator_helpers.html#ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray.val"><code class="docutils literal notranslate"><span class="pre">val</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="ADCS.estimators.estimator_helpers.estimator_helpers.html#ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedOrbital_State"><code class="docutils literal notranslate"><span class="pre">EstimatedOrbital_State</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.estimator_helpers.estimator_helpers.html#ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedOrbital_State.copy"><code class="docutils literal notranslate"><span class="pre">copy()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.estimator_helpers.estimator_helpers.html#ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedOrbital_State.pull_indices"><code class="docutils literal notranslate"><span class="pre">pull_indices()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.estimator_helpers.estimator_helpers.html#ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedOrbital_State.set_indices"><code class="docutils literal notranslate"><span class="pre">set_indices()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.estimator_helpers.estimator_helpers.html#ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedOrbital_State.P"><code class="docutils literal notranslate"><span class="pre">P</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.estimator_helpers.estimator_helpers.html#ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedOrbital_State.Q"><code class="docutils literal notranslate"><span class="pre">Q</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.estimators.estimator_helpers.estimator_helpers.html#ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedOrbital_State.os"><code class="docutils literal notranslate"><span class="pre">os</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 </div>
 </section>
-<section id="module-contents">
-<h2>Module contents<a class="headerlink" href="#module-contents" title="Link to this heading">¶</a></h2>
+<section id="module-ADCS.estimators.estimator_helpers">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-ADCS.estimators.estimator_helpers" title="Link to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="ADCS.estimators.estimator_helpers.EstimatedArray">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ADCS.estimators.estimator_helpers.</span></span><span class="sig-name descname"><span class="pre">EstimatedArray</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cov=&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">int_cov=&lt;factory&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/estimators/estimator_helpers/estimator_helpers.html#EstimatedArray"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.estimators.estimator_helpers.EstimatedArray" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Represents an estimated vector with associated covariance and integrated covariance.</p>
+<p>This structure is commonly used for parameter estimation where the state is a generic vector
+rather than a specific orbital state.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>val</strong> (<em>np.ndarray</em>) – The estimated state or parameter vector <span class="math notranslate nohighlight">\(\hat{\mathbf{x}}\)</span>.</p></li>
+<li><p><strong>cov</strong> (<em>np.ndarray</em>) – The covariance matrix <span class="math notranslate nohighlight">\(P\)</span> representing uncertainty in <code class="docutils literal notranslate"><span class="pre">val</span></code>.
+Must be square and match the dimensions of <code class="docutils literal notranslate"><span class="pre">val</span></code>.</p></li>
+<li><p><strong>int_cov</strong> (<em>np.ndarray</em>) – The integrated process covariance <span class="math notranslate nohighlight">\(Q_{int}\)</span> (e.g., accumulated process noise over time).</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.estimators.estimator_helpers.EstimatedArray.copy">
+<span class="sig-name descname"><span class="pre">copy</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/estimators/estimator_helpers/estimator_helpers.html#EstimatedArray.copy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.estimators.estimator_helpers.EstimatedArray.copy" title="Link to this definition">¶</a></dt>
+<dd><p>Creates a deep copy of the EstimatedArray.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A new instance with independent data copies.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="ADCS.estimators.estimator_helpers.estimator_helpers.html#ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray" title="ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray"><em>EstimatedArray</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.estimators.estimator_helpers.EstimatedArray.pull_indices">
+<span class="sig-name descname"><span class="pre">pull_indices</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inds_mask</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cov_missing_inds</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/estimators/estimator_helpers/estimator_helpers.html#EstimatedArray.pull_indices"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.estimators.estimator_helpers.EstimatedArray.pull_indices" title="Link to this definition">¶</a></dt>
+<dd><p>Extracts a sub-estimate and associated covariance blocks based on a mask.</p>
+<p>This is useful for isolating specific parameters from a larger state vector.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>inds_mask</strong> (<em>list</em><em> or </em><em>np.ndarray</em>) – Indices of the values to extract.</p></li>
+<li><p><strong>cov_missing_inds</strong> (<em>list</em><em> or </em><em>np.ndarray</em><em>, </em><em>optional</em>) – Indices to exclude from the covariance extraction (optional).
+If None, <code class="docutils literal notranslate"><span class="pre">inds_mask</span></code> is used for covariance as well.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A new EstimatedArray containing only the selected elements.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="ADCS.estimators.estimator_helpers.estimator_helpers.html#ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray" title="ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray"><em>EstimatedArray</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.estimators.estimator_helpers.EstimatedArray.set_indices">
+<span class="sig-name descname"><span class="pre">set_indices</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inds_mask</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cov</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">int_cov</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cov_missing_inds</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/estimators/estimator_helpers/estimator_helpers.html#EstimatedArray.set_indices"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.estimators.estimator_helpers.EstimatedArray.set_indices" title="Link to this definition">¶</a></dt>
+<dd><p>Inserts values and covariance blocks back into this estimate.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>inds_mask</strong> (<em>list</em><em> or </em><em>np.ndarray</em>) – Indices in the full vector where data should be inserted.</p></li>
+<li><p><strong>val</strong> (<em>np.ndarray</em>) – The sub-vector of values to insert.</p></li>
+<li><p><strong>cov</strong> (<em>np.ndarray</em>) – The covariance block corresponding to the inserted values.</p></li>
+<li><p><strong>int_cov</strong> (<em>np.ndarray</em>) – The integrated covariance block to insert.</p></li>
+<li><p><strong>cov_missing_inds</strong> (<em>list</em><em> or </em><em>np.ndarray</em><em>, </em><em>optional</em>) – Indices to exclude from the covariance insertion mapping (optional).</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ADCS.estimators.estimator_helpers.EstimatedArray.cov">
+<span class="sig-name descname"><span class="pre">cov</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ndarray</span></em><a class="headerlink" href="#ADCS.estimators.estimator_helpers.EstimatedArray.cov" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ADCS.estimators.estimator_helpers.EstimatedArray.int_cov">
+<span class="sig-name descname"><span class="pre">int_cov</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ndarray</span></em><a class="headerlink" href="#ADCS.estimators.estimator_helpers.EstimatedArray.int_cov" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ADCS.estimators.estimator_helpers.EstimatedArray.val">
+<span class="sig-name descname"><span class="pre">val</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ndarray</span></em><a class="headerlink" href="#ADCS.estimators.estimator_helpers.EstimatedArray.val" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="ADCS.estimators.estimator_helpers.EstimatedOrbital_State">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ADCS.estimators.estimator_helpers.</span></span><span class="sig-name descname"><span class="pre">EstimatedOrbital_State</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">os</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">P=&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q=&lt;factory&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/estimators/estimator_helpers/estimator_helpers.html#EstimatedOrbital_State"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.estimators.estimator_helpers.EstimatedOrbital_State" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>A container for an Orbital State and its associated estimation uncertainty.</p>
+<p>This class wraps the physical <a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbital_State</span></code></a> with
+estimation statistics, specifically the state covariance <span class="math notranslate nohighlight">\(P\)</span> and process noise <span class="math notranslate nohighlight">\(Q\)</span>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>) – The estimated physical state (Position <span class="math notranslate nohighlight">\(\mathbf{r}\)</span> and Velocity <span class="math notranslate nohighlight">\(\mathbf{v}\)</span>).</p></li>
+<li><p><strong>P</strong> (<em>np.ndarray</em>) – The <span class="math notranslate nohighlight">\(6 \times 6\)</span> state covariance matrix.
+.. math:: P = E[(hat{x} - x)(hat{x} - x)^T]</p></li>
+<li><p><strong>Q</strong> (<em>np.ndarray</em>) – The <span class="math notranslate nohighlight">\(6 \times 6\)</span> process noise covariance matrix.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.estimators.estimator_helpers.EstimatedOrbital_State.copy">
+<span class="sig-name descname"><span class="pre">copy</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/estimators/estimator_helpers/estimator_helpers.html#EstimatedOrbital_State.copy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.estimators.estimator_helpers.EstimatedOrbital_State.copy" title="Link to this definition">¶</a></dt>
+<dd><p>Creates a deep copy of the EstimatedOrbital_State.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A new instance with deep-copied state and matrices.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="ADCS.estimators.estimator_helpers.estimator_helpers.html#ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedOrbital_State" title="ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedOrbital_State"><em>EstimatedOrbital_State</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.estimators.estimator_helpers.EstimatedOrbital_State.pull_indices">
+<span class="sig-name descname"><span class="pre">pull_indices</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inds_mask</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cov_missing_inds</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/estimators/estimator_helpers/estimator_helpers.html#EstimatedOrbital_State.pull_indices"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.estimators.estimator_helpers.EstimatedOrbital_State.pull_indices" title="Link to this definition">¶</a></dt>
+<dd><p>Extracts a partial state estimate based on indices mapping to [R, V].</p>
+<p>The mapping is linear: indices 0-2 correspond to Position (R), and 3-5 to Velocity (V).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>inds_mask</strong> (<em>list</em><em> or </em><em>np.ndarray</em>) – The indices of the 6-element state vector to extract.</p></li>
+<li><p><strong>cov_missing_inds</strong> (<em>list</em><em> or </em><em>np.ndarray</em><em>, </em><em>optional</em>) – Indices to exclude from covariance slicing (optional).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A new EstimatedOrbital_State containing the subset of state and covariance.
+Note: The underlying Orbital_State will have 0.0 in unselected components.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="ADCS.estimators.estimator_helpers.estimator_helpers.html#ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedOrbital_State" title="ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedOrbital_State"><em>EstimatedOrbital_State</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.estimators.estimator_helpers.EstimatedOrbital_State.set_indices">
+<span class="sig-name descname"><span class="pre">set_indices</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inds_mask</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">P</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cov_missing_inds</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/estimators/estimator_helpers/estimator_helpers.html#EstimatedOrbital_State.set_indices"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.estimators.estimator_helpers.EstimatedOrbital_State.set_indices" title="Link to this definition">¶</a></dt>
+<dd><p>Inserts values and covariance blocks back into the full 6-state estimate.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>inds_mask</strong> (<em>list</em><em> or </em><em>np.ndarray</em>) – Indices in the full 6-element vector where data should be inserted.</p></li>
+<li><p><strong>val</strong> (<em>np.ndarray</em>) – The values to insert into Position/Velocity.</p></li>
+<li><p><strong>P</strong> (<em>np.ndarray</em>) – The covariance block <span class="math notranslate nohighlight">\(P_{sub}\)</span> to insert.</p></li>
+<li><p><strong>Q</strong> (<em>np.ndarray</em>) – The process noise block <span class="math notranslate nohighlight">\(Q_{sub}\)</span> to insert.</p></li>
+<li><p><strong>cov_missing_inds</strong> (<em>list</em><em> or </em><em>np.ndarray</em><em>, </em><em>optional</em>) – Indices to exclude from covariance insertion (optional).</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ADCS.estimators.estimator_helpers.EstimatedOrbital_State.P">
+<span class="sig-name descname"><span class="pre">P</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ndarray</span></em><a class="headerlink" href="#ADCS.estimators.estimator_helpers.EstimatedOrbital_State.P" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ADCS.estimators.estimator_helpers.EstimatedOrbital_State.Q">
+<span class="sig-name descname"><span class="pre">Q</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ndarray</span></em><a class="headerlink" href="#ADCS.estimators.estimator_helpers.EstimatedOrbital_State.Q" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ADCS.estimators.estimator_helpers.EstimatedOrbital_State.os">
+<span class="sig-name descname"><span class="pre">os</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><span class="pre">Orbital_State</span></a></em><a class="headerlink" href="#ADCS.estimators.estimator_helpers.EstimatedOrbital_State.os" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
 </section>
 </section>
 
@@ -400,7 +594,27 @@
             <ul>
 <li><a class="reference internal" href="#">ADCS.estimators.estimator_helpers package</a><ul>
 <li><a class="reference internal" href="#submodules">Submodules</a></li>
-<li><a class="reference internal" href="#module-contents">Module contents</a></li>
+<li><a class="reference internal" href="#module-ADCS.estimators.estimator_helpers">Module contents</a><ul>
+<li><a class="reference internal" href="#ADCS.estimators.estimator_helpers.EstimatedArray"><code class="docutils literal notranslate"><span class="pre">EstimatedArray</span></code></a><ul>
+<li><a class="reference internal" href="#ADCS.estimators.estimator_helpers.EstimatedArray.copy"><code class="docutils literal notranslate"><span class="pre">copy()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.estimators.estimator_helpers.EstimatedArray.pull_indices"><code class="docutils literal notranslate"><span class="pre">pull_indices()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.estimators.estimator_helpers.EstimatedArray.set_indices"><code class="docutils literal notranslate"><span class="pre">set_indices()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.estimators.estimator_helpers.EstimatedArray.cov"><code class="docutils literal notranslate"><span class="pre">cov</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.estimators.estimator_helpers.EstimatedArray.int_cov"><code class="docutils literal notranslate"><span class="pre">int_cov</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.estimators.estimator_helpers.EstimatedArray.val"><code class="docutils literal notranslate"><span class="pre">val</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#ADCS.estimators.estimator_helpers.EstimatedOrbital_State"><code class="docutils literal notranslate"><span class="pre">EstimatedOrbital_State</span></code></a><ul>
+<li><a class="reference internal" href="#ADCS.estimators.estimator_helpers.EstimatedOrbital_State.copy"><code class="docutils literal notranslate"><span class="pre">copy()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.estimators.estimator_helpers.EstimatedOrbital_State.pull_indices"><code class="docutils literal notranslate"><span class="pre">pull_indices()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.estimators.estimator_helpers.EstimatedOrbital_State.set_indices"><code class="docutils literal notranslate"><span class="pre">set_indices()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.estimators.estimator_helpers.EstimatedOrbital_State.P"><code class="docutils literal notranslate"><span class="pre">P</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.estimators.estimator_helpers.EstimatedOrbital_State.Q"><code class="docutils literal notranslate"><span class="pre">Q</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.estimators.estimator_helpers.EstimatedOrbital_State.os"><code class="docutils literal notranslate"><span class="pre">os</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -416,5 +630,6 @@
     <script src="_static/doctools.js?v=9bcbadda"></script>
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/scripts/furo.js?v=46bd48cc"></script>
+    <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     </body>
 </html>

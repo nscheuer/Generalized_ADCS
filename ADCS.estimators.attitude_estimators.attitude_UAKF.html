@@ -174,7 +174,7 @@
           <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
         </button>
       </div>
-      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
         <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
       </label>
     </div>
@@ -323,13 +323,202 @@
               <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
             </button>
           </div>
-          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
             <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <section id="adcs-estimators-attitude-estimators-attitude-uakf-module">
-<h1>ADCS.estimators.attitude_estimators.attitude_UAKF module<a class="headerlink" href="#adcs-estimators-attitude-estimators-attitude-uakf-module" title="Link to this heading">¶</a></h1>
+          <section id="module-ADCS.estimators.attitude_estimators.attitude_UAKF">
+<span id="adcs-estimators-attitude-estimators-attitude-uakf-module"></span><h1>ADCS.estimators.attitude_estimators.attitude_UAKF module<a class="headerlink" href="#module-ADCS.estimators.attitude_estimators.attitude_UAKF" title="Link to this heading">¶</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ADCS.estimators.attitude_estimators.attitude_UAKF.</span></span><span class="sig-name descname"><span class="pre">UAKF</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">est_sat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">J2000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_hat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">P_hat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_hat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cross_term</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quat_as_vec</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/estimators/attitude_estimators/attitude_UAKF.html#UAKF"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="ADCS.estimators.attitude_estimators.attitude_estimator.html#ADCS.estimators.attitude_estimators.attitude_estimator.Attitude_Estimator" title="ADCS.estimators.attitude_estimators.attitude_estimator.Attitude_Estimator"><code class="xref py py-class docutils literal notranslate"><span class="pre">Attitude_Estimator</span></code></a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>est_sat</strong> (<a class="reference internal" href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite" title="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite"><em>EstimatedSatellite</em></a>)</p></li>
+<li><p><strong>J2000</strong> (<em>float</em>)</p></li>
+<li><p><strong>x_hat</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>P_hat</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>Q_hat</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>dt</strong> (<em>float</em>)</p></li>
+<li><p><strong>cross_term</strong> (<em>bool</em>)</p></li>
+<li><p><strong>quat_as_vec</strong> (<em>bool</em>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF.add_to_state">
+<span class="sig-name descname"><span class="pre">add_to_state</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">add</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/estimators/attitude_estimators/attitude_UAKF.html#UAKF.add_to_state"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF.add_to_state" title="Link to this definition">¶</a></dt>
+<dd><p>Add a perturbation (error state) to a base state on the manifold.</p>
+<p>This handles the multiplicative update for quaternions:
+<span class="math notranslate nohighlight">\(q_{new} = q_{old} \otimes \delta q(\delta \theta)\)</span>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>state</strong> (<em>numpy.ndarray</em>) – Base state vector(s). Can be 1D or 2D (sigma points).</p></li>
+<li><p><strong>add</strong> (<em>numpy.ndarray</em>) – Perturbation/Error vector(s). Can be 1D or 2D.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The updated state vector(s).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF.determine_covariances_to_use">
+<span class="sig-name descname"><span class="pre">determine_covariances_to_use</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state_cov</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sens_cov</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">control_cov</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">int_cov</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/estimators/attitude_estimators/attitude_UAKF.html#UAKF.determine_covariances_to_use"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF.determine_covariances_to_use" title="Link to this definition">¶</a></dt>
+<dd><p>Determine which noise covariance components to include in the sigma point generation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>state_cov</strong> (<em>numpy.ndarray</em>) – State covariance matrix <span class="math notranslate nohighlight">\(P\)</span>.</p></li>
+<li><p><strong>sens_cov</strong> (<em>numpy.ndarray</em>) – Sensor noise covariance <span class="math notranslate nohighlight">\(R\)</span>.</p></li>
+<li><p><strong>control_cov</strong> (<em>numpy.ndarray</em>) – Control noise covariance.</p></li>
+<li><p><strong>int_cov</strong> (<em>numpy.ndarray</em>) – Process (integration) noise covariance <span class="math notranslate nohighlight">\(Q\)</span>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A 4-element list indicating inclusion of [state, sensor, control, process] noise.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list of bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF.make_pts_and_wts">
+<span class="sig-name descname"><span class="pre">make_pts_and_wts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pt0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">which_sensors</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/estimators/attitude_estimators/attitude_UAKF.html#UAKF.make_pts_and_wts"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF.make_pts_and_wts" title="Link to this definition">¶</a></dt>
+<dd><p>Build augmented sigma points and weights.</p>
+<p>Constructs the set of sigma points <span class="math notranslate nohighlight">\(\mathcal{X}\)</span> based on the current
+state covariance and active noise sources.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pt0</strong> (<em>numpy.ndarray</em>) – Current mean state vector (reduced or full depending on context, usually reduced error mean is zero).</p></li>
+<li><p><strong>which_sensors</strong> (<em>list</em><em> of </em><em>bool</em>) – Mask indicating which sensors are currently active/valid.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>L</strong> (<em>int</em>) – Dimension of the augmented error state.</p></li>
+<li><p><strong>pts</strong> (<em>list</em>) – List of length <span class="math notranslate nohighlight">\(2L+1\)</span>. Each entry is a list containing:
+<code class="docutils literal notranslate"><span class="pre">[full_state,</span> <span class="pre">sens_noise,</span> <span class="pre">control_noise,</span> <span class="pre">int_noise]</span></code>.</p></li>
+<li><p><strong>wts_m</strong> (<em>numpy.ndarray</em>) – Weights for the mean reconstruction (length <span class="math notranslate nohighlight">\(2L+1\)</span>).</p></li>
+<li><p><strong>wts_c</strong> (<em>numpy.ndarray</em>) – Weights for the covariance reconstruction (length <span class="math notranslate nohighlight">\(2L+1\)</span>).</p></li>
+<li><p><strong>sig0</strong> (<em>numpy.ndarray</em>) – The first block of sigma points (state part only), padded to shape
+<code class="docutils literal notranslate"><span class="pre">(2L+1,</span> <span class="pre">len(pt0))</span></code>.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF.new_post_state">
+<span class="sig-name descname"><span class="pre">new_post_state</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pre_rest_state</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">post_dynstate</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">int_err</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quatref</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/estimators/attitude_estimators/attitude_UAKF.html#UAKF.new_post_state"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF.new_post_state" title="Link to this definition">¶</a></dt>
+<dd><p>Reconstruct the posterior state after propagation, incorporating integration error noise.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pre_rest_state</strong> (<em>numpy.ndarray</em>) – The bias/parameter states before propagation (assumed constant in dynamics).</p></li>
+<li><p><strong>post_dynstate</strong> (<em>numpy.ndarray</em>) – The propagated dynamic state (rate + quaternion).</p></li>
+<li><p><strong>int_err</strong> (<em>numpy.ndarray</em>) – Integration error/process noise vector sampled for this sigma point.</p></li>
+<li><p><strong>quatref</strong> (<em>numpy.ndarray</em>) – Reference quaternion for the sigma point generation.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>post_state</strong> (<em>numpy.ndarray</em>) – The reduced error-state representation of the posterior.</p></li>
+<li><p><strong>full_state</strong> (<em>numpy.ndarray</em>) – The full augmented state representation of the posterior.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF.reunite_states">
+<span class="sig-name descname"><span class="pre">reunite_states</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dynstate</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rest_state</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quatref</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/estimators/attitude_estimators/attitude_UAKF.html#UAKF.reunite_states"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF.reunite_states" title="Link to this definition">¶</a></dt>
+<dd><p>Reassemble the full state from dynamic and static components, handling quaternion mapping.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dynstate</strong> (<em>numpy.ndarray</em>) – The dynamic part of the state (angular rate + attitude).
+Expected to contain the full quaternion.</p></li>
+<li><p><strong>rest_state</strong> (<em>numpy.ndarray</em>) – The remaining static/bias states.</p></li>
+<li><p><strong>quatref</strong> (<em>numpy.ndarray</em>) – The reference quaternion used for error-state mapping (if <code class="docutils literal notranslate"><span class="pre">quat_as_vec</span></code> is False).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The concatenated full state vector in the format required for <a class="reference internal" href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite" title="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite"><code class="xref py py-class docutils literal notranslate"><span class="pre">EstimatedSatellite</span></code></a>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF.sat_match">
+<span class="sig-name descname"><span class="pre">sat_match</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">est_sat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/estimators/attitude_estimators/attitude_UAKF.html#UAKF.sat_match"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF.sat_match" title="Link to this definition">¶</a></dt>
+<dd><p>Synchronize an EstimatedSatellite instance with a raw state vector.</p>
+<p>Updates <code class="docutils literal notranslate"><span class="pre">est_sat</span></code> to match the provided <code class="docutils literal notranslate"><span class="pre">state</span></code>, ensuring that
+sensor models and dynamics use the specific sigma-point configuration.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>est_sat</strong> (<a class="reference internal" href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite" title="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite"><code class="xref py py-class docutils literal notranslate"><span class="pre">EstimatedSatellite</span></code></a>) – The satellite model instance to update.</p></li>
+<li><p><strong>state</strong> (<em>numpy.ndarray</em>) – The full augmented state vector to apply.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF.update_core">
+<span class="sig-name descname"><span class="pre">update_core</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sensors</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/estimators/attitude_estimators/attitude_UAKF.html#UAKF.update_core"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF.update_core" title="Link to this definition">¶</a></dt>
+<dd><p>Perform one UKF predict/update cycle.</p>
+<p>Executes the Unscented Transformation:
+1.  Generates sigma points around the current estimate.
+2.  Propagates sigma points through nonlinear dynamics via</p>
+<blockquote>
+<div><p><code class="xref py py-meth docutils literal notranslate"><span class="pre">noiseless_rk4()</span></code>.</p>
+</div></blockquote>
+<ol class="arabic simple" start="3">
+<li><p>Predicts measurements for each sigma point via
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">noiseless_sensor_readings()</span></code>.</p></li>
+<li><p>Computes predicted mean, covariance, and Kalman gain.</p></li>
+<li><p>Updates the state estimate and covariance using the sensor residuals.</p></li>
+</ol>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>u</strong> (<em>numpy.ndarray</em>) – Control input vector.</p></li>
+<li><p><strong>sensors</strong> (<em>numpy.ndarray</em>) – Stacked array of actual sensor measurements.</p></li>
+<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbital_State</span></code></a>) – Current orbital environment state.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The updated state estimate and reduced covariance matrix.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="ADCS.estimators.estimator_helpers.estimator_helpers.html#ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray" title="ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray"><code class="xref py py-class docutils literal notranslate"><span class="pre">EstimatedArray</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 
         </article>
@@ -375,8 +564,36 @@
         
       </footer>
     </div>
-    <aside class="toc-drawer no-toc">
+    <aside class="toc-drawer">
       
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">ADCS.estimators.attitude_estimators.attitude_UAKF module</a><ul>
+<li><a class="reference internal" href="#ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF"><code class="docutils literal notranslate"><span class="pre">UAKF</span></code></a><ul>
+<li><a class="reference internal" href="#ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF.add_to_state"><code class="docutils literal notranslate"><span class="pre">add_to_state()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF.determine_covariances_to_use"><code class="docutils literal notranslate"><span class="pre">determine_covariances_to_use()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF.make_pts_and_wts"><code class="docutils literal notranslate"><span class="pre">make_pts_and_wts()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF.new_post_state"><code class="docutils literal notranslate"><span class="pre">new_post_state()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF.reunite_states"><code class="docutils literal notranslate"><span class="pre">reunite_states()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF.sat_match"><code class="docutils literal notranslate"><span class="pre">sat_match()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF.update_core"><code class="docutils literal notranslate"><span class="pre">update_core()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
       
       
     </aside>
@@ -385,5 +602,6 @@
     <script src="_static/doctools.js?v=9bcbadda"></script>
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/scripts/furo.js?v=46bd48cc"></script>
+    <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     </body>
 </html>

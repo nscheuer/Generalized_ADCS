@@ -174,7 +174,7 @@
           <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
         </button>
       </div>
-      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
         <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
       </label>
     </div>
@@ -323,13 +323,182 @@
               <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
             </button>
           </div>
-          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
             <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <section id="adcs-satellite-hardware-sensors-sunsensor-module">
-<h1>ADCS.satellite_hardware.sensors.sunsensor module<a class="headerlink" href="#adcs-satellite-hardware-sensors-sunsensor-module" title="Link to this heading">¶</a></h1>
+          <section id="module-ADCS.satellite_hardware.sensors.sunsensor">
+<span id="adcs-satellite-hardware-sensors-sunsensor-module"></span><h1>ADCS.satellite_hardware.sensors.sunsensor module<a class="headerlink" href="#module-ADCS.satellite_hardware.sensors.sunsensor" title="Link to this heading">¶</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.sensors.sunsensor.SunSensor">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ADCS.satellite_hardware.sensors.sunsensor.</span></span><span class="sig-name descname"><span class="pre">SunSensor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">axis</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">efficiency</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sample_time</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noise</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">estimate_bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/sensors/sunsensor.html#SunSensor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.sensors.sunsensor.SunSensor" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="ADCS.satellite_hardware.sensors.sensor.html#ADCS.satellite_hardware.sensors.sensor.Sensor" title="ADCS.satellite_hardware.sensors.sensor.Sensor"><code class="xref py py-class docutils literal notranslate"><span class="pre">Sensor</span></code></a></p>
+<p>Single-axis coarse Sun sensor model.</p>
+<p>This sensor measures the cosine of the incidence angle between a fixed
+body-frame axis and the Sun direction, scaled by an efficiency factor.
+The <em>clean</em> (noise- and bias-free) measurement is</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\begin{split}y =
+\begin{cases}
+    \eta \,\max(\hat{\mathbf{a}}^\top \hat{\mathbf{s}}, 0), &amp; \text{if sunlit}, \\
+    0, &amp; \text{if in eclipse},
+\end{cases}\end{split}\]</div>
+</div>
+<p>where</p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(\hat{\mathbf{a}}\)</span> — unit sensor axis in the body frame,</p></li>
+<li><p><span class="math notranslate nohighlight">\(\hat{\mathbf{s}}\)</span> — unit Sun direction in the body frame,</p></li>
+<li><p><span class="math notranslate nohighlight">\(\eta\)</span> — scalar sensor efficiency.</p></li>
+</ul>
+<p>In eclipse (<code class="docutils literal notranslate"><span class="pre">os.is_sunlit()</span> <span class="pre">==</span> <span class="pre">False</span></code>), the clean reading is forced to
+zero regardless of geometry.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>axis</strong> (<em>numpy.ndarray</em>) – Body-frame sensor axis, shape <code class="docutils literal notranslate"><span class="pre">(3,)</span></code>. It is internally normalized.</p></li>
+<li><p><strong>efficiency</strong> (<em>float</em>) – Scalar efficiency gain applied to the illuminated portion of the signal.</p></li>
+<li><p><strong>sample_time</strong> (<em>float</em><em>, </em><em>optional</em>) – Sampling period in seconds (default: <code class="docutils literal notranslate"><span class="pre">0.1</span></code>).</p></li>
+<li><p><strong>bias</strong> (<a class="reference internal" href="ADCS.satellite_hardware.actuators.html#ADCS.satellite_hardware.actuators.Bias" title="ADCS.satellite_hardware.actuators.Bias"><em>Bias</em></a><em>, </em><em>optional</em>) – Additive scalar bias model for the measurement. If not provided, a
+zero-bias model is used.</p></li>
+<li><p><strong>noise</strong> (<a class="reference internal" href="ADCS.satellite_hardware.actuators.html#ADCS.satellite_hardware.actuators.Noise" title="ADCS.satellite_hardware.actuators.Noise"><em>Noise</em></a><em>, </em><em>optional</em>) – Additive scalar noise model for the measurement. If not provided, a
+zero-noise model is used.</p></li>
+<li><p><strong>estimate_bias</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether the bias is included as an estimated state in filtering.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.sensors.sunsensor.SunSensor.basestate_jac">
+<span class="sig-name descname"><span class="pre">basestate_jac</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/sensors/sunsensor.html#SunSensor.basestate_jac"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.sensors.sunsensor.SunSensor.basestate_jac" title="Link to this definition">¶</a></dt>
+<dd><p>Jacobian of the clean Sun sensor measurement with respect to the
+base attitude state</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[x = [\omega_x, \omega_y, \omega_z, q_0, q_1, q_2, q_3].\]</div>
+</div>
+<p>Let</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\hat{\mathbf{s}} =
+\frac{\mathbf{s} - \mathbf{r}}{\|\mathbf{s} - \mathbf{r}\|},
+\qquad
+c = \hat{\mathbf{a}}^\top \hat{\mathbf{s}}.\]</div>
+</div>
+<p>The derivative of the normalized Sun vector with respect to the state
+is provided by <code class="xref py py-func docutils literal notranslate"><span class="pre">normed_vec_jac()</span></code>, returning
+<span class="math notranslate nohighlight">\(\partial \hat{\mathbf{s}} / \partial x\)</span>. The derivative of the
+cosine incidence term is</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\frac{\partial c}{\partial x}
+= \left( \frac{\partial \hat{\mathbf{s}}}{\partial x} \right)^\top
+  \hat{\mathbf{a}}.\]</div>
+</div>
+<p>Because the measurement uses <code class="docutils literal notranslate"><span class="pre">max(c,</span> <span class="pre">0)</span></code>, this Jacobian is zero
+whenever <span class="math notranslate nohighlight">\(c \le 0\)</span>. When the spacecraft is in eclipse
+(<code class="docutils literal notranslate"><span class="pre">os.is_sunlit()</span> <span class="pre">==</span> <span class="pre">False</span></code>), the measurement is identically zero and
+the Jacobian is also zero.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>numpy.ndarray</em>) – Full 7-element ADCS state vector.</p></li>
+<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbital_State" title="ADCS.orbits.orbit.Orbital_State"><em>Orbital_State</em></a>) – Orbital state providing Sun/spacecraft geometry and lighting
+information.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A <code class="docutils literal notranslate"><span class="pre">(7,1)</span></code> Jacobian vector <span class="math notranslate nohighlight">\(\partial y / \partial x\)</span> if
+illuminated, or zeros if in eclipse or if the Sun is behind the
+sensor (cosine term non-positive).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.sensors.sunsensor.SunSensor.bias_jac">
+<span class="sig-name descname"><span class="pre">bias_jac</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/sensors/sunsensor.html#SunSensor.bias_jac"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.sensors.sunsensor.SunSensor.bias_jac" title="Link to this definition">¶</a></dt>
+<dd><p>Jacobian of the measurement with respect to the Sun sensor bias.</p>
+<p>If a bias model is present, the measurement is modeled as</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[z = y + b,\]</div>
+</div>
+<p>with scalar bias <span class="math notranslate nohighlight">\(b\)</span>. Therefore,</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\frac{\partial z}{\partial b} = 1.\]</div>
+</div>
+<p>If no bias is present, an empty Jacobian is returned.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>numpy.ndarray</em>) – Full system state vector (unused).</p></li>
+<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbital_State" title="ADCS.orbits.orbit.Orbital_State"><em>Orbital_State</em></a>) – Orbital state object (unused).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">(1,1)</span></code> matrix containing <code class="docutils literal notranslate"><span class="pre">1</span></code> if bias exists, otherwise a
+<code class="docutils literal notranslate"><span class="pre">(0,1)</span></code> empty matrix.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.sensors.sunsensor.SunSensor.clean_reading">
+<span class="sig-name descname"><span class="pre">clean_reading</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/sensors/sunsensor.html#SunSensor.clean_reading"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.sensors.sunsensor.SunSensor.clean_reading" title="Link to this definition">¶</a></dt>
+<dd><p>Compute the clean (noise- and bias-free) Sun sensor reading.</p>
+<p>The Sun direction is obtained from the orbital state as</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\hat{\mathbf{s}} =
+\frac{\mathbf{s} - \mathbf{r}}{\|\mathbf{s} - \mathbf{r}\|},\]</div>
+</div>
+<p>where <span class="math notranslate nohighlight">\(\mathbf{s}\)</span> is the Sun position and <span class="math notranslate nohighlight">\(\mathbf{r}\)</span> is
+the spacecraft position. The raw cosine term is</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[c = \hat{\mathbf{a}}^\top \hat{\mathbf{s}}.\]</div>
+</div>
+<p>The illuminated part is then</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\text{illumination} = \max(c, 0),\]</div>
+</div>
+<p>and the clean reading is</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\begin{split}y =
+\begin{cases}
+    \eta \,\text{illumination}, &amp; \text{if sunlit}, \\
+    0, &amp; \text{otherwise}.
+\end{cases}\end{split}\]</div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>numpy.ndarray</em>) – Full system state vector.</p></li>
+<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbital_State" title="ADCS.orbits.orbit.Orbital_State"><em>Orbital_State</em></a>) – Orbital and environmental model that provides positions and
+lighting state (via <code class="xref py py-meth docutils literal notranslate"><span class="pre">Orbital_State.is_sunlit()</span></code>).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Clean Sun sensor measurement of shape <code class="docutils literal notranslate"><span class="pre">(1,)</span></code>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 
         </article>
@@ -375,8 +544,32 @@
         
       </footer>
     </div>
-    <aside class="toc-drawer no-toc">
+    <aside class="toc-drawer">
       
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">ADCS.satellite_hardware.sensors.sunsensor module</a><ul>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.sensors.sunsensor.SunSensor"><code class="docutils literal notranslate"><span class="pre">SunSensor</span></code></a><ul>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.sensors.sunsensor.SunSensor.basestate_jac"><code class="docutils literal notranslate"><span class="pre">basestate_jac()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.sensors.sunsensor.SunSensor.bias_jac"><code class="docutils literal notranslate"><span class="pre">bias_jac()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.sensors.sunsensor.SunSensor.clean_reading"><code class="docutils literal notranslate"><span class="pre">clean_reading()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
       
       
     </aside>
@@ -385,5 +578,6 @@
     <script src="_static/doctools.js?v=9bcbadda"></script>
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/scripts/furo.js?v=46bd48cc"></script>
+    <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     </body>
 </html>
