@@ -9,7 +9,7 @@ from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatel
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.satellite_hardware.actuators import Actuator, MTQ, RW
 from ADCS.satellite_hardware.sensors import MTM
-from ADCS.helpers.math_helpers import rot_mat, normalize, skewsym, limit
+from ADCS.helpers.math_helpers import rot_mat, normalize, skewsym, limit, dcm_to_quat
 
 class MTQ_w_RW(Controller):
     r"""
@@ -262,12 +262,38 @@ class MTQ_w_RW(Controller):
         b_body = self.M_mtm_read @ sens # Already filters out only MTM readings
 
         if goal_vector_eci is not None:
-            r_goal = rot_mat(q) @ goal_vector_eci
-            r_goal = normalize(r_goal)
+            # Desired body +Z axis in inertial frame
+            z_des = normalize(goal_vector_eci)
 
-            r_boresight = np.array([0.0, 0.0, 1.0])
+            # Build orthonormal frame for desired orientation
+            # Choose temp vector not parallel to z_des
+            if abs(z_des[0]) < 0.9:
+                x_tmp = np.array([1.0, 0.0, 0.0])
+            else:
+                x_tmp = np.array([0.0, 1.0, 0.0])
 
-            q_err_vec = np.cross(r_boresight, r_goal)
+            y_des = normalize(np.cross(z_des, x_tmp))
+            x_des = np.cross(y_des, z_des)
+
+            # Desired DCM: inertial -> body
+            C_bi_des = np.column_stack((x_des, y_des, z_des))
+
+            # Convert to quaternion (inertial -> body)
+            q_des = dcm_to_quat(C_bi_des)
+
+            # Quaternion error (desired^-1 * current)
+            q_conj = np.array([q_des[0], -q_des[1], -q_des[2], -q_des[3]])
+            w0,x0,y0,z0 = q_conj
+            w1,x1,y1,z1 = q
+
+            q_err = np.array([
+                w0*w1 - x0*x1 - y0*y1 - z0*z1,
+                w0*x1 + x0*w1 + y0*z1 - z0*y1,
+                w0*y1 - x0*z1 + y0*w1 + z0*x1,
+                w0*z1 + x0*y1 - y0*x1 + z0*w1
+            ])
+
+            q_err_vec = q_err[1:4] * np.sign(q_err[0])
         else: # Regulation Case
             q_err_vec = q[1:4]*np.sign(q[0])
 
