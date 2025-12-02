@@ -9,6 +9,7 @@ Submodules
 
    ADCS.controller.bdot
    ADCS.controller.controller
+   ADCS.controller.mtq_w_rw
 
 Module contents
 ---------------

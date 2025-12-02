@@ -40,7 +40,7 @@ class UAKF(Attitude_Estimator):
 
         This class implements a UKF for spacecraft attitude determination, handling
         the nonlinearity of attitude dynamics and quaternion normalization. It inherits
-        structure from :class:`~ADCS.estimators.estimator.Estimator`.
+        structure from :class:`~ADCS.estimators.attitude_estimator.Attitude_Estimator`.
 
         The augmented state vector :math:`\mathbf{x}` is managed as follows:
 

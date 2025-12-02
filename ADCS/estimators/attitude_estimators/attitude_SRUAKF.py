@@ -29,7 +29,7 @@ class SRUAKF(UAKF):
 
     This class implements a Square Root formulation of the UKF for improved numerical
     stability, ensuring the covariance matrix remains positive semi-definite.
-    It inherits dynamics and sigma-point logic from :class:`~ADCS.estimators.attitude_UKF.UKF`.
+    It inherits dynamics and sigma-point logic from :class:`~ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF`.
 
     Unlike the standard UKF which propagates the full covariance matrix :math:`P`,
     this estimator propagates the **Upper Triangular** Cholesky factor :math:`S`,
@@ -181,7 +181,7 @@ class SRUAKF(UAKF):
         r"""
         Generate sigma points directly using the stored Upper Triangular :math:`S`.
 
-        Overrides :meth:`~ADCS.estimators.attitude_UKF.UKF.make_pts_and_wts` to avoid
+        Overrides :meth:`~ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF.make_pts_and_wts` to avoid
         performing a Cholesky decomposition at every step. Instead, it scales the
         persistently tracked :math:`S` matrix.
 

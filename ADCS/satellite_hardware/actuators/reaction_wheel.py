@@ -117,7 +117,11 @@ class RW(Actuator):
         self.J = J
         self.h = h
         self.h_max = h_max
-        self.h_meas_noise = h_meas_noise
+
+        if h_meas_noise:
+            self.h_meas_noise: Noise = h_meas_noise
+        else:
+            self.h_meas_noise = Noise()
         super().__init__(axis=axis, u_max=max_torque, bias=bias, noise=noise, estimate_bias=estimate_bias)
 
     def torque(self, u: float, x: np.ndarray, os: Orbital_State, dmode: DisturbanceMode = None) -> float:
