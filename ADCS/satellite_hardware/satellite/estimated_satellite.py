@@ -22,7 +22,7 @@ class EstimatedSatellite(Satellite):
 
     This class bridges the simulated physical satellite and an estimation framework
     (e.g., Kalman filter or nonlinear observer). It allows dynamic updates of the
-    satellite’s internal state, actuator and sensor biases, and disturbance parameters
+    satellite's internal state, actuator and sensor biases, and disturbance parameters
     using estimated data.
 
     The :class:`EstimatedSatellite` is primarily intended for **hardware-in-the-loop**
@@ -224,7 +224,7 @@ class EstimatedSatellite(Satellite):
                 ind += l
 
     def dist_torques_jacobian(self, x: np.ndarray, vecs: Dict[str, np.ndarray]) -> Tuple[np.ndarray, np.ndarray]:
-        """
+        r"""
         Compute the Jacobian of the total disturbance torque with respect to both
         the spacecraft state and disturbance model parameters.
 
@@ -263,8 +263,11 @@ class EstimatedSatellite(Satellite):
         Notes
         -----
         - Each disturbance model ``j`` must implement:
-        :func:`torque_qjac(self, vecs)` for attitude derivatives and
-        :func:`torque_valjac(self, vecs)` for parameter derivatives.
+
+        
+        * :func:`torque_qjac(self, vecs)` — attitude derivatives
+        * :func:`torque_valjac(self, vecs)` — parameter derivatives
+
         - The total Jacobian is computed by summing the contributions from all
         registered disturbances.
         """
@@ -312,10 +315,10 @@ class EstimatedSatellite(Satellite):
         -----
         - Each disturbance model ``j`` must implement the following methods:
 
-        * :func:`torque_qqhess(self, vecs)` — second derivative w.r.t. quaternion.
-        * :func:`torque_qvalhess(self, vecs)` — mixed derivative (quaternion–parameter).
-        * :func:`torque_valvalhess(self, vecs)` — second derivative w.r.t. parameters.
-
+        * :func:`torque_qqhess(self, vecs)`
+        * :func:`torque_qvalhess(self, vecs)`
+        * :func:`torque_valvalhess(self, vecs)`
+ 
         - Parameter block sizes are managed according to
         :attr:`self.dist_param_inds` and the parameter dimension of each disturbance
         model.
