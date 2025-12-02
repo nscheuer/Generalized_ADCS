@@ -1,0 +1,82 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "Generalized_ADCS"
+version = "2025.0.0"
+description = "Generalized Attitude Determination and Control System (ADCS) framework."
+authors = [
+    { name = "Patrick McKeen" },
+    { name = "Niclas Scheuer" }
+]
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+
+# Runtime dependencies (from your cleaned list)
+dependencies = [
+    "asciichartpy==1.5.25",
+    "certifi==2025.10.5",
+    "cmake==4.1.2",
+    "colorama==0.4.6",
+    "contourpy==1.3.2",
+    "cycler==0.12.1",
+    "Cython==3.1.5",
+    "dill==0.4.0",
+    "fonttools==4.60.1",
+    "importlib_resources==6.5.2",
+    "iniconfig==2.3.0",
+    "jplephem==2.23",
+    "kiwisolver==1.4.9",
+    "matplotlib==3.10.7",
+    "np==1.0.2",
+    "numpy==2.2.6",
+    "numdifftools==0.9.41",
+    "packaging==25.0",
+    "pandas==2.3.3",
+    "pillow==12.0.0",
+    "pluggy==1.6.0",
+    "ppigrf==2.1.0",
+    "pybind11==3.0.1",
+    "Pygments==2.19.2",
+    "pyparsing==3.2.5",
+    "pytest==8.4.2",
+    "python-dateutil==2.9.0.post0",
+    "pytz==2025.2",
+    "PyYAML==6.0.3",
+    "scipy==1.15.3",
+    "sgp4==2.25",
+    "six==1.17.0",
+    "skyfield==1.53",
+    "squaternion==2025.3.2",
+    "tqdm==4.67.1",
+    "tzdata==2025.2"
+]
+
+# Optional extras
+[project.optional-dependencies]
+docs = [
+    "sphinx>=7.2",
+    "sphinx-autodoc-typehints",
+    "sphinx-copybutton",
+    "myst-parser",
+    "furo",
+]
+
+dev = [
+    "pytest",
+    "black",
+    "ruff",
+]
+
+[project.urls]
+Repository = "https://github.com/nscheuer/Generalized_ADCS"
+Documentation = "https://nscheuer.github.io/Generalized_ADCS/"
+
+[tool.setuptools]
+package-dir = {"" = "."}
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["ADCS*"]

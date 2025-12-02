@@ -1084,7 +1084,7 @@ class Satellite:
         sensor_readings: List[np.ndarray] = [self.attitude_sensors[j].reading(x=x, os=os, dmode=dmode) for j in range(len(self.attitude_sensors))]
         # rw_readings: List[np.ndarray] = [self.rw_actuators[j].measure_momentum() for j in range(len(self.rw_actuators))]
         # return np.concatenate([sensor_readings, rw_readings])
-        return sensor_readings
+        return np.array(sensor_readings)
     
     def noiseless_sensor_readings(self, x: np.ndarray, os: Orbital_State) -> np.ndarray:
         dmode = DisturbanceMode(add_bias=True, add_noise=False, update_bias=False, update_noise=False)

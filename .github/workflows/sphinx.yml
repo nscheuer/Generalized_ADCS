@@ -15,16 +15,18 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: "3.x"
+        python-version: "3.12"
 
-    - name: Install dependencies
+    - name: Install project with documentation extras
       run: |
-        pip install -r docs/requirements.txt
-        pip install sphinx
-        # If using autodoc, latex, themes, etc:
-        # pip install sphinx-rtd-theme
+        pip install --upgrade pip
+        pip install -e ".[docs]"
 
-    - name: Build HTML
+    # Optional: print what is installed (debug help)
+    - name: List installed packages
+      run: pip list
+
+    - name: Build HTML documentation
       run: |
         sphinx-build -b html docs/source _build/html
 
