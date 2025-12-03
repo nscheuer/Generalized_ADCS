@@ -64,7 +64,7 @@ class Satellite:
     ValueError
         If COM or J_0 are not of the correct shape.
     """
-    def __init__(self, mass: float = 1.0, COM: np.ndarray = None, J_0: np.ndarray = None, disturbances: List[Disturbance] = [], sensors: List[Sensor] = [], actuators: List[Actuator] = [], logger: ADCSLogger = None) -> None:
+    def __init__(self, mass: float = 1.0, COM: np.ndarray = None, J_0: np.ndarray = None, disturbances: List[Disturbance] = [], sensors: List[Sensor] = [], actuators: List[Actuator] = [], boresight: np.ndarray = np.array([0, 0, 1])) -> None:
         # Assign variables
         self.mass = mass # Includes angular momentum storage
         self.COM = np.asarray(COM, dtype=float) # Includes angular momentum storage
@@ -90,7 +90,7 @@ class Satellite:
         self.rw_actuators: List[RW] = [s for s in actuators if isinstance(s, RW)]
         self.mtq_actuators: List[MTQ] = [s for s in actuators if not isinstance(s, RW)]
         self.momentum_inds = np.array([j for j in range(len(self.actuators)) if isinstance(self.actuators[j], RW)])
-        self.logger = logger
+        self.boresight = boresight
 
         self.number_RW = sum([1 for j in self.actuators if isinstance(j,RW)])
 

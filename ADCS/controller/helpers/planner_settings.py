@@ -2,7 +2,7 @@ __all__ = ["PlannerSettings"]
 
 import numpy as np
 
-from planner_subsettings import SolverPassConfig, CostWeights, InitTrajConfig
+from ADCS.controller.helpers.planner_subsettings import SolverPassConfig, CostWeights, InitTrajConfig
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
 from ADCS.satellite_hardware.disturbances import Dipole_Disturbance, Prop_Disturbance, General_Disturbance
 

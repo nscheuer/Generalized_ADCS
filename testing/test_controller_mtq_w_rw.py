@@ -410,7 +410,7 @@ def test_mtq_w_rw_full(verbose: bool = False, tf: float = 1000, dt: float = 10, 
         orb = Orbit(orbs)
 
     # Controller
-    controller = MTQ_w_RW(est_sat=real_sat, p_gain=0.1, d_gain=1, c_gain=1, h_target=np.array([0, 0, 0]))
+    controller = MTQ_w_RW(est_sat=real_sat, p_gain=0.1, d_gain=5, c_gain=1, h_target=np.array([0, 0, 0]))
 
     time_hist = np.nan*np.zeros(N)
     state_hist = np.nan*np.zeros((N, 10))
@@ -461,7 +461,7 @@ def test_mtq_w_rw_align_to_eci(verbose: bool = False, tf: float = 1000, dt: floa
 
     rw_max_torque = 4.51
     rw_J = 0.22
-    rw_h0 = 1
+    rw_h0 = 0
     rw_hmax = 3.8
     rws = [RW(axis=j, max_torque=rw_max_torque, J=rw_J, h=rw_h0, h_max=rw_hmax) for j in MathConstants.unitvecs]
 
@@ -497,7 +497,7 @@ def test_mtq_w_rw_align_to_eci(verbose: bool = False, tf: float = 1000, dt: floa
         orb = Orbit(orbs)
 
     # Controller
-    controller = MTQ_w_RW(est_sat=real_sat, p_gain=0.01, d_gain=0.0, c_gain=0.0, h_target=np.array([0, 0, 0]))
+    controller = MTQ_w_RW(est_sat=real_sat, p_gain=0.1, d_gain=5, c_gain=1.0, h_target=np.array([0, 0, 0]))
 
     time_hist = np.nan*np.zeros(N)
     state_hist = np.nan*np.zeros((N, 10))
@@ -600,4 +600,4 @@ def plot_mtq_w_rw_align_to_eci(verbose: bool = False, tf: float = 1000, dt: floa
     create_close_all_button_window()
 
 if __name__ == "__main__":
-    plot_mtq_w_rw_align_to_eci(verbose=False, tf = 250, dt = 1, real_orbit= False)
+    plot_mtq_w_rw_full(verbose=False, tf = 100, dt = 1, real_orbit= False)

@@ -93,8 +93,8 @@ class EstimatedSatellite(Satellite):
     3  # number of bias parameters found
     """
 
-    def __init__(self, mass: float = 1.0, COM: np.ndarray = None, J_0: np.ndarray = None, disturbances: List[Disturbance] = [], sensors: List[Sensor] = [], actuators: List[Actuator] = []) -> None:
-        super().__init__(mass, COM, J_0, disturbances, sensors, actuators)
+    def __init__(self, mass: float = 1.0, COM: np.ndarray = None, J_0: np.ndarray = None, disturbances: List[Disturbance] = [], sensors: List[Sensor] = [], actuators: List[Actuator] = [], boresight: np.ndarray = np.array([0, 0, 1])) -> None:
+        super().__init__(mass, COM, J_0, disturbances, sensors, actuators, boresight)
 
         # Add estimated states
         self.act_bias_inds = [j for j in range(len(self.actuators)) if self.actuators[j].estimate_bias] # Indices with actuator bias
