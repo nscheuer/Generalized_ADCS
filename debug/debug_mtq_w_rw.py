@@ -25,7 +25,7 @@ from plotting.close_all_plots import create_close_all_button_window
 from plotting.plot_controller import plot_control, plot_rw_momentum
 from plotting.animate_orbit import animate_orbit
 
-def test_mtq_w_rw_align_to_eci(verbose: bool = False, tf: float = 1000, dt: float = 10, real_orbit: bool = False) -> Union[np.ndarray, np.ndarray, List[Orbital_State], np.ndarray, np.ndarray]:
+def test_mtq_w_rw_align_to_eci(verbose: bool = False, tf: float = 1000, dt: float = 10, real_orbit: bool = False) -> Union[np.ndarray, np.ndarray, List[Orbital_State], np.ndarray, np.ndarray, np.ndarray]:
     np.random.seed(1)
     t0 = 0
     N = int((tf-t0)/dt)
@@ -55,7 +55,7 @@ def test_mtq_w_rw_align_to_eci(verbose: bool = False, tf: float = 1000, dt: floa
     ephem = Ephemeris()
     start_time = 0.22 - 1*TimeConstants.sec2cent
     end_time = 0.22 + (tf-t0)*TimeConstants.sec2cent
-    R = 7000*np.array([0, np.sqrt(2)/2, np.sqrt(2)/2])
+    R = 7000*np.array([0, -np.sqrt(2)/2, np.sqrt(2)/2])
     V = np.array([8, 0, 0])
     if real_orbit:
         # Real Orbit Generation
@@ -78,13 +78,14 @@ def test_mtq_w_rw_align_to_eci(verbose: bool = False, tf: float = 1000, dt: floa
     os_hist: List[Orbital_State] = list()
     sensor_hist: np.ndarray = np.nan*np.zeros((N, 3))
     u_hist = np.nan*np.zeros((N, len(acts)))
-    h_hist = np.nan*np.zeros((N, 3))
+    boresight_hist = np.nan*np.zeros((N, 3))
 
     t = t0
     ind = 0
     steps = int((tf - t0)/dt)
 
     goal = ECI_Goal(np.array([1, 0, 0]))
+    goal = Coordinate_Goal(lat=42.3555, lon=71.0565, alt=0)
 
     for step in tqdm(range(steps), desc="Simulating MTQ_w_RW"):
         J2000 = 0.22 + t*TimeConstants.sec2cent
@@ -101,6 +102,8 @@ def test_mtq_w_rw_align_to_eci(verbose: bool = False, tf: float = 1000, dt: floa
         os_hist += [os]
         sensor_hist[ind,:] = sens
         u_hist[ind,:] = u
+        eci_goal, w_goal = goal.to_ref(x_hat=x, os0=os)
+        boresight_hist[ind, :] = eci_goal
 
         ind += 1
         t += dt
@@ -111,18 +114,18 @@ def test_mtq_w_rw_align_to_eci(verbose: bool = False, tf: float = 1000, dt: floa
         x = out.y[:, -1]
         x[3:7] = normalize(x[3:7])
 
-    return time_hist, state_hist, os_hist, sensor_hist, u_hist
+    return time_hist, state_hist, os_hist, sensor_hist, u_hist, boresight_hist
 
 
 def plot_mtq_w_rw_align_to_eci(verbose: bool = False, tf: float = 1000, dt: float = 10, real_orbit: bool = False) -> None:
-    (time_hist, state_hist, os_hist, sensor_hist, u_hist) = test_mtq_w_rw_align_to_eci(verbose=verbose, tf=tf, dt=dt, real_orbit=real_orbit)
+    (time_hist, state_hist, os_hist, sensor_hist, u_hist, boresight_hist) = test_mtq_w_rw_align_to_eci(verbose=verbose, tf=tf, dt=dt, real_orbit=real_orbit)
 
-    animate_attitude(time=time_hist, state_hist=state_hist, os_hist=os_hist)
+    animate_attitude(time=time_hist, state_hist=state_hist, os_hist=os_hist, boresight_goal_hist=boresight_hist)
     plot_control(time=time_hist, u_hist=u_hist)
     plot_state_comparison(time=time_hist, state_hist=state_hist)
     plot_rw_momentum(time=time_hist, state_hist=state_hist)
-    #animate_orbit(time_hist=time_hist, state_hist=state_hist, os_hist=os_hist)
+    # animate_orbit(time_hist=time_hist, state_hist=state_hist, os_hist=os_hist)
     create_close_all_button_window()
 
 if __name__ == "__main__":
-    plot_mtq_w_rw_align_to_eci(verbose=False, tf = 200, dt = 1, real_orbit= False)
+    plot_mtq_w_rw_align_to_eci(verbose=False, tf = 100, dt = 1, real_orbit=True)

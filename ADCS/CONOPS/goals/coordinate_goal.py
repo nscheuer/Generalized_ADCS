@@ -35,7 +35,7 @@ class Coordinate_Goal(Goal):
 
         return np.array([x, y, z])
     
-    def to_ref(self, x: np.ndarray, os0: Orbital_State) -> Tuple[np.ndarray, np.ndarray]:
+    def to_ref(self, x_hat: np.ndarray, os0: Orbital_State) -> Tuple[np.ndarray, np.ndarray]:
         r"""
         Computes the inertial pointing vector and reference angular velocity.
 
@@ -57,7 +57,7 @@ class Coordinate_Goal(Goal):
         -------
         r_goal_eci : np.ndarray (3,)
             Normalized unit vector in ECI frame pointing from Satellite -> Target.
-        w_ref : np.ndarray (3,)
+        w_ref_eci : np.ndarray (3,)
             Reference angular velocity vector in ECI frame required to track the target.
         """
         # 1. Get Satellite Position and Velocity in ECI
@@ -84,6 +84,6 @@ class Coordinate_Goal(Goal):
         # The angular velocity of the Line of Sight vector relative to inertial space
         # w_ref = (r_rel x v_rel) / |r_rel|^2
         v_rel = v_target_eci - v_sat_eci
-        w_ref = np.cross(r_rel, v_rel) / r_dist_sq
+        w_ref_eci = np.cross(r_rel, v_rel) / r_dist_sq
 
-        return r_goal_eci, w_ref
+        return r_goal_eci, w_ref_eci

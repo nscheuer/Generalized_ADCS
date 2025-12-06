@@ -589,7 +589,8 @@ class Orbital_State:
         ndarray
             Vector expressed in ECI frame.
         """
-
+        R = framelib.itrs.rotation_at(self.sf_pos.t)
+        return R.T @ vec
         return sffT(framelib.itrs.rotation_at(self.sf_pos.t))@vec
     
     def ecef_to_geocentric(self, vec: np.ndarray) -> np.ndarray:
