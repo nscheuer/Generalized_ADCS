@@ -7,7 +7,7 @@ from tqdm import tqdm
 import pytest
 
 # === Import project modules ===
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))
 from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.universal_constants import EarthConstants, TimeConstants
 from ADCS.orbits.orbital_state import Orbital_State

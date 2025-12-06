@@ -5,7 +5,7 @@ import pytest
 from typing import List
 
 # === Import project modules ===
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))
 from ADCS.satellite_hardware.satellite.satellite import Satellite
 from ADCS.satellite_hardware.actuators import Actuator, RW, MTQ, Noise, Bias
 from ADCS.satellite_hardware.disturbances import SRP_Disturbance, Drag_Disturbance, Prop_Disturbance, Dipole_Disturbance, GG_Disturbance, GeometryConfig, GeometryFace

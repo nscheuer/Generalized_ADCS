@@ -6,7 +6,7 @@ from typing import List, Union
 from tqdm import tqdm
 import pytest
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))
 from ADCS.CONOPS.goals import Goal, ECI_Goal, Coordinate_Goal
 from ADCS.controller import MTQ_w_RW
 from ADCS.orbits.ephemeris import Ephemeris
@@ -32,7 +32,7 @@ def test_goal_coordinate_fixed_os(dt, tf, t0):
     R = 10000*np.array([0, -np.sqrt(2)/2, np.sqrt(2)/2])
     V = np.array([8, 0, 0])
     ephem = Ephemeris()
-    os0 = Orbital_State(ephem=ephem, J2000=0.22-1*TimeConstants.sec2cent, R=R, V=V, B=np.array([0, 0.1, 0]), S=np.array([1e5+1, 0, 0]), rho=1e-7)
+    os0 = Orbital_State(ephem=ephem, J2000=0.22-1*TimeConstants.sec2cent, R=R, V=V, B=np.array([0, 0.1, 0]), S=np.array([1e5+1, 0, 0]), rho=5e-12)
     dur = int((tf-t0)/dt)+10
     orbs = [os0]*(dur+10)
     for j in range(dur):
@@ -108,7 +108,7 @@ def test_goal_coordinate_real_os(dt, tf, t0):
     ind = 0
     steps = int((tf - t0)/dt)
 
-    goal = Coordinate_Goal(lat=0, lon=0, alt=0)
+    goal = Coordinate_Goal(lat=47.3769, lon=8.5417, alt=0)
 
     for step in tqdm(range(steps), desc="Simulating rotation of Earth"):
         J2000 = 0.22 + t*TimeConstants.sec2cent
@@ -153,4 +153,4 @@ def plot_test_goal_coordinate_real_os(dt, tf, t0):
     create_close_all_button_window()
 
 if __name__ == "__main__":
-    plot_test_goal_coordinate_real_os(dt=100, tf=200, t0=0)
+    plot_test_goal_coordinate_real_os(dt=100, tf=5000, t0=0)

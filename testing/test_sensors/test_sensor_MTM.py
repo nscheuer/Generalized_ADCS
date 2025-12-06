@@ -7,7 +7,7 @@ from scipy.stats import kstest, ks_2samp
 from asciichartpy import plot
 
 # === Import project modules ===
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))
 from ADCS.satellite_hardware.satellite.satellite import Satellite
 from ADCS.satellite_hardware.actuators import Noise, Bias
 from ADCS.satellite_hardware.sensors import MTM

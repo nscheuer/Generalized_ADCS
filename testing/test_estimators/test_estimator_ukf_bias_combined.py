@@ -16,7 +16,7 @@ import time
 from tqdm import tqdm
 
 # === Import project modules ===
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))
 from ADCS.satellite_hardware.satellite.satellite import Satellite
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
 from ADCS.satellite_hardware.actuators import Actuator, RW, MTQ, Noise, Bias
@@ -30,7 +30,7 @@ from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.helpers.math_helpers import random_n_unit_vec, rot_mat, norm, normalize, limit
 from ADCS.helpers.math_constants import MathConstants
-from ADCS.estimators.attitude_estimators import SRUAKF
+from ADCS.estimators.attitude_estimators import UAKF
 
 from plotting.plot_estimator import plot_state_comparison, plot_error_and_sun, plot_sensor_data, plot_bias_comparison
 from plotting.animate_estimator import animate_attitude
@@ -454,7 +454,7 @@ import time
 from tqdm import tqdm
 
 # === Import project modules ===
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))
 from ADCS.satellite_hardware.satellite.satellite import Satellite
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
 from ADCS.satellite_hardware.actuators import Actuator, RW, MTQ, Noise, Bias
@@ -468,7 +468,7 @@ from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.helpers.math_helpers import random_n_unit_vec, rot_mat, norm, normalize, limit
 from ADCS.helpers.math_constants import MathConstants
-from ADCS.estimators.attitude_estimators import SRUAKF
+from ADCS.estimators.attitude_estimators import UAKF
 
 def run_ukf(verbose: bool = False, tf: float = 1000, dt: float = 10, real_orbit: bool = False) -> Union[np.ndarray, np.ndarray, np.ndarray, List[Orbital_State], List[np.ndarray], List[np.ndarray], np.ndarray, List[np.ndarray]]:
     np.random.seed(67)
@@ -543,7 +543,7 @@ def run_ukf(verbose: bool = False, tf: float = 1000, dt: float = 10, real_orbit:
         os = Orbital_State(ephem=ephem, J2000=start_time, R=R, V=V)
         orb = Orbit(os0=os, end_time=end_time, dt=dt, use_J2=True, fast=False)
     else:
-        os = Orbital_State(ephem=ephem, J2000=0.22-1*TimeConstants.sec2cent, R=R, V=V, B=np.array([0, 0.1, 0]), S=np.array([1e5+1, 0, 0]), rho=1e-7)
+        os = Orbital_State(ephem=ephem, J2000=0.22-1*TimeConstants.sec2cent, R=R, V=V, B=np.array([0, 0.1, 0]), S=np.array([1e5+1, 0, 0]), rho=5e-12)
         dur = int((tf-t0)/dt)+10
         orbs = [os]*(dur+10)
         for j in range(dur):
@@ -601,7 +601,7 @@ def run_ukf(verbose: bool = False, tf: float = 1000, dt: float = 10, real_orbit:
 
     ## Build Estimator
     J2000 = 0.22 + t0*TimeConstants.sec2cent
-    ukf = SRUAKF(est_sat=est_sat, J2000=J2000, x_hat=x_hat, P_hat=P_est, Q_hat=Q_est, dt=dt, cross_term=True, quat_as_vec=False)
+    ukf = UAKF(est_sat=est_sat, J2000=J2000, x_hat=x_hat, P_hat=P_est, Q_hat=Q_est, dt=dt, cross_term=True, quat_as_vec=False)
 
     # Create history vectors
     time_hist = np.nan*np.zeros(N)

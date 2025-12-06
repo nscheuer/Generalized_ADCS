@@ -5,7 +5,7 @@ import pytest
 from typing import List
 
 # === Import project modules ===
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))
 from ADCS.satellite_hardware.satellite.satellite import Satellite
 from ADCS.satellite_hardware.actuators import Actuator, RW, MTQ, Noise, Bias
 from ADCS.satellite_hardware.disturbances import SRP_Disturbance, Drag_Disturbance, Prop_Disturbance, Dipole_Disturbance, GG_Disturbance, GeometryConfig, GeometryFace
@@ -113,7 +113,7 @@ def test_torque_drag_dist():
     ephem = Ephemeris()
     sat = Satellite(disturbances=[drag])
     B_ECI = np.array([1, 0, 0])*1e-5
-    rho = 1e-13
+    rho = 5e-12
     os = Orbital_State(ephem=ephem, J2000=0.22, R=np.array([7000, 0, 0]), V=np.array([0, 8, 0]), B=B_ECI, rho=rho)
 
     q0 = MathConstants.zeroquat
@@ -125,7 +125,7 @@ def test_torque_drag_dist():
     real_torque = drag.torque(sat=sat, x=x, os=os)
     assert np.allclose(real_torque, expected_torque)
     xd = sat.dynamics_core(x=x, u=u, orbital_state=os)
-    assert np.all(np.concatenate([expected_torque, [0], 0.005*MathConstants.unitvecs[0]]) == xd)
+    assert np.allclose(np.concatenate([expected_torque, [0], 0.005*MathConstants.unitvecs[0]]), xd)
 
 
     face = GeometryFace(area=1.2, centroid=np.array([1, 0, 0]), normal=np.array([0, -1, 0]), CD=2.2)
@@ -133,7 +133,7 @@ def test_torque_drag_dist():
     drag = Drag_Disturbance(config=config)
     sat = Satellite(disturbances=[drag])
     B_ECI = np.array([1, 0, 0])*1e-5
-    rho = 0.0034
+    rho = 5e-12
     os = Orbital_State(ephem=ephem, J2000=0.22, R=np.array([7000, 0, 0]), V=np.array([0, 8, 0]), B=B_ECI, rho=rho)
 
     q0 = MathConstants.zeroquat
@@ -153,7 +153,7 @@ def test_torque_drag_dist():
     drag = Drag_Disturbance(config=config)
     sat = Satellite(disturbances=[drag])
     B_ECI = np.array([1, 0, 0])*1e-5
-    rho = 0.0034
+    rho = 5e-12
     os = Orbital_State(ephem=ephem, J2000=0.22, R=np.array([7000, 0, 0]), V=np.array([0, 8, 0]), B=B_ECI, rho=rho)
 
     q0 = MathConstants.zeroquat
@@ -173,7 +173,7 @@ def test_torque_drag_dist():
     drag = Drag_Disturbance(config=config)
     sat = Satellite(disturbances=[drag])
     B_ECI = np.array([1, 0, 0])*1e-5
-    rho = 0.0034
+    rho = 5e-12
     os = Orbital_State(ephem=ephem, J2000=0.22, R=np.array([7000, 0, 0]), V=np.array([0, 8, 0]), B=B_ECI, rho=rho)
 
     q0 = MathConstants.zeroquat
@@ -193,7 +193,7 @@ def test_torque_drag_dist():
     drag = Drag_Disturbance(config=config)
     sat = Satellite(disturbances=[drag])
     B_ECI = np.array([1, 0, 0])*1e-5
-    rho = 0.0034
+    rho = 5e-12
     os = Orbital_State(ephem=ephem, J2000=0.22, R=np.array([7000, 0, 0]), V=np.array([0, 8, 0]), B=B_ECI, rho=rho)
 
     q0 = MathConstants.zeroquat
@@ -219,7 +219,7 @@ def test_torque_drag_dist():
     drag = Drag_Disturbance(config=config)
     sat = Satellite(disturbances=[drag])
     B_ECI = np.array([1, 0, 0])*1e-5
-    rho = 0.0034
+    rho = 5e-12
     os = Orbital_State(ephem=ephem, J2000=0.22, R=np.array([7000, 0, 0]), V=np.array([0, 8, 0]), B=B_ECI, rho=rho)
 
     q0 = MathConstants.zeroquat

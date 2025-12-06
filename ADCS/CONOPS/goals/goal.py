@@ -10,4 +10,4 @@ class Goal:
         pass
 
     def to_ref(self, x_hat: np.ndarray, os0: Orbital_State) -> Tuple[np.ndarray, np.ndarray]:
-        return (None, np.array([0, 0, 0]))
+        return (np.array([1, 0, 0]), np.array([0, 0, 0]))
