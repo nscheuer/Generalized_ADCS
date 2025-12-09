@@ -184,7 +184,8 @@ class Attitude_Estimator():
            internal satellite model with the new estimate.
         """
         # Verify x_hat vector
-        if len(x_hat) != 7 + self.est_sat.number_RW + self.est_sat.act_bias_len + self.est_sat.att_sens_bias_len + self.est_sat.dist_param_len:
+        expected_x_hat_length = 7 + self.est_sat.number_RW + self.est_sat.act_bias_len + self.est_sat.att_sens_bias_len + self.est_sat.dist_param_len
+        if len(x_hat) != expected_x_hat_length:
             raise ValueError("x_hat length does not match estimate length in EstimatedSatellite")
         
         # Verify P_hat matrix. It should be one shorter than x_hat, since x_hat uses quaternions, which are 3 DOF

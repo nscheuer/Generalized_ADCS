@@ -110,3 +110,74 @@ def plot_rw_momentum(
     ax.grid(True)
     ax.legend()
     fig.tight_layout()
+
+
+import numpy as np
+import matplotlib.pyplot as plt
+from typing import Optional
+
+from ADCS.helpers.math_helpers import rot_mat
+
+
+def plot_target_tracking(
+    state_hist: np.ndarray,
+    boresight_hist: np.ndarray,
+    body_boresight: np.ndarray,
+    time: Optional[np.ndarray] = None
+) -> None:
+    """
+    Plot angular tracking error between body boresight and ECI target vector.
+
+    Parameters
+    ----------
+    state_hist : np.ndarray
+        True state history including quaternions (cols 3-7), shape (N, >7).
+        Quaternion assumed to be Hamilton, body -> ECI (same as animate_attitude).
+    boresight_hist : np.ndarray
+        Target boresight vector in ECI frame, shape (N, 3).
+    body_boresight : np.ndarray
+        Fixed boresight vector in BODY frame, shape (3,).
+    time : np.ndarray, optional
+        Time vector for x-axis. If None, index is used.
+    """
+
+    N = min(len(state_hist), len(boresight_hist))
+
+    # Normalize fixed body boresight
+    v_bore_body = body_boresight / np.linalg.norm(body_boresight)
+
+    error_angle = np.zeros(N)
+
+    for i in range(N):
+        q = state_hist[i, 3:7]
+        R_b2i = rot_mat(q)  # Body -> ECI
+
+        # Rotate body boresight into ECI
+        v_bore_eci = R_b2i @ v_bore_body
+        v_bore_eci /= np.linalg.norm(v_bore_eci)
+
+        # Normalize ECI goal vector
+        v_goal = boresight_hist[i]
+        v_goal /= np.linalg.norm(v_goal)
+
+        # Angle error via dot product
+        dot = np.clip(np.dot(v_bore_eci, v_goal), -1.0, 1.0)
+        error_angle[i] = np.arccos(dot)  # radians
+
+    # Convert to degrees
+    error_angle_deg = np.rad2deg(error_angle)
+
+    # ---- Plot ----
+    plt.figure(figsize=(10, 5))
+
+    if time is not None:
+        plt.plot(time[:N], error_angle_deg)
+        plt.xlabel("Time [s]")
+    else:
+        plt.plot(error_angle_deg)
+        plt.xlabel("Sample")
+
+    plt.ylabel("Tracking Error [deg]")
+    plt.title("Target Tracking Error (Boresight vs ECI Target)")
+    plt.grid(True)
+    plt.tight_layout()

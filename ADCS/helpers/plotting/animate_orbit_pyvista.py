@@ -154,16 +154,13 @@ def animate_orbit_pyvista(
     # -----------------------------
     # Red Arrow = ECEF X. This must stay fixed to Physics X.
     ref_scale = R_e * 1.5
-    axis_x = pl.add_mesh(pv.Arrow(start=(0,0,0), direction=(1,0,0), scale=ref_scale), color='red', label="ECEF X")
-    axis_y = pl.add_mesh(pv.Arrow(start=(0,0,0), direction=(0,1,0), scale=ref_scale), color='green', label="ECEF Y")
-    axis_z = pl.add_mesh(pv.Arrow(start=(0,0,0), direction=(0,0,1), scale=ref_scale), color='blue', label="ECEF Z")
 
     # -----------------------------
     # 5. OTHER ACTORS
     # -----------------------------
     goal_actor = None
     if coord_goal is not None:
-        goal_r = 0.2 * R_e
+        goal_r = 0.1 * R_e
         goal_mesh = pv.Sphere(radius=goal_r, theta_resolution=30)
         goal_ecef_pos = np.array(coord_goal.target_ecef)
         
@@ -179,19 +176,19 @@ def animate_orbit_pyvista(
     if R_est_static is not None:
         pl.add_mesh(pv.lines_from_points(R_est_static), color='orange', line_width=1, label="Est")
 
-    sat_actor = pl.add_mesh(pv.Sphere(radius=R_e*0.05), color='cyan')
+    sat_actor = pl.add_mesh(pv.Sphere(radius=R_e*0.005), color='cyan')
     
     base_arrow = pv.Arrow(start=(0,0,0), direction=(1,0,0), scale=1.0)
-    def create_arrow_actor(color):
-        return pl.add_mesh(base_arrow.copy(), color=color)
+    def create_arrow_actor(color, opacity=0.5):
+        return pl.add_mesh(base_arrow.copy(), color=color, opacity=opacity)
 
     actors = {
-        'body_x': create_arrow_actor('red'),
-        'body_y': create_arrow_actor('green'),
-        'body_z': create_arrow_actor('blue'),
-        'sun':    create_arrow_actor('yellow'),
-        'mag':    create_arrow_actor('magenta'),
-        'goal':   create_arrow_actor('cyan')
+        'body_x': create_arrow_actor('red', opacity=0.5),
+        'body_y': create_arrow_actor('green', opacity=0.5),
+        'body_z': create_arrow_actor('blue', opacity=0.5),
+        'sun':    create_arrow_actor('yellow', opacity=0.5),
+        'mag':    create_arrow_actor('magenta', opacity=0.5),
+        'goal':   create_arrow_actor('cyan', opacity=0.5)
     }
 
     # -----------------------------
@@ -207,6 +204,7 @@ def animate_orbit_pyvista(
         try:
             pos = R_true_smooth[idx]
             q_curr = q_smooth[idx]
+            q_curr = np.roll(q_curr, -1)
             
             # --- Earth Transforms ---
             # 1. Physics Rotation (ECEF -> ECI)
@@ -218,11 +216,6 @@ def animate_orbit_pyvista(
             # Apply Physics Transform DIRECTLY.
             # Because we rotated the MESH in setup, the texture is already aligned to ECEF X.
             earth_actor.user_matrix = phys_transform
-            
-            # Apply same physics to axes
-            axis_x.user_matrix = phys_transform
-            axis_y.user_matrix = phys_transform
-            axis_z.user_matrix = phys_transform
 
             # --- Coordinate Goal ---
             if goal_actor is not None:

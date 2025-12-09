@@ -19,11 +19,11 @@ from ADCS.satellite_hardware.actuators import MTQ, RW
 from ADCS.helpers.math_constants import MathConstants
 from ADCS.helpers.math_helpers import random_n_unit_vec, normalize
 
-from plotting.animate_estimator import animate_attitude
-from plotting.plot_estimator import plot_state_comparison
-from plotting.close_all_plots import create_close_all_button_window
-from plotting.plot_controller import plot_control
-from plotting.animate_orbit import animate_orbit
+from ADCS.helpers.plotting.animate_estimator import animate_attitude
+from ADCS.helpers.plotting.plot_estimator import plot_state_comparison
+from ADCS.helpers.plotting.close_all_plots import create_close_all_button_window
+from ADCS.helpers.plotting.plot_controller import plot_control
+from ADCS.helpers.plotting.animate_orbit import animate_orbit
 
 def run_bdot_simulation(
     verbose: bool = False, 

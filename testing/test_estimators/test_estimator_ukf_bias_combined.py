@@ -32,9 +32,9 @@ from ADCS.helpers.math_helpers import random_n_unit_vec, rot_mat, norm, normaliz
 from ADCS.helpers.math_constants import MathConstants
 from ADCS.estimators.attitude_estimators import UAKF
 
-from plotting.plot_estimator import plot_state_comparison, plot_error_and_sun, plot_sensor_data, plot_bias_comparison
-from plotting.animate_estimator import animate_attitude
-from plotting.close_all_plots import create_close_all_button_window
+from ADCS.helpers.plotting.plot_estimator import plot_state_comparison, plot_error_and_sun, plot_sensor_data, plot_bias_comparison
+from ADCS.helpers.plotting.animate_estimator import animate_attitude
+from ADCS.helpers.plotting.close_all_plots import create_close_all_button_window
 
 @pytest.fixture(scope="module")
 def ukf_bias_results():

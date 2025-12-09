@@ -17,8 +17,8 @@ from ADCS.estimators.estimator_helpers import EstimatedOrbital_State
 from ADCS.helpers.math_helpers import random_n_unit_vec
 from ADCS.satellite_hardware.disturbances.disturbance_mode import DisturbanceMode
 
-from plotting.plot_orbit_estimator import plot_gps_error
-from plotting.close_all_plots import create_close_all_button_window
+from ADCS.helpers.plotting.plot_orbit_estimator import plot_gps_error
+from ADCS.helpers.plotting.close_all_plots import create_close_all_button_window
 
 def run_orbit_ekf(verbose: bool = False, tf: float = 1000, dt: float = 10) -> Union[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     ephem = Ephemeris()

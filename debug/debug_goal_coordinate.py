@@ -6,7 +6,7 @@ from typing import List, Union
 from tqdm import tqdm
 import pytest
 
-sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))
+sys.path.append(os.path.abspath(os.path.join(__file__, "../..")))
 from ADCS.CONOPS.goals import Goal, ECI_Goal, Coordinate_Goal
 from ADCS.controller import MTQ_w_RW
 from ADCS.orbits.ephemeris import Ephemeris
@@ -19,12 +19,12 @@ from ADCS.satellite_hardware.actuators import MTQ, RW
 from ADCS.helpers.math_constants import MathConstants
 from ADCS.helpers.math_helpers import random_n_unit_vec, normalize
 
-from plotting.animate_estimator import animate_attitude
-from plotting.plot_estimator import plot_state_comparison
-from plotting.close_all_plots import create_close_all_button_window
-from plotting.plot_controller import plot_control, plot_rw_momentum
-from plotting.animate_orbit import animate_orbit
-from plotting.animate_orbit_pyvista import animate_orbit_pyvista
+from ADCS.helpers.plotting.animate_estimator import animate_attitude
+from ADCS.helpers.plotting.plot_estimator import plot_state_comparison
+from ADCS.helpers.plotting.close_all_plots import create_close_all_button_window
+from ADCS.helpers.plotting.plot_controller import plot_control, plot_rw_momentum
+from ADCS.helpers.plotting.animate_orbit import animate_orbit
+from ADCS.helpers.plotting.animate_orbit_pyvista import animate_orbit_pyvista
 
 def test_goal_coordinate_fixed_os(dt, tf, t0):
     N = int((tf-t0)/dt)
@@ -85,8 +85,8 @@ def test_goal_coordinate_fixed_os(dt, tf, t0):
 def test_goal_coordinate_real_os(dt, tf, t0):
     N = int((tf-t0)/dt)
 
-    R = 7000*np.array([1, 0, 0])
-    V = np.array([0, 8, 0])
+    R = 7000*np.array([0, np.sqrt(2)/2, np.sqrt(2)/2])
+    V = np.array([8, 0, 0])
     ephem = Ephemeris()
     start_time = 0.22 - 1*TimeConstants.sec2cent
     end_time = 0.22 + (tf-t0)*TimeConstants.sec2cent
@@ -153,4 +153,4 @@ def plot_test_goal_coordinate_real_os(dt, tf, t0):
     create_close_all_button_window()
 
 if __name__ == "__main__":
-    plot_test_goal_coordinate_real_os(dt=100, tf=5000, t0=0)
+    plot_test_goal_coordinate_real_os(dt=100, tf=9000, t0=0)

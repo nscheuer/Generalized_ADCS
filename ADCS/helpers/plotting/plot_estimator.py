@@ -131,23 +131,33 @@ def plot_sensor_data(
     sensor_hist: np.ndarray,
     clean_sensor_hist: np.ndarray
 ) -> None:
-    """Plot measured vs clean sensor readings."""
-    fig, axs = plt.subplots(3, 3, figsize=(12, 8), sharex=True)
-    axs = axs.flatten()
+    """Plot measured vs clean sensor readings for N sensors."""
 
-    sensor_names = [
-        "MTM X", "MTM Y", "MTM Z",
-        "GYR X", "GYR Y", "GYR Z",
-        "SUN X", "SUN Y", "SUN Z"
-    ]
+    n = sensor_hist.shape[1]  # number of sensor channels
 
-    for i in range(9):
+    # Choose a near-square layout
+    ncols = int(np.ceil(np.sqrt(n)))
+    nrows = int(np.ceil(n / ncols))
+
+    fig, axs = plt.subplots(nrows, ncols, figsize=(4*ncols, 3*nrows), sharex=True)
+    axs = np.atleast_1d(axs).flatten()
+
+    # Generate generic labels if none are provided
+    sensor_names = [f"Sensor {i}" for i in range(n)]
+
+    for i in range(n):
         axs[i].plot(time, sensor_hist[:, i], label="Measured")
-        axs[i].plot(time, clean_sensor_hist[:, i], '--', label="Clean")
+        axs[i].plot(time, clean_sensor_hist[:, i], "--", label="Clean")
         axs[i].set_title(sensor_names[i])
         axs[i].grid(True)
-        if i >= 6:
+
+        # Only bottom row gets x labels
+        if i >= (nrows - 1) * ncols:
             axs[i].set_xlabel("Time [s]")
+
+    # Hide unused subplots (if n is not a perfect grid)
+    for j in range(n, len(axs)):
+        axs[j].set_visible(False)
 
     axs[0].legend()
     fig.suptitle("Measured Sensor Readings vs Clean Sensor Values")
@@ -162,18 +172,27 @@ def plot_bias_comparison(
     title: str,
     units: str
 ) -> None:
-    """Generic function for plotting 3 bias components."""
-    fig, axs = plt.subplots(3, 1, figsize=(10, 8), sharex=True)
-    labels = ["Bias X", "Bias Y", "Bias Z"]
+    """Generic function for plotting N bias components."""
+    real_bias = np.atleast_2d(real_bias).reshape(len(real_bias), -1)
+    est_bias  = np.atleast_2d(est_bias).reshape(len(est_bias), -1)
 
-    for i in range(3):
+    n = real_bias.shape[1]  # number of bias components
+
+    fig, axs = plt.subplots(n, 1, figsize=(10, 3*n), sharex=True)
+
+    # Ensure axs is always iterable (matplotlib returns a single Axes if n == 1)
+    if n == 1:
+        axs = [axs]
+
+    for i in range(n):
         axs[i].plot(time, real_bias[:, i], label="Real Bias")
         axs[i].plot(time, est_bias[:, i], "--", label="Estimated Bias")
-        axs[i].set_ylabel(f"{labels[i]} [{units}]")
+        axs[i].set_ylabel(f"Bias {i} [{units}]")
         axs[i].grid(True)
+
         if i == 0:
             axs[i].legend()
 
-    axs[2].set_xlabel("Time [s]")
+    axs[-1].set_xlabel("Time [s]")
     fig.suptitle(title)
     fig.tight_layout()

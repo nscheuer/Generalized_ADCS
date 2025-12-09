@@ -36,11 +36,11 @@ class Sensor:
     """
     def __init__(self, sample_time: float = 0.1, output_length: int = 1, bias: Bias = None, noise: Noise = None, estimate_bias: bool = False):
         if bias:
-            self.bias = bias
+            self.bias = bias.copy()
         else:
             self.bias = Bias()
         if noise:
-            self.noise = noise
+            self.noise = noise.copy()
         else:
             self.noise = Noise()
         self.sample_time = sample_time
