@@ -9,6 +9,7 @@ warnings.filterwarnings("ignore", category=UserWarning, module="matplotlib")
 import numpy as np
 import pyvista as pv
 from pyvista import examples
+from pathlib import Path
 import matplotlib.pyplot as plt 
 import time
 from scipy.spatial.transform import Rotation as R_scipy
@@ -28,6 +29,8 @@ from ADCS.orbits.universal_constants import EarthConstants
 # to the Red ECEF X-axis.
 # For standard NASA textures, this is often -180 or -90.
 TEXTURE_ALIGNMENT_ANGLE = -180  
+THIS_DIR = Path(__file__).resolve().parent
+DEFAULT_TEXTURE_PATH = THIS_DIR / "textures" / "2k_earth_daymap.jpg"
 
 def get_rotation_from_vectors(vec1, vec2):
     """ Returns a 3x3 rotation matrix that aligns vec1 to vec2. """
@@ -56,7 +59,7 @@ def animate_orbit_pyvista(
     est_os_hist: Optional[List[Orbital_State]] = None,
     boresight_goal_hist: Optional[np.ndarray] = None,
     coord_goal: Optional[Coordinate_Goal] = None,
-    texture_path: str = "plotting/textures/2k_earth_daymap.jpg"
+    texture_path: Optional[str | Path] = None
 ) -> None:
     
     print(f"Preprocessing: Interpolating data...")
@@ -128,15 +131,21 @@ def animate_orbit_pyvista(
     earth_mesh = pv.Sphere(radius=R_e, theta_resolution=120, phi_resolution=120)
     
     # 2. Load Texture
+    if texture_path is None:
+        texture_path = DEFAULT_TEXTURE_PATH
+    else:
+        texture_path = Path(texture_path).expanduser().resolve()
+
     try:
-        if os.path.exists(texture_path):
+        if texture_path.exists():
             img_data = plt.imread(texture_path)
-            img_data = np.flipud(img_data) 
+            img_data = np.flipud(img_data)
             tex = pv.numpy_to_texture(img_data)
+            print(f"Loaded Earth texture: {texture_path}")
         else:
-            print("Downloading default Earth texture...")
-            tex = examples.planets.download_earth_2k()
-    except Exception:
+            raise FileNotFoundError(texture_path)
+    except Exception as e:
+        print(f"Texture load failed ({e}), using fallback Earth texture.")
         tex = examples.planets.download_earth_2k()
 
     # 3. Map Texture
