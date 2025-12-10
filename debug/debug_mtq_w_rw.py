@@ -126,10 +126,10 @@ def plot_mtq_w_rw_align_to_eci(verbose: bool = False, tf: float = 1000, dt: floa
     plot_state_comparison(time=time_hist, state_hist=state_hist)
     plot_rw_momentum(time=time_hist, state_hist=state_hist)
     goal = Coordinate_Goal(lat=38.7223, lon=-10, alt=0)
-    #animate_orbit_pyvista(time_hist=time_hist, state_hist=state_hist, os_hist=os_hist, boresight_goal_hist=boresight_hist, coord_goal=goal)
+    animate_orbit_pyvista(time_hist=time_hist, state_hist=state_hist, os_hist=os_hist, boresight_goal_hist=boresight_hist, coord_goal=goal)
     plot_target_tracking(state_hist=state_hist, boresight_hist=boresight_hist, body_boresight=np.array([0, 0, 1]))
     #animate_orbit(time_hist=time_hist, state_hist=state_hist, os_hist=os_hist, boresight_goal_hist=boresight_hist, coord_goal=goal)
     create_close_all_button_window()
 
 if __name__ == "__main__":
-    plot_mtq_w_rw_align_to_eci(verbose=False, tf = 150, dt = 1, real_orbit=True)
+    plot_mtq_w_rw_align_to_eci(verbose=False, tf = 1000, dt = 1, real_orbit=True)
