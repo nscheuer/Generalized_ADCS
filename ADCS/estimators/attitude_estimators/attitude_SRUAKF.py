@@ -4,6 +4,7 @@ import numpy as np
 import scipy.linalg
 import copy
 from typing import List, Tuple, Optional
+import time
 
 # The external C-library wrapper for fast Cholesky updates
 from choldate import cholupdate, choldowndate
@@ -280,6 +281,7 @@ class SRUAKF(UAKF):
         :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray`
             The updated state estimate and reduced covariance matrix (reconstructed from :math:`S`).
         """
+        t0 = time.time()
         u = np.asarray(u, dtype=float).copy()
         os = os.copy()
         state0 = self.x_hat.val.copy()
@@ -326,6 +328,7 @@ class SRUAKF(UAKF):
         post_quat = None
 
         # --- 3. Propagation Loop ---
+        t_loop_0 = time.time()
         for j in range(num_sigma):
             full_pre_statej = pts[j]
             self.sat_match(satj, full_pre_statej)
@@ -357,6 +360,7 @@ class SRUAKF(UAKF):
                 os=os,
             )
             post_sens[j, :] = sensj[which_sensors]
+        t_loop_1 = time.time()
 
         # --- 4. Time Update (QR Method) ---
         state1 = wts_m @ post_pts
@@ -365,30 +369,8 @@ class SRUAKF(UAKF):
         
         # State deviations
         pts_diff = post_pts - state1
-        
-        # QR Decomposition for State Covariance
-        # A = [ sqrt(w) * (Xi - x).T | sqrt(Q) ]
-        # We need R from QR(A).
-        # Note: wts_c[0] is negative, so we skip index 0 in the QR and downdate it later.
-        
+
         weighted_diffs = pts_diff[1:, :].T * np.sqrt(wts_c[1:])
-        
-        # Stack weighted sigmas and process noise (S_Q is Upper)
-        # QR of transpose gives R upper triangular
-        # A = np.hstack([weighted_diffs, self.S_Q])
-        # R = qr(A.T, mode='r')  -> This is wrong if S_Q is Upper.
-        # We want R such that R.T R = A A.T
-        # A.T = vstack([weighted_diffs.T, self.S_Q.T])? No.
-        
-        # Correct logic from old code:
-        # srcov1 = qr( hstack([ diffs.T, S_Q ]).T )
-        #      = qr( vstack([ diffs, S_Q.T ]) ) -> This seems to mix Upper/Lower?
-        
-        # Let's strictly follow the old code: 
-        # srcov1 = np.linalg.qr(np.hstack([pts_diff[1:,:].T*np.sqrt(wts_c[1:]), self.sric]).T, mode='r')
-        # Here sric (self.S_Q) was initialized as Upper.
-        # hstack puts them side by side. .T flips it.
-        # So we represent the matrix A where A^T A = P. 
         
         to_qr = np.hstack([pts_diff[1:, :].T * np.sqrt(wts_c[1:]), self.S_Q.T])
         # Note: using S_Q.T implies S_Q was Upper, so S_Q.T is Lower. 
@@ -420,17 +402,6 @@ class SRUAKF(UAKF):
         # --- 6. Kalman Gain ---
         # Cross Covariance
         covyx = sum([wts_c[j] * np.outer(sens_diff[j, :], pts_diff[j, :]) for j in range(num_sigma)])
-        
-        # Solve for Gain
-        # Kk = (Pyy^-1 Pyx)^T
-        # Pyy = srcov_sens.T @ srcov_sens (since srcov_sens is Upper R, P = R.T R)
-        
-        # Old code solution:
-        # Kk = solve_triangular(srcov_sens, solve_triangular(srcov_sens, covyx, trans='T'))
-        # Let's verify: 
-        # Inner: x = solve(R^T, P_yx).  R^T x = P_yx.
-        # Outer: K = solve(R, x).       R K = x.
-        # R K = R^-T P_yx  ->  R^T R K = P_yx  -> P_yy K = P_yx. Correct.
         
         try:
             t1 = scipy.linalg.solve_triangular(srcov_sens, covyx, lower=False, trans='T')
@@ -482,5 +453,6 @@ class SRUAKF(UAKF):
             P_plus = norm_jac.T @ P_plus @ norm_jac
 
         self.sat_match(satj, state_final)
-        
+        t1 = time.time()
+        print(f"EKF Time {t1 - t0} of which Loop {t_loop_1 - t_loop_0}")
         return EstimatedArray(val=state_final, cov=P_plus)

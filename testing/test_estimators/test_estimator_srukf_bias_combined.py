@@ -450,7 +450,6 @@ from scipy.stats import kstest, ks_2samp
 from scipy.integrate import solve_ivp
 from scipy.linalg import block_diag
 from asciichartpy import plot
-import time
 from tqdm import tqdm
 
 # === Import project modules ===

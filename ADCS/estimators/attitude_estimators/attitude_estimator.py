@@ -1,6 +1,7 @@
 __all__ = ["Attitude_Estimator"]
 
 import numpy as np
+import time
 from typing import List, Optional
 from ADCS.orbits.orbital_state import Orbital_State, Ephemeris
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
