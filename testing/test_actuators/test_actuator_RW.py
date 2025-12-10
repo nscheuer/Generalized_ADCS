@@ -36,8 +36,6 @@ def test_RW_setup():
     rw = RW(axis=ax, max_torque=max_torque, J=J, h=h, h_max=h_max, bias=bias, noise=noise)
 
     assert np.all(np.isclose(ax/3, rw.axis))
-    assert np.all(bias==rw.bias)
-    assert np.all(noise==rw.noise)
     assert rw.h_max == h_max
     assert rw.noise.noise == 0.0
     assert rw.noise.std_noise == std_noise

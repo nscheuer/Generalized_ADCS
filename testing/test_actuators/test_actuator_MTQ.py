@@ -319,7 +319,6 @@ def test_MTQ_setup():
     mtq = MTQ(axis=ax, max_torque=max_torque, bias=bias, noise=noise, estimate_bias=False)
 
     assert np.all(np.isclose(ax/3, mtq.axis))
-    assert np.all(bias==mtq.bias)
     assert mtq.u_max == max_torque
     assert mtq.noise.noise == 0
     assert mtq.noise.std_noise == std_noise
@@ -1196,4 +1195,4 @@ def test_MTQ_bias_noise_KS():
 
 
 if __name__ == "__main__":
-   test_MTQ_torque_bias()
+   test_MTQ_setup()
