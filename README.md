@@ -1,4 +1,8 @@
 # GeneralizedADCS
+<p>
+  <img src="documentation/images/starlab_logo.svg" alt="STARLab Logo" height="100">
+  <img src="documentation/images/ssc_logo.png" alt="Small Satellite Collaborative Logo" height="100">
+</p>
 Simulation suite for satellite control and estimation. Based on work by Patrick McKeen [GitHub](https://github.com/patrickmckeen/PhD_Dissertation_Code "PhD_Dissertation_Code"). [Paper](https://dspace.mit.edu/handle/1721.1/158874 "Computational Methods to Improve Satellite Attitude Determination and Control with a Focus on Autonomy, Generalizability, and Underactuation").
 
 # Installation Instructions
