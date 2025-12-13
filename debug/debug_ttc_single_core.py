@@ -7,6 +7,7 @@ from scipy.integrate import solve_ivp
 from tqdm import tqdm
 
 sys.path.append(os.path.abspath(os.path.join(__file__, "../..")))
+from ADCS.controller import MTQ_w_RW, BDot
 from ADCS.estimators.attitude_estimators.attitude_SRUAKF import SRUAKF
 from ADCS.orbits.orbit import Orbit
 from ADCS.orbits.orbital_state import Orbital_State
@@ -14,7 +15,7 @@ from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.satellite_hardware.satellite.satellite import Satellite
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
-from ADCS.satellite_hardware.actuators import Noise, Bias, MTQ
+from ADCS.satellite_hardware.actuators import Noise, Bias, MTQ, RW
 from ADCS.satellite_hardware.sensors import MTM, Gyro, SunPair
 from ADCS.satellite_hardware.disturbances import GeometryFace, GG_Disturbance, Drag_Disturbance, GeometryConfig, DisturbanceMode
 from ADCS.helpers.math_constants import MathConstants
@@ -29,7 +30,13 @@ from ADCS.helpers.plotting.animate_orbit_pyvista import animate_orbit_pyvista
 def create_satellite() -> Satellite:
     mtq_noise = Noise(noise=0.0, std_noise=0.0001)
     mtq_max_torque = 1.0
-    acts = [MTQ(axis=j, max_torque=mtq_max_torque, noise=mtq_noise.copy()) for j in MathConstants.unitvecs]
+    mtqs = [MTQ(axis=j, max_torque=mtq_max_torque, noise=mtq_noise.copy()) for j in MathConstants.unitvecs]
+
+    rw_max_torque = 4.51
+    rw_J = 0.22
+    rw_h0 = 1
+    rw_hmax = 3.8
+    rws = [RW(axis=j, max_torque=rw_max_torque, J=rw_J, h=rw_h0, h_max=rw_hmax) for j in MathConstants.unitvecs]
 
     mtm_noise = Noise(noise=0.0, std_noise=1e-8)
     mtm_bias_mean = random_n_unit_vec(3)*np.random.uniform(1e-9, 1e-7)
@@ -63,14 +70,20 @@ def create_satellite() -> Satellite:
 
     real_sat_mass = 4.0
     real_sat_J = np.diagflat([3.4, 2.9, 1.3])
-    real_sat = Satellite(mass=real_sat_mass, J_0=real_sat_J, actuators=acts, sensors=mtms+gyros+suns, disturbances=dists)
+    real_sat = Satellite(mass=real_sat_mass, J_0=real_sat_J, actuators=mtqs+rws, sensors=mtms+gyros+suns, disturbances=dists)
 
     return real_sat
     
 def create_estimated_satellite() -> EstimatedSatellite:
     mtq_noise = Noise(noise=0.0, std_noise=0.0001)
     mtq_max_torque = 1.0
-    est_acts = [MTQ(axis=j, max_torque=mtq_max_torque, noise=mtq_noise.copy()) for j in MathConstants.unitvecs]
+    est_mtqs = [MTQ(axis=j, max_torque=mtq_max_torque, noise=mtq_noise.copy()) for j in MathConstants.unitvecs]
+
+    rw_max_torque = 4.51
+    rw_J = 0.22
+    rw_h0 = 1
+    rw_hmax = 3.8
+    est_rws = [RW(axis=j, max_torque=rw_max_torque, J=rw_J, h=rw_h0, h_max=rw_hmax) for j in MathConstants.unitvecs]
 
     mtm_noise = Noise(noise=0.0, std_noise=1e-8)
     mtm_bsr = 1e-9
@@ -102,7 +115,7 @@ def create_estimated_satellite() -> EstimatedSatellite:
     # Satellite configuration
     est_sat_mass = 4.0
     est_sat_J = np.diagflat([3.4, 2.9, 1.3])
-    est_sat = EstimatedSatellite(mass=est_sat_mass, J_0=est_sat_J, actuators=est_acts, sensors=est_mtms+est_gyros+est_suns, disturbances=est_dists)
+    est_sat = EstimatedSatellite(mass=est_sat_mass, J_0=est_sat_J, actuators=est_mtqs+est_rws, sensors=est_mtms+est_gyros+est_suns, disturbances=est_dists)
 
     return est_sat
 
@@ -158,9 +171,25 @@ def create_matrices(est_sat: EstimatedSatellite, dt: float) -> Tuple[np.ndarray,
 def operating_system_task(t, memory):
     memory["log"].append(f"{t:.2f}: Operating System")
 
+    # Switching control modes
+    Pmax = np.max(memory["ESTIMATOR"].x_hat.cov)
+
+    LOW_THRESH  = 1e-5   # enter MTQ_W_RW
+    HIGH_THRESH = 5e-5   # fall back to BDOT
+
+    if memory["MODE_control"] == "MODE_BDOT":
+        if Pmax < LOW_THRESH:
+            memory["MODE_control"] = "MODE_MTQ_W_RW"
+            print("Switched to BDot")
+
+    elif memory["MODE_control"] == "MODE_MTQ_W_RW":
+        if Pmax > HIGH_THRESH:
+            memory["MODE_control"] = "MODE_BDOT"
+            print("Switched to MTQ_W_RW")
+
 def estimator_task(t, memory):
     memory["log"].append(f"{t:.2f}: EST")
-    ukf = memory["ukf"]
+    ukf = memory["ESTIMATOR"]
     u = memory["control_u"]
     sensors = memory["sensor_readings"]
     os = memory["orbital_state"]
@@ -169,7 +198,18 @@ def estimator_task(t, memory):
 
 def controller_task(t, memory):
     memory["log"].append(f"{t:.2f}: CTRL")
-    memory["control_u"] = np.zeros(3)
+
+    x_hat = memory["x_hat"]
+    sens = memory["sensor_readings"]
+    est_sat = memory["ESTIMATOR"].est_sat
+    os_hat = memory["orbital_state"]
+
+    if memory["MODE_control"] == "MODE_BDOT":
+        memory["control_u"] = memory["CONTROL_BDOT"].find_u(x_hat, sens, est_sat, os_hat)
+    elif memory["MODE_control"] == "MODE_MTQ_W_RW":
+        memory["control_u"] = memory["CONTROL_MTQ_W_RW"].find_u(x_hat, sens, est_sat, os_hat)
+    else:
+        memory["control_u"] = np.zeros(6)
 
 def sensor_task(t, memory):
     memory["log"].append(f"{t:.2f}: SENS")
@@ -178,7 +218,7 @@ def sensor_task(t, memory):
 
 def main():
     np.random.seed(1)
-    t0, tf = 0.0, 1000.0
+    t0, tf = 0.0, 50.0
     dt = 0.1
     N = int((tf-t0)/dt)
 
@@ -187,10 +227,13 @@ def main():
     est_sat = create_estimated_satellite()
     P_est, Q_est = create_matrices(est_sat, dt=10)
 
-    x = np.array([0,0,0,1,0,0,0], dtype=float)
-    x_hat = np.zeros(16); x_hat[3] = 1
+    x = np.array([0,0,0,1,0,0,0, 1, 1, 1], dtype=float)
+    x_hat = np.zeros(19); x_hat[3] = 1
     J2000 = 0.22 + t0*TimeConstants.sec2cent
     ukf = SRUAKF(est_sat=est_sat, J2000=J2000, x_hat=x_hat, P_hat=P_est, Q_hat=Q_est, dt=10, cross_term=True, quat_as_vec=False)
+
+    bdot = BDot(est_sat=est_sat, gain=100)
+    mtq_w_rw = MTQ_w_RW(est_sat=real_sat, p_gain=0.1, d_gain=0.7, c_gain=0.1, h_target=np.array([0, 0, 0]))
 
     memory = {
         "log": [],
@@ -198,7 +241,10 @@ def main():
         "control_u": np.zeros(3),
         "orbital_state": [],
         "x_hat": [],
-        "ukf": ukf,
+        "ESTIMATOR": ukf,
+        "CONTROL_BDOT": bdot,
+        "CONTROL_MTQ_W_RW": mtq_w_rw,
+        "MODE_control": "MODE_BDOT",
     }
 
     tasks = [
@@ -216,7 +262,7 @@ def main():
     os_hist: List[Orbital_State] = list()
     sensor_hist: List[np.ndarray] = np.nan*np.zeros((N, 9))
     clean_sensor_hist: List[np.ndarray] = np.nan*np.zeros((N, 9))
-    u_hist = np.nan*np.zeros((N, 3))
+    u_hist = np.nan*np.zeros((N, 6))
     cov_hist: List[np.ndarray] = list()
 
     t = t0
