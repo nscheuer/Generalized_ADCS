@@ -454,5 +454,4 @@ class SRUAKF(UAKF):
 
         self.sat_match(satj, state_final)
         t1 = time.time()
-        print(f"EKF Time {t1 - t0} of which Loop {t_loop_1 - t_loop_0}")
         return EstimatedArray(val=state_final, cov=P_plus)
