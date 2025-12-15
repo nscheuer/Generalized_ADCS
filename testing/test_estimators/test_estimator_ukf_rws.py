@@ -26,7 +26,6 @@ from ADCS.flight_software.tasks.task import Task
 from ADCS.helpers.plotting.plot_estimator import plot_state_comparison, plot_error_and_sun, plot_sensor_data, plot_bias_comparison
 from ADCS.helpers.plotting.animate_estimator import animate_attitude
 from ADCS.helpers.plotting.close_all_plots import create_close_all_button_window
-from ADCS.helpers.plotting.animate_orbit_pyvista import animate_orbit_pyvista
 
 
 def create_satellite() -> Satellite:
