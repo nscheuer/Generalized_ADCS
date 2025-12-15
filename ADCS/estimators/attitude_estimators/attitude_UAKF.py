@@ -487,8 +487,6 @@ class UAKF(Attitude_Estimator):
         for j in range(num_sigma):
             full_pre_statej, sens_noise_j, control_noise_j, int_noise_extra_j = pts[j]
 
-            if j == 18:
-                pass
             self.sat_match(satj, full_pre_statej)
 
             post_dyn_state_j = satj.noiseless_rk4(
