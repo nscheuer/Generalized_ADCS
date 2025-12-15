@@ -122,15 +122,14 @@ class MTQ_w_RW(Controller):
         self.d_gain = d_gain
         self.c_gain = c_gain
 
-        self.M_mtm_read, self.mtm_indices = self.build_sensor_matrix_pinv(sensors=est_sat.sensors, sensor_type=MTM)
+        self.M_mtm_read, self.mtm_indices = self.build_sensor_matrix_pinv(sensors=est_sat.sensors+est_sat.rw_actuators, sensor_type=MTM)
 
         self.M_rw_act, self.rw_indices = self.build_torque_to_u_matrix_pinv(actuators=est_sat.actuators, actuator_type=RW)
         self.M_mtq_act, self.mtq_indices = self.build_torque_to_u_matrix_pinv(actuators=est_sat.actuators, actuator_type=MTQ)
         self.A_mtq = self.build_u_to_torque_matrix_pinv(actuators=est_sat.actuators, actuator_type=MTQ)
 
-        self.rw_max_torque = self.find_max_torque(actuators=est_sat.actuators, actuator_type=RW)
         self.rw_max_h = np.asarray([rw.h_max for rw in est_sat.actuators if isinstance(rw, RW)])
-        self.mtq_max_torque = self.find_max_torque(actuators=est_sat.actuators, actuator_type=MTQ)
+        self.max_torque = self.find_max_torque(actuators=est_sat.actuators)
 
         if np.any(self.rw_max_h < h_target):
             raise ValueError("Target momentum cannot be higher than reaction wheel maximum momentum!")
@@ -294,17 +293,15 @@ class MTQ_w_RW(Controller):
         M_mag_eff = -B_skew @ self.A_mtq # (3, N_MTQ)
 
         u_mtq = np.linalg.pinv(M_mag_eff) @ tau_dump
-        u_mtq = limit(u=u_mtq, umax=self.mtq_max_torque) #TODO: Proper limiting of Actuators
+        u_mtq = limit(u=u_mtq, umax=self.max_torque) #TODO: Proper limiting of Actuators
 
         tau_mag_actual = M_mag_eff @ u_mtq
         tau_rw_req = tau_att - tau_mag_actual
 
         u_rw = self.M_rw_act @ tau_rw_req
-        u_rw = limit(u=u_rw, umax=self.rw_max_torque)
+        u_rw = limit(u=u_rw, umax=self.max_torque)
 
-        u_total = np.zeros(self.n_actuators)
-        u_total[self.rw_indices] = u_rw
-        u_total[self.mtq_indices] = u_mtq
+        u_total = u_mtq+u_rw
 
         return u_total
     

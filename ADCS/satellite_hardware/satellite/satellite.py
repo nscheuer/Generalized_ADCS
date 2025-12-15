@@ -393,7 +393,7 @@ class Satellite:
         else:
             RWjs = np.array([self.actuators[j].J for j in self.momentum_inds])
             RWaxes = np.vstack([self.actuators[j].axis for j in self.momentum_inds])
-            storage_torques = [self.actuators[j].storage_torque(u=u[j], x=x, os=orbital_state) for j in self.momentum_inds]
+            storage_torques = [self.actuators[j].storage_torque(u=u[j], x=x, os=orbital_state, dmode=dmode) for j in self.momentum_inds]
             u_RW = np.array(storage_torques)
             wdot = (-np.cross(w,w@J + h@RWaxes) + total_torque)@invJ_noRW
             RW_hdot = u_RW-wdot@RWaxes.T@np.diagflat(RWjs) #u_RW-wdot@RWaxes.T@np.diagflat(RWjs)
@@ -1083,9 +1083,9 @@ class Satellite:
         
     def sensor_readings(self, x: np.ndarray, os: Orbital_State, dmode: DisturbanceMode = None) -> np.ndarray:
         sensor_readings: List[np.ndarray] = [self.attitude_sensors[j].reading(x=x, os=os, dmode=dmode) for j in range(len(self.attitude_sensors))]
-        # rw_readings: List[np.ndarray] = [self.rw_actuators[j].measure_momentum() for j in range(len(self.rw_actuators))]
-        # return np.concatenate([sensor_readings, rw_readings])
-        return np.array(sensor_readings)
+        rw_readings: List[np.ndarray] = [self.rw_actuators[j].measure_momentum() for j in range(len(self.rw_actuators))]
+        return np.concatenate([sensor_readings, rw_readings])
+        # return np.array(sensor_readings)
     
     def noiseless_sensor_readings(self, x: np.ndarray, os: Orbital_State) -> np.ndarray:
         dmode = DisturbanceMode(add_bias=True, add_noise=False, update_bias=False, update_noise=False)

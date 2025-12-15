@@ -21,7 +21,7 @@ from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.helpers.math_helpers import random_n_unit_vec, norm, normalize
 from ADCS.helpers.math_constants import MathConstants
-from ADCS.estimators.attitude_estimators.attitude_UAKF import UAKF
+from ADCS.estimators.attitude_estimators.attitude_SRUAKF import SRUAKF
 
 from ADCS.helpers.plotting.plot_estimator import plot_state_comparison, plot_error_and_sun, plot_sensor_data
 from ADCS.helpers.plotting.animate_estimator import animate_attitude
@@ -186,7 +186,7 @@ def run_rw_ukf(verbose: bool = False, tf: float = 300, dt: float = 5, real_orbit
     P_est, Q_est = create_matrices(est_sat=est_sat, dt=dt)
     
     # Note: State len is 10, Error State len is 9
-    ukf = UAKF(est_sat=est_sat, J2000=J2000, x_hat=x_hat, P_hat=P_est, Q_hat=Q_est, dt=dt, cross_term=True)
+    ukf = SRUAKF(est_sat=est_sat, J2000=J2000, x_hat=x_hat, P_hat=P_est, Q_hat=Q_est, dt=dt, cross_term=True)
 
     # 5. History Arrays
     time_hist = np.nan*np.zeros(N)

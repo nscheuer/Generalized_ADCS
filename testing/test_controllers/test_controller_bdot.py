@@ -106,7 +106,7 @@ def run_bdot_simulation(
     time_hist = np.nan * np.zeros(N)
     state_hist = np.nan * np.zeros((N, state_dim))
     os_hist: List[Orbital_State] = list()
-    sensor_hist: np.ndarray = np.nan * np.zeros((N, 3))
+    sensor_hist: np.ndarray = np.nan * np.zeros((N, len(real_sat.sensors + real_sat.rw_actuators)))
     u_hist = np.nan * np.zeros((N, len(acts)))
 
     # --- Simulation Loop ---
