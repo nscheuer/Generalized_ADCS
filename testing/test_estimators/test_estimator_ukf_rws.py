@@ -5,6 +5,7 @@ from typing import List, Tuple
 from scipy.linalg import block_diag
 from scipy.integrate import solve_ivp
 from tqdm import tqdm
+import time
 
 sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))
 from ADCS.controller import MTQ_w_RW, BDot
@@ -29,21 +30,27 @@ from ADCS.helpers.plotting.animate_orbit_pyvista import animate_orbit_pyvista
 
 
 def create_satellite() -> Satellite:
+    mtq_noise = Noise(noise=0.0, std_noise=0.0001)
     mtq_max_torque = 1.0
-    mtqs = [MTQ(axis=j, max_torque=mtq_max_torque) for j in MathConstants.unitvecs]
+    mtqs = [MTQ(axis=j, max_torque=mtq_max_torque, noise=mtq_noise) for j in MathConstants.unitvecs]
 
     rw_max_torque = 4.51
     rw_J = 0.22
     rw_h0 = 1
     rw_hmax = 3.8
-    rws = [RW(axis=j, max_torque=rw_max_torque, J=rw_J, h=rw_h0, h_max=rw_hmax) for j in MathConstants.unitvecs]
+    rw_noise = Noise(noise=0.0, std_noise=0.0001)
+    rw_h_noise = Noise(noise=0.0, std_noise=0.0001)
+    rws = [RW(axis=j, max_torque=rw_max_torque, J=rw_J, h=rw_h0, h_max=rw_hmax, noise=rw_noise, h_meas_noise=rw_h_noise) for j in MathConstants.unitvecs]
 
-    mtms = [MTM(axis=MathConstants.unitvecs[j]) for j in range(3)]
+    mtm_noise = Noise(noise=0.0, std_noise=1e-8)
+    mtms = [MTM(axis=MathConstants.unitvecs[j], noise=mtm_noise) for j in range(3)]
 
-    gyros = [Gyro(axis=MathConstants.unitvecs[j]) for j in range(3)]
+    gyro_noise = Noise(noise=0.0, std_noise=0.0001)
+    gyros = [Gyro(axis=MathConstants.unitvecs[j], noise=gyro_noise) for j in range(3)]
 
+    sun_noise = Noise(noise=0.0, std_noise=0.0001)
     sun_eff = 0.3
-    suns = [SunPair(axis=MathConstants.unitvecs[j], efficiency=sun_eff) for j in range(3)]
+    suns = [SunPair(axis=MathConstants.unitvecs[j], efficiency=sun_eff, noise=sun_noise) for j in range(3)]
 
     faces: List[GeometryFace] = [GeometryFace(area=0.1*0.3, centroid=MathConstants.unitvecs[0]*0.05, normal=MathConstants.unitvecs[0], CD=2.2),
                                  GeometryFace(area=0.1*0.3, centroid=-MathConstants.unitvecs[0]*0.05, normal=-MathConstants.unitvecs[0], CD=2.2),
@@ -63,21 +70,27 @@ def create_satellite() -> Satellite:
     return real_sat
     
 def create_estimated_satellite() -> EstimatedSatellite:
+    mtq_noise = Noise(noise=0.0, std_noise=0.0001)
     mtq_max_torque = 1.0
-    est_mtqs = [MTQ(axis=j, max_torque=mtq_max_torque) for j in MathConstants.unitvecs]
+    est_mtqs = [MTQ(axis=j, max_torque=mtq_max_torque, noise=mtq_noise) for j in MathConstants.unitvecs]
 
     rw_max_torque = 4.51
     rw_J = 0.22
     rw_h0 = 1
     rw_hmax = 3.8
-    est_rws = [RW(axis=j, max_torque=rw_max_torque, J=rw_J, h=rw_h0, h_max=rw_hmax) for j in MathConstants.unitvecs]
+    rw_noise = Noise(noise=0.0, std_noise=0.0001)
+    rw_h_noise = Noise(noise=0.0, std_noise=0.0001)
+    est_rws = [RW(axis=j, max_torque=rw_max_torque, J=rw_J, h=rw_h0, h_max=rw_hmax, noise=rw_noise, h_meas_noise=rw_h_noise) for j in MathConstants.unitvecs]
 
-    est_mtms = [MTM(axis=MathConstants.unitvecs[j]) for j in range(3)]
+    mtm_noise = Noise(noise=0.0, std_noise=1e-8)
+    est_mtms = [MTM(axis=MathConstants.unitvecs[j], noise=mtm_noise) for j in range(3)]
 
-    est_gyros = [Gyro(axis=MathConstants.unitvecs[j]) for j in range(3)]
+    gyro_noise = Noise(noise=0.0, std_noise=0.0001)
+    est_gyros = [Gyro(axis=MathConstants.unitvecs[j], noise=gyro_noise) for j in range(3)]
 
+    sun_noise = Noise(noise=0.0, std_noise=0.0001)
     sun_eff = 0.3
-    est_suns = [SunPair(axis=MathConstants.unitvecs[j], efficiency=sun_eff) for j in range(3)]
+    est_suns = [SunPair(axis=MathConstants.unitvecs[j], efficiency=sun_eff, noise=sun_noise) for j in range(3)]
 
     faces: List[GeometryFace] = [GeometryFace(area=0.1*0.3, centroid=MathConstants.unitvecs[0]*0.05, normal=MathConstants.unitvecs[0], CD=2.2),
                                  GeometryFace(area=0.1*0.3, centroid=-MathConstants.unitvecs[0]*0.05, normal=-MathConstants.unitvecs[0], CD=2.2),
@@ -118,8 +131,6 @@ def create_orbit(t0: float, tf: float, dt: float) -> Orbit:
     return orb
 
 def create_matrices(est_sat: EstimatedSatellite, dt: float) -> Tuple[np.ndarray, np.ndarray]:
-
-    
     invJ = np.linalg.inv(est_sat.J_0)
     # Dynamics
     sigma_torque = 1e-4 
@@ -133,16 +144,16 @@ def create_matrices(est_sat: EstimatedSatellite, dt: float) -> Tuple[np.ndarray,
         [Q_cross, Q_att]
     ])
     # RW
-    Q_rw  = np.eye(3) * (0.00001)**2.0 * dt
+    Q_rw  = np.eye(3) * (0.0001)**2.0 * dt
     Q_est = block_diag(Q_dyn_block, Q_rw)
 
-    P_est = block_diag(np.eye(3)*(0.01)**2.0, np.eye(3)*3, np.eye(3)*0.00001)
+    P_est = block_diag(np.eye(3)*(0.01)**2.0, np.eye(3)*0.1, np.eye(3)*0.2)
 
     return P_est, Q_est
 
 def main(verbose: bool = False):
     np.random.seed(1)
-    tf = 1000
+    tf = 100
     t0 = 0
     dt = 10
     N = int((tf-t0)/dt)
@@ -154,7 +165,7 @@ def main(verbose: bool = False):
     q0 = np.array([1, 0, 0, 0])
     h0 = np.array([1, 1, 1])
     x = np.concatenate([w0, q0, h0])
-    x_hat = np.array([0, 0, 0, 1, 0, 0, 0, 0, 0, 0])
+    x_hat = np.array([0, 0, 0, 1, 0, 0, 0, 0.1, 0.1, 0.1])
 
     orb = create_orbit(t0, tf, dt)
 
@@ -166,8 +177,8 @@ def main(verbose: bool = False):
     state_hist = np.nan*np.zeros((N, ukf.state_len))
     est_state_hist = np.nan*np.zeros((N, ukf.state_len))
     os_hist: List[Orbital_State] = list()
-    sensor_hist: List[np.ndarray] = np.nan*np.zeros((N, 9))
-    clean_sensor_hist: List[np.ndarray] = np.nan*np.zeros((N, 9))
+    sensor_hist: List[np.ndarray] = np.nan*np.zeros((N, 12))
+    clean_sensor_hist: List[np.ndarray] = np.nan*np.zeros((N, 12))
     u_hist = np.nan*np.zeros((N, 6))
     cov_hist: List[np.ndarray] = list()
     
@@ -233,4 +244,4 @@ def main(verbose: bool = False):
 
 
 if __name__ == "__main__":
-    main(verbose=True)
+    main(verbose=False)

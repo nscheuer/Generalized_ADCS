@@ -4,6 +4,7 @@ import numpy as np
 import copy
 import scipy
 from typing import List
+import time
 
 from ADCS.estimators.attitude_estimators.attitude_estimator import Attitude_Estimator
 from ADCS.estimators.estimator_helpers.estimator_helpers import EstimatedArray
@@ -156,7 +157,7 @@ class UAKF(Attitude_Estimator):
         int_cov = self.x_hat.int_cov.copy() * 0.0
         control_cov = self.est_sat.control_cov()
         sens_cov = self.est_sat.sensor_cov(which_sensors=which_sensors) * 0.0
-
+        
         include_cov = self.determine_covariances_to_use(state_cov, sens_cov, control_cov, int_cov)
         covs = [state_cov, sens_cov, control_cov, int_cov]
 
@@ -269,7 +270,7 @@ class UAKF(Attitude_Estimator):
             # dynstate has full attitude quaternion already
             quatdiff = quat_mult(quat_inv(quatref), dynstate[3:7])
             v3diff = quat_to_vec3(quatdiff, self.vec_mode)
-            return np.concatenate((dynstate[0:3], v3diff, rest_state))
+            return np.concatenate((dynstate[0:3], v3diff, dynstate[7:], rest_state))
 
     def add_to_state(self, state: np.ndarray, add: np.ndarray) -> np.ndarray:
         r"""
@@ -450,7 +451,7 @@ class UAKF(Attitude_Estimator):
         )
 
         # Determine which attitude sensors are active
-        which_sensors = [True] * len(self.est_sat.attitude_sensors)
+        which_sensors = [True] * len(self.est_sat.attitude_sensors + self.est_sat.rw_actuators)
         for j, sensor in enumerate(self.est_sat.attitude_sensors):
             if isinstance(sensor, SunSensor) or isinstance(sensor, SunPair):
                 reading = sensor.clean_reading(x=dyn_state0, os=os)
@@ -463,6 +464,7 @@ class UAKF(Attitude_Estimator):
             for j in range(len(self.est_sat.sensors))
             if which_sensors[j]
         )
+        sens_vec_len += len(self.est_sat.rw_actuators)
 
         # Sigma points of augmented state
         L, pts, wts_m, wts_c, sig0 = self.make_pts_and_wts(state0, which_sensors)
