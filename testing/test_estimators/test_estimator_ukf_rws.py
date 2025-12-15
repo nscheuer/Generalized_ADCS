@@ -9,7 +9,7 @@ import time
 
 sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))
 from ADCS.controller import MTQ_w_RW, BDot
-from ADCS.estimators.attitude_estimators.attitude_SRUAKF import UAKF
+from ADCS.estimators.attitude_estimators.attitude_SRUAKF import UAKF, SRUAKF
 from ADCS.orbits.orbit import Orbit
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.ephemeris import Ephemeris
@@ -153,16 +153,16 @@ def create_matrices(est_sat: EstimatedSatellite, dt: float) -> Tuple[np.ndarray,
 
 def main(verbose: bool = False):
     np.random.seed(1)
-    tf = 100
+    tf = 300
     t0 = 0
-    dt = 10
+    dt = 5
     N = int((tf-t0)/dt)
 
     real_sat = create_satellite()
     est_sat = create_estimated_satellite()
 
-    w0 = np.array([0, 0, 0])
-    q0 = np.array([1, 0, 0, 0])
+    w0 = random_n_unit_vec(3)*np.random.uniform(0, 0.1)*np.pi/180.0
+    q0 = random_n_unit_vec(4)
     h0 = np.array([1, 1, 1])
     x = np.concatenate([w0, q0, h0])
     x_hat = np.array([0, 0, 0, 1, 0, 0, 0, 0.1, 0.1, 0.1])
@@ -171,7 +171,7 @@ def main(verbose: bool = False):
 
     J2000 = 0.22+t0*TimeConstants.sec2cent
     P_est, Q_est = create_matrices(est_sat=est_sat, dt=dt)
-    ukf = UAKF(est_sat=est_sat, J2000=J2000, x_hat=x_hat, P_hat=P_est, Q_hat=Q_est, dt=dt, cross_term=True)
+    ukf = SRUAKF(est_sat=est_sat, J2000=J2000, x_hat=x_hat, P_hat=P_est, Q_hat=Q_est, dt=dt, cross_term=True)
 
     time_hist = np.nan*np.zeros(N)
     state_hist = np.nan*np.zeros((N, ukf.state_len))

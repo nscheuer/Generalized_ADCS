@@ -301,7 +301,7 @@ class SRUAKF(UAKF):
             quat_as_vec=False,
         )
 
-        which_sensors = [True] * len(self.est_sat.attitude_sensors)
+        which_sensors = [True] * len(self.est_sat.attitude_sensors + self.est_sat.rw_actuators)
         for j, sensor in enumerate(self.est_sat.attitude_sensors):
             if isinstance(sensor, (SunSensor, SunPair)):
                 reading = sensor.clean_reading(x=dyn_state0, os=os)
