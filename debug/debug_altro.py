@@ -7,8 +7,10 @@ from tqdm import tqdm
 import pytest
 
 sys.path.append(os.path.abspath(os.path.join(__file__, "../..")))
-from ADCS.CONOPS.goals import Goal, ECI_Goal, Coordinate_Goal
-from ADCS.controller import MTQ_w_RW
+from ADCS.CONOPS.goals import Goal, ECI_Goal, Coordinate_Goal, No_Goal
+from ADCS.CONOPS.goallist import GoalList
+from ADCS.controller import Plan_and_Track_LQR
+from ADCS.controller.helpers import PlannerSettings, Trajectory
 from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.orbit import Orbit
 from ADCS.orbits.orbital_state import Orbital_State
@@ -26,7 +28,7 @@ from ADCS.helpers.plotting.plot_controller import plot_control, plot_rw_momentum
 from ADCS.helpers.plotting.animate_orbit import animate_orbit
 from ADCS.helpers.plotting.animate_orbit_pyvista import animate_orbit_pyvista
 
-def test_mtq_w_rw_align_to_eci(verbose: bool = False, tf: float = 1000, dt: float = 10, real_orbit: bool = False) -> Union[np.ndarray, np.ndarray, List[Orbital_State], np.ndarray, np.ndarray, np.ndarray]:
+def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orbit: bool = False) -> Union[np.ndarray, np.ndarray, List[Orbital_State], np.ndarray, np.ndarray, np.ndarray]:
     np.random.seed(1)
     t0 = 0
     N = int((tf-t0)/dt)
@@ -71,8 +73,9 @@ def test_mtq_w_rw_align_to_eci(verbose: bool = False, tf: float = 1000, dt: floa
             orbs[j].J2000 = os0.J2000 + j*dt*TimeConstants.sec2cent
         orb = Orbit(orbs)
 
-    # Controller
-    controller = MTQ_w_RW(est_sat=real_sat, p_gain=0.1, d_gain=0.7, c_gain=0.1, h_target=np.array([0, 0, 0]))
+    # Build Planner
+    planner_settings = PlannerSettings(est_sat=real_sat)
+    controller = Plan_and_Track_LQR(est_sat=real_sat, planner_settings=planner_settings)
 
     time_hist = np.nan*np.zeros(N)
     state_hist = np.nan*np.zeros((N, 10))
@@ -85,15 +88,25 @@ def test_mtq_w_rw_align_to_eci(verbose: bool = False, tf: float = 1000, dt: floa
     ind = 0
     steps = int((tf - t0)/dt)
 
-    goal = ECI_Goal(np.array([1, 0, 0]))
-    goal = Coordinate_Goal(lat=38.7223, lon=-10, alt=0)
+    goals = GoalList({0.22: No_Goal(), 0.22 + 100 * TimeConstants.sec2cent: ECI_Goal(np.array([1, 0, 0]))})
+
+    print("Computing Trajectory (One-Shot)")
+    traj = controller.calculate_trajectory(
+        t_start=0.22,
+        duration=tf-t0,
+        x_0=x,
+        os_0=os0,
+        goals=goals,
+        verbose=True
+    )
+    controller.set_active_trajectory(traj)
 
     for step in tqdm(range(steps), desc="Simulating MTQ_w_RW"):
         J2000 = 0.22 + t*TimeConstants.sec2cent
         os = orb.get_os(J2000=J2000)
 
         sens = real_sat.sensor_readings(x=x, os=os)
-        u = controller.find_u(x_hat=x, sens=sens, est_sat=real_sat, os_hat=os, goal=goal)
+        u = controller.find_u(x_hat=x, sens=sens, est_sat=real_sat, os_hat=os)
 
         if verbose:
             print("u: ", u)
@@ -103,7 +116,10 @@ def test_mtq_w_rw_align_to_eci(verbose: bool = False, tf: float = 1000, dt: floa
         os_hist += [os]
         sensor_hist[ind,:] = sens
         u_hist[ind,:] = u
-        eci_goal, w_goal = goal.to_ref(os0=os)
+        
+        # Updated reference logging: Query GoalList for the reference at this time
+        # Note: to_ref now returns (eci, omega), we take [0] for the ECI vector
+        eci_goal, w_goal = goals.to_ref(t=J2000, x_hat=x, os0=os)
         boresight_hist[ind, :] = eci_goal
 
         ind += 1
@@ -119,7 +135,7 @@ def test_mtq_w_rw_align_to_eci(verbose: bool = False, tf: float = 1000, dt: floa
 
 
 def plot_mtq_w_rw_align_to_eci(verbose: bool = False, tf: float = 1000, dt: float = 10, real_orbit: bool = False) -> None:
-    (time_hist, state_hist, os_hist, sensor_hist, u_hist, boresight_hist) = test_mtq_w_rw_align_to_eci(verbose=verbose, tf=tf, dt=dt, real_orbit=real_orbit)
+    (time_hist, state_hist, os_hist, sensor_hist, u_hist, boresight_hist) = debug_altro(verbose=verbose, tf=tf, dt=dt, real_orbit=real_orbit)
 
     animate_attitude(time=time_hist, state_hist=state_hist, os_hist=os_hist, boresight_goal_hist=boresight_hist)
     plot_control(time=time_hist, u_hist=u_hist)
@@ -132,4 +148,4 @@ def plot_mtq_w_rw_align_to_eci(verbose: bool = False, tf: float = 1000, dt: floa
     create_close_all_button_window()
 
 if __name__ == "__main__":
-    plot_mtq_w_rw_align_to_eci(verbose=False, tf = 100, dt = 1, real_orbit=True)
+    plot_mtq_w_rw_align_to_eci(verbose=False, tf = 200, dt = 1, real_orbit=True)

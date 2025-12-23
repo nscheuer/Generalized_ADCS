@@ -67,7 +67,7 @@ def test_goal_coordinate_fixed_os(dt, tf, t0):
         time_hist[ind] = t
         state_hist[ind,:] = x
         os_hist += [os]
-        eci_goal, w_goal = goal.to_ref(x_hat=x, os0=os)
+        eci_goal, w_goal = goal.to_ref(os0=os)
         boresight_goal_hist[ind, :] = eci_goal
 
         ind += 1
@@ -120,7 +120,7 @@ def test_goal_coordinate_real_os(dt, tf, t0):
         time_hist[ind] = t
         state_hist[ind,:] = x
         os_hist += [os]
-        eci_goal, w_goal = goal.to_ref(x_hat=x, os0=os)
+        eci_goal, w_goal = goal.to_ref(os0=os)
         boresight_goal_hist[ind, :] = eci_goal
 
         ind += 1

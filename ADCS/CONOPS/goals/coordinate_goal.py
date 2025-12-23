@@ -35,7 +35,7 @@ class Coordinate_Goal(Goal):
 
         return np.array([x, y, z])
     
-    def to_ref(self, x_hat: np.ndarray, os0: Orbital_State) -> Tuple[np.ndarray, np.ndarray]:
+    def to_ref(self, os0: Orbital_State) -> Tuple[np.ndarray, np.ndarray]:
         r"""
         Computes the inertial pointing vector and reference angular velocity.
 

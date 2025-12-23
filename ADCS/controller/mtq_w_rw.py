@@ -257,7 +257,7 @@ class MTQ_w_RW(Controller):
         if goal is None:
             goal = Goal()
 
-        goal_vector_eci, w_ref_eci = goal.to_ref(x_hat=x_hat, os0=os_hat)
+        goal_vector_eci, w_ref_eci = goal.to_ref(os0=os_hat)
 
         b_body = self.M_mtm_read @ sens # Already filters out only MTM readings
 

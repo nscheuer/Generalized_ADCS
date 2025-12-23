@@ -132,7 +132,7 @@ def run_simulation(
         u_hist[ind,:] = u
         
         if goal is not None:
-            eci_goal, _ = goal.to_ref(x_hat=x, os0=os)
+            eci_goal, _ = goal.to_ref(os0=os)
             boresight_hist[ind, :] = eci_goal
 
         ind += 1

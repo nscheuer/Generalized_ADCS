@@ -84,8 +84,8 @@ class ConvergenceConfig:
 class SolverPassConfig:
     line_search: LineSearchConfig = field(default_factory=LineSearchConfig)
     aug_lag: AugLagConfig = field(default_factory=AugLagConfig)
-    convergence: ConvergenceConfig = field(default=ConvergenceConfig)
-    regularization: RegularizationConfig = field(default=RegularizationConfig)
+    convergence: ConvergenceConfig = field(default_factory=ConvergenceConfig)
+    regularization: RegularizationConfig = field(default_factory=RegularizationConfig)
 
 @dataclass
 class CostWeights:

@@ -22,7 +22,7 @@ class PlannerSettings:
             tvlqr_overlap: float = 1,
             dt_tp: float = None,
             precalculation_time: float = 100,
-            traj_overlap: float = 10,
+            traj_overlap: float = 100,
             bdot_on: int = 1,
             debug_plot_on: bool = False,
             include_gg: bool = False,
@@ -108,7 +108,7 @@ class PlannerSettings:
         return (
             self.pass1.line_search.to_tuple(),
             self.pass1.aug_lag.to_tuple(),
-            self.pass1.convergence.to_tuple(self.sat.state_len),
+            self.pass1.convergence.to_tuple(state_len=self.est_sat.state_len),
             self.pass1.regularization.to_tuple()
         )
     
@@ -116,7 +116,7 @@ class PlannerSettings:
         return (
             self.pass2.line_search.to_tuple(),
             self.pass2.aug_lag.to_tuple(),
-            self.pass2.convergence.to_tuple(self.sat.state_len),
+            self.pass2.convergence.to_tuple(state_len=self.est_sat.state_len),
             self.pass2.regularization.to_tuple()
         )
 
@@ -131,7 +131,7 @@ class PlannerSettings:
 
     def optTVLQRCostSettings(self, tracking_LQR_formulation):
         # Note: tracking_LQR_formulation is passed in from ADCS at runtime
-        return self.cost_tvlqr.to_tuple(tracking_formulation)
+        return self.cost_tvlqr.to_tuple(tracking_LQR_formulation)
 
     def planner_disturbance_settings(self):
         return (

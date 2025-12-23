@@ -42,8 +42,9 @@ sudo apt install -y cmake g++ libarmadillo-dev libboost-math-dev
 
 # Build tplaunch
 ```bash
+cd trajectory_planner/src/planner
 cmake ../.. \
-  -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_BUILD_TYPE=Debug \
   -DPython3_EXECUTABLE=$(which python3) \
   -DPYTHON_EXECUTABLE=$(which python3) \
   -DPYTHON_INCLUDE_DIR=$(python3 -c "from sysconfig import get_paths; print(get_paths()['include'])") \
