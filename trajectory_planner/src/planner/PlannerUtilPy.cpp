@@ -1,7 +1,7 @@
 // #define earth_mu 3.986e14
 // #include "PlannerUtil.hpp"
 #include "PlannerUtilPy.hpp"
-
+#include <iomanip>
 
 
 
@@ -161,6 +161,9 @@ ALL_SETTINGS_PY_FORM ParametersCpp2Py(ALL_SETTINGS_FORM allCpp)
 VECTOR_INFO_FORM vecsPy2Cpp(VECTOR_INFO_PY_FORM py_vecs){
   vec t = numpyToArmaVector(get<0>(py_vecs));
   mat r = numpyToArmaMatrix(get<1>(py_vecs));
+  std::cout << "C++ DEBUG: R(0,0) = " << std::fixed << std::setprecision(10) << r(0,0) << std::endl;
+  std::cout << "C++ DEBUG: R(0,1) = " << std::fixed << std::setprecision(10) << r(0,1) << std::endl;
+  std::cout << "C++ DEBUG: R shape = " << r.n_rows << "x" << r.n_cols << std::endl;
   mat v = numpyToArmaMatrix(get<2>(py_vecs));
   mat b = numpyToArmaMatrix(get<3>(py_vecs));
   mat s = numpyToArmaMatrix(get<4>(py_vecs));

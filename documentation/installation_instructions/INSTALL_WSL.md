@@ -42,8 +42,9 @@ sudo apt install -y cmake g++ libarmadillo-dev libboost-math-dev
 
 # Build tplaunch
 ```bash
-cd trajectory_planner/src/planner
-cmake ../.. \
+cd trajectory_planner
+mkdir -p build && cd build
+cmake .. \
   -DCMAKE_BUILD_TYPE=Debug \
   -DPython3_EXECUTABLE=$(which python3) \
   -DPYTHON_EXECUTABLE=$(which python3) \
@@ -53,4 +54,12 @@ cmake ../.. \
   -DPYTHON_LIBRARIES=$(python3 -c "import sysconfig; print(sysconfig.get_config_var('LIBDIR'))")/libpython3.12.so
 
 make -j$(nproc)
+```
+
+## Debugging tplaunch
+Install GDB:
+```bash
+sudo apt update
+sudo apt install gdb
+which gdb
 ```

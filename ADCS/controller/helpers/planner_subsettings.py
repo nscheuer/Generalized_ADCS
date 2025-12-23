@@ -129,7 +129,7 @@ class CostWeights:
 @dataclass
 class InitTrajConfig:
     # Settings for generating the initial guess
-    bdot_gain: float = 1e7
+    bdot_gain: float = 0.0
     hl_angle_limit: float = 10.0 * np.pi / 180.0
     
     # (gyro, damp, vel, quat, rand, umax)

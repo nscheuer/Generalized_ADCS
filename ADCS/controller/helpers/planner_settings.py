@@ -80,7 +80,7 @@ class PlannerSettings:
         self.magic_control_weight = 0.0001
         self.rw_AM_weight = 0.1
         self.rw_stic_weight = 0.01
-        self.RWh_max_mult = 0.8
+        self.RWh_max_mult = 2.0
         self.RWh_stiction_mult = 0.05
         self.RWh_ok_mult = 0.4
 
