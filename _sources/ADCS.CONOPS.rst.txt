@@ -7,6 +7,8 @@ Subpackages
 .. toctree::
    :maxdepth: 4
 
+   ADCS.CONOPS.goallist
+   ADCS.CONOPS.goals
    ADCS.CONOPS.rules
 
 Submodules
@@ -22,5 +24,5 @@ Module contents
 
 .. automodule:: ADCS.CONOPS
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:

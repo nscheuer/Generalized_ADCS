@@ -10,6 +10,7 @@ Subpackages
    ADCS.CONOPS
    ADCS.controller
    ADCS.estimators
+   ADCS.flight_software
    ADCS.helpers
    ADCS.logging
    ADCS.orbits
@@ -28,5 +29,5 @@ Module contents
 
 .. automodule:: ADCS
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:

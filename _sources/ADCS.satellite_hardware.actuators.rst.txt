@@ -18,5 +18,5 @@ Module contents
 
 .. automodule:: ADCS.satellite_hardware.actuators
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:
