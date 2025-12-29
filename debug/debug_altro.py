@@ -9,7 +9,7 @@ import pytest
 sys.path.append(os.path.abspath(os.path.join(__file__, "../..")))
 from ADCS.CONOPS.goals import Goal, ECI_Goal, Coordinate_Goal, No_Goal
 from ADCS.CONOPS.goallist import GoalList
-from ADCS.controller import Plan_and_Track_LQR
+from ADCS.controller.plan_and_track_lqr2 import Plan_and_Track_LQR
 from ADCS.controller.helpers import PlannerSettings, Trajectory
 from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.orbit import Orbit
@@ -49,7 +49,7 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
     real_sat = Satellite(mass=4.0, J_0=np.diagflat([3.4, 2.9, 1.3]), actuators=acts, sensors=mtms, boresight=np.array([0, 0, 1]))
 
     w0 = random_n_unit_vec(3)*np.random.uniform(1, 2)*np.pi/180.0
-    w0 = np.array([0, 0, 0])
+    w0 = np.array([0.01, 0, 0])
     q0 = random_n_unit_vec(4)
     q0 = normalize(np.array([1, 0, 0, 0]))
     h0 = np.array([rw_h0, rw_h0, rw_h0])
@@ -91,7 +91,7 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
     goals = GoalList({0.22: No_Goal(), 0.22 + 100 * TimeConstants.sec2cent: ECI_Goal(np.array([1, 0, 0]))})
 
     print("Computing Trajectory (One-Shot)")
-    traj = controller.calculate_trajectory(
+    traj: Trajectory = controller.calculate_trajectory(
         t_start=0.22,
         duration=tf-t0,
         x_0=x,
@@ -99,6 +99,7 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
         goals=goals,
         verbose=True
     )
+    traj.plot_eci_trajectory()
     controller.set_active_trajectory(traj)
 
     for step in tqdm(range(steps), desc="Simulating MTQ_w_RW"):
