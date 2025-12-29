@@ -216,12 +216,12 @@ class RW(Actuator):
 
         if self.bias and dmode.add_bias:
             command += self.bias.get_bias(j2000=os.J2000)
-        if dmode.add_bias:
+        if dmode.update_bias:
             self.bias._update_bias(os.J2000)
 
         if self.noise and dmode.add_noise:
             command += self.noise.get_noise()
-        if dmode.add_noise:
+        if dmode.update_noise:
             self.noise._update_noise()
 
         return -command

@@ -4,6 +4,7 @@ import numpy as np
 import scipy.linalg
 import copy
 from typing import List, Tuple, Optional
+import time
 
 # The external C-library wrapper for fast Cholesky updates
 from choldate import cholupdate, choldowndate
@@ -11,6 +12,7 @@ from choldate import cholupdate, choldowndate
 from ADCS.estimators.estimator_helpers.estimator_helpers import EstimatedArray
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
 from ADCS.satellite_hardware.sensors import SunSensor, SunPair
+from ADCS.satellite_hardware.disturbances import DisturbanceMode
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.universal_constants import CG5Coefficients
 from ADCS.helpers.math_helpers import (
@@ -179,11 +181,10 @@ class SRUAKF(UAKF):
 
     def make_pts_and_wts(self, pt0: np.ndarray, which_sensors: List[bool]):
         r"""
-        Generate sigma points directly using the stored Upper Triangular :math:`S`.
+        Generate augmented sigma points using the stored Square Root S for efficiency.
 
-        Overrides :meth:`~ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF.make_pts_and_wts` to avoid
-        performing a Cholesky decomposition at every step. Instead, it scales the
-        persistently tracked :math:`S` matrix.
+        Replicates the standard UKF output format (L, pts, wts_m, wts_c, sig0) 
+        but uses the persistently tracked self.S for the state block.
 
         Parameters
         ----------
@@ -196,45 +197,138 @@ class SRUAKF(UAKF):
         -------
         L : int
             Dimension of the augmented error state.
-        pts : numpy.ndarray
-            Array of sigma points.
+        pts : list
+            List of length 2L+1. Each entry is a list: [full_state, sens_noise, control_noise, int_noise].
         wts_m : numpy.ndarray
-            Mean weights.
+            Weights for mean reconstruction.
         wts_c : numpy.ndarray
-            Covariance weights.
+            Weights for covariance reconstruction.
+        sig0 : numpy.ndarray
+            The first block of sigma points (state part only), padded.
         """
-        L_dim = self.state_len - 1 if not self.quat_as_vec else self.state_len
+        # 1. Setup Covariances & Dimensions
+        # ---------------------------------
+        # State Covariance (Error State)
+        # Use self.S directly later, but we need the dimension here.
+        L_x = self.S.shape[0]
+
+        # Control/Process Noise Covariance
+        control_cov = self.est_sat.control_cov()
+        L_q = control_cov.shape[0] if control_cov.size > 0 else 0
         
-        self.lam = self.al ** 2.0 * (self.kap + L_dim) - L_dim
-        gamma = np.sqrt(L_dim + self.lam)
+        # Sensor & Integration Covariances (Zeroed out in this architecture)
+        # We maintain their shapes for the list structure
+        sens_cov = self.est_sat.sensor_cov(which_sensors=which_sensors)
+        L_r = 0 # Explicitly treating as 0 contribution to L
+        L_int = 0
 
-        # Scale the stored Upper Triangular factor
-        weighted_S = gamma * self.S
+        # Total Augmented Dimension
+        L = L_x + L_q + L_r + L_int
 
-        # Generate offsets
-        # Since S is Upper, the rows are the conjugate axes.
-        # We stack [S, -S]
-        offsets = np.vstack((weighted_S, -weighted_S))
-
-        # Add to mean state (handle quaternions via UKF base method)
-        states = self.add_to_state(pt0, offsets)
+        # 2. Weights (Standard UKF)
+        # -------------------------
+        self.lam = self.al ** 2.0 * (self.kap + L) - L
+        gamma = np.sqrt(L + self.lam)
         
-        # Full Sigma Points: [Mean, +Sigmas, -Sigmas]
-        pts = np.vstack((pt0, states))
-
-        # Weights
-        denom = L_dim + self.lam
+        denom = L + self.lam
         w0_m = self.lam / denom
         w0_c = self.lam / denom + (1.0 - self.al ** 2.0 + self.bet)
         wi = 0.5 / denom
-
-        num_sigma = 2 * L_dim + 1
+        
+        num_sigma = 2 * L + 1
         wts_m = np.full(num_sigma, wi)
         wts_c = np.full(num_sigma, wi)
         wts_m[0] = w0_m
         wts_c[0] = w0_c
         
-        return L_dim, pts, wts_m, wts_c
+        self.wts_m = wts_m
+        self.wts_c = wts_c
+
+        # 3. Construct "Zeros" for the list structure
+        # -------------------------------------------
+        # Ensure we return valid numpy arrays even if empty
+        dtype = pt0.dtype
+        zeros_state = pt0 # Not used as zero, but as placeholder
+        zeros_sens = np.zeros(sens_cov.shape[0], dtype=dtype) if sens_cov.size > 0 else np.zeros(0, dtype=dtype)
+        zeros_ctrl = np.zeros(L_q, dtype=dtype) if L_q > 0 else np.zeros(0, dtype=dtype)
+        zeros_int  = np.zeros(self.x_hat.int_cov.shape[0], dtype=dtype) if self.x_hat.int_cov.size > 0 else np.zeros(0, dtype=dtype)
+
+        # The mean point list [state, sens, ctrl, int]
+        # Note: pt0 is the mean state
+        zeros = [pt0, zeros_sens, zeros_ctrl, zeros_int]
+        pts = [zeros]
+
+        # 4. Generate Sigma Points Block by Block
+        # ---------------------------------------
+        
+        # --- BLOCK 1: STATE (Uses self.S directly) ---
+        # S is Upper Triangular, so P = S.T @ S. 
+        # The Cholesky L (Lower) is S.T.
+        # Sigma offsets are columns of L, which are rows of S.
+        scaled_S = gamma * self.S
+        
+        # Offsets: [+S_rows, -S_rows]
+        state_offsets = np.vstack((scaled_S, -scaled_S))
+        
+        # Apply offsets to state (handling quaternions)
+        sig_states = self.add_to_state(pt0, state_offsets)
+        
+        # Append to pts: [modified_state, 0, 0, 0]
+        for k in sig_states:
+            pts.append([k, zeros_sens, zeros_ctrl, zeros_int])
+
+        # --- BLOCK 2: SENSORS (Skipped - assumed zero) ---
+        # If L_r > 0, we would compute cholesky(sens_cov) here.
+
+        # --- BLOCK 3: CONTROL / PROCESS NOISE ---
+        if L_q > 0:
+            # We compute Cholesky for Q on the fly (usually small 6x6)
+            # Ensure it is Upper Triangular for consistency if needed, 
+            # though usually standard Cholesky (Lower) is fine for noise blocks 
+            # as long as we take columns. 
+            try:
+                # np.linalg.cholesky returns Lower.
+                L_mat_q = np.linalg.cholesky(control_cov) 
+                # Scaled offsets (columns of L_mat_q)
+                scaled_L_q = gamma * L_mat_q
+                
+                # Transpose to get rows for iteration if using similar logic to S
+                # or just use columns. Let's use standard: [ +Cols, -Cols ]
+                # We need shape (2*L_q, L_q)
+                q_offsets = np.hstack((scaled_L_q, -scaled_L_q)).T 
+                
+                # Append to pts: [mean_state, 0, modified_ctrl, 0]
+                for k in q_offsets:
+                    pts.append([pt0, zeros_sens, k, zeros_int])
+                    
+            except np.linalg.LinAlgError:
+                # Fallback if Q is not positive definite (rare for process noise)
+                pass
+
+        # --- BLOCK 4: INT NOISE (Skipped - assumed zero) ---
+
+        # 5. Construct sig0 (State components only, padded)
+        # -------------------------------------------------
+        # sig0 is a (2L+1, state_dim) array used for fast vectorized operations
+        # on the state part of the sigma points.
+        # It must align with 'pts'. 
+        # Structure: [Mean, State_Pts, Mean_Repeated_for_Noise_Pts]
+        
+        sig0_list = [pt0]
+        sig0_list.extend(sig_states) # The state-perturbed points
+        
+        # Determine how many remaining points are just the mean state
+        # (These are the points perturbed by Control/Sensor noise)
+        current_count = len(sig0_list)
+        pad_count = num_sigma - current_count
+        
+        if pad_count > 0:
+            # Efficiently repeat the mean
+            sig0_list.extend([pt0] * pad_count)
+            
+        sig0 = np.vstack(sig0_list)
+
+        return L, pts, wts_m, wts_c, sig0
 
     def update_core(
         self,
@@ -299,7 +393,7 @@ class SRUAKF(UAKF):
             quat_as_vec=False,
         )
 
-        which_sensors = [True] * len(self.est_sat.attitude_sensors)
+        which_sensors = [True] * len(self.est_sat.attitude_sensors + self.est_sat.rw_actuators)
         for j, sensor in enumerate(self.est_sat.attitude_sensors):
             if isinstance(sensor, (SunSensor, SunPair)):
                 reading = sensor.clean_reading(x=dyn_state0, os=os)
@@ -312,9 +406,10 @@ class SRUAKF(UAKF):
             for j in range(len(self.est_sat.sensors))
             if which_sensors[j]
         )
+        sens_vec_len += len(self.est_sat.rw_actuators)
 
-        L_dim, pts, wts_m, wts_c = self.make_pts_and_wts(state0, which_sensors)
-        num_sigma = pts.shape[0]
+        L, pts, wts_m, wts_c, sig0 = self.make_pts_and_wts(state0, which_sensors)
+        num_sigma = 2*L+1
         
         sigma_state_len = state0.size - 1 + self.quat_as_vec
         post_pts = np.empty((num_sigma, sigma_state_len), dtype=float)
@@ -327,12 +422,12 @@ class SRUAKF(UAKF):
 
         # --- 3. Propagation Loop ---
         for j in range(num_sigma):
-            full_pre_statej = pts[j]
+            full_pre_statej, sens_noise_j, control_noise_j, int_noise_extra_j = pts[j]
             self.sat_match(satj, full_pre_statej)
 
             post_dyn_state_j = satj.noiseless_rk4(
                 x=full_pre_statej[:state_len],
-                u=u,
+                u=u + control_noise_j,
                 dt=self.dt,
                 orbital_state0=self.prev_os,
                 orbital_state1=os,
@@ -346,17 +441,15 @@ class SRUAKF(UAKF):
             post_statej, post_full_statej = self.new_post_state(
                 full_pre_statej[state_len:],
                 post_dyn_state_j,
-                np.zeros(sigma_state_len), 
+                int_noise_extra_j, 
                 post_quat,
             )
-            post_pts[j, :] = post_statej
+            post_pts[j, :] = post_statej.copy()
 
             self.sat_match(satj, post_full_statej)
-            sensj = satj.noiseless_sensor_readings(
-                x=post_full_statej[:state_len],
-                os=os,
-            )
-            post_sens[j, :] = sensj[which_sensors]
+            dmode = DisturbanceMode(add_bias=True, add_noise=False, update_bias=False, update_noise=False)
+            sensj = satj.sensor_readings(x=post_full_statej[:state_len],os=os, dmode=dmode)
+            post_sens[j, :] = sensj[which_sensors] + sens_noise_j
 
         # --- 4. Time Update (QR Method) ---
         state1 = wts_m @ post_pts
@@ -365,30 +458,8 @@ class SRUAKF(UAKF):
         
         # State deviations
         pts_diff = post_pts - state1
-        
-        # QR Decomposition for State Covariance
-        # A = [ sqrt(w) * (Xi - x).T | sqrt(Q) ]
-        # We need R from QR(A).
-        # Note: wts_c[0] is negative, so we skip index 0 in the QR and downdate it later.
-        
+
         weighted_diffs = pts_diff[1:, :].T * np.sqrt(wts_c[1:])
-        
-        # Stack weighted sigmas and process noise (S_Q is Upper)
-        # QR of transpose gives R upper triangular
-        # A = np.hstack([weighted_diffs, self.S_Q])
-        # R = qr(A.T, mode='r')  -> This is wrong if S_Q is Upper.
-        # We want R such that R.T R = A A.T
-        # A.T = vstack([weighted_diffs.T, self.S_Q.T])? No.
-        
-        # Correct logic from old code:
-        # srcov1 = qr( hstack([ diffs.T, S_Q ]).T )
-        #      = qr( vstack([ diffs, S_Q.T ]) ) -> This seems to mix Upper/Lower?
-        
-        # Let's strictly follow the old code: 
-        # srcov1 = np.linalg.qr(np.hstack([pts_diff[1:,:].T*np.sqrt(wts_c[1:]), self.sric]).T, mode='r')
-        # Here sric (self.S_Q) was initialized as Upper.
-        # hstack puts them side by side. .T flips it.
-        # So we represent the matrix A where A^T A = P. 
         
         to_qr = np.hstack([pts_diff[1:, :].T * np.sqrt(wts_c[1:]), self.S_Q.T])
         # Note: using S_Q.T implies S_Q was Upper, so S_Q.T is Lower. 
@@ -420,17 +491,6 @@ class SRUAKF(UAKF):
         # --- 6. Kalman Gain ---
         # Cross Covariance
         covyx = sum([wts_c[j] * np.outer(sens_diff[j, :], pts_diff[j, :]) for j in range(num_sigma)])
-        
-        # Solve for Gain
-        # Kk = (Pyy^-1 Pyx)^T
-        # Pyy = srcov_sens.T @ srcov_sens (since srcov_sens is Upper R, P = R.T R)
-        
-        # Old code solution:
-        # Kk = solve_triangular(srcov_sens, solve_triangular(srcov_sens, covyx, trans='T'))
-        # Let's verify: 
-        # Inner: x = solve(R^T, P_yx).  R^T x = P_yx.
-        # Outer: K = solve(R, x).       R K = x.
-        # R K = R^-T P_yx  ->  R^T R K = P_yx  -> P_yy K = P_yx. Correct.
         
         try:
             t1 = scipy.linalg.solve_triangular(srcov_sens, covyx, lower=False, trans='T')
@@ -482,5 +542,4 @@ class SRUAKF(UAKF):
             P_plus = norm_jac.T @ P_plus @ norm_jac
 
         self.sat_match(satj, state_final)
-        
         return EstimatedArray(val=state_final, cov=P_plus)

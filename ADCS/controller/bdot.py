@@ -69,7 +69,7 @@ class BDot(Controller):
         self.gain = gain
         
         # Sensor Reading Matrix
-        self.M_read, self.mtm_indices = self.build_sensor_matrix_pinv(sensors=est_sat.attitude_sensors, sensor_type=MTM)
+        self.M_read, self.mtm_indices = self.build_sensor_matrix_pinv(sensors=est_sat.attitude_sensors+est_sat.rw_actuators, sensor_type=MTM)
 
         # Actuation Matrix
         self.M_act, self.mtq_indices = self.build_torque_to_u_matrix_pinv(actuators=est_sat.actuators, actuator_type=MTQ)
@@ -80,7 +80,7 @@ class BDot(Controller):
         self.initialized = False
 
         # Storage of max torque limits
-        self.max_torque = self.find_max_torque(actuators=est_sat.actuators, actuator_type=MTQ)
+        self.max_torque = self.find_max_torque(actuators=est_sat.actuators)
 
         self.n_actuators = len(est_sat.actuators)
 
@@ -138,7 +138,5 @@ class BDot(Controller):
         u_cmd = self.M_act @ m_desired
 
         u_cmd = limit(u=u_cmd, umax=self.max_torque)
-        u_total = np.zeros(self.n_actuators)
-        u_total[self.mtq_indices] = u_cmd
 
-        return u_total
+        return u_cmd

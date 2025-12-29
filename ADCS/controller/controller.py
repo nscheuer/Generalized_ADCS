@@ -1,8 +1,9 @@
 __all__ = ["Controller"]
 
 import numpy as np
-from typing import List, Tuple, Type
+from typing import List, Tuple, Type, Optional
 
+from ADCS.CONOPS.goals import Goal
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.satellite_hardware.sensors import Sensor
@@ -45,7 +46,7 @@ class Controller():
         pass
 
 
-    def find_u(self, x_hat: np.ndarray, sens: np.ndarray, est_sat: EstimatedSatellite, os_hat: Orbital_State, goal_vector_eci: np.ndarray | None = None, w_ref: np.ndarray | None = None, **kwargs) -> np.ndarray:
+    def find_u(self, x_hat: np.ndarray, sens: np.ndarray, est_sat: EstimatedSatellite, os_hat: Orbital_State, goal: Goal | None, **kwargs) -> np.ndarray:
         r"""
         Computes actuator inputs required to satisfy the control objective.
 
@@ -129,28 +130,47 @@ class Controller():
         if not issubclass(sensor_type, Sensor):
             raise TypeError(f"sensor_type must be a subclass of Sensor, got {sensor_type}")
         
-        cols = []
-        indices = []
-        curr_global_idx = 0
-
-        for sens in sensors:
-            axis = np.asarray(sens.axis, dtype=float).reshape(3, -1)
-            num_inputs = axis.shape[1]
-
-            if isinstance(sens, sensor_type):
-                for i in range(num_inputs):
-                    cols.append(axis[:, i])
-                    indices.append(curr_global_idx + i)
-
-            curr_global_idx += num_inputs
-
-        if not cols:
-            raise ValueError(f"No sensos of type {sensor_type.__name__} found in the sensor list.")
+        # 1. Collect axes for the target sensor type and track indices
+        active_cols = []
+        active_indices = []
         
-        A = np.column_stack(cols)
-        M_sens = np.linalg.pinv(A)
+        current_idx = 0
+        
+        for sens in sensors:
+            # Get the sensing axis (or axes) for this sensor
+            # shape is (3, N_outputs), usually (3,1)
+            axis = np.asarray(sens.axis, dtype=float).reshape(3, -1) 
+            n_outputs = axis.shape[1]
+            
+            # If this is the sensor we want, record its axis and indices
+            if isinstance(sens, sensor_type):
+                # Append each column of the axis matrix individually
+                for i in range(n_outputs):
+                    active_cols.append(axis[:, i])
+                    active_indices.append(current_idx + i)
+            
+            # Always increment the index counter so the full 'y' vector alignment is preserved
+            current_idx += n_outputs
 
-        return M_sens, indices
+        if not active_cols:
+            raise ValueError(f"No sensors of type {sensor_type.__name__} found.")
+
+        # 2. Compute the Pinv for ONLY the active sensors
+        # A_sub shape: (3, N_active)
+        A_sub = np.column_stack(active_cols)
+        
+        # M_sub shape: (3, N_active) -- usually (3,3) for MTMs
+        M_sub = np.linalg.pinv(A_sub)
+
+        # 3. Create the full matrix (3, N_total) filled with zeros
+        # current_idx now holds the total length of 'y'
+        M_full = np.zeros((3, current_idx))
+
+        # 4. Slot the computed inverse into the correct columns
+        # This ensures M_full @ y only "sees" the relevant values
+        M_full[:, active_indices] = M_sub
+
+        return M_full, active_indices
     
 
     def build_torque_to_u_matrix_pinv(self, actuators: List[Actuator], actuator_type: Type[Actuator]) -> Tuple[np.ndarray, List[int]]:
@@ -194,8 +214,8 @@ class Controller():
         if not issubclass(actuator_type, Actuator):
             raise TypeError(f"actuator_type must be a subclass of Actuator, got {actuator_type}")
         
-        cols = []
-        indices = []
+        active_cols = []
+        active_indices = []
         curr_global_idx = 0
 
         for act in actuators:
@@ -204,18 +224,25 @@ class Controller():
 
             if isinstance(act, actuator_type):
                 for i in range(num_inputs):
-                    cols.append(axis[:, i])
-                    indices.append(curr_global_idx + i)
+                    active_cols.append(axis[:, i])
+                    active_indices.append(curr_global_idx + i)
 
             curr_global_idx += num_inputs
 
-        if not cols:
+        if not active_cols:
             raise ValueError(f"No actuators of type {actuator_type.__name__} found in the actuator list.")
         
-        A = np.column_stack(cols)
-        M_act = np.linalg.pinv(A)
+        # A_sub shape: (3, N_active)
+        A_sub = np.column_stack(active_cols)
+        
+        # M_sub shape: (N_active, 3)
+        M_sub = np.linalg.pinv(A_sub)
 
-        return M_act, indices
+        # M_act shape: (N_total, 3)
+        M_act = np.zeros((curr_global_idx, 3))
+        M_act[active_indices, :] = M_sub
+
+        return M_act, active_indices
     
 
     def build_u_to_torque_matrix_pinv(self, actuators: List[Actuator], actuator_type: Type[Actuator]) -> np.ndarray:
@@ -257,12 +284,22 @@ class Controller():
             of the requested type are found, returns an empty (3, 0) matrix.
 
         """
+        if not issubclass(actuator_type, Actuator):
+            raise TypeError(f"actuator_type must be a subclass of Actuator, got {actuator_type}")
+
         cols = []
         for act in actuators:
+            axis = np.asarray(act.axis, dtype=float).reshape(3, -1)
+            num_inputs = axis.shape[1]
+
             if isinstance(act, actuator_type):
-                axis = np.asarray(act.axis, dtype=float).reshape(3, -1)
-                for i in range(axis.shape[1]):
+                # Target actuator: Append the actual torque axis
+                for i in range(num_inputs):
                     cols.append(axis[:, i])
+            else:
+                # Non-target actuator: Append zeros to maintain alignment with the full 'u' vector
+                for i in range(num_inputs):
+                    cols.append(np.zeros(3))
         
         if not cols:
             return np.zeros((3, 0))
@@ -270,7 +307,7 @@ class Controller():
         return np.column_stack(cols)
     
 
-    def find_max_torque(self, actuators: List[Actuator], actuator_type: Type[Actuator]) -> np.ndarray:
+    def find_max_torque(self, actuators: List[Actuator], actuator_type: Optional[Type[Actuator]] = None) -> np.ndarray:
         r"""
         Extracts the maximum actuator command magnitude for the given actuator type.
 
@@ -296,7 +333,16 @@ class Controller():
             If no actuators of the requested type are present.
 
         """
-        max_torque = np.array([act.u_max for act in actuators if isinstance(act, actuator_type)])
-        if len(max_torque) == 0:
-            raise ValueError(f"No actuators of type {actuator_type.__name__} found to determine max input limit (u_max).")
-        return max_torque
+        if actuator_type is None:
+            # Return limits for all actuators in order
+            max_u_limits = np.array([act.u_max for act in actuators])
+            if len(max_u_limits) == 0:
+                # Only raise an error if the list of actuators itself is empty
+                raise ValueError("The actuator list is empty.")
+            return max_u_limits
+        else:
+            # Original logic: return limits only for the specified type
+            max_torque = np.array([act.u_max for act in actuators if isinstance(act, actuator_type)])
+            if len(max_torque) == 0:
+                raise ValueError(f"No actuators of type {actuator_type.__name__} found to determine max input limit (u_max).")
+            return max_torque

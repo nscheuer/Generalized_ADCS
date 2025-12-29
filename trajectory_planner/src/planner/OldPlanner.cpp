@@ -623,9 +623,9 @@ tuple<TRAJECTORY_FORM,double> OldPlanner::bdot(vec x0,double dt0, int N,VECTOR_I
     dynamics_info_kn1 = dynamics_info_k;
     dynamics_info_k =  make_tuple(Bset.col(k),Rset.col(k),pset(k),Vset.col(k),Sset.col(k),0);
     RmatT = rotMat(qk).t();
-    // uk = -bdotgain*(-cross(xk.rows(0,2), RmatT*Bk) + RmatT*(Bset.col(k)-Bk)/dt0);
+    uk = -bdotgain*(-cross(xk.rows(0,2), RmatT*Bk) + RmatT*(Bset.col(k)-Bk)/dt0);
     uk.zeros();
-    // cout<<xk.t()<<"\n";
+    cout<<xk.t()<<"\n";
     uk.head(sat.number_MTQ) = -sat.mtq_ax_mat.t()*bdotgain*(-cross(xk.rows(0,2), RmatT*Bk) + RmatT*(Bset.col(k)-Bk)/dt0);///pow(norm(Bk),2);
 
     ur = max(abs(uk/umax));

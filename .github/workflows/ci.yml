@@ -1,0 +1,46 @@
+# .github/workflows/ci.yml
+
+name: Run Pytest on All Branches
+
+# 1. Define when this workflow runs
+on:
+  push:
+    branches:
+      - '**' # Run on push to ALL branches
+  pull_request:
+    branches:
+      - '**' # Run on PR targeting ALL branches
+
+# 2. Define the jobs
+jobs:
+  check_all_pytests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: ⬇️ Checkout Repository
+        uses: actions/checkout@v4
+      
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11' # Use your required Python version
+
+      - name: ⚙️ Create and Activate Virtual Environment
+        run: |
+          python -m venv .venv
+          source .venv/bin/activate
+          # Use 'run' keyword for subsequent commands in the same step
+          
+      - name: 📦 Install Dependencies
+        run: |
+          source .venv/bin/activate
+          # Install dependencies from the requirements file
+          pip install -r requirements.txt
+          pip install git+https://github.com/jcrudy/choldate.git --no-build-isolation
+          
+      - name: 🧪 Run Pytest with Verbose Output
+        run: |
+          source .venv/bin/activate
+          # Change directory and run pytest -v
+          cd testing/
+          pytest -v

@@ -44,14 +44,15 @@ class Actuator:
         self.axis = normalize(axis)
         self.u_max = u_max
         if bias:
-            self.bias: Bias = bias
+            self.bias: Bias = bias.copy()
         else:
             self.bias = Bias()
         if noise:
-            self.noise: Noise = noise
+            self.noise: Noise = noise.copy()
         else:
             self.noise = Noise()
         self.estimate_bias: bool = estimate_bias
+        self.input_len: int = 1
         self.last_bias_time: float = float('nan')
 
     def torque(self, u: float, x: np.ndarray, os: Orbital_State, dmode: DisturbanceMode = None) -> float:
