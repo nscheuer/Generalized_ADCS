@@ -9,7 +9,7 @@ import pytest
 sys.path.append(os.path.abspath(os.path.join(__file__, "../..")))
 from ADCS.CONOPS.goals import Goal, ECI_Goal, Coordinate_Goal, No_Goal
 from ADCS.CONOPS.goallist import GoalList
-from ADCS.controller.plan_and_track_lqr2 import Plan_and_Track_LQR
+from ADCS.controller.plan_and_track_lqr3 import Plan_and_Track_LQR
 from ADCS.controller.helpers import PlannerSettings, Trajectory
 from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.orbit import Orbit
@@ -102,7 +102,7 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
     traj.plot_eci_trajectory()
     controller.set_active_trajectory(traj)
 
-    for step in tqdm(range(steps), desc="Simulating MTQ_w_RW"):
+    for step in tqdm(range(steps), desc="Simulating ALTRO"):
         J2000 = 0.22 + t*TimeConstants.sec2cent
         os = orb.get_os(J2000=J2000)
 
@@ -120,7 +120,7 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
         
         # Updated reference logging: Query GoalList for the reference at this time
         # Note: to_ref now returns (eci, omega), we take [0] for the ECI vector
-        eci_goal, w_goal = goals.to_ref(t=J2000, x_hat=x, os0=os)
+        eci_goal, w_goal = goals.to_ref(t=J2000, os0=os)
         boresight_hist[ind, :] = eci_goal
 
         ind += 1

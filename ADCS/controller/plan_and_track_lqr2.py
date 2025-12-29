@@ -119,7 +119,7 @@ class Plan_and_Track_LQR(Controller):
         The Core iLQR / ALTRO Loop with Levenberg-Marquardt Regularization.
         """
         max_iter = 50
-        tol_cost = 1e-4
+        tol_cost = 1e-7
         
         # Regularization parameters
         reg = 1e-6
@@ -160,10 +160,12 @@ class Plan_and_Track_LQR(Controller):
                 X = X_new
                 U = U_new
                 current_cost = new_cost
+                
+                # Update Reg: Decrease it (trust region expansion)
                 reg = max(reg_min, reg / reg_factor)
                 
-                # Convergence Check
-                if d_cost_rel < tol_cost:
+                # MODIFIED CHECK: Only stop if improvement is small AND we aren't heavily regularized
+                if d_cost_rel < tol_cost and reg < 1.0: 
                     if verbose: print(">> Converged (Cost Tolerance).")
                     break
             else:
@@ -446,9 +448,5 @@ class Plan_and_Track_LQR(Controller):
                 fast=True 
             )
             os_list.append(os)
-            
-        # Append one extra for boundary conditions in loops if accessed as k+1
-        # (Though logic usually stops at N-1, safeguards are good)
-        os_list.append(os_list[-1])
         
         return os_list
