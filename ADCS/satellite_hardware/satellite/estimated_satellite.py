@@ -235,13 +235,13 @@ class EstimatedSatellite(Satellite):
 
         .. math::
 
-            \\frac{\\partial \\boldsymbol{\\tau}_d}{\\partial \\mathbf{x}},
-            \\qquad
-            \\frac{\\partial \\boldsymbol{\\tau}_d}{\\partial \\boldsymbol{\\theta}_d}
+            \frac{\partial \boldsymbol{\tau}_d}{\partial \mathbf{x}},
+            \qquad
+            \frac{\partial \boldsymbol{\tau}_d}{\partial \boldsymbol{\theta}_d}
 
-        where :math:`\\boldsymbol{\\tau}_d` is the total disturbance torque,
-        :math:`\\mathbf{x}` is the spacecraft state vector, and
-        :math:`\\boldsymbol{\\theta}_d` represents disturbance model parameters.
+        where :math:`\boldsymbol{\tau}_d` is the total disturbance torque,
+        :math:`\mathbf{x}` is the spacecraft state vector, and
+        :math:`\boldsymbol{\theta}_d` represents disturbance model parameters.
 
         Parameters
         ----------
@@ -289,9 +289,9 @@ class EstimatedSatellite(Satellite):
 
         .. math::
 
-            \\frac{\\partial^2 \\boldsymbol{\\tau}_d}{\\partial \\mathbf{x}^2}, \\qquad
-            \\frac{\\partial^2 \\boldsymbol{\\tau}_d}{\\partial \\mathbf{x}\\,\\partial \\boldsymbol{\\theta}_d}, \\qquad
-            \\frac{\\partial^2 \\boldsymbol{\\tau}_d}{\\partial \\boldsymbol{\\theta}_d^2}
+            \frac{\partial^2 \boldsymbol{\tau}_d}{\partial \mathbf{x}^2}, \qquad
+            \frac{\partial^2 \boldsymbol{\tau}_d}{\partial \mathbf{x}\,\partial \boldsymbol{\theta}_d}, \qquad
+            \frac{\partial^2 \boldsymbol{\tau}_d}{\partial \boldsymbol{\theta}_d^2}
 
         Parameters
         ----------

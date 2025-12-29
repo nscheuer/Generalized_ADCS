@@ -16,5 +16,5 @@ Module contents
 
 .. automodule:: ADCS.estimators.attitude_estimators
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:

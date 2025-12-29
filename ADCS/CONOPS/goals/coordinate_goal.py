@@ -8,7 +8,66 @@ from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.helpers.math_helpers import normalize
 
 class Coordinate_Goal(Goal):
+    """
+    Ground-pointing goal defined by fixed geodetic coordinates.
+
+    The :class:`Coordinate_Goal` represents a pointing objective toward a
+    fixed location on the rotating Earth, specified by geodetic latitude,
+    longitude, and altitude (WGS84).
+
+    Internally, the target location is converted once to Earth-Centered
+    Earth-Fixed (ECEF) coordinates and stored. At runtime, the ECEF
+    position is transformed into the inertial (ECI) frame using the
+    current orbital state.
+
+    This goal produces:
+    
+    * a unit inertial line-of-sight vector from the spacecraft to the target
+    * a reference angular velocity required to keep the target centered,
+      accounting for both spacecraft motion and Earth rotation
+
+    Parameters
+    ----------
+    lat : float
+        Geodetic latitude in degrees.
+    lon : float
+        Geodetic longitude in degrees.
+    alt : float
+        Geodetic altitude above the WGS84 ellipsoid in kilometers.
+
+    Attributes
+    ----------
+    lat_deg : float
+        Target latitude in degrees.
+    lon_deg : float
+        Target longitude in degrees.
+    alt_km : float
+        Target altitude in kilometers.
+    target_ecef : numpy.ndarray
+        Target position expressed in ECEF coordinates [km].
+
+    See Also
+    --------
+    :class:`~ADCS.goals.goal.Goal`
+    :class:`~ADCS.orbits.orbital_state.Orbital_State`
+    """
     def __init__(self, lat: float, lon: float, alt: float) -> None:
+        """
+        Initialize a coordinate-based ground target goal.
+
+        The provided geodetic coordinates are immediately converted to
+        Earth-Centered Earth-Fixed (ECEF) coordinates and stored for
+        efficient reuse during runtime.
+
+        Parameters
+        ----------
+        lat : float
+            Geodetic latitude in degrees.
+        lon : float
+            Geodetic longitude in degrees.
+        alt : float
+            Geodetic altitude in kilometers.
+        """
         self.lat_deg = lat
         self.lon_deg = lon
         self.alt_km = alt
@@ -17,7 +76,37 @@ class Coordinate_Goal(Goal):
 
     def _geodetic_to_ecef(self, lat_deg: float, lon_deg: float, alt_km: float) -> np.ndarray:
         """
-        Converts Geodetic coordinates (WGS84) to ECEF coordinates.
+        Convert geodetic coordinates to ECEF coordinates (WGS84).
+
+        This method converts latitude, longitude, and altitude referenced
+        to the WGS84 ellipsoid into Earth-Centered Earth-Fixed (ECEF)
+        Cartesian coordinates.
+
+        Parameters
+        ----------
+        lat_deg : float
+            Geodetic latitude in degrees.
+        lon_deg : float
+            Geodetic longitude in degrees.
+        alt_km : float
+            Altitude above the WGS84 ellipsoid in kilometers.
+
+        Returns
+        -------
+        numpy.ndarray
+            ECEF position vector ``[x, y, z]`` in kilometers.
+
+        Notes
+        -----
+        The WGS84 parameters used are:
+
+        .. math::
+
+            a &= 6378.137 \, \text{km} \\
+            f &= \frac{1}{298.257223563} \\
+            e^2 &= 2f - f^2
+
+        This method is intended for internal use only.
         """
         lat_rad = np.radians(lat_deg)
         lon_rad = np.radians(lon_deg)
@@ -37,28 +126,62 @@ class Coordinate_Goal(Goal):
     
     def to_ref(self, os0: Orbital_State) -> Tuple[np.ndarray, np.ndarray]:
         r"""
-        Computes the inertial pointing vector and reference angular velocity.
+        Compute inertial reference vectors for ground target tracking.
 
-        Calculates the vector from the satellite to the ground target in the ECI frame.
-        It also calculates the required angular rate :math:`\omega_{ref}` to keep
-        the target centered, accounting for the relative velocity between the 
-        satellite and the rotating Earth surface.
+        This method computes the inertial line-of-sight vector from the
+        spacecraft to the specified ground target, as well as the reference
+        angular velocity required to maintain continuous pointing.
+
+        The target is assumed to be fixed in the Earth-Centered Earth-Fixed
+        (ECEF) frame and rotating with the Earth. The spacecraft state is
+        provided via the current orbital state.
 
         Parameters
         ----------
-        x : np.ndarray
-            Current estimated satellite state (size 7+).
-            x[0:3] = Angular Velocity (not used for target generation)
-            x[3:7] = Quaternion (not used for target generation)
         os0 : Orbital_State
-            Current orbital state containing position, velocity, and time data.
+            Current orbital state, provided as an
+            :class:`~ADCS.orbits.orbital_state.Orbital_State`, containing
+            spacecraft position, velocity, and time information.
 
         Returns
         -------
-        r_goal_eci : np.ndarray (3,)
-            Normalized unit vector in ECI frame pointing from Satellite -> Target.
-        w_ref_eci : np.ndarray (3,)
-            Reference angular velocity vector in ECI frame required to track the target.
+        r_goal_eci : numpy.ndarray, shape (3,)
+            Normalized unit vector in the ECI frame pointing from the
+            spacecraft to the ground target.
+        w_ref_eci : numpy.ndarray, shape (3,)
+            Reference angular velocity vector in the ECI frame required to
+            keep the target centered in the body frame.
+
+        Notes
+        -----
+        The reference angular velocity is computed as:
+
+        .. math::
+
+            \boldsymbol{\omega}_{ref}
+            =
+            \frac{\mathbf{r}_{rel} \times \mathbf{v}_{rel}}
+                {\lVert \mathbf{r}_{rel} \rVert^2}
+
+        where:
+
+        * :math:`\mathbf{r}_{rel}` is the relative position vector
+        from spacecraft to target
+        * :math:`\mathbf{v}_{rel}` is the relative velocity accounting
+        for Earth rotation and spacecraft motion
+
+        Earth rotation is modeled using a constant angular velocity:
+
+        .. math::
+
+            \boldsymbol{\omega}_{Earth}
+            =
+            [0, 0, 7.2921159 \times 10^{-5}] \, \text{rad/s}
+
+        See Also
+        --------
+        :meth:`ADCS.goals.goal.Goal.to_ref`
+        :meth:`ADCS.orbits.orbital_state.Orbital_State.ecef_to_eci`
         """
         # 1. Get Satellite Position and Velocity in ECI
         r_sat_eci = os0.R

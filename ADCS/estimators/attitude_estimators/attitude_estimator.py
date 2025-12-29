@@ -108,8 +108,8 @@ class Attitude_Estimator():
 
         .. math::
 
-            \text{len\_before\_sens\_bias} =
-            \text{state\_len} + n_{ab},
+            \text{len_before_sens_bias} =
+            \text{state_len} + n_{ab},
 
         i.e., number of entries in :math:`[\boldsymbol{\omega},\mathbf{q},\mathbf{h}_{RW},\mathbf{b}_{act}]`.
     dt : float

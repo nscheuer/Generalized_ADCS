@@ -18,5 +18,5 @@ Module contents
 
 .. automodule:: ADCS.orbits
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:
