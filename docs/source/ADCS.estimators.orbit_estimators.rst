@@ -16,5 +16,5 @@ Module contents
 
 .. automodule:: ADCS.estimators.orbit_estimators
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:

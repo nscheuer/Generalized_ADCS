@@ -3,12 +3,14 @@ __all__ = ["MTQ_w_RW"]
 import numpy as np
 from typing import List
 
+from ADCS.CONOPS.goals import Goal
 from ADCS.controller import Controller
+from ADCS.controller.helpers.quaternion_math import vector_alignment_error
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.satellite_hardware.actuators import Actuator, MTQ, RW
 from ADCS.satellite_hardware.sensors import MTM
-from ADCS.helpers.math_helpers import rot_mat, normalize, skewsym, limit
+from ADCS.helpers.math_helpers import rot_mat, normalize, skewsym, limit, norm
 
 class MTQ_w_RW(Controller):
     r"""
@@ -120,15 +122,14 @@ class MTQ_w_RW(Controller):
         self.d_gain = d_gain
         self.c_gain = c_gain
 
-        self.M_mtm_read, self.mtm_indices = self.build_sensor_matrix_pinv(sensors=est_sat.sensors, sensor_type=MTM)
+        self.M_mtm_read, self.mtm_indices = self.build_sensor_matrix_pinv(sensors=est_sat.sensors+est_sat.rw_actuators, sensor_type=MTM)
 
         self.M_rw_act, self.rw_indices = self.build_torque_to_u_matrix_pinv(actuators=est_sat.actuators, actuator_type=RW)
         self.M_mtq_act, self.mtq_indices = self.build_torque_to_u_matrix_pinv(actuators=est_sat.actuators, actuator_type=MTQ)
         self.A_mtq = self.build_u_to_torque_matrix_pinv(actuators=est_sat.actuators, actuator_type=MTQ)
 
-        self.rw_max_torque = self.find_max_torque(actuators=est_sat.actuators, actuator_type=RW)
         self.rw_max_h = np.asarray([rw.h_max for rw in est_sat.actuators if isinstance(rw, RW)])
-        self.mtq_max_torque = self.find_max_torque(actuators=est_sat.actuators, actuator_type=MTQ)
+        self.max_torque = self.find_max_torque(actuators=est_sat.actuators)
 
         if np.any(self.rw_max_h < h_target):
             raise ValueError("Target momentum cannot be higher than reaction wheel maximum momentum!")
@@ -137,7 +138,7 @@ class MTQ_w_RW(Controller):
         self.n_actuators = len(est_sat.actuators)
 
     
-    def find_u(self, x_hat: np.ndarray, sens: np.ndarray, est_sat: EstimatedSatellite, os_hat: Orbital_State, goal_vector_eci: np.ndarray | None = None, w_ref: np.ndarray | None = None) -> np.ndarray:
+    def find_u(self, x_hat: np.ndarray, sens: np.ndarray, est_sat: EstimatedSatellite, os_hat: Orbital_State, goal: Goal | None = None) -> np.ndarray:
         r"""
         Compute actuator commands for reaction wheels and magnetic torquers.
 
@@ -253,35 +254,30 @@ class MTQ_w_RW(Controller):
         w = x_hat[0:3]
         q = x_hat[3:7]
 
-        if w_ref is None:
-            w_ref = np.zeros(3)
+        if goal is None:
+            goal = Goal()
+
+        goal_vector_eci, w_ref_eci = goal.to_ref(os0=os_hat)
 
         b_body = self.M_mtm_read @ sens # Already filters out only MTM readings
 
-        if goal_vector_eci is not None:
-            r_goal = rot_mat(q) @ goal_vector_eci
-            r_goal = normalize(r_goal)
-
-            r_boresight = np.array([0.0, 0.0, 1.0])
-
-            q_err_vec = np.cross(r_boresight, r_goal)
-        else: # Regulation Case
-            q_err_vec = q[1:4]*np.sign(q[0])
-
-        w_err = w - w_ref
+        q_err_vec = vector_alignment_error(q=q, eci_goal=goal_vector_eci, body_boresight=est_sat.boresight)
+        R_b2i = rot_mat(q)
+        w_ref_body = R_b2i.T @ w_ref_eci
+        w_err = w - w_ref_body
 
         # PD Control Law
         tau_att = -self.p_gain*q_err_vec - self.d_gain*w_err
 
         # Momentum Management
         h_vals = x_hat[7:]
-        h_rw_body = np.zeros(3)
-        rw_idx = 0
-        for rw in est_sat.actuators:
-            if isinstance(rw, RW):
-                axis_i = np.asarray(rw.axis, float).reshape(3,)  # ensure 3-vector
-                h_rw_body += h_vals[rw_idx] * axis_i
-                rw_idx += 1
+        rw_axes   = np.vstack([
+            np.asarray(rw.axis, float).reshape(3,)
+            for rw in est_sat.actuators
+            if isinstance(rw, RW)
+        ])
+        h_vals    = x_hat[7:]
+        h_rw_body = h_vals @ rw_axes
 
         # Gyroscopic Compensation
         J = est_sat.J_0
@@ -297,17 +293,15 @@ class MTQ_w_RW(Controller):
         M_mag_eff = -B_skew @ self.A_mtq # (3, N_MTQ)
 
         u_mtq = np.linalg.pinv(M_mag_eff) @ tau_dump
-        u_mtq = limit(u=u_mtq, umax=self.mtq_max_torque) #TODO: Proper limiting of Actuators
+        u_mtq = limit(u=u_mtq, umax=self.max_torque) #TODO: Proper limiting of Actuators
 
         tau_mag_actual = M_mag_eff @ u_mtq
         tau_rw_req = tau_att - tau_mag_actual
 
         u_rw = self.M_rw_act @ tau_rw_req
-        u_rw = limit(u=u_rw, umax=self.rw_max_torque)
+        u_rw = limit(u=u_rw, umax=self.max_torque)
 
-        u_total = np.zeros(self.n_actuators)
-        u_total[self.rw_indices] = u_rw
-        u_total[self.mtq_indices] = u_mtq
+        u_total = u_mtq+u_rw
 
         return u_total
     

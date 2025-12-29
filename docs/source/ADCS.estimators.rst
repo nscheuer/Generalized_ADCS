@@ -16,5 +16,5 @@ Module contents
 
 .. automodule:: ADCS.estimators
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:

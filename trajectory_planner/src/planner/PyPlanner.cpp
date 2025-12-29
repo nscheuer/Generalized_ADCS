@@ -77,7 +77,7 @@ py::tuple PyPlanner::trajOpt(VECTOR_INFO_PY_FORM vecs_w_timePy,int N, TIME_FORM 
   // cout<<"numpy: "<<x0Numpy<<"\n";
   vec x0 = numpyToArmaVector(x0Numpy);
   // cout<<x0<<"\n";
-  //   cout<<"numpy: "<<x0Numpy<<"\n";
+  cout << "What!\n";
   VECTOR_INFO_FORM vecs_w_time = vecsPy2Cpp(vecs_w_timePy);
   AFTER_OUTPUT_FORM results = op.trajOpt(vecs_w_time, N, time_start, time_end, x0, bdotOn);
 

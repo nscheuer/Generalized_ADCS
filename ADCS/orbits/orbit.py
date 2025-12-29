@@ -1,3 +1,5 @@
+__all__ = ["Orbit"]
+
 import numpy as np
 import ppigrf as ppigrf
 import warnings

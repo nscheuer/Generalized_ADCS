@@ -93,8 +93,8 @@ class EstimatedSatellite(Satellite):
     3  # number of bias parameters found
     """
 
-    def __init__(self, mass: float = 1.0, COM: np.ndarray = None, J_0: np.ndarray = None, disturbances: List[Disturbance] = [], sensors: List[Sensor] = [], actuators: List[Actuator] = []) -> None:
-        super().__init__(mass, COM, J_0, disturbances, sensors, actuators)
+    def __init__(self, mass: float = 1.0, COM: np.ndarray = None, J_0: np.ndarray = None, disturbances: List[Disturbance] = [], sensors: List[Sensor] = [], actuators: List[Actuator] = [], boresight: np.ndarray = np.array([0, 0, 1])) -> None:
+        super().__init__(mass, COM, J_0, disturbances, sensors, actuators, boresight)
 
         # Add estimated states
         self.act_bias_inds = [j for j in range(len(self.actuators)) if self.actuators[j].estimate_bias] # Indices with actuator bias
@@ -235,13 +235,13 @@ class EstimatedSatellite(Satellite):
 
         .. math::
 
-            \\frac{\\partial \\boldsymbol{\\tau}_d}{\\partial \\mathbf{x}},
-            \\qquad
-            \\frac{\\partial \\boldsymbol{\\tau}_d}{\\partial \\boldsymbol{\\theta}_d}
+            \frac{\partial \boldsymbol{\tau}_d}{\partial \mathbf{x}},
+            \qquad
+            \frac{\partial \boldsymbol{\tau}_d}{\partial \boldsymbol{\theta}_d}
 
-        where :math:`\\boldsymbol{\\tau}_d` is the total disturbance torque,
-        :math:`\\mathbf{x}` is the spacecraft state vector, and
-        :math:`\\boldsymbol{\\theta}_d` represents disturbance model parameters.
+        where :math:`\boldsymbol{\tau}_d` is the total disturbance torque,
+        :math:`\mathbf{x}` is the spacecraft state vector, and
+        :math:`\boldsymbol{\theta}_d` represents disturbance model parameters.
 
         Parameters
         ----------
@@ -289,9 +289,9 @@ class EstimatedSatellite(Satellite):
 
         .. math::
 
-            \\frac{\\partial^2 \\boldsymbol{\\tau}_d}{\\partial \\mathbf{x}^2}, \\qquad
-            \\frac{\\partial^2 \\boldsymbol{\\tau}_d}{\\partial \\mathbf{x}\\,\\partial \\boldsymbol{\\theta}_d}, \\qquad
-            \\frac{\\partial^2 \\boldsymbol{\\tau}_d}{\\partial \\boldsymbol{\\theta}_d^2}
+            \frac{\partial^2 \boldsymbol{\tau}_d}{\partial \mathbf{x}^2}, \qquad
+            \frac{\partial^2 \boldsymbol{\tau}_d}{\partial \mathbf{x}\,\partial \boldsymbol{\theta}_d}, \qquad
+            \frac{\partial^2 \boldsymbol{\tau}_d}{\partial \boldsymbol{\theta}_d^2}
 
         Parameters
         ----------

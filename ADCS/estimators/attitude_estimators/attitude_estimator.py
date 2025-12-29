@@ -1,6 +1,7 @@
 __all__ = ["Attitude_Estimator"]
 
 import numpy as np
+import time
 from typing import List, Optional
 from ADCS.orbits.orbital_state import Orbital_State, Ephemeris
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
@@ -107,8 +108,8 @@ class Attitude_Estimator():
 
         .. math::
 
-            \text{len\_before\_sens\_bias} =
-            \text{state\_len} + n_{ab},
+            \text{len_before_sens_bias} =
+            \text{state_len} + n_{ab},
 
         i.e., number of entries in :math:`[\boldsymbol{\omega},\mathbf{q},\mathbf{h}_{RW},\mathbf{b}_{act}]`.
     dt : float
@@ -184,7 +185,8 @@ class Attitude_Estimator():
            internal satellite model with the new estimate.
         """
         # Verify x_hat vector
-        if len(x_hat) != 7 + self.est_sat.number_RW + self.est_sat.act_bias_len + self.est_sat.att_sens_bias_len + self.est_sat.dist_param_len:
+        expected_x_hat_length = 7 + self.est_sat.number_RW + self.est_sat.act_bias_len + self.est_sat.att_sens_bias_len + self.est_sat.dist_param_len
+        if len(x_hat) != expected_x_hat_length:
             raise ValueError("x_hat length does not match estimate length in EstimatedSatellite")
         
         # Verify P_hat matrix. It should be one shorter than x_hat, since x_hat uses quaternions, which are 3 DOF

@@ -705,3 +705,41 @@ def quat_to_euler(q: np.ndarray) -> np.ndarray:
     pitch = -np.arcsin(R[2, 0])
     yaw = np.arctan2(R[1, 0], R[0, 0])
     return np.array([roll, pitch, yaw]) * 180/np.pi
+
+def dcm_to_quat(R: np.ndarray) -> np.ndarray:
+    """
+    Convert a direction cosine matrix (DCM) to a quaternion [q0, q1, q2, q3]
+    using the Hamilton convention and the stable Sheppard algorithm.
+    """
+
+    tr = np.trace(R)
+
+    if tr > 0:
+        q0 = 0.5 * np.sqrt(1 + tr)
+        q1 = (R[2,1] - R[1,2]) / (4*q0)
+        q2 = (R[0,2] - R[2,0]) / (4*q0)
+        q3 = (R[1,0] - R[0,1]) / (4*q0)
+        return normalize(np.array([q0, q1, q2, q3]))
+
+    # Otherwise choose the largest diagonal entry for stability
+    i = np.argmax([R[0,0], R[1,1], R[2,2]])
+
+    if i == 0:
+        q1 = 0.5 * np.sqrt(1 + 2*R[0,0] - tr)
+        q0 = (R[2,1] - R[1,2]) / (4*q1)
+        q2 = (R[0,1] + R[1,0]) / (4*q1)
+        q3 = (R[0,2] + R[2,0]) / (4*q1)
+
+    elif i == 1:
+        q2 = 0.5 * np.sqrt(1 + 2*R[1,1] - tr)
+        q0 = (R[0,2] - R[2,0]) / (4*q2)
+        q1 = (R[0,1] + R[1,0]) / (4*q2)
+        q3 = (R[1,2] + R[2,1]) / (4*q2)
+
+    else:
+        q3 = 0.5 * np.sqrt(1 + 2*R[2,2] - tr)
+        q0 = (R[1,0] - R[0,1]) / (4*q3)
+        q1 = (R[0,2] + R[2,0]) / (4*q3)
+        q2 = (R[1,2] + R[2,1]) / (4*q3)
+
+    return normalize(np.array([q0, q1, q2, q3]))
