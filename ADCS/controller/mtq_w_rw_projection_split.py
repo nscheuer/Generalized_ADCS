@@ -1,6 +1,10 @@
 __all__ = ["MTQ_w_RW_Projection_Split"]
 
 import numpy as np
+import matplotlib.pyplot as plt
+from scipy.spatial import ConvexHull
+from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+import itertools
 
 from ADCS.CONOPS.goals import Goal
 from ADCS.controller import Controller
@@ -14,21 +18,15 @@ from ADCS.helpers.math_helpers import rot_mat, skewsym, limit
 
 class MTQ_w_RW_Projection_Split(Controller):
     r"""
-    MTQ + RW controller using a *projection split* with two practical tracking fixes:
+    Minimal MTQ + RW controller using a projection-split allocator.
 
-    (A) Spin damping about the boresight (prevents "spinning around the target vector")
-    (B) LOS rate feedforward (enables tracking of a moving target direction)
+    Kept features:
+      - feed-forward omega tracking via Goal.to_ref()
+      - feed-forward gyroscopic compensation
 
-    Control structure:
-      1) tau_des from PD on vector alignment + rate error (with optional gyro compensation)
-      2) MTQ commands realize the achievable component of (tau_des + tau_dump) orthogonal to B
-      3) RW commands realize the residual tau_des - tau_mtq_actual
-
-    Notes / conventions in this codebase:
-    - build_u_to_torque_matrix_pinv(..., actuator_type) returns (3, N_total_cmds) with zeros for non-target actuators.
-    - build_torque_to_u_matrix_pinv(..., actuator_type) returns (N_total_cmds, 3) pseudoinverse allocation map.
-    - MTQ allocation here is done in "full command vector" space, so u_mtq_full has length N_total_cmds.
-    - RW momentum states are assumed to begin at x_hat[7]; for N_RW wheels we use x_hat[7:7+N_RW].
+    Allocation:
+      • MTQs realize achievable torque ⟂ B
+      • RWs realize the residual torque
     """
 
     def __init__(
@@ -39,111 +37,36 @@ class MTQ_w_RW_Projection_Split(Controller):
         c_gain: float,
         h_target: np.ndarray,
         pinv_rcond: float = 1e-6,
-        k_spin: float | None = None,
-        los_rate_dt: float | None = None,
-        los_rate_alpha: float = 0.5,
     ) -> None:
+
         self.p_gain = float(p_gain)
         self.d_gain = float(d_gain)
         self.c_gain = float(c_gain)
         self.pinv_rcond = float(pinv_rcond)
 
-        # Spin damping gain (default: match derivative gain)
-        self.k_spin = float(d_gain if k_spin is None else k_spin)
-
-        # LOS-rate feedforward settings
-        self.los_rate_dt = None if los_rate_dt is None else float(los_rate_dt)
-        self.los_rate_alpha = float(los_rate_alpha)
-        self._s_body_prev: np.ndarray | None = None
-        self._w_los_filt = np.zeros(3, dtype=float)
-
         # MTM reconstruction
-        self.M_mtm_read, self.mtm_indices = self.build_sensor_matrix_pinv(
+        self.M_mtm_read, _ = self.build_sensor_matrix_pinv(
             sensors=est_sat.sensors + est_sat.rw_actuators, sensor_type=MTM
         )
 
-        # Full-length torque->u maps (aligned to full command vector)
+        # Torque → command maps
         self.M_rw_act, self.rw_indices = self.build_torque_to_u_matrix_pinv(
             actuators=est_sat.actuators, actuator_type=RW
         )
-        self.M_mtq_act, self.mtq_indices = self.build_torque_to_u_matrix_pinv(
+
+        # Command → torque map for MTQs (full vector length)
+        self.A_mtq = self.build_u_to_torque_matrix_pinv(
             actuators=est_sat.actuators, actuator_type=MTQ
         )
 
-        # Full-length forward axis matrices (aligned to full command vector)
-        self.A_mtq = self.build_u_to_torque_matrix_pinv(
-            actuators=est_sat.actuators, actuator_type=MTQ
-        )  # (3, N_total_cmds)
+        # RW geometry
+        self.rw_axes = np.vstack([
+            np.asarray(rw.axis, float).reshape(3,)
+            for rw in est_sat.actuators if isinstance(rw, RW)
+        ])
 
-        A_rw_full = self.build_u_to_torque_matrix_pinv(
-            actuators=est_sat.actuators, actuator_type=RW
-        )  # (3, N_total_cmds)
-        self.A_rw = A_rw_full[:, self.rw_indices]  # (3, N_RW)
-
-        # Wheel momentum limits in wheel space (N_RW,)
-        self.rw_max_h = np.asarray([rw.h_max for rw in est_sat.actuators if isinstance(rw, RW)], dtype=float)
-
-        # Body-frame momentum target (3,)
         self.h_target = np.asarray(h_target, dtype=float).reshape(3,)
-
-        # Optional feasibility check (least-norm wheel momentum to realize body target)
-        if self.A_rw.size != 0:
-            h_w_star = np.linalg.pinv(self.A_rw) @ self.h_target  # (N_RW,)
-            if h_w_star.shape != self.rw_max_h.shape:
-                raise ValueError(
-                    f"RW momentum shape mismatch: h_w_star {h_w_star.shape} vs rw_max_h {self.rw_max_h.shape}. "
-                    "This suggests your RW 'axis' definition has multiple input channels per RW actuator."
-                )
-            if np.any(np.abs(h_w_star) > self.rw_max_h):
-                raise ValueError(
-                    "Target body-frame momentum h_target is infeasible "
-                    "given RW geometry and momentum limits."
-                )
-
-        # Full per-command limits (must match full command vector length)
         self.max_u = self.find_max_torque(actuators=est_sat.actuators)
-
-    @staticmethod
-    def _proj_perp_to_b(vec3: np.ndarray, b: np.ndarray) -> np.ndarray:
-        """Project a 3-vector into the plane orthogonal to magnetic field b."""
-        b = np.asarray(b, dtype=float).reshape(3,)
-        bn = np.linalg.norm(b)
-        if bn < 1e-12:
-            return np.zeros(3, dtype=float)
-        bh = b / bn
-        return vec3 - (bh @ vec3) * bh
-
-    @staticmethod
-    def _unit(v: np.ndarray) -> np.ndarray:
-        v = np.asarray(v, dtype=float).reshape(3,)
-        n = np.linalg.norm(v)
-        if n < 1e-12:
-            return np.zeros(3, dtype=float)
-        return v / n
-
-    def _los_rate_body(self, R_b2i: np.ndarray, s_eci: np.ndarray, dt: float) -> np.ndarray:
-        """
-        Estimate the angular rate needed to track the LOS direction, in body frame.
-        Uses w_los ≈ s × s_dot in body coordinates, with optional first-order filtering.
-        """
-        s_eci_hat = self._unit(s_eci)
-        R_i2b = R_b2i.T
-        s_body = R_i2b @ s_eci_hat  # unit LOS in body
-
-        if self._s_body_prev is None or dt <= 0.0:
-            self._s_body_prev = s_body
-            self._w_los_filt[:] = 0.0
-            return np.zeros(3, dtype=float)
-
-        s_dot = (s_body - self._s_body_prev) / dt
-        w_los = np.cross(s_body, s_dot)
-
-        # simple low-pass filter to reduce numerical noise
-        a = np.clip(self.los_rate_alpha, 0.0, 1.0)
-        self._w_los_filt = a * self._w_los_filt + (1.0 - a) * w_los
-
-        self._s_body_prev = s_body
-        return self._w_los_filt.copy()
 
     def find_u(
         self,
@@ -154,83 +77,142 @@ class MTQ_w_RW_Projection_Split(Controller):
         goal: Goal | None = None,
     ) -> np.ndarray:
 
-        w = x_hat[0:3]
-        q = x_hat[3:7]
-
         if goal is None:
             goal = Goal()
 
-        goal_vector_eci, w_ref_eci = goal.to_ref(os0=os_hat)
+        # ---------- State ----------
+        w = x_hat[0:3]
+        q = x_hat[3:7]
 
-        # Magnetic field in body frame
-        b_body = self.M_mtm_read @ sens
-
-        # Attitude error (vector alignment) + base rate error
-        q_err_vec = vector_alignment_error(q=q, eci_goal=goal_vector_eci, body_boresight=est_sat.boresight)
-
+        # ---------- Reference ----------
+        goal_vec_eci, w_ref_eci = goal.to_ref(os0=os_hat)
         R_b2i = rot_mat(q)
-        w_ref_body = R_b2i.T @ w_ref_eci  # existing reference (often 0)
+        w_ref_body = R_b2i.T @ w_ref_eci
 
-        # --- LOS-rate feedforward (for moving target directions) ---
-        if self.los_rate_dt is not None:
-            w_los = self._los_rate_body(R_b2i=R_b2i, s_eci=goal_vector_eci, dt=self.los_rate_dt)
-            w_ref_body = w_ref_body + w_los
-
+        # ---------- Errors ----------
+        q_err = vector_alignment_error(
+            q=q,
+            eci_goal=goal_vec_eci,
+            body_boresight=est_sat.boresight,
+        )
         w_err = w - w_ref_body
 
-        # Desired torque (PD on direction + rate tracking)
-        tau_des = -self.p_gain * q_err_vec - self.d_gain * w_err
+        # ---------- Base torque ----------
+        tau_des = -self.p_gain * q_err - self.d_gain * w_err
+        b_body = np.asarray(self.M_mtm_read @ sens, float).reshape(3,)
+        self._plot_torques(tau_des, b_body, est_sat)
+        pass
 
-        # --- Spin damping about boresight (prevents "spin around target") ---
-        b_hat = self._unit(est_sat.boresight)
-        w_spin = (b_hat @ w) * b_hat
-        tau_des = tau_des - self.k_spin * w_spin
+    def _plot_torques(self, tau_des: np.ndarray, b_body: np.ndarray, est_sat: EstimatedSatellite) -> None:
+        """
+        Visualizes the desired torque vs. the physical actuator envelopes.
+        """
+        b_norm = np.linalg.norm(b_body)
+        
+        # separate actuators
+        mtqs = [a for a in est_sat.actuators if isinstance(a, MTQ)]
+        rws = [a for a in est_sat.actuators if isinstance(a, RW)]
 
-        # --- RW momentum reconstruction (robust to N_RW != 3) ---
-        rw_axes = np.vstack([
-            np.asarray(rw.axis, float).reshape(3,)
-            for rw in est_sat.actuators
-            if isinstance(rw, RW)
-        ])  # (N_RW, 3)
-        N_RW = rw_axes.shape[0]
+        fig = plt.figure(figsize=(10, 8))
+        ax = fig.add_subplot(111, projection='3d')
 
-        if x_hat.shape[0] < 7 + N_RW:
-            raise ValueError(
-                f"x_hat too short for RW momentum states: need >= {7+N_RW}, got {x_hat.shape[0]}"
-            )
+        # ---------------------------------------------------------
+        # 1. Calculate View Limits based ONLY on MTQ Capacity
+        # ---------------------------------------------------------
+        # We ignore tau_des and RW max torque for the zoom level.
+        # This ensures the MTQ plane is always the "hero" of the plot.
+        
+        mtq_sum_max = sum([m.u_max for m in mtqs]) if mtqs else 0
+        
+        # If B is strong, max torque is high. If B is weak, max torque is low.
+        # We add a small floor (1e-6) to prevent singular plots if B=0.
+        current_mtq_max_torque = mtq_sum_max * b_norm
+        limit_val = max(current_mtq_max_torque * 1.5, 1e-6)
 
-        h_vals = x_hat[7:7 + N_RW]      # (N_RW,)
-        h_rw_body = h_vals @ rw_axes    # (3,)
+        # ---------------------------------------------------------
+        # 2. Plot Reaction Wheels (Visually Clamped)
+        # ---------------------------------------------------------
+        for i, rw in enumerate(rws):
+            axis = np.asarray(rw.axis, dtype=float)
+            
+            # CRITICAL FIX: Do not draw lines to rw.u_max if it's huge.
+            # Matplotlib 3D clipping will hide lines if endpoints are too far away.
+            # Instead, draw the line just slightly larger than our view box.
+            visual_extent = limit_val * 2.0 
+            
+            start = -axis * visual_extent
+            end = axis * visual_extent
+            
+            # Plot the "infinite" axis line
+            ax.plot([start[0], end[0]], [start[1], end[1]], [start[2], end[2]], 
+                    color='gray', linestyle=':', alpha=0.5, linewidth=1.0)
+            
+            # Add label at the edge of the view
+            label_pos = axis * (limit_val * 0.9)
+            ax.text(label_pos[0], label_pos[1], label_pos[2], f'RW{i}', fontsize=8, color='black')
 
-        # Gyroscopic coupling compensation
-        J = est_sat.J_0
-        tau_gyro = np.cross(w, J @ w + h_rw_body)
-        tau_des = tau_des + tau_gyro
+            # Optional: If the true physical limit is actually within view, plot a dot
+            if rw.u_max <= limit_val:
+                true_tip = axis * rw.u_max
+                ax.scatter([true_tip[0]], [true_tip[1]], [true_tip[2]], color='k', s=10)
 
-        # Momentum dumping (body-frame target)
-        tau_dump = -self.c_gain * (h_rw_body - self.h_target)
+        # ---------------------------------------------------------
+        # 3. Plot MTQ Torque Envelope
+        # ---------------------------------------------------------
+        if b_norm > 1e-9 and len(mtqs) > 0:
+            limits = [a.u_max for a in mtqs]
+            ranges = [[-lim, lim] for lim in limits]
+            dipole_corners = np.array(list(itertools.product(*ranges)))
+            
+            torque_points = []
+            for corner_scalars in dipole_corners:
+                m_total = np.zeros(3)
+                for i, scalar in enumerate(corner_scalars):
+                    m_total += scalar * np.asarray(mtqs[i].axis) 
+                
+                tau_corner = np.cross(m_total, b_body)
+                torque_points.append(tau_corner)
+            
+            torque_points = np.array(torque_points)
 
-        # --- MTQ allocation: only torque ⟂ B is achievable ---
-        B_skew = skewsym(b_body)
-        M_mag_eff = -B_skew @ self.A_mtq  # (3, N_total_cmds)
+            try:
+                hull = ConvexHull(torque_points, qhull_options='QJ')
+                verts = [torque_points[s] for s in hull.simplices]
+                poly = Poly3DCollection(verts, alpha=0.4, facecolors='cyan', edgecolors='teal', linewidths=0.5)
+                ax.add_collection3d(poly)
+            except Exception:
+                ax.scatter(torque_points[:,0], torque_points[:,1], torque_points[:,2], color='cyan', s=10)
 
-        # Command MTQs to realize achievable part of (tau_des + tau_dump)
-        tau_mtq_cmd = self._proj_perp_to_b(tau_des + tau_dump, b_body)
+        # ---------------------------------------------------------
+        # 4. Plot B-Field Direction
+        # ---------------------------------------------------------
+        if b_norm > 1e-9:
+            # Scale to 80% of view
+            b_vis = (b_body / b_norm) * (limit_val * 0.8)
+            ax.quiver(0, 0, 0, b_vis[0], b_vis[1], b_vis[2], 
+                      color='blue', linestyle='--', arrow_length_ratio=0.1, 
+                      label='B-field', linewidth=1.5)
 
-        # Full-length MTQ command vector
-        u_mtq_full = np.linalg.pinv(M_mag_eff, rcond=self.pinv_rcond) @ tau_mtq_cmd  # (N_total_cmds,)
-        u_mtq_full = limit(u=u_mtq_full, umax=self.max_u)
+        # ---------------------------------------------------------
+        # 5. Plot Desired Torque
+        # ---------------------------------------------------------
+        if np.linalg.norm(tau_des) > 1e-9:
+            # If tau_des is huge, it will just shoot off the plot.
+            # This is desirable so we don't lose the zoom on the MTQ plane.
+            ax.quiver(0, 0, 0, tau_des[0], tau_des[1], tau_des[2],
+                      color='red', linewidth=2.5, arrow_length_ratio=0.1, label=r'$\tau_{des}$')
 
-        # Actual MTQ torque realized
-        tau_mtq_actual = M_mag_eff @ u_mtq_full
+        # ---------------------------------------------------------
+        # 6. Final Formatting
+        # ---------------------------------------------------------
+        ax.set_xlim([-limit_val, limit_val])
+        ax.set_ylim([-limit_val, limit_val])
+        ax.set_zlim([-limit_val, limit_val])
 
-        # Residual to be produced by RWs
-        tau_rw_cmd = tau_des - tau_mtq_actual
-
-        # Allocate RW commands (full-length vector)
-        u_rw_full = self.M_rw_act @ tau_rw_cmd
-        u_rw_full = limit(u=u_rw_full, umax=self.max_u)
-
-        # Total command vector
-        u_total = u_mtq_full + u_rw_full
-        return u_total
+        ax.set_xlabel('X [Nm]')
+        ax.set_ylabel('Y [Nm]')
+        ax.set_zlabel('Z [Nm]')
+        ax.set_title(f'MTQ Capability Plane (View Limit: {limit_val:.2e} Nm)')
+        ax.legend()
+        
+        plt.show()
