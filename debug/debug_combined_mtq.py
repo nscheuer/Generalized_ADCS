@@ -73,7 +73,7 @@ def test_mtq_w_rw_align_to_eci(verbose: bool = False, tf: float = 1000, dt: floa
         orb = Orbit(orbs)
 
     # Controller
-    controller = MTQ_w_RW_Projection_Split(est_sat=real_sat, p_gain=0.1, d_gain=0.7, c_gain=0.1, h_target=np.array([0, 0, 0]))
+    controller = MTQ_w_RW_Projection_Split(est_sat=real_sat, p_gain=0.1, d_gain=0.7, c_gain=0.1, h_target=np.array([0, 0, 0]), k_spin=3, los_rate_dt=1)
 
     time_hist = np.nan*np.zeros(N)
     state_hist = np.nan*np.zeros((N, len(x)))
@@ -133,4 +133,4 @@ def plot_mtq_w_rw_align_to_eci(verbose: bool = False, tf: float = 1000, dt: floa
     create_close_all_button_window()
 
 if __name__ == "__main__":
-    plot_mtq_w_rw_align_to_eci(verbose=False, tf = 100, dt = 1, real_orbit=True)
+    plot_mtq_w_rw_align_to_eci(verbose=False, tf = 200, dt = 1, real_orbit=True)
