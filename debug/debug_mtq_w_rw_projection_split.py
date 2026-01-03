@@ -31,27 +31,28 @@ def test_mtq_w_rw_align_to_eci(verbose: bool = False, tf: float = 1000, dt: floa
     t0 = 0
     N = int((tf-t0)/dt)
 
-    mtq_max_torque = 1.0
+    mtq_max_torque = 10
     mtqs = [MTQ(axis=j, max_torque=mtq_max_torque) for j in MathConstants.unitvecs]
 
     rw_max_torque = 0.04
-    rw_J = 0.22
+    rw_J = 0.1
     rw_h0 = 1
     rw_hmax = 3.8
     rws = [RW(axis=j, max_torque=rw_max_torque, J=rw_J, h=rw_h0, h_max=rw_hmax) for j in MathConstants.unitvecs]
+    rws.pop()
     rws.pop()
 
     acts = mtqs+rws
 
     mtms = [MTM(axis=j) for j in MathConstants.unitvecs]
 
-    real_sat = Satellite(mass=4.0, J_0=np.diagflat([3.4, 2.9, 1.3]), actuators=acts, sensors=mtms, boresight=np.array([0, 0, 1]))
+    real_sat = Satellite(mass=2.2, J_0=np.diagflat([1, 1, 0.5]), actuators=acts, sensors=mtms, boresight=np.array([0, 0, 1]))
 
     w0 = random_n_unit_vec(3)*np.random.uniform(1, 2)*np.pi/180.0
     w0 = np.array([0, 0, 0])
     q0 = random_n_unit_vec(4)
     q0 = normalize(np.array([1, 0, 0, 0]))
-    h0 = np.array([rw_h0, rw_h0])
+    h0 = np.array([rw_h0])
     x = np.concatenate([w0, q0, h0])
 
     ephem = Ephemeris()
@@ -73,7 +74,7 @@ def test_mtq_w_rw_align_to_eci(verbose: bool = False, tf: float = 1000, dt: floa
         orb = Orbit(orbs)
 
     # Controller
-    controller = MTQ_w_RW_Projection_Split(est_sat=real_sat, p_gain=0.1, d_gain=0.7, c_gain=0.1, h_target=np.array([0, 0, 0]))
+    controller = MTQ_w_RW_Projection_Split(est_sat=real_sat, p_gain=0.05, d_gain=0.5, c_gain=0.01, h_target=np.array([0, 0, 0]))
 
     time_hist = np.nan*np.zeros(N)
     state_hist = np.nan*np.zeros((N, len(x)))
@@ -86,8 +87,8 @@ def test_mtq_w_rw_align_to_eci(verbose: bool = False, tf: float = 1000, dt: floa
     ind = 0
     steps = int((tf - t0)/dt)
 
-    goal = ECI_Goal(np.array([1, 0, 0]))
-    goal = Coordinate_Goal(lat=38.7223, lon=-10, alt=0)
+    goal = ECI_Goal(np.array([1, 1, 1]))
+    # goal = Coordinate_Goal(lat=38.7223, lon=-10, alt=0)
 
     for step in tqdm(range(steps), desc="Simulating MTQ_w_RW"):
         J2000 = 0.22 + t*TimeConstants.sec2cent
@@ -133,4 +134,4 @@ def plot_mtq_w_rw_align_to_eci(verbose: bool = False, tf: float = 1000, dt: floa
     create_close_all_button_window()
 
 if __name__ == "__main__":
-    plot_mtq_w_rw_align_to_eci(verbose=False, tf = 10, dt = 1, real_orbit=True)
+    plot_mtq_w_rw_align_to_eci(verbose=False, tf = 1000, dt = 5, real_orbit=True)
