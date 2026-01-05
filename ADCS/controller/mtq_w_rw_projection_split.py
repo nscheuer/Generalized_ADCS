@@ -150,7 +150,7 @@ class MTQ_w_RW_Projection_Split(Controller):
         u_out[mtq_indices] = u_mtq_cmd
 
         # Optional: visualizing usually blocks execution, so it is commented out for runtime
-        # self._plot_torques(tau_des, b_body, est_sat)
+        self._plot_torques(tau_des, b_body, est_sat)
 
         return u_out
 
@@ -166,76 +166,98 @@ class MTQ_w_RW_Projection_Split(Controller):
             alpha: Scaling factor (0.0 to >1.0) achieved relative to tau_des
         """
         
+        t_mag = np.linalg.norm(tau_des)
+        if t_mag < 1e-9:
+            # Re-calculate indices just to return correct shaped zeros
+            n_rw = len([a for a in est_sat.actuators if isinstance(a, RW)])
+            n_mtq = len([a for a in est_sat.actuators if isinstance(a, MTQ)])
+            return np.zeros(n_rw), np.zeros(n_mtq), 1.0
+
         # 1. Setup Matrices
         # -----------------------------------------------------
         rws = [a for a in est_sat.actuators if isinstance(a, RW)]
         mtqs = [a for a in est_sat.actuators if isinstance(a, MTQ)]
         
-        if not rws and not mtqs:
-            return np.zeros(0), np.zeros(0), 0.0
-
-        # Build RW Map (Sum of axes)
+        # Build RW Map
         if rws:
-            # A_rw: columns are axes. u_rw: scalars. Torque = A_rw @ u_rw
-            A_rw = np.column_stack([rw.axis for rw in rws]) # (3, n_rw)
+            A_rw = np.column_stack([rw.axis for rw in rws]) 
             u_rw_lims = np.array([rw.u_max for rw in rws])
         else:
             A_rw = np.zeros((3, 0))
             u_rw_lims = np.zeros(0)
 
-        # Build MTQ Map (Torque = -skew(B) @ m)
+        # Build MTQ Map
         if mtqs:
-            b_skew = -skewsym(b_body) # (3,3)
+            b_skew = -skewsym(b_body)
             A_mtq_axes = np.column_stack([m.axis for m in mtqs])
-            # The effective map from dipole command u_mtq to torque is:
-            A_mtq = b_skew @ A_mtq_axes # (3, n_mtq)
+            A_mtq = b_skew @ A_mtq_axes 
             u_mtq_lims = np.array([m.u_max for m in mtqs])
         else:
             A_mtq = np.zeros((3, 0))
             u_mtq_lims = np.zeros(0)
 
-        # Combined A Matrix: [A_rw, A_mtq]
-        # We want A @ u = alpha * tau_des
-        # Rearranged: A @ u - tau_des * alpha = 0
-        A_total = np.hstack([A_rw, A_mtq]) # (3, n_rw + n_mtq)
+        A_total = np.hstack([A_rw, A_mtq])
         n_act = A_total.shape[1]
 
-        # 2. Setup Linear Program
+        # 2. Setup Normalized Linear Program
         # -----------------------------------------------------
-        # Decision Variables x = [u_1, ..., u_n, alpha]
-        # We want to MAXIMIZE alpha, so we MINIMIZE -alpha
+        # Instead of A @ u = alpha * tau_des, we solve:
+        # A @ u = T_available * tau_hat
+        # This prevents the constraint column from vanishing when tau_des is small.
+        
+        tau_hat = tau_des / t_mag
+        
+        # Decision Variables x = [u_1, ..., u_n, T_available]
+        # Maximize T_available => Minimize -T_available
         c = np.zeros(n_act + 1)
         c[-1] = -1.0 
 
-        # Equality Constraints: A_eq @ x = b_eq
-        # [ A_total   |  -tau_des ] @ [u; alpha] = 0
-        A_eq = np.hstack([A_total, -tau_des.reshape(3,1)])
+        # A_eq @ x = 0  =>  [ A_total  |  -tau_hat ] @ [u; T_avail] = 0
+        A_eq = np.hstack([A_total, -tau_hat.reshape(3,1)])
         b_eq = np.zeros(3)
 
         # Bounds
         bounds = []
         for lim_val in u_rw_lims: bounds.append((-lim_val, lim_val))
         for lim_val in u_mtq_lims: bounds.append((-lim_val, lim_val))
-        bounds.append((0, 1.0)) # Alpha > 0
+        
+        # T_available bounds: [0, infinity] 
+        # (We find the absolute max physical limit in this direction)
+        bounds.append((0, None)) 
 
-        # 3. Solve
+        # 3. Solve with HiGHS
         # -----------------------------------------------------
-        # 'highs' is the modern, robust solver in scipy
         res = linprog(c, A_eq=A_eq, b_eq=b_eq, bounds=bounds, method='highs')
 
+        n_rw = len(rws)
+        n_mtq = len(mtqs)
+
         if res.success:
-            x_sol = res.x
-            u_sol = x_sol[:n_act]
-            alpha_sol = x_sol[-1]
-            
-            # Split back into RW and MTQ
-            n_rw = len(rws)
-            u_rw_cmd = u_sol[:n_rw]
-            u_mtq_cmd = u_sol[n_rw:]
-            
-            return u_rw_cmd, u_mtq_cmd, alpha_sol
+            u_sol = res.x[:n_act]
+            T_max_available = res.x[-1] # Max torque Nm achievable in this direction
+
+            # 4. Scaling Logic
+            # -------------------------------------------------
+            # If we are strictly physically limited to less than we asked for:
+            if T_max_available <= t_mag:
+                # Saturated: Output max possible (u_sol is already at max)
+                alpha = T_max_available / t_mag if t_mag > 0 else 0.0
+                u_rw_cmd = u_sol[:n_rw]
+                u_mtq_cmd = u_sol[n_rw:]
+                return u_rw_cmd, u_mtq_cmd, alpha
+            else:
+                # Not Saturated: We have more capacity than requested.
+                # Linearly scale down the commands to exactly match tau_des.
+                scale_factor = t_mag / T_max_available
+                u_scaled = u_sol * scale_factor
+                
+                u_rw_cmd = u_scaled[:n_rw]
+                u_mtq_cmd = u_scaled[n_rw:]
+                return u_rw_cmd, u_mtq_cmd, 1.0
+
         else:
-            return np.zeros(len(rws)), np.zeros(len(mtqs)), 0.0
+            # Solver failed (usually singular geometry where NO torque is possible)
+            return np.zeros(n_rw), np.zeros(n_mtq), 0.0
 
     def _plot_torques(self, tau_des: np.ndarray, b_body: np.ndarray, est_sat: EstimatedSatellite) -> None:
         """
