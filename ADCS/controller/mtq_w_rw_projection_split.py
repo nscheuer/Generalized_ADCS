@@ -408,12 +408,47 @@ class MTQ_w_RW_Projection_Split(Controller):
         plt.show()
 
     def _plot_hull(self, ax, points: np.ndarray, color, alpha, edge_color):
-        """Helper to compute and plot a 3D convex hull."""
-        if len(points) < 4: return # ConvexHull requires 4 points in 3D
+        """Plot convex hull with ONLY outer boundary edges (no internal triangulation lines)."""
+        if len(points) < 4:
+            return
+
         try:
-            hull = ConvexHull(points, qhull_options='QJ') # QJ = Joggled input (robust to coplanar points)
-            verts = [points[s] for s in hull.simplices]
-            poly = Poly3DCollection(verts, alpha=alpha, facecolors=color, edgecolors=edge_color, linewidths=0.5)
+            hull = ConvexHull(points, qhull_options='QJ')
+
+            # --- Plot faces WITHOUT edges ---
+            faces = [points[s] for s in hull.simplices]
+            poly = Poly3DCollection(
+                faces,
+                alpha=alpha,
+                facecolors=color,
+                edgecolors='none'   # ← disable triangulation edges
+            )
             ax.add_collection3d(poly)
+
+            # --- Extract unique boundary edges ---
+            edge_count = {}
+
+            for simplex in hull.simplices:
+                edges = [
+                    tuple(sorted((simplex[0], simplex[1]))),
+                    tuple(sorted((simplex[1], simplex[2]))),
+                    tuple(sorted((simplex[2], simplex[0])))
+                ]
+                for e in edges:
+                    edge_count[e] = edge_count.get(e, 0) + 1
+
+            # --- Draw only edges that appear once ---
+            for (i, j), count in edge_count.items():
+                if count == 1:  # boundary edge
+                    p1, p2 = points[i], points[j]
+                    ax.plot(
+                        [p1[0], p2[0]],
+                        [p1[1], p2[1]],
+                        [p1[2], p2[2]],
+                        color=edge_color,
+                        linewidth=0.8,
+                        alpha=0.9
+                    )
+
         except Exception:
             pass
