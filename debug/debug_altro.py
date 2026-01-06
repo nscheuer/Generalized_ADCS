@@ -9,7 +9,7 @@ import pytest
 sys.path.append(os.path.abspath(os.path.join(__file__, "../..")))
 from ADCS.CONOPS.goals import Goal, ECI_Goal, Coordinate_Goal, No_Goal
 from ADCS.CONOPS.goallist import GoalList
-from ADCS.controller.plan_and_track_lqr3 import Plan_and_Track_LQR
+from ADCS.controller.plan_and_track_lqr import Plan_and_Track_LQR
 from ADCS.controller.helpers import PlannerSettings, Trajectory
 from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.orbit import Orbit
@@ -88,7 +88,7 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
     ind = 0
     steps = int((tf - t0)/dt)
 
-    goals = GoalList({0.22: No_Goal(), 0.22 + 100 * TimeConstants.sec2cent: ECI_Goal(np.array([1, 0, 0]))})
+    goals = GoalList({0.22: No_Goal()})
 
     print("Computing Trajectory (One-Shot)")
     traj: Trajectory = controller.calculate_trajectory(
@@ -149,4 +149,4 @@ def plot_mtq_w_rw_align_to_eci(verbose: bool = False, tf: float = 1000, dt: floa
     create_close_all_button_window()
 
 if __name__ == "__main__":
-    plot_mtq_w_rw_align_to_eci(verbose=False, tf = 200, dt = 1, real_orbit=True)
+    plot_mtq_w_rw_align_to_eci(verbose=False, tf = 5, dt = 1, real_orbit=True)
