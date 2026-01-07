@@ -22,5 +22,5 @@ Module contents
 
 .. automodule:: ADCS.satellite_hardware.disturbances
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:

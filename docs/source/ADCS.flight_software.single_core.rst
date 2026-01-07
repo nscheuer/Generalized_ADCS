@@ -14,5 +14,5 @@ Module contents
 
 .. automodule:: ADCS.flight_software.single_core
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:

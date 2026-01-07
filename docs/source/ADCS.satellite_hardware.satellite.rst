@@ -15,5 +15,5 @@ Module contents
 
 .. automodule:: ADCS.satellite_hardware.satellite
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:

@@ -19,5 +19,5 @@ Module contents
 
 .. automodule:: ADCS.satellite_hardware.sensors
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:

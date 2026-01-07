@@ -20,5 +20,5 @@ Module contents
 
 .. automodule:: ADCS.helpers.plotting
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:

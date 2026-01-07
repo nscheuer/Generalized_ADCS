@@ -1,7 +1,7 @@
-ADCS.CONOPS.goallist.goallist module
+ADCS.controller.combined\_mtq module
 ====================================
 
-.. automodule:: ADCS.CONOPS.goallist.goallist
+.. automodule:: ADCS.controller.combined_mtq
    :members:
    :show-inheritance:
    :undoc-members:

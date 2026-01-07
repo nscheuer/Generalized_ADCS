@@ -14,5 +14,5 @@ Module contents
 
 .. automodule:: ADCS.logging
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:

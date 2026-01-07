@@ -17,5 +17,5 @@ Module contents
 
 .. automodule:: ADCS.CONOPS.goals
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:

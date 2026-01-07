@@ -16,16 +16,16 @@ Submodules
    :maxdepth: 4
 
    ADCS.controller.bdot
+   ADCS.controller.combined_mtq
    ADCS.controller.controller
    ADCS.controller.mtq_w_rw
+   ADCS.controller.mtq_w_rw_projection_split
    ADCS.controller.plan_and_track_lqr
-   ADCS.controller.plan_and_track_lqr2
-   ADCS.controller.plan_and_track_lqr3
 
 Module contents
 ---------------
 
 .. automodule:: ADCS.controller
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:

@@ -14,5 +14,5 @@ Module contents
 
 .. automodule:: ADCS.flight_software.tasks
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:

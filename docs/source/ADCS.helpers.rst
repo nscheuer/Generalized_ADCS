@@ -24,5 +24,5 @@ Module contents
 
 .. automodule:: ADCS.helpers
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
