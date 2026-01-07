@@ -150,7 +150,7 @@ class MTQ_w_RW_Projection_Split(Controller):
         u_out[mtq_indices] = u_mtq_cmd
 
         # Optional: visualizing usually blocks execution, so it is commented out for runtime
-        self._plot_torques(tau_des, b_body, est_sat)
+        # self.plot_torques(tau_des, b_body, est_sat)
 
         return u_out
 
@@ -259,7 +259,7 @@ class MTQ_w_RW_Projection_Split(Controller):
             # Solver failed (usually singular geometry where NO torque is possible)
             return np.zeros(n_rw), np.zeros(n_mtq), 0.0
 
-    def _plot_torques(self, tau_des: np.ndarray, b_body: np.ndarray, est_sat: EstimatedSatellite) -> None:
+    def plot_torques(self, tau_des: np.ndarray, b_body: np.ndarray, est_sat: EstimatedSatellite) -> None:
         """
         Interactive visualization of the Allocation Strategy.
         - Scroll to Zoom
@@ -305,7 +305,7 @@ class MTQ_w_RW_Projection_Split(Controller):
                     t_point += np.asarray(rws[i].axis) * val
                 rw_points.append(t_point)
             
-            self._plot_hull(ax, np.array(rw_points), color='gray', alpha=0.1, edge_color='black')
+            self.plot_hull(ax, np.array(rw_points), color='gray', alpha=0.1, edge_color='black')
 
         # --- 4. Plot MTQ Capacity (Convex Hull in B-plane) ---
         if mtqs and np.linalg.norm(b_body) > 1e-9:
@@ -321,7 +321,7 @@ class MTQ_w_RW_Projection_Split(Controller):
                 mtq_points.append(np.cross(m_total, b_body))
             
             # Plot faint plane (Cyan)
-            self._plot_hull(ax, np.array(mtq_points), color='cyan', alpha=0.15, edge_color='teal')
+            self.plot_hull(ax, np.array(mtq_points), color='cyan', alpha=0.15, edge_color='teal')
 
         # --- 5. Plot Vectors ---
         # Helper for quivers to ensure they are anchored at origin
@@ -407,7 +407,7 @@ class MTQ_w_RW_Projection_Split(Controller):
         fig.canvas.mpl_connect('scroll_event', on_scroll)
         plt.show()
 
-    def _plot_hull(self, ax, points: np.ndarray, color, alpha, edge_color):
+    def plot_hull(self, ax, points: np.ndarray, color, alpha, edge_color):
         """Plot convex hull with ONLY outer boundary edges (no internal triangulation lines)."""
         if len(points) < 4:
             return

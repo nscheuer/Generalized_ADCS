@@ -41,3 +41,9 @@ pip install git+https://github.com/jcrudy/choldate.git --no-build-isolation
 python examples/cubesat_examples/beavercube1_base_estimator_noisy.py
 ```
 For full installation instructions for your system, including compiling the <u>trajectory planner</u>, see [📘 Installation](/documentation/installation_instructions/INSTALL.md).
+
+🛠 **Sphinx Build Guide:**  
+[`documentation/SPHINX.md`](/documentation/SPHINX.md)
+
+⚙️ **Testing Guide:**
+['documentation/PYTEST.md'](/documentation/PYTEST.md)

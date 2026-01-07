@@ -43,3 +43,6 @@ Instructions for building the Sphinx documentation can be found here:
 
 🛠 **Sphinx Build Guide:**  
 [`documentation/SPHINX.md`](/documentation/SPHINX.md)
+
+⚙️ **Testing Guide:**
+['documentation/PYTEST.md'](/documentation/PYTEST.md)
