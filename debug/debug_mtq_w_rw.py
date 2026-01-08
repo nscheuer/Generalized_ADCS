@@ -85,7 +85,7 @@ def test_mtq_w_rw_align_to_eci(verbose: bool = False, tf: float = 1000, dt: floa
     ind = 0
     steps = int((tf - t0)/dt)
 
-    goal = ECI_Goal(np.array([1, 0, 0]))
+    # goal = ECI_Goal(np.array([1, 0, 0]))
     goal = Coordinate_Goal(lat=38.7223, lon=-10, alt=0)
 
     for step in tqdm(range(steps), desc="Simulating MTQ_w_RW"):

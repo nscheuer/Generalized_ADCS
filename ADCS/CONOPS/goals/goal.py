@@ -77,3 +77,6 @@ class Goal:
         :meth:`ADCS.goals.goal.Goal.to_ref`
         """
         return (np.array([1, 0, 0]), np.array([0, 0, 0]))
+    
+    def error(self, q: np.ndarray, body_boresight: np.ndarray) -> np.ndarray:
+        raise NotImplementedError

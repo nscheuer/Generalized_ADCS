@@ -3,10 +3,11 @@ __all__ = ["ECI_Goal"]
 import numpy as np
 from typing import Tuple
 
-from .goal import Goal
+from ..goals import Vector_Goal
 from ADCS.orbits.orbital_state import Orbital_State
+from ADCS.helpers.math_helpers import normalize
 
-class ECI_Goal(Goal):
+class ECI_Goal(Vector_Goal):
     """
     Fixed inertial pointing goal.
 
@@ -43,7 +44,7 @@ class ECI_Goal(Goal):
             Desired pointing direction expressed in the ECI frame.
             The vector is assumed to be constant in inertial space.
         """
-        self.eci_vector = eci_vector
+        self.eci_vector = normalize(eci_vector)
 
     def to_ref(self, os0: Orbital_State) -> Tuple[np.ndarray, np.ndarray]:
         """
