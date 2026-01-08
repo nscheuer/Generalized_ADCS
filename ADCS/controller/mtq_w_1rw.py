@@ -7,7 +7,7 @@ from scipy.optimize import linprog
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 import itertools
 
-from ADCS.CONOPS.goals import Goal
+from ADCS.CONOPS.goals import Goal, No_Goal
 from ADCS.controller import Controller
 from ADCS.controller.helpers.quaternion_math import vector_alignment_error
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
@@ -19,26 +19,184 @@ from ADCS.helpers.math_helpers import rot_mat, skewsym, limit
 
 class MTQ_w_1RW(Controller):
     r"""
-    Minimal MTQ + RW controller using a projection-split allocator.
+    Hybrid MTQ + single-RW controller with two operating modes:
 
-    Kept features:
-      - feed-forward omega tracking via Goal.to_ref()
-      - feed-forward gyroscopic compensation
-    
-    New Feature:
-      - 'allocate_max_torque_in_direction': Uses Linear Programming to find the 
-        maximum possible torque strictly parallel to tau_des given actuator limits.
+    1) **Pointing mode** (any goal other than :class:`~ADCS.CONOPS.goals.No_Goal`):
+       Generates a desired body torque for attitude regulation and allocates it across
+       MTQs + RW using the projection-split allocator implemented in
+       :meth:`allocate_max_torque_in_direction`.
+
+    2) **No-goal mode** (:class:`~ADCS.CONOPS.goals.No_Goal`):
+       Runs a "smart B-dot + momentum management" law:
+       - MTQs are used to damp body rates in the plane orthogonal to the geomagnetic field,
+       - the RW is biased (slowly) toward a target stored momentum :math:`h_\mathrm{tgt}`.
+
+    Important physics constraints:
+
+    - Magnetic torquers can only generate torque orthogonal to :math:`\mathbf{B}`:
+
+      .. math::
+
+         \boldsymbol{\tau}_{mtq} = \mathbf{m} \times \mathbf{B},
+         \qquad
+         \mathbf{B}^\top \boldsymbol{\tau}_{mtq} = 0.
+
+    - With a **single** RW with axis :math:`\hat{\mathbf a}`,
+      the wheel stores scalar angular momentum :math:`h` about that axis:
+
+      .. math::
+
+         \mathbf{h}_{rw} = h \, \hat{\mathbf a}.
+
+    No-goal control law (conceptual):
+
+    - **Rate damping (B-dot style, expressed using rate projection):**
+
+      Let
+
+      .. math::
+
+         \boldsymbol{\omega}_\perp
+         =
+         \boldsymbol{\omega} - (\boldsymbol{\omega}^\top \hat{\mathbf b}) \hat{\mathbf b},
+         \qquad \hat{\mathbf b} = \frac{\mathbf{B}}{\|\mathbf{B}\|}.
+
+      Then
+
+      .. math::
+
+         \boldsymbol{\tau}_{bdot} = -k_\omega \, \boldsymbol{\omega}_\perp.
+
+      This is equivalent (up to a scalar factor) to the classical B-dot law
+      :math:`\mathbf{m} \propto -\dot{\mathbf{B}}`, under the approximation
+      :math:`\dot{\mathbf{B}} \approx \boldsymbol{\omega} \times \mathbf{B}`.
+
+    - **Wheel momentum biasing:**
+
+      .. math::
+
+         \boldsymbol{\tau}_{dump} = k_h (h - h_\mathrm{tgt}) \hat{\mathbf a},
+
+      with an *optional* saturation/limiting of :math:`\|\boldsymbol{\tau}_{dump}\|`
+      to enforce slow desaturation (to avoid exciting attitude dynamics).
+
+    Because MTQs cannot create the component parallel to :math:`\mathbf{B}`,
+    the implementation projects / gates the commanded torques into the plane
+    orthogonal to :math:`\mathbf{B}` and scales both RW and MTQ commands
+    consistently when the MTQs saturate.
+
+    Parameters
+    ----------
+    est_sat : :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+        Satellite model containing sensors, actuators, inertia, and boresight.
+    p_gain : float
+        Proportional gain for pointing-mode attitude error.
+    d_gain : float
+        Derivative gain for pointing-mode rate error; reused as :math:`k_\omega` in No-Goal mode.
+    c_gain : float
+        Momentum management gain; reused as :math:`k_h` in No-Goal mode.
+    h_target : float
+        Target scalar stored momentum (single RW case), in :math:`\mathrm{N\,m\,s}`.
+
+    Raises
+    ------
+    ValueError
+        If the satellite does not contain exactly one RW, or contains fewer than
+        three MTQs, or if the MTQ axes are not full-rank (rank < 3).
+
+    Notes
+    -----
+    This class assumes the estimated state vector contains:
+
+    - :math:`\boldsymbol{\omega}` as ``x_hat[0:3]`` [rad/s],
+    - quaternion ``q`` as ``x_hat[3:7]`` (scalar-first),
+    - the single RW momentum scalar ``h`` as ``x_hat[7]`` [Nms].
+
+    See Also
+    --------
+    :class:`~ADCS.CONOPS.goals.No_Goal`
+    :meth:`find_u`
+    :meth:`allocate_max_torque_in_direction`
     """
 
     def __init__(
         self,
         est_sat: EstimatedSatellite,
         p_gain: float,
-        d_gain: float
+        d_gain: float,
+        c_gain: float,
+        h_target: float
     ) -> None:
+        r"""
+        Initialize controller gains and precompute sensor/actuator maps.
+
+        In addition to standard parameter assignment, this initializer performs
+        **configuration validity checks** that are critical for correctness:
+
+        1) **Exactly one reaction wheel:**
+           The no-goal momentum state is treated as a scalar :math:`h` and mapped
+           along a single axis :math:`\hat{\mathbf a}`. Multiple wheels require a
+           different state mapping and momentum objective.
+
+        2) **At least three MTQs with full-rank axis matrix:**
+           Define the MTQ axis matrix
+
+           .. math::
+
+              A_{mtq} = \begin{bmatrix}
+                \hat{\mathbf u}_1 & \hat{\mathbf u}_2 & \cdots & \hat{\mathbf u}_{N}
+              \end{bmatrix} \in \mathbb{R}^{3\times N}.
+
+           We require
+
+           .. math::
+
+              \mathrm{rank}(A_{mtq}) = 3,
+
+           so that the dipole vector spans 3D space. While the achievable torque is
+           always constrained to :math:`\mathbf{B}^\perp`, a rank-3 dipole basis is
+           the minimum practical condition for robust torque generation across orbit
+           (except near degenerate field alignments).
+
+        Parameters
+        ----------
+        est_sat : :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+            Satellite model.
+        p_gain, d_gain, c_gain : float
+            Controller gains.
+        h_target : float
+            Target wheel momentum.
+
+        Raises
+        ------
+        ValueError
+            If MTQ/RW configuration checks fail.
+        """
+        # --- Configuration checks (required by this controller) ---
+        mtqs = [a for a in est_sat.actuators if isinstance(a, MTQ)]
+        rws  = [a for a in est_sat.actuators if isinstance(a, RW)]
+
+        if len(rws) != 1:
+            raise ValueError(
+                f"MTQ_w_1RW requires exactly 1 reaction wheel; found {len(rws)}."
+            )
+
+        if len(mtqs) < 3:
+            raise ValueError(
+                f"MTQ_w_1RW requires at least 3 MTQs; found {len(mtqs)}."
+            )
+
+        A_axes = np.column_stack([np.asarray(m.axis, float).reshape(3,) for m in mtqs])
+        if np.linalg.matrix_rank(A_axes) < 3:
+            raise ValueError(
+                "MTQ_w_1RW requires MTQ axes to be full-rank (rank=3). "
+                f"Got rank={np.linalg.matrix_rank(A_axes)}."
+            )
 
         self.p_gain = float(p_gain)
         self.d_gain = float(d_gain)
+        self.c_gain = float(c_gain)
+        self.h_target = float(h_target)
 
         # MTM reconstruction
         self.M_mtm_read, _ = self.build_sensor_matrix_pinv(
@@ -46,6 +204,9 @@ class MTQ_w_1RW(Controller):
         )
 
         # Torque → command maps
+        self.M_mtq_act, self.mtq_indices = self.build_torque_to_u_matrix_pinv(
+            actuators=est_sat.actuators, actuator_type=MTQ
+        )
         self.M_rw_act, self.rw_indices = self.build_torque_to_u_matrix_pinv(
             actuators=est_sat.actuators, actuator_type=RW
         )
@@ -61,7 +222,9 @@ class MTQ_w_1RW(Controller):
             for rw in est_sat.actuators if isinstance(rw, RW)
         ])
 
-        self.max_u = self.find_max_torque(actuators=est_sat.actuators)
+        self.n_actuators = len(est_sat.actuators)
+        self.mtq_umax = np.array([a.u_max for a in est_sat.actuators if isinstance(a, MTQ)], dtype=float)
+        self.rw_umax  = np.array([a.u_max for a in est_sat.actuators if isinstance(a, RW)], dtype=float)
 
     def find_u(
         self,
@@ -71,93 +234,242 @@ class MTQ_w_1RW(Controller):
         os_hat: Orbital_State,
         goal: Goal | None = None,
     ) -> np.ndarray:
+        r"""
+        Compute actuator commands for MTQs and the single RW.
+
+        Two-mode behavior:
+
+        **A) No-goal mode** (:class:`~ADCS.CONOPS.goals.No_Goal`)
+            Produces a damping torque in the plane orthogonal to :math:`\mathbf{B}`
+            and a (slow) wheel momentum bias torque along the RW axis.
+
+            Rate damping:
+
+            .. math::
+
+               \boldsymbol{\omega}_\perp
+               =
+               \boldsymbol{\omega} - (\boldsymbol{\omega}^\top \hat{\mathbf b}) \hat{\mathbf b},
+               \qquad
+               \boldsymbol{\tau}_{bdot} = -k_\omega \boldsymbol{\omega}_\perp.
+
+            Wheel momentum biasing:
+
+            .. math::
+
+               \boldsymbol{\tau}_{dump} = k_h (h - h_\mathrm{tgt}) \hat{\mathbf a}.
+
+            Optional limiting of :math:`\boldsymbol{\tau}_{dump}` (recommended in practice):
+
+            .. math::
+
+               \boldsymbol{\tau}_{dump} \leftarrow
+               \mathrm{sat}_{\tau_{max}}\!\left(\boldsymbol{\tau}_{dump}\right),
+
+            to prevent aggressive desaturation that can inject attitude energy.
+
+            Since MTQs may saturate, a consistent scaling factor :math:`\alpha \in (0,1]`
+            is applied such that both MTQ and RW requests remain matched in the intended
+            torque split when MTQ commands exceed limits.
+
+        **B) Pointing mode** (all other goals)
+            Forms a pointing torque based on quaternion error and angular-rate error,
+            adds gyroscopic compensation, and calls :meth:`allocate_max_torque_in_direction`
+            to compute feasible RW+MTQ commands.
+
+        Parameters
+        ----------
+        x_hat : np.ndarray
+            Estimated state vector. Must include :math:`\boldsymbol{\omega}`, quaternion, and
+            a single wheel momentum scalar :math:`h`.
+        sens : np.ndarray
+            Sensor vector. MTM channels are used to reconstruct :math:`\mathbf{B}` in body frame.
+        est_sat : :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+            Satellite model.
+        os_hat : :class:`~ADCS.orbits.orbital_state.Orbital_State`
+            Orbital state (used by goals, field models, etc.).
+        goal : :class:`~ADCS.CONOPS.goals.Goal` or None
+            Control objective. If None, defaults to :class:`~ADCS.CONOPS.goals.No_Goal`.
+
+        Returns
+        -------
+        np.ndarray
+            Full actuator command vector ordered by ``est_sat.actuators``.
+
+        Notes
+        -----
+        - MTQ torque is always orthogonal to :math:`\mathbf{B}`.
+        - The no-goal mode does **not** attempt to control pointing; it prioritizes
+          detumbling and slow wheel momentum biasing.
+        """
 
         if goal is None:
-            goal = Goal()
+            goal = No_Goal()
 
-        # ---------- State Extraction ----------
         w = x_hat[0:3]
         q = x_hat[3:7]
-        
-        # Assumption: State vector x_hat contains [w(3), q(4), h_rw_1, h_rw_2, ...]
-        # We extract RW momentum states starting at index 7.
-        # Ideally, we verify the length matches the number of RWs.
-        n_rw = len([a for a in est_sat.actuators if isinstance(a, RW)])
-        if len(x_hat) >= 7 + n_rw:
-            h_rw_states = x_hat[7 : 7 + n_rw]
+
+        if isinstance(goal, No_Goal):
+            # Smart B-Dot + Momentum Dumping (CONSISTENT SATURATION)
+
+            k_w = self.d_gain
+            k_h = self.c_gain
+
+            # --- Magnetic field ---
+            b_body = np.asarray(self.M_mtm_read @ sens, float).reshape(3,)
+            b_norm = np.linalg.norm(b_body)
+            if b_norm < 1e-9:
+                return np.zeros(self.n_actuators)
+            b_hat = b_body / b_norm
+
+            # --- Wheel momentum (1 RW) ---
+            h_val = x_hat[7]
+            a_hat = self.rw_axes[0]
+
+            # --- B-dot style rate damping (⊥ B only) ---
+            w_perp = w - np.dot(w, b_hat) * b_hat
+            tau_bdot = -k_w * w_perp
+            tau_bdot_perp = tau_bdot  # already ⟂ B
+
+            # --- Wheel momentum dumping torque (BODY torque) ---
+            delta_h = h_val - self.h_target
+            tau_rw_dump_des = k_h * delta_h * a_hat
+            mag = np.linalg.norm(tau_rw_dump_des)
+            if mag > k_h*0.001:
+                tau_rw_dump_des *= k_h*0.001 / (mag + 1e-12)
+
+            # Project dump torque into MTQ-achievable plane
+            tau_rw_dump_perp = tau_rw_dump_des - np.dot(tau_rw_dump_des, b_hat) * b_hat
+
+            # Geometry gating (avoid uncancellable dumping)
+            denom = np.linalg.norm(tau_rw_dump_des) + 1e-12
+            gamma = np.linalg.norm(tau_rw_dump_perp) / denom
+            tau_rw_dump_cmd = gamma * tau_rw_dump_des
+
+            # --- Desired MTQ torque ---
+            tau_mtq_des = tau_bdot_perp - tau_rw_dump_perp
+
+            # --- MTQ allocation (UNCLIPPED) ---
+            B_skew = skewsym(b_body)
+            M_mag_eff = -B_skew @ self.A_mtq     # (3, n_actuators)
+
+            u_mtq_raw = np.linalg.pinv(M_mag_eff) @ tau_mtq_des
+
+            # --- Compute MTQ saturation scaling factor ---
+            mtq_cmds = u_mtq_raw[self.mtq_indices]
+            alpha_mtq = 1.0
+            if np.any(np.abs(mtq_cmds) > self.mtq_umax):
+                alpha_mtq = np.min(self.mtq_umax / (np.abs(mtq_cmds) + 1e-12))
+
+            # --- Apply SAME scaling to MTQs and RW torques ---
+            u_mtq_scaled = alpha_mtq * u_mtq_raw
+            tau_mag_actual = M_mag_eff @ u_mtq_scaled
+
+            tau_rw_req = alpha_mtq * (tau_rw_dump_cmd + tau_bdot_perp)
+
+            # --- RW allocation ---
+            u_rw = self.M_rw_act @ tau_rw_req
+            u_rw = np.clip(u_rw, -self.rw_umax, self.rw_umax)
+
+            # --- Final actuator command ---
+            u_out = u_mtq_scaled + u_rw
         else:
-            # Fallback if state vector is short (e.g. perfect attitude sensor only)
-            # Use the stored values in the actuator objects (measurements)
-            h_rw_states = np.array([rw.h for rw in est_sat.actuators if isinstance(rw, RW)])
-
-        # ---------- Reference ----------
-        goal_vec_eci, w_ref_eci = goal.to_ref(os0=os_hat)
-        R_b2i = rot_mat(q)
-        w_ref_body = R_b2i.T @ w_ref_eci
-
-        # ---------- Errors ----------
-        q_err = vector_alignment_error(
-            q=q,
-            eci_goal=goal_vec_eci,
-            body_boresight=est_sat.boresight,
-        )
-        w_err = w - w_ref_body
-
-        # ---------- 1. PD Control Law ----------
-        tau_pd = -self.p_gain * q_err - self.d_gain * w_err
-
-        # ---------- 2. Gyroscopic Compensation (Feed-Forward) ----------
-        # Reconstruct total RW angular momentum vector in body frame
-        # h_rw_body = sum( h_i * axis_i )
-        h_rw_body = np.zeros(3)
-        rw_counter = 0
-        for actuator in est_sat.actuators:
-            if isinstance(actuator, RW):
-                h_rw_body += np.asarray(actuator.axis).flatten() * h_rw_states[rw_counter]
-                rw_counter += 1
         
-        # Compensation Torque: w x (J*w + h_rw)
-        # This cancels the natural gyroscopic precession of the body
-        J = est_sat.J_0
-        tau_gyro = np.cross(w, J @ w + h_rw_body)
+            n_rw = len([a for a in est_sat.actuators if isinstance(a, RW)])
+            if len(x_hat) >= 7 + n_rw:
+                h_rw_states = x_hat[7 : 7 + n_rw]
+            else:
+                h_rw_states = np.array([rw.h for rw in est_sat.actuators if isinstance(rw, RW)])
 
-        # ---------- 3. Total Desired Torque ----------
-        # The allocator now receives a request that includes the force needed 
-        # to hold the satellite steady against precession.
-        tau_des = tau_pd + tau_gyro
-        
-        b_body = np.asarray(self.M_mtm_read @ sens, float).reshape(3,)
+            goal_vec_eci, w_ref_eci = goal.to_ref(os0=os_hat)
+            R_b2i = rot_mat(q)
+            w_ref_body = R_b2i.T @ w_ref_eci
 
-        # ---------- 4. Projection Allocation (LP) ----------
-        # Solves for optimal u to maximize torque in direction of tau_des
-        u_rw_cmd, u_mtq_cmd, alpha = self.allocate_max_torque_in_direction(
-            tau_des, b_body, est_sat
-        )
+            q_err = vector_alignment_error(
+                q=q,
+                eci_goal=goal_vec_eci,
+                body_boresight=est_sat.boresight,
+            )
+            w_err = w - w_ref_body
+            tau_pd = -self.p_gain * q_err - self.d_gain * w_err
 
-        # ---------- Construct Output Vector ----------
-        u_out = np.zeros(len(est_sat.actuators))
-        
-        rw_indices = [i for i, a in enumerate(est_sat.actuators) if isinstance(a, RW)]
-        u_out[rw_indices] = u_rw_cmd
-        
-        mtq_indices = [i for i, a in enumerate(est_sat.actuators) if isinstance(a, MTQ)]
-        u_out[mtq_indices] = u_mtq_cmd
+            h_rw_body = np.zeros(3)
+            rw_counter = 0
+            for actuator in est_sat.actuators:
+                if isinstance(actuator, RW):
+                    h_rw_body += np.asarray(actuator.axis).flatten() * h_rw_states[rw_counter]
+                    rw_counter += 1
+            
+            J = est_sat.J_0
+            tau_gyro = np.cross(w, J @ w + h_rw_body)
 
-        # Optional: visualizing usually blocks execution, so it is commented out for runtime
-        # self.plot_torques(tau_des, b_body, est_sat)
+            tau_des = tau_pd + tau_gyro
+            
+            b_body = np.asarray(self.M_mtm_read @ sens, float).reshape(3,)
+
+            u_rw_cmd, u_mtq_cmd, alpha = self.allocate_max_torque_in_direction(
+                tau_des, b_body, est_sat
+            )
+
+            u_out = np.zeros(len(est_sat.actuators))
+            
+            rw_indices = [i for i, a in enumerate(est_sat.actuators) if isinstance(a, RW)]
+            u_out[rw_indices] = u_rw_cmd
+            
+            mtq_indices = [i for i, a in enumerate(est_sat.actuators) if isinstance(a, MTQ)]
+            u_out[mtq_indices] = u_mtq_cmd
+
+            # self.plot_torques(tau_des, b_body, est_sat)
 
         return u_out
 
     def allocate_max_torque_in_direction(self, tau_des: np.ndarray, b_body: np.ndarray, est_sat: EstimatedSatellite) -> tuple[np.ndarray, np.ndarray, float]:
-        """
-        Uses Linear Programming to find the actuator commands (RW + MTQ) that 
-        MAXIMIZE the torque magnitude strictly in the direction of tau_des, 
-        subject to all actuator limits.
-        
-        Returns:
-            u_rw: Torque commands for RWs [Nm]
-            u_mtq: Dipole commands for MTQs [Am^2]
-            alpha: Scaling factor (0.0 to >1.0) achieved relative to tau_des
+        r"""
+        Compute the maximum achievable torque strictly parallel to :math:`\tau_{des}`.
+
+        This routine solves a linear program that finds commands that **maximize the achievable
+        torque magnitude** along a desired direction (unit vector :math:`\hat{\tau}`), subject
+        to per-actuator bounds. It returns the RW and MTQ commands and a scalar scale factor
+        :math:`\alpha` representing how much of the requested torque magnitude is feasible.
+
+        Conceptually, it computes:
+
+        .. math::
+
+           \max_{u,\,T\ge 0} \;\; T
+           \quad \text{s.t.}\quad
+           \boldsymbol{\tau}(u) = T\,\hat{\boldsymbol{\tau}},\;
+           u_{min} \le u \le u_{max},
+
+        where :math:`\hat{\boldsymbol{\tau}} = \tau_{des}/\|\tau_{des}\|`.
+
+        If :math:`T \ge \|\tau_{des}\|`, the returned solution is scaled down linearly to match
+        exactly :math:`\tau_{des}`.
+
+        Parameters
+        ----------
+        tau_des : np.ndarray
+            Desired body torque vector [Nm].
+        b_body : np.ndarray
+            Body-frame magnetic field vector [T] (or consistent internal units).
+        est_sat : :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+            Satellite model.
+
+        Returns
+        -------
+        (u_rw, u_mtq, alpha) : tuple
+            - ``u_rw`` : np.ndarray
+              RW torque command(s) [Nm] (length 1 in this class).
+            - ``u_mtq`` : np.ndarray
+              MTQ dipole commands [A·m²] (length = number of MTQs).
+            - ``alpha`` : float
+              Achieved scaling factor relative to the requested magnitude.
+
+        Notes
+        -----
+        This doc intentionally omits detailed allocation matrix construction since that is
+        documented elsewhere in the repository. The key contract is that this allocator
+        returns a solution whose net torque is colinear with :math:`\tau_{des}`.
         """
         
         t_mag = np.linalg.norm(tau_des)
@@ -254,8 +566,27 @@ class MTQ_w_1RW(Controller):
             return np.zeros(n_rw), np.zeros(n_mtq), 0.0
 
     def plot_torques(self, tau_des: np.ndarray, b_body: np.ndarray, est_sat: EstimatedSatellite) -> None:
-        """
-        Interactive visualization of RW + MTQ torque allocation.
+        r"""
+        Visualize RW + MTQ torque allocation and capacity geometry.
+
+        This helper produces a 3D plot showing:
+        - the RW achievable torque set (as a line segment or polytope),
+        - the MTQ achievable torque set for the current :math:`\mathbf{B}` (a 2D set in :math:`\mathbf{B}^\perp`),
+        - the allocated RW torque, MTQ torque, and their sum,
+        - the requested desired torque.
+
+        Parameters
+        ----------
+        tau_des : np.ndarray
+            Desired body torque [Nm].
+        b_body : np.ndarray
+            Body-frame magnetic field [T] (or consistent internal units).
+        est_sat : :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+            Satellite model.
+
+        Notes
+        -----
+        This is for debugging and intuition; it is not used in flight code.
         """
 
         # --- Solve allocation ---
@@ -346,13 +677,31 @@ class MTQ_w_1RW(Controller):
                   face_color: str,
                   edge_color: str,
                   alpha: float = 0.25):
-        """
-        Automatically renders:
-        - Line (1D)
-        - Polygon (2D)
-        - Hull volume (3D)
+        r"""
+        Render a convex capacity set from a point cloud in 3D.
 
-        with thin translucent faces and silhouette-only edges.
+        The capacity set is determined by the rank of the point cloud:
+
+        - Rank 1: a line segment,
+        - Rank 2: a filled polygon in 3D,
+        - Rank 3: a convex hull volume.
+
+        Parameters
+        ----------
+        ax : matplotlib axis
+            3D matplotlib axis to draw on.
+        points : np.ndarray
+            Point cloud representing attainable torques.
+        face_color : str
+            Face color used for translucent hull surfaces.
+        edge_color : str
+            Edge color used for silhouettes / outlines.
+        alpha : float, optional
+            Transparency level.
+
+        Notes
+        -----
+        This method is purely for plotting; it has no effect on control behavior.
         """
 
         pts = np.unique(points, axis=0)

@@ -1,7 +1,0 @@
-ADCS.CONOPS.goallist.goallist module
-====================================
-
-.. automodule:: ADCS.CONOPS.goallist.goallist
-   :members:
-   :show-inheritance:
-   :undoc-members:
