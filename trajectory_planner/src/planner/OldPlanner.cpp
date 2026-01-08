@@ -521,6 +521,32 @@ AFTER_OUTPUT_FORM OldPlanner::trajOpt(VECTOR_INFO_FORM &vecs,int N, TIME_FORM ti
   // VECTOR_INFO_FORM vecs = vecsPy2Cpp(vecsPy);
   // vec x0 = numpyToArmaVector(x0Numpy);
 
+  cout << "=== VECTOR_INFO_FORM DEBUG ===\n";
+
+  const arma::vec& t   = std::get<0>(vecs);
+  const arma::mat& r   = std::get<1>(vecs);
+  const arma::mat& v   = std::get<2>(vecs);
+  const arma::mat& b   = std::get<3>(vecs);
+  const arma::mat& s   = std::get<4>(vecs);
+  const arma::mat& a   = std::get<5>(vecs);
+  const arma::mat& e   = std::get<6>(vecs);
+  const arma::vec& p   = std::get<7>(vecs);
+  const arma::vec& rho = std::get<8>(vecs);
+
+  cout << "t   : vec  n_elem = " << t.n_elem << "\n";
+
+  cout << "r   : mat  " << r.n_rows << " x " << r.n_cols << "\n";
+  cout << "v   : mat  " << v.n_rows << " x " << v.n_cols << "\n";
+  cout << "b   : mat  " << b.n_rows << " x " << b.n_cols << "\n";
+  cout << "s   : mat  " << s.n_rows << " x " << s.n_cols << "\n";
+  cout << "a   : mat  " << a.n_rows << " x " << a.n_cols << "\n";
+  cout << "e   : mat  " << e.n_rows << " x " << e.n_cols << "\n";
+
+  cout << "p   : vec  n_elem = " << p.n_elem << "\n";
+  cout << "rho : vec  n_elem = " << rho.n_elem << "\n";
+
+  cout << "==============================\n";
+
   cout<<"in c++\n";
   cout<<x0<<"\n";
   BEFORE_OUTPUT_FORM results = OldPlanner::trajOptBefore(vecs, dt, time_start, time_end, x0, bdotOn);
