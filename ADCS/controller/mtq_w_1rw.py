@@ -1,4 +1,4 @@
-__all__ = ["MTQ_w_RW_Projection_Split"]
+__all__ = ["MTQ_w_1RW"]
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -17,7 +17,7 @@ from ADCS.satellite_hardware.sensors import MTM
 from ADCS.helpers.math_helpers import rot_mat, skewsym, limit
 
 
-class MTQ_w_RW_Projection_Split(Controller):
+class MTQ_w_1RW(Controller):
     r"""
     Minimal MTQ + RW controller using a projection-split allocator.
 
@@ -34,16 +34,11 @@ class MTQ_w_RW_Projection_Split(Controller):
         self,
         est_sat: EstimatedSatellite,
         p_gain: float,
-        d_gain: float,
-        c_gain: float,
-        h_target: np.ndarray,
-        pinv_rcond: float = 1e-6,
+        d_gain: float
     ) -> None:
 
         self.p_gain = float(p_gain)
         self.d_gain = float(d_gain)
-        self.c_gain = float(c_gain)
-        self.pinv_rcond = float(pinv_rcond)
 
         # MTM reconstruction
         self.M_mtm_read, _ = self.build_sensor_matrix_pinv(
@@ -66,7 +61,6 @@ class MTQ_w_RW_Projection_Split(Controller):
             for rw in est_sat.actuators if isinstance(rw, RW)
         ])
 
-        self.h_target = np.asarray(h_target, dtype=float).reshape(3,)
         self.max_u = self.find_max_torque(actuators=est_sat.actuators)
 
     def find_u(
@@ -261,194 +255,163 @@ class MTQ_w_RW_Projection_Split(Controller):
 
     def plot_torques(self, tau_des: np.ndarray, b_body: np.ndarray, est_sat: EstimatedSatellite) -> None:
         """
-        Interactive visualization of the Allocation Strategy.
-        - Scroll to Zoom
-        - Shows RW Capacity Hull (Gray volume)
-        - Shows MTQ Capacity Hull (Cyan plane)
-        - Shows Vector Addition
+        Interactive visualization of RW + MTQ torque allocation.
         """
-        # --- 1. Solve LP for Optimal Vectors ---
-        u_rw_lp, u_mtq_lp, alpha_lp = self.allocate_max_torque_in_direction(tau_des, b_body, est_sat)
 
-        # Reconstruct physical torque vectors
-        rws = [a for a in est_sat.actuators if isinstance(a, RW)]
-        tau_rw_vec = np.zeros(3)
-        for i, rw in enumerate(rws):
-            tau_rw_vec += np.asarray(rw.axis) * u_rw_lp[i]
+        # --- Solve allocation ---
+        u_rw, u_mtq, alpha = self.allocate_max_torque_in_direction(tau_des, b_body, est_sat)
 
+        rws  = [a for a in est_sat.actuators if isinstance(a, RW)]
         mtqs = [a for a in est_sat.actuators if isinstance(a, MTQ)]
-        tau_mtq_vec = np.zeros(3)
-        for i, m in enumerate(mtqs):
-            tau_mtq_vec += np.cross(np.asarray(m.axis) * u_mtq_lp[i], b_body)
 
-        tau_total = tau_rw_vec + tau_mtq_vec
+        tau_rw  = sum(np.asarray(rw.axis) * u_rw[i]  for i, rw in enumerate(rws))  if rws  else np.zeros(3)
+        tau_mtq = sum(np.cross(np.asarray(m.axis) * u_mtq[i], b_body)
+                    for i, m in enumerate(mtqs)) if mtqs else np.zeros(3)
 
-        # --- 2. Setup Figure ---
-        fig = plt.figure(figsize=(10, 8))
-        ax = fig.add_subplot(111, projection='3d')
-        
-        # KEY FIX: Force equal aspect ratio so vectors don't look distorted/inverted
-        ax.set_box_aspect([1, 1, 1]) 
+        tau_tot = tau_rw + tau_mtq
 
-        # --- 3. Plot RW Capacity (Convex Hull of all wheels) ---
-        # This shows the total volume of torque the RWs can produce
+        # --- Build capacity point clouds ---
+        rw_pts, mtq_pts = [], []
+
         if rws:
-            # Get corners of hypercube: [-u_max, u_max] for each wheel
-            rw_limits = [[-rw.u_max, rw.u_max] for rw in rws]
-            rw_corners = list(itertools.product(*rw_limits))
-            
-            # Map command corners to physical torque points
-            rw_points = []
-            for corner in rw_corners:
-                t_point = np.zeros(3)
-                for i, val in enumerate(corner):
-                    t_point += np.asarray(rws[i].axis) * val
-                rw_points.append(t_point)
-            
-            self.plot_hull(ax, np.array(rw_points), color='gray', alpha=0.1, edge_color='black')
+            limits = [[-rw.u_max, rw.u_max] for rw in rws]
+            rw_pts = np.array([
+                sum(np.asarray(rws[i].axis) * c[i] for i in range(len(rws)))
+                for c in itertools.product(*limits)
+            ])
 
-        # --- 4. Plot MTQ Capacity (Convex Hull in B-plane) ---
         if mtqs and np.linalg.norm(b_body) > 1e-9:
-            mtq_limits = [[-m.u_max, m.u_max] for m in mtqs]
-            mtq_corners = list(itertools.product(*mtq_limits))
-            
-            mtq_points = []
-            for corner in mtq_corners:
-                m_total = np.zeros(3)
-                for i, val in enumerate(corner):
-                    m_total += np.asarray(mtqs[i].axis) * val
-                # Torque = m x B
-                mtq_points.append(np.cross(m_total, b_body))
-            
-            # Plot faint plane (Cyan)
-            self.plot_hull(ax, np.array(mtq_points), color='cyan', alpha=0.15, edge_color='teal')
+            limits = [[-m.u_max, m.u_max] for m in mtqs]
+            mtq_pts = np.array([
+                np.cross(sum(np.asarray(mtqs[i].axis) * c[i] for i in range(len(mtqs))), b_body)
+                for c in itertools.product(*limits)
+            ])
 
-        # --- 5. Plot Vectors ---
-        # Helper for quivers to ensure they are anchored at origin
-        def plot_vec(v, color, label, style='-'):
-            if np.linalg.norm(v) > 1e-10:
-                ax.quiver(0, 0, 0, v[0], v[1], v[2], 
-                          color=color, arrow_length_ratio=0.1, linewidth=2.5, linestyle=style, label=label)
+        # --- Figure ---
+        fig = plt.figure(figsize=(10, 8))
+        ax  = fig.add_subplot(111, projection="3d")
+        ax.set_box_aspect([1, 1, 1])
 
-        # A. RW Vector (Purple)
-        plot_vec(tau_rw_vec, 'purple', 'RW Allocation')
-        
-        # B. MTQ Vector (Royal Blue - High Contrast against Cyan plane)
-        plot_vec(tau_mtq_vec, 'royalblue', 'MTQ Allocation')
-        
-        # C. Total Achieved (Lime Green)
-        plot_vec(tau_total, 'limegreen', r'$\tau_{achieved}$')
+        # --- Hulls ---
+        if len(rw_pts):
+            self.plot_capacity(ax, rw_pts, face_color="gray", edge_color="black", alpha=0.25)
 
-        # D. Desired (Red Dashed)
-        # Plot a longer line to show the "direction" we were aiming for
-        if np.linalg.norm(tau_des) > 1e-10:
-            scale = 1.0 if alpha_lp >= 1.0 else 1.5 # Draw it slightly longer if we saturated
-            v_des = tau_des * scale
-            ax.quiver(0, 0, 0, v_des[0], v_des[1], v_des[2], 
-                      color='red', alpha=0.6, linestyle='--', linewidth=1.5, label=r'$\tau_{des}$')
+        if len(mtq_pts):
+            self.plot_capacity(ax, mtq_pts, face_color="royalblue", edge_color="navy", alpha=0.25)
 
-        # --- 6. Visual Aids (Parallelogram summation) ---
-        # Draw dotted lines connecting tips: Origin -> RW -> Total
-        if np.linalg.norm(tau_rw_vec) > 1e-9 and np.linalg.norm(tau_mtq_vec) > 1e-9:
-            # Line from RW tip to Total (represents adding MTQ vector)
-            ax.plot([tau_rw_vec[0], tau_total[0]], 
-                    [tau_rw_vec[1], tau_total[1]], 
-                    [tau_rw_vec[2], tau_total[2]], color='royalblue', linestyle=':', alpha=0.5)
-            # Line from MTQ tip to Total (represents adding RW vector)
-            ax.plot([tau_mtq_vec[0], tau_total[0]], 
-                    [tau_mtq_vec[1], tau_total[1]], 
-                    [tau_mtq_vec[2], tau_total[2]], color='purple', linestyle=':', alpha=0.5)
+        # --- Vectors ---
+        def vec(v, c, lbl, ls="-"):
+            ax.plot([0, v[0]], [0, v[1]], [0, v[2]],
+                    color=c, linewidth=2.5, linestyle=ls, label=lbl, clip_on=False)
 
-        # --- 7. Formatting & Zoom Logic ---
-        ax.set_xlabel('X [Nm]')
-        ax.set_ylabel('Y [Nm]')
-        ax.set_zlabel('Z [Nm]')
-        ax.set_title(f"LP Allocation (Alpha: {alpha_lp:.2f})\nScroll to Zoom")
+        vec(tau_rw,  "purple",     "RW Allocation")
+        vec(tau_mtq, "royalblue",  "MTQ Allocation")
+        vec(tau_tot, "limegreen",  r"$\tau_{achieved}$")
+
+        if np.linalg.norm(tau_des) > 1e-9:
+            vec(tau_des, "red", r"$\tau_{des}$", ls="--")
+
+        # --- Axis focus: MTQ hull ---
+        focus_pts = mtq_pts if len(mtq_pts) else rw_pts
+        if len(focus_pts):
+            m = np.max(np.linalg.norm(focus_pts, axis=1))
+            lim = m * 1.2
+        else:
+            lim = 1.0
+
+        ax.set_xlim(-lim, lim)
+        ax.set_ylim(-lim, lim)
+        ax.set_zlim(-lim, lim)
+
+        ax.set_xlabel("X [Nm]")
+        ax.set_ylabel("Y [Nm]")
+        ax.set_zlabel("Z [Nm]")
+        ax.set_title(f"Torque Allocation (α = {alpha:.2f})\nScroll to zoom")
         ax.legend()
 
-        # Initial Limits: Find max extent of data
-        all_vecs = [tau_rw_vec, tau_mtq_vec, tau_total, tau_des]
-        if rws: all_vecs.extend(rw_points) # Include RW hull in bounds
-        
-        max_val = 0
-        for v in all_vecs:
-            max_val = max(max_val, np.max(np.abs(v)))
-        
-        limit = max_val * 1.1 if max_val > 0 else 1.0
-        
-        # Set initial view
-        ax.set_xlim(-limit, limit)
-        ax.set_ylim(-limit, limit)
-        ax.set_zlim(-limit, limit)
-
-        # --- Scroll to Zoom Handler ---
+        # --- Scroll zoom ---
         def on_scroll(event):
-            # Get current limits
-            xlim = ax.get_xlim()
-            curr_width = xlim[1] - xlim[0]
-            
-            # Zoom factor
-            base_scale = 1.2
-            if event.button == 'up': # Zoom in
-                scale_factor = 1 / base_scale
-            elif event.button == 'down': # Zoom out
-                scale_factor = base_scale
-            else:
-                scale_factor = 1.0
-
-            new_width = curr_width * scale_factor
-            limit = new_width / 2
-
-            ax.set_xlim(-limit, limit)
-            ax.set_ylim(-limit, limit)
-            ax.set_zlim(-limit, limit)
+            s = 0.85 if event.button == "up" else 1.15
+            for setter in (ax.set_xlim, ax.set_ylim, ax.set_zlim):
+                lo, hi = ax.get_xlim()
+                span = (hi - lo) * s / 2
+                setter(-span, span)
             fig.canvas.draw_idle()
 
-        fig.canvas.mpl_connect('scroll_event', on_scroll)
+        fig.canvas.mpl_connect("scroll_event", on_scroll)
         plt.show()
 
-    def plot_hull(self, ax, points: np.ndarray, color, alpha, edge_color):
-        """Plot convex hull with ONLY outer boundary edges (no internal triangulation lines)."""
-        if len(points) < 4:
+    
+    def plot_capacity(self, ax, points: np.ndarray,
+                  face_color: str,
+                  edge_color: str,
+                  alpha: float = 0.25):
+        """
+        Automatically renders:
+        - Line (1D)
+        - Polygon (2D)
+        - Hull volume (3D)
+
+        with thin translucent faces and silhouette-only edges.
+        """
+
+        pts = np.unique(points, axis=0)
+        if len(pts) < 2:
             return
 
-        try:
-            hull = ConvexHull(points, qhull_options='QJ')
+        center = pts.mean(axis=0)
+        U, S, Vh = np.linalg.svd(pts - center)
+        rank = np.sum(S > 1e-10)
 
-            # --- Plot faces WITHOUT edges ---
-            faces = [points[s] for s in hull.simplices]
-            poly = Poly3DCollection(
-                faces,
-                alpha=alpha,
-                facecolors=color,
-                edgecolors='none'   # ← disable triangulation edges
-            )
+        # --- 1D: Line ---
+        if rank == 1:
+            proj = (pts - center) @ Vh[0]
+            p0, p1 = pts[np.argmin(proj)], pts[np.argmax(proj)]
+            ax.plot(*zip(p0, p1),
+                    color=edge_color,
+                    linewidth=4.5,
+                    alpha=alpha,
+                    solid_capstyle="round",
+                    clip_on=False)
+            return
+
+        # --- 2D: Filled polygon ---
+        if rank == 2:
+            proj = (pts - center) @ Vh[:2].T
+            hull = ConvexHull(proj)
+            loop = pts[hull.vertices]
+
+            poly = Poly3DCollection([loop],
+                                    facecolor=face_color,
+                                    edgecolor=edge_color,
+                                    linewidth=1.2,
+                                    alpha=alpha)
+            poly.set_clip_on(False)
             ax.add_collection3d(poly)
+            return
 
-            # --- Extract unique boundary edges ---
-            edge_count = {}
+        # --- 3D: Volume hull ---
+        hull = ConvexHull(pts, qhull_options="QJ")
 
-            for simplex in hull.simplices:
-                edges = [
-                    tuple(sorted((simplex[0], simplex[1]))),
-                    tuple(sorted((simplex[1], simplex[2]))),
-                    tuple(sorted((simplex[2], simplex[0])))
-                ]
-                for e in edges:
-                    edge_count[e] = edge_count.get(e, 0) + 1
+        faces = [pts[s] for s in hull.simplices]
+        poly = Poly3DCollection(faces,
+                                facecolor=face_color,
+                                edgecolor="none",
+                                alpha=alpha)
+        poly.set_clip_on(False)
+        ax.add_collection3d(poly)
 
-            # --- Draw only edges that appear once ---
-            for (i, j), count in edge_count.items():
-                if count == 1:  # boundary edge
-                    p1, p2 = points[i], points[j]
-                    ax.plot(
-                        [p1[0], p2[0]],
-                        [p1[1], p2[1]],
-                        [p1[2], p2[2]],
+        # --- silhouette edges only ---
+        edge_count = {}
+        for s in hull.simplices:
+            for i, j in ((0,1),(1,2),(2,0)):
+                e = tuple(sorted((s[i], s[j])))
+                edge_count[e] = edge_count.get(e, 0) + 1
+
+        for (i, j), c in edge_count.items():
+            if c == 1:
+                ax.plot(*zip(pts[i], pts[j]),
                         color=edge_color,
-                        linewidth=0.8,
-                        alpha=0.9
-                    )
-
-        except Exception:
-            pass
+                        linewidth=1.0,
+                        alpha=0.9,
+                        clip_on=False)
