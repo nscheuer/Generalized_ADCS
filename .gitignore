@@ -221,3 +221,6 @@ __marimo__/
 # Documentation .rst files
 docs/source/*.rst
 !docs/source/index.rst
+
+# All output files
+output_dir/*

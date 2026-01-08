@@ -478,3 +478,28 @@ class Orbital_State:
 
     def is_sunlit(self) -> bool:
         return self.sf_pos.is_sunlit(self.ephem.planets)
+    
+    def to_dict(self) -> dict:
+        return {
+            "J2000": self.J2000,
+            "R": self.R,
+            "V": self.V,
+            "S": self.S,
+            "B": self.B,
+            "rho": self.rho,
+        }
+
+
+    @classmethod
+    def from_dict(cls, d: dict, ephem: Ephemeris, density_model: DensityModel | None = None, fast: bool = True):
+        return cls(
+            ephem=ephem,
+            J2000=d["J2000"],
+            R=d["R"],
+            V=d["V"],
+            S=d.get("S"),
+            B=d.get("B"),
+            rho=d.get("rho"),
+            density_model=density_model,
+            fast=fast,
+    )
