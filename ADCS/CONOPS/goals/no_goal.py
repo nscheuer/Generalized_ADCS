@@ -68,3 +68,6 @@ class No_Goal(Goal):
         """
         zeros = np.array([0, 0, 0])
         return zeros, zeros
+    
+    def error(self, q: np.ndarray, body_boresight: np.ndarray, os0: Orbital_State) -> np.ndarray:
+        return np.zeros(3)

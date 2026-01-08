@@ -3,11 +3,11 @@ __all__ = ["Coordinate_Goal"]
 import numpy as np
 from typing import Tuple
 
-from .goal import Goal
+from ADCS.CONOPS.goals import Vector_Goal
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.helpers.math_helpers import normalize
 
-class Coordinate_Goal(Goal):
+class Coordinate_Goal(Vector_Goal):
     """
     Ground-pointing goal defined by fixed geodetic coordinates.
 
@@ -23,8 +23,7 @@ class Coordinate_Goal(Goal):
     This goal produces:
     
     * a unit inertial line-of-sight vector from the spacecraft to the target
-    * a reference angular velocity required to keep the target centered,
-      accounting for both spacecraft motion and Earth rotation
+    * a reference angular velocity required to keep the target centered, accounting for both spacecraft motion and Earth rotation
 
     Parameters
     ----------

@@ -8,7 +8,7 @@ import pytest
 from scipy.spatial.transform import Rotation as R
 
 sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))
-from ADCS.CONOPS.goals import Goal, ECI_Goal, Coordinate_Goal
+from ADCS.CONOPS.goals import Goal, ECI_Goal, Coordinate_Goal, No_Goal
 from ADCS.controller import MTQ_w_RW
 from ADCS.controller.helpers.quaternion_math import vector_alignment_error
 from ADCS.orbits.ephemeris import Ephemeris
@@ -42,7 +42,7 @@ def run_simulation(
     initial_w: np.ndarray,
     initial_q: np.ndarray,
     initial_rw_h: Union[float, np.ndarray],
-    goal: Union[Goal, None] = None,
+    goal: Goal,
     boresight: np.ndarray = np.array([0, 0, 1])
 ) -> Tuple[np.ndarray, np.ndarray, List[Orbital_State], np.ndarray, np.ndarray, np.ndarray]:
     """
@@ -157,7 +157,7 @@ def stop_rotation_results():
     return run_simulation(
         verbose=False, tf=100, dt=1, real_orbit=False,
         p_gain=0, d_gain=1, c_gain=0,
-        initial_w=w0, initial_q=q0, initial_rw_h=0, goal=None
+        initial_w=w0, initial_q=q0, initial_rw_h=0, goal=No_Goal()
     )
 
 @pytest.fixture(scope="module")
@@ -311,7 +311,8 @@ def test_mtq_w_rw_full(full_task_results):
 def plot_mtq_w_rw_stop_rotation(verbose: bool = False, tf: float = 100, dt: float = 1, real_orbit: bool = False):
     w0 = random_n_unit_vec(3)*np.random.uniform(1, 2)*np.pi/180.0
     q0 = random_n_unit_vec(4)
-    res = run_simulation(verbose, tf, dt, real_orbit, 0, 1, 0, w0, q0, 0, None)
+    goal = No_Goal()
+    res = run_simulation(verbose, tf, dt, real_orbit, 0, 1, 0, w0, q0, 0, goal)
     _plot_results(res)
 
 def plot_mtq_w_rw_align(verbose: bool = False, tf: float = 100, dt: float = 1, real_orbit: bool = False):
@@ -353,4 +354,4 @@ def _plot_results(results):
     create_close_all_button_window()
 
 if __name__ == "__main__":
-    plot_mtq_w_rw_full(verbose=False, tf = 100, dt = 1, real_orbit= True)
+    plot_mtq_w_rw_stop_rotation(verbose=False, tf = 100, dt = 1, real_orbit= True)

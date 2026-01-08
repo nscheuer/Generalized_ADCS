@@ -261,7 +261,8 @@ class MTQ_w_RW(Controller):
 
         b_body = self.M_mtm_read @ sens # Already filters out only MTM readings
 
-        q_err_vec = vector_alignment_error(q=q, eci_goal=goal_vector_eci, body_boresight=est_sat.boresight)
+        q_err_vec = goal.error(q=q, body_boresight=est_sat.boresight, os0=os_hat)
+        # q_err_vec = vector_alignment_error(q=q, eci_goal=goal_vector_eci, body_boresight=est_sat.boresight)
         R_b2i = rot_mat(q)
         w_ref_body = R_b2i.T @ w_ref_eci
         w_err = w - w_ref_body
