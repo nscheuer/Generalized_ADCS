@@ -7,7 +7,7 @@ from tqdm import tqdm
 import pytest
 
 sys.path.append(os.path.abspath(os.path.join(__file__, "../..")))
-from ADCS.CONOPS.goals import Goal, ECI_Goal, Coordinate_Goal, Fixed_Attitude_Goal
+from ADCS.CONOPS.goals import Goal, ECI_Goal, Coordinate_Goal, Nadir_Goal
 from ADCS.controller import MTQ_w_RW
 from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.orbit import Orbit
@@ -86,7 +86,8 @@ def test_mtq_w_rw_align_to_eci(verbose: bool = False, tf: float = 1000, dt: floa
     steps = int((tf - t0)/dt)
 
     # goal = ECI_Goal(np.array([1, 0, 0]))
-    goal = Coordinate_Goal(lat=38.7223, lon=-10, alt=0)
+    # goal = Coordinate_Goal(lat=38.7223, lon=-10, alt=0)
+    goal = Nadir_Goal()
 
     for step in tqdm(range(steps), desc="Simulating MTQ_w_RW"):
         J2000 = 0.22 + t*TimeConstants.sec2cent
