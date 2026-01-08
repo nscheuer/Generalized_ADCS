@@ -217,3 +217,7 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Documentation .rst files
+docs/source/*.rst
+!docs/source/index.rst

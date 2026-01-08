@@ -4,8 +4,8 @@ from ADCS.controller.helpers import PlannerSettings
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
 from ADCS.satellite_hardware.actuators import Actuator, MTQ, RW
 
-import trajectory_planner.build.tplaunch as tplaunch
-import trajectory_planner.build.pysat as pysat
+# import trajectory_planner.build.tplaunch as tplaunch
+# import trajectory_planner.build.pysat as pysat
 
 def build_cpp_satellite(est_sat: EstimatedSatellite, planner_settings: PlannerSettings) -> pysat.Satellite:
     csat = pysat.Satellite()

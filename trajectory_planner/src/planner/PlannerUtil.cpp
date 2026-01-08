@@ -66,6 +66,7 @@ VECTOR_INFO_FORM findVecTimes(VECTOR_INFO_FORM vecs_w_time,double dt,TIME_FORM t
   mat s = get<4>(vecs_w_time);
   mat a = get<5>(vecs_w_time);
   mat e = get<6>(vecs_w_time);
+  cout << e << "\n";
   vec p = get<7>(vecs_w_time);
   vec rho = get<8>(vecs_w_time);
 
@@ -90,12 +91,27 @@ VECTOR_INFO_FORM findVecTimes(VECTOR_INFO_FORM vecs_w_time,double dt,TIME_FORM t
   // uvec inds_spaced = inds2;
   // // double dt0 = t(1)-t(0);
   // vec dt_timevec = t(inds_spaced);
+  auto dbg = [&](const char* name, const arma::mat& M){
+    std::cout << name << " M=" << M.n_rows << "x" << M.n_cols
+              << "  t=" << t.n_elem << "  (needs M.n_cols==t)\n";
+  };
+
+  dbg("r", r);
+  dbg("v", v);
+  dbg("b", b);
+  dbg("s", s);
+  dbg("a", a);
+  dbg("e", e);
+
   if((r.n_rows != 3) && (r.n_cols==3)){r = r.t();}
   if((v.n_rows != 3) && (v.n_cols==3)){v = v.t();}
   if((b.n_rows != 3) && (b.n_cols==3)){b = b.t();}
   if((s.n_rows != 3) && (s.n_cols==3)){s = s.t();}
   if((a.n_rows != 3) && (a.n_cols==3)){a = a.t();}
   if((e.n_rows != 3) && (e.n_cols==3)){e = e.t();}
+
+  std::cout << "After transpose guards:\n";
+  dbg("r", r); dbg("e", e);
 
   mat Rset = interp_vector(r,t,ts);//r.cols(inds_spaced);//timeAwareArma(r, dt, N, time_start, time_end);
   // mat dt_timevec = trans(extractRelevantTimes(r, dt, N, time_start, time_end));
