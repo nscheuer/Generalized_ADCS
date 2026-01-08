@@ -60,23 +60,11 @@ class Goal:
         w_ref_eci : numpy.ndarray, shape (3,)
             Reference angular velocity vector in the ECI frame.
 
-        Notes
-        -----
-        The default implementation returns:
-
-        .. math::
-
-            \mathbf{r}_{goal} = [1, 0, 0], \quad
-            \boldsymbol{\omega}_{ref} = \mathbf{0}
-
-        which serves only as a placeholder. Production code should always
-        use a subclass that overrides this method.
-
         See Also
         --------
         :meth:`ADCS.goals.goal.Goal.to_ref`
         """
-        return (np.array([1, 0, 0]), np.array([0, 0, 0]))
+        raise NotImplementedError("Use a subclass of Goal")
     
     def error(self, q: np.ndarray, body_boresight: np.ndarray, os0: Orbital_State) -> np.ndarray:
-        raise NotImplementedError
+        raise NotImplementedError("Use a subclass of Goal")

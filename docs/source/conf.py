@@ -12,7 +12,7 @@ import sys
 sys.path.insert(0, os.path.abspath('../..'))
 
 # Mock heavy or unavailable imports to prevent build errors
-autodoc_mock_imports = ["Disturbance", "Sensor", "Actuator", "RW", "GPS"]
+autodoc_mock_imports = ["matplotlib", "mpl_toolkits"]
 
 # -----------------------------------------------------------------------------
 # Project information

@@ -23,8 +23,7 @@ class Coordinate_Goal(Vector_Goal):
     This goal produces:
     
     * a unit inertial line-of-sight vector from the spacecraft to the target
-    * a reference angular velocity required to keep the target centered,
-      accounting for both spacecraft motion and Earth rotation
+    * a reference angular velocity required to keep the target centered, accounting for both spacecraft motion and Earth rotation
 
     Parameters
     ----------
