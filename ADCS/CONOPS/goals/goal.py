@@ -78,5 +78,5 @@ class Goal:
         """
         return (np.array([1, 0, 0]), np.array([0, 0, 0]))
     
-    def error(self, q: np.ndarray, body_boresight: np.ndarray) -> np.ndarray:
+    def error(self, q: np.ndarray, body_boresight: np.ndarray, os0: Orbital_State) -> np.ndarray:
         raise NotImplementedError

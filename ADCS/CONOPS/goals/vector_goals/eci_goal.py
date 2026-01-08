@@ -3,7 +3,7 @@ __all__ = ["ECI_Goal"]
 import numpy as np
 from typing import Tuple
 
-from ..goals import Vector_Goal
+from ADCS.CONOPS.goals import Vector_Goal
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.helpers.math_helpers import normalize
 

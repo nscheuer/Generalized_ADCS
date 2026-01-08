@@ -9,7 +9,7 @@ from ADCS.helpers.math_helpers import normalize, rot_mat, norm
 
 class Vector_Goal(Goal):
     def __init__(self) -> None:
-        pass
+        super().__init__()
 
     def to_ref(self, os0: Orbital_State) -> Tuple[np.ndarray, np.ndarray]:
         pass

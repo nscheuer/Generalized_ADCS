@@ -385,6 +385,7 @@ class MTQ_w_1RW(Controller):
             R_b2i = rot_mat(q)
             w_ref_body = R_b2i.T @ w_ref_eci
 
+            q_err = goal.error(q=q, body_boresight=est_sat.boresight, os0=os_hat)
             q_err = vector_alignment_error(
                 q=q,
                 eci_goal=goal_vec_eci,

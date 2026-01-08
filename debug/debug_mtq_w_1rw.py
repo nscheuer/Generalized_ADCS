@@ -74,7 +74,7 @@ def test_mtq_w_1rw_align(verbose: bool = False, tf: float = 1000, dt: float = 10
         orb = Orbit(orbs)
 
     # Controller
-    controller = MTQ_w_1RW(est_sat=real_sat, p_gain=0.00005, d_gain=0.0003)
+    controller = MTQ_w_1RW(est_sat=real_sat, p_gain=0.00005, d_gain=0.001, c_gain=0.001, h_target=0.004)
 
     time_hist = np.nan*np.zeros(N)
     state_hist = np.nan*np.zeros((N, len(x)))
@@ -88,7 +88,7 @@ def test_mtq_w_1rw_align(verbose: bool = False, tf: float = 1000, dt: float = 10
     steps = int((tf - t0)/dt)
 
     goal = ECI_Goal(np.array([0, 1, 1]))
-    # goal = Coordinate_Goal(lat=9, lon=-70, alt=0)
+    goal = Coordinate_Goal(lat=9, lon=-70, alt=0)
 
     for step in tqdm(range(steps), desc="Simulating MTQ_w_RW"):
         J2000 = 0.22 + t*TimeConstants.sec2cent
@@ -134,4 +134,4 @@ def plot_mtq_w_1rw_align(verbose: bool = False, tf: float = 1000, dt: float = 10
     create_close_all_button_window()
 
 if __name__ == "__main__":
-    plot_mtq_w_1rw_align(verbose=False, tf = 50, dt = 5, real_orbit=True)
+    plot_mtq_w_1rw_align(verbose=False, tf = 500, dt = 2, real_orbit=True)

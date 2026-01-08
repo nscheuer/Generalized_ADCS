@@ -7,7 +7,7 @@ from tqdm import tqdm
 import pytest
 
 sys.path.append(os.path.abspath(os.path.join(__file__, "../..")))
-from ADCS.CONOPS.goals import Goal, ECI_Goal, Coordinate_Goal
+from ADCS.CONOPS.goals import Goal, ECI_Goal, Coordinate_Goal, Fixed_Attitude_Goal
 from ADCS.controller import MTQ_w_RW
 from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.orbit import Orbit
