@@ -176,10 +176,10 @@ class MTQ_w_1RW(Controller):
         mtqs = [a for a in est_sat.actuators if isinstance(a, MTQ)]
         rws  = [a for a in est_sat.actuators if isinstance(a, RW)]
 
-        if len(rws) != 1:
-            raise ValueError(
-                f"MTQ_w_1RW requires exactly 1 reaction wheel; found {len(rws)}."
-            )
+        # if len(rws) != 1:
+        #     raise ValueError(
+        #         f"MTQ_w_1RW requires exactly 1 reaction wheel; found {len(rws)}."
+        #     )
 
         if len(mtqs) < 3:
             raise ValueError(

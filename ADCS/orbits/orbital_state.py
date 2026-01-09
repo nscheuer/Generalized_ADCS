@@ -415,7 +415,7 @@ class Orbital_State:
 
         b_ecef = self.geocentric_to_ecef(np.squeeze(b_array))
         b_eci = self.ecef_to_eci(b_ecef)
-        return b_eci * 1e-9
+        return b_eci * 1e-9 # Returned in Tesla
 
     def j2000_to_tai(self):
         return self.J2000 * 36525.0 + 2451545.0

@@ -40,7 +40,6 @@ def test_mtq_w_1rw_align(verbose: bool = False, tf: float = 1000, dt: float = 10
     rw_hmax = 16.2*0.001
     rws = [RW(axis=j, max_torque=rw_max_torque, J=rw_J, h=rw_h0, h_max=rw_hmax) for j in MathConstants.unitvecs]
     rws.pop()
-    rws.pop()
 
     acts = mtqs+rws
 
@@ -52,7 +51,7 @@ def test_mtq_w_1rw_align(verbose: bool = False, tf: float = 1000, dt: float = 10
     w0 = np.array([0, 0, 0])
     q0 = random_n_unit_vec(4)
     q0 = normalize(np.array([1, 0, 0, 0]))
-    h0 = np.array([rw_h0])
+    h0 = np.array([rw_h0, rw_h0])
     x = np.concatenate([w0, q0, h0])
 
     ephem = Ephemeris()
@@ -87,7 +86,7 @@ def test_mtq_w_1rw_align(verbose: bool = False, tf: float = 1000, dt: float = 10
     ind = 0
     steps = int((tf - t0)/dt)
 
-    goal = ECI_Goal(np.array([0, 1, 1]))
+    goal = ECI_Goal(np.array([-1, 0, 0]))
     goal = Coordinate_Goal(lat=9, lon=-70, alt=0)
 
     for step in tqdm(range(steps), desc="Simulating MTQ_w_RW"):
