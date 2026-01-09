@@ -36,10 +36,10 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
     mtm_max_torque = 0.1
     mtqs = [MTQ(axis=j, max_torque=mtm_max_torque) for j in MathConstants.unitvecs]
 
-    rw_max_torque = 4.51
-    rw_J = 0.22
-    rw_h0 = 1
-    rw_hmax = 3.8
+    rw_max_torque = 7*0.001
+    rw_J = 0.001
+    rw_h0 = 5*0.001
+    rw_hmax = 16.2*0.001
     rws = [RW(axis=j, max_torque=rw_max_torque, J=rw_J, h=rw_h0, h_max=rw_hmax) for j in MathConstants.unitvecs]
 
     acts = mtqs+rws
@@ -74,7 +74,7 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
         orb = Orbit(orbs)
 
     # Build Planner
-    planner_settings = PlannerSettings(est_sat=real_sat)
+    planner_settings = PlannerSettings(est_sat=real_sat, bdot_on=0)
     controller = Plan_and_Track_LQR(est_sat=real_sat, planner_settings=planner_settings)
 
     time_hist = np.nan*np.zeros(N)
@@ -88,7 +88,7 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
     ind = 0
     steps = int((tf - t0)/dt)
 
-    goals = GoalList({0.22: No_Goal()})
+    goals = GoalList({0.22: No_Goal(), 0.22 + TimeConstants.sec2cent * 20: ECI_Goal(np.array([1, 0, 0]))})
 
     print("Computing Trajectory (One-Shot)")
     traj: Trajectory = controller.calculate_trajectory(
@@ -149,4 +149,4 @@ def plot_mtq_w_rw_align_to_eci(verbose: bool = False, tf: float = 1000, dt: floa
     create_close_all_button_window()
 
 if __name__ == "__main__":
-    plot_mtq_w_rw_align_to_eci(verbose=False, tf = 5, dt = 1, real_orbit=True)
+    plot_mtq_w_rw_align_to_eci(verbose=False, tf = 60, dt = 1, real_orbit=True)

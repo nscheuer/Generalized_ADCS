@@ -630,7 +630,8 @@ tuple<TRAJECTORY_FORM,double> OldPlanner::bdot(vec x0,double dt0, int N,VECTOR_I
   vec3 Bk = Bset.col(0);
   mat33 RmatT = rotMat(qk).t();
   vec uk = vec(sat.control_N()).zeros();
-  vec umax = join_cols(vec(sat.MTQ_max),vec(sat.RW_max_torq),vec(sat.magic_max_torq));
+  // vec umax = join_cols(vec(sat.MTQ_max),vec(sat.RW_max_torq),vec(sat.magic_max_torq));
+  vec umax = sat.MTQ_max;
 
   double ur = max(abs(uk/umax));
   ur = std::max(ur,1.0);
