@@ -96,4 +96,3 @@ def plot_target_tracking_mc(
     plt.grid(True, which='both', linestyle='--', alpha=0.6)
     plt.legend()
     plt.tight_layout()
-    plt.show()

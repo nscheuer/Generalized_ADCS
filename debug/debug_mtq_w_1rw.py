@@ -40,6 +40,7 @@ def test_mtq_w_1rw_align(verbose: bool = False, tf: float = 1000, dt: float = 10
     rw_hmax = 16.2*0.001
     rws = [RW(axis=j, max_torque=rw_max_torque, J=rw_J, h=rw_h0, h_max=rw_hmax) for j in MathConstants.unitvecs]
     rws.pop()
+    rws.pop()
 
     acts = mtqs+rws
 
@@ -51,7 +52,7 @@ def test_mtq_w_1rw_align(verbose: bool = False, tf: float = 1000, dt: float = 10
     w0 = np.array([0, 0, 0])
     q0 = random_n_unit_vec(4)
     q0 = normalize(np.array([1, 0, 0, 0]))
-    h0 = np.array([rw_h0, rw_h0])
+    h0 = np.array([rw_h0])
     x = np.concatenate([w0, q0, h0])
 
     ephem = Ephemeris()
@@ -122,10 +123,10 @@ def test_mtq_w_1rw_align(verbose: bool = False, tf: float = 1000, dt: float = 10
 def plot_mtq_w_1rw_align(verbose: bool = False, tf: float = 1000, dt: float = 10, real_orbit: bool = False) -> None:
     (time_hist, state_hist, os_hist, sensor_hist, u_hist, boresight_hist) = test_mtq_w_1rw_align(verbose=verbose, tf=tf, dt=dt, real_orbit=real_orbit)
 
-    # animate_attitude(time=time_hist, state_hist=state_hist, os_hist=os_hist, boresight_goal_hist=boresight_hist)
-    # plot_control(time=time_hist, u_hist=u_hist)
-    # plot_state_comparison(time=time_hist, state_hist=state_hist)
-    # plot_rw_momentum(time=time_hist, state_hist=state_hist)
+    animate_attitude(time=time_hist, state_hist=state_hist, os_hist=os_hist, boresight_goal_hist=boresight_hist)
+    plot_control(time=time_hist, u_hist=u_hist)
+    plot_state_comparison(time=time_hist, state_hist=state_hist)
+    plot_rw_momentum(time=time_hist, state_hist=state_hist)
     goal = Coordinate_Goal(lat=9, lon=-70, alt=0)
     #animate_orbit_pyvista(time_hist=time_hist, state_hist=state_hist, os_hist=os_hist, boresight_goal_hist=boresight_hist, coord_goal=goal)
     plot_target_tracking(state_hist=state_hist, boresight_hist=boresight_hist, body_boresight=np.array([0, 0, 1]))
