@@ -224,3 +224,5 @@ docs/source/*.rst
 
 # All output files
 output_dir/*
+**/output/
+**/output_data/
