@@ -43,6 +43,7 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
     rws = [RW(axis=j, max_torque=rw_max_torque, J=rw_J, h=rw_h0, h_max=rw_hmax) for j in MathConstants.unitvecs]
 
     acts = mtqs+rws
+    # acts = mtqs
 
     mtms = [MTM(axis=j) for j in MathConstants.unitvecs]
 
@@ -54,6 +55,7 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
     q0 = normalize(np.array([1, 0, 0, 0]))
     h0 = np.array([rw_h0, rw_h0, rw_h0])
     x = np.concatenate([w0, q0, h0])
+    # x = np.concatenate([w0, q0])
 
     ephem = Ephemeris()
     start_time = 0.22 - 1*TimeConstants.sec2cent
@@ -74,11 +76,11 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
         orb = Orbit(orbs)
 
     # Build Planner
-    planner_settings = PlannerSettings(est_sat=real_sat, bdot_on=0)
+    planner_settings = PlannerSettings(est_sat=real_sat, bdot_on=1)
     controller = Plan_and_Track_LQR(est_sat=real_sat, planner_settings=planner_settings)
 
     time_hist = np.nan*np.zeros(N)
-    state_hist = np.nan*np.zeros((N, 10))
+    state_hist = np.nan*np.zeros((N, len(x)))
     os_hist: List[Orbital_State] = list()
     sensor_hist: np.ndarray = np.nan*np.zeros((N, len(real_sat.sensors + real_sat.rw_actuators)))
     u_hist = np.nan*np.zeros((N, len(acts)))
@@ -99,7 +101,7 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
         goals=goals,
         verbose=True
     )
-    traj.plot_eci_trajectory()
+    # traj.plot_eci_trajectory()
     controller.set_active_trajectory(traj)
 
     for step in tqdm(range(steps), desc="Simulating ALTRO"):
@@ -149,4 +151,4 @@ def plot_mtq_w_rw_align_to_eci(verbose: bool = False, tf: float = 1000, dt: floa
     create_close_all_button_window()
 
 if __name__ == "__main__":
-    plot_mtq_w_rw_align_to_eci(verbose=False, tf = 60, dt = 1, real_orbit=True)
+    plot_mtq_w_rw_align_to_eci(verbose=False, tf = 100, dt = 1, real_orbit=True)

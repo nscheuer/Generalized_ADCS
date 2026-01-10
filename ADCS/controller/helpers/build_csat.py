@@ -44,13 +44,13 @@ def add_actuator(act: Actuator, csat: pysat.Satellite, planner_settings: Planner
         csat.add_RW(
             act.axis, 
             act.J, 
-            act.u_max, 
-            act.h_max * 0.8,                     # Hard constraint limit (keep as is or adjust)
+            act.u_max * planner_settings.control_limit_scale, 
+            act.h_max * planner_settings.RWh_max_mult,
             planner_settings.rw_control_weight, 
             planner_settings.rw_AM_weight, 
-            cost_threshold,                      # <--- FIXED: Now dynamic
-            0.0, # planner_settings.rw_stic_weight? 
-            act.h_max * 0.9 # Stiction threshold
+            act.h_max * planner_settings.RWh_stiction_mult,
+            planner_settings.rw_stic_weight,
+            act.h_max * planner_settings.RWh_ok_mult
         )
     else:
         raise ValueError(f"Unknown actuator received: {act.__name__}")

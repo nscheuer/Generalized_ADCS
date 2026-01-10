@@ -3,6 +3,8 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from typing import Dict, Optional
 
+from ADCS.helpers.math_helpers import quat_diff, quat_to_vec3
+
 class Trajectory:
     def __init__(self, t: np.ndarray, x: np.ndarray, u: np.ndarray, K: np.ndarray, S: np.ndarray) -> None:
         self.times = t
@@ -103,7 +105,7 @@ class Trajectory:
         
         # Fallback for flattened
         k_flat = self.gains[:, idx]
-        return k_flat.reshape(self.ctrl_dim, self.state_dim)
+        return k_flat.reshape(self.ctrl_dim, self.state_dim-1)
     
     def compute_tracking_control(self, t: float, x_current: np.ndarray) -> np.ndarray:
         if not self.is_valid_time(t):
@@ -113,12 +115,20 @@ class Trajectory:
         u_ref = self.get_control_at(t)
         K = self.get_gain_at(t)
         
-        dx = x_current - x_ref
+        def state_diff(x_current: np.ndarray, x_ref: np.ndarray) -> np.ndarray:
+            x_diff_short = np.zeros(self.state_dim-1)
+            x_diff_short[0:2] = x_current[0:2] - x_ref[0:2]
+            x_diff_short[3:6] = quat_to_vec3(quat_diff(x_current[3:7], x_ref[3:7]))
+            x_diff_short[6:-1] = x_current[7:-1] - x_ref[7:-1]
+            return x_diff_short
+
+        # dx = x_current - x_ref
+        dx = state_diff(x_current, x_ref)
         
-        # Quaternion error handling (shortest path)
-        if self.state_dim >= 7:
-            if np.dot(x_current[3:7], x_ref[3:7]) < 0:
-                dx[3:7] = x_current[3:7] + x_ref[3:7] 
+        # # Quaternion error handling (shortest path)
+        # if self.state_dim >= 7:
+        #     if np.dot(x_current[3:7], x_ref[3:7]) < 0:
+        #         dx[3:7] = x_current[3:7] + x_ref[3:7] 
 
         return u_ref - K @ dx
 

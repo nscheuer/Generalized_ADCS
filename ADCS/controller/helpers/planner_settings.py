@@ -45,7 +45,7 @@ class PlannerSettings:
         self.traj_overlap = traj_overlap
         self.debug_plot_on = debug_plot_on
         self.bdot_on = bdot_on
-        self.verbosity = False
+        self.verbosity = True
         self.eps = 2.22044604925031e-16
 
         # Solver Configurations
@@ -76,11 +76,11 @@ class PlannerSettings:
 
         # Actuator Weights for the C++ model construction
         self.mtq_control_weight = 0.0001
-        self.rw_control_weight = 0.001
+        self.rw_control_weight = 1.0
         self.magic_control_weight = 0.0001
         self.rw_AM_weight = 0.1
         self.rw_stic_weight = 0.01
-        self.RWh_max_mult = 2.0
+        self.RWh_max_mult = 0.8
         self.RWh_stiction_mult = 0.05
         self.RWh_ok_mult = 0.4
 

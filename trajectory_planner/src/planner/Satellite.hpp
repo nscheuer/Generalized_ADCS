@@ -14,7 +14,7 @@
 
 #define COST_SETTINGS_FORM std::tuple<double, double, double, double, double,double,double,double,double,double,int,int>
 #define DYNAMICS_INFO_FORM std::tuple<arma::vec3,arma::vec3,int,arma::vec3,arma::vec3,int>
-static const double MAGRW_TORQ_MULT = 1.0e-4;//1.0;//1e-3;
+static const double MAGRW_TORQ_MULT = 1e-4;//1.0;//1e-3;
 
 
 

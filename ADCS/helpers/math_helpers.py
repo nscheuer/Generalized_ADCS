@@ -283,7 +283,7 @@ def quat_to_cayley(quat: np.ndarray) -> np.ndarray:
     return quat[1:] / quat[0]
 
 
-def quat_to_vec3(quat: np.ndarray, mode: int) -> np.ndarray:
+def quat_to_vec3(quat: np.ndarray, mode: int = 0) -> np.ndarray:
     r"""
     Convert a quaternion to a 3D attitude parameter vector according to mode.
 
@@ -675,6 +675,12 @@ def state_norm_jac(xk):
     out = np.eye(l)
     out[3:7,3:7] = quat_norm_jac(q)#np.eye(4)/norm(q) - np.outer(q,q)/norm(q)**3
     return out
+
+def quat_diff(q0: np.ndarray, q1: np.ndarray) -> np.ndarray:
+    q0 = normalize(q0)
+    q1 = normalize(q1)
+    q_err = quat_mult(quat_inv(q0),q1)
+    return normalize(q_err)
 
 def limit(u, umax):
     u = np.asarray(u)
