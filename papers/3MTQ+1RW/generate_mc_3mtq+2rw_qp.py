@@ -89,7 +89,7 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
         orb = _CACHED_ORBIT
 
         # 6. Controller
-        controller = MTQ_w_RW_QP(est_sat=real_sat, p_gain=0.00005, d_gain=0.001, c_gain=0.001, h_target=0.004)
+        controller = MTQ_w_RW_QP(est_sat=real_sat, p_gain=0.00005, d_gain=0.001, c_gain=0.001, h_target=np.array([0.004, 0.004, 0.0]))
         goal = ECI_Goal(config["goal_eci_vec"])
 
         # 7. Arrays

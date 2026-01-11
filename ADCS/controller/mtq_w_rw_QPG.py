@@ -1,4 +1,4 @@
-__all__ = ["MTQ_w_RW_QP2"]
+__all__ = ["MTQ_w_RW_QPG"]
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -8,7 +8,7 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 import itertools
 
 from ADCS.CONOPS.goals import Goal, No_Goal
-from ADCS.controller import Controller
+from ADCS.controller import Controller, MTQ_w_RW_LP
 from ADCS.controller.helpers.quaternion_math import vector_alignment_error
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
 from ADCS.orbits.orbital_state import Orbital_State
@@ -17,50 +17,10 @@ from ADCS.satellite_hardware.sensors import MTM
 from ADCS.helpers.math_helpers import rot_mat, skewsym, limit
 
 
-class MTQ_w_RW_QP2(Controller):
-    def __init__(
-        self,
-        est_sat: EstimatedSatellite,
-        p_gain: float,
-        d_gain: float,
-        c_gain: float,
-        h_target: np.ndarray | list = np.zeros(3) # Support vector target
-    ) -> None:
-        self.mtqs = [a for a in est_sat.actuators if isinstance(a, MTQ)]
-        self.rws  = [a for a in est_sat.actuators if isinstance(a, RW)]
-        
-        self.n_mtq = len(self.mtqs)
-        self.n_rw = len(self.rws)
-        
-        self.p_gain = float(p_gain)
-        self.d_gain = float(d_gain)
-        self.c_gain = float(c_gain)
-        self.h_target = np.asarray(h_target, dtype=float).reshape(3,)
-
-        self.M_mtm_read, _ = self.build_sensor_matrix_pinv(
-            sensors=est_sat.sensors + est_sat.rw_actuators, sensor_type=MTM
-        )
-
-        self.M_mtq_act, self.mtq_indices = self.build_torque_to_u_matrix_pinv(
-            actuators=est_sat.actuators, actuator_type=MTQ
-        )
-        self.M_rw_act, self.rw_indices = self.build_torque_to_u_matrix_pinv(
-            actuators=est_sat.actuators, actuator_type=RW
-        )
-
-        self.A_mtq = self.build_u_to_torque_matrix_pinv(
-            actuators=est_sat.actuators, actuator_type=MTQ
-        )
-
-        if self.n_rw > 0:
-            self.rw_axes = np.column_stack([np.asarray(rw.axis, float).reshape(3,) for rw in self.rws])
-        else:
-            self.rw_axes = np.zeros((3, 0))
-
-        # 8. Limits
-        self.n_actuators = len(est_sat.actuators)
-        self.mtq_umax = np.array([a.u_max for a in est_sat.actuators if isinstance(a, MTQ)], dtype=float)
-        self.rw_umax  = np.array([a.u_max for a in est_sat.actuators if isinstance(a, RW)], dtype=float)
+class MTQ_w_RW_QPG(MTQ_w_RW_LP):
+    def __init__(self, est_sat: EstimatedSatellite, p_gain: float, d_gain: float, gamma: float, c_gain: float, h_target: np.ndarray | list = np.zeros(3)) -> None:
+        self.gamma = gamma
+        super().__init__(est_sat=est_sat, p_gain=p_gain, d_gain=d_gain, c_gain=c_gain, h_target=h_target)
 
     def find_u(
         self,
@@ -148,7 +108,7 @@ class MTQ_w_RW_QP2(Controller):
             u_rw = np.clip(u_rw, -self.rw_umax, self.rw_umax)
 
             # --- Final Output ---
-            u_out = u_mtq_scaled + u_rw  
+            u_out = u_mtq_scaled + u_rw     
         else:
         
             n_rw = len([a for a in est_sat.actuators if isinstance(a, RW)])
@@ -185,7 +145,7 @@ class MTQ_w_RW_QP2(Controller):
             b_body = np.asarray(self.M_mtm_read @ sens, float).reshape(3,)
 
             u_rw_cmd, u_mtq_cmd, alpha = self.allocate_max_torque_in_direction(
-                tau_des, b_body, w, est_sat
+                tau_des, b_body, est_sat, w
             )
 
             u_out = np.zeros(len(est_sat.actuators))
@@ -200,7 +160,7 @@ class MTQ_w_RW_QP2(Controller):
 
         return u_out
 
-    def allocate_max_torque_in_direction(self, tau_des: np.ndarray, b_body: np.ndarray, omega: np.ndarray, est_sat: EstimatedSatellite) -> tuple[np.ndarray, np.ndarray, float]:
+    def allocate_max_torque_in_direction(self, tau_des: np.ndarray, b_body: np.ndarray, est_sat: EstimatedSatellite, omega: np.ndarray) -> tuple[np.ndarray, np.ndarray, float]:
         tau_des = np.asarray(tau_des, float).reshape(3,)
         t_mag = np.linalg.norm(tau_des)
         if t_mag < 1e-9:
@@ -274,154 +234,3 @@ class MTQ_w_RW_QP2(Controller):
         u_mtq_cmd = u_sol[n_rw:n_rw + n_mtq]
 
         return u_rw_cmd, u_mtq_cmd, alpha
-
-    def plot_torques(self, tau_des: np.ndarray, b_body: np.ndarray, est_sat: EstimatedSatellite) -> None:
-        # --- Solve allocation ---
-        u_rw, u_mtq, alpha = self.allocate_max_torque_in_direction(tau_des, b_body, est_sat)
-
-        rws  = [a for a in est_sat.actuators if isinstance(a, RW)]
-        mtqs = [a for a in est_sat.actuators if isinstance(a, MTQ)]
-
-        tau_rw  = sum(np.asarray(rw.axis) * u_rw[i]  for i, rw in enumerate(rws))  if rws  else np.zeros(3)
-        tau_mtq = sum(np.cross(np.asarray(m.axis) * u_mtq[i], b_body)
-                    for i, m in enumerate(mtqs)) if mtqs else np.zeros(3)
-
-        tau_tot = tau_rw + tau_mtq
-
-        # --- Build capacity point clouds ---
-        rw_pts, mtq_pts = [], []
-
-        if rws:
-            limits = [[-rw.u_max, rw.u_max] for rw in rws]
-            rw_pts = np.array([
-                sum(np.asarray(rws[i].axis) * c[i] for i in range(len(rws)))
-                for c in itertools.product(*limits)
-            ])
-
-        if mtqs and np.linalg.norm(b_body) > 1e-9:
-            limits = [[-m.u_max, m.u_max] for m in mtqs]
-            mtq_pts = np.array([
-                np.cross(sum(np.asarray(mtqs[i].axis) * c[i] for i in range(len(mtqs))), b_body)
-                for c in itertools.product(*limits)
-            ])
-
-        # --- Figure ---
-        fig = plt.figure(figsize=(10, 8))
-        ax  = fig.add_subplot(111, projection="3d")
-        ax.set_box_aspect([1, 1, 1])
-
-        # --- Hulls ---
-        if len(rw_pts):
-            self.plot_capacity(ax, rw_pts, face_color="gray", edge_color="black", alpha=0.25)
-
-        if len(mtq_pts):
-            self.plot_capacity(ax, mtq_pts, face_color="royalblue", edge_color="navy", alpha=0.25)
-
-        # --- Vectors ---
-        def vec(v, c, lbl, ls="-"):
-            ax.plot([0, v[0]], [0, v[1]], [0, v[2]],
-                    color=c, linewidth=2.5, linestyle=ls, label=lbl, clip_on=False)
-
-        vec(tau_rw,  "purple",     "RW Allocation")
-        vec(tau_mtq, "royalblue",  "MTQ Allocation")
-        vec(tau_tot, "limegreen",  r"$\tau_{achieved}$")
-
-        if np.linalg.norm(tau_des) > 1e-9:
-            vec(tau_des, "red", r"$\tau_{des}$", ls="--")
-
-        # --- Axis focus: MTQ hull ---
-        focus_pts = mtq_pts if len(mtq_pts) else rw_pts
-        if len(focus_pts):
-            m = np.max(np.linalg.norm(focus_pts, axis=1))
-            lim = m * 1.2
-        else:
-            lim = 1.0
-
-        ax.set_xlim(-lim, lim)
-        ax.set_ylim(-lim, lim)
-        ax.set_zlim(-lim, lim)
-
-        ax.set_xlabel("X [Nm]")
-        ax.set_ylabel("Y [Nm]")
-        ax.set_zlabel("Z [Nm]")
-        ax.set_title(f"Torque Allocation (α = {alpha:.2f})\nScroll to zoom")
-        ax.legend()
-
-        # --- Scroll zoom ---
-        def on_scroll(event):
-            s = 0.85 if event.button == "up" else 1.15
-            for setter in (ax.set_xlim, ax.set_ylim, ax.set_zlim):
-                lo, hi = ax.get_xlim()
-                span = (hi - lo) * s / 2
-                setter(-span, span)
-            fig.canvas.draw_idle()
-
-        fig.canvas.mpl_connect("scroll_event", on_scroll)
-        plt.show()
-
-    
-    def plot_capacity(self, ax, points: np.ndarray,
-                  face_color: str,
-                  edge_color: str,
-                  alpha: float = 0.25):
-
-        pts = np.unique(points, axis=0)
-        if len(pts) < 2:
-            return
-
-        center = pts.mean(axis=0)
-        U, S, Vh = np.linalg.svd(pts - center)
-        rank = np.sum(S > 1e-10)
-
-        # --- 1D: Line ---
-        if rank == 1:
-            proj = (pts - center) @ Vh[0]
-            p0, p1 = pts[np.argmin(proj)], pts[np.argmax(proj)]
-            ax.plot(*zip(p0, p1),
-                    color=edge_color,
-                    linewidth=4.5,
-                    alpha=alpha,
-                    solid_capstyle="round",
-                    clip_on=False)
-            return
-
-        # --- 2D: Filled polygon ---
-        if rank == 2:
-            proj = (pts - center) @ Vh[:2].T
-            hull = ConvexHull(proj)
-            loop = pts[hull.vertices]
-
-            poly = Poly3DCollection([loop],
-                                    facecolor=face_color,
-                                    edgecolor=edge_color,
-                                    linewidth=1.2,
-                                    alpha=alpha)
-            poly.set_clip_on(False)
-            ax.add_collection3d(poly)
-            return
-
-        # --- 3D: Volume hull ---
-        hull = ConvexHull(pts, qhull_options="QJ")
-
-        faces = [pts[s] for s in hull.simplices]
-        poly = Poly3DCollection(faces,
-                                facecolor=face_color,
-                                edgecolor="none",
-                                alpha=alpha)
-        poly.set_clip_on(False)
-        ax.add_collection3d(poly)
-
-        # --- silhouette edges only ---
-        edge_count = {}
-        for s in hull.simplices:
-            for i, j in ((0,1),(1,2),(2,0)):
-                e = tuple(sorted((s[i], s[j])))
-                edge_count[e] = edge_count.get(e, 0) + 1
-
-        for (i, j), c in edge_count.items():
-            if c == 1:
-                ax.plot(*zip(pts[i], pts[j]),
-                        color=edge_color,
-                        linewidth=1.0,
-                        alpha=0.9,
-                        clip_on=False)

@@ -6,6 +6,7 @@ from scipy.spatial import ConvexHull
 from scipy.optimize import linprog
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 import itertools
+import warnings
 
 from ADCS.CONOPS.goals import Goal, No_Goal
 from ADCS.controller import Controller
@@ -54,6 +55,64 @@ class MTQ_w_RW_LP(Controller):
         self.n_actuators = len(est_sat.actuators)
         self.mtq_umax = np.array([a.u_max for a in est_sat.actuators if isinstance(a, MTQ)], dtype=float)
         self.rw_umax  = np.array([a.u_max for a in est_sat.actuators if isinstance(a, RW)], dtype=float)
+
+        self._warnings()
+
+    def _warnings(self):
+        rank_mtq = 0
+        if self.n_mtq > 0:
+            mtq_axes_mat = np.column_stack([np.asarray(m.axis, float).reshape(3,) for m in self.mtqs])
+            rank_mtq = np.linalg.matrix_rank(mtq_axes_mat)
+
+        rank_rw = 0
+        if self.n_rw > 0:
+            rank_rw = np.linalg.matrix_rank(self.rw_axes)
+
+        if self.n_rw > 0 and self.n_mtq == 0:
+            warnings.warn(
+                f"\n[Controller Config] {self.n_rw} RWs detected but 0 MTQs.\n"
+                "  -> CRITICAL: Momentum desaturation is NOT possible.\n"
+                "  -> Reaction wheels will eventually saturate and loss of control will occur.",
+                UserWarning
+            )
+
+        elif rank_mtq >= 2 and (1 <= self.n_rw <= 2):
+            warnings.warn(
+                f"\n[Controller Config] {self.n_rw} RWs (Rank {rank_rw}) and Rank {rank_mtq} MTQs.\n"
+                "  -> LIMITATION: Torque-free desaturation (maintaining pointing while dumping) is NOT possible.\n"
+                "  -> ACTION: You must use 'No_Goal' mode to desaturate. This uses B-dot and will temporarily tumble the satellite.",
+                UserWarning
+            )
+
+        elif rank_mtq == 3 and rank_rw == 3:
+            print(
+                f"\n[Controller Config] Verified: Rank 3 RWs + Rank 3 MTQs.\n"
+                "  -> Full 3-axis control with simultaneous momentum management is enabled.\n"
+                "  -> The 'MTQ_w_RW' controller logic is optimal for this configuration."
+            )
+
+        if self.n_rw > 0:
+            P_rw = self.rw_axes @ np.linalg.pinv(self.rw_axes)
+            h_achievable = P_rw @ self.h_target
+            
+            diff = self.h_target - h_achievable
+            if np.linalg.norm(diff) > 1e-6:
+                warnings.warn(
+                    f"\n[Controller Config] Requested h_target {self.h_target} is not fully achievable "
+                    f"with the current RW configuration (Rank {rank_rw}).\n"
+                    f"  -> Projected target to achievable subspace: {h_achievable}\n"
+                    f"  -> IGNORING unachievable component: {diff}",
+                    UserWarning
+                )
+                self.h_target = h_achievable
+
+        elif np.linalg.norm(self.h_target) > 1e-6:
+            warnings.warn(
+                f"\n[Controller Config] Non-zero h_target {self.h_target} requested with 0 RWs.\n"
+                "  -> Target cannot be stored. Resetting h_target to [0, 0, 0].",
+                UserWarning
+            )
+            self.h_target = np.zeros(3)
 
     def find_u(
         self,

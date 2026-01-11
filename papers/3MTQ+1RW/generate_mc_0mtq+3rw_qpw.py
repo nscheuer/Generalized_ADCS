@@ -9,7 +9,7 @@ sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))
 
 # --- ADCS Imports ---
 from ADCS.CONOPS.goals import ECI_Goal
-from ADCS.controller.mtq_w_rw_QPW import MTQ_w_RW_QPW
+from ADCS.controller import MTQ_w_RW_QPW
 from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.orbit import Orbit
 from ADCS.orbits.orbital_state import Orbital_State
@@ -20,7 +20,7 @@ from ADCS.satellite_hardware.actuators import MTQ, RW
 from ADCS.helpers.math_constants import MathConstants
 from ADCS.helpers.math_helpers import normalize
 from ADCS.helpers.save_and_load.save_and_load import save_data, load_data
-from ADCS.helpers.plotting_mc.plot_controller_mc import plot_target_tracking_mc
+from ADCS.helpers.plotting_mc.plot_controller_mc import plot_target_tracking_mc, plot_convergence_histogram_mc
 from ADCS.helpers.plotting.close_all_plots import create_close_all_button_window
 
 # --- MC Runner Imports ---
@@ -55,15 +55,11 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
         N = int((tf - t0) / dt)
 
         # 3. Hardware Setup
-        mtq_max = 0.4
         rw_max = 7e-3
         rw_hmax = 16.2e-3
         
-        acts = [MTQ(axis=j, max_torque=mtq_max) for j in MathConstants.unitvecs]
-        rws = [RW(axis=j, max_torque=rw_max, J=1e-3, h=0, h_max=rw_hmax) for j in MathConstants.unitvecs]
-        rws.pop()
-        rws.pop()
-        acts.extend(rws)
+        acts = [RW(axis=j, max_torque=rw_max, J=1e-3, h=0, h_max=rw_hmax) for j in MathConstants.unitvecs]
+
         mtms = [MTM(axis=j) for j in MathConstants.unitvecs]
         
         real_sat = Satellite(
@@ -76,8 +72,6 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
 
         # 4. Initial Conditions
         x = np.concatenate([config["w0"], config["q0"], config["h0"]])
-        for i, rw in enumerate(rws):
-            rw.h = config["h0"][i]
 
         # 5. Orbit Retrieval (Cached)
         orbit_key = (tuple(config["orbit_R"]), tuple(config["orbit_V"]), tf, dt)
@@ -90,7 +84,7 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
         orb = _CACHED_ORBIT
 
         # 6. Controller
-        controller = MTQ_w_RW_QPW(est_sat=real_sat, p_gain=0.00005, d_gain=0.001, c_gain=0.001, h_target=np.array([0.004, 0.0, 0.0]))
+        controller = MTQ_w_RW_QPW(est_sat=real_sat, p_gain=0.00005, d_gain=0.001, c_gain=0.001, h_target=np.array([0.0, 0.0, 0.0]))
         goal = ECI_Goal(config["goal_eci_vec"])
 
         # 7. Arrays
@@ -167,7 +161,7 @@ def generate_mc_config(run_id: int) -> Dict[str, Any]:
         "dt": 2,
         "w0": normalize(rng.standard_normal(3)) * (rng.uniform(0.1, 2.0) * np.pi / 180.0),
         "q0": normalize(rng.standard_normal(4)),
-        "h0": rng.uniform(-0.005, 0.005, size=1),
+        "h0": rng.uniform(-0.005, 0.005, size=3),
         "goal_eci_vec": normalize(rng.standard_normal(3)),
         "orbit_R": 7000 * np.array([0, np.sqrt(2)/2, np.sqrt(2)/2]),
         "orbit_V": np.array([8, 0, 0])
@@ -186,15 +180,13 @@ if __name__ == "__main__":
         full_results = runner.run()
         
         print(f"\n--- Monte Carlo Complete: Generated {len(full_results)} histories ---")
-        save_data("3MTQ+1RW_QPW_mc_100", full_results, out_dir=OUTPUT_DIR)
+        save_data("0MTQ+3RW_QPW_mc_100", full_results, out_dir=OUTPUT_DIR)
         
-        plot_target_tracking_mc(full_results=full_results, title="3 MTQ + 1 RW QPW MC:100")
+        plot_target_tracking_mc(full_results=full_results, title="0 MTQ + 3 RW QPW MC:100")
+        plot_convergence_histogram_mc(full_results=full_results, title="0 MTQ + 3 RW QPW MC:100")
         create_close_all_button_window()
     else:
-        results_qpw = load_data("papers/3MTQ+1RW/output_data/3MTQ+1RW_QPW_mc_100_20260110_161705")
-        results_qpw = results_qpw[0]
-        results_lp = load_data("papers/3MTQ+1RW/output_data/3MTQ+2RW_LP_mc_100_20260110_154413")
-        results_lp = results_lp[0]
-        plot_target_tracking_mc(results_qpw, title="3 MTQ + 1 RW QPW MC:100")
-        plot_target_tracking_mc(results_qpw, title="3 MTQ + 2 RW LP MC:100")
+        results = load_data("papers/3MTQ+1RW/output_data/3MTQ+1RW_mc_eci_convergence_20260110_145232")
+        full_results = results[0]
+        plot_target_tracking_mc(full_results=full_results)
         create_close_all_button_window()

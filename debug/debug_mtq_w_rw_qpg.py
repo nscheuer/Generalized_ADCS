@@ -8,7 +8,7 @@ import pytest
 
 sys.path.append(os.path.abspath(os.path.join(__file__, "../..")))
 from ADCS.CONOPS.goals import Goal, ECI_Goal, Coordinate_Goal
-from ADCS.controller import MTQ_w_RW_QP2
+from ADCS.controller import MTQ_w_RW_QPG
 from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.orbit import Orbit
 from ADCS.orbits.orbital_state import Orbital_State
@@ -26,7 +26,7 @@ from ADCS.helpers.plotting.plot_controller import plot_control, plot_rw_momentum
 from ADCS.helpers.plotting.animate_orbit import animate_orbit
 from ADCS.helpers.plotting.animate_orbit_pyvista import animate_orbit_pyvista
 
-def test_MTQ_w_RW_QP2_align(verbose: bool = False, tf: float = 1000, dt: float = 10, real_orbit: bool = False) -> Union[np.ndarray, np.ndarray, List[Orbital_State], np.ndarray, np.ndarray, np.ndarray]:
+def test_MTQ_w_RW_QPG_align(verbose: bool = False, tf: float = 1000, dt: float = 10, real_orbit: bool = False) -> Union[np.ndarray, np.ndarray, List[Orbital_State], np.ndarray, np.ndarray, np.ndarray]:
     np.random.seed(1)
     t0 = 0
     N = int((tf-t0)/dt)
@@ -75,7 +75,7 @@ def test_MTQ_w_RW_QP2_align(verbose: bool = False, tf: float = 1000, dt: float =
 
     # Controller
     GAMMA = 0.1
-    controller = MTQ_w_RW_QP2(est_sat=real_sat, p_gain=0.00005, d_gain=0.001, gamma=GAMMA, c_gain=0.001, h_target=0.004)
+    controller = MTQ_w_RW_QPG(est_sat=real_sat, p_gain=0.00005, d_gain=0.001, gamma=GAMMA, c_gain=0.001, h_target=np.array([0.0, 0.0, 0.0]))
 
     time_hist = np.nan*np.zeros(N)
     state_hist = np.nan*np.zeros((N, len(x)))
@@ -121,8 +121,8 @@ def test_MTQ_w_RW_QP2_align(verbose: bool = False, tf: float = 1000, dt: float =
     return time_hist, state_hist, os_hist, sensor_hist, u_hist, boresight_hist
 
 
-def plot_MTQ_w_RW_QP2_align(verbose: bool = False, tf: float = 1000, dt: float = 10, real_orbit: bool = False) -> None:
-    (time_hist, state_hist, os_hist, sensor_hist, u_hist, boresight_hist) = test_MTQ_w_RW_QP2_align(verbose=verbose, tf=tf, dt=dt, real_orbit=real_orbit)
+def plot_MTQ_w_RW_QPG_align(verbose: bool = False, tf: float = 1000, dt: float = 10, real_orbit: bool = False) -> None:
+    (time_hist, state_hist, os_hist, sensor_hist, u_hist, boresight_hist) = test_MTQ_w_RW_QPG_align(verbose=verbose, tf=tf, dt=dt, real_orbit=real_orbit)
 
     animate_attitude(time=time_hist, state_hist=state_hist, os_hist=os_hist, boresight_goal_hist=boresight_hist)
     plot_control(time=time_hist, u_hist=u_hist)
@@ -135,4 +135,4 @@ def plot_MTQ_w_RW_QP2_align(verbose: bool = False, tf: float = 1000, dt: float =
     create_close_all_button_window()
 
 if __name__ == "__main__":
-    plot_MTQ_w_RW_QP2_align(verbose=False, tf = 500, dt = 2, real_orbit=True)
+    plot_MTQ_w_RW_QPG_align(verbose=False, tf = 500, dt = 2, real_orbit=True)

@@ -12,13 +12,14 @@ if __name__ == "__main__":
     # results_qpw = load_data("papers/3MTQ+1RW/output_data/3MTQ+1RW_QPW_mc_100_20260110_164621")
     # results_qpw = results_qpw[0]
 
-    results_lp = load_data("papers/3MTQ+1RW/output_data/3MTQ+2RW_LP_mc_100_20260110_163915")
-    results_lp = results_lp[0]
-    results_qpw = load_data("papers/3MTQ+1RW/output_data/3MTQ+2RW_QPW_mc_100_20260110_195156")
-    results_qpw = results_qpw[0]
+    results_g0 = load_data("papers/3MTQ+1RW/output_data/3MTQ+1RW_QPG0.1_mc_100_20260110_202754")[0]
+    results_g10 = load_data("papers/3MTQ+1RW/output_data/3MTQ+1RW_QPG10_mc_32_20260111_012751")[0]
+    results_g100 = load_data("papers/3MTQ+1RW/output_data/3MTQ+1RW_QPG100_mc_32_20260111_012909")[0]
 
-    plot_target_tracking_mc(full_results=results_lp, title="3 MTQ + 2 RW LP MC:100 $Mu = \\alpha\\tau$")
-    plot_convergence_histogram_mc(full_results=results_lp, title="3 MTQ + 2 RW LP MC:100 $Mu = \\alpha\\tau$")
-    plot_target_tracking_mc(full_results=results_qpw, title="3 MTQ + 2 RW QPW MC:100 $|W(Mu - \\tau)|^2$")
-    plot_convergence_histogram_mc(full_results=results_qpw, title="3 MTQ + 2 RW QPW MC:100 $|W(Mu - \\tau)|^2$")
+    plot_target_tracking_mc(full_results=results_g0, title="3 MTQ + 1 RW QPG $\\gamma = 0.1$ MC:100 $|(I + \\gamma \\frac{\\omega \\omega^{\\top}}{|\\omega|^2})(Mu - \\tau)|^2$")
+    plot_convergence_histogram_mc(full_results=results_g0, title="3 MTQ + 1 RW QPG $\\gamma = 0.1$ MC:100 $|(I + \\gamma \\frac{\\omega \\omega^{\\top}}{|\\omega|^2})(Mu - \\tau)|^2$")
+    plot_target_tracking_mc(full_results=results_g10, title="3 MTQ + 1 RW QPG $\\gamma = 10$ MC:32 $|(I + \\gamma \\frac{\\omega \\omega^{\\top}}{|\\omega|^2})(Mu - \\tau)|^2$")
+    plot_convergence_histogram_mc(full_results=results_g10, title="3 MTQ + 1 RW QPG $\\gamma = 10$ MC:32 $|(I + \\gamma \\frac{\\omega \\omega^{\\top}}{|\\omega|^2})(Mu - \\tau)|^2$")
+    plot_target_tracking_mc(full_results=results_g100, title="3 MTQ + 1 RW QPG $\\gamma = 100$ MC:32 $|(I + \\gamma \\frac{\\omega \\omega^{\\top}}{|\\omega|^2})(Mu - \\tau)|^2$")
+    plot_convergence_histogram_mc(full_results=results_g100, title="3 MTQ + 1 RW QPG $\\gamma = 100$ MC:32 $|(I + \\gamma \\frac{\\omega \\omega^{\\top}}{|\\omega|^2})(Mu - \\tau)|^2$")
     create_close_all_button_window()

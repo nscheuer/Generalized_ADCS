@@ -83,7 +83,7 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
         orb = _CACHED_ORBIT
 
         # 6. Controller
-        controller = MTQ_w_RW_LP(est_sat=real_sat, p_gain=0.00005, d_gain=0.001, c_gain=0.001, h_target=np.array([0.004, 0.0, 0.0]))
+        controller = MTQ_w_RW_LP(est_sat=real_sat, p_gain=0.00005, d_gain=0.001, c_gain=0.001, h_target=np.array([0.0, 0.0, 0.0]))
         goal = ECI_Goal(config["goal_eci_vec"])
 
         # 7. Arrays
@@ -173,12 +173,12 @@ if __name__ == "__main__":
         runner = MonteCarloRunner(
             sim_func=run_single_sim,
             config_generator=generate_mc_config,
-            num_runs=1
+            num_runs=16
         )
         full_results = runner.run()
         
         print(f"\n--- Monte Carlo Complete: Generated {len(full_results)} histories ---")
-        save_data("3MTQ+0RW_LP_mc_100", full_results, out_dir=OUTPUT_DIR)
+        save_data("3MTQ+0RW_LP_mc_16", full_results, out_dir=OUTPUT_DIR)
         
         plot_target_tracking_mc(full_results=full_results, title="3 MTQ + 0 RW LP MC:100")
         plot_convergence_histogram_mc(full_results=full_results, title="3 MTQ + 0 RW LP MC:100")
