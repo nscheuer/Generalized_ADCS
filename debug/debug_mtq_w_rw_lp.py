@@ -40,9 +40,9 @@ def test_MTQ_w_RW_LP_align(verbose: bool = False, tf: float = 1000, dt: float = 
     rw_hmax = 16.2*0.001
     rws = [RW(axis=j, max_torque=rw_max_torque, J=rw_J, h=rw_h0, h_max=rw_hmax) for j in MathConstants.unitvecs]
     # rws.pop()
-    rws.pop()
+    # rws.pop()
 
-    acts = mtqs+rws
+    acts = rws
 
     mtms = [MTM(axis=j) for j in MathConstants.unitvecs]
 
@@ -52,7 +52,7 @@ def test_MTQ_w_RW_LP_align(verbose: bool = False, tf: float = 1000, dt: float = 
     w0 = np.array([0, 0, 0])
     q0 = random_n_unit_vec(4)
     q0 = normalize(np.array([1, 0, 0, 0]))
-    h0 = np.array([rw_h0, rw_h0])
+    h0 = np.array([rw_h0, rw_h0, rw_h0])
     x = np.concatenate([w0, q0, h0])
 
     ephem = Ephemeris()
@@ -74,7 +74,7 @@ def test_MTQ_w_RW_LP_align(verbose: bool = False, tf: float = 1000, dt: float = 
         orb = Orbit(orbs)
 
     # Controller
-    controller = MTQ_w_RW_LP(est_sat=real_sat, p_gain=0.00005, d_gain=0.001, c_gain=0.001, h_target=0.004)
+    controller = MTQ_w_RW_LP(est_sat=real_sat, p_gain=0.00005, d_gain=0.001, c_gain=0.001, h_target=np.zeros(3))
 
     time_hist = np.nan*np.zeros(N)
     state_hist = np.nan*np.zeros((N, len(x)))
@@ -126,7 +126,7 @@ def plot_MTQ_w_RW_LP_align(verbose: bool = False, tf: float = 1000, dt: float = 
     animate_attitude(time=time_hist, state_hist=state_hist, os_hist=os_hist, boresight_goal_hist=boresight_hist)
     plot_control(time=time_hist, u_hist=u_hist)
     plot_state_comparison(time=time_hist, state_hist=state_hist)
-    plot_rw_momentum(time=time_hist, state_hist=state_hist)
+    # plot_rw_momentum(time=time_hist, state_hist=state_hist)
     goal = Coordinate_Goal(lat=9, lon=-70, alt=0)
     #animate_orbit_pyvista(time_hist=time_hist, state_hist=state_hist, os_hist=os_hist, boresight_goal_hist=boresight_hist, coord_goal=goal)
     plot_target_tracking(state_hist=state_hist, boresight_hist=boresight_hist, body_boresight=np.array([0, 0, 1]))

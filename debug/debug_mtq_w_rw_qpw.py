@@ -74,7 +74,7 @@ def test_MTQ_w_RW_QP_align(verbose: bool = False, tf: float = 1000, dt: float = 
         orb = Orbit(orbs)
 
     # Controller
-    controller = MTQ_w_RW_QPW(est_sat=real_sat, p_gain=0.00005, d_gain=0.001, c_gain=0.001, h_target=0.004)
+    controller = MTQ_w_RW_QPW(est_sat=real_sat, p_gain=0.00005, d_gain=0.001, c_gain=0.001, h_target=np.zeros(3))
 
     time_hist = np.nan*np.zeros(N)
     state_hist = np.nan*np.zeros((N, len(x)))

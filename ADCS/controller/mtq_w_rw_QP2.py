@@ -23,38 +23,24 @@ class MTQ_w_RW_QP2(Controller):
         est_sat: EstimatedSatellite,
         p_gain: float,
         d_gain: float,
-        gamma: float,
         c_gain: float,
-        h_target: float
+        h_target: np.ndarray | list = np.zeros(3) # Support vector target
     ) -> None:
-        # --- Configuration checks (required by this controller) ---
-        mtqs = [a for a in est_sat.actuators if isinstance(a, MTQ)]
-        rws  = [a for a in est_sat.actuators if isinstance(a, RW)]
-
-        if len(mtqs) < 3:
-            raise ValueError(
-                f"MTQ_w_RW_LP requires at least 3 MTQs; found {len(mtqs)}."
-            )
-
-        A_axes = np.column_stack([np.asarray(m.axis, float).reshape(3,) for m in mtqs])
-        if np.linalg.matrix_rank(A_axes) < 3:
-            raise ValueError(
-                "MTQ_w_RW_LP requires MTQ axes to be full-rank (rank=3). "
-                f"Got rank={np.linalg.matrix_rank(A_axes)}."
-            )
-
+        self.mtqs = [a for a in est_sat.actuators if isinstance(a, MTQ)]
+        self.rws  = [a for a in est_sat.actuators if isinstance(a, RW)]
+        
+        self.n_mtq = len(self.mtqs)
+        self.n_rw = len(self.rws)
+        
         self.p_gain = float(p_gain)
         self.d_gain = float(d_gain)
-        self.gamma = float(gamma)
         self.c_gain = float(c_gain)
-        self.h_target = float(h_target)
+        self.h_target = np.asarray(h_target, dtype=float).reshape(3,)
 
-        # MTM reconstruction
         self.M_mtm_read, _ = self.build_sensor_matrix_pinv(
             sensors=est_sat.sensors + est_sat.rw_actuators, sensor_type=MTM
         )
 
-        # Torque → command maps
         self.M_mtq_act, self.mtq_indices = self.build_torque_to_u_matrix_pinv(
             actuators=est_sat.actuators, actuator_type=MTQ
         )
@@ -62,17 +48,16 @@ class MTQ_w_RW_QP2(Controller):
             actuators=est_sat.actuators, actuator_type=RW
         )
 
-        # Command → torque map for MTQs (full vector length)
         self.A_mtq = self.build_u_to_torque_matrix_pinv(
             actuators=est_sat.actuators, actuator_type=MTQ
         )
 
-        # RW geometry
-        self.rw_axes = np.vstack([
-            np.asarray(rw.axis, float).reshape(3,)
-            for rw in est_sat.actuators if isinstance(rw, RW)
-        ])
+        if self.n_rw > 0:
+            self.rw_axes = np.column_stack([np.asarray(rw.axis, float).reshape(3,) for rw in self.rws])
+        else:
+            self.rw_axes = np.zeros((3, 0))
 
+        # 8. Limits
         self.n_actuators = len(est_sat.actuators)
         self.mtq_umax = np.array([a.u_max for a in est_sat.actuators if isinstance(a, MTQ)], dtype=float)
         self.rw_umax  = np.array([a.u_max for a in est_sat.actuators if isinstance(a, RW)], dtype=float)
@@ -92,69 +77,78 @@ class MTQ_w_RW_QP2(Controller):
         q = x_hat[3:7]
 
         if isinstance(goal, No_Goal):
-            # Smart B-Dot + Momentum Dumping (CONSISTENT SATURATION)
-
             k_w = self.d_gain
             k_h = self.c_gain
 
-            # --- Magnetic field ---
+            # --- 1. Magnetic Field (Body Frame) ---
             b_body = np.asarray(self.M_mtm_read @ sens, float).reshape(3,)
             b_norm = np.linalg.norm(b_body)
             if b_norm < 1e-9:
                 return np.zeros(self.n_actuators)
             b_hat = b_body / b_norm
 
-            # --- Wheel momentum (1 RW) ---
-            h_val = x_hat[7]
-            a_hat = self.rw_axes[0]
+            # --- 2. System Momentum Vector (Generic N-RW) ---
+            # Calculate total vector momentum stored in all wheels
+            if self.n_rw > 0 and len(x_hat) >= 7 + self.n_rw:
+                h_rw_scalars = x_hat[7 : 7 + self.n_rw]
+                h_sys = self.rw_axes @ h_rw_scalars # Matrix (3, N) @ Vec (N,) -> (3,)
+            else:
+                h_sys = np.zeros(3)
 
-            # --- B-dot style rate damping (⊥ B only) ---
+            # --- 3. Rate Damping (Perpendicular to B) ---
+            # "Magnetic B-dot" logic: dampen rates only in the plane where MTQs can act
             w_perp = w - np.dot(w, b_hat) * b_hat
-            tau_bdot = -k_w * w_perp
-            tau_bdot_perp = tau_bdot  # already ⟂ B
+            tau_bdot_perp = -k_w * w_perp
 
-            # --- Wheel momentum dumping torque (BODY torque) ---
-            delta_h = h_val - self.h_target
-            tau_rw_dump_des = k_h * delta_h * a_hat
-            mag = np.linalg.norm(tau_rw_dump_des)
-            if mag > k_h*0.001:
-                tau_rw_dump_des *= k_h*0.001 / (mag + 1e-12)
+            # --- 4. Momentum Dumping Torque (3D Vector) ---
+            # Desired torque on body to reduce system momentum error
+            h_err = h_sys - self.h_target  # Vector subtraction
+            tau_dump_des = k_h * h_err     # Gain * Vector error
 
-            # Project dump torque into MTQ-achievable plane
-            tau_rw_dump_perp = tau_rw_dump_des - np.dot(tau_rw_dump_des, b_hat) * b_hat
+            # Saturation: Limit the dumping torque magnitude to avoid transient spikes
+            mag = np.linalg.norm(tau_dump_des)
+            limit_val = k_h * 0.001        # Example cap (adjust as needed)
+            if mag > limit_val:
+                tau_dump_des *= limit_val / (mag + 1e-12)
 
-            # Geometry gating (avoid uncancellable dumping)
-            denom = np.linalg.norm(tau_rw_dump_des) + 1e-12
-            gamma = np.linalg.norm(tau_rw_dump_perp) / denom
-            tau_rw_dump_cmd = gamma * tau_rw_dump_des
+            # Project dump torque into MTQ-achievable plane (Perp to B)
+            tau_dump_perp = tau_dump_des - np.dot(tau_dump_des, b_hat) * b_hat
 
-            # --- Desired MTQ torque ---
-            tau_mtq_des = tau_bdot_perp - tau_rw_dump_perp
+            # Gating: Avoid dumping if the required torque is parallel to B (uncancellable)
+            denom = np.linalg.norm(tau_dump_des) + 1e-12
+            gamma = np.linalg.norm(tau_dump_perp) / denom
+            tau_dump_cmd = gamma * tau_dump_des
 
-            # --- MTQ allocation (UNCLIPPED) ---
-            B_skew = skewsym(b_body)
-            M_mag_eff = -B_skew @ self.A_mtq     # (3, n_actuators)
+            # --- 5. MTQ Allocation & Saturation Check ---
+            tau_mtq_des = tau_bdot_perp - tau_dump_perp
+            
+            alpha_mtq = 0.0 # Default to 0: If no MTQs, we cannot dump.
+            u_mtq_scaled = np.zeros(self.n_mtq) # Default empty/zero
 
-            u_mtq_raw = np.linalg.pinv(M_mag_eff) @ tau_mtq_des
+            if self.n_mtq > 0:
+                # Standard Allocation
+                B_skew = skewsym(b_body)
+                M_mag_eff = -B_skew @ self.A_mtq
+                u_mtq_raw = np.linalg.pinv(M_mag_eff) @ tau_mtq_des
 
-            # --- Compute MTQ saturation scaling factor ---
-            mtq_cmds = u_mtq_raw[self.mtq_indices]
-            alpha_mtq = 1.0
-            if np.any(np.abs(mtq_cmds) > self.mtq_umax):
-                alpha_mtq = np.min(self.mtq_umax / (np.abs(mtq_cmds) + 1e-12))
+                # Check saturation
+                mtq_cmds = u_mtq_raw[self.mtq_indices]
+                alpha_mtq = 1.0
+                if np.any(np.abs(mtq_cmds) > self.mtq_umax):
+                    alpha_mtq = np.min(self.mtq_umax / (np.abs(mtq_cmds) + 1e-12))
+                
+                u_mtq_scaled = alpha_mtq * u_mtq_raw
 
-            # --- Apply SAME scaling to MTQs and RW torques ---
-            u_mtq_scaled = alpha_mtq * u_mtq_raw
-            tau_mag_actual = M_mag_eff @ u_mtq_scaled
+            # --- 6. RW Command (Scaled) ---
+            # If alpha_mtq is 0 (due to saturation or 0 MTQs), RW torque is reduced 
+            # to 0 to prevent spinning up the body.
+            tau_rw_req = alpha_mtq * (tau_dump_cmd + tau_bdot_perp)
 
-            tau_rw_req = alpha_mtq * (tau_rw_dump_cmd + tau_bdot_perp)
-
-            # --- RW allocation ---
             u_rw = self.M_rw_act @ tau_rw_req
             u_rw = np.clip(u_rw, -self.rw_umax, self.rw_umax)
 
-            # --- Final actuator command ---
-            u_out = u_mtq_scaled + u_rw
+            # --- Final Output ---
+            u_out = u_mtq_scaled + u_rw  
         else:
         
             n_rw = len([a for a in est_sat.actuators if isinstance(a, RW)])
@@ -370,32 +364,6 @@ class MTQ_w_RW_QP2(Controller):
                   face_color: str,
                   edge_color: str,
                   alpha: float = 0.25):
-        r"""
-        Render a convex capacity set from a point cloud in 3D.
-
-        The capacity set is determined by the rank of the point cloud:
-
-        - Rank 1: a line segment,
-        - Rank 2: a filled polygon in 3D,
-        - Rank 3: a convex hull volume.
-
-        Parameters
-        ----------
-        ax : matplotlib axis
-            3D matplotlib axis to draw on.
-        points : np.ndarray
-            Point cloud representing attainable torques.
-        face_color : str
-            Face color used for translucent hull surfaces.
-        edge_color : str
-            Edge color used for silhouettes / outlines.
-        alpha : float, optional
-            Transparency level.
-
-        Notes
-        -----
-        This method is purely for plotting; it has no effect on control behavior.
-        """
 
         pts = np.unique(points, axis=0)
         if len(pts) < 2:
