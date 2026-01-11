@@ -1,4 +1,4 @@
-__all__ = ["MTQ_w_1RW"]
+__all__ = ["MTQ_w_RW_LP"]
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -17,7 +17,7 @@ from ADCS.satellite_hardware.sensors import MTM
 from ADCS.helpers.math_helpers import rot_mat, skewsym, limit
 
 
-class MTQ_w_1RW(Controller):
+class MTQ_w_RW_LP(Controller):
     r"""
     Hybrid MTQ + single-RW controller with two operating modes:
 
@@ -176,20 +176,15 @@ class MTQ_w_1RW(Controller):
         mtqs = [a for a in est_sat.actuators if isinstance(a, MTQ)]
         rws  = [a for a in est_sat.actuators if isinstance(a, RW)]
 
-        # if len(rws) != 1:
-        #     raise ValueError(
-        #         f"MTQ_w_1RW requires exactly 1 reaction wheel; found {len(rws)}."
-        #     )
-
         if len(mtqs) < 3:
             raise ValueError(
-                f"MTQ_w_1RW requires at least 3 MTQs; found {len(mtqs)}."
+                f"MTQ_w_RW_LP requires at least 3 MTQs; found {len(mtqs)}."
             )
 
         A_axes = np.column_stack([np.asarray(m.axis, float).reshape(3,) for m in mtqs])
         if np.linalg.matrix_rank(A_axes) < 3:
             raise ValueError(
-                "MTQ_w_1RW requires MTQ axes to be full-rank (rank=3). "
+                "MTQ_w_RW_LP requires MTQ axes to be full-rank (rank=3). "
                 f"Got rank={np.linalg.matrix_rank(A_axes)}."
             )
 

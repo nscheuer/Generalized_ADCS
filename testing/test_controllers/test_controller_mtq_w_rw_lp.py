@@ -9,7 +9,7 @@ from functools import lru_cache
 
 sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))
 from ADCS.CONOPS.goals import Goal, ECI_Goal, Coordinate_Goal, No_Goal
-from ADCS.controller import MTQ_w_1RW
+from ADCS.controller import MTQ_w_RW_LP
 from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.orbit import Orbit
 from ADCS.orbits.orbital_state import Orbital_State
@@ -92,9 +92,9 @@ def _make_satellite() -> Tuple[Satellite, np.ndarray, List]:
     return sat, x0, acts
 
 
-def _make_controller(est_sat: Satellite, goal: Goal) -> MTQ_w_1RW:
+def _make_controller(est_sat: Satellite, goal: Goal) -> MTQ_w_RW_LP:
     cfg = DESAT_CFG if isinstance(goal, No_Goal) else POINTING_CFG
-    return MTQ_w_1RW(
+    return MTQ_w_RW_LP(
         est_sat=est_sat,
         p_gain=cfg["p_gain"],
         d_gain=cfg["d_gain"],
@@ -187,7 +187,7 @@ def _final_control_effort(u_hist: np.ndarray) -> float:
     return float(np.linalg.norm(u_hist[k, :]))
 
 
-def simulate_mtq_w_1rw(
+def simulate_MTQ_w_RW_LP(
     goal: Goal,
     verbose: bool = False,
     tf: float = 1000,
@@ -216,7 +216,7 @@ def simulate_mtq_w_1rw(
     t = t0
     ind = 0
 
-    for _ in tqdm(range(steps), desc="Simulating MTQ_w_1RW"):
+    for _ in tqdm(range(steps), desc="Simulating MTQ_w_RW_LP"):
         J2000 = 0.22 + t * TimeConstants.sec2cent
         os_now = orbit.get_os(J2000=J2000)
 
@@ -264,7 +264,7 @@ def simulate_mtq_w_1rw(
 def test_mtq_w_rw_ps_1rw_hold_converges(tf: float = 500, dt: float = 2) -> None:
     orbit = _get_real_orbit_cached(tf=tf, dt=dt)
     goal = ECI_Goal(np.array([0.0, 0.0, 1.0]))
-    _, state_hist, _, _, u_hist, boresight_hist = simulate_mtq_w_1rw(goal=goal, tf=tf, dt=dt, real_orbit=True, orbit=orbit)
+    _, state_hist, _, _, u_hist, boresight_hist = simulate_MTQ_w_RW_LP(goal=goal, tf=tf, dt=dt, real_orbit=True, orbit=orbit)
     err_deg = _final_pointing_error_deg(state_hist, boresight_hist)
     assert err_deg <= 0.1, f"Final pointing error too large: {err_deg:.3f} deg"
     u_end = _final_control_effort(u_hist)
@@ -275,7 +275,7 @@ def test_mtq_w_rw_ps_1rw_hold_converges(tf: float = 500, dt: float = 2) -> None:
 def test_mtq_w_rw_ps_1rw_easy_turn_converges(tf: float = 500, dt: float = 2) -> None:
     orbit = _get_real_orbit_cached(tf=tf, dt=dt)
     goal = ECI_Goal(np.array([0.0, 1.0, 0.0]))
-    _, state_hist, _, _, u_hist, boresight_hist = simulate_mtq_w_1rw(goal=goal, tf=tf, dt=dt, real_orbit=True, orbit=orbit)
+    _, state_hist, _, _, u_hist, boresight_hist = simulate_MTQ_w_RW_LP(goal=goal, tf=tf, dt=dt, real_orbit=True, orbit=orbit)
     err_deg = _final_pointing_error_deg(state_hist, boresight_hist)
     assert err_deg <= 0.5, f"Final pointing error too large: {err_deg:.3f} deg"
     u_end = _final_control_effort(u_hist)
@@ -286,7 +286,7 @@ def test_mtq_w_rw_ps_1rw_easy_turn_converges(tf: float = 500, dt: float = 2) -> 
 def test_mtq_w_rw_ps_1rw_hard_turn_converges(tf: float = 500, dt: float = 2) -> None:
     orbit = _get_real_orbit_cached(tf=tf, dt=dt)
     goal = ECI_Goal(np.array([1.0, 1.0, 1.0]))
-    _, state_hist, _, _, u_hist, boresight_hist = simulate_mtq_w_1rw(goal=goal, tf=tf, dt=dt, real_orbit=True, orbit=orbit)
+    _, state_hist, _, _, u_hist, boresight_hist = simulate_MTQ_w_RW_LP(goal=goal, tf=tf, dt=dt, real_orbit=True, orbit=orbit)
     err_deg = _final_pointing_error_deg(state_hist, boresight_hist)
     assert err_deg <= 0.5, f"Final pointing error too large: {err_deg:.3f} deg"
     u_end = _final_control_effort(u_hist)
@@ -297,7 +297,7 @@ def test_mtq_w_rw_ps_1rw_hard_turn_converges(tf: float = 500, dt: float = 2) -> 
 def test_mtq_w_rw_ps_1rw_ground_tracking_converges(tf: float = 500, dt: float = 2) -> None:
     orbit = _get_real_orbit_cached(tf=tf, dt=dt)
     goal = Coordinate_Goal(lat=9, lon=-70, alt=0)
-    _, state_hist, _, _, _u_hist, boresight_hist = simulate_mtq_w_1rw(goal=goal, tf=tf, dt=dt, real_orbit=True, orbit=orbit)
+    _, state_hist, _, _, _u_hist, boresight_hist = simulate_MTQ_w_RW_LP(goal=goal, tf=tf, dt=dt, real_orbit=True, orbit=orbit)
     err_deg = _final_pointing_error_deg(state_hist, boresight_hist)
     assert err_deg <= 5.0, f"Final pointing error too large: {err_deg:.3f} deg"
     # NOTE: no final control-effort check for ground tracking (tracking is time-varying)
@@ -307,7 +307,7 @@ def test_mtq_w_rw_ps_1rw_ground_tracking_converges(tf: float = 500, dt: float = 
 def test_mtq_w_rw_ps_1rw_desat_converges(tf: float = 2500, dt: float = 5) -> None:
     orbit = _get_real_orbit_cached(tf=tf, dt=dt)
     goal = No_Goal()
-    _, state_hist, _, _, u_hist, _boresight_hist = simulate_mtq_w_1rw(goal=goal, tf=tf, dt=dt, real_orbit=True, orbit=orbit)
+    _, state_hist, _, _, u_hist, _boresight_hist = simulate_MTQ_w_RW_LP(goal=goal, tf=tf, dt=dt, real_orbit=True, orbit=orbit)
     u_end = _final_control_effort(u_hist)
     assert u_end <= CTRL_EFFORT_TOL, f"Final control effort too large: {u_end:.4f} (tol={CTRL_EFFORT_TOL})"
     valid = np.where(~np.isnan(state_hist[:, 0]))[0]
@@ -346,7 +346,7 @@ def plot_scenario(
         raise ValueError(f"Unknown scenario '{scenario}'. Try: hold, easy_turn, hard_turn, ground_tracking, desat")
 
     orbit = _get_real_orbit_cached(tf=tf, dt=dt) if real_orbit else None
-    time_hist, state_hist, os_hist, _sensor_hist, u_hist, boresight_hist = simulate_mtq_w_1rw(
+    time_hist, state_hist, os_hist, _sensor_hist, u_hist, boresight_hist = simulate_MTQ_w_RW_LP(
         goal=goal,
         verbose=verbose,
         tf=tf,
