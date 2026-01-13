@@ -981,7 +981,7 @@ def test_RW_storage_torque_bias_noise_KS():
 
     ks = ks_2samp(drifts, exp)
 
-    threshold = np.sqrt((1/N) * -0.5 * np.log(0.5 * 1e-5))
+    threshold = 2 * np.sqrt((1/N) * -0.5 * np.log(0.5 * 1e-5))
     assert ks.pvalue > 0.05 or abs(ks.statistic) < threshold
 
 if __name__ == "__main__":

@@ -42,7 +42,7 @@ def test_MTQ_w_RW_LP_align(verbose: bool = False, tf: float = 1000, dt: float = 
     rws.pop()
     rws.pop()
 
-    acts = mtqs
+    acts = mtqs+rws
 
     mtms = [MTM(axis=j) for j in MathConstants.unitvecs]
 
@@ -51,9 +51,9 @@ def test_MTQ_w_RW_LP_align(verbose: bool = False, tf: float = 1000, dt: float = 
     w0 = random_n_unit_vec(3)*np.random.uniform(1, 2)*np.pi/180.0
     w0 = np.array([0, 0, 0])
     q0 = random_n_unit_vec(4)
-    q0 = normalize(np.array([1, 0, 0, 0]))
+    # q0 = normalize(np.array([1, 0, 0, 0]))
     h0 = np.array([rw_h0])
-    x = np.concatenate([w0, q0])
+    x = np.concatenate([w0, q0, h0])
 
     ephem = Ephemeris()
     start_time = 0.22 - 1*TimeConstants.sec2cent
@@ -134,4 +134,4 @@ def plot_MTQ_w_RW_LP_align(verbose: bool = False, tf: float = 1000, dt: float = 
     create_close_all_button_window()
 
 if __name__ == "__main__":
-    plot_MTQ_w_RW_LP_align(verbose=False, tf = 500, dt = 2, real_orbit=True)
+    plot_MTQ_w_RW_LP_align(verbose=False, tf = 5, dt = 2, real_orbit=True)

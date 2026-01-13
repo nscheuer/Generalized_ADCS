@@ -89,7 +89,7 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
         orb = _CACHED_ORBIT
 
         # 6. Controller
-        GAMMA = 0.1
+        GAMMA = 100
         controller = MTQ_w_RW_QPG(est_sat=real_sat, p_gain=0.00005, d_gain=0.001, gamma=GAMMA, c_gain=0.001, h_target=np.array([0.004, 0.004, 0.0]))
         goal = ECI_Goal(config["goal_eci_vec"])
 
@@ -181,15 +181,15 @@ if __name__ == "__main__":
         runner = MonteCarloRunner(
             sim_func=run_single_sim,
             config_generator=generate_mc_config,
-            num_runs=100
+            num_runs=32
         )
         full_results = runner.run()
         
         print(f"\n--- Monte Carlo Complete: Generated {len(full_results)} histories ---")
-        save_data("3MTQ+2RW_QPG10_mc_100", full_results, out_dir=OUTPUT_DIR)
+        save_data("3MTQ+2RW_QPG100_mc_32", full_results, out_dir=OUTPUT_DIR)
         
-        plot_target_tracking_mc(full_results=full_results, title="3 MTQ + 2 RW QPG $\\gamma = 10$ MC:100")
-        plot_convergence_histogram_mc(full_results=full_results, title="3 MTQ + 2 RW QPG $\\gamma = 10$ MC:100")
+        plot_target_tracking_mc(full_results=full_results, title="3 MTQ + 2 RW QPG $\\gamma = 100$ MC:32")
+        plot_convergence_histogram_mc(full_results=full_results, title="3 MTQ + 2 RW QPG $\\gamma = 100$ MC:32")
         create_close_all_button_window()
     else:
         results = load_data("papers/3MTQ+1RW/output_data/3MTQ+1RW_mc_eci_convergence_20260110_145232")
