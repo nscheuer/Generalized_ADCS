@@ -36,7 +36,7 @@ void OldPlanner::setVerbosity(bool verbosity) {
   verbose = verbosity;
 }
 void OldPlanner::updateParameters_notsat(SYSTEM_SETTINGS_FORM systemSettings_tmp, ALILQR_SETTINGS_FORM alilqrSettings_tmp, ALILQR_SETTINGS_FORM alilqrSettings2_tmp, INITIAL_TRAJ_SETTINGS_FORM initialTrajSettings_tmp, COST_SETTINGS_FORM costSettings_tmp,COST_SETTINGS_FORM costSettings2_tmp,LQR_COST_SETTINGS_FORM costSettings_tvlqr_tmp) {
-    verbose = true;
+    verbose = false;
 
     costSettings = costSettings_tmp;
     costSettings2 = costSettings2_tmp;

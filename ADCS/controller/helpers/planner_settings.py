@@ -2,7 +2,7 @@ __all__ = ["PlannerSettings"]
 
 import numpy as np
 
-from ADCS.controller.helpers.planner_subsettings import SolverPassConfig, CostWeights, InitTrajConfig
+from ADCS.controller.helpers.planner_subsettings import SolverPassConfig, CostWeights, InitTrajConfig, ConvergenceConfig, AugLagConfig
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
 from ADCS.satellite_hardware.disturbances import Dipole_Disturbance, Prop_Disturbance, General_Disturbance
 
@@ -18,11 +18,11 @@ class PlannerSettings:
             cost_tvlqr: CostWeights = None,
             init_traj: InitTrajConfig = None,
             dt_tvlqr: float = 1,
-            tvlqr_len: float = 1000,
-            tvlqr_overlap: float = 1,
-            dt_tp: float = None,
+            tvlqr_len: float = 60,
+            tvlqr_overlap: float = 15,
+            dt_tp: float = 30.0,
             precalculation_time: float = 100,
-            traj_overlap: float = 100,
+            traj_overlap: float = 150,
             bdot_on: int = 1,
             debug_plot_on: bool = False,
             include_gg: bool = False,
@@ -45,7 +45,7 @@ class PlannerSettings:
         self.traj_overlap = traj_overlap
         self.debug_plot_on = debug_plot_on
         self.bdot_on = bdot_on
-        self.verbosity = True
+        self.verbosity = False
         self.eps = 2.22044604925031e-16
 
         # Solver Configurations
@@ -59,10 +59,12 @@ class PlannerSettings:
             self.pass2.convergence.max_inner_iter = 200
             self.pass2.regularization.reg_max = 1e12
 
-        # Cost Configuration
-        self.cost_main = cost_main if cost_main else CostWeights()
-        self.cost_second = cost_second if cost_second else CostWeights(angle_N=1000.0, ang_vel_N=1.0)
-        self.cost_tvlqr = cost_tvlqr if cost_tvlqr else CostWeights(angle=10, ang_vel=10.0, angle_N=100, ang_vel_N=100)
+        converge1 = ConvergenceConfig(max_outer_iter=20, max_inner_iter=150)
+        auglag1 = AugLagConfig(penalty_init=1e-3)
+        self.pass1 = pass1_config if pass1_config else SolverPassConfig(convergence=converge1)
+        converge2 = ConvergenceConfig(max_outer_iter=20, max_inner_iter=75)
+        auglag2 = AugLagConfig(penalty_init=1e1)
+        self.pass2 = pass2_config if pass2_config else SolverPassConfig(convergence=converge2, aug_lag=auglag2)
 
         # Initilization
         self.init_traj = init_traj if init_traj else InitTrajConfig()
@@ -70,19 +72,51 @@ class PlannerSettings:
         # Hardware Constraints
         self.control_limit_scale = 0.75
         self.umax = self.control_limit_scale * np.array([act.u_max for act in self.est_sat.actuators])
-        self.wmax = 0.02
-        self.sun_limit_angle = 20 * np.pi/180.0
-        self.camera_axis = np.array([[1, 0, 0]]).T
+        self.wmax = 20*np.pi/180.0
+        self.sun_limit_angle = 1*np.pi/180.0
+        self.camera_axis = np.array([[0, 0, 1]]).T
 
         # Actuator Weights for the C++ model construction
-        self.mtq_control_weight = 0.0001
-        self.rw_control_weight = 1.0
+        self.mtq_control_weight = 1e3
+        self.rw_control_weight = 1e5
         self.magic_control_weight = 0.0001
-        self.rw_AM_weight = 0.1
-        self.rw_stic_weight = 0.01
-        self.RWh_max_mult = 0.8
-        self.RWh_stiction_mult = 0.05
-        self.RWh_ok_mult = 0.4
+        self.rw_AM_weight = 1e4
+        self.rw_stic_weight = 1e0
+        self.RWh_max_mult = 0.5
+        self.RWh_stiction_mult = 0.01
+        self.RWh_ok_mult = 0.15
+
+        # Cost Configuration
+        self.cost_main = cost_main if cost_main else CostWeights(
+            angle=1e3,
+            angle_N=1e3,
+            ang_vel=1e4,
+            ang_vel_N=1e4,
+            ang_vel_mag=0.0,
+            ang_vel_mag_N=0.0,
+            control_mult=1.0,
+            ang_cost_func_type=2,
+        )
+        self.cost_second = cost_second if cost_second else CostWeights(
+            angle=1e6,
+            angle_N=1e6,
+            ang_vel=1.0,
+            ang_vel_N=1.0,
+            ang_vel_mag=0.0,
+            ang_vel_mag_N=0.0,
+            control_mult=100.0,
+            ang_cost_func_type=2,
+        )
+        self.cost_tvlqr = cost_tvlqr if cost_tvlqr else CostWeights(
+            angle=1e5,
+            angle_N=1e8,
+            ang_vel=1e8,
+            ang_vel_N=1e10,
+            ang_vel_mag=0.0,
+            ang_vel_mag_N=0.0,
+            control_mult=1e5 / self.mtq_control_weight,
+            ang_cost_func_type=2,
+        )
 
         # Disturbance Settings
         self.plan_for_aero = include_drag

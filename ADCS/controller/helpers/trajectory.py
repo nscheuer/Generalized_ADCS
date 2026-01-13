@@ -109,27 +109,38 @@ class Trajectory:
     
     def compute_tracking_control(self, t: float, x_current: np.ndarray) -> np.ndarray:
         if not self.is_valid_time(t):
-            raise ValueError(f"Time {t} is outside trajectory bounds [{self.start_time}, {self.end_time}]")
+            raise ValueError(f"Time {t} is outside bounds")
         
         x_ref = self.get_state_at(t)
         u_ref = self.get_control_at(t)
         K = self.get_gain_at(t)
         
-        def state_diff(x_current: np.ndarray, x_ref: np.ndarray) -> np.ndarray:
-            x_diff_short = np.zeros(self.state_dim-1)
-            x_diff_short[0:2] = x_current[0:2] - x_ref[0:2]
-            x_diff_short[3:6] = quat_to_vec3(quat_diff(x_current[3:7], x_ref[3:7]))
-            x_diff_short[6:-1] = x_current[7:-1] - x_ref[7:-1]
-            return x_diff_short
+        def state_diff(x_curr: np.ndarray, x_ref: np.ndarray) -> np.ndarray:
+            # Initialize 9-element error state
+            dx = np.zeros(9) 
+            
+            # 1. Angular Velocity (Indices 0, 1, 2)
+            # Use 0:3 to include index 2
+            dx[0:3] = x_curr[0:3] - x_ref[0:3]
+            
+            # 2. Attitude Error (Indices 3, 4, 5)
+            # Ensure quat_diff returns q_ref^(-1) * q_curr
+            q_err = quat_diff(x_curr[3:7], x_ref[3:7])
+            
+            # CRITICAL: LQR usually assumes linear error d_theta = 2 * vector_part(q_err)
+            # If quat_to_vec3 just returns (x,y,z), you might need to multiply by 2.
+            # If your K was generated assuming d_q ~ [1, d_theta/2], keep the factor of 2.
+            dx[3:6] = 2 * quat_to_vec3(q_err) 
+            
+            # 3. Wheel Momentum (Indices 6, 7, 8 in error state; 7, 8, 9 in full state)
+            # Use 6:9 (dest) and 7:10 (source) to include the last element
+            dx[6:9] = x_curr[7:10] - x_ref[7:10]
+            
+            return dx
 
-        # dx = x_current - x_ref
         dx = state_diff(x_current, x_ref)
         
-        # # Quaternion error handling (shortest path)
-        # if self.state_dim >= 7:
-        #     if np.dot(x_current[3:7], x_ref[3:7]) < 0:
-        #         dx[3:7] = x_current[3:7] + x_ref[3:7] 
-
+        # Apply Control Law
         return u_ref - K @ dx
 
     def get_state_input_gain(self, t: float):

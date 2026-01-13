@@ -9,7 +9,7 @@ class LineSearchConfig:
     # Settings for the backtracking line search
     max_iters: int = 20
     beta1: float = 1e-10
-    beta2: float = 20.0
+    beta2: float = 500.0
 
     def to_tuple(self) -> Tuple[int, float, float]:
         return (self.max_iters, self.beta1, self.beta2)
@@ -18,9 +18,9 @@ class LineSearchConfig:
 class AugLagConfig:
     # Settings for the Augmented Lagrangian (constraint enforcement)
     lag_mult_init: float = 0.0
-    lag_mult_max: float = 1e10
-    penalty_init: float = 1.0
-    penalty_max: float = 1e10
+    lag_mult_max: float = 1e20
+    penalty_init: float = 1e-3
+    penalty_max: float = 1e16
     penalty_scale: float = 10.0
 
     def to_tuple(self) -> Tuple[float, float, float, float, float]:
@@ -30,13 +30,13 @@ class AugLagConfig:
 class RegularizationConfig:
     # Settings for matrix regulatization (Levenberg-Marquardt)
     reg_init: float = 1e-10
-    reg_min: float = 1e-10
-    reg_max: float = 1e12
+    reg_min: float = 1e-8
+    reg_max: float = 1e30
     reg_scale: float = 1.6
-    reg_bump: float = 10.0
+    reg_bump: float = 10
 
     # Conditional logic flags
-    reg_min_cond: int = 1         # 1: Reg >= regMin, 0: Ignored
+    reg_min_cond: int = 2         # 1: Reg >= regMin, 0: Ignored
     rand_add_ratio: float = 0.0   # Random noise addition
     use_ev_magic: int = 0         # Use Eigendecomposition?
     spd_ev_reg: int = 1           # Regularize even if SPD?
@@ -61,15 +61,15 @@ class RegularizationConfig:
 @dataclass
 class ConvergenceConfig:
     # Settings for breaking loops (Inner/Outer iterations and tolerances)
-    max_outer_iter: int = 25
+    max_outer_iter: int = 20
     max_inner_iter: int = 250
-    max_total_iter: int = 4500
-    grad_tol: float = 1e-7
-    ilqr_cost_tol: float = 1e-8
-    total_cost_tol: float = 1e-9
-    z_count_lim: int = 20
+    max_total_iter: int = 7000
+    grad_tol: float = 1e-2
+    ilqr_cost_tol: float = 1e-1
+    total_cost_tol: float = 1e-2
+    z_count_lim: int = 10
     c_max: float = 0.002
-    max_cost: float = 1e10
+    max_cost: float = 1e40
 
     # State bound for divergence check
     xmax_val: float = 10.0
@@ -90,8 +90,8 @@ class SolverPassConfig:
 @dataclass
 class CostWeights:
     # Weights for the Q and R matrices
-    angle: float = 100.0
-    ang_vel: float = 10.0
+    angle: float = 1e3
+    ang_vel: float = 1e4
     control_mult: float = 1.0
     control_mag: float = 0.0
     ang_vel_mag: float = 0.0
@@ -105,7 +105,7 @@ class CostWeights:
 
     # Flags
     # 0=(1-dot), 1=0.5*(1-dot)^2, 2=acos(dot), 3=0.5*acos(dot)^2
-    ang_cost_func_type: int = 0 
+    ang_cost_func_type: int = 2 
     use_raw_control_cost: bool = True
     consider_vector_in_tvlqr: int = 0 # Specifically for TVLQR pass
 
@@ -129,12 +129,12 @@ class CostWeights:
 @dataclass
 class InitTrajConfig:
     # Settings for generating the initial guess
-    bdot_gain: float = 1000000.0
+    bdot_gain: float = 10000000.0
     hl_angle_limit: float = 10.0 * np.pi / 180.0
     
     # (gyro, damp, vel, quat, rand, umax)
-    high_settings: tuple = (0, -2000.0, -50.0, -2.0, 0.001, 1.5)
-    low_settings: tuple = (0, -1000.0, -200.0, -0.001, 0.0, 1.5)
+    high_settings: tuple = (0, -2e0, 0, -0.005, 0.1, 0.5)
+    low_settings: tuple = (0, -1e-4, 0, -0.00001, 0.1, 0.5)
 
     def to_tuple(self) -> Tuple[float, float, tuple, tuple]:
         return (self.bdot_gain, self.hl_angle_limit, self.high_settings, self.low_settings)
