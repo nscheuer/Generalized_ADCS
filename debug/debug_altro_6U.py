@@ -10,7 +10,7 @@ import pytest
 sys.path.append(os.path.abspath(os.path.join(__file__, "../..")))
 from ADCS.CONOPS.goals import Goal, ECI_Goal, Coordinate_Goal, No_Goal
 from ADCS.CONOPS.goallist import GoalList
-from ADCS.controller.plan_and_track_lqr2 import Plan_and_Track_LQR
+from ADCS.controller.plan_and_track_lqr import Plan_and_Track_LQR
 from ADCS.controller.helpers import PlannerSettings, Trajectory
 from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.orbit import Orbit
@@ -43,7 +43,7 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
     rw_hmax = 0.015
     rws = [RW(axis=j, max_torque=rw_max_torque, J=rw_J, h=rw_h0, h_max=rw_hmax) for j in MathConstants.unitvecs]
 
-    acts = mtqs+rws
+    acts = rws
 
     mtms = [MTM(axis=j) for j in MathConstants.unitvecs]
 
@@ -55,7 +55,6 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
     q0 = normalize(np.array([1, 0, 0, 0]))
     h0 = np.array([rw_h0, rw_h0, rw_h0])
     x = np.concatenate([w0, q0, h0])
-    # x = np.concatenate([w0, q0])
 
     ephem = Ephemeris()
     start_time = 0.22 - 1*TimeConstants.sec2cent
@@ -104,13 +103,13 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
     )
     # traj.plot_eci_trajectory()
     controller.set_active_trajectory(traj)
-    time_hist_traj = traj.times
-    state_hist_traj = traj.states
-    u_hist_traj = traj.controls
+    time_hist_traj = traj.times*TimeConstants.cent2sec
+    state_hist_traj = traj.states.T
+    u_hist_traj = traj.controls.T
 
     plot_state_comparison(time=time_hist_traj, state_hist=state_hist_traj)
-    plot_control(time=time_hist_traj[1:], u_hist=u_hist_traj)
-    plot_rw_momentum(time=time_hist_traj, state_hist=state_hist_traj)
+    plot_control(time=time_hist_traj, u_hist=u_hist_traj)
+    #plot_rw_momentum(time=time_hist_traj, state_hist=state_hist_traj)
     create_close_all_button_window()
     plt.close()
 
@@ -162,4 +161,4 @@ def plot_mtq_w_rw_align_to_eci(verbose: bool = False, tf: float = 1000, dt: floa
     print("Yay!")
 
 if __name__ == "__main__":
-    plot_mtq_w_rw_align_to_eci(verbose=False, tf = 200, dt = 1, real_orbit=True)
+    plot_mtq_w_rw_align_to_eci(verbose=False, tf = 100, dt = 1, real_orbit=True)
