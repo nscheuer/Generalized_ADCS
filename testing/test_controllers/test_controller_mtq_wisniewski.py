@@ -12,7 +12,7 @@ sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))
 
 # ADCS Imports
 from ADCS.CONOPS.goals import Goal, ECI_Goal, No_Goal
-from ADCS.controller import MTQ_Lovera
+from ADCS.controller import MTQ_Wisniewski
 from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.orbit import Orbit
 from ADCS.orbits.orbital_state import Orbital_State
@@ -36,24 +36,19 @@ from ADCS.helpers.plotting.plot_controller import plot_control, plot_rw_momentum
 
 # Tuned for ~4kg satellite with magnetic control
 GAIN_CFG: Dict[str, float] = dict(
-    p_gain=0.00002,
-    d_gain=0.02,
-    eps=1.0
+    lambda_s=np.diag([0.003, 0.003, 0.003]),
+    lambda_q=np.diag([0.002, 0.002, 0.002])
 )
 
 # Simulation Physics
 DT_PHYSICS = 50  # Magnetic control requires small time steps!
 TF = 10000   # Alignment takes time with weak magnetorquers
 
-
 # ----------------------------
 # Shared Setup + Utilities
 # ----------------------------
 
 def _make_satellite(initial_rw_h: float = 0.0) -> Tuple[Satellite, np.ndarray, List]:
-    """
-    Creates the 4kg satellite model and initial state vector.
-    """
     mtq_max_torque = 1.0
     mtqs = [MTQ(axis=j, max_torque=mtq_max_torque) for j in MathConstants.unitvecs]
 
@@ -79,17 +74,16 @@ def _make_satellite(initial_rw_h: float = 0.0) -> Tuple[Satellite, np.ndarray, L
 
     return sat, x0, acts
 
-def _make_controller(est_sat: Satellite, goal: Goal) -> MTQ_Lovera:
+def _make_controller(est_sat: Satellite, goal: Goal) -> MTQ_Wisniewski:
     """
-    Factory for MTQ_Lovera controller with appropriate gains.
+    Factory for MTQ_Wisniewski controller with appropriate gains.
     """
     cfg = GAIN_CFG
         
-    return MTQ_Lovera(
+    return MTQ_Wisniewski(
         est_sat=est_sat,
-        p_gain=cfg["p_gain"],
-        d_gain=cfg["d_gain"],
-        eps=cfg["eps"]
+        lambda_s=cfg["lambda_s"],
+        lambda_q=cfg["lambda_q"]
     )
 
 @lru_cache(maxsize=4)
@@ -255,7 +249,7 @@ SCENARIO_LIST = [
 
 @pytest.mark.slow
 @pytest.mark.parametrize("scenario", SCENARIO_LIST)
-def test_mtq_lovera_scenarios(scenario: str) -> None:
+def test_mtq_wisniewski_scenarios(scenario: str) -> None:
     # Run sim
     _, state_hist, _, _, u_hist, boresight_hist = simulate_scenario(scenario)
     
@@ -313,4 +307,4 @@ if __name__ == "__main__":
             print(f"Available: {SCENARIO_LIST}")
     else:
         # Default run if no args
-        plot_scenario_manual("align_x_moving")
+        plot_scenario_manual("align_xyz_zero")

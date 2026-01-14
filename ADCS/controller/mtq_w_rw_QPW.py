@@ -18,6 +18,74 @@ from ADCS.helpers.math_helpers import rot_mat, skewsym, limit
 
 
 class MTQ_w_RW_QPW(MTQ_w_RW_LP):
+    r"""
+    MTQ_w_RW_QPW
+    ============
+
+    Weighted Quadratic–Programming Torque Allocation
+    ------------------------------------------------
+
+    This controller implements a **Weighted Least Squares (WLS)** allocation scheme.
+    It serves as a hybrid between the LP (strict directionality) and the standard QP
+    (minimum Euclidean error).
+
+    By applying anisotropic weights to the error residuals, this controller prioritizes
+    minimizing **directional error** (perpendicular to the desired torque) over
+    **magnitude error** (parallel to the desired torque).
+
+    
+
+    Key Features:
+
+    - **Directional Priority:** Heavily penalizes torque errors perpendicular to :math:`\boldsymbol{\tau}_{\mathrm{des}}` (:math:`w_{\perp} \gg w_{\parallel}`).
+    - **Magnitude Flexibility:** Allows for larger errors in torque magnitude if it helps align the torque vector correctly.
+    - **Tunable Behavior:** The ratio :math:`w_{\perp} / w_{\parallel}` determines how closely the controller behaves like the strict LP versus the standard QP.
+
+    Weighted Formulation
+    --------------------
+
+    Let unit direction :math:`\hat{\boldsymbol{\tau}} = \boldsymbol{\tau}_{\mathrm{des}} / \|\boldsymbol{\tau}_{\mathrm{des}}\|`.
+    We decompose the torque error into parallel and perpendicular components using projection operators:
+
+    .. math::
+
+        P_{\parallel} = \hat{\boldsymbol{\tau}} \hat{\boldsymbol{\tau}}^T, \qquad
+        P_{\perp} = I - P_{\parallel}
+
+    We define a weighting matrix :math:`W` to penalize these components differently:
+
+    .. math::
+
+        W = \sqrt{w_{\parallel}} P_{\parallel} + \sqrt{w_{\perp}} P_{\perp}
+
+    Optimization Problem
+    --------------------
+
+    The controller solves the weighted bounded least squares problem:
+
+    .. math::
+
+        \min_{\boldsymbol{u}} \quad
+        \left\| W (A_{\mathrm{tot}} \boldsymbol{u} - \boldsymbol{\tau}_{\mathrm{des}}) \right\|_2^2
+        \quad \equiv \quad
+        w_{\parallel} \|\boldsymbol{e}_{\parallel}\|^2 + w_{\perp} \|\boldsymbol{e}_{\perp}\|^2
+
+    Subject to:
+
+    .. math::
+
+        -u_{i,\max} \le u_i \le u_{i,\max}
+
+    Implementation Weights
+    ^^^^^^^^^^^^^^^^^^^^^^
+
+    The default implementation uses:
+
+    - :math:`w_{\perp} = 100.0`: Strong penalty on directional deviation.
+    - :math:`w_{\parallel} = 1.0`: Weak penalty on magnitude mismatch.
+
+    This configuration ensures the ADCS fights hard to point the torque correctly, even if it means producing slightly less (or more) torque than requested, which is often preferable for stability in underactuated systems.
+    """
     def __init__(self, est_sat: EstimatedSatellite, p_gain: float, d_gain: float, c_gain: float, h_target: np.ndarray | list = np.zeros(3)) -> None:
         super().__init__(est_sat=est_sat, p_gain=p_gain, d_gain=d_gain, c_gain=c_gain, h_target=h_target)
 

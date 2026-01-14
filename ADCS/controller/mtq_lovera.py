@@ -11,6 +11,149 @@ from ADCS.satellite_hardware.sensors import MTM
 from ADCS.helpers.math_helpers import rot_mat
 
 class MTQ_Lovera(Controller):
+    r"""
+    Magnetic PD Attitude Controller (Lovera–Astolfi)
+
+    This controller implements the global magnetic attitude stabilization law
+    proposed in:
+
+        M. Lovera and A. Astolfi,
+        *Global Magnetic Attitude Control of Inertially Pointing Spacecraft*,
+        Journal of Guidance, Control, and Dynamics, Vol. 28, No. 5, 2005,
+        pp. 1065–1072.
+
+    The controller achieves global asymptotic stabilization of an inertially
+    fixed attitude using **magnetorquers only**, exploiting the time-varying
+    nature of the geomagnetic field along the orbit.
+
+    ---------------------------------------------------------------------------
+    Mathematical Background
+    ---------------------------------------------------------------------------
+
+    Let the spacecraft rotational dynamics be
+
+    .. math::
+
+        J \dot{\omega} = -\omega \times (J\omega + h_{rw}) + \tau
+
+    where
+    - :math:`\omega \in \mathbb{R}^3` is the body angular velocity,
+    - :math:`J` is the inertia matrix,
+    - :math:`h_{rw}` is the total reaction-wheel angular momentum (if present),
+    - :math:`\tau` is the control torque.
+
+    Magnetic actuators generate torque according to
+
+    .. math::
+
+        \tau = m \times B
+
+    where
+    - :math:`m \in \mathbb{R}^3` is the commanded magnetic dipole moment,
+    - :math:`B \in \mathbb{R}^3` is the geomagnetic field expressed in body frame.
+
+    ---------------------------------------------------------------------------
+    Reference Tracking Errors
+    ---------------------------------------------------------------------------
+
+    Let :math:`q` be the spacecraft attitude quaternion and
+    :math:`q_d` the desired inertial reference attitude.
+    The attitude error vector is computed as
+
+    .. math::
+
+        e_q = \text{vec}(q_d^{-1} \otimes q)
+
+    where :math:`\otimes` denotes quaternion multiplication.
+
+    The angular velocity error is
+
+    .. math::
+
+        e_\omega = \omega - R_{b}^{i}(q)^T \omega_d
+
+    where :math:`\omega_d` is the reference angular velocity expressed in ECI
+    coordinates.
+
+    ---------------------------------------------------------------------------
+    PD + Gyroscopic Compensation Law
+    ---------------------------------------------------------------------------
+
+    The desired control torque is defined as
+
+    .. math::
+
+        \tau_{des} =
+        -\varepsilon^2 k_p e_q
+        -\varepsilon k_d e_\omega
+        + \omega \times (J\omega + h_{rw})
+
+    where
+    - :math:`k_p`, :math:`k_d` are positive scalar gains,
+    - :math:`\varepsilon > 0` is a small tuning parameter separating time scales.
+
+    This structure ensures that the closed-loop dynamics can be cast in a
+    singular perturbation framework, as shown in the cited paper.
+
+    ---------------------------------------------------------------------------
+    Magnetic Dipole Command
+    ---------------------------------------------------------------------------
+
+    Since magnetic torquers cannot generate torque parallel to the geomagnetic
+    field, the commanded dipole is chosen as
+
+    .. math::
+
+        m^* = \frac{B \times \tau_{des}}{\|B\|^2}
+
+    which guarantees
+
+    .. math::
+
+        m^* \times B = \Pi_{B^\perp}(\tau_{des})
+
+    i.e. the projection of the desired torque onto the plane orthogonal to
+    :math:`B`.
+
+    If :math:`\|B\|` is below a numerical threshold, the dipole command is set
+    to zero.
+
+    ---------------------------------------------------------------------------
+    Actuator Saturation Handling
+    ---------------------------------------------------------------------------
+
+    Each magnetorquer is subject to dipole magnitude limits
+
+    .. math::
+
+        |m_i| \le m_{i,\max}
+
+    Rather than applying component-wise saturation (which would distort the
+    torque direction), the dipole command is **uniformly scaled**:
+
+    .. math::
+
+        m = \alpha m^*, \quad
+        \alpha = \min\!\left(1,
+        \min_i \frac{m_{i,\max}}{|m^*_i|}
+        \right)
+
+    This preserves the direction of the magnetic dipole—and therefore the
+    resulting torque direction—while guaranteeing feasibility.
+
+    This saturation strategy is consistent with the assumptions used in the
+    stability analysis of Lovera & Astolfi and is standard practice in
+    flight-qualified magnetic attitude controllers.
+
+    ---------------------------------------------------------------------------
+    References
+    ---------------------------------------------------------------------------
+
+    .. [1] M. Lovera and A. Astolfi,
+        *Global Magnetic Attitude Control of Inertially Pointing Spacecraft*,
+        Journal of Guidance, Control, and Dynamics,
+        Vol. 28, No. 5, 2005, pp. 1065–1072.
+    """
     def __init__(self, est_sat: EstimatedSatellite, p_gain: float, d_gain: float, eps: float) -> None:
         self.p_gain = p_gain
         self.d_gain = d_gain
@@ -18,7 +161,8 @@ class MTQ_Lovera(Controller):
 
         self.M_read, self.mtm_indices = self.build_sensor_matrix_pinv(sensors=est_sat.attitude_sensors+est_sat.rw_actuators, sensor_type=MTM)
 
-
+        self.mtq_umax = np.array([a.u_max for a in est_sat.actuators if isinstance(a, MTQ)], dtype=float)
+        
     def find_u(self, x_hat: np.ndarray, sens: np.ndarray, est_sat: EstimatedSatellite, os_hat: Orbital_State, goal: Goal | None = None) -> np.ndarray:
         if goal is None:
             goal = No_Goal()
@@ -61,6 +205,13 @@ class MTQ_Lovera(Controller):
             u_mtq_cmd = np.zeros(3)
         else:
             u_mtq_cmd = np.cross(B_curr, tau_des) / B_norm_sq
+
+        scale = np.min(
+            np.where(np.abs(u_mtq_cmd) > 0.0,
+                    self.mtq_umax / np.abs(u_mtq_cmd),
+                    np.inf)
+        )
+        u_mtq_cmd *= min(1.0, scale)
 
         u_out = np.zeros(len(est_sat.actuators))
         mtq_indices = [i for i, a in enumerate(est_sat.actuators) if isinstance(a, MTQ)]

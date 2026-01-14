@@ -377,7 +377,7 @@ def plot_scenario(
 
 
 if __name__ == "__main__":
-    scenario = sys.argv[1] if len(sys.argv) > 1 else "desat"
+    scenario = sys.argv[1] if len(sys.argv) > 1 else "hard_turn"
 
     # Default sim horizon depends on scenario
     if scenario.lower().strip() in ("desat", "no_goal"):

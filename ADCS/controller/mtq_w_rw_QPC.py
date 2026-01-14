@@ -19,6 +19,61 @@ from ADCS.helpers.math_helpers import rot_mat, skewsym, limit
 
 
 class MTQ_w_RW_QPC(MTQ_w_RW_LP):
+    r"""
+    MTQ_w_RW_QPC
+    ============
+
+    Constrained Quadratic–Programming Torque Allocation
+    ---------------------------------------------------
+
+    This controller implements a **Constrained Least Squares (CLS)** allocation scheme.
+    It extends the standard QP formulation by enforcing an additional **Lyapunov-based stability constraint** on the instantaneous power delivered to the system.
+
+    In underactuated systems (like magnetic ADCS), a standard Least Squares allocator can sometimes produce a torque vector that minimizes the geometric error but has a component in the "wrong" direction relative to the spacecraft's rotation. This can inadvertently add kinetic energy to the system when the desired control law intended to remove it (damping).
+
+    **This controller strictly forbids such destabilizing allocations.**
+
+    
+
+    Key Features:
+
+    - **Stability Guarantee:** Enforces :math:`\dot{V}_{\mathrm{ach}} \le \dot{V}_{\mathrm{des}}` (roughly) to ensure the allocator never "fights" the high-level control law's energy intent.
+    - **Optimization Objective:** Minimizes :math:`\|\boldsymbol{\tau}_{\mathrm{des}} - \boldsymbol{\tau}_{\mathrm{ach}}\|^2` subject to the stability constraint.
+    - **Safe Degradation:** If the desired torque is physically impossible without violating stability (e.g., due to B-field alignment), the controller sacrifices tracking accuracy to maintain stability.
+
+    Optimization Problem
+    --------------------
+
+    **Objective Function:**
+    
+    .. math::
+
+        \min_{\boldsymbol{u}} \quad \frac{1}{2} \| A_{\mathrm{tot}} \boldsymbol{u} - \boldsymbol{\tau}_{\mathrm{des}} \|_2^2
+
+    **Standard Constraints:**
+    
+    .. math::
+
+        -u_{i,\max} \le u_i \le u_{i,\max}
+
+    **Stability Constraint (The "Energy Gate"):**
+    
+    Let :math:`P = \boldsymbol{\omega} \cdot \boldsymbol{\tau}` be the mechanical power. The controller enforces:
+
+    .. math::
+
+        \boldsymbol{\omega}^T (A_{\mathrm{tot}} \boldsymbol{u}) \le \max(0, \boldsymbol{\omega}^T \boldsymbol{\tau}_{\mathrm{des}})
+
+    - **Damping Case:** If the control law wants to spin down (:math:`\boldsymbol{\omega}^T \boldsymbol{\tau}_{\mathrm{des}} < 0`), the allocator is **forced** to produce a net torque that dissipates energy (or is at least neutral). It cannot produce a "best fit" torque that accidentally spins the satellite up.
+    - **Slew Case:** If the control law wants to add energy (:math:`\boldsymbol{\omega}^T \boldsymbol{\tau}_{\mathrm{des}} > 0`), the constraint is relaxed, allowing the allocator to track the reference normally.
+
+    Solver Implementation
+    ^^^^^^^^^^^^^^^^^^^^^
+    
+    This problem is solved using `scipy.optimize.minimize(method='SLSQP')` to handle the linear inequality constraints involving the state vector :math:`\boldsymbol{\omega}`. 
+    
+    If the solver fails to find a feasible solution (rare), it gracefully falls back to the geometry-aware Linear Program (LP) solution to ensure a safe, scaled command is always available.
+    """
     def __init__(self, est_sat: EstimatedSatellite, p_gain: float, d_gain: float, c_gain: float, h_target: np.ndarray | list = np.zeros(3)) -> None:
         super().__init__(est_sat=est_sat, p_gain=p_gain, d_gain=d_gain, c_gain=c_gain, h_target=h_target)
 

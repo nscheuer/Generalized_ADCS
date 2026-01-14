@@ -19,6 +19,173 @@ from ADCS.helpers.math_helpers import rot_mat, skewsym, limit
 
 
 class MTQ_w_RW_LP(Controller):
+    r"""
+    MTQ_w_RW_LP
+    ===========
+
+    Linear–Programming–Based Torque Allocation for Mixed RW–MTQ ADCS
+    ----------------------------------------------------------------
+
+    This controller implements a **physically correct, geometry-aware linear program (LP)**
+    to allocate control effort between **reaction wheels (RWs)** and **magnetorquers (MTQs)**
+    for an underactuated spacecraft attitude determination and control system (ADCS).
+
+    The controller supports:
+
+    - Arbitrary numbers and orientations of RWs and MTQs
+    - Hard actuator saturation limits
+    - Exact handling of the MTQ torque plane constraint
+    - Graceful degradation when full torque is not achievable
+    - A single scalar performance metric :math:`\alpha \in [0,1]` measuring achievable torque
+
+    The LP formulation guarantees that the commanded actuator signals correspond to the
+    **maximum physically achievable torque in the desired direction**, rather than an
+    unconstrained least–squares approximation.
+
+    System Model
+    ------------
+
+    Let the desired body-frame control torque be
+
+    .. math::
+
+        \boldsymbol{\tau}_{\mathrm{des}} \in \mathbb{R}^3, \qquad
+        \|\boldsymbol{\tau}_{\mathrm{des}}\| = T_{\mathrm{des}}
+
+    Define the unit torque direction
+
+    .. math::
+
+        \hat{\boldsymbol{\tau}} = \frac{\boldsymbol{\tau}_{\mathrm{des}}}{T_{\mathrm{des}}}
+
+    Reaction Wheels (RW)
+    ^^^^^^^^^^^^^^^^^^^^
+
+    For :math:`N_{\mathrm{rw}}` reaction wheels with unit axes
+    :math:`\boldsymbol{a}_i \in \mathbb{R}^3`, the torque mapping is
+
+    .. math::
+
+        \boldsymbol{\tau}_{\mathrm{rw}}
+        = \sum_{i=1}^{N_{\mathrm{rw}}} \boldsymbol{a}_i \, u_i
+        = A_{\mathrm{rw}} \, \boldsymbol{u}_{\mathrm{rw}}
+
+    with bounds
+
+    .. math::
+
+        |u_i| \le u_{i,\max}
+
+    Magnetorquers (MTQ)
+    ^^^^^^^^^^^^^^^^^^^
+
+    For :math:`N_{\mathrm{mtq}}` magnetorquers with dipole axes
+    :math:`\boldsymbol{m}_j`, the torque is generated via the geomagnetic field
+    :math:`\boldsymbol{B}`:
+
+    .. math::
+
+        \boldsymbol{\tau}_{\mathrm{mtq}}
+        = \boldsymbol{m} \times \boldsymbol{B}
+        = -[\boldsymbol{B}]_\times \, A_{\mathrm{mtq}} \, \boldsymbol{u}_{\mathrm{mtq}}
+
+    where :math:`[\boldsymbol{B}]_\times` is the skew–symmetric cross-product matrix.
+    This enforces the fundamental MTQ constraint:
+
+    .. math::
+
+        \boldsymbol{\tau}_{\mathrm{mtq}} \perp \boldsymbol{B}
+
+    Combined Actuator Model
+    ^^^^^^^^^^^^^^^^^^^^^^^
+
+    Stacking both actuator types:
+
+    .. math::
+
+        \boldsymbol{\tau}
+        = A_{\mathrm{tot}} \, \boldsymbol{u}
+        =
+        \begin{bmatrix}
+        A_{\mathrm{rw}} & -[\boldsymbol{B}]_\times A_{\mathrm{mtq}}
+        \end{bmatrix}
+        \begin{bmatrix}
+        \boldsymbol{u}_{\mathrm{rw}} \\
+        \boldsymbol{u}_{\mathrm{mtq}}
+        \end{bmatrix}
+
+    Linear Program Formulation
+    --------------------------
+
+    Rather than enforcing
+
+    .. math::
+
+        A_{\mathrm{tot}} \boldsymbol{u} = \boldsymbol{\tau}_{\mathrm{des}}
+
+    (which may be infeasible), we introduce a **scalar torque availability variable**
+    :math:`T_{\mathrm{avail}} \ge 0` and solve
+
+    .. math::
+
+        A_{\mathrm{tot}} \boldsymbol{u}
+        =
+        T_{\mathrm{avail}} \, \hat{\boldsymbol{\tau}}
+
+    Decision Variables
+    ^^^^^^^^^^^^^^^^^^
+
+    .. math::
+
+        \boldsymbol{x}
+        =
+        \begin{bmatrix}
+        \boldsymbol{u} \\
+        T_{\mathrm{avail}}
+        \end{bmatrix}
+
+    Optimization Problem
+    ^^^^^^^^^^^^^^^^^^^^
+
+    .. math::
+
+        \begin{aligned}
+        \max_{\boldsymbol{u},\,T_{\mathrm{avail}}} \quad &
+        T_{\mathrm{avail}} \\
+        \text{subject to} \quad &
+        A_{\mathrm{tot}} \boldsymbol{u} - T_{\mathrm{avail}} \hat{\boldsymbol{\tau}} = \boldsymbol{0} \\
+        &
+        -u_{i,\max} \le u_i \le u_{i,\max} \\
+        &
+        T_{\mathrm{avail}} \ge 0
+        \end{aligned}
+
+    This LP is **always well-conditioned**, even for small
+    :math:`\|\boldsymbol{\tau}_{\mathrm{des}}\|`, because the direction and magnitude
+    are decoupled.
+
+    Scaling and Output
+    ------------------
+
+    Let the optimal solution yield :math:`T_{\max}`.
+
+    - If :math:`T_{\max} \ge T_{\mathrm{des}}`:
+      the system has sufficient authority and commands are scaled exactly to match
+      :math:`\boldsymbol{\tau}_{\mathrm{des}}`.
+
+    - If :math:`T_{\max} < T_{\mathrm{des}}`:
+      the system is saturated, and the controller applies the **maximum physically
+      achievable torque in the desired direction**.
+
+    The scalar effectiveness metric is defined as
+
+    .. math::
+
+        \alpha = \frac{T_{\max}}{T_{\mathrm{des}}} \in [0,1]
+
+    This formulation provides a rigorous and geometrically faithful foundation
+    for underactuated spacecraft control and momentum management.
+    """
     def __init__(self, est_sat: EstimatedSatellite, p_gain: float, d_gain: float, c_gain: float, h_target: np.ndarray | list = np.zeros(3)) -> None:
         self.mtqs = [a for a in est_sat.actuators if isinstance(a, MTQ)]
         self.rws  = [a for a in est_sat.actuators if isinstance(a, RW)]
@@ -296,7 +463,7 @@ class MTQ_w_RW_LP(Controller):
         c[-1] = -1.0 
 
         # A_eq @ x = 0  =>  [ A_total  |  -tau_hat ] @ [u; T_avail] = 0
-        A_eq = np.hstack([A_total, -tau_des.reshape(3,1)])
+        A_eq = np.hstack([A_total, -tau_hat.reshape(3,1)])
         b_eq = np.zeros(3)
 
         # Bounds
@@ -306,7 +473,7 @@ class MTQ_w_RW_LP(Controller):
         
         # T_available bounds: [0, infinity] 
         # (We find the absolute max physical limit in this direction)
-        bounds.append((0, 1)) 
+        bounds.append((0, None)) 
 
         # 3. Solve with HiGHS
         # -----------------------------------------------------
@@ -317,29 +484,26 @@ class MTQ_w_RW_LP(Controller):
 
         if res.success:
             u_sol = res.x[:n_act]
-            alpha = res.x[-1] # Max torque Nm achievable in this direction
-            # alpha = T_max_available / t_mag if t_mag > 0 else 0.0
-            u_rw_cmd = u_sol[:n_rw]
-            u_mtq_cmd = u_sol[n_rw:]
-            return u_rw_cmd, u_mtq_cmd, alpha
-            # # 4. Scaling Logic
-            # # -------------------------------------------------
-            # # If we are strictly physically limited to less than we asked for:
-            # if T_max_available <= t_mag:
-                # # Saturated: Output max possible (u_sol is already at max)
-                # alpha = T_max_available / t_mag if t_mag > 0 else 0.0
-                # u_rw_cmd = u_sol[:n_rw]
-                # u_mtq_cmd = u_sol[n_rw:]
-                # return u_rw_cmd, u_mtq_cmd, alpha
-            # else:
-                # # Not Saturated: We have more capacity than requested.
-                # # Linearly scale down the commands to exactly match tau_des.
-                # scale_factor = t_mag / T_max_available
-                # u_scaled = u_sol * scale_factor
+            T_max_available = res.x[-1] # Max torque Nm achievable in this direction
+
+            # 4. Scaling Logic
+            # -------------------------------------------------
+            # If we are strictly physically limited to less than we asked for:
+            if T_max_available <= t_mag:
+                # Saturated: Output max possible (u_sol is already at max)
+                alpha = T_max_available / t_mag if t_mag > 0 else 0.0
+                u_rw_cmd = u_sol[:n_rw]
+                u_mtq_cmd = u_sol[n_rw:]
+                return u_rw_cmd, u_mtq_cmd, alpha
+            else:
+                # Not Saturated: We have more capacity than requested.
+                # Linearly scale down the commands to exactly match tau_des.
+                scale_factor = t_mag / T_max_available
+                u_scaled = u_sol * scale_factor
                 
-                # u_rw_cmd = u_scaled[:n_rw]
-                # u_mtq_cmd = u_scaled[n_rw:]
-                # return u_rw_cmd, u_mtq_cmd, 1.0
+                u_rw_cmd = u_scaled[:n_rw]
+                u_mtq_cmd = u_scaled[n_rw:]
+                return u_rw_cmd, u_mtq_cmd, 1.0
 
         else:
             # Solver failed (usually singular geometry where NO torque is possible)

@@ -18,6 +18,64 @@ from ADCS.helpers.math_helpers import rot_mat, skewsym, limit
 
 
 class MTQ_w_RW_QPG(MTQ_w_RW_LP):
+    r"""
+    MTQ_w_RW_QPG
+    ============
+
+    Gyroscopically–Weighted Quadratic Torque Allocation
+    ---------------------------------------------------
+
+    This controller implements a **dynamic, state-dependent Weighted Least Squares (WLS)** allocation scheme.
+    It extends the standard QP formulation by introducing a weighting matrix :math:`W(\boldsymbol{\omega})` that evolves with the spacecraft's angular velocity vector.
+
+    By adjusting the weighting parameter :math:`\gamma`, the controller can prioritize torque accuracy along the instantaneous spin axis :math:`\hat{\boldsymbol{\omega}}` versus the transverse plane.
+
+    [Image of spacecraft spin axis and torque components]
+
+    Key Features:
+
+    - **Dynamic Weighting:** The optimization cost function changes in real-time based on the body rate :math:`\boldsymbol{\omega}`.
+    - **Spin-Axis Priority:** Allows the ADCS to penalize torque errors along the rotation axis more (or less) heavily than cross-axis errors.
+    - **Tunable Gain:** The scalar :math:`\gamma` controls the strength of this anisotropic weighting.
+
+    Weighting Formulation
+    ---------------------
+
+    Let the unit direction of the angular velocity be
+    :math:`\hat{\boldsymbol{\omega}} = \boldsymbol{\omega} / \|\boldsymbol{\omega}\|`.
+
+    The weighting matrix :math:`W` is constructed as a rank-1 update to the identity matrix:
+
+    .. math::
+
+        W(\boldsymbol{\omega}) = I_{3 \times 3} + \gamma \, (\hat{\boldsymbol{\omega}} \hat{\boldsymbol{\omega}}^T)
+
+    This matrix scales errors parallel to :math:`\boldsymbol{\omega}` by a factor of :math:`(1+\gamma)` relative to perpendicular errors.
+
+    Optimization Problem
+    --------------------
+
+    The controller solves the weighted bounded least squares problem:
+
+    .. math::
+
+        \min_{\boldsymbol{u}} \quad
+        \left\| W(\boldsymbol{\omega}) \left( A_{\mathrm{tot}} \boldsymbol{u} - \boldsymbol{\tau}_{\mathrm{des}} \right) \right\|_2^2
+
+    Subject to:
+
+    .. math::
+
+        -u_{i,\max} \le u_i \le u_{i,\max}
+
+    Physical Interpretation
+    ^^^^^^^^^^^^^^^^^^^^^^^
+
+    - **If** :math:`\gamma > 0`: The controller "cares more" about matching the requested torque component along the spin axis. This is useful for spin-stabilized maneuvers where maintaining the spin rate is critical.
+    - **If** :math:`\gamma = 0`: The controller reverts to the standard isotropic QP (minimizing Euclidean error).
+    - **If** :math:`\gamma < 0`: The controller prioritizes transverse torque authority (e.g., for nutation damping).
+
+    """
     def __init__(self, est_sat: EstimatedSatellite, p_gain: float, d_gain: float, gamma: float, c_gain: float, h_target: np.ndarray | list = np.zeros(3)) -> None:
         self.gamma = gamma
         super().__init__(est_sat=est_sat, p_gain=p_gain, d_gain=d_gain, c_gain=c_gain, h_target=h_target)

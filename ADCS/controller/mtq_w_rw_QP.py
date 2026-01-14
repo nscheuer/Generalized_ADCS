@@ -18,6 +18,95 @@ from ADCS.helpers.math_helpers import rot_mat, skewsym, limit
 
 
 class MTQ_w_RW_QP(MTQ_w_RW_LP):
+    r"""
+    MTQ_w_RW_QP
+    ===========
+
+    Quadratic–Programming–Based Torque Allocation for Mixed RW–MTQ ADCS
+    -------------------------------------------------------------------
+
+    This controller implements a **Bounded Least Squares (BLS)** allocation scheme
+    to distribute control effort between **reaction wheels (RWs)** and **magnetorquers (MTQs)**.
+
+    Unlike the Linear Program (LP) formulation—which strictly prioritizes torque directionality
+    at the cost of magnitude—this Quadratic Program (QP) formulation minimizes the total
+    Euclidean error between the requested and achieved torque. This approach often results in
+    a "closest possible" torque vector when the system is saturated or underactuated (e.g.,
+    due to the MTQ orthogonality constraint).
+
+    Key Features:
+    
+    - **Optimization Objective:** Minimizes :math:`\|\boldsymbol{\tau}_{\mathrm{des}} - \boldsymbol{\tau}_{\mathrm{ach}}\|^2`.
+    - **Soft Directionality:** May allow small angular errors if they significantly reduce the torque magnitude error.
+    - **Actuator Constraints:** Strictly enforces hard saturation limits for all actuators.
+    - **Robustness:** Utilizes a Trust Region Reflective (TRF) algorithm robust to rank-deficient matrices (common in underactuated magnetic control).
+
+    
+
+    System Model
+    ------------
+
+    The actuator mappings remain identical to the standard model.
+    Let the desired torque be :math:`\boldsymbol{\tau}_{\mathrm{des}}`.
+
+    The combined actuator influence matrix :math:`A_{\mathrm{tot}}` is constructed
+    from RW alignments and the local geomagnetic field interaction:
+
+    .. math::
+
+        A_{\mathrm{tot}}
+        =
+        \begin{bmatrix}
+        A_{\mathrm{rw}} & -[\boldsymbol{B}]_\times A_{\mathrm{mtq}}
+        \end{bmatrix},
+        \quad
+        \boldsymbol{u}
+        =
+        \begin{bmatrix}
+        \boldsymbol{u}_{\mathrm{rw}} \\
+        \boldsymbol{u}_{\mathrm{mtq}}
+        \end{bmatrix}
+
+    Quadratic Program Formulation
+    -----------------------------
+
+    The controller solves a Bounded Least Squares problem.
+    We seek the control command :math:`\boldsymbol{u}` that minimizes the residual torque error
+    subject to actuator saturation limits.
+
+    **Objective Function:**
+
+    .. math::
+
+        \min_{\boldsymbol{u}} \quad \frac{1}{2} \| A_{\mathrm{tot}} \boldsymbol{u} - \boldsymbol{\tau}_{\mathrm{des}} \|_2^2
+
+    **Constraints:**
+
+    .. math::
+
+        -u_{i,\max} \le u_i \le u_{i,\max} \quad \forall i
+
+    Solver Implementation
+    ^^^^^^^^^^^^^^^^^^^^^
+
+    The problem is solved using `scipy.optimize.lsq_linear`, which handles the box constraints
+    efficiently without requiring a full generic QP solver.
+
+    Performance Metric
+    ------------------
+
+    Because the QP does not explicitly solve for a scaling factor, the effectiveness metric
+    :math:`\alpha` is calculated post-hoc by projecting the achieved torque
+    :math:`\boldsymbol{\tau}_{\mathrm{ach}} = A_{\mathrm{tot}} \boldsymbol{u}^*` onto the
+    desired torque direction :math:`\hat{\boldsymbol{\tau}}`.
+
+    .. math::
+
+        \alpha = \frac{\boldsymbol{\tau}_{\mathrm{ach}} \cdot \hat{\boldsymbol{\tau}}}{\|\boldsymbol{\tau}_{\mathrm{des}}\|}
+
+    - **If** :math:`\alpha \approx 1`: The requested torque was fully feasible.
+    - **If** :math:`\alpha < 1`: The system is saturated or geometrically constrained (e.g., trying to torque parallel to B-field). The controller provides the closest physical approximation.
+    """
     def __init__(self, est_sat: EstimatedSatellite, p_gain: float, d_gain: float, c_gain: float, h_target: np.ndarray | list = np.zeros(3)) -> None:
         super().__init__(est_sat=est_sat, p_gain=p_gain, d_gain=d_gain, c_gain=c_gain, h_target=h_target)
 
