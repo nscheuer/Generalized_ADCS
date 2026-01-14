@@ -1,0 +1,144 @@
+clear; clc;
+tf = 600;       
+J_cage = diag([1; 1.2; 0.9]); 
+
+% Reaction Wheels
+A_rw = [1, 0, 0; % RW 1
+        0, 1, 0; % RW 2
+        0, 0, 1;]'; % RW 3 
+D_rw = diag([0.1; 0.1; 0.1]); 
+h_0 = [0; 0; 0];
+
+% Magnetorquers
+A_mtq = [1, 0, 0; % MTQ 1
+        0, 1, 0; % MTQ 2
+        0, 0, 1]';
+
+VARYING_B_FIELD = true;
+if VARYING_B_FIELD
+    period = 5400;
+    B_fun = @(t) B0_phys * [cos(2*pi*t/period); sin(2*pi*t/period); 0.5*cos(2*pi*t/(period/2))];
+else
+    dir = [1; 0.5; 0.2];
+    B_fun = @(t) B0_phys * (dir / norm(dir));
+end
+
+[s, r] = ltv_rank(J_cage, A_rw, D_rw, h_0, A_mtq, B_fun)
+
+% Dynamic Actuator Configuration (Robust to N=0)
+if N_rw > 0
+    A_rw = [1, 0, 0; % RW 1
+            0, 1, 0; % RW 2
+            0, 0, 1;]'; % RW 3 
+    D_rw = diag([0.1; 0.1; 0.1]); 
+    h_0 = [0; 0; 0]; % Nominal wheel momentum
+else
+    A_rw = zeros(3, 0); 
+    D_rw = [];
+    h_0  = [];
+end
+
+if N_mtq > 0
+    Full_A = eye(3);
+    A_mtq = Full_A(:, 1:N_mtq);
+else
+    A_mtq = zeros(3, 0);
+end
+
+% --- Scaling Factors ---
+B0_phys = 1e-6; 
+S_rw  = 1.0;
+S_mtq = 1.0 / B0_phys; 
+
+% Robust concatenation for scale matrix (handles empty arrays)
+Scale_Matrix = diag([repmat(S_rw, 1, N_rw), repmat(S_mtq, 1, N_mtq)]);
+
+% --- Environment ---
+if VARYING_B_FIELD
+    period = 5400;
+    B_fun = @(t) B0_phys * [cos(2*pi*t/period); sin(2*pi*t/period); 0.5*cos(2*pi*t/(period/2))];
+else
+    dir = [1; 0.5; 0.2];
+    B_fun = @(t) B0_phys * (dir / norm(dir));
+end
+
+%% --- Matrix Definitions ---
+% Helper: Total Wheel Momentum in Body Frame (3x1)
+H_rw_body = A_rw * h_0; 
+
+% LTV A Matrix (Robust Block Construction)
+% Core: Attitude (3) + Rate (3)
+A_core = [zeros(3,3), 0.25*eye(3);
+          zeros(3,3), inv(J_cage)*crossmat(H_rw_body)];
+      
+% Coupling: Rate <-> Wheels
+A_top_right = zeros(6, N_rw); % (6 x Nrw)
+A_bot_left  = [zeros(N_rw, 3), -D_rw*A_rw'*inv(J_cage)*crossmat(H_rw_body)]; % (Nrw x 6)
+A_bot_right = zeros(N_rw, N_rw); % (Nrw x Nrw)
+
+% Full A Matrix
+A_lin = [A_core, A_top_right; 
+         A_bot_left, A_bot_right];
+
+% LTV B Matrix Function
+% Note: Using [RW_Cols, MTQ_Cols] structure
+B_phys = @(t) [ ...
+    zeros(3, N_rw), zeros(3, N_mtq); ...                                      % Kinematics
+    inv(J_cage)*A_rw, -inv(J_cage)*crossmat(B_fun(t))*A_mtq; ...              % Dynamics
+    -eye(N_rw) - D_rw*A_rw'*inv(J_cage)*A_rw,  D_rw*A_rw'*inv(J_cage)*crossmat(B_fun(t))*A_mtq ... % Wheel Dynamics
+];
+
+B_scaled = @(t) B_phys(t) * Scale_Matrix;
+
+%% --- Integration ---
+n = 6 + N_rw; % State dimension (Att(3) + Rate(3) + Wheels(N_rw))
+z0 = [reshape(eye(n),[],1); zeros(n^2,1)]; % Phi_0 and Wc_0
+
+opts = odeset('RelTol', RelTol, 'AbsTol', AbsTol);
+fprintf('Integrating (N_rw=%d, N_mtq=%d)...\n', N_rw, N_mtq);
+
+[~, z] = ode45(@(t,z) augmented_ode(t, z, n, A_lin, B_scaled), [0, tf], z0, opts);
+
+Wc = reshape(z(end, n^2+1:end), n, n);
+Wc = 0.5 * (Wc + Wc.'); 
+
+%% --- Analysis ---
+s = svd(Wc);
+fprintf('\n=== Singular Values ===\n');
+for i=1:length(s), fprintf('SV %d: %10.4e\n', i, s(i)); end
+
+fprintf('\n=== Rank Analysis ===\n');
+r = rank(Wc); 
+fprintf('Computed Rank: %d / %d\n', r, n);
+
+if ~VARYING_B_FIELD
+    fprintf('\n=== Physics Check (Uncontrollable Axis) ===\n');
+    % Robust null vector construction
+    J_total = J_cage + A_rw * D_rw * A_rw';
+    B_vec = B_fun(0);
+    
+    % Null vector: [Attitude(0); BodyRate(J*b); Wheels(A'*b)]
+    v_null = [zeros(3,1); J_total * B_vec; A_rw' * B_vec];
+    v_null = v_null / norm(v_null);
+    
+    resid = v_null' * Wc * v_null;
+    fprintf('Residual (v^T * Wc * v): %10.4e\n', resid);
+end
+
+%% --- Helpers ---
+function dz = augmented_ode(t, z, n, A, B_fun)
+    Phi = reshape(z(1:n^2), n, n);
+    B_val = B_fun(t);
+    % Check for 0 actuators to prevent empty matrix mult errors
+    if isempty(B_val)
+        BBt = zeros(n);
+    else
+        BBt = B_val * B_val.';
+    end
+    Phi_dot = A * Phi;
+    dz = [Phi_dot(:); reshape(Phi * BBt * Phi.', [], 1)];
+end
+
+function C = crossmat(v)
+    C = [0, -v(3), v(2); v(3), 0, -v(1); -v(2), v(1), 0];
+end

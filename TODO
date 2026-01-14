@@ -3,3 +3,6 @@
 - Estimator Consistence of using P and Q
 - Make MTQ_w_RW that also uses the magnetotorquers for rotation, not just for desaturation
 - General Disturbance Missing
+
+Controllers
+- All current controllers do gyroscopic precession compensation, but no disturbance torque compensation
