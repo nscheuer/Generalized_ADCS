@@ -3,11 +3,9 @@ tf = 600;
 J_cage = diag([1; 1.2; 0.9]); 
 
 % Reaction Wheels
-A_rw = [1, 0, 0; % RW 1
-        0, 1, 0; % RW 2
-        0, 0, 1;]'; % RW 3 
-D_rw = diag([0.1; 0.1; 0.1]); 
-h_0 = [0; 0; 0];
+A_rw = [];
+D_rw = [];
+h_0 = [];
 n = 6 + size(A_rw, 2);
 
 % Magnetorquers
