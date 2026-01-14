@@ -9,7 +9,7 @@ sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))
 
 # --- ADCS Imports ---
 from ADCS.CONOPS.goals import ECI_Goal
-from ADCS.controller import MTQ_w_RW_LP
+from ADCS.controller.mtq_w_rw_QPC import MTQ_w_RW_QPC
 from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.orbit import Orbit
 from ADCS.orbits.orbital_state import Orbital_State
@@ -20,7 +20,7 @@ from ADCS.satellite_hardware.actuators import MTQ, RW
 from ADCS.helpers.math_constants import MathConstants
 from ADCS.helpers.math_helpers import normalize
 from ADCS.helpers.save_and_load.save_and_load import save_data, load_data
-from ADCS.helpers.plotting_mc.plot_controller_mc import plot_target_tracking_mc,plot_convergence_histogram_mc
+from ADCS.helpers.plotting_mc.plot_controller_mc import plot_target_tracking_mc, plot_convergence_histogram_mc
 from ADCS.helpers.plotting.close_all_plots import create_close_all_button_window
 
 # --- MC Runner Imports ---
@@ -62,7 +62,6 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
         acts = [MTQ(axis=j, max_torque=mtq_max) for j in MathConstants.unitvecs]
         rws = [RW(axis=j, max_torque=rw_max, J=1e-3, h=0, h_max=rw_hmax) for j in MathConstants.unitvecs]
         rws.pop()
-        rws.pop()
         acts.extend(rws)
         mtms = [MTM(axis=j) for j in MathConstants.unitvecs]
         
@@ -90,7 +89,7 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
         orb = _CACHED_ORBIT
 
         # 6. Controller
-        controller = MTQ_w_RW_LP(est_sat=real_sat, p_gain=0.00005, d_gain=0.001, c_gain=0.001, h_target=np.array([0.004, 0.0, 0.0]))
+        controller = MTQ_w_RW_QPC(est_sat=real_sat, p_gain=0.00005, d_gain=0.001, c_gain=0.001, h_target=np.array([0.004, 0.004, 0.0]))
         goal = ECI_Goal(config["goal_eci_vec"])
 
         # 7. Arrays
@@ -98,6 +97,9 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
         state_hist = np.zeros((N, len(x)))
         u_hist = np.zeros((N, len(acts)))
         boresight_hist = np.zeros((N, 3))
+        tau_des_hist = np.zeros((N, 3))
+
+
         t = t0
         ind = 0
         steps = int((tf - t0) / dt)
@@ -119,11 +121,11 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
             J2000 = 0.22 + t * sec2cent
             os_state = orb_get_os(J2000=J2000)
             sens = sat_sensor_readings(x=x, os=os_state)
-            u = ctrl_find_u(x_hat=x, sens=sens, est_sat=real_sat, os_hat=os_state, goal=goal)
-
+            u,tau_des = ctrl_find_u(x_hat=x, sens=sens, est_sat=real_sat, os_hat=os_state, goal=goal)
             time_hist[ind] = t
             state_hist[ind, :] = x
             u_hist[ind, :] = u
+            tau_des_hist[ind, :] = tau_des
             eci_goal_ref, _ = goal_to_ref(os0=os_state)
             boresight_hist[ind, :] = eci_goal_ref
 
@@ -166,7 +168,7 @@ def generate_mc_config(run_id: int) -> Dict[str, Any]:
         "dt": 2,
         "w0": normalize(rng.standard_normal(3)) * (rng.uniform(0.1, 2.0) * np.pi / 180.0),
         "q0": normalize(rng.standard_normal(4)),
-        "h0": rng.uniform(-0.005, 0.005, size=1),
+        "h0": rng.uniform(-0.005, 0.005, size=2),
         "goal_eci_vec": normalize(rng.standard_normal(3)),
         "orbit_R": 7000 * np.array([0, np.sqrt(2)/2, np.sqrt(2)/2]),
         "orbit_V": np.array([8, 0, 0])
@@ -180,24 +182,21 @@ if __name__ == "__main__":
         runner = MonteCarloRunner(
             sim_func=run_single_sim,
             config_generator=generate_mc_config,
-            num_runs=24
+            num_runs=36
         )
         full_results = runner.run()
         
         print(f"\n--- Monte Carlo Complete: Generated {len(full_results)} histories ---")
-        save_data("3MTQ+1RW_LP_mc_36", full_results, out_dir=OUTPUT_DIR)
+        save_data("3MTQ+2RW_QPC_mc_36", full_results, out_dir=OUTPUT_DIR)
         
-        plot_target_tracking_mc(full_results=full_results, title="3 MTQ + 1 RW LP MC:36")
-        plot_convergence_histogram_mc(full_results=full_results, title="3 MTQ + 1 RW LP")
-
+        plot_target_tracking_mc(full_results=full_results, title="3 MTQ + 2 RW QPC MC:36")
+        plot_convergence_histogram_mc(full_results=full_results, title="3 MTQ + 2 RW QPC MC:36 $|Mu - \\tau)|^2$")
         create_close_all_button_window()
     else:
-        results = load_data("papers/3MTQ+1RW/output_data/3MTQ+1RW_QPC_mc_36_20260113_113845")
-        full_results = results[0]
-        plot_target_tracking_mc(full_results=full_results)
-        plot_convergence_histogram_mc(full_results=full_results, title="3 MTQ + 1 RW QP")
-        results = load_data("papers/3MTQ+1RW/output_data/3MTQ+1RW_LP_mc_36_20260112_180137")
-        full_results = results[0]
-        plot_target_tracking_mc(full_results=full_results)
-        plot_convergence_histogram_mc(full_results=full_results, title="3 MTQ + 1 RW LP")
+        results_qpw = load_data("papers/3MTQ+1RW/output_data/3MTQ+1RW_QPW_mc_100_20260110_161705")
+        results_qpw = results_qpw[0]
+        results_lp = load_data("papers/3MTQ+1RW/output_data/3MTQ+1RW_LP_mc_100_20260110_154413")
+        results_lp = results_lp[0]
+        plot_target_tracking_mc(results_qpw, title="3 MTQ + 1 RW QPW MC:100")
+        plot_target_tracking_mc(results_lp, title="3 MTQ + 1 RW LP MC:100")
         create_close_all_button_window()

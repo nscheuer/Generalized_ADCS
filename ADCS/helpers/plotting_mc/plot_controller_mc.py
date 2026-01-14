@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from typing import List, Dict, Any, Tuple
+import matplotlib.cm as cm
 
 def _rot_mat_vec(q: np.ndarray) -> np.ndarray:
     """
@@ -28,6 +29,71 @@ def _rot_mat_vec(q: np.ndarray) -> np.ndarray:
     R[:, 2, 2] = 1 - 2*(x**2 + y**2)
     
     return R
+    
+    
+
+def plot_h_tracking_mc(
+    full_results: List[Dict[str, Any]],
+    body_boresight: np.ndarray = np.array([0, 0, 1]),
+    title: str = "Monte Carlo Target Stored Angular Momentum"
+) -> None:
+    """
+    Plots the stored angular momentum for multiple Monte Carlo runs on a single figure.
+    """
+    
+    if not full_results:
+        print("[plot_h_tracking_mc] Warning: No results to plot.")
+        return
+
+    # Normalize the fixed body vector once
+    v_bore_body = body_boresight / np.linalg.norm(body_boresight)
+    
+    plt.figure(figsize=(5, 3))
+    
+    # Iterate through every MC run
+    colors = []
+    for run_idx, res in enumerate(full_results):
+        
+        # --- Validation Checks ---
+        if "state" not in res or "time" not in res:
+             # Skip malformed runs or raise error
+             continue
+        
+        state = res["state"]       # Shape (N, 7+)
+        goal = res["boresight_goal"] # Shape (N, 3) ECI
+        time = res["time"]         # Shape (N,)
+        
+        # --- Calculation ---
+        
+        # 1. Extract Quaternions (Columns 3:7 -> w, x, y, z)
+        h_hist = np.asarray(state[:, 7:],dtype=float)
+
+        if not colors:
+            color_num = h_hist.shape[1]
+            cmap = cm.get_cmap('tab10')
+
+            # Generate a list of M colors (RGBA tuples)
+            # We select colors evenly spaced across the colormap
+            colors = [cmap(i / color_num) for i in range(color_num)]
+            
+        
+        
+        
+        # --- Plotting ---
+        for j in range(color_num):
+            plt.plot(time, h_hist[:,j], color=colors[j], alpha=0.1, linewidth=1.5)
+
+    # Add a dummy line for the legend so it's not transparent
+    for j in range(color_num):
+        plt.plot([], [], color=colors[j], label='MC RWh of RW '+str(j))
+    
+    plt.xlabel("Time [s]")
+    plt.ylabel("Stored Angular Momentum")
+    plt.title(title)
+    plt.grid(True, which='both', linestyle='--', alpha=0.6)
+    plt.legend()
+    plt.tight_layout()
+
 
 def plot_target_tracking_mc(
     full_results: List[Dict[str, Any]],

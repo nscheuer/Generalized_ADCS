@@ -232,12 +232,12 @@ class MTQ_w_RW_LP(Controller):
             J = est_sat.J_0
             tau_gyro = np.cross(w, J @ w + h_rw_body)
 
-            tau_des = tau_pd + tau_gyro
+            tau_des = tau_pd# + tau_gyro
             
             b_body = np.asarray(self.M_mtm_read @ sens, float).reshape(3,)
 
             u_rw_cmd, u_mtq_cmd, alpha = self.allocate_max_torque_in_direction(
-                tau_des, b_body, est_sat
+                tau_des, b_body, est_sat,tau_gyro
             )
 
             u_out = np.zeros(len(est_sat.actuators))
@@ -252,7 +252,7 @@ class MTQ_w_RW_LP(Controller):
 
         return u_out
 
-    def allocate_max_torque_in_direction(self, tau_des: np.ndarray, b_body: np.ndarray, est_sat: EstimatedSatellite) -> tuple[np.ndarray, np.ndarray, float]:    
+    def allocate_max_torque_in_direction(self, tau_des: np.ndarray, b_body: np.ndarray, est_sat: EstimatedSatellite,tau_gyro:np.ndarray) -> tuple[np.ndarray, np.ndarray, float]:    
         t_mag = np.linalg.norm(tau_des)
         if t_mag < 1e-9:
             # Re-calculate indices just to return correct shaped zeros
