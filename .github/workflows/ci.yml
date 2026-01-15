@@ -4,9 +4,6 @@ name: Run Pytest on All Branches
 
 # 1. Define when this workflow runs
 on:
-  push:
-    branches:
-      - '**' # Run on push to ALL branches
   pull_request:
     branches:
       - '**' # Run on PR targeting ALL branches

@@ -1,15 +1,10 @@
 # .github/workflows/docs.yml
-
 name: Build and Deploy Sphinx Docs
-
 # 1. Broaden the trigger to run on ALL pushes and manually (workflow_dispatch)
 on:
-  push:
-    branches: [ '**' ] # Run on all branches for BUILD and VERIFICATION
   pull_request: # Also helpful to run on PRs targeting main
     branches: [ main ]
   workflow_dispatch:
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -17,12 +12,10 @@ jobs:
     
     steps:
     - uses: actions/checkout@v4
-
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
         python-version: "3.12"
-
     - name: Install project with documentation extras
       run: |
         pip install --upgrade pip
@@ -30,13 +23,18 @@ jobs:
         
     - name: List installed packages (debug help)
       run: pip list
-
     # 2. Build HTML documentation (Runs on ALL branches)
+    - name: Generate Sphinx API docs
+      run: |
+        sphinx-apidoc -f -e -o docs/source ADCS
+    - name: Sanity check API docs
+      run: |
+        test -f docs/source/modules.rst
+        test -f docs/source/ADCS.ADCS.rst
     - name: Build HTML documentation
       run: |
         # This step verifies the docs build correctly, regardless of the branch.
         sphinx-build -b html docs/source _build/html
-
     # 3. Conditional Deployment (ONLY runs on the main branch)
     # The job condition checks the branch name.
     # The expression github.ref == 'refs/heads/main' is TRUE only for the main branch.
