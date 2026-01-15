@@ -36,13 +36,14 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
     mtm_max_torque = 0.1
     mtqs = [MTQ(axis=j, max_torque=mtm_max_torque) for j in MathConstants.unitvecs]
 
-    rw_max_torque = 4.51
-    rw_J = 0.22
-    rw_h0 = 1
-    rw_hmax = 3.8
+    rw_max_torque = 7*0.001
+    rw_J = 0.001
+    rw_h0 = 5*0.001
+    rw_hmax = 16.2*0.001
     rws = [RW(axis=j, max_torque=rw_max_torque, J=rw_J, h=rw_h0, h_max=rw_hmax) for j in MathConstants.unitvecs]
 
     acts = mtqs+rws
+    # acts = mtqs
 
     mtms = [MTM(axis=j) for j in MathConstants.unitvecs]
 
@@ -54,6 +55,7 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
     q0 = normalize(np.array([1, 0, 0, 0]))
     h0 = np.array([rw_h0, rw_h0, rw_h0])
     x = np.concatenate([w0, q0, h0])
+    # x = np.concatenate([w0, q0])
 
     ephem = Ephemeris()
     start_time = 0.22 - 1*TimeConstants.sec2cent
@@ -74,11 +76,11 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
         orb = Orbit(orbs)
 
     # Build Planner
-    planner_settings = PlannerSettings(est_sat=real_sat)
+    planner_settings = PlannerSettings(est_sat=real_sat, bdot_on=1)
     controller = Plan_and_Track_LQR(est_sat=real_sat, planner_settings=planner_settings)
 
     time_hist = np.nan*np.zeros(N)
-    state_hist = np.nan*np.zeros((N, 10))
+    state_hist = np.nan*np.zeros((N, len(x)))
     os_hist: List[Orbital_State] = list()
     sensor_hist: np.ndarray = np.nan*np.zeros((N, len(real_sat.sensors + real_sat.rw_actuators)))
     u_hist = np.nan*np.zeros((N, len(acts)))
@@ -88,7 +90,7 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
     ind = 0
     steps = int((tf - t0)/dt)
 
-    goals = GoalList({0.22: No_Goal()})
+    goals = GoalList({0.22: No_Goal(), 0.22 + TimeConstants.sec2cent * 20: ECI_Goal(np.array([1, 0, 0]))})
 
     print("Computing Trajectory (One-Shot)")
     traj: Trajectory = controller.calculate_trajectory(
@@ -99,7 +101,7 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
         goals=goals,
         verbose=True
     )
-    traj.plot_eci_trajectory()
+    # traj.plot_eci_trajectory()
     controller.set_active_trajectory(traj)
 
     for step in tqdm(range(steps), desc="Simulating ALTRO"):
@@ -149,4 +151,4 @@ def plot_mtq_w_rw_align_to_eci(verbose: bool = False, tf: float = 1000, dt: floa
     create_close_all_button_window()
 
 if __name__ == "__main__":
-    plot_mtq_w_rw_align_to_eci(verbose=False, tf = 5, dt = 1, real_orbit=True)
+    plot_mtq_w_rw_align_to_eci(verbose=False, tf = 100, dt = 1, real_orbit=True)

@@ -207,8 +207,6 @@ class Controller():
         ------
         TypeError
             If `actuator_type` does not subclass Actuator.
-        ValueError
-            If no actuators of the given type exist.
 
         """
         if not issubclass(actuator_type, Actuator):
@@ -218,7 +216,9 @@ class Controller():
         active_indices = []
         curr_global_idx = 0
 
+        # 1. Scan all actuators to build total dimension and find active ones
         for act in actuators:
+            # Flatten axis to handle potential multi-axis components if any
             axis = np.asarray(act.axis, dtype=float).reshape(3, -1)
             num_inputs = axis.shape[1]
 
@@ -229,19 +229,21 @@ class Controller():
 
             curr_global_idx += num_inputs
 
-        if not active_cols:
-            raise ValueError(f"No actuators of type {actuator_type.__name__} found in the actuator list.")
-        
-        # A_sub shape: (3, N_active)
-        A_sub = np.column_stack(active_cols)
-        
-        # M_sub shape: (N_active, 3)
-        M_sub = np.linalg.pinv(A_sub)
-
-        # M_act shape: (N_total, 3)
+        # 2. Initialize the full output matrix with zeros (N_total_inputs x 3)
         M_act = np.zeros((curr_global_idx, 3))
-        M_act[active_indices, :] = M_sub
 
+        # 3. Only compute pinv if we actually found matching actuators
+        if active_cols:
+            # A_sub shape: (3, N_active)
+            A_sub = np.column_stack(active_cols)
+            
+            # M_sub shape: (N_active, 3)
+            M_sub = np.linalg.pinv(A_sub)
+
+            # Map the active sub-matrix into the global matrix
+            M_act[active_indices, :] = M_sub
+        
+        # If active_cols was empty, M_act remains all zeros, which is correct (no torque capability)
         return M_act, active_indices
     
 

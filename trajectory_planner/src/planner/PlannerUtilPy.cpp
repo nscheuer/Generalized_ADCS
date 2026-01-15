@@ -167,10 +167,14 @@ VECTOR_INFO_FORM vecsPy2Cpp(VECTOR_INFO_PY_FORM py_vecs){
   mat v = numpyToArmaMatrix(get<2>(py_vecs));
   mat b = numpyToArmaMatrix(get<3>(py_vecs));
   mat s = numpyToArmaMatrix(get<4>(py_vecs));
-  mat a = numpyToArmaMatrix(get<6>(py_vecs));
-  mat e = numpyToArmaMatrix(get<7>(py_vecs));
-  vec p = numpyToArmaVector(get<8>(py_vecs));
-  vec rho = numpyToArmaVector(get<5>(py_vecs));
+  mat a = numpyToArmaMatrix(get<5>(py_vecs));
+  mat e = numpyToArmaMatrix(get<6>(py_vecs));
+  std::cout << "C++ DEBUG: E shape = " << e.n_rows << "x" << e.n_cols << std::endl;
+  std::cout << "C++ DEBUG: E(0,0) = " << std::fixed << std::setprecision(10) << e(0,0) << std::endl;
+  std::cout << "C++ DEBUG: E(0,1) = " << std::fixed << std::setprecision(10) << e(0,1) << std::endl;
+  std::cout << "C++ DEBUG: E(0,2) = " << std::fixed << std::setprecision(10) << e(0,2) << std::endl;
+  vec p = numpyToArmaVector(get<7>(py_vecs));
+  vec rho = numpyToArmaVector(get<8>(py_vecs));
   return std::make_tuple(t,r,v,b,s,a,e,p,rho);
 }
 
@@ -184,7 +188,7 @@ VECTOR_INFO_PY_FORM vecsCpp2Py(VECTOR_INFO_FORM cpp_vecs){
   py::array_t<double> e = armaMatrixToNumpy(get<6>(cpp_vecs));
   py::array_t<double> p = armaVectorToNumpy(get<7>(cpp_vecs));
   py::array_t<double> rho = armaVectorToNumpy(get<8>(cpp_vecs));
-  return std::make_tuple(t,r,v,b,s,rho,a,e,p);
+  return std::make_tuple(t,r,v,b,s,a,e,p,rho);
 }
 
 AUGLAG_INFO_FORM auglagPy2Cpp(AUGLAG_INFO_PY_FORM py_auglag){

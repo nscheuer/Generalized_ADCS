@@ -466,9 +466,9 @@ vec Satellite::getConstraints(int k, int N, vec u, vec x, arma::vec3 sunECIvec) 
       ctrl_base = number_MTQ;
       int state_base = 7;
       for(int j=0;j<number_RW;j++){
-        ck.row(ind) = (MAGRW_TORQ_MULT*u.row(ctrl_base+j) - RW_max_torq.at(j));
+        ck.row(ind) = (MAGRW_TORQ_MULT*u.row(ctrl_base+j) - MAGRW_TORQ_MULT*RW_max_torq.at(j));
         ind++;
-        ck.row(ind) = (-MAGRW_TORQ_MULT*u.row(ctrl_base+j) - RW_max_torq.at(j));
+        ck.row(ind) = (-MAGRW_TORQ_MULT*u.row(ctrl_base+j) - MAGRW_TORQ_MULT*RW_max_torq.at(j));
         ind++;
 
         ck.row(ind) = (x.row(state_base+j) - RW_max_ang_mom.at(j))*1e3;
@@ -489,6 +489,8 @@ vec Satellite::getConstraints(int k, int N, vec u, vec x, arma::vec3 sunECIvec) 
       }
 
     }
+    // cout << "CK" << ck << "\n";
+    // cout << "k" << k << "\n";
     return ck;
   }
   else

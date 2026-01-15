@@ -17,7 +17,8 @@ class Orbit:
         end_time: float = None,
         dt: float = None,
         use_J2: bool = True,
-        fast: bool = True
+        fast: bool = True,
+        verbose: bool = True
     ) -> None:
 
         if isinstance(os0, Orbital_State):
@@ -55,7 +56,7 @@ class Orbit:
             # ---------------------------------------------------------
             # tqdm progress bar added HERE
             # ---------------------------------------------------------
-            for j in tqdm(range(1, len(times)), desc="Propagating Orbit", unit="step"):
+            for j in tqdm(range(1, len(times)), desc="Propagating Orbit", unit="step", disable=not verbose):
 
                 dt_step = (times[j] - times[j - 1]) * TimeConstants.cent2sec
 
