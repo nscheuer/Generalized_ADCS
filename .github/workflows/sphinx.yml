@@ -2,6 +2,8 @@
 name: Build and Deploy Sphinx Docs
 # 1. Broaden the trigger to run on ALL pushes and manually (workflow_dispatch)
 on:
+  push:
+    branches: [ '**' ] # Run on all branches for BUILD and VERIFICATION
   pull_request: # Also helpful to run on PRs targeting main
     branches: [ main ]
   workflow_dispatch:
