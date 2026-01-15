@@ -13,9 +13,9 @@ from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatel
 from ADCS.satellite_hardware.actuators import Actuator
 from ADCS.orbits.universal_constants import TimeConstants
 
-# import trajectory_planner.build.tplaunch as tplaunch
-# print(f"DEBUG: Loading library from: {tplaunch.__file__}")
-# import trajectory_planner.build.pysat as pysat
+import trajectory_planner.build.tplaunch as tplaunch
+print(f"DEBUG: Loading library from: {tplaunch.__file__}")
+import trajectory_planner.build.pysat as pysat
 
 class Plan_and_Track_LQR(Controller):
     def __init__(self, est_sat: EstimatedSatellite, planner_settings: PlannerSettings) -> None:

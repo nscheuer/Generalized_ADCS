@@ -90,8 +90,8 @@ class SolverPassConfig:
 @dataclass
 class CostWeights:
     # Weights for the Q and R matrices
-    angle: float = 10.0
-    ang_vel: float = 100.0
+    angle: float = 100.0
+    ang_vel: float = 10.0
     control_mult: float = 1.0
     control_mag: float = 0.0
     ang_vel_mag: float = 0.0
@@ -129,7 +129,7 @@ class CostWeights:
 @dataclass
 class InitTrajConfig:
     # Settings for generating the initial guess
-    bdot_gain: float = 0.0
+    bdot_gain: float = 1000000.0
     hl_angle_limit: float = 10.0 * np.pi / 180.0
     
     # (gyro, damp, vel, quat, rand, umax)

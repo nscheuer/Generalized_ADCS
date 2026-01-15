@@ -36,7 +36,7 @@ void OldPlanner::setVerbosity(bool verbosity) {
   verbose = verbosity;
 }
 void OldPlanner::updateParameters_notsat(SYSTEM_SETTINGS_FORM systemSettings_tmp, ALILQR_SETTINGS_FORM alilqrSettings_tmp, ALILQR_SETTINGS_FORM alilqrSettings2_tmp, INITIAL_TRAJ_SETTINGS_FORM initialTrajSettings_tmp, COST_SETTINGS_FORM costSettings_tmp,COST_SETTINGS_FORM costSettings2_tmp,LQR_COST_SETTINGS_FORM costSettings_tvlqr_tmp) {
-    verbose = false;
+    verbose = true;
 
     costSettings = costSettings_tmp;
     costSettings2 = costSettings2_tmp;
@@ -261,6 +261,7 @@ BEFORE_OUTPUT_FORM OldPlanner::trajOptBefore(VECTOR_INFO_FORM vecs_w_time,double
       cout<<"bdotOn is false, generating random initial trajectory!";
     }
     vec umax = join_cols(vec(sat.MTQ_max),0.1*vec(sat.RW_max_torq),0.1*vec(sat.magic_max_torq));
+    cout << "UMAX" << umax << "\n";
     U = diagmat(umax)*randn(size(U))/RAND_MAX_INIT;
     if(verbose)
     {
@@ -631,6 +632,7 @@ tuple<TRAJECTORY_FORM,double> OldPlanner::bdot(vec x0,double dt0, int N,VECTOR_I
   mat33 RmatT = rotMat(qk).t();
   vec uk = vec(sat.control_N()).zeros();
   vec umax = join_cols(vec(sat.MTQ_max),vec(sat.RW_max_torq),vec(sat.magic_max_torq));
+  // vec umax = sat.MTQ_max;
 
   double ur = max(abs(uk/umax));
   ur = std::max(ur,1.0);
@@ -649,7 +651,7 @@ tuple<TRAJECTORY_FORM,double> OldPlanner::bdot(vec x0,double dt0, int N,VECTOR_I
     dynamics_info_kn1 = dynamics_info_k;
     dynamics_info_k =  make_tuple(Bset.col(k),Rset.col(k),pset(k),Vset.col(k),Sset.col(k),0);
     RmatT = rotMat(qk).t();
-    uk = -bdotgain*(-cross(xk.rows(0,2), RmatT*Bk) + RmatT*(Bset.col(k)-Bk)/dt0);
+    // uk = -bdotgain*(-cross(xk.rows(0,2), RmatT*Bk) + RmatT*(Bset.col(k)-Bk)/dt0);
     uk.zeros();
     cout<<xk.t()<<"\n";
     uk.head(sat.number_MTQ) = -sat.mtq_ax_mat.t()*bdotgain*(-cross(xk.rows(0,2), RmatT*Bk) + RmatT*(Bset.col(k)-Bk)/dt0);///pow(norm(Bk),2);
@@ -1972,7 +1974,7 @@ tuple<mat, double> OldPlanner::maxViol(TRAJECTORY_FORM &traj, VECTOR_INFO_FORM &
   //DEBUG
   //mat w2 = sum((Xset.rows(0,2) % Xset.rows(0,2)),0);
   uvec::fixed<2> ss=ind2sub(arma::size(corrected_clist),abs(corrected_clist).index_max());
-  if(verbose){cout<<"max viol: "<<cmaxtmp<<" at subscript "<<ss(0)<<", "<<ss(1)<<"\n";}
+  if(verbose){cout<<": "<<cmaxtmp<<" at subscript "<<ss(0)<<", "<<ss(1)<<"\n";}
   if(verbose){cout<<"state at max viol: "<<Xset.col(ss(1)).t()<<"\n";}
   if(verbose){cout<<"ctrl at max viol: "<<Uset.col(ss(1)).t()<<"\n";}
   if(verbose){cout<<corrected_clist.col(ss(1)).t()<<"\n";}
@@ -2417,7 +2419,7 @@ tuple<TRAJECTORY_FORM,double, REG_PAIR> OldPlanner::forwardPass(double dt0,TRAJE
   // newU = get<1>(newTraj);
   // newLA = cost2Func(newTraj,vecs,auglag_vals, costSettings_tmp_ptr);;
 
-  if(verbose){cout<<LA<<" "<<newLA<<"\n";}//here overall
+  //if(verbose){cout<<LA<<" "<<newLA<<"\n";}//here overall
   ls_failed = false;
   //Loop while z is NOT between beta2 and beta1, and the new cost is higher than the original cost
   // cout<<dset.t()<<"\n";

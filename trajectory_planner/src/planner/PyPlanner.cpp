@@ -79,6 +79,33 @@ py::tuple PyPlanner::trajOpt(VECTOR_INFO_PY_FORM vecs_w_timePy,int N, TIME_FORM 
   // cout<<x0<<"\n";
   cout << "What!\n";
   VECTOR_INFO_FORM vecs_w_time = vecsPy2Cpp(vecs_w_timePy);
+
+  cout << "=== VECTOR_INFO_FORM DEBUG ===\n";
+
+  const arma::vec& t   = std::get<0>(vecs_w_time);
+  const arma::mat& r   = std::get<1>(vecs_w_time);
+  const arma::mat& v   = std::get<2>(vecs_w_time);
+  const arma::mat& b   = std::get<3>(vecs_w_time);
+  const arma::mat& s   = std::get<4>(vecs_w_time);
+  const arma::mat& a   = std::get<5>(vecs_w_time);
+  const arma::mat& e   = std::get<6>(vecs_w_time);
+  const arma::vec& p   = std::get<7>(vecs_w_time);
+  const arma::vec& rho = std::get<8>(vecs_w_time);
+
+  cout << "t   : vec  n_elem = " << t.n_elem << "\n";
+
+  cout << "r   : mat  " << r.n_rows << " x " << r.n_cols << "\n";
+  cout << "v   : mat  " << v.n_rows << " x " << v.n_cols << "\n";
+  cout << "b   : mat  " << b.n_rows << " x " << b.n_cols << "\n";
+  cout << "s   : mat  " << s.n_rows << " x " << s.n_cols << "\n";
+  cout << "a   : mat  " << a.n_rows << " x " << a.n_cols << "\n";
+  cout << "e   : mat  " << e.n_rows << " x " << e.n_cols << "\n";
+
+  cout << "p   : vec  n_elem = " << p.n_elem << "\n";
+  cout << "rho : vec  n_elem = " << rho.n_elem << "\n";
+
+  cout << "==============================\n";
+
   AFTER_OUTPUT_FORM results = op.trajOpt(vecs_w_time, N, time_start, time_end, x0, bdotOn);
 
   py::tuple resultsPy = afterOutputCpp2Py(results);
