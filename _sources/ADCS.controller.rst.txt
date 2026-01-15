@@ -1,0 +1,36 @@
+ADCS.controller package
+=======================
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   ADCS.controller.helpers
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 4
+
+   ADCS.controller.bdot
+   ADCS.controller.controller
+   ADCS.controller.mtq_lovera
+   ADCS.controller.mtq_w_rw
+   ADCS.controller.mtq_w_rw_LP
+   ADCS.controller.mtq_w_rw_QP
+   ADCS.controller.mtq_w_rw_QPC
+   ADCS.controller.mtq_w_rw_QPG
+   ADCS.controller.mtq_w_rw_QPW
+   ADCS.controller.mtq_wisniewski
+   ADCS.controller.plan_and_track_lqr
+
+Module contents
+---------------
+
+.. automodule:: ADCS.controller
+   :members:
+   :show-inheritance:
+   :undoc-members:

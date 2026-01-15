@@ -1,0 +1,7 @@
+ADCS.controller.mtq\_w\_rw\_QPG module
+======================================
+
+.. automodule:: ADCS.controller.mtq_w_rw_QPG
+   :members:
+   :show-inheritance:
+   :undoc-members:

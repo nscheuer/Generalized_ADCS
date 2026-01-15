@@ -1,0 +1,7 @@
+ADCS.CONOPS.goals.vector\_goals.antisun\_goal module
+====================================================
+
+.. automodule:: ADCS.CONOPS.goals.vector_goals.antisun_goal
+   :members:
+   :show-inheritance:
+   :undoc-members:

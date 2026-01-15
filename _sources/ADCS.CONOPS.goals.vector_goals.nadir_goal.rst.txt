@@ -1,0 +1,7 @@
+ADCS.CONOPS.goals.vector\_goals.nadir\_goal module
+==================================================
+
+.. automodule:: ADCS.CONOPS.goals.vector_goals.nadir_goal
+   :members:
+   :show-inheritance:
+   :undoc-members:

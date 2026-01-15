@@ -1,0 +1,18 @@
+ADCS.CONOPS.goals.attitude\_goals package
+=========================================
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 4
+
+   ADCS.CONOPS.goals.attitude_goals.fixed_attitude_goal
+
+Module contents
+---------------
+
+.. automodule:: ADCS.CONOPS.goals.attitude_goals
+   :members:
+   :show-inheritance:
+   :undoc-members:

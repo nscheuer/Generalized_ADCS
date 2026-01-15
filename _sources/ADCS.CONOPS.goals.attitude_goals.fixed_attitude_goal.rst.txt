@@ -1,0 +1,7 @@
+ADCS.CONOPS.goals.attitude\_goals.fixed\_attitude\_goal module
+==============================================================
+
+.. automodule:: ADCS.CONOPS.goals.attitude_goals.fixed_attitude_goal
+   :members:
+   :show-inheritance:
+   :undoc-members:

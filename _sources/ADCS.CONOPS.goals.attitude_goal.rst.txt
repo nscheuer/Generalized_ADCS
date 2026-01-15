@@ -1,0 +1,7 @@
+ADCS.CONOPS.goals.attitude\_goal module
+=======================================
+
+.. automodule:: ADCS.CONOPS.goals.attitude_goal
+   :members:
+   :show-inheritance:
+   :undoc-members:

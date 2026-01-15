@@ -1,0 +1,7 @@
+ADCS.CONOPS.goals.vector\_goals.sun\_goal module
+================================================
+
+.. automodule:: ADCS.CONOPS.goals.vector_goals.sun_goal
+   :members:
+   :show-inheritance:
+   :undoc-members:

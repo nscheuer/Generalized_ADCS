@@ -1,0 +1,1118 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="./">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="genindex.html"><link rel="search" title="Search" href="search.html"><link rel="next" title="ADCS.satellite_hardware.satellite.satellite module" href="ADCS.satellite_hardware.satellite.satellite.html"><link rel="prev" title="ADCS.satellite_hardware.satellite package" href="ADCS.satellite_hardware.satellite.html">
+        <link rel="prefetch" href="_static/logo-light.png" as="image">
+        <link rel="prefetch" href="_static/logo-dark.png" as="image">
+
+    <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
+        <title>ADCS.satellite_hardware.satellite.estimated_satellite module - Generalized_ADCS 2025 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="index.html"><div class="brand">Generalized_ADCS 2025 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="index.html">
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="_static/logo-light.png" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="_static/logo-dark.png" alt="Dark Logo"/>
+  </div>
+  
+  <span class="sidebar-brand-text">Generalized_ADCS 2025 documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current has-children"><a class="reference internal" href="modules.html">ADCS</a><input aria-label="Toggle navigation of ADCS" checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l2 current has-children"><a class="reference internal" href="ADCS.html">ADCS package</a><input aria-label="Toggle navigation of ADCS package" checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.CONOPS.html">ADCS.CONOPS package</a><input aria-label="Toggle navigation of ADCS.CONOPS package" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4 has-children"><a class="reference internal" href="ADCS.CONOPS.goallist.html">ADCS.CONOPS.goallist package</a><input aria-label="Toggle navigation of ADCS.CONOPS.goallist package" class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="ADCS.CONOPS.goallist.goallist.html">ADCS.CONOPS.goallist.goallist module</a></li>
+</ul>
+</li>
+<li class="toctree-l4 has-children"><a class="reference internal" href="ADCS.CONOPS.goals.html">ADCS.CONOPS.goals package</a><input aria-label="Toggle navigation of ADCS.CONOPS.goals package" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5 has-children"><a class="reference internal" href="ADCS.CONOPS.goals.attitude_goals.html">ADCS.CONOPS.goals.attitude_goals package</a><input aria-label="Toggle navigation of ADCS.CONOPS.goals.attitude_goals package" class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l6"><a class="reference internal" href="ADCS.CONOPS.goals.attitude_goals.fixed_attitude_goal.html">ADCS.CONOPS.goals.attitude_goals.fixed_attitude_goal module</a></li>
+</ul>
+</li>
+<li class="toctree-l5 has-children"><a class="reference internal" href="ADCS.CONOPS.goals.vector_goals.html">ADCS.CONOPS.goals.vector_goals package</a><input aria-label="Toggle navigation of ADCS.CONOPS.goals.vector_goals package" class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l6"><a class="reference internal" href="ADCS.CONOPS.goals.vector_goals.antibfield_goal.html">ADCS.CONOPS.goals.vector_goals.antibfield_goal module</a></li>
+<li class="toctree-l6"><a class="reference internal" href="ADCS.CONOPS.goals.vector_goals.antisun_goal.html">ADCS.CONOPS.goals.vector_goals.antisun_goal module</a></li>
+<li class="toctree-l6"><a class="reference internal" href="ADCS.CONOPS.goals.vector_goals.antivelocity_goal.html">ADCS.CONOPS.goals.vector_goals.antivelocity_goal module</a></li>
+<li class="toctree-l6"><a class="reference internal" href="ADCS.CONOPS.goals.vector_goals.bfield_goal.html">ADCS.CONOPS.goals.vector_goals.bfield_goal module</a></li>
+<li class="toctree-l6"><a class="reference internal" href="ADCS.CONOPS.goals.vector_goals.coordinate_goal.html">ADCS.CONOPS.goals.vector_goals.coordinate_goal module</a></li>
+<li class="toctree-l6"><a class="reference internal" href="ADCS.CONOPS.goals.vector_goals.eci_goal.html">ADCS.CONOPS.goals.vector_goals.eci_goal module</a></li>
+<li class="toctree-l6"><a class="reference internal" href="ADCS.CONOPS.goals.vector_goals.lvlh_tangential_goal.html">ADCS.CONOPS.goals.vector_goals.lvlh_tangential_goal module</a></li>
+<li class="toctree-l6"><a class="reference internal" href="ADCS.CONOPS.goals.vector_goals.nadir_goal.html">ADCS.CONOPS.goals.vector_goals.nadir_goal module</a></li>
+<li class="toctree-l6"><a class="reference internal" href="ADCS.CONOPS.goals.vector_goals.perpbfield_goal.html">ADCS.CONOPS.goals.vector_goals.perpbfield_goal module</a></li>
+<li class="toctree-l6"><a class="reference internal" href="ADCS.CONOPS.goals.vector_goals.sun_goal.html">ADCS.CONOPS.goals.vector_goals.sun_goal module</a></li>
+<li class="toctree-l6"><a class="reference internal" href="ADCS.CONOPS.goals.vector_goals.velocity_goal.html">ADCS.CONOPS.goals.vector_goals.velocity_goal module</a></li>
+<li class="toctree-l6"><a class="reference internal" href="ADCS.CONOPS.goals.vector_goals.zentih_goal.html">ADCS.CONOPS.goals.vector_goals.zentih_goal module</a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="ADCS.CONOPS.goals.attitude_goal.html">ADCS.CONOPS.goals.attitude_goal module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="ADCS.CONOPS.goals.goal.html">ADCS.CONOPS.goals.goal module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="ADCS.CONOPS.goals.no_goal.html">ADCS.CONOPS.goals.no_goal module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="ADCS.CONOPS.goals.vector_goal.html">ADCS.CONOPS.goals.vector_goal module</a></li>
+</ul>
+</li>
+<li class="toctree-l4 has-children"><a class="reference internal" href="ADCS.CONOPS.rules.html">ADCS.CONOPS.rules package</a><input aria-label="Toggle navigation of ADCS.CONOPS.rules package" class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="ADCS.CONOPS.rules.tumbling.html">ADCS.CONOPS.rules.tumbling module</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="ADCS.CONOPS.rulebook.html">ADCS.CONOPS.rulebook module</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.controller.html">ADCS.controller package</a><input aria-label="Toggle navigation of ADCS.controller package" class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4 has-children"><a class="reference internal" href="ADCS.controller.helpers.html">ADCS.controller.helpers package</a><input aria-label="Toggle navigation of ADCS.controller.helpers package" class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="ADCS.controller.helpers.build_csat.html">ADCS.controller.helpers.build_csat module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="ADCS.controller.helpers.planner_settings.html">ADCS.controller.helpers.planner_settings module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="ADCS.controller.helpers.planner_subsettings.html">ADCS.controller.helpers.planner_subsettings module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="ADCS.controller.helpers.quaternion_math.html">ADCS.controller.helpers.quaternion_math module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="ADCS.controller.helpers.trajectory.html">ADCS.controller.helpers.trajectory module</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="ADCS.controller.bdot.html">ADCS.controller.bdot module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ADCS.controller.controller.html">ADCS.controller.controller module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ADCS.controller.mtq_lovera.html">ADCS.controller.mtq_lovera module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ADCS.controller.mtq_w_rw.html">ADCS.controller.mtq_w_rw module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ADCS.controller.mtq_w_rw_LP.html">ADCS.controller.mtq_w_rw_LP module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ADCS.controller.mtq_w_rw_QP.html">ADCS.controller.mtq_w_rw_QP module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ADCS.controller.mtq_w_rw_QPC.html">ADCS.controller.mtq_w_rw_QPC module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ADCS.controller.mtq_w_rw_QPG.html">ADCS.controller.mtq_w_rw_QPG module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ADCS.controller.mtq_w_rw_QPW.html">ADCS.controller.mtq_w_rw_QPW module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ADCS.controller.mtq_wisniewski.html">ADCS.controller.mtq_wisniewski module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ADCS.controller.plan_and_track_lqr.html">ADCS.controller.plan_and_track_lqr module</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.estimators.html">ADCS.estimators package</a><input aria-label="Toggle navigation of ADCS.estimators package" class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" role="switch" type="checkbox"/><label for="toctree-checkbox-11"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4 has-children"><a class="reference internal" href="ADCS.estimators.attitude_estimators.html">ADCS.estimators.attitude_estimators package</a><input aria-label="Toggle navigation of ADCS.estimators.attitude_estimators package" class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" role="switch" type="checkbox"/><label for="toctree-checkbox-12"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="ADCS.estimators.attitude_estimators.attitude_SRUAKF.html">ADCS.estimators.attitude_estimators.attitude_SRUAKF module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="ADCS.estimators.attitude_estimators.attitude_UAKF.html">ADCS.estimators.attitude_estimators.attitude_UAKF module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="ADCS.estimators.attitude_estimators.attitude_estimator.html">ADCS.estimators.attitude_estimators.attitude_estimator module</a></li>
+</ul>
+</li>
+<li class="toctree-l4 has-children"><a class="reference internal" href="ADCS.estimators.estimator_helpers.html">ADCS.estimators.estimator_helpers package</a><input aria-label="Toggle navigation of ADCS.estimators.estimator_helpers package" class="toctree-checkbox" id="toctree-checkbox-13" name="toctree-checkbox-13" role="switch" type="checkbox"/><label for="toctree-checkbox-13"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="ADCS.estimators.estimator_helpers.estimator_helpers.html">ADCS.estimators.estimator_helpers.estimator_helpers module</a></li>
+</ul>
+</li>
+<li class="toctree-l4 has-children"><a class="reference internal" href="ADCS.estimators.orbit_estimators.html">ADCS.estimators.orbit_estimators package</a><input aria-label="Toggle navigation of ADCS.estimators.orbit_estimators package" class="toctree-checkbox" id="toctree-checkbox-14" name="toctree-checkbox-14" role="switch" type="checkbox"/><label for="toctree-checkbox-14"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="ADCS.estimators.orbit_estimators.orbit_EKF.html">ADCS.estimators.orbit_estimators.orbit_EKF module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="ADCS.estimators.orbit_estimators.orbit_GPS.html">ADCS.estimators.orbit_estimators.orbit_GPS module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="ADCS.estimators.orbit_estimators.orbit_estimator.html">ADCS.estimators.orbit_estimators.orbit_estimator module</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.flight_software.html">ADCS.flight_software package</a><input aria-label="Toggle navigation of ADCS.flight_software package" class="toctree-checkbox" id="toctree-checkbox-15" name="toctree-checkbox-15" role="switch" type="checkbox"/><label for="toctree-checkbox-15"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4 has-children"><a class="reference internal" href="ADCS.flight_software.single_core.html">ADCS.flight_software.single_core package</a><input aria-label="Toggle navigation of ADCS.flight_software.single_core package" class="toctree-checkbox" id="toctree-checkbox-16" name="toctree-checkbox-16" role="switch" type="checkbox"/><label for="toctree-checkbox-16"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="ADCS.flight_software.single_core.ttc_single_core.html">ADCS.flight_software.single_core.ttc_single_core module</a></li>
+</ul>
+</li>
+<li class="toctree-l4 has-children"><a class="reference internal" href="ADCS.flight_software.tasks.html">ADCS.flight_software.tasks package</a><input aria-label="Toggle navigation of ADCS.flight_software.tasks package" class="toctree-checkbox" id="toctree-checkbox-17" name="toctree-checkbox-17" role="switch" type="checkbox"/><label for="toctree-checkbox-17"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="ADCS.flight_software.tasks.task.html">ADCS.flight_software.tasks.task module</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.helpers.html">ADCS.helpers package</a><input aria-label="Toggle navigation of ADCS.helpers package" class="toctree-checkbox" id="toctree-checkbox-18" name="toctree-checkbox-18" role="switch" type="checkbox"/><label for="toctree-checkbox-18"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4 has-children"><a class="reference internal" href="ADCS.helpers.mc.html">ADCS.helpers.mc package</a><input aria-label="Toggle navigation of ADCS.helpers.mc package" class="toctree-checkbox" id="toctree-checkbox-19" name="toctree-checkbox-19" role="switch" type="checkbox"/><label for="toctree-checkbox-19"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="ADCS.helpers.mc.monte_carlo_runner.html">ADCS.helpers.mc.monte_carlo_runner module</a></li>
+</ul>
+</li>
+<li class="toctree-l4 has-children"><a class="reference internal" href="ADCS.helpers.plotting.html">ADCS.helpers.plotting package</a><input aria-label="Toggle navigation of ADCS.helpers.plotting package" class="toctree-checkbox" id="toctree-checkbox-20" name="toctree-checkbox-20" role="switch" type="checkbox"/><label for="toctree-checkbox-20"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="ADCS.helpers.plotting.animate_estimator.html">ADCS.helpers.plotting.animate_estimator module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="ADCS.helpers.plotting.animate_orbit.html">ADCS.helpers.plotting.animate_orbit module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="ADCS.helpers.plotting.animate_orbit_pyvista.html">ADCS.helpers.plotting.animate_orbit_pyvista module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="ADCS.helpers.plotting.close_all_plots.html">ADCS.helpers.plotting.close_all_plots module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="ADCS.helpers.plotting.plot_controller.html">ADCS.helpers.plotting.plot_controller module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="ADCS.helpers.plotting.plot_estimator.html">ADCS.helpers.plotting.plot_estimator module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="ADCS.helpers.plotting.plot_orbit_estimator.html">ADCS.helpers.plotting.plot_orbit_estimator module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="ADCS.helpers.plotting.plot_orientation.html">ADCS.helpers.plotting.plot_orientation module</a></li>
+</ul>
+</li>
+<li class="toctree-l4 has-children"><a class="reference internal" href="ADCS.helpers.plotting_mc.html">ADCS.helpers.plotting_mc package</a><input aria-label="Toggle navigation of ADCS.helpers.plotting_mc package" class="toctree-checkbox" id="toctree-checkbox-21" name="toctree-checkbox-21" role="switch" type="checkbox"/><label for="toctree-checkbox-21"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="ADCS.helpers.plotting_mc.plot_controller_mc.html">ADCS.helpers.plotting_mc.plot_controller_mc module</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="ADCS.helpers.math_constants.html">ADCS.helpers.math_constants module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ADCS.helpers.math_helpers.html">ADCS.helpers.math_helpers module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ADCS.helpers.size_helpers.html">ADCS.helpers.size_helpers module</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.logging.html">ADCS.logging package</a><input aria-label="Toggle navigation of ADCS.logging package" class="toctree-checkbox" id="toctree-checkbox-22" name="toctree-checkbox-22" role="switch" type="checkbox"/><label for="toctree-checkbox-22"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="ADCS.logging.logger.html">ADCS.logging.logger module</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.orbits.html">ADCS.orbits package</a><input aria-label="Toggle navigation of ADCS.orbits package" class="toctree-checkbox" id="toctree-checkbox-23" name="toctree-checkbox-23" role="switch" type="checkbox"/><label for="toctree-checkbox-23"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="ADCS.orbits.density_model.html">ADCS.orbits.density_model module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ADCS.orbits.ephemeris.html">ADCS.orbits.ephemeris module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ADCS.orbits.orbit.html">ADCS.orbits.orbit module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ADCS.orbits.orbital_state.html">ADCS.orbits.orbital_state module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ADCS.orbits.universal_constants.html">ADCS.orbits.universal_constants module</a></li>
+</ul>
+</li>
+<li class="toctree-l3 current has-children"><a class="reference internal" href="ADCS.satellite_hardware.html">ADCS.satellite_hardware package</a><input aria-label="Toggle navigation of ADCS.satellite_hardware package" checked="" class="toctree-checkbox" id="toctree-checkbox-24" name="toctree-checkbox-24" role="switch" type="checkbox"/><label for="toctree-checkbox-24"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l4 has-children"><a class="reference internal" href="ADCS.satellite_hardware.actuators.html">ADCS.satellite_hardware.actuators package</a><input aria-label="Toggle navigation of ADCS.satellite_hardware.actuators package" class="toctree-checkbox" id="toctree-checkbox-25" name="toctree-checkbox-25" role="switch" type="checkbox"/><label for="toctree-checkbox-25"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="ADCS.satellite_hardware.actuators.actuator.html">ADCS.satellite_hardware.actuators.actuator module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="ADCS.satellite_hardware.actuators.bias.html">ADCS.satellite_hardware.actuators.bias module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="ADCS.satellite_hardware.actuators.magnetotorquer.html">ADCS.satellite_hardware.actuators.magnetotorquer module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="ADCS.satellite_hardware.actuators.noise.html">ADCS.satellite_hardware.actuators.noise module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="ADCS.satellite_hardware.actuators.reaction_wheel.html">ADCS.satellite_hardware.actuators.reaction_wheel module</a></li>
+</ul>
+</li>
+<li class="toctree-l4 has-children"><a class="reference internal" href="ADCS.satellite_hardware.disturbances.html">ADCS.satellite_hardware.disturbances package</a><input aria-label="Toggle navigation of ADCS.satellite_hardware.disturbances package" class="toctree-checkbox" id="toctree-checkbox-26" name="toctree-checkbox-26" role="switch" type="checkbox"/><label for="toctree-checkbox-26"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="ADCS.satellite_hardware.disturbances.dipole_disturbance.html">ADCS.satellite_hardware.disturbances.dipole_disturbance module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="ADCS.satellite_hardware.disturbances.disturbance.html">ADCS.satellite_hardware.disturbances.disturbance module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="ADCS.satellite_hardware.disturbances.disturbance_mode.html">ADCS.satellite_hardware.disturbances.disturbance_mode module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="ADCS.satellite_hardware.disturbances.drag_disturbance.html">ADCS.satellite_hardware.disturbances.drag_disturbance module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="ADCS.satellite_hardware.disturbances.general_disturbance.html">ADCS.satellite_hardware.disturbances.general_disturbance module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="ADCS.satellite_hardware.disturbances.geometry_config.html">ADCS.satellite_hardware.disturbances.geometry_config module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="ADCS.satellite_hardware.disturbances.gg_disturbance.html">ADCS.satellite_hardware.disturbances.gg_disturbance module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="ADCS.satellite_hardware.disturbances.prop_disturbance.html">ADCS.satellite_hardware.disturbances.prop_disturbance module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="ADCS.satellite_hardware.disturbances.srp_disturbance.html">ADCS.satellite_hardware.disturbances.srp_disturbance module</a></li>
+</ul>
+</li>
+<li class="toctree-l4 current has-children"><a class="reference internal" href="ADCS.satellite_hardware.satellite.html">ADCS.satellite_hardware.satellite package</a><input aria-label="Toggle navigation of ADCS.satellite_hardware.satellite package" checked="" class="toctree-checkbox" id="toctree-checkbox-27" name="toctree-checkbox-27" role="switch" type="checkbox"/><label for="toctree-checkbox-27"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l5 current current-page"><a class="current reference internal" href="#">ADCS.satellite_hardware.satellite.estimated_satellite module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="ADCS.satellite_hardware.satellite.satellite.html">ADCS.satellite_hardware.satellite.satellite module</a></li>
+</ul>
+</li>
+<li class="toctree-l4 has-children"><a class="reference internal" href="ADCS.satellite_hardware.sensors.html">ADCS.satellite_hardware.sensors package</a><input aria-label="Toggle navigation of ADCS.satellite_hardware.sensors package" class="toctree-checkbox" id="toctree-checkbox-28" name="toctree-checkbox-28" role="switch" type="checkbox"/><label for="toctree-checkbox-28"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="ADCS.satellite_hardware.sensors.gps.html">ADCS.satellite_hardware.sensors.gps module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="ADCS.satellite_hardware.sensors.gyro.html">ADCS.satellite_hardware.sensors.gyro module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="ADCS.satellite_hardware.sensors.magnetometer.html">ADCS.satellite_hardware.sensors.magnetometer module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="ADCS.satellite_hardware.sensors.sensor.html">ADCS.satellite_hardware.sensors.sensor module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="ADCS.satellite_hardware.sensors.sunpair.html">ADCS.satellite_hardware.sensors.sunpair module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="ADCS.satellite_hardware.sensors.sunsensor.html">ADCS.satellite_hardware.sensors.sunsensor module</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.ADCS.html">ADCS.ADCS module</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+</div></div>
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="_sources/ADCS.satellite_hardware.satellite.estimated_satellite.rst.txt" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div>
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="module-ADCS.satellite_hardware.satellite.estimated_satellite">
+<span id="adcs-satellite-hardware-satellite-estimated-satellite-module"></span><h1>ADCS.satellite_hardware.satellite.estimated_satellite module<a class="headerlink" href="#module-ADCS.satellite_hardware.satellite.estimated_satellite" title="Link to this heading">¶</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">ADCS.satellite_hardware.satellite.estimated_satellite.</span></span><span class="sig-name descname"><span class="pre">EstimatedSatellite</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mass</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">COM</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">J_0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">disturbances</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sensors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">actuators</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boresight</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">array([0,</span> <span class="pre">0,</span> <span class="pre">1])</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/satellite/estimated_satellite.html#EstimatedSatellite"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite" title="ADCS.satellite_hardware.satellite.satellite.Satellite"><code class="xref py py-class docutils literal notranslate"><span class="pre">Satellite</span></code></a></p>
+<p>A satellite model that augments the base <code class="xref py py-class docutils literal notranslate"><span class="pre">Satellite</span></code>
+with estimator-driven state synchronization and bias/parameter tracking.</p>
+<p>This class bridges the simulated physical satellite and an estimation framework
+(e.g., Kalman filter or nonlinear observer). It allows dynamic updates of the
+satellite’s internal state, actuator and sensor biases, and disturbance parameters
+using estimated data.</p>
+<p>The <a class="reference internal" href="#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite" title="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite"><code class="xref py py-class docutils literal notranslate"><span class="pre">EstimatedSatellite</span></code></a> is primarily intended for <strong>hardware-in-the-loop</strong>
+or <strong>estimation validation</strong> scenarios, where the true spacecraft dynamics are
+compared or synchronized with the estimated state vector.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mass</strong> (<em>float</em><em>, </em><em>optional</em>) – Satellite mass in kilograms. Default is <code class="docutils literal notranslate"><span class="pre">1.0</span></code>.</p></li>
+<li><p><strong>COM</strong> (<em>numpy.ndarray</em><em>, </em><em>optional</em>) – Center of mass vector in body coordinates [m].</p></li>
+<li><p><strong>J_0</strong> (<em>numpy.ndarray</em><em>, </em><em>optional</em>) – Nominal inertia tensor about the body frame [kg·m²].</p></li>
+<li><p><strong>disturbances</strong> (<em>list</em><em>[</em><a class="reference internal" href="ADCS.satellite_hardware.disturbances.html#ADCS.satellite_hardware.disturbances.Disturbance" title="ADCS.satellite_hardware.disturbances.Disturbance"><em>Disturbance</em></a><em>]</em><em>, </em><em>optional</em>) – List of disturbance models (e.g., SRP, aerodynamic, propulsion)
+that influence satellite dynamics.</p></li>
+<li><p><strong>sensors</strong> (<em>list</em><em>[</em><a class="reference internal" href="ADCS.satellite_hardware.sensors.html#ADCS.satellite_hardware.sensors.Sensor" title="ADCS.satellite_hardware.sensors.Sensor"><em>Sensor</em></a><em>]</em><em>, </em><em>optional</em>) – List of sensor objects (e.g., <a class="reference internal" href="ADCS.satellite_hardware.sensors.html#ADCS.satellite_hardware.sensors.GPS" title="ADCS.satellite_hardware.sensors.GPS"><code class="xref py py-class docutils literal notranslate"><span class="pre">GPS</span></code></a>).</p></li>
+<li><p><strong>actuators</strong> (<em>list</em><em>[</em><a class="reference internal" href="ADCS.satellite_hardware.actuators.html#ADCS.satellite_hardware.actuators.Actuator" title="ADCS.satellite_hardware.actuators.Actuator"><em>Actuator</em></a><em>]</em><em>, </em><em>optional</em>) – List of actuator objects (e.g., <a class="reference internal" href="ADCS.satellite_hardware.actuators.html#ADCS.satellite_hardware.actuators.RW" title="ADCS.satellite_hardware.actuators.RW"><code class="xref py py-class docutils literal notranslate"><span class="pre">RW</span></code></a>).</p></li>
+<li><p><strong>boresight</strong> (<em>ndarray</em>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.act_bias_inds">
+<span class="sig-name descname"><span class="pre">act_bias_inds</span></span><a class="headerlink" href="#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.act_bias_inds" title="Link to this definition">¶</a></dt>
+<dd><p>Indices of actuators that include estimated bias parameters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list[int]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.act_bias_len">
+<span class="sig-name descname"><span class="pre">act_bias_len</span></span><a class="headerlink" href="#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.act_bias_len" title="Link to this definition">¶</a></dt>
+<dd><p>Total length of actuator bias state components.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.att_sens_bias_inds">
+<span class="sig-name descname"><span class="pre">att_sens_bias_inds</span></span><a class="headerlink" href="#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.att_sens_bias_inds" title="Link to this definition">¶</a></dt>
+<dd><p>Indices of attitude sensors that include estimated bias parameters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list[int]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.att_sens_bias_len">
+<span class="sig-name descname"><span class="pre">att_sens_bias_len</span></span><a class="headerlink" href="#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.att_sens_bias_len" title="Link to this definition">¶</a></dt>
+<dd><p>Total length of attitude sensor bias state components.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.dist_param_inds">
+<span class="sig-name descname"><span class="pre">dist_param_inds</span></span><a class="headerlink" href="#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.dist_param_inds" title="Link to this definition">¶</a></dt>
+<dd><p>Indices of disturbances that include estimated parameters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list[int]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.dist_param_len">
+<span class="sig-name descname"><span class="pre">dist_param_len</span></span><a class="headerlink" href="#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.dist_param_len" title="Link to this definition">¶</a></dt>
+<dd><p>Total length of disturbance parameter state components.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.actuators">
+<span class="sig-name descname"><span class="pre">actuators</span></span><a class="headerlink" href="#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.actuators" title="Link to this definition">¶</a></dt>
+<dd><p>List of actuator instances associated with the satellite.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list[<a class="reference internal" href="ADCS.satellite_hardware.actuators.html#ADCS.satellite_hardware.actuators.Actuator" title="ADCS.satellite_hardware.actuators.Actuator">Actuator</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.sensors">
+<span class="sig-name descname"><span class="pre">sensors</span></span><a class="headerlink" href="#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.sensors" title="Link to this definition">¶</a></dt>
+<dd><p>List of sensor instances associated with the satellite.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list[<a class="reference internal" href="ADCS.satellite_hardware.sensors.html#ADCS.satellite_hardware.sensors.Sensor" title="ADCS.satellite_hardware.sensors.Sensor">Sensor</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.disturbances">
+<span class="sig-name descname"><span class="pre">disturbances</span></span><a class="headerlink" href="#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.disturbances" title="Link to this definition">¶</a></dt>
+<dd><p>List of disturbance models influencing dynamics.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list[<a class="reference internal" href="ADCS.satellite_hardware.disturbances.html#ADCS.satellite_hardware.disturbances.Disturbance" title="ADCS.satellite_hardware.disturbances.Disturbance">Disturbance</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>The constructor automatically determines which actuators, sensors, and
+disturbances include <strong>estimated parameters</strong> by checking their
+respective attributes:
+<code class="docutils literal notranslate"><span class="pre">.estimated_bias</span></code> or <code class="docutils literal notranslate"><span class="pre">.estimated_param</span></code>.</p></li>
+<li><p>These indices and lengths are stored to facilitate block-based extraction
+and update of corresponding state segments during estimation.</p></li>
+<li><p>The model can later be synchronized with an estimator output using
+<a class="reference internal" href="#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.match_estimate" title="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.match_estimate"><code class="xref py py-meth docutils literal notranslate"><span class="pre">match_estimate()</span></code></a>, which aligns simulated states and parameters
+with the current estimated values.</p></li>
+</ul>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.satellite.estimated_satellite</span><span class="w"> </span><span class="kn">import</span> <span class="n">EstimatedSatellite</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.actuators</span><span class="w"> </span><span class="kn">import</span> <span class="n">RW</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.sensors</span><span class="w"> </span><span class="kn">import</span> <span class="n">GPS</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sat</span> <span class="o">=</span> <span class="n">EstimatedSatellite</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">mass</span><span class="o">=</span><span class="mf">2.5</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">COM</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.02</span><span class="p">]),</span>
+<span class="gp">... </span>    <span class="n">actuators</span><span class="o">=</span><span class="p">[</span><span class="n">RW</span><span class="p">(</span><span class="o">...</span><span class="p">),</span> <span class="n">RW</span><span class="p">(</span><span class="o">...</span><span class="p">),</span> <span class="n">RW</span><span class="p">(</span><span class="o">...</span><span class="p">)],</span>
+<span class="gp">... </span>    <span class="n">sensors</span><span class="o">=</span><span class="p">[</span><span class="n">GPS</span><span class="p">()]</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">sat</span><span class="o">.</span><span class="n">act_bias_len</span><span class="p">,</span> <span class="n">sat</span><span class="o">.</span><span class="n">att_sens_bias_len</span><span class="p">)</span>
+<span class="go">3  # number of bias parameters found</span>
+</pre></div>
+</div>
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.control_cov">
+<span class="sig-name descname"><span class="pre">control_cov</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/satellite/estimated_satellite.html#EstimatedSatellite.control_cov"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.control_cov" title="Link to this definition">¶</a></dt>
+<dd><p>Block-diagonal covariance matrix for all actuator noises.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>ndarray</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.control_srcov">
+<span class="sig-name descname"><span class="pre">control_srcov</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/satellite/estimated_satellite.html#EstimatedSatellite.control_srcov"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.control_srcov" title="Link to this definition">¶</a></dt>
+<dd><p>Block-diagonal square-root covariance matrix for all actuator noises.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>ndarray</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.dist_torque_hess">
+<span class="sig-name descname"><span class="pre">dist_torque_hess</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vecs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/satellite/estimated_satellite.html#EstimatedSatellite.dist_torque_hess"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.dist_torque_hess" title="Link to this definition">¶</a></dt>
+<dd><blockquote>
+<div><p>Compute the Hessian tensors of the total disturbance torque with respect to
+both the spacecraft state and the disturbance model parameters.</p>
+<p>This routine aggregates the second-order derivatives of all disturbance
+models, yielding three Hessian tensors corresponding to pure state,
+mixed state–parameter, and pure parameter terms.</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\]</div>
+</div>
+</div></blockquote>
+<p>rac{partial^2 oldsymbol{ au}_d}{partial mathbf{x}^2}, qquad</p>
+<p>rac{partial^2 oldsymbol{ au}_d}{partial mathbf{x},partial oldsymbol{        heta}_d}, qquad</p>
+<p>rac{partial^2 oldsymbol{ au}_d}{partial oldsymbol{     heta}_d^2}</p>
+<blockquote>
+<div><dl class="simple">
+<dt>x<span class="classifier">numpy.ndarray</span></dt><dd><p>Current spacecraft state vector of length <code class="docutils literal notranslate"><span class="pre">state_len</span></code>.</p>
+</dd>
+<dt>vecs<span class="classifier">Dict[str, numpy.ndarray]</span></dt><dd><p>Dictionary of environmental vectors required by the disturbance models.</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>dddist_torq__dxdx<span class="classifier">numpy.ndarray, shape (state_len, state_len, 3)</span></dt><dd><p>Second derivative of the disturbance torque with respect to the state.
+Only the quaternion block (indices 3–6) contains non-zero entries.</p>
+</dd>
+<dt>dddist_torq__dxddmp<span class="classifier">numpy.ndarray, shape (state_len, dist_param_len, 3)</span></dt><dd><p>Cross-derivative tensor coupling state and parameter effects.</p>
+</dd>
+<dt>dddist_torq__ddmpddmp<span class="classifier">numpy.ndarray, shape (dist_param_len, dist_param_len, 3)</span></dt><dd><p>Second derivative of the disturbance torque with respect to disturbance
+model parameters.</p>
+</dd>
+</dl>
+<ul class="simple">
+<li><p>Each disturbance model <code class="docutils literal notranslate"><span class="pre">j</span></code> must implement the following methods:</p></li>
+</ul>
+<ul class="simple">
+<li><p><code class="xref py py-func docutils literal notranslate"><span class="pre">torque_qqhess(self,</span> <span class="pre">vecs)()</span></code></p></li>
+<li><p><code class="xref py py-func docutils literal notranslate"><span class="pre">torque_qvalhess(self,</span> <span class="pre">vecs)()</span></code></p></li>
+<li><p><code class="xref py py-func docutils literal notranslate"><span class="pre">torque_valvalhess(self,</span> <span class="pre">vecs)()</span></code></p></li>
+</ul>
+<ul class="simple">
+<li><p>Parameter block sizes are managed according to</p></li>
+</ul>
+<p><code class="xref py py-attr docutils literal notranslate"><span class="pre">self.dist_param_inds</span></code> and the parameter dimension of each disturbance
+model.</p>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>vecs</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>ndarray</em><em>]</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>Tuple</em>[<em>ndarray</em>, <em>ndarray</em>, <em>ndarray</em>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.dist_torques_jacobian">
+<span class="sig-name descname"><span class="pre">dist_torques_jacobian</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vecs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/satellite/estimated_satellite.html#EstimatedSatellite.dist_torques_jacobian"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.dist_torques_jacobian" title="Link to this definition">¶</a></dt>
+<dd><p>Compute the Jacobian of the total disturbance torque with respect to both
+the spacecraft state and disturbance model parameters.</p>
+<p>This method accumulates the first-order derivatives contributed by each
+disturbance source in <code class="xref py py-attr docutils literal notranslate"><span class="pre">self.disturbances</span></code>. The quaternion components
+of the state (indices 3–6) determine the attitude-dependent part of the
+disturbance torque, so only these affect the state Jacobian.</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\frac{\partial \boldsymbol{\tau}_d}{\partial \mathbf{x}},
+\qquad
+\frac{\partial \boldsymbol{\tau}_d}{\partial \boldsymbol{\theta}_d}\]</div>
+</div>
+<p>where <span class="math notranslate nohighlight">\(\boldsymbol{\tau}_d\)</span> is the total disturbance torque,
+<span class="math notranslate nohighlight">\(\mathbf{x}\)</span> is the spacecraft state vector, and
+<span class="math notranslate nohighlight">\(\boldsymbol{\theta}_d\)</span> represents disturbance model parameters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>numpy.ndarray</em>) – Current spacecraft state vector of length <code class="docutils literal notranslate"><span class="pre">state_len</span></code>.</p></li>
+<li><p><strong>vecs</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>numpy.ndarray</em><em>]</em>) – Dictionary of environmental vectors (e.g., magnetic field, Sun vector,
+aerodynamic flow) passed to each disturbance model.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>ddist_torq__dx</strong> (<em>numpy.ndarray, shape (state_len, 3)</em>) – Partial derivative of disturbance torque with respect to the state vector.
+Non-zero contributions occur only in the quaternion block (indices 3–6).</p></li>
+<li><p><strong>ddist_torq__ddmp</strong> (<em>numpy.ndarray, shape (dist_param_len, 3)</em>) – Partial derivative of disturbance torque with respect to disturbance
+parameters. Empty if no disturbance parameters are defined.</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>Tuple</em>[<em>ndarray</em>, <em>ndarray</em>]</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>Each disturbance model <code class="docutils literal notranslate"><span class="pre">j</span></code> must implement:</p></li>
+</ul>
+<ul class="simple">
+<li><p><code class="xref py py-func docutils literal notranslate"><span class="pre">torque_qjac(self,</span> <span class="pre">vecs)()</span></code> — attitude derivatives</p></li>
+<li><p><code class="xref py py-func docutils literal notranslate"><span class="pre">torque_valjac(self,</span> <span class="pre">vecs)()</span></code> — parameter derivatives</p></li>
+</ul>
+<ul class="simple">
+<li><p>The total Jacobian is computed by summing the contributions from all</p></li>
+</ul>
+<p>registered disturbances.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.dynJacCore">
+<span class="sig-name descname"><span class="pre">dynJacCore</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orbital_state</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/satellite/estimated_satellite.html#EstimatedSatellite.dynJacCore"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.dynJacCore" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>u</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>orbital_state</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>ndarray</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.dynamics_Hessians">
+<span class="sig-name descname"><span class="pre">dynamics_Hessians</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orbital_state</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/satellite/estimated_satellite.html#EstimatedSatellite.dynamics_Hessians"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.dynamics_Hessians" title="Link to this definition">¶</a></dt>
+<dd><p>Compute the <strong>second-order derivatives (Hessians)</strong> of the spacecraft attitude dynamics
+with respect to all relevant variables — including state, control inputs, actuator biases,
+sensor biases, and disturbance parameters.</p>
+<p>This function provides a full analytic <strong>second-order linearization</strong> of the rotational
+dynamics model, extending beyond the first-order Jacobians to capture curvature effects
+in the equations of motion. These Hessians are used in second-order control, estimation,
+and sensitivity analysis algorithms such as Differential Dynamic Programming (DDP),
+Iterative LQR (iLQR), or Extended Second-Order Kalman Filters.</p>
+<p>—
+<strong>Mathematical Definition</strong></p>
+<p>The nonlinear attitude dynamics are expressed as:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{aligned}
+\dot{\boldsymbol{\omega}} &amp;= J^{-1}
+\Big[
+    -\boldsymbol{\omega} \times (J \boldsymbol{\omega} + A_{RW}^T \mathbf{h}_{RW})
+    + \boldsymbol{\tau}_{\text{act}}(\mathbf{x}, \mathbf{u})
+    + \boldsymbol{\tau}_{\text{dist}}(\mathbf{x})
+\Big] \\
+\dot{\mathbf{q}} &amp;= \tfrac{1}{2} W(\mathbf{q})^T \boldsymbol{\omega} \\
+\dot{\mathbf{h}}_{RW} &amp;= \mathbf{u}_{RW}
+    - \mathrm{diag}(J_{RW}) A_{RW}^T \dot{\boldsymbol{\omega}}
+\end{aligned}\end{split}\]</div>
+</div>
+<p>where:
+- <span class="math notranslate nohighlight">\(J\)</span> is the spacecraft body inertia matrix,
+- <span class="math notranslate nohighlight">\(A_{RW}\)</span> contains reaction wheel spin axes,
+- <span class="math notranslate nohighlight">\(\mathbf{h}_{RW}\)</span> are reaction wheel momenta,
+- <span class="math notranslate nohighlight">\(\boldsymbol{\tau}_{\text{act}}\)</span> and <span class="math notranslate nohighlight">\(\boldsymbol{\tau}_{\text{dist}}\)</span>
+represent actuator and disturbance torques respectively.</p>
+<p>This function computes the full set of <strong>second-order derivatives</strong> of the dynamics function:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[f(\mathbf{x}, \mathbf{u}) = \dot{\mathbf{x}},\]</div>
+</div>
+<p>i.e.</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\frac{\partial^2 f_i}{\partial z_j \, \partial z_k},
+\quad
+\mathbf{z} = [\mathbf{x}, \mathbf{u}, \boldsymbol{\theta}_{act}, \boldsymbol{\theta}_{sens}, \boldsymbol{\theta}_{dist}],\]</div>
+</div>
+<p>where each tensor element represents a curvature term coupling any two of the state,
+control, or parameter dimensions.</p>
+<p>—
+<strong>Inputs</strong></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>numpy.ndarray</em>) – <p>Full spacecraft state vector:
+.. math:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>\<span class="n">mathbf</span><span class="p">{</span><span class="n">x</span><span class="p">}</span> <span class="o">=</span>
+\<span class="n">begin</span><span class="p">{</span><span class="n">bmatrix</span><span class="p">}</span>
+    \<span class="n">boldsymbol</span><span class="p">{</span>\<span class="n">omega</span><span class="p">}</span> \\
+    \<span class="n">mathbf</span><span class="p">{</span><span class="n">q</span><span class="p">}</span> \\
+    \<span class="n">mathbf</span><span class="p">{</span><span class="n">h</span><span class="p">}</span><span class="n">_</span><span class="p">{</span><span class="n">RW</span><span class="p">}</span>
+\<span class="n">end</span><span class="p">{</span><span class="n">bmatrix</span><span class="p">}</span>
+</pre></div>
+</div>
+<ul>
+<li><p><span class="math notranslate nohighlight">\(\boldsymbol{\omega}\)</span> — angular velocity in body frame [rad/s], shape <code class="docutils literal notranslate"><span class="pre">(3,)</span></code></p></li>
+<li><p><span class="math notranslate nohighlight">\(\mathbf{q}\)</span> — quaternion (Hamilton form, body→ECI), shape <code class="docutils literal notranslate"><span class="pre">(4,)</span></code></p></li>
+<li><p><span class="math notranslate nohighlight">\(\mathbf{h}_{RW}\)</span> — reaction wheel momenta, shape <code class="docutils literal notranslate"><span class="pre">(n_{RW},)</span></code></p></li>
+</ul>
+</p></li>
+<li><p><strong>u</strong> (<em>numpy.ndarray</em>) – Control input vector (actuator torque or wheel speed command signals), shape <code class="docutils literal notranslate"><span class="pre">(n_u,)</span></code>.</p></li>
+<li><p><strong>orbital_state</strong> (<a class="reference internal" href="ADCS.helpers.plotting.animate_orbit.html#ADCS.helpers.plotting.animate_orbit.Orbital_State" title="ADCS.helpers.plotting.animate_orbit.Orbital_State"><em>Orbital_State</em></a>) – <p>Object containing orbital and environmental quantities:
+- <code class="docutils literal notranslate"><span class="pre">R</span></code>: ECI position vector [m]
+- <code class="docutils literal notranslate"><span class="pre">V</span></code>: ECI velocity vector [m/s]
+- <code class="docutils literal notranslate"><span class="pre">B</span></code>: Magnetic field vector [T]
+- <code class="docutils literal notranslate"><span class="pre">S</span></code>: Sun direction vector [-]
+- <code class="docutils literal notranslate"><span class="pre">rho</span></code>: Atmospheric density [kg/m³]</p>
+<p>These vectors are rotated into the body frame using <code class="xref py py-func docutils literal notranslate"><span class="pre">rot_mat(q).T()</span></code>, and both
+their first and second quaternion derivatives (<code class="xref py py-func docutils literal notranslate"><span class="pre">drotmatTvecdq()</span></code>,
+<code class="xref py py-func docutils literal notranslate"><span class="pre">ddrotmatTvecdqdq()</span></code>) are computed for use in torque partials.</p>
+</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>List</em>[<em>List</em>[<em>ndarray</em>]]</p>
+</dd>
+</dl>
+<p>—
+<strong>Outputs</strong></p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><p>Nested list of Hessian tensors. The exact structure depends on whether
+estimation-related parameters (biases, disturbances) are enabled.</p>
+<p><strong>If extended estimation is active:</strong></p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>[
+[ddxdot__dxdx, ddxdot__dxdu, ddxdot__dxdab, ddxdot__dxdsb, ddxdot__dxddmp],
+[ddxdot__dxdu.T, ddxdot__dudu, ddxdot__dudab, ddxdot__dudsb, ddxdot__duddmp],
+[0, 0, ddxdot__dabdab, ddxdot__dabdsb, ddxdot__dabddmp],
+[0, 0, 0, ddxdot__dsbdsb, ddxdot__dsbddmp],
+[0, 0, 0, 0, ddxdot__ddmpddmp]
+]
+</pre></div>
+</div>
+<p>Each entry is a 3D array of the form <code class="docutils literal notranslate"><span class="pre">(dim₁,</span> <span class="pre">dim₂,</span> <span class="pre">n_state)</span></code>, where each slice
+corresponds to the curvature of one state derivative component.</p>
+<p><strong>If estimation is disabled:</strong></p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>[
+[ddxdot__dxdx, ddxdot__dxdu],
+[ddxdot__dxdu.T, ddxdot__dudu]
+]
+</pre></div>
+</div>
+</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>List[List[np.ndarray]]</p>
+</dd>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>u</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>orbital_state</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+<p>—
+<strong>Computation Summary</strong></p>
+<ol class="arabic simple">
+<li><p><strong>Quaternion and environment transformation</strong></p></li>
+</ol>
+<p>Environmental vectors (<code class="docutils literal notranslate"><span class="pre">R</span></code>, <code class="docutils literal notranslate"><span class="pre">V</span></code>, <code class="docutils literal notranslate"><span class="pre">B</span></code>, <code class="docutils literal notranslate"><span class="pre">S</span></code>) are rotated into the body frame and
+their first- and second-order quaternion derivatives are computed to capture
+attitude-dependent effects in environmental torques.</p>
+<ol class="arabic simple" start="2">
+<li><p><strong>Actuator torque Hessians</strong></p></li>
+</ol>
+<p>For each actuator, compute:
+- <span class="math notranslate nohighlight">\(\frac{\partial^2 \boldsymbol{\tau}_{act}}{\partial \mathbf{x}^2}\)</span>,
+- <span class="math notranslate nohighlight">\(\frac{\partial^2 \boldsymbol{\tau}_{act}}{\partial \mathbf{u}^2}\)</span>,
+- <span class="math notranslate nohighlight">\(\frac{\partial^2 \boldsymbol{\tau}_{act}}{\partial \mathbf{x} \partial \mathbf{u}}\)</span>,
+- and mixed terms w.r.t. wheel momentum or bias parameters.</p>
+<ol class="arabic simple" start="3">
+<li><p><strong>Disturbance torque Hessians</strong></p></li>
+</ol>
+<p>Second derivatives of environmental torque models
+<span class="math notranslate nohighlight">\(\boldsymbol{\tau}_{dist}(\mathbf{x})\)</span>
+are obtained from <a class="reference internal" href="#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.dist_torque_hess" title="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.dist_torque_hess"><code class="xref py py-func docutils literal notranslate"><span class="pre">dist_torque_hess()</span></code></a>.</p>
+<ol class="arabic simple" start="4">
+<li><p><strong>Reaction wheel coupling</strong></p></li>
+</ol>
+<p>If reaction wheels are active (<code class="xref py py-attr docutils literal notranslate"><span class="pre">self.number_RW</span> <span class="pre">&gt;</span> <span class="pre">0</span></code>),
+adds higher-order coupling terms due to wheel inertia, axes, and stored momentum:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\frac{\partial^2 \dot{\omega}}{\partial h_{RW}\, \partial x},
+\quad
+\frac{\partial^2 \dot{h}_{RW}}{\partial x^2}\]</div>
+</div>
+<ol class="arabic simple" start="5">
+<li><p><strong>Bias and disturbance parameter extension</strong></p></li>
+</ol>
+<p>If biases and disturbances are modeled, additional Hessians
+are computed for cross-derivatives w.r.t. actuator bias,
+sensor bias, and disturbance parameters.</p>
+<ol class="arabic simple" start="6">
+<li><p><strong>Inertia mapping</strong></p></li>
+</ol>
+<p>All torque Hessians are post-multiplied by <span class="math notranslate nohighlight">\(J^{-1}\)</span> to yield angular acceleration
+Hessians in body coordinates.</p>
+<p>—
+<strong>Notes</strong></p>
+<ul class="simple">
+<li><p>Quaternion convention follows <strong>Hamilton form</strong>, representing a body→ECI rotation.</p></li>
+<li><p>All returned Hessian tensors are stored as 3D arrays; index 3 corresponds to the affected</p></li>
+</ul>
+<p>component of <span class="math notranslate nohighlight">\(\dot{\mathbf{x}}\)</span>.
+- Symmetry of second derivatives is preserved wherever applicable.
+- These tensors can be contracted with perturbation vectors to compute second-order
+variations in the dynamics, e.g.:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\delta^2 \dot{\mathbf{x}} \approx
+\tfrac{1}{2} \sum_{i,j} \frac{\partial^2 f}{\partial z_i \partial z_j}
+\delta z_i \delta z_j\]</div>
+</div>
+<p>—
+<strong>Example</strong></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">ddH</span> <span class="o">=</span> <span class="n">sat</span><span class="o">.</span><span class="n">dynamics_Hessians</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">orb</span><span class="p">)</span>
+<span class="n">ddx_dx</span><span class="p">,</span> <span class="n">dx_du</span> <span class="o">=</span> <span class="n">ddH</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">ddx_dx</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>   <span class="c1"># (n_x, n_x, n_x)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">dx_du</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>    <span class="c1"># (n_x, n_u, n_x)</span>
+</pre></div>
+</div>
+<p>—
+<strong>References</strong></p>
+<ul class="simple">
+<li><p>Wie, B. <em>Space Vehicle Dynamics and Control</em>, 2nd Ed. AIAA, 2008.</p></li>
+<li><p>Crassidis, J.L., Junkins, J.L. <em>Optimal Estimation of Dynamic Systems</em>, 2nd Ed. CRC Press, 2011.</p></li>
+<li><p>Tassa, Y. <em>et al.</em>, “Synthesis and Stabilization of Complex Behaviors through Online Trajectory Optimization,” <em>IROS</em>, 2012.</p></li>
+<li><p>Diebel, J., “Representing Attitude: Euler Angles, Unit Quaternions, and Rotation Vectors,” Stanford University, 2006.</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.match_estimate">
+<span class="sig-name descname"><span class="pre">match_estimate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">est_state</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/satellite/estimated_satellite.html#EstimatedSatellite.match_estimate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.match_estimate" title="Link to this definition">¶</a></dt>
+<dd><p>Synchronize the satellite model with the latest estimated state and covariance.</p>
+<p>This method updates the satellite’s internal state, actuator and sensor biases,
+and disturbance parameters using an <code class="xref py py-class docutils literal notranslate"><span class="pre">EstimatedArray</span></code> provided by an estimator.
+It also disables noise and time variation in subsystems to maintain deterministic
+consistency between simulation and estimation models.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>est</strong> (<a class="reference internal" href="ADCS.estimators.estimator_helpers.html#ADCS.estimators.estimator_helpers.EstimatedArray" title="ADCS.estimators.estimator_helpers.EstimatedArray"><em>EstimatedArray</em></a>) – The estimated full state vector including the satellite’s dynamic state,
+actuator biases, sensor biases, and disturbance parameters. Must include
+covariance (<cite>cov</cite>) and integrated covariance (<cite>int_cov</cite>) matrices.</p></li>
+<li><p><strong>dt</strong> (<em>float</em>) – Integration time step, used to normalize the integrated covariance.</p></li>
+<li><p><strong>est_state</strong> (<a class="reference internal" href="ADCS.estimators.estimator_helpers.estimator_helpers.html#ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray" title="ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray"><em>EstimatedArray</em></a>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – If the provided estimated state does not match the expected total length.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>The method assumes that <cite>est.val</cite> has the following structure:</p></li>
+</ul>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[[ x_{state},\; b_{act},\; b_{sens},\; p_{dist} ]\]</div>
+</div>
+<p>where each segment corresponds to the system state, actuator biases,
+sensor biases, and disturbance parameters.</p>
+<ul class="simple">
+<li><p>After synchronization, actuator and sensor noise are disabled via</p></li>
+</ul>
+<p><code class="docutils literal notranslate"><span class="pre">use_noise</span> <span class="pre">=</span> <span class="pre">False</span></code>, and disturbance time variations are frozen by setting
+<code class="docutils literal notranslate"><span class="pre">time_varying</span> <span class="pre">=</span> <span class="pre">False</span></code>. This ensures deterministic propagation when
+comparing true and estimated dynamics.</p>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">sat</span> <span class="o">=</span> <span class="n">EstimatedSatellite</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">est</span> <span class="o">=</span> <span class="n">EstimatedArray</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">cov</span><span class="p">,</span> <span class="n">int_cov</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sat</span><span class="o">.</span><span class="n">match_estimate</span><span class="p">(</span><span class="n">est</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.sensor_bias_slice">
+<span class="sig-name descname"><span class="pre">sensor_bias_slice</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">att_sensor_index</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/satellite/estimated_satellite.html#EstimatedSatellite.sensor_bias_slice"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.sensor_bias_slice" title="Link to this definition">¶</a></dt>
+<dd><p>Return the [start:stop] slice in the <em>full</em> estimator state vector
+corresponding to the bias of attitude_sensors[att_sensor_index].</p>
+<dl class="simple">
+<dt>Full estimator state is ordered as:</dt><dd><dl class="simple">
+<dt>[ base_state (state_len),</dt><dd><p>actuator_bias (act_bias_len),
+attitude_sensor_bias (att_sens_bias_len),
+disturbance_params (dist_param_len) ]</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p>If the sensor has no associated bias state, returns None.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>att_sensor_index</strong> (<em>int</em>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>slice | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.sensor_cov">
+<span class="sig-name descname"><span class="pre">sensor_cov</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">which_sensors</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/satellite/estimated_satellite.html#EstimatedSatellite.sensor_cov"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.sensor_cov" title="Link to this definition">¶</a></dt>
+<dd><p>Block-diagonal covariance matrix for all attitude sensor noises.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>which_sensors</strong> (<em>List</em><em>[</em><em>bool</em><em>]</em>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>ndarray</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.sensor_srcov">
+<span class="sig-name descname"><span class="pre">sensor_srcov</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">which_sensors</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/satellite/estimated_satellite.html#EstimatedSatellite.sensor_srcov"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.sensor_srcov" title="Link to this definition">¶</a></dt>
+<dd><p>Block-diagonal square-root covariance matrix for all attitude sensor noises.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>which_sensors</strong> (<em>List</em><em>[</em><em>bool</em><em>]</em>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>ndarray</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="ADCS.satellite_hardware.satellite.satellite.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">ADCS.satellite_hardware.satellite.satellite module</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="ADCS.satellite_hardware.satellite.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">ADCS.satellite_hardware.satellite package</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2025, Patrick McKeen, Niclas Scheuer
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">ADCS.satellite_hardware.satellite.estimated_satellite module</a><ul>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite"><code class="docutils literal notranslate"><span class="pre">EstimatedSatellite</span></code></a><ul>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.act_bias_inds"><code class="docutils literal notranslate"><span class="pre">act_bias_inds</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.act_bias_len"><code class="docutils literal notranslate"><span class="pre">act_bias_len</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.att_sens_bias_inds"><code class="docutils literal notranslate"><span class="pre">att_sens_bias_inds</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.att_sens_bias_len"><code class="docutils literal notranslate"><span class="pre">att_sens_bias_len</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.dist_param_inds"><code class="docutils literal notranslate"><span class="pre">dist_param_inds</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.dist_param_len"><code class="docutils literal notranslate"><span class="pre">dist_param_len</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.actuators"><code class="docutils literal notranslate"><span class="pre">actuators</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.sensors"><code class="docutils literal notranslate"><span class="pre">sensors</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.disturbances"><code class="docutils literal notranslate"><span class="pre">disturbances</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.control_cov"><code class="docutils literal notranslate"><span class="pre">control_cov()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.control_srcov"><code class="docutils literal notranslate"><span class="pre">control_srcov()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.dist_torque_hess"><code class="docutils literal notranslate"><span class="pre">dist_torque_hess()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.dist_torques_jacobian"><code class="docutils literal notranslate"><span class="pre">dist_torques_jacobian()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.dynJacCore"><code class="docutils literal notranslate"><span class="pre">dynJacCore()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.dynamics_Hessians"><code class="docutils literal notranslate"><span class="pre">dynamics_Hessians()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.match_estimate"><code class="docutils literal notranslate"><span class="pre">match_estimate()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.sensor_bias_slice"><code class="docutils literal notranslate"><span class="pre">sensor_bias_slice()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.sensor_cov"><code class="docutils literal notranslate"><span class="pre">sensor_cov()</span></code></a></li>
+<li><a class="reference internal" href="#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.sensor_srcov"><code class="docutils literal notranslate"><span class="pre">sensor_srcov()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="_static/documentation_options.js?v=cb975c41"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/scripts/furo.js?v=46bd48cc"></script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    </body>
+</html>

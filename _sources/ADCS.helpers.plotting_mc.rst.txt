@@ -1,0 +1,18 @@
+ADCS.helpers.plotting\_mc package
+=================================
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 4
+
+   ADCS.helpers.plotting_mc.plot_controller_mc
+
+Module contents
+---------------
+
+.. automodule:: ADCS.helpers.plotting_mc
+   :members:
+   :show-inheritance:
+   :undoc-members:

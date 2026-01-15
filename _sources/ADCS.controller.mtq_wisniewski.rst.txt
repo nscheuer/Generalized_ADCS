@@ -1,0 +1,7 @@
+ADCS.controller.mtq\_wisniewski module
+======================================
+
+.. automodule:: ADCS.controller.mtq_wisniewski
+   :members:
+   :show-inheritance:
+   :undoc-members:

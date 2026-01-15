@@ -1,0 +1,7 @@
+ADCS.CONOPS.goals.vector\_goals.lvlh\_tangential\_goal module
+=============================================================
+
+.. automodule:: ADCS.CONOPS.goals.vector_goals.lvlh_tangential_goal
+   :members:
+   :show-inheritance:
+   :undoc-members:

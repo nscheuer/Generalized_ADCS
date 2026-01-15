@@ -1,0 +1,29 @@
+ADCS.CONOPS.goals.vector\_goals package
+=======================================
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 4
+
+   ADCS.CONOPS.goals.vector_goals.antibfield_goal
+   ADCS.CONOPS.goals.vector_goals.antisun_goal
+   ADCS.CONOPS.goals.vector_goals.antivelocity_goal
+   ADCS.CONOPS.goals.vector_goals.bfield_goal
+   ADCS.CONOPS.goals.vector_goals.coordinate_goal
+   ADCS.CONOPS.goals.vector_goals.eci_goal
+   ADCS.CONOPS.goals.vector_goals.lvlh_tangential_goal
+   ADCS.CONOPS.goals.vector_goals.nadir_goal
+   ADCS.CONOPS.goals.vector_goals.perpbfield_goal
+   ADCS.CONOPS.goals.vector_goals.sun_goal
+   ADCS.CONOPS.goals.vector_goals.velocity_goal
+   ADCS.CONOPS.goals.vector_goals.zentih_goal
+
+Module contents
+---------------
+
+.. automodule:: ADCS.CONOPS.goals.vector_goals
+   :members:
+   :show-inheritance:
+   :undoc-members:

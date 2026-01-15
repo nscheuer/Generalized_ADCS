@@ -1,0 +1,7 @@
+ADCS.CONOPS.goals.vector\_goals.zentih\_goal module
+===================================================
+
+.. automodule:: ADCS.CONOPS.goals.vector_goals.zentih_goal
+   :members:
+   :show-inheritance:
+   :undoc-members:
