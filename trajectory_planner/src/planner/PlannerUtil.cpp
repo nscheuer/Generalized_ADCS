@@ -26,7 +26,6 @@ mat packageK(cube Kcube)
   for(int k = 0; k < Kcube.n_slices; k++)
   {
     mat AqMatrix = Kcube.slice(k);
-    // if(k==0){cout<<AqMatrix<<"\n";}
     for (size_t rowtest=0; rowtest < Kcube.n_rows; rowtest++)
     {
       for (size_t coltest=0; coltest < Kcube.n_cols; coltest++)
@@ -45,7 +44,6 @@ mat packageS(cube Scube)
     for(int k = 0; k < Scube.n_slices; k++)
     {
       mat AqMatrix = Scube.slice(k);
-      // if(k==0){cout<<AqMatrix<<"\n";}
       for (size_t rowtest=0; rowtest < Scube.n_rows; rowtest++)
       {
         for (size_t coltest=0; coltest < Scube.n_cols; coltest++)
@@ -66,42 +64,16 @@ VECTOR_INFO_FORM findVecTimes(VECTOR_INFO_FORM vecs_w_time,double dt,TIME_FORM t
   mat s = get<4>(vecs_w_time);
   mat a = get<5>(vecs_w_time);
   mat e = get<6>(vecs_w_time);
-  cout << e << "\n";
   vec p = get<7>(vecs_w_time);
   vec rho = get<8>(vecs_w_time);
 
   vec t0 = regspace(time_start,dt,time_end);
-  // double tf = t0.back();
-  // cout.precision(15);
-  // // cout<<" for time issues! "<<time_end<<" "<<t0.back()<<" "<<t.max()<<"\n";
-  // // cout<<" for time issues! "<<(t0.back()-0.22)*36525.0*24.0*3600.0<<"\n";
-  // // cout<<" for time issues! "<<(time_end-0.22)*36525.0*24.0*3600.0<<"\n";
-  // // cout<<" for time issues! "<<(t.max()-0.22)*36525.0*24.0*3600.0<<"\n";
-  // cout.precision(4);
   vec ts;
   if(abs(time_end-t0.back())>EPSVAR){
     ts = unique(join_cols(t0,vec(1).ones()*time_end));
   }else{
     ts = unique(t0);
   }
-  // t0(t0.n_elem-1) = time_end;
-  // ts = t0;
-  // uvec inds = find((t>=time_start)&&(t<=time_end));
-  // uvec inds2 = linspace<uvec>(inds.min(),inds.max(),N);
-  // uvec inds_spaced = inds2;
-  // // double dt0 = t(1)-t(0);
-  // vec dt_timevec = t(inds_spaced);
-  auto dbg = [&](const char* name, const arma::mat& M){
-    std::cout << name << " M=" << M.n_rows << "x" << M.n_cols
-              << "  t=" << t.n_elem << "  (needs M.n_cols==t)\n";
-  };
-
-  dbg("r", r);
-  dbg("v", v);
-  dbg("b", b);
-  dbg("s", s);
-  dbg("a", a);
-  dbg("e", e);
 
   if((r.n_rows != 3) && (r.n_cols==3)){r = r.t();}
   if((v.n_rows != 3) && (v.n_cols==3)){v = v.t();}
@@ -109,9 +81,6 @@ VECTOR_INFO_FORM findVecTimes(VECTOR_INFO_FORM vecs_w_time,double dt,TIME_FORM t
   if((s.n_rows != 3) && (s.n_cols==3)){s = s.t();}
   if((a.n_rows != 3) && (a.n_cols==3)){a = a.t();}
   if((e.n_rows != 3) && (e.n_cols==3)){e = e.t();}
-
-  std::cout << "After transpose guards:\n";
-  dbg("r", r); dbg("e", e);
 
   mat Rset = interp_vector(r,t,ts);//r.cols(inds_spaced);//timeAwareArma(r, dt, N, time_start, time_end);
   // mat dt_timevec = trans(extractRelevantTimes(r, dt, N, time_start, time_end));
@@ -202,7 +171,6 @@ tuple<mat, mat,mat> rk4zJacobians(double dt0,vec xk, vec uk,Satellite sat, DYNAM
   vec xkp1raw = xkp1;
   xkp1 = sat.state_norm(xkp1);
   // xkp1(span(sat.quat0index(),sat.quat0index()+3)) =  normalise(xkp1(span(sat.quat0index(),sat.quat0index()+3)));
-  // cout<<"testingraw "<<xkp1-xkp1raw<<"\n";
   mat Gk = sat.findGMat(xk.rows(sat.quat0index(),sat.quat0index()+3));
   mat G2 = sat.findGMat(x1r.rows(sat.quat0index(),sat.quat0index()+3));
   mat G3 = sat.findGMat(x2r.rows(sat.quat0index(),sat.quat0index()+3));
@@ -316,7 +284,6 @@ tuple<mat, mat,mat> rk4zx2Jacobians(double dt0,vec xk, vec uk,Satellite sat, DYN
   vec xkp1raw = xkp1;
   xkp1 = sat.state_norm(xkp1);
   // xkp1(span(sat.quat0index(),sat.quat0index()+3)) =  normalise(xkp1(span(sat.quat0index(),sat.quat0index()+3)));
-  // cout<<"testingraw "<<xkp1-xkp1raw<<"\n";
   mat Gk = sat.findGMat(xk.rows(sat.quat0index(),sat.quat0index()+3));
   mat G2 = sat.findGMat(x1r.rows(sat.quat0index(),sat.quat0index()+3));
   mat G3 = sat.findGMat(x2r.rows(sat.quat0index(),sat.quat0index()+3));
@@ -411,7 +378,6 @@ tuple<cube, cube,cube> rk4zHessians(double dt0,vec xk, vec uk,Satellite sat, DYN
   vec xkp1raw = xkp1;
   xkp1 = sat.state_norm(xkp1);
   // xkp1(span(sat.quat0index(),sat.quat0index()+3)) =  normalise(xkp1(span(sat.quat0index(),sat.quat0index()+3)));
-  // cout<<"testingraw "<<xkp1-xkp1raw<<"\n";
   mat Gk = sat.findGMat(xk.rows(sat.quat0index(),sat.quat0index()+3));
   mat G2 = sat.findGMat(x1r.rows(sat.quat0index(),sat.quat0index()+3));
   mat G3 = sat.findGMat(x2r.rows(sat.quat0index(),sat.quat0index()+3));
@@ -575,22 +541,8 @@ tuple<cube, cube,cube> rk4zHessians(double dt0,vec xk, vec uk,Satellite sat, DYN
                           + matOverCube(dxkp1r__dxd1,ddxd1__du_du_) \
                           + matOverCube(dxkp1r__dxd2,ddxd2__du_du_) \
                           + matOverCube(dxkp1r__dxd3,ddxd3__du_du_);
-// cout<<"hesstest\n";
-// cout<<matOverCube(dxkp1__dxkp1r,ddxkp1r__dx0rdx0r)<<"\n";
-// cout<<matTimesCube(dxkp1r__dx0r.t(),cubeTimesMat(ddxkp1__dxkp1rdxkp1r,dxkp1r__dx0r)).slice(4)<<"\n";
-// cout<<matTimesCube(dxkp1r__dx0r.t(),cubeTimesMat(ddxkp1__dxkp1rdxkp1r,dxkp1r__dx0r))<<"\n";
-// // cout<<dxkp1r__dx0r.t()<<"\n";
-// cout<<cubeTimesMat(ddxkp1__dxkp1rdxkp1r,dxkp1r__dx0r)<<"\n";
-// // cout<<ddxkp1__dxkp1rdxkp1r<<"\n";
-// cout<<dxkp1r__dx0r<<"\n";
-// cout<<dxkp1r__dxd0*dxd0__dx0<<"\n";
-// cout<<dxkp1r__dxd1*dxd1__dx0<<"\n";
-// cout<<dxkp1r__dxd2*dxd2__dx0<<"\n";
-// cout<<dxkp1r__dxd3*dxd3__dx0<<"\n";
-// cout<<dx0__dx0r<<"\n";
 
 
-// cout<<ddxkp1r__dx0rdx0r.slice(0)<<"\n";
   cube ddxkp1__dx0rdx0r = matOverCube(dxkp1__dxkp1r,ddxkp1r__dx0rdx0r) + matTimesCube(dxkp1r__dx0r.t(),cubeTimesMat(ddxkp1__dxkp1rdxkp1r,dxkp1r__dx0r));
   cube ddxkp1__du_dx0r =  matOverCube(dxkp1__dxkp1r,ddxkp1r__du_dx0r) + matTimesCube(dxkp1r__du_.t(),cubeTimesMat(ddxkp1__dxkp1rdxkp1r,dxkp1r__dx0r));
   cube ddxkp1__du_du_ =  matOverCube(dxkp1__dxkp1r,ddxkp1r__du_du_) + matTimesCube(dxkp1r__du_.t(),cubeTimesMat(ddxkp1__dxkp1rdxkp1r,dxkp1r__du_));
@@ -635,7 +587,6 @@ tuple<cube, cube,cube,mat,mat,cube,cube,cube,cube,cube> rk4zxkp1rHessians(double
   vec xkp1raw = xkp1;
   xkp1 = sat.state_norm(xkp1);
   // xkp1(span(sat.quat0index(),sat.quat0index()+3)) =  normalise(xkp1(span(sat.quat0index(),sat.quat0index()+3)));
-  // cout<<"testingraw "<<xkp1-xkp1raw<<"\n";
   mat Gk = sat.findGMat(xk.rows(sat.quat0index(),sat.quat0index()+3));
   mat G2 = sat.findGMat(x1r.rows(sat.quat0index(),sat.quat0index()+3));
   mat G3 = sat.findGMat(x2r.rows(sat.quat0index(),sat.quat0index()+3));
@@ -800,22 +751,8 @@ tuple<cube, cube,cube,mat,mat,cube,cube,cube,cube,cube> rk4zxkp1rHessians(double
                           + matOverCube(dxkp1r__dxd1,ddxd1__du_du_) \
                           + matOverCube(dxkp1r__dxd2,ddxd2__du_du_) \
                           + matOverCube(dxkp1r__dxd3,ddxd3__du_du_);
-// cout<<"hesstest\n";
-// cout<<matOverCube(dxkp1__dxkp1r,ddxkp1r__dx0rdx0r)<<"\n";
-// cout<<matTimesCube(dxkp1r__dx0r.t(),cubeTimesMat(ddxkp1__dxkp1rdxkp1r,dxkp1r__dx0r)).slice(4)<<"\n";
-// cout<<matTimesCube(dxkp1r__dx0r.t(),cubeTimesMat(ddxkp1__dxkp1rdxkp1r,dxkp1r__dx0r))<<"\n";
-// // cout<<dxkp1r__dx0r.t()<<"\n";
-// cout<<cubeTimesMat(ddxkp1__dxkp1rdxkp1r,dxkp1r__dx0r)<<"\n";
-// // cout<<ddxkp1__dxkp1rdxkp1r<<"\n";
-// cout<<dxkp1r__dx0r<<"\n";
-// cout<<dxkp1r__dxd0*dxd0__dx0<<"\n";
-// cout<<dxkp1r__dxd1*dxd1__dx0<<"\n";
-// cout<<dxkp1r__dxd2*dxd2__dx0<<"\n";
-// cout<<dxkp1r__dxd3*dxd3__dx0<<"\n";
-// cout<<dx0__dx0r<<"\n";
 
 
-// cout<<ddxkp1r__dx0rdx0r.slice(0)<<"\n";
   cube ddxkp1__dx0rdx0r = matOverCube(dxkp1__dxkp1r,ddxkp1r__dx0rdx0r) + matTimesCube(dxkp1r__dx0r.t(),cubeTimesMat(ddxkp1__dxkp1rdxkp1r,dxkp1r__dx0r));
   cube ddxkp1__du_dx0r =  matOverCube(dxkp1__dxkp1r,ddxkp1r__du_dx0r) + matTimesCube(dxkp1r__du_.t(),cubeTimesMat(ddxkp1__dxkp1rdxkp1r,dxkp1r__dx0r));
   cube ddxkp1__du_du_ =  matOverCube(dxkp1__dxkp1r,ddxkp1r__du_du_) + matTimesCube(dxkp1r__du_.t(),cubeTimesMat(ddxkp1__dxkp1rdxkp1r,dxkp1r__du_));
@@ -862,7 +799,6 @@ tuple<cube, cube,cube,mat,mat> rk4zx3rHessians(double dt0,vec xk, vec uk,Satelli
   vec xkp1raw = xkp1;
   xkp1 = sat.state_norm(xkp1);
   // xkp1(span(sat.quat0index(),sat.quat0index()+3)) =  normalise(xkp1(span(sat.quat0index(),sat.quat0index()+3)));
-  // cout<<"testingraw "<<xkp1-xkp1raw<<"\n";
   mat Gk = sat.findGMat(xk.rows(sat.quat0index(),sat.quat0index()+3));
   mat G2 = sat.findGMat(x1r.rows(sat.quat0index(),sat.quat0index()+3));
   mat G3 = sat.findGMat(x2r.rows(sat.quat0index(),sat.quat0index()+3));
@@ -1035,7 +971,6 @@ tuple<cube, cube,cube> rk4zxd2Hessians(double dt0,vec xk, vec uk,Satellite sat, 
   vec xkp1raw = xkp1;
   xkp1 = sat.state_norm(xkp1);
   // xkp1(span(sat.quat0index(),sat.quat0index()+3)) =  normalise(xkp1(span(sat.quat0index(),sat.quat0index()+3)));
-  // cout<<"testingraw "<<xkp1-xkp1raw<<"\n";
   mat Gk = sat.findGMat(xk.rows(sat.quat0index(),sat.quat0index()+3));
   mat G2 = sat.findGMat(x1r.rows(sat.quat0index(),sat.quat0index()+3));
   mat G3 = sat.findGMat(x2r.rows(sat.quat0index(),sat.quat0index()+3));
@@ -1177,7 +1112,6 @@ tuple<cube, cube,cube> rk4zx3Hessians(double dt0,vec xk, vec uk,Satellite sat, D
   vec xkp1raw = xkp1.t().t();
   xkp1 = sat.state_norm(xkp1);
   // xkp1(span(sat.quat0index(),sat.quat0index()+3)) =  normalise(xkp1(span(sat.quat0index(),sat.quat0index()+3)));
-  // cout<<"testingraw "<<xkp1-xkp1raw<<"\n";
   mat Gk = sat.findGMat(xk.rows(sat.quat0index(),sat.quat0index()+3));
   mat G2 = sat.findGMat(x1r.rows(sat.quat0index(),sat.quat0index()+3));
   mat G3 = sat.findGMat(x2r.rows(sat.quat0index(),sat.quat0index()+3));
@@ -1352,7 +1286,6 @@ tuple<cube, cube,cube,mat,mat> rk4zx1Hessians(double dt0,vec xk, vec uk,Satellit
   vec xkp1raw = xkp1;
   xkp1 = sat.state_norm(xkp1);
   // xkp1(span(sat.quat0index(),sat.quat0index()+3)) =  normalise(xkp1(span(sat.quat0index(),sat.quat0index()+3)));
-  // cout<<"testingraw "<<xkp1-xkp1raw<<"\n";
   mat Gk = sat.findGMat(xk.rows(sat.quat0index(),sat.quat0index()+3));
   mat G2 = sat.findGMat(x1r.rows(sat.quat0index(),sat.quat0index()+3));
   mat G3 = sat.findGMat(x2r.rows(sat.quat0index(),sat.quat0index()+3));
@@ -1450,7 +1383,6 @@ tuple<cube, cube,cube> rk4zxd0Hessians(double dt0,vec xk, vec uk,Satellite sat, 
   vec xkp1raw = xkp1;
   xkp1 = sat.state_norm(xkp1);
   // xkp1(span(sat.quat0index(),sat.quat0index()+3)) =  normalise(xkp1(span(sat.quat0index(),sat.quat0index()+3)));
-  // cout<<"testingraw "<<xkp1-xkp1raw<<"\n";
   mat Gk = sat.findGMat(xk.rows(sat.quat0index(),sat.quat0index()+3));
   mat G2 = sat.findGMat(x1r.rows(sat.quat0index(),sat.quat0index()+3));
   mat G3 = sat.findGMat(x2r.rows(sat.quat0index(),sat.quat0index()+3));
@@ -1516,7 +1448,6 @@ tuple<cube, cube,cube> rk4zxd1Hessians(double dt0,vec xk, vec uk,Satellite sat, 
   vec xkp1raw = xkp1;
   xkp1 = sat.state_norm(xkp1);
   // xkp1(span(sat.quat0index(),sat.quat0index()+3)) =  normalise(xkp1(span(sat.quat0index(),sat.quat0index()+3)));
-  // cout<<"testingraw "<<xkp1-xkp1raw<<"\n";
   mat Gk = sat.findGMat(xk.rows(sat.quat0index(),sat.quat0index()+3));
   mat G2 = sat.findGMat(x1r.rows(sat.quat0index(),sat.quat0index()+3));
   mat G3 = sat.findGMat(x2r.rows(sat.quat0index(),sat.quat0index()+3));
@@ -1572,13 +1503,7 @@ tuple<cube, cube,cube> rk4zxd1Hessians(double dt0,vec xk, vec uk,Satellite sat, 
 
   cube ddxd1__dx0rdx0r = matTimesCube(dx1__dx0r.t(),cubeTimesMat(ddxd1__dx1dx1,dx1__dx0r)) + matOverCube(dxd1__dx1,ddx1__dx0rdx0r);
   cube ddxd1__du_dx0r = cubeTimesMat(ddxd1__dudx1,dx1__dx0r) +  matTimesCube(dx1__du_.t(),cubeTimesMat(ddxd1__dx1dx1,dx1__dx0r)) + matOverCube(dxd1__dx1,ddx1__du_dx0r);
-  // cout<<"hesstest\n";
-  // cout<<ddxd1__dudx1<<"\n"<<dx1__dx0r<<"\n"<<dx1__du_<<"\n"<<ddxd1__dx1dx1<<"\n"<<dxd1__dx1<<"\n"<<ddx1__du_dx0r<<"\n";
-  // cout<< cubeTimesMat(ddxd1__dudx1,dx1__dx0r)<<"\n"<<matTimesCube(dx1__du_.t(),cubeTimesMat(ddxd1__dx1dx1,dx1__dx0r))<<"\n"<< matOverCube(dxd1__dx1,ddx1__du_dx0r)<<"\n";
   cube ddxd1__du_du_ = ddxd1__dudu + matOverCube(dxd1__dx1,ddx1__du_du_) + cubeTimesMat(ddxd1__dudx1,dx1__du_)+ matTimesCubeT(dx1__du_.t(),ddxd1__dudx1)  + matTimesCube(dx1__du_.t(),cubeTimesMat(ddxd1__dx1dx1,dx1__du_));
-  // cout<<"hesstest xd1\n";
-  // cout<<ddxd1__dudu<<"\n"<<matOverCube(dxd1__dx1,ddx1__du_du_)<<"\n"<<2.0*cubeTimesMat(ddxd1__dudx1,dx1__du_)<<"\n";
-  // cout<<dxd1__dx1<<"\n"<<ddx1__du_du_<<"\n"<<ddxd1__dudx1<<"\n"<<dx1__du_<<"\n";
   return make_tuple(ddxd1__dx0rdx0r,ddxd1__du_dx0r,ddxd1__du_du_);
 }
 
@@ -1618,7 +1543,6 @@ tuple<cube, cube,cube,mat,mat> rk4zx2rHessians(double dt0,vec xk, vec uk,Satelli
   vec xkp1raw = xkp1;
   xkp1 = sat.state_norm(xkp1);
   // xkp1(span(sat.quat0index(),sat.quat0index()+3)) =  normalise(xkp1(span(sat.quat0index(),sat.quat0index()+3)));
-  // cout<<"testingraw "<<xkp1-xkp1raw<<"\n";
   mat Gk = sat.findGMat(xk.rows(sat.quat0index(),sat.quat0index()+3));
   mat G2 = sat.findGMat(x1r.rows(sat.quat0index(),sat.quat0index()+3));
   mat G3 = sat.findGMat(x2r.rows(sat.quat0index(),sat.quat0index()+3));
@@ -1744,7 +1668,6 @@ tuple<cube, cube,cube,mat,mat> rk4zx2Hessians(double dt0,vec xk, vec uk,Satellit
   vec xkp1raw = xkp1;
   xkp1 = sat.state_norm(xkp1);
   // xkp1(span(sat.quat0index(),sat.quat0index()+3)) =  normalise(xkp1(span(sat.quat0index(),sat.quat0index()+3)));
-  // cout<<"testingraw "<<xkp1-xkp1raw<<"\n";
   mat Gk = sat.findGMat(xk.rows(sat.quat0index(),sat.quat0index()+3));
   mat G2 = sat.findGMat(x1r.rows(sat.quat0index(),sat.quat0index()+3));
   mat G3 = sat.findGMat(x2r.rows(sat.quat0index(),sat.quat0index()+3));
@@ -1833,18 +1756,6 @@ tuple<cube, cube,cube,mat,mat> rk4zx2Hessians(double dt0,vec xk, vec uk,Satellit
   cube ddx2r__du_du_ =  matOverCube(dx2r__dxd1,ddxd1__du_du_);
   cube ddx2__du_du_ = matOverCube(dx2__dx2r,ddx2r__du_du_) + matTimesCube(dx2r__du_.t(),cubeTimesMat(ddx2__dx2rdx2r,dx2r__du_));
 
- cout<<"check\n";
- cout<<ddx0__dx0rdx0r.slice(0)<<"\n";
- cout<<ddxd0__dx0rdx0r.slice(0)<<"\n";
- cout<<ddx1__dx0rdx0r.slice(0)<<"\n";
- cout<<ddxd1__dx0rdx0r.slice(0)<<"\n";
- cout<<ddx2r__dx0rdx0r.slice(0)<<"\n";
- cout<<ddxd1__dx1dx1.slice(0)<<"\n";
- cout<<dx1__dx0r<<"\n";
- cout<<dx1__dx1r<<"\n";
- cout<<dx1r__dx0r<<"\n";
- cout<<dxd0__dx0r<<"\n";
- cout<<dx1r__dxd0*dxd0__dx0r<<"\n";
   cube ddx2__du_dx0r = matOverCube(dx2__dx2r,ddx2r__du_dx0r) + matTimesCube(dx2r__du_.t(),cubeTimesMat(ddx2__dx2rdx2r,dx2r__dx0r));
   cube ddx2__dx0rdx0r = matOverCube(dx2__dx2r,ddx2r__dx0rdx0r) + matTimesCube(dx2r__dx0r.t(),cubeTimesMat(ddx2__dx2rdx2r,dx2r__dx0r));
   tuple<cube,cube,cube,mat,mat> testres = rk4zx2rHessians( dt0, xk,  uk, sat,  dynamics_info_k,  dynamics_info_kp1);
@@ -1898,29 +1809,24 @@ tuple<vec,vec> rk4z(double dt0, vec xk, vec uk, Satellite sat, DYNAMICS_INFO_FOR
                           );
 
   xk = sat.state_norm(xk);
-  // cout<<" test \n";
   tuple<vec,vec> dynout = sat.dynamics(xk, uk, dynamics_info_k);
   vec xd0 = get<0>(dynout);
   vec dist_torq0 = get<1>(dynout);
-  // cout<<" xd0 "<<xd0.t()<<"\n";
   vec x1 = xk+xd0*0.5*dt0;
   x1 = sat.state_norm(x1);
   // x1(span(sat.quat0index(),sat.quat0index()+3)) = normalise(x1(span(sat.quat0index(),sat.quat0index()+3)));
   dynout = sat.dynamics(x1, uk,dynamics_info_mid);
   vec xd1 = get<0>(dynout);
-  // cout<<" xd1 "<<xd1.t()<<"\n";
   vec x2 = xk+xd1*0.5*dt0;
   x2 = sat.state_norm(x2);
   // x2(span(sat.quat0index(),sat.quat0index()+3)) = normalise(x2(span(sat.quat0index(),sat.quat0index()+3)));
   dynout = sat.dynamics(x2, uk, dynamics_info_mid);
   vec xd2 = get<0>(dynout);
-  // cout<<" xd2 "<<xd2.t()<<"\n";
   vec x3 = xk+xd2*dt0;
   x3 = sat.state_norm(x3);
   // x3(span(sat.quat0index(),sat.quat0index()+3)) = normalise(x3(span(sat.quat0index(),sat.quat0index()+3)));
   dynout = sat.dynamics(x3, uk, dynamics_info_kp1);
   vec xd3 = get<0>(dynout);
-  // cout<<" xd3 "<<xd3.t()<<"\n";
   vec out = (xk + (dt0/6.0)*(xd0+xd1*2.0+xd2*2.0+xd3));
   out = sat.state_norm(out);
   // out(span(sat.quat0index(),sat.quat0index()+3)) =  normalise(out(span(sat.quat0index(),sat.quat0index()+3)));
@@ -1944,25 +1850,21 @@ vec rk4zxkp1r(double dt0, vec xk, vec uk, Satellite sat, DYNAMICS_INFO_FORM dyna
   xk = sat.state_norm(xk);
   tuple<vec,vec> dynout = sat.dynamics(xk, uk, dynamics_info_k);
   vec xd0 = get<0>(dynout);
-  // cout<<"xd0 "<<xd0.t()<<"\n";
   vec x1 = xk+xd0*0.5*dt0;
   x1 = sat.state_norm(x1);
   // x1(span(sat.quat0index(),sat.quat0index()+3)) = normalise(x1(span(sat.quat0index(),sat.quat0index()+3)));
   dynout = sat.dynamics(x1, uk,dynamics_info_mid);
   vec xd1 = get<0>(dynout);
-  // cout<<"xd1 "<<xd1.t()<<"\n";
   vec x2 = xk+xd1*0.5*dt0;
   x2 = sat.state_norm(x2);
   // x2(span(sat.quat0index(),sat.quat0index()+3)) = normalise(x2(span(sat.quat0index(),sat.quat0index()+3)));
   dynout = sat.dynamics(x2, uk, dynamics_info_mid);
   vec xd2 = get<0>(dynout);
-  // cout<<"xd2 "<<xd2.t()<<"\n";
   vec x3 = xk+xd2*dt0;
   x3 = sat.state_norm(x3);
   // x3(span(sat.quat0index(),sat.quat0index()+3)) = normalise(x3(span(sat.quat0index(),sat.quat0index()+3)));
   dynout = sat.dynamics(x3, uk, dynamics_info_kp1);
   vec xd3 = get<0>(dynout);
-  // cout<<"xd3 "<<xd3.t()<<"\n";
   vec out = (xk + (dt0/6.0)*(xd0+xd1*2.0+xd2*2.0+xd3));
   // out(span(sat.quat0index(),sat.quat0index()+3)) =  normalise(out(span(sat.quat0index(),sat.quat0index()+3)));
   return out;
@@ -1984,19 +1886,16 @@ vec rk4zxd3(double dt0, vec xk, vec uk, Satellite sat, DYNAMICS_INFO_FORM dynami
   xk = sat.state_norm(xk);
   tuple<vec,vec> dynout = sat.dynamics(xk, uk, dynamics_info_k);
   vec xd0 = get<0>(dynout);
-  // cout<<"xd0 "<<xd0.t()<<"\n";
   vec x1 = xk+xd0*0.5*dt0;
   x1 = sat.state_norm(x1);
   // x1(span(sat.quat0index(),sat.quat0index()+3)) = normalise(x1(span(sat.quat0index(),sat.quat0index()+3)));
   dynout = sat.dynamics(x1, uk,dynamics_info_mid);
   vec xd1 = get<0>(dynout);
-  // cout<<"xd1 "<<xd1.t()<<"\n";
   vec x2 = xk+xd1*0.5*dt0;
   x2 = sat.state_norm(x2);
   // x2(span(sat.quat0index(),sat.quat0index()+3)) = normalise(x2(span(sat.quat0index(),sat.quat0index()+3)));
   dynout = sat.dynamics(x2, uk, dynamics_info_mid);
   vec xd2 = get<0>(dynout);
-  // cout<<"xd2 "<<xd2.t()<<"\n";
   vec x3 = xk+xd2*dt0;
   x3 = sat.state_norm(x3);
   // x3(span(sat.quat0index(),sat.quat0index()+3)) = normalise(x3(span(sat.quat0index(),sat.quat0index()+3)));
@@ -2021,7 +1920,6 @@ vec rk4zx1(double dt0, vec xk, vec uk, Satellite sat, DYNAMICS_INFO_FORM dynamic
   xk = sat.state_norm(xk);
   tuple<vec,vec> dynout = sat.dynamics(xk, uk, dynamics_info_k);
   vec xd0 = get<0>(dynout);
-  // cout<<"xd0 "<<xd0.t()<<"\n";
   vec x1 = xk+xd0*0.5*dt0;
   x1 = sat.state_norm(x1);
   // out(span(sat.quat0index(),sat.quat0index()+3)) =  normalise(out(span(sat.quat0index(),sat.quat0index()+3)));
@@ -2063,13 +1961,11 @@ vec rk4zx2(double dt0, vec xk, vec uk, Satellite sat, DYNAMICS_INFO_FORM dynamic
   xk = sat.state_norm(xk);
   tuple<vec,vec> dynout = sat.dynamics(xk, uk, dynamics_info_k);
   vec xd0 = get<0>(dynout);
-  // cout<<"xd0 "<<xd0.t()<<"\n";
   vec x1 = xk+xd0*0.5*dt0;
   x1 = sat.state_norm(x1);
   // x1(span(sat.quat0index(),sat.quat0index()+3)) = normalise(x1(span(sat.quat0index(),sat.quat0index()+3)));
   dynout = sat.dynamics(x1, uk,dynamics_info_mid);
   vec xd1 = get<0>(dynout);
-  // cout<<"xd1 "<<xd1.t()<<"\n";
   vec x2 = xk+xd1*0.5*dt0;
   x2 = sat.state_norm(x2);
   // out(span(sat.quat0index(),sat.quat0index()+3)) =  normalise(out(span(sat.quat0index(),sat.quat0index()+3)));
@@ -2092,13 +1988,11 @@ vec rk4zx2r(double dt0, vec xk, vec uk, Satellite sat, DYNAMICS_INFO_FORM dynami
   xk = sat.state_norm(xk);
   tuple<vec,vec> dynout = sat.dynamics(xk, uk, dynamics_info_k);
   vec xd0 = get<0>(dynout);
-  // cout<<"xd0 "<<xd0.t()<<"\n";
   vec x1 = xk+xd0*0.5*dt0;
   x1 = sat.state_norm(x1);
   // x1(span(sat.quat0index(),sat.quat0index()+3)) = normalise(x1(span(sat.quat0index(),sat.quat0index()+3)));
   dynout = sat.dynamics(x1, uk,dynamics_info_mid);
   vec xd1 = get<0>(dynout);
-  // cout<<"xd1 "<<xd1.t()<<"\n";
   vec x2 = xk+xd1*0.5*dt0;
   // out(span(sat.quat0index(),sat.quat0index()+3)) =  normalise(out(span(sat.quat0index(),sat.quat0index()+3)));
   return x2;
@@ -2118,7 +2012,6 @@ vec rk4zxd1(double dt0, vec xk, vec uk, Satellite sat, DYNAMICS_INFO_FORM dynami
   xk = sat.state_norm(xk);
   tuple<vec,vec> dynout = sat.dynamics(xk, uk, dynamics_info_k);
   vec xd0 = get<0>(dynout);
-  // cout<<"xd0 "<<xd0.t()<<"\n";
   vec x1 = xk+xd0*0.5*dt0;
   x1 = sat.state_norm(x1);
   // x1(span(sat.quat0index(),sat.quat0index()+3)) = normalise(x1(span(sat.quat0index(),sat.quat0index()+3)));
@@ -2144,19 +2037,16 @@ vec rk4zx3(double dt0, vec xk, vec uk, Satellite sat, DYNAMICS_INFO_FORM dynamic
   xk = sat.state_norm(xk);
   tuple<vec,vec> dynout = sat.dynamics(xk, uk, dynamics_info_k);
   vec xd0 = get<0>(dynout);
-  // cout<<"xd0 "<<xd0.t()<<"\n";
   vec x1 = xk+xd0*0.5*dt0;
   x1 = sat.state_norm(x1);
   // x1(span(sat.quat0index(),sat.quat0index()+3)) = normalise(x1(span(sat.quat0index(),sat.quat0index()+3)));
   dynout = sat.dynamics(x1, uk,dynamics_info_mid);
   vec xd1 = get<0>(dynout);
-  // cout<<"xd1 "<<xd1.t()<<"\n";
   vec x2 = xk+xd1*0.5*dt0;
   x2 = sat.state_norm(x2);
   // x2(span(sat.quat0index(),sat.quat0index()+3)) = normalise(x2(span(sat.quat0index(),sat.quat0index()+3)));
   dynout = sat.dynamics(x2, uk, dynamics_info_mid);
   vec xd2 = get<0>(dynout);
-  // cout<<"xd2 "<<xd2.t()<<"\n";
   vec x3 = xk+xd2*dt0;
   x3 = sat.state_norm(x3);
   // out(span(sat.quat0index(),sat.quat0index()+3)) =  normalise(out(span(sat.quat0index(),sat.quat0index()+3)));
@@ -2180,19 +2070,16 @@ vec rk4zx3r(double dt0, vec xk, vec uk, Satellite sat, DYNAMICS_INFO_FORM dynami
   xk = sat.state_norm(xk);
   tuple<vec,vec> dynout = sat.dynamics(xk, uk, dynamics_info_k);
   vec xd0 = get<0>(dynout);
-  // cout<<"xd0 "<<xd0.t()<<"\n";
   vec x1 = xk+xd0*0.5*dt0;
   x1 = sat.state_norm(x1);
   // x1(span(sat.quat0index(),sat.quat0index()+3)) = normalise(x1(span(sat.quat0index(),sat.quat0index()+3)));
   dynout = sat.dynamics(x1, uk,dynamics_info_mid);
   vec xd1 = get<0>(dynout);
-  // cout<<"xd1 "<<xd1.t()<<"\n";
   vec x2 = xk+xd1*0.5*dt0;
   x2 = sat.state_norm(x2);
   // x2(span(sat.quat0index(),sat.quat0index()+3)) = normalise(x2(span(sat.quat0index(),sat.quat0index()+3)));
   dynout = sat.dynamics(x2, uk, dynamics_info_mid);
   vec xd2 = get<0>(dynout);
-  // cout<<"xd2 "<<xd2.t()<<"\n";
   vec x3 = xk+xd2*dt0;
   // out(span(sat.quat0index(),sat.quat0index()+3)) =  normalise(out(span(sat.quat0index(),sat.quat0index()+3)));
   return x3;
@@ -2215,19 +2102,16 @@ vec rk4zxd2(double dt0, vec xk, vec uk, Satellite sat, DYNAMICS_INFO_FORM dynami
   xk = sat.state_norm(xk);
   tuple<vec,vec> dynout = sat.dynamics(xk, uk, dynamics_info_k);
   vec xd0 = get<0>(dynout);
-  // cout<<"xd0 "<<xd0.t()<<"\n";
   vec x1 = xk+xd0*0.5*dt0;
   x1 = sat.state_norm(x1);
   // x1(span(sat.quat0index(),sat.quat0index()+3)) = normalise(x1(span(sat.quat0index(),sat.quat0index()+3)));
   dynout = sat.dynamics(x1, uk,dynamics_info_mid);
   vec xd1 = get<0>(dynout);
-  // cout<<"xd1 "<<xd1.t()<<"\n";
   vec x2 = xk+xd1*0.5*dt0;
   x2 = sat.state_norm(x2);
   // x2(span(sat.quat0index(),sat.quat0index()+3)) = normalise(x2(span(sat.quat0index(),sat.quat0index()+3)));
   dynout = sat.dynamics(x2, uk, dynamics_info_mid);
   vec xd2 = get<0>(dynout);
-  // cout<<"xd2 "<<xd2.t()<<"\n";
   vec x3 = xk+xd2*dt0;
   // out(span(sat.quat0index(),sat.quat0index()+3)) =  normalise(out(span(sat.quat0index(),sat.quat0index()+3)));
   return xd2;
@@ -2275,10 +2159,8 @@ REG_PAIR increaseReg(REG_PAIR reg0, REG_SETTINGS_FORM regSettings_tmp){
     double rho = max(rho0*drho,regMin_tmp);
     // if(rho0>=regMax_tmp){
     //   drho = drho0;
-    //   cout<<"regmax problem!\n";
     // }
     // rho = min(rho,regMax_tmp);
-    // cout<<"increased Reg. rho="<<rho<<"\n";
     if(isinf(rho)){
       cout<<"rho should not be inf (increase reg failure)\n";
       throw("rho should not be inf");
@@ -2310,7 +2192,6 @@ REG_PAIR decreaseReg(REG_PAIR reg0, REG_SETTINGS_FORM regSettings_tmp){
         throw("invalid regmin conditions");
     }
     rho = min(rho,regMax_tmp);
-    // cout<<"decreased Reg. rho="<<rho<<"\n";
     if(isinf(rho)){
       cout<<"rho should not be inf (decrease reg failure)\n";
       throw("rho should not be inf");

@@ -71,40 +71,8 @@ py::tuple PyPlanner::trajOptBeforePython(VECTOR_INFO_PY_FORM vecs_w_timePy,doubl
 }
 
 py::tuple PyPlanner::trajOpt(VECTOR_INFO_PY_FORM vecs_w_timePy,int N, TIME_FORM time_start, TIME_FORM time_end, py::array_t<double> x0Numpy, int bdotOn){
-  // cout << std::format("{}", time_start)<<"\n";
-  // cout << std::format("{}", time_end)<<"\n";
-
-  // cout<<"numpy: "<<x0Numpy<<"\n";
   vec x0 = numpyToArmaVector(x0Numpy);
-  // cout<<x0<<"\n";
-  cout << "What!\n";
   VECTOR_INFO_FORM vecs_w_time = vecsPy2Cpp(vecs_w_timePy);
-
-  cout << "=== VECTOR_INFO_FORM DEBUG ===\n";
-
-  const arma::vec& t   = std::get<0>(vecs_w_time);
-  const arma::mat& r   = std::get<1>(vecs_w_time);
-  const arma::mat& v   = std::get<2>(vecs_w_time);
-  const arma::mat& b   = std::get<3>(vecs_w_time);
-  const arma::mat& s   = std::get<4>(vecs_w_time);
-  const arma::mat& a   = std::get<5>(vecs_w_time);
-  const arma::mat& e   = std::get<6>(vecs_w_time);
-  const arma::vec& p   = std::get<7>(vecs_w_time);
-  const arma::vec& rho = std::get<8>(vecs_w_time);
-
-  cout << "t   : vec  n_elem = " << t.n_elem << "\n";
-
-  cout << "r   : mat  " << r.n_rows << " x " << r.n_cols << "\n";
-  cout << "v   : mat  " << v.n_rows << " x " << v.n_cols << "\n";
-  cout << "b   : mat  " << b.n_rows << " x " << b.n_cols << "\n";
-  cout << "s   : mat  " << s.n_rows << " x " << s.n_cols << "\n";
-  cout << "a   : mat  " << a.n_rows << " x " << a.n_cols << "\n";
-  cout << "e   : mat  " << e.n_rows << " x " << e.n_cols << "\n";
-
-  cout << "p   : vec  n_elem = " << p.n_elem << "\n";
-  cout << "rho : vec  n_elem = " << rho.n_elem << "\n";
-
-  cout << "==============================\n";
 
   AFTER_OUTPUT_FORM results = op.trajOpt(vecs_w_time, N, time_start, time_end, x0, bdotOn);
 
@@ -123,6 +91,10 @@ py::tuple PyPlanner::trajOptAfterPython(VECTOR_INFO_PY_FORM vecs_w_timePy,double
   py::tuple resultsPy = afterOutputCpp2Py(results);
   //return success
   return resultsPy;
+}
+
+int PyPlanner::echo_int(int x){
+  return x;
 }
 
 TRAJECTORY_PY_FORM PyPlanner::generateInitialTrajectoryPython(double dt0, py::array_t<double> x0Py, py::array_t<double> UsetPy,VECTOR_INFO_PY_FORM vecsPy){
@@ -347,6 +319,7 @@ PYBIND11_MODULE(tplaunch, m) {
         .def("getdt", &PyPlanner::getdt)
         .def("setVerbosity", &PyPlanner::setPlannerVerbosity)
         .def("setquaternionTo3VecMode", &PyPlanner::setquaternionTo3VecMode)
+        .def("echo_int", &PyPlanner::echo_int)
         .def(py::pickle(
           []( PyPlanner &p) { // __getstate__
               /* Return a tuple that fully encodes the state of the object */

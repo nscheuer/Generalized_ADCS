@@ -161,18 +161,11 @@ ALL_SETTINGS_PY_FORM ParametersCpp2Py(ALL_SETTINGS_FORM allCpp)
 VECTOR_INFO_FORM vecsPy2Cpp(VECTOR_INFO_PY_FORM py_vecs){
   vec t = numpyToArmaVector(get<0>(py_vecs));
   mat r = numpyToArmaMatrix(get<1>(py_vecs));
-  std::cout << "C++ DEBUG: R(0,0) = " << std::fixed << std::setprecision(10) << r(0,0) << std::endl;
-  std::cout << "C++ DEBUG: R(0,1) = " << std::fixed << std::setprecision(10) << r(0,1) << std::endl;
-  std::cout << "C++ DEBUG: R shape = " << r.n_rows << "x" << r.n_cols << std::endl;
   mat v = numpyToArmaMatrix(get<2>(py_vecs));
   mat b = numpyToArmaMatrix(get<3>(py_vecs));
   mat s = numpyToArmaMatrix(get<4>(py_vecs));
   mat a = numpyToArmaMatrix(get<5>(py_vecs));
   mat e = numpyToArmaMatrix(get<6>(py_vecs));
-  std::cout << "C++ DEBUG: E shape = " << e.n_rows << "x" << e.n_cols << std::endl;
-  std::cout << "C++ DEBUG: E(0,0) = " << std::fixed << std::setprecision(10) << e(0,0) << std::endl;
-  std::cout << "C++ DEBUG: E(0,1) = " << std::fixed << std::setprecision(10) << e(0,1) << std::endl;
-  std::cout << "C++ DEBUG: E(0,2) = " << std::fixed << std::setprecision(10) << e(0,2) << std::endl;
   vec p = numpyToArmaVector(get<7>(py_vecs));
   vec rho = numpyToArmaVector(get<8>(py_vecs));
   return std::make_tuple(t,r,v,b,s,a,e,p,rho);

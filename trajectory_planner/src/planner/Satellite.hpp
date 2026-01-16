@@ -14,7 +14,7 @@
 
 #define COST_SETTINGS_FORM std::tuple<double, double, double, double, double,double,double,double,double,double,int,int>
 #define DYNAMICS_INFO_FORM std::tuple<arma::vec3,arma::vec3,int,arma::vec3,arma::vec3,int>
-static const double MAGRW_TORQ_MULT = 1e-4;//1.0;//1e-3;
+static const double MAGRW_TORQ_MULT = 1.0;//1e-3;//1e-4;//1.0;//1e-3;
 
 
 
@@ -90,6 +90,8 @@ public:
     void add_magic(arma::vec3 body_ax, double max_torq, double cost);
     void add_magic_py(py::array_t<double> body_ax_py, double max_torq, double cost);
     void clear_magics();
+
+    void auto_scale_control_costs(double base_weight = 1.0);
 
     double read_magrw_torq_mult();
 

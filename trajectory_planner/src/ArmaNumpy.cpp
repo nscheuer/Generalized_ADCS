@@ -1,6 +1,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
 #include <armadillo>
+#include <cstring>
 
 using namespace arma;
 namespace py = pybind11;
@@ -30,15 +31,13 @@ cube numpyToArmaCube(py::array_t<double> npCube) {
 mat numpyToArmaMatrix(py::array_t<double> npMat) {
   py::buffer_info buf1 = npMat.request();
   double *ptr1 = (double *) buf1.ptr;
-  int X = buf1.shape[0];
-  int Y = buf1.shape[1];
+  int nrows = buf1.shape[0];
+  int ncols = buf1.shape[1];
 
-  mat armaMat(X, Y);
-  for (size_t idx = 0; idx < X; idx++) {
-    for (size_t idy = 0; idy < Y; idy++) {
-      armaMat(idx, idy) = ptr1[idx*Y+ idy];
-    }
-  }
+  // Use Armadillo constructor that expects column-major data
+  // (matches Python's Fortran order / np.asfortranarray)
+  // copy_aux_mem=true copies the data, strict=false allows non-aligned memory
+  mat armaMat(ptr1, nrows, ncols, /*copy_aux_mem=*/true, /*strict=*/false);
   return armaMat;
 }
 
@@ -90,22 +89,18 @@ py::array_t<double> armaVectorToNumpy(vec armaVec) {
 }
 
 py::array_t<double> armaMatrixToNumpy(mat armaMat) {
-  int size = armaMat.n_rows*armaMat.n_cols;
-  auto result = py::array_t<double>(size);
-  py::buffer_info buf3 = result.request();
+  // Create numpy array with Fortran (column-major) order to match Armadillo's storage
+  // This ensures consistency with numpyToArmaMatrix which expects column-major input
+  std::vector<ssize_t> shape = {(ssize_t)armaMat.n_rows, (ssize_t)armaMat.n_cols};
+  std::vector<ssize_t> strides = {(ssize_t)sizeof(double), (ssize_t)(armaMat.n_rows * sizeof(double))};
 
+  auto result = py::array_t<double>(shape, strides);
+  py::buffer_info buf3 = result.request();
   double *ptr3 = (double *) buf3.ptr;
 
-  for (size_t idx = 0; idx < armaMat.n_rows; idx++) {
-    for (size_t idy = 0; idy < armaMat.n_cols; idy++) {
-      //std::cout<<"Writing i= "<<idx<<", j="<<idy<<"\n";
-      ptr3[idx*armaMat.n_cols + idy] = armaMat(idx, idy);
-    }
-  }
-  // reshape array to match input shape
-  //std::cout<<"About to resize\n";
-  result.resize({armaMat.n_rows,armaMat.n_cols});
-  //std::cout<<"Time to return\n";
+  // Copy data directly from Armadillo's column-major storage
+  std::memcpy(ptr3, armaMat.memptr(), armaMat.n_elem * sizeof(double));
+
   return result;
 }
 

@@ -1,3 +1,10 @@
+"""
+Configuration dataclasses for ALTRO trajectory planner.
+
+This module defines the configuration structures for the Augmented Lagrangian iLQR
+optimizer, including solver settings, cost weights, and convergence criteria.
+"""
+
 __all__ = ["LineSearchConfig", "AugLagConfig", "RegularizationConfig", "ConvergenceConfig", "SolverPassConfig", "CostWeights", "InitTrajConfig"]
 
 import numpy as np
@@ -6,7 +13,18 @@ from typing import Tuple, List
 
 @dataclass
 class LineSearchConfig:
-    # Settings for the backtracking line search
+    """
+    Configuration for backtracking line search in the forward pass.
+
+    The line search finds a step size alpha that ensures sufficient cost decrease.
+    It checks that the ratio z = (actual_decrease) / (expected_decrease) satisfies
+    beta1 < z < beta2.
+
+    Attributes:
+        max_iters: Maximum line search iterations before giving up
+        beta1: Lower bound for acceptable cost decrease ratio (prevents tiny steps)
+        beta2: Upper bound for acceptable cost decrease ratio (prevents model trust issues)
+    """
     max_iters: int = 20
     beta1: float = 1e-10
     beta2: float = 500.0
@@ -16,10 +34,24 @@ class LineSearchConfig:
     
 @dataclass
 class AugLagConfig:
-    # Settings for the Augmented Lagrangian (constraint enforcement)
+    """
+    Configuration for Augmented Lagrangian constraint handling.
+
+    The augmented Lagrangian method converts constrained optimization into a sequence
+    of unconstrained problems by adding penalty terms: L_A = L + lambda*c + (mu/2)*c^2
+    where c is the constraint violation.
+
+    Attributes:
+        lag_mult_init: Initial value for Lagrange multipliers (lambda)
+        lag_mult_max: Maximum allowed Lagrange multiplier magnitude
+        penalty_init: Initial penalty parameter (mu). Higher values enforce
+            constraints more strictly but can cause ill-conditioning.
+        penalty_max: Maximum penalty parameter
+        penalty_scale: Factor to increase penalty when constraints not satisfied
+    """
     lag_mult_init: float = 0.0
     lag_mult_max: float = 1e20
-    penalty_init: float = 1e-3
+    penalty_init: float = 1e-1
     penalty_max: float = 1e16
     penalty_scale: float = 10.0
 
@@ -28,8 +60,21 @@ class AugLagConfig:
     
 @dataclass
 class RegularizationConfig:
-    # Settings for matrix regulatization (Levenberg-Marquardt)
-    reg_init: float = 1e-10
+    """
+    Configuration for Levenberg-Marquardt style regularization in the backward pass.
+
+    Regularization ensures the control Hessian Quu is positive definite, which is
+    required for computing valid feedback gains. When Quu is ill-conditioned or
+    indefinite, regularization adds rho*I to make it invertible.
+
+    Attributes:
+        reg_init: Initial regularization parameter (rho)
+        reg_min: Minimum regularization (floor value)
+        reg_max: Maximum regularization (triggers failure if exceeded)
+        reg_scale: Factor to increase/decrease regularization adaptively
+        reg_bump: Additional increase when line search fails
+    """
+    reg_init: float = 1e-2
     reg_min: float = 1e-8
     reg_max: float = 1e30
     reg_scale: float = 1.6
@@ -60,11 +105,29 @@ class RegularizationConfig:
     
 @dataclass
 class ConvergenceConfig:
-    # Settings for breaking loops (Inner/Outer iterations and tolerances)
-    max_outer_iter: int = 20
+    """
+    Configuration for convergence criteria and iteration limits.
+
+    The optimizer has nested loops: outer loop (augmented Lagrangian updates) and
+    inner loop (iLQR iterations). Convergence is declared when cost changes are
+    small and constraints are satisfied.
+
+    Attributes:
+        max_outer_iter: Maximum augmented Lagrangian iterations
+        max_inner_iter: Maximum iLQR iterations per outer iteration
+        max_total_iter: Absolute maximum iterations across all loops
+        grad_tol: Gradient norm tolerance for declaring convergence
+        ilqr_cost_tol: Cost change tolerance for iLQR inner loop
+        total_cost_tol: Cost change tolerance for outer loop convergence
+        z_count_lim: Number of small-z iterations before giving up
+        c_max: Maximum constraint violation for feasibility
+        max_cost: Cost threshold for detecting divergence
+        xmax_val: State magnitude threshold for detecting divergence
+    """
+    max_outer_iter: int = 30
     max_inner_iter: int = 250
     max_total_iter: int = 7000
-    grad_tol: float = 1e-2
+    grad_tol: float = 1e-3
     ilqr_cost_tol: float = 1e-1
     total_cost_tol: float = 1e-2
     z_count_lim: int = 10
@@ -89,7 +152,31 @@ class SolverPassConfig:
 
 @dataclass
 class CostWeights:
-    # Weights for the Q and R matrices
+    """
+    Cost function weights for the trajectory optimization problem.
+
+    The cost function is: J = sum_k [state_cost + control_cost] + terminal_cost
+
+    Terminal costs (*_N) should typically be higher than running costs to
+    prioritize reaching the goal state.
+
+    Attributes:
+        angle: Running cost weight on attitude error
+        ang_vel: Running cost on angular velocity squared: 0.5*w'*w*w_av
+        control_mult: Multiplier for actuator-specific control costs
+        control_mag: UNUSED - extracted but not applied in C++ cost function
+        ang_vel_mag: Cost on ang vel component along B-field: |dot(w, R'*B)|
+        ang_accel: Misnamed - actually cost on ang vel along attitude error
+            direction: dot(w, cross(R'*e_goal, boresight))
+        angle_N: Terminal attitude error cost weight
+        ang_vel_N: Terminal angular velocity cost weight
+        ang_vel_mag_N: Terminal cost on ang vel along B-field
+        ang_accel_N: Terminal cost on ang vel along error direction
+        ang_cost_func_type: Attitude cost formulation:
+            0=(1-dot), 1=0.5*(1-dot)^2, 2=acos(dot), 3=0.5*acos(dot)^2
+        use_raw_control_cost: If True, use control values directly in cost
+        consider_vector_in_tvlqr: Flag for TVLQR vector tracking mode
+    """
     angle: float = 1e3
     ang_vel: float = 1e4
     control_mult: float = 1.0
@@ -97,15 +184,15 @@ class CostWeights:
     ang_vel_mag: float = 0.0
     ang_accel: float = 0.0
 
-    # Terminal costs
-    angle_N: float = 100.0
-    ang_vel_N: float = 100.0
+    # Terminal costs (should be >= running costs to prioritize reaching goal)
+    angle_N: float = 1e4
+    ang_vel_N: float = 1e5
     ang_vel_mag_N: float = 0.0
     ang_accel_N: float = 0.0
 
     # Flags
     # 0=(1-dot), 1=0.5*(1-dot)^2, 2=acos(dot), 3=0.5*acos(dot)^2
-    ang_cost_func_type: int = 2 
+    ang_cost_func_type: int = 3
     use_raw_control_cost: bool = True
     consider_vector_in_tvlqr: int = 0 # Specifically for TVLQR pass
 
@@ -129,7 +216,7 @@ class CostWeights:
 @dataclass
 class InitTrajConfig:
     # Settings for generating the initial guess
-    bdot_gain: float = 10000000.0
+    bdot_gain: float = 1000.0
     hl_angle_limit: float = 10.0 * np.pi / 180.0
     
     # (gyro, damp, vel, quat, rand, umax)

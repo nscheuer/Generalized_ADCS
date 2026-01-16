@@ -46,6 +46,7 @@ FetchContent_Declare(
   GIT_TAG v3.5.2
 )
 FetchContent_MakeAvailable(Catch2)
+list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
 
 # --- Armadillo ---
 find_package(Armadillo REQUIRED)
@@ -85,6 +86,11 @@ add_executable(tp_test
 			   )
 set_target_properties(tp_test PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
+add_executable(tp_test2
+			   src/planner/tp_test2.cpp
+			   )
+set_target_properties(tp_test2 PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
 
 pybind11_add_module(tplaunch MODULE src/planner/PyPlanner.cpp)
 pybind11_add_module(pysat MODULE src/planner/Satellite.cpp)
@@ -96,7 +102,8 @@ target_link_libraries(sat_nopy PUBLIC ${ARMADILLO_LIBRARIES} ${ARMADILLO_LIBRARY
 target_link_libraries(pysat PUBLIC ${ARMADILLO_LIBRARIES} ${ARMADILLO_LIBRARY} sat ${PYTHON_LIBRARY} ${PYTHON_LIBRARIES}  )
 target_link_libraries(tp PUBLIC ${ARMADILLO_LIBRARIES} ${ARMADILLO_LIBRARY} pybind11::module sat ${PYBIND11_INCLUDE_DIRS} ${PYTHON_LIBRARY} ${PYTHON_LIBRARIES}   )
 target_link_libraries(tplaunch PUBLIC ${ARMADILLO_LIBRARIES} ${ARMADILLO_LIBRARY} tp tp_nopy sat sat_nopy  pybind11::module ${PYBIND11_INCLUDE_DIRS} ${PYTHON_LIBRARY} ${PYTHON_LIBRARIES}  )
-target_link_libraries(tp_test PRIVATE Catch2::Catch2WithMain PUBLIC pybind11::module ${PYBIND11_INCLUDE_DIRS} ${ARMADILLO_LIBRARIES} ${ARMADILLO_LIBRARY} sat tp sat_nopy tp_nopy ${PYTHON_LIBRARY} ${PYTHON_LIBRARIES})
+target_link_libraries(tp_test PRIVATE Catch2::Catch2WithMain PUBLIC pybind11::embed ${ARMADILLO_LIBRARIES} ${ARMADILLO_LIBRARY} sat tp sat_nopy tp_nopy)
+target_link_libraries(tp_test2 PRIVATE Catch2::Catch2WithMain PUBLIC pybind11::embed ${ARMADILLO_LIBRARIES} ${ARMADILLO_LIBRARY} sat tp sat_nopy tp_nopy)
 
 
 target_include_directories(tp PUBLIC
@@ -143,6 +150,14 @@ target_include_directories(sat_nopy PUBLIC
 			   )
 
 target_include_directories(tp_test PUBLIC
+			   "${PROJECT_SOURCE_DIR}/src"
+ 			   ${PROJECT_SOURCE_DIR}
+         ${PYTHON_INCLUDE_DIRS}
+         ${PYBIND11_INCLUDE_DIRS}
+         ${ARMADILLO_INCLUDE_DIRS}
+		   )
+
+target_include_directories(tp_test2 PUBLIC
 			   "${PROJECT_SOURCE_DIR}/src"
  			   ${PROJECT_SOURCE_DIR}
          ${PYTHON_INCLUDE_DIRS}

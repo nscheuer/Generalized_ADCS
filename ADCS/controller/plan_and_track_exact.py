@@ -1,4 +1,4 @@
-__all__ = ["Plan_and_Track_LQR"]
+__all__ = ["Plan_and_Track_Exact"]
 
 import numpy as np
 from typing import Tuple
@@ -15,7 +15,7 @@ from ADCS.orbits.universal_constants import TimeConstants
 import trajectory_planner.build.tplaunch as tplaunch
 import trajectory_planner.build.pysat as pysat
 
-class Plan_and_Track_LQR(Controller):
+class Plan_and_Track_Exact(Controller):
     def __init__(self, est_sat: EstimatedSatellite, planner_settings: PlannerSettings) -> None:
         self.est_sat = est_sat
         self.planner_settings = planner_settings
@@ -32,7 +32,9 @@ class Plan_and_Track_LQR(Controller):
             # 0 implies standard LQR tracking formulation
             planner_settings.optTVLQRCostSettings(tracking_LQR_formulation=0) 
         )
-        self.planner.setquaternionTo3VecMode(0)
+
+
+        self.planner.setquaternionTo3VecMode(2)
 
         self.active_trajectory: Trajectory = None
 
@@ -49,7 +51,7 @@ class Plan_and_Track_LQR(Controller):
             raise RuntimeError(f"Plan_and_Track_LQR: Active trajectory expired or not started. "
                                 f"Current: {current_time}, Traj: [{self.active_trajectory.start_time}, {self.active_trajectory.end_time}]")
 
-        return self.active_trajectory.compute_tracking_control(current_time, x_hat)
+        return self.active_trajectory.get_control_at(current_time)
 
     def set_active_trajectory(self, traj: Trajectory) -> None:
         self.active_trajectory = traj
@@ -65,6 +67,7 @@ class Plan_and_Track_LQR(Controller):
         if verbose: print(f"Planning traj: Start={t_start:.5f}, Dur={duration}s")
 
         self.planner.setVerbosity(verbose)
+        # self.planner.setquaternionTo3VecMode(2)
         
         dt_seconds = self.planner_settings.dt_tvlqr
         
@@ -99,7 +102,23 @@ class Plan_and_Track_LQR(Controller):
                 else:
                     print(f"{i}: {lbl:<12} type={type(x)}")
             print("==============================================")
-        (_, _, _, lqr_opt, _) = self.planner.trajOpt(vecsPy, N, t_start, t_end, x_0_clean, bdotOn)
+        # (traj_initial, vecs_dt, costset_initial) = self.planner.prepareForAlilqr(vecsPy,self.planner_settings.dt_tp,t_start, t_end, x_0_clean, bdotOn)
+        # (Xset_initial, Uset_initial, Tset, unsure) =  traj_initial
+
+
+        # traj_initial_py = Trajectory(np.array(Tset), Xset_initial, Uset_initial, [], [])
+        # time_hist_initial = (traj_initial_py.times-t_start)*TimeConstants.cent2sec
+        # state_hist_initial = traj_initial_py.states.T
+        # u_hist_initial = traj_initial_py.controls.T
+
+        # plot_state_comparison(time=time_hist_initial, state_hist=state_hist_initial)
+        # plot_control(time=time_hist_initial, u_hist=u_hist_initial)
+
+        # boresight_traj_hist = np.vstack([goals.to_ref(t=J2000, os0=orb.get_os(J2000))[0] for J2000 in traj.times])
+        # plot_target_tracking(state_hist=state_hist_traj, boresight_hist=boresight_traj_hist, body_boresight=np.array([0, 0, 1]))
+        
+
+        (_, _, _, lqr_opt, _) = self.planner.trajOpt(vecsPy, N, t_start, t_end, x_0_clean, int(bdotOn))
         (Xset, Uset_cpp, Tset, Kset_cpp, Sset, lqr_times) = lqr_opt
 
         # Reorder controls and gains from C++ ordering (MTQ, RW) to Python actuator ordering

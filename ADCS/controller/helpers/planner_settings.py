@@ -55,15 +55,15 @@ class PlannerSettings:
             self.pass2 = pass2_config
         else:
             self.pass2 = SolverPassConfig()
-            self.pass2.convergence.max_outer_iter = 14
+            self.pass2.convergence.max_outer_iter = 15
             self.pass2.convergence.max_inner_iter = 200
             self.pass2.regularization.reg_max = 1e12
 
         converge1 = ConvergenceConfig(max_outer_iter=20, max_inner_iter=150)
         auglag1 = AugLagConfig(penalty_init=1e-3)
-        self.pass1 = pass1_config if pass1_config else SolverPassConfig(convergence=converge1)
+        self.pass1 = pass1_config if pass1_config else SolverPassConfig(convergence=converge1, aug_lag=auglag1)
         converge2 = ConvergenceConfig(max_outer_iter=20, max_inner_iter=75)
-        auglag2 = AugLagConfig(penalty_init=1e1)
+        auglag2 = AugLagConfig(penalty_init=1e4)
         self.pass2 = pass2_config if pass2_config else SolverPassConfig(convergence=converge2, aug_lag=auglag2)
 
         # Initilization
@@ -82,41 +82,42 @@ class PlannerSettings:
         self.magic_control_weight = 0.0001
         self.rw_AM_weight = 1e4
         self.rw_stic_weight = 1e0
-        self.RWh_max_mult = 0.5
+        self.RWh_max_mult = 0.8
         self.RWh_stiction_mult = 0.01
-        self.RWh_ok_mult = 0.15
+        self.RWh_ok_mult = 0.5
 
         # Cost Configuration
+        # Terminal costs 10x higher than running costs to prioritize goal reaching
         self.cost_main = cost_main if cost_main else CostWeights(
             angle=1e3,
-            angle_N=1e3,
+            angle_N=1e4,   # 10x running cost
             ang_vel=1e4,
-            ang_vel_N=1e4,
+            ang_vel_N=1e5, # 10x running cost
             ang_vel_mag=0.0,
             ang_vel_mag_N=0.0,
             control_mult=1.0,
             ang_cost_func_type=2,
         )
-        self.cost_second = cost_second if cost_second else CostWeights(
-            angle=1e6,
-            angle_N=1e6,
-            ang_vel=1.0,
-            ang_vel_N=1.0,
-            ang_vel_mag=0.0,
-            ang_vel_mag_N=0.0,
-            control_mult=100.0,
-            ang_cost_func_type=2,
-        )
-        self.cost_tvlqr = cost_tvlqr if cost_tvlqr else CostWeights(
-            angle=1e5,
-            angle_N=1e8,
-            ang_vel=1e8,
-            ang_vel_N=1e10,
-            ang_vel_mag=0.0,
-            ang_vel_mag_N=0.0,
-            control_mult=1e5 / self.mtq_control_weight,
-            ang_cost_func_type=2,
-        )
+        self.cost_second = cost_second if cost_second else self.cost_main#CostWeights(
+        #     angle=1e3,
+        #     angle_N=1e3,
+        #     ang_vel=1.0,
+        #     ang_vel_N=1.0,
+        #     ang_vel_mag=0.0,
+        #     ang_vel_mag_N=0.0,
+        #     control_mult=100.0,
+        #     ang_cost_func_type=2,
+        # )
+        self.cost_tvlqr = cost_tvlqr if cost_tvlqr else self.cost_main#CostWeights(
+        #     angle=1e5,
+        #     angle_N=1e8,
+        #     ang_vel=1e8,
+        #     ang_vel_N=1e10,
+        #     ang_vel_mag=0.0,
+        #     ang_vel_mag_N=0.0,
+        #     control_mult=1e5 / self.mtq_control_weight,
+        #     ang_cost_func_type=2,
+        # )
 
         # Disturbance Settings
         self.plan_for_aero = include_drag

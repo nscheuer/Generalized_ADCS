@@ -1,3 +1,40 @@
+/**
+ * @file OldPlanner.cpp
+ * @brief ALTRO (Augmented Lagrangian TRajectory Optimizer) for spacecraft attitude control
+ *
+ * This file implements an Augmented Lagrangian iLQR (AL-iLQR) trajectory optimizer for
+ * spacecraft attitude maneuvers. The algorithm solves constrained optimal control problems
+ * by combining iterative Linear Quadratic Regulator (iLQR) with augmented Lagrangian
+ * constraint handling.
+ *
+ * Algorithm Overview:
+ * -------------------
+ * 1. OUTER LOOP (Augmented Lagrangian): Updates constraint penalties and Lagrange multipliers
+ *    - Penalty parameter mu scales quadratic constraint violation costs
+ *    - Lagrange multipliers lambda provide first-order constraint gradient information
+ *    - Penalty increases when constraints not satisfied, driving solution toward feasibility
+ *
+ * 2. INNER LOOP (iLQR): Solves the unconstrained subproblem via dynamic programming
+ *    - BACKWARD PASS: Computes optimal feedback gains K and feedforward terms d
+ *      by solving Riccati-like equations from final time to initial time
+ *    - FORWARD PASS: Rolls out new trajectory using computed gains with line search
+ *      to ensure cost decrease
+ *
+ * Key Components:
+ * ---------------
+ * - Satellite dynamics: Quaternion attitude + angular velocity with actuator models
+ *   (magnetorquers, reaction wheels, magic actuators)
+ * - Cost function: Quadratic costs on attitude error, angular velocity, and control effort
+ * - Constraints: Control limits, angular velocity limits, sun-pointing keepout zones
+ * - Regularization: Levenberg-Marquardt style regularization for numerical stability
+ *
+ * References:
+ * -----------
+ * - Howell & Jackson, "ALTRO: A Fast Solver for Constrained Trajectory Optimization"
+ * - Tassa et al., "Synthesis and Stabilization of Complex Behaviors through Online
+ *   Trajectory Optimization"
+ */
+
 // #include "PlannerUtil.hpp"
 #include "OldPlanner.hpp"
 // #include "PlannerUtil.hpp"
@@ -36,7 +73,7 @@ void OldPlanner::setVerbosity(bool verbosity) {
   verbose = verbosity;
 }
 void OldPlanner::updateParameters_notsat(SYSTEM_SETTINGS_FORM systemSettings_tmp, ALILQR_SETTINGS_FORM alilqrSettings_tmp, ALILQR_SETTINGS_FORM alilqrSettings2_tmp, INITIAL_TRAJ_SETTINGS_FORM initialTrajSettings_tmp, COST_SETTINGS_FORM costSettings_tmp,COST_SETTINGS_FORM costSettings2_tmp,LQR_COST_SETTINGS_FORM costSettings_tvlqr_tmp) {
-    verbose = false;
+    verbose = true;
 
     costSettings = costSettings_tmp;
     costSettings2 = costSettings2_tmp;
@@ -212,33 +249,24 @@ void OldPlanner::updateParameters_notsat(SYSTEM_SETTINGS_FORM systemSettings_tmp
 
 BEFORE_OUTPUT_FORM OldPlanner::trajOptBefore(VECTOR_INFO_FORM vecs_w_time,double dt_use, TIME_FORM time_start, TIME_FORM time_end, vec x0, int bdotOn)
 {
-  // cout<<x0<<"\n";
   x0 = sat.state_norm(x0);
-  // cout<<"inside x0"<<x0.t()<<"\n";
   // x0.rows(3, 6) = normalise(x0.rows(3,6));
   //double dt = this->dt;//readJsonDouble(trajOptSettingsFile, "dt");
   // double dt_readin = (t(1)-t(0))*36525.0*24.0*3600.0;
-  cout<<"doing vec times\n";
   // vec t = get<0>(vecs_w_time);
 
   VECTOR_INFO_FORM vecs = findVecTimes(vecs_w_time,dt_use/(36525.0*24.0*3600.0),time_start,time_end);
   // vec times = get<0>(vecs);
-
-  cout<<"done with vec times\n";
   mat dt_timevec = get<0>(vecs);
 
   int traj_length = dt_timevec.n_elem;
   // VECTOR_INFO_FORM vecs = get<1>(time_tuple);
   COST_SETTINGS_FORM costSettings_tmp = this->costSettings;
 
-  cout<<"read in ECIvecs\n";
-
-
 //  double penInit = this->penInit;//readJsonDouble(trajOptSettingsFile, "penInit");
   //double penScale = this->penScale;//readJsonDouble(trajOptSettingsFile, "penScale");
   mat ECIvec = get<6>(vecs);
   // if(verbose) {
-  //   cout<<ECIvec;
   // }
   mat satvec = get<5>(vecs);
 
@@ -253,7 +281,7 @@ BEFORE_OUTPUT_FORM OldPlanner::trajOptBefore(VECTOR_INFO_FORM vecs_w_time,double
   mat TQ = mat(3,traj_length).fill(datum::nan);
   TRAJECTORY_FORM traj;
 
-  cout<<"setting"<<bdotOn<<endl;
+  if(verbose){cout<<"setting bdotOn="<<bdotOn<<endl;}
   if(bdotOn==0 || sat.number_MTQ<3 || bdotOn>3)
   {
     if(verbose)
@@ -261,7 +289,7 @@ BEFORE_OUTPUT_FORM OldPlanner::trajOptBefore(VECTOR_INFO_FORM vecs_w_time,double
       cout<<"bdotOn is false, generating random initial trajectory!";
     }
     vec umax = join_cols(vec(sat.MTQ_max),0.1*vec(sat.RW_max_torq),0.1*vec(sat.magic_max_torq));
-    cout << "UMAX" << umax << "\n";
+    if(verbose){cout << "UMAX" << umax << "\n";}
     U = diagmat(umax)*randn(size(U))/RAND_MAX_INIT;
     if(verbose)
     {
@@ -282,13 +310,13 @@ BEFORE_OUTPUT_FORM OldPlanner::trajOptBefore(VECTOR_INFO_FORM vecs_w_time,double
     if (bdotOn == 2)
     {
       std::tuple<TRAJECTORY_FORM,double> sbdotout = OldPlanner::smartbdot(x0,dt_use,traj_length,vecs,costSettings_tmp,mu0,false);
-      cout<<"smart bdot complete\n";
+      if(verbose){cout<<"smart bdot complete\n";}
       traj = std::get<0>(sbdotout);
       mat u0 = get<1>(traj);
-      cout<<size(get<0>(traj))<<" "<<size(get<1>(traj))<<"\n";
+      if(verbose){cout<<size(get<0>(traj))<<" "<<size(get<1>(traj))<<"\n";}
       TRAJECTORY_FORM traj2 = OldPlanner::generateInitialTrajectory(dt_use,x0, u0,vecs);//+diagmat(mean(abs(u0),1)*randval)*(randu(size(u0))-0.5), vecs);
-      cout<<size(get<0>(traj2))<<" "<<size(get<1>(traj2))<<"\n";
-      cout<<"smartbdot traj generated\n";
+      if(verbose){cout<<size(get<0>(traj2))<<" "<<size(get<1>(traj2))<<"\n";}
+      if(verbose){cout<<"smartbdot traj generated\n";}
     }
     else if (bdotOn == 3)
     {
@@ -317,10 +345,9 @@ BEFORE_OUTPUT_FORM OldPlanner::trajOptBefore(VECTOR_INFO_FORM vecs_w_time,double
     }
     U.cols(0,traj_length-1) = get<1>(traj);
     X = get<0>(traj);
-    // cout<<"xend"<<X.col(0).t()<<endl;
     TQ = get<3>(traj);
-    cout<<x0<<dt_use<<traj_length<<mu0<<X.has_nan()<<U.has_nan()<<"\n";
-    if(X.has_nan() || U.has_nan()){
+    if(verbose){cout<<x0<<dt_use<<traj_length<<mu0<<X.has_nan()<<U.has_nan()<<"\n";}
+    if((X.has_nan() || U.has_nan()) && verbose){
         cout<<X<<"\n";
         cout<<U<<"\n";
       }
@@ -329,8 +356,6 @@ BEFORE_OUTPUT_FORM OldPlanner::trajOptBefore(VECTOR_INFO_FORM vecs_w_time,double
   if(verbose){cout<<"initial traj done\n";}
 
 
-  // cout<<" traj leng before "<<X.n_cols<<"\n";
-  // cout<<" traj leng before "<<U.n_cols + 1<<"\n";
   return make_tuple(traj, vecs, costSettings_tmp);
 }
 AFTER_OUTPUT_FORM OldPlanner::trajOptAfter(VECTOR_INFO_FORM vecs_w_time,double dt_prev, TIME_FORM time_start, TIME_FORM time_end, ALILQR_OUTPUT_FORM alilqrOut)
@@ -349,16 +374,13 @@ AFTER_OUTPUT_FORM OldPlanner::trajOptAfter(VECTOR_INFO_FORM vecs_w_time,double d
 
 
   // int traj_length = floor((time_end-time_start)*36525.0*24.0*3600.0/dt_tvlqr);
-  // cout<<traj_length<<"\n";
-  // cout<<(time_end-0.22)*36525.0*24.0*3600.0<<" "<<(time_start-0.22)*36525.0*24.0*3600.0<<"\n";
-  // cout<<dt_tvlqr<<" "<<(time_end-time_start)*36525.0*24.0*3600.0/dt_tvlqr<<"\n";
   VECTOR_INFO_FORM vecs_tvlqr = findVecTimes(vecs_w_time,dt_tvlqr/(36525.0*24.0*3600.0),time_start,time_end);
 
 
   vec tvlqr_times = get<0>(vecs_tvlqr);
   int traj_length =tvlqr_times.n_elem;
-  cout<<" refs "<<traj_length<<"\n";
-  cout<<"tvlqr times found\n";
+  if(verbose){cout<<" refs "<<traj_length<<"\n";}
+  if(verbose){cout<<"tvlqr times found\n";}
   // VECTOR_INFO_FORM vecs_tvlqr = get<1>(time_tuple_tvlqr);
   mat Rset_tvlqr = get<1>(vecs_tvlqr);
   //COST_SETTINGS_FORM costSettings2 = this->costSettings2;
@@ -381,9 +403,6 @@ AFTER_OUTPUT_FORM OldPlanner::trajOptAfter(VECTOR_INFO_FORM vecs_w_time,double d
     trajLong = OldPlanner::generateInitialTrajectory(dt_tvlqr,Xset.col(0), UsetLong, vecs_tvlqr);
 
     // mat xtmp = get<0>(trajLong);
-    // cout<<" traj leng mid "<<xtmp.n_cols<<"\n";
-    // cout<<" refs "<<int(Rset_tvlqr.n_cols)<<" "<<int(Uset.n_cols)*dt/dt_tvlqr<<" "<<int(Uset.n_cols)<<" "<<Uset.n_cols<<"\n";
-    // cout<<" traj leng mid "<<UsetLong.n_cols<<"\n";
     // TRAJECTORY_FORM traj_tvlqr = trajLong;
     // TRAJECTORY_FORM opt2 = trajLong;
     ALILQR_OUTPUT_FORM alilqrOut2 = OldPlanner::alilqr(dt_tvlqr,trajLong, vecs_tvlqr, costSettings2,alilqrSettings2,false);
@@ -391,7 +410,6 @@ AFTER_OUTPUT_FORM OldPlanner::trajOptAfter(VECTOR_INFO_FORM vecs_w_time,double d
      opt2 = get<0>(alilqrOut2);
     // double muOut2 = std::get<1>(alilqrOut2);
      gradOut2 = std::get<2>(alilqrOut2);
-    // cout<<"completed full length ALILQR successfully\n";
     if(verbose) {
       cout<<"completed full length ALILQR successfully\n";
     }
@@ -422,16 +440,14 @@ AFTER_OUTPUT_FORM OldPlanner::trajOptAfter(VECTOR_INFO_FORM vecs_w_time,double d
 
   TIME_FORM time_start_tmp = time_start;
   TIME_FORM time_end_tmp = time_start + (tvlqr_overlap_tmp-0*dt_tvlqr)/(36525.0*24.0*3600.0);
-  // cout<<(time_end_tmp-time_start)*36525.0*24.0*3600.0<<" "<<(time_start_tmp-time_start)*36525.0*24.0*3600.0<<"\n";
   double col0 = 0 ;
   double col1 = col0 + (tvlqr_overlap_tmp/dt_tvlqr - 0*1);
   double col1u = 0;
-  cout<<"time to find K\n";
+  if(verbose){cout<<"time to find K\n";}
 
   mat K2 = get<3>(opt2);
   mat U_lqr = get<1>(opt2);
   mat X_lqr = get<0>(opt2);
-  // cout<<" traj leng "<<X_lqr.n_cols<<"\n";
   mat TQ_lqr = get<2>(opt2);
   vec dt_lqr = get<5>(opt2);
 
@@ -442,7 +458,6 @@ AFTER_OUTPUT_FORM OldPlanner::trajOptAfter(VECTOR_INFO_FORM vecs_w_time,double d
   vec dt_lqr_tmp;
 
   do{
-      // cout<<"01 "<<time_start_tmp<<" "<<time_end_tmp<<"\n";
       time_start_tmp = time_end_tmp - (tvlqr_overlap_tmp-0*dt_tvlqr)/(36525.0*24.0*3600.0);
       time_end_tmp = min(time_start_tmp + (tvlqr_len_tmp+0*dt_tvlqr)/(36525.0*24.0*3600.0),time_end-0*dt_tvlqr/(36525.0*24.0*3600.0));
       //double dt_tvlqr = this->dt_tvlqr;//readJsonDouble(trajOptSettingsFile, "dt");
@@ -451,15 +466,10 @@ AFTER_OUTPUT_FORM OldPlanner::trajOptAfter(VECTOR_INFO_FORM vecs_w_time,double d
       col1 = min(double(X_lqr.n_cols)-1,col0 + tvlqr_len_tmp/dt_tvlqr + 0*1);
       col1u = min(double(U_lqr.n_cols)-1,col0 + tvlqr_len_tmp/dt_tvlqr + 0*1);
 
-      // cout<<tvlqr_overlap_tmp<<"\n";
-      // cout<<tvlqr_len_tmp<<"\n";
-      // cout<<(time_end_tmp-time_start)*36525.0*24.0*3600.0<<" "<<(time_start_tmp-time_start)*36525.0*24.0*3600.0<<"\n";
-      // cout<<dt_tvlqr<<" "<<(time_end_tmp-time_start_tmp)*36525.0*24.0*3600.0/dt_tvlqr<<"\n";
-      // cout<<(time_start_tmp-0.22)*36525.0*24.0*3600.0<<" "<<(time_end_tmp-0.22)*36525.0*24.0*3600.0<<" "<<(time_start-0.22)*36525.0*24.0*3600.0<<" "<<(time_end-0.22)*36525.0*24.0*3600.0<<"\n";
       VECTOR_INFO_FORM vecs_tvlqr_tmp = findVecTimes(vecs_w_time,dt_tvlqr/(36525.0*24.0*3600.0),time_start_tmp,time_end_tmp+0*dt_tvlqr/(36525.0*24.0*3600.0));
 
 
-      cout<<col0<<" "<<col1<<" "<<col1u<<" "<<Rset_tvlqr.n_cols<<"\n";
+      if(verbose){cout<<col0<<" "<<col1<<" "<<col1u<<" "<<Rset_tvlqr.n_cols<<"\n";}
 
       dt_lqr_tmp = dt_lqr.subvec(col0,col1+0*1);
       X_lqr_tmp = X_lqr.cols(col0,col1+0*1);
@@ -484,31 +494,21 @@ AFTER_OUTPUT_FORM OldPlanner::trajOptAfter(VECTOR_INFO_FORM vecs_w_time,double d
       }
       // std::tuple<cube, cube> KS = OldPlanner::findK(dt_tvlqr, traj_tvlqr, vecs_tvlqr,  costSettingsFindK);
       // std::tuple<cube, cube> KS = OldPlanner::findTrackK(dt_tvlqr, traj_tvlqr, vecs_tvlqr,  costSettingsFindK);
-      cout<<"test\n";
 
       mat K_lqr_tmp = packageK(get<0>(KS));
       mat S_lqr_tmp = packageS(get<1>(KS));
-      // cout<<"test1\n";
-      // cout<<K_lqr.n_cols<<"\n";
-      // cout<<K_lqr.n_cols-tvlqr_overlap_tmp<<"\n";
-      // cout<<S_lqr.n_cols<<"\n";
-      // cout<<S_lqr.n_cols-tvlqr_overlap_tmp-1<<"\n";
       double Klen = ((K_lqr.n_cols-tvlqr_overlap_tmp) < 0) ? 0 : K_lqr.n_cols-tvlqr_overlap_tmp;
       K_lqr = join_rows(K_lqr.head_cols(Klen),K_lqr_tmp);
-      cout<<"test2\n";
       double Slen = ((S_lqr.n_cols-tvlqr_overlap_tmp-1) < 0) ? 0 : S_lqr.n_cols-tvlqr_overlap_tmp-1;
       S_lqr = join_rows(S_lqr.head_cols(Slen),S_lqr_tmp);
 
-      cout<<size(K_lqr)<<"\n";
-      cout<<size(S_lqr)<<"\n";
+      if(verbose){cout<<size(K_lqr)<<"\n";}
+      if(verbose){cout<<size(S_lqr)<<"\n";}
       // tvlqr_times = join_cols(tvlqr_times,tvlqr_times_tmp);
 
   }
   while((time_end_tmp<(time_end+0.0/(36525.0*24.0*3600.0))-EPSVAR)&&(time_start_tmp<(time_end-tvlqr_overlap_tmp/(36525.0*24.0*3600.0))));
-  cout<<"K found\n";
-  // cout<<"time vec"<<time_vec;
-  // cout<<"get<0>(opt2)"<<get<0>(opt2)<<"\n";
-
+  if(verbose){cout<<"K found\n";}
 
   // OPT_TIMES_FORM main_opt_times = (addOptTimes(opt));
   OPT_FORM lqr_opt = make_tuple(get<0>(opt2),get<1>(opt2),get<2>(opt2),K_lqr,S_lqr,tvlqr_times.head(get<0>(opt2).n_cols));
@@ -518,77 +518,59 @@ AFTER_OUTPUT_FORM OldPlanner::trajOptAfter(VECTOR_INFO_FORM vecs_w_time,double d
 
 AFTER_OUTPUT_FORM OldPlanner::trajOpt(VECTOR_INFO_FORM &vecs,int N, TIME_FORM time_start, TIME_FORM time_end, vec x0, int bdotOn)
 {
+  if(verbose){
+    const arma::vec& t   = std::get<0>(vecs);
+    const arma::mat& r   = std::get<1>(vecs);
+    const arma::mat& v   = std::get<2>(vecs);
+    const arma::mat& b   = std::get<3>(vecs);
+    const arma::mat& s   = std::get<4>(vecs);
+    const arma::mat& a   = std::get<5>(vecs);
+    const arma::mat& e   = std::get<6>(vecs);
+    const arma::vec& p   = std::get<7>(vecs);
+    const arma::vec& rho = std::get<8>(vecs);
 
-  // VECTOR_INFO_FORM vecs = vecsPy2Cpp(vecsPy);
-  // vec x0 = numpyToArmaVector(x0Numpy);
+    cout << "=== VECTOR_INFO_FORM DEBUG ===\n";
+    cout << "t   : vec  n_elem = " << t.n_elem << "\n";
+    cout << "r   : mat  " << r.n_rows << " x " << r.n_cols << "\n";
+    cout << "v   : mat  " << v.n_rows << " x " << v.n_cols << "\n";
+    cout << "b   : mat  " << b.n_rows << " x " << b.n_cols << "\n";
+    cout << "s   : mat  " << s.n_rows << " x " << s.n_cols << "\n";
+    cout << "a   : mat  " << a.n_rows << " x " << a.n_cols << "\n";
+    cout << "e   : mat  " << e.n_rows << " x " << e.n_cols << "\n";
+    cout << "p   : vec  n_elem = " << p.n_elem << "\n";
+    cout << "rho : vec  n_elem = " << rho.n_elem << "\n";
+    cout << "==============================\n";
+    cout<<"x0:\n"<<x0<<"\n";
+  }
 
-  cout << "=== VECTOR_INFO_FORM DEBUG ===\n";
-
-  const arma::vec& t   = std::get<0>(vecs);
-  const arma::mat& r   = std::get<1>(vecs);
-  const arma::mat& v   = std::get<2>(vecs);
-  const arma::mat& b   = std::get<3>(vecs);
-  const arma::mat& s   = std::get<4>(vecs);
-  const arma::mat& a   = std::get<5>(vecs);
-  const arma::mat& e   = std::get<6>(vecs);
-  const arma::vec& p   = std::get<7>(vecs);
-  const arma::vec& rho = std::get<8>(vecs);
-
-  cout << "t   : vec  n_elem = " << t.n_elem << "\n";
-
-  cout << "r   : mat  " << r.n_rows << " x " << r.n_cols << "\n";
-  cout << "v   : mat  " << v.n_rows << " x " << v.n_cols << "\n";
-  cout << "b   : mat  " << b.n_rows << " x " << b.n_cols << "\n";
-  cout << "s   : mat  " << s.n_rows << " x " << s.n_cols << "\n";
-  cout << "a   : mat  " << a.n_rows << " x " << a.n_cols << "\n";
-  cout << "e   : mat  " << e.n_rows << " x " << e.n_cols << "\n";
-
-  cout << "p   : vec  n_elem = " << p.n_elem << "\n";
-  cout << "rho : vec  n_elem = " << rho.n_elem << "\n";
-
-  cout << "==============================\n";
-
-  cout<<"in c++\n";
-  cout<<x0<<"\n";
   BEFORE_OUTPUT_FORM results = OldPlanner::trajOptBefore(vecs, dt, time_start, time_end, x0, bdotOn);
-  cout<<"past before\n";
+  if(verbose){cout<<"past trajOptBefore\n";}
   TRAJECTORY_FORM traj_init = get<0>(results);
   VECTOR_INFO_FORM vecs_dt = get<1>(results);
   COST_SETTINGS_FORM costSettings_tmp = get<2>(results);
-  // mat dt_timevec = get<3>(results);
-  cout<<"past before wrapup\n";
-  //ALILQR_SETTINGS_FORM alilqrSettings = this->alilqrSettings;
   ALILQR_OUTPUT_FORM alilqrOut = OldPlanner::alilqr(dt,traj_init, vecs_dt, costSettings_tmp,alilqrSettings,false);
-  cout<<"out of alilqr\n";
+  if(verbose){cout<<"out of alilqr\n";}
 
   //any disturbances?
 
   // OPT_FORM opt_tmp0 = get<0>(alilqrOut);
   // mat Xtmp0 = get<0>(opt_tmp0);
   // mat Utmp0 = get<1>(opt_tmp0);
-  // // cout<<" traj leng after 1 "<<Xtmp0.n_cols<<"\n";
-  // // cout<<" traj leng after 1 "<<Utmp0.n_cols + 1<<"\n";
   //
   // bool anyDist = bool(sat.plan_for_gg || sat.plan_for_srp || sat.plan_for_aero || sat.plan_for_prop || sat.plan_for_resdipole || sat.plan_for_gendist);
   // // assert(!anyDist);
-  // cout<<"any dist?\n";
   // if(anyDist){
-  //   cout<<"doing dist\n";
   //   //if any disturbances, run the basic/larger-time-step alilqr again, with the disturbances on.
   //   OPT_FORM opt = get<0>(alilqrOut);
-  //     cout<<"doing dist1\n";
   //   TRAJECTORY_FORM traj_0 = make_tuple(get<0>(opt),get<1>(opt),get<5>(opt),get<2>(opt));
-  //     cout<<"doing dist2\n";
   //   alilqrOut = OldPlanner::alilqr(dt,traj_0, vecs_dt, costSettings_tmp,alilqrSettings,false);
   // }
   OPT_FORM opt_tmp = get<0>(alilqrOut);
   mat Xtmp = get<0>(opt_tmp);
   mat Utmp = get<1>(opt_tmp);
-  // cout<<" traj leng after 2 "<<Xtmp.n_cols<<"\n";
-  // cout<<" traj leng after 2 "<<Utmp.n_cols + 1<<"\n";
-  cout<<"dist done\n";
+  if(verbose){cout<<"dist done\n";}
   AFTER_OUTPUT_FORM results2 = OldPlanner::trajOptAfter(vecs, dt, time_start, time_end, alilqrOut);
-  cout<<"last bit done\n";
+  if(verbose){cout<<"trajOptAfter done\n";}
   return results2;
 }
 
@@ -627,7 +609,6 @@ tuple<TRAJECTORY_FORM,double> OldPlanner::bdot(vec x0,double dt0, int N,VECTOR_I
   xk = sat.state_norm(xk);
   Xset.col(0) = xk;
   vec4 qk = xk.rows(3, 6);
-  cout<<"test bdot\n";
   vec3 Bk = Bset.col(0);
   mat33 RmatT = rotMat(qk).t();
   vec uk = vec(sat.control_N()).zeros();
@@ -638,7 +619,10 @@ tuple<TRAJECTORY_FORM,double> OldPlanner::bdot(vec x0,double dt0, int N,VECTOR_I
   ur = std::max(ur,1.0);
   uk = uk/ur;
   uk.head(sat.number_MTQ) = -sat.mtq_ax_mat.t()*bdotgain*(-cross(xk.rows(0,2), RmatT*Bk) + RmatT*(Bset.col(1)-Bk)/dt0);
+  uk.head(sat.number_MTQ) = -sat.mtq_ax_mat.t()*bdotgain*(-cross(xk.rows(0,2), RmatT*Bk) + RmatT*(Bset.col(1)-Bk)/dt0);
+
   ur = max(abs(uk/umax));
+  
   ur = std::max(ur,1.0);
   uk = uk/ur;
   DYNAMICS_INFO_FORM dynamics_info_kn1 = make_tuple(Bset.col(0),Rset.col(0),pset(0),Vset.col(0),Sset.col(0),0);
@@ -646,14 +630,12 @@ tuple<TRAJECTORY_FORM,double> OldPlanner::bdot(vec x0,double dt0, int N,VECTOR_I
   tuple<vec,vec> dynout;
   for(int k=1; k<N; k++)
   {
-    // cout<<k<<" "<<Bset.col(k).t()<<"\n";
 
     dynamics_info_kn1 = dynamics_info_k;
     dynamics_info_k =  make_tuple(Bset.col(k),Rset.col(k),pset(k),Vset.col(k),Sset.col(k),0);
     RmatT = rotMat(qk).t();
     // uk = -bdotgain*(-cross(xk.rows(0,2), RmatT*Bk) + RmatT*(Bset.col(k)-Bk)/dt0);
     uk.zeros();
-    cout<<xk.t()<<"\n";
     uk.head(sat.number_MTQ) = -sat.mtq_ax_mat.t()*bdotgain*(-cross(xk.rows(0,2), RmatT*Bk) + RmatT*(Bset.col(k)-Bk)/dt0);///pow(norm(Bk),2);
 
     ur = max(abs(uk/umax));
@@ -665,7 +647,6 @@ tuple<TRAJECTORY_FORM,double> OldPlanner::bdot(vec x0,double dt0, int N,VECTOR_I
     ur = max(abs(uk/umax));
     ur = std::max(ur,1.0);
     uk = uk/ur;
-    // cout<<uk.t()<<"\n";
     Uset.col(k-1) = uk;
     //xprev = xk;
     Bk = Bset.col(k);
@@ -676,8 +657,6 @@ tuple<TRAJECTORY_FORM,double> OldPlanner::bdot(vec x0,double dt0, int N,VECTOR_I
     // xk.rows(3, 6) = qk;
     Xset.col(k) = xk;
     TQset.col(k-1) = get<1>(dynout);
-    // cout<<k<<" "<<dos.t()<<" "<<xk.t()<<" "<<uk.t()<<" "<<(sat.invJcom_noRW*cross(uk,Bset.col(k-1))).t()<<" "<<20*(sat.invJcom_noRW*cross(uk,Bset.col(k-1))).t()<<" "<<TQset.col(k-1).t()<<"\n";
-    // cout<<"\n\n";
 
   }
   TRAJECTORY_FORM traj = make_tuple(Xset,Uset,t,TQset);
@@ -751,12 +730,6 @@ tuple<TRAJECTORY_FORM,double> OldPlanner::smartbdot(vec x0,double dt0,int N,VECT
   vec umax2 = umaxmult*umax;//0.75*umax;
 
 
-  // ////cout<<"test";
-  //
-  // double invsign = 1.0;
-  // if (invert){invsign = -1.0;};
-
-  // mat33 wt = mat33().eye();//sat.Jcom;
 
   mat33 RmatT = rotMat(qk).t();
   vec3 Bbody = RmatT*Bk;
@@ -785,7 +758,6 @@ tuple<TRAJECTORY_FORM,double> OldPlanner::smartbdot(vec x0,double dt0,int N,VECT
   tuple<vec,vec> dynout;
   for(int k=1; k<N; k++)
   {
-    // cout<<k<<" "<<Bset.col(k).t()<<"\n";
     Bk = Bset.col(k);
     dynamics_info_kn1 = dynamics_info_k;
     dynamics_info_k =  make_tuple(Bk,Rset.col(k),pset(k),Vset.col(k),Sset.col(k),1);
@@ -818,8 +790,6 @@ tuple<TRAJECTORY_FORM,double> OldPlanner::smartbdot(vec x0,double dt0,int N,VECT
     ur = max(abs(uk/umax2));
     ur = std::max(ur,1.0);
     uk = uk/ur;
-    // cout<<uk.t()<<"\n";
-    // cout<<norm_dot(sat.Jcom*xk.head(3),-cross(Bbody,uk))<<"\n";
 
   }
   TRAJECTORY_FORM traj = make_tuple(Xset,Uset,t,TQset);
@@ -889,15 +859,6 @@ vec OldPlanner::smartbdot_rawmtq_finder(double dt0, vec xk, double nB2,vec ECIvk
 
       //uk = cross(Bbody,sat.Jcom*(dampgain*(wk-dot(wk,x3)*x3) + quatgain*acos(norm_dot(ECIvkBody,satvk))*normalise(cross(ECIvkBody,satvk))))/nB2;
     uk.head(sat.number_MTQ) = (sat.mtq_ax_mat.t()*cross(Bbody,(-dist_torq + dampgain*(sat.Jcom*wk) + velgain*(sat.Jcom*(wk-wkdes)) + quatgain*2.0*acos(as_scalar(qerr(0)))*qq)))/nB2;
-    cout<<cross(Bbody,(dampgain*(sat.Jcom*wk))).t()/nB2<<"\n";
-    cout<<cross(Bbody,velgain*sat.Jcom*(wk-wkdes)).t()/nB2<<"\n";
-    cout<<cross(Bbody,quatgain*2.0*acos(as_scalar(qerr(0)))*qq).t()/nB2<<"\n";
-    cout<<uk.t()<<"\n";
-    cout<<dq.t()<<"\n";
-    cout<<norm_dot(wk,qerr.tail(3))<<"\n";
-    // cout<<wk.t()<<"\n";
-    // cout<<sat.number_MTQ<<"\n";
-    // cout<<norm_dot(sat.Jcom*wk,-cross(Bbody,uk))<<"\n";
     // if(norm(cross((qq),x3))<0.02){
     //   vec3 x4 = normalise(cross(qq,bn));
     //   uk.head(sat.number_MTQ) = sat.mtq_ax_mat.t()*cross(Bbody,(dampgain*(sat.Jcom_noRW*wk) + velgain*sat.Jcom_noRW*(wk-wkdes) + quatgain*2*acos(qerr(0))*x4*sign(norm_dot(x4,qq))))/nB2;
@@ -937,55 +898,38 @@ tuple<cube, cube> OldPlanner::findK(double dt_tvlqr0, TRAJECTORY_FORM traj, VECT
   cube Kset_lqr = cube(sat.control_N(), sat.reduced_state_N(), N-1).zeros();
   cube Sset = cube(sat.reduced_state_N(), sat.reduced_state_N(), N).zeros();
 
-  // cout<<size(Kset_lqr)<<"\n";
-  // cout<<size(Sset)<<"\n";
   //Initialize various states & properties at time k
   int k = N-1;
   // int tk = dt_tvlqr0*(k-1)+1;
   //vec rk = Rset.col(tk);
   vec xk = Xset.col(k);
-  // cout<<"col \n";
   vec3 bk = Bset.col(k);
-  // cout<<"col \n";
   vec3 sk = satvec.col(k);
-  // cout<<"col \n";
   vec ek = ECIvec.col(k);
-  // cout<<"col \n";
   vec uk = vec(sat.control_N()).zeros();
-  // cout<<"col2 \n";
   vec ukp = vec(sat.control_N()).zeros();
-  // cout<<"col \n";
   vec4 qk = xk.rows(sat.quat0index(),sat.quat0index()+3);
-  // cout<<"col11 \n";
   //Find lkxx = LQR Q because it's the state cost matrix
   cost_jacs costJac = sat.costJacobians(k, N, xk,uk,ukp, sk,ek,bk, &costSettings_tmp);
-  // cout<<"col1 \n";
   mat lkxx = costJac.lxx;
-  // cout<<"col \n";
   mat lkuu = costJac.luu;
-  // cout<<"col \n";
-  // cout<<"0\n";
   mat Sk = lkxx;//get<0>(weights);// mat66().zeros();
   mat Kk = mat(sat.control_N(),sat.reduced_state_N()).zeros();
-  // cout<<"1\n";
   Sset.slice(k) = Sk;//mat66().zeros();
   mat A = mat(sat.state_N(),sat.state_N()).zeros();
   mat B = mat(sat.state_N(),sat.control_N()).zeros();
-  // cout<<"2\n";
   mat Aqk = mat(sat.reduced_state_N(),sat.reduced_state_N()).zeros();
   mat Bqk = mat(sat.reduced_state_N(),sat.control_N()).zeros();
 
   mat C = mat(sat.state_N(),3).zeros();
   //Find Gk and initialize Gkp1 and Skp1
   mat Gk = sat.findGMat(qk);
-  // cout<<"3\n";
   mat Gkp1 = Gk;
   mat Skp1 = Sk;
   //vec3 prop_torq = this->prop_torq;
 
   //Loop backwards
   DYNAMICS_INFO_FORM dynamics_info_kp1 = make_tuple(Bset.col(k),Rset.col(k),pset(k),Vset.col(k),sunset.col(k),1);
-  // cout<<"col long\n";
   DYNAMICS_INFO_FORM dynamics_info_k = dynamics_info_kp1;
   vec eigvals;
   mat eigvecs;
@@ -1004,7 +948,6 @@ tuple<cube, cube> OldPlanner::findK(double dt_tvlqr0, TRAJECTORY_FORM traj, VECT
     if(k>0){ukp = Uset.col(k-1);}
     sk = satvec.col(k);
     ek = ECIvec.col(k);
-    // cout<<"4\n";
     //vk = Vset.col(tk);
     qk = xk.rows(sat.quat0index(),sat.quat0index()+3);
     bk = Bset.col(k);
@@ -1013,7 +956,6 @@ tuple<cube, cube> OldPlanner::findK(double dt_tvlqr0, TRAJECTORY_FORM traj, VECT
     costJac = sat.costJacobians(k, N, xk, uk,ukp,sk,ek, bk,&costSettings_tmp);
     lkxx = costJac.lxx;
     lkuu = costJac.luu;
-    // cout<<"5\n";
     //Get Gk
     Gk = sat.findGMat(qk);
     //Get A, B
@@ -1024,14 +966,6 @@ tuple<cube, cube> OldPlanner::findK(double dt_tvlqr0, TRAJECTORY_FORM traj, VECT
     //Get Aqk and Bqk
     Aqk = Gkp1*A*trans(Gk);
     Bqk = Gkp1*B;
-    // cout<<"6\n";
-    // cout<<k<<"\n";
-    // cout<<B<<"\n";
-    // cout<<Vset.col(k).t()<<"\n";
-    // cout<<Bset.col(k).t()<<"\n";
-    // cout<<Rset.col(k).t()<<"\n";
-    // cout<<(lkuu + trans(Bqk)*Skp1*Bqk)<<"\n";
-    // cout<< (trans(Bqk)*Skp1*Aqk)<<"\n";
     Kk = solve((lkuu + trans(Bqk)*Skp1*Bqk), (trans(Bqk)*Skp1*Aqk),solve_opts::likely_sympd+solve_opts::no_approx);//+solve_opts::refine);//inv(R + trans(Bqk)*Skp1*Bqk)*(trans(Bqk)*Skp1*Aqk);//
 
     Kset_lqr.slice(k) = Kk;
@@ -1043,10 +977,9 @@ tuple<cube, cube> OldPlanner::findK(double dt_tvlqr0, TRAJECTORY_FORM traj, VECT
     Sk = 0.5*(Sk+trans(Sk));
     // Sk = 0.5*(Sk+lkxx);
     Sset.slice(k) = Sk;
-    // cout<<k<<" done of "<<N<<"\n";
   }
-  cout<<size(Kset_lqr)<<"\n";
-  cout<<size(Sset)<<"\n";
+  if(verbose){cout<<size(Kset_lqr)<<"\n";}
+  if(verbose){cout<<size(Sset)<<"\n";}
   return make_tuple(Kset_lqr, Sset);
 }
 tuple<cube, cube> OldPlanner::findKwDist(double dt_tvlqr0, TRAJECTORY_FORM traj, VECTOR_INFO_FORM vecs, COST_SETTINGS_FORM costSettings_tmp)
@@ -1069,22 +1002,13 @@ tuple<cube, cube> OldPlanner::findKwDist(double dt_tvlqr0, TRAJECTORY_FORM traj,
 
   cube Kset_lqr = cube(sat.control_N(), sat.reduced_state_N()+3, N-1).zeros();
   cube Sset = cube(sat.reduced_state_N()+3, sat.reduced_state_N()+3, N).zeros();
-  cout<<"test\n";
-  // cout<<size(Kset_lqr)<<"\n";
-  // cout<<size(Sset)<<"\n";
 
   //Initialize various states & properties at time k
   int k = N-1;
-  // int tk = dt_tvlqr0*(k-1)+1;
-  //vec rk = Rset.col(tk);
   vec xk = Xset.col(k);
-  cout<<"col\n";
   vec3 ek = ECIvec.col(k);
-  cout<<"col\n";
   vec3 sk = satvec.col(k);
-  cout<<"col\n";
   vec3 bk = Bset.col(k);
-  cout<<"col\n";
   vec uk = vec(sat.control_N()).zeros();
   vec ukp = vec(sat.control_N()).zeros();
   //vec vk = Vset.col(tk);
@@ -1115,7 +1039,6 @@ tuple<cube, cube> OldPlanner::findKwDist(double dt_tvlqr0, TRAJECTORY_FORM traj,
 
   //Loop backwards
   DYNAMICS_INFO_FORM dynamics_info_kp1 = make_tuple(Bset.col(k),Rset.col(k),pset(k),Vset.col(k),sunset.col(k),1);
-  cout<<"col long\n";
   DYNAMICS_INFO_FORM dynamics_info_k = dynamics_info_kp1;
   vec eigvals;
   mat eigvecs;
@@ -1141,6 +1064,7 @@ tuple<cube, cube> OldPlanner::findKwDist(double dt_tvlqr0, TRAJECTORY_FORM traj,
     Skp1 = Sk;
     //Get lkxx = LQR Q because it's the state cost matrix
     costJac = sat.costJacobians(k, N, xk, uk,ukp,sk,ek, bk,&costSettings_tmp);
+    
     lkxx = costJac.lxx;
     // lkxx = mat66().eye();//costJac.lxx;
     lkuu = costJac.luu;//#*1e5; //REMOVE BEFORE FLIGHT
@@ -1172,13 +1096,12 @@ tuple<cube, cube> OldPlanner::findKwDist(double dt_tvlqr0, TRAJECTORY_FORM traj,
     Sk = lkxx + trans(Aqk)*Skp1*Aqk - trans(Aqk)*Skp1*Bqk*Kk;
     // Sk(span(0,sat.reduced_state_N()-1),span(0,sat.reduced_state_N()-1)) += lkxx;
 
-    // if(k==N-2){cout<<Kk<<"\n";cout<<Sk<<"\n";}
     Sk = 0.5*(Sk+trans(Sk));
     // Sk = 0.5*(Sk+lkxx);
     Sset.slice(k) = Sk;
   }
-  cout<<size(Kset_lqr)<<"\n";
-  cout<<size(Sset)<<"\n";
+  if(verbose){cout<<size(Kset_lqr)<<"\n";}
+  if(verbose){cout<<size(Sset)<<"\n";}
   return make_tuple(Kset_lqr, Sset);
 }
 
@@ -1265,9 +1188,6 @@ tuple<cube, cube> OldPlanner::findKwDist(double dt_tvlqr0, TRAJECTORY_FORM traj,
     // quatErr = normalise(join_cols(vec(1).ones()*as_scalar(oldQprev.t()*Qkprev),-oldQprev(0)*Qkprev.rows(1,3) + Qkprev(0)*oldQprev.rows(1,3)+cross(oldQprev.rows(1,3),Qkprev.rows(1,3))));
 
     // quatErr *= sign(quatErr(0));
-    // cout<<"qE "<<quatErr.t()<<"\n";
-    // cout<<Qkprev.t()<<"\n";
-    // cout<<oldQprev.t()<<"\n";
     if(quaternionTo3VecMode >= 2 ){
       if (quaternionTo3VecMode ==2 )// Cayley
       {
@@ -1288,13 +1208,10 @@ tuple<cube, cube> OldPlanner::findKwDist(double dt_tvlqr0, TRAJECTORY_FORM traj,
 
       }else if(quaternionTo3VecMode ==4){// qev
         angErr = quatErr.rows(1,3);
-      }else if(quaternionTo3VecMode ==5){ // 2xMRP
-        angErr = 4.0*(quatErr.rows(1,3))/(1+quatErr(0));
-      }else if(quaternionTo3VecMode ==6){ // 2xMRP with qe0>0
-        if(abs(quatErr(0))>0){
-          quatErr *= sign(quatErr(0));
-        }
-        angErr = 4.0*(quatErr.rows(1,3))/(1+quatErr(0));
+      }else{
+        // Modes 5 and 6 (2xMRP) have incorrect scaling (constant=2 instead of 1)
+        // and are not consistent with the W^T linearization used in the backward pass.
+        throw std::invalid_argument("quaternionTo3VecMode 5 and 6 are not supported. Use modes 0-4.");
       }
     }else{//mode is 0 or 1,(0 is MRP with qe0>0, 1 is MRP)
       if (quaternionTo3VecMode != 1)
@@ -1306,7 +1223,6 @@ tuple<cube, cube> OldPlanner::findKwDist(double dt_tvlqr0, TRAJECTORY_FORM traj,
       angErr = 2.0*(quatErr.rows(1,3))/(1+quatErr(0));
     }
 
-    // cout<<angErr.t()<<"\n";
     otherErr = newXk.tail(sat.reduced_state_N()-6) - oldXprev.tail(sat.reduced_state_N()-6);
     avErr = newXk.head(3) - oldXprev.head(3);
     newUprev = Uset.col(k-1) + Kset.slice(k-1)*join_cols(avErr,angErr,otherErr) + alpha*dset.col(k-1);
@@ -1317,16 +1233,6 @@ tuple<cube, cube> OldPlanner::findKwDist(double dt_tvlqr0, TRAJECTORY_FORM traj,
       double ucheck = newUprev(i);
       if((isnan(ucheck)||isinf(ucheck)))//||abs(ucheck)>100000000))
       {
-        // cout<<"u is invalid!\n";
-        // cout<<"ucheck "<<ucheck<<"\n";
-        // cout<<i<<" "<<k<<"\n";
-        // cout<<newUprev.t()<<"\n";
-        // cout<<Uset.col(k-1).t()<<"\n";
-        // cout<<Kset.slice(k-1)<<"\n";
-        // cout<<join_cols(avErr,angErr,otherErr).t()<<"\n";
-        // cout<<alpha<<"\n";
-        // cout<<dset.col(k-1).t()<<"\n";
-        // cout<<newXk.t()<<"\n";
 
         return make_tuple(newX.fill(datum::nan), newU.fill(datum::nan),dt_timevec,newTQ.fill(datum::nan));
       }
@@ -1335,21 +1241,17 @@ tuple<cube, cube> OldPlanner::findKwDist(double dt_tvlqr0, TRAJECTORY_FORM traj,
     //vec3 Bk = Bset.col(k-1);
 
     tuple<vec,vec> rk4out = rk4z(dt0,newXk, newUprev,sat,dynamics_info_kn1,dynamics_info_k);
-    // cout<<"hi1 gT\n"<<endl;
     newXk = get<0>(rk4out);
     newTQk = get<1>(rk4out);
     newXk = sat.state_norm(newXk);
 
-    // cout<<"hi2 gT\n"<<endl;
     // newQk = normalise(newXk.rows(sat.quat0index(), sat.quat0index()+3));
     // newXk.rows(sat.quat0index(), sat.quat0index()+3) = newQk;
     //Update newX and newU with the new state and control vector
     newX.col(k) = newXk;
     newTQ.col(k-1) = newTQk;
-        // cout<<newUprev<<endl;
     newU.col(k-1) = newUprev;
 
-    // cout<<"hi5 gT\n"<<endl;
   }
   return make_tuple(newX, newU,dt_timevec,newTQ);
 }
@@ -1368,7 +1270,6 @@ TRAJECTORY_FORM OldPlanner::generateInitialTrajectory(double dt0, vec x0, mat Us
   mat Xset = mat(sat.state_N(), N).fill(datum::nan);
   mat TQset = mat(3, N).fill(datum::nan);
 
-  // cout<<"x0 in c++ "<<x0.rows(3,6).t()<<endl;
   //Xset.fill(datum::nan);
 
   //Copy initial state of x to xk
@@ -1376,10 +1277,8 @@ TRAJECTORY_FORM OldPlanner::generateInitialTrajectory(double dt0, vec x0, mat Us
   xk = sat.state_norm(xk);
   vec4 qk = normalise(xk.rows(sat.quat0index(), sat.quat0index()+3));
   xk.rows(sat.quat0index(),sat.quat0index()+3) = qk;
-  // cout<<"hi\n";
   Xset.col(0) = xk;
 
-  // cout<<"xset0 in c++ "<<Xset.col(0).rows(3,6).t()<<endl;
 
   //Initialize stuff for inside loop
   //vec xprev = vec(x0);
@@ -1387,7 +1286,6 @@ TRAJECTORY_FORM OldPlanner::generateInitialTrajectory(double dt0, vec x0, mat Us
   mat Rset = get<1>(vecs);
   vec t = get<0>(vecs);
 
-    // cout<<"hi\n";
   mat Vset = get<2>(vecs);
   mat Sset = get<4>(vecs);
   vec pset = get<7>(vecs);
@@ -1402,23 +1300,19 @@ TRAJECTORY_FORM OldPlanner::generateInitialTrajectory(double dt0, vec x0, mat Us
   tuple<vec,vec> dynout;
   for(int k=1; k<N; k++)
   {
-    // cout<<k<<endl;
     dynamics_info_kn1 = dynamics_info_k;
     dynamics_info_k =  make_tuple(Bset.col(k),Rset.col(k),pset(k),Vset.col(k),Sset.col(k),1);
     uk = Uset.col(k-1);
     //xprev = xk;
-    // cout<<uk<<endl;
     // Bk = Bset.col(k-1);
     dynout = rk4z(dt0,xk, uk,sat,dynamics_info_kn1,dynamics_info_k);
 
     xk = sat.state_norm(get<0>(dynout));
-    // cout<<xk<<endl;
     // xk.rows(3, 6)  = normalise(xk.rows(3, 6));
     Xset.col(k) = xk;
     TQset.col(k-1) = get<1>(dynout);
   }
 
-  // cout<<"xset in c++ "<<Xset.col(0).rows(3,6).t()<<endl;
   return make_tuple(Xset,Uset,t,TQset);
 }
 
@@ -1470,9 +1364,6 @@ ALILQR_OUTPUT_FORM OldPlanner::alilqr(double dt0,TRAJECTORY_FORM traj, VECTOR_IN
   mat Xset = get<0>(traj);
   mat Uset = get<1>(traj);
   vec dt_timevec = get<2>(traj);
-  // cout<<dt_timevec<<endl;
-  // cout<<(dt_timevec-0.22)*36525.0*24.0*3600.0<<endl;
-  // cout<<dt0<<endl;
 
   int N = Xset.n_cols;
   //initialize grad, iter, lambdaSet, mu, LA0
@@ -1569,18 +1460,15 @@ ALILQR_OUTPUT_FORM OldPlanner::alilqr(double dt0,TRAJECTORY_FORM traj, VECTOR_IN
 
       //Check if we need to break out of the loop
       if(OldPlanner::ilqrBreak(grad,LA,dLA,dlaZcount,cmaxtmp,iter,breakSettings_tmp)){
-	       // cout<<"innerbreak\n";
+        if(verbose){cout<<"innerbreak\n";}
         break;
       }
     }
     if(OldPlanner::outerBreak(auglag_vals,cmaxtmp,breakSettings_tmp,auglagSettings_tmp)&&j>2&&OldPlanner::ilqrBreak(grad,LA,dLA,dlaZcount,cmaxtmp,iter,breakSettings_tmp,true)) {
-    // if(OldPlanner::outerBreak(auglag_vals,cmaxtmp,breakSettings_tmp,auglagSettings_tmp)){//&&OldPlanner::ilqrBreak(grad,LA,dLA,dlaZcount,cmaxtmp,iter,breakSettings_tmp,true)) {
-
-      cout<<"outerbreak\n";
+      if(verbose){cout<<"outerbreak\n";}
       break;
     }
     //update lambdaSet, etc.
-  // if(verbose){cout<<"auglagvals\n";}
     auglag_vals = OldPlanner::incrementAugLag(auglag_vals,clist,auglagSettings_tmp);
   }
   if(verbose){cout<<"out of loops\n";}
@@ -1610,30 +1498,17 @@ tuple<double,double,mat,double,REG_PAIR,TRAJECTORY_FORM> OldPlanner::ilqrStep(do
   //call forward pass
 
   // mat newTQ = get<3>(traj);
-  // cout<<"hi00 at input\n"<<endl;
-  // cout<<newTQ.n_cols<<endl;
-  // cout<<newTQ.n_rows<<endl;
-  // cout<<newTQ<<endl;
   tuple<TRAJECTORY_FORM, double, REG_PAIR> forwardPassOut = OldPlanner::forwardPass(dt0,traj,vecs,auglag_vals,BPresults,regs,costSettings_ptr,regSettings_tmp,lineSearchSettings_tmp,useDist);
-  // cout<<"hi0\n"<<endl;
   double newLA = get<1>(forwardPassOut);
   regs = get<2>(forwardPassOut);
   traj = get<0>(forwardPassOut);
   double newLAnc = OldPlanner::cost2Func(traj, vecs, auglag_vals, costSettings_ptr,false);
-  // cout<<"hi1\n"<<endl;
 
   // double grad = sum( max(abs(get<1>(BPresults).cols(0,N-2))/(sqrt(sum(get<1>(traj).cols(0,N-2) % get<1>(traj).cols(0,N-2),0))+1),0))/(N-1);
-  // cout<<"gradtest"<<endl;
-  // cout<<abs(get<1>(BPresults).cols(0,5))<<endl;
-  // cout<<(abs(get<1>(traj).cols(0,5) )+1)<<endl;
-  // cout<<abs(get<1>(BPresults).cols(0,5))/(abs(get<1>(traj).cols(0,5) )+1)<<endl;
-  // cout<<max(abs(get<1>(BPresults).cols(0,5))/(abs(get<1>(traj).cols(0,5) )+1),0)<<endl;
   double grad = sum( max(abs(get<1>(BPresults).cols(0,N-2))/(abs(get<1>(traj).cols(0,N-2) )+1),0))/(N-1);
   // double grad = sum( vecnorm(get<1>(BPresults).cols(0,N-2),"inf",0)/(vecnorm(get<1>(traj).cols(0,N-2) )+1))/(N-1);
   // double grad = sum( abs(get<1>(BPresults).cols(0,N-2))/(abs(get<1>(traj).cols(0,N-2) )+1))/(N-1);
 
-  // cout<<"PROP TORQ"<<sat.prop_torq<<endl;
-  // cout<<"PROP TORQ"<<sat.prop_torq<<endl;
 
 
   //find dLA
@@ -1656,7 +1531,6 @@ bool OldPlanner::ilqrBreak(double grad,double LA, double dLA, double dlaZcount, 
   int zCountLim_tmp = get<6>(breakSettings_tmp);
   double cmax_tmp = get<7>(breakSettings_tmp);
   double  max_cost = get<8>(breakSettings_tmp);
-  // if(verbose){cout<<"unpacked breakSettings\n";}
 
   double useCostTol = ilqrCostTol_tmp;
   if((current_outer_iter>=maxOuterIter_tmp-1) || forOuter){
@@ -1714,12 +1588,12 @@ bool OldPlanner::ilqrBreak(double grad,double LA, double dLA, double dlaZcount, 
   }
   if(iter == maxIter_tmp)
   {
-    cout<<"breaking because iter == maxIter_tmp\n";
+    if(verbose){cout<<"breaking because iter == maxIter_tmp\n";}
     return true;
   }
   if(iter > maxIter_tmp)
   {
-    cout<<"Total iteration limit exceeded in alilqr\n";
+    if(verbose){cout<<"Total iteration limit exceeded in alilqr\n";}
     throw "Total iteration limit exceeded in alilqr";
   }
   if(verbose){cout<<"checked iteration limit\n";}
@@ -1732,7 +1606,6 @@ tuple<TRAJECTORY_FORM,double>  OldPlanner::addRandNoise(double dt0, TRAJECTORY_F
 
   double randPercent = get<6>(regSettings_tmp);
   // if(verbose) {
-  //   cout<<"trying rand??? "<<dlaZcount<<" "<<std::max(2.0,get<6>(breakSettings_tmp)*0.5)<<"\n";
   // }
   if(dlaZcount>std::max(2.0,get<6>(breakSettings_tmp)*0.5) && stepsSinceRand<0 && randPercent > 0) {
     mat Xset = get<0>(traj);
@@ -1741,7 +1614,6 @@ tuple<TRAJECTORY_FORM,double>  OldPlanner::addRandNoise(double dt0, TRAJECTORY_F
     // TRAJECTORY_FORM newTraj = generateInitialTrajectory(dt0,Xset.col(0), Uset.cols(0,N-2) + randPercent*diagmat(max(abs(Uset.cols(0,N-2)),1))*2*(randu(size(Uset.cols(0,N-2)))-0.5),vecs);
     mat Unoise = randPercent*abs(Uset) % (2*randu(size(Uset))-1.0);
     // if(verbose) {
-    //   cout<<"trying adding random\n";
     // }
     TRAJECTORY_FORM newTraj = generateInitialTrajectory(dt0,Xset.col(0), Uset + Unoise,vecs);
 
@@ -1762,7 +1634,7 @@ tuple<TRAJECTORY_FORM,double>  OldPlanner::addRandNoise(double dt0, TRAJECTORY_F
 
 bool OldPlanner::outerBreak(AUGLAG_INFO_FORM auglag_vals, double cmaxtmp,BREAK_SETTINGS_FORM breakSettings_tmp,AUGLAG_SETTINGS_FORM auglagSettings_tmp)
 {
-  cout<<"outerBreak\n";
+  if(verbose){cout<<"outerBreak\n";}
   double mu = get<1>(auglag_vals);
   mat muSet = get<2>(auglag_vals);
   double cmax_tmp = get<7>(breakSettings_tmp);
@@ -1781,7 +1653,6 @@ bool OldPlanner::outerBreak(AUGLAG_INFO_FORM auglag_vals, double cmaxtmp,BREAK_S
 }
 
 void OldPlanner::costInfo(TRAJECTORY_FORM traj, VECTOR_INFO_FORM vecs, AUGLAG_INFO_FORM auglag_vals,  COST_SETTINGS_FORM *costSettings_ptr){
-    // cout<<"costInfo\n";
     mat Xset = get<0>(traj);
     mat Uset = get<1>(traj);
     mat TQset = get<3>(traj);
@@ -1876,27 +1747,15 @@ void OldPlanner::costInfo(TRAJECTORY_FORM traj, VECTOR_INFO_FORM vecs, AUGLAG_IN
     double avg_ang = LAang/((N-1)*angle_weight_tmp+angle_weight_N_tmp);
 
     cout<<"LA: "<<LA<<" and LA w/o constraints: "<< LAnc <<"\n";
-    cout<<"ang nan,max,min,mean: "<<angs.has_nan()<<" "<<angs.max()<<" "<<angs.min()<<" "<<mean(angs)<<"\n";
-    cout<<"angdiff nan,max,min,mean: "<<angdiffs.has_nan()<<" "<<angdiffs.max()<<" "<<angdiffs.min()<<" "<<mean(angdiffs)<<"\n";
-    cout<<"av nan,max,min,mean: "<<avs.has_nan()<<" "<<avs.max()<<" "<<avs.min()<<" "<<mean(avs)<<"\n";
-    cout<<"avdiff nan,max,min,mean: "<<avdiffs.has_nan()<<" "<<avdiffs.max()<<" "<<avdiffs.min()<<" "<<mean(avdiffs)<<"\n";
-    if(sat.number_RW>0){
-      cout<<"h nan,max,min,mean: "<<hs.has_nan()<<" "<<hs.max()<<" "<<hs.min()<<" "<<mean(hs)<<"\n";
-      cout<<"hdiff nan,max,min,mean: "<<hdiffs.has_nan()<<" "<<hdiffs.max()<<" "<<hdiffs.min()<<" "<<mean(hdiffs)<<"\n";
+    cout<<"control strength "<<max(abs(Uset))<<"\n";
+    // if(sat.number_RW>0){
 
-      cout<<"urw nan,max,min,mean: "<<urws.has_nan()<<" "<<urws.max()<<" "<<urws.min()<<" "<<mean(urws)<<"\n";
-      cout<<"urwdiff nan,max,min,mean: "<<urwdiffs.has_nan()<<" "<<urwdiffs.max()<<" "<<urwdiffs.min()<<" "<<mean(urwdiffs)<<"\n";
-    }
-    if(sat.number_MTQ>0){
-      cout<<"umtq nan,max,min,mean: "<<umtqs.has_nan()<<" "<<umtqs.max()<<" "<<umtqs.min()<<" "<<mean(umtqs)<<"\n";
-      cout<<"umtqdiff nan,max,min,mean: "<<umtqdiffs.has_nan()<<" "<<umtqdiffs.max()<<" "<<umtqdiffs.min()<<" "<<mean(umtqdiffs)<<"\n";
-    }
-    if(sat.number_magic>0){
-      cout<<"umag nan,max,min,mean: "<<umags.has_nan()<<" "<<umags.max()<<" "<<umags.min()<<" "<<mean(umags)<<"\n";
-      cout<<"umagdiff nan,max,min,mean: "<<umagdiffs.has_nan()<<" "<<umagdiffs.max()<<" "<<umagdiffs.min()<<" "<<mean(umagdiffs)<<"\n";
-    }
+    // }
+    // if(sat.number_MTQ>0){
+    // }
+    // if(sat.number_magic>0){
+    // }
     cout<<"ang/h cost: "<<LAang<<" omega: "<<LAav<<" mtq: "<<LAmtq<<" and u: "<<LAu<<"\n";
-    // cout<<"if phi cost evenly across time: "<<angest<<" omega: "<<pow(2*LAav/((N-1)*angvel_weight_tmp+angvel_weight_N_tmp),0.5)*180.0/datum::pi<<" and mtq: "<< pow(2*LAu/(u_weight_tmp*(N-1)),0.5) <<"\n";
 
     return;
 }
@@ -1978,10 +1837,7 @@ tuple<mat, double> OldPlanner::maxViol(TRAJECTORY_FORM &traj, VECTOR_INFO_FORM &
   if(verbose){cout<<"state at max viol: "<<Xset.col(ss(1)).t()<<"\n";}
   if(verbose){cout<<"ctrl at max viol: "<<Uset.col(ss(1)).t()<<"\n";}
   if(verbose){cout<<corrected_clist.col(ss(1)).t()<<"\n";}
-  // if(verbose){cout<<"violation control \n"<<muSet.col(ss(1)).t()<<"\n"<<lambdaSet.col(ss(1)).t()<<"\n";}
-  // if(verbose){cout<<sat.getImu(mu, muSet.col(ss(1)), clist.col(ss(1)), lambdaSet.col(ss(1)))<<"\n";}
-  // if(verbose){cout<<sat.getIlam(mu, muSet.col(ss(1)), clist.col(ss(1)), lambdaSet.col(ss(1)))<<"\n";}
-  if(cmaxtmp>1e10){
+  if(cmaxtmp>1e10 && verbose){
     cout<<Xset.cols(0,ss(1))<<"\n";
     cout<<Uset.cols(0,ss(1))<<"\n";
   }
@@ -2181,10 +2037,42 @@ tuple<BACKWARD_PASS_RESULTS_FORM, REG_PAIR> OldPlanner::backwardPass(double dt0,
       Qkxx += vecOverCube(viol,get<2>(cnstrHess));//mat(sum(get<2>(cnstrHess) % violcxx,2));
     }
     // Qkxx_full = costJac.lxx + trans(Aqk)*Pk*Aqk + trans(dAqkdx)*pk + mat(sum(get<2>(cnstrHess) % violcxx,2)) + trans(ckx)*Imuk*ckx;
-    if(k==N-1){
+    if(k == N-1){
       pk = Qkx;
       Pk = Qkxx;
       Pk = 0.5*(Pk + trans(Pk));
+
+      if(verbose){
+        vec Pk_eigs;
+        eig_sym(Pk_eigs, Pk);
+        cout << "Terminal Pk eigenvalues: " << Pk_eigs.t() << endl;
+        if(min(Pk_eigs) < 0) {
+          cout << "WARNING: Terminal cost Hessian is not PSD!" << endl;
+        }
+        cout << "costJac.lxx at terminal:\n" << costJac.lxx << endl;
+        
+        // Also helpful - eigendecomposition to see which directions are negative
+        vec lxx_eigs;
+        mat lxx_eigvecs;
+        eig_sym(lxx_eigs, lxx_eigvecs, costJac.lxx);
+        cout << "lxx eigenvalues: " << lxx_eigs.t() << endl;
+        cout << "lxx eigenvectors (columns):\n" << lxx_eigvecs << endl;
+        
+        cout << "CostJac lkx: " << costJac.lx << endl;
+        cout<<"Costjac "<<costJac.lxx<<"\n";
+
+        if(sat.number_RW > 0) {
+          cout << "RW speeds in state: " << xk.rows(7, 7+sat.number_RW-1).t() << endl;
+          for(int j = 0; j < sat.number_RW; j++) {
+            double z = xk(7+j);
+            cout << "RW " << j << ": z=" << z
+                  << " threshold=" << sat.RW_AM_cost_threshold.at(j)
+                  << " softplus''=" << shifted_softplus_deriv2(abs(z), sat.RW_AM_cost_threshold.at(j))
+              << endl;
+          }
+        }
+      }
+
       k--;
       continue;
     }
@@ -2193,6 +2081,7 @@ tuple<BACKWARD_PASS_RESULTS_FORM, REG_PAIR> OldPlanner::backwardPass(double dt0,
 
     //find Qkuu and Qkuureg
     Qkuu = costJac.luu + trans(Bqk)*Pk*Bqk + trans(cku)*Imuk*cku;
+
 
     if(useDynamicsHess_tmp){
       Qkux += vecOverCube(pk,ddxd__dudxQ);
@@ -2212,6 +2101,14 @@ tuple<BACKWARD_PASS_RESULTS_FORM, REG_PAIR> OldPlanner::backwardPass(double dt0,
 
         // reset |= !Qkuu.is_symmetric();
         Qkuu = 0.5*(Qkuu+Qkuu.t());//trimatu(Qkuu)+trans(trimatu(Qkuu,1));
+
+        // Condition number monitoring for ill-conditioning detection
+        if(verbose){
+          double cond_num = arma::cond(Qkuu);
+          if(cond_num > 1e10){
+            cout << "WARNING: Qkuu condition number = " << cond_num << " at k=" << k << endl;
+          }
+        }
         // if(!reset){
         //   // reset |= !eig_sym(eigs,eigvecs,Qkuu);//eigs = eig_sym(Qkuu);
         //   reset |= !eig_sym(eigs,eigvecs,Qkuu);
@@ -2232,7 +2129,6 @@ tuple<BACKWARD_PASS_RESULTS_FORM, REG_PAIR> OldPlanner::backwardPass(double dt0,
       // Qkuureg = eigvecs*diagmat(clamp(eigs,rho,datum::inf))*eigvecs.t();
       // Qkuureg = eigvecs*diagmat(clamp(abs(eigs),rho,datum::inf))*eigvecs.t();
       Qkuureg = Qkuu + rho*mat(sat.control_N(),sat.control_N()).eye();
-      // if(verbose){cout<<"regadded\n";}
 
 
 
@@ -2272,26 +2168,17 @@ tuple<BACKWARD_PASS_RESULTS_FORM, REG_PAIR> OldPlanner::backwardPass(double dt0,
       }
       if(!reset){
         if(Qkuureg.has_nan()||Qkuureg.has_inf()){
-          cout<<"noreg "<<Qkuu<<"\n";
-          cout<<"reg "<<Qkuureg<<"\n";
-          cout<<"rho "<<rho<<"\n";
-          cout<<"eigs "<<eigs<<"\n";
-          cout<<"cxeigs "<<cxeigs<<"\n";
-          // cout<<k<<" "<<ck<<" "<<Pk<<" "<<costJac.luu<<" "<<cku<<" "<<Imuk<<" "<<Bqk<<"\n";
-          cout<<"somehow regularized Qkuu has nan/inf but nonregularized does not\n";
+          if(verbose){
+            cout<<"noreg "<<Qkuu<<"\n";
+            cout<<"reg "<<Qkuureg<<"\n";
+            cout<<"rho "<<rho<<"\n";
+            cout<<"eigs "<<eigs<<"\n";
+            cout<<"cxeigs "<<cxeigs<<"\n";
+            cout<<"somehow regularized Qkuu has nan/inf but nonregularized does not\n";
+          }
           throw("somehow regularized Qkuu has nan/inf but nonregularized does not");
         }
         reset |= !solve(Kk,Qkuureg, Qkux,solve_opts::no_approx);//+solve_opts::likely_sympd);//+solve_opts::fast);//+solve_opts::refine);%+solve_opts::no_approx);//+solve_opts::no_approx);//+solve_opts::equilibrate+solve_opts::refine+solve_opts::no_approx);
-
-
-        // if(useDynamicsHess_tmp || useConstraintsHess_tmp){
-        //   reset |= !inv(Qkuureg_chol,Qkuureg,inv_opts::no_ugly);
-        // }else{
-        //   reset |= !inv_sympd(Qkuureg_chol,Qkuureg,inv_opts::no_ugly);
-        // }
-  //
-
-        // Kk = Qkuureg_chol*Qkux;
         if(verbose&&reset){
           cout<<"Solving Kk failed \n";
         }
@@ -2312,31 +2199,24 @@ tuple<BACKWARD_PASS_RESULTS_FORM, REG_PAIR> OldPlanner::backwardPass(double dt0,
       pk = Qkx + trans(Kk)*Qkuu*dk + trans(Kk)*Qku + trans(Qkux)*dk;
       Pk = Qkxx + trans(Kk)*Qkuu*Kk + trans(Kk)*Qkux + trans(Qkux)*Kk;
       if(Pk.has_nan()||Pk.has_inf()){
-        cout<<"Costjac "<<costJac.lxx<<"\n";
-        for(int j = 0;j<sat.number_RW;j++){
+        if(verbose){
+          cout<<"Costjac "<<costJac.lxx<<"\n";
+          for(int j = 0;j<sat.number_RW;j++){
+            double z = xk(7+j);
+            double sz = sign(z);
+            cout<<"RW "<<j<<": z="<<z<<", |z|="<<z*sz<<", threshold="<<sat.RW_AM_cost_threshold.at(j)<<"\n";
+            cout<<"  shifted_softplus="<<shifted_softplus(z*sz,sat.RW_AM_cost_threshold.at(j))<<"\n";
+            cout<<"  shifted_softplus_deriv="<<shifted_softplus_deriv(z*sz,sat.RW_AM_cost_threshold.at(j))<<"\n";
+            cout<<"  shifted_softplus_deriv2="<<shifted_softplus_deriv2(z*sz,sat.RW_AM_cost_threshold.at(j))<<"\n";
 
-          double z = xk(7+j);
-          double sz = sign(z);
-          cout<<shifted_softplus(z*sz,sat.RW_AM_cost_threshold.at(j))<<"\n";
-          cout<<shifted_softplus_deriv(z*sz,sat.RW_AM_cost_threshold.at(j))<<"\n";
-          cout<<shifted_softplus_deriv2(z*sz,sat.RW_AM_cost_threshold.at(j))<<"\n";
-          double d = z*sz - sat.RW_AM_cost_threshold.at(j);
-          double bb = 1e6;
-          cout<<(1.0+exp((d)*bb))<<"\n";
-          cout<<log(1.0+exp((d)*bb))<<"\n";
-          cout<<1.0/(1.0+exp(-1.0*(d)*bb))<<"\n";
-          cout<<exp((d)*bb)<<"\n";
-          cout<<exp(-1.0*(d)*bb)<<"\n";
-
-          cout<<smoothstep_deriv((sat.RW_stiction_threshold.at(j)-z*sz)/sat.RW_stiction_threshold.at(j))<<"\n";
-          cout<<smoothstep((sat.RW_stiction_threshold.at(j)-z*sz)/sat.RW_stiction_threshold.at(j))<<"\n";
-          cout<<smoothstep_deriv2((sat.RW_stiction_threshold.at(j)-z*sz)/sat.RW_stiction_threshold.at(j))<<"\n";
+            double stic_arg = (sat.RW_stiction_threshold.at(j)-z*sz)/sat.RW_stiction_threshold.at(j);
+            cout<<"  stiction_arg="<<stic_arg<<", threshold="<<sat.RW_stiction_threshold.at(j)<<"\n";
+            cout<<"  smoothstep="<<smoothstep(stic_arg)<<"\n";
+            cout<<"  smoothstep_deriv="<<smoothstep_deriv(stic_arg)<<"\n";
+            cout<<"  smoothstep_deriv2="<<smoothstep_deriv2(stic_arg)<<"\n";
+          }
+          cout<<"Pk has nan/inf\n";
         }
-        cout<<"Pk has nan/inf\n";
-        // if(!(Pk.has_nan()||Pk.has_inf())){
-        //   cout<<"somehow Qkuu has nan/inf but Pk does not\n";
-        //   throw("somehow Qkuu has nan/inf but Pk does not");
-        // }
         reset = true;
       }
     }
@@ -2422,12 +2302,11 @@ tuple<TRAJECTORY_FORM,double, REG_PAIR> OldPlanner::forwardPass(double dt0,TRAJE
   //if(verbose){cout<<LA<<" "<<newLA<<"\n";}//here overall
   ls_failed = false;
   //Loop while z is NOT between beta2 and beta1, and the new cost is higher than the original cost
-  // cout<<dset.t()<<"\n";
   if(verbose){cout<<delV.t()<<"\n";}
 
   newTraj = generateTrajectory(dt0,0,traj,vecs, Kset, dset,useDist);
   newLA = cost2Func(newTraj,vecs,auglag_vals, costSettings_tmp_ptr);
-  if(verbose){cout<<"ls iter, LA-nLA, nLA,TEST, z,alph,reg "<<-1<<" "<<LA-newLA<<" "<<newLA<<" "<<0<<" "<<nan("1")<<" "<<0<<" "<<get<0>(regs)<<"\n";}
+  // if(verbose){cout<<"ls iter, LA-nLA, nLA,TEST, z,alph,reg "<<-1<<" "<<LA-newLA<<" "<<newLA<<" "<<0<<" "<<nan("1")<<" "<<0<<" "<<get<0>(regs)<<"\n";}
   newLA = 1.79769e+308;//1/eps;
 
   while((z<=beta1_tmp||z>beta2_tmp)||(newLA>=LA))
@@ -2444,17 +2323,15 @@ tuple<TRAJECTORY_FORM,double, REG_PAIR> OldPlanner::forwardPass(double dt0,TRAJE
       regs = make_tuple(get<0>(regs) + get<4>(regSettings_tmp),get<1>(regs));//1.0/get<3>(regSettings_tmp));
 
       regs = increaseReg(regs,regSettings_tmp); //do 2 increases otherwise the backwardpass just undoes it
-      cout<<"*************** z denied\n";
+      if(verbose){cout<<"*************** z denied\n";}
       ls_failed = true;
       return make_tuple(traj,LA, regs);
 
     }
     //Call generateTrajectory to get a new trajectory
     newTraj = generateTrajectory(dt0,alph,traj,vecs, Kset, dset,useDist);
-    // cout<<"dmax "<<abs(dset).max()<<" "<<abs(alph*dset).max()<<endl;
     newX = get<0>(newTraj);
     newU = get<1>(newTraj);
-    // cout<<newX.col(5).t()<<" "<<newU.col(5).t()<<endl;
 
     //If we have violated the constraints, or there was an error causing NaN in some matrix, we need to skip to the next iteration with updated iter and alph
     //Check newX for issues
@@ -2464,24 +2341,18 @@ tuple<TRAJECTORY_FORM,double, REG_PAIR> OldPlanner::forwardPass(double dt0,TRAJE
     if(!(newX.has_nan()||newX.has_inf()||newU.has_nan()||newU.has_inf())){//||(abs(newX).max()>100000000.0))) {
       newLA = cost2Func(newTraj,vecs,auglag_vals, costSettings_tmp_ptr);
       double newLAtest = cost2Func(traj,vecs,auglag_vals, costSettings_tmp_ptr);
-      // cout<<"newLA and old LA and test"<<newLA<<" "<<LA<<" "<<newLAtest<<"\n";
         // if(verbose){cout<<"calced new LA\n";}
       // everythingOK |= !isnan(newLA);
       if(isnan(newLA)||isinf(newLA)){
         newTraj = traj;
         newLA = LA;
-        cout<<"newLA is nan\n";
+        if(verbose){cout<<"newLA is nan\n";}
         lsiter++;
         alph /= 2.0;
         continue;
       }
     }
     // else{cout<<" issue with trajectory!\n";
-    //     cout<<newX.has_nan()<<endl;
-    //     cout<<newX.has_inf()<<endl;
-    //     cout<<newU.has_nan()<<endl;
-    //     cout<<newU.has_inf()<<endl;
-    //     cout<<(abs(newX).max()>100000000.0)<<endl;
     //   }
       //Update exp
     exp = -alph*(delV(0) + alph*delV(1));
@@ -2492,7 +2363,6 @@ tuple<TRAJECTORY_FORM,double, REG_PAIR> OldPlanner::forwardPass(double dt0,TRAJE
     //   //increase regularization, so a second try does better
     //   //regs = increaseReg(regs,regSettings_tmp);
     //   //bump regularization even more
-    //   cout<<"*************** z denied due to small expected\n";
     //   return make_tuple(traj,LA, regs);
     //
     // } else
@@ -2501,14 +2371,14 @@ tuple<TRAJECTORY_FORM,double, REG_PAIR> OldPlanner::forwardPass(double dt0,TRAJE
       z = (LA-newLA)/exp;
     }
 
-    if(verbose){cout<<"ls iter, LA-nLA, nLA, exp, z,alph,reg "<<lsiter<<" "<<LA-newLA<<" "<<newLA<<" "<<exp<<" "<<z<<" "<<alph<<" "<<get<0>(regs)<<"\n";}
+    // if(verbose){cout<<"ls iter, LA-nLA, nLA, exp, z,alph,reg "<<lsiter<<" "<<LA-newLA<<" "<<newLA<<" "<<exp<<" "<<z<<" "<<alph<<" "<<get<0>(regs)<<"\n";}
     lsiter++;
     alph /= 2.0;
   }
   //If we somehow increased the cost, we need to throw an exception. This is not supposed to happen! (because we will just keep the old traj if can't find a better one)
   if(newLA > LA)
   {
-    cout<<"Increased cost in forwardpass\n";
+    if(verbose){cout<<"Increased cost in forwardpass\n";}
     throw("Increased cost in forwardpass");
   }
   if(verbose){cout<<"*************** z "<<z<<"\n";}
@@ -2572,19 +2442,12 @@ tuple<TRAJECTORY_FORM,double, REG_PAIR> OldPlanner::forwardPass(double dt0,TRAJE
   ukp = Uset.col(0);
   for(int k = 0; k < N; k++)
   {
-    // cout<<"cost func, "<<k<<"of"<<N<<endl;
     xk = Xset.col(k);
-    // cout<<1<<"\n"<<endl;
     uk = Uset.col(k);
-    // cout<<2<<"\n"<<endl;
     bk = Bset.col(k);
-    // cout<<3<<"\n"<<endl;
     sunk = normalise(sunset.col(k));
-    // cout<<4<<"\n"<<endl;
     sk = satvec.col(k);
-    // cout<<5<<"\n"<<endl;
     ek = ECIvec.col(k);
-    // cout<<6<<"\n"<<endl;
     //Update ck and Imuk
     if((ek.n_elem==3)||((ek.n_elem==4)&&(isnan(ek(0))))){
       ek = ek.tail(3);
@@ -2592,39 +2455,37 @@ tuple<TRAJECTORY_FORM,double, REG_PAIR> OldPlanner::forwardPass(double dt0,TRAJE
     }else{
       dLA = sat.stepcost_quat(k, N, xk,uk, ukp,sk, ek,bk, costSettings_ptr);
     }
-    // cout<<"7\n"<<endl;
     LA += dLA;
     if(isinf(dLA) || isnan(dLA)){
-      cout<<dLA<<"\n";
-      cout<<xk.t()<<"\n";
-      cout<<uk.t()<<"\n";
-      cout<<bk.t()<<"\n";
-      cout<<sk.t()<<"\n";
-      cout<<ek.t()<<"\n";
-      cout<<k<<"\n";
-      if(k>0){
-        cout<<"prev\n";
-        cout<<Xset.col(k-1).t()<<"\n";
-        cout<<Uset.col(k-1).t()<<"\n";
-        cout<<Bset.col(k-1).t()<<"\n";
-        // cout<<cross(Uset.col(k-1).t(),rotMat(Xset.col(k-1).rows(3,6)).t()*Bset.col(k-1)).t()<<"\n";
-        // cout<<sat.invJcom_noRW*cross(Uset.col(k-1).t(),rotMat(Xset.col(k-1).rows(3,6)).t()*Bset.col(k-1)).t()<<"\n";
+      if(verbose){
+        cout<<dLA<<"\n";
+        cout<<xk.t()<<"\n";
+        cout<<uk.t()<<"\n";
+        cout<<bk.t()<<"\n";
+        cout<<sk.t()<<"\n";
+        cout<<ek.t()<<"\n";
+        cout<<k<<"\n";
+        if(k>0){
+          cout<<"prev\n";
+          cout<<Xset.col(k-1).t()<<"\n";
+          cout<<Uset.col(k-1).t()<<"\n";
+          cout<<Bset.col(k-1).t()<<"\n";
+        }
+        for(int j = 0;j<sat.number_RW;j++)
+        {
+          double z = xk(7+j);
+          double sz = sign(z);
+          cout<<"RW "<<j<<": |z|="<<z*sz<<", threshold="<<sat.RW_AM_cost_threshold.at(j)<<"\n";
+          cout<<"  shifted_softplus="<<shifted_softplus(z*sz,sat.RW_AM_cost_threshold.at(j))<<"\n";
+          cout<<"  AM_cost="<<0.5*sat.RW_AM_cost.at(j)*pow(shifted_softplus(z*sz,sat.RW_AM_cost_threshold.at(j)),2)<<"\n";
+          double stic_arg = (sat.RW_stiction_threshold.at(j)-z*sz)/sat.RW_stiction_threshold.at(j);
+          cout<<"  stiction_arg="<<stic_arg<<", stiction_cost="<< 0.5*sat.RW_stiction_cost.at(j)*pow(smoothstep(stic_arg)*sat.RW_stiction_threshold.at(j),2)<<"\n";
+        }
+        cout<<"broken, infinite/nan cost on step.\n";
       }
-      for(int j = 0;j<sat.number_RW;j++)
-      {
-        double z = xk(7+j);
-        double sz = sign(z);
-        cout<<z*sz<<" "<<sat.RW_AM_cost_threshold.at(j)<<" "<<z*sz-sat.RW_AM_cost_threshold.at(j)<<" "<<1e6*(z*sz-sat.RW_AM_cost_threshold.at(j))<<" "<<exp(1e6*(z*sz-sat.RW_AM_cost_threshold.at(j)))<<"\n";
-        cout<<0.5*sat.RW_AM_cost.at(j)*pow(shifted_softplus(z*sz,sat.RW_AM_cost_threshold.at(j)),2)<<"\n";
-        cout<< 0.5*sat.RW_stiction_cost.at(j)*pow(smoothstep((sat.RW_stiction_threshold.at(j)-z*sz)/sat.RW_stiction_threshold.at(j))*sat.RW_stiction_threshold.at(j),2)<<"\n";
-      }
-
-      cout<<"broken, infinite/nan cost on step.\n";
-      // throw("broken, infinite/nan cost on step.");
       break;
     }
 
-    // cout<<"8\n"<<endl;
 
     //assert (!isnan(stepcost_vec(k, N, xk,uk,  sk, ek,bk, costSettings_ptr)) || !(std::cerr<<k<<" "<<N<<" "<<xk.t()<<" "<<uk.t()<<" "<<sk.t()<<" "<<ek.t()<<" "<<bk.t()<<" "<<"\n"));
     if(useConstraints){
@@ -2636,9 +2497,7 @@ tuple<TRAJECTORY_FORM,double, REG_PAIR> OldPlanner::forwardPass(double dt0,TRAJE
       LA += as_scalar(trans(lamk)*Ilamk*ck+trans(0.5*Imuk*ck)*ck);
     }
 
-    // cout<<"9\n"<<endl;
     ukp = uk;
   }
-  // cout<<"cost func done\n"<<endl;
   return LA;
 }

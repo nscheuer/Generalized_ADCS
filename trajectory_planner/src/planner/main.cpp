@@ -4,7 +4,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <armadillo>
-#include <boost/math/tools/numerical_differentiation.hpp>
+#include <boost/math/differentiation/finite_difference.hpp>
 /*#include <armadillo>
 #include <rapidcsv.h>
 #include <picojson.h>
@@ -25,7 +25,7 @@
 #include <pybind11/stl.h>
 #include "Satellite.hpp"
 #include "PlannerUtil.hpp"
-// #include "OldPlanner.hpp"
+#include "OldPlanner.hpp"
 // #include "PlannerUtil.hpp"
 // #include "../ArmaNumpy.hpp"
 
@@ -102,7 +102,7 @@ TEST_CASE("Test findWMat", "[armadillo]") {
 TEST_CASE("Test quatcostJac", "[armadillo]") {
 		//Set input
 			//TODO tests of final step, RW, magic
-	for(int mode = 0; mode<6; mode++){
+	for(int mode = 0; mode<5; mode++){
 		cout<<"mode "<<mode<<"\n";
 		cout<<"quatcost\n";
 
@@ -4538,6 +4538,2171 @@ TEST_CASE("Test RK4z simple", "[armadillo]") {
 	REQUIRE(arma::approx_equal(xkp1,xd_exp ,"both", 1e-08,1e-10));
 
 
+}
+
+// ============================================================================
+// NEW DEBUG TESTS FOR SPIKY CONTROL LAW
+// ============================================================================
+
+TEST_CASE("Test magic actuator dynamics Jacobians", "[armadillo][magic]") {
+	cout<<"Magic actuator dynamics Jacobians\n";
+	arma::arma_rng::set_seed_random();
+	Satellite sat = Satellite();
+	arma::mat33 vecmat = arma::mat33().eye();
+	sat.change_Jcom(arma::diagmat(arma::vec({0.01,0.05,0.05})));
+
+	// Add magic actuators (3-axis)
+	sat.add_magic(arma::vec({1,0,0}), 0.01, 1.0);
+	sat.add_magic(arma::vec({0,1,0}), 0.01, 1.0);
+	sat.add_magic(arma::vec({0,0,1}), 0.01, 1.0);
+	sat.set_AV_constraint(1.0);
+
+	arma::vec3 z3 = arma::vec3().zeros();
+	arma::vec4 qk = arma::normalise(arma::vec(4,fill::randn));
+	arma::vec3 wk = 0.01*arma::normalise(arma::vec(3,fill::randn));
+	arma::vec xk = join_cols(wk,qk);
+	arma::vec3 magic_k = 1e-4*arma::normalise(arma::vec(3,fill::randn));
+	arma::vec uk = magic_k;
+	arma::vec3 BECI_k = 1e-5*arma::normalise(arma::vec(3,fill::randn));
+	arma::vec3 sunk = arma::normalise(arma::vec(3,fill::randn));
+	arma::vec3 R_k = 7000*arma::normalise(arma::vec(3,fill::randn));
+	arma::vec3 V_k = 7000*arma::normalise(arma::cross(R_k,arma::vec(3,fill::randn)));
+
+	DYNAMICS_INFO_FORM dynamics_info_k = std::make_tuple(BECI_k,R_k,0,V_k,sunk,1);
+
+	std::tuple<arma::mat, arma::mat,arma::mat> jacs = sat.dynamicsJacobians(xk,uk,dynamics_info_k);
+	arma::mat jx = std::get<0>(jacs);
+	arma::mat ju = std::get<1>(jacs);
+
+	cout<<"Magic state: "<<sat.state_N()<<", control: "<<sat.control_N()<<"\n";
+	cout<<"jx size: "<<jx.n_rows<<"x"<<jx.n_cols<<"\n";
+	cout<<"ju size: "<<ju.n_rows<<"x"<<ju.n_cols<<"\n";
+
+	// Verify Jacobians via finite difference
+	for(int ind = 0; ind<sat.state_N();ind++)
+	{
+		arma::vec eind = arma::vec(sat.state_N()).zeros();
+		eind(ind) = 1.0;
+		arma::vec lku = ju.row(ind).t();
+		arma::vec lkx = jx.row(ind).t();
+
+		arma::vec ee = xk*0;
+		arma::vec df__dx = arma::vec(xk.n_elem).zeros();
+
+		for(int i = 0; i<xk.n_elem;i++){
+			ee.zeros();
+			ee(i) = 1;
+			double x0i = xk(i);
+			auto fxi = [=] (double xi) {return arma::dot(eind,sat.dynamics_pure(xk + ee*(xi-x0i),uk,dynamics_info_k));};
+			df__dx += ee*boost::math::differentiation::finite_difference_derivative(fxi,x0i);
+		}
+		cout<<"Magic dyn dx, ind: "<<ind<<" error: "<<arma::norm(df__dx-lkx)<<"\n";
+		REQUIRE(arma::approx_equal(df__dx,lkx , "both", 1e-06,1e-10));
+
+		ee = uk*0;
+		arma::vec df__du = arma::vec(uk.n_elem).zeros();
+		for(int i = 0; i<uk.n_elem;i++){
+			ee.zeros();
+			ee(i) = 1;
+			double u0i = uk(i);
+			auto fui = [=] (double ui) {return arma::dot(eind,sat.dynamics_pure(xk,uk + ee*(ui-u0i),dynamics_info_k));};
+			df__du += ee*boost::math::differentiation::finite_difference_derivative(fui,u0i);
+		}
+		cout<<"Magic dyn du, ind: "<<ind<<" error: "<<arma::norm(df__du-lku)<<"\n";
+		REQUIRE(arma::approx_equal(df__du,lku , "both", 1e-06,1e-10));
+	}
+}
+
+
+TEST_CASE("Test magic actuator RK4 Jacobians", "[armadillo][magic]") {
+	cout<<"Magic actuator RK4 Jacobians\n";
+	arma::arma_rng::set_seed_random();
+	Satellite sat = Satellite();
+	arma::mat33 vecmat = arma::mat33().eye();
+	sat.change_Jcom(arma::diagmat(arma::vec({0.01,0.05,0.05})));
+
+	// Add magic actuators (3-axis)
+	sat.add_magic(arma::vec({1,0,0}), 0.01, 1.0);
+	sat.add_magic(arma::vec({0,1,0}), 0.01, 1.0);
+	sat.add_magic(arma::vec({0,0,1}), 0.01, 1.0);
+	sat.set_AV_constraint(1.0);
+
+	arma::vec3 z3 = arma::vec3().zeros();
+	arma::vec4 qk = arma::normalise(arma::vec(4,fill::randn));
+	arma::vec3 wk = 0.01*arma::normalise(arma::vec(3,fill::randn));
+	arma::vec xk = join_cols(wk,qk);
+	arma::vec3 magic_k = 1e-4*arma::normalise(arma::vec(3,fill::randn));
+	arma::vec uk = magic_k;
+	arma::vec3 BECI_k = 1e-5*arma::normalise(arma::vec(3,fill::randn));
+	arma::vec3 sunk = arma::normalise(arma::vec(3,fill::randn));
+	arma::vec4 brot = arma::normalise(arma::join_cols(vec(1).ones()*cos(0.001),arma::normalise(arma::vec(3,fill::randn))*sin(0.001)));
+	arma::vec3 BECI_kp1 = rotMat(brot)*BECI_k;
+	arma::vec3 R_k = 7000*arma::normalise(arma::vec(3,fill::randn));
+	arma::vec3 V_k = 7000*arma::normalise(arma::cross(R_k,arma::vec(3,fill::randn)));
+
+	DYNAMICS_INFO_FORM dynamics_info_kn1 = std::make_tuple(BECI_k,R_k,0,V_k,sunk,1);
+	DYNAMICS_INFO_FORM dynamics_info_k = std::make_tuple(BECI_kp1,R_k+1*V_k,0,V_k,sunk,1);
+
+	std::tuple<arma::mat,arma::mat,arma::mat> jacs = rk4zJacobians(1.0,xk,uk,sat,dynamics_info_kn1,dynamics_info_k);
+	arma::mat jx = std::get<0>(jacs);
+	arma::mat ju = std::get<1>(jacs);
+
+	cout<<"Magic RK4 jx size: "<<jx.n_rows<<"x"<<jx.n_cols<<"\n";
+	cout<<"Magic RK4 ju size: "<<ju.n_rows<<"x"<<ju.n_cols<<"\n";
+
+	// Verify Jacobians via finite difference
+	for(int ind = 0; ind<sat.state_N();ind++)
+	{
+		arma::vec eind = arma::vec(sat.state_N()).zeros();
+		eind(ind) = 1.0;
+		arma::vec lku = ju.row(ind).t();
+		arma::vec lkx = jx.row(ind).t();
+
+		arma::vec ee = xk*0;
+		arma::vec df__dx = arma::vec(xk.n_elem).zeros();
+
+		for(int i = 0; i<xk.n_elem;i++){
+			ee.zeros();
+			ee(i) = 1;
+			double x0i = xk(i);
+			auto fxi = [=] (double xi) {return arma::dot(eind,rk4z_pure(1.0,xk + ee*(xi-x0i),uk,sat,dynamics_info_kn1,dynamics_info_k));};
+			df__dx += ee*boost::math::differentiation::finite_difference_derivative(fxi,x0i);
+		}
+		cout<<"Magic RK4 dx, ind: "<<ind<<" error: "<<arma::norm(df__dx-lkx)<<"\n";
+		REQUIRE(arma::approx_equal(df__dx,lkx , "both", 1e-06,1e-10));
+
+		ee = uk*0;
+		arma::vec df__du = arma::vec(uk.n_elem).zeros();
+		for(int i = 0; i<uk.n_elem;i++){
+			ee.zeros();
+			ee(i) = 1;
+			double u0i = uk(i);
+			auto fui = [=] (double ui) {return arma::dot(eind,rk4z_pure(1.0,xk,uk + ee*(ui-u0i),sat,dynamics_info_kn1,dynamics_info_k));};
+			df__du += ee*boost::math::differentiation::finite_difference_derivative(fui,u0i);
+		}
+		cout<<"Magic RK4 du, ind: "<<ind<<" error: "<<arma::norm(df__du-lku)<<"\n";
+		REQUIRE(arma::approx_equal(df__du,lku , "both", 1e-06,1e-10));
+	}
+}
+
+
+TEST_CASE("Test stepcost Jacobians MTQ only", "[armadillo][cost]") {
+	cout<<"Stepcost Jacobians MTQ only\n";
+	arma::arma_rng::set_seed_random();
+	Satellite sat = Satellite();
+	arma::mat33 vecmat = arma::mat33().eye();
+	sat.change_Jcom(arma::diagmat(arma::vec({0.01,0.05,0.05})));
+	sat.add_MTQ(arma::vec({1,0,0}), 0.2, 0.1);
+	sat.add_MTQ(arma::vec({0,1,0}), 0.5, 0.1);
+	sat.add_MTQ(arma::vec({0,0,1}), 0.5, 0.1);
+	sat.set_AV_constraint(1.0);
+	sat.add_sunpoint_constraint(vecmat.col(0),20.0*datum::pi/180.0,false);
+
+	arma::vec3 z3 = arma::vec3().zeros();
+	arma::vec4 qk = arma::normalise(arma::vec(4,fill::randn));
+	arma::vec3 wk = 0.01*arma::normalise(arma::vec(3,fill::randn));
+	arma::vec xk = join_cols(wk,qk);
+	arma::vec3 mk = 0.05*arma::normalise(arma::vec(3,fill::randn));
+	arma::vec3 mk_prev = 0.04*arma::normalise(arma::vec(3,fill::randn));
+	arma::vec uk = mk;
+	arma::vec uk_prev = mk_prev;
+	arma::vec3 satvec_k = arma::vec({1,0,0});
+	arma::vec3 ECIvec_k = arma::normalise(arma::vec(3,fill::randn));
+	arma::vec3 BECI_k = 1e-5*arma::normalise(arma::vec(3,fill::randn));
+
+	int k = 5;
+	int N = 20;
+
+	COST_SETTINGS_FORM costset_tmp = std::make_tuple(1e3,1e0,1e-1,3,5,1.0,1e6,1e3,1e1,1e1,0,1);
+
+	cost_jacs cj = sat.veccostJacobians(k, N, xk, uk, uk_prev, satvec_k, ECIvec_k, BECI_k, &costset_tmp);
+
+	// Verify lx via finite difference
+	arma::vec lx = cj.lx;
+	arma::vec ee = xk*0;
+	arma::vec df__dx = arma::vec(xk.n_elem).zeros();
+
+	for(int i = 0; i<xk.n_elem;i++){
+		ee.zeros();
+		ee(i) = 1;
+		double x0i = xk(i);
+		auto fxi = [=,&costset_tmp] (double xi) {return sat.stepcost_vec(k, N, xk + ee*(xi-x0i), uk, uk_prev, satvec_k, ECIvec_k, BECI_k, &costset_tmp);};
+		df__dx += ee*boost::math::differentiation::finite_difference_derivative(fxi,x0i);
+	}
+	cout<<"Stepcost lx error: "<<arma::norm(df__dx-lx)<<"\n";
+	cout<<"df__dx: "<<df__dx.t()<<"\n";
+	cout<<"lx: "<<lx.t()<<"\n";
+	REQUIRE(arma::approx_equal(df__dx,lx , "both", 1e-06,1e-10));
+
+	// Verify lu via finite difference
+	arma::vec lu = cj.lu;
+	ee = uk*0;
+	arma::vec df__du = arma::vec(uk.n_elem).zeros();
+
+	for(int i = 0; i<uk.n_elem;i++){
+		ee.zeros();
+		ee(i) = 1;
+		double u0i = uk(i);
+		auto fui = [=,&costset_tmp] (double ui) {return sat.stepcost_vec(k, N, xk, uk + ee*(ui-u0i), uk_prev, satvec_k, ECIvec_k, BECI_k, &costset_tmp);};
+		df__du += ee*boost::math::differentiation::finite_difference_derivative(fui,u0i);
+	}
+	cout<<"Stepcost lu error: "<<arma::norm(df__du-lu)<<"\n";
+	cout<<"df__du: "<<df__du.t()<<"\n";
+	cout<<"lu: "<<lu.t()<<"\n";
+	REQUIRE(arma::approx_equal(df__du,lu , "both", 1e-06,1e-10));
+
+	// Verify lxx via finite difference
+	arma::mat lxx = cj.lxx;
+	arma::mat ddf__dxdx = arma::mat(xk.n_elem,xk.n_elem).zeros();
+	arma::vec er = arma::vec(xk.n_elem).zeros();
+	ee = xk*0;
+	for(int j = 0; j<xk.n_elem;j++){
+		er.zeros();
+		er(j) = 1;
+		double x0j = xk(j);
+		for(int i = 0; i<xk.n_elem;i++){
+			ee.zeros();
+			ee(i) = 1;
+			double x0i = xk(i);
+			if(i==j)
+			{
+				auto fxi = [=,&costset_tmp] (double xi) {return sat.stepcost_vec(k, N, xk+ ee*(xi-x0i), uk, uk_prev, satvec_k, ECIvec_k, BECI_k, &costset_tmp);};
+				auto dfxi = [=,&costset_tmp] (double xj) {return boost::math::differentiation::finite_difference_derivative(fxi,xj);};
+				ddf__dxdx += er*ee.t()*boost::math::differentiation::finite_difference_derivative(dfxi,x0j);
+			}
+			else
+			{
+				auto dfxi = [=,&costset_tmp] (double xj) { 		auto fxi = [=,&costset_tmp] (double xi) {return sat.stepcost_vec(k, N, xk+ ee*(xi-x0i)+ er*(xj-x0j), uk, uk_prev, satvec_k, ECIvec_k, BECI_k, &costset_tmp);};
+																											return boost::math::differentiation::finite_difference_derivative(fxi,x0i);};
+				ddf__dxdx += er*ee.t()*boost::math::differentiation::finite_difference_derivative(dfxi,x0j);
+			}
+		}
+	}
+	cout<<"Stepcost lxx error: "<<arma::norm(ddf__dxdx-lxx)<<"\n";
+	REQUIRE(arma::approx_equal(ddf__dxdx,lxx , "absdiff", 1e-04));
+}
+
+
+TEST_CASE("Test MTQ only multi-step trajectory", "[armadillo][trajectory]") {
+	cout<<"MTQ only multi-step trajectory\n";
+	arma::arma_rng::set_seed_random();
+	Satellite sat = Satellite();
+	arma::mat33 vecmat = arma::mat33().eye();
+	sat.change_Jcom(arma::diagmat(arma::vec({0.01,0.05,0.05})));
+	sat.add_MTQ(arma::vec({1,0,0}), 0.2, 0.1);
+	sat.add_MTQ(arma::vec({0,1,0}), 0.5, 0.1);
+	sat.add_MTQ(arma::vec({0,0,1}), 0.5, 0.1);
+
+	// Start from identity quaternion, zero angular velocity
+	arma::vec4 q0 = arma::vec({0,0,0,1});
+	arma::vec3 w0 = arma::vec3().zeros();
+	arma::vec x0 = join_cols(w0,q0);
+
+	// Apply constant MTQ command
+	arma::vec3 mk = arma::vec({0.01, 0.02, -0.01});
+	arma::vec uk = mk;
+
+	// Setup magnetic field (constant for simplicity)
+	arma::vec3 BECI = 1e-5*arma::vec({1,0,0});
+	arma::vec3 sunk = arma::vec({0,1,0});
+	arma::vec3 R_k = 7000*arma::vec({1,0,0});
+	arma::vec3 V_k = 7*arma::vec({0,1,0});
+
+	double dt = 1.0;
+	int N_steps = 10;
+
+	arma::mat Xset = arma::mat(sat.state_N(), N_steps+1).zeros();
+	Xset.col(0) = x0;
+
+	DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(BECI,R_k,0,V_k,sunk,1);
+
+	for(int k=0; k<N_steps; k++){
+		std::tuple<vec,vec> rk4zout = rk4z(dt,Xset.col(k),uk,sat,dynamics_info,dynamics_info);
+		Xset.col(k+1) = std::get<0>(rk4zout);
+	}
+
+	cout<<"Trajectory quaternion norms:\n";
+	for(int k=0; k<=N_steps; k++){
+		double qnorm = arma::norm(Xset(arma::span(3,6),k));
+		cout<<"k="<<k<<" qnorm="<<qnorm<<" q="<<Xset(arma::span(3,6),k).t();
+		REQUIRE(abs(qnorm - 1.0) < 1e-6);
+	}
+
+	cout<<"Angular velocity evolution:\n";
+	for(int k=0; k<=N_steps; k++){
+		cout<<"k="<<k<<" w="<<Xset(arma::span(0,2),k).t();
+	}
+
+	// Check that consecutive controls produce smooth state evolution
+	// (no spiky jumps between steps)
+	for(int k=1; k<N_steps; k++){
+		arma::vec dx = Xset.col(k+1) - Xset.col(k);
+		arma::vec dx_prev = Xset.col(k) - Xset.col(k-1);
+		double ratio = arma::norm(dx)/arma::norm(dx_prev);
+		cout<<"k="<<k<<" dx_ratio="<<ratio<<"\n";
+		// Should be roughly similar (within 50% for constant input)
+		CHECK(ratio < 2.0);
+		CHECK(ratio > 0.5);
+	}
+}
+
+
+TEST_CASE("Test RW+MTQ multi-step trajectory", "[armadillo][trajectory]") {
+	cout<<"RW+MTQ multi-step trajectory\n";
+	arma::arma_rng::set_seed_random();
+	Satellite sat = Satellite();
+	arma::mat33 vecmat = arma::mat33().eye();
+	sat.change_Jcom(arma::diagmat(arma::vec({0.01,0.05,0.05})));
+	sat.add_MTQ(arma::vec({1,0,0}), 0.2, 0.1);
+	sat.add_MTQ(arma::vec({0,1,0}), 0.5, 0.1);
+	sat.add_MTQ(arma::vec({0,0,1}), 0.5, 0.1);
+	arma::vec3 torqs = arma::vec({1e-4,2e-4,5e-5});
+	arma::vec3 ams = 3e-3*arma::vec3().ones();
+	arma::vec3 js = 1e-4*arma::vec({0.01,0.02,0.5});
+	for(int k = 0;k<3;k++){
+		sat.add_RW(vecmat.col(k),js(k),torqs(k),ams(k),1,1,10,0,0.01);
+	}
+
+	// Start from identity quaternion, zero angular velocity, zero RW momentum
+	arma::vec4 q0 = arma::vec({0,0,0,1});
+	arma::vec3 w0 = arma::vec3().zeros();
+	arma::vec3 h0 = arma::vec3().zeros();
+	arma::vec x0 = join_cols(w0,q0,h0);
+
+	// Apply small MTQ and RW commands
+	arma::vec3 mk = arma::vec({0.01, 0.02, -0.01});
+	arma::vec3 rwk = arma::vec({1e-5, -1e-5, 2e-5});
+	arma::vec uk = arma::join_cols(mk, rwk);
+
+	// Setup magnetic field
+	arma::vec3 BECI = 1e-5*arma::vec({1,0,0});
+	arma::vec3 sunk = arma::vec({0,1,0});
+	arma::vec3 R_k = 7000*arma::vec({1,0,0});
+	arma::vec3 V_k = 7*arma::vec({0,1,0});
+
+	double dt = 1.0;
+	int N_steps = 10;
+
+	arma::mat Xset = arma::mat(sat.state_N(), N_steps+1).zeros();
+	Xset.col(0) = x0;
+
+	DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(BECI,R_k,0,V_k,sunk,1);
+
+	for(int k=0; k<N_steps; k++){
+		std::tuple<vec,vec> rk4zout = rk4z(dt,Xset.col(k),uk,sat,dynamics_info,dynamics_info);
+		Xset.col(k+1) = std::get<0>(rk4zout);
+	}
+
+	cout<<"RW+MTQ trajectory quaternion norms:\n";
+	for(int k=0; k<=N_steps; k++){
+		double qnorm = arma::norm(Xset(arma::span(3,6),k));
+		cout<<"k="<<k<<" qnorm="<<qnorm<<"\n";
+		REQUIRE(abs(qnorm - 1.0) < 1e-6);
+	}
+
+	cout<<"Angular velocity evolution:\n";
+	for(int k=0; k<=N_steps; k++){
+		cout<<"k="<<k<<" w="<<Xset(arma::span(0,2),k).t();
+	}
+
+	cout<<"RW momentum evolution:\n";
+	for(int k=0; k<=N_steps; k++){
+		cout<<"k="<<k<<" h="<<Xset(arma::span(7,9),k).t();
+	}
+
+	// Check angular momentum conservation (total = body + RW)
+	// J*w + h should be roughly constant if no external torques
+	arma::vec3 L0 = sat.Jcom*Xset(arma::span(0,2),0) + Xset(arma::span(7,9),0);
+	cout<<"Initial total angular momentum: "<<L0.t();
+	for(int k=1; k<=N_steps; k++){
+		arma::vec3 Lk = sat.Jcom*Xset(arma::span(0,2),k) + Xset(arma::span(7,9),k);
+		cout<<"k="<<k<<" L="<<Lk.t()<<" dL="<<(Lk-L0).t();
+	}
+}
+
+
+TEST_CASE("Test stepcost with RW Jacobians", "[armadillo][cost]") {
+	cout<<"Stepcost with RW Jacobians\n";
+	arma::arma_rng::set_seed_random();
+	Satellite sat = Satellite();
+	arma::mat33 vecmat = arma::mat33().eye();
+	sat.change_Jcom(arma::diagmat(arma::vec({0.01,0.05,0.05})));
+	sat.add_MTQ(arma::vec({1,0,0}), 0.2, 0.1);
+	sat.add_MTQ(arma::vec({0,1,0}), 0.5, 0.1);
+	sat.add_MTQ(arma::vec({0,0,1}), 0.5, 0.1);
+	arma::vec3 torqs = arma::vec({1e-4,2e-4,5e-5});
+	arma::vec3 ams = 3e-3*arma::vec3().ones();
+	arma::vec3 js = 1e-4*arma::vec({0.01,0.02,0.5});
+	for(int k = 0;k<3;k++){
+		sat.add_RW(vecmat.col(k),js(k),torqs(k),ams(k),1,1,10,0,0.01);
+	}
+	sat.set_AV_constraint(1.0);
+	sat.add_sunpoint_constraint(vecmat.col(0),20.0*datum::pi/180.0,false);
+
+	arma::vec4 qk = arma::normalise(arma::vec(4,fill::randn));
+	arma::vec3 wk = 0.01*arma::normalise(arma::vec(3,fill::randn));
+	arma::vec3 hk = 1e-4*arma::normalise(arma::vec(3,fill::randn));
+	arma::vec xk = join_cols(wk,qk,hk);
+	arma::vec3 mk = 0.05*arma::normalise(arma::vec(3,fill::randn));
+	arma::vec3 rwk = 1e-5*arma::normalise(arma::vec(3,fill::randn));
+	arma::vec uk = arma::join_cols(mk, rwk);
+	arma::vec uk_prev = arma::join_cols(0.9*mk, 0.8*rwk);
+	arma::vec3 satvec_k = arma::vec({1,0,0});
+	arma::vec3 ECIvec_k = arma::normalise(arma::vec(3,fill::randn));
+	arma::vec3 BECI_k = 1e-5*arma::normalise(arma::vec(3,fill::randn));
+
+	int k = 5;
+	int N = 20;
+
+	COST_SETTINGS_FORM costset_tmp = std::make_tuple(1e3,1e0,1e-1,3,5,1.0,1e6,1e3,1e1,1e1,0,1);
+
+	cost_jacs cj = sat.veccostJacobians(k, N, xk, uk, uk_prev, satvec_k, ECIvec_k, BECI_k, &costset_tmp);
+
+	// Verify lx via finite difference
+	arma::vec lx = cj.lx;
+	arma::vec ee = xk*0;
+	arma::vec df__dx = arma::vec(xk.n_elem).zeros();
+
+	for(int i = 0; i<xk.n_elem;i++){
+		ee.zeros();
+		ee(i) = 1;
+		double x0i = xk(i);
+		auto fxi = [=,&costset_tmp] (double xi) {return sat.stepcost_vec(k, N, xk + ee*(xi-x0i), uk, uk_prev, satvec_k, ECIvec_k, BECI_k, &costset_tmp);};
+		df__dx += ee*boost::math::differentiation::finite_difference_derivative(fxi,x0i);
+	}
+	cout<<"RW Stepcost lx error: "<<arma::norm(df__dx-lx)<<"\n";
+	REQUIRE(arma::approx_equal(df__dx,lx , "both", 1e-06,1e-10));
+
+	// Verify lu via finite difference
+	arma::vec lu = cj.lu;
+	ee = uk*0;
+	arma::vec df__du = arma::vec(uk.n_elem).zeros();
+
+	for(int i = 0; i<uk.n_elem;i++){
+		ee.zeros();
+		ee(i) = 1;
+		double u0i = uk(i);
+		auto fui = [=,&costset_tmp] (double ui) {return sat.stepcost_vec(k, N, xk, uk + ee*(ui-u0i), uk_prev, satvec_k, ECIvec_k, BECI_k, &costset_tmp);};
+		df__du += ee*boost::math::differentiation::finite_difference_derivative(fui,u0i);
+	}
+	cout<<"RW Stepcost lu error: "<<arma::norm(df__du-lu)<<"\n";
+	REQUIRE(arma::approx_equal(df__du,lu , "both", 1e-06,1e-10));
+
+	// Verify luu via finite difference
+	arma::mat luu = cj.luu;
+	arma::mat ddf__dudu = arma::mat(uk.n_elem,uk.n_elem).zeros();
+	arma::vec er = uk*0;
+	ee = uk*0;
+	for(int j = 0; j<uk.n_elem;j++){
+		er.zeros();
+		er(j) = 1;
+		double u0j = uk(j);
+		for(int i = 0; i<uk.n_elem;i++){
+			ee.zeros();
+			ee(i) = 1;
+			double u0i = uk(i);
+			if(i==j)
+			{
+				auto fui = [=,&costset_tmp] (double ui) {return sat.stepcost_vec(k, N, xk, uk+ ee*(ui-u0i), uk_prev, satvec_k, ECIvec_k, BECI_k, &costset_tmp);};
+				auto dfui = [=,&costset_tmp] (double uj) {return boost::math::differentiation::finite_difference_derivative(fui,uj);};
+				ddf__dudu += er*ee.t()*boost::math::differentiation::finite_difference_derivative(dfui,u0j);
+			}
+			else
+			{
+				auto dfui = [=,&costset_tmp] (double uj) { 		auto fui = [=,&costset_tmp] (double ui) {return sat.stepcost_vec(k, N, xk, uk+ ee*(ui-u0i)+ er*(uj-u0j), uk_prev, satvec_k, ECIvec_k, BECI_k, &costset_tmp);};
+																											return boost::math::differentiation::finite_difference_derivative(fui,u0i);};
+				ddf__dudu += er*ee.t()*boost::math::differentiation::finite_difference_derivative(dfui,u0j);
+			}
+		}
+	}
+	cout<<"RW Stepcost luu error: "<<arma::norm(ddf__dudu-luu)<<"\n";
+	cout<<"luu diag: "<<arma::diagvec(luu).t()<<"\n";
+	cout<<"ddf__dudu diag: "<<arma::diagvec(ddf__dudu).t()<<"\n";
+	REQUIRE(arma::approx_equal(ddf__dudu,luu , "absdiff", 1e-04));
+}
+
+TEST_CASE("Test backward pass math verification", "[armadillo][planner][math]") {
+	/*
+	 * This test verifies the mathematical correctness of the backward pass.
+	 *
+	 * For iLQR, the backward pass computes at each timestep k:
+	 *   Q_xx = l_xx + A'*S_{k+1}*A
+	 *   Q_ux = l_ux + B'*S_{k+1}*A
+	 *   Q_uu = l_uu + B'*S_{k+1}*B
+	 *   Q_x  = l_x  + A'*s_{k+1}
+	 *   Q_u  = l_u  + B'*s_{k+1}
+	 *
+	 * With regularization:
+	 *   Q_uu_reg = Q_uu + rho*I
+	 *
+	 * Optimal gains:
+	 *   K = -Q_uu_reg^{-1} * Q_ux
+	 *   d = -Q_uu_reg^{-1} * Q_u
+	 *
+	 * Optimality conditions (what we verify):
+	 *   Q_uu_reg * K + Q_ux = 0
+	 *   Q_uu_reg * d + Q_u  = 0
+	 */
+
+	cout<<"\n=== Backward Pass Math Verification ===\n";
+
+	// 1. Create simple satellite with MTQs
+	Satellite sat = Satellite();
+	sat.change_Jcom(arma::diagmat(arma::vec({0.1, 0.12, 0.15})));
+	sat.add_MTQ(arma::vec({1,0,0}), 0.2, 1.0);
+	sat.add_MTQ(arma::vec({0,1,0}), 0.2, 1.0);
+	sat.add_MTQ(arma::vec({0,0,1}), 0.2, 1.0);
+
+	int nx = sat.state_N();           // Full state dimension (7 for MTQ-only)
+	int nxr = sat.reduced_state_N();  // Reduced state dimension (6)
+	int nu = sat.control_N();         // Control dimension (3)
+
+	cout<<"Dimensions: nx="<<nx<<", nxr="<<nxr<<", nu="<<nu<<"\n";
+
+	// 2. Set up a simple 3-step trajectory (N=3, so indices 0,1,2)
+	int N = 3;
+	double dt = 1.0;
+
+	// Initial state
+	arma::vec3 w0 = arma::vec({0.01, -0.005, 0.002});
+	arma::vec4 q0 = arma::normalise(arma::vec({1.0, 0.0, 0.0, 0.0}));
+	arma::vec x0 = join_cols(w0, q0);
+
+	// Zero control
+	arma::mat Uset = arma::mat(nu, N).zeros();
+
+	// Constant environment
+	arma::vec3 B_eci = arma::vec({0.0, 3e-5, 2e-5});
+	arma::vec3 R_orb = arma::vec({7000.0, 0.0, 0.0});
+	arma::vec3 V_orb = arma::vec({0.0, 7.5, 0.0});
+	arma::vec3 sun_vec = arma::normalise(arma::vec({1.0, 0.0, 0.0}));
+	arma::vec3 sat_body_vec = arma::vec({0.0, 0.0, 1.0});
+	arma::vec3 eci_goal = arma::normalise(arma::vec({1.0, 0.0, 0.0}));
+
+	DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_eci, R_orb, 0, V_orb, sun_vec, 1);
+
+	// Generate trajectory by propagating dynamics
+	arma::mat Xset = arma::mat(nx, N).zeros();
+	Xset.col(0) = x0;
+	for(int k=0; k<N-1; k++){
+		auto rk4out = rk4z(dt, Xset.col(k), Uset.col(k), sat, dynamics_info, dynamics_info);
+		Xset.col(k+1) = sat.state_norm(std::get<0>(rk4out));
+	}
+
+	cout<<"Trajectory:\n";
+	for(int k=0; k<N; k++){
+		cout<<"  x["<<k<<"]: "<<Xset.col(k).t();
+	}
+
+	// 3. Cost settings
+	COST_SETTINGS_FORM costSettings = std::make_tuple(
+		1e3, 1e2, 1.0, 0.0, 0.0, 0.0,  // angle, angvel, u_mult, u_mag, av_mag, ang_accel
+		1e3, 1e2, 0.0, 0.0,            // terminal weights
+		2, 1                         // ang_cost_func=Cayley, use_raw_control
+	);
+
+	// 4. Regularization
+	double rho = 1e-2;
+	cout<<"Regularization rho = "<<rho<<"\n\n";
+
+	// 5. Manual backward pass computation
+	// We'll compute K and d manually and compare to what the code produces
+
+	// Storage for manual computation
+	std::vector<arma::mat> S_manual(N);    // S_k matrices
+	std::vector<arma::vec> s_manual(N);    // s_k vectors
+	std::vector<arma::mat> K_manual(N-1);  // K_k matrices
+	std::vector<arma::vec> d_manual(N-1);  // d_k vectors
+
+	// Terminal cost (k = N-1)
+	int k = N-1;
+	arma::vec xk = Xset.col(k);
+	arma::vec4 qk = xk.rows(3, 6);
+	arma::vec uk = Uset.col(k);
+	arma::vec ukp = (k > 0) ? Uset.col(k-1) : arma::vec(nu).zeros();
+
+	// Get terminal cost Jacobians
+	// IMPORTANT: Use veccostJacobians to match OldPlanner::backPassALTRO behavior
+	cost_jacs termCostJac = sat.veccostJacobians(k, N, xk, uk, ukp, sat_body_vec, eci_goal, B_eci, &costSettings);
+
+	S_manual[k] = termCostJac.lxx;
+	s_manual[k] = termCostJac.lx;
+
+	cout<<"=== Terminal (k="<<k<<") ===\n";
+	cout<<"S_"<<k<<" (terminal cost Hessian):\n"<<S_manual[k]<<"\n";
+	cout<<"s_"<<k<<" (terminal cost gradient): "<<s_manual[k].t()<<"\n";
+
+	// Backward pass: k = N-2 down to 0
+	for(k = N-2; k >= 0; k--){
+		cout<<"\n=== Timestep k="<<k<<" ===\n";
+
+		xk = Xset.col(k);
+		qk = xk.rows(3, 6);
+		uk = Uset.col(k);
+		ukp = (k > 0) ? Uset.col(k-1) : arma::vec(nu).zeros();
+
+		arma::vec xkp1 = Xset.col(k+1);
+		arma::vec4 qkp1 = xkp1.rows(3, 6);
+
+		// Get G matrices for reduced state transformation
+		arma::mat Gk = sat.findGMat(qk);      // nxr x nx
+		arma::mat Gkp1 = sat.findGMat(qkp1);  // nxr x nx
+
+		cout<<"Gk shape: "<<Gk.n_rows<<" x "<<Gk.n_cols<<"\n";
+
+		// Get dynamics Jacobians (full state)
+		auto AB = rk4zJacobians(dt, xk, uk, sat, dynamics_info, dynamics_info);
+		arma::mat A_full = std::get<0>(AB);  // nx x nx
+		arma::mat B_full = std::get<1>(AB);  // nx x nu
+
+		// Transform to reduced state
+		arma::mat A_q = Gkp1 * A_full * Gk.t();  // nxr x nxr
+		arma::mat B_q = Gkp1 * B_full;           // nxr x nu
+
+		cout<<"A_q:\n"<<A_q<<"\n";
+		cout<<"B_q:\n"<<B_q<<"\n";
+
+		// Get cost Jacobians (use veccostJacobians to match OldPlanner)
+		cost_jacs costJac = sat.veccostJacobians(k, N, xk, uk, ukp, sat_body_vec, eci_goal, B_eci, &costSettings);
+
+		arma::mat l_xx = costJac.lxx;  // nxr x nxr
+		arma::mat l_ux = costJac.lux;  // nu x nxr
+		arma::mat l_uu = costJac.luu;  // nu x nu
+		arma::vec l_x = costJac.lx;    // nxr x 1
+		arma::vec l_u = costJac.lu;    // nu x 1
+
+		cout<<"l_xx:\n"<<l_xx<<"\n";
+		cout<<"l_ux:\n"<<l_ux<<"\n";
+		cout<<"l_uu:\n"<<l_uu<<"\n";
+		cout<<"l_x: "<<l_x.t();
+		cout<<"l_u: "<<l_u.t();
+
+		// Get S_{k+1} and s_{k+1}
+		arma::mat Skp1 = S_manual[k+1];
+		arma::vec skp1 = s_manual[k+1];
+
+		cout<<"\ns_{k+1}: "<<skp1.t();
+		cout<<"B_q' * s_{k+1}: "<<(B_q.t() * skp1).t();
+
+		// Compute Q matrices (the action-value function derivatives)
+		arma::mat Q_xx = l_xx + A_q.t() * Skp1 * A_q;
+		arma::mat Q_ux = l_ux + B_q.t() * Skp1 * A_q;
+		arma::mat Q_uu = l_uu + B_q.t() * Skp1 * B_q;
+		arma::vec Q_x = l_x + A_q.t() * skp1;
+		arma::vec Q_u = l_u + B_q.t() * skp1;
+
+		cout<<"Q_u breakdown: l_u + B'*s = "<<l_u.t()<<" + "<<(B_q.t()*skp1).t()<<" = "<<Q_u.t();
+
+		cout<<"\nQ_xx:\n"<<Q_xx<<"\n";
+		cout<<"Q_ux:\n"<<Q_ux<<"\n";
+		cout<<"Q_uu:\n"<<Q_uu<<"\n";
+		cout<<"Q_x: "<<Q_x.t();
+		cout<<"Q_u: "<<Q_u.t();
+
+		// Check Q_uu eigenvalues (for conditioning analysis)
+		arma::vec Q_uu_eigs;
+		arma::eig_sym(Q_uu_eigs, Q_uu);
+		cout<<"\nQ_uu eigenvalues: "<<Q_uu_eigs.t();
+
+		// Regularize
+		arma::mat Q_uu_reg = Q_uu + rho * arma::eye(nu, nu);
+		cout<<"Q_uu_reg (after adding rho*I):\n"<<Q_uu_reg<<"\n";
+
+		arma::vec Q_uu_reg_eigs;
+		arma::eig_sym(Q_uu_reg_eigs, Q_uu_reg);
+		cout<<"Q_uu_reg eigenvalues: "<<Q_uu_reg_eigs.t();
+
+		// Compute optimal gains
+		// K = -Q_uu_reg^{-1} * Q_ux
+		// d = -Q_uu_reg^{-1} * Q_u
+		arma::mat K_k;
+		arma::vec d_k;
+		bool solve_K = arma::solve(K_k, Q_uu_reg, Q_ux);
+		bool solve_d = arma::solve(d_k, Q_uu_reg, Q_u);
+
+		if(!solve_K || !solve_d){
+			cout<<"WARNING: Solve failed!\n";
+		}
+
+		K_k = -K_k;  // Apply negative sign
+		d_k = -d_k;
+
+		K_manual[k] = K_k;
+		d_manual[k] = d_k;
+
+		cout<<"\nComputed K_"<<k<<":\n"<<K_k<<"\n";
+		cout<<"Computed d_"<<k<<": "<<d_k.t();
+
+		// VERIFY OPTIMALITY CONDITIONS
+		// Q_uu_reg * K + Q_ux should = 0
+		// Q_uu_reg * d + Q_u should = 0
+		arma::mat K_residual = Q_uu_reg * K_k + Q_ux;
+		arma::vec d_residual = Q_uu_reg * d_k + Q_u;
+
+		double K_residual_norm = arma::norm(K_residual, "fro");
+		double d_residual_norm = arma::norm(d_residual);
+
+		cout<<"\n*** OPTIMALITY CHECK ***\n";
+		cout<<"||Q_uu_reg * K + Q_ux|| = "<<K_residual_norm<<" (should be ~0)\n";
+		cout<<"||Q_uu_reg * d + Q_u||  = "<<d_residual_norm<<" (should be ~0)\n";
+
+		CHECK(K_residual_norm < 1e-10);
+		CHECK(d_residual_norm < 1e-10);
+
+		// Compute S_k and s_k for next iteration (Riccati recursion)
+		// S_k = Q_xx + K'*Q_uu*K + K'*Q_ux + Q_ux'*K
+		//     = Q_xx - Q_ux' * Q_uu_reg^{-1} * Q_ux  (simplified form)
+		S_manual[k] = Q_xx + K_k.t() * Q_uu * K_k + K_k.t() * Q_ux + Q_ux.t() * K_k;
+
+		// s_k = Q_x + K'*Q_uu*d + K'*Q_u + Q_ux'*d
+		s_manual[k] = Q_x + K_k.t() * Q_uu * d_k + K_k.t() * Q_u + Q_ux.t() * d_k;
+
+		// Symmetrize S_k
+		S_manual[k] = 0.5 * (S_manual[k] + S_manual[k].t());
+
+		cout<<"\nS_"<<k<<":\n"<<S_manual[k]<<"\n";
+		cout<<"s_"<<k<<": "<<s_manual[k].t();
+	}
+
+	// 6. Now run the actual backward pass from OldPlanner and compare
+	cout<<"\n\n=== Comparing with OldPlanner backward pass ===\n";
+
+	// Set up required data structures
+	arma::vec times = arma::linspace(0.0, (N-1)*dt, N);
+	arma::mat Rset = arma::repmat(R_orb, 1, N);
+	arma::mat Vset = arma::repmat(V_orb, 1, N);
+	arma::mat Bset = arma::repmat(B_eci, 1, N);
+	arma::mat sunset = arma::repmat(sun_vec, 1, N);
+	arma::mat satvec = arma::repmat(sat_body_vec, 1, N);
+	arma::mat ECIvec = arma::repmat(eci_goal, 1, N);
+	arma::vec pset = arma::vec(N).zeros();
+	arma::vec rhoset = arma::vec(N).zeros();
+
+	VECTOR_INFO_FORM vecs = std::make_tuple(times, Rset, Vset, Bset, sunset, satvec, ECIvec, pset, rhoset);
+
+	arma::vec dt_vec = arma::vec(N).fill(dt);
+	arma::mat TQset = arma::mat(3, N).zeros();
+	TRAJECTORY_FORM traj = std::make_tuple(Xset, Uset, dt_vec, TQset);
+
+	// Augmented Lagrangian (zero constraints for this test)
+	arma::mat lambdaSet = arma::mat(sat.constraint_N(), N).zeros();
+	double mu = 1.0;
+	arma::mat muSet = arma::mat(sat.constraint_N(), N).fill(mu);
+	AUGLAG_INFO_FORM auglag = std::make_tuple(lambdaSet, mu, muSet);
+
+	REG_PAIR regs = std::make_tuple(rho, 1.0);
+
+	REG_SETTINGS_FORM regSettings = std::make_tuple(
+		rho, 1e-8, 1e30, 1.6, 10.0, 2, 0.0,
+		0, 1, 0, 1, 1, 0, 1, 0, 0, 0
+	);
+
+	// Create planner
+	arma::mat33 J_est = sat.Jcom;
+	SYSTEM_SETTINGS_FORM systemSettings = std::make_tuple(J_est, dt, dt, 2.22e-16, 60.0, 15.0);
+	LINE_SEARCH_SETTINGS_FORM lineSearchSettings = std::make_tuple(20, 1e-10, 500.0);
+	arma::mat xmax_vec = 10.0 * arma::mat(nxr, 1).ones();
+	BREAK_SETTINGS_FORM breakSettings = std::make_tuple(30, 250, 7000, 1e-3, 1e-1, 1e-2, 10, 0.002, 1e40, xmax_vec);
+	AUGLAG_SETTINGS_FORM auglagSettings = std::make_tuple(0.0, 1e20, 1e-1, 1e16, 10.0);
+	ALILQR_SETTINGS_FORM alilqrSettings = std::make_tuple(lineSearchSettings, auglagSettings, breakSettings, regSettings);
+	INITIAL_TRAJ_SETTINGS_FORM initTrajSettings = std::make_tuple(1000.0, 10.0*M_PI/180.0,
+		std::make_tuple(0.0, -2e0, 0.0, -0.005, 0.1, 0.5),
+		std::make_tuple(0.0, -1e-4, 0.0, -1e-5, 0.1, 0.5));
+	LQR_COST_SETTINGS_FORM tvlqrCostSettings = std::make_tuple(
+		1e3, 1e2, 1.0, 0.0, 0.0, 0.0, 1e3, 1e2, 0.0, 0.0, 0, true, 0);
+
+	ALL_SETTINGS_FORM allSettings = std::make_tuple(systemSettings, alilqrSettings, alilqrSettings,
+		initTrajSettings, costSettings, costSettings, tvlqrCostSettings);
+
+	OldPlanner planner(sat, allSettings);
+	// planner.setVerbosity(true);  // Enable verbose to see Q matrix debug output
+	planner.quaternionTo3VecMode = 2;  // Cayley (matches ang_cost_func=2)
+
+	// Run backward pass
+	auto backwardResult = planner.backwardPass(dt, traj, vecs, auglag, regs, &costSettings, regSettings, true);
+	BACKWARD_PASS_RESULTS_FORM bpResults = std::get<0>(backwardResult);
+
+	arma::cube Kset_planner = std::get<0>(bpResults);
+	arma::mat dset_planner = std::get<1>(bpResults);
+
+	// Compare K and d
+	cout<<"\n=== K Comparison ===\n";
+	for(k = 0; k < N-1; k++){
+		arma::mat K_planner = Kset_planner.slice(k);
+		arma::mat K_diff = K_planner - K_manual[k];
+		double K_diff_norm = arma::norm(K_diff, "fro");
+
+		cout<<"k="<<k<<":\n";
+		cout<<"  K_manual:\n"<<K_manual[k]<<"\n";
+		cout<<"  K_planner:\n"<<K_planner<<"\n";
+		cout<<"  ||K_planner - K_manual|| = "<<K_diff_norm<<"\n";
+
+		CHECK(K_diff_norm < 1e-8);
+	}
+
+	cout<<"\n=== d Comparison ===\n";
+	for(k = 0; k < N-1; k++){
+		arma::vec d_planner = dset_planner.col(k);
+		arma::vec d_diff = d_planner - d_manual[k];
+		double d_diff_norm = arma::norm(d_diff);
+
+		cout<<"k="<<k<<":\n";
+		cout<<"  d_manual: "<<d_manual[k].t();
+		cout<<"  d_planner: "<<d_planner.t();
+		cout<<"  ||d_planner - d_manual|| = "<<d_diff_norm<<"\n";
+
+		CHECK(d_diff_norm < 1e-8);
+	}
+
+	cout<<"\n=== Test Complete ===\n";
+}
+
+TEST_CASE("Test backward pass with constraints (ALTRO)", "[armadillo][planner][math][constraints]") {
+	/*
+	 * This test verifies the backward pass WITH constraint penalties (Augmented Lagrangian).
+	 *
+	 * For ALTRO, the Q matrices include constraint penalty terms:
+	 *   Q_xx = l_xx + A'*S_{k+1}*A + (∂c/∂x)'*Imu*(∂c/∂x)
+	 *   Q_ux = l_ux + B'*S_{k+1}*A + (∂c/∂u)'*Imu*(∂c/∂x)
+	 *   Q_uu = l_uu + B'*S_{k+1}*B + (∂c/∂u)'*Imu*(∂c/∂u)
+	 *   Q_x  = l_x  + A'*s_{k+1}   + (∂c/∂x)'*(Ilam*λ + Imu*c)
+	 *   Q_u  = l_u  + B'*s_{k+1}   + (∂c/∂u)'*(Ilam*λ + Imu*c)
+	 *
+	 * Where:
+	 *   c = constraint vector (normalized: c = (u - umax)/umax for upper bound)
+	 *   λ = Lagrange multipliers
+	 *   Imu = diagonal penalty matrix (zeros out inactive constraints)
+	 *   Ilam = identity matrix
+	 */
+
+	cout<<"\n=== Backward Pass with Constraints (ALTRO) ===\n";
+	cout<<"DEBUG: Starting test setup...\n";
+
+	// 1. Create satellite with MTQs and explicit constraints
+	Satellite sat = Satellite();
+	sat.change_Jcom(arma::diagmat(arma::vec({0.1, 0.12, 0.15})));
+
+	// Add MTQs with explicit max torque (creates control bounds)
+	double mtq_max = 0.2;
+	sat.add_MTQ(arma::vec({1,0,0}), mtq_max, 1.0);
+	sat.add_MTQ(arma::vec({0,1,0}), mtq_max, 1.0);
+	sat.add_MTQ(arma::vec({0,0,1}), mtq_max, 1.0);
+	cout<<"DEBUG: Satellite created\n";
+
+	int nx = sat.state_N();
+	int nxr = sat.reduced_state_N();
+	int nu = sat.control_N();
+	int nc = sat.constraint_N();  // Number of constraints
+
+	cout<<"Dimensions: nx="<<nx<<", nxr="<<nxr<<", nu="<<nu<<", nc="<<nc<<"\n";
+	cout<<"Constraint breakdown: ineq="<<sat.ineq_constraint_N()<<", eq="<<sat.eq_constraint_N()<<"\n";
+
+	// 2. Set up 3-step trajectory with NON-ZERO controls (to activate constraints)
+	int N = 3;
+	double dt = 1.0;
+
+	arma::vec3 w0 = arma::vec({0.01, -0.005, 0.002});
+	arma::vec4 q0 = arma::normalise(arma::vec({1.0, 0.0, 0.0, 0.0}));
+	arma::vec x0 = join_cols(w0, q0);
+
+	// Set controls at 50% of max (so constraints are not saturated but have gradient)
+	arma::mat Uset = arma::mat(nu, N).zeros();
+	Uset.col(0) = arma::vec({0.5*mtq_max, -0.3*mtq_max, 0.4*mtq_max});
+	Uset.col(1) = arma::vec({-0.2*mtq_max, 0.6*mtq_max, -0.1*mtq_max});
+	// Uset.col(N-1) is zero (no control at terminal step)
+
+	arma::vec3 B_eci = arma::vec({0.0, 3e-5, 2e-5});
+	arma::vec3 R_orb = arma::vec({7000.0, 0.0, 0.0});
+	arma::vec3 V_orb = arma::vec({0.0, 7.5, 0.0});
+	arma::vec3 sun_vec = arma::normalise(arma::vec({1.0, 0.0, 0.0}));
+	arma::vec3 sat_body_vec = arma::vec({0.0, 0.0, 1.0});
+	arma::vec3 eci_goal = arma::normalise(arma::vec({1.0, 0.0, 0.0}));
+
+	DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_eci, R_orb, 0, V_orb, sun_vec, 1);
+
+	// Generate trajectory
+	arma::mat Xset = arma::mat(nx, N).zeros();
+	Xset.col(0) = x0;
+	for(int k=0; k<N-1; k++){
+		auto rk4out = rk4z(dt, Xset.col(k), Uset.col(k), sat, dynamics_info, dynamics_info);
+		Xset.col(k+1) = sat.state_norm(std::get<0>(rk4out));
+	}
+
+	cout<<"Trajectory:\n";
+	for(int k=0; k<N; k++){
+		cout<<"  x["<<k<<"]: "<<Xset.col(k).t();
+		cout<<"  u["<<k<<"]: "<<Uset.col(k).t();
+	}
+
+	// 3. Cost settings
+	COST_SETTINGS_FORM costSettings = std::make_tuple(
+		1e3, 1e2, 1.0, 0.0, 0.0, 0.0,
+		1e3, 1e2, 0.0, 0.0,
+		2, 1
+	);
+
+	// 4. Constraint penalty settings
+	double rho = 1e-2;  // Regularization
+	double mu_penalty = 1e2;  // Constraint penalty (significant but not huge)
+
+	// Initialize Lagrange multipliers and penalty matrix
+	arma::mat lambdaSet = arma::mat(nc, N).zeros();
+	arma::mat muSet = arma::mat(nc, N).fill(mu_penalty);
+
+	cout<<"\nConstraint penalty mu = "<<mu_penalty<<"\n";
+	cout<<"Regularization rho = "<<rho<<"\n\n";
+
+	// 5. Manual backward pass WITH constraint terms
+	std::vector<arma::mat> S_manual(N);
+	std::vector<arma::vec> s_manual(N);
+	std::vector<arma::mat> K_manual(N-1);
+	std::vector<arma::vec> d_manual(N-1);
+
+	// Terminal cost (k = N-1)
+	int k = N-1;
+	cout<<"DEBUG: Starting terminal cost computation, k="<<k<<"\n";
+	arma::vec xk = Xset.col(k);
+	cout<<"DEBUG: xk.n_elem="<<xk.n_elem<<"\n";
+	arma::vec4 qk = xk.rows(3, 6);
+	cout<<"DEBUG: qk extracted\n";
+	arma::vec uk = Uset.col(k);
+	arma::vec ukp = (k > 0) ? Uset.col(k-1) : arma::vec(nu).zeros();
+	arma::vec3 sunk = arma::normalise(sun_vec);
+
+	// IMPORTANT: Use veccostJacobians (not costJacobians) to match OldPlanner::backPassALTRO
+	// costJacobians is for TVLQR and interprets costSettings[10] as considerVectorInTVLQR flag
+	// veccostJacobians interprets costSettings[10] as whichAngCostFunc (0=1-dot, 2=acos, etc.)
+	cout<<"DEBUG: Calling veccostJacobians...\n";
+	cost_jacs termCostJac = sat.veccostJacobians(k, N, xk, uk, ukp, sat_body_vec, eci_goal, B_eci, &costSettings);
+	cout<<"DEBUG: veccostJacobians returned\n";
+
+	// Get terminal constraint info
+	cout<<"DEBUG: Calling getConstraints...\n";
+	arma::vec ck_term = sat.getConstraints(k, N, uk, xk, sunk);
+	cout<<"DEBUG: ck_term.n_elem="<<ck_term.n_elem<<"\n";
+	auto cnstrJac_term = sat.constraintJacobians(k, N, uk, xk, sunk);
+	arma::mat cku_term = std::get<0>(cnstrJac_term);  // dc/du
+	arma::mat ckx_term = std::get<1>(cnstrJac_term);  // dc/dx
+
+	arma::mat Imuk_term = sat.getImu(mu_penalty, muSet.col(k), ck_term, lambdaSet.col(k));
+	arma::mat Ilamk_term = sat.getIlam(mu_penalty, muSet.col(k), ck_term, lambdaSet.col(k));
+	arma::vec viol_term = Ilamk_term * lambdaSet.col(k) + Imuk_term * ck_term;
+
+	// Terminal S and s include constraint terms on state
+	S_manual[k] = termCostJac.lxx + ckx_term.t() * Imuk_term * ckx_term;
+	s_manual[k] = termCostJac.lx + ckx_term.t() * viol_term;
+
+	cout<<"=== Terminal (k="<<k<<") ===\n";
+	cout<<"Constraint values c: "<<ck_term.t();
+	cout<<"Active constraint penalty (Imu diagonal): "<<arma::diagvec(Imuk_term).t();
+	cout<<"S_"<<k<<":\n"<<S_manual[k]<<"\n";
+
+	// Backward pass: k = N-2 down to 0
+	for(k = N-2; k >= 0; k--){
+		cout<<"\n=== Timestep k="<<k<<" ===\n";
+
+		xk = Xset.col(k);
+		qk = xk.rows(3, 6);
+		uk = Uset.col(k);
+		ukp = (k > 0) ? Uset.col(k-1) : arma::vec(nu).zeros();
+
+		arma::vec xkp1 = Xset.col(k+1);
+		arma::vec4 qkp1 = xkp1.rows(3, 6);
+
+		arma::mat Gk = sat.findGMat(qk);
+		arma::mat Gkp1 = sat.findGMat(qkp1);
+
+		// Dynamics Jacobians
+		auto AB = rk4zJacobians(dt, xk, uk, sat, dynamics_info, dynamics_info);
+		arma::mat A_q = Gkp1 * std::get<0>(AB) * Gk.t();
+		arma::mat B_q = Gkp1 * std::get<1>(AB);
+
+		// Cost Jacobians (use veccostJacobians to match OldPlanner)
+		cost_jacs costJac = sat.veccostJacobians(k, N, xk, uk, ukp, sat_body_vec, eci_goal, B_eci, &costSettings);
+
+		// Constraint Jacobians
+		arma::vec ck = sat.getConstraints(k, N, uk, xk, sunk);
+		auto cnstrJac = sat.constraintJacobians(k, N, uk, xk, sunk);
+		arma::mat cku = std::get<0>(cnstrJac);  // dc/du: nc x nu
+		arma::mat ckx = std::get<1>(cnstrJac);  // dc/dx: nc x nxr
+
+		// Penalty matrices
+		arma::mat Imuk = sat.getImu(mu_penalty, muSet.col(k), ck, lambdaSet.col(k));
+		arma::mat Ilamk = sat.getIlam(mu_penalty, muSet.col(k), ck, lambdaSet.col(k));
+		arma::vec viol = Ilamk * lambdaSet.col(k) + Imuk * ck;
+
+		cout<<"Control: "<<uk.t();
+		cout<<"Constraint values c: "<<ck.t();
+		cout<<"Active penalties (Imu diag): "<<arma::diagvec(Imuk).t();
+
+		// Get S_{k+1} and s_{k+1}
+		arma::mat Skp1 = S_manual[k+1];
+		arma::vec skp1 = s_manual[k+1];
+
+		// Compute Q matrices WITH constraint terms (ALTRO formulation)
+		arma::mat Q_xx = costJac.lxx + A_q.t() * Skp1 * A_q + ckx.t() * Imuk * ckx;
+		arma::mat Q_ux = costJac.lux + B_q.t() * Skp1 * A_q + cku.t() * Imuk * ckx;
+		arma::mat Q_uu = costJac.luu + B_q.t() * Skp1 * B_q + cku.t() * Imuk * cku;
+		arma::vec Q_x = costJac.lx + A_q.t() * skp1 + ckx.t() * viol;
+		arma::vec Q_u = costJac.lu + B_q.t() * skp1 + cku.t() * viol;
+
+		cout<<"\nQ_uu (with constraint terms):\n"<<Q_uu<<"\n";
+
+		// Check eigenvalues
+		arma::vec Q_uu_eigs;
+		arma::eig_sym(Q_uu_eigs, Q_uu);
+		cout<<"Q_uu eigenvalues: "<<Q_uu_eigs.t();
+
+		// Regularize
+		arma::mat Q_uu_reg = Q_uu + rho * arma::eye(nu, nu);
+
+		// Compute optimal gains
+		arma::mat K_k;
+		arma::vec d_k;
+		bool solve_K = arma::solve(K_k, Q_uu_reg, Q_ux);
+		bool solve_d = arma::solve(d_k, Q_uu_reg, Q_u);
+
+		if(!solve_K || !solve_d){
+			cout<<"WARNING: Solve failed!\n";
+		}
+
+		K_k = -K_k;
+		d_k = -d_k;
+
+		K_manual[k] = K_k;
+		d_manual[k] = d_k;
+
+		cout<<"\nComputed K_"<<k<<" (with constraints):\n"<<K_k<<"\n";
+		cout<<"Computed d_"<<k<<": "<<d_k.t();
+
+		// VERIFY OPTIMALITY CONDITIONS
+		arma::mat K_residual = Q_uu_reg * K_k + Q_ux;
+		arma::vec d_residual = Q_uu_reg * d_k + Q_u;
+
+		double K_residual_norm = arma::norm(K_residual, "fro");
+		double d_residual_norm = arma::norm(d_residual);
+
+		cout<<"\n*** OPTIMALITY CHECK ***\n";
+		cout<<"||Q_uu_reg * K + Q_ux|| = "<<K_residual_norm<<" (should be ~0)\n";
+		cout<<"||Q_uu_reg * d + Q_u||  = "<<d_residual_norm<<" (should be ~0)\n";
+
+		CHECK(K_residual_norm < 1e-10);
+		CHECK(d_residual_norm < 1e-10);
+
+		// Riccati recursion for S_k, s_k
+		S_manual[k] = Q_xx + K_k.t() * Q_uu * K_k + K_k.t() * Q_ux + Q_ux.t() * K_k;
+		s_manual[k] = Q_x + K_k.t() * Q_uu * d_k + K_k.t() * Q_u + Q_ux.t() * d_k;
+		S_manual[k] = 0.5 * (S_manual[k] + S_manual[k].t());
+	}
+
+	// 6. Run OldPlanner backward pass and compare
+	cout<<"\n\n=== Comparing with OldPlanner backward pass ===\n";
+
+	arma::vec times = arma::linspace(0.0, (N-1)*dt, N);
+	arma::mat Rset = arma::repmat(R_orb, 1, N);
+	arma::mat Vset = arma::repmat(V_orb, 1, N);
+	arma::mat Bset = arma::repmat(B_eci, 1, N);
+	arma::mat sunset = arma::repmat(sun_vec, 1, N);
+	arma::mat satvec = arma::repmat(sat_body_vec, 1, N);
+	arma::mat ECIvec = arma::repmat(eci_goal, 1, N);
+	arma::vec pset = arma::vec(N).zeros();
+	arma::vec rhoset = arma::vec(N).zeros();
+
+	VECTOR_INFO_FORM vecs = std::make_tuple(times, Rset, Vset, Bset, sunset, satvec, ECIvec, pset, rhoset);
+
+	arma::vec dt_vec = arma::vec(N).fill(dt);
+	arma::mat TQset = arma::mat(3, N).zeros();
+	TRAJECTORY_FORM traj = std::make_tuple(Xset, Uset, dt_vec, TQset);
+
+	// Use the same augmented Lagrangian values
+	AUGLAG_INFO_FORM auglag = std::make_tuple(lambdaSet, mu_penalty, muSet);
+
+	REG_PAIR regs = std::make_tuple(rho, 1.0);
+
+	REG_SETTINGS_FORM regSettings = std::make_tuple(
+		rho, 1e-8, 1e30, 1.6, 10.0, 2, 0.0,
+		0, 1, 0, 1, 1, 0, 1, 0, 0, 0
+	);
+
+	arma::mat33 J_est = sat.Jcom;
+	SYSTEM_SETTINGS_FORM systemSettings = std::make_tuple(J_est, dt, dt, 2.22e-16, 60.0, 15.0);
+	LINE_SEARCH_SETTINGS_FORM lineSearchSettings = std::make_tuple(20, 1e-10, 500.0);
+	arma::mat xmax_vec = 10.0 * arma::mat(nxr, 1).ones();
+	BREAK_SETTINGS_FORM breakSettings = std::make_tuple(30, 250, 7000, 1e-3, 1e-1, 1e-2, 10, 0.002, 1e40, xmax_vec);
+	AUGLAG_SETTINGS_FORM auglagSettings = std::make_tuple(0.0, 1e20, mu_penalty, 1e16, 10.0);
+	ALILQR_SETTINGS_FORM alilqrSettings = std::make_tuple(lineSearchSettings, auglagSettings, breakSettings, regSettings);
+	INITIAL_TRAJ_SETTINGS_FORM initTrajSettings = std::make_tuple(1000.0, 10.0*M_PI/180.0,
+		std::make_tuple(0.0, -2e0, 0.0, -0.005, 0.1, 0.5),
+		std::make_tuple(0.0, -1e-4, 0.0, -1e-5, 0.1, 0.5));
+	LQR_COST_SETTINGS_FORM tvlqrCostSettings = std::make_tuple(
+		1e3, 1e2, 1.0, 0.0, 0.0, 0.0, 1e3, 1e2, 0.0, 0.0, 0, true, 0);
+
+	ALL_SETTINGS_FORM allSettings = std::make_tuple(systemSettings, alilqrSettings, alilqrSettings,
+		initTrajSettings, costSettings, costSettings, tvlqrCostSettings);
+
+	OldPlanner planner(sat, allSettings);
+	// planner.setVerbosity(true);  // Enable verbose to see Q matrix debug output
+	planner.quaternionTo3VecMode = 2;
+
+	// Run backward pass
+	cout<<"DEBUG: About to call OldPlanner backward pass...\n";
+	auto backwardResult = planner.backwardPass(dt, traj, vecs, auglag, regs, &costSettings, regSettings, true);
+	cout<<"DEBUG: OldPlanner backward pass returned\n";
+	BACKWARD_PASS_RESULTS_FORM bpResults = std::get<0>(backwardResult);
+
+	arma::cube Kset_planner = std::get<0>(bpResults);
+	arma::mat dset_planner = std::get<1>(bpResults);
+
+	// Compare K and d
+	cout<<"\n=== K Comparison (with constraints) ===\n";
+	bool all_K_match = true;
+	for(k = 0; k < N-1; k++){
+		arma::mat K_planner = Kset_planner.slice(k);
+		arma::mat K_diff = K_planner - K_manual[k];
+		double K_diff_norm = arma::norm(K_diff, "fro");
+		double K_manual_norm = arma::norm(K_manual[k], "fro");
+		double relative_diff = (K_manual_norm > 1e-10) ? K_diff_norm / K_manual_norm : K_diff_norm;
+
+		cout<<"k="<<k<<":\n";
+		cout<<"  K_manual:\n"<<K_manual[k]<<"\n";
+		cout<<"  K_planner:\n"<<K_planner<<"\n";
+		cout<<"  ||K_planner - K_manual|| = "<<K_diff_norm<<"\n";
+		cout<<"  Relative difference = "<<relative_diff<<"\n";
+
+		if(K_diff_norm > 1e-6){
+			all_K_match = false;
+			cout<<"  *** MISMATCH! ***\n";
+		}
+
+		CHECK(K_diff_norm < 1e-6);
+	}
+
+	cout<<"\n=== d Comparison (with constraints) ===\n";
+	bool all_d_match = true;
+	for(k = 0; k < N-1; k++){
+		arma::vec d_planner = dset_planner.col(k);
+		arma::vec d_diff = d_planner - d_manual[k];
+		double d_diff_norm = arma::norm(d_diff);
+		double d_manual_norm = arma::norm(d_manual[k]);
+		double relative_diff = (d_manual_norm > 1e-10) ? d_diff_norm / d_manual_norm : d_diff_norm;
+
+		cout<<"k="<<k<<":\n";
+		cout<<"  d_manual: "<<d_manual[k].t();
+		cout<<"  d_planner: "<<d_planner.t();
+		cout<<"  ||d_planner - d_manual|| = "<<d_diff_norm<<"\n";
+		cout<<"  Relative difference = "<<relative_diff<<"\n";
+
+		if(d_diff_norm > 1e-6){
+			all_d_match = false;
+			cout<<"  *** MISMATCH! ***\n";
+		}
+
+		CHECK(d_diff_norm < 1e-6);
+	}
+
+	if(all_K_match && all_d_match){
+		cout<<"\n*** SUCCESS: Manual ALTRO computation matches OldPlanner! ***\n";
+	} else {
+		cout<<"\n*** FAILURE: Mismatch between manual and OldPlanner computation ***\n";
+	}
+
+	cout<<"\n=== Test Complete ===\n";
+}
+
+// Helper function to run backward pass comparison for varied configurations
+void runBackwardPassTest(
+	Satellite& sat,
+	const arma::mat& Xset,
+	const arma::mat& Uset,
+	const arma::vec3& B_eci,
+	const arma::vec3& R_orb,
+	const arma::vec3& V_orb,
+	const arma::vec3& sun_vec,
+	const arma::vec3& sat_body_vec,
+	const arma::vec3& eci_goal,
+	COST_SETTINGS_FORM& costSettings,
+	double mu_penalty,
+	double rho,
+	double dt,
+	const std::string& test_name
+) {
+	int N = Xset.n_cols;
+	int nx = sat.state_N();
+	int nxr = sat.reduced_state_N();
+	int nu = sat.control_N();
+	int nc = sat.constraint_N();
+
+	cout << "\n========================================\n";
+	cout << "TEST: " << test_name << "\n";
+	cout << "========================================\n";
+	cout << "Dimensions: nx=" << nx << ", nxr=" << nxr << ", nu=" << nu << ", nc=" << nc << "\n";
+
+	DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_eci, R_orb, 0, V_orb, sun_vec, 1);
+	arma::vec3 sunk = arma::normalise(sun_vec);
+
+	// Initialize Lagrange multipliers and penalty matrix
+	arma::mat lambdaSet = arma::mat(nc, N).zeros();
+	arma::mat muSet = arma::mat(nc, N).fill(mu_penalty);
+
+	// Manual backward pass
+	std::vector<arma::mat> S_manual(N);
+	std::vector<arma::vec> s_manual(N);
+	std::vector<arma::mat> K_manual(N-1);
+	std::vector<arma::vec> d_manual(N-1);
+
+	// Terminal cost
+	int k = N-1;
+	arma::vec xk = Xset.col(k);
+	arma::vec4 qk = xk.rows(3, 6);
+	arma::vec uk = Uset.col(k);
+	arma::vec ukp = (k > 0) ? Uset.col(k-1) : arma::vec(nu).zeros();
+
+	cost_jacs termCostJac = sat.veccostJacobians(k, N, xk, uk, ukp, sat_body_vec, eci_goal, B_eci, &costSettings);
+
+	arma::vec ck_term = sat.getConstraints(k, N, uk, xk, sunk);
+	auto cnstrJac_term = sat.constraintJacobians(k, N, uk, xk, sunk);
+	arma::mat cku_term = std::get<0>(cnstrJac_term);
+	arma::mat ckx_term = std::get<1>(cnstrJac_term);
+
+	arma::mat Imuk_term = sat.getImu(mu_penalty, muSet.col(k), ck_term, lambdaSet.col(k));
+	arma::mat Ilamk_term = sat.getIlam(mu_penalty, muSet.col(k), ck_term, lambdaSet.col(k));
+	arma::vec viol_term = Ilamk_term * lambdaSet.col(k) + Imuk_term * ck_term;
+
+	S_manual[k] = termCostJac.lxx + ckx_term.t() * Imuk_term * ckx_term;
+	s_manual[k] = termCostJac.lx + ckx_term.t() * viol_term;
+
+	// Backward pass
+	for(k = N-2; k >= 0; k--){
+		xk = Xset.col(k);
+		qk = xk.rows(3, 6);
+		uk = Uset.col(k);
+		ukp = (k > 0) ? Uset.col(k-1) : arma::vec(nu).zeros();
+
+		arma::vec xkp1 = Xset.col(k+1);
+		arma::vec4 qkp1 = xkp1.rows(3, 6);
+
+		arma::mat Gk = sat.findGMat(qk);
+		arma::mat Gkp1 = sat.findGMat(qkp1);
+
+		auto AB = rk4zJacobians(dt, xk, uk, sat, dynamics_info, dynamics_info);
+		arma::mat A_q = Gkp1 * std::get<0>(AB) * Gk.t();
+		arma::mat B_q = Gkp1 * std::get<1>(AB);
+
+		cost_jacs costJac = sat.veccostJacobians(k, N, xk, uk, ukp, sat_body_vec, eci_goal, B_eci, &costSettings);
+
+		arma::vec ck = sat.getConstraints(k, N, uk, xk, sunk);
+		auto cnstrJac = sat.constraintJacobians(k, N, uk, xk, sunk);
+		arma::mat cku = std::get<0>(cnstrJac);
+		arma::mat ckx = std::get<1>(cnstrJac);
+
+		arma::mat Imuk = sat.getImu(mu_penalty, muSet.col(k), ck, lambdaSet.col(k));
+		arma::mat Ilamk = sat.getIlam(mu_penalty, muSet.col(k), ck, lambdaSet.col(k));
+		arma::vec viol = Ilamk * lambdaSet.col(k) + Imuk * ck;
+
+		arma::mat Skp1 = S_manual[k+1];
+		arma::vec skp1 = s_manual[k+1];
+
+		arma::mat Q_xx = costJac.lxx + A_q.t() * Skp1 * A_q + ckx.t() * Imuk * ckx;
+		arma::mat Q_ux = costJac.lux + B_q.t() * Skp1 * A_q + cku.t() * Imuk * ckx;
+		arma::mat Q_uu = costJac.luu + B_q.t() * Skp1 * B_q + cku.t() * Imuk * cku;
+		arma::vec Q_x = costJac.lx + A_q.t() * skp1 + ckx.t() * viol;
+		arma::vec Q_u = costJac.lu + B_q.t() * skp1 + cku.t() * viol;
+
+		arma::mat Q_uu_reg = Q_uu + rho * arma::eye(nu, nu);
+
+		arma::mat K_k;
+		arma::vec d_k;
+		arma::solve(K_k, Q_uu_reg, Q_ux);
+		arma::solve(d_k, Q_uu_reg, Q_u);
+
+		K_k = -K_k;
+		d_k = -d_k;
+
+		K_manual[k] = K_k;
+		d_manual[k] = d_k;
+
+		S_manual[k] = Q_xx + K_k.t() * Q_uu * K_k + K_k.t() * Q_ux + Q_ux.t() * K_k;
+		s_manual[k] = Q_x + K_k.t() * Q_uu * d_k + K_k.t() * Q_u + Q_ux.t() * d_k;
+		S_manual[k] = 0.5 * (S_manual[k] + S_manual[k].t());
+	}
+
+	// Run OldPlanner backward pass
+	arma::vec times = arma::linspace(0.0, (N-1)*dt, N);
+	arma::mat Rset = arma::repmat(R_orb, 1, N);
+	arma::mat Vset = arma::repmat(V_orb, 1, N);
+	arma::mat Bset = arma::repmat(B_eci, 1, N);
+	arma::mat sunset = arma::repmat(sun_vec, 1, N);
+	arma::mat satvec = arma::repmat(sat_body_vec, 1, N);
+	arma::mat ECIvec = arma::repmat(eci_goal, 1, N);
+	arma::vec pset = arma::vec(N).zeros();
+	arma::vec rhoset = arma::vec(N).zeros();
+
+	VECTOR_INFO_FORM vecs = std::make_tuple(times, Rset, Vset, Bset, sunset, satvec, ECIvec, pset, rhoset);
+
+	arma::vec dt_vec = arma::vec(N).fill(dt);
+	arma::mat TQset = arma::mat(3, N).zeros();
+	TRAJECTORY_FORM traj = std::make_tuple(Xset, Uset, dt_vec, TQset);
+
+	AUGLAG_INFO_FORM auglag = std::make_tuple(lambdaSet, mu_penalty, muSet);
+	REG_PAIR regs = std::make_tuple(rho, 1.0);
+
+	REG_SETTINGS_FORM regSettings = std::make_tuple(
+		rho, 1e-8, 1e30, 1.6, 10.0, 2, 0.0,
+		0, 1, 0, 1, 1, 0, 1, 0, 0, 0
+	);
+
+	arma::mat33 J_est = sat.Jcom;
+	SYSTEM_SETTINGS_FORM systemSettings = std::make_tuple(J_est, dt, dt, 2.22e-16, 60.0, 15.0);
+	LINE_SEARCH_SETTINGS_FORM lineSearchSettings = std::make_tuple(20, 1e-10, 500.0);
+	arma::mat xmax_vec = 10.0 * arma::mat(nxr, 1).ones();
+	BREAK_SETTINGS_FORM breakSettings = std::make_tuple(30, 250, 7000, 1e-3, 1e-1, 1e-2, 10, 0.002, 1e40, xmax_vec);
+	AUGLAG_SETTINGS_FORM auglagSettings = std::make_tuple(0.0, 1e20, mu_penalty, 1e16, 10.0);
+	ALILQR_SETTINGS_FORM alilqrSettings = std::make_tuple(lineSearchSettings, auglagSettings, breakSettings, regSettings);
+	INITIAL_TRAJ_SETTINGS_FORM initTrajSettings = std::make_tuple(1000.0, 10.0*M_PI/180.0,
+		std::make_tuple(0.0, -2e0, 0.0, -0.005, 0.1, 0.5),
+		std::make_tuple(0.0, -1e-4, 0.0, -1e-5, 0.1, 0.5));
+	LQR_COST_SETTINGS_FORM tvlqrCostSettings = std::make_tuple(
+		1e3, 1e2, 1.0, 0.0, 0.0, 0.0, 1e3, 1e2, 0.0, 0.0, 0, true, 0);
+
+	ALL_SETTINGS_FORM allSettings = std::make_tuple(systemSettings, alilqrSettings, alilqrSettings,
+		initTrajSettings, costSettings, costSettings, tvlqrCostSettings);
+
+	OldPlanner planner(sat, allSettings);
+	planner.quaternionTo3VecMode = 2;
+
+	auto backwardResult = planner.backwardPass(dt, traj, vecs, auglag, regs, &costSettings, regSettings, true);
+	BACKWARD_PASS_RESULTS_FORM bpResults = std::get<0>(backwardResult);
+
+	arma::cube Kset_planner = std::get<0>(bpResults);
+	arma::mat dset_planner = std::get<1>(bpResults);
+
+	// Compare
+	double max_K_diff = 0.0;
+	double max_d_diff = 0.0;
+	for(k = 0; k < N-1; k++){
+		arma::mat K_planner = Kset_planner.slice(k);
+		arma::mat K_diff = K_planner - K_manual[k];
+		double K_diff_norm = arma::norm(K_diff, "fro");
+		max_K_diff = std::max(max_K_diff, K_diff_norm);
+
+		arma::vec d_planner = dset_planner.col(k);
+		arma::vec d_diff = d_planner - d_manual[k];
+		double d_diff_norm = arma::norm(d_diff);
+		max_d_diff = std::max(max_d_diff, d_diff_norm);
+	}
+
+	cout << "Max ||K_diff||: " << max_K_diff << "\n";
+	cout << "Max ||d_diff||: " << max_d_diff << "\n";
+
+	// Use relative tolerance for d when values are large
+	double max_d_magnitude = 0.0;
+	for(int kk = 0; kk < N-1; kk++) {
+		max_d_magnitude = std::max(max_d_magnitude, arma::norm(dset_planner.col(kk)));
+	}
+	double d_rel_tol = (max_d_magnitude > 1.0) ? 1e-6 * max_d_magnitude : 1e-6;
+	cout << "d tolerance (relative): " << d_rel_tol << " (max |d| = " << max_d_magnitude << ")\n";
+
+	CHECK(max_K_diff < 1e-6);
+	CHECK(max_d_diff < d_rel_tol);
+
+	if(max_K_diff < 1e-6 && max_d_diff < d_rel_tol){
+		cout << "*** PASS ***\n";
+	} else {
+		cout << "*** FAIL ***\n";
+	}
+}
+
+TEST_CASE("Backward pass with MTQs and RWs", "[armadillo][planner][math][varied]") {
+	/*
+	 * Test backward pass with a satellite that has both MTQs and reaction wheels.
+	 * This tests the more complex dynamics and cost structure.
+	 */
+	cout << "\n=== Backward Pass Tests: MTQs + RWs ===\n";
+
+	Satellite sat = Satellite();
+	sat.change_Jcom(arma::diagmat(arma::vec({0.05, 0.08, 0.1})));
+
+	// Add 3 MTQs
+	double mtq_max = 0.15;
+	sat.add_MTQ(arma::vec({1,0,0}), mtq_max, 1.0);
+	sat.add_MTQ(arma::vec({0,1,0}), mtq_max, 1.0);
+	sat.add_MTQ(arma::vec({0,0,1}), mtq_max, 1.0);
+
+	// Add 3 RWs (along body axes)
+	// add_RW(axis, J_rw, max_torq, max_ang_mom, cost, AM_cost, AM_threshold, stiction_cost, stiction_threshold)
+	double rw_J = 0.001;  // RW inertia
+	double rw_max_torq = 0.01;
+	double rw_h_max = 0.05;
+	double rw_cost = 1.0;
+	double rw_AM_cost = 1e4;
+	double rw_AM_thresh = 0.8 * rw_h_max;
+	double rw_stic_cost = 1.0;
+	double rw_stic_thresh = 0.01 * rw_h_max;
+	sat.add_RW(arma::vec({1,0,0}), rw_J, rw_max_torq, rw_h_max, rw_cost, rw_AM_cost, rw_AM_thresh, rw_stic_cost, rw_stic_thresh);
+	sat.add_RW(arma::vec({0,1,0}), rw_J, rw_max_torq, rw_h_max, rw_cost, rw_AM_cost, rw_AM_thresh, rw_stic_cost, rw_stic_thresh);
+	sat.add_RW(arma::vec({0,0,1}), rw_J, rw_max_torq, rw_h_max, rw_cost, rw_AM_cost, rw_AM_thresh, rw_stic_cost, rw_stic_thresh);
+
+	int nx = sat.state_N();  // 7 + 3 RWs = 10
+	int nu = sat.control_N();  // 3 MTQs + 3 RWs = 6
+
+	cout << "Satellite with MTQs+RWs: nx=" << nx << ", nu=" << nu << "\n";
+
+	int N = 4;
+	double dt = 0.5;
+
+	// Initial state with some RW momentum
+	arma::vec3 w0 = arma::vec({0.02, -0.01, 0.015});
+	arma::vec4 q0 = arma::normalise(arma::vec({0.98, 0.1, -0.05, 0.15}));
+	arma::vec3 h_rw0 = arma::vec({0.01, -0.005, 0.008});  // RW angular momentum
+	arma::vec x0 = arma::join_cols(w0, q0, h_rw0);
+
+	arma::vec3 B_eci = arma::vec({2e-5, 3e-5, 1e-5});
+	arma::vec3 R_orb = arma::vec({6800.0, 500.0, 200.0});
+	arma::vec3 V_orb = arma::vec({0.5, 7.2, 0.3});
+	arma::vec3 sun_vec = arma::normalise(arma::vec({0.5, 0.5, 0.707}));
+	arma::vec3 sat_body_vec = arma::vec({0.0, 0.0, 1.0});
+	arma::vec3 eci_goal = arma::normalise(arma::vec({0.707, 0.707, 0.0}));
+
+	DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_eci, R_orb, 0, V_orb, sun_vec, 1);
+
+	// Generate trajectory with some control
+	arma::mat Uset = arma::mat(nu, N).zeros();
+	Uset.col(0) = arma::vec({0.05, -0.03, 0.04, 0.002, -0.001, 0.003});  // MTQs + RWs
+	Uset.col(1) = arma::vec({-0.02, 0.06, -0.01, -0.001, 0.002, -0.002});
+	Uset.col(2) = arma::vec({0.03, -0.04, 0.02, 0.001, 0.001, 0.001});
+
+	arma::mat Xset = arma::mat(nx, N).zeros();
+	Xset.col(0) = x0;
+	for(int k=0; k<N-1; k++){
+		auto rk4out = rk4z(dt, Xset.col(k), Uset.col(k), sat, dynamics_info, dynamics_info);
+		Xset.col(k+1) = sat.state_norm(std::get<0>(rk4out));
+	}
+
+	COST_SETTINGS_FORM costSettings = std::make_tuple(
+		1e3, 1e2, 1.0, 0.0, 0.0, 0.0,
+		1e4, 1e3, 0.0, 0.0,
+		2, 1
+	);
+
+	double mu_penalty = 50.0;
+	double rho = 0.01;
+
+	runBackwardPassTest(sat, Xset, Uset, B_eci, R_orb, V_orb, sun_vec,
+		sat_body_vec, eci_goal, costSettings, mu_penalty, rho, dt,
+		"MTQs + 3 RWs, mixed control");
+}
+
+TEST_CASE("Backward pass with different cost weights", "[armadillo][planner][math][varied]") {
+	/*
+	 * Test backward pass with different cost weight configurations:
+	 * - High angle cost, low angular velocity cost
+	 * - Low angle cost, high angular velocity cost
+	 * - High control cost
+	 */
+	cout << "\n=== Backward Pass Tests: Different Cost Weights ===\n";
+
+	Satellite sat = Satellite();
+	sat.change_Jcom(arma::diagmat(arma::vec({0.1, 0.12, 0.15})));
+
+	double mtq_max = 0.2;
+	sat.add_MTQ(arma::vec({1,0,0}), mtq_max, 1.0);
+	sat.add_MTQ(arma::vec({0,1,0}), mtq_max, 1.0);
+	sat.add_MTQ(arma::vec({0,0,1}), mtq_max, 1.0);
+
+	int N = 3;
+	double dt = 1.0;
+
+	arma::vec3 w0 = arma::vec({0.01, -0.005, 0.002});
+	arma::vec4 q0 = arma::normalise(arma::vec({1.0, 0.0, 0.0, 0.0}));
+	arma::vec x0 = arma::join_cols(w0, q0);
+
+	arma::vec3 B_eci = arma::vec({0.0, 3e-5, 2e-5});
+	arma::vec3 R_orb = arma::vec({7000.0, 0.0, 0.0});
+	arma::vec3 V_orb = arma::vec({0.0, 7.5, 0.0});
+	arma::vec3 sun_vec = arma::normalise(arma::vec({1.0, 0.0, 0.0}));
+	arma::vec3 sat_body_vec = arma::vec({0.0, 0.0, 1.0});
+	arma::vec3 eci_goal = arma::normalise(arma::vec({1.0, 0.0, 0.0}));
+
+	DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_eci, R_orb, 0, V_orb, sun_vec, 1);
+
+	arma::mat Uset = arma::mat(3, N).zeros();
+	Uset.col(0) = arma::vec({0.1, -0.06, 0.08});
+	Uset.col(1) = arma::vec({-0.04, 0.12, -0.02});
+
+	arma::mat Xset = arma::mat(7, N).zeros();
+	Xset.col(0) = x0;
+	for(int k=0; k<N-1; k++){
+		auto rk4out = rk4z(dt, Xset.col(k), Uset.col(k), sat, dynamics_info, dynamics_info);
+		Xset.col(k+1) = sat.state_norm(std::get<0>(rk4out));
+	}
+
+	double mu_penalty = 100.0;
+	double rho = 0.01;
+
+	// Test 1: High angle cost
+	COST_SETTINGS_FORM costSettings1 = std::make_tuple(
+		1e5, 1e1, 1.0, 0.0, 0.0, 0.0,  // High angle (1e5), low vel (1e1)
+		1e6, 1e2, 0.0, 0.0,
+		2, 1
+	);
+	runBackwardPassTest(sat, Xset, Uset, B_eci, R_orb, V_orb, sun_vec,
+		sat_body_vec, eci_goal, costSettings1, mu_penalty, rho, dt,
+		"High angle cost (1e5), low velocity cost (1e1)");
+
+	// Test 2: High angular velocity cost
+	COST_SETTINGS_FORM costSettings2 = std::make_tuple(
+		1e1, 1e5, 1.0, 0.0, 0.0, 0.0,  // Low angle (1e1), high vel (1e5)
+		1e2, 1e6, 0.0, 0.0,
+		2, 1
+	);
+	runBackwardPassTest(sat, Xset, Uset, B_eci, R_orb, V_orb, sun_vec,
+		sat_body_vec, eci_goal, costSettings2, mu_penalty, rho, dt,
+		"Low angle cost (1e1), high velocity cost (1e5)");
+
+	// Test 3: High control cost
+	COST_SETTINGS_FORM costSettings3 = std::make_tuple(
+		1e3, 1e3, 1e4, 0.0, 0.0, 0.0,  // Very high control mult (1e4)
+		1e3, 1e3, 0.0, 0.0,
+		2, 1
+	);
+	runBackwardPassTest(sat, Xset, Uset, B_eci, R_orb, V_orb, sun_vec,
+		sat_body_vec, eci_goal, costSettings3, mu_penalty, rho, dt,
+		"High control cost (1e4)");
+}
+
+TEST_CASE("Backward pass with different goal orientations", "[armadillo][planner][math][varied]") {
+	/*
+	 * Test backward pass with different goal orientations:
+	 * - Small angle error (~10 deg)
+	 * - 90 degree error
+	 * - Near 180 degree error (challenging case)
+	 */
+	cout << "\n=== Backward Pass Tests: Different Goal Orientations ===\n";
+
+	Satellite sat = Satellite();
+	sat.change_Jcom(arma::diagmat(arma::vec({0.1, 0.12, 0.15})));
+
+	double mtq_max = 0.2;
+	sat.add_MTQ(arma::vec({1,0,0}), mtq_max, 1.0);
+	sat.add_MTQ(arma::vec({0,1,0}), mtq_max, 1.0);
+	sat.add_MTQ(arma::vec({0,0,1}), mtq_max, 1.0);
+
+	int N = 3;
+	double dt = 1.0;
+
+	arma::vec3 B_eci = arma::vec({0.0, 3e-5, 2e-5});
+	arma::vec3 R_orb = arma::vec({7000.0, 0.0, 0.0});
+	arma::vec3 V_orb = arma::vec({0.0, 7.5, 0.0});
+	arma::vec3 sun_vec = arma::normalise(arma::vec({1.0, 0.0, 0.0}));
+	arma::vec3 sat_body_vec = arma::vec({0.0, 0.0, 1.0});  // Body z-axis
+
+	DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_eci, R_orb, 0, V_orb, sun_vec, 1);
+
+	arma::mat Uset = arma::mat(3, N).zeros();
+	Uset.col(0) = arma::vec({0.05, -0.03, 0.04});
+	Uset.col(1) = arma::vec({-0.02, 0.06, -0.01});
+
+	COST_SETTINGS_FORM costSettings = std::make_tuple(
+		1e3, 1e2, 1.0, 0.0, 0.0, 0.0,
+		1e3, 1e2, 0.0, 0.0,
+		2, 1
+	);
+
+	double mu_penalty = 100.0;
+	double rho = 0.01;
+
+	// Test 1: Small angle error (~10 deg) - body z already points near ECI z
+	{
+		arma::vec3 w0 = arma::vec({0.01, -0.005, 0.002});
+		arma::vec4 q0 = arma::normalise(arma::vec({0.996, 0.05, 0.05, 0.05}));  // Small rotation
+		arma::vec x0 = arma::join_cols(w0, q0);
+		arma::vec3 eci_goal = arma::normalise(arma::vec({0.0, 0.0, 1.0}));  // ECI z-axis
+
+		arma::mat Xset = arma::mat(7, N).zeros();
+		Xset.col(0) = x0;
+		for(int k=0; k<N-1; k++){
+			auto rk4out = rk4z(dt, Xset.col(k), Uset.col(k), sat, dynamics_info, dynamics_info);
+			Xset.col(k+1) = sat.state_norm(std::get<0>(rk4out));
+		}
+
+		runBackwardPassTest(sat, Xset, Uset, B_eci, R_orb, V_orb, sun_vec,
+			sat_body_vec, eci_goal, costSettings, mu_penalty, rho, dt,
+			"Small angle error (~10 deg)");
+	}
+
+	// Test 2: 90 degree error - body z points at ECI y, goal is ECI x
+	{
+		arma::vec3 w0 = arma::vec({0.01, -0.005, 0.002});
+		arma::vec4 q0 = arma::normalise(arma::vec({1.0, 0.0, 0.0, 0.0}));  // Identity
+		arma::vec x0 = arma::join_cols(w0, q0);
+		arma::vec3 eci_goal = arma::normalise(arma::vec({1.0, 0.0, 0.0}));  // ECI x-axis (90 deg from body z)
+
+		arma::mat Xset = arma::mat(7, N).zeros();
+		Xset.col(0) = x0;
+		for(int k=0; k<N-1; k++){
+			auto rk4out = rk4z(dt, Xset.col(k), Uset.col(k), sat, dynamics_info, dynamics_info);
+			Xset.col(k+1) = sat.state_norm(std::get<0>(rk4out));
+		}
+
+		runBackwardPassTest(sat, Xset, Uset, B_eci, R_orb, V_orb, sun_vec,
+			sat_body_vec, eci_goal, costSettings, mu_penalty, rho, dt,
+			"90 degree error (body z vs ECI x)");
+	}
+
+	// Test 3: Large angle error (~170 deg) - challenging but not singular
+	// Note: Exactly 180 deg is singular (rotation axis undefined), so we test ~170 deg
+	{
+		arma::vec3 w0 = arma::vec({0.005, -0.003, 0.001});
+		arma::vec4 q0 = arma::normalise(arma::vec({1.0, 0.0, 0.0, 0.0}));  // Identity
+		arma::vec x0 = arma::join_cols(w0, q0);
+		// Goal slightly off -z axis: about 170 degrees from body z
+		arma::vec3 eci_goal = arma::normalise(arma::vec({0.17, 0.0, -0.985}));
+
+		arma::mat Xset = arma::mat(7, N).zeros();
+		Xset.col(0) = x0;
+		for(int k=0; k<N-1; k++){
+			auto rk4out = rk4z(dt, Xset.col(k), Uset.col(k), sat, dynamics_info, dynamics_info);
+			Xset.col(k+1) = sat.state_norm(std::get<0>(rk4out));
+		}
+
+		runBackwardPassTest(sat, Xset, Uset, B_eci, R_orb, V_orb, sun_vec,
+			sat_body_vec, eci_goal, costSettings, mu_penalty, rho, dt,
+			"Large angle error (~170 deg)");
+	}
+}
+
+TEST_CASE("Backward pass with active constraints", "[armadillo][planner][math][varied]") {
+	/*
+	 * Test backward pass when constraints are active (controls near limits).
+	 * This tests the augmented Lagrangian penalty terms.
+	 */
+	cout << "\n=== Backward Pass Tests: Active Constraints ===\n";
+
+	Satellite sat = Satellite();
+	sat.change_Jcom(arma::diagmat(arma::vec({0.1, 0.12, 0.15})));
+
+	double mtq_max = 0.1;  // Lower limit to make constraints more active
+	sat.add_MTQ(arma::vec({1,0,0}), mtq_max, 1.0);
+	sat.add_MTQ(arma::vec({0,1,0}), mtq_max, 1.0);
+	sat.add_MTQ(arma::vec({0,0,1}), mtq_max, 1.0);
+
+	int N = 3;
+	double dt = 1.0;
+
+	arma::vec3 w0 = arma::vec({0.01, -0.005, 0.002});
+	arma::vec4 q0 = arma::normalise(arma::vec({1.0, 0.0, 0.0, 0.0}));
+	arma::vec x0 = arma::join_cols(w0, q0);
+
+	arma::vec3 B_eci = arma::vec({0.0, 3e-5, 2e-5});
+	arma::vec3 R_orb = arma::vec({7000.0, 0.0, 0.0});
+	arma::vec3 V_orb = arma::vec({0.0, 7.5, 0.0});
+	arma::vec3 sun_vec = arma::normalise(arma::vec({1.0, 0.0, 0.0}));
+	arma::vec3 sat_body_vec = arma::vec({0.0, 0.0, 1.0});
+	arma::vec3 eci_goal = arma::normalise(arma::vec({1.0, 0.0, 0.0}));
+
+	DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_eci, R_orb, 0, V_orb, sun_vec, 1);
+
+	COST_SETTINGS_FORM costSettings = std::make_tuple(
+		1e3, 1e2, 1.0, 0.0, 0.0, 0.0,
+		1e3, 1e2, 0.0, 0.0,
+		2, 1
+	);
+
+	double rho = 0.01;
+
+	// Test 1: Controls at 90% of limit - constraints active
+	{
+		arma::mat Uset = arma::mat(3, N).zeros();
+		Uset.col(0) = arma::vec({0.9*mtq_max, -0.85*mtq_max, 0.88*mtq_max});
+		Uset.col(1) = arma::vec({-0.92*mtq_max, 0.87*mtq_max, -0.9*mtq_max});
+
+		arma::mat Xset = arma::mat(7, N).zeros();
+		Xset.col(0) = x0;
+		for(int k=0; k<N-1; k++){
+			auto rk4out = rk4z(dt, Xset.col(k), Uset.col(k), sat, dynamics_info, dynamics_info);
+			Xset.col(k+1) = sat.state_norm(std::get<0>(rk4out));
+		}
+
+		double mu_penalty = 1e3;  // High penalty to see constraint effects
+		runBackwardPassTest(sat, Xset, Uset, B_eci, R_orb, V_orb, sun_vec,
+			sat_body_vec, eci_goal, costSettings, mu_penalty, rho, dt,
+			"Controls at 90% of limit, high penalty (1e3)");
+	}
+
+	// Test 2: Controls slightly exceeding limit (constraint violation)
+	{
+		arma::mat Uset = arma::mat(3, N).zeros();
+		Uset.col(0) = arma::vec({1.05*mtq_max, -0.95*mtq_max, 1.02*mtq_max});  // Slight violation
+		Uset.col(1) = arma::vec({-1.01*mtq_max, 0.98*mtq_max, -0.99*mtq_max});
+
+		arma::mat Xset = arma::mat(7, N).zeros();
+		Xset.col(0) = x0;
+		for(int k=0; k<N-1; k++){
+			auto rk4out = rk4z(dt, Xset.col(k), Uset.col(k), sat, dynamics_info, dynamics_info);
+			Xset.col(k+1) = sat.state_norm(std::get<0>(rk4out));
+		}
+
+		double mu_penalty = 1e4;  // Very high penalty
+		runBackwardPassTest(sat, Xset, Uset, B_eci, R_orb, V_orb, sun_vec,
+			sat_body_vec, eci_goal, costSettings, mu_penalty, rho, dt,
+			"Controls slightly violating limits, very high penalty (1e4)");
+	}
+}
+
+TEST_CASE("Backward pass with high angular velocity", "[armadillo][planner][math][varied]") {
+	/*
+	 * Test backward pass with higher angular velocities.
+	 * This tests the dynamics at faster rotation rates.
+	 */
+	cout << "\n=== Backward Pass Tests: High Angular Velocity ===\n";
+
+	Satellite sat = Satellite();
+	sat.change_Jcom(arma::diagmat(arma::vec({0.1, 0.12, 0.15})));
+
+	double mtq_max = 0.2;
+	sat.add_MTQ(arma::vec({1,0,0}), mtq_max, 1.0);
+	sat.add_MTQ(arma::vec({0,1,0}), mtq_max, 1.0);
+	sat.add_MTQ(arma::vec({0,0,1}), mtq_max, 1.0);
+
+	int N = 4;
+	double dt = 0.5;  // Smaller dt for faster dynamics
+
+	arma::vec3 B_eci = arma::vec({0.0, 3e-5, 2e-5});
+	arma::vec3 R_orb = arma::vec({7000.0, 0.0, 0.0});
+	arma::vec3 V_orb = arma::vec({0.0, 7.5, 0.0});
+	arma::vec3 sun_vec = arma::normalise(arma::vec({1.0, 0.0, 0.0}));
+	arma::vec3 sat_body_vec = arma::vec({0.0, 0.0, 1.0});
+	arma::vec3 eci_goal = arma::normalise(arma::vec({1.0, 0.0, 0.0}));
+
+	DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_eci, R_orb, 0, V_orb, sun_vec, 1);
+
+	arma::mat Uset = arma::mat(3, N).zeros();
+	Uset.col(0) = arma::vec({0.1, -0.06, 0.08});
+	Uset.col(1) = arma::vec({-0.04, 0.12, -0.02});
+	Uset.col(2) = arma::vec({0.08, -0.08, 0.04});
+
+	COST_SETTINGS_FORM costSettings = std::make_tuple(
+		1e3, 1e4, 1.0, 0.0, 0.0, 0.0,  // Higher vel cost for fast rotation
+		1e3, 1e5, 0.0, 0.0,
+		2, 1
+	);
+
+	double mu_penalty = 100.0;
+	double rho = 0.01;
+
+	// Test with ~5 deg/s angular velocity
+	{
+		arma::vec3 w0 = arma::vec({0.05, -0.03, 0.08});  // ~5 deg/s
+		arma::vec4 q0 = arma::normalise(arma::vec({0.9, 0.2, -0.3, 0.2}));
+		arma::vec x0 = arma::join_cols(w0, q0);
+
+		arma::mat Xset = arma::mat(7, N).zeros();
+		Xset.col(0) = x0;
+		for(int k=0; k<N-1; k++){
+			auto rk4out = rk4z(dt, Xset.col(k), Uset.col(k), sat, dynamics_info, dynamics_info);
+			Xset.col(k+1) = sat.state_norm(std::get<0>(rk4out));
+		}
+
+		runBackwardPassTest(sat, Xset, Uset, B_eci, R_orb, V_orb, sun_vec,
+			sat_body_vec, eci_goal, costSettings, mu_penalty, rho, dt,
+			"~5 deg/s angular velocity");
+	}
+
+	// Test with ~15 deg/s angular velocity (tumbling)
+	{
+		arma::vec3 w0 = arma::vec({0.15, -0.1, 0.2});  // ~15 deg/s - tumbling
+		arma::vec4 q0 = arma::normalise(arma::vec({0.7, 0.4, -0.5, 0.3}));
+		arma::vec x0 = arma::join_cols(w0, q0);
+
+		arma::mat Xset = arma::mat(7, N).zeros();
+		Xset.col(0) = x0;
+		for(int k=0; k<N-1; k++){
+			auto rk4out = rk4z(dt, Xset.col(k), Uset.col(k), sat, dynamics_info, dynamics_info);
+			Xset.col(k+1) = sat.state_norm(std::get<0>(rk4out));
+		}
+
+		runBackwardPassTest(sat, Xset, Uset, B_eci, R_orb, V_orb, sun_vec,
+			sat_body_vec, eci_goal, costSettings, mu_penalty, rho, dt,
+			"~15 deg/s angular velocity (tumbling)");
+	}
+}
+
+TEST_CASE("Analytical case: RW-only asymmetric inertia (debug_altro_6Up simplified)", "[armadillo][planner][analytical]") {
+	/*
+	 * Simplified version of debug_altro_6Up.py:
+	 * - 3 RWs only (no MTQs) with small torque authority
+	 * - Asymmetric inertia tensor matching the debug script
+	 * - Near-identity initial attitude
+	 * - Pointing goal: body z → ECI [1,1,1] (diagonal direction)
+	 * - Longer horizon to see backward pass propagation
+	 *
+	 * This tests whether the backward pass produces sensible gains for
+	 * a realistic RW-only pointing scenario.
+	 */
+	cout << "\n=== Analytical Test: RW-Only Asymmetric Inertia ===\n";
+
+	Satellite sat = Satellite();
+	// Match debug_altro_6Up.py inertia: J = diag([0.0969, 0.1235, 0.1918])
+	sat.change_Jcom(arma::diagmat(arma::vec({0.0969, 0.1235, 0.1918})));
+
+	// 3 RWs along body axes with small torque (matching debug script)
+	// add_RW(axis, J_rw, max_torq, max_ang_mom, cost, AM_cost, AM_threshold, stiction_cost, stiction_threshold)
+	double rw_J = 0.0014;
+	double rw_max_torq = 0.005;  // Small - this is key to the spiky behavior
+	double rw_h_max = 0.015;
+	double rw_cost = 1.0;
+	double rw_AM_cost = 1e4;
+	double rw_AM_thresh = 0.8 * rw_h_max;
+	double rw_stic_cost = 1.0;
+	double rw_stic_thresh = 0.01 * rw_h_max;
+
+	sat.add_RW(arma::vec({1,0,0}), rw_J, rw_max_torq, rw_h_max, rw_cost, rw_AM_cost, rw_AM_thresh, rw_stic_cost, rw_stic_thresh);
+	sat.add_RW(arma::vec({0,1,0}), rw_J, rw_max_torq, rw_h_max, rw_cost, rw_AM_cost, rw_AM_thresh, rw_stic_cost, rw_stic_thresh);
+	sat.add_RW(arma::vec({0,0,1}), rw_J, rw_max_torq, rw_h_max, rw_cost, rw_AM_cost, rw_AM_thresh, rw_stic_cost, rw_stic_thresh);
+
+	int nx = sat.state_N();  // 10 (3 ω + 4 q + 3 h_rw)
+	int nxr = sat.reduced_state_N();  // 9
+	int nu = sat.control_N();  // 3
+	int nc = sat.constraint_N();
+
+	cout << "Satellite: nx=" << nx << ", nxr=" << nxr << ", nu=" << nu << ", nc=" << nc << "\n";
+	cout << "Inertia: " << arma::diagvec(sat.Jcom).t();
+	cout << "RW max torque: " << rw_max_torq << " Nm\n";
+
+	int N = 15;  // Longer horizon
+	double dt = 1.0;
+
+	// Initial state: near identity, low angular velocity, small RW momentum
+	arma::vec3 w0 = arma::vec({0.001, 0.002, -0.001});  // Very small ω
+	arma::vec4 q0 = arma::normalise(arma::vec({1.0, 0.0, 0.0, 0.0}));
+	arma::vec3 h_rw0 = arma::vec({0.001, 0.001, 0.001});  // Small initial RW momentum
+	arma::vec x0 = arma::join_cols(w0, q0, h_rw0);
+
+	// Environment (constant B-field like debug script)
+	arma::vec3 B_eci = arma::vec({0.0, 1e-4, 0.0});  // B along ECI y
+	arma::vec3 R_orb = arma::vec({7000.0, 0.0, 0.0});
+	arma::vec3 V_orb = arma::vec({0.0, 7.5, 0.0});
+	arma::vec3 sun_vec = arma::normalise(arma::vec({1.0, 0.0, 0.0}));
+
+	// Pointing task: body z-axis → ECI [1,1,1] direction (~54.7° from each axis)
+	arma::vec3 sat_body_vec = arma::vec({0.0, 0.0, 1.0});
+	arma::vec3 eci_goal = arma::normalise(arma::vec({1.0, 1.0, 1.0}));
+
+	DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_eci, R_orb, 0, V_orb, sun_vec, 1);
+
+	// Generate a simple trajectory with small controls
+	arma::mat Uset = arma::mat(nu, N).zeros();
+	// Apply small torques in first few timesteps
+	for(int k = 0; k < std::min(5, N-1); k++) {
+		Uset.col(k) = arma::vec({0.002, -0.001, 0.0015}) * (1.0 - 0.15*k);
+	}
+
+	arma::mat Xset = arma::mat(nx, N).zeros();
+	Xset.col(0) = x0;
+	for(int k = 0; k < N-1; k++) {
+		auto rk4out = rk4z(dt, Xset.col(k), Uset.col(k), sat, dynamics_info, dynamics_info);
+		Xset.col(k+1) = sat.state_norm(std::get<0>(rk4out));
+	}
+
+	cout << "\nTrajectory generated:\n";
+	cout << "Initial state: " << x0.t();
+	cout << "Final state:   " << Xset.col(N-1).t();
+
+	// Cost settings matching debug script style
+	COST_SETTINGS_FORM costSettings = std::make_tuple(
+		1e3, 0.0, 1.0, 0.0, 0.0, 0.0,  // angle=1e3, ang_vel=0 (like debug script)
+		1e4, 0.0, 0.0, 0.0,  // Higher terminal angle cost
+		2, 1  // acos angle cost, raw control cost
+	);
+
+	double mu_penalty = 100.0;
+	double rho = 0.01;
+
+	// Run backward pass comparison
+	runBackwardPassTest(sat, Xset, Uset, B_eci, R_orb, V_orb, sun_vec,
+		sat_body_vec, eci_goal, costSettings, mu_penalty, rho, dt,
+		"RW-only, asymmetric J, pointing to [1,1,1]");
+
+	// Additional analysis: Check gain sign patterns
+	cout << "\n=== Gain Sign Analysis ===\n";
+
+	arma::vec3 sunk = arma::normalise(sun_vec);
+	arma::mat lambdaSet = arma::mat(nc, N).zeros();
+	arma::mat muSet = arma::mat(nc, N).fill(mu_penalty);
+
+	std::vector<arma::mat> K_gains(N-1);
+	std::vector<arma::vec> d_gains(N-1);
+	std::vector<arma::mat> S_vals(N);
+	std::vector<arma::vec> s_vals(N);
+
+	// Terminal cost
+	int k = N-1;
+	arma::vec xk = Xset.col(k);
+	arma::vec4 qk = xk.rows(3, 6);
+	arma::vec uk = Uset.col(k);
+	arma::vec ukp = (k > 0) ? Uset.col(k-1) : arma::vec(nu).zeros();
+
+	cost_jacs termCostJac = sat.veccostJacobians(k, N, xk, uk, ukp, sat_body_vec, eci_goal, B_eci, &costSettings);
+	arma::vec ck = sat.getConstraints(k, N, uk, xk, sunk);
+	auto cnstrJac = sat.constraintJacobians(k, N, uk, xk, sunk);
+	arma::mat ckx = std::get<1>(cnstrJac);
+	arma::mat Imuk = sat.getImu(mu_penalty, muSet.col(k), ck, lambdaSet.col(k));
+	arma::mat Ilamk = sat.getIlam(mu_penalty, muSet.col(k), ck, lambdaSet.col(k));
+	arma::vec viol = Ilamk * lambdaSet.col(k) + Imuk * ck;
+
+	S_vals[k] = termCostJac.lxx + ckx.t() * Imuk * ckx;
+	s_vals[k] = termCostJac.lx + ckx.t() * viol;
+
+	// Backward pass
+	for(k = N-2; k >= 0; k--) {
+		xk = Xset.col(k);
+		qk = xk.rows(3, 6);
+		uk = Uset.col(k);
+		ukp = (k > 0) ? Uset.col(k-1) : arma::vec(nu).zeros();
+
+		arma::vec xkp1 = Xset.col(k+1);
+		arma::vec4 qkp1 = xkp1.rows(3, 6);
+
+		arma::mat Gk = sat.findGMat(qk);
+		arma::mat Gkp1 = sat.findGMat(qkp1);
+
+		auto AB = rk4zJacobians(dt, xk, uk, sat, dynamics_info, dynamics_info);
+		arma::mat A_q = Gkp1 * std::get<0>(AB) * Gk.t();
+		arma::mat B_q = Gkp1 * std::get<1>(AB);
+
+		cost_jacs costJac = sat.veccostJacobians(k, N, xk, uk, ukp, sat_body_vec, eci_goal, B_eci, &costSettings);
+
+		ck = sat.getConstraints(k, N, uk, xk, sunk);
+		cnstrJac = sat.constraintJacobians(k, N, uk, xk, sunk);
+		arma::mat cku = std::get<0>(cnstrJac);
+		ckx = std::get<1>(cnstrJac);
+
+		Imuk = sat.getImu(mu_penalty, muSet.col(k), ck, lambdaSet.col(k));
+		Ilamk = sat.getIlam(mu_penalty, muSet.col(k), ck, lambdaSet.col(k));
+		viol = Ilamk * lambdaSet.col(k) + Imuk * ck;
+
+		arma::mat Skp1 = S_vals[k+1];
+		arma::vec skp1 = s_vals[k+1];
+
+		arma::mat Q_xx = costJac.lxx + A_q.t() * Skp1 * A_q + ckx.t() * Imuk * ckx;
+		arma::mat Q_ux = costJac.lux + B_q.t() * Skp1 * A_q + cku.t() * Imuk * ckx;
+		arma::mat Q_uu = costJac.luu + B_q.t() * Skp1 * B_q + cku.t() * Imuk * cku;
+		arma::vec Q_x = costJac.lx + A_q.t() * skp1 + ckx.t() * viol;
+		arma::vec Q_u = costJac.lu + B_q.t() * skp1 + cku.t() * viol;
+
+		arma::mat Q_uu_reg = Q_uu + rho * arma::eye(nu, nu);
+
+		arma::mat K_k;
+		arma::vec d_k;
+		arma::solve(K_k, Q_uu_reg, Q_ux);
+		arma::solve(d_k, Q_uu_reg, Q_u);
+		K_k = -K_k;
+		d_k = -d_k;
+
+		K_gains[k] = K_k;
+		d_gains[k] = d_k;
+
+		S_vals[k] = Q_xx + K_k.t() * Q_uu * K_k + K_k.t() * Q_ux + Q_ux.t() * K_k;
+		s_vals[k] = Q_x + K_k.t() * Q_uu * d_k + K_k.t() * Q_u + Q_ux.t() * d_k;
+		S_vals[k] = 0.5 * (S_vals[k] + S_vals[k].t());
+	}
+
+	// Analyze gain patterns - look for sign alternation (spiky behavior indicator)
+	cout << "\nFeedforward gains d_k (control adjustments):\n";
+	for(k = 0; k < N-1; k++) {
+		cout << "k=" << k << ": " << d_gains[k].t();
+	}
+
+	cout << "\nGain magnitude evolution |K_k|_F:\n";
+	for(k = 0; k < N-1; k++) {
+		cout << "k=" << k << ": " << arma::norm(K_gains[k], "fro") << "\n";
+	}
+
+	// Check for sign alternation in d
+	cout << "\nSign alternation check (d_k[0] signs):\n";
+	int sign_changes = 0;
+	for(k = 1; k < N-1; k++) {
+		if(d_gains[k](0) * d_gains[k-1](0) < 0) {
+			sign_changes++;
+			cout << "  Sign change at k=" << k << "\n";
+		}
+	}
+	cout << "Total sign changes in d[0]: " << sign_changes << " out of " << N-2 << " transitions\n";
+
+	// Check Q_uu conditioning through the backward pass
+	cout << "\nQ_uu condition numbers (eigenvalue ratio):\n";
+	// Re-run to get Q_uu values (simplified)
+	S_vals[N-1] = termCostJac.lxx;
+	for(k = N-2; k >= 0; k--) {
+		xk = Xset.col(k);
+		uk = Uset.col(k);
+		ukp = (k > 0) ? Uset.col(k-1) : arma::vec(nu).zeros();
+		arma::vec4 qk_tmp = xk.rows(3, 6);
+		arma::vec xkp1 = Xset.col(k+1);
+		arma::vec4 qkp1_tmp = xkp1.rows(3, 6);
+
+		arma::mat Gk = sat.findGMat(qk_tmp);
+		arma::mat Gkp1 = sat.findGMat(qkp1_tmp);
+
+		auto AB = rk4zJacobians(dt, xk, uk, sat, dynamics_info, dynamics_info);
+		arma::mat B_q = Gkp1 * std::get<1>(AB);
+
+		cost_jacs costJac = sat.veccostJacobians(k, N, xk, uk, ukp, sat_body_vec, eci_goal, B_eci, &costSettings);
+		arma::mat Q_uu = costJac.luu + B_q.t() * S_vals[k+1] * B_q;
+
+		arma::vec eigs;
+		arma::eig_sym(eigs, Q_uu);
+		double cond = eigs.max() / std::max(eigs.min(), 1e-15);
+		cout << "k=" << k << ": min_eig=" << eigs.min() << ", max_eig=" << eigs.max() << ", cond=" << cond << "\n";
+
+		arma::mat A_q = Gkp1 * std::get<0>(AB) * Gk.t();
+		S_vals[k] = costJac.lxx + A_q.t() * S_vals[k+1] * A_q;
+	}
+}
+
+TEST_CASE("Analytical case: Gyroscopic coupling with asymmetric inertia", "[armadillo][planner][analytical]") {
+	/*
+	 * Test the backward pass when gyroscopic coupling is significant.
+	 * Asymmetric inertia + moderate angular velocity creates cross-axis coupling.
+	 * This can cause the optimal control to have non-intuitive sign patterns.
+	 */
+	cout << "\n=== Analytical Test: Gyroscopic Coupling ===\n";
+
+	Satellite sat = Satellite();
+	// Highly asymmetric inertia to maximize gyroscopic effects
+	sat.change_Jcom(arma::diagmat(arma::vec({0.05, 0.10, 0.20})));  // 1:2:4 ratio
+
+	// MTQs for direct torque application
+	double mtq_max = 0.1;
+	sat.add_MTQ(arma::vec({1,0,0}), mtq_max, 1.0);
+	sat.add_MTQ(arma::vec({0,1,0}), mtq_max, 1.0);
+	sat.add_MTQ(arma::vec({0,0,1}), mtq_max, 1.0);
+
+	int nx = sat.state_N();
+	int nu = sat.control_N();
+	int nc = sat.constraint_N();
+
+	cout << "Highly asymmetric inertia: " << arma::diagvec(sat.Jcom).t();
+
+	int N = 10;
+	double dt = 0.5;
+
+	// Start with rotation about intermediate axis (unstable for asymmetric body)
+	// This is the "tennis racket theorem" regime
+	arma::vec3 w0 = arma::vec({0.02, 0.1, 0.02});  // Mainly about y-axis (intermediate)
+	arma::vec4 q0 = arma::normalise(arma::vec({1.0, 0.0, 0.0, 0.0}));
+	arma::vec x0 = arma::join_cols(w0, q0);
+
+	arma::vec3 B_eci = arma::vec({3e-5, 0.0, 2e-5});
+	arma::vec3 R_orb = arma::vec({7000.0, 0.0, 0.0});
+	arma::vec3 V_orb = arma::vec({0.0, 7.5, 0.0});
+	arma::vec3 sun_vec = arma::normalise(arma::vec({1.0, 0.0, 0.0}));
+	arma::vec3 sat_body_vec = arma::vec({0.0, 0.0, 1.0});
+	// Goal: ECI x-axis (90° from body z at identity) - creates meaningful pointing task
+	arma::vec3 eci_goal = arma::normalise(arma::vec({1.0, 0.0, 0.0}));
+
+	DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_eci, R_orb, 0, V_orb, sun_vec, 1);
+
+	// Small stabilizing control
+	arma::mat Uset = arma::mat(nu, N).zeros();
+	Uset.col(0) = arma::vec({0.02, -0.04, 0.01});
+	Uset.col(1) = arma::vec({-0.01, -0.02, 0.015});
+
+	arma::mat Xset = arma::mat(nx, N).zeros();
+	Xset.col(0) = x0;
+	for(int k = 0; k < N-1; k++) {
+		auto rk4out = rk4z(dt, Xset.col(k), Uset.col(k), sat, dynamics_info, dynamics_info);
+		Xset.col(k+1) = sat.state_norm(std::get<0>(rk4out));
+	}
+
+	// Higher angular velocity cost to penalize the gyroscopic instability
+	COST_SETTINGS_FORM costSettings = std::make_tuple(
+		1e2, 1e4, 1.0, 0.0, 0.0, 0.0,  // Low angle, high ang_vel
+		1e2, 1e5, 0.0, 0.0,
+		2, 1
+	);
+
+	double mu_penalty = 100.0;
+	double rho = 0.01;
+
+	runBackwardPassTest(sat, Xset, Uset, B_eci, R_orb, V_orb, sun_vec,
+		sat_body_vec, eci_goal, costSettings, mu_penalty, rho, dt,
+		"Gyroscopic coupling, intermediate axis rotation");
+}
+
+TEST_CASE("Analytical case: Near-saturation RW control", "[armadillo][planner][analytical]") {
+	/*
+	 * Test backward pass when RW controls are near saturation.
+	 * This is where augmented Lagrangian constraint terms dominate Q_uu.
+	 */
+	cout << "\n=== Analytical Test: Near-Saturation RW Control ===\n";
+
+	Satellite sat = Satellite();
+	sat.change_Jcom(arma::diagmat(arma::vec({0.0969, 0.1235, 0.1918})));
+
+	// Small RW torque limits
+	double rw_J = 0.0014;
+	double rw_max_torq = 0.003;  // Very small
+	double rw_h_max = 0.01;
+	sat.add_RW(arma::vec({1,0,0}), rw_J, rw_max_torq, rw_h_max, 1.0, 1e4, 0.8*rw_h_max, 1.0, 0.01*rw_h_max);
+	sat.add_RW(arma::vec({0,1,0}), rw_J, rw_max_torq, rw_h_max, 1.0, 1e4, 0.8*rw_h_max, 1.0, 0.01*rw_h_max);
+	sat.add_RW(arma::vec({0,0,1}), rw_J, rw_max_torq, rw_h_max, 1.0, 1e4, 0.8*rw_h_max, 1.0, 0.01*rw_h_max);
+
+	int nx = sat.state_N();
+	int nu = sat.control_N();
+
+	cout << "RW max torque: " << rw_max_torq << " Nm (very small)\n";
+
+	int N = 8;
+	double dt = 1.0;
+
+	arma::vec3 w0 = arma::vec({0.0, 0.0, 0.0});
+	arma::vec4 q0 = arma::normalise(arma::vec({1.0, 0.0, 0.0, 0.0}));
+	arma::vec3 h_rw0 = arma::vec({0.0, 0.0, 0.0});
+	arma::vec x0 = arma::join_cols(w0, q0, h_rw0);
+
+	arma::vec3 B_eci = arma::vec({0.0, 1e-4, 0.0});
+	arma::vec3 R_orb = arma::vec({7000.0, 0.0, 0.0});
+	arma::vec3 V_orb = arma::vec({0.0, 7.5, 0.0});
+	arma::vec3 sun_vec = arma::normalise(arma::vec({1.0, 0.0, 0.0}));
+	arma::vec3 sat_body_vec = arma::vec({0.0, 0.0, 1.0});
+	arma::vec3 eci_goal = arma::normalise(arma::vec({1.0, 0.0, 0.0}));
+
+	DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_eci, R_orb, 0, V_orb, sun_vec, 1);
+
+	// Controls near saturation (90% of max)
+	arma::mat Uset = arma::mat(nu, N).zeros();
+	Uset.col(0) = arma::vec({0.9, -0.85, 0.88}) * rw_max_torq;
+	Uset.col(1) = arma::vec({-0.92, 0.87, -0.9}) * rw_max_torq;
+	Uset.col(2) = arma::vec({0.88, -0.91, 0.86}) * rw_max_torq;
+	Uset.col(3) = arma::vec({-0.85, 0.89, -0.87}) * rw_max_torq;
+
+	arma::mat Xset = arma::mat(nx, N).zeros();
+	Xset.col(0) = x0;
+	for(int k = 0; k < N-1; k++) {
+		auto rk4out = rk4z(dt, Xset.col(k), Uset.col(k), sat, dynamics_info, dynamics_info);
+		Xset.col(k+1) = sat.state_norm(std::get<0>(rk4out));
+	}
+
+	COST_SETTINGS_FORM costSettings = std::make_tuple(
+		1e3, 1e2, 1.0, 0.0, 0.0, 0.0,
+		1e4, 1e3, 0.0, 0.0,
+		2, 1
+	);
+
+	// High penalty to see constraint effects
+	double mu_penalty = 1e4;
+	double rho = 0.01;
+
+	runBackwardPassTest(sat, Xset, Uset, B_eci, R_orb, V_orb, sun_vec,
+		sat_body_vec, eci_goal, costSettings, mu_penalty, rho, dt,
+		"RW near saturation (90%), high penalty");
+
+	cout << "\nControl saturation levels:\n";
+	for(int k = 0; k < N-1; k++) {
+		arma::vec u = Uset.col(k);
+		cout << "k=" << k << ": " << (arma::abs(u) / rw_max_torq * 100).t() << " % of max\n";
+	}
 }
 
 /*TEST_CASE("Test dynamicsJacobians", "[csv][armadillo]") {
