@@ -14,7 +14,10 @@
 // #define EPSVAR 2.22e-16
 #define REG_PAIR std::tuple<double,double>
 
-#define LQR_COST_SETTINGS_FORM std::tuple<double, double, double, double, double,double,double,double,double,double,int,int,int>
+// TVLQR cost settings: (angle, ang_vel, control_mult, ang_vel_mag, ang_vel_err_dir,
+//                       angle_N, ang_vel_N, ang_vel_mag_N, ang_vel_err_dir_N,
+//                       consider_vector_in_tvlqr, use_raw_control_cost, tracking_formulation)
+#define LQR_COST_SETTINGS_FORM std::tuple<double, double, double, double, double,double,double,double,double,int,int,int>
 #define CONSTRAINT_SETTINGS_FORM std::tuple<double, arma::vec, double, arma::vec3,bool,bool>
 #define SMARTBDOT_SETTINGS_FORM std::tuple<double, double, double, double,double,double>
 #define INITIAL_TRAJ_SETTINGS_FORM std::tuple<double,double,SMARTBDOT_SETTINGS_FORM,SMARTBDOT_SETTINGS_FORM>
@@ -31,7 +34,8 @@
 #define SYSTEM_SETTINGS_FORM std::tuple<arma::mat33,double,double,double,double,double>
 #define AUGLAG_SETTINGS_FORM std::tuple<double,double,double,double,double>
 #define LINE_SEARCH_SETTINGS_FORM std::tuple<int,double,double>
-#define REG_SETTINGS_FORM std::tuple<double,double,double,double,double,int,double,int,int,int,int,int,int,int,int,double,int>
+// Regularization settings: (reg_init, reg_min, reg_max, reg_scale, reg_bump, reg_min_cond, rand_add_ratio, use_dynamics_hess, use_constraint_hess)
+#define REG_SETTINGS_FORM std::tuple<double,double,double,double,double,int,double,int,int>
 #define ALILQR_OUTPUT_FORM std::tuple<OPT_FORM, double, double>
 #define BREAK_SETTINGS_FORM std::tuple<int,int,int,double,double,double,int,double,double,arma::vec>
 #define ALILQR_SETTINGS_FORM std::tuple<LINE_SEARCH_SETTINGS_FORM,AUGLAG_SETTINGS_FORM,BREAK_SETTINGS_FORM,REG_SETTINGS_FORM>

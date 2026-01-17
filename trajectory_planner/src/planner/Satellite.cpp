@@ -738,15 +738,12 @@ double Satellite::stepcost_vec(int k, int N, vec xk, vec uk,vec ukprev, vec3 sat
   COST_SETTINGS_FORM costSettings_tmp = *costSettings_ptr;
   double w_ang = get<0>(costSettings_tmp);
   double w_av = get<1>(costSettings_tmp);
-  double w_umag = get<3>(costSettings_tmp);
-  double w_avmag = get<4>(costSettings_tmp);
-  double w_avang = get<5>(costSettings_tmp);
   double w_u_mult = get<2>(costSettings_tmp);
+  double w_avmag = get<3>(costSettings_tmp);
+  double w_avang = get<4>(costSettings_tmp);
 
-
-  int whichAngCostFunc = get<10>(costSettings_tmp);
-  int useRawControlCost = get<11>(costSettings_tmp);
-
+  int whichAngCostFunc = get<9>(costSettings_tmp);
+  int useRawControlCost = get<10>(costSettings_tmp);
 
   mat act_cost_mat = mat(control_N(),control_N()).zeros();
 
@@ -766,12 +763,11 @@ double Satellite::stepcost_vec(int k, int N, vec xk, vec uk,vec ukprev, vec3 sat
       act_cost_mat(number_MTQ+number_RW,number_MTQ+number_RW,size(number_magic,number_magic)) = diagmat(vec(magic_cost));
     }
   }else{
-    w_umag = 0;
     w_u_mult = 0;
-    w_ang = get<6>(costSettings_tmp);
-    w_av = get<7>(costSettings_tmp);
-    w_avmag = get<8>(costSettings_tmp);
-    w_avang = get<9>(costSettings_tmp);
+    w_ang = get<5>(costSettings_tmp);
+    w_av = get<6>(costSettings_tmp);
+    w_avmag = get<7>(costSettings_tmp);
+    w_avang = get<8>(costSettings_tmp);
   }
   xk = state_norm(xk);
   // vec4 qk = normalise(xk.rows(quat0index(), quat0index()+3));
@@ -841,13 +837,12 @@ double Satellite::stepcost_quat(int k, int N, vec xk, vec uk,vec ukprev, vec3 sa
   COST_SETTINGS_FORM costSettings_tmp = *costSettings_ptr;
   double w_ang = get<0>(costSettings_tmp);
   double w_av = get<1>(costSettings_tmp);
-  double w_umag = get<3>(costSettings_tmp);
-  double w_avmag = get<4>(costSettings_tmp);
-  double w_avang = get<5>(costSettings_tmp);
   double w_u_mult = get<2>(costSettings_tmp);
+  double w_avmag = get<3>(costSettings_tmp);
+  double w_avang = get<4>(costSettings_tmp);
 
-  int whichAngCostFunc = get<10>(costSettings_tmp);
-  int useRawControlCost = get<11>(costSettings_tmp);
+  int whichAngCostFunc = get<9>(costSettings_tmp);
+  int useRawControlCost = get<10>(costSettings_tmp);
 
   mat act_cost_mat = mat(control_N(),control_N()).zeros();
 
@@ -867,12 +862,11 @@ double Satellite::stepcost_quat(int k, int N, vec xk, vec uk,vec ukprev, vec3 sa
       act_cost_mat(number_MTQ+number_RW,number_MTQ+number_RW,size(number_magic,number_magic)) = diagmat(vec(magic_cost));
     }
   }else{
-    w_umag = 0;
     w_u_mult = 0;
-    w_ang = get<6>(costSettings_tmp);
-    w_av = get<7>(costSettings_tmp);
-    w_avmag = get<8>(costSettings_tmp);
-    w_avang = get<9>(costSettings_tmp);
+    w_ang = get<5>(costSettings_tmp);
+    w_av = get<6>(costSettings_tmp);
+    w_avmag = get<7>(costSettings_tmp);
+    w_avang = get<8>(costSettings_tmp);
   }
   xk = state_norm(xk);
   // vec4 qk = normalise(xk.rows(quat0index(), quat0index()+3));
@@ -960,13 +954,12 @@ cost_jacs  Satellite::veccostJacobians(int k, int N, vec xk, vec uk,vec ukprev, 
   COST_SETTINGS_FORM costSettings_tmp = *costSettings_ptr;
   double w_ang = get<0>(costSettings_tmp);
   double w_av = get<1>(costSettings_tmp);
-  double w_umag = get<3>(costSettings_tmp);
-  double w_avmag = get<4>(costSettings_tmp);
-  double w_avang = get<5>(costSettings_tmp);
   double w_u_mult = get<2>(costSettings_tmp);
+  double w_avmag = get<3>(costSettings_tmp);
+  double w_avang = get<4>(costSettings_tmp);
 
-  int whichAngCostFunc = get<10>(costSettings_tmp);
-  int useRawControlCost = get<11>(costSettings_tmp);
+  int whichAngCostFunc = get<9>(costSettings_tmp);
+  int useRawControlCost = get<10>(costSettings_tmp);
 
 
   mat act_cost_mat = mat(control_N(),control_N()).zeros();
@@ -987,12 +980,11 @@ cost_jacs  Satellite::veccostJacobians(int k, int N, vec xk, vec uk,vec ukprev, 
       act_cost_mat(number_MTQ+number_RW,number_MTQ+number_RW,size(number_magic,number_magic)) = diagmat(vec(magic_cost));
     }
   }else{
-    w_umag = 0.0;
     w_u_mult = 0.0;
-    w_ang = get<6>(costSettings_tmp);
-    w_av = get<7>(costSettings_tmp);
-    w_avmag = get<8>(costSettings_tmp);
-    w_avang = get<9>(costSettings_tmp);
+    w_ang = get<5>(costSettings_tmp);
+    w_av = get<6>(costSettings_tmp);
+    w_avmag = get<7>(costSettings_tmp);
+    w_avang = get<8>(costSettings_tmp);
   }
 
   if(ECIvec_k.is_zero())
@@ -1188,13 +1180,12 @@ cost_jacs  Satellite::quatcostJacobians(int k, int N, vec xk, vec uk,vec ukprev,
   COST_SETTINGS_FORM costSettings_tmp = *costSettings_ptr;
   double w_ang = get<0>(costSettings_tmp);
   double w_av = get<1>(costSettings_tmp);
-  double w_umag = get<3>(costSettings_tmp);
-  double w_avmag = get<4>(costSettings_tmp);
-  double w_avang = get<5>(costSettings_tmp);
   double w_u_mult = get<2>(costSettings_tmp);
+  double w_avmag = get<3>(costSettings_tmp);
+  double w_avang = get<4>(costSettings_tmp);
 
-  int whichAngCostFunc = get<10>(costSettings_tmp);
-  int useRawControlCost = get<11>(costSettings_tmp);
+  int whichAngCostFunc = get<9>(costSettings_tmp);
+  int useRawControlCost = get<10>(costSettings_tmp);
 
   mat act_cost_mat = mat(control_N(),control_N()).zeros();
   vec3 magvec = vec(3).zeros();
@@ -1214,12 +1205,11 @@ cost_jacs  Satellite::quatcostJacobians(int k, int N, vec xk, vec uk,vec ukprev,
       act_cost_mat(number_MTQ+number_RW,number_MTQ+number_RW,size(number_magic,number_magic)) = diagmat(vec(magic_cost));
     }
   }else{
-    w_umag = 0.0;
     w_u_mult = 0.0;
-    w_ang = get<6>(costSettings_tmp);
-    w_av = get<7>(costSettings_tmp);
-    w_avmag = get<8>(costSettings_tmp);
-    w_avang = get<9>(costSettings_tmp);
+    w_ang = get<5>(costSettings_tmp);
+    w_av = get<6>(costSettings_tmp);
+    w_avmag = get<7>(costSettings_tmp);
+    w_avang = get<8>(costSettings_tmp);
   }
 
   if(ECIvec_k.is_zero())
@@ -1408,13 +1398,12 @@ cost_jacs  Satellite::costJacobians(int k, int N, vec xk, vec uk,vec ukprev, vec
   COST_SETTINGS_FORM costSettings_tmp = *costSettings_ptr;
   double w_ang = get<0>(costSettings_tmp);
   double w_av = get<1>(costSettings_tmp);
-  double w_umag = get<3>(costSettings_tmp);
-  double w_avmag = get<4>(costSettings_tmp);
-  double w_avang = get<5>(costSettings_tmp);
   double w_u_mult = get<2>(costSettings_tmp);
+  double w_avmag = get<3>(costSettings_tmp);
+  double w_avang = get<4>(costSettings_tmp);
 
-  int considerVectorInTVLQR = get<10>(costSettings_tmp);
-  int useRawControlCost = get<11>(costSettings_tmp);
+  int considerVectorInTVLQR = get<9>(costSettings_tmp);
+  int useRawControlCost = get<10>(costSettings_tmp);
 
   mat act_cost_mat = mat(control_N(),control_N()).zeros();
   vec3 magvec = vec(3).zeros();
@@ -1433,12 +1422,11 @@ cost_jacs  Satellite::costJacobians(int k, int N, vec xk, vec uk,vec ukprev, vec
       act_cost_mat(number_MTQ+number_RW,number_MTQ+number_RW,size(number_magic,number_magic)) = diagmat(vec(magic_cost));
     }
   }else{
-    w_umag = 0.0;
     w_u_mult = 0.0;
-    w_ang = get<6>(costSettings_tmp);
-    w_av = get<7>(costSettings_tmp);
-    w_avmag = get<8>(costSettings_tmp);
-    w_avang = get<9>(costSettings_tmp);
+    w_ang = get<5>(costSettings_tmp);
+    w_av = get<6>(costSettings_tmp);
+    w_avmag = get<7>(costSettings_tmp);
+    w_avang = get<8>(costSettings_tmp);
   }
 
   vec lkx = vec(reduced_state_N()).zeros();

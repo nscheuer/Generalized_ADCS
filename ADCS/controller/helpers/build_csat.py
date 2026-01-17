@@ -1,9 +1,20 @@
+"""
+C++ satellite model construction utilities.
+
+This module provides functions to build pysat.Satellite objects from
+Python EstimatedSatellite instances and handle control vector reordering
+between C++ (MTQ, RW) and Python actuator orderings.
+"""
+from __future__ import annotations
+
 __all__ = ["build_cpp_satellite", "get_cpp_to_python_control_permutation", "reorder_controls_cpp_to_python"]
 
 import numpy as np
-from typing import List, Tuple
+from typing import List, Tuple, TYPE_CHECKING
+from numpy.typing import NDArray
 
-from ADCS.controller.helpers import PlannerSettings
+if TYPE_CHECKING:
+    from ADCS.controller.helpers import PlannerSettings
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
 from ADCS.satellite_hardware.actuators import Actuator, MTQ, RW
 
@@ -11,7 +22,7 @@ import trajectory_planner.build.tplaunch as tplaunch
 import trajectory_planner.build.pysat as pysat
 
 
-def get_cpp_to_python_control_permutation(actuators: List[Actuator]) -> Tuple[np.ndarray, np.ndarray]:
+def get_cpp_to_python_control_permutation(actuators: List[Actuator]) -> Tuple[NDArray[np.intp], NDArray[np.intp]]:
     """
     Compute the permutation indices to reorder controls from C++ ordering to Python ordering.
 
@@ -65,7 +76,7 @@ def get_cpp_to_python_control_permutation(actuators: List[Actuator]) -> Tuple[np
     return cpp_to_py, py_to_cpp
 
 
-def reorder_controls_cpp_to_python(Uset: np.ndarray, actuators: List[Actuator]) -> np.ndarray:
+def reorder_controls_cpp_to_python(Uset: NDArray[np.float64], actuators: List[Actuator]) -> NDArray[np.float64]:
     """
     Reorder control matrix from C++ ordering (MTQ, RW) to Python actuator ordering.
 
@@ -96,7 +107,7 @@ def reorder_controls_cpp_to_python(Uset: np.ndarray, actuators: List[Actuator]) 
         raise ValueError(f"Uset shape {Uset.shape} doesn't match n_controls={n_ctrl}")
 
 
-def reorder_gains_cpp_to_python(Kset: np.ndarray, actuators: List[Actuator]) -> np.ndarray:
+def reorder_gains_cpp_to_python(Kset: NDArray[np.float64], actuators: List[Actuator]) -> NDArray[np.float64]:
     """
     Reorder gain matrix from C++ ordering to Python actuator ordering.
 

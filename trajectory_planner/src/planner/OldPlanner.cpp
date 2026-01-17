@@ -103,47 +103,44 @@ void OldPlanner::updateParameters_notsat(SYSTEM_SETTINGS_FORM systemSettings_tmp
     angle_weight = get<0>(costSettings); //cost of angle error
     angvel_weight = get<1>(costSettings); //cost of av error
     u_weight = get<2>(costSettings); //cost of actuation.
-    u_with_mag_weight = get<3>(costSettings); //currently unused. originally meant to further weight any alignment of u with magnetic field.
-    av_with_mag_weight = get<4>(costSettings); //currently unused. orignially meant to weight the alignment of angvel with the magnetic field
-    ang_av_weight = get<5>(costSettings); //cost of orientation error that aligns with av error.
-    angle_weight_N = get<6>(costSettings); // cost of angle error in final timestep.
-    angvel_weight_N = get<7>(costSettings);// cost of av error in final timestep.
-    av_with_mag_weight_N = get<8>(costSettings); // cost of av aligned with B field error in final timestep. currently unused.
-    ang_av_weight_N = get<9>(costSettings); // // cost of av/ang error alignment in final timestep.
-    whichAngCostFunc = get<10>(costSettings); //determines from a variety of options how angle cost is calculated. 0-3 for vectort angle, 0-4 for quaternion.
-    useRawControlCost = get<11>(costSettings);//if true (1), control cost is 0.5*u.T@W@u. if false (0), control cost is 0.5*(u-u_prev).T@W@(u-u_prev)
+    av_with_mag_weight = get<3>(costSettings); //cost of angvel alignment with magnetic field
+    ang_av_weight = get<4>(costSettings); //cost of orientation error that aligns with av error.
+    angle_weight_N = get<5>(costSettings); // cost of angle error in final timestep.
+    angvel_weight_N = get<6>(costSettings);// cost of av error in final timestep.
+    av_with_mag_weight_N = get<7>(costSettings); // cost of av aligned with B field error in final timestep.
+    ang_av_weight_N = get<8>(costSettings); // cost of av/ang error alignment in final timestep.
+    whichAngCostFunc = get<9>(costSettings); //determines from a variety of options how angle cost is calculated. 0-3 for vector angle, 0-4 for quaternion.
+    useRawControlCost = get<10>(costSettings);//if true (1), control cost is 0.5*u.T@W@u. if false (0), control cost is 0.5*(u-u_prev).T@W@(u-u_prev)
 
     angle_weight2 = get<0>(costSettings2);
     angvel_weight2 = get<1>(costSettings2);
     u_weight2 = get<2>(costSettings2);
-    u_with_mag_weight2 = get<3>(costSettings2);
-    av_with_mag_weight2 = get<4>(costSettings2);
-    ang_av_weight2 = get<5>(costSettings2);
-    angle_weight_N2 = get<6>(costSettings2);
-    angvel_weight_N2 = get<7>(costSettings2);
-    av_with_mag_weight_N2 = get<8>(costSettings2);
-    ang_av_weight_N2 = get<9>(costSettings2);
-    whichAngCostFunc2 = get<10>(costSettings2);
-    useRawControlCost2 = get<11>(costSettings);
+    av_with_mag_weight2 = get<3>(costSettings2);
+    ang_av_weight2 = get<4>(costSettings2);
+    angle_weight_N2 = get<5>(costSettings2);
+    angvel_weight_N2 = get<6>(costSettings2);
+    av_with_mag_weight_N2 = get<7>(costSettings2);
+    ang_av_weight_N2 = get<8>(costSettings2);
+    whichAngCostFunc2 = get<9>(costSettings2);
+    useRawControlCost2 = get<10>(costSettings2);
 
     angle_weight_tvlqr = get<0>(costSettings_tvlqr_tmp);
     angvel_weight_tvlqr = get<1>(costSettings_tvlqr_tmp);
     u_weight_tvlqr = get<2>(costSettings_tvlqr_tmp);
-    u_with_mag_weight_tvlqr = get<3>(costSettings_tvlqr_tmp);
-    av_with_mag_weight_tvlqr = get<4>(costSettings_tvlqr_tmp);
-    ang_av_weight_tvlqr = get<5>(costSettings_tvlqr_tmp);
-    angle_weight_N_tvlqr = get<6>(costSettings_tvlqr_tmp);
-    angvel_weight_N_tvlqr = get<7>(costSettings_tvlqr_tmp);
-    av_with_mag_weight_N_tvlqr = get<8>(costSettings_tvlqr_tmp);
-    ang_av_weight_N_tvlqr = get<9>(costSettings_tvlqr_tmp);
-    useRawControlCost_tvlqr = get<11>(costSettings);
-    whichAngCostFunc_tvlqr = get<10>(costSettings_tvlqr_tmp);
+    av_with_mag_weight_tvlqr = get<3>(costSettings_tvlqr_tmp);
+    ang_av_weight_tvlqr = get<4>(costSettings_tvlqr_tmp);
+    angle_weight_N_tvlqr = get<5>(costSettings_tvlqr_tmp);
+    angvel_weight_N_tvlqr = get<6>(costSettings_tvlqr_tmp);
+    av_with_mag_weight_N_tvlqr = get<7>(costSettings_tvlqr_tmp);
+    ang_av_weight_N_tvlqr = get<8>(costSettings_tvlqr_tmp);
+    whichAngCostFunc_tvlqr = get<9>(costSettings_tvlqr_tmp);
+    useRawControlCost_tvlqr = get<10>(costSettings_tvlqr_tmp);
+    tracking_LQR_formulation = get<11>(costSettings_tvlqr_tmp); //mode for LQR calculation.
 
     costSettings_tvlqr = make_tuple(angle_weight_tvlqr,angvel_weight_tvlqr,u_weight_tvlqr,
-                    u_with_mag_weight_tvlqr,av_with_mag_weight_tvlqr,ang_av_weight_tvlqr,
+                    av_with_mag_weight_tvlqr,ang_av_weight_tvlqr,
                     angle_weight_N_tvlqr,angvel_weight_N_tvlqr,av_with_mag_weight_N_tvlqr,
                     ang_av_weight_N_tvlqr,whichAngCostFunc_tvlqr,useRawControlCost_tvlqr);
-    tracking_LQR_formulation = get<12>(costSettings_tvlqr_tmp); //mode for LQR calculation.
 
     // systemSettings = systemSettings_tmp;
     dt = get<1>(systemSettings_tmp);
@@ -188,16 +185,8 @@ void OldPlanner::updateParameters_notsat(SYSTEM_SETTINGS_FORM systemSettings_tmp
     regBump = get<4>(regSettings);
     regMinConds = get<5>(regSettings);
     regBumpRandAddRatio = get<6>(regSettings);
-    useEVmagic = get<7>(regSettings);
-    SPDEVreg = get<8>(regSettings);
-    SPDEVregAll = get<9>(regSettings);
-    rhoEVregTest = get<10>(regSettings);
-    EVregTestpreabs = get<11>(regSettings);
-    EVaddreg = get<12>(regSettings);
-    EVregIsRho = get<13>(regSettings);
-    EVrhoAdd = get<14>(regSettings);
-    useDynamicsHess = get<15>(regSettings);
-    useConstraintHess = get<16>(regSettings);
+    useDynamicsHess = get<7>(regSettings);
+    useConstraintHess = get<8>(regSettings);
 
     // alilqrSettings = make_tuple(lineSearchSettings,auglagSettings,breakSettings,regSettings);
 
@@ -234,17 +223,9 @@ void OldPlanner::updateParameters_notsat(SYSTEM_SETTINGS_FORM systemSettings_tmp
     regMax2 = get<2>(regSettings2);
     regScale2 = get<3>(regSettings2);
     regBump2 = get<4>(regSettings2);
-    regBumpRandAddRatio2 = get<4>(regSettings2);
-    useEVmagic2 = get<7>(regSettings2);
-    SPDEVreg2= get<8>(regSettings2);
-    SPDEVregAll2 = get<9>(regSettings2);
-    rhoEVregTest2 = get<10>(regSettings2);
-    EVregTestpreabs2 = get<11>(regSettings2);
-    EVaddreg2 = get<12>(regSettings2);
-    EVregIsRho2 = get<13>(regSettings2);
-    EVrhoAdd2 = get<14>(regSettings2);
-    useDynamicsHess2 = get<15>(regSettings2);
-    useConstraintHess2 = get<16>(regSettings2);
+    regBumpRandAddRatio2 = get<6>(regSettings2);
+    useDynamicsHess2 = get<7>(regSettings2);
+    useConstraintHess2 = get<8>(regSettings2);
 }
 
 BEFORE_OUTPUT_FORM OldPlanner::trajOptBefore(VECTOR_INFO_FORM vecs_w_time,double dt_use, TIME_FORM time_start, TIME_FORM time_end, vec x0, int bdotOn)
@@ -1714,17 +1695,17 @@ void OldPlanner::costInfo(TRAJECTORY_FORM traj, VECTOR_INFO_FORM vecs, AUGLAG_IN
     double angle_weight_tmp = get<0>(costSettings_tmp);
     double angvel_weight_tmp = get<1>(costSettings_tmp);
     double u_weight_tmp = get<2>(costSettings_tmp);
-    double av_with_mag_weight_tmp = get<4>(costSettings_tmp);
-    double ang_av_weight_tmp = get<5>(costSettings_tmp);
-    double angle_weight_N_tmp = get<6>(costSettings_tmp);
-    double angvel_weight_N_tmp = get<7>(costSettings_tmp);
-    double av_with_mag_weight_N_tmp = get<8>(costSettings_tmp);
-    double ang_av_weight_N_tmp = get<9>(costSettings_tmp);
-    int whichAngCostFunc_tmp = get<10>(costSettings_tmp);
-    int useRawControlCost_tmp = get<11>(costSettings_tmp);
-    COST_SETTINGS_FORM nou_Settings = make_tuple(angle_weight_tmp,angvel_weight_tmp,0.0,0.0,av_with_mag_weight_tmp,ang_av_weight_tmp,angle_weight_N_tmp,angvel_weight_N_tmp,av_with_mag_weight_N_tmp,ang_av_weight_N_tmp,whichAngCostFunc_tmp,useRawControlCost_tmp);
-    COST_SETTINGS_FORM only_av_Settings = make_tuple(0.0,angvel_weight_tmp,0.0,0.0,0.0,0.0,0.0,angvel_weight_N_tmp,0.0,0.0,whichAngCostFunc_tmp,useRawControlCost_tmp);
-    COST_SETTINGS_FORM only_ang_Settings = make_tuple(angle_weight_tmp,0.0,0.0,0.0,0.0,0.0,angle_weight_N_tmp,0.0,0.0,0.0,whichAngCostFunc_tmp,useRawControlCost_tmp);
+    double av_with_mag_weight_tmp = get<3>(costSettings_tmp);
+    double ang_av_weight_tmp = get<4>(costSettings_tmp);
+    double angle_weight_N_tmp = get<5>(costSettings_tmp);
+    double angvel_weight_N_tmp = get<6>(costSettings_tmp);
+    double av_with_mag_weight_N_tmp = get<7>(costSettings_tmp);
+    double ang_av_weight_N_tmp = get<8>(costSettings_tmp);
+    int whichAngCostFunc_tmp = get<9>(costSettings_tmp);
+    int useRawControlCost_tmp = get<10>(costSettings_tmp);
+    COST_SETTINGS_FORM nou_Settings = make_tuple(angle_weight_tmp,angvel_weight_tmp,0.0,av_with_mag_weight_tmp,ang_av_weight_tmp,angle_weight_N_tmp,angvel_weight_N_tmp,av_with_mag_weight_N_tmp,ang_av_weight_N_tmp,whichAngCostFunc_tmp,useRawControlCost_tmp);
+    COST_SETTINGS_FORM only_av_Settings = make_tuple(0.0,angvel_weight_tmp,0.0,0.0,0.0,0.0,angvel_weight_N_tmp,0.0,0.0,whichAngCostFunc_tmp,useRawControlCost_tmp);
+    COST_SETTINGS_FORM only_ang_Settings = make_tuple(angle_weight_tmp,0.0,0.0,0.0,0.0,angle_weight_N_tmp,0.0,0.0,0.0,whichAngCostFunc_tmp,useRawControlCost_tmp);
 
     mat clearvel = mat(sat.state_N(),sat.state_N()).eye();
     clearvel(span(0,2),span(0,2)).zeros();
@@ -1882,8 +1863,8 @@ tuple<BACKWARD_PASS_RESULTS_FORM, REG_PAIR> OldPlanner::backwardPass(double dt0,
   vec2 delV = vec2().zeros();
 
   double regMin_tmp = get<1>(regSettings_tmp);
-  bool useDynamicsHess_tmp = bool(get<15>(regSettings_tmp));
-  bool useConstraintsHess_tmp = bool(get<16>(regSettings_tmp));
+  bool useDynamicsHess_tmp = bool(get<7>(regSettings_tmp));
+  bool useConstraintsHess_tmp = bool(get<8>(regSettings_tmp));
 
   //Initialize xk, uk, rk, etc
   mat lambdaSet = get<0>(auglag_vals);

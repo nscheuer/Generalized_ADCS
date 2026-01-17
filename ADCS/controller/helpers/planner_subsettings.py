@@ -4,12 +4,14 @@ Configuration dataclasses for ALTRO trajectory planner.
 This module defines the configuration structures for the Augmented Lagrangian iLQR
 optimizer, including solver settings, cost weights, and convergence criteria.
 """
+from __future__ import annotations
 
 __all__ = ["LineSearchConfig", "AugLagConfig", "RegularizationConfig", "ConvergenceConfig", "SolverPassConfig", "CostWeights", "InitTrajConfig"]
 
 import numpy as np
 from dataclasses import dataclass, field
-from typing import Tuple, List
+from typing import Tuple, List, Union
+from numpy.typing import NDArray
 
 @dataclass
 class LineSearchConfig:
@@ -73,35 +75,25 @@ class RegularizationConfig:
         reg_max: Maximum regularization (triggers failure if exceeded)
         reg_scale: Factor to increase/decrease regularization adaptively
         reg_bump: Additional increase when line search fails
+        reg_min_cond: Condition for applying reg_min (0=ignore, 1=enforce, 2=default)
+        rand_add_ratio: Ratio of random noise to add for escaping local minima
+        use_dynamics_hess: Include dynamics Hessian terms (0=no, 1=yes)
+        use_constraint_hess: Include constraint Hessian terms (0=no, 1=yes)
     """
     reg_init: float = 1e-2
     reg_min: float = 1e-8
     reg_max: float = 1e30
     reg_scale: float = 1.6
-    reg_bump: float = 10
-
-    # Conditional logic flags
-    reg_min_cond: int = 2         # 1: Reg >= regMin, 0: Ignored
-    rand_add_ratio: float = 0.0   # Random noise addition
-    use_ev_magic: int = 0         # Use Eigendecomposition?
-    spd_ev_reg: int = 1           # Regularize even if SPD?
-    spd_ev_reg_all: int = 0       # Reg SPD by adding rho*I?
-    rho_ev_reg_test: int = 1      # Test reset against rho?
-    ev_reg_test_pre_abs: int = 1  # Test reset before abs?
-    ev_add_reg: int = 0           # Add value vs clamp?
-    ev_reg_is_rho: int = 1        # Clamp to rho vs regMin?
-    ev_rho_add: int = 0           # Add to values < rho?
-
+    reg_bump: float = 10.0
+    reg_min_cond: int = 2
+    rand_add_ratio: float = 0.0
     use_dynamics_hess: int = 0
     use_constraint_hess: int = 0
 
-    def to_tuple(self) -> Tuple[float, float, float, float, float, int, float, int, int, int, int, int, int, int, int, int, int]:
-        return (self.reg_init, self.reg_min, self.reg_max, self.reg_scale, 
-                self.reg_bump, self.reg_min_cond, self.rand_add_ratio, 
-                self.use_ev_magic, self.spd_ev_reg, self.spd_ev_reg_all, 
-                self.rho_ev_reg_test, self.ev_reg_test_pre_abs, self.ev_add_reg, 
-                self.ev_reg_is_rho, self.ev_rho_add, self.use_dynamics_hess, 
-                self.use_constraint_hess)
+    def to_tuple(self) -> Tuple[float, float, float, float, float, int, float, int, int]:
+        return (self.reg_init, self.reg_min, self.reg_max, self.reg_scale,
+                self.reg_bump, self.reg_min_cond, self.rand_add_ratio,
+                self.use_dynamics_hess, self.use_constraint_hess)
     
 @dataclass
 class ConvergenceConfig:
@@ -137,7 +129,7 @@ class ConvergenceConfig:
     # State bound for divergence check
     xmax_val: float = 10.0
 
-    def to_tuple(self, state_len) -> Tuple[int, int, int, float, float, float, int, float, float, np.ndarray]:
+    def to_tuple(self, state_len: int) -> Tuple[int, int, int, float, float, float, int, float, float, NDArray[np.float64]]:
         xmax_vec = self.xmax_val * np.ones((state_len, 1))
         return (self.max_outer_iter, self.max_inner_iter, self.max_total_iter, 
                 self.grad_tol, self.ilqr_cost_tol, self.total_cost_tol, 
@@ -164,54 +156,79 @@ class CostWeights:
         angle: Running cost weight on attitude error
         ang_vel: Running cost on angular velocity squared: 0.5*w'*w*w_av
         control_mult: Multiplier for actuator-specific control costs
-        control_mag: UNUSED - extracted but not applied in C++ cost function
         ang_vel_mag: Cost on ang vel component along B-field: |dot(w, R'*B)|
-        ang_accel: Misnamed - actually cost on ang vel along attitude error
-            direction: dot(w, cross(R'*e_goal, boresight))
+        ang_vel_err_dir: Cost on ang vel along attitude error direction.
+            For vector goals: dot(w, cross(R'*goal_body, boresight))
+            For quaternion goals: dot(w, quat_error_vector)
         angle_N: Terminal attitude error cost weight
         ang_vel_N: Terminal angular velocity cost weight
         ang_vel_mag_N: Terminal cost on ang vel along B-field
-        ang_accel_N: Terminal cost on ang vel along error direction
+        ang_vel_err_dir_N: Terminal cost on ang vel along error direction
         ang_cost_func_type: Attitude cost formulation:
             0=(1-dot), 1=0.5*(1-dot)^2, 2=acos(dot), 3=0.5*acos(dot)^2
         use_raw_control_cost: If True, use control values directly in cost
         consider_vector_in_tvlqr: Flag for TVLQR vector tracking mode
+
+    Tuning Guidelines:
+        The ratio of angle to ang_vel determines the trade-off between
+        pointing accuracy and trajectory smoothness:
+
+        - angle >> ang_vel: Aggressive maneuvers, reaches goal fast but may overshoot
+        - angle << ang_vel: Smooth trajectories, slower convergence but no overshoot
+        - Typical ratio: angle = 0.1 * ang_vel (balance accuracy and smoothness)
+
+        Terminal vs running cost ratio:
+        - *_N = 10 * running: Strong goal-reaching behavior (recommended default)
+        - *_N = running: All timesteps equally weighted (good for tracking)
+        - *_N >> running: Very strong terminal constraint (may cause aggressive end)
+
+    Example Configurations:
+        # Fast slew maneuver (prioritize reaching goal quickly)
+        fast_slew = CostWeights(angle=1e4, angle_N=1e5, ang_vel=1e2, ang_vel_N=1e3)
+
+        # Precision pointing (smooth, accurate)
+        precision = CostWeights(angle=1e3, angle_N=1e4, ang_vel=1e5, ang_vel_N=1e6)
+
+        # Detumbling only (minimize angular velocity)
+        detumble = CostWeights(angle=0, angle_N=0, ang_vel=1e4, ang_vel_N=1e6)
     """
     angle: float = 1e3
     ang_vel: float = 1e4
     control_mult: float = 1.0
-    control_mag: float = 0.0
     ang_vel_mag: float = 0.0
-    ang_accel: float = 0.0
+    ang_vel_err_dir: float = 0.0
 
-    # Terminal costs (should be >= running costs to prioritize reaching goal)
+    # Terminal costs (should be >= running costs if prioritizing reaching goal, should be = if all steps matter equally.)
     angle_N: float = 1e4
     ang_vel_N: float = 1e5
     ang_vel_mag_N: float = 0.0
-    ang_accel_N: float = 0.0
+    ang_vel_err_dir_N: float = 0.0
 
     # Flags
     # 0=(1-dot), 1=0.5*(1-dot)^2, 2=acos(dot), 3=0.5*acos(dot)^2
     ang_cost_func_type: int = 3
     use_raw_control_cost: bool = True
-    consider_vector_in_tvlqr: int = 0 # Specifically for TVLQR pass
+    consider_vector_in_tvlqr: int = 0
 
-    def to_tuple(self, tracking_formulation=None):
-        # The last arg is specific to TVLQR settings (tracking formulation)
-        # For main/second pass, use use_raw_control_cost as the last arg usually
-        # or the vector flag. The original code has slight variations.
-        
-        # Mapping for standard OptMainCostSettings
-        base = (self.angle, self.ang_vel, self.control_mult, 
-                self.control_mag, self.ang_vel_mag, self.ang_accel,
-                self.angle_N, self.ang_vel_N, self.ang_vel_mag_N, self.ang_accel_N)
-        
+    def to_tuple(self, tracking_formulation: int | None = None) -> Tuple[float, ...]:
+        """Convert to tuple for C++ interface.
+
+        Args:
+            tracking_formulation: If provided, returns TVLQR cost settings format.
+                                  If None, returns main/second pass format.
+        """
+        # Base tuple: running costs then terminal costs
+        # Note: control_mag was removed as it was unused in C++
+        base = (self.angle, self.ang_vel, self.control_mult,
+                self.ang_vel_mag, self.ang_vel_err_dir,
+                self.angle_N, self.ang_vel_N, self.ang_vel_mag_N, self.ang_vel_err_dir_N)
+
         if tracking_formulation is not None:
-             # This matches optTVLQRCostSettings
-            return base + (self.consider_vector_in_tvlqr, self.use_raw_control_cost, tracking_formulation)
-        
-        # This matches optMainCostSettings / optSecondCostSettings
-        return base + (self.ang_cost_func_type, self.use_raw_control_cost)
+            # TVLQR cost settings format - C++ expects int for last 3 args
+            return base + (int(self.consider_vector_in_tvlqr), int(self.use_raw_control_cost), int(tracking_formulation))
+
+        # Main/second pass cost settings format - C++ expects int
+        return base + (int(self.ang_cost_func_type), int(self.use_raw_control_cost))
 
 @dataclass
 class InitTrajConfig:

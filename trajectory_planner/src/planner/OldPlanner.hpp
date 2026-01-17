@@ -168,15 +168,7 @@ private:
   int regMinConds;
   double regBumpRandAddRatio;
 
-  int useEVmagic;
-  int SPDEVreg;
-  int SPDEVregAll;
-  int rhoEVregTest;
-  int EVregTestpreabs;
-  int EVaddreg;
-  int EVregIsRho;
-  int EVrhoAdd;
-  double useDynamicsHess = 1;
+  int useDynamicsHess = 1;
   int useConstraintHess = 1;
 
   int maxLsIter2;
@@ -208,15 +200,7 @@ private:
   int regMinConds2;
   double regBumpRandAddRatio2;
 
-  int useEVmagic2;
-  int SPDEVreg2;
-  int SPDEVregAll2;
-  int rhoEVregTest2;
-  int EVregTestpreabs2;
-  int EVaddreg2;
-  int EVregIsRho2;
-  int EVrhoAdd2;
-  double useDynamicsHess2;
+  int useDynamicsHess2;
   int useConstraintHess2;
 
   bool ls_failed;

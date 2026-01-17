@@ -1,7 +1,16 @@
+"""
+Plan and Track LQR Controller for spacecraft attitude control.
+
+This module implements a trajectory-following controller that uses the ALTRO
+trajectory planner to compute optimal trajectories and TVLQR for tracking.
+"""
+from __future__ import annotations
+
 __all__ = ["Plan_and_Track_LQR"]
 
 import numpy as np
-from typing import Tuple
+from typing import Tuple, Optional
+from numpy.typing import NDArray
 
 from ADCS.CONOPS.goallist import GoalList
 from ADCS.controller import Controller
@@ -16,11 +25,43 @@ import trajectory_planner.build.tplaunch as tplaunch
 import trajectory_planner.build.pysat as pysat
 
 class Plan_and_Track_LQR(Controller):
+    """
+    Trajectory-following controller using ALTRO planning and TVLQR tracking.
+
+    This controller computes optimal trajectories using the ALTRO (Augmented
+    Lagrangian TRajectory Optimizer) and tracks them using Time-Varying LQR
+    feedback control.
+
+    Attributes:
+        est_sat: Estimated satellite model
+        planner_settings: Configuration for the trajectory planner
+        csat: C++ satellite model for the planner
+        planner: C++ ALTRO planner instance
+        active_trajectory: Currently active trajectory for tracking
+        state_dim: Dimension of state vector
+        ctrl_dim: Dimension of control vector
+    """
+
+    est_sat: EstimatedSatellite
+    planner_settings: PlannerSettings
+    csat: pysat.Satellite
+    planner: tplaunch.Planner
+    active_trajectory: Optional[Trajectory]
+    state_dim: int
+    ctrl_dim: int
+
     def __init__(self, est_sat: EstimatedSatellite, planner_settings: PlannerSettings) -> None:
+        """
+        Initialize the Plan and Track LQR controller.
+
+        Args:
+            est_sat: Estimated satellite model with actuators and sensors
+            planner_settings: Configuration for the ALTRO trajectory planner
+        """
         self.est_sat = est_sat
         self.planner_settings = planner_settings
 
-        self.csat: pysat.Satellite = build_cpp_satellite(est_sat=est_sat, planner_settings=planner_settings)
+        self.csat = build_cpp_satellite(est_sat=est_sat, planner_settings=planner_settings)
         self.planner = tplaunch.Planner(
             self.csat,
             planner_settings.systemSettings(),
@@ -30,16 +71,24 @@ class Plan_and_Track_LQR(Controller):
             planner_settings.optMainCostSettings(),
             planner_settings.optSecondCostSettings(),
             # 0 implies standard LQR tracking formulation
-            planner_settings.optTVLQRCostSettings(tracking_LQR_formulation=0) 
+            planner_settings.optTVLQRCostSettings(tracking_LQR_formulation=0)
         )
         self.planner.setquaternionTo3VecMode(0)
 
-        self.active_trajectory: Trajectory = None
+        self.active_trajectory = None
 
         self.state_dim = est_sat.state_len
         self.ctrl_dim = est_sat.control_len
 
-    def find_u(self, x_hat: np.ndarray, sens: np.ndarray, est_sat: EstimatedSatellite, os_hat: Orbital_State, goal_vector_eci: np.ndarray | None = None, w_ref: np.ndarray | None = None) -> np.ndarray:
+    def find_u(
+        self,
+        x_hat: NDArray[np.float64],
+        sens: NDArray[np.float64],
+        est_sat: EstimatedSatellite,
+        os_hat: Orbital_State,
+        goal_vector_eci: Optional[NDArray[np.float64]] = None,
+        w_ref: Optional[NDArray[np.float64]] = None
+    ) -> NDArray[np.float64]:
         current_time = os_hat.J2000
 
         if self.active_trajectory is None:
@@ -108,8 +157,15 @@ class Plan_and_Track_LQR(Controller):
 
         return Trajectory(np.array(lqr_times), Xset, Uset, Kset, Sset)
 
-    def _propagate_environment(self, os_0: Orbital_State, t_start: float, t_end: float,
-                           dt_seconds: float, N: int, goals: GoalList) -> Tuple:
+    def _propagate_environment(
+        self,
+        os_0: Orbital_State,
+        t_start: float,
+        t_end: float,
+        dt_seconds: float,
+        N: int,
+        goals: GoalList
+    ) -> Tuple[NDArray[np.float64], ...]:
         """
         Generates environment vectors in the exact format C++ expects:
         t: (N,)

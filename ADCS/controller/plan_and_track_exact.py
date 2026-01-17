@@ -102,21 +102,6 @@ class Plan_and_Track_Exact(Controller):
                 else:
                     print(f"{i}: {lbl:<12} type={type(x)}")
             print("==============================================")
-        # (traj_initial, vecs_dt, costset_initial) = self.planner.prepareForAlilqr(vecsPy,self.planner_settings.dt_tp,t_start, t_end, x_0_clean, bdotOn)
-        # (Xset_initial, Uset_initial, Tset, unsure) =  traj_initial
-
-
-        # traj_initial_py = Trajectory(np.array(Tset), Xset_initial, Uset_initial, [], [])
-        # time_hist_initial = (traj_initial_py.times-t_start)*TimeConstants.cent2sec
-        # state_hist_initial = traj_initial_py.states.T
-        # u_hist_initial = traj_initial_py.controls.T
-
-        # plot_state_comparison(time=time_hist_initial, state_hist=state_hist_initial)
-        # plot_control(time=time_hist_initial, u_hist=u_hist_initial)
-
-        # boresight_traj_hist = np.vstack([goals.to_ref(t=J2000, os0=orb.get_os(J2000))[0] for J2000 in traj.times])
-        # plot_target_tracking(state_hist=state_hist_traj, boresight_hist=boresight_traj_hist, body_boresight=np.array([0, 0, 1]))
-        
 
         (_, _, _, lqr_opt, _) = self.planner.trajOpt(vecsPy, N, t_start, t_end, x_0_clean, int(bdotOn))
         (Xset, Uset_cpp, Tset, Kset_cpp, Sset, lqr_times) = lqr_opt

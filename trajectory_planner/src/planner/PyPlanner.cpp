@@ -293,6 +293,10 @@ void PyPlanner::setPlannerVerbosity(bool verbosity){
 
 
 PYBIND11_MODULE(tplaunch, m) {
+    // Import pysat first to ensure the Satellite type binding is registered
+    // This prevents type conflicts when passing Satellite objects between modules
+    py::module_::import("trajectory_planner.build.pysat");
+
     py::class_<PyPlanner>(m, "Planner")
         .def(py::init<Satellite,SYSTEM_SETTINGS_PY_FORM, ALILQR_SETTINGS_PY_FORM, ALILQR_SETTINGS_PY_FORM, INITIAL_TRAJ_SETTINGS_FORM, COST_SETTINGS_FORM,COST_SETTINGS_FORM,LQR_COST_SETTINGS_FORM>())
         //.def(py::init<ALL_SETTINGS_PY_FORM>())

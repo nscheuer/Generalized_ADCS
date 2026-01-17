@@ -10,7 +10,7 @@ import pytest
 sys.path.append(os_pack.path.abspath(os_pack.path.join(__file__, "../..")))
 from ADCS.CONOPS.goals import Goal, ECI_Goal, Coordinate_Goal, No_Goal
 from ADCS.CONOPS.goallist import GoalList
-from ADCS.controller.plan_and_track_exact import Plan_and_Track_Exact
+from ADCS.controller.plan_and_track_lqr import Plan_and_Track_LQR
 from ADCS.controller.helpers import PlannerSettings, Trajectory, planner_settings
 from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.orbit import Orbit
@@ -89,7 +89,7 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
     # Try higher initial penalty to enforce constraints earlier
     planner_settings.pass1.aug_lag.penalty_init = 1e-3
 
-    controller = Plan_and_Track_Exact(est_sat=real_sat, planner_settings=planner_settings)
+    controller = Plan_and_Track_LQR(est_sat=real_sat, planner_settings=planner_settings)
 
     time_hist = np.nan*np.zeros(N)
     state_hist = np.nan*np.zeros((N, len(x)))

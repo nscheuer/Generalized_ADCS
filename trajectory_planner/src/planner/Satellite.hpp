@@ -12,7 +12,10 @@
 #include <list>
 #include <vector>
 
-#define COST_SETTINGS_FORM std::tuple<double, double, double, double, double,double,double,double,double,double,int,int>
+// Cost settings tuple: (angle, ang_vel, control_mult, ang_vel_mag, ang_vel_err_dir,
+//                       angle_N, ang_vel_N, ang_vel_mag_N, ang_vel_err_dir_N,
+//                       ang_cost_func_type, use_raw_control_cost)
+#define COST_SETTINGS_FORM std::tuple<double, double, double, double, double, double, double, double, double, int, int>
 #define DYNAMICS_INFO_FORM std::tuple<arma::vec3,arma::vec3,int,arma::vec3,arma::vec3,int>
 static const double MAGRW_TORQ_MULT = 1.0;//1e-3;//1e-4;//1.0;//1e-3;
 

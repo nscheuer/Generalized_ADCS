@@ -84,7 +84,7 @@ class TestCostWeights:
         cw = CostWeights()
         t = cw.to_tuple()
         assert isinstance(t, tuple)
-        assert len(t) == 12  # 10 weights + ang_cost_func_type + use_raw_control_cost
+        assert len(t) == 11  # 9 weights + ang_cost_func_type + use_raw_control_cost
 
 
 class TestSolverPassConfig:

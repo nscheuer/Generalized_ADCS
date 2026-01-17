@@ -1,20 +1,80 @@
+"""
+Trajectory representation for ALTRO planner output.
+
+This module provides the Trajectory class for storing, interpolating, and
+visualizing planned trajectories from the ALTRO optimizer.
+"""
+
+from __future__ import annotations
+
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple, Callable
+from numpy.typing import NDArray
 
 from ADCS.helpers.math_helpers import quat_diff, quat_to_vec3
 
+
 class Trajectory:
-    def __init__(self, t: np.ndarray, x: np.ndarray, u: np.ndarray, K: np.ndarray, S: np.ndarray) -> None:
+    """
+    Container for trajectory optimization results with interpolation support.
+
+    Stores time series of states, controls, feedback gains, and cost-to-go values
+    from the ALTRO planner. Provides interpolation methods for use in tracking control.
+
+    Attributes:
+        times: Time stamps for trajectory points (J2000 centuries)
+        states: State trajectory, shape (state_dim, n_steps) or (n_steps, state_dim)
+        controls: Control trajectory, shape (ctrl_dim, n_steps-1) or (n_steps-1, ctrl_dim)
+        gains: Feedback gain matrices K for TVLQR tracking
+        costs: Cost-to-go values at each timestep
+        start_time: First time in trajectory
+        end_time: Last time in trajectory
+        n_steps: Number of time points
+        state_dim: Dimension of state vector
+        ctrl_dim: Dimension of control vector
+    """
+
+    # Class-level type annotations
+    times: NDArray[np.float64]
+    states: NDArray[np.float64]
+    controls: NDArray[np.float64]
+    gains: NDArray[np.float64]
+    costs: NDArray[np.float64]
+    start_time: float
+    end_time: float
+    n_steps: int
+    state_dim: int
+    ctrl_dim: int
+    _is_row_major: bool
+
+    def __init__(
+        self,
+        t: NDArray[np.float64],
+        x: NDArray[np.float64],
+        u: NDArray[np.float64],
+        K: NDArray[np.float64],
+        S: NDArray[np.float64]
+    ) -> None:
+        """
+        Initialize trajectory from planner output.
+
+        Args:
+            t: Time array of shape (n_steps,)
+            x: State array, either (n_steps, state_dim) or (state_dim, n_steps)
+            u: Control array, either (n_steps-1, ctrl_dim) or (ctrl_dim, n_steps-1)
+            K: Feedback gains array
+            S: Cost-to-go array
+        """
         self.times = t
         self.states = x
         self.controls = u
         self.gains = K
         self.costs = S
 
-        self.start_time = t[0]
-        self.end_time = t[-1]
+        self.start_time = float(t[0])
+        self.end_time = float(t[-1])
         self.n_steps = len(t)
 
         # Robust Dimension Detection
@@ -25,7 +85,7 @@ class Trajectory:
         else:
             self.state_dim = x.shape[0]
             self._is_row_major = False
-            
+
         # Same check for controls
         if u.shape[0] == self.n_steps or u.shape[0] == self.n_steps - 1:
             self.ctrl_dim = u.shape[1]
@@ -143,19 +203,24 @@ class Trajectory:
         # Apply Control Law
         return u_ref - K @ dx
 
-    def get_state_input_gain(self, t: float):
+    def get_state_input_gain(
+        self, t: float
+    ) -> Tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64], None]:
+        """Get state, control, and gain at time t for tracking control."""
         return self.get_state_at(t), self.get_control_at(t), self.get_gain_at(t), None
 
-    def get_plotting_data(self) -> Dict[str, np.ndarray]:
+    def get_plotting_data(self) -> Dict[str, NDArray[np.float64]]:
+        """Return dictionary of trajectory data for plotting."""
         return {
             "time": self.times,
             "state": self.states,
             "control": self.controls,
             "cost": self.costs
         }
-    
+
     def _get_idx(self, t: float) -> int:
-        if t >= self.end_time: 
+        """Find the trajectory index for interpolation at time t."""
+        if t >= self.end_time:
             return self.n_steps - 2
         idx = np.searchsorted(self.times, t, side='right') - 1
         return max(0, min(idx, self.n_steps - 2))

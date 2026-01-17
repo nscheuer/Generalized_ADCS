@@ -11,10 +11,18 @@ All functions are standalone and compatible with onboard estimator
 and simulator modules.
 
 """
+from __future__ import annotations
+
 import numpy as np
+from numpy.typing import NDArray
 from ADCS.helpers.math_helpers import normalize, rot_mat, norm
 
-def vector_alignment_error(q: np.ndarray, eci_goal: np.ndarray, body_boresight: np.ndarray) -> np.ndarray:
+
+def vector_alignment_error(
+    q: NDArray[np.float64],
+    eci_goal: NDArray[np.float64],
+    body_boresight: NDArray[np.float64]
+) -> NDArray[np.float64]:
     r"""
     Compute a vector-form attitude alignment error between two directions.
 

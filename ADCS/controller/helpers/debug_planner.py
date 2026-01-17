@@ -12,11 +12,13 @@ Usage:
     #   from ADCS.controller.helpers.debug_planner import DebugPlanner
     #   self.planner = DebugPlanner(csat, ..., debug_level=2)
 """
+from __future__ import annotations
 
 __all__ = ["DebugPlanner"]
 
 import numpy as np
-from typing import Tuple, Optional
+from typing import Tuple, Optional, Dict, List, Any, TextIO
+from numpy.typing import NDArray
 import trajectory_planner.build.tplaunch as tplaunch
 import trajectory_planner.build.pysat as pysat
 
@@ -51,27 +53,27 @@ class DebugPlanner:
             initialTrajSettings, costSettings, costSettings2, costSettings_tvlqr
         )
 
-        self.debug_level = debug_level
-        self.log_file = log_file
-        self._log_handle = None
+        self.debug_level: int = debug_level
+        self.log_file: Optional[str] = log_file
+        self._log_handle: Optional[TextIO] = None
 
         # Extract control limits from alilqr settings for analysis
         # The settings structure: (lineSearch, auglag, break, reg)
         self._auglag_settings = alilqrSettings[1]  # (lam_init, lam_max, mu_init, mu_max, mu_scale)
 
         # Track iteration history
-        self.iteration_history = []
-        self.control_history = []
-        self.violation_history = []
+        self.iteration_history: List[Dict[str, Any]] = []
+        self.control_history: List[NDArray[np.float64]] = []
+        self.violation_history: List[float] = []
 
-    def _log(self, msg: str, level: int = 1):
+    def _log(self, msg: str, level: int = 1) -> None:
         """Log a message if debug_level is sufficient."""
         if self.debug_level >= level:
             print(msg)
             if self._log_handle:
                 self._log_handle.write(msg + "\n")
 
-    def _analyze_controls(self, Uset: np.ndarray, u_limit: float = None) -> dict:
+    def _analyze_controls(self, Uset: NDArray[np.float64], u_limit: Optional[float] = None) -> Dict[str, List[Any]]:
         """Analyze control trajectory for oscillations and saturation."""
         if Uset.ndim == 1:
             Uset = Uset.reshape(-1, 1).T
@@ -112,7 +114,7 @@ class DebugPlanner:
 
         return analysis
 
-    def _print_control_analysis(self, Uset: np.ndarray, prefix: str = ""):
+    def _print_control_analysis(self, Uset: NDArray[np.float64], prefix: str = "") -> None:
         """Print control analysis summary."""
         analysis = self._analyze_controls(Uset)
 
