@@ -281,6 +281,7 @@ class MTQ_w_RW_LP(Controller):
             )
             self.h_target = np.zeros(3)
 
+
     def find_u(
         self,
         x_hat: np.ndarray,
@@ -292,130 +293,164 @@ class MTQ_w_RW_LP(Controller):
         if goal is None:
             goal = No_Goal()
 
+        if isinstance(goal, No_Goal):
+            return self.find_u_desaturate(
+                x_hat=x_hat,
+                sens=sens,
+                est_sat=est_sat,
+                os_hat=os_hat,
+                goal=goal,
+            )
+        else:
+            return self.find_u_pointing(
+                x_hat=x_hat,
+                sens=sens,
+                est_sat=est_sat,
+                os_hat=os_hat,
+                goal=goal,
+            )
+        
+        
+    def find_u_pointing(
+        self,
+        x_hat: np.ndarray,
+        sens: np.ndarray,
+        est_sat: EstimatedSatellite,
+        os_hat: Orbital_State,
+        goal: Goal
+    ):
         w = x_hat[0:3]
         q = x_hat[3:7]
 
-        if isinstance(goal, No_Goal):
-            k_w = self.d_gain
-            k_h = self.c_gain
-
-            # --- 1. Magnetic Field (Body Frame) ---
-            b_body = np.asarray(self.M_mtm_read @ sens, float).reshape(3,)
-            b_norm = np.linalg.norm(b_body)
-            if b_norm < 1e-9:
-                return np.zeros(self.n_actuators)
-            b_hat = b_body / b_norm
-
-            # --- 2. System Momentum Vector (Generic N-RW) ---
-            # Calculate total vector momentum stored in all wheels
-            if self.n_rw > 0 and len(x_hat) >= 7 + self.n_rw:
-                h_rw_scalars = x_hat[7 : 7 + self.n_rw]
-                h_sys = self.rw_axes @ h_rw_scalars # Matrix (3, N) @ Vec (N,) -> (3,)
-            else:
-                h_sys = np.zeros(3)
-
-            # --- 3. Rate Damping (Perpendicular to B) ---
-            # "Magnetic B-dot" logic: dampen rates only in the plane where MTQs can act
-            w_perp = w - np.dot(w, b_hat) * b_hat
-            tau_bdot_perp = -k_w * w_perp
-
-            # --- 4. Momentum Dumping Torque (3D Vector) ---
-            # Desired torque on body to reduce system momentum error
-            h_err = h_sys - self.h_target  # Vector subtraction
-            tau_dump_des = k_h * h_err     # Gain * Vector error
-
-            # Saturation: Limit the dumping torque magnitude to avoid transient spikes
-            mag = np.linalg.norm(tau_dump_des)
-            limit_val = k_h * 0.001        # Example cap (adjust as needed)
-            if mag > limit_val:
-                tau_dump_des *= limit_val / (mag + 1e-12)
-
-            # Project dump torque into MTQ-achievable plane (Perp to B)
-            tau_dump_perp = tau_dump_des - np.dot(tau_dump_des, b_hat) * b_hat
-
-            # Gating: Avoid dumping if the required torque is parallel to B (uncancellable)
-            denom = np.linalg.norm(tau_dump_des) + 1e-12
-            gamma = np.linalg.norm(tau_dump_perp) / denom
-            tau_dump_cmd = gamma * tau_dump_des
-
-            # --- 5. MTQ Allocation & Saturation Check ---
-            tau_mtq_des = tau_bdot_perp - tau_dump_perp
-            
-            alpha_mtq = 0.0 # Default to 0: If no MTQs, we cannot dump.
-            u_mtq_scaled = np.zeros(self.n_mtq) # Default empty/zero
-
-            if self.n_mtq > 0:
-                # Standard Allocation
-                B_skew = skewsym(b_body)
-                M_mag_eff = -B_skew @ self.A_mtq
-                u_mtq_raw = np.linalg.pinv(M_mag_eff) @ tau_mtq_des
-
-                # Check saturation
-                mtq_cmds = u_mtq_raw[self.mtq_indices]
-                alpha_mtq = 1.0
-                if np.any(np.abs(mtq_cmds) > self.mtq_umax):
-                    alpha_mtq = np.min(self.mtq_umax / (np.abs(mtq_cmds) + 1e-12))
-                
-                u_mtq_scaled = alpha_mtq * u_mtq_raw
-
-            # --- 6. RW Command (Scaled) ---
-            # If alpha_mtq is 0 (due to saturation or 0 MTQs), RW torque is reduced 
-            # to 0 to prevent spinning up the body.
-            tau_rw_req = alpha_mtq * (tau_dump_cmd + tau_bdot_perp)
-
-            u_rw = self.M_rw_act @ tau_rw_req
-            u_rw = np.clip(u_rw, -self.rw_umax, self.rw_umax)
-
-            # --- Final Output ---
-            u_out = u_mtq_scaled + u_rw     
+        n_rw = len([a for a in est_sat.actuators if isinstance(a, RW)])
+        if len(x_hat) >= 7 + n_rw:
+            h_rw_states = x_hat[7 : 7 + n_rw]
         else:
+            h_rw_states = np.array([rw.h for rw in est_sat.actuators if isinstance(rw, RW)])
+
+        goal_vec_eci, w_ref_eci = goal.to_ref(os0=os_hat)
+        R_b2i = rot_mat(q)
+        w_ref_body = R_b2i.T @ w_ref_eci
+
+        q_err = goal.error(q=q, body_boresight=est_sat.boresight, os0=os_hat)
+
+        w_err = w - w_ref_body
+        tau_pd = -self.p_gain * q_err - self.d_gain * w_err
+
+        h_rw_body = np.zeros(3)
+        rw_counter = 0
+        for actuator in est_sat.actuators:
+            if isinstance(actuator, RW):
+                h_rw_body += np.asarray(actuator.axis).flatten() * h_rw_states[rw_counter]
+                rw_counter += 1
         
-            n_rw = len([a for a in est_sat.actuators if isinstance(a, RW)])
-            if len(x_hat) >= 7 + n_rw:
-                h_rw_states = x_hat[7 : 7 + n_rw]
-            else:
-                h_rw_states = np.array([rw.h for rw in est_sat.actuators if isinstance(rw, RW)])
+        J = est_sat.J_0
+        tau_gyro = np.cross(w, J @ w + h_rw_body)
 
-            goal_vec_eci, w_ref_eci = goal.to_ref(os0=os_hat)
-            R_b2i = rot_mat(q)
-            w_ref_body = R_b2i.T @ w_ref_eci
+        tau_des = tau_pd + tau_gyro
+        
+        sens_clean = sens.copy()
+        sens_clean[np.isnan(sens_clean)] = 0.0
+        b_body = np.asarray(self.M_mtm_read @ sens_clean, float).reshape(3,)
 
-            q_err = goal.error(q=q, body_boresight=est_sat.boresight, os0=os_hat)
+        u_rw_cmd, u_mtq_cmd, alpha = self.allocate_max_torque_in_direction(
+            tau_des, b_body, est_sat
+        )
 
-            w_err = w - w_ref_body
-            tau_pd = -self.p_gain * q_err - self.d_gain * w_err
-
-            h_rw_body = np.zeros(3)
-            rw_counter = 0
-            for actuator in est_sat.actuators:
-                if isinstance(actuator, RW):
-                    h_rw_body += np.asarray(actuator.axis).flatten() * h_rw_states[rw_counter]
-                    rw_counter += 1
-            
-            J = est_sat.J_0
-            tau_gyro = np.cross(w, J @ w + h_rw_body)
-
-            tau_des = tau_pd + tau_gyro
-            
-            sens_clean = sens.copy()
-            sens_clean[np.isnan(sens_clean)] = 0.0
-            b_body = np.asarray(self.M_mtm_read @ sens_clean, float).reshape(3,)
-
-            u_rw_cmd, u_mtq_cmd, alpha = self.allocate_max_torque_in_direction(
-                tau_des, b_body, est_sat
-            )
-
-            u_out = np.zeros(len(est_sat.actuators))
-            
-            rw_indices = [i for i, a in enumerate(est_sat.actuators) if isinstance(a, RW)]
-            u_out[rw_indices] = u_rw_cmd
-            
-            mtq_indices = [i for i, a in enumerate(est_sat.actuators) if isinstance(a, MTQ)]
-            u_out[mtq_indices] = u_mtq_cmd
-
-            # self.plot_torques(tau_des, b_body, est_sat)
+        u_out = np.zeros(len(est_sat.actuators))
+        
+        rw_indices = [i for i, a in enumerate(est_sat.actuators) if isinstance(a, RW)]
+        u_out[rw_indices] = u_rw_cmd
+        
+        mtq_indices = [i for i, a in enumerate(est_sat.actuators) if isinstance(a, MTQ)]
+        u_out[mtq_indices] = u_mtq_cmd
 
         return u_out
+    
+
+    def find_u_desaturate(
+        self,
+        x_hat: np.ndarray,
+        sens: np.ndarray,
+        est_sat: EstimatedSatellite,
+        os_hat: Orbital_State,
+        goal: Goal | None = None,    
+    ):
+        k_w = self.d_gain
+        k_h = self.c_gain
+
+        # --- 1. Magnetic Field (Body Frame) ---
+        b_body = np.asarray(self.M_mtm_read @ sens, float).reshape(3,)
+        b_norm = np.linalg.norm(b_body)
+        if b_norm < 1e-9:
+            return np.zeros(self.n_actuators)
+        b_hat = b_body / b_norm
+
+        # --- 2. System Momentum Vector (Generic N-RW) ---
+        # Calculate total vector momentum stored in all wheels
+        if self.n_rw > 0 and len(x_hat) >= 7 + self.n_rw:
+            h_rw_scalars = x_hat[7 : 7 + self.n_rw]
+            h_sys = self.rw_axes @ h_rw_scalars # Matrix (3, N) @ Vec (N,) -> (3,)
+        else:
+            h_sys = np.zeros(3)
+
+        # --- 3. Rate Damping (Perpendicular to B) ---
+        # "Magnetic B-dot" logic: dampen rates only in the plane where MTQs can act
+        w_perp = w - np.dot(w, b_hat) * b_hat
+        tau_bdot_perp = -k_w * w_perp
+
+        # --- 4. Momentum Dumping Torque (3D Vector) ---
+        # Desired torque on body to reduce system momentum error
+        h_err = h_sys - self.h_target  # Vector subtraction
+        tau_dump_des = k_h * h_err     # Gain * Vector error
+
+        # Saturation: Limit the dumping torque magnitude to avoid transient spikes
+        mag = np.linalg.norm(tau_dump_des)
+        limit_val = k_h * 0.001        # Example cap (adjust as needed)
+        if mag > limit_val:
+            tau_dump_des *= limit_val / (mag + 1e-12)
+
+        # Project dump torque into MTQ-achievable plane (Perp to B)
+        tau_dump_perp = tau_dump_des - np.dot(tau_dump_des, b_hat) * b_hat
+
+        # Gating: Avoid dumping if the required torque is parallel to B (uncancellable)
+        denom = np.linalg.norm(tau_dump_des) + 1e-12
+        gamma = np.linalg.norm(tau_dump_perp) / denom
+        tau_dump_cmd = gamma * tau_dump_des
+
+        # --- 5. MTQ Allocation & Saturation Check ---
+        tau_mtq_des = tau_bdot_perp - tau_dump_perp
+        
+        alpha_mtq = 0.0 # Default to 0: If no MTQs, we cannot dump.
+        u_mtq_scaled = np.zeros(self.n_mtq) # Default empty/zero
+
+        if self.n_mtq > 0:
+            # Standard Allocation
+            B_skew = skewsym(b_body)
+            M_mag_eff = -B_skew @ self.A_mtq
+            u_mtq_raw = np.linalg.pinv(M_mag_eff) @ tau_mtq_des
+
+            # Check saturation
+            mtq_cmds = u_mtq_raw[self.mtq_indices]
+            alpha_mtq = 1.0
+            if np.any(np.abs(mtq_cmds) > self.mtq_umax):
+                alpha_mtq = np.min(self.mtq_umax / (np.abs(mtq_cmds) + 1e-12))
+            
+            u_mtq_scaled = alpha_mtq * u_mtq_raw
+
+        # --- 6. RW Command (Scaled) ---
+        # If alpha_mtq is 0 (due to saturation or 0 MTQs), RW torque is reduced 
+        # to 0 to prevent spinning up the body.
+        tau_rw_req = alpha_mtq * (tau_dump_cmd + tau_bdot_perp)
+
+        u_rw = self.M_rw_act @ tau_rw_req
+        u_rw = np.clip(u_rw, -self.rw_umax, self.rw_umax)
+
+        # --- Final Output ---
+        u_out = u_mtq_scaled + u_rw  
+        
+
+        
 
     def allocate_max_torque_in_direction(self, tau_des: np.ndarray, b_body: np.ndarray, est_sat: EstimatedSatellite) -> tuple[np.ndarray, np.ndarray, float]:    
         t_mag = np.linalg.norm(tau_des)
