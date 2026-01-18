@@ -55,7 +55,8 @@ class Trajectory:
         x: NDArray[np.float64],
         u: NDArray[np.float64],
         K: NDArray[np.float64],
-        S: NDArray[np.float64]
+        S: NDArray[np.float64],
+        use_disturbance_estimation: bool = False
     ) -> None:
         """
         Initialize trajectory from planner output.
@@ -66,12 +67,15 @@ class Trajectory:
             u: Control array, either (n_steps-1, ctrl_dim) or (ctrl_dim, n_steps-1)
             K: Feedback gains array
             S: Cost-to-go array
+            use_disturbance_estimation: If True, gains have 3 extra columns for
+                disturbance estimation (KwDist mode, tracking_LQR_formulation=2)
         """
         self.times = t
         self.states = x
         self.controls = u
         self.gains = K
         self.costs = S
+        self.use_disturbance_estimation = use_disturbance_estimation
 
         self.start_time = float(t[0])
         self.end_time = float(t[-1])
@@ -91,6 +95,10 @@ class Trajectory:
             self.ctrl_dim = u.shape[1]
         else:
             self.ctrl_dim = u.shape[0]
+
+        # Disturbance estimate for KwDist mode
+        if use_disturbance_estimation:
+            self._dist_estimate = np.zeros(3)
 
     def is_valid_time(self, t: float) -> bool:
         return self.start_time <= t <= self.end_time
@@ -163,45 +171,90 @@ class Trajectory:
                 safe_idx = min(idx, self.gains.shape[2]-1)
                 return self.gains[:, :, safe_idx]
         
-        # Fallback for flattened
+        # Fallback for flattened gain storage.
+        # Gain matrix K maps error state (reduced) to control:
+        #   K is (n_ctrl, n_err) where n_err = state_dim - 1
+        #   The -1 accounts for quaternion 4D → 3D reduction in error state.
+        #
+        # For KwDist mode (disturbance estimation), gains will be
+        # (n_ctrl, n_err + 3) but this is handled by checking actual shape.
         k_flat = self.gains[:, idx]
-        return k_flat.reshape(self.ctrl_dim, self.state_dim-1)
+        if self.use_disturbance_estimation:
+            # KwDist gains: (ctrl_dim, state_dim - 1 + 3)
+            error_dim_with_dist = self.state_dim - 1 + 3
+            return k_flat.reshape(self.ctrl_dim, error_dim_with_dist)
+        else:
+            return k_flat.reshape(self.ctrl_dim, self.state_dim - 1)
     
     def compute_tracking_control(self, t: float, x_current: np.ndarray) -> np.ndarray:
         if not self.is_valid_time(t):
             raise ValueError(f"Time {t} is outside bounds")
-        
+
         x_ref = self.get_state_at(t)
         u_ref = self.get_control_at(t)
         K = self.get_gain_at(t)
-        
-        def state_diff(x_curr: np.ndarray, x_ref: np.ndarray) -> np.ndarray:
-            # Initialize 9-element error state
-            dx = np.zeros(9) 
-            
-            # 1. Angular Velocity (Indices 0, 1, 2)
-            # Use 0:3 to include index 2
-            dx[0:3] = x_curr[0:3] - x_ref[0:3]
-            
-            # 2. Attitude Error (Indices 3, 4, 5)
-            # Ensure quat_diff returns q_ref^(-1) * q_curr
-            q_err = quat_diff(x_curr[3:7], x_ref[3:7])
-            
-            # CRITICAL: LQR usually assumes linear error d_theta = 2 * vector_part(q_err)
-            # If quat_to_vec3 just returns (x,y,z), you might need to multiply by 2.
-            # If your K was generated assuming d_q ~ [1, d_theta/2], keep the factor of 2.
-            dx[3:6] = 2 * quat_to_vec3(q_err) 
-            
-            # 3. Wheel Momentum (Indices 6, 7, 8 in error state; 7, 8, 9 in full state)
-            # Use 6:9 (dest) and 7:10 (source) to include the last element
-            dx[6:9] = x_curr[7:10] - x_ref[7:10]
-            
-            return dx
 
-        dx = state_diff(x_current, x_ref)
-        
-        # Apply Control Law
-        return u_ref - K @ dx
+        dx = self._state_diff(x_current, x_ref)
+
+        if self.use_disturbance_estimation:
+            # KwDist mode: augment error state with disturbance estimate
+            dx_aug = np.concatenate([dx, self._dist_estimate])
+            return u_ref - K @ dx_aug
+        else:
+            return u_ref - K @ dx
+
+    def _state_diff(self, x_curr: np.ndarray, x_ref: np.ndarray) -> np.ndarray:
+        """
+        Compute error state for TVLQR feedback control.
+
+        Error state layout (reduced quaternion representation):
+        - [0:3]      Angular velocity error (ω_curr - ω_ref)
+        - [3:6]      Attitude error as 2*vec(q_err), linearized quaternion
+        - [6:6+n_rw] RW momentum error (h_curr - h_ref)
+
+        The error state dimension is (state_dim - 1) because the 4D quaternion
+        is reduced to 3D attitude error.
+
+        For KwDist mode (disturbance estimation), the gain matrix expects an
+        additional 3 elements for disturbance state, handled separately in
+        compute_tracking_control.
+
+        Args:
+            x_curr: Current state vector [w(3), q(4), h(n_rw)]
+            x_ref: Reference state vector [w(3), q(4), h(n_rw)]
+
+        Returns:
+            Error state vector of dimension (6 + n_rw)
+        """
+        # Number of reaction wheels: full state = 7 + n_rw
+        n_rw = self.state_dim - 7
+        error_dim = 6 + n_rw
+
+        dx = np.zeros(error_dim)
+
+        # 1. Angular Velocity Error (indices 0:3)
+        dx[0:3] = x_curr[0:3] - x_ref[0:3]
+
+        # 2. Attitude Error (indices 3:6)
+        # quat_diff returns q_ref^(-1) * q_curr
+        q_err = quat_diff(x_curr[3:7], x_ref[3:7])
+        # LQR assumes linearized error: d_theta = 2 * vector_part(q_err)
+        dx[3:6] = 2 * quat_to_vec3(q_err)
+
+        # 3. RW Momentum Error (indices 6:6+n_rw, from full state 7:7+n_rw)
+        if n_rw > 0:
+            dx[6:6+n_rw] = x_curr[7:7+n_rw] - x_ref[7:7+n_rw]
+
+        return dx
+
+    def update_disturbance_estimate(self, dist_torque: np.ndarray) -> None:
+        """Update the disturbance estimate for KwDist mode.
+
+        Args:
+            dist_torque: 3D disturbance torque estimate in body frame
+        """
+        if self.use_disturbance_estimation:
+            self._dist_estimate = np.asarray(dist_torque).flatten()[:3]
 
     def get_state_input_gain(
         self, t: float

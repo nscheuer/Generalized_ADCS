@@ -103,7 +103,7 @@ TEST_CASE("Optimizer cost decreases monotonically", "[optimizer][convergence]") 
     COST_SETTINGS_FORM costSettings = std::make_tuple(
         1e2, 1e1, 1.0, 0.0, 0.0,
         1e3, 1e2, 0.0, 0.0,
-        2, true
+        2, true, 0
     );
 
     // Augmented Lagrangian (no active constraints initially)
@@ -223,7 +223,7 @@ TEST_CASE("Optimizer maintains equilibrium at rest", "[optimizer][equilibrium]")
     COST_SETTINGS_FORM costSettings = std::make_tuple(
         1e3, 1e2, 1.0, 0.0, 0.0,
         1e3, 1e2, 0.0, 0.0,
-        2, true
+        2, true, 0
     );
 
     int nc = sat.constraint_N();
@@ -309,7 +309,7 @@ TEST_CASE("Verify KKT optimality conditions at solution", "[optimizer][kkt]") {
     COST_SETTINGS_FORM costSettings = std::make_tuple(
         1e2, 1e1, 1.0, 0.0, 0.0,
         1e3, 1e2, 0.0, 0.0,
-        2, true
+        2, true, 0
     );
 
     // Create planner
@@ -432,7 +432,7 @@ TEST_CASE("ALTRO satisfies control constraints", "[optimizer][constraints]") {
     COST_SETTINGS_FORM costSettings = std::make_tuple(
         1e4, 1e3, 0.1, 0.0, 0.0,  // Low control weight to encourage constraint activation
         1e4, 1e3, 0.0, 0.0,
-        2, true
+        2, true, 0
     );
 
     // Create planner
@@ -539,7 +539,7 @@ TEST_CASE("TVLQR gains can be computed", "[optimizer][tvlqr]") {
     COST_SETTINGS_FORM costSettings = std::make_tuple(
         1e3, 1e2, 1.0, 0.0, 0.0,
         1e3, 1e2, 0.0, 0.0,
-        2, true
+        2, true, 0
     );
 
     // Create planner
@@ -641,7 +641,7 @@ TEST_CASE("Forward pass trajectory satisfies dynamics", "[optimizer][dynamics]")
     COST_SETTINGS_FORM costSettings = std::make_tuple(
         1e2, 1e1, 1.0, 0.0, 0.0,
         1e3, 1e2, 0.0, 0.0,
-        2, true
+        2, true, 0
     );
 
     // Create planner
@@ -738,7 +738,7 @@ TEST_CASE("Step cost function gradients are correct", "[optimizer][gradient]") {
     COST_SETTINGS_FORM costSettings = std::make_tuple(
         1e2, 1e1, 1.0, 0.1, 0.0,
         1e3, 1e2, 0.1, 0.0,
-        2, true
+        2, true, 0
     );
 
     // Get analytic gradient
@@ -917,7 +917,7 @@ TEST_CASE("MTQ-only satellite convergence", "[optimizer][mtq][convergence]") {
     COST_SETTINGS_FORM costSettings = std::make_tuple(
         1e2, 1e1, 1.0, 0.0, 0.0,
         1e3, 1e2, 0.0, 0.0,
-        2, true
+        2, true, 0
     );
 
     // Create planner
@@ -1056,7 +1056,7 @@ TEST_CASE("RW-only satellite convergence", "[optimizer][rw][convergence]") {
     COST_SETTINGS_FORM costSettings = std::make_tuple(
         1e2, 1e1, 1.0, 0.0, 0.0,
         1e3, 1e2, 0.0, 0.0,
-        2, true
+        2, true, 0
     );
 
     // Create planner
@@ -1181,7 +1181,7 @@ TEST_CASE("Hybrid MTQ+RW satellite convergence", "[optimizer][hybrid][convergenc
     COST_SETTINGS_FORM costSettings = std::make_tuple(
         1e2, 1e1, 1.0, 0.0, 0.0,
         1e3, 1e2, 0.0, 0.0,
-        2, true
+        2, true, 0
     );
 
     // Create planner
@@ -1316,14 +1316,14 @@ TEST_CASE("Control smoothness with rate penalty", "[optimizer][smoothness]") {
     COST_SETTINGS_FORM costSettings_no_rate = std::make_tuple(
         1e2, 1e1, 1.0, 0.0, 0.0,
         1e3, 1e2, 0.0, 0.0,
-        2, true
+        2, true, 0
     );
 
     // Cost settings WITH rate penalty (w_avmag=1.0, w_avang=0)
     COST_SETTINGS_FORM costSettings_with_rate = std::make_tuple(
         1e2, 1e1, 1.0, 1.0, 0.0,
         1e3, 1e2, 0.0, 0.0,
-        2, true
+        2, true, 0
     );
 
     // Create planner
@@ -1538,7 +1538,8 @@ TEST_CASE("debug_altro_6Up configuration - spiky behavior analysis", "[optimizer
         0.0,   // w_avmag_N
         0.0,   // w_avang_N
         2,     // whichAngCostFunc (acos formulation)
-        true   // useRawControlCost = True
+        true,  // useRawControlCost = True
+        0      // useFullCostHess = 0
     );
 
     // Create planner with matching settings
@@ -1701,7 +1702,7 @@ TEST_CASE("1D rotation regulation - analytical LQR comparison", "[optimizer][ana
         0.0,   // w_ang_N
         1e4,   // w_av_N (high terminal weight)
         0.0, 0.0,
-        2, true
+        2, true, 0
     );
 
     // Create planner
@@ -1849,7 +1850,7 @@ TEST_CASE("Rest-to-rest maneuver - symmetry check", "[optimizer][analytical][sym
         1e3,   // w_ang_N (terminal angle)
         1e3,   // w_av_N (terminal zero velocity)
         0.0, 0.0,
-        2, true
+        2, true, 0
     );
 
     // Create planner
@@ -1974,7 +1975,7 @@ TEST_CASE("LQR gain consistency check", "[optimizer][analytical][gains]") {
     COST_SETTINGS_FORM costSettings = std::make_tuple(
         0.0, 1e2, 1e2, 0.0, 0.0,
         0.0, 1e2, 0.0, 0.0,
-        2, true
+        2, true, 0
     );
 
     arma::mat33 J_est = sat.Jcom;
@@ -3060,7 +3061,7 @@ TEST_CASE("Satellite veccostJacobians matches finite differences", "[satellite][
     COST_SETTINGS_FORM costSettings = std::make_tuple(
         1e2, 1e1, 1.0, 0.0, 0.0,
         1e3, 1e2, 0.0, 0.0,
-        2, 0  // useRawControlCost = 0
+        2, 0, 0  // useRawControlCost = 0, useFullCostHess = 0
     );
 
     // Get analytical Jacobians
@@ -3133,7 +3134,7 @@ TEST_CASE("Satellite quatcostJacobians matches finite differences", "[satellite]
     COST_SETTINGS_FORM costSettings = std::make_tuple(
         1e2, 1e1, 1.0, 0.0, 0.0,
         1e3, 1e2, 0.0, 0.0,
-        2, 0
+        2, 0, 0
     );
 
     // Get analytical Jacobians
@@ -3157,6 +3158,52 @@ TEST_CASE("Satellite quatcostJacobians matches finite differences", "[satellite]
 
     cout << "  lu error (abs): " << lu_error << ", (rel): " << lu_rel_error << endl;
     CHECK(lu_rel_error < 1e-3);
+}
+
+// ============================================================================
+// TEST: Full Hessian vs Gauss-Newton Comparison
+// ============================================================================
+TEST_CASE("Full cost Hessian vs Gauss-Newton comparison", "[satellite][hessian][cost][fullhess]") {
+    cout << "\n=== Test: Full Hessian vs Gauss-Newton Comparison ===" << endl;
+
+    Satellite sat = createHybridSatellite();
+    arma::arma_rng::set_seed(70);
+
+    int N = 20, k = 10, nu = sat.control_N();
+
+    arma::vec3 w0 = 0.03 * arma::randn(3);
+    arma::vec4 q0 = arma::normalise(arma::vec({1.0, 0.1, 0.1, 0.1}) + 0.1*arma::randn(4));
+    arma::vec x = sat.state_norm(join_cols(join_cols(w0, q0), 0.0005 * arma::randn(sat.number_RW)));
+
+    arma::vec u = arma::vec(nu).zeros();
+    u.head(sat.number_MTQ) = 0.05 * arma::randn(sat.number_MTQ);
+    u.tail(sat.number_RW) = 0.0003 * arma::randn(sat.number_RW);
+    arma::vec u_prev = 0.9 * u;
+
+    arma::vec3 satvec = arma::normalise(arma::vec({0, 0, 1}));
+    arma::vec3 ECIvec = arma::normalise(arma::vec({1, 0, 0}));
+    arma::vec3 B_eci = arma::vec({1e-5, 3e-5, 2e-5});
+
+    // Gauss-Newton (fullHess=0) vs Full Newton (fullHess=1)
+    COST_SETTINGS_FORM costSettings_GN = std::make_tuple(
+        1e2, 1e1, 1.0, 0.0, 0.0, 1e3, 1e2, 0.0, 0.0, 2, 0, 0);
+    COST_SETTINGS_FORM costSettings_FN = std::make_tuple(
+        1e2, 1e1, 1.0, 0.0, 0.0, 1e3, 1e2, 0.0, 0.0, 2, 0, 1);
+
+    cost_jacs jacs_GN = sat.veccostJacobians(k, N, x, u, u_prev, satvec, ECIvec, B_eci, &costSettings_GN);
+    cost_jacs jacs_FN = sat.veccostJacobians(k, N, x, u, u_prev, satvec, ECIvec, B_eci, &costSettings_FN);
+
+    // Gradients should be identical (only Hessian differs)
+    double lx_diff = arma::norm(jacs_GN.lx - jacs_FN.lx);
+    double lu_diff = arma::norm(jacs_GN.lu - jacs_FN.lu);
+    cout << "  lx difference (should be ~0): " << lx_diff << endl;
+    cout << "  lu difference (should be ~0): " << lu_diff << endl;
+    CHECK(lx_diff < 1e-12);
+    CHECK(lu_diff < 1e-12);
+
+    // Hessians may differ (full Newton has extra terms)
+    double lxx_diff = arma::norm(jacs_GN.lxx - jacs_FN.lxx, "fro");
+    cout << "  lxx difference (GN vs FN): " << lxx_diff << endl;
 }
 
 // ============================================================================

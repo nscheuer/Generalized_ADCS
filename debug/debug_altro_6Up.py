@@ -80,8 +80,8 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
     # planner_settings.rw_AM_weight = 0  # Disable AM cost
     # planner_settings.rw_stic_weight = 0  # Disable stiction cost - causes non-convex Hessian!
     planner_settings.verbosity = verbose
-    planner_settings.rw_control_weight = 1e8  # Default value
-    planner_settings.mtq_control_weight = 1e0
+    planner_settings.rw_control_weight = 1e4  # Default value
+    planner_settings.mtq_control_weight = 1e4
     planner_settings.cost_main.ang_vel = 1e4  # Default value
     planner_settings.cost_second.ang_vel = 1e4
     planner_settings.cost_main.use_raw_control_cost = True  # Use control rate cost to penalize oscillation

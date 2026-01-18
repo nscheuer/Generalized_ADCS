@@ -14,8 +14,8 @@
 
 // Cost settings tuple: (angle, ang_vel, control_mult, ang_vel_mag, ang_vel_err_dir,
 //                       angle_N, ang_vel_N, ang_vel_mag_N, ang_vel_err_dir_N,
-//                       ang_cost_func_type, use_raw_control_cost)
-#define COST_SETTINGS_FORM std::tuple<double, double, double, double, double, double, double, double, double, int, int>
+//                       ang_cost_func_type, use_raw_control_cost, use_full_cost_hess)
+#define COST_SETTINGS_FORM std::tuple<double, double, double, double, double, double, double, double, double, int, int, int>
 #define DYNAMICS_INFO_FORM std::tuple<arma::vec3,arma::vec3,int,arma::vec3,arma::vec3,int>
 static const double MAGRW_TORQ_MULT = 1.0;//1e-3;//1e-4;//1.0;//1e-3;
 
@@ -32,6 +32,24 @@ struct cost_jacs{
   arma::mat lux;
   arma::vec lu;
   arma::mat luu;
+};
+
+// Struct for extracted cost settings from COST_SETTINGS_FORM tuple
+struct ExtractedCostSettings {
+    double w_ang, w_av, w_u_mult, w_avmag, w_avang;
+    double w_ang_N, w_av_N, w_avmag_N, w_avang_N;
+    int whichAngCostFunc;
+    int useRawControlCost;
+    int useFullCostHess;
+
+    static ExtractedCostSettings fromTuple(const COST_SETTINGS_FORM& settings);
+    void applyTerminalWeights();
+};
+
+// Struct for RW cost computation results
+struct RWCostResults {
+    double ang_mom_cost;
+    double stiction_cost;
 };
 
 class Satellite {
@@ -192,8 +210,14 @@ public:
     std::vector<double> RW_max_torq = {};
     std::vector<double> RW_max_ang_mom = {};
 
-// private:
-
+private:
+    // Helper functions for cost Jacobian computation
+    arma::mat setupActuationCostMatrix(int k, int N, ExtractedCostSettings& settings) const;
+    RWCostResults computeRWCostsAndJacobians(
+        const arma::vec& xk,
+        arma::vec& lkx,
+        arma::mat& lkxx
+    ) const;
 };
 
 #endif // TPR_SATELLITE_HPP

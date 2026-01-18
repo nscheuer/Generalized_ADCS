@@ -111,6 +111,7 @@ void OldPlanner::updateParameters_notsat(SYSTEM_SETTINGS_FORM systemSettings_tmp
     ang_av_weight_N = get<8>(costSettings); // cost of av/ang error alignment in final timestep.
     whichAngCostFunc = get<9>(costSettings); //determines from a variety of options how angle cost is calculated. 0-3 for vector angle, 0-4 for quaternion.
     useRawControlCost = get<10>(costSettings);//if true (1), control cost is 0.5*u.T@W@u. if false (0), control cost is 0.5*(u-u_prev).T@W@(u-u_prev)
+    useFullCostHess = get<11>(costSettings); // 0 = Gauss-Newton (PSD), 1 = Full Newton
 
     angle_weight2 = get<0>(costSettings2);
     angvel_weight2 = get<1>(costSettings2);
@@ -123,6 +124,7 @@ void OldPlanner::updateParameters_notsat(SYSTEM_SETTINGS_FORM systemSettings_tmp
     ang_av_weight_N2 = get<8>(costSettings2);
     whichAngCostFunc2 = get<9>(costSettings2);
     useRawControlCost2 = get<10>(costSettings2);
+    useFullCostHess2 = get<11>(costSettings2);
 
     angle_weight_tvlqr = get<0>(costSettings_tvlqr_tmp);
     angvel_weight_tvlqr = get<1>(costSettings_tvlqr_tmp);
@@ -140,7 +142,7 @@ void OldPlanner::updateParameters_notsat(SYSTEM_SETTINGS_FORM systemSettings_tmp
     costSettings_tvlqr = make_tuple(angle_weight_tvlqr,angvel_weight_tvlqr,u_weight_tvlqr,
                     av_with_mag_weight_tvlqr,ang_av_weight_tvlqr,
                     angle_weight_N_tvlqr,angvel_weight_N_tvlqr,av_with_mag_weight_N_tvlqr,
-                    ang_av_weight_N_tvlqr,whichAngCostFunc_tvlqr,useRawControlCost_tvlqr);
+                    ang_av_weight_N_tvlqr,whichAngCostFunc_tvlqr,useRawControlCost_tvlqr,0);
 
     // systemSettings = systemSettings_tmp;
     dt = get<1>(systemSettings_tmp);
@@ -1703,9 +1705,10 @@ void OldPlanner::costInfo(TRAJECTORY_FORM traj, VECTOR_INFO_FORM vecs, AUGLAG_IN
     double ang_av_weight_N_tmp = get<8>(costSettings_tmp);
     int whichAngCostFunc_tmp = get<9>(costSettings_tmp);
     int useRawControlCost_tmp = get<10>(costSettings_tmp);
-    COST_SETTINGS_FORM nou_Settings = make_tuple(angle_weight_tmp,angvel_weight_tmp,0.0,av_with_mag_weight_tmp,ang_av_weight_tmp,angle_weight_N_tmp,angvel_weight_N_tmp,av_with_mag_weight_N_tmp,ang_av_weight_N_tmp,whichAngCostFunc_tmp,useRawControlCost_tmp);
-    COST_SETTINGS_FORM only_av_Settings = make_tuple(0.0,angvel_weight_tmp,0.0,0.0,0.0,0.0,angvel_weight_N_tmp,0.0,0.0,whichAngCostFunc_tmp,useRawControlCost_tmp);
-    COST_SETTINGS_FORM only_ang_Settings = make_tuple(angle_weight_tmp,0.0,0.0,0.0,0.0,angle_weight_N_tmp,0.0,0.0,0.0,whichAngCostFunc_tmp,useRawControlCost_tmp);
+    int useFullCostHess_tmp = get<11>(costSettings_tmp);
+    COST_SETTINGS_FORM nou_Settings = make_tuple(angle_weight_tmp,angvel_weight_tmp,0.0,av_with_mag_weight_tmp,ang_av_weight_tmp,angle_weight_N_tmp,angvel_weight_N_tmp,av_with_mag_weight_N_tmp,ang_av_weight_N_tmp,whichAngCostFunc_tmp,useRawControlCost_tmp,useFullCostHess_tmp);
+    COST_SETTINGS_FORM only_av_Settings = make_tuple(0.0,angvel_weight_tmp,0.0,0.0,0.0,0.0,angvel_weight_N_tmp,0.0,0.0,whichAngCostFunc_tmp,useRawControlCost_tmp,useFullCostHess_tmp);
+    COST_SETTINGS_FORM only_ang_Settings = make_tuple(angle_weight_tmp,0.0,0.0,0.0,0.0,angle_weight_N_tmp,0.0,0.0,0.0,whichAngCostFunc_tmp,useRawControlCost_tmp,useFullCostHess_tmp);
 
     mat clearvel = mat(sat.state_N(),sat.state_N()).eye();
     clearvel(span(0,2),span(0,2)).zeros();

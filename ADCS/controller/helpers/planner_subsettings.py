@@ -205,10 +205,21 @@ class CostWeights:
     ang_vel_err_dir_N: float = 0.0
 
     # Flags
-    # 0=(1-dot), 1=0.5*(1-dot)^2, 2=acos(dot), 3=0.5*acos(dot)^2
-    ang_cost_func_type: int = 3
+    # Attitude cost formulations:
+    #   0 = (1 - q·q_goal)         - Linear in dot product, cheap but non-smooth at 180°
+    #   1 = 0.5*(1 - q·q_goal)²    - Quadratic in dot product, smooth but weak gradient near goal
+    #   2 = acos(|q·q_goal|)       - Geodesic angle (radians), true rotation distance [RECOMMENDED]
+    #   3 = 0.5*acos(|q·q_goal|)²  - Quadratic geodesic, strong near goal but may over-penalize large errors
+    ang_cost_func_type: int = 2  # Default to geodesic angle (type 2) for balanced behavior
     use_raw_control_cost: bool = True
     consider_vector_in_tvlqr: int = 0
+
+    # Hessian computation mode:
+    #   False (0): Gauss-Newton approximation - always PSD, numerically stable
+    #   True (1):  Full Newton - includes second derivative terms (dphi*ddphi for angle,
+    #              smoothstep*smoothstep'' for stiction), may be indefinite but can
+    #              converge faster when the problem is well-behaved
+    use_full_cost_hessian: bool = False
 
     def to_tuple(self, tracking_formulation: int | None = None) -> Tuple[float, ...]:
         """Convert to tuple for C++ interface.
@@ -228,7 +239,8 @@ class CostWeights:
             return base + (int(self.consider_vector_in_tvlqr), int(self.use_raw_control_cost), int(tracking_formulation))
 
         # Main/second pass cost settings format - C++ expects int
-        return base + (int(self.ang_cost_func_type), int(self.use_raw_control_cost))
+        # Format: (9 cost weights, ang_cost_func_type, use_raw_control_cost, use_full_cost_hessian)
+        return base + (int(self.ang_cost_func_type), int(self.use_raw_control_cost), int(self.use_full_cost_hessian))
 
 @dataclass
 class InitTrajConfig:

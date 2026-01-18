@@ -82,7 +82,7 @@ add_library(sat_nopy STATIC
 set_target_properties(sat_nopy PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 add_executable(tp_test
-			   src/planner/main.cpp
+			   src/planner/tp_test.cpp
 			   )
 set_target_properties(tp_test PROPERTIES POSITION_INDEPENDENT_CODE ON)
 

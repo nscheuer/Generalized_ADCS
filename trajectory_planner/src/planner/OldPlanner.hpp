@@ -105,6 +105,7 @@ private:
   double ang_av_weight_N;
   int whichAngCostFunc;
   int useRawControlCost;
+  int useFullCostHess;
 
   double angle_weight2;
   double angvel_weight2;
@@ -118,6 +119,7 @@ private:
   double ang_av_weight_N2;
   int whichAngCostFunc2;
   int useRawControlCost2;
+  int useFullCostHess2;
 
   double angle_weight_tvlqr;
   double angvel_weight_tvlqr;
