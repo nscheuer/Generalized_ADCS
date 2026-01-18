@@ -174,7 +174,7 @@ def generate_mc_config(run_id: int) -> Dict[str, Any]:
     return {
         "run_id": run_id,
         "seed": run_id,
-        "tf": 4000,
+        "tf": 1000,
         "dt": 2,
         "radius_km": 7000.0,  # circular orbit radius; each core gets a different random position/plane
         "w0": normalize(rng.standard_normal(3)) * (rng.uniform(0.1, 1.0) * np.pi / 180.0),
@@ -198,7 +198,7 @@ if __name__ == "__main__":
         full_results = runner.run()
 
         print(f"\n--- Monte Carlo Complete: Generated {len(full_results)} histories ---")
-        save_data("3MTQ+1RW_Lovera_mc_100_4000s", full_results, out_dir=OUTPUT_DIR)
+        save_data("3MTQ+1RW_Lovera_mc_100_1000s", full_results, out_dir=OUTPUT_DIR)
 
         plot_target_tracking_mc(full_results=full_results, title="3 MTQ + 1 RW Lovera MC:100")
         plot_convergence_histogram_mc(full_results=full_results, title="3 MTQ + 1 RW Lovera")

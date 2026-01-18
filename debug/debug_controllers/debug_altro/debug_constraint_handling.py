@@ -13,7 +13,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 
-sys.path.append(os.path.abspath(os.path.join(__file__, "../..")))
+sys.path.append(os.path.abspath(os.path.join(__file__, "../../../..")))
 
 from ADCS.CONOPS.goals import ECI_Goal, No_Goal
 from ADCS.CONOPS.goallist import GoalList

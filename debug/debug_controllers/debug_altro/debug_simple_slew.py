@@ -15,7 +15,7 @@ import sys
 import os
 import numpy as np
 
-sys.path.append(os.path.abspath(os.path.join(__file__, "../..")))
+sys.path.append(os.path.abspath(os.path.join(__file__, "../../../..")))
 
 from ADCS.CONOPS.goals import ECI_Goal
 from ADCS.CONOPS.goallist import GoalList

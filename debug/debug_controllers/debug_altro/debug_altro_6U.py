@@ -4,11 +4,14 @@ import numpy as np
 from scipy.integrate import solve_ivp
 from typing import List, Union
 from tqdm import tqdm
+import matplotlib.pyplot as plt
 import pytest
 
-sys.path.append(os.path.abspath(os.path.join(__file__, "../..")))
-from ADCS.CONOPS.goals import Goal, ECI_Goal, Coordinate_Goal
-from ADCS.controller import MTQ_w_RW_QPG
+sys.path.append(os.path.abspath(os.path.join(__file__, "../../../..")))
+from ADCS.CONOPS.goals import Goal, ECI_Goal, Coordinate_Goal, No_Goal
+from ADCS.CONOPS.goallist import GoalList
+from ADCS.controller.plan_and_track_lqr import Plan_and_Track_LQR
+from ADCS.controller.helpers import PlannerSettings, Trajectory
 from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.orbit import Orbit
 from ADCS.orbits.orbital_state import Orbital_State
@@ -26,33 +29,31 @@ from ADCS.helpers.plotting.plot_controller import plot_control, plot_rw_momentum
 from ADCS.helpers.plotting.animate_orbit import animate_orbit
 from ADCS.helpers.plotting.animate_orbit_pyvista import animate_orbit_pyvista
 
-def test_MTQ_w_RW_QPG_align(verbose: bool = False, tf: float = 1000, dt: float = 10, real_orbit: bool = False) -> Union[np.ndarray, np.ndarray, List[Orbital_State], np.ndarray, np.ndarray, np.ndarray]:
+def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orbit: bool = False) -> Union[np.ndarray, np.ndarray, List[Orbital_State], np.ndarray, np.ndarray, np.ndarray]:
     np.random.seed(1)
     t0 = 0
     N = int((tf-t0)/dt)
 
-    mtq_max_torque = 0.4
+    mtq_max_torque = 5.0
     mtqs = [MTQ(axis=j, max_torque=mtq_max_torque) for j in MathConstants.unitvecs]
 
-    rw_max_torque = 7*0.001
-    rw_J = 0.001
-    rw_h0 = 5*0.001
-    rw_hmax = 16.2*0.001
+    rw_max_torque = 0.005
+    rw_J = 0.0014
+    rw_h0 = 0
+    rw_hmax = 0.015
     rws = [RW(axis=j, max_torque=rw_max_torque, J=rw_J, h=rw_h0, h_max=rw_hmax) for j in MathConstants.unitvecs]
-    rws.pop()
-    rws.pop()
 
-    acts = mtqs+rws
+    acts = rws
 
     mtms = [MTM(axis=j) for j in MathConstants.unitvecs]
 
-    real_sat = Satellite(mass=1.2, J_0=np.diagflat([0.022, 0.022, 0.004]), actuators=acts, sensors=mtms, boresight=np.array([0, 0, 1]))
+    real_sat = Satellite(mass=10.165, J_0=np.diagflat([0.0969,0.1235,0.1918]), actuators=acts, sensors=mtms, boresight=np.array([0, 0, 1]))
 
     w0 = random_n_unit_vec(3)*np.random.uniform(1, 2)*np.pi/180.0
-    w0 = np.array([0, 0, 0])
+    w0 = np.array([0.001, 0.002, -0.001])
     q0 = random_n_unit_vec(4)
     q0 = normalize(np.array([1, 0, 0, 0]))
-    h0 = np.array([rw_h0])
+    h0 = np.array([rw_h0, rw_h0, rw_h0])
     x = np.concatenate([w0, q0, h0])
 
     ephem = Ephemeris()
@@ -73,9 +74,9 @@ def test_MTQ_w_RW_QPG_align(verbose: bool = False, tf: float = 1000, dt: float =
             orbs[j].J2000 = os0.J2000 + j*dt*TimeConstants.sec2cent
         orb = Orbit(orbs)
 
-    # Controller
-    GAMMA = 0.1
-    controller = MTQ_w_RW_QPG(est_sat=real_sat, p_gain=0.00005, d_gain=0.001, gamma=GAMMA, c_gain=0.001, h_target=np.array([0.0, 0.0, 0.0]))
+    # Build Planner
+    planner_settings = PlannerSettings(est_sat=real_sat, bdot_on=1)
+    controller = Plan_and_Track_LQR(est_sat=real_sat, planner_settings=planner_settings)
 
     time_hist = np.nan*np.zeros(N)
     state_hist = np.nan*np.zeros((N, len(x)))
@@ -88,15 +89,36 @@ def test_MTQ_w_RW_QPG_align(verbose: bool = False, tf: float = 1000, dt: float =
     ind = 0
     steps = int((tf - t0)/dt)
 
-    # goal = ECI_Goal(np.array([1, 0, 0]))
-    goal = Coordinate_Goal(lat=9, lon=-70, alt=0)
+    # goals = GoalList({0.22: No_Goal()})
+    goals = GoalList({0.22: ECI_Goal(np.array([1, 1, 1]))})
 
-    for step in tqdm(range(steps), desc="Simulating MTQ_w_RW"):
+    print("Computing Trajectory (One-Shot)")
+    traj: Trajectory = controller.calculate_trajectory(
+        t_start=0.22,
+        duration=tf-t0,
+        x_0=x,
+        os_0=os0,
+        goals=goals,
+        verbose=True
+    )
+    # traj.plot_eci_trajectory()
+    controller.set_active_trajectory(traj)
+    time_hist_traj = traj.times*TimeConstants.cent2sec
+    state_hist_traj = traj.states.T
+    u_hist_traj = traj.controls.T
+
+    plot_state_comparison(time=time_hist_traj, state_hist=state_hist_traj)
+    plot_control(time=time_hist_traj, u_hist=u_hist_traj)
+    #plot_rw_momentum(time=time_hist_traj, state_hist=state_hist_traj)
+    create_close_all_button_window()
+    plt.close()
+
+    for step in tqdm(range(steps), desc="Simulating ALTRO"):
         J2000 = 0.22 + t*TimeConstants.sec2cent
         os = orb.get_os(J2000=J2000)
 
         sens = real_sat.sensor_readings(x=x, os=os)
-        u = controller.find_u(x_hat=x, sens=sens, est_sat=real_sat, os_hat=os, goal=goal)
+        u = controller.find_u(x_hat=x, sens=sens, est_sat=real_sat, os_hat=os)
 
         if verbose:
             print("u: ", u)
@@ -106,7 +128,10 @@ def test_MTQ_w_RW_QPG_align(verbose: bool = False, tf: float = 1000, dt: float =
         os_hist += [os]
         sensor_hist[ind,:] = sens
         u_hist[ind,:] = u
-        eci_goal, w_goal = goal.to_ref(os0=os)
+        
+        # Updated reference logging: Query GoalList for the reference at this time
+        # Note: to_ref now returns (eci, omega), we take [0] for the ECI vector
+        eci_goal, w_goal = goals.to_ref(t=J2000, os0=os)
         boresight_hist[ind, :] = eci_goal
 
         ind += 1
@@ -121,18 +146,19 @@ def test_MTQ_w_RW_QPG_align(verbose: bool = False, tf: float = 1000, dt: float =
     return time_hist, state_hist, os_hist, sensor_hist, u_hist, boresight_hist
 
 
-def plot_MTQ_w_RW_QPG_align(verbose: bool = False, tf: float = 1000, dt: float = 10, real_orbit: bool = False) -> None:
-    (time_hist, state_hist, os_hist, sensor_hist, u_hist, boresight_hist) = test_MTQ_w_RW_QPG_align(verbose=verbose, tf=tf, dt=dt, real_orbit=real_orbit)
+def plot_mtq_w_rw_align_to_eci(verbose: bool = False, tf: float = 1000, dt: float = 10, real_orbit: bool = False) -> None:
+    (time_hist, state_hist, os_hist, sensor_hist, u_hist, boresight_hist) = debug_altro(verbose=verbose, tf=tf, dt=dt, real_orbit=real_orbit)
 
-    animate_attitude(time=time_hist, state_hist=state_hist, os_hist=os_hist, boresight_goal_hist=boresight_hist)
-    plot_control(time=time_hist, u_hist=u_hist)
+    # animate_attitude(time=time_hist, state_hist=state_hist, os_hist=os_hist, boresight_goal_hist=boresight_hist)
     plot_state_comparison(time=time_hist, state_hist=state_hist)
+    plot_control(time=time_hist, u_hist=u_hist)
     plot_rw_momentum(time=time_hist, state_hist=state_hist)
-    goal = Coordinate_Goal(lat=9, lon=-70, alt=0)
-    #animate_orbit_pyvista(time_hist=time_hist, state_hist=state_hist, os_hist=os_hist, boresight_goal_hist=boresight_hist, coord_goal=goal)
-    plot_target_tracking(state_hist=state_hist, boresight_hist=boresight_hist, body_boresight=np.array([0, 0, 1]))
+    # goal = Coordinate_Goal(lat=38.7223, lon=-10, alt=0)
+    # animate_orbit_pyvista(time_hist=time_hist, state_hist=state_hist, os_hist=os_hist, boresight_goal_hist=boresight_hist, coord_goal=goal)
+    # plot_target_tracking(state_hist=state_hist, boresight_hist=boresight_hist, body_boresight=np.array([0, 0, 1]))
     #animate_orbit(time_hist=time_hist, state_hist=state_hist, os_hist=os_hist, boresight_goal_hist=boresight_hist, coord_goal=goal)
     create_close_all_button_window()
+    print("Yay!")
 
 if __name__ == "__main__":
-    plot_MTQ_w_RW_QPG_align(verbose=False, tf = 500, dt = 2, real_orbit=True)
+    plot_mtq_w_rw_align_to_eci(verbose=False, tf = 100, dt = 1, real_orbit=True)

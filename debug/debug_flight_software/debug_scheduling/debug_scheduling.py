@@ -1,6 +1,6 @@
 import sys
 import os
-sys.path.append(os.path.abspath(os.path.join(__file__, "../..")))
+sys.path.append(os.path.abspath(os.path.join(__file__, "../../../..")))
 from ADCS.flight_software.single_core.ttc_single_core import TTC_Single_Core
 from ADCS.flight_software.tasks.task import Task
 

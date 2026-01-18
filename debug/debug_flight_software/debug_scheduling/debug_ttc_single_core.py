@@ -6,7 +6,7 @@ from scipy.linalg import block_diag
 from scipy.integrate import solve_ivp
 from tqdm import tqdm
 
-sys.path.append(os.path.abspath(os.path.join(__file__, "../..")))
+sys.path.append(os.path.abspath(os.path.join(__file__, "../../../..")))
 from ADCS.controller import MTQ_w_RW, BDot
 from ADCS.estimators.attitude_estimators.attitude_SRUAKF import SRUAKF
 from ADCS.orbits.orbit import Orbit

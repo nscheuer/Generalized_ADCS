@@ -15,7 +15,7 @@ import time
 from tqdm import tqdm
 
 # === Import project modules ===
-sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))
+sys.path.append(os.path.abspath(os.path.join(__file__, "../../../..")))
 from ADCS.satellite_hardware.satellite.satellite import Satellite
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
 from ADCS.satellite_hardware.actuators import Actuator, RW, MTQ, Noise, Bias

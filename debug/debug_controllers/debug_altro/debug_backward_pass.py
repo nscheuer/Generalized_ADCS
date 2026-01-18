@@ -1,14 +1,12 @@
 """
-Debug the critical early iterations where oscillation emerges.
-
-Focus on iterations 0-15 to understand why the algorithm converges TO oscillation.
+Debug the backward pass to understand why the costate pk oscillates.
 """
 
 import sys
 import os
 import numpy as np
 
-sys.path.append(os.path.abspath(os.path.join(__file__, "../..")))
+sys.path.append(os.path.abspath(os.path.join(__file__, "../../../..")))
 
 from ADCS.CONOPS.goals import ECI_Goal, No_Goal
 from ADCS.CONOPS.goallist import GoalList
@@ -50,11 +48,9 @@ def setup_and_prepare():
     )
 
     planner_settings = PlannerSettings(est_sat=real_sat, bdot_on=0, dt_tp=1.0)
-    planner_settings.verbosity = False
-    planner_settings.rw_control_weight = 1e0
-    planner_settings.cost_main.ang_vel = 0
-    planner_settings.cost_main.use_raw_control_cost = True
-    planner_settings.pass1.aug_lag.penalty_init = 1e2
+    planner_settings.verbosity = False  # Less C++ noise
+    # Only disable stiction cost (non-convex Hessian) - use all other defaults
+    planner_settings.rw_stic_weight = 0
 
     csat = build_cpp_satellite(est_sat=real_sat, planner_settings=planner_settings)
 
@@ -95,7 +91,17 @@ def setup_and_prepare():
         return np.ascontiguousarray(x)
 
     R, V, B, S, Rho = [np.asarray(d) for d in orbit_data]
-    goals = GoalList({0.22: No_Goal(), 0.22+3*TimeConstants.sec2cent: ECI_Goal(np.array([1,1,1]))})
+
+    # Test both goal configurations
+    return planner, planner_settings, real_sat, sim_orbit, times, to_mat, to_vec, R, V, B, S, Rho, x0, N, t_start, t_end, dt, rw_max_torque
+
+
+def run_with_goals(planner, planner_settings, real_sat, sim_orbit, times, to_mat, to_vec,
+                   R, V, B, S, Rho, x0, N, t_start, t_end, dt, rw_max, goals, label):
+    """Run backward pass with given goals and analyze."""
+    print("\n" + "=" * 70)
+    print(f"TESTING: {label}")
+    print("=" * 70)
 
     E = np.zeros((3, N), dtype=np.float64, order="F")
     A = np.zeros((3, N), dtype=np.float64, order="F")
@@ -107,37 +113,37 @@ def setup_and_prepare():
     vecsPy = (np.ascontiguousarray(times), to_mat(R), to_mat(V), to_mat(B), to_mat(S),
               A, E, np.zeros(N, dtype=np.float64), to_vec(Rho))
 
-    return planner, planner_settings, vecsPy, x0, N, t_start, t_end, dt, rw_max_torque
-
-
-def analyze_early_iterations():
-    """Analyze iterations 0-15 in detail."""
-    print("=" * 70)
-    print("EARLY ITERATION ANALYSIS")
-    print("=" * 70)
-
-    planner, settings, vecsPy, x0, N, t_start, t_end, dt, rw_max = setup_and_prepare()
     x0_clean = np.copy(x0.astype(np.float64).flatten(), order='C')
     u_limit = 0.75 * rw_max
 
-    print(f"\nControl limit: {u_limit} Nm")
+    # Check the E vector
+    print(f"\nGoal vector E (first 15 timesteps):")
+    print(f"  E[0,:15] = {E[0,:15]}")
+    print(f"  E[1,:15] = {E[1,:15]}")
+    print(f"  E[2,:15] = {E[2,:15]}")
+
+    # Check for transitions
+    e_norm = np.linalg.norm(E, axis=0)
+    transitions = np.where(np.abs(np.diff(e_norm)) > 0.1)[0]
+    if len(transitions) > 0:
+        print(f"  Goal transitions at timesteps: {transitions}")
+    else:
+        print(f"  No goal transitions detected")
 
     # Get initial trajectory
-    print("\nGenerating initial trajectory...")
+    print("\nPreparing trajectory...")
     (traj, vecs_dt, costSettings) = planner.prepareForAlilqr(
-        vecsPy, settings.dt_tp, t_start, t_end, x0_clean, 0
+        vecsPy, planner_settings.dt_tp, t_start, t_end, x0_clean, 0
     )
 
     # Get settings
-    auglagSettings = settings.pass1.aug_lag.to_tuple()
-    regSettings = settings.pass1.regularization.to_tuple()
-    lineSearchSettings = settings.pass1.line_search.to_tuple()
+    auglagSettings = planner_settings.pass1.aug_lag.to_tuple()
+    regSettings = planner_settings.pass1.regularization.to_tuple()
 
-    # Initialize
+    # Initialize auglag
     (Xset, Uset, _, _) = traj
     num_timesteps = Uset.shape[1]
 
-    # Probe constraint count
     test_auglag = (np.zeros((20, num_timesteps), order='F'), 1.0,
                    np.ones((20, num_timesteps), order='F'))
     (clist_test, _) = planner.maxViol(traj, vecs_dt, test_auglag)
@@ -150,94 +156,88 @@ def analyze_early_iterations():
     auglag_vals = (lambdas, mu, muk)
     regs = (regSettings[0], regSettings[0])
 
-    def analyze_controls(Uset, label=""):
-        """Analyze control pattern."""
-        results = []
-        for ch in range(min(3, Uset.shape[0])):
-            u = Uset[ch, :]
-            sc = np.sum(np.diff(np.sign(u)) != 0)
-            signs = np.sign(u)
-            ro = sum(1 for i in range(len(signs)-2) if signs[i] != signs[i+1] and signs[i+1] != signs[i+2])
-            at_limit = np.sum(np.abs(u) > 0.95 * u_limit)
-            results.append({'ch': ch, 'sc': sc, 'ro': ro, 'at_limit': at_limit,
-                           'min': u.min(), 'max': u.max()})
-        return results
+    print(f"\nInitial state:")
+    print(f"  Uset shape: {Uset.shape}")
+    print(f"  Control range: [{Uset.min():.2e}, {Uset.max():.2e}]")
+    print(f"  Regularization: {regs}")
+    print(f"  Penalty mu: {mu}")
 
-    # Print initial state
+    # Run backward pass with verbose output
     print("\n" + "-" * 60)
-    print("ITERATION 0 (Initial)")
+    print("BACKWARD PASS (C++ verbose output follows)")
     print("-" * 60)
-    (Xset, Uset, _, _) = traj
-    cost = planner.cost2Func(traj, vecs_dt, auglag_vals, costSettings)
-    (clist, cmax) = planner.maxViol(traj, vecs_dt, auglag_vals)
-    print(f"Cost: {cost:.4e}, cmax: {cmax:.4e}")
 
-    analysis = analyze_controls(Uset)
-    for r in analysis:
-        print(f"  u[{r['ch']}]: range=[{r['min']:.4e}, {r['max']:.4e}], "
-              f"sign_changes={r['sc']}, rapid_osc={r['ro']}, at_limit={r['at_limit']}")
+    (bp_results, new_regs) = planner.backwardPass(
+        dt, traj, vecs_dt, auglag_vals, regs, costSettings, regSettings, False
+    )
 
-    # Show first 10 control values for channel 0
-    print(f"\n  First 10 u[0] values:")
-    print(f"    {Uset[0, :10]}")
+    (Kset, dset, Sset) = bp_results
 
-    # Run iterations and track evolution
-    print("\n" + "=" * 70)
-    print("ITERATION-BY-ITERATION TRACKING")
-    print("=" * 70)
+    print("\n" + "-" * 60)
+    print("FEEDFORWARD TERM d ANALYSIS")
+    print("-" * 60)
 
-    for iter_num in range(20):
-        # Backward pass
-        (bp_results, regs) = planner.backwardPass(
-            dt, traj, vecs_dt, auglag_vals, regs, costSettings, regSettings, False
-        )
+    # Analyze d
+    print(f"\ndset shape: {dset.shape}")
+    print(f"New regularization: {new_regs}")
 
-        # Forward pass
-        (traj_new, newLA, regs) = planner.forwardPass(
-            dt, traj, vecs_dt, auglag_vals, bp_results, regs,
-            costSettings, regSettings, lineSearchSettings, False
-        )
+    for ch in range(min(3, dset.shape[0])):
+        d = dset[ch, :]
+        sign_changes = np.sum(np.diff(np.sign(d)) != 0)
+        print(f"\n  d[{ch}]: min={d.min():.4e}, max={d.max():.4e}, sign_changes={sign_changes}/{len(d)-1}")
 
-        traj = traj_new
-        (Xset, Uset, _, _) = traj
-        (clist, cmax) = planner.maxViol(traj, vecs_dt, auglag_vals)
+    # Show first 20 d values
+    print(f"\nFirst 20 timesteps of d:")
+    print(f"  k  |    d[0]    |    d[1]    |    d[2]    | signs")
+    print("-" * 60)
+    for k in range(min(20, dset.shape[1])):
+        d0, d1, d2 = dset[0,k], dset[1,k], dset[2,k]
+        signs = f"{'+'if d0>0 else '-'}{'+'if d1>0 else '-'}{'+'if d2>0 else '-'}"
+        print(f"  {k:2d} | {d0:10.4e} | {d1:10.4e} | {d2:10.4e} | {signs}")
 
-        analysis = analyze_controls(Uset)
-
-        # Print summary
-        sc_total = sum(r['sc'] for r in analysis)
-        ro_total = sum(r['ro'] for r in analysis)
-        at_limit_total = sum(r['at_limit'] for r in analysis)
-        u_max_all = max(abs(r['max']) for r in analysis)
-        u_min_all = min(r['min'] for r in analysis)
-
-        exceeded = "EXCEEDS!" if u_max_all > u_limit or abs(u_min_all) > u_limit else ""
-
-        print(f"Iter {iter_num+1:2d}: cost={newLA:.4e}, cmax={cmax:.4e}, "
-              f"sc={sc_total}, ro={ro_total}, at_lim={at_limit_total}, "
-              f"u_range=[{u_min_all:.4e}, {u_max_all:.4e}] {exceeded}")
-
-        # Detailed output for key iterations
-        if iter_num in [0, 4, 9, 14, 19]:
-            print(f"         First 10 u[0]: {Uset[0, :10]}")
-
-        # Check for constraint activity changes
-        active = clist > 0
-        active_count = [np.sum(active[c, :]) for c in range(min(6, num_c))]
-        if any(ac > 0 for ac in active_count):
-            print(f"         Active constraints: {active_count[:6]}")
-
-    # Final state
-    print("\n" + "=" * 70)
-    print("AFTER 20 INNER ITERATIONS")
-    print("=" * 70)
-
-    (Xset, Uset, _, _) = traj
+    # Count rapid oscillations in d
+    total_rapid_osc = 0
     for ch in range(3):
-        u = Uset[ch, :]
-        print(f"\nu[{ch}] full trajectory:")
-        print(f"  {u}")
+        signs = np.sign(dset[ch, :])
+        for i in range(len(signs) - 2):
+            if signs[i] != signs[i+1] and signs[i+1] != signs[i+2]:
+                total_rapid_osc += 1
+
+    print(f"\nTotal rapid oscillations in d: {total_rapid_osc}")
+
+    return dset
+
+
+def main():
+    print("=" * 70)
+    print("BACKWARD PASS OSCILLATION ANALYSIS")
+    print("=" * 70)
+
+    setup = setup_and_prepare()
+    planner, planner_settings, real_sat, sim_orbit, times, to_mat, to_vec, R, V, B, S, Rho, x0, N, t_start, t_end, dt, rw_max = setup
+
+    # Test 1: Original goal setup (No_Goal -> ECI_Goal transition)
+    goals1 = GoalList({0.22: No_Goal(), 0.22+3*TimeConstants.sec2cent: ECI_Goal(np.array([1,1,1]))})
+    d1 = run_with_goals(planner, planner_settings, real_sat, sim_orbit, times, to_mat, to_vec,
+                        R, V, B, S, Rho, x0, N, t_start, t_end, dt, rw_max,
+                        goals1, "No_Goal -> ECI_Goal transition")
+
+    # Test 2: Simple ECI_Goal from start
+    goals2 = GoalList({0.22: ECI_Goal(np.array([1,1,1]))})
+    d2 = run_with_goals(planner, planner_settings, real_sat, sim_orbit, times, to_mat, to_vec,
+                        R, V, B, S, Rho, x0, N, t_start, t_end, dt, rw_max,
+                        goals2, "ECI_Goal from start (no transition)")
+
+    # Compare
+    print("\n" + "=" * 70)
+    print("COMPARISON")
+    print("=" * 70)
+
+    for ch in range(3):
+        sc1 = np.sum(np.diff(np.sign(d1[ch, :])) != 0)
+        sc2 = np.sum(np.diff(np.sign(d2[ch, :])) != 0)
+        print(f"d[{ch}] sign changes: with_transition={sc1}, no_transition={sc2}")
 
 
 if __name__ == "__main__":
-    analyze_early_iterations()
+    main()
