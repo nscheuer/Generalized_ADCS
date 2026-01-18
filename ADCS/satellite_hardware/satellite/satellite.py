@@ -418,13 +418,17 @@ class Satellite:
     
 
     def dist_torques(self, x: np.ndarray, os: Orbital_State, dmode: DisturbanceMode = None) -> np.ndarray:
-        dist_list = []
+        torque_total = np.zeros(3)
+
         for j in self.disturbances:
             if 'sat' in j.torque.__code__.co_varnames:
-                dist_list.append(j.torque(sat=self, x=x, os=os))
+                t = j.torque(sat=self, x=x, os=os)
             else:
-                dist_list.append(j.torque(x=x, os=os))
-        return sum(dist_list,np.zeros(3))
+                t = j.torque(x=x, os=os)
+
+            torque_total += np.asarray(t).reshape(3,)
+
+        return torque_total
     
     def act_torque(self, x: np.ndarray, u: np.ndarray, os: Orbital_State, dmode: DisturbanceMode = None) -> np.ndarray:
         act_list = [self.actuators[j].torque(u[j], x, os=os, dmode=dmode) for j in range(len(self.actuators))]

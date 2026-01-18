@@ -397,7 +397,9 @@ class MTQ_w_RW_LP(Controller):
 
             tau_des = tau_pd + tau_gyro
             
-            b_body = np.asarray(self.M_mtm_read @ sens, float).reshape(3,)
+            sens_clean = sens.copy()
+            sens_clean[np.isnan(sens_clean)] = 0.0
+            b_body = np.asarray(self.M_mtm_read @ sens_clean, float).reshape(3,)
 
             u_rw_cmd, u_mtq_cmd, alpha = self.allocate_max_torque_in_direction(
                 tau_des, b_body, est_sat

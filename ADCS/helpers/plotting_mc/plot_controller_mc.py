@@ -30,8 +30,6 @@ def _rot_mat_vec(q: np.ndarray) -> np.ndarray:
     
     return R
     
-    
-
 def plot_h_tracking_mc(
     full_results: List[Dict[str, Any]],
     body_boresight: np.ndarray = np.array([0, 0, 1]),

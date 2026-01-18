@@ -28,6 +28,7 @@ python-dateutil==2.9.0.post0
 pytz==2025.2
 pyvista==0.46.4
 PyYAML==6.0.3
+rich==14.2.0
 scipy==1.15.3
 sgp4==2.25
 six==1.17.0
