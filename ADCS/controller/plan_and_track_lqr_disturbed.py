@@ -1,16 +1,16 @@
 """
-Plan and Track LQR Controller with Disturbance Estimation.
+Plan and Track LQR Controller with Disturbance Compensation.
 
 This module implements a trajectory-following controller that uses the ALTRO
-trajectory planner with findKwDist for integrated disturbance estimation.
-The controller maintains an internal disturbance estimate that is updated
-each timestep and used in the TVLQR feedback law.
+trajectory planner with findKwDist for integrated disturbance compensation.
+The controller pulls disturbance torque estimates from the EstimatedSatellite's
+disturbance models and uses them in the TVLQR feedback law.
 
 The disturbance dynamics model assumes constant disturbance (d_dot = 0),
 which is integrated into the LQR formulation via the C matrix in findKwDist.
-This allows the controller to adapt to unknown constant torque disturbances
-such as residual magnetic dipole, solar radiation pressure, or unmodeled
-reaction wheel friction.
+This allows the controller to compensate for modeled disturbance torques
+such as residual magnetic dipole, solar radiation pressure, gravity gradient,
+and aerodynamic drag.
 """
 from __future__ import annotations
 
@@ -29,48 +29,41 @@ from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatel
 
 class Plan_and_Track_LQR_Disturbed(PlanAndTrackBase):
     """
-    Trajectory-following controller using ALTRO planning and TVLQR with disturbance estimation.
+    Trajectory-following controller using ALTRO planning and TVLQR with disturbance compensation.
 
     This controller uses findKwDist (tracking_LQR_formulation=2) to compute
-    gains that include disturbance compensation. The augmented state includes
-    a 3D disturbance torque estimate that is updated based on control error.
+    gains that include disturbance compensation. The disturbance torque is
+    obtained from the EstimatedSatellite's disturbance models (e.g., SRP,
+    drag, gravity gradient, residual dipole).
 
     The disturbance dynamics model assumes constant disturbance:
         d_dot = 0
     which is integrated into the LQR formulation via the C matrix.
 
     Attributes:
-        est_sat: Estimated satellite model
+        est_sat: Estimated satellite model with disturbance models
         planner_settings: Configuration for the trajectory planner
         csat: C++ satellite model for the planner
         planner: C++ ALTRO planner instance
         active_trajectory: Currently active trajectory for tracking
-        dist_estimate: Current disturbance torque estimate (3D vector)
-        dist_gain: Gain for updating disturbance estimate from tracking error
     """
-
-    dist_estimate: NDArray[np.float64]
-    dist_gain: float
 
     def __init__(
         self,
         est_sat: EstimatedSatellite,
-        planner_settings: PlannerSettings,
-        dist_gain: float = 0.1
+        planner_settings: PlannerSettings
     ) -> None:
         """
-        Initialize the Plan and Track LQR controller with disturbance estimation.
+        Initialize the Plan and Track LQR controller with disturbance compensation.
 
         Args:
-            est_sat: Estimated satellite model with actuators and sensors
+            est_sat: Estimated satellite model with actuators, sensors, and
+                disturbance models. The disturbance torque will be computed
+                from est_sat.dist_torques() at each control step.
             planner_settings: Configuration for the ALTRO trajectory planner
-            dist_gain: Gain for updating disturbance estimate from tracking error.
-                Higher values adapt faster but may be noisier. Default: 0.1
         """
         # tracking_lqr_formulation=2 is KwDist formulation with disturbance estimation
         self._init_planner(est_sat, planner_settings, tracking_lqr_formulation=2)
-        self.dist_estimate = np.zeros(3)
-        self.dist_gain = dist_gain
 
     def find_u(
         self,
@@ -79,21 +72,27 @@ class Plan_and_Track_LQR_Disturbed(PlanAndTrackBase):
         est_sat: EstimatedSatellite,
         os_hat: Orbital_State,
         goal_vector_eci: Optional[NDArray[np.float64]] = None,
-        w_ref: Optional[NDArray[np.float64]] = None
+        w_ref: Optional[NDArray[np.float64]] = None,
+        clip: bool = True
     ) -> NDArray[np.float64]:
         """
         Compute control using TVLQR tracking with disturbance compensation.
 
+        The disturbance torque is computed from the EstimatedSatellite's
+        disturbance models (SRP, drag, gravity gradient, residual dipole, etc.)
+        and fed into the KwDist feedback law.
+
         Args:
             x_hat: Estimated state [omega(3), q(4), h(n_rw)]
             sens: Sensor measurements (unused in this controller)
-            est_sat: Estimated satellite model
+            est_sat: Estimated satellite model with disturbance models
             os_hat: Current orbital state estimate
             goal_vector_eci: Goal direction in ECI (optional, unused)
             w_ref: Reference angular velocity (optional, unused)
+            clip: If True, clip control to hardware actuator limits. Default True.
 
         Returns:
-            Control vector clipped to actuator limits
+            Control vector (clipped to hardware limits if clip=True)
         """
         current_time = os_hat.J2000
 
@@ -106,24 +105,16 @@ class Plan_and_Track_LQR_Disturbed(PlanAndTrackBase):
                 f"Current: {current_time}, Traj: [{self.active_trajectory.start_time}, {self.active_trajectory.end_time}]"
             )
 
+        # Get disturbance torque estimate from the satellite's disturbance models
+        dist_torque = est_sat.dist_torques(x=x_hat, os=os_hat)
+
         # Update disturbance estimate in trajectory before computing control
-        self.active_trajectory.update_disturbance_estimate(self.dist_estimate)
+        self.active_trajectory.update_disturbance_estimate(dist_torque)
 
         # Compute control with disturbance compensation
         u = self.active_trajectory.compute_tracking_control(current_time, x_hat)
 
-        # Update disturbance estimate based on tracking error
-        # Simple integrator: dist += gain * (w_actual - w_expected)
-        # This assumes the disturbance manifests as angular velocity error
-        x_ref = self.active_trajectory.get_state_at(current_time)
-        w_error = x_hat[0:3] - x_ref[0:3]
-        self.dist_estimate += self.dist_gain * w_error * self.planner_settings.dt_tvlqr
-
-        return np.clip(u, -self.planner_settings.umax, self.planner_settings.umax)
-
-    def reset_disturbance_estimate(self) -> None:
-        """Reset the disturbance estimate to zero."""
-        self.dist_estimate = np.zeros(3)
+        return self.clip_control(u, clip=clip)
 
     def calculate_trajectory(
         self,
