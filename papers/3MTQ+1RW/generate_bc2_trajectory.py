@@ -73,7 +73,7 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
     run_id = config["run_id"]
 
     try:
-        tf = config.get("tf", 4000)
+        tf = config.get("tf", 1000)
         dt = config.get("dt", 2)
         dt_planning = config.get("dt_planning", 1)
         t0 = 0
@@ -288,7 +288,7 @@ def generate_mc_config(run_id: int) -> Dict[str, Any]:
     """Generate randomized configuration for a single MC run.
 
     Matches the BC2 LP MC initial conditions:
-    - tf: 4000s
+    - tf: 1000s
     - dt: 2s
     - w0: random direction, magnitude 0.1-1.0 deg/s
     - q0: random quaternion
@@ -300,7 +300,7 @@ def generate_mc_config(run_id: int) -> Dict[str, Any]:
     return {
         "run_id": run_id,
         "seed": run_id,
-        "tf": 4000,
+        "tf": 1000,
         "dt": 2,
         "dt_planning": 1,
         "radius_km": 7000.0,
@@ -438,22 +438,22 @@ if __name__ == "__main__":
         runner = MonteCarloRunner(
             sim_func=run_single_sim,
             config_generator=generate_mc_config,
-            num_runs=100,
-            max_workers=12,
+            num_runs=1,
+            max_workers=1,
         )
         full_results = runner.run()
 
         print(f"\n--- Monte Carlo Complete: Generated {len(full_results)} histories ---")
 
         # Save results
-        save_data("3MTQ+1RW_trajectory_mc_100_4000s", full_results, out_dir=OUTPUT_DIR)
+        save_data("3MTQ+1RW_trajectory_mc_100_1000s", full_results, out_dir=OUTPUT_DIR)
 
         # Plot comparison
         plot_comparison(full_results)
         create_close_all_button_window()
     else:
         # Load existing results
-        results = load_data("papers/3MTQ+1RW/output_data/3MTQ+1RW_trajectory_mc_100_4000s")
+        results = load_data("papers/3MTQ+1RW/output_data/3MTQ+1RW_trajectory_mc_100_1000s")
         if isinstance(results, tuple):
             full_results = results[0]
         else:
