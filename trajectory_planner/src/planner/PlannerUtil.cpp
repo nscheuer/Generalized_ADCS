@@ -2157,10 +2157,14 @@ REG_PAIR increaseReg(REG_PAIR reg0, REG_SETTINGS_FORM regSettings_tmp){
 
     double drho = max(drho0*regScale_tmp,regScale_tmp);
     double rho = max(rho0*drho,regMin_tmp);
-    // if(rho0>=regMax_tmp){
-    //   drho = drho0;
-    // }
-    // rho = min(rho,regMax_tmp);
+
+    // Cap regularization at maximum to prevent overflow
+    // When rho hits max, stop increasing drho to avoid numerical issues
+    if(rho >= regMax_tmp){
+      rho = regMax_tmp;
+      drho = drho0;  // Don't keep increasing the scale factor
+    }
+
     if(isinf(rho)){
       cout<<"rho should not be inf (increase reg failure)\n";
       throw("rho should not be inf");
