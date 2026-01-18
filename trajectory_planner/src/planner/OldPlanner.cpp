@@ -1080,7 +1080,10 @@ tuple<cube, cube> OldPlanner::findKwDist(double dt_tvlqr0, TRAJECTORY_FORM traj,
     // Sk = lkxx + trans(Aqk)*Skp1*Aqk - trans(Aqk)*Skp1*Bqk*Kk;
     // Sk = lkxx + trans(Kk)*lkuu*Kk + solve((Aqk-Bqk*Kk), Skp1*(Aqk-Bqk*Kk));
     // Sk = trans(Kk)*lkuu*Kk + trans(Aqk-Bqk*Kk)*Skp1*(Aqk-Bqk*Kk);
-    Sk = lkxx + trans(Aqk)*Skp1*Aqk - trans(Aqk)*Skp1*Bqk*Kk;
+    // Create augmented cost matrix: embed lkxx in upper-left corner, zeros for disturbance states
+    mat lkxx_aug = mat(sat.reduced_state_N()+3, sat.reduced_state_N()+3).zeros();
+    lkxx_aug(span(0,sat.reduced_state_N()-1),span(0,sat.reduced_state_N()-1)) = lkxx;
+    Sk = lkxx_aug + trans(Aqk)*Skp1*Aqk - trans(Aqk)*Skp1*Bqk*Kk;
     // Sk(span(0,sat.reduced_state_N()-1),span(0,sat.reduced_state_N()-1)) += lkxx;
 
     Sk = 0.5*(Sk+trans(Sk));
