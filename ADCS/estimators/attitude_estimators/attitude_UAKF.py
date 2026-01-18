@@ -10,7 +10,6 @@ from ADCS.estimators.attitude_estimators.attitude_estimator import Attitude_Esti
 from ADCS.estimators.estimator_helpers.estimator_helpers import EstimatedArray
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
 from ADCS.satellite_hardware.disturbances import DisturbanceMode
-from ADCS.satellite_hardware.sensors import SunSensor, SunPair
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.universal_constants import CG5Coefficients
 from ADCS.helpers.math_helpers import (
@@ -119,6 +118,35 @@ class UAKF(Attitude_Estimator):
         use_control_cov = np.size(control_cov)>0 and not np.all(control_cov==0)
         use_int_cov = False
         return [use_state_cov, use_sens_cov, use_control_cov, use_int_cov]
+
+    # ------------------------------------------------------------------ #
+    # Sensor mask expansion
+    # ------------------------------------------------------------------ #
+    def _expand_sensor_mask(self, which_sensors: List[bool]) -> np.ndarray:
+        """Expand sensor-level mask to output-level mask.
+
+        Sensors may have output_length > 1 (e.g., StarTracker has output_length=3).
+        This method converts a per-sensor boolean mask to a per-output boolean mask.
+
+        Parameters
+        ----------
+        which_sensors : list of bool
+            Mask indicating which sensors are active (one bool per sensor).
+
+        Returns
+        -------
+        numpy.ndarray
+            Boolean mask with one element per sensor output dimension.
+        """
+        mask = []
+        for j, sensor in enumerate(self.est_sat.attitude_sensors):
+            output_len = sensor.output_length
+            mask.extend([which_sensors[j]] * output_len)
+        # Add RW sensors (each has output_length=1)
+        for k, rw in enumerate(self.est_sat.rw_actuators):
+            sensor_idx = len(self.est_sat.attitude_sensors) + k
+            mask.append(which_sensors[sensor_idx] if sensor_idx < len(which_sensors) else True)
+        return np.array(mask, dtype=bool)
 
     # ------------------------------------------------------------------ #
     # Sigma-point generation
@@ -450,13 +478,21 @@ class UAKF(Attitude_Estimator):
             quat_as_vec=False,
         )
 
-        # Determine which attitude sensors are active
+        # Determine which attitude sensors are active based on ACTUAL measurements
+        # We check the actual sensor readings for NaN, not the estimated predictions,
+        # because the true satellite state may differ from our estimate.
         which_sensors = [True] * len(self.est_sat.attitude_sensors + self.est_sat.rw_actuators)
+        sensor_idx = 0
         for j, sensor in enumerate(self.est_sat.attitude_sensors):
-            if isinstance(sensor, SunSensor) or isinstance(sensor, SunPair):
-                reading = sensor.clean_reading(x=dyn_state0, os=os)
-                if np.isnan(reading).any():
-                    which_sensors[j] = False
+            output_len = sensor.output_length
+            # Check if the actual measurement contains NaN
+            sensor_reading = sensors[sensor_idx:sensor_idx + output_len]
+            if np.isnan(sensor_reading).any():
+                which_sensors[j] = False
+            sensor_idx += output_len
+
+        # Expand sensor mask to output mask (handles sensors with output_length > 1)
+        which_outputs = self._expand_sensor_mask(which_sensors)
 
         # Total attitude measurement dimension
         sens_vec_len = sum(
@@ -515,7 +551,7 @@ class UAKF(Attitude_Estimator):
             self.sat_match(satj, post_full_statej)
             dmode = DisturbanceMode(add_bias=True, add_noise=False, update_bias=False, update_noise=False)
             sensj = satj.sensor_readings(x=post_full_statej[:state_len],os=os, dmode=dmode)
-            post_sens[j, :] = sensj[which_sensors] + sens_noise_j
+            post_sens[j, :] = sensj[which_outputs] + sens_noise_j
 
         # Predicted reduced error state
         state1 = np.dot(wts_m, post_pts)
@@ -556,7 +592,7 @@ class UAKF(Attitude_Estimator):
             raise np.linalg.LinAlgError("Matrix is singular. (probably)") from e
 
         # Innovation (same as original: residual @ Kk, where Kk is m x n)
-        y_meas = sensors[which_sensors]
+        y_meas = sensors[which_outputs]
         innov = y_meas - sens1
 
         # Updated reduced error state

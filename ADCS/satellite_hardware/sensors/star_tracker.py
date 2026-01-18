@@ -55,8 +55,77 @@ from numpy.typing import NDArray
 
 from ADCS.satellite_hardware.sensors.sensor import Sensor
 from ADCS.satellite_hardware.sensors.star_catalog import StarCatalog, NavigationStar
-from ADCS.helpers.math_helpers import drotmatTvecdq, quat2rotmat
+from ADCS.satellite_hardware.actuators import Bias
+from ADCS.satellite_hardware.disturbances.disturbance_mode import DisturbanceMode
+from ADCS.helpers.math_helpers import drotmatTvecdq, rot_mat
 from ADCS.orbits.orbital_state import Orbital_State
+
+
+class AnisotropicNoise:
+    """Noise model for star tracker with anisotropic covariance.
+
+    The UKF estimator calls sensor.noise.cov() to build measurement covariance.
+    This class provides that interface for the StarTracker's rotated noise model,
+    where cross-boresight noise differs from roll noise.
+
+    The covariance is diagonal in the boresight-aligned frame but becomes
+    a full 3x3 matrix when rotated to the body frame.
+    """
+
+    def __init__(
+        self,
+        cross_noise_std: float,
+        roll_noise_std: float,
+        R_noise: NDArray[np.float64]
+    ) -> None:
+        """Initialize anisotropic noise model.
+
+        Args:
+            cross_noise_std: Cross-boresight noise std (radians)
+            roll_noise_std: Roll noise std (radians)
+            R_noise: Rotation matrix from boresight-aligned to body frame
+        """
+        self.cross_noise_std = cross_noise_std
+        self.roll_noise_std = roll_noise_std
+        self._R_noise = R_noise
+        # For compatibility with base Sensor.reading() checks
+        self.std_noise = np.array([cross_noise_std, cross_noise_std, roll_noise_std])
+        self.noise = np.zeros(3)
+
+    def __bool__(self) -> bool:
+        """Noise is active if any std > 0."""
+        return self.cross_noise_std > 0 or self.roll_noise_std > 0
+
+    def cov(self) -> NDArray[np.float64]:
+        """Return 3x3 anisotropic covariance in body frame."""
+        # Covariance in boresight-aligned frame (diagonal)
+        R_aligned = np.diag([
+            self.cross_noise_std**2,
+            self.cross_noise_std**2,
+            self.roll_noise_std**2
+        ])
+        # Rotate to body frame
+        return self._R_noise @ R_aligned @ self._R_noise.T
+
+    def srcov(self) -> NDArray[np.float64]:
+        """Return square-root of covariance (Cholesky factor)."""
+        return np.linalg.cholesky(self.cov())
+
+    def copy(self) -> "AnisotropicNoise":
+        """Create a copy of this noise model."""
+        return AnisotropicNoise(
+            self.cross_noise_std,
+            self.roll_noise_std,
+            self._R_noise.copy()
+        )
+
+    def get_noise(self) -> NDArray[np.float64]:
+        """Return current noise value (not used - StarTracker.reading() handles noise)."""
+        return self.noise
+
+    def _update_noise(self) -> None:
+        """Update noise (not used - StarTracker.reading() handles noise directly)."""
+        pass
 
 
 class StarTracker(Sensor):
@@ -97,7 +166,10 @@ class StarTracker(Sensor):
         cross_noise_std: float,
         roll_noise_std: float,
         sun_exclusion: float = np.deg2rad(25.0),
-        catalog: Optional[StarCatalog] = None
+        catalog: Optional[StarCatalog] = None,
+        sample_time: float = 0.1,
+        bias: Optional[Bias] = None,
+        estimate_bias: bool = False
     ) -> None:
         """Initialize star tracker.
 
@@ -112,7 +184,12 @@ class StarTracker(Sensor):
                 when sun is closer than this angle to boresight.
                 Default: 25 degrees. Typical range: 25-45 degrees.
             catalog: Star catalog to use. If None, creates default catalog.
+            sample_time: Sensor sampling period in seconds (default: 0.1).
+            bias: Optional bias model for the sensor.
+            estimate_bias: Whether the filter should estimate sensor bias.
+                Default: False.
         """
+        # Store star tracker specific parameters first (needed for _build_noise_rotation)
         self.boresight = np.asarray(boresight, dtype=np.float64)
         self.boresight = self.boresight / np.linalg.norm(self.boresight)
 
@@ -126,6 +203,22 @@ class StarTracker(Sensor):
 
         # Build rotation from body-z to boresight for anisotropic noise model
         self._R_noise = self._build_noise_rotation()
+
+        # Create anisotropic noise object for UKF integration
+        aniso_noise = AnisotropicNoise(cross_noise_std, roll_noise_std, self._R_noise)
+
+        # Call base class __init__ to properly initialize bias, sample_time, etc.
+        # We pass None for noise and set it manually after to use our AnisotropicNoise
+        super().__init__(
+            sample_time=sample_time,
+            output_length=3,  # 3D unit vector
+            bias=bias,
+            noise=None,  # Will be set manually below
+            estimate_bias=estimate_bias
+        )
+
+        # Override noise with our anisotropic noise model
+        self.noise = aniso_noise
 
     def _build_noise_rotation(self) -> NDArray[np.float64]:
         """Build rotation matrix to align z-axis with boresight.
@@ -213,7 +306,7 @@ class StarTracker(Sensor):
             Brightest visible NavigationStar, or None if none visible.
         """
         # Get attitude DCM and boresight in ECI
-        A = quat2rotmat(q)
+        A = rot_mat(q)
         boresight_eci = A @ self.boresight
 
         # Get satellite position (required for occlusion checks)
@@ -276,7 +369,7 @@ class StarTracker(Sensor):
         self.current_star = star
 
         # Compute measurement: b = A(q)^T @ s_ECI
-        A = quat2rotmat(q)
+        A = rot_mat(q)
         b = A.T @ star.s_eci
 
         return b
@@ -325,6 +418,61 @@ class StarTracker(Sensor):
         noisy = noisy / np.linalg.norm(noisy)
 
         return noisy
+
+    def reading(
+        self,
+        x: NDArray[np.float64],
+        os: Orbital_State,
+        dmode: Optional[DisturbanceMode] = None
+    ) -> NDArray[np.float64]:
+        """Compute sensor measurement with anisotropic noise.
+
+        Overrides base Sensor.reading() to use the star tracker's
+        custom anisotropic noise model instead of isotropic noise.
+
+        Args:
+            x: State vector with quaternion at x[3:7]
+            os: Orbital state
+            dmode: Disturbance mode flags (controls bias/noise application)
+
+        Returns:
+            Star direction in body frame, shape (3,).
+            Returns array of NaN if no star is visible.
+        """
+        if dmode is None:
+            dmode = DisturbanceMode(
+                add_bias=True, add_noise=True,
+                update_bias=True, update_noise=True
+            )
+
+        # Get clean measurement
+        measurement = self.clean_reading(x=x, os=os)
+
+        # Handle NaN (no star visible)
+        if np.any(np.isnan(measurement)):
+            return measurement
+
+        # Add bias if present (from base class)
+        if self.bias and dmode.add_bias:
+            measurement = measurement + self.bias.get_bias(os.J2000)
+        if dmode.update_bias and self.bias:
+            self.bias._update_bias(os.J2000)
+
+        # Apply anisotropic noise (StarTracker's custom model)
+        if dmode.add_noise:
+            # Generate anisotropic noise in boresight-aligned frame
+            noise_aligned = np.array([
+                np.random.normal(0, self.cross_noise_std),
+                np.random.normal(0, self.cross_noise_std),
+                np.random.normal(0, self.roll_noise_std)
+            ])
+            # Rotate to body frame and apply
+            noise_body = self._R_noise @ noise_aligned
+            measurement = measurement + noise_body
+            # Renormalize to unit vector
+            measurement = measurement / np.linalg.norm(measurement)
+
+        return measurement
 
     def basestate_jac(
         self,
