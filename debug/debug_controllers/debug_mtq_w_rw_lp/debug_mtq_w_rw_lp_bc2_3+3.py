@@ -7,7 +7,7 @@ from tqdm import tqdm
 import pytest
 
 sys.path.append(os.path.abspath(os.path.join(__file__, "../../../..")))
-from ADCS.CONOPS.goals import Goal, ECI_Goal, Coordinate_Goal
+from ADCS.CONOPS.goals import Goal, ECI_Goal, Coordinate_Goal, Fixed_Attitude_Goal
 from ADCS.controller import MTQ_w_RW_LP
 from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.orbit import Orbit
@@ -32,7 +32,7 @@ def test_MTQ_w_RW_LP_align(verbose: bool = False, tf: float = 1000, dt: float = 
     t0 = 0
     N = int((tf-t0)/dt)
 
-    rw_h0 = -9.76622366e-05
+    rw_h0 = 0.0005
     real_sat = create_3_3_beavercube2_cubesat(estimated=False)
     real_sat.rw_actuators[0].h = rw_h0
     real_sat.rw_actuators[1].h = rw_h0
@@ -63,7 +63,7 @@ def test_MTQ_w_RW_LP_align(verbose: bool = False, tf: float = 1000, dt: float = 
         orb = Orbit(orbs)
 
     # Controller
-    controller = MTQ_w_RW_LP(est_sat=real_sat, p_gain=0.00005, d_gain=0.002, c_gain=0.1, h_target=np.array([0.0, 0.0, 0.0]))
+    controller = MTQ_w_RW_LP(est_sat=real_sat, p_gain=0.0002, d_gain=0.004, c_gain=0.002, h_target=np.array([0.0, 0.0, 0.0]))
 
     time_hist = np.nan*np.zeros(N)
     state_hist = np.nan*np.zeros((N, len(x)))
@@ -76,7 +76,7 @@ def test_MTQ_w_RW_LP_align(verbose: bool = False, tf: float = 1000, dt: float = 
     ind = 0
     steps = int((tf - t0)/dt)
 
-    goal = ECI_Goal(np.array([0, 0, 1]))
+    goal = ECI_Goal(np.array([0, 1, 0]))
     # goal = Coordinate_Goal(lat=9, lon=-70, alt=0)
 
     for step in tqdm(range(steps), desc="Simulating MTQ_w_RW"):
@@ -123,4 +123,4 @@ def plot_MTQ_w_RW_LP_align(verbose: bool = False, tf: float = 1000, dt: float = 
     create_close_all_button_window()
 
 if __name__ == "__main__":
-    plot_MTQ_w_RW_LP_align(verbose=False, tf = 1000, dt = 2, real_orbit=True)
+    plot_MTQ_w_RW_LP_align(verbose=False, tf = 200, dt = 2, real_orbit=True)

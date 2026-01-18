@@ -17,8 +17,10 @@ class Attitude_Goal(Goal):
     def error(self, q: np.ndarray, body_boresight: np.ndarray, os0: Orbital_State) -> np.ndarray:
         q_ref, _ = self.to_ref(os0)
 
-        q_err = quat_mult(q_ref, quat_inv(q))
+        # body-frame attitude error: R_e = R(q)^T R(q_ref)
+        q_err = quat_mult(quat_inv(q), q_ref)
 
+        # shortest rotation
         if q_err[0] < 0.0:
             q_err = -q_err
 

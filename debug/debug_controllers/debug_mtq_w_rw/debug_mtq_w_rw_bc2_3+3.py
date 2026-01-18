@@ -67,7 +67,7 @@ def test_MTQ_w_RW_LP_align(verbose: bool = False, tf: float = 1000, dt: float = 
         orb = Orbit(orbs)
 
     # Controller
-    controller = MTQ_w_RW(est_sat=real_sat, p_gain=0.0002, d_gain=0.004, c_gain=0, h_target=np.array([0, 0, 0]))
+    controller = MTQ_w_RW(est_sat=real_sat, p_gain=0.0002, d_gain=0.004, c_gain=0.1, h_target=np.array([0, 0, 0]))
 
     time_hist = np.nan*np.zeros(N)
     state_hist = np.nan*np.zeros((N, len(x)))
@@ -119,7 +119,7 @@ def plot_MTQ_w_RW_LP_align(verbose: bool = False, tf: float = 1000, dt: float = 
     animate_attitude(time=time_hist, state_hist=state_hist, os_hist=os_hist, boresight_goal_hist=boresight_hist)
     plot_control(time=time_hist, u_hist=u_hist)
     plot_state_comparison(time=time_hist, state_hist=state_hist)
-    # plot_rw_momentum(time=time_hist, state_hist=state_hist)
+    plot_rw_momentum(time=time_hist, state_hist=state_hist)
     goal = Coordinate_Goal(lat=9, lon=-70, alt=0)
     #animate_orbit_pyvista(time_hist=time_hist, state_hist=state_hist, os_hist=os_hist, boresight_goal_hist=boresight_hist, coord_goal=goal)
     plot_target_tracking(state_hist=state_hist, boresight_hist=boresight_hist, body_boresight=np.array([0, 0, 1]))
@@ -127,4 +127,4 @@ def plot_MTQ_w_RW_LP_align(verbose: bool = False, tf: float = 1000, dt: float = 
     create_close_all_button_window()
 
 if __name__ == "__main__":
-    plot_MTQ_w_RW_LP_align(verbose=False, tf = 1000, dt = 2, real_orbit=True)
+    plot_MTQ_w_RW_LP_align(verbose=False, tf = "1000", dt = 2, real_orbit=True)

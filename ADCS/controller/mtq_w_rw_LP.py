@@ -317,53 +317,170 @@ class MTQ_w_RW_LP(Controller):
         sens: np.ndarray,
         est_sat: EstimatedSatellite,
         os_hat: Orbital_State,
-        goal: Goal
-    ):
+        goal: Goal,
+    ) -> np.ndarray:
+        """
+        Pointing (LP torque-envelope aware) + torque-free RW desaturation using leftover authority.
+
+        Step 1 (Primary): use LP allocator to achieve the maximum feasible torque colinear with tau_des.
+            -> returns (u_rw_cmd, u_mtq_cmd, alpha) such that A_tot u ~= alpha * tau_des, with limits enforced.
+
+        Step 2 (Secondary): if RWs+MTQs exist, attempt *torque-free* desaturation:
+            Choose an MTQ torque tau_mtq_des that reduces wheel momentum (projected into the MTQ plane),
+            then command RW torques to cancel it: tau_rw_sec = -tau_mtq_sec.
+            Map these torques to actuator commands and scale by remaining actuator margin so limits are
+            never violated and the net additional body torque stays ~zero.
+        """
+        # -------------------------
+        # 0) Parse state
+        # -------------------------
         w = x_hat[0:3]
         q = x_hat[3:7]
 
-        n_rw = len([a for a in est_sat.actuators if isinstance(a, RW)])
-        if len(x_hat) >= 7 + n_rw:
-            h_rw_states = x_hat[7 : 7 + n_rw]
-        else:
-            h_rw_states = np.array([rw.h for rw in est_sat.actuators if isinstance(rw, RW)])
+        rws  = [a for a in est_sat.actuators if isinstance(a, RW)]
+        mtqs = [a for a in est_sat.actuators if isinstance(a, MTQ)]
+        n_rw, n_mtq = len(rws), len(mtqs)
 
+        rw_indices  = [i for i, a in enumerate(est_sat.actuators) if isinstance(a, RW)]
+        mtq_indices = [i for i, a in enumerate(est_sat.actuators) if isinstance(a, MTQ)]
+
+        # Wheel scalar momentum states (N_rw,)
+        if n_rw > 0 and len(x_hat) >= 7 + n_rw:
+            h_rw_states = np.asarray(x_hat[7 : 7 + n_rw], float).reshape(n_rw,)
+        elif n_rw > 0:
+            h_rw_states = np.array([rw.h for rw in rws], dtype=float).reshape(n_rw,)
+        else:
+            h_rw_states = np.zeros(0)
+
+        # -------------------------
+        # 1) Pointing torque request (PD + gyro)
+        # -------------------------
         goal_vec_eci, w_ref_eci = goal.to_ref(os0=os_hat)
         R_b2i = rot_mat(q)
         w_ref_body = R_b2i.T @ w_ref_eci
 
         q_err = goal.error(q=q, body_boresight=est_sat.boresight, os0=os_hat)
-
         w_err = w - w_ref_body
         tau_pd = -self.p_gain * q_err - self.d_gain * w_err
 
-        h_rw_body = np.zeros(3)
-        rw_counter = 0
-        for actuator in est_sat.actuators:
-            if isinstance(actuator, RW):
-                h_rw_body += np.asarray(actuator.axis).flatten() * h_rw_states[rw_counter]
-                rw_counter += 1
-        
+        # Build A_rw (3 x n_rw) and body wheel momentum vector (3,)
+        if n_rw > 0:
+            A_rw = np.column_stack([np.asarray(rw.axis, float).reshape(3,) for rw in rws])  # (3, n_rw)
+            h_rw_body = A_rw @ h_rw_states
+        else:
+            A_rw = np.zeros((3, 0))
+            h_rw_body = np.zeros(3)
+
         J = est_sat.J_0
         tau_gyro = np.cross(w, J @ w + h_rw_body)
 
         tau_des = tau_pd + tau_gyro
-        
-        sens_clean = sens.copy()
+
+        # -------------------------
+        # 2) Magnetic field in body frame
+        # -------------------------
+        sens_clean = np.asarray(sens, float).copy()
         sens_clean[np.isnan(sens_clean)] = 0.0
         b_body = np.asarray(self.M_mtm_read @ sens_clean, float).reshape(3,)
 
-        u_rw_cmd, u_mtq_cmd, alpha = self.allocate_max_torque_in_direction(
-            tau_des, b_body, est_sat
-        )
+        # -------------------------
+        # 3) Primary allocation: max feasible torque in tau_des direction (your LP)
+        # -------------------------
+        u_rw_cmd, u_mtq_cmd, alpha = self.allocate_max_torque_in_direction(tau_des, b_body, est_sat)
 
-        u_out = np.zeros(len(est_sat.actuators))
-        
-        rw_indices = [i for i, a in enumerate(est_sat.actuators) if isinstance(a, RW)]
-        u_out[rw_indices] = u_rw_cmd
-        
-        mtq_indices = [i for i, a in enumerate(est_sat.actuators) if isinstance(a, MTQ)]
-        u_out[mtq_indices] = u_mtq_cmd
+        # Assemble baseline command vector in *actuator ordering*
+        u_out = np.zeros(len(est_sat.actuators), dtype=float)
+        if n_rw > 0:
+            u_out[rw_indices] = np.asarray(u_rw_cmd, float).reshape(n_rw,)
+        if n_mtq > 0:
+            u_out[mtq_indices] = np.asarray(u_mtq_cmd, float).reshape(n_mtq,)
+
+        # -------------------------
+        # 4) Secondary: torque-free desaturation using leftover authority
+        # -------------------------
+        # Needs both RWs and MTQs to be meaningful
+        if n_rw == 0 or n_mtq == 0:
+            return u_out
+
+        # If B is near zero, MTQ torque map is ill-conditioned
+        b_norm = np.linalg.norm(b_body)
+        if b_norm < 1e-9:
+            return u_out
+
+        b_hat = b_body / b_norm
+
+        # ---- 4a) Compute desired momentum reduction torque (body-frame) ----
+        # Current stored wheel momentum vector (3,) is h_rw_body already
+        # self.h_target is BODY (3,)
+        h_err_body = h_rw_body - np.asarray(self.h_target, float).reshape(3,)
+        # Desired torque to reduce this momentum error (Hogan & Schaub "dump" direction)
+        tau_dump_des = -self.c_gain * h_err_body
+
+        # MTQs can only produce torque perpendicular to B: project into achievable plane
+        tau_mtq_sec = tau_dump_des - np.dot(tau_dump_des, b_hat) * b_hat  # Pi_perpB(tau_dump_des)
+
+        # If projected torque is tiny, nothing useful to do torque-free right now
+        if np.linalg.norm(tau_mtq_sec) < 1e-12:
+            return u_out
+
+        # Torque-free requirement: tau_rw_sec + tau_mtq_sec = 0
+        tau_rw_sec = -tau_mtq_sec
+
+        # ---- 4b) Map secondary torques to actuator commands (pinv, Hogan&Schaub style) ----
+        # RW: tau_rw = A_rw u_rw  =>  u_rw = A_rw^+ tau_rw
+        u_rw_sec = np.linalg.pinv(A_rw) @ tau_rw_sec  # (n_rw,)
+
+        # MTQ: tau_mtq = -[B]x A_mtq_axes u_mtq  => u_mtq = pinv(M_mag_eff) tau_mtq
+        A_mtq_axes = np.column_stack([np.asarray(m.axis, float).reshape(3,) for m in mtqs])  # (3, n_mtq)
+        M_mag_eff = -skewsym(b_body) @ A_mtq_axes                                          # (3, n_mtq)
+        u_mtq_sec = np.linalg.pinv(M_mag_eff) @ tau_mtq_sec                                 # (n_mtq,)
+
+        # ---- 4c) Use ONLY leftover authority around u_out, scale coupled (RW+MTQ together) ----
+        # Build stacked vectors in the same ordering as u_out's RW/MTQ slots
+        u_star_rw  = u_out[rw_indices].copy()
+        u_star_mtq = u_out[mtq_indices].copy()
+
+        # Hard limits
+        rw_umax  = np.array([rw.u_max for rw in rws], dtype=float)
+        mtq_umax = np.array([m.u_max  for m in mtqs], dtype=float)
+
+        # Find the largest beta in [0,1] such that:
+        #   u_star + beta*u_sec stays inside [-umax, umax] for BOTH RW and MTQ
+        beta = 1.0
+
+        # RWs
+        for i in range(n_rw):
+            si = u_rw_sec[i]
+            if abs(si) < 1e-12:
+                continue
+            ui = u_star_rw[i]
+            if si > 0:
+                beta = min(beta, ( rw_umax[i] - ui) / si)
+            else:
+                beta = min(beta, (-rw_umax[i] - ui) / si)
+
+        # MTQs
+        for i in range(n_mtq):
+            si = u_mtq_sec[i]
+            if abs(si) < 1e-12:
+                continue
+            ui = u_star_mtq[i]
+            if si > 0:
+                beta = min(beta, ( mtq_umax[i] - ui) / si)
+            else:
+                beta = min(beta, (-mtq_umax[i] - ui) / si)
+
+        beta = float(np.clip(beta, 0.0, 1.0))
+        if beta <= 0.0:
+            return u_out
+
+        # Apply coupled scaled secondary command (no independent clipping!)
+        u_out[rw_indices]  = u_star_rw  + beta * u_rw_sec
+        u_out[mtq_indices] = u_star_mtq + beta * u_mtq_sec
+
+        # Optional: numerical safety (should already be within limits)
+        u_out[rw_indices]  = np.clip(u_out[rw_indices],  -rw_umax,  rw_umax)
+        u_out[mtq_indices] = np.clip(u_out[mtq_indices], -mtq_umax, mtq_umax)
 
         return u_out
     

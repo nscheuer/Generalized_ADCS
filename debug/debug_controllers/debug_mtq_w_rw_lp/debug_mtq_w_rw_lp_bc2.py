@@ -32,13 +32,13 @@ def test_MTQ_w_RW_LP_align(verbose: bool = False, tf: float = 1000, dt: float = 
     t0 = 0
     N = int((tf-t0)/dt)
 
-    rw_h0 = -9.76622366e-05
+    rw_h0 = 0.0
     real_sat = create_beavercube2_cubesat(estimated=False)
     real_sat.rw_actuators[0].h = rw_h0
 
     w0 = random_n_unit_vec(3)*np.random.uniform(1, 2)*np.pi/180.0
-    w0 = np.array([-0.00874868,  0.00209214,  0.00593677])
-    q0 = np.array([0.86698928, 0.29417644, 0.34385383, 0.20869681])
+    w0 = np.array([0.0, 0.0, 0.0])
+    q0 = np.array([1.0, 0.0, 0.0, 0.0])
     h0 = np.array([rw_h0])
     x = np.concatenate([w0, q0, h0])
 
@@ -74,7 +74,7 @@ def test_MTQ_w_RW_LP_align(verbose: bool = False, tf: float = 1000, dt: float = 
     ind = 0
     steps = int((tf - t0)/dt)
 
-    goal = ECI_Goal(np.array([-0.13901563, -0.36955661, -0.91875055]))
+    goal = ECI_Goal(np.array([0, 0, 1]))
     # goal = Coordinate_Goal(lat=9, lon=-70, alt=0)
 
     for step in tqdm(range(steps), desc="Simulating MTQ_w_RW"):
