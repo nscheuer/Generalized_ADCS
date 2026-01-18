@@ -97,9 +97,35 @@ class PlanAndTrackBase(Controller):
         self.state_dim = est_sat.state_len
         self.ctrl_dim = est_sat.control_len
 
+        # Hardware control limits (actual actuator limits, not planner limits)
+        self._umax_hardware = np.array([act.u_max for act in est_sat.actuators])
+
     def set_active_trajectory(self, traj: Trajectory) -> None:
         """Set the active trajectory for tracking."""
         self.active_trajectory = traj
+
+    def clip_control(
+        self,
+        u: NDArray[np.float64],
+        clip: bool = True
+    ) -> NDArray[np.float64]:
+        """
+        Clip control vector to hardware actuator limits.
+
+        Uses the actual hardware limits from the satellite actuators (u_max),
+        not the reduced planner limits (which have margin for tracking corrections).
+
+        Args:
+            u: Control vector to clip
+            clip: If True, clip to limits. If False, return u unchanged.
+                  Default True for safety.
+
+        Returns:
+            Control vector, clipped to [-u_max, u_max] if clip=True
+        """
+        if clip:
+            return np.clip(u, -self._umax_hardware, self._umax_hardware)
+        return u
 
     def _propagate_environment(
         self,
@@ -132,7 +158,7 @@ class PlanAndTrackBase(Controller):
         buffer_centuries = 10 * dt_seconds * TimeConstants.sec2cent
         t_end_buffered = t_end + buffer_centuries
 
-        sim_orbit = Orbit(os0=os_0, end_time=t_end_buffered, dt=dt_seconds, use_J2=True, fast=True)
+        sim_orbit = Orbit(os0=os_0, end_time=t_end_buffered, dt=dt_seconds, use_J2=True, fast=False)
         tp_orbit = sim_orbit.get_range(t_start, t_end, dt_seconds)
 
         orbit_data_lists = tp_orbit.get_vecs()

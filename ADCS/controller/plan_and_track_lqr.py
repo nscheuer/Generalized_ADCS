@@ -55,7 +55,8 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
         est_sat: EstimatedSatellite,
         os_hat: Orbital_State,
         goal_vector_eci: Optional[NDArray[np.float64]] = None,
-        w_ref: Optional[NDArray[np.float64]] = None
+        w_ref: Optional[NDArray[np.float64]] = None,
+        clip: bool = True
     ) -> NDArray[np.float64]:
         """
         Compute control using TVLQR tracking.
@@ -67,9 +68,10 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
             os_hat: Estimated orbital state (for time)
             goal_vector_eci: Goal vector in ECI (unused, from trajectory)
             w_ref: Reference angular velocity (unused, from trajectory)
+            clip: If True, clip control to hardware actuator limits. Default True.
 
         Returns:
-            Control vector
+            Control vector (clipped to hardware limits if clip=True)
         """
         current_time = os_hat.J2000
 
@@ -80,7 +82,8 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
             raise RuntimeError(f"Plan_and_Track_LQR: Active trajectory expired or not started. "
                                 f"Current: {current_time}, Traj: [{self.active_trajectory.start_time}, {self.active_trajectory.end_time}]")
 
-        return self.active_trajectory.compute_tracking_control(current_time, x_hat)
+        ctrl = self.active_trajectory.compute_tracking_control(current_time, x_hat)
+        return self.clip_control(ctrl, clip=clip)
 
     def calculate_trajectory(
         self,
