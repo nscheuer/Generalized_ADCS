@@ -126,6 +126,87 @@ void Satellite::remove_aero_torq(){
   drag_coeff *= 0;
 }
 
+// Surface-based SRP disturbance methods (Option B)
+void Satellite::set_srp_surfaces(mat normals, mat centroids, vec areas,
+                                  vec eta_s, vec eta_d, vec eta_a, vec3 COM){
+  // Ensure matrices are 3 x N
+  if(normals.n_rows != 3 && normals.n_cols == 3){ normals = normals.t(); }
+  if(centroids.n_rows != 3 && centroids.n_cols == 3){ centroids = centroids.t(); }
+
+  num_srp_surfaces = normals.n_cols;
+  srp_normals = normals;
+  srp_centroids = centroids;
+  srp_areas = areas;
+  srp_eta_s = eta_s;
+  srp_eta_d = eta_d;
+  srp_eta_a = eta_a;
+  srp_COM = COM;
+  plan_for_srp = 1;
+}
+
+void Satellite::set_srp_surfaces_py(py::array_t<double> normals_py, py::array_t<double> centroids_py,
+                                     py::array_t<double> areas_py, py::array_t<double> eta_s_py,
+                                     py::array_t<double> eta_d_py, py::array_t<double> eta_a_py,
+                                     py::array_t<double> COM_py){
+  mat normals = numpyToArmaMatrix(normals_py);
+  mat centroids = numpyToArmaMatrix(centroids_py);
+  vec areas = numpyToArmaVector(areas_py);
+  vec eta_s = numpyToArmaVector(eta_s_py);
+  vec eta_d = numpyToArmaVector(eta_d_py);
+  vec eta_a = numpyToArmaVector(eta_a_py);
+  vec3 COM = numpyToArmaVector(COM_py);
+  set_srp_surfaces(normals, centroids, areas, eta_s, eta_d, eta_a, COM);
+}
+
+void Satellite::clear_srp_surfaces(){
+  plan_for_srp = 0;
+  num_srp_surfaces = 0;
+  srp_normals.reset();
+  srp_centroids.reset();
+  srp_areas.reset();
+  srp_eta_s.reset();
+  srp_eta_d.reset();
+  srp_eta_a.reset();
+  srp_COM.zeros();
+}
+
+// Surface-based aerodynamic drag disturbance methods (Option B)
+void Satellite::set_drag_surfaces(mat normals, mat centroids, vec areas,
+                                   vec CDs, vec3 COM){
+  // Ensure matrices are 3 x N
+  if(normals.n_rows != 3 && normals.n_cols == 3){ normals = normals.t(); }
+  if(centroids.n_rows != 3 && centroids.n_cols == 3){ centroids = centroids.t(); }
+
+  num_drag_surfaces = normals.n_cols;
+  drag_normals = normals;
+  drag_centroids = centroids;
+  drag_areas = areas;
+  drag_CDs = CDs;
+  drag_COM = COM;
+  plan_for_aero = 1;
+}
+
+void Satellite::set_drag_surfaces_py(py::array_t<double> normals_py, py::array_t<double> centroids_py,
+                                      py::array_t<double> areas_py, py::array_t<double> CDs_py,
+                                      py::array_t<double> COM_py){
+  mat normals = numpyToArmaMatrix(normals_py);
+  mat centroids = numpyToArmaMatrix(centroids_py);
+  vec areas = numpyToArmaVector(areas_py);
+  vec CDs = numpyToArmaVector(CDs_py);
+  vec3 COM = numpyToArmaVector(COM_py);
+  set_drag_surfaces(normals, centroids, areas, CDs, COM);
+}
+
+void Satellite::clear_drag_surfaces(){
+  plan_for_aero = 0;
+  num_drag_surfaces = 0;
+  drag_normals.reset();
+  drag_centroids.reset();
+  drag_areas.reset();
+  drag_CDs.reset();
+  drag_COM.zeros();
+}
+
 void Satellite::add_resdipole_torq(vec3 rd_in){
   plan_for_resdipole = 1;
   res_dipole = rd_in;
@@ -1613,27 +1694,89 @@ vec Satellite::dynamics_pure(vec x, vec u, DYNAMICS_INFO_FORM dynamics_info) con
 
 vec3 Satellite::dist_torque(vec x, DYNAMICS_INFO_FORM dynamics_info) const{
 
-
   vec3 Bk = get<0>(dynamics_info);
   vec3 Rk = get<1>(dynamics_info);
   int prop_torq_on = get<2>(dynamics_info);
   vec3 Vk = get<3>(dynamics_info);
   vec3 Sk = get<4>(dynamics_info);
   int dist_on = get<5>(dynamics_info);
+  double rho = get<6>(dynamics_info);  // atmospheric density (kg/m^3)
 
   vec4 q = x.rows(quat0index(),quat0index()+3);
+  mat33 RmatT = rotMat(q).t();
 
+  // Gravity gradient torque
   double rad = norm(Rk);
   double const_term = plan_for_gg*3.0*earth_mu/(pow(rad*1000.0,3.0));
-  mat33 RmatT = rotMat(q).t();
   vec3 nadir = -RmatT*Rk/rad;
   vec3 gg_torq = const_term*cross(nadir,Jcom*nadir);
+
+  // Variable disturbances (propellant + general)
   vec3 variable_dist_torq = prop_torq_on*prop_torq*plan_for_prop+gen_dist_torq*plan_for_gendist;
   vec3 dist_torq = gg_torq + variable_dist_torq;
 
+  // Residual dipole torque
   vec3 magvec = res_dipole*plan_for_resdipole;
-
   dist_torq += cross(magvec,RmatT*Bk);
+
+  // Solar Radiation Pressure (SRP) torque using surface geometry
+  // Based on Python model: srp_disturbance.py
+  // T_srp = -P_solar * sum_i [ m_s,i * (r_i - COM) x s_body + m_n,i * (r_i - COM) x n_i ]
+  // where m_s,i = A_i * (eta_a + eta_d) * cos_gamma_i
+  //       m_n,i = A_i * (2*eta_s*cos_gamma_i^2 + 2/3*eta_d) * cos_gamma_i  (only if cos_gamma > 0)
+  if(plan_for_srp && num_srp_surfaces > 0){
+    // Sun direction in body frame (from satellite to sun)
+    vec3 sun_dir_eci = normalise(Sk - Rk);  // ECI sun direction
+    vec3 s_body = RmatT * sun_dir_eci;      // Body frame sun direction
+
+    vec3 srp_torq = vec3().zeros();
+    for(int i = 0; i < num_srp_surfaces; i++){
+      vec3 n_i = srp_normals.col(i);
+      vec3 r_i = srp_centroids.col(i) - srp_COM;  // lever arm from COM
+      double A_i = srp_areas(i);
+      double eta_s_i = srp_eta_s(i);
+      double eta_d_i = srp_eta_d(i);
+      double eta_a_i = srp_eta_a(i);
+
+      double cos_gamma = dot(n_i, s_body);
+      if(cos_gamma > 0){
+        // Illuminated surface
+        double m_s = A_i * (eta_a_i + eta_d_i) * cos_gamma;
+        double m_n = A_i * (2.0*eta_s_i*cos_gamma*cos_gamma + (2.0/3.0)*eta_d_i) * cos_gamma;
+
+        srp_torq += m_s * cross(r_i, s_body) + m_n * cross(r_i, n_i);
+      }
+    }
+    dist_torq -= SOLAR_PRESSURE * srp_torq;
+  }
+
+  // Aerodynamic drag torque using surface geometry
+  // Based on Python model: drag_disturbance.py
+  // T_drag = -0.5 * rho * sum_i [ C_D,i * A_i * (n_i . V_body) * (r_i - COM) x V_body ]
+  if(plan_for_aero && num_drag_surfaces > 0){
+    // Velocity in body frame (Vk is in km/s, convert to m/s)
+    vec3 V_body = RmatT * Vk * 1000.0;  // m/s
+    double V_mag = norm(V_body);
+
+    if(V_mag > 1e-6){
+      vec3 drag_torq = vec3().zeros();
+      for(int i = 0; i < num_drag_surfaces; i++){
+        vec3 n_i = drag_normals.col(i);
+        vec3 r_i = drag_centroids.col(i) - drag_COM;  // lever arm from COM
+        double A_i = drag_areas(i);
+        double CD_i = drag_CDs(i);
+
+        double v_proj = dot(n_i, V_body);  // velocity projection onto surface normal
+        if(v_proj > 0){
+          // Surface facing the flow
+          double F_i = CD_i * A_i * v_proj;
+          drag_torq += F_i * cross(r_i, V_body);
+        }
+      }
+      // rho is atmospheric density in kg/m^3
+      dist_torq -= 0.5 * rho * drag_torq;
+    }
+  }
 
   return dist_torq*dist_on;
 }
@@ -2001,6 +2144,10 @@ PYBIND11_MODULE(pysat, m) {
         .def("clear_AV_constraint", &Satellite::clear_AV_constraint)
         .def("add_sunpoint_constraint", &Satellite::add_sunpoint_constraint_py)
         .def("clear_sunpoint_constraints", &Satellite::clear_sunpoint_constraints)
+        .def("set_srp_surfaces", &Satellite::set_srp_surfaces_py)
+        .def("clear_srp_surfaces", &Satellite::clear_srp_surfaces)
+        .def("set_drag_surfaces", &Satellite::set_drag_surfaces_py)
+        .def("clear_drag_surfaces", &Satellite::clear_drag_surfaces)
         .def("py_tuple_out",&Satellite::py_tuple_out)
         .def(py::pickle(
           [](const Satellite &p) { // __getstate__

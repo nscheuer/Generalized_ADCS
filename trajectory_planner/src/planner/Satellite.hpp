@@ -16,8 +16,16 @@
 //                       angle_N, ang_vel_N, ang_vel_mag_N, ang_vel_err_dir_N,
 //                       ang_cost_func_type, use_raw_control_cost, use_full_cost_hess)
 #define COST_SETTINGS_FORM std::tuple<double, double, double, double, double, double, double, double, double, int, int, int>
-#define DYNAMICS_INFO_FORM std::tuple<arma::vec3,arma::vec3,int,arma::vec3,arma::vec3,int>
+// Dynamics info tuple: (B, R, prop_torq_on, V, S, dist_on, rho)
+// B = magnetic field (ECI), R = position (ECI, km), prop_torq_on = propellant torque flag,
+// V = velocity (ECI, km/s), S = sun vector (ECI), dist_on = disturbances on flag, rho = atmospheric density (kg/m^3)
+#define DYNAMICS_INFO_FORM std::tuple<arma::vec3,arma::vec3,int,arma::vec3,arma::vec3,int,double>
 static const double MAGRW_TORQ_MULT = 1.0;//1e-3;//1e-4;//1.0;//1e-3;
+
+// Physical constants for disturbance calculations
+static const double SOLAR_CONSTANT = 1367.0;  // W/m^2 - solar irradiance at 1 AU
+static const double SPEED_OF_LIGHT = 299792458.0;  // m/s
+static const double SOLAR_PRESSURE = SOLAR_CONSTANT / SPEED_OF_LIGHT;  // N/m^2 - solar radiation pressure at 1 AU
 
 
 
@@ -79,12 +87,28 @@ public:
     void add_prop_torq(arma::vec3 prop_torq_in);
     void add_prop_torq_py(py::array_t<double> prop_torq_in_py);
     void remove_prop_torq();
-    void add_srp_torq(arma::mat srp_coeff_in,int coeff_len);
-    void add_srp_torq_py(py::array_t<double> srp_coeff_in_py,int coeff_len);
+    void add_srp_torq(arma::mat srp_coeff_in,int coeff_len);  // deprecated
+    void add_srp_torq_py(py::array_t<double> srp_coeff_in_py,int coeff_len);  // deprecated
     void remove_srp_torq();
-    void add_aero_torq(arma::mat drag_coeff_in,int coeff_len);
-    void add_aero_torq_py(py::array_t<double> drag_coeff_in_py,int coeff_len);
+    // Surface-based SRP disturbance (Option B)
+    void set_srp_surfaces(arma::mat normals, arma::mat centroids, arma::vec areas,
+                          arma::vec eta_s, arma::vec eta_d, arma::vec eta_a, arma::vec3 COM);
+    void set_srp_surfaces_py(py::array_t<double> normals_py, py::array_t<double> centroids_py,
+                             py::array_t<double> areas_py, py::array_t<double> eta_s_py,
+                             py::array_t<double> eta_d_py, py::array_t<double> eta_a_py,
+                             py::array_t<double> COM_py);
+    void clear_srp_surfaces();
+
+    void add_aero_torq(arma::mat drag_coeff_in,int coeff_len);  // deprecated
+    void add_aero_torq_py(py::array_t<double> drag_coeff_in_py,int coeff_len);  // deprecated
     void remove_aero_torq();
+    // Surface-based aerodynamic drag disturbance (Option B)
+    void set_drag_surfaces(arma::mat normals, arma::mat centroids, arma::vec areas,
+                           arma::vec CDs, arma::vec3 COM);
+    void set_drag_surfaces_py(py::array_t<double> normals_py, py::array_t<double> centroids_py,
+                              py::array_t<double> areas_py, py::array_t<double> CDs_py,
+                              py::array_t<double> COM_py);
+    void clear_drag_surfaces();
     void add_resdipole_torq(arma::vec3 rd_in);
     void add_resdipole_torq_py(py::array_t<double> rd_in_py);
     void remove_resdipole_torq();
@@ -167,9 +191,27 @@ public:
     int plan_for_resdipole = 0;
     int plan_for_gendist = 0;
 
-    arma::mat srp_coeff;
-    arma::mat drag_coeff;
-    int coeff_N;
+    arma::mat srp_coeff;  // deprecated, kept for backward compatibility
+    arma::mat drag_coeff;  // deprecated, kept for backward compatibility
+    int coeff_N;  // deprecated, kept for backward compatibility
+
+    // Surface geometry for SRP disturbance (Option B)
+    int num_srp_surfaces = 0;
+    arma::mat srp_normals;      // 3 x N matrix of surface normals (body frame)
+    arma::mat srp_centroids;    // 3 x N matrix of surface centroids (body frame, m)
+    arma::vec srp_areas;        // N-vector of surface areas (m^2)
+    arma::vec srp_eta_s;        // N-vector of specular reflection coefficients
+    arma::vec srp_eta_d;        // N-vector of diffuse reflection coefficients
+    arma::vec srp_eta_a;        // N-vector of absorptive coefficients
+    arma::vec3 srp_COM = arma::vec3().zeros();  // Center of mass for SRP (body frame, m)
+
+    // Surface geometry for aerodynamic drag disturbance (Option B)
+    int num_drag_surfaces = 0;
+    arma::mat drag_normals;     // 3 x N matrix of surface normals (body frame)
+    arma::mat drag_centroids;   // 3 x N matrix of surface centroids (body frame, m)
+    arma::vec drag_areas;       // N-vector of surface areas (m^2)
+    arma::vec drag_CDs;         // N-vector of drag coefficients
+    arma::vec3 drag_COM = arma::vec3().zeros();  // Center of mass for drag (body frame, m)
 
     arma::vec3 prop_torq = arma::vec3().zeros();
     arma::vec3 gen_dist_torq = arma::vec3().zeros();

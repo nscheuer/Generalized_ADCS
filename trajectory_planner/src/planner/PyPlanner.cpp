@@ -124,9 +124,11 @@ py::array_t<double> PyPlanner::rk4zPython(double dt0, py::array_t<double> x, py:
   vec3 Sp1vec = numpyToArmaVector(get<4>(dynamics_info_kp1_py));
   int distTF = get<5>(dynamics_info_k_py);
   int distTFp1 = get<5>(dynamics_info_kp1_py);
+  double rho_k = get<6>(dynamics_info_k_py);
+  double rho_kp1 = get<6>(dynamics_info_kp1_py);
 
-  DYNAMICS_INFO_FORM dynamics_info_k = make_tuple(Bvec,Rvec,pTF,Vvec,Svec,distTF);
-  DYNAMICS_INFO_FORM dynamics_info_kp1 = make_tuple(Bp1vec,Rp1vec,pTFp1,Vp1vec,Sp1vec,distTFp1);
+  DYNAMICS_INFO_FORM dynamics_info_k = make_tuple(Bvec,Rvec,pTF,Vvec,Svec,distTF,rho_k);
+  DYNAMICS_INFO_FORM dynamics_info_kp1 = make_tuple(Bp1vec,Rp1vec,pTFp1,Vp1vec,Sp1vec,distTFp1,rho_kp1);
 
   vec xp1 = rk4z_pure(dt0,xvec, uvec, op.sat,dynamics_info_k, dynamics_info_kp1);
   return armaVectorToNumpy(xp1);
@@ -141,9 +143,10 @@ py::array_t<double> PyPlanner::dynamicsPython(py::array_t<double> x, py::array_t
   vec3 Vvec = numpyToArmaVector(get<3>(dynamics_info_py));
   vec3 Svec = numpyToArmaVector(get<4>(dynamics_info_py));
   int distTF = get<5>(dynamics_info_py);
+  double rho = get<6>(dynamics_info_py);
 
 
-  DYNAMICS_INFO_FORM dynamics_info = make_tuple(Bvec,Rvec,pTF,Vvec,Svec,distTF);
+  DYNAMICS_INFO_FORM dynamics_info = make_tuple(Bvec,Rvec,pTF,Vvec,Svec,distTF,rho);
 
   vec xdot = op.sat.dynamics_pure(xvec, uvec, dynamics_info);
   return armaVectorToNumpy(xdot);

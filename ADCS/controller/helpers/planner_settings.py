@@ -125,7 +125,7 @@ from numpy.typing import NDArray
 
 from ADCS.controller.helpers.planner_subsettings import SolverPassConfig, CostWeights, InitTrajConfig, ConvergenceConfig, AugLagConfig
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
-from ADCS.satellite_hardware.disturbances import Dipole_Disturbance, Prop_Disturbance, General_Disturbance
+from ADCS.satellite_hardware.disturbances import Dipole_Disturbance, Prop_Disturbance, General_Disturbance, SRP_Disturbance, Drag_Disturbance
 
 
 class PlannerSettings:
@@ -250,6 +250,30 @@ class PlannerSettings:
         self.prop_torque = sum([j.current_torque if isinstance(j, Prop_Disturbance) else np.zeros(3) for j in est_sat.disturbances], start=np.zeros(3)).reshape((3,))
         self.gendist_torq = np.array([0, 0, 0])
         self.J_est = est_sat.J_0
+
+        # Surface geometry data for SRP and drag (extracted from disturbance objects)
+        self.srp_surfaces = None  # Will be dict with normals, centroids, areas, eta_s, eta_d, eta_a, COM
+        self.drag_surfaces = None  # Will be dict with normals, centroids, areas, CDs, COM
+
+        for dist in est_sat.disturbances:
+            if isinstance(dist, SRP_Disturbance) and include_srp:
+                self.srp_surfaces = {
+                    'normals': dist.normals.T,      # C++ expects (3, N), Python has (N, 3)
+                    'centroids': dist.centroids.T,  # C++ expects (3, N), Python has (N, 3)
+                    'areas': dist.areas,
+                    'eta_s': dist.eta_s,
+                    'eta_d': dist.eta_d,
+                    'eta_a': dist.eta_a,
+                    'COM': est_sat.COM.flatten(),
+                }
+            elif isinstance(dist, Drag_Disturbance) and include_drag:
+                self.drag_surfaces = {
+                    'normals': dist.normals.T,      # C++ expects (3, N), Python has (N, 3)
+                    'centroids': dist.centroids.T,  # C++ expects (3, N), Python has (N, 3)
+                    'areas': dist.areas,
+                    'CDs': dist.CDs,
+                    'COM': est_sat.COM.flatten(),
+                }
 
     def systemSettings(self) -> Tuple[NDArray[np.float64], float, float, float, float, float]:
         """Return system configuration tuple for C++ planner."""

@@ -584,6 +584,7 @@ tuple<TRAJECTORY_FORM,double> OldPlanner::bdot(vec x0,double dt0, int N,VECTOR_I
   mat Vset = get<2>(vecs);
   mat Sset = get<4>(vecs);
   vec pset = get<7>(vecs);
+  vec rhoset = get<8>(vecs);  // atmospheric density
   vec t = get<0>(vecs);
   //Xset.fill(datum::nan);
 
@@ -605,17 +606,17 @@ tuple<TRAJECTORY_FORM,double> OldPlanner::bdot(vec x0,double dt0, int N,VECTOR_I
   uk.head(sat.number_MTQ) = -sat.mtq_ax_mat.t()*bdotgain*(-cross(xk.rows(0,2), RmatT*Bk) + RmatT*(Bset.col(1)-Bk)/dt0);
 
   ur = max(abs(uk/umax));
-  
+
   ur = std::max(ur,1.0);
   uk = uk/ur;
-  DYNAMICS_INFO_FORM dynamics_info_kn1 = make_tuple(Bset.col(0),Rset.col(0),pset(0),Vset.col(0),Sset.col(0),0);
+  DYNAMICS_INFO_FORM dynamics_info_kn1 = make_tuple(Bset.col(0),Rset.col(0),pset(0),Vset.col(0),Sset.col(0),0,rhoset(0));
   DYNAMICS_INFO_FORM dynamics_info_k = dynamics_info_kn1;
   tuple<vec,vec> dynout;
   for(int k=1; k<N; k++)
   {
 
     dynamics_info_kn1 = dynamics_info_k;
-    dynamics_info_k =  make_tuple(Bset.col(k),Rset.col(k),pset(k),Vset.col(k),Sset.col(k),0);
+    dynamics_info_k =  make_tuple(Bset.col(k),Rset.col(k),pset(k),Vset.col(k),Sset.col(k),0,rhoset(k));
     RmatT = rotMat(qk).t();
     // uk = -bdotgain*(-cross(xk.rows(0,2), RmatT*Bk) + RmatT*(Bset.col(k)-Bk)/dt0);
     uk.zeros();
@@ -692,6 +693,7 @@ tuple<TRAJECTORY_FORM,double> OldPlanner::smartbdot(vec x0,double dt0,int N,VECT
   mat Vset = get<2>(vecs);
   mat Sset = get<4>(vecs);
   vec pset = get<7>(vecs);
+  vec rhoset = get<8>(vecs);  // atmospheric density
   vec t = get<0>(vecs);
   vec3 Bk = Bset.col(0);
   double nB2 = dot(Bk,Bk);
@@ -719,7 +721,7 @@ tuple<TRAJECTORY_FORM,double> OldPlanner::smartbdot(vec x0,double dt0,int N,VECT
   //uk = -bdotgain*(-cross(newX(1:3,1),rotT(newX(end-3:end,1))*Bset(:,1)) + rotT(newX(end-3:end,1))*(Bset(:,2)-Bset(:,1))/dt0);
   vec ECIvk = ECIvec.col(0);
   vec ECIvkp1 = ECIvec.col(1);
-  DYNAMICS_INFO_FORM dynamics_info_kn1 = make_tuple(Bset.col(0),Rset.col(0),pset(0),Vset.col(0),Sset.col(0),1);
+  DYNAMICS_INFO_FORM dynamics_info_kn1 = make_tuple(Bset.col(0),Rset.col(0),pset(0),Vset.col(0),Sset.col(0),1,rhoset(0));
 
   vec3 dist_torq = sat.dist_torque(xk,dynamics_info_kn1);
   vec uk = OldPlanner::smartbdot_rawmtq_finder(dt0,xk,nB2, ECIvk, ECIvkp1, satvk, Bbody,sbSettings,dist_torq);
@@ -743,7 +745,7 @@ tuple<TRAJECTORY_FORM,double> OldPlanner::smartbdot(vec x0,double dt0,int N,VECT
   {
     Bk = Bset.col(k);
     dynamics_info_kn1 = dynamics_info_k;
-    dynamics_info_k =  make_tuple(Bk,Rset.col(k),pset(k),Vset.col(k),Sset.col(k),1);
+    dynamics_info_k =  make_tuple(Bk,Rset.col(k),pset(k),Vset.col(k),Sset.col(k),1,rhoset(k));
     Uset.col(k) = uk;
     //uk = Uset.col(k-1);
     //xprev = xk;
@@ -874,6 +876,7 @@ tuple<cube, cube> OldPlanner::findK(double dt_tvlqr0, TRAJECTORY_FORM traj, VECT
   mat sunset = get<4>(vecs);
   mat Vset = get<2>(vecs);
   vec pset = get<7>(vecs);
+  vec rhoset = get<8>(vecs);  // atmospheric density
   int N = Xset.n_cols;
   if(verbose) {
     cout<<"N is: "<<N<<"\n";
@@ -912,7 +915,7 @@ tuple<cube, cube> OldPlanner::findK(double dt_tvlqr0, TRAJECTORY_FORM traj, VECT
   //vec3 prop_torq = this->prop_torq;
 
   //Loop backwards
-  DYNAMICS_INFO_FORM dynamics_info_kp1 = make_tuple(Bset.col(k),Rset.col(k),pset(k),Vset.col(k),sunset.col(k),1);
+  DYNAMICS_INFO_FORM dynamics_info_kp1 = make_tuple(Bset.col(k),Rset.col(k),pset(k),Vset.col(k),sunset.col(k),1,rhoset(k));
   DYNAMICS_INFO_FORM dynamics_info_k = dynamics_info_kp1;
   vec eigvals;
   mat eigvecs;
@@ -920,7 +923,7 @@ tuple<cube, cube> OldPlanner::findK(double dt_tvlqr0, TRAJECTORY_FORM traj, VECT
   for(int k=N-2; k>=0; k--)
   {
     dynamics_info_kp1 = dynamics_info_k;
-    dynamics_info_k =  make_tuple(Bset.col(k),Rset.col(k),pset(k),Vset.col(k),sunset.col(k),1);
+    dynamics_info_k =  make_tuple(Bset.col(k),Rset.col(k),pset(k),Vset.col(k),sunset.col(k),1,rhoset(k));
     //Update states and stuff at time k
     Gkp1 = Gk;
     // tk = dt_tvlqr0*(k-1)+1;
@@ -978,6 +981,7 @@ tuple<cube, cube> OldPlanner::findKwDist(double dt_tvlqr0, TRAJECTORY_FORM traj,
   mat sunset = get<4>(vecs);
   mat Vset = get<2>(vecs);
   vec pset = get<7>(vecs);
+  vec rhoset = get<8>(vecs);  // atmospheric density
   int N = Xset.n_cols;
   if(verbose) {
     cout<<"N is: "<<N<<"\n";
@@ -1021,7 +1025,7 @@ tuple<cube, cube> OldPlanner::findKwDist(double dt_tvlqr0, TRAJECTORY_FORM traj,
   //vec3 prop_torq = this->prop_torq;
 
   //Loop backwards
-  DYNAMICS_INFO_FORM dynamics_info_kp1 = make_tuple(Bset.col(k),Rset.col(k),pset(k),Vset.col(k),sunset.col(k),1);
+  DYNAMICS_INFO_FORM dynamics_info_kp1 = make_tuple(Bset.col(k),Rset.col(k),pset(k),Vset.col(k),sunset.col(k),1,rhoset(k));
   DYNAMICS_INFO_FORM dynamics_info_k = dynamics_info_kp1;
   vec eigvals;
   mat eigvecs;
@@ -1030,7 +1034,7 @@ tuple<cube, cube> OldPlanner::findKwDist(double dt_tvlqr0, TRAJECTORY_FORM traj,
   {
 
     dynamics_info_kp1 = dynamics_info_k;
-    dynamics_info_k =  make_tuple(Bset.col(k),Rset.col(k),pset(k),Vset.col(k),sunset.col(k),1);
+    dynamics_info_k =  make_tuple(Bset.col(k),Rset.col(k),pset(k),Vset.col(k),sunset.col(k),1,rhoset(k));
     //Update states and stuff at time k
     Gkp1 = Gk;
     // tk = dt_tvlqr0*(k-1)+1;
@@ -1125,6 +1129,7 @@ tuple<cube, cube> OldPlanner::findKwDist(double dt_tvlqr0, TRAJECTORY_FORM traj,
   mat Vset = get<2>(vecs);
   mat Sset = get<4>(vecs);
   vec pset = get<7>(vecs);
+  vec rhoset = get<8>(vecs);  // atmospheric density
 
 
   //Copy initial state of x to newX
@@ -1153,14 +1158,14 @@ tuple<cube, cube> OldPlanner::findKwDist(double dt_tvlqr0, TRAJECTORY_FORM traj,
   vec3 avErr = vec3().zeros();
   int N = Xset.n_cols;
   //Loop from k=1 to k=N-1 and update newU and newX
-  DYNAMICS_INFO_FORM dynamics_info_kn1 = make_tuple(Bset.col(0),Rset.col(0),pset(0),Vset.col(0),Sset.col(0),int(useDist));
+  DYNAMICS_INFO_FORM dynamics_info_kn1 = make_tuple(Bset.col(0),Rset.col(0),pset(0),Vset.col(0),Sset.col(0),int(useDist),rhoset(0));
   DYNAMICS_INFO_FORM dynamics_info_k = dynamics_info_kn1;
 
   for(int k=1; k<N; k++)
   {
 
     dynamics_info_kn1 = dynamics_info_k;
-    dynamics_info_k =  make_tuple(Bset.col(k),Rset.col(k),pset(k),Vset.col(k),Sset.col(k),int(useDist));
+    dynamics_info_k =  make_tuple(Bset.col(k),Rset.col(k),pset(k),Vset.col(k),Sset.col(k),int(useDist),rhoset(k));
     //Update all the "prev" variables
     //newXprev = newXk;
     oldXprev = Xset.col(k-1);
@@ -1272,19 +1277,20 @@ TRAJECTORY_FORM OldPlanner::generateInitialTrajectory(double dt0, vec x0, mat Us
   mat Vset = get<2>(vecs);
   mat Sset = get<4>(vecs);
   vec pset = get<7>(vecs);
+  vec rhoset = get<8>(vecs);  // atmospheric density
   vec uk = vec(sat.control_N()).zeros();
   vec3 Bk = Bset.col(0);
 
 
   //Loop from k = 1 to N-1 and fill in Xset, using rk4
-  DYNAMICS_INFO_FORM dynamics_info_kn1 = make_tuple(Bset.col(0),Rset.col(0),pset(0),Vset.col(0),Sset.col(0),1);
+  DYNAMICS_INFO_FORM dynamics_info_kn1 = make_tuple(Bset.col(0),Rset.col(0),pset(0),Vset.col(0),Sset.col(0),1,rhoset(0));
 
   DYNAMICS_INFO_FORM dynamics_info_k = dynamics_info_kn1;
   tuple<vec,vec> dynout;
   for(int k=1; k<N; k++)
   {
     dynamics_info_kn1 = dynamics_info_k;
-    dynamics_info_k =  make_tuple(Bset.col(k),Rset.col(k),pset(k),Vset.col(k),Sset.col(k),1);
+    dynamics_info_k =  make_tuple(Bset.col(k),Rset.col(k),pset(k),Vset.col(k),Sset.col(k),1,rhoset(k));
     uk = Uset.col(k-1);
     //xprev = xk;
     // Bk = Bset.col(k-1);
@@ -1881,6 +1887,7 @@ tuple<BACKWARD_PASS_RESULTS_FORM, REG_PAIR> OldPlanner::backwardPass(double dt0,
   mat satvec = get<5>(vecs);
   mat ECIvec = get<6>(vecs);
   mat pset = get<7>(vecs);
+  vec rhoset = get<8>(vecs);  // atmospheric density
   bool reset = false;
   double rho = 0.0;
 
@@ -1959,7 +1966,7 @@ tuple<BACKWARD_PASS_RESULTS_FORM, REG_PAIR> OldPlanner::backwardPass(double dt0,
     sunk = normalise(sunset.col(k));
     //use rk4 to find Ak, Bk
     Gk = sat.findGMat(qk);
-    dynamics_info_k = make_tuple(Bset.col(k),Rset.col(k),pset(k),Vset.col(k),sunset.col(k),int(useDist));
+    dynamics_info_k = make_tuple(Bset.col(k),Rset.col(k),pset(k),Vset.col(k),sunset.col(k),int(useDist),rhoset(k));
     //rk4Jacobians
     //find Aqk, Bqk
     Aqk = Aqk.zeros();
