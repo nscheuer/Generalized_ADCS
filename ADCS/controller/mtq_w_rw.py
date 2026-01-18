@@ -259,7 +259,9 @@ class MTQ_w_RW(Controller):
 
         goal_vector_eci, w_ref_eci = goal.to_ref(os0=os_hat)
 
-        b_body = self.M_mtm_read @ sens # Already filters out only MTM readings
+        sens_clean = sens.copy()
+        sens_clean[np.isnan(sens_clean)] = 0.0
+        b_body = np.asarray(self.M_mtm_read @ sens_clean, float).reshape(3,)
 
         q_err_vec = goal.error(q=q, body_boresight=est_sat.boresight, os0=os_hat)
         # q_err_vec = vector_alignment_error(q=q, eci_goal=goal_vector_eci, body_boresight=est_sat.boresight)

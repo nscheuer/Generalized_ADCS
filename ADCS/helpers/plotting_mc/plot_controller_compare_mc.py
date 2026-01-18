@@ -8,13 +8,23 @@ def _rot_mat_vec(q: np.ndarray) -> np.ndarray:
     Vectorized conversion of Scalar-First Quaternions (w, x, y, z) 
     to Rotation Matrices (Body -> Inertial).
     
-    Input: q shape (N, 4)
-    Output: R shape (N, 3, 3)
+    Input: q shape (N, 4) OR (4,)
+    Output: R shape (N, 3, 3) OR (3, 3)
     """
-    w, x, y, z = q[:, 0], q[:, 1], q[:, 2], q[:, 3]
+    q = np.asarray(q)
+    
+    # Handle single quaternion input case: (4,) -> (1, 4)
+    if q.ndim == 1:
+        q_in = q[np.newaxis, :]
+        is_single = True
+    else:
+        q_in = q
+        is_single = False
+        
+    w, x, y, z = q_in[:, 0], q_in[:, 1], q_in[:, 2], q_in[:, 3]
     
     # Formula for Rotation Matrix from Quaternion (Hamilton/Scalar First)
-    R = np.empty((q.shape[0], 3, 3))
+    R = np.empty((q_in.shape[0], 3, 3))
     
     R[:, 0, 0] = 1 - 2*(y**2 + z**2)
     R[:, 0, 1] = 2*(x*y - z*w)
@@ -28,6 +38,10 @@ def _rot_mat_vec(q: np.ndarray) -> np.ndarray:
     R[:, 2, 1] = 2*(y*z + x*w)
     R[:, 2, 2] = 1 - 2*(x**2 + y**2)
     
+    # If input was (4,), return (3, 3) instead of (1, 3, 3)
+    if is_single:
+        return R[0]
+        
     return R
 
 def plot_h_tracking_mc_compare(
@@ -45,7 +59,7 @@ def plot_h_tracking_mc_compare(
         print("[plot_h_tracking_mc_compare] Warning: No results to plot.")
         return
 
-    plt.figure(figsize=(5, 3))
+    plt.figure(figsize=(10, 6))
 
     # Color maps
     cmap_A = cm.get_cmap("tab10")
@@ -116,7 +130,7 @@ def plot_target_tracking_mc_compare(
     v_bore_body = np.asarray(body_boresight, dtype=float)
     v_bore_body /= np.linalg.norm(v_bore_body)
 
-    plt.figure(figsize=(5, 3))
+    plt.figure(figsize=(10, 6))
 
     def _plot_set(results, color, alpha):
         for res in results:
@@ -179,7 +193,8 @@ def plot_convergence_histogram_mc_compare(
     label_B: str = "Case B",
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
-    Compare final-timestep tracking error histograms for two MC result sets.
+    Compare final-timestep tracking error histograms for two MC result sets
+    and display comparative statistics.
     """
 
     v_bore_body = np.asarray(body_boresight, dtype=float)
@@ -187,7 +202,6 @@ def plot_convergence_histogram_mc_compare(
 
     def _extract_errors(results):
         errors = []
-
         for res in results:
             if "state" not in res or "boresight_goal" not in res:
                 continue
@@ -199,8 +213,11 @@ def plot_convergence_histogram_mc_compare(
             if N == 0:
                 continue
 
+            # Extract final quaternion
             q = state[N - 1, 3:7]
-            R_b2i = _rot_mat_vec(q)
+            
+            # Robust call: reshape to (1,4) to satisfy vectorized helper, then take [0]
+            R_b2i = _rot_mat_vec(q.reshape(1, 4))[0]
 
             v_b = R_b2i @ v_bore_body
             v_g = goal[N - 1]
@@ -219,25 +236,58 @@ def plot_convergence_histogram_mc_compare(
 
         return np.asarray(errors)
 
+    def _get_stats_str(name, errs, thresh):
+        if errs.size == 0:
+            return f"{name}: No Data"
+        
+        pct_under = 100.0 * np.mean(errs < thresh)
+        return (
+            f"{name} (N={errs.size})\n"
+            f"  < {thresh:.1f}°: {pct_under:.1f}%\n"
+            f"  Mean: {np.mean(errs):.2f}°\n"
+            f"  Max:  {np.max(errs):.2f}°"
+        )
+
+    # 1. Extract Errors
     err_A = _extract_errors(full_results_A)
     err_B = _extract_errors(full_results_B)
 
+    # 2. Determine Histogram Bins
     max_err = max(
         err_A.max() if err_A.size else 0.0,
         err_B.max() if err_B.size else 0.0,
     )
     max_edge = np.ceil(max_err / bin_width_deg) * bin_width_deg
+    # Ensure at least one bin if everything is 0
+    if max_edge == 0: max_edge = bin_width_deg 
     bins = np.arange(0.0, max_edge + bin_width_deg, bin_width_deg)
 
-    plt.figure(figsize=(5, 3))
-    plt.hist(err_A, bins=bins, alpha=0.6, label=label_A, edgecolor="black")
-    plt.hist(err_B, bins=bins, alpha=0.6, label=label_B, edgecolor="black")
+    # 3. Plot
+    plt.figure(figsize=(10, 6)) # Slightly wider to accommodate text
+    
+    # Use 'stepfilled' or 'bar' with transparency for overlapping histograms
+    plt.hist(err_A, bins=bins, alpha=0.5, label=label_A, edgecolor="black", linewidth=1)
+    plt.hist(err_B, bins=bins, alpha=0.5, label=label_B, edgecolor="black", linewidth=1, linestyle='--')
 
     plt.xlabel("Final Tracking Error [deg]")
     plt.ylabel("Count")
     plt.title(title)
     plt.grid(True, linestyle="--", alpha=0.6)
-    plt.legend()
+    plt.legend(loc='upper left')
+
+    # 4. Add Stats Box
+    stats_str_A = _get_stats_str(label_A, err_A, under_thresh_deg)
+    stats_str_B = _get_stats_str(label_B, err_B, under_thresh_deg)
+    full_stats_txt = f"{stats_str_A}\n\n{stats_str_B}"
+
+    plt.gca().text(
+        0.98, 0.98, full_stats_txt,
+        transform=plt.gca().transAxes,
+        ha="right", va="top",
+        fontsize=9,
+        bbox=dict(boxstyle="round", facecolor="white", alpha=0.9, edgecolor="gray"),
+    )
+
     plt.tight_layout()
 
     return err_A, err_B

@@ -6,9 +6,9 @@ from typing import List, Union
 from tqdm import tqdm
 import pytest
 
-sys.path.append(os.path.abspath(os.path.join(__file__, "../..")))
+sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))
 from ADCS.CONOPS.goals import Goal, ECI_Goal, Coordinate_Goal
-from ADCS.controller import MTQ_w_RW_LP
+from ADCS.controller import MTQ_Lovera
 from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.orbit import Orbit
 from ADCS.orbits.orbital_state import Orbital_State
@@ -32,13 +32,13 @@ def test_MTQ_w_RW_LP_align(verbose: bool = False, tf: float = 1000, dt: float = 
     t0 = 0
     N = int((tf-t0)/dt)
 
-    rw_h0 = 0.0005
+    rw_h0 = -9.76622366e-05
     real_sat = create_beavercube2_cubesat(estimated=False)
     real_sat.rw_actuators[0].h = rw_h0
 
     w0 = random_n_unit_vec(3)*np.random.uniform(1, 2)*np.pi/180.0
-    w0 = np.array([0, 0, 0])
-    q0 = np.array([1, 0, 0, 0])
+    w0 = np.array([-0.00874868,  0.00209214,  0.00593677])
+    q0 = np.array([0.86698928, 0.29417644, 0.34385383, 0.20869681])
     h0 = np.array([rw_h0])
     x = np.concatenate([w0, q0, h0])
 
@@ -61,7 +61,7 @@ def test_MTQ_w_RW_LP_align(verbose: bool = False, tf: float = 1000, dt: float = 
         orb = Orbit(orbs)
 
     # Controller
-    controller = MTQ_w_RW_LP(est_sat=real_sat, p_gain=0.00005, d_gain=0.001, c_gain=0.001, h_target=np.array([0.0, 0.0, 0.0]))
+    controller = MTQ_Lovera(est_sat=real_sat, p_gain=0.001, d_gain=0.005, eps=1.0)
 
     time_hist = np.nan*np.zeros(N)
     state_hist = np.nan*np.zeros((N, len(x)))
@@ -74,7 +74,7 @@ def test_MTQ_w_RW_LP_align(verbose: bool = False, tf: float = 1000, dt: float = 
     ind = 0
     steps = int((tf - t0)/dt)
 
-    goal = ECI_Goal(np.array([0, 1, 0]))
+    goal = ECI_Goal(np.array([-0.13901563, -0.36955661, -0.91875055]))
     # goal = Coordinate_Goal(lat=9, lon=-70, alt=0)
 
     for step in tqdm(range(steps), desc="Simulating MTQ_w_RW"):
@@ -121,4 +121,4 @@ def plot_MTQ_w_RW_LP_align(verbose: bool = False, tf: float = 1000, dt: float = 
     create_close_all_button_window()
 
 if __name__ == "__main__":
-    plot_MTQ_w_RW_LP_align(verbose=False, tf = 1000, dt = 2, real_orbit=True)
+    plot_MTQ_w_RW_LP_align(verbose=False, tf = 4000, dt = 2, real_orbit=True)

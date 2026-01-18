@@ -197,8 +197,10 @@ class MTQ_Lovera(Controller):
 
         tau_des = tau_pd + tau_gyro
 
-        y = np.asarray(sens).reshape(-1)
-        B_curr = self.M_read @ y
+        sens = np.asarray(sens).reshape(-1)
+        sens_clean = sens.copy()
+        sens_clean[np.isnan(sens_clean)] = 0.0
+        B_curr = self.M_read @ sens_clean
         B_norm_sq = np.linalg.norm(B_curr)**2
 
         if B_norm_sq < 1e-11:
