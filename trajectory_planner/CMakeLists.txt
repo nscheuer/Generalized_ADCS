@@ -15,6 +15,28 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(BUILD_SHARED_LIBS ON)
 
+# =============================================================================
+# Build Speed Optimizations
+# =============================================================================
+
+# Use ccache if available (dramatically speeds up rebuilds)
+find_program(CCACHE_PROGRAM ccache)
+if(CCACHE_PROGRAM)
+    message(STATUS "Found ccache: ${CCACHE_PROGRAM}")
+    set(CMAKE_CXX_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
+    set(CMAKE_C_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
+endif()
+
+# Export compile commands for IDE integration
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+# Parallel compilation (for single-threaded make)
+include(ProcessorCount)
+ProcessorCount(NPROC)
+if(NOT NPROC EQUAL 0)
+    set(CMAKE_BUILD_PARALLEL_LEVEL ${NPROC} CACHE STRING "Parallel build level")
+endif()
+
 # --- Find the correct Python first ---
 find_package(Python3 3.10 REQUIRED COMPONENTS Interpreter Development.Module Development.Embed)
 
@@ -164,3 +186,43 @@ target_include_directories(tp_test2 PUBLIC
          ${PYBIND11_INCLUDE_DIRS}
          ${ARMADILLO_INCLUDE_DIRS}
 		   )
+
+# =============================================================================
+# CTest Integration
+# =============================================================================
+include(CTest)
+enable_testing()
+
+# Use Catch2's CMake integration for automatic test discovery
+include(Catch)
+
+# Discover and register all Catch2 tests
+catch_discover_tests(tp_test
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    TEST_PREFIX "tp_test::"
+)
+
+catch_discover_tests(tp_test2
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    TEST_PREFIX "tp_test2::"
+)
+
+# =============================================================================
+# Custom Targets for Convenience
+# =============================================================================
+
+# Quick test target (runs all tests)
+add_custom_target(check
+    COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure -j${NPROC}
+    DEPENDS tp_test tp_test2
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    COMMENT "Running all C++ tests..."
+)
+
+# Verbose test target
+add_custom_target(check-verbose
+    COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure --verbose
+    DEPENDS tp_test tp_test2
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    COMMENT "Running all C++ tests (verbose)..."
+)
