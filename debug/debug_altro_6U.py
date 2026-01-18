@@ -4,6 +4,7 @@ import numpy as np
 from scipy.integrate import solve_ivp
 from typing import List, Union
 from tqdm import tqdm
+import matplotlib.pyplot as plt
 import pytest
 
 sys.path.append(os.path.abspath(os.path.join(__file__, "../..")))
@@ -33,29 +34,27 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
     t0 = 0
     N = int((tf-t0)/dt)
 
-    mtm_max_torque = 0.1
-    mtqs = [MTQ(axis=j, max_torque=mtm_max_torque) for j in MathConstants.unitvecs]
+    mtq_max_torque = 5.0
+    mtqs = [MTQ(axis=j, max_torque=mtq_max_torque) for j in MathConstants.unitvecs]
 
-    rw_max_torque = 7*0.001
-    rw_J = 0.001
-    rw_h0 = 5*0.001
-    rw_hmax = 16.2*0.001
+    rw_max_torque = 0.005
+    rw_J = 0.0014
+    rw_h0 = 0
+    rw_hmax = 0.015
     rws = [RW(axis=j, max_torque=rw_max_torque, J=rw_J, h=rw_h0, h_max=rw_hmax) for j in MathConstants.unitvecs]
 
-    acts = mtqs+rws
-    # acts = mtqs
+    acts = rws
 
     mtms = [MTM(axis=j) for j in MathConstants.unitvecs]
 
-    real_sat = Satellite(mass=4.0, J_0=np.diagflat([3.4, 2.9, 1.3]), actuators=acts, sensors=mtms, boresight=np.array([0, 0, 1]))
+    real_sat = Satellite(mass=10.165, J_0=np.diagflat([0.0969,0.1235,0.1918]), actuators=acts, sensors=mtms, boresight=np.array([0, 0, 1]))
 
     w0 = random_n_unit_vec(3)*np.random.uniform(1, 2)*np.pi/180.0
-    w0 = np.array([0.01, 0, 0])
+    w0 = np.array([0.001, 0.002, -0.001])
     q0 = random_n_unit_vec(4)
     q0 = normalize(np.array([1, 0, 0, 0]))
     h0 = np.array([rw_h0, rw_h0, rw_h0])
     x = np.concatenate([w0, q0, h0])
-    # x = np.concatenate([w0, q0])
 
     ephem = Ephemeris()
     start_time = 0.22 - 1*TimeConstants.sec2cent
@@ -90,8 +89,8 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
     ind = 0
     steps = int((tf - t0)/dt)
 
-    goals = GoalList({0.22: No_Goal()})
-    goals = GoalList({0.22: ECI_Goal(np.array([1, 0, 0]))})
+    # goals = GoalList({0.22: No_Goal()})
+    goals = GoalList({0.22: ECI_Goal(np.array([1, 1, 1]))})
 
     print("Computing Trajectory (One-Shot)")
     traj: Trajectory = controller.calculate_trajectory(
@@ -104,6 +103,15 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
     )
     # traj.plot_eci_trajectory()
     controller.set_active_trajectory(traj)
+    time_hist_traj = traj.times*TimeConstants.cent2sec
+    state_hist_traj = traj.states.T
+    u_hist_traj = traj.controls.T
+
+    plot_state_comparison(time=time_hist_traj, state_hist=state_hist_traj)
+    plot_control(time=time_hist_traj, u_hist=u_hist_traj)
+    #plot_rw_momentum(time=time_hist_traj, state_hist=state_hist_traj)
+    create_close_all_button_window()
+    plt.close()
 
     for step in tqdm(range(steps), desc="Simulating ALTRO"):
         J2000 = 0.22 + t*TimeConstants.sec2cent
@@ -141,15 +149,16 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
 def plot_mtq_w_rw_align_to_eci(verbose: bool = False, tf: float = 1000, dt: float = 10, real_orbit: bool = False) -> None:
     (time_hist, state_hist, os_hist, sensor_hist, u_hist, boresight_hist) = debug_altro(verbose=verbose, tf=tf, dt=dt, real_orbit=real_orbit)
 
-    animate_attitude(time=time_hist, state_hist=state_hist, os_hist=os_hist, boresight_goal_hist=boresight_hist)
-    plot_control(time=time_hist, u_hist=u_hist)
+    # animate_attitude(time=time_hist, state_hist=state_hist, os_hist=os_hist, boresight_goal_hist=boresight_hist)
     plot_state_comparison(time=time_hist, state_hist=state_hist)
+    plot_control(time=time_hist, u_hist=u_hist)
     plot_rw_momentum(time=time_hist, state_hist=state_hist)
-    goal = Coordinate_Goal(lat=38.7223, lon=-10, alt=0)
-    animate_orbit_pyvista(time_hist=time_hist, state_hist=state_hist, os_hist=os_hist, boresight_goal_hist=boresight_hist, coord_goal=goal)
-    plot_target_tracking(state_hist=state_hist, boresight_hist=boresight_hist, body_boresight=np.array([0, 0, 1]))
+    # goal = Coordinate_Goal(lat=38.7223, lon=-10, alt=0)
+    # animate_orbit_pyvista(time_hist=time_hist, state_hist=state_hist, os_hist=os_hist, boresight_goal_hist=boresight_hist, coord_goal=goal)
+    # plot_target_tracking(state_hist=state_hist, boresight_hist=boresight_hist, body_boresight=np.array([0, 0, 1]))
     #animate_orbit(time_hist=time_hist, state_hist=state_hist, os_hist=os_hist, boresight_goal_hist=boresight_hist, coord_goal=goal)
     create_close_all_button_window()
+    print("Yay!")
 
 if __name__ == "__main__":
     plot_mtq_w_rw_align_to_eci(verbose=False, tf = 100, dt = 1, real_orbit=True)

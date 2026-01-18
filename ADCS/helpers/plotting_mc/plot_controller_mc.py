@@ -1,7 +1,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from typing import List, Dict, Any, Tuple
+<<<<<<< HEAD
 import matplotlib.cm as cm
+=======
+>>>>>>> NSSR_planner
 
 def _rot_mat_vec(q: np.ndarray) -> np.ndarray:
     """
@@ -29,6 +32,7 @@ def _rot_mat_vec(q: np.ndarray) -> np.ndarray:
     R[:, 2, 2] = 1 - 2*(x**2 + y**2)
     
     return R
+<<<<<<< HEAD
     
 def plot_h_tracking_mc(
     full_results: List[Dict[str, Any]],
@@ -92,6 +96,8 @@ def plot_h_tracking_mc(
     plt.legend()
     plt.tight_layout()
 
+=======
+>>>>>>> NSSR_planner
 
 def plot_target_tracking_mc(
     full_results: List[Dict[str, Any]],
@@ -150,8 +156,6 @@ def plot_target_tracking_mc(
         
         # --- Plotting ---
         plt.plot(time, error_deg, color='tab:blue', alpha=0.1, linewidth=1.5)
-        if run_idx == 11:
-            plt.plot(time, error_deg, color='tab:blue', alpha=0.1, linewidth=1.5)
 
     # Add a dummy line for the legend so it's not transparent
     plt.plot([], [], color='tab:blue', label='MC Runs')

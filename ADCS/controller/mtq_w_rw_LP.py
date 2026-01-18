@@ -565,6 +565,7 @@ class MTQ_w_RW_LP(Controller):
 
         # --- Final Output ---
         u_out = u_mtq_scaled + u_rw  
+        return u_out
         
 
         

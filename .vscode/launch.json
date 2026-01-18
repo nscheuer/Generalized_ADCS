@@ -6,7 +6,7 @@
             "type": "cppdbg",
             "request": "launch",
             // IMPORTANT: Point to the Python interpreter in your venv
-            "program": "/home/nic2703/Documents/Generalized_ADCS/venv/bin/python", 
+            "program": "${workspaceFolder}/venv/bin/python", 
             // IMPORTANT: Point to the Python script running your test
             "args": ["${workspaceFolder}/debug/debug_altro.py"], 
             "stopAtEntry": false,
