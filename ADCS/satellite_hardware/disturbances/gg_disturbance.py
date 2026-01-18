@@ -38,8 +38,11 @@ class GG_Disturbance(Disturbance):
         const_term = 3.0*EarthConstants.mu_e/(norm(R_B)**3.0)
 
         dc__dq = -9.0*EarthConstants.mu_e*vec_norm_jac(R_B, vecs["dr"])/(norm(R_B)**4.0)
-        dv__dq = np.cross(dnadir_vec__dq, sat.J_0@nadir_vec) + np.cross(nadir_vec, dnadir_vec__dq@sat.J_0)
-        vec_term = np.cross(nadir_vec, sat.J_0@nadir_vec)
+        dv__dq = (
+            np.cross(dnadir_vec__dq, sat.J_0 @ nadir_vec)
+            + np.cross(nadir_vec, sat.J_0 @ dnadir_vec__dq)
+        )
+        vec_term = np.cross(nadir_vec, sat.J_0 @ nadir_vec)
 
         return np.outer(dc__dq, vec_term) + const_term*dv__dq
 
@@ -55,14 +58,36 @@ class GG_Disturbance(Disturbance):
         ddnadir_vec__dqdq = -ddr_body_hat__dq
 
         const_term = 3.0*EarthConstants.mu_e/(norm(R_B)**3.0)
-        tmp = np.cross(np.expand_dims(dnadir_vec__dq, 1), np.expand_dims(sat.J_0@dnadir_vec__dq, 0))
+        tmp = np.cross(
+            np.expand_dims(dnadir_vec__dq, 1),
+            np.expand_dims(sat.J_0 @ dnadir_vec__dq, 0),
+        )
 
         dc__dq = -9.0*EarthConstants.mu_e*vec_norm_jac(R_B, vecs["dr"])/(norm(R_B)**4.0)
-        ddc__dqdq = -9.0*EarthConstants.mu_e*vec_norm_hess(R_B, vecs["dr"], vecs["ddr"])/(norm(R_B)**4.0) - 4.0*np.outer(vec_norm_jac(R_B, vecs["dr"]), vec_norm_jac(R_B, vecs["dr"]))/(norm(R_B)**5.0)
-        dv__dq = np.cross(dnadir_vec__dq, sat.J_0@nadir_vec) + np.cross(nadir_vec, dnadir_vec__dq@sat.J_0)
-        ddv__dqdq = np.cross(ddnadir_vec__dqdq, sat.J_0@nadir_vec) + tmp + np.transpose(tmp, (1, 0, 2)) + np.cross(nadir_vec, ddnadir_vec__dqdq@sat.J_0)
+        ddc__dqdq = (
+            -9.0*EarthConstants.mu_e*vec_norm_hess(R_B, vecs["dr"], vecs["ddr"])/(norm(R_B)**4.0)
+            - 4.0*np.outer(
+                vec_norm_jac(R_B, vecs["dr"]),
+                vec_norm_jac(R_B, vecs["dr"]),
+            )/(norm(R_B)**5.0)
+        )
+        dv__dq = (
+            np.cross(dnadir_vec__dq, sat.J_0 @ nadir_vec)
+            + np.cross(nadir_vec, sat.J_0 @ dnadir_vec__dq)
+        )
+        ddv__dqdq = (
+            np.cross(ddnadir_vec__dqdq, sat.J_0 @ nadir_vec)
+            + tmp
+            + np.transpose(tmp, (1, 0, 2))
+            + np.cross(nadir_vec, sat.J_0 @ ddnadir_vec__dqdq)
+        )
 
-        vec_term = np.cross(nadir_vec, sat.J_0@nadir_vec)
+        vec_term = np.cross(nadir_vec, sat.J_0 @ nadir_vec)
         tmp2 = np.multiply.outer(dc__dq, dv__dq)
 
-        return np.multiply.outer(ddc__dqdq, vec_term) + tmp2 + np.transpose(tmp2, (1, 0, 2)) + const_term*ddv__dqdq
+        return (
+            np.multiply.outer(ddc__dqdq, vec_term)
+            + tmp2
+            + np.transpose(tmp2, (1, 0, 2))
+            + const_term*ddv__dqdq
+        )

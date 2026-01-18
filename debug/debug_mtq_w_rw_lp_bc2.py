@@ -32,7 +32,7 @@ def test_MTQ_w_RW_LP_align(verbose: bool = False, tf: float = 1000, dt: float = 
     t0 = 0
     N = int((tf-t0)/dt)
 
-    rw_h0 = 0.0015
+    rw_h0 = 0.0005
     real_sat = create_beavercube2_cubesat(estimated=False)
     real_sat.rw_actuators[0].h = rw_h0
 
@@ -61,7 +61,7 @@ def test_MTQ_w_RW_LP_align(verbose: bool = False, tf: float = 1000, dt: float = 
         orb = Orbit(orbs)
 
     # Controller
-    controller = MTQ_w_RW_LP(est_sat=real_sat, p_gain=0.0005, d_gain=0.01, c_gain=0.001, h_target=np.array([0.0, 0.0, 0.0]))
+    controller = MTQ_w_RW_LP(est_sat=real_sat, p_gain=0.00005, d_gain=0.001, c_gain=0.001, h_target=np.array([0.0, 0.0, 0.0]))
 
     time_hist = np.nan*np.zeros(N)
     state_hist = np.nan*np.zeros((N, len(x)))

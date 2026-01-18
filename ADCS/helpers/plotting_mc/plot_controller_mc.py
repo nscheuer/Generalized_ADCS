@@ -150,6 +150,8 @@ def plot_target_tracking_mc(
         
         # --- Plotting ---
         plt.plot(time, error_deg, color='tab:blue', alpha=0.1, linewidth=1.5)
+        if run_idx == 11:
+            plt.plot(time, error_deg, color='tab:blue', alpha=0.1, linewidth=1.5)
 
     # Add a dummy line for the legend so it's not transparent
     plt.plot([], [], color='tab:blue', label='MC Runs')

@@ -77,7 +77,7 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
         orb = _CACHED_ORBIT
 
         # 6. Controller
-        controller = MTQ_w_RW_LP(est_sat=real_sat, p_gain=0.0005, d_gain=0.01, c_gain=0.001, h_target=np.array([0.0, 0.0, 0.0]))
+        controller = MTQ_w_RW_LP(est_sat=real_sat, p_gain=0.00005, d_gain=0.0015, c_gain=0.001, h_target=np.array([0.0, 0.0, 0.0]))
         goal = ECI_Goal(config["goal_eci_vec"])
 
         # 7. Arrays
@@ -153,7 +153,7 @@ def generate_mc_config(run_id: int) -> Dict[str, Any]:
         "dt": 2,
         "w0": normalize(rng.standard_normal(3)) * (rng.uniform(0.1, 2.0) * np.pi / 180.0),
         "q0": normalize(rng.standard_normal(4)),
-        "h0": rng.uniform(-0.0036, 0.0036, size=1),
+        "h0": rng.uniform(-0.0001, 0.0001, size=1),
         "goal_eci_vec": normalize(rng.standard_normal(3)),
         "orbit_R": 7000 * np.array([0, np.sqrt(2)/2, np.sqrt(2)/2]),
         "orbit_V": np.array([8, 0, 0])
@@ -179,12 +179,9 @@ if __name__ == "__main__":
 
         create_close_all_button_window()
     else:
-        results = load_data("papers/3MTQ+1RW/output_data/3MTQ+1RW_QPC_mc_36_20260113_113845")
+        results = load_data("papers/3MTQ+1RW/output_data/3MTQ+1RW_LP_mc_36_20260118_011116")
         full_results = results[0]
         plot_target_tracking_mc(full_results=full_results)
         plot_convergence_histogram_mc(full_results=full_results, title="3 MTQ + 1 RW QP")
-        results = load_data("papers/3MTQ+1RW/output_data/3MTQ+1RW_LP_mc_36_20260112_180137")
-        full_results = results[0]
-        plot_target_tracking_mc(full_results=full_results)
-        plot_convergence_histogram_mc(full_results=full_results, title="3 MTQ + 1 RW LP")
         create_close_all_button_window()
+        print("Done plotting loaded data.")
