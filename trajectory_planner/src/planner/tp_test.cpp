@@ -957,9 +957,9 @@ TEST_CASE("Test dynamics Hessians", "[armadillo]") {
 	int N = 10;
 
 
-	DYNAMICS_INFO_FORM dynamics_info_kn1 = std::make_tuple(BECI_k,R_k,0,V_k,sunk,1);
+	DYNAMICS_INFO_FORM dynamics_info_kn1 = std::make_tuple(BECI_k,R_k,0,V_k,sunk,1,0.0);
 
-	DYNAMICS_INFO_FORM dynamics_info_k = std::make_tuple(BECI_kp1,R_k+1*V_k,0,V_k,sunk,1);
+	DYNAMICS_INFO_FORM dynamics_info_k = std::make_tuple(BECI_kp1,R_k+1*V_k,0,V_k,sunk,1,0.0);
 
 
 	COST_SETTINGS_FORM costset_tmp = std::make_tuple(1e3,1e0,1e-1,5,1.0,1e6,1e3,1e1,1e1,0,1,0);
@@ -1142,9 +1142,9 @@ TEST_CASE("Test dynamics jacobians", "[armadillo]") {
 	int k = 1;
 	int N = 10;
 
-	DYNAMICS_INFO_FORM dynamics_info_kn1 = std::make_tuple(BECI_k,R_k,0,V_k,sunk,1);
+	DYNAMICS_INFO_FORM dynamics_info_kn1 = std::make_tuple(BECI_k,R_k,0,V_k,sunk,1,0.0);
 
-	DYNAMICS_INFO_FORM dynamics_info_k = std::make_tuple(BECI_kp1,R_k+1*V_k,0,V_k,sunk,1);
+	DYNAMICS_INFO_FORM dynamics_info_k = std::make_tuple(BECI_kp1,R_k+1*V_k,0,V_k,sunk,1,0.0);
 
 
 	COST_SETTINGS_FORM costset_tmp = std::make_tuple(1e3,1e0,1e-1,5,1.0,1e6,1e3,1e1,1e1,0,1,0);
@@ -1251,9 +1251,9 @@ TEST_CASE("Test rk4 xd0 Hessians", "[armadillo]") {
 	int k = 1;
 	int N = 10;
 
-	DYNAMICS_INFO_FORM dynamics_info_kn1 = std::make_tuple(BECI_k,R_k,0,V_k,sunk,1);
+	DYNAMICS_INFO_FORM dynamics_info_kn1 = std::make_tuple(BECI_k,R_k,0,V_k,sunk,1,0.0);
 
-	DYNAMICS_INFO_FORM dynamics_info_k = std::make_tuple(BECI_kp1,R_k+1*V_k,0,V_k,sunk,1);
+	DYNAMICS_INFO_FORM dynamics_info_k = std::make_tuple(BECI_kp1,R_k+1*V_k,0,V_k,sunk,1,0.0);
 
 	COST_SETTINGS_FORM costset_tmp = std::make_tuple(1e3,1e0,1e-1,5,1.0,1e6,1e3,1e1,1e1,0,1,0);
 	arma::vec xd = rk4zxd0(1.0,xk,uk,sat,dynamics_info_kn1,dynamics_info_k);
@@ -1439,9 +1439,9 @@ TEST_CASE("Test rk4 xd1 Hessians", "[armadillo]") {
 	int k = 1;
 	int N = 10;
 
-	DYNAMICS_INFO_FORM dynamics_info_kn1 = std::make_tuple(BECI_k,R_k,0,V_k,sunk,1);
+	DYNAMICS_INFO_FORM dynamics_info_kn1 = std::make_tuple(BECI_k,R_k,0,V_k,sunk,1,0.0);
 
-	DYNAMICS_INFO_FORM dynamics_info_k = std::make_tuple(BECI_kp1,R_k+1*V_k,0,V_k,sunk,1);
+	DYNAMICS_INFO_FORM dynamics_info_k = std::make_tuple(BECI_kp1,R_k+1*V_k,0,V_k,sunk,1,0.0);
 
 	COST_SETTINGS_FORM costset_tmp = std::make_tuple(1e3,1e0,1e-1,5,1.0,1e6,1e3,1e1,1e1,0,1,0);
 	arma::vec xd = rk4zxd1(1.0,xk,uk,sat,dynamics_info_kn1,dynamics_info_k);
@@ -1637,9 +1637,9 @@ TEST_CASE("Test rk4 x1 Hessians", "[armadillo]") {
 	int k = 1;
 	int N = 10;
 
-	DYNAMICS_INFO_FORM dynamics_info_kn1 = std::make_tuple(BECI_k,R_k,0,V_k,sunk,1);
+	DYNAMICS_INFO_FORM dynamics_info_kn1 = std::make_tuple(BECI_k,R_k,0,V_k,sunk,1,0.0);
 
-	DYNAMICS_INFO_FORM dynamics_info_k = std::make_tuple(BECI_kp1,R_k+1*V_k,0,V_k,sunk,1);
+	DYNAMICS_INFO_FORM dynamics_info_k = std::make_tuple(BECI_kp1,R_k+1*V_k,0,V_k,sunk,1,0.0);
 
 	COST_SETTINGS_FORM costset_tmp = std::make_tuple(1e3,1e0,1e-1,5,1.0,1e6,1e3,1e1,1e1,0,1,0);
 	arma::vec xd = rk4zx1(1.0,xk,uk,sat,dynamics_info_kn1,dynamics_info_k);
@@ -1838,9 +1838,9 @@ TEST_CASE("Test rk4 x2 Jacobians&Hessians", "[armadillo]") {
 	int k = 1;
 	int N = 10;
 
-	DYNAMICS_INFO_FORM dynamics_info_kn1 = std::make_tuple(BECI_k,R_k,0,V_k,sunk,1);
+	DYNAMICS_INFO_FORM dynamics_info_kn1 = std::make_tuple(BECI_k,R_k,0,V_k,sunk,1,0.0);
 
-	DYNAMICS_INFO_FORM dynamics_info_k = std::make_tuple(BECI_kp1,R_k+1*V_k,0,V_k,sunk,1);
+	DYNAMICS_INFO_FORM dynamics_info_k = std::make_tuple(BECI_kp1,R_k+1*V_k,0,V_k,sunk,1,0.0);
 
 	COST_SETTINGS_FORM costset_tmp = std::make_tuple(1e3,1e0,1e-1,5,1.0,1e6,1e3,1e1,1e1,0,1,0);
 	arma::vec xd = rk4zx2(1.0,xk,uk,sat,dynamics_info_kn1,dynamics_info_k);
@@ -2076,9 +2076,9 @@ TEST_CASE("Test rk4 x2r Jacobians&Hessians", "[armadillo]") {
 	int k = 1;
 	int N = 10;
 
-	DYNAMICS_INFO_FORM dynamics_info_kn1 = std::make_tuple(BECI_k,R_k,0,V_k,sunk,1);
+	DYNAMICS_INFO_FORM dynamics_info_kn1 = std::make_tuple(BECI_k,R_k,0,V_k,sunk,1,0.0);
 
-	DYNAMICS_INFO_FORM dynamics_info_k = std::make_tuple(BECI_kp1,R_k+1*V_k,0,V_k,sunk,1);
+	DYNAMICS_INFO_FORM dynamics_info_k = std::make_tuple(BECI_kp1,R_k+1*V_k,0,V_k,sunk,1,0.0);
 
 	COST_SETTINGS_FORM costset_tmp = std::make_tuple(1e3,1e0,1e-1,5,1.0,1e6,1e3,1e1,1e1,0,1,0);
 	arma::vec xd = rk4zx2r(1.0,xk,uk,sat,dynamics_info_kn1,dynamics_info_k);
@@ -2315,9 +2315,9 @@ TEST_CASE("Test rk4 x1 Jacobians&Hessians", "[armadillo]") {
 	int k = 1;
 	int N = 10;
 
-	DYNAMICS_INFO_FORM dynamics_info_kn1 = std::make_tuple(BECI_k,R_k,0,V_k,sunk,1);
+	DYNAMICS_INFO_FORM dynamics_info_kn1 = std::make_tuple(BECI_k,R_k,0,V_k,sunk,1,0.0);
 
-	DYNAMICS_INFO_FORM dynamics_info_k = std::make_tuple(BECI_kp1,R_k+1*V_k,0,V_k,sunk,1);
+	DYNAMICS_INFO_FORM dynamics_info_k = std::make_tuple(BECI_kp1,R_k+1*V_k,0,V_k,sunk,1,0.0);
 
 	COST_SETTINGS_FORM costset_tmp = std::make_tuple(1e3,1e0,1e-1,5,1.0,1e6,1e3,1e1,1e1,0,1,0);
 	arma::vec xd = rk4zx1(1.0,xk,uk,sat,dynamics_info_kn1,dynamics_info_k);
@@ -2550,9 +2550,9 @@ TEST_CASE("Test rk4 xkp1r Jacobians&Hessians", "[armadillo]") {
 	int k = 1;
 	int N = 10;
 
-	DYNAMICS_INFO_FORM dynamics_info_kn1 = std::make_tuple(BECI_k,R_k,0,V_k,sunk,1);
+	DYNAMICS_INFO_FORM dynamics_info_kn1 = std::make_tuple(BECI_k,R_k,0,V_k,sunk,1,0.0);
 
-	DYNAMICS_INFO_FORM dynamics_info_k = std::make_tuple(BECI_kp1,R_k+1*V_k,0,V_k,sunk,1);
+	DYNAMICS_INFO_FORM dynamics_info_k = std::make_tuple(BECI_kp1,R_k+1*V_k,0,V_k,sunk,1,0.0);
 
 	COST_SETTINGS_FORM costset_tmp = std::make_tuple(1e3,1e0,1e-1,5,1.0,1e6,1e3,1e1,1e1,0,1,0);
 	arma::vec xd = rk4zxkp1r(1.0,xk,uk,sat,dynamics_info_kn1,dynamics_info_k);
@@ -2968,9 +2968,9 @@ TEST_CASE("Test rk4 x3 Hessians", "[armadillo]") {
 	int k = 1;
 	int N = 10;
 
-	DYNAMICS_INFO_FORM dynamics_info_kn1 = std::make_tuple(BECI_k,R_k,0,V_k,sunk,1);
+	DYNAMICS_INFO_FORM dynamics_info_kn1 = std::make_tuple(BECI_k,R_k,0,V_k,sunk,1,0.0);
 
-	DYNAMICS_INFO_FORM dynamics_info_k = std::make_tuple(BECI_kp1,R_k+1*V_k,0,V_k,sunk,1);
+	DYNAMICS_INFO_FORM dynamics_info_k = std::make_tuple(BECI_kp1,R_k+1*V_k,0,V_k,sunk,1,0.0);
 
 	COST_SETTINGS_FORM costset_tmp = std::make_tuple(1e3,1e0,1e-1,5,1.0,1e6,1e3,1e1,1e1,0,1,0);
 	arma::vec xd = rk4zx3(1.0,xk,uk,sat,dynamics_info_kn1,dynamics_info_k);
@@ -3166,9 +3166,9 @@ TEST_CASE("Test rk4 x3r Jacobians&Hessians", "[armadillo]") {
 	int k = 1;
 	int N = 10;
 
-	DYNAMICS_INFO_FORM dynamics_info_kn1 = std::make_tuple(BECI_k,R_k,0,V_k,sunk,1);
+	DYNAMICS_INFO_FORM dynamics_info_kn1 = std::make_tuple(BECI_k,R_k,0,V_k,sunk,1,0.0);
 
-	DYNAMICS_INFO_FORM dynamics_info_k = std::make_tuple(BECI_kp1,R_k+1*V_k,0,V_k,sunk,1);
+	DYNAMICS_INFO_FORM dynamics_info_k = std::make_tuple(BECI_kp1,R_k+1*V_k,0,V_k,sunk,1,0.0);
 
 	COST_SETTINGS_FORM costset_tmp = std::make_tuple(1e3,1e0,1e-1,5,1.0,1e6,1e3,1e1,1e1,0,1,0);
 	arma::vec xd = rk4zx3r(1.0,xk,uk,sat,dynamics_info_kn1,dynamics_info_k);
@@ -3402,9 +3402,9 @@ TEST_CASE("Test rk4 xd2 Hessians", "[armadillo]") {
 	int k = 1;
 	int N = 10;
 
-	DYNAMICS_INFO_FORM dynamics_info_kn1 = std::make_tuple(BECI_k,R_k,0,V_k,sunk,1);
+	DYNAMICS_INFO_FORM dynamics_info_kn1 = std::make_tuple(BECI_k,R_k,0,V_k,sunk,1,0.0);
 
-	DYNAMICS_INFO_FORM dynamics_info_k = std::make_tuple(BECI_kp1,R_k+1*V_k,0,V_k,sunk,1);
+	DYNAMICS_INFO_FORM dynamics_info_k = std::make_tuple(BECI_kp1,R_k+1*V_k,0,V_k,sunk,1,0.0);
 
 	COST_SETTINGS_FORM costset_tmp = std::make_tuple(1e3,1e0,1e-1,5,1.0,1e6,1e3,1e1,1e1,0,1,0);
 	arma::vec xd = rk4zxd2(1.0,xk,uk,sat,dynamics_info_kn1,dynamics_info_k);
@@ -3599,9 +3599,9 @@ TEST_CASE("Test rk4 Hessians", "[armadillo]") {
 	int k = 1;
 	int N = 10;
 
-	DYNAMICS_INFO_FORM dynamics_info_kn1 = std::make_tuple(BECI_k,R_k,0,V_k,sunk,1);
+	DYNAMICS_INFO_FORM dynamics_info_kn1 = std::make_tuple(BECI_k,R_k,0,V_k,sunk,1,0.0);
 
-	DYNAMICS_INFO_FORM dynamics_info_k = std::make_tuple(BECI_kp1,R_k+1*V_k,0,V_k,sunk,1);
+	DYNAMICS_INFO_FORM dynamics_info_k = std::make_tuple(BECI_kp1,R_k+1*V_k,0,V_k,sunk,1,0.0);
 
 	COST_SETTINGS_FORM costset_tmp = std::make_tuple(1e3,1e0,1e-1,5,1.0,1e6,1e3,1e1,1e1,0,1,0);
 	std::tuple<vec,vec> rk4zout = rk4z(1.0,xk,uk,sat,dynamics_info_kn1,dynamics_info_k);
@@ -3797,9 +3797,9 @@ TEST_CASE("Test rk4 Hessians 2", "[armadillo]") {
 	int k = 1;
 	int N = 10;
 
-	DYNAMICS_INFO_FORM dynamics_info_kn1 = std::make_tuple(BECI_k,R_k,0,V_k,sunk,1);
+	DYNAMICS_INFO_FORM dynamics_info_kn1 = std::make_tuple(BECI_k,R_k,0,V_k,sunk,1,0.0);
 
-	DYNAMICS_INFO_FORM dynamics_info_k = std::make_tuple(BECI_kp1,R_k+1*V_k,0,V_k,sunk,1);
+	DYNAMICS_INFO_FORM dynamics_info_k = std::make_tuple(BECI_kp1,R_k+1*V_k,0,V_k,sunk,1,0.0);
 
 	COST_SETTINGS_FORM costset_tmp = std::make_tuple(1e3,1e0,1e-1,5,1.0,1e6,1e3,1e1,1e1,0,1,0);
 	std::tuple<vec,vec> rk4zout = rk4z(1.0,xk,uk,sat,dynamics_info_kn1,dynamics_info_k);
@@ -3987,9 +3987,9 @@ TEST_CASE("Test rk4 x2 Hessians 2", "[armadillo]") {
 	int k = 1;
 	int N = 10;
 
-	DYNAMICS_INFO_FORM dynamics_info_kn1 = std::make_tuple(BECI_k,R_k,0,V_k,sunk,1);
+	DYNAMICS_INFO_FORM dynamics_info_kn1 = std::make_tuple(BECI_k,R_k,0,V_k,sunk,1,0.0);
 
-	DYNAMICS_INFO_FORM dynamics_info_k = std::make_tuple(BECI_kp1,R_k+1*V_k,0,V_k,sunk,1);
+	DYNAMICS_INFO_FORM dynamics_info_k = std::make_tuple(BECI_kp1,R_k+1*V_k,0,V_k,sunk,1,0.0);
 
 	COST_SETTINGS_FORM costset_tmp = std::make_tuple(1e3,1e0,1e-1,5,1.0,1e6,1e3,1e1,1e1,0,1,0);
 	arma::vec xd = rk4zx2(1.0,xk,uk,sat,dynamics_info_kn1,dynamics_info_k);
@@ -4178,9 +4178,9 @@ TEST_CASE("Test RK4 jacobians", "[armadillo]") {
 	int k = 1;
 	int N = 10;
 
-	DYNAMICS_INFO_FORM dynamics_info_kn1 = std::make_tuple(BECI_k,R_k,0,V_k,sunk,1);
+	DYNAMICS_INFO_FORM dynamics_info_kn1 = std::make_tuple(BECI_k,R_k,0,V_k,sunk,1,0.0);
 
-	DYNAMICS_INFO_FORM dynamics_info_k = std::make_tuple(BECI_kp1,R_k+1*V_k,0,V_k,sunk,1);
+	DYNAMICS_INFO_FORM dynamics_info_k = std::make_tuple(BECI_kp1,R_k+1*V_k,0,V_k,sunk,1,0.0);
 
 
 	COST_SETTINGS_FORM costset_tmp = std::make_tuple(1e3,1e0,1e-1,5,1.0,1e6,1e3,1e1,1e1,0,1,0);
@@ -4277,9 +4277,9 @@ TEST_CASE("Test RK4 jacobians", "[armadillo]") {
 	k = 1;
 	N = 10;
 
-	dynamics_info_kn1 = std::make_tuple(BECI_k,R_k,0,V_k,sunk,1);
+	dynamics_info_kn1 = std::make_tuple(BECI_k,R_k,0,V_k,sunk,1,0.0);
 
-	dynamics_info_k = std::make_tuple(BECI_kp1,R_k+1*V_k,0,V_k,sunk,1);
+	dynamics_info_k = std::make_tuple(BECI_kp1,R_k+1*V_k,0,V_k,sunk,1,0.0);
 
 
 	costset_tmp = std::make_tuple(1e3,1e0,1e-1,5,1.0,1e6,1e3,1e1,1e1,0,1,0);
@@ -4417,9 +4417,9 @@ TEST_CASE("Test dynamics", "[armadillo]") {
 	int k = 1;
 	int N = 10;
 
-	// DYNAMICS_INFO_FORM dynamics_info_kn1 = std::make_tuple(BECI_k,R_k,0,V_k,sunk,1);
+	// DYNAMICS_INFO_FORM dynamics_info_kn1 = std::make_tuple(BECI_k,R_k,0,V_k,sunk,1,0.0);
 
-	DYNAMICS_INFO_FORM dynamics_info_k = std::make_tuple(BECI_kp1,R_k,1,V_k,sunk,1);
+	DYNAMICS_INFO_FORM dynamics_info_k = std::make_tuple(BECI_kp1,R_k,1,V_k,sunk,1,0.0);
 
 
 	// COST_SETTINGS_FORM costset_tmp = std::make_tuple(1e3,1e0,1e-1,5,1.0,1e6,1e3,1e1,1e1,0,1,0);
@@ -4500,9 +4500,9 @@ TEST_CASE("Test RK4z simple", "[armadillo]") {
 	int N = 10;
 
 	double dt = 0.00001;
-	DYNAMICS_INFO_FORM dynamics_info_kn1 = std::make_tuple(BECI_k,R_k,1,V_k,sunk,1);
+	DYNAMICS_INFO_FORM dynamics_info_kn1 = std::make_tuple(BECI_k,R_k,1,V_k,sunk,1,0.0);
 
-	DYNAMICS_INFO_FORM dynamics_info_k = std::make_tuple(BECI_kp1,R_k+dt*V_k,1,V_k,sunk,1);
+	DYNAMICS_INFO_FORM dynamics_info_k = std::make_tuple(BECI_kp1,R_k+dt*V_k,1,V_k,sunk,1,0.0);
 
 
 	// COST_SETTINGS_FORM costset_tmp = std::make_tuple(1e3,1e0,1e-1,5,1.0,1e6,1e3,1e1,1e1,0,1,0);
@@ -4571,7 +4571,7 @@ TEST_CASE("Test magic actuator dynamics Jacobians", "[armadillo][magic]") {
 	arma::vec3 R_k = 7000*arma::normalise(arma::vec(3,fill::randn));
 	arma::vec3 V_k = 7000*arma::normalise(arma::cross(R_k,arma::vec(3,fill::randn)));
 
-	DYNAMICS_INFO_FORM dynamics_info_k = std::make_tuple(BECI_k,R_k,0,V_k,sunk,1);
+	DYNAMICS_INFO_FORM dynamics_info_k = std::make_tuple(BECI_k,R_k,0,V_k,sunk,1,0.0);
 
 	std::tuple<arma::mat, arma::mat,arma::mat> jacs = sat.dynamicsJacobians(xk,uk,dynamics_info_k);
 	arma::mat jx = std::get<0>(jacs);
@@ -4643,8 +4643,8 @@ TEST_CASE("Test magic actuator RK4 Jacobians", "[armadillo][magic]") {
 	arma::vec3 R_k = 7000*arma::normalise(arma::vec(3,fill::randn));
 	arma::vec3 V_k = 7000*arma::normalise(arma::cross(R_k,arma::vec(3,fill::randn)));
 
-	DYNAMICS_INFO_FORM dynamics_info_kn1 = std::make_tuple(BECI_k,R_k,0,V_k,sunk,1);
-	DYNAMICS_INFO_FORM dynamics_info_k = std::make_tuple(BECI_kp1,R_k+1*V_k,0,V_k,sunk,1);
+	DYNAMICS_INFO_FORM dynamics_info_kn1 = std::make_tuple(BECI_k,R_k,0,V_k,sunk,1,0.0);
+	DYNAMICS_INFO_FORM dynamics_info_k = std::make_tuple(BECI_kp1,R_k+1*V_k,0,V_k,sunk,1,0.0);
 
 	std::tuple<arma::mat,arma::mat,arma::mat> jacs = rk4zJacobians(1.0,xk,uk,sat,dynamics_info_kn1,dynamics_info_k);
 	arma::mat jx = std::get<0>(jacs);
@@ -4831,7 +4831,7 @@ TEST_CASE("Test MTQ only multi-step trajectory", "[armadillo][trajectory]") {
 	arma::mat Xset = arma::mat(sat.state_N(), N_steps+1).zeros();
 	Xset.col(0) = x0;
 
-	DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(BECI,R_k,0,V_k,sunk,1);
+	DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(BECI,R_k,0,V_k,sunk,1,0.0);
 
 	for(int k=0; k<N_steps; k++){
 		std::tuple<vec,vec> rk4zout = rk4z(dt,Xset.col(k),uk,sat,dynamics_info,dynamics_info);
@@ -4903,7 +4903,7 @@ TEST_CASE("Test RW+MTQ multi-step trajectory", "[armadillo][trajectory]") {
 	arma::mat Xset = arma::mat(sat.state_N(), N_steps+1).zeros();
 	Xset.col(0) = x0;
 
-	DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(BECI,R_k,0,V_k,sunk,1);
+	DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(BECI,R_k,0,V_k,sunk,1,0.0);
 
 	for(int k=0; k<N_steps; k++){
 		std::tuple<vec,vec> rk4zout = rk4z(dt,Xset.col(k),uk,sat,dynamics_info,dynamics_info);
@@ -5106,7 +5106,7 @@ TEST_CASE("Test backward pass math verification", "[armadillo][planner][math]") 
 	arma::vec3 sat_body_vec = arma::vec({0.0, 0.0, 1.0});
 	arma::vec3 eci_goal = arma::normalise(arma::vec({1.0, 0.0, 0.0}));
 
-	DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_eci, R_orb, 0, V_orb, sun_vec, 1);
+	DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_eci, R_orb, 0, V_orb, sun_vec, 1, 0.0);
 
 	// Generate trajectory by propagating dynamics
 	arma::mat Xset = arma::mat(nx, N).zeros();
@@ -5444,7 +5444,7 @@ TEST_CASE("Test backward pass with constraints (ALTRO)", "[armadillo][planner][m
 	arma::vec3 sat_body_vec = arma::vec({0.0, 0.0, 1.0});
 	arma::vec3 eci_goal = arma::normalise(arma::vec({1.0, 0.0, 0.0}));
 
-	DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_eci, R_orb, 0, V_orb, sun_vec, 1);
+	DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_eci, R_orb, 0, V_orb, sun_vec, 1, 0.0);
 
 	// Generate trajectory
 	arma::mat Xset = arma::mat(nx, N).zeros();
@@ -5762,7 +5762,7 @@ void runBackwardPassTest(
 	cout << "========================================\n";
 	cout << "Dimensions: nx=" << nx << ", nxr=" << nxr << ", nu=" << nu << ", nc=" << nc << "\n";
 
-	DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_eci, R_orb, 0, V_orb, sun_vec, 1);
+	DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_eci, R_orb, 0, V_orb, sun_vec, 1, 0.0);
 	arma::vec3 sunk = arma::normalise(sun_vec);
 
 	// Initialize Lagrange multipliers and penalty matrix
@@ -5987,7 +5987,7 @@ TEST_CASE("Backward pass with MTQs and RWs", "[armadillo][planner][math][varied]
 	arma::vec3 sat_body_vec = arma::vec({0.0, 0.0, 1.0});
 	arma::vec3 eci_goal = arma::normalise(arma::vec({0.707, 0.707, 0.0}));
 
-	DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_eci, R_orb, 0, V_orb, sun_vec, 1);
+	DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_eci, R_orb, 0, V_orb, sun_vec, 1, 0.0);
 
 	// Generate trajectory with some control
 	arma::mat Uset = arma::mat(nu, N).zeros();
@@ -6047,7 +6047,7 @@ TEST_CASE("Backward pass with different cost weights", "[armadillo][planner][mat
 	arma::vec3 sat_body_vec = arma::vec({0.0, 0.0, 1.0});
 	arma::vec3 eci_goal = arma::normalise(arma::vec({1.0, 0.0, 0.0}));
 
-	DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_eci, R_orb, 0, V_orb, sun_vec, 1);
+	DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_eci, R_orb, 0, V_orb, sun_vec, 1, 0.0);
 
 	arma::mat Uset = arma::mat(3, N).zeros();
 	Uset.col(0) = arma::vec({0.1, -0.06, 0.08});
@@ -6120,7 +6120,7 @@ TEST_CASE("Backward pass with different goal orientations", "[armadillo][planner
 	arma::vec3 sun_vec = arma::normalise(arma::vec({1.0, 0.0, 0.0}));
 	arma::vec3 sat_body_vec = arma::vec({0.0, 0.0, 1.0});  // Body z-axis
 
-	DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_eci, R_orb, 0, V_orb, sun_vec, 1);
+	DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_eci, R_orb, 0, V_orb, sun_vec, 1, 0.0);
 
 	arma::mat Uset = arma::mat(3, N).zeros();
 	Uset.col(0) = arma::vec({0.05, -0.03, 0.04});
@@ -6224,7 +6224,7 @@ TEST_CASE("Backward pass with active constraints", "[armadillo][planner][math][v
 	arma::vec3 sat_body_vec = arma::vec({0.0, 0.0, 1.0});
 	arma::vec3 eci_goal = arma::normalise(arma::vec({1.0, 0.0, 0.0}));
 
-	DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_eci, R_orb, 0, V_orb, sun_vec, 1);
+	DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_eci, R_orb, 0, V_orb, sun_vec, 1, 0.0);
 
 	COST_SETTINGS_FORM costSettings = std::make_tuple(
 		1e3, 1e2, 1.0, 0.0, 0.0,
@@ -6298,7 +6298,7 @@ TEST_CASE("Backward pass with high angular velocity", "[armadillo][planner][math
 	arma::vec3 sat_body_vec = arma::vec({0.0, 0.0, 1.0});
 	arma::vec3 eci_goal = arma::normalise(arma::vec({1.0, 0.0, 0.0}));
 
-	DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_eci, R_orb, 0, V_orb, sun_vec, 1);
+	DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_eci, R_orb, 0, V_orb, sun_vec, 1, 0.0);
 
 	arma::mat Uset = arma::mat(3, N).zeros();
 	Uset.col(0) = arma::vec({0.1, -0.06, 0.08});
@@ -6412,7 +6412,7 @@ TEST_CASE("Analytical case: RW-only asymmetric inertia (debug_altro_6Up simplifi
 	arma::vec3 sat_body_vec = arma::vec({0.0, 0.0, 1.0});
 	arma::vec3 eci_goal = arma::normalise(arma::vec({1.0, 1.0, 1.0}));
 
-	DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_eci, R_orb, 0, V_orb, sun_vec, 1);
+	DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_eci, R_orb, 0, V_orb, sun_vec, 1, 0.0);
 
 	// Generate a simple trajectory with small controls
 	arma::mat Uset = arma::mat(nu, N).zeros();
@@ -6625,7 +6625,7 @@ TEST_CASE("Analytical case: Gyroscopic coupling with asymmetric inertia", "[arma
 	// Goal: ECI x-axis (90° from body z at identity) - creates meaningful pointing task
 	arma::vec3 eci_goal = arma::normalise(arma::vec({1.0, 0.0, 0.0}));
 
-	DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_eci, R_orb, 0, V_orb, sun_vec, 1);
+	DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_eci, R_orb, 0, V_orb, sun_vec, 1, 0.0);
 
 	// Small stabilizing control
 	arma::mat Uset = arma::mat(nu, N).zeros();
@@ -6692,7 +6692,7 @@ TEST_CASE("Analytical case: Near-saturation RW control", "[armadillo][planner][a
 	arma::vec3 sat_body_vec = arma::vec({0.0, 0.0, 1.0});
 	arma::vec3 eci_goal = arma::normalise(arma::vec({1.0, 0.0, 0.0}));
 
-	DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_eci, R_orb, 0, V_orb, sun_vec, 1);
+	DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_eci, R_orb, 0, V_orb, sun_vec, 1, 0.0);
 
 	// Controls near saturation (90% of max)
 	arma::mat Uset = arma::mat(nu, N).zeros();
