@@ -4,7 +4,6 @@ from .gyro import Gyro
 from .sunsensor import SunSensor
 from .sunpair import SunPair
 from .magnetometer import MTM
-from .star_catalog import NavigationStar, StarCatalog
 from .star_tracker import StarTracker
 
 __all__ = [
@@ -15,6 +14,5 @@ __all__ = [
     "Gyro",
     "MTM",
     "NavigationStar",
-    "StarCatalog",
     "StarTracker",
 ]

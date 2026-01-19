@@ -75,6 +75,7 @@ class EarthConstants:
         Mass of Earth [kg]
     """
     R_e: float = 6378.1363  # km
+    R_moon: float = 1737.4  # km
     mu_e: float = 398600.4415  # km³/s²
     J2coeff: float = 1.082635854e-3
     J2: float = J2coeff * R_e**2 * mu_e  # km⁵/s²

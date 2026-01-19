@@ -12,14 +12,14 @@ class Ephemeris:
     This class manages loading (or downloading) the JPL DE421 ephemeris 
     file and initializes planetary objects such as the Earth and the Sun.
     It first attempts to load a local copy from 
-    ``{project_root}/external_files/de421.bsp``. If the file or directory 
+    ``ADCS/environment/de421.bsp``. If the file or directory 
     does not exist, it is downloaded and stored there automatically.
 
     Parameters
     ----------
     filepath : Path, optional
         Path to a pre-downloaded ephemeris file. If ``None``, the loader 
-        searches for ``external_files/de421.bsp`` relative to the project 
+        searches for ``ADCS/environment/de421.bsp`` relative to the project 
         root. If not found, it downloads the file to that location.
 
     Attributes
@@ -46,7 +46,7 @@ class Ephemeris:
             # User-provided file path
             self.planets = load(str(filepath))
         else:
-            # Default: search or download under project_root/external_files/
+            # Default: search or download under project_root/ADCS/environment/de421.bsp
             default_path = self._get_default_ephemeris_path()
             if default_path.exists():
                 self.planets = load(str(default_path))
@@ -69,10 +69,10 @@ class Ephemeris:
         Returns
         -------
         Path
-            Path to ``external_files/de421.bsp`` relative to the project root.
+            Path to ``ADCS/environment/de421.bsp`` relative to the project root.
         """
         project_root = Path(__file__).resolve().parents[2]  # adjust if needed
-        external_dir = project_root / "external_files"
+        external_dir = project_root / "ADCS" / "environment"
         external_dir.mkdir(parents=True, exist_ok=True)
         return external_dir / "de421.bsp"
 

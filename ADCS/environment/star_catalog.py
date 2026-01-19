@@ -1,26 +1,3 @@
-"""
-Star catalog for navigation star tracker simulations.
-
-This module provides a catalog of bright navigation stars from the Hipparcos
-catalog, suitable for star tracker sensor simulation. Star positions are
-given in the J2000 ECI (Earth-Centered Inertial) reference frame.
-
-Mathematical Model:
-    Given Right Ascension (α) and Declination (δ) in radians, the ECI
-    unit vector is:
-
-        s_ECI = [cos(δ)cos(α), cos(δ)sin(α), sin(δ)]^T
-
-References:
-    [1] ESA, "The Hipparcos and Tycho Catalogues", ESA SP-1200 (1997)
-        Section 1.2: Celestial coordinate systems
-    [2] Liebe, C.C., "Star Trackers for Attitude Determination",
-        IEEE Aerospace and Electronic Systems Magazine (1995)
-    [3] Vallado, D.A., "Fundamentals of Astrodynamics and Applications",
-        4th Ed., Microcosm Press (2013), Section 5.3
-"""
-from __future__ import annotations
-
 __all__ = ["NavigationStar", "StarCatalog"]
 
 import numpy as np
@@ -28,19 +5,10 @@ from dataclasses import dataclass
 from typing import List, Optional
 from numpy.typing import NDArray
 
+from ADCS.orbits.universal_constants import EarthConstants
 
 @dataclass
 class NavigationStar:
-    """A navigation star with catalog data.
-
-    Attributes:
-        hip_id: Hipparcos catalog ID
-        name: Common name (may be empty)
-        ra_rad: Right ascension in radians (J2000)
-        dec_rad: Declination in radians (J2000)
-        vmag: Visual magnitude
-        s_eci: Unit vector in J2000 ECI frame, shape (3,)
-    """
     hip_id: int
     name: str
     ra_rad: float
@@ -50,28 +18,8 @@ class NavigationStar:
 
 
 class StarCatalog:
-    """Catalog of bright navigation stars for star tracker simulation.
-
-    Contains ~30 bright stars (Vmag < 2.5) suitable for navigation.
-    Star positions are in J2000 ECI frame.
-
-    The catalog includes the brightest stars visible from Earth, covering
-    both northern and southern hemispheres. These stars are commonly used
-    as navigation references in star tracker systems.
-
-    References:
-        [1] Hipparcos Catalog (ESA, 1997)
-
-    Example:
-        >>> catalog = StarCatalog()
-        >>> print(f"Catalog has {len(catalog.stars)} stars")
-        >>> sirius = catalog.stars[0]  # Brightest star
-        >>> print(f"Sirius: RA={np.rad2deg(sirius.ra_rad):.1f}°")
-    """
-
-    # Earth and Moon radii for occlusion calculations (km)
-    R_EARTH: float = 6378.137
-    R_MOON: float = 1737.4
+    R_EARTH: float = EarthConstants.R_e
+    R_MOON: float = EarthConstants.R_moon
 
     def __init__(self) -> None:
         """Initialize the star catalog with bright navigation stars."""
