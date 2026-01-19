@@ -393,12 +393,21 @@ class SRUAKF(UAKF):
             quat_as_vec=False,
         )
 
+        # Determine which attitude sensors are active based on ACTUAL measurements
+        # We check the actual sensor readings for NaN, not the estimated predictions,
+        # because the true satellite state may differ from our estimate.
         which_sensors = [True] * len(self.est_sat.attitude_sensors + self.est_sat.rw_actuators)
+        sensor_idx = 0
         for j, sensor in enumerate(self.est_sat.attitude_sensors):
-            if isinstance(sensor, (SunSensor, SunPair)):
-                reading = sensor.clean_reading(x=dyn_state0, os=os)
-                if np.isnan(reading).any():
-                    which_sensors[j] = False
+            output_len = sensor.output_length
+            # Check if the actual measurement contains NaN
+            sensor_reading = sensors[sensor_idx:sensor_idx + output_len]
+            if np.isnan(sensor_reading).any():
+                which_sensors[j] = False
+            sensor_idx += output_len
+
+        # Expand sensor mask to output mask (handles sensors with output_length > 1)
+        which_outputs = self._expand_sensor_mask(which_sensors)
 
         # --- 2. Sigma Point Generation ---
         sens_vec_len = sum(
@@ -449,7 +458,7 @@ class SRUAKF(UAKF):
             self.sat_match(satj, post_full_statej)
             dmode = DisturbanceMode(add_bias=True, add_noise=False, update_bias=False, update_noise=False)
             sensj = satj.sensor_readings(x=post_full_statej[:state_len],os=os, dmode=dmode)
-            post_sens[j, :] = sensj[which_sensors] + sens_noise_j
+            post_sens[j, :] = sensj[which_outputs] + sens_noise_j
 
         # --- 4. Time Update (QR Method) ---
         state1 = wts_m @ post_pts
@@ -501,7 +510,7 @@ class SRUAKF(UAKF):
         # --- 7. State Update ---
         # Note: Kk here is (n_meas, n_state).
         # State row vec update: x_new = x + (y - y_est) @ Kk
-        y_meas = sensors[which_sensors]
+        y_meas = sensors[which_outputs]
         innov = y_meas - sens1
         
         state2 = state1 + innov @ Kk

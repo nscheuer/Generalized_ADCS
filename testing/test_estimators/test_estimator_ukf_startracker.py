@@ -1,17 +1,3 @@
-"""
-UKF integration tests with star tracker sensor.
-
-Tests verify that the UKF estimator works correctly when using
-a star tracker sensor, including:
-- Filter stability with intermittent measurements
-- Attitude convergence despite measurement dropouts
-- Proper handling of NaN measurements
-- Covariance consistency
-
-These tests follow the pattern established in test_estimator_ukf.py,
-using a module-scoped fixture to run the simulation once and then
-running multiple tests against the results.
-"""
 import sys
 import os
 import numpy as np
@@ -23,7 +9,7 @@ from tqdm import tqdm
 sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))
 from ADCS.satellite_hardware.satellite.satellite import Satellite
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
-from ADCS.satellite_hardware.actuators import MTQ, Noise
+from ADCS.satellite_hardware.actuators import MTQ, Noise, AnisotropicNoise
 from ADCS.satellite_hardware.sensors import Gyro, MTM, StarTracker
 from ADCS.satellite_hardware.disturbances import GG_Disturbance
 from ADCS.orbits.orbital_state import Orbital_State
@@ -89,11 +75,11 @@ def run_ukf_with_startracker(
 
     # Sensors: Star tracker (wide FOV for visibility)
     # Using generic tracker with 30 deg FOV to ensure stars visible
+    star_noise = AnisotropicNoise(std_cross=10.0 * ARCSEC2RAD, std_roll=50.0 * ARCSEC2RAD)
     star_tracker = StarTracker(
         boresight=np.array([0.0, 0.0, 1.0]),  # +Z boresight
         fov=np.deg2rad(30.0),                  # Wide FOV
-        cross_noise_std=10.0 * ARCSEC2RAD,     # 10 arcsec
-        roll_noise_std=50.0 * ARCSEC2RAD,      # 50 arcsec
+        anisotropic_noise=star_noise,
         sun_exclusion=np.deg2rad(35.0)         # 35 deg sun exclusion
     )
 
@@ -142,13 +128,14 @@ def run_ukf_with_startracker(
     est_acts = [MTQ(axis=j, max_torque=1.0, noise=mtq_noise) for j in MathConstants.unitvecs]
     est_mtms = [MTM(axis=j, noise=mtm_noise) for j in MathConstants.unitvecs]
     est_gyros = [Gyro(axis=j, noise=gyro_noise) for j in MathConstants.unitvecs]
+    est_star_noise = AnisotropicNoise(std_cross=10.0 * ARCSEC2RAD, std_roll=50.0 * ARCSEC2RAD)
     est_star_tracker = StarTracker(
-        boresight=np.array([0.0, 0.0, 1.0]),
-        fov=np.deg2rad(30.0),
-        cross_noise_std=10.0 * ARCSEC2RAD,
-        roll_noise_std=50.0 * ARCSEC2RAD,
-        sun_exclusion=np.deg2rad(35.0)
+        boresight=np.array([0.0, 0.0, 1.0]),  # +Z boresight
+        fov=np.deg2rad(30.0),                  # Wide FOV
+        anisotropic_noise=star_noise,
+        sun_exclusion=np.deg2rad(35.0)         # 35 deg sun exclusion
     )
+
     est_dists = [GG_Disturbance()]
 
     est_sat = EstimatedSatellite(
