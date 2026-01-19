@@ -20,7 +20,7 @@ jobs:
       - name: 🐍 Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11' # Use your required Python version
+          python-version: '3.12' # Use your required Python version
 
       - name: ⚙️ Create and Activate Virtual Environment
         run: |
@@ -34,6 +34,21 @@ jobs:
           # Install dependencies from the requirements file
           pip install -r requirements.txt
           pip install git+https://github.com/jcrudy/choldate.git --no-build-isolation
+
+      - name: 🛠️ Build trajectory_planner
+        run: |
+          source .venv/bin/activate
+
+          cd trajectory_planner
+          mkdir -p build
+          cd build
+
+          cmake .. \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DPython3_EXECUTABLE=$(which python) \
+            -DPYTHON_EXECUTABLE=$(which python)
+
+          make -j$(nproc)
           
       - name: 🧪 Run Pytest with Verbose Output
         run: |
