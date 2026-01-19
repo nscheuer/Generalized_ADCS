@@ -24,8 +24,13 @@ class StarTracker(Sensor):
         sun_exclusion: float = np.deg2rad(25.0),
         star_catalog: Optional[StarCatalog] = None
     ) -> None:
+        
+        # 1. Geometry Setup
         self.boresight = np.asarray(boresight, dtype=np.float64)
-        self.boresight = self.boresight / np.linalg.norm(self.boresight)
+        norm = np.linalg.norm(self.boresight)
+        if norm < 1e-6:
+            raise ValueError("Boresight vector cannot be zero.")
+        self.boresight = self.boresight / norm
 
         self.fov = float(fov)
         self.sun_exclusion = float(sun_exclusion)
@@ -33,8 +38,11 @@ class StarTracker(Sensor):
         self.catalog = star_catalog if star_catalog is not None else StarCatalog()
         self.current_star: Optional[NavigationStar] = None
 
+        # 2. Calculate Rotation (Aligned -> Body)
         self._R_noise = self._build_noise_rotation()
 
+        # 3. Initialize Base Sensor
+        #    This will execute: self.noise = anisotropic_noise.copy()
         super().__init__(
             sample_time=sample_time,
             output_length=3,
@@ -42,6 +50,10 @@ class StarTracker(Sensor):
             noise=anisotropic_noise,
             estimate_bias=estimate_bias
         )
+
+        # 4. Align the (copied) noise model to this specific sensor's body frame
+        if isinstance(self.noise, AnisotropicNoise):
+            self.noise.align_to_body(self._R_noise)
 
     def _build_noise_rotation(self) -> NDArray[np.float64]:
         z = np.array([0.0, 0.0, 1.0])
@@ -113,8 +125,10 @@ class StarTracker(Sensor):
         return A.T @ star.s_eci
 
     def reading(self, x: NDArray[np.float64], os: Orbital_State, dmode: Optional[DisturbanceMode] = None) -> NDArray[np.float64]:
+        # Sensor.reading() handles clean + bias + noise
         measurement = super().reading(x, os, dmode)
         
+        # Enforce unit vector constraint
         if not np.any(np.isnan(measurement)):
             norm = np.linalg.norm(measurement)
             if norm > 1e-9:
