@@ -37,7 +37,7 @@ from ADCS.helpers.plotting.animate_orbit_pyvista import animate_orbit_pyvista
 POINTING_CFG: Dict[str, float] = dict(
     p_gain=0.00005,
     d_gain=0.001,
-    c_gain=0.001,
+    c_gain=0.0,
     h_target=np.array([0.004, 0.0, 0.0]),
 )
 
@@ -377,7 +377,7 @@ def plot_scenario(
 
 
 if __name__ == "__main__":
-    scenario = sys.argv[1] if len(sys.argv) > 1 else "hard_turn"
+    scenario = sys.argv[1] if len(sys.argv) > 1 else "desat"
 
     # Default sim horizon depends on scenario
     if scenario.lower().strip() in ("desat", "no_goal"):

@@ -493,6 +493,9 @@ class MTQ_w_RW_LP(Controller):
         os_hat: Orbital_State,
         goal: Goal | None = None,    
     ):
+        w = x_hat[0:3]
+        q = x_hat[3:7]
+
         k_w = self.d_gain
         k_h = self.c_gain
 

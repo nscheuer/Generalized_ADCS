@@ -138,7 +138,7 @@ def run_planning(sat: Satellite, x0: np.ndarray, os0: Orbital_State,
 # BANG-BANG CONTROL TESTS
 # ==========================================
 
-@pytest.mark.slow
+@pytest.mark.vslow
 def test_control_effort_nonzero():
     """
     Test that the planner produces non-trivial control effort.
@@ -186,7 +186,7 @@ def test_control_effort_nonzero():
                 f"Axis {axis}: Expected sign change for acceleration/deceleration"
 
 
-@pytest.mark.slow
+@pytest.mark.vslow
 def test_bangbang_symmetry_rest_to_rest():
     """
     Test that rest-to-rest maneuver has symmetric control profile.
@@ -251,7 +251,7 @@ def test_bangbang_symmetry_rest_to_rest():
 # ANGULAR MOMENTUM CONSERVATION TESTS
 # ==========================================
 
-@pytest.mark.slow
+@pytest.mark.vslow
 def test_momentum_conservation_rw_only():
     """
     Test angular momentum conservation for RW-only satellite.
@@ -291,7 +291,7 @@ def test_momentum_conservation_rw_only():
         f"Angular momentum not conserved: max deviation = {max_H_deviation}"
 
 
-@pytest.mark.slow
+@pytest.mark.vslow
 def test_rw_momentum_changes_during_maneuver():
     """
     Test that RW momentum changes during a reorientation maneuver.
@@ -333,7 +333,7 @@ def test_rw_momentum_changes_during_maneuver():
 # EIGENAXIS ROTATION TESTS
 # ==========================================
 
-@pytest.mark.slow
+@pytest.mark.vslow
 def test_rotation_stays_within_bounds():
     """
     Test that rotation quaternion stays normalized and physically valid.
@@ -371,7 +371,7 @@ def test_rotation_stays_within_bounds():
             f"Rotation angle {np.degrees(angle):.1f}° exceeds 180° at step {k}"
 
 
-@pytest.mark.slow
+@pytest.mark.vslow
 def test_error_decreases_overall():
     """
     Test that the pointing error decreases from initial to final state.
@@ -432,7 +432,7 @@ def test_error_decreases_overall():
 # ENERGY TESTS
 # ==========================================
 
-@pytest.mark.slow
+@pytest.mark.vslow
 def test_kinetic_energy_bounded():
     """
     Test that rotational kinetic energy stays bounded.
@@ -469,7 +469,7 @@ def test_kinetic_energy_bounded():
     assert KE_final < 0.01, f"Final kinetic energy = {KE_final} (should be near zero)"
 
 
-@pytest.mark.slow
+@pytest.mark.vslow
 def test_rw_momentum_bounded():
     """
     Test that RW momentum stays within saturation limits.
@@ -499,7 +499,7 @@ def test_rw_momentum_bounded():
 # CONVERGENCE TESTS
 # ==========================================
 
-@pytest.mark.slow
+@pytest.mark.vslow
 def test_final_velocity_decreases():
     """
     Test that the trajectory ends with reduced angular velocity.
@@ -549,7 +549,7 @@ def test_final_velocity_decreases():
         f"Final angular velocity ||w|| = {w_final:.4f} rad/s (should be < 0.05)"
 
 
-@pytest.mark.slow
+@pytest.mark.vslow
 def test_small_angle_maneuver():
     """
     Test that small angle maneuvers converge quickly and smoothly.

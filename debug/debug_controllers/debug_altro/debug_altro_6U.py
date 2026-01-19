@@ -132,54 +132,6 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
     )
     print(f"\nTrajectory saved to: {save_path}")
 
-    # # Analyze control pattern
-    # print("\n" + "="*60)
-    # print("CONTROL PATTERN ANALYSIS")
-    # print("="*60)
-    # print(f"RW max torque: {rw_max_torque} Nm")
-    # print(f"Number of timesteps: {len(time_hist_traj)}")
-    # print(f"dt: {dt} s")
-
-    # # Check for sign changes in each control channel
-    # for ch in range(u_hist_traj.shape[1]):
-    #     u_ch = u_hist_traj[:, ch]
-    #     sign_changes = np.sum(np.diff(np.sign(u_ch)) != 0)
-    #     at_max = np.sum(np.abs(u_ch) > 0.95 * rw_max_torque)
-    #     print(f"\nChannel {ch}:")
-    #     print(f"  Sign changes: {sign_changes} / {len(u_ch)-1} timesteps")
-    #     print(f"  At >95% saturation: {at_max} / {len(u_ch)} timesteps")
-    #     print(f"  Range: [{u_ch.min():.6f}, {u_ch.max():.6f}]")
-
-    #     # Check for rapid oscillation (sign change every 1-2 steps)
-    #     if len(u_ch) > 3:
-    #         signs = np.sign(u_ch)
-    #         rapid_osc = 0
-    #         for i in range(len(signs) - 2):
-    #             if signs[i] != signs[i+1] and signs[i+1] != signs[i+2]:
-    #                 rapid_osc += 1
-    #         if rapid_osc > 0:
-    #             print(f"  WARNING: {rapid_osc} instances of rapid oscillation (+-+ or -+- pattern)")
-
-    # # Print first 20 control values to see the pattern
-    # print("\n" + "-"*60)
-    # print("First 20 control values:")
-    # print("-"*60)
-    # print("   k |    u[0]    |    u[1]    |    u[2]    |")
-    # print("-"*60)
-    # for k in range(min(20, len(u_hist_traj))):
-    #     u = u_hist_traj[k]
-    #     print(f" {k:3d} | {u[0]:10.6f} | {u[1]:10.6f} | {u[2]:10.6f} |")
-
-    # # Check control differences (should be smooth for bang-bang, spiky for oscillation)
-    # print("\n" + "-"*60)
-    # print("Control differences (du = u[k+1] - u[k]):")
-    # print("-"*60)
-    # print("   k |   du[0]    |   du[1]    |   du[2]    |")
-    # print("-"*60)
-    # for k in range(min(19, len(u_hist_traj)-1)):
-    #     du = u_hist_traj[k+1] - u_hist_traj[k]
-    #     print(f" {k:3d} | {du[0]:10.6f} | {du[1]:10.6f} | {du[2]:10.6f} |")
-
     plot_state_comparison(time=time_hist_traj, state_hist=state_hist_traj)
     plot_control(time=time_hist_traj, u_hist=u_hist_traj)
 
@@ -237,7 +189,6 @@ def plot_mtq_w_rw_align_to_eci(verbose: bool = False, tf: float = 1000, dt: floa
     # animate_orbit_pyvista(time_hist=time_hist, state_hist=state_hist, os_hist=os_hist, boresight_goal_hist=boresight_hist, coord_goal=goal)
     plot_target_tracking(state_hist=state_hist, boresight_hist=boresight_hist, body_boresight=np.array([0, 0, 1]))
     #animate_orbit(time_hist=time_hist, state_hist=state_hist, os_hist=os_hist, boresight_goal_hist=boresight_hist, coord_goal=goal)
-    plt.show()
     create_close_all_button_window()
     print("Yay!")
 

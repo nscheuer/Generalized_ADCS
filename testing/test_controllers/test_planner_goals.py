@@ -123,7 +123,7 @@ def compute_pointing_error(q: np.ndarray, goal_vec: np.ndarray,
 # ECI_GOAL TESTS
 # ==========================================
 
-@pytest.mark.slow
+@pytest.mark.vslow
 def test_eci_goal_x_axis():
     """Test pointing at +X direction in ECI frame."""
     goal_vec = np.array([1, 0, 0])
@@ -146,7 +146,7 @@ def test_eci_goal_x_axis():
         f"Error should decrease: init={np.degrees(error_init):.1f}° final={np.degrees(error_final):.1f}°"
 
 
-@pytest.mark.slow
+@pytest.mark.vslow
 def test_eci_goal_diagonal():
     """Test pointing at a diagonal direction [1,1,1]."""
     goal_vec = normalize(np.array([1, 1, 1]))
@@ -163,7 +163,7 @@ def test_eci_goal_diagonal():
         f"Final error too large: {np.degrees(error_final):.1f}° (should be < 29°)"
 
 
-@pytest.mark.slow
+@pytest.mark.vslow
 def test_eci_goal_negative_z():
     """Test pointing at -Z direction (180° rotation from identity)."""
     goal_vec = np.array([0, 0, -1])
@@ -184,7 +184,7 @@ def test_eci_goal_negative_z():
         f"180° maneuver didn't converge: final error = {np.degrees(error_final):.1f}°"
 
 
-@pytest.mark.slow
+@pytest.mark.vslow
 def test_eci_goal_small_offset():
     """Test small angle maneuver (already close to goal)."""
     # Goal is close to boresight [0,0,1]
@@ -205,7 +205,7 @@ def test_eci_goal_small_offset():
 # COORDINATE_GOAL TESTS
 # ==========================================
 
-@pytest.mark.slow
+@pytest.mark.vslow
 def test_coordinate_goal_nadir():
     """Test pointing at nadir (directly below satellite)."""
     # Satellite is at [R, 0, 0], nadir is [-1, 0, 0] direction
@@ -226,7 +226,7 @@ def test_coordinate_goal_nadir():
     assert q_diff > 0.01, "Quaternion should change for coordinate goal"
 
 
-@pytest.mark.slow
+@pytest.mark.vslow
 def test_coordinate_goal_off_nadir():
     """Test pointing at a ground location not at nadir."""
     # Point at location offset from nadir
@@ -244,7 +244,7 @@ def test_coordinate_goal_off_nadir():
 # NO_GOAL TESTS (DETUMBLING)
 # ==========================================
 
-@pytest.mark.slow
+@pytest.mark.vslow
 def test_no_goal_rate_damping():
     """Test that No_Goal performs rate damping (reduces angular velocity)."""
     goal = No_Goal()
@@ -295,7 +295,7 @@ def test_no_goal_rate_damping():
         f"Angular velocity should decrease: init={w_init_norm:.4f} final={w_final_norm:.4f}"
 
 
-@pytest.mark.slow
+@pytest.mark.vslow
 def test_no_goal_maintains_attitude():
     """Test that No_Goal from rest maintains current attitude."""
     goal = No_Goal()
@@ -340,7 +340,7 @@ def test_no_goal_maintains_attitude():
 # GOAL SWITCHING TESTS
 # ==========================================
 
-@pytest.mark.slow
+@pytest.mark.vslow
 def test_goallist_multiple_goals():
     """Test trajectory planning with GoalList containing multiple goals."""
     sat = create_test_satellite()

@@ -1385,7 +1385,7 @@ def extract_single_axis_from_altro(traj) -> Tuple[np.ndarray, np.ndarray, np.nda
     return times, e_y, omega_y, h_y, u_y
 
 
-@pytest.mark.slow
+@pytest.mark.vslow
 class TestOracleVsALTRO:
     """Compare oracle solutions against ALTRO planner output."""
 
@@ -1653,7 +1653,7 @@ class TestOracleVsALTRO:
             print(f"{name:12s}: Oracle e={abs(oracle.e[-1]):.4f}, ALTRO e={abs(e_a[-1]):.4f}, max|u|={np.max(np.abs(u_a)):.4f}")
 
 
-@pytest.mark.slow
+@pytest.mark.vslow
 class TestTimestepComparison:
     """
     Timestep-by-timestep comparison between oracle and ALTRO.
@@ -1904,7 +1904,7 @@ class TestTimestepComparison:
             f"ALTRO should use significant control: max|u| = {max_u_altro}"
 
 
-@pytest.mark.slow
+@pytest.mark.vslow
 class TestCostOptimality:
     """
     Verify ALTRO produces cost-optimal solutions within discretization bounds.
@@ -2172,7 +2172,7 @@ class TestCostOptimality:
             f"ALTRO ({cost_altro:.4f}) should be comparable to naive ({cost_naive:.4f})"
 
 
-@pytest.mark.slow
+@pytest.mark.vslow
 class TestProvablyOptimalLQR:
     """
     Test ALTRO against provably optimal discrete-time LQR solutions.
@@ -2456,7 +2456,7 @@ class TestProvablyOptimalLQR:
         assert max_e_diff < e_tol, f"Trajectories diverge too much: max e_diff = {max_e_diff}"
 
 
-@pytest.mark.slow
+@pytest.mark.vslow
 class TestConstrainedOptimal:
     """
     Test ALTRO against provably optimal constrained solutions.
@@ -2753,7 +2753,7 @@ class TestConstrainedOptimal:
 # Comprehensive Trajectory Matching Tests
 # ============================================================================
 
-@pytest.mark.slow
+@pytest.mark.vslow
 class TestParametricTrajectoryMatching:
     """
     Parametric trajectory matching tests with varied IVs, goals, and bounds.
@@ -2965,7 +2965,7 @@ class TestParametricTrajectoryMatching:
         assert abs(abs(e[-1]) - expected_error) < 0.05 + 0.2 * expected_error
 
 
-@pytest.mark.slow
+@pytest.mark.vslow
 class TestMTQSlewTrajectoryMatching:
     """
     MTQ-based slew trajectory matching tests.
@@ -3147,7 +3147,7 @@ class TestMTQSlewTrajectoryMatching:
         assert abs(abs(e[-1]) - expected_error) < 0.02 + 0.2 * expected_error
 
 
-@pytest.mark.slow
+@pytest.mark.vslow
 class TestRWDesaturationTrajectoryMatching:
     """
     Reaction wheel desaturation via MTQ trajectory matching.
@@ -3309,7 +3309,7 @@ class TestRWDesaturationTrajectoryMatching:
         assert abs(h_rw[2, -1] - h_rw_init[2]) < 1e-10, f"Para changed: {h_rw[2, -1]}"
 
 
-@pytest.mark.slow
+@pytest.mark.vslow
 class TestCombinedActuatorTrajectoryMatching:
     """
     Tests for combined RW + MTQ maneuvers.
@@ -4748,7 +4748,7 @@ def solve_hjb_optimal_desat(h_rw_0: np.ndarray, params: MTQDesatParams) -> Tuple
     return h_rw, m, tau
 
 
-@pytest.mark.slow
+@pytest.mark.vslow
 class TestHJBOptimalSlew:
     """
     Point-by-point trajectory tests for HJB-optimal slew maneuvers.
@@ -5294,7 +5294,7 @@ class TestHJBOptimalSlew:
         assert abs(e_altro[-1]) < 0.2, f"ALTRO should converge: e={e_altro[-1]}"
 
 
-@pytest.mark.slow
+@pytest.mark.vslow
 class TestMTQSlew:
     """
     Point-by-point trajectory tests for MTQ-based slew maneuvers in constant B-field.
@@ -5647,7 +5647,7 @@ class TestMTQSlew:
         assert abs(omega_altro[-1]) < 0.25, f"ALTRO should reach rest: ω={omega_altro[-1]}"
 
 
-@pytest.mark.slow
+@pytest.mark.vslow
 class TestHJBOptimalDesaturation:
     """
     Point-by-point trajectory tests for HJB-optimal MTQ desaturation.
@@ -6097,7 +6097,7 @@ class TestHJBOptimalDesaturation:
             f"Final should equal parallel: {h_final:.4f} vs {h_para_mag:.4f}"
 
 
-@pytest.mark.slow
+@pytest.mark.vslow
 class TestHJBvsALTROPointByPoint:
     """
     Direct point-by-point comparison of HJB analytical solutions vs ALTRO.

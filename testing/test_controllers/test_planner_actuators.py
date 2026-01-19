@@ -151,7 +151,7 @@ def run_trajectory_planning(sat: Satellite, duration: float = 50.0):
 # TESTS
 # ==========================================
 
-@pytest.mark.slow
+@pytest.mark.vslow
 def test_mtq_only_trajectory_planning():
     """Test trajectory planning with MTQ-only satellite."""
     sat = create_mtq_only_satellite()
@@ -173,7 +173,7 @@ def test_mtq_only_trajectory_planning():
     assert traj.states.shape[0] == 7, f"Expected 7 states (w+q), got {traj.states.shape[0]}"
 
 
-@pytest.mark.slow
+@pytest.mark.vslow
 def test_rw_only_trajectory_planning():
     """Test trajectory planning with RW-only satellite."""
     sat = create_rw_only_satellite()
@@ -195,7 +195,7 @@ def test_rw_only_trajectory_planning():
     assert traj.states.shape[0] == 10, f"Expected 10 states (w+q+h), got {traj.states.shape[0]}"
 
 
-@pytest.mark.slow
+@pytest.mark.vslow
 def test_mixed_actuator_trajectory_planning():
     """Test trajectory planning with mixed MTQ+RW satellite."""
     sat = create_mixed_satellite()
@@ -217,7 +217,7 @@ def test_mixed_actuator_trajectory_planning():
     assert traj.states.shape[0] == 10, f"Expected 10 states (w+q+h), got {traj.states.shape[0]}"
 
 
-@pytest.mark.slow
+@pytest.mark.vslow
 def test_mtq_trajectory_points_toward_goal():
     """Test that MTQ trajectory moves toward goal direction."""
     sat = create_mtq_only_satellite()
@@ -232,7 +232,7 @@ def test_mtq_trajectory_points_toward_goal():
     assert np.max(q_diff) > 1e-3, "Quaternion should change during trajectory"
 
 
-@pytest.mark.slow
+@pytest.mark.vslow
 def test_rw_trajectory_conserves_momentum():
     """Test that RW-only trajectory conserves total angular momentum (approximately)."""
     sat = create_rw_only_satellite()
@@ -257,7 +257,7 @@ def test_rw_trajectory_conserves_momentum():
     assert H_diff < 0.1, f"Total momentum changed by {H_diff}, expected conservation"
 
 
-@pytest.mark.slow
+@pytest.mark.vslow
 def test_trajectory_control_within_limits():
     """Test that control outputs stay within actuator limits."""
     sat = create_mixed_satellite()
@@ -274,7 +274,7 @@ def test_trajectory_control_within_limits():
             f"Actuator {i} control {max_control} exceeds limit {u_max}"
 
 
-@pytest.mark.slow
+@pytest.mark.vslow
 def test_trajectory_states_finite():
     """Test that all trajectory states are finite (no NaN or Inf)."""
     sat = create_mixed_satellite()

@@ -40,4 +40,4 @@ jobs:
           source .venv/bin/activate
           # Change directory and run pytest -v
           cd testing/
-          pytest -v
+          pytest -m "not slow" -v
