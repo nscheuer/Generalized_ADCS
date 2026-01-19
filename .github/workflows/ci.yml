@@ -34,6 +34,7 @@ jobs:
           # Install dependencies from the requirements file
           pip install -r requirements.txt
           pip install git+https://github.com/jcrudy/choldate.git --no-build-isolation
+          pip uninstall -y cmake
 
       - name: 🛠️ Build trajectory_planner
         run: |
