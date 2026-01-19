@@ -36,6 +36,15 @@ jobs:
           pip install git+https://github.com/jcrudy/choldate.git --no-build-isolation
           pip uninstall -y cmake
 
+      - name: 🧰 Install system dependencies (C++)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            cmake \
+            g++ \
+            libarmadillo-dev \
+            libboost-math-dev
+
       - name: 🛠️ Build trajectory_planner
         run: |
           source .venv/bin/activate
