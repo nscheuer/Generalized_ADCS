@@ -10,6 +10,10 @@
 #include <string>
 //namespace py = pybind11;
 
+// Global verbosity level for trajectory planner
+// 0=silent, 1=milestones, 2=progress, 3=detailed, 4=expensive debug
+extern int g_planner_verbosity;
+
 // #define earth_mu 3.986e14
 // #define EPSVAR 2.22e-16
 #define REG_PAIR std::tuple<double,double>

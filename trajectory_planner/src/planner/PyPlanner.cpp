@@ -290,8 +290,9 @@ void PyPlanner::setquaternionTo3VecMode(int val){
   op.quaternionTo3VecMode = val;
 }
 
-void PyPlanner::setPlannerVerbosity(bool verbosity){
-  op.setVerbosity(verbosity);
+void PyPlanner::setPlannerVerbosity(int verbosity_level){
+  // Verbosity levels: 0=silent, 1=milestones, 2=progress, 3=detailed, 4=expensive debug
+  op.setVerbosity(verbosity_level);
 }
 
 

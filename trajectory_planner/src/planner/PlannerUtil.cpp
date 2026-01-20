@@ -1,6 +1,8 @@
 #include "PlannerUtil.hpp"
 
-
+// Global verbosity level definition (declared extern in header)
+// 0=silent, 1=milestones, 2=progress, 3=detailed, 4=expensive debug
+int g_planner_verbosity = 0;
 
 using namespace arma;
 using namespace std;

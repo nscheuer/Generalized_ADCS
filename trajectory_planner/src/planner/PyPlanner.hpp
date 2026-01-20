@@ -49,7 +49,7 @@ public:
     double getdt();
     void setquaternionTo3VecMode(int val);
     py::tuple addRandNoisePython(double dt0, TRAJECTORY_PY_FORM trajPy, double dlaZcount, double stepsSinceRand, BREAK_SETTINGS_PY_FORM breakSettings_tmp,REG_SETTINGS_FORM regSettings_tmp,COST_SETTINGS_FORM costSettings_tmp, AUGLAG_INFO_PY_FORM auglag_vals,VECTOR_INFO_PY_FORM vecs);
-    void setPlannerVerbosity(bool verbosity);
+    void setPlannerVerbosity(int verbosity_level);
 
   mat current_Xset;
   mat current_Uset;

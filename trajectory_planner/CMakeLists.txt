@@ -10,10 +10,21 @@ if("${PROJECT_SOURCE_DIR}" STREQUAL "${PROJECT_BINARY_DIR}")
     message(FATAL_ERROR "In-source builds are not allowed. Please use a 'build' folder.")
 endif()
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(BUILD_SHARED_LIBS ON)
+
+# =============================================================================
+# Compiler Flags
+# =============================================================================
+# IMPORTANT: Do NOT use -ffast-math - it breaks numerical stability in ALTRO
+# optimization algorithms causing non-PSD Hessians and NaN/Inf errors
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG -DARMA_NO_DEBUG -march=native -funroll-loops -flto -Wno-odr")
+set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
+
+# Suppress Armadillo fast-math warnings (we don't use fast-math, but suppress for cleaner output)
+add_compile_definitions(ARMA_DONT_PRINT_FAST_MATH_WARNING)
 
 # =============================================================================
 # Build Speed Optimizations
@@ -74,18 +85,28 @@ list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
 find_package(Armadillo REQUIRED)
 include_directories(${ARMADILLO_INCLUDE_DIRS})
 
+# --- OpenMP (optional, for parallel cost computation) ---
+find_package(OpenMP)
+if(OpenMP_CXX_FOUND)
+    message(STATUS "OpenMP found: ${OpenMP_CXX_FLAGS}")
+else()
+    message(STATUS "OpenMP not found, cost2Func will run single-threaded")
+endif()
+
 add_library(tp_nopy STATIC
 			src/ArmaCSV.cpp
       src/planner/GeneralUtil.cpp
       src/planner/PlannerUtil.cpp
       src/planner/Satellite.cpp
       src/planner/OldPlanner.cpp
+      src/planner/TinyMPC.cpp
 			)
 set_target_properties(tp_nopy PROPERTIES POSITION_INDEPENDENT_CODE ON)
 add_library(tp STATIC
       src/planner/Satellite.cpp
       src/planner/GeneralUtil.cpp
       src/planner/OldPlanner.cpp
+      src/planner/TinyMPC.cpp
       src/planner/PlannerUtilPy.cpp
       src/planner/PlannerUtil.cpp
       src/ArmaNumpy.cpp
@@ -117,6 +138,27 @@ set_target_properties(tp_test2 PROPERTIES POSITION_INDEPENDENT_CODE ON)
 pybind11_add_module(tplaunch MODULE src/planner/PyPlanner.cpp)
 pybind11_add_module(pysat MODULE src/planner/Satellite.cpp)
 
+# =============================================================================
+# Precompiled Headers (PCH) - speeds up compilation significantly
+# =============================================================================
+# Create a shared object library for PCH that all targets can use
+add_library(core_objs OBJECT src/planner/GeneralUtil.cpp)
+set_target_properties(core_objs PROPERTIES POSITION_INDEPENDENT_CODE ON)
+target_include_directories(core_objs PUBLIC
+    "${PROJECT_SOURCE_DIR}/src"
+    "${PYTHON_INCLUDE_DIRS}"
+    "${PYBIND11_INCLUDE_DIRS}"
+    "${ARMADILLO_INCLUDE_DIRS}"
+)
+target_link_libraries(core_objs PUBLIC ${ARMADILLO_LIBRARIES} pybind11::module)
+target_precompile_headers(core_objs PUBLIC src/pch.hpp)
+
+# Reuse PCH from core_objs for all main targets
+target_precompile_headers(tp REUSE_FROM core_objs)
+target_precompile_headers(tp_nopy REUSE_FROM core_objs)
+target_precompile_headers(sat REUSE_FROM core_objs)
+target_precompile_headers(sat_nopy REUSE_FROM core_objs)
+target_precompile_headers(tplaunch REUSE_FROM core_objs)
 
 target_link_libraries(tp_nopy PUBLIC ${ARMADILLO_LIBRARIES} ${ARMADILLO_LIBRARY} pybind11::module ${PYBIND11_INCLUDE_DIRS} ${PYTHON_LIBRARY} ${PYTHON_LIBRARIES}  )
 target_link_libraries(sat PUBLIC ${ARMADILLO_LIBRARIES} ${ARMADILLO_LIBRARY} pybind11::module ${PYBIND11_INCLUDE_DIRS} ${PYTHON_LIBRARY} ${PYTHON_LIBRARIES}  )
@@ -126,6 +168,15 @@ target_link_libraries(tp PUBLIC ${ARMADILLO_LIBRARIES} ${ARMADILLO_LIBRARY} pybi
 target_link_libraries(tplaunch PUBLIC ${ARMADILLO_LIBRARIES} ${ARMADILLO_LIBRARY} tp tp_nopy sat sat_nopy  pybind11::module ${PYBIND11_INCLUDE_DIRS} ${PYTHON_LIBRARY} ${PYTHON_LIBRARIES}  )
 target_link_libraries(tp_test PRIVATE Catch2::Catch2WithMain PUBLIC pybind11::embed ${ARMADILLO_LIBRARIES} ${ARMADILLO_LIBRARY} sat tp sat_nopy tp_nopy)
 target_link_libraries(tp_test2 PRIVATE Catch2::Catch2WithMain PUBLIC pybind11::embed ${ARMADILLO_LIBRARIES} ${ARMADILLO_LIBRARY} sat tp sat_nopy tp_nopy)
+
+# Link OpenMP to targets that use parallel cost computation
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(tp_nopy PUBLIC OpenMP::OpenMP_CXX)
+    target_link_libraries(tp PUBLIC OpenMP::OpenMP_CXX)
+    target_link_libraries(tplaunch PUBLIC OpenMP::OpenMP_CXX)
+    target_link_libraries(tp_test PUBLIC OpenMP::OpenMP_CXX)
+    target_link_libraries(tp_test2 PUBLIC OpenMP::OpenMP_CXX)
+endif()
 
 
 target_include_directories(tp PUBLIC

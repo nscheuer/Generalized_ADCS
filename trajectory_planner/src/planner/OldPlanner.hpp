@@ -22,7 +22,7 @@ public:
     OldPlanner(Satellite sat_in, ALL_SETTINGS_FORM allSettings);
      ALL_SETTINGS_FORM readParameters() ;
 
-    void setVerbosity(bool verbosity);
+    void setVerbosity(int verbosity_level);
     void updateParameters_notsat(SYSTEM_SETTINGS_FORM systemSettings_tmp, ALILQR_SETTINGS_FORM alilqrSettings_tmp, ALILQR_SETTINGS_FORM alilqrSettings2_tmp,  INITIAL_TRAJ_SETTINGS_FORM initialTrajSettings_tmp, COST_SETTINGS_FORM costSettings_tmp,COST_SETTINGS_FORM costSettings2_tmp,LQR_COST_SETTINGS_FORM costSettings_tvlqr_tmp);
 
     BEFORE_OUTPUT_FORM trajOptBefore(VECTOR_INFO_FORM vecs_w_time,double dt_use, TIME_FORM time_start, TIME_FORM time_end, arma::vec x0, int bdotOn);
@@ -67,8 +67,8 @@ public:
 
 
 
-    //remove before flight
-    bool verbose;
+    // Verbosity levels: 0=silent, 1=milestones, 2=progress, 3=detailed, 4=expensive debug
+    int verbose_level;
 
     int quaternionTo3VecMode = 0;
 
