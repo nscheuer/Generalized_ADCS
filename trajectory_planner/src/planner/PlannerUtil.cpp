@@ -22,39 +22,28 @@ using namespace std;
 
 mat packageK(cube Kcube)
 {
-  mat K = mat(Kcube.n_rows*Kcube.n_cols, Kcube.n_slices).zeros();
-  for(int k = 0; k < Kcube.n_slices; k++)
+  // Optimized: use vectorise instead of triple-nested loop
+  // vectorise() with dim=0 (default) reads column-by-column
+  // We want row-major order, so transpose each slice first
+  mat K = mat(Kcube.n_rows*Kcube.n_cols, Kcube.n_slices);
+  for(uword k = 0; k < Kcube.n_slices; k++)
   {
-    mat AqMatrix = Kcube.slice(k);
-    for (size_t rowtest=0; rowtest < Kcube.n_rows; rowtest++)
-    {
-      for (size_t coltest=0; coltest < Kcube.n_cols; coltest++)
-      {
-        size_t i = rowtest*Kcube.n_cols+coltest;
-        K(i, k) = AqMatrix(rowtest, coltest);
-      }
-    }
+    K.col(k) = vectorise(Kcube.slice(k).t());  // Row-major vectorization
   }
   return K;
 }
 
 mat packageS(cube Scube)
+{
+  // Optimized: use vectorise instead of triple-nested loop
+  // For S, we want column-major order (transposed read pattern)
+  mat S = mat(Scube.n_rows*Scube.n_cols, Scube.n_slices);
+  for(uword k = 0; k < Scube.n_slices; k++)
   {
-    mat S = mat(Scube.n_rows*Scube.n_cols, Scube.n_slices).zeros();
-    for(int k = 0; k < Scube.n_slices; k++)
-    {
-      mat AqMatrix = Scube.slice(k);
-      for (size_t rowtest=0; rowtest < Scube.n_rows; rowtest++)
-      {
-        for (size_t coltest=0; coltest < Scube.n_cols; coltest++)
-        {
-          size_t i = rowtest*Scube.n_cols+coltest;
-          S(i, k) = AqMatrix(coltest, rowtest);
-        }
-      }
-    }
-    return S;
+    S.col(k) = vectorise(Scube.slice(k));  // Column-major vectorization
   }
+  return S;
+}
 
 VECTOR_INFO_FORM findVecTimes(VECTOR_INFO_FORM vecs_w_time,double dt,TIME_FORM time_start, TIME_FORM time_end){
   vec t = get<0>(vecs_w_time);
@@ -355,7 +344,7 @@ tuple<cube, cube,cube> rk4zHessians(double dt0,vec xk, vec uk,Satellite sat, DYN
                           get<5>(dynamics_info_k)*get<5>(dynamics_info_kp1),
                           0.5*(get<6>(dynamics_info_k)+get<6>(dynamics_info_kp1))
                           );
-  vec xkraw = xk.t().t();
+  vec xkraw = xk;  // Simple copy (removed unnecessary .t().t())
   xk = sat.state_norm(xk);
   tuple<vec,vec> dynout = sat.dynamics(xk, uk, dynamics_info_k);
   vec xd0 = get<0>(dynout);
@@ -565,7 +554,7 @@ tuple<cube, cube,cube,mat,mat,cube,cube,cube,cube,cube> rk4zxkp1rHessians(double
                           get<5>(dynamics_info_k)*get<5>(dynamics_info_kp1),
                           0.5*(get<6>(dynamics_info_k)+get<6>(dynamics_info_kp1))
                           );
-  vec xkraw = xk.t().t();
+  vec xkraw = xk;  // Simple copy (removed unnecessary .t().t())
   xk = sat.state_norm(xk);
   tuple<vec,vec> dynout = sat.dynamics(xk, uk, dynamics_info_k);
   vec xd0 = get<0>(dynout);
@@ -778,7 +767,7 @@ tuple<cube, cube,cube,mat,mat> rk4zx3rHessians(double dt0,vec xk, vec uk,Satelli
                           get<5>(dynamics_info_k)*get<5>(dynamics_info_kp1),
                           0.5*(get<6>(dynamics_info_k)+get<6>(dynamics_info_kp1))
                           );
-  vec xkraw = xk.t().t();
+  vec xkraw = xk;  // Simple copy (removed unnecessary .t().t())
   xk = sat.state_norm(xk);
   tuple<vec,vec> dynout = sat.dynamics(xk, uk, dynamics_info_k);
   vec xd0 = get<0>(dynout);
@@ -951,7 +940,7 @@ tuple<cube, cube,cube> rk4zxd2Hessians(double dt0,vec xk, vec uk,Satellite sat, 
                           get<5>(dynamics_info_k)*get<5>(dynamics_info_kp1),
                           0.5*(get<6>(dynamics_info_k)+get<6>(dynamics_info_kp1))
                           );
-  vec xkraw = xk.t().t();
+  vec xkraw = xk;  // Simple copy (removed unnecessary .t().t())
   xk = sat.state_norm(xk);
   tuple<vec,vec> dynout = sat.dynamics(xk, uk, dynamics_info_k);
   vec xd0 = get<0>(dynout);
@@ -1093,7 +1082,7 @@ tuple<cube, cube,cube> rk4zx3Hessians(double dt0,vec xk, vec uk,Satellite sat, D
                           get<5>(dynamics_info_k)*get<5>(dynamics_info_kp1),
                           0.5*(get<6>(dynamics_info_k)+get<6>(dynamics_info_kp1))
                           );
-  vec xkraw = xk.t().t();
+  vec xkraw = xk;  // Simple copy (removed unnecessary .t().t())
   xk = sat.state_norm(xk);
   tuple<vec,vec> dynout = sat.dynamics(xk, uk, dynamics_info_k);
   vec xd0 = get<0>(dynout);
@@ -1268,7 +1257,7 @@ tuple<cube, cube,cube,mat,mat> rk4zx1Hessians(double dt0,vec xk, vec uk,Satellit
                           get<5>(dynamics_info_k)*get<5>(dynamics_info_kp1),
                           0.5*(get<6>(dynamics_info_k)+get<6>(dynamics_info_kp1))
                           );
-  vec xkraw = xk.t().t();
+  vec xkraw = xk;  // Simple copy (removed unnecessary .t().t())
   xk = sat.state_norm(xk);
   tuple<vec,vec> dynout = sat.dynamics(xk, uk, dynamics_info_k);
   vec xd0 = get<0>(dynout);
@@ -1366,7 +1355,7 @@ tuple<cube, cube,cube> rk4zxd0Hessians(double dt0,vec xk, vec uk,Satellite sat, 
                           get<5>(dynamics_info_k)*get<5>(dynamics_info_kp1),
                           0.5*(get<6>(dynamics_info_k)+get<6>(dynamics_info_kp1))
                           );
-  vec xkraw = xk.t().t();
+  vec xkraw = xk;  // Simple copy (removed unnecessary .t().t())
   xk = sat.state_norm(xk);
   tuple<vec,vec> dynout = sat.dynamics(xk, uk, dynamics_info_k);
   vec xd0 = get<0>(dynout);
@@ -1432,7 +1421,7 @@ tuple<cube, cube,cube> rk4zxd1Hessians(double dt0,vec xk, vec uk,Satellite sat, 
                           get<5>(dynamics_info_k)*get<5>(dynamics_info_kp1),
                           0.5*(get<6>(dynamics_info_k)+get<6>(dynamics_info_kp1))
                           );
-  vec xkraw = xk.t().t();
+  vec xkraw = xk;  // Simple copy (removed unnecessary .t().t())
   xk = sat.state_norm(xk);
   tuple<vec,vec> dynout = sat.dynamics(xk, uk, dynamics_info_k);
   vec xd0 = get<0>(dynout);
@@ -1528,7 +1517,7 @@ tuple<cube, cube,cube,mat,mat> rk4zx2rHessians(double dt0,vec xk, vec uk,Satelli
                           get<5>(dynamics_info_k)*get<5>(dynamics_info_kp1),
                           0.5*(get<6>(dynamics_info_k)+get<6>(dynamics_info_kp1))
                           );
-  vec xkraw = xk.t().t();
+  vec xkraw = xk;  // Simple copy (removed unnecessary .t().t())
   xk = sat.state_norm(xk);
   tuple<vec,vec> dynout = sat.dynamics(xk, uk, dynamics_info_k);
   vec xd0 = get<0>(dynout);
@@ -1654,7 +1643,7 @@ tuple<cube, cube,cube,mat,mat> rk4zx2Hessians(double dt0,vec xk, vec uk,Satellit
                           get<5>(dynamics_info_k)*get<5>(dynamics_info_kp1),
                           0.5*(get<6>(dynamics_info_k)+get<6>(dynamics_info_kp1))
                           );
-  vec xkraw = xk.t().t();
+  vec xkraw = xk;  // Simple copy (removed unnecessary .t().t())
   xk = sat.state_norm(xk);
   tuple<vec,vec> dynout = sat.dynamics(xk, uk, dynamics_info_k);
   vec xd0 = get<0>(dynout);

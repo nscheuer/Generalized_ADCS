@@ -284,18 +284,14 @@ void Satellite::clear_magics(){
 }
 
 void Satellite::update_invJ_noRW(){
-  // mat33 invJ_noRW = invJcom;
-  // for(int k=0;k<number_RW;k++)
-  // {
-  //   invJ_noRW -= (-invJ_noRW*RW_axes.at(k)*RW_J.at(k)*RW_axes.at(k).t()*invJ_noRW)/(1-as_scalar(RW_J.at(k)*RW_axes.at(k).t()*invJ_noRW*RW_axes.at(k)));//Sherman-Morisson formula
-  // }
-  // invJcom_noRW = invJ_noRW;
-  mat33 J_noRW = Jcom.t().t();
+  // Compute J_noRW by subtracting RW contributions from Jcom
+  // (removed unnecessary .t().t() operations which are identity)
+  mat33 J_noRW = Jcom;
   for(int k=0;k<number_RW;k++)
   {
-    J_noRW -= RW_axes.at(k)*RW_axes.at(k).t()*RW_J.at(k);
+    J_noRW -= RW_axes[k]*RW_axes[k].t()*RW_J[k];
   }
-  Jcom_noRW = J_noRW.t().t();
+  Jcom_noRW = J_noRW;
   invJcom_noRW = Jcom_noRW.i();
   invJcom = Jcom.i();
 }
@@ -425,21 +421,10 @@ void Satellite::auto_scale_control_costs(double base_weight){
 
 vec Satellite::state_norm(vec x) const
 {
-  vec out = x.t().t();
-  vec4 q = x(span(quat0index(),quat0index()+3));
-  // double qn = norm(q);
-  // q /= qn;
-  // q *= sign(q(index_max(abs(q))));
-  // if(q(0)!=0){
-  //   q *= sign(q(0));
-  // }else if(q(1)!=0){
-  //   q *= sign(q(1));
-  // }else if(q(2)!=0){
-  //   q *= sign(q(2));
-  // }else if(q(3)!=0){
-  //   q *= sign(q(3));
-  // }
-  out(span(quat0index(),quat0index()+3)) = normalise(q);
+  // Normalize quaternion portion of state vector
+  // (removed unnecessary .t().t() copy - just copy directly)
+  vec out = x;
+  out(span(quat0index(),quat0index()+3)) = normalise(x(span(quat0index(),quat0index()+3)));
   return out;
 }
 
@@ -851,41 +836,44 @@ double Satellite::stepcost_vec(int k, int N, vec xk, vec uk,vec ukprev, vec3 sat
     w_avang = get<8>(costSettings_tmp);
   }
   xk = state_norm(xk);
-  // vec4 qk = normalise(xk.rows(quat0index(), quat0index()+3));
   vec4 qk = xk.rows(quat0index(), quat0index()+3);
   vec3 wk = xk.rows(avindex0(),avindex0()+2);
-  //vec v = satAlignVector;//get<1>(vu);
 
   double angcost = 0.0;
+
+  // Cache rotation matrix - called multiple times with same quaternion
+  mat33 Rk = rotMat(qk);
+  mat33 RkT = Rk.t();
 
   //if k == N, lku is zero so lkuu and lkux also zeros
   vec3 sk = normalise(satvec_k);
   vec3 ek = normalise(ECIvec_k);
 
-  double ddot = norm_dot(sk,rotMat(qk).t()*ek);
+  vec3 RkT_ek = RkT*ek;  // Reuse this product
+  double ddot = norm_dot(sk, RkT_ek);
   ddot = min(max(ddot, -1.0), 1.0);
-  vec3 angerrvec = (cross(rotMat(qk).t()*ek,sk));
-    switch(whichAngCostFunc){
-        case 0:
-          angcost = 1.0-ddot;
-          break;
-        case 1:
-          angcost = 0.5*(1.0-ddot)*(1.0-ddot);
-          break;
-        case 2:
-          angcost = acos(ddot);
-          break;
-        case 3:
-          angcost = 0.5*pow(acos(ddot),2.0);
-          break;
-        default:
-          throw("incorrect ang cost function specifier");
-      }
-  double cross_cost = w_avang*dot(wk,angerrvec);//0.5*as_scalar();//uk.t()*Wux*vsk);
+  vec3 angerrvec = cross(RkT_ek, sk);
+  switch(whichAngCostFunc){
+      case 0:
+        angcost = 1.0-ddot;
+        break;
+      case 1:
+        angcost = 0.5*(1.0-ddot)*(1.0-ddot);
+        break;
+      case 2:
+        angcost = acos(ddot);
+        break;
+      case 3:
+        angcost = 0.5*pow(acos(ddot),2.0);
+        break;
+      default:
+        throw("incorrect ang cost function specifier");
+    }
+  double cross_cost = w_avang*dot(wk,angerrvec);
 
 
   angcost *= w_ang;
-  vec3 nb = rotMat(qk).t()*normalise(BECI_k);
+  vec3 nb = RkT*normalise(BECI_k);  // Reuse cached RkT
   double state_cost = 0.5*as_scalar(wk.t()*wk)*w_av + angcost;//*(1.0-ddot));//0.5*as_scalar(wk.t()*wk*w_av + w_ang*phi*phi);//0.5*as_scalar(wk.t()*wk*w_av + w_ang*(1-ddot)*(1-ddot));//0.5*as_scalar(vsk.t()*Wxx*vsk);
   double actuation_cost = 0.0;
   double ang_mom_cost = 0.0;
@@ -950,38 +938,34 @@ double Satellite::stepcost_quat(int k, int N, vec xk, vec uk,vec ukprev, vec3 sa
     w_avang = get<8>(costSettings_tmp);
   }
   xk = state_norm(xk);
-  // vec4 qk = normalise(xk.rows(quat0index(), quat0index()+3));
-  vec4 qk = (xk.rows(quat0index(), quat0index()+3));
+  vec4 qk = xk.rows(quat0index(), quat0index()+3);
   vec3 wk = xk.rows(avindex0(),avindex0()+2);
-  //vec v = satAlignVector;//get<1>(vu);
 
   double angcost = 0.0;
+
+  // Cache rotation matrix transpose - used for magnetic field direction
+  mat33 RkT = rotMat(qk).t();
 
   //if k == N, lku is zero so lkuu and lkux also zeros
   vec3 sk = normalise(satvec_k);
   vec4 ek = normalise(ECIvec_k);
 
-  // double ddot = norm_dot(sk,rotMat(qk).t()*ek);
-  // vec3 angerrvec = (cross(rotMat(qk).t()*ek,sk));
-  // double sq = sign(qk(0));
-  // if(sq==0){sq=1;}
-  // double se = sign(ek(0));
-  // if(se==0){se=1;}
-  // qk *= se*sq;
-  vec4 qerr = normquaterr(ek,qk);//normalise(join_cols(vec(1).ones()*norm_dot(ek,qk),ek(0)*qk.rows(1,3) - qk(0)*ek.rows(1,3)-cross(ek.rows(1,3),qk.rows(1,3))));
+  vec4 qerr = normquaterr(ek,qk);
   vec3 angerrvec = qerr(span(1,3));
   double ddot = norm_dot(ek,qk);
 
   mat::fixed<4,3> Wq = findWMat(qk);
   mat::fixed<4,3> We = findWMat(ek);
 
+  // Cache We*We.t() product for cost functions 1 and 3
+  mat::fixed<4,4> WeWeT = We*We.t();
 
   switch(whichAngCostFunc){
     case 0:
       angcost = 1.0-abs(ddot);
       break;
     case 1:
-      angcost = 0.5*as_scalar(qk.t()*We*We.t()*qk);
+      angcost = 0.5*as_scalar(qk.t()*WeWeT*qk);
       break;
     case 2:
       angcost = 0.5*w_ang*dot(angerrvec,angerrvec);
@@ -994,7 +978,7 @@ double Satellite::stepcost_quat(int k, int N, vec xk, vec uk,vec ukprev, vec3 sa
         }
       break;
     case 3:
-      angcost = 0.5*as_scalar(qk.t()*We*We.t()*qk);
+      angcost = 0.5*as_scalar(qk.t()*WeWeT*qk);
       break;
     case 4:
       angcost = 1.0-(ddot*ddot);
@@ -1002,10 +986,10 @@ double Satellite::stepcost_quat(int k, int N, vec xk, vec uk,vec ukprev, vec3 sa
     default:
       throw("incorrect ang cost function specifier.0-4 allowed for 3d orientation specification.");
     }
-  double cross_cost = -sign(ddot)*as_scalar(ek.t()*Wq*wk)*w_avang;//0.5*as_scalar();//uk.t()*Wux*vsk);
+  double cross_cost = -sign(ddot)*as_scalar(ek.t()*Wq*wk)*w_avang;
 
   angcost *= w_ang;
-  vec3 nb = rotMat(qk).t()*normalise(BECI_k);
+  vec3 nb = RkT*normalise(BECI_k);  // Reuse cached RkT
   double state_cost = 0.5*as_scalar(wk.t()*wk)*w_av + angcost;//*(1.0-ddot));//0.5*as_scalar(wk.t()*wk*w_av + w_ang*phi*phi);//0.5*as_scalar(wk.t()*wk*w_av + w_ang*(1-ddot)*(1-ddot));//0.5*as_scalar(vsk.t()*Wxx*vsk);
   double actuation_cost = 0.0;
   double ang_mom_cost = 0.0;
