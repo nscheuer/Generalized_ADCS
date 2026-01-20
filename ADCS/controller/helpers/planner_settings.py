@@ -206,8 +206,8 @@ class PlannerSettings:
         # Terminal costs 10x higher than running costs to prioritize goal reaching
         self.cost_main = cost_main if cost_main else CostWeights(
             angle=1e3,
-            angle_N=1e4,   # 10x running cost
-            ang_vel=1e4,
+            angle_N=1e6,   # 10x running cost
+            ang_vel=1e3,
             ang_vel_N=1e5, # 10x running cost
             ang_vel_mag=0.0,
             ang_vel_mag_N=0.0,
