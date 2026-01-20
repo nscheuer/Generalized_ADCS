@@ -9,6 +9,74 @@ from ADCS.orbits.universal_constants import EarthConstants
 
 @dataclass
 class NavigationStar:
+    r"""
+    **Navigation Star Definition**
+
+    This data class represents a single **navigation star** used by attitude
+    sensors such as a star tracker.
+
+    Each star is defined by its inertial pointing direction, brightness, and
+    identifying metadata derived from astronomical catalogs (e.g. Hipparcos).
+
+    ---
+    **Coordinate Representation**
+
+    The star direction is stored as a **unit vector in the Earth-Centered Inertial
+    (ECI) frame**:
+
+    .. math::
+
+        \mathbf{s}_\mathrm{ECI}
+        =
+        \begin{bmatrix}
+        \cos\delta\cos\alpha \\
+        \cos\delta\sin\alpha \\
+        \sin\delta
+        \end{bmatrix}
+
+    where:
+
+    - :math:`\alpha` — right ascension (RA)
+    - :math:`\delta` — declination (Dec)
+
+    This representation assumes a distant (effectively infinite-range) star,
+    so parallax effects are neglected.
+
+    ---
+    **Intended Use**
+
+    Instances of this class are returned by
+    :meth:`~ADCS.environment.StarCatalog.get_visible_stars`
+    and consumed by attitude sensors such as
+    :class:`~ADCS.satellite_hardware.sensors.star_tracker.StarTracker`.
+
+    Attributes
+    ----------
+    hip_id : int
+        Hipparcos catalog identifier.
+
+    name : str
+        Common star name.
+
+    ra_rad : float
+        Right ascension in radians.
+
+    dec_rad : float
+        Declination in radians.
+
+    vmag : float
+        Apparent visual magnitude.
+        Lower values correspond to brighter stars.
+
+    s_eci : ndarray, shape (3,)
+        Unit vector pointing from the Earth toward the star,
+        expressed in the ECI frame.
+
+    References
+    ----------
+    Vallado, D. A., *Fundamentals of Astrodynamics and Applications*,
+    4th ed., Section 2.3.
+    """
     hip_id: int
     name: str
     ra_rad: float
@@ -18,20 +86,109 @@ class NavigationStar:
 
 
 class StarCatalog:
+    r"""
+    **Navigation Star Catalog**
+
+    This class provides a curated catalog of bright navigation stars and
+    implements **geometric visibility checks** for star tracker sensors.
+
+    The catalog is intentionally limited to relatively bright stars
+    (visual magnitude :math:`V \lesssim 2.5`) to reflect realistic onboard
+    star tracker operation and to keep visibility queries computationally
+    lightweight.
+
+    ---
+    **Catalog Contents**
+
+    Each star is represented by a :class:`~ADCS.environment.NavigationStar`
+    object containing:
+
+    - Right ascension and declination
+    - Apparent visual magnitude
+    - Precomputed inertial-frame unit direction
+
+    The default catalog is derived from the **Hipparcos Catalog (ESA, 1997)**.
+
+    ---
+    **Visibility Model**
+
+    A star is considered *visible* if and only if all of the following hold:
+
+    1. The star lies within the sensor field of view (FOV)
+    2. The star is not occluded by the Earth
+    3. The star is not occluded by the Moon (if enabled)
+    4. The sensor is not blinded by the Sun
+
+    These checks are implemented using purely geometric criteria and are
+    appropriate for simulation and estimator development.
+
+    ---
+    **Coordinate Frames**
+
+    All directions are expressed in the **ECI frame**.
+    Satellite position vectors are assumed to be given in kilometers.
+
+    Attributes
+    ----------
+    R_EARTH : float
+        Mean Earth radius [km].
+
+    R_MOON : float
+        Mean Moon radius [km].
+
+    See Also
+    --------
+    ~ADCS.environment.NavigationStar  
+    ~ADCS.satellite_hardware.sensors.star_tracker.StarTracker
+    """
     R_EARTH: float = EarthConstants.R_e
     R_MOON: float = EarthConstants.R_moon
 
     def __init__(self) -> None:
-        """Initialize the star catalog with bright navigation stars."""
+        r"""
+        Initialize the star catalog.
+
+        The catalog is populated with a predefined list of bright navigation
+        stars at construction time. Star directions are converted from
+        right ascension and declination to inertial-frame unit vectors.
+
+        Notes
+        -----
+        The catalog is static and does not model proper motion, parallax,
+        or stellar aberration. These effects are negligible for typical
+        small-satellite star tracker applications.
+        """
         self._stars: List[NavigationStar] = self._init_catalog()
 
     def _init_catalog(self) -> List[NavigationStar]:
-        """Initialize catalog with bright navigation stars.
+        r"""
+        Construct the internal navigation star list.
 
-        Star data format: (HIP_ID, name, RA_deg, Dec_deg, Vmag)
-        RA/Dec are given in degrees for readability, then converted to radians.
+        Star data are specified using right ascension and declination
+        (in degrees for readability) and converted internally to radians
+        and inertial-frame unit vectors.
 
-        Reference: Hipparcos Catalog (ESA, 1997)
+        The conversion follows standard spherical-to-Cartesian mapping:
+
+        .. math::
+
+            \mathbf{s}_\mathrm{ECI}
+            =
+            \begin{bmatrix}
+            \cos\delta\cos\alpha \\
+            \cos\delta\sin\alpha \\
+            \sin\delta
+            \end{bmatrix}
+
+        Returns
+        -------
+        list of ~ADCS.environment.NavigationStar
+            List of initialized navigation star objects.
+
+        References
+        ----------
+        Hipparcos Catalog, ESA (1997)  
+        Vallado (2013), Section 2.3
         """
         catalog_data = [
             # Brightest stars (Vmag < 1.0)
@@ -100,40 +257,81 @@ class StarCatalog:
         moon_eci: Optional[NDArray[np.float64]] = None,
         sun_exclusion_rad: float = np.deg2rad(25.0)
     ) -> List[NavigationStar]:
-        """Get stars visible in the field of view, accounting for occlusion.
+        r"""
+        Determine which navigation stars are visible to a star tracker.
 
-        This method implements full visibility checking including:
-        1. Field of view constraints
-        2. Earth occlusion (star behind Earth disk)
-        3. Moon occlusion (star behind Moon disk)
-        4. Sun exclusion (tracker blinded by stray light)
+        This method applies a sequence of geometric visibility checks
+        to each catalog star.
 
-        Args:
-            boresight_eci: Star tracker boresight direction in ECI frame
-                (unit vector, shape (3,))
-            fov_rad: Full field of view in radians
-            r_sat_eci: Satellite position in ECI frame (km), shape (3,)
-            sun_eci: Sun position in ECI frame (km), optional.
-                If provided, enables sun exclusion checking.
-            moon_eci: Moon position in ECI frame (km), optional.
-                If provided, enables Moon occlusion checking.
-            sun_exclusion_rad: Sun exclusion angle from boresight in radians.
-                Tracker is blinded if sun is closer than this angle.
-                Typical values: 25-45 degrees. Default: 25 degrees.
+        ---
+        **Visibility Criteria**
 
-        Returns:
-            List of NavigationStar objects that are visible.
-            Returns empty list if tracker is blinded by sun.
+        A star is considered visible if:
 
-        References:
-            [1] Vallado (2013), Section 5.3 for occlusion geometry
-            [2] Liebe (2002), Section IV-A for sun exclusion angles
+        1. **Field-of-view constraint**
 
-        Example:
-            >>> catalog = StarCatalog()
-            >>> r_sat = np.array([6778.0, 0.0, 0.0])  # 400 km altitude
-            >>> boresight = np.array([0.0, 1.0, 0.0])  # Looking +Y
-            >>> visible = catalog.get_visible_stars(boresight, np.deg2rad(20), r_sat)
+           .. math::
+
+               \arccos(\mathbf{b}^\top \mathbf{s}_\mathrm{ECI})
+               \;\le\; \tfrac{1}{2}\,\mathrm{FOV}
+
+        2. **Earth occlusion**
+
+           The star is not located behind the Earth disk as seen from
+           the spacecraft.
+
+        3. **Moon occlusion (optional)**
+
+           The star is not located behind the Moon disk.
+
+        4. **Sun exclusion**
+
+           If the Sun is closer than ``sun_exclusion_rad`` to the boresight,
+           the tracker is considered **completely blinded** and no stars
+           are returned.
+
+        ---
+        **Earth and Moon Occlusion**
+
+        Occlusion checks are performed using angular radii:
+
+        .. math::
+
+            \theta_\oplus = \arcsin\!\left(\frac{R_\oplus}{\|\mathbf{r}_\mathrm{sat}\|}\right), \qquad
+            \theta_\leftmoon = \arcsin\!\left(\frac{R_\leftmoon}{\|\mathbf{r}_{\leftmoon}\|}\right)
+
+        Parameters
+        ----------
+        boresight_eci : ndarray, shape (3,)
+            Star tracker boresight direction in the ECI frame (unit vector).
+
+        fov_rad : float
+            Full angular field of view of the star tracker [rad].
+
+        r_sat_eci : ndarray, shape (3,)
+            Spacecraft position in the ECI frame [km].
+
+        sun_eci : ndarray, shape (3,), optional
+            Sun position in the ECI frame [km].
+            If provided, Sun exclusion checking is enabled.
+
+        moon_eci : ndarray, shape (3,), optional
+            Moon position in the ECI frame [km].
+            If provided, Moon occlusion checking is enabled.
+
+        sun_exclusion_rad : float, optional
+            Minimum allowable Sun–boresight angular separation [rad].
+
+        Returns
+        -------
+        list of ~ADCS.environment.NavigationStar
+            List of visible navigation stars.
+            Returns an empty list if the tracker is blinded by the Sun.
+
+        References
+        ----------
+        Vallado (2013), Section 5.3 — Earth occlusion geometry  
+        Liebe (2002), Section IV-A — Star tracker Sun exclusion
         """
         visible = []
         half_fov = fov_rad / 2.0

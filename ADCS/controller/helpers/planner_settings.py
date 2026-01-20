@@ -174,11 +174,11 @@ class PlannerSettings:
         # Two-pass optimization strategy:
         # - Pass 1 (Exploration): Lower penalty (1e-3), more iterations for global search
         # - Pass 2 (Refinement): Higher penalty (1e4), fewer iterations for constraint satisfaction
-        converge1 = ConvergenceConfig(max_outer_iter=20, max_inner_iter=150)
+        converge1 = ConvergenceConfig(max_outer_iter=20, max_inner_iter=60)
         auglag1 = AugLagConfig(penalty_init=1e-3)
         self.pass1 = pass1_config if pass1_config else SolverPassConfig(convergence=converge1, aug_lag=auglag1)
 
-        converge2 = ConvergenceConfig(max_outer_iter=20, max_inner_iter=75)
+        converge2 = ConvergenceConfig(max_outer_iter=20, max_inner_iter=30)
         auglag2 = AugLagConfig(penalty_init=1e4)
         self.pass2 = pass2_config if pass2_config else SolverPassConfig(convergence=converge2, aug_lag=auglag2)
 

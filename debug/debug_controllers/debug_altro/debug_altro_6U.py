@@ -5,7 +5,7 @@ from scipy.integrate import solve_ivp
 from typing import List, Union
 from tqdm import tqdm
 import matplotlib.pyplot as plt
-import pytest
+import time
 
 sys.path.append(os_pack.path.abspath(os_pack.path.join(__file__, "../../../..")))
 from ADCS.CONOPS.goals import Goal, ECI_Goal, Coordinate_Goal, No_Goal
@@ -76,7 +76,7 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
         orb = Orbit(orbs)
 
     # Build Planner
-    planner_settings = PlannerSettings(est_sat=real_sat, bdot_on=0,dt_tp = 1.0)
+    planner_settings = PlannerSettings(est_sat=real_sat, bdot_on=0,dt_tp = 5.0)
     # planner_settings.rw_AM_weight = 0  # Disable AM cost
     # planner_settings.rw_stic_weight = 0  # Disable stiction cost - causes non-convex Hessian!
     planner_settings.verbosity = verbose
@@ -105,32 +105,37 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
     # Simplified goal - just ECI_Goal from start, no transition
     goals = GoalList({0.22: ECI_Goal(np.array([1, 1, 1]))})
 
-    print("Computing Trajectory (One-Shot)")
+    traj_duration = tf - t0  # [s]
+
+    print("\n========== ALTRO TRAJECTORY PLANNING ==========")
+    print(f"Requested trajectory duration : {traj_duration:.2f} s")
+
+    t_plan_start = time.perf_counter()
+
     traj: Trajectory = controller.calculate_trajectory(
         t_start=0.22,
-        duration=tf-t0,
+        duration=traj_duration,
         x_0=x,
         os_0=os0,
         goals=goals,
         verbose=verbose 
     )
-    # traj.plot_eci_trajectory()
+
+    t_plan_end = time.perf_counter()
+    plan_wall_time = t_plan_end - t_plan_start
+
+    print(f"Trajectory planning wall time : {plan_wall_time:.3f} s")
+
+    if traj_duration > 0:
+        rtf = plan_wall_time / traj_duration
+        print(f"Real-time factor (RTF)        : {rtf:.3f} x")
+        print(f"Equivalent speed             : {1/rtf:.2f} x real-time")
+
+    print("==============================================\n")
     controller.set_active_trajectory(traj)
     time_hist_traj = (traj.times-start_time)*TimeConstants.cent2sec
     state_hist_traj = traj.states.T
     u_hist_traj = traj.controls.T
-
-    # Save trajectory data for analysis
-    save_path = os_pack.path.join(os_pack.path.dirname(__file__), "debug_altro_trajectory.npz")
-    np.savez(save_path,
-        times=time_hist_traj,
-        states=state_hist_traj,
-        controls=u_hist_traj,
-        rw_max_torque=rw_max_torque,
-        rw_hmax=rw_hmax,
-        J=real_sat.J_0,
-    )
-    print(f"\nTrajectory saved to: {save_path}")
 
     plot_state_comparison(time=time_hist_traj, state_hist=state_hist_traj)
     plot_control(time=time_hist_traj, u_hist=u_hist_traj)
@@ -140,9 +145,7 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
 
     if rwN>0:
         plot_rw_momentum(time=time_hist_traj, state_hist=state_hist_traj)
-    plt.show()
-    plt.close("all")
-    # create_close_all_button_window()
+    create_close_all_button_window()
     
     for step in tqdm(range(steps), desc="Simulating ALTRO"):
         J2000 = 0.22 + t*TimeConstants.sec2cent
@@ -186,7 +189,7 @@ def plot_mtq_w_rw_align_to_eci(verbose: bool = False, tf: float = 1000, dt: floa
     plot_control(time=time_hist, u_hist=u_hist)
     plot_rw_momentum(time=time_hist, state_hist=state_hist)
     goal = Coordinate_Goal(lat=38.7223, lon=-10, alt=0)
-    # animate_orbit_pyvista(time_hist=time_hist, state_hist=state_hist, os_hist=os_hist, boresight_goal_hist=boresight_hist, coord_goal=goal)
+    animate_orbit_pyvista(time_hist=time_hist, state_hist=state_hist, os_hist=os_hist, boresight_goal_hist=boresight_hist, coord_goal=goal)
     plot_target_tracking(state_hist=state_hist, boresight_hist=boresight_hist, body_boresight=np.array([0, 0, 1]))
     #animate_orbit(time_hist=time_hist, state_hist=state_hist, os_hist=os_hist, boresight_goal_hist=boresight_hist, coord_goal=goal)
     create_close_all_button_window()

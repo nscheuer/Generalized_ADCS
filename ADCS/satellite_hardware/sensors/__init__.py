@@ -13,6 +13,5 @@ __all__ = [
     "GPS",
     "Gyro",
     "MTM",
-    "NavigationStar",
     "StarTracker",
 ]
