@@ -12,6 +12,7 @@ from ADCS.CONOPS.goals import Goal, ECI_Goal, Coordinate_Goal, No_Goal
 from ADCS.CONOPS.goallist import GoalList
 from ADCS.controller.plan_and_track_lqr import Plan_and_Track_LQR
 from ADCS.controller.helpers import PlannerSettings, Trajectory, planner_settings
+from ADCS.controller.helpers.planner_subsettings import CostWeights
 from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.orbit import Orbit
 from ADCS.orbits.orbital_state import Orbital_State
@@ -88,6 +89,38 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
 
     # Try higher initial penalty to enforce constraints earlier
     planner_settings.pass1.aug_lag.penalty_init = 1e-3
+
+    # Planner modifications
+    planner_settings.cost_main = CostWeights(
+        angle=1e2,
+        angle_N=1e5,
+        ang_vel=1e3,
+        ang_vel_N=1e4,
+        ang_vel_mag=0.0,
+        ang_vel_mag_N=0.0,
+        control_mult=1.0,
+        ang_cost_func_type=2
+    )
+
+    # 3. PASS 2: Precision Lock
+    planner_settings.cost_second = CostWeights(
+        angle=2e4,
+        angle_N=1e7,             # Increased 100x to fix end-divergence
+        ang_vel=1e3,             # Matches Pass 1 to ensure fast convergence
+        ang_vel_N=1e5,
+        ang_vel_mag=0.0,
+        ang_vel_mag_N=0.0,
+        control_mult=1.0,
+        ang_cost_func_type=2
+    )
+
+    # 4. SOLVER SPEED TUNING
+    planner_settings.pass1.convergence.grad_tol = 1.0
+    planner_settings.pass1.convergence.ilqr_cost_tol = 0.1
+    planner_settings.pass1.convergence.max_inner_iter = 20
+    
+    planner_settings.pass2.convergence.grad_tol = 1e-2
+    planner_settings.pass2.aug_lag.penalty_init = 1.0
 
     controller = Plan_and_Track_LQR(est_sat=real_sat, planner_settings=planner_settings)
 
@@ -189,7 +222,7 @@ def plot_mtq_w_rw_align_to_eci(verbose: bool = False, tf: float = 1000, dt: floa
     plot_control(time=time_hist, u_hist=u_hist)
     plot_rw_momentum(time=time_hist, state_hist=state_hist)
     goal = Coordinate_Goal(lat=38.7223, lon=-10, alt=0)
-    animate_orbit_pyvista(time_hist=time_hist, state_hist=state_hist, os_hist=os_hist, boresight_goal_hist=boresight_hist, coord_goal=goal)
+    # animate_orbit_pyvista(time_hist=time_hist, state_hist=state_hist, os_hist=os_hist, boresight_goal_hist=boresight_hist, coord_goal=goal)
     plot_target_tracking(state_hist=state_hist, boresight_hist=boresight_hist, body_boresight=np.array([0, 0, 1]))
     #animate_orbit(time_hist=time_hist, state_hist=state_hist, os_hist=os_hist, boresight_goal_hist=boresight_hist, coord_goal=goal)
     create_close_all_button_window()
