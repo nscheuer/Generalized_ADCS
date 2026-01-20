@@ -192,6 +192,31 @@ class Orbit:
         b_ecef = self.geocentric_to_ecef_orbit(np.atleast_2d(np.squeeze(np.stack([b_r, b_th, b_ph])).T))
         b_eci = self.ecef_to_eci_orbit(b_ecef)
         return b_eci*1e-9
+
+    def get_sun_eci_orbit(self) -> np.ndarray:
+        """Compute sun vectors for all timesteps using vectorized skyfield calls.
+        
+        Returns:
+            np.ndarray: (N, 3) array of sun vectors in ECI frame [km]
+        """
+        from skyfield import api, positionlib
+        
+        # Get reference state for ephemeris access
+        ref_state = self.states[self.times[0]]
+        ephem = ref_state.ephem
+        
+        # Build array of TAI times
+        tai_times = np.array([self.states[t].TAI for t in self.times])
+        
+        # Create skyfield time objects (vectorized)
+        ts = ephem.ts
+        t_sf = ts.tai_jd(tai_times)
+        
+        # Compute sun positions for all times at once
+        sun_icrf = ephem.earth.at(t_sf).observe(ephem.sun).apparent()
+        sun_eci = sun_icrf.position.km.T  # (N, 3)
+        
+        return sun_eci
     
     def get_vecs(self) -> List[List[np.ndarray]]:
         R = [self.states[j].R for j in self.times]

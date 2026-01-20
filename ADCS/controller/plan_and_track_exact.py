@@ -94,7 +94,10 @@ class Plan_and_Track_Exact(PlanAndTrackBase):
         x_0: np.ndarray,
         os_0: Orbital_State,
         goals: GoalList,
-        verbose: bool = False
+        verbose: bool = False,
+        vecsPy_precomputed: tuple = None,
+        N_precomputed: int = None,
+        t_end_precomputed: float = None
     ) -> Trajectory:
         """
         Calculate an optimal trajectory using ALTRO.
@@ -106,11 +109,15 @@ class Plan_and_Track_Exact(PlanAndTrackBase):
             os_0: Initial orbital state
             goals: Goal list for attitude reference
             verbose: Whether to print debug information
+            vecsPy_precomputed: Optional pre-computed environment vectors to skip slow orbit propagation
+            N_precomputed: Number of timesteps (required with vecsPy_precomputed)
+            t_end_precomputed: End time in J2000 centuries (required with vecsPy_precomputed)
 
         Returns:
             Trajectory object with states, controls, and gains
         """
         lqr_times, Xset, Uset, Kset, Sset = self._calculate_trajectory_common(
-            t_start, duration, x_0, os_0, goals, verbose
+            t_start, duration, x_0, os_0, goals, verbose,
+            vecsPy_precomputed, N_precomputed, t_end_precomputed
         )
         return Trajectory(lqr_times, Xset, Uset, Kset, Sset)
