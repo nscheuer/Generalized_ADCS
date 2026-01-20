@@ -111,31 +111,43 @@ def test_plan_and_track_lqr_disturbed(
     )
     planner_settings.verbosity = verbose
 
-    # Control weights - match bc2.py settings
-    planner_settings.rw_control_weight = 1e-4
-    planner_settings.mtq_control_weight = 1e0
+    # Control weights - make RW much cheaper so planner strongly prefers it
+    # Lower weight = cheaper actuator in the cost function
+    # Matched to bc2.py which uses rw=1e-8, mtq=1e4 (RW is 10^12x cheaper)
+    planner_settings.rw_control_weight = 1e-8  # Essentially free RW usage
+    planner_settings.mtq_control_weight = 1e4  # MTQ more expensive
 
-    # Angular velocity costs - high to ensure smooth trajectories
-    planner_settings.cost_main.ang_vel = 1e7
-    planner_settings.cost_second.ang_vel = 1e7
-    planner_settings.cost_tvlqr.ang_vel = 1e8
+    # Angle costs - prioritize pointing accuracy (matched to bc2.py)
+    planner_settings.cost_main.angle = 1e8
+    planner_settings.cost_second.angle = 1e8
+    planner_settings.cost_tvlqr.angle = 1e10
+
+    # Angular velocity costs
+    planner_settings.cost_main.ang_vel = 1e4
+    planner_settings.cost_second.ang_vel = 1e4
+    planner_settings.cost_tvlqr.ang_vel = 1e6
 
     # Terminal angular velocity costs
-    planner_settings.cost_main.ang_vel_N = 1e9
-    planner_settings.cost_second.ang_vel_N = 1e9
-    planner_settings.cost_tvlqr.ang_vel_N = 1e11
+    planner_settings.cost_main.ang_vel_N = 1e6
+    planner_settings.cost_second.ang_vel_N = 1e6
+    planner_settings.cost_tvlqr.ang_vel_N = 1e9
 
-    # Terminal angle costs - high for angle-focused tracking
-    planner_settings.cost_main.angle_N = 1e6
-    planner_settings.cost_second.angle_N = 1e6
-    planner_settings.cost_tvlqr.angle_N = 1e8
+    # Terminal angle costs - very high for strong goal reaching (matched to bc2.py)
+    planner_settings.cost_main.angle_N = 1e10
+    planner_settings.cost_second.angle_N = 1e10
+    planner_settings.cost_tvlqr.angle_N = 1e13
 
     # Control cost settings
-    planner_settings.cost_main.use_raw_control_cost = False  # Penalize control rate for smoothness
+    # use_raw_control_cost=False: penalize control RATE (smoother trajectories)
+    # use_raw_control_cost=True: penalize control magnitude (for TVLQR tracking)
+    planner_settings.cost_main.use_raw_control_cost = False  # Smooth trajectory
     planner_settings.cost_second.use_raw_control_cost = False
-    planner_settings.cost_tvlqr.use_raw_control_cost = True
-    planner_settings.cost_tvlqr.control_mult = 1e6
-    planner_settings.cost_second.control_mult = 1e3
+    planner_settings.cost_tvlqr.use_raw_control_cost = True  # Direct control for tracking
+
+    # Higher control_mult for TVLQR prevents aggressive feedback oscillations
+    planner_settings.cost_main.control_mult = 1.0
+    planner_settings.cost_second.control_mult = 1e8  # Matched to bc2.py
+    planner_settings.cost_tvlqr.control_mult = 1e8   # Prevents TVLQR oscillations
 
     # Enable disturbance planning
     planner_settings.plan_for_aero = True

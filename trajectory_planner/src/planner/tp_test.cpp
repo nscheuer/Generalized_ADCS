@@ -7405,3 +7405,469 @@ TEST_CASE("Analytical case: Near-saturation RW control", "[armadillo][planner][a
 // 	OldPlanner::trajOpt("../../trajOptSettings.json", 3600, 10.0, 10, 11, 2022, 13.4, 10, 11, 2022, arma::vec({0, 0, 0, 0.5, 0.5, 0.5, 0.5}), 1);
 // 	REQUIRE(1==1);
 // }*/
+
+// ============================================================================
+// SRP AND DRAG DISTURBANCE TORQUE DERIVATIVE TESTS
+// ============================================================================
+
+TEST_CASE("Test SRP dynamics jacobians", "[dynamics][srp][jacobian]") {
+	std::cout << "\n=== Test: SRP Dynamics Jacobians ===" << std::endl;
+	arma::arma_rng::set_seed_random();
+
+	Satellite sat = Satellite();
+	sat.change_Jcom(arma::diagmat(arma::vec({0.005, 0.05, 0.08})));
+	sat.add_MTQ(arma::vec({1,0,0}), 0.2, 0.1);
+	sat.add_MTQ(arma::vec({0,1,0}), 0.5, 0.1);
+	sat.add_MTQ(arma::vec({0,0,1}), 0.5, 0.1);
+
+	// Set up SRP surfaces (6 faces of a cubesat-like geometry)
+	arma::mat normals(3, 6);
+	normals.col(0) = arma::vec({1.0, 0.0, 0.0});   // +X face
+	normals.col(1) = arma::vec({-1.0, 0.0, 0.0});  // -X face
+	normals.col(2) = arma::vec({0.0, 1.0, 0.0});   // +Y face
+	normals.col(3) = arma::vec({0.0, -1.0, 0.0});  // -Y face
+	normals.col(4) = arma::vec({0.0, 0.0, 1.0});   // +Z face
+	normals.col(5) = arma::vec({0.0, 0.0, -1.0});  // -Z face
+
+	arma::mat centroids(3, 6);
+	centroids.col(0) = arma::vec({0.05, 0.0, 0.0});
+	centroids.col(1) = arma::vec({-0.05, 0.0, 0.0});
+	centroids.col(2) = arma::vec({0.0, 0.05, 0.0});
+	centroids.col(3) = arma::vec({0.0, -0.05, 0.0});
+	centroids.col(4) = arma::vec({0.0, 0.0, 0.05});
+	centroids.col(5) = arma::vec({0.0, 0.0, -0.05});
+
+	arma::vec areas = arma::vec({0.01, 0.01, 0.01, 0.01, 0.01, 0.01});
+	arma::vec eta_s = arma::vec({0.5, 0.5, 0.5, 0.5, 0.5, 0.5});
+	arma::vec eta_d = arma::vec({0.3, 0.3, 0.3, 0.3, 0.3, 0.3});
+	arma::vec eta_a = arma::vec({0.2, 0.2, 0.2, 0.2, 0.2, 0.2});
+	arma::vec3 COM = arma::vec({0.0, 0.0, 0.0});
+	sat.set_srp_surfaces(normals, centroids, areas, eta_s, eta_d, eta_a, COM);
+
+	// Random state
+	arma::vec4 qk = arma::normalise(arma::vec(4, arma::fill::randn));
+	arma::vec3 wk = 0.01 * arma::normalise(arma::vec(3, arma::fill::randn));
+	arma::vec xk = arma::join_cols(wk, qk);
+	arma::vec3 mk = 0.1 * arma::normalise(arma::vec(3, arma::fill::randn));
+	arma::vec uk = mk;
+
+	// Orbital environment with sun position
+	arma::vec3 R_k = 7000.0 * arma::normalise(arma::vec(3, arma::fill::randn));
+	arma::vec3 V_k = 7.5 * arma::normalise(arma::cross(R_k, arma::vec(3, arma::fill::randn)));
+	arma::vec3 S_k = 1.496e8 * arma::normalise(arma::vec(3, arma::fill::randn));  // ~1 AU in km
+	arma::vec3 B_k = 3e-5 * arma::normalise(arma::vec(3, arma::fill::randn));
+
+	DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_k, R_k, 0, V_k, S_k, 1, 0.0);
+
+	auto jacs = sat.dynamicsJacobians(xk, uk, dynamics_info);
+	arma::mat jx = std::get<0>(jacs);
+	arma::mat ju = std::get<1>(jacs);
+
+	// Verify against finite differences
+	for(int ind = 0; ind < sat.state_N(); ind++){
+		arma::vec eind = arma::vec(sat.state_N()).zeros();
+		eind(ind) = 1.0;
+		arma::vec lkx = jx.row(ind).t();
+		arma::vec lku = ju.row(ind).t();
+
+		// Numerical derivative w.r.t. state
+		arma::vec df__dx = arma::vec(xk.n_elem).zeros();
+		arma::vec ee = xk * 0;
+		for(int i = 0; i < (int)xk.n_elem; i++){
+			ee.zeros();
+			ee(i) = 1;
+			double x0i = xk(i);
+			auto fxi = [=](double xi) {
+				return arma::dot(eind, sat.dynamics_pure(xk + ee*(xi-x0i), uk, dynamics_info));
+			};
+			df__dx += ee * boost::math::differentiation::finite_difference_derivative(fxi, x0i);
+		}
+
+		std::cout << "SRP Jacobian test, state " << ind << std::endl;
+		REQUIRE(arma::approx_equal(df__dx, lkx, "both", 1e-06, 1e-08));
+
+		// Numerical derivative w.r.t. control
+		arma::vec df__du = arma::vec(uk.n_elem).zeros();
+		ee = uk * 0;
+		for(int i = 0; i < (int)uk.n_elem; i++){
+			ee.zeros();
+			ee(i) = 1;
+			double u0i = uk(i);
+			auto fui = [=](double ui) {
+				return arma::dot(eind, sat.dynamics_pure(xk, uk + ee*(ui-u0i), dynamics_info));
+			};
+			df__du += ee * boost::math::differentiation::finite_difference_derivative(fui, u0i);
+		}
+		REQUIRE(arma::approx_equal(df__du, lku, "both", 1e-06, 1e-08));
+	}
+}
+
+TEST_CASE("Test Drag dynamics jacobians", "[dynamics][drag][jacobian]") {
+	std::cout << "\n=== Test: Drag Dynamics Jacobians ===" << std::endl;
+	arma::arma_rng::set_seed_random();
+
+	Satellite sat = Satellite();
+	sat.change_Jcom(arma::diagmat(arma::vec({0.005, 0.05, 0.08})));
+	sat.add_MTQ(arma::vec({1,0,0}), 0.2, 0.1);
+	sat.add_MTQ(arma::vec({0,1,0}), 0.5, 0.1);
+	sat.add_MTQ(arma::vec({0,0,1}), 0.5, 0.1);
+
+	// Set up drag surfaces (6 faces of a cubesat)
+	arma::mat normals(3, 6);
+	normals.col(0) = arma::vec({1.0, 0.0, 0.0});
+	normals.col(1) = arma::vec({-1.0, 0.0, 0.0});
+	normals.col(2) = arma::vec({0.0, 1.0, 0.0});
+	normals.col(3) = arma::vec({0.0, -1.0, 0.0});
+	normals.col(4) = arma::vec({0.0, 0.0, 1.0});
+	normals.col(5) = arma::vec({0.0, 0.0, -1.0});
+
+	arma::mat centroids(3, 6);
+	centroids.col(0) = arma::vec({0.05, 0.0, 0.0});
+	centroids.col(1) = arma::vec({-0.05, 0.0, 0.0});
+	centroids.col(2) = arma::vec({0.0, 0.05, 0.0});
+	centroids.col(3) = arma::vec({0.0, -0.05, 0.0});
+	centroids.col(4) = arma::vec({0.0, 0.0, 0.05});
+	centroids.col(5) = arma::vec({0.0, 0.0, -0.05});
+
+	arma::vec areas = arma::vec({0.01, 0.01, 0.01, 0.01, 0.01, 0.01});
+	arma::vec CDs = arma::vec({2.2, 2.2, 2.2, 2.2, 2.2, 2.2});
+	arma::vec3 COM = arma::vec({0.0, 0.0, 0.0});
+	sat.set_drag_surfaces(normals, centroids, areas, CDs, COM);
+
+	// Random state
+	arma::vec4 qk = arma::normalise(arma::vec(4, arma::fill::randn));
+	arma::vec3 wk = 0.01 * arma::normalise(arma::vec(3, arma::fill::randn));
+	arma::vec xk = arma::join_cols(wk, qk);
+	arma::vec3 mk = 0.1 * arma::normalise(arma::vec(3, arma::fill::randn));
+	arma::vec uk = mk;
+
+	// Orbital environment with non-zero density (LEO ~400km)
+	arma::vec3 R_k = 6778.0 * arma::normalise(arma::vec(3, arma::fill::randn));  // 400km altitude
+	arma::vec3 V_k = 7.67 * arma::normalise(arma::cross(R_k, arma::vec(3, arma::fill::randn)));  // ~7.67 km/s
+	arma::vec3 S_k = 1.496e8 * arma::normalise(arma::vec(3, arma::fill::randn));
+	arma::vec3 B_k = 3e-5 * arma::normalise(arma::vec(3, arma::fill::randn));
+	double rho = 1e-12;  // Typical LEO density kg/m^3
+
+	DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_k, R_k, 0, V_k, S_k, 1, rho);
+
+	auto jacs = sat.dynamicsJacobians(xk, uk, dynamics_info);
+	arma::mat jx = std::get<0>(jacs);
+	arma::mat ju = std::get<1>(jacs);
+
+	// Verify against finite differences
+	for(int ind = 0; ind < sat.state_N(); ind++){
+		arma::vec eind = arma::vec(sat.state_N()).zeros();
+		eind(ind) = 1.0;
+		arma::vec lkx = jx.row(ind).t();
+		arma::vec lku = ju.row(ind).t();
+
+		// Numerical derivative w.r.t. state
+		arma::vec df__dx = arma::vec(xk.n_elem).zeros();
+		arma::vec ee = xk * 0;
+		for(int i = 0; i < (int)xk.n_elem; i++){
+			ee.zeros();
+			ee(i) = 1;
+			double x0i = xk(i);
+			auto fxi = [=](double xi) {
+				return arma::dot(eind, sat.dynamics_pure(xk + ee*(xi-x0i), uk, dynamics_info));
+			};
+			df__dx += ee * boost::math::differentiation::finite_difference_derivative(fxi, x0i);
+		}
+
+		std::cout << "Drag Jacobian test, state " << ind << std::endl;
+		REQUIRE(arma::approx_equal(df__dx, lkx, "both", 1e-04, 1e-06));
+
+		// Numerical derivative w.r.t. control
+		arma::vec df__du = arma::vec(uk.n_elem).zeros();
+		ee = uk * 0;
+		for(int i = 0; i < (int)uk.n_elem; i++){
+			ee.zeros();
+			ee(i) = 1;
+			double u0i = uk(i);
+			auto fui = [=](double ui) {
+				return arma::dot(eind, sat.dynamics_pure(xk, uk + ee*(ui-u0i), dynamics_info));
+			};
+			df__du += ee * boost::math::differentiation::finite_difference_derivative(fui, u0i);
+		}
+		REQUIRE(arma::approx_equal(df__du, lku, "both", 1e-04, 1e-06));
+	}
+}
+
+TEST_CASE("Test SRP dynamics Hessians", "[dynamics][srp][hessian]") {
+	std::cout << "\n=== Test: SRP Dynamics Hessians ===" << std::endl;
+	arma::arma_rng::set_seed_random();
+
+	Satellite sat = Satellite();
+	sat.change_Jcom(arma::diagmat(arma::vec({0.005, 0.05, 0.08})));
+	sat.add_MTQ(arma::vec({1,0,0}), 0.2, 0.1);
+	sat.add_MTQ(arma::vec({0,1,0}), 0.5, 0.1);
+	sat.add_MTQ(arma::vec({0,0,1}), 0.5, 0.1);
+
+	// Set up SRP surfaces
+	arma::mat normals(3, 6);
+	normals.col(0) = arma::vec({1.0, 0.0, 0.0});
+	normals.col(1) = arma::vec({-1.0, 0.0, 0.0});
+	normals.col(2) = arma::vec({0.0, 1.0, 0.0});
+	normals.col(3) = arma::vec({0.0, -1.0, 0.0});
+	normals.col(4) = arma::vec({0.0, 0.0, 1.0});
+	normals.col(5) = arma::vec({0.0, 0.0, -1.0});
+
+	arma::mat centroids(3, 6);
+	centroids.col(0) = arma::vec({0.05, 0.0, 0.0});
+	centroids.col(1) = arma::vec({-0.05, 0.0, 0.0});
+	centroids.col(2) = arma::vec({0.0, 0.05, 0.0});
+	centroids.col(3) = arma::vec({0.0, -0.05, 0.0});
+	centroids.col(4) = arma::vec({0.0, 0.0, 0.05});
+	centroids.col(5) = arma::vec({0.0, 0.0, -0.05});
+
+	arma::vec areas = arma::vec({0.01, 0.01, 0.01, 0.01, 0.01, 0.01});
+	arma::vec eta_s = arma::vec({0.5, 0.5, 0.5, 0.5, 0.5, 0.5});
+	arma::vec eta_d = arma::vec({0.3, 0.3, 0.3, 0.3, 0.3, 0.3});
+	arma::vec eta_a = arma::vec({0.2, 0.2, 0.2, 0.2, 0.2, 0.2});
+	arma::vec3 COM = arma::vec({0.0, 0.0, 0.0});
+	sat.set_srp_surfaces(normals, centroids, areas, eta_s, eta_d, eta_a, COM);
+
+	// Random state
+	arma::vec4 qk = arma::normalise(arma::vec(4, arma::fill::randn));
+	arma::vec3 wk = 0.01 * arma::normalise(arma::vec(3, arma::fill::randn));
+	arma::vec xk = arma::join_cols(wk, qk);
+	arma::vec3 mk = 0.1 * arma::normalise(arma::vec(3, arma::fill::randn));
+	arma::vec uk = mk;
+
+	// Orbital environment
+	arma::vec3 R_k = 7000.0 * arma::normalise(arma::vec(3, arma::fill::randn));
+	arma::vec3 V_k = 7.5 * arma::normalise(arma::cross(R_k, arma::vec(3, arma::fill::randn)));
+	arma::vec3 S_k = 1.496e8 * arma::normalise(arma::vec(3, arma::fill::randn));
+	arma::vec3 B_k = 3e-5 * arma::normalise(arma::vec(3, arma::fill::randn));
+
+	DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_k, R_k, 0, V_k, S_k, 1, 0.0);
+
+	auto hess = sat.dynamicsHessians(xk, uk, dynamics_info);
+	arma::cube hxx = std::get<0>(hess);
+
+	// Verify Hessians for first 3 state components (wdot) using double finite difference
+	for(int ind = 0; ind < 3; ind++){  // Only test wdot components
+		std::cout << "SRP Hessian test, state " << ind << std::endl;
+		arma::vec eind = arma::vec(sat.state_N()).zeros();
+		eind(ind) = 1.0;
+
+		arma::mat hkxx = hxx.slice(ind);
+
+		// Numerical second derivative w.r.t. state
+		arma::mat ddf__dxdx = arma::mat(xk.n_elem, xk.n_elem).zeros();
+		for(int i = 0; i < (int)xk.n_elem; i++){
+			for(int j = 0; j <= i; j++){
+				arma::vec ei = arma::vec(xk.n_elem).zeros();
+				arma::vec ej = arma::vec(xk.n_elem).zeros();
+				ei(i) = 1;
+				ej(j) = 1;
+				double x0i = xk(i);
+				double x0j = xk(j);
+
+				if(i == j){
+					// Diagonal: d^2f/dx_i^2
+					auto dfxi = [=](double xi) {
+						arma::vec xp = xk + ei*(xi-x0i);
+						auto fxii = [=](double xii) {
+							return arma::dot(eind, sat.dynamics_pure(xk + ei*(xii-x0i), uk, dynamics_info));
+						};
+						return boost::math::differentiation::finite_difference_derivative(fxii, xi);
+					};
+					ddf__dxdx(i, i) = boost::math::differentiation::finite_difference_derivative(dfxi, x0i);
+				} else {
+					// Off-diagonal: d^2f/(dx_i dx_j)
+					auto dfxj = [=](double xj) {
+						auto fxi = [=](double xi) {
+							return arma::dot(eind, sat.dynamics_pure(xk + ei*(xi-x0i) + ej*(xj-x0j), uk, dynamics_info));
+						};
+						return boost::math::differentiation::finite_difference_derivative(fxi, x0i);
+					};
+					double mixed = boost::math::differentiation::finite_difference_derivative(dfxj, x0j);
+					ddf__dxdx(i, j) = mixed;
+					ddf__dxdx(j, i) = mixed;
+				}
+			}
+		}
+
+		// Compare analytical vs numerical (using looser tolerance for second derivatives)
+		REQUIRE(arma::approx_equal(ddf__dxdx, hkxx, "absdiff", 1e-04));
+	}
+}
+
+TEST_CASE("Test Drag dynamics Hessians", "[dynamics][drag][hessian]") {
+	std::cout << "\n=== Test: Drag Dynamics Hessians ===" << std::endl;
+	arma::arma_rng::set_seed_random();
+
+	Satellite sat = Satellite();
+	sat.change_Jcom(arma::diagmat(arma::vec({0.005, 0.05, 0.08})));
+	sat.add_MTQ(arma::vec({1,0,0}), 0.2, 0.1);
+	sat.add_MTQ(arma::vec({0,1,0}), 0.5, 0.1);
+	sat.add_MTQ(arma::vec({0,0,1}), 0.5, 0.1);
+
+	// Set up drag surfaces
+	arma::mat normals(3, 6);
+	normals.col(0) = arma::vec({1.0, 0.0, 0.0});
+	normals.col(1) = arma::vec({-1.0, 0.0, 0.0});
+	normals.col(2) = arma::vec({0.0, 1.0, 0.0});
+	normals.col(3) = arma::vec({0.0, -1.0, 0.0});
+	normals.col(4) = arma::vec({0.0, 0.0, 1.0});
+	normals.col(5) = arma::vec({0.0, 0.0, -1.0});
+
+	arma::mat centroids(3, 6);
+	centroids.col(0) = arma::vec({0.05, 0.0, 0.0});
+	centroids.col(1) = arma::vec({-0.05, 0.0, 0.0});
+	centroids.col(2) = arma::vec({0.0, 0.05, 0.0});
+	centroids.col(3) = arma::vec({0.0, -0.05, 0.0});
+	centroids.col(4) = arma::vec({0.0, 0.0, 0.05});
+	centroids.col(5) = arma::vec({0.0, 0.0, -0.05});
+
+	arma::vec areas = arma::vec({0.01, 0.01, 0.01, 0.01, 0.01, 0.01});
+	arma::vec CDs = arma::vec({2.2, 2.2, 2.2, 2.2, 2.2, 2.2});
+	arma::vec3 COM = arma::vec({0.0, 0.0, 0.0});
+	sat.set_drag_surfaces(normals, centroids, areas, CDs, COM);
+
+	// Random state
+	arma::vec4 qk = arma::normalise(arma::vec(4, arma::fill::randn));
+	arma::vec3 wk = 0.01 * arma::normalise(arma::vec(3, arma::fill::randn));
+	arma::vec xk = arma::join_cols(wk, qk);
+	arma::vec3 mk = 0.1 * arma::normalise(arma::vec(3, arma::fill::randn));
+	arma::vec uk = mk;
+
+	// Orbital environment with non-zero density
+	arma::vec3 R_k = 6778.0 * arma::normalise(arma::vec(3, arma::fill::randn));
+	arma::vec3 V_k = 7.67 * arma::normalise(arma::cross(R_k, arma::vec(3, arma::fill::randn)));
+	arma::vec3 S_k = 1.496e8 * arma::normalise(arma::vec(3, arma::fill::randn));
+	arma::vec3 B_k = 3e-5 * arma::normalise(arma::vec(3, arma::fill::randn));
+	double rho = 1e-12;
+
+	DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_k, R_k, 0, V_k, S_k, 1, rho);
+
+	auto hess = sat.dynamicsHessians(xk, uk, dynamics_info);
+	arma::cube hxx = std::get<0>(hess);
+
+	// Verify Hessians for first 3 state components (wdot)
+	for(int ind = 0; ind < 3; ind++){
+		std::cout << "Drag Hessian test, state " << ind << std::endl;
+		arma::vec eind = arma::vec(sat.state_N()).zeros();
+		eind(ind) = 1.0;
+
+		arma::mat hkxx = hxx.slice(ind);
+
+		// Numerical second derivative
+		arma::mat ddf__dxdx = arma::mat(xk.n_elem, xk.n_elem).zeros();
+		for(int i = 0; i < (int)xk.n_elem; i++){
+			for(int j = 0; j <= i; j++){
+				arma::vec ei = arma::vec(xk.n_elem).zeros();
+				arma::vec ej = arma::vec(xk.n_elem).zeros();
+				ei(i) = 1;
+				ej(j) = 1;
+				double x0i = xk(i);
+				double x0j = xk(j);
+
+				if(i == j){
+					auto dfxi = [=](double xi) {
+						auto fxii = [=](double xii) {
+							return arma::dot(eind, sat.dynamics_pure(xk + ei*(xii-x0i), uk, dynamics_info));
+						};
+						return boost::math::differentiation::finite_difference_derivative(fxii, xi);
+					};
+					ddf__dxdx(i, i) = boost::math::differentiation::finite_difference_derivative(dfxi, x0i);
+				} else {
+					auto dfxj = [=](double xj) {
+						auto fxi = [=](double xi) {
+							return arma::dot(eind, sat.dynamics_pure(xk + ei*(xi-x0i) + ej*(xj-x0j), uk, dynamics_info));
+						};
+						return boost::math::differentiation::finite_difference_derivative(fxi, x0i);
+					};
+					double mixed = boost::math::differentiation::finite_difference_derivative(dfxj, x0j);
+					ddf__dxdx(i, j) = mixed;
+					ddf__dxdx(j, i) = mixed;
+				}
+			}
+		}
+
+		REQUIRE(arma::approx_equal(ddf__dxdx, hkxx, "absdiff", 1e-04));
+	}
+}
+
+TEST_CASE("Test Combined SRP and Drag dynamics jacobians", "[dynamics][combined][jacobian]") {
+	std::cout << "\n=== Test: Combined SRP and Drag Dynamics Jacobians ===" << std::endl;
+	arma::arma_rng::set_seed_random();
+
+	Satellite sat = Satellite();
+	sat.change_Jcom(arma::diagmat(arma::vec({0.005, 0.05, 0.08})));
+	sat.add_MTQ(arma::vec({1,0,0}), 0.2, 0.1);
+	sat.add_MTQ(arma::vec({0,1,0}), 0.5, 0.1);
+	sat.add_MTQ(arma::vec({0,0,1}), 0.5, 0.1);
+
+	// Set up both SRP and drag surfaces
+	arma::mat normals(3, 6);
+	normals.col(0) = arma::vec({1.0, 0.0, 0.0});
+	normals.col(1) = arma::vec({-1.0, 0.0, 0.0});
+	normals.col(2) = arma::vec({0.0, 1.0, 0.0});
+	normals.col(3) = arma::vec({0.0, -1.0, 0.0});
+	normals.col(4) = arma::vec({0.0, 0.0, 1.0});
+	normals.col(5) = arma::vec({0.0, 0.0, -1.0});
+
+	arma::mat centroids(3, 6);
+	centroids.col(0) = arma::vec({0.05, 0.0, 0.0});
+	centroids.col(1) = arma::vec({-0.05, 0.0, 0.0});
+	centroids.col(2) = arma::vec({0.0, 0.05, 0.0});
+	centroids.col(3) = arma::vec({0.0, -0.05, 0.0});
+	centroids.col(4) = arma::vec({0.0, 0.0, 0.05});
+	centroids.col(5) = arma::vec({0.0, 0.0, -0.05});
+
+	arma::vec areas = arma::vec({0.01, 0.01, 0.01, 0.01, 0.01, 0.01});
+	arma::vec3 COM = arma::vec({0.0, 0.0, 0.0});
+
+	// SRP surfaces
+	arma::vec eta_s = arma::vec({0.5, 0.5, 0.5, 0.5, 0.5, 0.5});
+	arma::vec eta_d = arma::vec({0.3, 0.3, 0.3, 0.3, 0.3, 0.3});
+	arma::vec eta_a = arma::vec({0.2, 0.2, 0.2, 0.2, 0.2, 0.2});
+	sat.set_srp_surfaces(normals, centroids, areas, eta_s, eta_d, eta_a, COM);
+
+	// Drag surfaces
+	arma::vec CDs = arma::vec({2.2, 2.2, 2.2, 2.2, 2.2, 2.2});
+	sat.set_drag_surfaces(normals, centroids, areas, CDs, COM);
+
+	// Random state
+	arma::vec4 qk = arma::normalise(arma::vec(4, arma::fill::randn));
+	arma::vec3 wk = 0.01 * arma::normalise(arma::vec(3, arma::fill::randn));
+	arma::vec xk = arma::join_cols(wk, qk);
+	arma::vec3 mk = 0.1 * arma::normalise(arma::vec(3, arma::fill::randn));
+	arma::vec uk = mk;
+
+	// Orbital environment with both SRP (sun position) and drag (density)
+	arma::vec3 R_k = 6778.0 * arma::normalise(arma::vec(3, arma::fill::randn));
+	arma::vec3 V_k = 7.67 * arma::normalise(arma::cross(R_k, arma::vec(3, arma::fill::randn)));
+	arma::vec3 S_k = 1.496e8 * arma::normalise(arma::vec(3, arma::fill::randn));
+	arma::vec3 B_k = 3e-5 * arma::normalise(arma::vec(3, arma::fill::randn));
+	double rho = 1e-12;
+
+	DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_k, R_k, 0, V_k, S_k, 1, rho);
+
+	auto jacs = sat.dynamicsJacobians(xk, uk, dynamics_info);
+	arma::mat jx = std::get<0>(jacs);
+
+	// Verify against finite differences
+	for(int ind = 0; ind < sat.state_N(); ind++){
+		arma::vec eind = arma::vec(sat.state_N()).zeros();
+		eind(ind) = 1.0;
+		arma::vec lkx = jx.row(ind).t();
+
+		arma::vec df__dx = arma::vec(xk.n_elem).zeros();
+		arma::vec ee = xk * 0;
+		for(int i = 0; i < (int)xk.n_elem; i++){
+			ee.zeros();
+			ee(i) = 1;
+			double x0i = xk(i);
+			auto fxi = [=](double xi) {
+				return arma::dot(eind, sat.dynamics_pure(xk + ee*(xi-x0i), uk, dynamics_info));
+			};
+			df__dx += ee * boost::math::differentiation::finite_difference_derivative(fxi, x0i);
+		}
+
+		std::cout << "Combined Jacobian test, state " << ind << std::endl;
+		REQUIRE(arma::approx_equal(df__dx, lkx, "both", 1e-04, 1e-06));
+	}
+}

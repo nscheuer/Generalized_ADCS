@@ -1883,6 +1883,77 @@ tuple<mat, mat,mat>  Satellite::dynamicsJacobians( vec x,  vec u,  DYNAMICS_INFO
 
   mat33 dwdw = invJcom_noRW*( skewSymmetric(Jcom*w + rw_ax_mat*h)-skewSymmetric(w)*Jcom);
   mat::fixed<3,4> dwdq = invJcom_noRW*(skewSymmetric(magvec)*dRTBdq(q, Bk) + const_term*(skewSymmetric(nadir)*Jcom-skewSymmetric(Jcom*nadir))*dRTBdq(q, -nRk));
+
+  // ===== SRP Jacobian =====
+  if(dist_on && plan_for_srp && num_srp_surfaces > 0){
+    vec3 sun_dir_eci = normalise(Sk - Rk);
+    vec3 s_body = RmatT * sun_dir_eci;
+    mat::fixed<3,4> ds_body_dq = dRTBdq(q, sun_dir_eci);
+
+    mat::fixed<3,4> dT_srp_dq = mat(3,4).zeros();
+
+    for(int i = 0; i < num_srp_surfaces; i++){
+      vec3 n_i = srp_normals.col(i);
+      vec3 r_i = srp_centroids.col(i) - srp_COM;
+      double A_i = srp_areas(i);
+      double eta_s_i = srp_eta_s(i);
+      double eta_d_i = srp_eta_d(i);
+      double eta_a_i = srp_eta_a(i);
+
+      double cos_gamma = dot(n_i, s_body);
+      if(cos_gamma > 0){
+        rowvec4 dcos_gamma_dq = n_i.t() * ds_body_dq;
+
+        double m_s = A_i * (eta_a_i + eta_d_i) * cos_gamma;
+        rowvec4 dm_s_dq = A_i * (eta_a_i + eta_d_i) * dcos_gamma_dq;
+
+        double dm_n_dcos = A_i * (6.0*eta_s_i*cos_gamma*cos_gamma + (2.0/3.0)*eta_d_i);
+        rowvec4 dm_n_dq = dm_n_dcos * dcos_gamma_dq;
+
+        vec3 r_cross_s = cross(r_i, s_body);
+        vec3 r_cross_n = cross(r_i, n_i);
+        mat::fixed<3,4> d_r_cross_s_dq = -skewSymmetric(r_i) * ds_body_dq;
+
+        dT_srp_dq += r_cross_s * dm_s_dq + m_s * d_r_cross_s_dq + r_cross_n * dm_n_dq;
+      }
+    }
+    dwdq -= SOLAR_PRESSURE * invJcom_noRW * dT_srp_dq;
+  }
+
+  // ===== Drag Jacobian =====
+  if(dist_on && plan_for_aero && num_drag_surfaces > 0){
+    double rho = get<6>(dynamics_info);
+    vec3 Vk_scaled = Vk * 1000.0;
+    vec3 V_body = RmatT * Vk_scaled;
+
+    if(norm(V_body) > 1e-6){
+      mat::fixed<3,4> dV_body_dq = dRTBdq(q, Vk_scaled);
+
+      mat::fixed<3,4> dT_drag_dq = mat(3,4).zeros();
+
+      for(int i = 0; i < num_drag_surfaces; i++){
+        vec3 n_i = drag_normals.col(i);
+        vec3 r_i = drag_centroids.col(i) - drag_COM;
+        double A_i = drag_areas(i);
+        double CD_i = drag_CDs(i);
+
+        double v_proj = dot(n_i, V_body);
+        if(v_proj > 0){
+          rowvec4 dv_proj_dq = n_i.t() * dV_body_dq;
+
+          double F_i = CD_i * A_i * v_proj;
+          rowvec4 dF_i_dq = CD_i * A_i * dv_proj_dq;
+
+          vec3 r_cross_V = cross(r_i, V_body);
+          mat::fixed<3,4> d_r_cross_V_dq = -skewSymmetric(r_i) * dV_body_dq;
+
+          dT_drag_dq += r_cross_V * dF_i_dq + F_i * d_r_cross_V_dq;
+        }
+      }
+      dwdq -= 0.5 * rho * invJcom_noRW * dT_drag_dq;
+    }
+  }
+
   mat dwdh = invJcom_noRW*( -skewSymmetric(w)*rw_ax_mat);
   mat dwdu = invJcom_noRW*join_rows(-skewSymmetric(RmatT*Bk)*mtq_ax_mat,MAGRW_TORQ_MULT*rw_ax_mat, MAGRW_TORQ_MULT*magic_ax_mat);
   mat33 dwdt = invJcom_noRW;
@@ -1995,6 +2066,160 @@ tuple<cube, cube,cube>  Satellite::dynamicsHessians( vec x,  vec u,  DYNAMICS_IN
   ddxd__dxdx.slice(0)(span(quat0index(),quat0index()+3),span(quat0index(),quat0index()+3)) =  ddvTRTudq(q,cross(invJcom_noRW.t()*xh,magvec),Bk) + const_term*ddvTRTudq(q,Jcom*cross(invJcom_noRW.t()*xh,nadir)-cross(invJcom_noRW.t()*xh,Jcom*nadir), -nRk);
   ddxd__dxdx.slice(1)(span(quat0index(),quat0index()+3),span(quat0index(),quat0index()+3)) =  ddvTRTudq(q,cross(invJcom_noRW.t()*yh,magvec),Bk) + const_term*ddvTRTudq(q,Jcom*cross(invJcom_noRW.t()*yh,nadir)-cross(invJcom_noRW.t()*yh,Jcom*nadir), -nRk);
   ddxd__dxdx.slice(2)(span(quat0index(),quat0index()+3),span(quat0index(),quat0index()+3 )) = ddvTRTudq(q,cross(invJcom_noRW.t()*zh,magvec),Bk) + const_term*ddvTRTudq(q,Jcom*cross(invJcom_noRW.t()*zh,nadir)-cross(invJcom_noRW.t()*zh,Jcom*nadir), -nRk);
+
+  // ===== SRP Hessian =====
+  // The SRP torque depends on quaternion through: s_body = R^T(q) * sun_dir_eci
+  // For each wdot component, we need d^2(wdot_i)/dq^2
+  // wdot = invJcom * T_srp, so d^2(wdot)/dq^2 involves d^2(T_srp)/dq^2
+  // T_srp_i = m_s_i * (r_i x s_body) + m_n_i * (r_i x n_i)
+  // The hessian follows the pattern from existing GG/magnetic: use ddvTRTudq for second derivatives
+  if(dist_on && plan_for_srp && num_srp_surfaces > 0){
+    vec3 sun_dir_eci = normalise(Sk - Rk);
+    vec3 s_body = RmatT * sun_dir_eci;
+    mat::fixed<3,4> ds_body_dq = dRTBdq(q, sun_dir_eci);
+
+    // For each wdot component (0, 1, 2), compute the SRP hessian contribution
+    vec3 basis_vecs[3] = {xh, yh, zh};
+    for(int comp = 0; comp < 3; comp++){
+      vec3 e_comp = basis_vecs[comp];
+      vec3 invJ_e = invJcom_noRW.t() * e_comp;
+
+      mat44 ddwdot_srp_dqdq = mat44().zeros();
+
+      for(int i = 0; i < num_srp_surfaces; i++){
+        vec3 n_i = srp_normals.col(i);
+        vec3 r_i = srp_centroids.col(i) - srp_COM;
+        double A_i = srp_areas(i);
+        double eta_s_i = srp_eta_s(i);
+        double eta_d_i = srp_eta_d(i);
+        double eta_a_i = srp_eta_a(i);
+
+        double cos_gamma = dot(n_i, s_body);
+        if(cos_gamma > 0){
+          // First derivatives (needed for product rule in hessian)
+          rowvec4 dcos_gamma_dq = n_i.t() * ds_body_dq;
+
+          double m_s = A_i * (eta_a_i + eta_d_i) * cos_gamma;
+          rowvec4 dm_s_dq = A_i * (eta_a_i + eta_d_i) * dcos_gamma_dq;
+
+          double m_n_coeff = 2.0*eta_s_i*cos_gamma*cos_gamma + (2.0/3.0)*eta_d_i;
+          double m_n = A_i * m_n_coeff * cos_gamma;
+          double dm_n_dcos = A_i * (6.0*eta_s_i*cos_gamma*cos_gamma + (2.0/3.0)*eta_d_i);
+          rowvec4 dm_n_dq = dm_n_dcos * dcos_gamma_dq;
+
+          vec3 r_cross_s = cross(r_i, s_body);
+          vec3 r_cross_n = cross(r_i, n_i);
+
+          // Second derivatives
+          // d^2(cos_gamma)/dq^2 = d^2(n_i . R^T * sun)/dq^2 = ddvTRTudq(q, n_i, sun_dir_eci)
+          mat44 ddcos_gamma_dqdq = ddvTRTudq(q, n_i, sun_dir_eci);
+
+          // d^2(m_s)/dq^2 = A*(eta_a+eta_d) * d^2(cos_gamma)/dq^2
+          mat44 ddm_s_dqdq = A_i * (eta_a_i + eta_d_i) * ddcos_gamma_dqdq;
+
+          // d^2(m_n)/dq^2: m_n = A*(2*eta_s*cos^3 + (2/3)*eta_d*cos)
+          // dm_n/dcos = A*(6*eta_s*cos^2 + (2/3)*eta_d)
+          // d^2m_n/dcos^2 = A*12*eta_s*cos
+          double ddm_n_dcos2 = A_i * 12.0 * eta_s_i * cos_gamma;
+          mat44 ddm_n_dqdq = ddm_n_dcos2 * dcos_gamma_dq.t() * dcos_gamma_dq + dm_n_dcos * ddcos_gamma_dqdq;
+
+          // d^2(r x s_body)/dq^2 = -skew(r) * d^2(s_body)/dq^2
+          // For a fixed direction vector, d^2(R^T*u)/dq^2 projected onto direction v:
+          // We need d^2(v . R^T * u)/dq^2 = ddvTRTudq(q, v, u)
+          // For cross product: (r x s) component along e_comp = e_comp . (r x s) = (e_comp x r) . s
+          // So d^2((r x s) . e_comp)/dq^2 = d^2((e_comp x r) . R^T * sun)/dq^2 = ddvTRTudq(q, cross(e_comp,r), sun)
+          vec3 e_cross_r = cross(e_comp, r_i);
+          mat44 dd_r_cross_s_comp_dqdq = ddvTRTudq(q, e_cross_r, sun_dir_eci);
+
+          // The torque contribution to wdot_comp is: invJ_e . T_srp = invJ_e . (m_s*(r x s) + m_n*(r x n))
+          // = m_s * (invJ_e . (r x s)) + m_n * (invJ_e . (r x n))
+          // = m_s * ((invJ_e x r) . s) + m_n * (invJ_e . (r x n))
+          // The second term is constant in q (n is fixed in body frame)
+          // d^2/dq^2 of first term uses product rule:
+          // d^2(m_s * v.s)/dq^2 = d^2m_s/dq^2 * (v.s) + 2*dm_s/dq * d(v.s)/dq^T + m_s * d^2(v.s)/dq^2
+          vec3 invJ_e_cross_r = cross(invJ_e, r_i);
+          double invJ_e_dot_r_cross_s = dot(invJ_e_cross_r, s_body);
+          rowvec4 d_invJ_e_dot_r_cross_s_dq = invJ_e_cross_r.t() * ds_body_dq;
+          mat44 dd_invJ_e_dot_r_cross_s_dqdq = ddvTRTudq(q, invJ_e_cross_r, sun_dir_eci);
+
+          // Product rule for m_s * (invJ_e . (r x s))
+          mat44 dd_m_s_term_dqdq = ddm_s_dqdq * invJ_e_dot_r_cross_s
+                                 + dm_s_dq.t() * d_invJ_e_dot_r_cross_s_dq
+                                 + d_invJ_e_dot_r_cross_s_dq.t() * dm_s_dq
+                                 + m_s * dd_invJ_e_dot_r_cross_s_dqdq;
+
+          // Product rule for m_n * (invJ_e . (r x n)) - but (r x n) is constant, so only m_n varies
+          double invJ_e_dot_r_cross_n = dot(invJ_e, r_cross_n);
+          mat44 dd_m_n_term_dqdq = ddm_n_dqdq * invJ_e_dot_r_cross_n;
+
+          ddwdot_srp_dqdq += dd_m_s_term_dqdq + dd_m_n_term_dqdq;
+        }
+      }
+      ddxd__dxdx.slice(comp)(span(quat0index(),quat0index()+3),span(quat0index(),quat0index()+3)) -= SOLAR_PRESSURE * ddwdot_srp_dqdq;
+    }
+  }
+
+  // ===== Drag Hessian =====
+  // Similar structure to SRP but simpler since F_i is linear in v_proj
+  if(dist_on && plan_for_aero && num_drag_surfaces > 0){
+    double rho = get<6>(dynamics_info);
+    vec3 Vk_scaled = Vk * 1000.0;
+    vec3 V_body = RmatT * Vk_scaled;
+
+    if(norm(V_body) > 1e-6){
+      mat::fixed<3,4> dV_body_dq = dRTBdq(q, Vk_scaled);
+
+      vec3 basis_vecs[3] = {xh, yh, zh};
+      for(int comp = 0; comp < 3; comp++){
+        vec3 e_comp = basis_vecs[comp];
+        vec3 invJ_e = invJcom_noRW.t() * e_comp;
+
+        mat44 ddwdot_drag_dqdq = mat44().zeros();
+
+        for(int i = 0; i < num_drag_surfaces; i++){
+          vec3 n_i = drag_normals.col(i);
+          vec3 r_i = drag_centroids.col(i) - drag_COM;
+          double A_i = drag_areas(i);
+          double CD_i = drag_CDs(i);
+
+          double v_proj = dot(n_i, V_body);
+          if(v_proj > 0){
+            // First derivatives
+            rowvec4 dv_proj_dq = n_i.t() * dV_body_dq;
+
+            double F_i = CD_i * A_i * v_proj;
+            rowvec4 dF_i_dq = CD_i * A_i * dv_proj_dq;
+
+            vec3 r_cross_V = cross(r_i, V_body);
+
+            // Second derivatives
+            // d^2(v_proj)/dq^2 = d^2(n_i . R^T * Vk)/dq^2
+            mat44 ddv_proj_dqdq = ddvTRTudq(q, n_i, Vk_scaled);
+
+            // d^2(F_i)/dq^2 = CD*A * d^2(v_proj)/dq^2
+            mat44 ddF_i_dqdq = CD_i * A_i * ddv_proj_dqdq;
+
+            // The torque contribution: T_drag_i = F_i * (r x V)
+            // wdot_comp contribution = invJ_e . T_drag_i = F_i * (invJ_e . (r x V))
+            //                        = F_i * ((invJ_e x r) . V)
+            vec3 invJ_e_cross_r = cross(invJ_e, r_i);
+            double invJ_e_dot_r_cross_V = dot(invJ_e_cross_r, V_body);
+            rowvec4 d_invJ_e_dot_r_cross_V_dq = invJ_e_cross_r.t() * dV_body_dq;
+            mat44 dd_invJ_e_dot_r_cross_V_dqdq = ddvTRTudq(q, invJ_e_cross_r, Vk_scaled);
+
+            // Product rule for F_i * (invJ_e . (r x V))
+            mat44 dd_F_term_dqdq = ddF_i_dqdq * invJ_e_dot_r_cross_V
+                                 + dF_i_dq.t() * d_invJ_e_dot_r_cross_V_dq
+                                 + d_invJ_e_dot_r_cross_V_dq.t() * dF_i_dq
+                                 + F_i * dd_invJ_e_dot_r_cross_V_dqdq;
+
+            ddwdot_drag_dqdq += dd_F_term_dqdq;
+          }
+        }
+        ddxd__dxdx.slice(comp)(span(quat0index(),quat0index()+3),span(quat0index(),quat0index()+3)) -= 0.5 * rho * ddwdot_drag_dqdq;
+      }
+    }
+  }
 
   if(number_RW>0)
   {
