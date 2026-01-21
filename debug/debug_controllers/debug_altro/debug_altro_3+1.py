@@ -66,7 +66,7 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
         orb = Orbit(orbs)
 
     # Build Planner
-    planner_settings = PlannerSettings(est_sat=real_sat, bdot_on=0,dt_tp = 5.0)
+    planner_settings = PlannerSettings(est_sat=real_sat, bdot_on=2,dt_tp = 5.0)
     # planner_settings.rw_AM_weight = 0  # Disable AM cost
     # planner_settings.rw_stic_weight = 0  # Disable stiction cost - causes non-convex Hessian!
     planner_settings.verbosity = verbose
@@ -78,6 +78,39 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
 
     # Try higher initial penalty to enforce constraints earlier
     planner_settings.pass1.aug_lag.penalty_init = 1e-3
+
+    planner_settings.cost_main = CostWeights(
+        angle=1e3,
+        angle_N=1e5,
+        ang_vel=1e3,
+        ang_vel_N=1e4,
+        ang_vel_mag=0.0,
+        ang_vel_mag_N=0.0,
+        control_mult=1.0,
+        ang_cost_func_type=2
+    )
+
+    # 3. PASS 2: Precision Lock
+    planner_settings.cost_second = CostWeights(
+        angle=1e4,
+        angle_N=1e7,             # Increased 100x to fix end-divergence
+        ang_vel=1e3,             # Matches Pass 1 to ensure fast convergence
+        ang_vel_N=1e5,
+        ang_vel_mag=0.0,
+        ang_vel_mag_N=0.0,
+        control_mult=1.0,
+        ang_cost_func_type=2
+    )
+
+    planner_settings.wmax = 40 * np.pi/180.0
+
+    # 4. SOLVER SPEED TUNING
+    planner_settings.pass1.convergence.grad_tol = 1.0
+    planner_settings.pass1.convergence.ilqr_cost_tol = 0.1
+    planner_settings.pass1.convergence.max_inner_iter = 20
+    
+    planner_settings.pass2.convergence.grad_tol = 1e-2
+    planner_settings.pass2.aug_lag.penalty_init = 1.0
 
     controller = Plan_and_Track_LQR(est_sat=real_sat, planner_settings=planner_settings)
 
@@ -184,4 +217,4 @@ def plot_mtq_w_rw_align_to_eci(verbose: bool = False, tf: float = 1000, dt: floa
     print("Yay!")
 
 if __name__ == "__main__":
-    plot_mtq_w_rw_align_to_eci(verbose=False, tf = 200, dt = 1, real_orbit=True)
+    plot_mtq_w_rw_align_to_eci(verbose=False, tf = 100, dt = 1, real_orbit=True)
