@@ -242,7 +242,28 @@ With correct B-field (~35 μT), the planner now uses MTQs properly:
 
 The optimizer converges well (grad=1.4e-9) and trajectory reaches goal!
 
-### Next Steps  
-1. Run quick_planner_tests.py to verify all tests pass
-2. Run longer trajectory tests (500s)
-3. Performance tuning if needed
+### Validation
+All quick_planner_tests pass (5/5):
+- Basic ALTRO: 2.1s
+- High Angular Velocity: 4.3s
+- 90 Degree Slew: 34.0s
+- Zero Initial Omega: 5.3s
+- Trajectory Shape: 2.8s
+
+### Summary of Bug Fixes This Session
+
+1. **OldPlanner.cpp Mat::cols() bounds error** (line 390)
+   - Fixed edge case when Uset has < 3 columns for short trajectories
+
+2. **CMakeLists.txt LTO linker error**
+   - Removed `-flto` flag causing "multiple prevailing defs for 'solve'"
+
+3. **CRITICAL: IGRF radius units bug**
+   - `get_b_eci()` and `get_b_eci_orbit()` passed meters instead of km
+   - Result: B-field ≈ 0, MTQs had no torque authority, optimizer zeroed them
+   - Fix: divide radius by 1000 before calling ppigrf.igrf_gc()
+
+### Remaining Work
+1. Test longer trajectories (500s)
+2. Run tuning sweep with correct B-field
+3. Document optimal parameter settings
