@@ -369,8 +369,8 @@ def plot_comparison(full_results: List[Dict[str, Any]]) -> None:
         return
 
     # Plot tracking error time series
-    plot_target_tracking_mc(raw_results, title=f"BC2 3MTQ+1RW Raw Trajectory (Open-Loop) N={n_valid}")
-    plot_target_tracking_mc(lqr_results, title=f"BC2 3MTQ+1RW LQR Tracking (Closed-Loop) N={n_valid}")
+    plot_target_tracking_mc(raw_results, body_boresight=np.array([0, 1, 0]), title=f"BC2 3MTQ+1RW Raw Trajectory (Open-Loop) N={n_valid}")
+    plot_target_tracking_mc(lqr_results, body_boresight=np.array([0, 1, 0]), title=f"BC2 3MTQ+1RW LQR Tracking (Closed-Loop) N={n_valid}")
 
     # Plot RW momentum
     plot_h_tracking_mc(raw_results, title=f"BC2 Raw Trajectory RW Momentum N={n_valid}")

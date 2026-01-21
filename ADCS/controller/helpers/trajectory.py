@@ -242,9 +242,9 @@ class Trajectory:
 
         # 2. Attitude Error (indices 3:6)
         # quat_diff returns q_ref^(-1) * q_curr
-        q_err = quat_diff(x_curr[3:7], x_ref[3:7])
+        q_err = quat_diff(x_ref[3:7], x_curr[3:7])
         # LQR assumes linearized error: d_theta = 2 * vector_part(q_err)
-        dx[3:6] = 2 * quat_to_vec3(q_err)
+        dx[3:6] = quat_to_vec3(q_err)
 
         # 3. RW Momentum Error (indices 6:6+n_rw, from full state 7:7+n_rw)
         if n_rw > 0:

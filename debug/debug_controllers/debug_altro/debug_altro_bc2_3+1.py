@@ -86,6 +86,28 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
     planner_settings.pass2.convergence.max_outer_iter = 5
     planner_settings.pass2.convergence.max_inner_iter = 15
 
+    planner_settings.cost_main = CostWeights(
+            angle=1e3,
+            angle_N=1e6,   # 10x running cost
+            ang_vel=1e3,
+            ang_vel_N=1e5, # 10x running cost
+            ang_vel_mag=0.0,
+            ang_vel_mag_N=0.0,
+            control_mult=1.0,
+            ang_cost_func_type=2,
+        )
+    
+    planner_settings.cost_tvlqr = CostWeights(
+            angle=1e2,
+            angle_N=1e3,
+            ang_vel=1e6,
+            ang_vel_N=1e8,
+            ang_vel_mag=0.0,
+            ang_vel_mag_N=0.0,
+            control_mult=1.0,
+            ang_cost_func_type=2,
+        )
+
     controller = Plan_and_Track_LQR(est_sat=real_sat, planner_settings=planner_settings)
 
     time_hist = np.nan*np.zeros(N)
@@ -100,7 +122,7 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
     steps = int((tf - t0)/dt)
 
     # Simplified goal - just ECI_Goal from start, no transition
-    goals = GoalList({0.22: ECI_Goal(np.array([1, 1, 1]))})
+    goals = GoalList({0.22: ECI_Goal(np.array([1, 5, 1]))})
 
     traj_duration = tf - t0  # [s]
 
@@ -138,7 +160,7 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
     plot_control(time=time_hist_traj, u_hist=u_hist_traj)
 
     boresight_traj_hist = np.vstack([goals.to_ref(t=J2000, os0=orb.get_os(J2000))[0] for J2000 in traj.times])
-    plot_target_tracking(state_hist=state_hist_traj, boresight_hist=boresight_traj_hist, body_boresight=np.array([0, 0, 1]))
+    plot_target_tracking(state_hist=state_hist_traj, boresight_hist=boresight_traj_hist, body_boresight=np.array([0, 1, 0]))
     plot_rw_momentum(time=time_hist_traj, state_hist=state_hist_traj)
     create_close_all_button_window()
     
@@ -185,7 +207,7 @@ def plot_mtq_w_rw_align_to_eci(verbose: bool = False, tf: float = 1000, dt: floa
     plot_rw_momentum(time=time_hist, state_hist=state_hist)
     goal = Coordinate_Goal(lat=38.7223, lon=-10, alt=0)
     # animate_orbit_pyvista(time_hist=time_hist, state_hist=state_hist, os_hist=os_hist, boresight_goal_hist=boresight_hist, coord_goal=goal)
-    plot_target_tracking(state_hist=state_hist, boresight_hist=boresight_hist, body_boresight=np.array([0, 0, 1]))
+    plot_target_tracking(state_hist=state_hist, boresight_hist=boresight_hist, body_boresight=np.array([0, 1, 0]))
     #animate_orbit(time_hist=time_hist, state_hist=state_hist, os_hist=os_hist, boresight_goal_hist=boresight_hist, coord_goal=goal)
     create_close_all_button_window()
     print("Yay!")

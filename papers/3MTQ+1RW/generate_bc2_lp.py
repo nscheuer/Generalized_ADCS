@@ -174,7 +174,7 @@ def generate_mc_config(run_id: int) -> Dict[str, Any]:
     return {
         "run_id": run_id,
         "seed": run_id,
-        "tf": 4000,
+        "tf": 1000,
         "dt": 2,
         "radius_km": 7000.0,  # circular orbit radius; each core gets a different random position/plane
         "w0": normalize(rng.standard_normal(3)) * (rng.uniform(0.1, 1.0) * np.pi / 180.0),
@@ -200,15 +200,15 @@ if __name__ == "__main__":
         print(f"\n--- Monte Carlo Complete: Generated {len(full_results)} histories ---")
         save_data("3MTQ+1RW_LP_mc_100_4000s", full_results, out_dir=OUTPUT_DIR)
 
-        plot_target_tracking_mc(full_results=full_results, title="3 MTQ + 1 RW LP MC:100")
-        plot_convergence_histogram_mc(full_results=full_results, title="3 MTQ + 1 RW LP")
+        plot_target_tracking_mc(full_results=full_results, body_boresight=np.array([0, 1, 0]), title="3 MTQ + 1 RW LP MC:100")
+        plot_convergence_histogram_mc(full_results=full_results, body_boresight=np.array([0, 1, 0]), title="3 MTQ + 1 RW LP")
 
         create_close_all_button_window()
     else:
         results = load_data("papers/3MTQ+1RW/output_data/3MTQ+1RW_LP_mc_100_20260118_013735")
         full_results = results[0]
-        plot_target_tracking_mc(full_results=full_results)
-        plot_convergence_histogram_mc(full_results=full_results, title="P = 40")
+        plot_target_tracking_mc(full_results=full_results, body_boresight=np.array([0, 1, 0]))
+        plot_convergence_histogram_mc(full_results=full_results, body_boresight=np.array([0, 1, 0]), title="P = 40")
         # results = load_data("papers/3MTQ+1RW/output_data/3MTQ+1RW_LP_mc_36_20260118_013308")
         # full_results = results[0]
         # plot_target_tracking_mc(full_results=full_results)

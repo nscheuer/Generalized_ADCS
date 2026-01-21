@@ -39,10 +39,12 @@ def create_beavercube1_cubesat(estimated: bool = False):
     drag_dist = [Drag_Disturbance(config)]
     srp_dist = [SRP_Disturbance(config)]
 
+    boresight = np.array([0, 1, 0])
+
     if estimated:
-        return EstimatedSatellite(mass=mass, COM=COM, J_0=J, sensors=mtms+gyros+suns, actuators=mtqs)
+        return EstimatedSatellite(mass=mass, COM=COM, J_0=J, sensors=mtms+gyros+suns, actuators=mtqs, boresight=boresight)
     else:
-        return Satellite(mass=mass, COM=COM, J_0=J, sensors=mtms+gyros+suns, actuators=mtqs)
+        return Satellite(mass=mass, COM=COM, J_0=J, sensors=mtms+gyros+suns, actuators=mtqs, boresight=boresight)
 
 
 def create_beavercube2_cubesat(estimated: bool = False):
@@ -75,10 +77,12 @@ def create_beavercube2_cubesat(estimated: bool = False):
     drag_dist = [Drag_Disturbance(config)]
     srp_dist = [SRP_Disturbance(config)]
 
+    boresight = np.array([0, 1, 0])
+
     if estimated:
-        return EstimatedSatellite(mass=mass, COM=COM, J_0=J, disturbances=gg_dist+drag_dist+srp_dist, sensors=mtms+gyros+suns, actuators=mtqs+rws)
+        return EstimatedSatellite(mass=mass, COM=COM, J_0=J, disturbances=gg_dist+drag_dist+srp_dist, sensors=mtms+gyros+suns, actuators=mtqs+rws, boresight=boresight)
     else:
-        return Satellite(mass=mass, COM=COM, J_0=J, disturbances=gg_dist+drag_dist+srp_dist, sensors=mtms+gyros+suns, actuators=mtqs+rws)
+        return Satellite(mass=mass, COM=COM, J_0=J, disturbances=gg_dist+drag_dist+srp_dist, sensors=mtms+gyros+suns, actuators=mtqs+rws, boresight=boresight)
 
 
 def create_3_3_beavercube2_cubesat(estimated: bool = False):
@@ -113,7 +117,9 @@ def create_3_3_beavercube2_cubesat(estimated: bool = False):
     drag_dist = [Drag_Disturbance(config)]
     srp_dist = [SRP_Disturbance(config)]
 
+    boresight = np.array([0, 1, 0])
+
     if estimated:
-        return EstimatedSatellite(mass=mass, COM=COM, J_0=J, disturbances=gg_dist+drag_dist+srp_dist, sensors=mtms+gyros+suns, actuators=mtqs+rws)
+        return EstimatedSatellite(mass=mass, COM=COM, J_0=J, disturbances=gg_dist+drag_dist+srp_dist, sensors=mtms+gyros+suns, actuators=mtqs+rws, boresight=boresight)
     else:
-        return Satellite(mass=mass, COM=COM, J_0=J, disturbances=gg_dist+drag_dist+srp_dist, sensors=mtms+gyros+suns, actuators=mtqs+rws)
+        return Satellite(mass=mass, COM=COM, J_0=J, disturbances=gg_dist+drag_dist+srp_dist, sensors=mtms+gyros+suns, actuators=mtqs+rws, boresight=boresight)

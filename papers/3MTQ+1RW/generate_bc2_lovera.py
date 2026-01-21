@@ -200,15 +200,15 @@ if __name__ == "__main__":
         print(f"\n--- Monte Carlo Complete: Generated {len(full_results)} histories ---")
         save_data("3MTQ+1RW_Lovera_mc_100_1000s", full_results, out_dir=OUTPUT_DIR)
 
-        plot_target_tracking_mc(full_results=full_results, title="3 MTQ + 1 RW Lovera MC:100")
-        plot_convergence_histogram_mc(full_results=full_results, title="3 MTQ + 1 RW Lovera")
+        plot_target_tracking_mc(full_results=full_results, body_boresight=np.array([0, 1, 0]), title="3 MTQ + 1 RW Lovera MC:100")
+        plot_convergence_histogram_mc(full_results=full_results, body_boresight=np.array([0, 1, 0]), title="3 MTQ + 1 RW Lovera")
 
         create_close_all_button_window()
     else:
         results = load_data("papers/3MTQ+1RW/output_data/3MTQ+1RW_LP_mc_100_20260118_013735")
         full_results = results[0]
-        plot_target_tracking_mc(full_results=full_results)
-        plot_convergence_histogram_mc(full_results=full_results, title="P = 40")
+        plot_target_tracking_mc(full_results=full_results, body_boresight=np.array([0, 1, 0]))
+        plot_convergence_histogram_mc(full_results=full_results, body_boresight=np.array([0, 1, 0]), title="P = 40")
         # results = load_data("papers/3MTQ+1RW/output_data/3MTQ+1RW_LP_mc_36_20260118_013308")
         # full_results = results[0]
         # plot_target_tracking_mc(full_results=full_results)
