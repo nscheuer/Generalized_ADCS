@@ -13,7 +13,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from typing import Dict, Optional, Tuple, Callable
 from numpy.typing import NDArray
 
-from ADCS.helpers.math_helpers import quat_diff, quat_to_vec3
+from ADCS.helpers.math_helpers import quat_diff, quat_to_vec3, normalize
 
 
 class Trajectory:
@@ -241,10 +241,17 @@ class Trajectory:
         dx[0:3] = x_curr[0:3] - x_ref[0:3]
 
         # 2. Attitude Error (indices 3:6)
-        # quat_diff returns q_ref^(-1) * q_curr
-        q_err = quat_diff(x_curr[3:7], x_ref[3:7])
-        # LQR assumes linearized error: d_theta = 2 * vector_part(q_err)
-        dx[3:6] = 2 * quat_to_vec3(q_err)
+        # Handle quaternion double-cover: ensure quaternions are on same hemisphere
+        q_curr = normalize(x_curr[3:7])
+        q_ref = normalize(x_ref[3:7])
+        if np.dot(q_curr, q_ref) < 0:
+            q_ref = -q_ref
+        # C++ computes quatErr = normquaterr(q_ref, q_curr) = q_ref^{-1} * q_curr
+        # quat_diff(q0, q1) returns q0^{-1} * q1, so use quat_diff(q_ref, q_curr)
+        q_err = quat_diff(q_ref, q_curr)
+        # C++ uses MRP error: angErr = 2*q_vec/(1+q0) which is quat_to_mrp(q_err)
+        # quat_to_vec3 with mode=0 returns MRP (which already includes factor of 2)
+        dx[3:6] = quat_to_vec3(q_err)
 
         # 3. RW Momentum Error (indices 6:6+n_rw, from full state 7:7+n_rw)
         if n_rw > 0:

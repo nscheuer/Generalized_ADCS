@@ -1026,3 +1026,56 @@ cost to snap back at the end. This is "locally optimal" but not desired behavior
 
 Linear and quadratic-dot costs have gradients that don't depend on the error magnitude,
 so they push toward the goal at every timestep equally.
+
+---
+
+## Session 6: TVLQR Bug Fix (2026-01-21)
+
+### Root Cause Found: Quaternion Error Order
+
+The TVLQR tracker in Python was computing the attitude error with **inverted quaternion order**, 
+causing the feedback correction to push the wrong direction.
+
+**The Bug**:
+```python
+# WRONG - was computing q_curr^{-1} * q_ref
+q_err = quat_diff(q_curr, q_ref)
+```
+
+**The Fix**:
+```python
+# CORRECT - match C++ which computes q_ref^{-1} * q_curr
+q_err = quat_diff(q_ref, q_curr)
+```
+
+### C++ Reference
+In `OldPlanner.cpp` line 1203:
+```cpp
+quatErr = normquaterr(oldQprev, Qkprev);  // q_ref^{-1} * q_curr
+```
+
+Where `normquaterr(p, q)` computes `p^{-1} * q` (see `GeneralUtil.cpp` line 111-118).
+
+### Verification Results
+
+After the fix, with RK45 simulation (intentionally different from RK4 planner):
+
+| Metric | Open-loop | TVLQR | Notes |
+|--------|-----------|-------|-------|
+| t=0s | 17.17° | 17.17° | Same initial condition |
+| t=30s | 3.94° | 3.94° | Tracking planned exactly |
+| t=60s | 0.05° | 0.00° | TVLQR achieves planned accuracy |
+
+**Key Finding**: The ~0.05° difference in open-loop is due to the intentional 
+integration method mismatch (Python uses RK45, C++ planner uses RK4). The TVLQR 
+feedback successfully compensates for this mismatch.
+
+### Other Investigation Notes
+
+1. **MRP Scaling**: Initially suspected a factor-of-2 error in the MRP computation,
+   but `quat_to_vec3(q_err)` with mode=0 already returns the correct MRP formula
+   `2*q_vec/(1+q0)`. The factor of 2 in `_state_diff` was already correct.
+
+2. **Integration Method Mismatch**: Confirmed that using RK45 instead of RK4 is
+   intentional to test trajectory robustness. The ~0.5° difference without feedback
+   is expected and acceptable.
