@@ -167,7 +167,7 @@ def plot_convergence_histogram_mc(
     body_boresight: np.ndarray = np.array([0.0, 0.0, 1.0]),
     title: str = "Monte Carlo Convergence Error (Final Timestep)",
     bin_width_deg: float = 5.0,
-    under_thresh_deg: float = 0.5,
+    under_thresh_deg: float = 1.0,
     show_stats_box: bool = True,
 ) -> Tuple[np.ndarray, Dict[str, float]]:
     """

@@ -122,7 +122,7 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
     steps = int((tf - t0)/dt)
 
     # Simplified goal - just ECI_Goal from start, no transition
-    goals = GoalList({0.22: ECI_Goal(np.array([1, 5, 1]))})
+    goals = GoalList({0.22: ECI_Goal(np.array([0, 0, 1]))})
 
     traj_duration = tf - t0  # [s]
 

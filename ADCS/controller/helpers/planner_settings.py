@@ -190,7 +190,7 @@ class PlannerSettings:
         self.umax = self.control_limit_scale * np.array([act.u_max for act in self.est_sat.actuators])
         self.wmax = 20*np.pi/180.0
         self.sun_limit_angle = 1*np.pi/180.0
-        self.camera_axis = np.array([[0, 0, 1]]).T
+        self.camera_axis = np.array([[0, 1, 0]]).T
 
         # Actuator Weights for the C++ model construction
         self.mtq_control_weight = 1e3
