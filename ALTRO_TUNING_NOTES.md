@@ -402,3 +402,68 @@ ps.pass2.convergence.max_inner_iter = 15
 4. **Reduce pass2 iterations**: outer=3-5, inner=15-30 (40% faster)
 5. **Scale dt_tp with duration**: 30 for <200s, 40 for 240s, 100 for 500s
 6. **bdot_on=0**: Skip bdot initial guess generation
+
+---
+
+## Session 3 - 2026-01-20 Late Evening
+
+### Bug Fix: debug_plan_and_track_bc2.py Not Working
+
+**Symptoms**: 
+- Script produced NaN/inf in ALTRO optimization
+- State blew up to ~10^289 at timestep 1
+
+**Root Causes Found & Fixed**:
+
+1. **Orbit vectors in wrong units** (`test_plan_and_track_lqr` function):
+   ```python
+   # WRONG:
+   R = 7000 * np.array([...])   # km, but should be meters
+   V = np.array([8, 0, 0])      # 8 m/s, should be ~8 km/s
+   
+   # FIXED:
+   R = 7000e3 * np.array([...])  # meters
+   V = np.array([8000, 0, 0])    # m/s
+   ```
+
+2. **Old planner settings** - still had bdot_on=2 and many outdated settings
+
+3. **Removed monkey-patch timing code** - simplified to use standard planner
+
+### Current Working debug_plan_and_track_bc2.py Settings
+```python
+if __name__ == "__main__":
+    plot_plan_and_track_lqr(
+        verbose=0,
+        tf=60,
+        dt=1,
+        dt_planning=30,
+        real_orbit=False,  # use_J2=False for speed
+        seed=42,
+    )
+
+# Planner settings (same as quick_planner_tests):
+ps = PlannerSettings(est_sat=sat, bdot_on=0, dt_tp=dt_planning, dt_tvlqr=dt)
+ps.cost_main.use_full_cost_hessian = True
+ps.pass1.regularization.use_dynamics_hess = 1
+ps.init_traj.bdot_gain = 500
+ps.cost_main.angle = 100
+ps.cost_main.angle_N = 5000
+ps.pass1.aug_lag.penalty_init = 100
+ps.pass1.convergence.max_outer_iter = 8
+ps.pass1.convergence.max_inner_iter = 40
+ps.pass2.convergence.max_outer_iter = 20
+```
+
+### Test Results
+- **Planning**: 60s trajectory planned successfully
+  - Final planned error: 3.36°
+  - MTQ max: 0.177 A·m² (88% of 0.2 limit)
+  
+- **Simulation**: Tracking diverges
+  - Final simulated error: 164° (planned vs actual mismatch)
+  - This is a TVLQR tracking issue, not ALTRO planning issue
+
+### Next Steps
+- Investigate why TVLQR tracking diverges from planned trajectory
+- The planner works correctly; the controller execution has issues

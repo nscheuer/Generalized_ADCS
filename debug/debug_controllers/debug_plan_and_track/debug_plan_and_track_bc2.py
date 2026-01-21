@@ -334,7 +334,8 @@ def patch_planner_with_timing_and_env(controller):
     """Monkey-patch to add timing and capture environment data for debug plots."""
     controller._debug_env_data = {}
 
-    def timed_calculate_trajectory_common(t_start, duration, x_0, os_0, goals, verbose=False):
+    def timed_calculate_trajectory_common(t_start, duration, x_0, os_0, goals, verbose=False,
+                                          vecsPy_precomputed=None, N_precomputed=None, t_end_precomputed=None):
         from ADCS.orbits.universal_constants import TimeConstants
 
         if verbose:
@@ -342,13 +343,20 @@ def patch_planner_with_timing_and_env(controller):
 
         controller.planner.setVerbosity(verbose)
         dt_seconds = controller.planner_settings.dt_tvlqr
-        N = int(np.ceil(duration / dt_seconds)) + 1
-        t_end = t_start + (duration * TimeConstants.sec2cent)
 
-        t_env_start = time_module.perf_counter()
-        vecsPy = controller._propagate_environment(os_0, t_start, t_end, dt_seconds, N, goals)
-        t_env_end = time_module.perf_counter()
-        print(f"  [TIMING] _propagate_environment: {t_env_end - t_env_start:.2f}s")
+        # Use precomputed values if provided, otherwise compute
+        if vecsPy_precomputed is not None:
+            vecsPy = vecsPy_precomputed
+            N = N_precomputed
+            t_end = t_end_precomputed
+            print(f"  [TIMING] Using precomputed environment data")
+        else:
+            N = int(np.ceil(duration / dt_seconds)) + 1
+            t_end = t_start + (duration * TimeConstants.sec2cent)
+            t_env_start = time_module.perf_counter()
+            vecsPy = controller._propagate_environment(os_0, t_start, t_end, dt_seconds, N, goals)
+            t_env_end = time_module.perf_counter()
+            print(f"  [TIMING] _propagate_environment: {t_env_end - t_env_start:.2f}s")
 
         # Store for debug plotting: vecsPy = (t, R, V, B, S, A, E, p, rho)
         controller._debug_env_data = {
@@ -380,7 +388,8 @@ def patch_planner_with_timing(controller):
     """Monkey-patch the planner to add timing instrumentation for ALTRO vs orbit propagation."""
     original_calculate_common = controller._calculate_trajectory_common
 
-    def timed_calculate_trajectory_common(t_start, duration, x_0, os_0, goals, verbose=False):
+    def timed_calculate_trajectory_common(t_start, duration, x_0, os_0, goals, verbose=False,
+                                          vecsPy_precomputed=None, N_precomputed=None, t_end_precomputed=None):
         from ADCS.orbits.universal_constants import TimeConstants
         import numpy as np
 
@@ -389,14 +398,20 @@ def patch_planner_with_timing(controller):
 
         controller.planner.setVerbosity(verbose)
         dt_seconds = controller.planner_settings.dt_tvlqr
-        N = int(np.ceil(duration / dt_seconds)) + 1
-        t_end = t_start + (duration * TimeConstants.sec2cent)
 
-        # Time the environment propagation (orbit propagation for planner)
-        t_env_start = time_module.perf_counter()
-        vecsPy = controller._propagate_environment(os_0, t_start, t_end, dt_seconds, N, goals)
-        t_env_end = time_module.perf_counter()
-        print(f"  [TIMING] _propagate_environment (planner orbit): {t_env_end - t_env_start:.2f}s")
+        # Use precomputed values if provided, otherwise compute
+        if vecsPy_precomputed is not None:
+            vecsPy = vecsPy_precomputed
+            N = N_precomputed
+            t_end = t_end_precomputed
+            print(f"  [TIMING] Using precomputed environment data")
+        else:
+            N = int(np.ceil(duration / dt_seconds)) + 1
+            t_end = t_start + (duration * TimeConstants.sec2cent)
+            t_env_start = time_module.perf_counter()
+            vecsPy = controller._propagate_environment(os_0, t_start, t_end, dt_seconds, N, goals)
+            t_env_end = time_module.perf_counter()
+            print(f"  [TIMING] _propagate_environment (planner orbit): {t_env_end - t_env_start:.2f}s")
 
         # SANITIZE x_0
         x_0_clean = np.copy(x_0.astype(np.float64).flatten(), order='C')
@@ -452,8 +467,8 @@ def test_plan_and_track_lqr(
     real_sat = create_beavercube2_cubesat(estimated=False)
     real_sat.rw_actuators[0].h = rw_h0
 
-    # Initial conditions
-    w0 = random_n_unit_vec(3) * np.random.uniform(0.5, 1.0) * np.pi / 180.0
+    # Initial conditions (same style as quick_planner_tests)
+    w0 = np.random.randn(3) * 0.01  # ~0.5 deg/s typical
     q0 = normalize(np.random.randn(4))
     h0 = np.array([rw_h0])
     x = np.concatenate([w0, q0, h0])
@@ -465,14 +480,14 @@ def test_plan_and_track_lqr(
     ephem = Ephemeris()
     start_time = 0.22 - 1 * TimeConstants.sec2cent
     end_time = 0.22 + (tf - t0) * TimeConstants.sec2cent
-    R = 7000 * np.array([0, np.sqrt(2) / 2, np.sqrt(2) / 2])
-    V = np.array([8, 0, 0])
+    R = 7000e3 * np.array([0, np.sqrt(2) / 2, np.sqrt(2) / 2])  # meters
+    V = np.array([8000, 0, 0])  # m/s
 
     if real_orbit:
         print("Creating real orbit (this may take a moment)...")
         t_orbit_start = time_module.perf_counter()
         os0 = Orbital_State(ephem=ephem, J2000=start_time, R=R, V=V)
-        orb = Orbit(os0=os0, end_time=end_time, dt=dt, use_J2=True, fast=False)
+        orb = Orbit(os0=os0, end_time=end_time, dt=dt, use_J2=True, fast=True)
         t_orbit_end = time_module.perf_counter()
         print(f"  [TIMING] Initial orbit creation: {t_orbit_end - t_orbit_start:.2f}s")
     else:
@@ -492,90 +507,32 @@ def test_plan_and_track_lqr(
             orbs[j].J2000 = os0.J2000 + j * dt * TimeConstants.sec2cent
         orb = Orbit(orbs)
 
-    # Setup planner
+    # Setup planner with tuned settings (see ALTRO_TUNING_NOTES.md)
     print("Setting up trajectory planner...")
-    # dt_tp is the coarse trajectory planner timestep (ALTRO optimization step)
-    # dt_tvlqr is the finer TVLQR feedback controller timestep
     planner_settings = PlannerSettings(
         est_sat=real_sat,
-        bdot_on=2,  # Smart bdot for reliable convergence with fewer iterations
-        dt_tp=dt_planning,  # Coarse trajectory planner timestep
-        dt_tvlqr=dt,  # Fine TVLQR timestep
+        bdot_on=0,  # Skip bdot initial guess (faster, more reliable)
+        dt_tp=dt_planning,
+        dt_tvlqr=dt,
     )
     planner_settings.verbosity = verbose
 
-    planner_settings.rw_control_weight = 1e-6
-    planner_settings.mtq_control_weight = 1e0
-    planner_settings.wmax = 10*np.pi/180.0
-
-
-    # ============ COST WEIGHTS TUNED FOR FASTER CONVERGENCE ============
-    # Key insight: Lower running costs + high terminal costs = faster convergence
-    # The optimizer can take "shortcuts" during trajectory but must hit goal
-    planner_settings.cost_main.ang_vel = 1e4   # Lower running cost (was 1e4)
-    planner_settings.cost_second.ang_vel = 1e7
-    planner_settings.cost_tvlqr.ang_vel = 1e9
-    planner_settings.cost_main.ang_vel_N = 1e8     # Higher terminal (was 1e6)
-    planner_settings.cost_second.ang_vel_N = 1e8
-    planner_settings.cost_tvlqr.ang_vel_N = 1e12
-    planner_settings.cost_main.angle = 1e10         # Lower running cost (was 1e8)
-    planner_settings.cost_second.angle = 1e12
-    planner_settings.cost_tvlqr.angle = 1e12
-    planner_settings.cost_main.angle_N = 1e15      # Keep high terminal
-    planner_settings.cost_second.angle_N = 1e15
-    planner_settings.cost_tvlqr.angle_N = 1e15
-    # =====================================================================
-
-    # Pass 1: use_raw_control_cost=True penalizes |u|, allowing free control exploration
-    # Pass 2: use_raw_control_cost=False penalizes |u-u_prev|, smoothing the trajectory
-    # If Pass 1 is stuck (dLA=0), the delta-cost is trapping it at initial trajectory
-    planner_settings.cost_main.use_raw_control_cost = True   # Pass 1: explore freely
-    planner_settings.cost_second.use_raw_control_cost = True  # Pass 2: smooth solution
-    planner_settings.cost_tvlqr.use_raw_control_cost = True
-    planner_settings.plan_for_aero = True
-    planner_settings.plan_for_srp = True
-    planner_settings.plan_for_gg = True
-    planner_settings.cost_tvlqr.control_mult = 1e10
-    planner_settings.cost_second.control_mult = 1e4
-
-    # ============ FAST MC SETTINGS (bdot_on=2 + Gauss-Newton) ============
-    # Optimized via parameter sweep: ~4s ALTRO time with good trajectory quality
-    # Key: Focus iterations on pass1, minimal pass2, use Gauss-Newton (no full Hessian)
-    # "Focus pass1 no Hess": 3.90s ALTRO, 0.92°/s vel, 0.48° error
-    planner_settings.pass1.convergence.max_outer_iter = 30   # Focus on pass1
-    planner_settings.pass1.convergence.max_inner_iter = 150
-    planner_settings.pass2.convergence.max_outer_iter = 20   # Minimal pass2
-    planner_settings.pass2.convergence.max_inner_iter = 60
-
-    # Relaxed tolerances for speed
-    planner_settings.pass1.convergence.grad_tol = 0.005
-    planner_settings.pass1.convergence.ilqr_cost_tol = 0.01
-    planner_settings.pass1.convergence.c_max = 0.001
-    planner_settings.pass2.convergence.grad_tol = 0.0005
-    planner_settings.pass2.convergence.ilqr_cost_tol = 0.0001
-    planner_settings.pass2.convergence.c_max = 0.0001
-
-    # High initial penalty for faster constraint satisfaction
-    planner_settings.pass1.aug_lag.penalty_init = 100.0
-    planner_settings.pass1.aug_lag.penalty_scale = 10
-    planner_settings.pass2.aug_lag.penalty_scale = 20
-    planner_settings.pass2.aug_lag.penalty_init = 100.0
-
-    # Use Gauss-Newton approximation (faster per iteration, sufficient for MC)
-    planner_settings.cost_main.use_full_cost_hessian = False
-    planner_settings.cost_second.use_full_cost_hessian = False
-    planner_settings.cost_tvlqr.use_full_cost_hessian = False
-    planner_settings.pass1.regularization.use_dynamics_hess = 0
-    planner_settings.pass2.regularization.use_dynamics_hess = 0
-    # ==========================================================================
+    # Tuned cost weights: low running + high terminal = fast convergence
+    planner_settings.cost_main.use_full_cost_hessian = True
+    planner_settings.pass1.regularization.use_dynamics_hess = 1
+    planner_settings.init_traj.bdot_gain = 500
+    planner_settings.cost_main.angle = 100
+    planner_settings.cost_main.angle_N = 5000
+    planner_settings.pass1.aug_lag.penalty_init = 100
+    planner_settings.pass1.convergence.max_outer_iter = 8
+    planner_settings.pass1.convergence.max_inner_iter = 40
+    planner_settings.pass2.convergence.max_outer_iter = 20
 
 
     controller = Plan_and_Track_LQR(
         est_sat=real_sat,
         planner_settings=planner_settings,
     )
-    # Apply timing instrumentation + capture env data for debug plots
-    patch_planner_with_timing_and_env(controller)
 
     # Goal setup
     goal_vec = normalize(np.array([0, 0, 1]))
@@ -747,10 +704,10 @@ def plot_plan_and_track_lqr(
 
 if __name__ == "__main__":
     plot_plan_and_track_lqr(
-        verbose=False,
-        tf=500,  # Trajectory duration
+        verbose=0,  # Quiet mode
+        tf=60,  # 60s trajectory for testing
         dt=1,
-        dt_planning=30,  # Coarse planning timestep for speed (50s = ~11s/traj)
-        real_orbit=True,  # Set to False for even faster (uses fast=True orbit)
-        seed=39,
+        dt_planning=30,  # Tuned setting from quick_planner_tests
+        real_orbit=False,  # Use fast orbit (use_J2=False) for faster testing
+        seed=42,  # Same seed as quick_planner_tests
     )
