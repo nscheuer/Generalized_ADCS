@@ -45,7 +45,6 @@
 // #include <typeinfo>
 // #include <pybind11/numpy.h>
 // #define earth_mu 3.986e14
-#include <iomanip>
 #define EIGS_NORM "inf"
 #define EIGS_MULT 1.0 //(1.0/3.0)
 #define EIGS_POW  0.0
@@ -497,16 +496,6 @@ AFTER_OUTPUT_FORM OldPlanner::trajOptAfter(VECTOR_INFO_FORM vecs_w_time,double d
   // OPT_TIMES_FORM main_opt_times = (addOptTimes(opt));
   OPT_FORM lqr_opt = make_tuple(get<0>(opt2),get<1>(opt2),get<2>(opt2),K_lqr,S_lqr,tvlqr_times.head(get<0>(opt2).n_cols));
   //return success
-  if (true) {  // or use `verbose`
-    std::cout << std::setprecision(16);
-
-    std::cout << "\n===== FINAL CONVERGED TRAJECTORY (C++) =====\n";
-    std::cout << "x0 = " << X_lqr.col(0).t();
-    std::cout << "u0 = " << U_lqr.col(0).t();
-
-    std::cout << "dt0 = " << dt_lqr(0) << std::endl;
-    std::cout << "==========================================\n";
-  }
   return std::make_tuple(1, gradOut2, opt2, lqr_opt, trajLong);
 }
 

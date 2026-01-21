@@ -44,7 +44,7 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
     w0 = np.array([0, 0, 0])
     q0 = random_n_unit_vec(4)
     q0 = normalize(np.array([1, 0, 0, 0]))
-    h0 = np.array([rw_h0])
+    h0 = np.array([rw_h0, rw_h0, rw_h0])
     x = np.concatenate([w0, q0, h0])
 
     ephem = Ephemeris()

@@ -2,7 +2,6 @@
 #include <stdexcept>
 #include <list>
 #include <vector>
-#include <iomanip>
 
 namespace py = pybind11;
 using namespace arma;
@@ -1641,6 +1640,7 @@ vec3 Satellite::dist_torque(vec x, DYNAMICS_INFO_FORM dynamics_info) const{
 
 tuple<vec,vec3> Satellite::dynamics(vec x, vec u, DYNAMICS_INFO_FORM dynamics_info) const
 {
+
   vec3 Bk = get<0>(dynamics_info);
   // vec3 Rk = get<1>(dynamics_info);
   // int prop_torq_on = get<2>(dynamics_info);
@@ -1671,69 +1671,13 @@ tuple<vec,vec3> Satellite::dynamics(vec x, vec u, DYNAMICS_INFO_FORM dynamics_in
   vec3 torq = MAGRW_TORQ_MULT*(magic_torq + rw_torq);
   vec3 dist_torq = dist_torque(x,dynamics_info);
 
-  //
-  vec3 gyroscopic = cross(w, Jcom*w + rw_ax_mat*h);
-  vec3 mag_torque = cross(magvec,RmatT*Bk);
 
-  vec3 wdot = invJcom_noRW*(torq - gyroscopic + mag_torque + dist_torq);
-  
+  //
+  vec3 wdot = invJcom_noRW*(torq - cross(w, Jcom*w + rw_ax_mat*h) + cross(magvec,RmatT*Bk)  + dist_torq);
   vec res = join_cols(wdot,0.5*findWMat(q)*w);
   if(number_RW>0){
     res = join_cols(res,-MAGRW_TORQ_MULT*u(span(number_MTQ,number_MTQ+number_RW-1)) - diagmat(vec(RW_J))*rw_ax_mat.t()*wdot);
   }
-
-  // ==========================================
-  // DEBUG PRINTOUTS
-  // ==========================================
-  std::cout << std::scientific << std::setprecision(16); // Set stream to 16 sig figs, scientific notation
-
-  std::cout << "\n--- C++ DYNAMICS STEP DEBUG ---" << std::endl;
-  std::cout << "Info - Num MTQ: " << number_MTQ << ", Num RW: " << number_RW << ", Num Magic: " << number_magic << std::endl;
-  
-  // Use raw_print(std::cout) to respect the setprecision(16)
-  std::cout << "Input u: "; 
-  u.t().raw_print(std::cout);
-
-  std::cout << "State w: "; 
-  w.t().raw_print(std::cout);
-
-  std::cout << "State q: "; 
-  q.t().raw_print(std::cout);
-
-  std::cout << "State h: ";
-  h.t().raw_print(std::cout);
-
-  std::cout << "Mag Field (Body): "; 
-  (RmatT*Bk).t().raw_print(std::cout);
-  
-  std::cout << "--- Torques ---" << std::endl;
-  std::cout << "Calculated Mag Dipole (magvec): "; 
-  magvec.t().raw_print(std::cout);
-
-  std::cout << "Torque from Mag (m x B): "; 
-  mag_torque.t().raw_print(std::cout);
-
-  std::cout << "Torque from RW/Magic (direct): "; 
-  torq.t().raw_print(std::cout);
-
-  std::cout << "Torque from Gyro (w x Jw): "; 
-  gyroscopic.t().raw_print(std::cout);
-
-  std::cout << "Torque from Disturbance: "; 
-  dist_torq.t().raw_print(std::cout);
-
-  std::cout << "Total Net Torque: "; 
-  (torq - gyroscopic + mag_torque + dist_torq).t().raw_print(std::cout);
-  
-  std::cout << "--- Derivatives ---" << std::endl;
-  std::cout << "wdot: "; 
-  wdot.t().raw_print(std::cout);
-
-  std::cout << "xdot (res): "; 
-  res.t().raw_print(std::cout);
-  
-  std::cout << "-------------------------------\n" << std::endl;
-
   return std::make_tuple(res,dist_torq);
 }
 
