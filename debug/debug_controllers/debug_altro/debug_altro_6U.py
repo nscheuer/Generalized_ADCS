@@ -187,9 +187,6 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
         sens = real_sat.sensor_readings(x=x, os=os)
         u = controller.find_u(x_hat=x, sens=sens, est_sat=real_sat, os_hat=os)
 
-        if verbose:
-            print("u: ", u)
-
         time_hist[ind] = t
         state_hist[ind,:] = x
         os_hist += [os]
@@ -229,4 +226,4 @@ def plot_mtq_w_rw_align_to_eci(verbose: bool = False, tf: float = 1000, dt: floa
     print("Yay!")
 
 if __name__ == "__main__":
-    plot_mtq_w_rw_align_to_eci(verbose=False, tf = 100, dt = 1, real_orbit=True)
+    plot_mtq_w_rw_align_to_eci(verbose=True, tf = 100, dt = 1, real_orbit=True)

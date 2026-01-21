@@ -194,7 +194,7 @@ class PlannerSettings:
 
         # Actuator Weights for the C++ model construction
         self.mtq_control_weight = 1e3
-        self.rw_control_weight = 1e5
+        self.rw_control_weight = 1e7
         self.magic_control_weight = 0.0001
         self.rw_AM_weight = 1e4
         self.rw_stic_weight = 1e0
@@ -224,16 +224,16 @@ class PlannerSettings:
         #     control_mult=100.0,
         #     ang_cost_func_type=2,
         # )
-        self.cost_tvlqr = cost_tvlqr if cost_tvlqr else self.cost_main#CostWeights(
-        #     angle=1e5,
-        #     angle_N=1e8,
-        #     ang_vel=1e8,
-        #     ang_vel_N=1e10,
-        #     ang_vel_mag=0.0,
-        #     ang_vel_mag_N=0.0,
-        #     control_mult=1e5 / self.mtq_control_weight,
-        #     ang_cost_func_type=2,
-        # )
+        self.cost_tvlqr = cost_tvlqr if cost_tvlqr else CostWeights(
+            angle=1e2,
+            angle_N=1e3,
+            ang_vel=1e6,
+            ang_vel_N=1e8,
+            ang_vel_mag=0.0,
+            ang_vel_mag_N=0.0,
+            control_mult=1.0,
+            ang_cost_func_type=2,
+        )
 
         # Disturbance Settings
         self.plan_for_aero = include_drag

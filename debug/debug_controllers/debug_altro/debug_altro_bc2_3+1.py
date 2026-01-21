@@ -44,7 +44,7 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
     w0 = np.array([0, 0, 0])
     q0 = random_n_unit_vec(4)
     q0 = normalize(np.array([1, 0, 0, 0]))
-    h0 = np.array([rw_h0, rw_h0, rw_h0])
+    h0 = np.array([rw_h0])
     x = np.concatenate([w0, q0, h0])
 
     ephem = Ephemeris()
@@ -179,7 +179,7 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
 def plot_mtq_w_rw_align_to_eci(verbose: bool = False, tf: float = 1000, dt: float = 10, real_orbit: bool = False) -> None:
     (time_hist, state_hist, os_hist, sensor_hist, u_hist, boresight_hist) = debug_altro(verbose=verbose, tf=tf, dt=dt, real_orbit=real_orbit)
 
-    # animate_attitude(time=time_hist, state_hist=state_hist, os_hist=os_hist, boresight_goal_hist=boresight_hist)
+    animate_attitude(time=time_hist, state_hist=state_hist, os_hist=os_hist, boresight_goal_hist=boresight_hist)
     plot_state_comparison(time=time_hist, state_hist=state_hist)
     plot_control(time=time_hist, u_hist=u_hist)
     plot_rw_momentum(time=time_hist, state_hist=state_hist)
