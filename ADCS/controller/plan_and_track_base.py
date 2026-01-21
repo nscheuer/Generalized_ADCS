@@ -257,6 +257,22 @@ class PlanAndTrackBase(Controller):
         self.planner.setVerbosity(verbose)
 
         dt_seconds = self.planner_settings.dt_tvlqr
+        dt_tp = self.planner_settings.dt_tp
+
+        # Sanity check: dt_tp must be small enough that each planning segment has N >= 3 points
+        # The C++ planner uses Uset.cols(0, Uset.n_cols-3) which requires at least 3 columns
+        # For a 60s segment with dt_tp, we get N = 60/dt_tp + 1 points
+        # Minimum segment duration in the planner is typically 60s (tvlqr_len)
+        min_segment_duration = 60.0  # Conservative estimate
+        N_per_segment = int(min_segment_duration / dt_tp) + 1
+        if N_per_segment < 4:
+            suggested_dt_tp = min_segment_duration / 3.0  # Gives N=4
+            raise ValueError(
+                f"dt_tp={dt_tp}s is too large for reliable planning. "
+                f"With 60s segments, this gives only N={N_per_segment} points per segment. "
+                f"The C++ planner requires N >= 4. "
+                f"Suggested fix: set dt_tp <= {suggested_dt_tp:.1f}s"
+            )
 
         # Calculate N
         N = int(np.ceil(duration / dt_seconds)) + 1
