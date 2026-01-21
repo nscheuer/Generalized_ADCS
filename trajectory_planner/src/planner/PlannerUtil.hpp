@@ -66,6 +66,11 @@ std::tuple<arma::vec,arma::vec> rk4z(double dt, arma::vec xk, arma::vec uk, Sate
 arma::vec rk4z_pure(double dt, arma::vec xk, arma::vec uk, Satellite sat, DYNAMICS_INFO_FORM dynamics_info_k,DYNAMICS_INFO_FORM dynamics_info_kp1);
 
 std::tuple<arma::mat, arma::mat,arma::mat> rk4zJacobians(double dt,arma::vec xk, arma::vec uk, Satellite sat,DYNAMICS_INFO_FORM dynamics_info_k, DYNAMICS_INFO_FORM dynamics_info_kp1);
+
+// Blended versions for constraint tightening warm-start
+// alpha=0: relaxed (linear) MTQ model, alpha=1: true cross-product physics
+std::tuple<arma::vec,arma::vec> rk4zBlended(double dt, arma::vec xk, arma::vec uk, Satellite sat, DYNAMICS_INFO_FORM dynamics_info_k, DYNAMICS_INFO_FORM dynamics_info_kp1, double alpha);
+std::tuple<arma::mat, arma::mat, arma::mat> rk4zJacobiansBlended(double dt, arma::vec xk, arma::vec uk, Satellite sat, DYNAMICS_INFO_FORM dynamics_info_k, DYNAMICS_INFO_FORM dynamics_info_kp1, double alpha);
 std::tuple<arma::mat, arma::mat,arma::mat> rk4zx2Jacobians(double dt,arma::vec xk, arma::vec uk, Satellite sat,DYNAMICS_INFO_FORM dynamics_info_k, DYNAMICS_INFO_FORM dynamics_info_kp1);
 arma::vec rk4zxkp1r(double dt, arma::vec xk, arma::vec uk, Satellite sat, DYNAMICS_INFO_FORM dynamics_info_k,DYNAMICS_INFO_FORM dynamics_info_kp1);
 

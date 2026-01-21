@@ -2259,6 +2259,318 @@ tuple<cube, cube,cube>  Satellite::dynamicsHessians( vec x,  vec u,  DYNAMICS_IN
 }
 
 
+/*
+ * Blended dynamics for constraint tightening warm-start.
+ *
+ * Interpolates MTQ torque model between:
+ *   alpha=0: tau = |B| * P_perp * m  (linear in m, scaled by field strength)
+ *            where P_perp = I - Bhat*Bhat^T projects onto plane perp to B
+ *   alpha=1: tau = m x B             (true cross-product physics)
+ *
+ * The alpha=0 formulation has a full-rank control Jacobian (no null space along B),
+ * which aids optimization convergence in early iterations.
+ *
+ * Arguments:
+ *   x - state vector [omega, q, h_rw]
+ *   u - control vector [u_mtq, u_rw, u_magic]
+ *   dynamics_info - tuple with B-field, position, etc.
+ *   alpha - blending parameter in [0,1]
+ *
+ * Returns:
+ *   tuple of (state_derivative, disturbance_torque)
+ */
+tuple<vec,vec3> Satellite::dynamicsBlended(vec x, vec u, DYNAMICS_INFO_FORM dynamics_info, double alpha) const
+{
+  vec3 Bk = get<0>(dynamics_info);
+
+  // Extract state
+  vec3 w = x.rows(avindex0(),avindex0()+2);
+  vec4 q = x.rows(quat0index(),quat0index()+3);
+  vec h = vec(number_RW).zeros();
+  vec3 rw_torq = vec3().zeros();
+  if(number_RW>0){
+    h = x.tail(number_RW);
+    rw_torq = rw_ax_mat*u(span(number_MTQ,number_MTQ+number_RW-1));
+  }
+  vec3 magic_torq = vec3().zeros();
+  if(number_magic>0){
+    magic_torq = magic_ax_mat*u.tail(number_magic);
+  }
+
+  mat33 RmatT = rotMat(q).t();
+  vec3 B_body = RmatT*Bk;
+  double B_norm = norm(B_body);
+
+  // Compute MTQ dipole moment in body frame
+  vec3 magvec = vec(3).zeros();
+  if(number_MTQ>0)
+  {
+    magvec = mtq_ax_mat*u.head(number_MTQ);
+  }
+
+  // Compute MTQ torque with blending
+  vec3 mtq_torq = vec(3).zeros();
+  if(number_MTQ > 0 && B_norm > 1e-12){
+    // True physics: tau = m x B
+    vec3 tau_true = cross(magvec, B_body);
+
+    // Relaxed physics: tau = |B| * P_perp * m
+    // where P_perp = I - Bhat*Bhat^T
+    vec3 Bhat = B_body / B_norm;
+    vec3 m_perp = magvec - dot(magvec, Bhat) * Bhat;  // P_perp * m
+    vec3 tau_relaxed = B_norm * m_perp;
+
+    // Blend
+    mtq_torq = alpha * tau_true + (1.0 - alpha) * tau_relaxed;
+  }
+
+  vec3 torq = MAGRW_TORQ_MULT*(magic_torq + rw_torq);
+  vec3 dist_torq = dist_torque(x, dynamics_info);
+
+  // Angular velocity derivative
+  vec3 wdot = invJcom_noRW*(torq - cross(w, Jcom*w + rw_ax_mat*h) + mtq_torq + dist_torq);
+
+  // Quaternion derivative
+  vec res = join_cols(wdot, 0.5*findWMat(q)*w);
+
+  // Reaction wheel momentum derivative
+  if(number_RW>0){
+    res = join_cols(res, -MAGRW_TORQ_MULT*u(span(number_MTQ,number_MTQ+number_RW-1))
+                         - diagmat(vec(RW_J))*rw_ax_mat.t()*wdot);
+  }
+
+  return std::make_tuple(res, dist_torq);
+}
+
+
+/*
+ * Blended dynamics Jacobians for constraint tightening warm-start.
+ *
+ * Control Jacobian (dwdu) interpolates between:
+ *   alpha=0: d(wdot)/d(u_mtq) = J^{-1} * |B| * P_perp * mtq_ax_mat
+ *            Full rank, well-conditioned
+ *   alpha=1: d(wdot)/d(u_mtq) = -J^{-1} * [Bx] * mtq_ax_mat
+ *            Rank 2 (null space along B), true physics
+ *
+ * State Jacobian (dwdq) also blended for consistency.
+ *
+ * Arguments:
+ *   x - state vector
+ *   u - control vector
+ *   dynamics_info - B-field, position, etc.
+ *   alpha - blending parameter in [0,1]
+ *
+ * Returns:
+ *   tuple of (jxx, jxu, jxt) - state, control, and disturbance torque Jacobians
+ */
+tuple<mat, mat, mat> Satellite::dynamicsJacobiansBlended(vec x, vec u, DYNAMICS_INFO_FORM dynamics_info, double alpha) const
+{
+  vec3 Bk = get<0>(dynamics_info);
+  vec3 Rk = get<1>(dynamics_info);
+  int prop_torq_on = get<2>(dynamics_info);
+  vec3 Vk = get<3>(dynamics_info);
+  vec3 Sk = get<4>(dynamics_info);
+  int dist_on = get<5>(dynamics_info);
+
+  vec3 w = x.rows(avindex0(),avindex0()+2);
+  vec4 q = x.rows(quat0index(),quat0index()+3);
+  vec h = vec(number_RW).zeros();
+  vec3 rw_torq = vec3().zeros();
+  if(number_RW>0){
+    h = x.tail(number_RW);
+    rw_torq = rw_ax_mat*u(span(number_MTQ,number_MTQ+number_RW-1));
+  }
+  vec3 magic_torq = vec3().zeros();
+  if(number_magic>0){
+    magic_torq = magic_ax_mat*u.tail(number_magic);
+  }
+
+  double const_term = dist_on*plan_for_gg*3.0*earth_mu/(pow(norm(Rk)*1000.0,3.0));
+  vec3 nRk = normalise(Rk);
+  mat33 RmatT = rotMat(q).t();
+  vec3 nadir = -RmatT*nRk;
+  vec3 gg_torq = const_term*cross(nadir,Jcom*nadir);
+
+  vec3 B_body = RmatT*Bk;
+  double B_norm = norm(B_body);
+
+  vec3 magvec = dist_on*res_dipole*plan_for_resdipole;
+  if(number_MTQ>0)
+  {
+    magvec += mtq_ax_mat*u.head(number_MTQ);
+  }
+  vec3 torq = MAGRW_TORQ_MULT*(magic_torq + rw_torq);
+  vec3 dist_torq = dist_on*(gg_torq+prop_torq_on*prop_torq*plan_for_prop+gen_dist_torq*plan_for_gendist);
+
+  // ===== Blended MTQ torque for wdot computation =====
+  vec3 mtq_torq = vec(3).zeros();
+  if(number_MTQ > 0 && B_norm > 1e-12){
+    vec3 tau_true = cross(magvec, B_body);
+    vec3 Bhat = B_body / B_norm;
+    vec3 m_perp = magvec - dot(magvec, Bhat) * Bhat;
+    vec3 tau_relaxed = B_norm * m_perp;
+    mtq_torq = alpha * tau_true + (1.0 - alpha) * tau_relaxed;
+  }
+
+  vec3 wdot = invJcom_noRW*(torq - cross(w, Jcom*w + rw_ax_mat*h) + mtq_torq + dist_torq);
+  vec4 qdot = 0.5*findWMat(q)*w;
+  vec hdot = vec(number_RW).zeros();
+  if(number_RW>0)
+  {
+    hdot = -MAGRW_TORQ_MULT*u(span(number_MTQ,number_MTQ+number_RW-1)) - diagmat(vec(RW_J))*rw_ax_mat.t()*wdot;
+  }
+
+  // ===== State Jacobian (dwdw) - same as original =====
+  mat33 dwdw = invJcom_noRW*(skewSymmetric(Jcom*w + rw_ax_mat*h) - skewSymmetric(w)*Jcom);
+
+  // ===== State Jacobian (dwdq) - blended =====
+  // True physics term: skewSymmetric(magvec) * dRTBdq(q, Bk)
+  // Relaxed term: |B| * P_perp depends on q through B_body direction
+  //   d(|B| * P_perp * m)/dq = |B| * d(P_perp)/dq * m
+  //   Since P_perp = I - Bhat*Bhat^T and Bhat = R^T*B_ECI/|B|
+  //   d(Bhat)/dq = dRTBdq(q, B_ECI)/|B|
+  //   d(P_perp*m)/dq = -d(Bhat*(Bhat.m))/dq = -(d(Bhat)/dq * (Bhat.m) + Bhat * (d(Bhat)/dq)^T * m)
+
+  mat::fixed<3,4> dwdq_mtq = mat(3,4).zeros();
+  if(number_MTQ > 0 && B_norm > 1e-12){
+    // True physics Jacobian
+    mat::fixed<3,4> dwdq_true = skewSymmetric(magvec) * dRTBdq(q, Bk);
+
+    // Relaxed physics Jacobian
+    vec3 Bhat = B_body / B_norm;
+    double m_dot_Bhat = dot(magvec, Bhat);
+    mat::fixed<3,4> dBhat_dq = dRTBdq(q, Bk) / B_norm;
+
+    // d(P_perp * m)/dq = -Bhat * (m^T * dBhat_dq) - dBhat_dq * (Bhat^T * m)
+    mat::fixed<3,4> dPperp_m_dq = -Bhat * (magvec.t() * dBhat_dq) - dBhat_dq * m_dot_Bhat;
+    mat::fixed<3,4> dwdq_relaxed = B_norm * dPperp_m_dq;
+
+    dwdq_mtq = alpha * dwdq_true + (1.0 - alpha) * dwdq_relaxed;
+  }
+
+  mat::fixed<3,4> dwdq = invJcom_noRW * (dwdq_mtq + const_term*(skewSymmetric(nadir)*Jcom - skewSymmetric(Jcom*nadir))*dRTBdq(q, -nRk));
+
+  // ===== SRP Jacobian (same as original) =====
+  if(dist_on && plan_for_srp && num_srp_surfaces > 0){
+    vec3 sun_dir_eci = normalise(Sk - Rk);
+    vec3 s_body = RmatT * sun_dir_eci;
+    mat::fixed<3,4> ds_body_dq = dRTBdq(q, sun_dir_eci);
+
+    mat::fixed<3,4> dT_srp_dq = mat(3,4).zeros();
+
+    for(int i = 0; i < num_srp_surfaces; i++){
+      vec3 n_i = srp_normals.col(i);
+      vec3 r_i = srp_centroids.col(i) - srp_COM;
+      double A_i = srp_areas(i);
+      double eta_s_i = srp_eta_s(i);
+      double eta_d_i = srp_eta_d(i);
+      double eta_a_i = srp_eta_a(i);
+
+      double cos_gamma = dot(n_i, s_body);
+      if(cos_gamma > 0){
+        rowvec4 dcos_gamma_dq = n_i.t() * ds_body_dq;
+
+        double m_s = A_i * (eta_a_i + eta_d_i) * cos_gamma;
+        rowvec4 dm_s_dq = A_i * (eta_a_i + eta_d_i) * dcos_gamma_dq;
+
+        double dm_n_dcos = A_i * (6.0*eta_s_i*cos_gamma*cos_gamma + (2.0/3.0)*eta_d_i);
+        rowvec4 dm_n_dq = dm_n_dcos * dcos_gamma_dq;
+
+        vec3 r_cross_s = cross(r_i, s_body);
+        vec3 r_cross_n = cross(r_i, n_i);
+        mat::fixed<3,4> d_r_cross_s_dq = -skewSymmetric(r_i) * ds_body_dq;
+
+        dT_srp_dq += r_cross_s * dm_s_dq + m_s * d_r_cross_s_dq + r_cross_n * dm_n_dq;
+      }
+    }
+    dwdq -= SOLAR_PRESSURE * invJcom_noRW * dT_srp_dq;
+  }
+
+  // ===== Drag Jacobian (same as original) =====
+  if(dist_on && plan_for_aero && num_drag_surfaces > 0){
+    double rho = get<6>(dynamics_info);
+    vec3 Vk_scaled = Vk * 1000.0;
+    vec3 V_body = RmatT * Vk_scaled;
+
+    if(norm(V_body) > 1e-6){
+      mat::fixed<3,4> dV_body_dq = dRTBdq(q, Vk_scaled);
+
+      mat::fixed<3,4> dT_drag_dq = mat(3,4).zeros();
+
+      for(int i = 0; i < num_drag_surfaces; i++){
+        vec3 n_i = drag_normals.col(i);
+        vec3 r_i = drag_centroids.col(i) - drag_COM;
+        double A_i = drag_areas(i);
+        double CD_i = drag_CDs(i);
+
+        double v_proj = dot(n_i, V_body);
+        if(v_proj > 0){
+          rowvec4 dv_proj_dq = n_i.t() * dV_body_dq;
+
+          double F_i = CD_i * A_i * v_proj;
+          rowvec4 dF_i_dq = CD_i * A_i * dv_proj_dq;
+
+          vec3 r_cross_V = cross(r_i, V_body);
+          mat::fixed<3,4> d_r_cross_V_dq = -skewSymmetric(r_i) * dV_body_dq;
+
+          dT_drag_dq += r_cross_V * dF_i_dq + F_i * d_r_cross_V_dq;
+        }
+      }
+      dwdq -= 0.5 * rho * invJcom_noRW * dT_drag_dq;
+    }
+  }
+
+  mat dwdh = invJcom_noRW * (-skewSymmetric(w) * rw_ax_mat);
+
+  // ===== Control Jacobian (dwdu) - blended =====
+  // True physics: -skewSymmetric(B_body) * mtq_ax_mat
+  // Relaxed: |B| * P_perp * mtq_ax_mat = |B| * (I - Bhat*Bhat^T) * mtq_ax_mat
+  mat dwdu_mtq = mat(3, number_MTQ).zeros();
+  if(number_MTQ > 0 && B_norm > 1e-12){
+    mat33 dwdu_true = -skewSymmetric(B_body);
+
+    vec3 Bhat = B_body / B_norm;
+    mat33 P_perp = mat33().eye() - Bhat * Bhat.t();
+    mat33 dwdu_relaxed = B_norm * P_perp;
+
+    mat33 dwdu_blended = alpha * dwdu_true + (1.0 - alpha) * dwdu_relaxed;
+    dwdu_mtq = dwdu_blended * mtq_ax_mat;
+  }
+
+  mat dwdu = invJcom_noRW * join_rows(dwdu_mtq, MAGRW_TORQ_MULT*rw_ax_mat, MAGRW_TORQ_MULT*magic_ax_mat);
+  mat33 dwdt = invJcom_noRW;
+
+  mat::fixed<4,3> dqdw = 0.5*findWMat(q);
+  mat44 dqdq = 0.5*join_rows(join_cols(vec({0.0}),w),join_cols(-w.t(),-skewSymmetric(w)));
+  mat dqdh = mat(4,number_RW).zeros();
+  mat dqdu = mat(4,control_N()).zeros();
+  mat::fixed<4,3> dqdt = mat(4,3).zeros();
+
+  mat dhdw = -diagmat(vec(RW_J))*rw_ax_mat.t()*dwdw;
+  mat dhdq = -diagmat(vec(RW_J))*rw_ax_mat.t()*dwdq;
+  mat dhdh = -diagmat(vec(RW_J))*rw_ax_mat.t()*dwdh;
+  mat dhdu = join_rows(mat(number_RW,number_MTQ).zeros(),
+                       -MAGRW_TORQ_MULT*mat(number_RW,number_RW).eye(),
+                       mat(number_RW,number_magic).zeros())
+             - diagmat(vec(RW_J))*rw_ax_mat.t()*dwdu;
+  mat dhdt = -diagmat(vec(RW_J))*rw_ax_mat.t()*dwdt;
+
+  mat jxx_augment = join_cols(join_rows(dwdw,dwdq,dwdh),
+                              join_rows(dqdw,dqdq,dqdh));
+
+  mat jxu_augment = join_cols(dwdu,dqdu);
+  mat jxt_augment = join_cols(dwdt,dqdt);
+
+  if(number_RW>0){
+    jxx_augment = join_cols(jxx_augment,join_rows(dhdw,dhdq,dhdh));
+    jxu_augment = join_cols(jxu_augment,dhdu);
+    jxt_augment = join_cols(jxt_augment,dhdt);
+  }
+
+  return std::make_tuple(jxx_augment, jxu_augment, jxt_augment);
+}
+
+
 
 
 Satellite::~Satellite(){

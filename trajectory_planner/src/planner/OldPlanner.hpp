@@ -45,6 +45,13 @@ public:
     //std::tuple<TRAJECTORY_FORM, double, REG_PAIR> forwardPass(double dt,TRAJECTORY_FORM traj, VECTOR_INFO_FORM vecs, AUGLAG_INFO_FORM auglag_vals, BACKWARD_PASS_RESULTS_FORM BPresults, REG_PAIR regs, COST_SETTINGS_FORM *costSettings_tmp, REG_SETTINGS_FORM regSettings_tmp, LINE_SEARCH_SETTINGS_FORM lineSearchSettings_tmp);
     std::tuple<double,double,arma::mat,double,REG_PAIR,TRAJECTORY_FORM> ilqrStep(double dt0,TRAJECTORY_FORM traj,VECTOR_INFO_FORM vecs,AUGLAG_INFO_FORM auglag_vals,REG_PAIR regs,COST_SETTINGS_FORM *costSettings_ptr,REG_SETTINGS_FORM regSettings_tmp, LINE_SEARCH_SETTINGS_FORM lineSearchSettings_tmp,BREAK_SETTINGS_FORM breakSettings_tmp,bool useDist);
 
+    // Blended versions for constraint tightening warm-start
+    // dynAlpha: 0=relaxed (linear) MTQ model, 1=true cross-product physics
+    TRAJECTORY_FORM generateTrajectoryBlended(double dt, double alpha, TRAJECTORY_FORM traj, VECTOR_INFO_FORM vecs, arma::cube Kset, arma::mat dset, bool useDist, double dynAlpha);
+    std::tuple<BACKWARD_PASS_RESULTS_FORM, REG_PAIR> backwardPassBlended(double dt, TRAJECTORY_FORM traj, VECTOR_INFO_FORM &vecs, AUGLAG_INFO_FORM auglag_vals, REG_PAIR regs, COST_SETTINGS_FORM *costSettings_tmp, REG_SETTINGS_FORM regSettings_tmp, bool useDist, double dynAlpha);
+    std::tuple<TRAJECTORY_FORM, double, REG_PAIR> forwardPassBlended(double dt0, TRAJECTORY_FORM traj, VECTOR_INFO_FORM &vecs, AUGLAG_INFO_FORM auglag_vals, BACKWARD_PASS_RESULTS_FORM BPresults, REG_PAIR regs, COST_SETTINGS_FORM *costSettings_tmp_ptr, REG_SETTINGS_FORM regSettings_tmp, LINE_SEARCH_SETTINGS_FORM lineSearchSettings_tmp, bool useDist, double dynAlpha);
+    std::tuple<double, double, arma::mat, double, REG_PAIR, TRAJECTORY_FORM> ilqrStepBlended(double dt0, TRAJECTORY_FORM traj, VECTOR_INFO_FORM vecs, AUGLAG_INFO_FORM auglag_vals, REG_PAIR regs, COST_SETTINGS_FORM *costSettings_ptr, REG_SETTINGS_FORM regSettings_tmp, LINE_SEARCH_SETTINGS_FORM lineSearchSettings_tmp, BREAK_SETTINGS_FORM breakSettings_tmp, bool useDist, double dynAlpha);
+
     double cost2Func( TRAJECTORY_FORM &traj, VECTOR_INFO_FORM &vecs,  AUGLAG_INFO_FORM &auglag_vals,  COST_SETTINGS_FORM *costSettings_ptr,bool useConstraints = true);
     AUGLAG_INFO_FORM incrementAugLag(AUGLAG_INFO_FORM auglag_vals, arma::mat clist, AUGLAG_SETTINGS_FORM auglagSettings_tmp);
     void costInfo(TRAJECTORY_FORM traj,  VECTOR_INFO_FORM vecs, AUGLAG_INFO_FORM auglag_vals,COST_SETTINGS_FORM *costSettings_ptr);

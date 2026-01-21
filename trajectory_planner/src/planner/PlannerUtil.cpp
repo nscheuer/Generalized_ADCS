@@ -1838,6 +1838,149 @@ tuple<vec,vec> rk4z(double dt0, vec xk, vec uk, Satellite sat, DYNAMICS_INFO_FOR
 }
 
 
+/*
+ * Blended RK4 integration using dynamicsBlended.
+ * alpha=0: relaxed (linear) MTQ model
+ * alpha=1: true cross-product physics
+ */
+tuple<vec,vec> rk4zBlended(double dt0, vec xk, vec uk, Satellite sat, DYNAMICS_INFO_FORM dynamics_info_k, DYNAMICS_INFO_FORM dynamics_info_kp1, double alpha)
+{
+  DYNAMICS_INFO_FORM dynamics_info_mid = make_tuple(
+                          0.5*(get<0>(dynamics_info_k)+get<0>(dynamics_info_kp1)),
+                          0.5*(get<1>(dynamics_info_k)+get<1>(dynamics_info_kp1)),
+                          get<2>(dynamics_info_k)*get<2>(dynamics_info_kp1),
+                          0.5*(get<3>(dynamics_info_k)+get<3>(dynamics_info_kp1)),
+                          0.5*(get<4>(dynamics_info_k)+get<4>(dynamics_info_kp1)),
+                          get<5>(dynamics_info_k)*get<5>(dynamics_info_kp1),
+                          0.5*(get<6>(dynamics_info_k)+get<6>(dynamics_info_kp1))
+                          );
+
+  xk = sat.state_norm(xk);
+  tuple<vec,vec> dynout = sat.dynamicsBlended(xk, uk, dynamics_info_k, alpha);
+  vec xd0 = get<0>(dynout);
+  vec dist_torq0 = get<1>(dynout);
+  vec x1 = xk+xd0*0.5*dt0;
+  x1 = sat.state_norm(x1);
+  dynout = sat.dynamicsBlended(x1, uk, dynamics_info_mid, alpha);
+  vec xd1 = get<0>(dynout);
+  vec x2 = xk+xd1*0.5*dt0;
+  x2 = sat.state_norm(x2);
+  dynout = sat.dynamicsBlended(x2, uk, dynamics_info_mid, alpha);
+  vec xd2 = get<0>(dynout);
+  vec x3 = xk+xd2*dt0;
+  x3 = sat.state_norm(x3);
+  dynout = sat.dynamicsBlended(x3, uk, dynamics_info_kp1, alpha);
+  vec xd3 = get<0>(dynout);
+  vec out = (xk + (dt0/6.0)*(xd0+xd1*2.0+xd2*2.0+xd3));
+  out = sat.state_norm(out);
+  return make_tuple(out, dist_torq0);
+}
+
+
+/*
+ * Blended RK4 Jacobians using dynamicsBlended and dynamicsJacobiansBlended.
+ * alpha=0: relaxed (linear) MTQ model - well-conditioned control Jacobian
+ * alpha=1: true cross-product physics
+ */
+tuple<mat, mat, mat> rk4zJacobiansBlended(double dt0, vec xk, vec uk, Satellite sat, DYNAMICS_INFO_FORM dynamics_info_k, DYNAMICS_INFO_FORM dynamics_info_kp1, double alpha)
+{
+  DYNAMICS_INFO_FORM dynamics_info_mid = make_tuple(
+                          0.5*(get<0>(dynamics_info_k)+get<0>(dynamics_info_kp1)),
+                          0.5*(get<1>(dynamics_info_k)+get<1>(dynamics_info_kp1)),
+                          get<2>(dynamics_info_k)*get<2>(dynamics_info_kp1),
+                          0.5*(get<3>(dynamics_info_k)+get<3>(dynamics_info_kp1)),
+                          0.5*(get<4>(dynamics_info_k)+get<4>(dynamics_info_kp1)),
+                          get<5>(dynamics_info_k)*get<5>(dynamics_info_kp1),
+                          0.5*(get<6>(dynamics_info_k)+get<6>(dynamics_info_kp1))
+                          );
+  vec xkraw = xk;
+  xk = sat.state_norm(xk);
+  tuple<vec,vec> dynout = sat.dynamicsBlended(xk, uk, dynamics_info_k, alpha);
+  vec xd0 = get<0>(dynout);
+  vec x1r = xk+xd0*0.5*dt0;
+  vec x1 = x1r;
+  x1 = sat.state_norm(x1);
+  dynout = sat.dynamicsBlended(x1, uk, dynamics_info_mid, alpha);
+  vec xd1 = get<0>(dynout);
+  vec x2r = xk+xd1*0.5*dt0;
+  vec x2 = x2r;
+  x2 = sat.state_norm(x2);
+  dynout = sat.dynamicsBlended(x2, uk, dynamics_info_mid, alpha);
+  vec xd2 = get<0>(dynout);
+  vec x3r = xk+xd2*dt0;
+  vec x3 = x3r;
+  x3 = sat.state_norm(x3);
+  dynout = sat.dynamicsBlended(x3, uk, dynamics_info_kp1, alpha);
+  vec xd3 = get<0>(dynout);
+  vec xkp1 = (xk + (dt0/6.0)*(xd0+xd1*2.0+xd2*2.0+xd3));
+  vec xkp1raw = xkp1;
+  xkp1 = sat.state_norm(xkp1);
+  mat Gk = sat.findGMat(xk.rows(sat.quat0index(),sat.quat0index()+3));
+  mat G2 = sat.findGMat(x1r.rows(sat.quat0index(),sat.quat0index()+3));
+  mat G3 = sat.findGMat(x2r.rows(sat.quat0index(),sat.quat0index()+3));
+  mat G4 = sat.findGMat(x3r.rows(sat.quat0index(),sat.quat0index()+3));
+  mat Gkp1 = sat.findGMat(xkp1.rows(sat.quat0index(),sat.quat0index()+3));
+
+  mat I_state = mat(sat.state_N(),sat.state_N()).eye();
+
+  mat dx0__dx0r = sat.state_norm_jacobian(xkraw);
+  tuple<mat, mat, mat> jacK1 = sat.dynamicsJacobiansBlended(xk, uk, dynamics_info_k, alpha);
+  mat dxd0__dx0 = get<0>(jacK1);
+  mat dxd0__du_ = get<1>(jacK1);
+  mat dxd0__dtorq = get<2>(jacK1);
+  mat dxd0__dx0r = dxd0__dx0*dx0__dx0r;
+
+  tuple<mat, mat, mat> jacK2 = sat.dynamicsJacobiansBlended(x1, uk, dynamics_info_mid, alpha);
+  mat dxd1__dx1 = get<0>(jacK2);
+  mat dxd1__du = get<1>(jacK2);
+  mat dxd1__dtorq = get<2>(jacK2);
+  mat dx1__dx1r = sat.state_norm_jacobian(x1r);
+  mat dx1r__dxd0 = 0.5*dt0*I_state;
+  mat dx1r__dx0 = I_state;
+  mat dx1r__dx0r = dx0__dx0r + dx1r__dxd0*dxd0__dx0r;
+  mat dx1r__du_ = dx1r__dxd0*dxd0__du_;
+  mat dx1r__dtorq = dx1r__dxd0*dxd0__dtorq;
+  mat dxd1__dx0 = dxd1__dx1*dx1__dx1r*dx1r__dx0;
+  mat dxd1__dx0r = dxd1__dx1*dx1__dx1r*dx1r__dx0r;
+  mat dxd1__du_ = dxd1__du + dxd1__dx1*dx1__dx1r*dx1r__du_;
+  mat dxd1__dtorq_ = dxd1__dtorq + dxd1__dx1*dx1__dx1r*dx1r__dtorq;
+
+  tuple<mat, mat, mat> jacK3 = sat.dynamicsJacobiansBlended(x2, uk, dynamics_info_mid, alpha);
+  mat dxd2__dx2 = get<0>(jacK3);
+  mat dxd2__du = get<1>(jacK3);
+  mat dxd2__dtorq = get<2>(jacK3);
+  mat dx2__dx2r = sat.state_norm_jacobian(x2r);
+  mat dx2r__dxd1 = 0.5*dt0*I_state;
+  mat dx2r__dx0 = I_state;
+  mat dx2r__dx0r = dx0__dx0r + dx2r__dxd1*dxd1__dx0r;
+  mat dx2r__du_ = dx2r__dxd1*dxd1__du_;
+  mat dx2r__dtorq = dx2r__dxd1*dxd1__dtorq_;
+  mat dxd2__dx0 = dxd2__dx2*dx2__dx2r*dx2r__dx0;
+  mat dxd2__dx0r = dxd2__dx2*dx2__dx2r*dx2r__dx0r;
+  mat dxd2__du_ = dxd2__du + dxd2__dx2*dx2__dx2r*dx2r__du_;
+  mat dxd2__dtorq_ = dxd2__dtorq + dxd2__dx2*dx2__dx2r*dx2r__dtorq;
+
+  tuple<mat, mat, mat> jacK4 = sat.dynamicsJacobiansBlended(x3, uk, dynamics_info_kp1, alpha);
+  mat dxd3__dx3 = get<0>(jacK4);
+  mat dxd3__du = get<1>(jacK4);
+  mat dxd3__dtorq = get<2>(jacK4);
+  mat dx3__dx3r = sat.state_norm_jacobian(x3r);
+  mat dx3r__dxd2 = dt0*I_state;
+  mat dx3r__dx0 = I_state;
+  mat dx3r__dx0r = dx0__dx0r + dx3r__dxd2*dxd2__dx0r;
+  mat dx3r__du_ = dx3r__dxd2*dxd2__du_;
+  mat dx3r__dtorq = dx3r__dxd2*dxd2__dtorq_;
+  mat dxd3__dx0 = dxd3__dx3*dx3__dx3r*dx3r__dx0;
+  mat dxd3__dx0r = dxd3__dx3*dx3__dx3r*dx3r__dx0r;
+  mat dxd3__du_ = dxd3__du + dxd3__dx3*dx3__dx3r*dx3r__du_;
+  mat dxd3__dtorq_ = dxd3__dtorq + dxd3__dx3*dx3__dx3r*dx3r__dtorq;
+
+  mat dxkp1__dxkp1r = sat.state_norm_jacobian(xkp1raw);
+  return make_tuple(dxkp1__dxkp1r*(dx0__dx0r + (dt0/6.0)*(dxd0__dx0r+dxd1__dx0r*2.0+dxd2__dx0r*2.0+dxd3__dx0r)),
+                    dxkp1__dxkp1r*((dt0/6.0)*(dxd0__du_ + dxd1__du_*2.0 + dxd2__du_*2.0 + dxd3__du_)),
+                    dxkp1__dxkp1r*((dt0/6.0)*(dxd0__dtorq + dxd1__dtorq_*2.0 + dxd2__dtorq_*2.0 + dxd3__dtorq_)));
+}
+
 
 vec rk4zxkp1r(double dt0, vec xk, vec uk, Satellite sat, DYNAMICS_INFO_FORM dynamics_info_k, DYNAMICS_INFO_FORM dynamics_info_kp1)
 {
