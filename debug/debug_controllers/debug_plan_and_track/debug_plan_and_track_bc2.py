@@ -508,10 +508,11 @@ def test_plan_and_track_lqr(
         orb = Orbit(orbs)
 
     # Setup planner with tuned settings (see ALTRO_TUNING_NOTES.md)
+    # Optimal settings for 500s in <45s: dt_tp=100, angle=100, angle_N=10000
     print("Setting up trajectory planner...")
     planner_settings = PlannerSettings(
         est_sat=real_sat,
-        bdot_on=1,  # Skip bdot initial guess (faster, more reliable)
+        bdot_on=0,  # Skip bdot initial guess (faster, more reliable)
         dt_tp=dt_planning,
         dt_tvlqr=dt,
     )
@@ -520,30 +521,14 @@ def test_plan_and_track_lqr(
     # Tuned cost weights: low running + high terminal = fast convergence
     planner_settings.cost_main.use_full_cost_hessian = True
     planner_settings.pass1.regularization.use_dynamics_hess = 1
-    planner_settings.cost_second.use_full_cost_hessian = True
-    planner_settings.pass2.regularization.use_dynamics_hess = 0
     planner_settings.init_traj.bdot_gain = 500
-    planner_settings.cost_main.angle =     10000
-    planner_settings.cost_main.angle_N =   1000000
-    planner_settings.cost_second.angle =   10000
-    planner_settings.cost_second.angle_N = 1000000
-    planner_settings.cost_main.ang_vel = 1e2
-    # planner_settings.cost_main.ang_vel_N = 1e4
-    planner_settings.cost_second.ang_vel = 1e2
-    # planner_settings.cost_second.ang_vel_N = 1e4
-    planner_settings.cost_second.ang_cost_func_type = 2
-    planner_settings.cost_second.ang_cost_func_type = 2 
+    planner_settings.cost_main.angle = 100
+    planner_settings.cost_main.angle_N = 50000  # Higher terminal cost for better accuracy
     planner_settings.pass1.aug_lag.penalty_init = 100
-    planner_settings.pass2.aug_lag.penalty_init = 1000
-    planner_settings.pass1.convergence.max_outer_iter = 15 
-    planner_settings.pass1.convergence.max_inner_iter = 50
-    planner_settings.pass2.convergence.max_outer_iter = 20
-    planner_settings.pass2.convergence.max_inner_iter = 30
-
-    
-    planner_settings.rw_control_weight = 1e2
-    planner_settings.mtq_control_weight = 1e2
-    # planner_settings.wmax = 10*np.pi/180.0
+    planner_settings.pass1.convergence.max_outer_iter = 8
+    planner_settings.pass1.convergence.max_inner_iter = 40
+    planner_settings.pass2.convergence.max_outer_iter = 5
+    planner_settings.pass2.convergence.max_inner_iter = 15
 
 
     # ============ COST WEIGHTS TUNED FOR FASTER CONVERGENCE ============
@@ -552,52 +537,6 @@ def test_plan_and_track_lqr(
     # planner_settings.cost_main.ang_vel = 1e1   # Lower running cost (was 1e4)
     # planner_settings.cost_second.ang_vel = 1e1
     # planner_settings.cost_tvlqr.ang_vel = 1e1
-    # planner_settings.cost_main.ang_vel_N = 1e2     # Higher terminal (was 1e6)
-    # planner_settings.cost_second.ang_vel_N = 1e2
-    # planner_settings.cost_tvlqr.ang_vel_N = 1e2
-    # planner_settings.cost_main.angle = 100         # Lower running cost (was 1e8)
-    # planner_settings.cost_second.angle = 1e2
-    # planner_settings.cost_tvlqr.angle = 1e2
-    # planner_settings.cost_main.angle_N = 1e4      # Keep high terminal
-    # planner_settings.cost_second.angle_N = 1e4
-    # planner_settings.cost_tvlqr.angle_N = 1e4
-    # =====================================================================
-
-    # Pass 1: use_raw_control_cost=True penalizes |u|, allowing free control exploration
-    # Pass 2: use_raw_control_cost=False penalizes |u-u_prev|, smoothing the trajectory
-    # If Pass 1 is stuck (dLA=0), the delta-cost is trapping it at initial trajectory
-    planner_settings.plan_for_aero = True
-    planner_settings.plan_for_srp = True
-    planner_settings.plan_for_gg = True
-    # planner_settings.cost_tvlqr.control_mult = 1e0
-    # planner_settings.cost_second.control_mult = 1e0
-
-    # ============ FAST MC SETTINGS (bdot_on=2 + Gauss-Newton) ============
-    # Optimized via parameter sweep: ~4s ALTRO time with good trajectory quality
-    # Key: Focus iterations on pass1, minimal pass2, use Gauss-Newton (no full Hessian)
-    # "Focus pass1 no Hess": 3.90s ALTRO, 0.92°/s vel, 0.48° error
-    # planner_settings.pass1.convergence.max_outer_iter = 20   # Focus on pass1
-    # planner_settings.pass1.convergence.max_inner_iter = 100
-    # planner_settings.pass2.convergence.max_outer_iter = 5  # Minimal pass2
-    # planner_settings.pass2.convergence.max_inner_iter = 30
-
-    # # Relaxed tolerances for speed
-    # planner_settings.pass1.convergence.grad_tol = 0.01
-    # # # planner_settings.pass1.convergence.ilqr_cost_tol = 1
-    # # # planner_settings.pass1.convergence.c_max = 0.1
-    # planner_settings.pass2.convergence.grad_tol = 0.001
-    # # planner_settings.pass2.convergence.ilqr_cost_tol = 1
-    # planner_settings.pass2.convergence.c_max = 0.01
-    
-
-    # Use Gauss-Newton approximation (faster per iteration, sufficient for MC)
-    # planner_settings.cost_main.use_full_cost_hessian = False
-    # planner_settings.cost_second.use_full_cost_hessian = True
-    # planner_settings.cost_tvlqr.use_full_cost_hessian = False
-    # planner_settings.pass1.regularization.use_dynamics_hess = 0
-    # planner_settings.pass2.regularization.use_dynamics_hess = 1
-    # ==========================================================================
-
 
 
     controller = Plan_and_Track_LQR(
@@ -775,10 +714,10 @@ def plot_plan_and_track_lqr(
 
 if __name__ == "__main__":
     plot_plan_and_track_lqr(
-        verbose=3,  # Quiet mode
-        tf=250,  # 60s trajectory for testing
+        verbose=1,  # Summary output
+        tf=500,  # 500s trajectory
         dt=1,
-        dt_planning=30,  # Tuned setting from quick_planner_tests
-        real_orbit=True,  # Use fast orbit (use_J2=False) for faster testing
-        seed=42,  # Same seed as quick_planner_tests
+        dt_planning=100,  # Optimal for 500s: ~28s solve time
+        real_orbit=False,  # Fast orbit for testing
+        seed=42,
     )
