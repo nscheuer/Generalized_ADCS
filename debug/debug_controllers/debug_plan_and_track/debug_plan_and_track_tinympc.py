@@ -142,6 +142,9 @@ def create_test_tinympc_settings() -> TinyMPCSettings:
         replan_attitude_threshold=np.deg2rad(15.0),  # 15 degrees
         replan_angvel_threshold=np.deg2rad(10.0),    # 10 deg/s
         replan_min_interval=30.0,  # seconds
+        # Control mode - use ALTRO K gains with saturation (matches TVLQR)
+        # Set to False to use full ADMM optimization
+        use_altro_gains=True,
         # Debug
         verbose=1,
     )
@@ -655,8 +658,8 @@ def main():
     t_start_cent = 0.22 - 1 * TimeConstants.sec2cent
 
     # ISS-like position/velocity in ECI
-    R = 7000e3 * np.array([0, np.sqrt(2) / 2, np.sqrt(2) / 2])  # meters
-    V = np.array([8000, 0, 0])  # m/s
+    R = 7000 * np.array([0, np.sqrt(2) / 2, np.sqrt(2) / 2])  # km
+    V = np.array([8, 0, 0])  # km/s
 
     os_0 = Orbital_State(ephem=ephem, J2000=t_start_cent, R=R, V=V)
     end_time = t_start_cent + (args.duration + 50) * TimeConstants.sec2cent

@@ -42,6 +42,7 @@ from ADCS.controller.plan_and_track_base import PlanAndTrackBase
 from ADCS.controller.helpers import PlannerSettings, Trajectory
 from ADCS.controller.helpers.tinympc_settings import TinyMPCSettings
 from ADCS.orbits.orbital_state import Orbital_State
+from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
 from ADCS.helpers.math_helpers import quat_mult, quat_inv, quat_to_vec3, quat_diff, normalize
 
@@ -197,9 +198,40 @@ class TinyMPCSolverPy:
             U_ref = U_ref.T
         self.U_ref = U_ref.copy()
 
-        self.K_ref = K_ref.copy() if K_ref is not None else None
+        # Handle K_ref - need to normalize to (m*n_err, N) format
+        if K_ref is not None:
+            K_ref = np.asarray(K_ref, dtype=np.float64)
+            N_times = len(times) - 1  # Number of control timesteps
+
+            # K gains can come in multiple formats:
+            # - (n_timesteps, n_ctrl, n_err) - 3D row-major time
+            # - (n_ctrl, n_err, n_timesteps) - 3D col-major time
+            # - (n_ctrl * n_err, n_timesteps) - flattened
+            if K_ref.ndim == 3:
+                # 3D tensor - flatten to 2D
+                if K_ref.shape[0] >= N_times:
+                    # Time is first axis (N, m, n_err) -> (m*n_err, N)
+                    K_ref = K_ref.reshape(K_ref.shape[0], -1).T
+                else:
+                    # Time is last axis (m, n_err, N) -> (m*n_err, N)
+                    K_ref = K_ref.reshape(-1, K_ref.shape[2])
+            elif K_ref.ndim == 2:
+                # Already 2D - check if first dimension is m*n_err
+                expected_k_size = self.m * self.n_err
+                if K_ref.shape[0] != expected_k_size and K_ref.shape[1] == expected_k_size:
+                    K_ref = K_ref.T  # Transpose to (m*n_err, N)
+            self.K_ref = K_ref.copy()
+        else:
+            self.K_ref = None
+
         self.times_ref = np.asarray(times, dtype=np.float64).flatten()
-        self.dt_ref = float(dt)
+        # Calculate dt from times array to ensure correct units (times are in century, not seconds)
+        if len(self.times_ref) > 1:
+            self.dt_ref = self.times_ref[1] - self.times_ref[0]
+        else:
+            # Fallback: should not happen in practice
+            from ADCS.orbits.universal_constants import TimeConstants
+            self.dt_ref = dt * TimeConstants.sec2cent
         self.has_reference = True
 
         # Reset ADMM state for new trajectory
@@ -504,6 +536,113 @@ class TinyMPCSolverPy:
 
         return error
 
+    def compute_state_error_full(
+        self,
+        x: NDArray[np.float64],
+        x_ref: NDArray[np.float64]
+    ) -> NDArray[np.float64]:
+        """
+        Compute FULL state error with proper quaternion handling (like C++ TinyMPC).
+
+        Returns full n-dimensional error with quaternion error in indices 3:7.
+        This matches the C++ implementation which works in full state space.
+
+        Args:
+            x: Current state [w(3), q(4), h(n_rw)]
+            x_ref: Reference state [w(3), q(4), h(n_rw)]
+
+        Returns:
+            State error vector (n,) in full state space
+        """
+        error = x - x_ref
+
+        # Proper quaternion error handling
+        q = normalize(x[3:7])
+        q_ref = normalize(x_ref[3:7])
+
+        # Quaternion inverse (conjugate for unit quaternion)
+        q_ref_inv = np.array([q_ref[0], -q_ref[1], -q_ref[2], -q_ref[3]])
+
+        # Quaternion multiplication: q_err = q_ref_inv * q
+        s1, s2 = q_ref_inv[0], q[0]
+        v1 = q_ref_inv[1:4]
+        v2 = q[1:4]
+
+        s_err = s1 * s2 - np.dot(v1, v2)
+        v_err = s1 * v2 + s2 * v1 + np.cross(v1, v2)
+        q_err = np.array([s_err, v_err[0], v_err[1], v_err[2]])
+
+        # Ensure q_err is in positive hemisphere (s > 0)
+        if q_err[0] < 0:
+            q_err = -q_err
+
+        # Use quaternion error directly (like C++)
+        error[3:7] = q_err
+
+        return error
+
+    def solve_riccati_full_state(self) -> Tuple[list, list]:
+        """
+        Solve discrete Riccati equation in FULL state space (like C++ TinyMPC).
+
+        Uses full state dynamics (A, B) and full-size cost matrices.
+        K gains are (m x n) operating on full state.
+
+        Returns:
+            (P_riccati, K_riccati): Lists of cost-to-go matrices and gains
+                P_riccati[k]: (n x n) cost-to-go matrix
+                K_riccati[k]: (m x n) feedback gain matrix
+        """
+        N = self.settings.track_horizon
+
+        P_riccati = [None] * (N + 1)
+        K_riccati = [None] * N
+
+        # Build full-state cost matrices from error-state ones
+        # Q_full and Qf_full are (n x n), mapping quaternion indices appropriately
+        Q_full = np.zeros((self.n, self.n))
+        Qf_full = np.zeros((self.n, self.n))
+
+        # Angular velocity (0:3 in both)
+        Q_full[0:3, 0:3] = self.Q[0:3, 0:3]
+        Qf_full[0:3, 0:3] = self.Qf[0:3, 0:3]
+
+        # Attitude: map 3D error cost to 4D quaternion
+        # Use average for quaternion components
+        avg_q_cost = np.mean(np.diag(self.Q[3:6, 3:6]))
+        avg_qf_cost = np.mean(np.diag(self.Qf[3:6, 3:6]))
+        Q_full[3:7, 3:7] = avg_q_cost * np.eye(4)
+        Qf_full[3:7, 3:7] = avg_qf_cost * np.eye(4)
+
+        # RW momentum (6:6+n_rw in error, 7:7+n_rw in full)
+        n_rw = self.n - 7
+        if n_rw > 0:
+            Q_full[7:7+n_rw, 7:7+n_rw] = self.Q[6:6+n_rw, 6:6+n_rw]
+            Qf_full[7:7+n_rw, 7:7+n_rw] = self.Qf[6:6+n_rw, 6:6+n_rw]
+
+        # Terminal cost
+        P_riccati[N] = Qf_full.copy()
+
+        # Backward recursion using FULL state dynamics
+        for k in range(N - 1, -1, -1):
+            P_next = P_riccati[k + 1]
+
+            BtP = self.B.T @ P_next
+            BtPB = BtP @ self.B
+            BtPA = BtP @ self.A
+
+            # Add regularization
+            R_reg = self.R + 1e-6 * np.eye(self.m)
+
+            # K = (R + B'PB)^{-1} B'PA, shape (m x n)
+            K_riccati[k] = solve(R_reg + BtPB, BtPA, assume_a='pos')
+
+            # P = Q + A'PA - A'PB*K
+            P_riccati[k] = Q_full + self.A.T @ P_next @ self.A - BtPA.T @ K_riccati[k]
+            P_riccati[k] = 0.5 * (P_riccati[k] + P_riccati[k].T)
+
+        return P_riccati, K_riccati
+
     def admm_x_update(
         self,
         X: NDArray[np.float64],
@@ -511,14 +650,13 @@ class TinyMPCSolverPy:
         x0: NDArray[np.float64],
         X_ref: NDArray[np.float64],
         U_ref: NDArray[np.float64],
-        K_riccati: list
+        K_riccati: list,
+        use_full_state: bool = True
     ) -> None:
         """
         ADMM x-update: solve unconstrained LQR with ADMM penalty.
 
-        This computes the optimal trajectory assuming u = z (no constraints),
-        but adds an ADMM penalty term (rho/2)||u - z + y||^2 to push u toward
-        the constrained solution.
+        Uses full-state linearized dynamics like C++ TinyMPC for proper MPC behavior.
 
         Args:
             X: State trajectory to fill (n, N+1)
@@ -526,30 +664,35 @@ class TinyMPCSolverPy:
             x0: Initial state
             X_ref: Reference states (n, N+1)
             U_ref: Reference controls (m, N)
-            K_riccati: LQR gains from Riccati solution
+            K_riccati: LQR gains from Riccati solution (m x n for full state)
+            use_full_state: Use full-state error and linearized dynamics (default True)
         """
         N = self.settings.track_horizon
 
         X[:, 0] = x0
 
         for k in range(N):
-            # State error for LQR
-            x_err = self.compute_state_error(X[:, k], X_ref[:, k])
+            # Compute state error
+            if use_full_state:
+                x_err = self.compute_state_error_full(X[:, k], X_ref[:, k])
+            else:
+                x_err = self.compute_state_error(X[:, k], X_ref[:, k])
 
-            # Riccati control (without ADMM term)
+            # Riccati control: u = u_ref - K * (x - x_ref)
             u_riccati = U_ref[:, k] - K_riccati[k] @ x_err
 
-            # ADMM term pushes u toward z - y
-            # Modified control: u_admm = (R + rho*I)^{-1} (R*u_riccati + rho*(z - y))
+            # ADMM adjustment: push u toward z - y
+            # u_admm = u_riccati + rho/(rho + R) * (z - y - u_riccati)
             R_diag = np.diag(self.R)
-            u_admm = (R_diag * u_riccati + self._rho * (self.Z[:, k] - self.Y[:, k])) / (R_diag + self._rho)
+            u_admm = u_riccati + self._rho / (self._rho + R_diag) * (
+                self.Z[:, k] - self.Y[:, k] - u_riccati
+            )
 
             U[:, k] = u_admm
 
-            # Propagate using nonlinear dynamics (more accurate than linearized)
-            dt = self.settings.track_dt
-            xdot = self._est_sat.dynamics_core(X[:, k], U[:, k], self._os)
-            X[:, k + 1] = X[:, k] + dt * xdot
+            # Propagate using linearized dynamics (like C++ TinyMPC)
+            # x_{k+1} = A * x_k + B * u_k + c
+            X[:, k + 1] = self.A @ X[:, k] + self.B @ U[:, k] + self.c
 
             # Normalize quaternion
             X[3:7, k + 1] = normalize(X[3:7, k + 1])
@@ -702,21 +845,33 @@ class TinyMPCSolverPy:
                     tracking_error=tracking_error
                 )
 
-        # Option 2: Full ADMM optimization (fallback)
+        # Option 2: ADMM optimization with ALTRO's pre-computed gains
+        # This uses ALTRO's optimal K gains (computed with full trajectory optimization)
+        # but adds ADMM constraint handling for better performance when constraints are active
         N = self.settings.track_horizon
 
         # Build local reference trajectory for MPC horizon
         X_ref_local, U_ref_local = self.build_local_reference(t_current)
 
-        # Store satellite and orbital state for nonlinear propagation
+        # Store satellite and orbital state for dynamics
         self._est_sat = est_sat
         self._os = os
 
-        # Linearize dynamics about reference (for Riccati gains only)
+        # Linearize dynamics about reference (produces A, B, c for full state)
         self.linearize_dynamics(x_ref_0, u_ref_0, est_sat, os)
 
-        # Solve Riccati for LQR gains
-        P_riccati, K_riccati = self.solve_riccati()
+        # Build K gains for the horizon from ALTRO's pre-computed gains
+        # These are in error-state space (m x n_err) and time-varying
+        K_local = []
+        for k in range(N):
+            t_k = t_current + k * self.settings.track_dt * TimeConstants.sec2cent
+            K_k = self._interpolate_K_gain(t_k)
+            if K_k is None:
+                # Fallback to computed Riccati if no ALTRO gains available
+                if not hasattr(self, '_K_riccati_fallback'):
+                    _, self._K_riccati_fallback = self.solve_riccati()
+                K_k = self._K_riccati_fallback[min(k, len(self._K_riccati_fallback)-1)]
+            K_local.append(K_k)
 
         # Initialize trajectories
         X = np.zeros((self.n, N + 1))
@@ -742,7 +897,10 @@ class TinyMPCSolverPy:
         iterations = 0
 
         for iter in range(self.settings.max_iter):
-            self.admm_x_update(X, U, x_current, X_ref_local, U_ref_local, K_riccati)
+            # Use ALTRO's K gains with error-state formulation
+            # This matches TVLQR but adds ADMM constraint handling
+            self.admm_x_update(X, U, x_current, X_ref_local, U_ref_local, K_local,
+                               use_full_state=False)
             self.admm_z_update(U)
             self.admm_y_update(U)
 
@@ -782,6 +940,7 @@ class TinyMPCSolverPy:
         Interpolate ALTRO's K gain at time t.
 
         K_ref is stored as (m*n_err, N) where each column is a flattened gain matrix.
+        Uses nearest-neighbor lookup with index scaling to handle different time resolutions.
 
         Args:
             t: Time to interpolate at
@@ -798,17 +957,20 @@ class TinyMPCSolverPy:
         # Clamp to valid range
         t = np.clip(t, t_start, t_end - 1e-10)
 
-        # Find interpolation index
-        t_rel = t - t_start
-        idx_float = t_rel / self.dt_ref
-        idx = int(np.floor(idx_float))
+        # Find nearest time index in times_ref (same method as Trajectory.get_gain_at)
+        idx = int(np.abs(self.times_ref - t).argmin())
 
-        N = len(self.times_ref) - 1
-        idx = np.clip(idx, 0, N - 1)
+        # K_ref may have different number of timesteps than times_ref
+        # (gains might be computed at dt_tp, states at dt_tvlqr)
+        n_times = len(self.times_ref)
+        n_gains = self.K_ref.shape[1]
+
+        # Scale index to match gains array size (like Trajectory.get_gain_at)
+        scaled_idx = min(int(idx * n_gains / n_times), n_gains - 1)
 
         # K_ref shape: (m * n_err, N) - each column is flattened K
         try:
-            K_flat = self.K_ref[:, idx]
+            K_flat = self.K_ref[:, scaled_idx]
             K = K_flat.reshape(self.m, self.n_err)
             return K
         except (IndexError, ValueError):
@@ -1084,6 +1246,9 @@ class Plan_and_Track_TinyMPC_Py(PlanAndTrackBase):
         # Load reference into TinyMPC solver
         dt = self.planner_settings.dt_tvlqr
         self._mpc.load_reference(Xset, Uset, Kset, lqr_times, dt)
+
+        # Set active trajectory for tracking
+        self.active_trajectory = traj
 
         # Update replan tracking
         self._last_replan_time = t_start
