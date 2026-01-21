@@ -263,7 +263,72 @@ All quick_planner_tests pass (5/5):
    - Result: B-field ≈ 0, MTQs had no torque authority, optimizer zeroed them
    - Fix: divide radius by 1000 before calling ppigrf.igrf_gc()
 
-### Remaining Work
-1. Test longer trajectories (500s)
-2. Run tuning sweep with correct B-field
-3. Document optimal parameter settings
+### Parameter Impact Summary (60s trajectory tests)
+
+#### Hessian Settings
+| Parameter | Best Value | Impact |
+|-----------|------------|--------|
+| `use_full_cost_hessian` | True | **15.8s vs 32.2s** - 2x faster! |
+| `use_dynamics_hess` | 1 | **14.7s vs 18.8s** - ~25% faster |
+| `use_constraint_hess` | 0 | 14.7s vs 16.5s - slightly faster without |
+
+**Best hessian combo**: cost=1, dyn=1, con=0 → 14.7s
+
+#### Initial Trajectory Settings
+| Parameter | Best Value | Impact |
+|-----------|------------|--------|
+| `bdot_on` | 0 | 16.5s (vs 19.1s for bdot_on=1) |
+| `bdot_gain` | 500 | **12.7s** (vs 16.9s default=1000, 29.5s for 5000) |
+
+**Key insight**: Lower bdot_gain helps - less aggressive initial guess converges faster.
+
+#### Cost Weights (BIGGEST IMPACT!)
+| angle | angle_N (ratio) | Time | Error | Notes |
+|-------|-----------------|------|-------|-------|
+| 1e3 (default) | 1e4 (10x) | 33s | 0.00° | Baseline |
+| 100 | 1000 (10x) | 2.2s | 0.90° | Fast but inaccurate |
+| 100 | 2000 (20x) | 2.0s | 0.29° | Good tradeoff |
+| 100 | 5000 (50x) | 7.1s | 0.00° | **Best balance** |
+| 100 | 10000 (100x) | 10.8s | 0.00° | Slower |
+
+**Key insight**: Low running cost (angle=100) + high terminal cost (50-100x ratio) is fastest while maintaining accuracy. The optimizer spends less effort on intermediate states.
+
+#### Pass2 Settings
+| Setting | Value | Time | Notes |
+|---------|-------|------|-------|
+| pass2 outer=5 | | 12.1s | Slightly faster |
+| pass2 outer=20 | | 7.3s | **Much faster!** |
+| pass2 disabled | | TBD | May skip refinement |
+
+**Key insight**: More pass2 outer iterations can be FASTER (counterintuitive) - likely converges in fewer total iterations.
+
+### Current Best Settings
+```python
+ps = PlannerSettings(est_sat=sat, bdot_on=0, dt_tp=30, dt_tvlqr=1)
+ps.cost_main.use_full_cost_hessian = True
+ps.pass1.regularization.use_dynamics_hess = 1
+ps.pass1.regularization.use_constraint_hess = 0
+ps.init_traj.bdot_gain = 500
+ps.cost_main.angle = 100
+ps.cost_main.angle_N = 5000
+ps.pass2.convergence.max_outer_iter = 20
+```
+
+### Scaling Results (tuned settings)
+| Duration | Solve Time | Error | Notes |
+|----------|------------|-------|-------|
+| 60s | 11.9s | 0.00° | Similar to default |
+| 90s | 21.6s | 0.00° | |
+| 120s | 29.5s | 0.00° | |
+| 180s | >60s | - | Needs larger dt_tp |
+
+### Key Findings
+1. **bdot_on=0 is fastest** - 15.7s vs 58.2s for bdot_on=1 (on 60s trajectory)
+2. **Low running cost + high terminal cost** - angle=100, angle_N=5000 converges faster
+3. **Full hessians help** - use_full_cost_hessian=True, use_dynamics_hess=1
+4. **bdot_gain=500** - lower than default (1000) helps initial guess
+
+### Next Steps
+1. Test larger dt_tp (40, 50) for longer trajectories
+2. Test pass1 iteration limits to speed up
+3. Target: 500s in <60s with good accuracy
