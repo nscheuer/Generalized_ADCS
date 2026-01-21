@@ -508,35 +508,68 @@ def test_plan_and_track_lqr(
         orb = Orbit(orbs)
 
     # Setup planner with tuned settings (see ALTRO_TUNING_NOTES.md)
-    # Optimal settings for 500s in <45s: dt_tp=100, angle=100, angle_N=10000
+    # 
+    # ============ TUNING TRADEOFF ============
+    # There are two main approaches:
+    #
+    # A) FAST (~30s) but late convergence:
+    #    ang_cost_func_type=2 (geodesic), dt_tp=100
+    #    - Error peaks ~88° mid-trajectory, converges only at end
+    #    - Good if you only care about final state
+    #
+    # B) EARLY CONVERGENCE (~60-75s) with quality:
+    #    ang_cost_func_type=0 (linear), dt_tp=50
+    #    - Error drops monotonically, stays <5° after t=60s
+    #    - Better trajectory shape, slower solve
+    #
+    # Current config: Option B (early convergence priority)
+    #
     print("Setting up trajectory planner...")
     planner_settings = PlannerSettings(
         est_sat=real_sat,
-        bdot_on=0,  # Skip bdot initial guess (faster, more reliable)
-        dt_tp=dt_planning,
+        bdot_on=2,  # Smart bdot initial guess
+        dt_tp=dt_planning,  # dt_tp=50 for early convergence
         dt_tvlqr=dt,
     )
     planner_settings.verbosity = verbose
 
-    # Tuned cost weights: low running + high terminal = fast convergence
+    # ============ COST FUNCTION TYPE ============
+    # See ALTRO_TUNING_NOTES.md for full details on all options.
+    #
+    # Type 0 (linear): Best accuracy (0.22° final), ~60-100s solve
+    #   - RECOMMENDED for <0.5° final error requirement
+    #   - Constant gradient → monotonic error decrease
+    #
+    # Type 1 (quadratic dot): Good speed/quality balance (~65s, ~4° final)
+    #   - Use when ~5° accuracy is acceptable
+    #   - Similar early convergence behavior to Type 0
+    #
+    # Type 2/3 (geodesic): Fast (~30s) but trajectory drifts mid-way
+    #   - Only use if you only care about final state, not trajectory shape
+    #
+    planner_settings.cost_main.ang_cost_func_type = 0  # linear - best for <0.5° final
+    
+    # High running cost forces EARLY convergence (not just terminal)
+    # With type=0 + high running cost, error drops monotonically
+    planner_settings.cost_main.angle = 1e7
+    planner_settings.cost_main.angle_N = 1e8
+    planner_settings.cost_main.ang_vel = 1e4
+    planner_settings.cost_main.ang_vel_N = 1e5
+
+    # Hessians for faster convergence
     planner_settings.cost_main.use_full_cost_hessian = True
     planner_settings.pass1.regularization.use_dynamics_hess = 1
-    planner_settings.init_traj.bdot_gain = 500
-    planner_settings.cost_main.angle = 100
-    planner_settings.cost_main.angle_N = 50000  # Higher terminal cost for better accuracy
-    planner_settings.pass1.aug_lag.penalty_init = 100
+    
+    # Iteration limits (balanced for speed vs quality)
+    # Pass1 typically converges at outer=3, but leave margin
     planner_settings.pass1.convergence.max_outer_iter = 8
-    planner_settings.pass1.convergence.max_inner_iter = 40
+    planner_settings.pass1.convergence.max_inner_iter = 50
     planner_settings.pass2.convergence.max_outer_iter = 5
-    planner_settings.pass2.convergence.max_inner_iter = 15
-
-
-    # ============ COST WEIGHTS TUNED FOR FASTER CONVERGENCE ============
-    # Key insight: Lower running costs + high terminal costs = faster convergence
-    # The optimizer can take "shortcuts" during trajectory but must hit goal
-    # planner_settings.cost_main.ang_vel = 1e1   # Lower running cost (was 1e4)
-    # planner_settings.cost_second.ang_vel = 1e1
-    # planner_settings.cost_tvlqr.ang_vel = 1e1
+    planner_settings.pass2.convergence.max_inner_iter = 20
+    
+    # Other tuning
+    planner_settings.init_traj.bdot_gain = 500
+    planner_settings.pass1.aug_lag.penalty_init = 100
 
 
     controller = Plan_and_Track_LQR(
@@ -717,7 +750,7 @@ if __name__ == "__main__":
         verbose=1,  # Summary output
         tf=500,  # 500s trajectory
         dt=1,
-        dt_planning=100,  # Optimal for 500s: ~28s solve time
-        real_orbit=False,  # Fast orbit for testing
+        dt_planning=50,  # dt_tp=50 for early convergence (dt_tp=100 too coarse with linear cost)
+        real_orbit=True,  # Use real orbit with J2
         seed=42,
     )

@@ -534,3 +534,460 @@ Example at t=0:
 ### Workaround
 For now, use the planner output directly without TVLQR tracking simulation.
 The planned trajectories are correct; only the Python tracking simulation diverges.
+
+---
+
+## Session 5 - 2026-01-21 Morning
+
+### NEW GOAL: Early Convergence for 500s Trajectories
+
+**Requirements**:
+1. Solve time < 30s (ALTRO only, not simulation)
+2. Final error ≈ 0°
+3. **NEW**: Converge EARLY (before t=250s) and STAY converged
+   - Error should drop quickly toward 0°
+   - Should NOT drift back up after convergence
+
+### Problem Discovered: Trajectories Converge Only at End
+
+With previous "fast" settings (ang_cost_func_type=2, low running cost):
+```
+Error at t=0s:   29.17°
+Error at t=50s:  21.08°
+Error at t=100s: 34.48°   ← Getting WORSE!
+Error at t=250s: 81.54°   ← Much worse!
+Error at t=298s: 88.12°   ← Peak error
+Error at t=500s: 0.80°    ← Only converges at very end
+```
+
+The optimizer finds a "shortcut" - it's cheaper to drift away and correct at the end
+rather than maintaining pointing throughout. This is because:
+1. Running cost (angle) is low relative to terminal cost (angle_N)
+2. Geodesic cost function (type 2) may have gradient issues for long horizons
+
+---
+
+## Complete Parameter Space Reference
+
+### Cost Weights (CostWeights class)
+| Parameter | Default | Range | Impact | Notes |
+|-----------|---------|-------|--------|-------|
+| `angle` | 1e3 | 1e2 - 1e8 | HIGH | Running cost on attitude error |
+| `angle_N` | 1e4 | 1e3 - 1e9 | HIGH | Terminal cost on attitude error |
+| `ang_vel` | 1e4 | 1e2 - 1e6 | MEDIUM | Running cost on angular velocity |
+| `ang_vel_N` | 1e5 | 1e3 - 1e7 | MEDIUM | Terminal cost on angular velocity |
+| `control_mult` | 1.0 | 0.1 - 1e8 | HIGH | Multiplies ALL actuator costs |
+| `ang_cost_func_type` | 2 | 0-3 | **CRITICAL** | See below |
+| `use_full_cost_hessian` | True | T/F | MEDIUM | True=faster convergence |
+| `use_raw_control_cost` | True | T/F | LOW | True=|u|, False=|u-u_prev| |
+
+**ang_cost_func_type options**:
+- 0 = (1 - q·q_goal) - **LINEAR, constant gradient** ← Best for long trajectories
+- 1 = 0.5*(1 - q·q_goal)² - Quadratic, weak gradient near goal
+- 2 = acos(|q·q_goal|) - Geodesic angle (radians) ← Default, good for short
+- 3 = 0.5*acos² - Quadratic geodesic
+
+### Actuator Weights (PlannerSettings)
+| Parameter | Default | Range | Impact | Notes |
+|-----------|---------|-------|--------|-------|
+| `mtq_control_weight` | 1e3 | 1e0 - 1e6 | MEDIUM | Higher = less MTQ usage |
+| `rw_control_weight` | 1e5 | 1e0 - 1e8 | MEDIUM | Higher = less RW usage |
+| `rw_AM_weight` | 1e4 | 1e0 - 1e6 | LOW | Penalize RW momentum buildup |
+| `rw_stic_weight` | 1e0 | 1e-2 - 1e2 | LOW | Penalize low RW speeds |
+
+### Timing Parameters
+| Parameter | Default | Range | Impact | Notes |
+|-----------|---------|-------|--------|-------|
+| `dt_tp` | 30 | 10-100 | **CRITICAL** | Coarse planning timestep |
+| `dt_tvlqr` | 1 | 0.5-5 | LOW | Fine TVLQR timestep |
+
+**dt_tp guidelines**:
+- dt_tp=10: Very fine, slow (~200s for 500s traj), best quality
+- dt_tp=30: Good for <200s trajectories
+- dt_tp=50: Good balance for 500s trajectories
+- dt_tp=100: Fast (~30s), may lose mid-trajectory accuracy
+
+### Initial Trajectory (InitTrajConfig)
+| Parameter | Default | Range | Impact | Notes |
+|-----------|---------|-------|--------|-------|
+| `bdot_on` | 1 | 0/1/2 | MEDIUM | 0=off, 1=on, 2=smart |
+| `bdot_gain` | 1000 | 100-5000 | LOW | Lower is often better |
+| `high_settings` | (0,-2,0,-0.005,0.1,0.5) | - | LOW | (gyro,damp,vel,quat,rand,umax) |
+| `low_settings` | (0,-1e-4,0,-1e-5,0.1,0.5) | - | LOW | For small angles |
+
+### Pass 1 Convergence (ConvergenceConfig)
+| Parameter | Default | Range | Impact | Notes |
+|-----------|---------|-------|--------|-------|
+| `max_outer_iter` | 30 | 5-50 | HIGH | Aug Lag iterations |
+| `max_inner_iter` | 250 | 30-300 | MEDIUM | iLQR per outer |
+| `grad_tol` | 1e-4 | 1e-6 - 1e-1 | LOW | Gradient norm tolerance |
+| `ilqr_cost_tol` | 1e-2 | 1e-4 - 0.5 | LOW | Cost change tolerance |
+| `c_max` | 2e-4 | 1e-6 - 1e-2 | LOW | Max constraint violation |
+
+### Pass 1 Aug Lag (AugLagConfig)
+| Parameter | Default | Range | Impact | Notes |
+|-----------|---------|-------|--------|-------|
+| `penalty_init` | 1e-3 | 1e-4 - 1e3 | MEDIUM | Initial penalty |
+| `penalty_scale` | 10 | 2-100 | LOW | Penalty increase factor |
+| `penalty_max` | 1e16 | - | - | Usually don't change |
+
+### Pass 1 Regularization (RegularizationConfig)
+| Parameter | Default | Range | Impact | Notes |
+|-----------|---------|-------|--------|-------|
+| `reg_init` | 1e-2 | 1e-4 - 1 | LOW | Initial regularization |
+| `use_dynamics_hess` | 1 | 0/1 | MEDIUM | 1=faster |
+| `use_constraint_hess` | 0 | 0/1 | LOW | 0=slightly faster |
+
+### Pass 2 Settings
+Same structure as Pass 1, but defaults differ:
+- `penalty_init`: 1e4 (higher to enforce constraints)
+- Typically fewer iterations needed
+
+---
+
+## Experimental Results: 500s Trajectory Tuning
+
+### Baseline (Previous "Fast" Settings)
+```python
+ang_cost_func_type=2, angle=10000, angle_N=50000, dt_tp=100
+```
+- Time: ~31s ✓
+- Final error: 0.80° ✓
+- **BUT**: Error peaks at 88° mid-trajectory, only converges at end ✗
+
+### Experiment 1: Higher Running Cost (type=2)
+```python
+angle=1e6, angle_N=1e7
+```
+- Time: 61.6s ✗ (too slow)
+- Final error: 1.57°
+- Still diverges mid-trajectory (max 99° at t=297s) ✗
+
+### Experiment 2: bdot_on=0 + Equal Running/Terminal
+```python
+bdot_on=0, angle=1e5, angle_N=1e5
+```
+- Time: 95.8s ✗
+- Final error: 102.6° ✗ (never converges!)
+- Starts converging (8° at t=75s) then drifts away
+
+### Experiment 3: ang_cost_func_type=0 (LINEAR)  ← **BREAKTHROUGH**
+```python
+ang_cost_func_type=0, angle=1e8, angle_N=1e9, dt_tp=50
+```
+- Time: 149.8s ✗ (too slow)
+- Final error: 0.41° ✓
+- **Trajectory shape is CORRECT**: monotonically decreases!
+  - t=0: 29°, t=50: 12°, t=100: 3.8°, t=150: 3.3°, t=500: 0.4°
+- First <5° at t=45s ✓
+- First <1° at t=136s ✓
+
+**KEY INSIGHT**: Linear cost function (type=0) gives constant gradient,
+preventing optimizer from finding "lazy" trajectories that drift mid-way.
+
+### Experiment 4: Linear + Speed Tuning (dt_tp=100)
+```python
+ang_cost_func_type=0, angle=1e8, angle_N=1e9, dt_tp=100
+pass1: outer=8, inner=50
+pass2: outer=3, inner=15
+```
+- Time: 31.7s ✓
+- Final error: 24.5° ✗
+- Converges to 5° at t=79s then drifts back up ✗
+- dt_tp=100 too coarse for linear cost
+
+### Experiment 5: Linear + dt_tp=50 + Tight Iters
+```python
+ang_cost_func_type=0, angle=1e6, angle_N=1e7, dt_tp=50
+pass1: outer=6, inner=40
+pass2: outer=3, inner=15
+grad_tol=1e-2, ilqr_cost_tol=0.1
+```
+- Time: 25.3s ✓
+- Final error: 78.7° ✗ (completely diverges)
+- Too aggressive on tolerances/iterations
+
+### Experiment 6: Linear + dt_tp=50 + Balanced
+```python
+ang_cost_func_type=0, angle=1e7, angle_N=1e8, dt_tp=50
+pass1: outer=10, inner=60
+pass2: outer=5, inner=20
+```
+- Time: 66.4s ✗
+- Final error: 1.87° ✓
+- Good trajectory shape, stays <5° after t=67s ✓
+- Converges at outer=3 in pass1 → can reduce iterations
+
+### Experiment 7: Linear + Optimized Iterations
+```python
+ang_cost_func_type=0, angle=1e7, angle_N=1e8, dt_tp=50
+pass1: outer=5, inner=50
+pass2: outer=4, inner=15
+```
+- Time: 44.3s (getting closer!)
+- Final error: 4.17° ✓
+- First <5° at t=74s ✓
+- Some mid-trajectory oscillation (5.5° at t=300s)
+
+---
+
+## Summary: Parameter Impact Ranking
+
+### CRITICAL (must get right)
+1. **ang_cost_func_type**: 0 (linear) for long trajectories with early convergence
+2. **dt_tp**: 50 balances speed/quality for 500s; 100 is too coarse for linear cost
+3. **angle / angle_N ratio**: High running cost (1e7+) needed for early convergence
+
+### HIGH IMPACT
+4. **pass1.max_outer_iter**: 5-10 usually sufficient
+5. **pass1.max_inner_iter**: 40-60 for 500s
+6. **use_full_cost_hessian**: True = faster convergence
+7. **use_dynamics_hess**: 1 = faster
+
+### MEDIUM IMPACT
+8. **pass2 iterations**: Can be low (outer=3-5, inner=15-25)
+9. **penalty_init**: 100 faster than 1e-3 for pass1
+10. **bdot_on**: 2 (smart) works well, 0 can be faster
+
+### LOW IMPACT (usually leave at defaults)
+11. **grad_tol, ilqr_cost_tol**: Loosening too much hurts quality
+12. **ang_vel / ang_vel_N**: 1e4 / 1e5 works well
+13. **control_mult**: Leave at 1.0 for pass1
+14. **bdot_gain**: 500 slightly better than 1000
+
+---
+
+## Current Best Configuration (for early convergence goal)
+
+```python
+ps = PlannerSettings(est_sat=sat, bdot_on=2, dt_tp=50, dt_tvlqr=1)
+
+# LINEAR cost function - critical for early convergence!
+ps.cost_main.ang_cost_func_type = 0
+ps.cost_main.angle = 1e7
+ps.cost_main.angle_N = 1e8
+ps.cost_main.ang_vel = 1e4
+ps.cost_main.ang_vel_N = 1e5
+
+# Hessians for speed
+ps.cost_main.use_full_cost_hessian = True
+ps.pass1.regularization.use_dynamics_hess = 1
+
+# Iteration limits
+ps.pass1.convergence.max_outer_iter = 8
+ps.pass1.convergence.max_inner_iter = 50
+ps.pass2.convergence.max_outer_iter = 5
+ps.pass2.convergence.max_inner_iter = 20
+
+# Other tuning
+ps.init_traj.bdot_gain = 500
+ps.pass1.aug_lag.penalty_init = 100
+```
+
+**Expected results**: ~45-60s solve time, <5° final error, converges by t=100s
+
+---
+
+## Session 5 Continued: Speed vs Quality Tradeoffs
+
+### The Core Tradeoff
+With linear cost (type=0), we get excellent trajectory shape but slower solve times:
+
+| dt_tp | Solve Time | Final Error | Early Convergence | Notes |
+|-------|------------|-------------|-------------------|-------|
+| 50 | ~75s | 0.22° | ✓ (<5° at t=55s) | Best quality, too slow |
+| 100 | ~32s | 24.5° | ✗ (drifts after 100s) | Fast but poor quality |
+
+The problem: With linear cost + coarse dt_tp, the optimizer doesn't have enough
+knot points to maintain the trajectory shape mid-way.
+
+### Options to Reach <30s with Good Trajectory
+
+1. **Accept higher mid-trajectory error** (current dt_tp=100 geodesic approach)
+   - Converges only at end, but meets speed and final error goals
+   
+2. **Use dt_tp=50 with aggressive iteration reduction**
+   - Risk: quality degrades if iterations too low
+   - Needs careful pass1/pass2 balance
+
+3. **Hybrid approach**: geodesic (type=2) for speed, but with higher running costs
+   - Not yet tested exhaustively
+   
+4. **Accept ~45-60s solve time** for best trajectory shape
+   - Still faster than previous >100s baseline
+
+### Recommended Settings by Priority
+
+**Priority: Speed (<30s) + Final Accuracy**
+```python
+# Uses geodesic cost - converges late but fast
+ps.cost_main.ang_cost_func_type = 2  
+ps.cost_main.angle = 10000
+ps.cost_main.angle_N = 50000
+ps.dt_tp = 100
+# ... (see earlier "FAST" settings)
+```
+- Solve: ~30s, Final: <1°, BUT error peaks ~88° mid-trajectory
+
+**Priority: Early Convergence + Quality (allows ~60s)**
+```python
+# Uses linear cost - converges early, stays converged
+ps.cost_main.ang_cost_func_type = 0
+ps.cost_main.angle = 1e7
+ps.cost_main.angle_N = 1e8
+ps.dt_tp = 50
+ps.pass1.convergence.max_outer_iter = 8
+ps.pass1.convergence.max_inner_iter = 50
+ps.pass2.convergence.max_outer_iter = 5
+ps.pass2.convergence.max_inner_iter = 20
+```
+- Solve: ~60-75s, Final: <1°, converges by t=60s, stays <5°
+
+### Key Insight Summary
+
+The `ang_cost_func_type` is the **single most important parameter** for trajectory shape:
+- Type 0 (linear): Constant gradient → monotonic convergence, slower
+- Type 2 (geodesic): Variable gradient → can find "lazy" shortcuts, faster
+
+For applications requiring early convergence and stability, use type 0 or type 1 and accept longer solve times. For applications only caring about final state, use type 2 for speed.
+
+---
+
+## Session 5 Final: Complete Cost Function Comparison
+
+### All Four ang_cost_func_type Options Tested
+
+| Type | Formula | Solve Time | Final Error | First <5° | Stays Converged | Recommendation |
+|------|---------|------------|-------------|-----------|-----------------|----------------|
+| **0** | (1 - q·q_goal) | 60-100s | **0.22°** | t=55s ✓ | Yes (max 4.9°) ✓ | **Best for <0.5° accuracy** |
+| **1** | 0.5*(1 - q·q_goal)² | 63-72s | 4.12° | t=77s ✓ | Yes (max 5.0°) ✓ | **Good speed/quality balance** |
+| 2 | acos(\|q·q_goal\|) | 58-80s | 80°+ | Never | No | Not recommended (dt_tp=50) |
+| 3 | 0.5*acos² | 54-62s | 60°+ | Never | No | Not recommended (dt_tp=50) |
+
+*All tested with dt_tp=50, angle=1e7, angle_N=1e8*
+
+**Key Findings**:
+
+1. **Type 0 (linear) is best for high accuracy**
+   - Constant gradient → monotonic error decrease
+   - First <5° at t=55s, final error 0.22°
+   - Required for <0.5° final error requirement
+   - Solve time ~60-100s
+
+2. **Type 1 (quadratic dot) is a good speed/quality balance**
+   - Similar trajectory shape to type 0 (converges early, stays converged)
+   - First <5° at t=77s, final error ~4°
+   - Faster at 63-72s
+   - Good choice when ~5° accuracy is acceptable
+
+3. **Types 2 & 3 don't work for early convergence** with dt_tp=50
+   - They find "lazy" trajectories that drift and never converge
+   - Would need dt_tp=100+ which loses mid-trajectory resolution
+   - Can still be used if only final state matters (see Option C)
+
+### Configuration Options
+
+#### Option A: High Accuracy (RECOMMENDED for <0.5° final error)
+
+For 500s trajectory with **<0.5° final error** and early convergence:
+
+```python
+ps = PlannerSettings(est_sat=sat, bdot_on=2, dt_tp=50, dt_tvlqr=1)
+
+# Type 0 (linear) - required for <0.5° final error
+ps.cost_main.ang_cost_func_type = 0
+ps.cost_main.angle = 1e7
+ps.cost_main.angle_N = 1e8
+ps.cost_main.ang_vel = 1e4
+ps.cost_main.ang_vel_N = 1e5
+
+# Hessians
+ps.cost_main.use_full_cost_hessian = True
+ps.pass1.regularization.use_dynamics_hess = 1
+
+# Iterations
+ps.pass1.convergence.max_outer_iter = 8
+ps.pass1.convergence.max_inner_iter = 50
+ps.pass2.convergence.max_outer_iter = 5
+ps.pass2.convergence.max_inner_iter = 20
+
+# Other
+ps.init_traj.bdot_gain = 500
+ps.pass1.aug_lag.penalty_init = 100
+```
+
+**Expected Results**:
+- Solve time: ~60-100s (varies)
+- Final error: ~0.2° ✓
+- First <5°: t ≈ 55s ✓
+- First <0.5°: t ≈ 79s ✓
+- Stays <5° after convergence ✓
+
+#### Option B: Faster Speed (if ~5° final error is acceptable)
+
+For applications where speed matters more than final accuracy:
+
+```python
+ps = PlannerSettings(est_sat=sat, bdot_on=2, dt_tp=50, dt_tvlqr=1)
+
+# Type 1 (quadratic dot) - good balance of speed and quality
+ps.cost_main.ang_cost_func_type = 1
+ps.cost_main.angle = 1e7
+ps.cost_main.angle_N = 1e8
+ps.cost_main.ang_vel = 1e4
+ps.cost_main.ang_vel_N = 1e5
+
+# Same other settings as Option A
+ps.cost_main.use_full_cost_hessian = True
+ps.pass1.regularization.use_dynamics_hess = 1
+ps.pass1.convergence.max_outer_iter = 8
+ps.pass1.convergence.max_inner_iter = 50
+ps.pass2.convergence.max_outer_iter = 5
+ps.pass2.convergence.max_inner_iter = 20
+ps.init_traj.bdot_gain = 500
+ps.pass1.aug_lag.penalty_init = 100
+```
+
+**Expected Results**:
+- Solve time: ~63-72s (slightly faster)
+- Final error: ~4° 
+- First <5°: t ≈ 77s ✓
+- Stays <5° after convergence ✓
+
+**Use Case**: When you need faster planning and can tolerate ~4-5° final error,
+or when TVLQR tracking will refine the trajectory further.
+
+#### Option C: Maximum Speed (terminal accuracy only)
+
+For applications only caring about final state (not trajectory shape):
+
+```python
+ps = PlannerSettings(est_sat=sat, bdot_on=2, dt_tp=100, dt_tvlqr=1)
+
+# Type 2 (geodesic) with previous tuning
+ps.cost_main.ang_cost_func_type = 2
+ps.cost_main.angle = 10000
+ps.cost_main.angle_N = 50000
+# ... reduced iterations for speed
+```
+
+**Expected Results**:
+- Solve time: ~30s
+- Final error: <1°
+- BUT: Error peaks ~88° mid-trajectory, only converges at end
+
+**Use Case**: When trajectory shape doesn't matter, only final pointing.
+
+### Why Types 2 & 3 Fail for Early Convergence
+
+The geodesic angle cost (acos) has a gradient that depends on the current error:
+- Near 0°: gradient is large (good for fine control)
+- Near 90°: gradient is smaller
+- Near 180°: gradient approaches 0 (problematic!)
+
+With a long trajectory (500s) and coarse dt_tp, the optimizer can find paths where
+it drifts to ~90° error where the cost gradient is weak, then relies on terminal
+cost to snap back at the end. This is "locally optimal" but not desired behavior.
+
+Linear and quadratic-dot costs have gradients that don't depend on the error magnitude,
+so they push toward the goal at every timestep equally.
