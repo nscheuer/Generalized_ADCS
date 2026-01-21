@@ -464,6 +464,41 @@ ps.pass2.convergence.max_outer_iter = 20
   - Final simulated error: 164° (planned vs actual mismatch)
   - This is a TVLQR tracking issue, not ALTRO planning issue
 
+---
+
+## Session 4 - 2026-01-20 Late Evening (Continued)
+
+### Final Optimized Settings for 500s Trajectory
+
+```python
+ps = PlannerSettings(est_sat=sat, bdot_on=0, dt_tp=100, dt_tvlqr=1)
+ps.cost_main.use_full_cost_hessian = True
+ps.pass1.regularization.use_dynamics_hess = 1
+ps.init_traj.bdot_gain = 500
+ps.cost_main.angle = 100
+ps.cost_main.angle_N = 50000  # KEY: Higher terminal cost for accuracy
+ps.pass1.aug_lag.penalty_init = 100
+ps.pass1.convergence.max_outer_iter = 8
+ps.pass1.convergence.max_inner_iter = 40
+ps.pass2.convergence.max_outer_iter = 5
+ps.pass2.convergence.max_inner_iter = 15
+```
+
+**Result**: 29.2s solve time, 0.00° final error ✅
+
+### Key Finding: angle_N Must Be High for Long Trajectories
+| angle_N | Time | Error | Notes |
+|---------|------|-------|-------|
+| 10000 | 39.9s | 23.10° | Insufficient terminal penalty |
+| 50000 | 29.2s | 0.00° | **Optimal** |
+
+### Verbosity Levels Updated
+- Level 0: Silent
+- Level 1: Outer iterations + convergence summary  
+- Level 2: cmax, grad, dLA, LA after each outer iter
+- Level 3: z values, inner iteration details, line search
+- Level 4: Debug matrices (removed full control printing)
+
 ### Next Steps
 - Investigate why TVLQR tracking diverges from planned trajectory
-- The planner works correctly; the controller execution has issues
+- The planner works correctly; the issue is in controller execution during simulation
