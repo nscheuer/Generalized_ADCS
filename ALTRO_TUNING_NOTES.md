@@ -500,5 +500,37 @@ ps.pass2.convergence.max_inner_iter = 15
 - Level 4: Debug matrices (removed full control printing)
 
 ### Next Steps
-- Investigate why TVLQR tracking diverges from planned trajectory
+- Investigate TVLQR tracking dynamics mismatch (see below)
 - The planner works correctly; the issue is in controller execution during simulation
+
+---
+
+## TVLQR Tracking Dynamics Mismatch (Investigation Notes)
+
+### Symptom
+- Planned trajectory: converges to 0° error at end
+- Open-loop simulation (using u_ref from trajectory): diverges to ~22° error
+- Even with correct B-field, Python dynamics diverges from C++ planner
+
+### Root Cause Analysis
+The Python `dynamics_core` computes wdot ~30x larger than what's needed to match the trajectory.
+
+Example at t=0:
+- Python xdot (wdot): `[-3.15e-03, -4.6e-05, -1.47e-02]`
+- Expected (from trajectory): `[-1.03e-04, -2.1e-06, -4.9e-04]`
+
+### Key Observations
+1. B-field is correctly computed via `get_b_eci_orbit()` for the planner
+2. MTQ torque formula matches between Python and C++
+3. Inertia matrices appear to be passed correctly via `change_Jcom()`
+4. Both use RK4 integration (but C++ can handle dt=30s, Python blows up)
+
+### Possible Causes to Investigate
+1. **Inertia matrix mismatch**: Check if C++ Jcom_noRW matches Python invJ_noRW
+2. **RW dynamics coupling**: Different treatment of h and RW_J
+3. **Units**: Position/velocity/B-field may have different units
+4. **Quaternion convention**: Sign difference or w vs q ordering
+
+### Workaround
+For now, use the planner output directly without TVLQR tracking simulation.
+The planned trajectories are correct; only the Python tracking simulation diverges.
