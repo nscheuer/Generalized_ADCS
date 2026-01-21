@@ -225,12 +225,24 @@ But RW can directly command torque, so 0.001 Nm = 1000 μNm.
 
 The cost weights aren't normalized by torque authority, making MTQs prohibitively expensive.
 
-**Fix options**:
-1. Reduce MTQ cost weight significantly (e.g., mtq_control_weight = 1 or 0.1 instead of 1000)
-2. Normalize costs by expected torque magnitude
-3. Use auto_scale_control_costs() if it exists
+**Actual Root Cause Found**: IGRF B-field calculation bug!
 
-### Next Steps
-1. Test with lower mtq_control_weight
-2. If that works, update default values in PlannerSettings
-3. Document proper cost tuning guidelines
+The `get_b_eci()` and `get_b_eci_orbit()` functions passed radius in **meters** 
+to `ppigrf.igrf_gc()` which expects **kilometers**. Result: B-field ≈ 0 instead of ~35 μT.
+
+**Fix Applied**:
+- `ADCS/orbits/orbital_state.py`: `r_m / 1000.0` in `get_b_eci()`  
+- `ADCS/orbits/orbit.py`: `geos[:,0]/1000.0` in `get_b_eci_orbit()`
+
+### Results After Fix
+
+With correct B-field (~35 μT), the planner now uses MTQs properly:
+- **60s trajectory**: Time=17.8s, MTQ max=0.158 Am² (79% of 0.2), final error=0.00°
+- **120s trajectory**: Time=33.7s, MTQ max=0.143 Am², final error=0.00°
+
+The optimizer converges well (grad=1.4e-9) and trajectory reaches goal!
+
+### Next Steps  
+1. Run quick_planner_tests.py to verify all tests pass
+2. Run longer trajectory tests (500s)
+3. Performance tuning if needed
