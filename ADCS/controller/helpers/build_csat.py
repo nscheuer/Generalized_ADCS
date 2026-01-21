@@ -195,7 +195,9 @@ def build_cpp_satellite(est_sat: EstimatedSatellite, planner_settings: PlannerSe
 
 def add_actuator(act: Actuator, csat: pysat.Satellite, planner_settings: PlannerSettings) -> None:
     if isinstance(act, MTQ):
-        csat.add_MTQ(act.axis, act.u_max, planner_settings.mtq_control_weight)
+        # Apply control_limit_scale to leave margin for tracking corrections
+        # (same as RW treatment)
+        csat.add_MTQ(act.axis, act.u_max * planner_settings.control_limit_scale, planner_settings.mtq_control_weight)
     elif isinstance(act, RW):
         mult = getattr(planner_settings, 'RWh_max_mult', 0.8)
         cost_threshold = act.h_max * mult

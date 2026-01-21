@@ -141,6 +141,7 @@ set_target_properties(test_blended PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 pybind11_add_module(tplaunch MODULE src/planner/PyPlanner.cpp)
 pybind11_add_module(pysat MODULE src/planner/Satellite.cpp)
+pybind11_add_module(pytinympc MODULE src/planner/PyTinyMPC.cpp)
 
 # =============================================================================
 # Precompiled Headers (PCH) - speeds up compilation significantly
@@ -163,6 +164,7 @@ target_precompile_headers(tp_nopy REUSE_FROM core_objs)
 target_precompile_headers(sat REUSE_FROM core_objs)
 target_precompile_headers(sat_nopy REUSE_FROM core_objs)
 target_precompile_headers(tplaunch REUSE_FROM core_objs)
+target_precompile_headers(pytinympc REUSE_FROM core_objs)
 
 target_link_libraries(tp_nopy PUBLIC ${ARMADILLO_LIBRARIES} ${ARMADILLO_LIBRARY} pybind11::module ${PYBIND11_INCLUDE_DIRS} ${PYTHON_LIBRARY} ${PYTHON_LIBRARIES}  )
 target_link_libraries(sat PUBLIC ${ARMADILLO_LIBRARIES} ${ARMADILLO_LIBRARY} pybind11::module ${PYBIND11_INCLUDE_DIRS} ${PYTHON_LIBRARY} ${PYTHON_LIBRARIES}  )
@@ -170,6 +172,7 @@ target_link_libraries(sat_nopy PUBLIC ${ARMADILLO_LIBRARIES} ${ARMADILLO_LIBRARY
 target_link_libraries(pysat PUBLIC ${ARMADILLO_LIBRARIES} ${ARMADILLO_LIBRARY} sat ${PYTHON_LIBRARY} ${PYTHON_LIBRARIES}  )
 target_link_libraries(tp PUBLIC ${ARMADILLO_LIBRARIES} ${ARMADILLO_LIBRARY} pybind11::module sat ${PYBIND11_INCLUDE_DIRS} ${PYTHON_LIBRARY} ${PYTHON_LIBRARIES}   )
 target_link_libraries(tplaunch PUBLIC ${ARMADILLO_LIBRARIES} ${ARMADILLO_LIBRARY} tp tp_nopy sat sat_nopy  pybind11::module ${PYBIND11_INCLUDE_DIRS} ${PYTHON_LIBRARY} ${PYTHON_LIBRARIES}  )
+target_link_libraries(pytinympc PUBLIC ${ARMADILLO_LIBRARIES} ${ARMADILLO_LIBRARY} tp tp_nopy sat sat_nopy pybind11::module ${PYBIND11_INCLUDE_DIRS} ${PYTHON_LIBRARY} ${PYTHON_LIBRARIES})
 target_link_libraries(tp_test PRIVATE Catch2::Catch2WithMain PUBLIC pybind11::embed ${ARMADILLO_LIBRARIES} ${ARMADILLO_LIBRARY} sat tp sat_nopy tp_nopy)
 target_link_libraries(tp_test2 PRIVATE Catch2::Catch2WithMain PUBLIC pybind11::embed ${ARMADILLO_LIBRARIES} ${ARMADILLO_LIBRARY} sat tp sat_nopy tp_nopy)
 target_link_libraries(test_blended PRIVATE Catch2::Catch2WithMain PUBLIC pybind11::embed ${ARMADILLO_LIBRARIES} ${ARMADILLO_LIBRARY} sat tp sat_nopy tp_nopy)
@@ -179,6 +182,7 @@ if(OpenMP_CXX_FOUND)
     target_link_libraries(tp_nopy PUBLIC OpenMP::OpenMP_CXX)
     target_link_libraries(tp PUBLIC OpenMP::OpenMP_CXX)
     target_link_libraries(tplaunch PUBLIC OpenMP::OpenMP_CXX)
+    target_link_libraries(pytinympc PUBLIC OpenMP::OpenMP_CXX)
     target_link_libraries(tp_test PUBLIC OpenMP::OpenMP_CXX)
     target_link_libraries(tp_test2 PUBLIC OpenMP::OpenMP_CXX)
     target_link_libraries(test_blended PUBLIC OpenMP::OpenMP_CXX)
@@ -200,6 +204,13 @@ target_include_directories(tp PUBLIC
  			   )
 
  target_include_directories(tplaunch PUBLIC
+         "${PROJECT_SOURCE_DIR}/src"
+         "${PYTHON_INCLUDE_DIRS}"
+         "${PYBIND11_INCLUDE_DIRS}"
+         "${ARMADILLO_INCLUDE_DIRS}"
+ 			   )
+
+ target_include_directories(pytinympc PUBLIC
          "${PROJECT_SOURCE_DIR}/src"
          "${PYTHON_INCLUDE_DIRS}"
          "${PYBIND11_INCLUDE_DIRS}"
