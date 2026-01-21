@@ -186,22 +186,31 @@ if(Uset.n_cols >= 3) {
 - Zero Initial Omega: PASS (2.06s)
 - Trajectory Shape: PASS (0.38s)
 
-### Current Timing Results (500s trajectory)
-| Config | dt_tp | Time | Final Error | Notes |
-|--------|-------|------|-------------|-------|
-| default | 30 | >180s | - | Times out |
-| dt_tp=50, relaxed iters | 50 | 15.5s | 64.5° | Fast but doesn't converge |
-| dt_tp=50, default | 50 | 14.4s | 64.5° | Same problem |
-| 200s duration, default | 30 | 30.6s | - | Works |
+### Systematic Timing Results 
 
-**Key Finding**: The 500s trajectory with dt_tp=30 runs for >3min (ALTRO solver phase).
-With dt_tp=50 it runs in 15s but doesn't converge to goal (64° error at end).
+| Duration | dt_tp=30 Time | dt_tp=50 Time | Final Error |
+|----------|---------------|---------------|-------------|
+| 60s | 3.33s | 3.16s | 1.62° |
+| 120s | 9.93s | 12.37s | 3.66° |
+| 180s | 11.93s | 4.64s | 6.10° |
+| 240s | 32.01s | 13.23s | 16.38° |
+| 300s | >180s (timeout) | - | - |
+| 500s | >180s | 14-15s | 64.5° |
 
-**Problem**: The trajectory planner seems to hit a local minimum where it doesn't 
-actually maneuver toward the goal - just damps angular velocity.
+**Key Findings**:
+1. **Solve time scales non-linearly** - 60s=3s, 120s=10s, 240s=32s, 300s=timeout
+2. **Error increases with duration** - planner reaches goal early but drifts away
+   - Analysis of 500s trajectory shows error=0.28° at t=50s, then drifts to 64.5° by t=500s
+3. **dt_tp=50 faster for long trajectories** but doesn't improve convergence
+4. **The planner optimizes initial acquisition but not maintenance**
+
+**Root Cause Hypothesis**: The trajectory planner finds a path to reach the goal 
+but doesn't maintain control effort to *stay* at the goal. The running cost on 
+attitude error may be too low relative to control cost, causing it to "coast" 
+after initial maneuver.
 
 ### Next Steps
-1. ~~Run the full tuning sweep (`altro_tuning_sweep.py`)~~ - Configs need updating
-2. Investigate why large dt_tp leads to non-convergence 
-3. Try varying cost weights to push toward goal
-4. Consider two-phase approach: fast dt_tp for initial guess, then refine
+1. Investigate why pointing drifts after initial acquisition
+2. Try higher running angle cost vs terminal cost ratio
+3. Check if magnetic field changes make pointing impossible without continuous control
+4. Consider using rolling-horizon planning (replan every N seconds)
