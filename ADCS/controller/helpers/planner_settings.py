@@ -194,7 +194,7 @@ class PlannerSettings:
 
         # Actuator Weights for the C++ model construction
         self.mtq_control_weight = 1e3
-        self.rw_control_weight = 1e7
+        self.rw_control_weight = 1e10
         self.magic_control_weight = 0.0001
         self.rw_AM_weight = 1e4
         self.rw_stic_weight = 1e0

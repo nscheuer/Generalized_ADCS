@@ -22,6 +22,7 @@ from ADCS.satellite_hardware.sensors import MTM
 from ADCS.satellite_hardware.actuators import MTQ, RW
 from ADCS.helpers.math_constants import MathConstants
 from ADCS.helpers.math_helpers import random_n_unit_vec, normalize
+from ADCS.orbits.helpers.orbit_factory import create_random_circular_orbit
 
 from ADCS.satellite_factory.satellites.create_cubesats import create_beavercube2_cubesat
 
@@ -40,35 +41,20 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
     real_sat = create_beavercube2_cubesat()
     rw_h0 = 0.0001
 
-    w0 = random_n_unit_vec(3)*np.random.uniform(1, 2)*np.pi/180.0
-    w0 = np.array([0, 0, 0])
-    q0 = random_n_unit_vec(4)
-    q0 = normalize(np.array([1, 0, 0, 0]))
+    rng = np.random.default_rng(seed=345)
+    w0 = normalize(rng.standard_normal(3)) * (rng.uniform(0.1, 1.0) * np.pi / 180.0)
+    q0 = normalize(rng.standard_normal(4))
     h0 = np.array([rw_h0])
     x = np.concatenate([w0, q0, h0])
 
-    ephem = Ephemeris()
     start_time = 0.22 - 1*TimeConstants.sec2cent
-    end_time = 0.22 + (tf-t0)*TimeConstants.sec2cent
-    R = 7000*np.array([0, np.sqrt(2)/2, np.sqrt(2)/2])
-    V = np.array([8, 0, 0])
-    if real_orbit:
-        # Real Orbit Generation
-        os0 = Orbital_State(ephem=ephem, J2000=start_time, R=R, V=V)
-        orb = Orbit(os0=os0, end_time=end_time, dt=dt, use_J2=True, fast=False)
-    else:
-        os0 = Orbital_State(ephem=ephem, J2000=0.22-1*TimeConstants.sec2cent, R=R, V=V, B=np.array([0, 0.1, 0]), S=np.array([1e5+1, 0, 0]), rho=5e-12)
-        dur = int((tf-t0)/dt)+10
-        orbs = [os0]*(dur+10)
-        for j in range(dur):
-            orbs[j] = os0.copy()
-            orbs[j].J2000 = os0.J2000 + j*dt*TimeConstants.sec2cent
-        orb = Orbit(orbs)
+    orb = create_random_circular_orbit(7000, dt=1, tf=500, use_J2=True, fast=False)
+    os0 = orb.get_os(J2000=start_time)
 
     # Build Planner
     planner_settings = PlannerSettings(
         est_sat=real_sat,
-        bdot_on=0,  # Skip bdot initial guess (faster, more reliable)
+        bdot_on=2,  # Skip bdot initial guess (faster, more reliable)
         dt_tp=100,
         dt_tvlqr=1,
     )
@@ -84,16 +70,16 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
     planner_settings.pass1.convergence.max_outer_iter = 8
     planner_settings.pass1.convergence.max_inner_iter = 40
     planner_settings.pass2.convergence.max_outer_iter = 5
-    planner_settings.pass2.convergence.max_inner_iter = 15
+    planner_settings.pass2.convergence.max_inner_iter = 20
 
     planner_settings.cost_main = CostWeights(
-            angle=1e3,
-            angle_N=1e6,   # 10x running cost
+            angle=1e7,
+            angle_N=1e7,   # 10x running cost
             ang_vel=1e3,
-            ang_vel_N=1e5, # 10x running cost
+            ang_vel_N=1e3, # 10x running cost
             ang_vel_mag=0.0,
             ang_vel_mag_N=0.0,
-            control_mult=1.0,
+            control_mult=1e10,
             ang_cost_func_type=2,
         )
     
@@ -122,7 +108,7 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
     steps = int((tf - t0)/dt)
 
     # Simplified goal - just ECI_Goal from start, no transition
-    goals = GoalList({0.22: ECI_Goal(np.array([0, 0, 1]))})
+    goals = GoalList({0.22: ECI_Goal(np.array([0, 0, -1]))})
 
     traj_duration = tf - t0  # [s]
 
