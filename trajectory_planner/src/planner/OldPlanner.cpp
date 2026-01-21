@@ -283,12 +283,7 @@ BEFORE_OUTPUT_FORM OldPlanner::trajOptBefore(VECTOR_INFO_FORM vecs_w_time,double
       cout<<"bdotOn is false, generating random initial trajectory!";
     }
     vec umax = join_cols(vec(sat.MTQ_max),0.1*vec(sat.RW_max_torq),0.1*vec(sat.magic_max_torq));
-    if(verbose_level >= 4){cout << "UMAX" << umax << "\n";}
     U = diagmat(umax)*randn(size(U))/RAND_MAX_INIT;
-    if(verbose_level >= 4)
-    {
-      cout<<U;
-    }
      traj = OldPlanner::generateInitialTrajectory(dt_use,x0, U, vecs);
      assert(approx_equal(get<1>(traj),U,"abstol",1e-10));
      X = get<0>(traj);
@@ -1426,7 +1421,7 @@ ALILQR_OUTPUT_FORM OldPlanner::alilqr(double dt0,TRAJECTORY_FORM traj, VECTOR_IN
 
   for(int j = 0; j < maxOuterIter_tmp; j++)
   {
-     if(verbose_level >= 2){cout<<"outer iter "<<j<<"\n";}
+     if(verbose_level >= 1){cout<<"outer iter "<<j<<"\n";}
     //reset cmaxtmp, dlaZcount
     cmaxtmp = 0.0;
     dlaZcount = 0;
@@ -1486,8 +1481,12 @@ ALILQR_OUTPUT_FORM OldPlanner::alilqr(double dt0,TRAJECTORY_FORM traj, VECTOR_IN
         break;
       }
     }
-    if(OldPlanner::outerBreak(auglag_vals,cmaxtmp,breakSettings_tmp,auglagSettings_tmp)&&j>2&&OldPlanner::ilqrBreak(grad,LA,dLA,dlaZcount,cmaxtmp,iter,breakSettings_tmp,true)) {
-      if(verbose_level >= 2){cout<<"converged at outer iter "<<j<<", cmax="<<cmaxtmp<<", LA="<<LA<<"\n";}
+    // Level 2: Show progress after each outer iteration
+    if(verbose_level >= 2){
+      cout<<"  outer "<<j<<": cmax="<<cmaxtmp<<" grad="<<grad<<" dLA="<<dLA<<" LA="<<LA<<"\n";
+    }
+    if(OldPlanner::outerBreak(auglag_vals,cmaxtmp,breakSettings_tmp,auglagSettings_tmp)&&j>2){//&&OldPlanner::ilqrBreak(grad,LA,dLA,dlaZcount,cmaxtmp,iter,breakSettings_tmp,true)) {
+      if(verbose_level >= 1){cout<<"converged at outer iter "<<j<<", cmax="<<cmaxtmp<<", LA="<<LA<<"\n";}
       break;
     }
     //update lambdaSet, etc.
@@ -2413,7 +2412,7 @@ tuple<TRAJECTORY_FORM,double, REG_PAIR> OldPlanner::forwardPass(double dt0,TRAJE
     if(verbose_level >= 3){cout<<"Increased cost in forwardpass\n";}
     throw("Increased cost in forwardpass");
   }
-  if(verbose_level >= 4){cout<<"*************** z "<<z<<"\n";}
+  if(verbose_level >= 3){cout<<"    z="<<z<<" alph="<<alph<<" LA: "<<LA<<" -> "<<newLA<<"\n";}
   return make_tuple(newTraj, newLA, regs);
 }
 
