@@ -511,7 +511,7 @@ def test_plan_and_track_lqr(
     print("Setting up trajectory planner...")
     planner_settings = PlannerSettings(
         est_sat=real_sat,
-        bdot_on=0,  # Skip bdot initial guess (faster, more reliable)
+        bdot_on=3,  # Skip bdot initial guess (faster, more reliable)
         dt_tp=dt_planning,
         dt_tvlqr=dt,
     )
@@ -523,24 +523,26 @@ def test_plan_and_track_lqr(
     planner_settings.cost_second.use_full_cost_hessian = False
     planner_settings.pass2.regularization.use_dynamics_hess = 0
     planner_settings.init_traj.bdot_gain = 500
-    planner_settings.cost_main.angle = 1000
-    planner_settings.cost_main.angle_N = 10000
-    planner_settings.cost_second.angle = 1000
-    planner_settings.cost_second.angle_N = 10000
-    planner_settings.cost_main.ang_vel = 1e1
-    planner_settings.cost_main.ang_vel_N = 1e5
-    planner_settings.cost_second.ang_vel = 1e3
-    planner_settings.cost_second.ang_vel_N = 1e5
-    planner_settings.pass1.aug_lag.penalty_init = 1000
-    planner_settings.pass2.aug_lag.penalty_init = 100000
-    planner_settings.pass1.convergence.max_outer_iter = 10
+    planner_settings.cost_main.angle =     1000
+    planner_settings.cost_main.angle_N =   100000
+    planner_settings.cost_second.angle =   10000
+    planner_settings.cost_second.angle_N = 100000
+    planner_settings.cost_main.ang_vel = 0
+    # planner_settings.cost_main.ang_vel_N = 1e4
+    planner_settings.cost_second.ang_vel = 0
+    # planner_settings.cost_second.ang_vel_N = 1e4
+    planner_settings.cost_second.ang_cost_func_type = 2
+    planner_settings.cost_second.ang_cost_func_type = 2 
+    planner_settings.pass1.aug_lag.penalty_init = 100
+    planner_settings.pass2.aug_lag.penalty_init = 1000
+    planner_settings.pass1.convergence.max_outer_iter = 15 
     planner_settings.pass1.convergence.max_inner_iter = 50
-    planner_settings.pass2.convergence.max_outer_iter = 15
-    planner_settings.pass2.convergence.max_inner_iter = 30
+    planner_settings.pass2.convergence.max_outer_iter = 20
+    planner_settings.pass2.convergence.max_inner_iter = 50
 
     
-    planner_settings.rw_control_weight = 1e2
-    planner_settings.mtq_control_weight = 1e2
+    planner_settings.rw_control_weight = 1e1
+    planner_settings.mtq_control_weight = 1e1
     # planner_settings.wmax = 10*np.pi/180.0
 
 
@@ -567,8 +569,8 @@ def test_plan_and_track_lqr(
     planner_settings.plan_for_aero = True
     planner_settings.plan_for_srp = True
     planner_settings.plan_for_gg = True
-    # planner_settings.cost_tvlqr.control_mult = 1e2
-    # planner_settings.cost_second.control_mult = 1e2
+    # planner_settings.cost_tvlqr.control_mult = 1e0
+    # planner_settings.cost_second.control_mult = 1e0
 
     # ============ FAST MC SETTINGS (bdot_on=2 + Gauss-Newton) ============
     # Optimized via parameter sweep: ~4s ALTRO time with good trajectory quality
@@ -580,11 +582,11 @@ def test_plan_and_track_lqr(
     # planner_settings.pass2.convergence.max_inner_iter = 30
 
     # Relaxed tolerances for speed
-    planner_settings.pass1.convergence.grad_tol = 0.01
-    # planner_settings.pass1.convergence.ilqr_cost_tol = 1
-    # planner_settings.pass1.convergence.c_max = 0.1
-    planner_settings.pass2.convergence.grad_tol = 0.001
-    # planner_settings.pass2.convergence.ilqr_cost_tol = 1
+    # planner_settings.pass1.convergence.grad_tol = 0.01
+    # # planner_settings.pass1.convergence.ilqr_cost_tol = 1
+    # # planner_settings.pass1.convergence.c_max = 0.1
+    # planner_settings.pass2.convergence.grad_tol = 0.001
+    # # planner_settings.pass2.convergence.ilqr_cost_tol = 1
     # planner_settings.pass2.convergence.c_max = 0.01
     
 
@@ -773,10 +775,10 @@ def plot_plan_and_track_lqr(
 
 if __name__ == "__main__":
     plot_plan_and_track_lqr(
-        verbose=2,  # Quiet mode
-        tf=250,  # 60s trajectory for testing
+        verbose=3,  # Quiet mode
+        tf=500,  # 60s trajectory for testing
         dt=1,
-        dt_planning=50,  # Tuned setting from quick_planner_tests
+        dt_planning=75,  # Tuned setting from quick_planner_tests
         real_orbit=True,  # Use fast orbit (use_J2=False) for faster testing
         seed=42,  # Same seed as quick_planner_tests
     )
