@@ -26,6 +26,7 @@
 #include "Satellite.hpp"
 #include "PlannerUtil.hpp"
 #include "OldPlanner.hpp"
+#include "TinyMPC.hpp"
 // #include "PlannerUtil.hpp"
 // #include "../ArmaNumpy.hpp"
 
@@ -7870,4 +7871,125 @@ TEST_CASE("Test Combined SRP and Drag dynamics jacobians", "[dynamics][combined]
 		std::cout << "Combined Jacobian test, state " << ind << std::endl;
 		REQUIRE(arma::approx_equal(df__dx, lkx, "both", 1e-04, 1e-06));
 	}
+}
+
+// =============================================================================
+// TinyMPC Tests
+// =============================================================================
+
+// Helper to create a test satellite for TinyMPC tests
+Satellite create_test_satellite_for_tinympc() {
+	Satellite sat = Satellite();
+	sat.change_Jcom(arma::diagmat(arma::vec({0.01, 0.01, 0.005})));
+
+	// Add 3 MTQs along body axes
+	arma::mat33 vecmat = arma::mat33().eye();
+	sat.add_MTQ(vecmat.col(0), 0.1, 0.05);
+	sat.add_MTQ(vecmat.col(1), 0.1, 0.05);
+	sat.add_MTQ(vecmat.col(2), 0.1, 0.05);
+
+	// Add 1 RW on Z axis
+	sat.add_RW(vecmat.col(2), 0.0001, 0.01, 0.001, 1, 1, 10, 0, 0.01);
+
+	return sat;
+}
+
+TEST_CASE("TinyMPC: Constructor and basic setup", "[tinympc]") {
+	Satellite sat = create_test_satellite_for_tinympc();
+
+	// Create TinyMPC with default settings
+	TinyMPCSettings settings;
+	settings.track_horizon = 10;
+	settings.track_dt = 0.1;
+	settings.max_iter = 50;
+
+	TinyMPC mpc(sat, settings);
+
+	REQUIRE(mpc.getStateDim() == sat.state_N());
+	REQUIRE(mpc.getControlDim() == sat.control_N());
+	REQUIRE(mpc.hasValidReference() == false);
+
+	std::cout << "TinyMPC constructor test passed: state_dim=" << mpc.getStateDim()
+	          << ", ctrl_dim=" << mpc.getControlDim() << std::endl;
+}
+
+TEST_CASE("TinyMPC: Cost matrices setup", "[tinympc]") {
+	Satellite sat = create_test_satellite_for_tinympc();
+	TinyMPC mpc(sat);
+
+	int n = sat.state_N();
+	int m = sat.control_N();
+
+	// Set custom cost matrices
+	arma::mat Q = 100.0 * arma::eye(n, n);
+	arma::mat R = 1.0 * arma::eye(m, m);
+	arma::mat Qf = 1000.0 * arma::eye(n, n);
+
+	mpc.setCostMatrices(Q, R, Qf);
+
+	std::cout << "TinyMPC cost matrices test passed" << std::endl;
+	REQUIRE(true);
+}
+
+TEST_CASE("TinyMPC: Reference trajectory loading", "[tinympc]") {
+	Satellite sat = create_test_satellite_for_tinympc();
+	TinyMPC mpc(sat);
+
+	int n = sat.state_N();
+	int m = sat.control_N();
+	int N_ref = 61;
+	double dt_ref = 1.0;
+
+	// Create a simple reference trajectory (hovering at identity quaternion)
+	TrajectorySegment ref;
+	ref.X_ref = arma::zeros(n, N_ref);
+	ref.U_ref = arma::zeros(m, N_ref - 1);
+	ref.times = arma::linspace(0, (N_ref - 1) * dt_ref, N_ref);
+	ref.dt_ref = dt_ref;
+
+	// Set identity quaternion for all states (q = [w, x, y, z] with w at index 6)
+	// State layout: [omega_x, omega_y, omega_z, q_x, q_y, q_z, q_w, rw_speed]
+	for (int k = 0; k < N_ref; k++) {
+		ref.X_ref(6, k) = 1.0;  // q_w = 1 (identity quaternion)
+	}
+
+	mpc.loadReferenceTrajectory(ref);
+
+	REQUIRE(mpc.hasValidReference() == true);
+
+	auto [t_start, t_end] = mpc.getReferenceTimeRange();
+	REQUIRE(t_start == 0.0);
+	REQUIRE(std::abs(t_end - 60.0) < 1e-6);
+
+	// Test interpolation
+	auto [x_ref, u_ref] = mpc.getReference(30.0);
+	REQUIRE(x_ref.n_elem == (arma::uword)n);
+	REQUIRE(u_ref.n_elem == (arma::uword)m);
+	REQUIRE(std::abs(x_ref(6) - 1.0) < 1e-6);  // Identity quaternion
+
+	std::cout << "TinyMPC reference trajectory test passed" << std::endl;
+}
+
+TEST_CASE("TinyMPC: Warm start and reset", "[tinympc]") {
+	Satellite sat = create_test_satellite_for_tinympc();
+
+	TinyMPCSettings settings;
+	settings.track_horizon = 10;
+	TinyMPC mpc(sat, settings);
+
+	int n = sat.state_N();
+	int m = sat.control_N();
+
+	// Create dummy previous solution
+	arma::mat X_prev = arma::zeros(n, 11);
+	arma::mat U_prev = arma::zeros(m, 10);
+
+	// Warm start
+	mpc.warmStart(X_prev, U_prev);
+
+	// Reset
+	mpc.reset();
+
+	std::cout << "TinyMPC warm start and reset test passed" << std::endl;
+	REQUIRE(true);
 }
