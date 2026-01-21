@@ -1079,3 +1079,60 @@ feedback successfully compensates for this mismatch.
 2. **Integration Method Mismatch**: Confirmed that using RK45 instead of RK4 is
    intentional to test trajectory robustness. The ~0.5° difference without feedback
    is expected and acceptable.
+
+### Verification Across Multiple Initial Conditions
+
+Tested with tf=500s trajectories:
+
+| Seed | Init Error | Planned Final | Open-loop Final | TVLQR Final | Improvement |
+|------|------------|---------------|-----------------|-------------|-------------|
+| 42   | 29.2°      | 0.66°         | 76.51°          | 0.61°       | +75.90°     |
+| 123  | 117.3°     | 10.16°        | 84.32°          | 10.15°      | +74.17°     |
+| 456  | 100.6°     | 29.68°        | 37.99°          | 29.70°      | +8.29°      |
+
+**Key Observations**:
+- TVLQR tracks planned trajectory within ~0.05° accuracy
+- Open-loop diverges significantly due to integration method mismatch
+- When ALTRO doesn't fully converge (seeds 123, 456), TVLQR still tracks the planned trajectory accurately
+
+### Summary of Changes That Fixed TVLQR
+
+**File**: `ADCS/controller/helpers/trajectory.py` in `_state_diff()` method
+
+1. **Quaternion Error Order** (Critical Fix):
+   ```python
+   # BEFORE (wrong):
+   q_err = quat_diff(q_curr, q_ref)  # computes q_curr^{-1} * q_ref
+   
+   # AFTER (correct):
+   q_err = quat_diff(q_ref, q_curr)  # computes q_ref^{-1} * q_curr
+   ```
+   This matches C++ `normquaterr(oldQprev, Qkprev)` which computes `q_ref^{-1} * q_curr`.
+
+2. **MRP Computation** (No change needed):
+   ```python
+   dx[3:6] = quat_to_vec3(q_err)  # Returns MRP = 2*q_vec/(1+q0)
+   ```
+   The factor of 2 was removed because `quat_to_vec3` with mode=0 already includes it.
+
+3. **Quaternion Hemisphere Handling** (Added for robustness):
+   ```python
+   if np.dot(q_curr, q_ref) < 0:
+       q_ref = -q_ref  # Ensure quaternions on same hemisphere
+   ```
+
+### TVLQR Cost Settings
+
+The TVLQR gains are computed from `cost_tvlqr` settings (separate from ALTRO's `cost_main`).
+Recommended settings that work well:
+
+```python
+planner_settings.cost_tvlqr = CostWeights(
+    angle=1e6,
+    angle_N=1e7,
+    ang_vel=1e7,
+    ang_vel_N=1e8,
+    control_mult=1e6,  # Higher than cost_main to reduce gain aggressiveness
+    ang_cost_func_type=2,
+    use_raw_control_cost=True,
+)
