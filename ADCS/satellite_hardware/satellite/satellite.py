@@ -230,146 +230,6 @@ class Satellite:
         return state[7:]
     
     def dynamics_core(self, x: np.ndarray, u: np.ndarray, orbital_state: Orbital_State, dmode: DisturbanceMode = None, verbose: bool = False) -> np.ndarray:
-        r"""
-        Compute the full spacecraft rotational dynamics including attitude kinematics,
-        external disturbances, and actuator torques, with optional reaction wheel coupling.
-
-        This method forms the **core of the spacecraft attitude dynamics model**, computing
-        the time derivative of the state vector:
-
-        .. math::
-
-            \dot{\mathbf{x}} =
-            \begin{bmatrix}
-            \dot{\boldsymbol{\omega}} \\
-            \dot{\mathbf{q}} \\
-            \dot{\mathbf{h}}_{\text{RW}}
-            \end{bmatrix}
-
-        where:
-        
-        - :math:`\boldsymbol{\omega}` is the body angular velocity vector (rad/s),
-        - :math:`\mathbf{q}` is the attitude quaternion,
-        - :math:`\mathbf{h}_{\text{RW}}` is the stored angular momentum in reaction wheels.
-
-        The model includes:
-        - Coordinate transformation from ECI to body frame,
-        - Disturbance torques (aerodynamic, magnetic, solar, etc.),
-        - Actuator torques (reaction wheels, magnetorquers, etc.),
-        - Coupled rigid-body dynamics with or without reaction wheels.
-
-        ---
-        **1. Environmental Vector Transformation**
-
-        The orbital state provides environmental quantities in the Earth-Centered Inertial (ECI) frame:
-        position :math:`\mathbf{R}`, velocity :math:`\mathbf{V}`, magnetic field :math:`\mathbf{B}`,
-        Sun vector :math:`\mathbf{S}`, and atmospheric density :math:`\rho`.
-
-        These are rotated into the body frame using the quaternion-based rotation matrix:
-
-        .. math::
-            \mathbf{v}_B = \mathbf{R}_{\text{ECI}\rightarrow B}\, \mathbf{v}_{\text{ECI}}, \quad
-            \mathbf{R}_{\text{ECI}\rightarrow B} = \text{rot\_mat}(\mathbf{q})^\top
-
-        yielding:
-        :math:`\mathbf{R}_B, \mathbf{V}_B, \mathbf{B}_B, \mathbf{S}_B`.
-
-        ---
-        **2. Quaternion Kinematics**
-
-        The quaternion derivative is computed from angular velocity:
-
-        .. math::
-            \dot{\mathbf{q}} = \tfrac{1}{2}\,\mathbf{W}(\mathbf{q})^\top \boldsymbol{\omega}
-
-        where :math:`\mathbf{W}(\mathbf{q})` is the standard quaternion kinematic matrix.
-
-        ---
-        **3. Rigid-Body Rotational Dynamics**
-
-        The core Euler rotational dynamics are:
-
-        .. math::
-            \dot{\boldsymbol{\omega}} =
-            \mathbf{J}^{-1}\left(
-            \boldsymbol{\tau}_{\text{tot}} -
-            \boldsymbol{\omega} \times (\mathbf{J}\boldsymbol{\omega})
-            \right)
-
-        where:
-        - :math:`\mathbf{J}` is the spacecraft inertia tensor,
-        - :math:`\boldsymbol{\tau}_{\text{tot}}` is the total torque acting on the body:
-        \(\boldsymbol{\tau}_{\text{tot}} = \boldsymbol{\tau}_{\text{act}} + \boldsymbol{\tau}_{\text{dist}}\).
-
-        ---
-        **4. Reaction Wheel Coupling (if present)**
-
-        When the spacecraft has reaction wheels, the body dynamics are coupled to wheel angular momentum :math:`\mathbf{h}_{\text{RW}}`:
-
-        .. math::
-            \dot{\boldsymbol{\omega}} =
-            \mathbf{J}_b^{-1}\left(
-            \boldsymbol{\tau}_{\text{tot}} -
-            \boldsymbol{\omega} \times
-            (\mathbf{J}_b\boldsymbol{\omega} + \mathbf{A}^\top \mathbf{h}_{\text{RW}})
-            \right)
-
-        where:
-        - :math:`\mathbf{J}_b` is the bus (no-RW) inertia tensor,
-        - :math:`\mathbf{A}` is the matrix of wheel spin axes (3×N),
-        - :math:`\mathbf{h}_{\text{RW}} = \text{diag}(J_{\text{RW}})\, \boldsymbol{\omega}_{\text{RW}}`.
-
-        The time derivative of stored wheel momentum is given by:
-
-        .. math::
-            \dot{\mathbf{h}}_{\text{RW}} =
-            \mathbf{u}_{\text{RW}} -
-            \text{diag}(J_{\text{RW}})\,\mathbf{A}^\top \dot{\boldsymbol{\omega}}
-
-        where :math:`\mathbf{u}_{\text{RW}}` is the motor torque command vector.
-
-        ---
-        **5. State Derivative Assembly**
-
-        The total derivative vector is returned as:
-
-        .. math::
-            \dot{\mathbf{x}} =
-            \begin{cases}
-                [\dot{\boldsymbol{\omega}}, \dot{\mathbf{q}}]^\top, & N_{\text{RW}} = 0 \\
-                [\dot{\boldsymbol{\omega}}, \dot{\mathbf{q}}, \dot{\mathbf{h}}_{\text{RW}}]^\top, & N_{\text{RW}} > 0
-            \end{cases}
-
-        ---
-
-        Parameters
-        ----------
-        x : numpy.ndarray
-            Full spacecraft state vector:
-            :math:`\mathbf{x} = [\boldsymbol{\omega}, \mathbf{q}, \mathbf{h}_{\text{RW}}]`.
-        u : numpy.ndarray
-            Control input vector (actuator commands).
-        orbital_state : Orbital_State
-            Object containing orbital and environmental parameters:
-            position, velocity, magnetic field, Sun vector, and density.
-        verbose : bool, optional
-            If ``True``, print diagnostic information (default: ``False``).
-        log : bool, optional
-            If ``True``, log intermediate data for debugging or analysis.
-
-        Returns
-        -------
-        numpy.ndarray
-            Time derivative of the spacecraft state vector :math:`\dot{\mathbf{x}}`.
-
-        Notes
-        -----
-        - All vectors are represented in the body reference frame.
-        - Reaction wheel torques are internally computed by each actuator using
-        :func:`Actuator.storage_torque()`.
-        - The function supports both reaction-wheel and wheel-less configurations.
-        """
-
         w = x[0:3]
         q = x[3:7]
         h = x[7:]
@@ -389,7 +249,7 @@ class Satellite:
         # Reaction wheels
         if self.number_RW==0:
             wdot = (-np.cross(w,w@J) + total_torque)@invJ_noRW
-            return np.concatenate([wdot,qdot])
+            result = np.concatenate([wdot,qdot])
         else:
             RWjs = np.array([self.actuators[j].J for j in self.momentum_inds])
             RWaxes = np.vstack([self.actuators[j].axis for j in self.momentum_inds])
@@ -397,12 +257,36 @@ class Satellite:
             u_RW = np.array(storage_torques)
             wdot = (-np.cross(w,w@J + h@RWaxes) + total_torque)@invJ_noRW
             RW_hdot = u_RW-wdot@RWaxes.T@np.diagflat(RWjs) #u_RW-wdot@RWaxes.T@np.diagflat(RWjs)
-            if verbose:
-                print('wdot',wdot)
-                print('hdot',RW_hdot)
-                print('comp1',u_RW)
-                print('comp2',-wdot@RWaxes.T@np.diagflat(RWjs))
-            return np.concatenate([wdot,qdot,RW_hdot])
+
+            result = np.concatenate([wdot,qdot,RW_hdot])
+
+        if verbose:
+            num_mtq = len(self.mtq_actuators)
+            num_rw = len(self.rw_actuators)
+            num_magic = 0
+            print(f"\nInfo - Num MTQ: {num_mtq}, Num RW: {num_rw}, Num Magic: {num_magic}")#
+            print(f"Input u: {u}")
+            print(f"State w: {w}")
+            print(f"State q: {q}")
+            if num_rw > 0:
+                print(f"State h: {h}")
+            B_body = orbital_state.get_state_vector(x=x)["b"]
+            print(f"Mag Field (Body): {B_body}")
+            print("--- Torques ---")
+            print(f"Calculated Mag Dipole (magvec): {u[:num_mtq]}")
+            mtq_torque = sum([self.mtq_actuators[i].torque(u=u[i], x=x, os=orbital_state, dmode=dmode) for i in range(num_mtq)], np.zeros(3))
+            print(f"Torque from Mag (m x B): {mtq_torque}")
+            rw_torque = sum([self.rw_actuators[i].torque(u=u[num_mtq + i], x=x, os=orbital_state, dmode=dmode) for i in range(num_rw)], np.zeros(3))
+            print(f"Torque from RW: {rw_torque}")
+            print(f"Torque from Gyro (w x Jw): {np.cross(w,w@J+ h@RWaxes)}")
+            print(f"Torque from Disturabnce: {disturbance_torque}")
+            print(f"Total Net Torque: {total_torque-np.cross(w,w@J+ h@RWaxes)}\n")
+            
+            print("--- Derivatives ---")
+            print(f"wdot: {wdot}")
+            print(f"xdot (res): {result}")
+
+        return result
         
     def dynamics_for_solver(self, t: float, x: np.ndarray, u: np.ndarray, os0: Orbital_State, os1: Orbital_State) -> np.ndarray:
         # solve_ivp() should use one sample of bias and noise
