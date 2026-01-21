@@ -368,6 +368,37 @@ ps.pass2.convergence.max_inner_iter = 30
 | 180s | 30 | 35.6s | 0.00° |
 | 240s | 40 | 38.7s | 0.00° |
 
-### Next Steps
-1. Test 500s with dt_tp=50-75
-2. Fine-tune for 500s < 60s target
+### 500s ACHIEVED: 51.5s with 0.08° error!
+
+Settings for 500s trajectory:
+```python
+ps = PlannerSettings(est_sat=sat, bdot_on=0, dt_tp=100, dt_tvlqr=1)
+ps.cost_main.use_full_cost_hessian = True
+ps.pass1.regularization.use_dynamics_hess = 1
+ps.init_traj.bdot_gain = 500
+ps.cost_main.angle = 100
+ps.cost_main.angle_N = 10000  # Higher terminal for 500s
+ps.pass1.aug_lag.penalty_init = 100
+ps.pass1.convergence.max_outer_iter = 8
+ps.pass1.convergence.max_inner_iter = 40
+ps.pass2.convergence.max_outer_iter = 3
+ps.pass2.convergence.max_inner_iter = 15
+```
+
+### Final Performance Summary
+| Duration | dt_tp | Solve Time | Error |
+|----------|-------|------------|-------|
+| 60s | 30 | 10.4s | 0.00° |
+| 90s | 30 | 20.1s | 0.00° |
+| 120s | 30 | 21.9s | 0.00° |
+| 180s | 30 | 35.6s | 0.00° |
+| 240s | 40 | 38.7s | 0.00° |
+| **500s** | **100** | **51.5s** | **0.08°** |
+
+### Key Tuning Insights
+1. **Hessians matter**: use_full_cost_hessian=True, use_dynamics_hess=1 (25% faster)
+2. **Low running + high terminal cost**: angle=100, angle_N=5000-10000 
+3. **Higher penalty_init**: 100 instead of 0.1 (faster constraint enforcement)
+4. **Reduce pass2 iterations**: outer=3-5, inner=15-30 (40% faster)
+5. **Scale dt_tp with duration**: 30 for <200s, 40 for 240s, 100 for 500s
+6. **bdot_on=0**: Skip bdot initial guess generation
