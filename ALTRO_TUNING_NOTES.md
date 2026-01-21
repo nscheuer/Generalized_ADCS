@@ -328,7 +328,46 @@ ps.pass2.convergence.max_outer_iter = 20
 3. **Full hessians help** - use_full_cost_hessian=True, use_dynamics_hess=1
 4. **bdot_gain=500** - lower than default (1000) helps initial guess
 
+### Additional Findings
+
+#### Tolerances
+| Setting | Impact |
+|---------|--------|
+| `grad_tol=1e-2, cost_tol=0.5` | Looser tolerances help ~20% |
+
+#### Penalty Init
+| Setting | Impact |
+|---------|--------|
+| `pass1.aug_lag.penalty_init=100` | Faster constraint enforcement |
+
+#### Pass2 Settings (BIG IMPACT)
+| Setting | Time (60s) | Notes |
+|---------|------------|-------|
+| default (o=20, i=60) | 12.6s | |
+| o=5, i=30 | **7.6s** | 40% faster! |
+
+### Current FAST Settings
+```python
+ps = PlannerSettings(est_sat=sat, bdot_on=0, dt_tp=30, dt_tvlqr=1)
+ps.cost_main.use_full_cost_hessian = True
+ps.pass1.regularization.use_dynamics_hess = 1
+ps.init_traj.bdot_gain = 500
+ps.cost_main.angle = 100
+ps.cost_main.angle_N = 5000
+ps.pass1.aug_lag.penalty_init = 100
+ps.pass2.convergence.max_outer_iter = 5
+ps.pass2.convergence.max_inner_iter = 30
+```
+
+### Scaling Results (FAST settings)
+| Duration | dt_tp | Solve Time | Error |
+|----------|-------|------------|-------|
+| 60s | 30 | 10.4s | 0.00° |
+| 90s | 30 | 20.1s | 0.00° |
+| 120s | 30 | 21.9s | 0.00° |
+| 180s | 30 | 35.6s | 0.00° |
+| 240s | 40 | 38.7s | 0.00° |
+
 ### Next Steps
-1. Test larger dt_tp (40, 50) for longer trajectories
-2. Test pass1 iteration limits to speed up
-3. Target: 500s in <60s with good accuracy
+1. Test 500s with dt_tp=50-75
+2. Fine-tune for 500s < 60s target
