@@ -209,8 +209,28 @@ but doesn't maintain control effort to *stay* at the goal. The running cost on
 attitude error may be too low relative to control cost, causing it to "coast" 
 after initial maneuver.
 
+### ROOT CAUSE FOUND: MTQ Control Cost Bug
+
+**The optimizer zeroes MTQ commands** because the cost function makes RW cheaper!
+
+Cost calculation: `0.5 * cmd² * weight * control_mult`
+- MTQ: 0.5 * 0.1² * 1000 = **5** (for 0.1 Am² dipole)
+- RW: 0.5 * 0.001² * 100000 = **0.00005** (for 0.001 Nm torque)
+
+**RW is 100,000x cheaper than MTQ in the cost function!**
+
+The problem: MTQ produces torque via `B × m` (cross product of B-field and dipole).
+A 0.1 Am² dipole in a 50 μT field produces ~5 μNm torque.
+But RW can directly command torque, so 0.001 Nm = 1000 μNm.
+
+The cost weights aren't normalized by torque authority, making MTQs prohibitively expensive.
+
+**Fix options**:
+1. Reduce MTQ cost weight significantly (e.g., mtq_control_weight = 1 or 0.1 instead of 1000)
+2. Normalize costs by expected torque magnitude
+3. Use auto_scale_control_costs() if it exists
+
 ### Next Steps
-1. Investigate why pointing drifts after initial acquisition
-2. Try higher running angle cost vs terminal cost ratio
-3. Check if magnetic field changes make pointing impossible without continuous control
-4. Consider using rolling-horizon planning (replan every N seconds)
+1. Test with lower mtq_control_weight
+2. If that works, update default values in PlannerSettings
+3. Document proper cost tuning guidelines
