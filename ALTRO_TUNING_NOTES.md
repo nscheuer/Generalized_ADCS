@@ -186,7 +186,22 @@ if(Uset.n_cols >= 3) {
 - Zero Initial Omega: PASS (2.06s)
 - Trajectory Shape: PASS (0.38s)
 
+### Current Timing Results (500s trajectory)
+| Config | dt_tp | Time | Final Error | Notes |
+|--------|-------|------|-------------|-------|
+| default | 30 | >180s | - | Times out |
+| dt_tp=50, relaxed iters | 50 | 15.5s | 64.5° | Fast but doesn't converge |
+| dt_tp=50, default | 50 | 14.4s | 64.5° | Same problem |
+| 200s duration, default | 30 | 30.6s | - | Works |
+
+**Key Finding**: The 500s trajectory with dt_tp=30 runs for >3min (ALTRO solver phase).
+With dt_tp=50 it runs in 15s but doesn't converge to goal (64° error at end).
+
+**Problem**: The trajectory planner seems to hit a local minimum where it doesn't 
+actually maneuver toward the goal - just damps angular velocity.
+
 ### Next Steps
-1. Run the full tuning sweep (`altro_tuning_sweep.py`)
-2. Analyze results to find best parameter combinations
-3. Document optimal settings
+1. ~~Run the full tuning sweep (`altro_tuning_sweep.py`)~~ - Configs need updating
+2. Investigate why large dt_tp leads to non-convergence 
+3. Try varying cost weights to push toward goal
+4. Consider two-phase approach: fast dt_tp for initial guess, then refine
