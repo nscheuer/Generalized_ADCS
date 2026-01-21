@@ -387,7 +387,21 @@ AFTER_OUTPUT_FORM OldPlanner::trajOptAfter(VECTOR_INFO_FORM vecs_w_time,double d
     if(verbose_level >= 2) {
       cout<<"colMiss: "<<colMissing<<"\n";
     }
-    mat UsetLong = join_rows(repelem(Uset.cols(0,Uset.n_cols-3),1,int(dt_prev/dt_tvlqr)),repelem(Uset.cols(Uset.n_cols-2,Uset.n_cols-2),1,colMissing),Uset.tail_cols(1));
+    
+    // Handle edge case where Uset has fewer than 3 columns
+    mat UsetLong;
+    if(Uset.n_cols >= 3) {
+      // Normal case: replicate intermediate columns to create finer timestep trajectory
+      UsetLong = join_rows(repelem(Uset.cols(0,Uset.n_cols-3),1,int(dt_prev/dt_tvlqr)),repelem(Uset.cols(Uset.n_cols-2,Uset.n_cols-2),1,colMissing),Uset.tail_cols(1));
+    } else if(Uset.n_cols == 2) {
+      // Only 2 columns: replicate first column, then add last column
+      int nReps = max(1, int(Rset_tvlqr.n_cols) - 1);
+      UsetLong = join_rows(repelem(Uset.col(0), 1, nReps), Uset.tail_cols(1));
+    } else {
+      // Only 1 column: replicate it to fill the needed length
+      int nReps = max(1, int(Rset_tvlqr.n_cols));
+      UsetLong = repelem(Uset.col(0), 1, nReps);
+    }
 
     trajLong = OldPlanner::generateInitialTrajectory(dt_tvlqr,Xset.col(0), UsetLong, vecs_tvlqr);
 

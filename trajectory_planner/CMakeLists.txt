@@ -20,7 +20,7 @@ set(BUILD_SHARED_LIBS ON)
 # =============================================================================
 # IMPORTANT: Do NOT use -ffast-math - it breaks numerical stability in ALTRO
 # optimization algorithms causing non-PSD Hessians and NaN/Inf errors
-set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG -DARMA_NO_DEBUG -march=native -funroll-loops -flto -Wno-odr")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG -DARMA_NO_DEBUG -march=native -funroll-loops -Wno-odr")
 set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
 
 # Suppress Armadillo fast-math warnings (we don't use fast-math, but suppress for cleaner output)

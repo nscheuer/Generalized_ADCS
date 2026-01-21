@@ -142,4 +142,51 @@ auto [xdot, dist, dxdot_dx, dxdot_du, dxdot_dtorq] = sat.dynamicsJacobians(...)
 tuple<mat, mat, mat> jacK1 = sat.dynamicsJacobians(xk, uk, dynamics_info_k);
 ```
 
-**Status**: Another agent is fixing this. Waiting for build to complete.
+**Status**: FIXED by previous agent.
+
+## Session 2 - 2026-01-20 19:10
+
+### Issue Fixed: Mat::cols() out of bounds error
+When running quick_planner_tests.py, tests were failing with:
+```
+Mat::cols(): indices out of bounds or incorrectly used
+colMiss: 30
+```
+
+**Root Cause**: In `OldPlanner.cpp` line 390, the code assumed `Uset.n_cols >= 3`:
+```cpp
+mat UsetLong = join_rows(repelem(Uset.cols(0,Uset.n_cols-3),1,...
+```
+When trajectory duration was short (30s with dt_tp=30), `Uset` had only 2 columns, causing `Uset.n_cols-3 = -1`.
+
+**Fix Applied** (OldPlanner.cpp ~line 390):
+```cpp
+// Handle edge case where Uset has fewer than 3 columns
+mat UsetLong;
+if(Uset.n_cols >= 3) {
+  // Normal case
+  UsetLong = join_rows(repelem(Uset.cols(0,Uset.n_cols-3),1,int(dt_prev/dt_tvlqr)),...);
+} else if(Uset.n_cols == 2) {
+  // Only 2 columns: replicate first column
+  int nReps = max(1, int(Rset_tvlqr.n_cols) - 1);
+  UsetLong = join_rows(repelem(Uset.col(0), 1, nReps), Uset.tail_cols(1));
+} else {
+  // Only 1 column
+  int nReps = max(1, int(Rset_tvlqr.n_cols));
+  UsetLong = repelem(Uset.col(0), 1, nReps);
+}
+```
+
+**Also**: Removed `-flto` from CMakeLists.txt due to linker errors (`multiple prevailing defs for 'solve'`).
+
+**Test Results**: All 5 quick_planner_tests pass now:
+- Basic ALTRO: PASS (0.44s)
+- High Angular Velocity: PASS (3.11s)  
+- 90 Degree Slew: PASS (9.11s)
+- Zero Initial Omega: PASS (2.06s)
+- Trajectory Shape: PASS (0.38s)
+
+### Next Steps
+1. Run the full tuning sweep (`altro_tuning_sweep.py`)
+2. Analyze results to find best parameter combinations
+3. Document optimal settings
