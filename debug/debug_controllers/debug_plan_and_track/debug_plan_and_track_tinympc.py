@@ -61,13 +61,19 @@ except ImportError as e:
 # Test Configuration
 # ===========================================================================
 
-def create_test_planner_settings(est_sat, dt: float = 1.0, dt_planning: float = 10.0) -> PlannerSettings:
+def create_test_planner_settings(est_sat, dt: float = 1.0, dt_planning: float = 50.0) -> PlannerSettings:
     """Create planner settings for testing.
+
+    Uses settings tuned from debug_plan_and_track_bc2.py which achieved good tracking.
+
+    CRITICAL: TVLQR/TinyMPC gains are computed from cost_tvlqr settings.
+    If control_mult is too low, gains will be too aggressive and cause instability.
+    cost_tvlqr.control_mult should be ~1e4 (much higher than cost_main.control_mult).
 
     Args:
         est_sat: Estimated satellite model
         dt: Control timestep (dt_tvlqr)
-        dt_planning: Planning timestep (dt_tp)
+        dt_planning: Planning timestep (dt_tp) - use 50 for ALTRO convergence
     """
     settings = PlannerSettings(
         est_sat=est_sat,
@@ -76,20 +82,35 @@ def create_test_planner_settings(est_sat, dt: float = 1.0, dt_planning: float = 
         dt_tvlqr=dt,
     )
 
-    # Configure cost function
+    # ALTRO planning cost function (for trajectory optimization)
+    # Match BC2 tuning: higher angle costs for early convergence
     settings.cost_main.ang_cost_func_type = 0  # Linear - best convergence
-    settings.cost_main.angle = 1e6
-    settings.cost_main.angle_N = 1e7
+    settings.cost_main.angle = 1e7       # Higher than before for early convergence
+    settings.cost_main.angle_N = 1e8
     settings.cost_main.ang_vel = 1e4
     settings.cost_main.ang_vel_N = 1e5
-    settings.cost_main.control_mult = 1e-2
+    settings.cost_main.control_mult = 1e-2  # Low for ALTRO (encourages control usage)
+    settings.cost_main.use_raw_control_cost = True
+    settings.cost_main.use_full_cost_hessian = True  # Faster convergence
 
-    # Copy to tvlqr cost (used by TinyMPC)
-    settings.cost_tvlqr.angle = settings.cost_main.angle
-    settings.cost_tvlqr.angle_N = settings.cost_main.angle_N
-    settings.cost_tvlqr.ang_vel = settings.cost_main.ang_vel
-    settings.cost_tvlqr.ang_vel_N = settings.cost_main.ang_vel_N
-    settings.cost_tvlqr.control_mult = settings.cost_main.control_mult
+    # Hessian settings for faster convergence (from BC2)
+    settings.pass1.regularization.use_dynamics_hess = 1
+    settings.pass1.convergence.max_outer_iter = 8
+    settings.pass1.convergence.max_inner_iter = 50
+    settings.pass2.convergence.max_outer_iter = 5
+    settings.pass2.convergence.max_inner_iter = 20
+    settings.init_traj.bdot_gain = 500
+    settings.pass1.aug_lag.penalty_init = 100
+
+    # TVLQR/TinyMPC tracking cost function
+    # CRITICAL: control_mult must be MUCH HIGHER than cost_main to avoid aggressive gains
+    settings.cost_tvlqr.ang_cost_func_type = 0
+    settings.cost_tvlqr.angle = 1e6
+    settings.cost_tvlqr.angle_N = 1e7
+    settings.cost_tvlqr.ang_vel = 1e4
+    settings.cost_tvlqr.ang_vel_N = 1e5
+    settings.cost_tvlqr.control_mult = 1e4  # HIGH for TVLQR (prevents aggressive gains)
+    settings.cost_tvlqr.use_raw_control_cost = True
 
     return settings
 
@@ -195,12 +216,22 @@ def run_simulation(
         solve_time_hist.append(solve_time_ms)
         control_hist.append(u.copy())
 
-        # Compute tracking error if trajectory available
+        # Compute tracking error using pointing error (more robust than quaternion error)
+        # This measures how far the body boresight is from the goal direction
         if hasattr(controller, 'active_trajectory') and controller.active_trajectory is not None:
             try:
-                x_ref = controller.active_trajectory.get_state_at(t_cent)
-                q_err = quat_diff(normalize(x_current[3:7]), normalize(x_ref[3:7]))
-                att_err_rad = 2.0 * np.arcsin(min(np.linalg.norm(quat_to_vec3(q_err)), 1.0))
+                # Compute pointing error: angle between body Z-axis and goal vector
+                q = x_current[3:7]
+                w, x_q, y_q, z_q = q
+                R = np.array([
+                    [1 - 2*(y_q**2 + z_q**2), 2*(x_q*y_q - z_q*w), 2*(x_q*z_q + y_q*w)],
+                    [2*(x_q*y_q + z_q*w), 1 - 2*(x_q**2 + z_q**2), 2*(y_q*z_q - x_q*w)],
+                    [2*(x_q*z_q - y_q*w), 2*(y_q*z_q + x_q*w), 1 - 2*(x_q**2 + y_q**2)]
+                ])
+                body_boresight = np.array([0, 0, 1])
+                eci_boresight = R @ body_boresight
+                goal_vec_eci_t, _ = goals.to_ref(t=t_cent, os0=os_t)
+                att_err_rad = np.arccos(np.clip(np.dot(eci_boresight, goal_vec_eci_t), -1, 1))
                 tracking_error_hist.append(np.rad2deg(att_err_rad))
             except Exception:
                 tracking_error_hist.append(np.nan)
@@ -596,13 +627,16 @@ def main():
     parser = argparse.ArgumentParser(description="Test TinyMPC Plan and Track controllers")
     parser.add_argument('--cpp', action='store_true', help='Also test C++ TinyMPC')
     parser.add_argument('--compare', action='store_true', help='Run TVLQR comparison')
-    parser.add_argument('--duration', type=float, default=100.0, help='Simulation duration (seconds)')
+    parser.add_argument('--duration', type=float, default=500.0, help='Simulation duration (seconds)')
     parser.add_argument('--save', type=str, default=None, help='Directory to save plots')
     args = parser.parse_args()
 
     print("="*60)
     print("TinyMPC Plan and Track Controller Test")
     print("="*60)
+
+    # Use deterministic seed like BC2 test
+    np.random.seed(42)
 
     # Default save directory
     save_dir = args.save
@@ -635,17 +669,18 @@ def main():
     goal = ECI_Goal(goal_vec)
     goals = GoalList({t_start_cent: goal})
 
-    # Initial state
-    # Small initial angular velocity, identity quaternion, zero RW momentum
+    # Initial state - use random initial conditions like BC2 (with deterministic seed)
     n_rw = 1  # BeaverCube2 has 1 reaction wheel
     state_dim = 7 + n_rw
-    x_0 = np.zeros(state_dim)
-    x_0[0:3] = np.deg2rad([0.5, -0.3, 0.2])  # Small initial rates [rad/s]
-    x_0[3:7] = [1.0, 0.0, 0.0, 0.0]  # Identity quaternion [w, x, y, z]
-    x_0[7] = 0.0  # RW momentum
+    w0 = np.random.randn(3) * 0.01  # ~0.5 deg/s typical
+    q0 = normalize(np.random.randn(4))
+    h0 = np.array([0.0])  # RW momentum
+    x_0 = np.concatenate([w0, q0, h0])
+    print(f"Initial angular velocity: {np.rad2deg(np.linalg.norm(w0)):.2f} deg/s")
+    print(f"Initial quaternion: {q0}")
 
     # Settings
-    planner_settings = create_test_planner_settings(sat, dt=1.0, dt_planning=10.0)
+    planner_settings = create_test_planner_settings(sat, dt=1.0, dt_planning=50.0)
     tinympc_settings = create_test_tinympc_settings()
 
     duration_sec = args.duration

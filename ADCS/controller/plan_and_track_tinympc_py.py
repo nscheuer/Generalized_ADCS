@@ -145,6 +145,10 @@ class TinyMPCSolverPy:
         # Current rho (may be adapted)
         self._rho = settings.rho
 
+        # Cached satellite and orbital state for nonlinear propagation
+        self._est_sat = None
+        self._os = None
+
     def set_cost_matrices(
         self,
         Q: NDArray[np.float64],
@@ -481,13 +485,18 @@ class TinyMPCSolverPy:
         error[0:3] = x[0:3] - x_ref[0:3]
 
         # Quaternion error using quat_diff (same as TVLQR)
+        # TVLQR uses: q_err = quat_diff(q_ref, q_curr) = q_ref^{-1} * q_curr
+        # This gives the rotation FROM reference TO current
         q = normalize(x[3:7])
         q_ref = normalize(x_ref[3:7])
-        q_err = quat_diff(q, q_ref)
+        # Handle quaternion double-cover: ensure q_ref is on same hemisphere as q
+        if np.dot(q, q_ref) < 0:
+            q_ref = -q_ref
+        q_err = quat_diff(q_ref, q)  # NOTE: order matches TVLQR (q_ref first!)
 
-        # Linearized attitude error: 2 * vec(q_err)
-        # This gives the small-angle approximation of the rotation error
-        error[3:6] = 2.0 * quat_to_vec3(q_err)
+        # Attitude error using MRP (Modified Rodrigues Parameters)
+        # quat_to_vec3 with mode=0 returns MRP = 2*q_vec/(1+q0), already scaled
+        error[3:6] = quat_to_vec3(q_err)  # MRP already includes factor of 2
 
         # RW momentum error (indices 6:6+n_rw)
         if n_rw > 0:
@@ -537,8 +546,10 @@ class TinyMPCSolverPy:
 
             U[:, k] = u_admm
 
-            # Propagate dynamics
-            X[:, k + 1] = self.A @ X[:, k] + self.B @ U[:, k] + self.c
+            # Propagate using nonlinear dynamics (more accurate than linearized)
+            dt = self.settings.track_dt
+            xdot = self._est_sat.dynamics_core(X[:, k], U[:, k], self._os)
+            X[:, k + 1] = X[:, k] + dt * xdot
 
             # Normalize quaternion
             X[3:7, k + 1] = normalize(X[3:7, k + 1])
@@ -697,7 +708,11 @@ class TinyMPCSolverPy:
         # Build local reference trajectory for MPC horizon
         X_ref_local, U_ref_local = self.build_local_reference(t_current)
 
-        # Linearize dynamics about reference
+        # Store satellite and orbital state for nonlinear propagation
+        self._est_sat = est_sat
+        self._os = os
+
+        # Linearize dynamics about reference (for Riccati gains only)
         self.linearize_dynamics(x_ref_0, u_ref_0, est_sat, os)
 
         # Solve Riccati for LQR gains
@@ -1016,7 +1031,8 @@ class Plan_and_Track_TinyMPC_Py(PlanAndTrackBase):
             )
 
         # Solve TinyMPC
-        result = self._mpc.solve(x_hat, current_time, est_sat, os_hat)
+        result = self._mpc.solve(x_hat, current_time, est_sat, os_hat,
+                                 use_altro_gains=self.tinympc_settings.use_altro_gains)
 
         if self.tinympc_settings.verbose >= 1:
             status = "converged" if result.converged else "max_iter"

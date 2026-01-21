@@ -76,6 +76,10 @@ class TinyMPCSettings:
     replan_angvel_threshold: float = 5.0 * np.pi / 180     # 5 deg/s
     replan_min_interval: float = 10.0                       # seconds
 
+    # Control Mode
+    use_altro_gains: bool = True  # If True, use ALTRO's K gains with saturation (constrained TVLQR)
+                                  # If False, use full ADMM optimization
+
     # Verbosity
     verbose: int = 0
 
@@ -119,5 +123,6 @@ class TinyMPCSettings:
             "replan_attitude_threshold": self.replan_attitude_threshold,
             "replan_angvel_threshold": self.replan_angvel_threshold,
             "replan_min_interval": self.replan_min_interval,
+            "use_altro_gains": self.use_altro_gains,
             "verbose": self.verbose,
         }

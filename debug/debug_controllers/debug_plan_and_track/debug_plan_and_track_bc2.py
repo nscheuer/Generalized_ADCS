@@ -554,8 +554,8 @@ def test_plan_and_track_lqr(
     
     # High running cost forces EARLY convergence (not just terminal)
     # With type=0 + high running cost, error drops monotonically
-    planner_settings.cost_main.angle = 1e7
-    planner_settings.cost_main.angle_N = 1e8
+    planner_settings.cost_main.angle = 1e8
+    planner_settings.cost_main.angle_N = 1e9
     planner_settings.cost_main.ang_vel = 1e4
     planner_settings.cost_main.ang_vel_N = 1e5
 
@@ -565,10 +565,10 @@ def test_plan_and_track_lqr(
     
     # Iteration limits (balanced for speed vs quality)
     # Pass1 typically converges at outer=3, but leave margin
-    planner_settings.pass1.convergence.max_outer_iter = 8
-    planner_settings.pass1.convergence.max_inner_iter = 50
-    planner_settings.pass2.convergence.max_outer_iter = 5
-    planner_settings.pass2.convergence.max_inner_iter = 20
+    planner_settings.pass1.convergence.max_outer_iter = 10
+    planner_settings.pass1.convergence.max_inner_iter = 60
+    planner_settings.pass2.convergence.max_outer_iter = 7
+    planner_settings.pass2.convergence.max_inner_iter = 25
     
     # Other tuning
     planner_settings.init_traj.bdot_gain = 500
@@ -591,10 +591,10 @@ def test_plan_and_track_lqr(
     planner_settings.cost_tvlqr = CostWeights(
         angle=1e6,          # State error cost
         angle_N=1e7,        # Terminal state error cost
-        ang_vel=1e4,        # Angular velocity cost
-        ang_vel_N=1e5,      # Terminal angular velocity cost
-        control_mult=1e4,   # CRITICAL: Higher than cost_main to reduce gain aggressiveness
-        ang_cost_func_type=0,
+        ang_vel=1e7,        # Angular velocity cost
+        ang_vel_N=1e8,      # Terminal angular velocity cost
+        control_mult=1e6,   # CRITICAL: Higher than cost_main to reduce gain aggressiveness
+        ang_cost_func_type=2,
         use_raw_control_cost=True,
     )
 
