@@ -110,8 +110,8 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
         planner_settings.cost_main = CostWeights(
                 angle=1e1,
                 angle_N=1e1,   # 10x running cost
-                ang_vel=1e4,
-                ang_vel_N=1e4, # 10x running cost
+                ang_vel=1e5,
+                ang_vel_N=1e5, # 10x running cost
                 ang_vel_err_dir=1e2,
                 ang_vel_err_dir_N=0.0,
                 ang_vel_mag=0.0,
@@ -230,7 +230,7 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
 
 # --- Config Generator ---
 def generate_mc_config(run_id: int) -> Dict[str, Any]:
-    rng = np.random.default_rng(seed=run_id + 0)
+    rng = np.random.default_rng(seed=run_id + 238)
     
     # Matching initial condition randomization from debug/template
     return {
@@ -248,13 +248,13 @@ def generate_mc_config(run_id: int) -> Dict[str, Any]:
 
 if __name__ == "__main__":
     RUN_MC: bool = True
-    OUTPUT_DIR = "papers/3MTQ+1RW/output_data" # Adjusted folder name
+    OUTPUT_DIR = "papers/ALTRO_Compare/output_data" # Adjusted folder name
 
     if RUN_MC:
         runner = MonteCarloRunner(
             sim_func=run_single_sim,
             config_generator=generate_mc_config,
-            num_runs=100,
+            num_runs=24,
             max_workers=24
         )
         full_results = runner.run()
