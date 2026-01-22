@@ -72,11 +72,12 @@ def compute_angular_velocity_magnitude(state_hist: np.ndarray) -> np.ndarray:
 
 def run_altro_tuning(
     settings: Dict[str, Any],
-    tf: float = 100,
+    tf: float = 500,
     dt: float = 1,
     seed: int = 42,
     verbose: bool = False,
-    run_name: str = "test"
+    run_name: str = "test",
+    use_simple_ic: bool = True,  # Use simple ICs like original debug script
 ) -> Dict[str, Any]:
     """
     Run a single ALTRO tuning test with given settings.
@@ -90,24 +91,34 @@ def run_altro_tuning(
     # Create satellite
     real_sat = create_beavercube2_cubesat()
     
-    # Initial conditions - randomized
-    rw_h0 = np.random.uniform(-0.0001, 0.0001)
-    w0 = random_n_unit_vec(3) * np.random.uniform(0.5, 2) * np.pi / 180.0
-    q0 = normalize(random_n_unit_vec(4))
-    h0 = np.array([rw_h0])
-    x0 = np.concatenate([w0, q0, h0])
+    if use_simple_ic:
+        # Simple ICs from original debug_altro_bc2_3+1.py
+        w0 = np.array([0, 0, 0])
+        q0 = normalize(np.array([1, 0, 0, 0]))  # Identity quaternion
+        h0 = np.array([0.0001])
+        x0 = np.concatenate([w0, q0, h0])
+        goal_vec = np.array([0, 0, 1])  # Point body Y at +Z ECI (90° slew)
+        
+        # Simple orbit
+        ephem = Ephemeris()
+        R = 7000 * np.array([0, np.sqrt(2)/2, np.sqrt(2)/2])
+        V = np.array([8, 0, 0])
+        os0 = Orbital_State(ephem=ephem, J2000=0.22, R=R, V=V)
+    else:
+        # Random ICs
+        rw_h0 = np.random.uniform(-0.0001, 0.0001)
+        w0 = random_n_unit_vec(3) * np.random.uniform(0.5, 2) * np.pi / 180.0
+        q0 = normalize(random_n_unit_vec(4))
+        h0 = np.array([rw_h0])
+        x0 = np.concatenate([w0, q0, h0])
+        goal_vec = normalize(random_n_unit_vec(3))
+        
+        ephem = Ephemeris()
+        R = 7000 * normalize(random_n_unit_vec(3))
+        V = np.cross(R, random_n_unit_vec(3))
+        V = normalize(V) * np.sqrt(398600.4418 / np.linalg.norm(R))
+        os0 = Orbital_State(ephem=ephem, J2000=0.22, R=R, V=V)
     
-    # Random goal direction
-    goal_vec = normalize(random_n_unit_vec(3))
-    
-    # Create orbit
-    ephem = Ephemeris()
-    start_time = 0.22 - 1 * TimeConstants.sec2cent
-    R = 7000 * normalize(random_n_unit_vec(3))
-    V = np.cross(R, random_n_unit_vec(3))
-    V = normalize(V) * np.sqrt(398600.4418 / np.linalg.norm(R))  # Circular orbit velocity
-    
-    os0 = Orbital_State(ephem=ephem, J2000=start_time, R=R, V=V)
     end_time = 0.22 + (tf - t0) * TimeConstants.sec2cent
     orb = Orbit(os0=os0, end_time=end_time, dt=dt, use_J2=True, fast=True)
     
@@ -121,6 +132,12 @@ def run_altro_tuning(
     )
     planner_settings.verbosity = verbose
     
+    # Control weights
+    planner_settings.mtq_control_weight = settings.get("mtq_control_weight", 1e3)
+    planner_settings.rw_control_weight = settings.get("rw_control_weight", 1e7)
+    planner_settings.rw_AM_weight = settings.get("rw_AM_weight", 1e4)
+    planner_settings.rw_stic_weight = settings.get("rw_stic_weight", 1e0)
+    
     # Cost weights
     planner_settings.cost_main = CostWeights(
         angle=settings.get("angle", 1e3),
@@ -132,6 +149,7 @@ def run_altro_tuning(
         control_mult=settings.get("control_mult", 1.0),
         ang_cost_func_type=settings.get("ang_cost_func_type", 2),
     )
+    planner_settings.cost_main.use_full_cost_hessian = settings.get("use_full_cost_hessian", True)
     
     planner_settings.cost_tvlqr = CostWeights(
         angle=settings.get("tvlqr_angle", 1e2),
@@ -153,14 +171,26 @@ def run_altro_tuning(
     # Aug lag settings
     planner_settings.pass1.aug_lag.penalty_init = settings.get("penalty_init", 100)
     
-    # Regularization
-    planner_settings.cost_main.use_full_cost_hessian = settings.get("use_full_cost_hessian", True)
+    # Regularization / Hessian settings
     planner_settings.pass1.regularization.use_dynamics_hess = settings.get("use_dynamics_hess", 1)
+    planner_settings.pass1.regularization.use_constraint_hess = settings.get("use_constraint_hess", 0)
     
     controller = Plan_and_Track_LQR(est_sat=real_sat, planner_settings=planner_settings)
     
     # Goal
     goals = GoalList({0.22: ECI_Goal(goal_vec)})
+    
+    # Compute initial error
+    body_boresight = np.array([0, 1, 0])
+    q_init = normalize(x0[3:7])
+    q0_, q1_, q2_, q3_ = q_init
+    R_init = np.array([
+        [1 - 2*(q2_**2 + q3_**2), 2*(q1_*q2_ - q0_*q3_), 2*(q1_*q3_ + q0_*q2_)],
+        [2*(q1_*q2_ + q0_*q3_), 1 - 2*(q1_**2 + q3_**2), 2*(q2_*q3_ - q0_*q1_)],
+        [2*(q1_*q3_ - q0_*q2_), 2*(q2_*q3_ + q0_*q1_), 1 - 2*(q1_**2 + q2_**2)]
+    ])
+    body_in_eci_init = R_init @ body_boresight
+    initial_error = np.arccos(np.clip(np.dot(body_in_eci_init, goal_vec), -1, 1)) * 180 / np.pi
     
     # Plan trajectory
     t_plan_start = time.perf_counter()
@@ -194,6 +224,7 @@ def run_altro_tuning(
             "traj_valid": False,
             "error": plan_error,
             "plan_time": plan_time,
+            "initial_error": initial_error,
         }
     
     # Arrays for results
@@ -259,10 +290,9 @@ def run_altro_tuning(
     final_w_traj = w_mag_traj[-1]
     
     # Time to settle to < 1 degree (and stay there)
-    settle_time_sim = tf  # Default if never settles
+    settle_time_sim = tf
     for i, err in enumerate(errors_sim):
         if err < 1.0:
-            # Check if it stays below 1 degree for the rest
             if all(errors_sim[i:] < 1.0):
                 settle_time_sim = time_hist[i]
                 break
@@ -289,6 +319,15 @@ def run_altro_tuning(
                 settle_05_traj = time_hist_traj[i]
                 break
     
+    # Check for oscillation (max error after reaching < 5 deg)
+    max_error_after_converge_traj = 0
+    converged = False
+    for i, err in enumerate(errors_traj):
+        if err < 5.0:
+            converged = True
+        if converged:
+            max_error_after_converge_traj = max(max_error_after_converge_traj, err)
+    
     return {
         "run_name": run_name,
         "settings": settings,
@@ -311,6 +350,7 @@ def run_altro_tuning(
         "w_mag_traj": w_mag_traj,
         "boresight": boresight_hist,
         # Metrics
+        "initial_error": initial_error,
         "final_error_sim": final_error_sim,
         "final_error_traj": final_error_traj,
         "final_w_sim": final_w_sim,
@@ -319,6 +359,7 @@ def run_altro_tuning(
         "settle_time_traj": settle_time_traj,
         "settle_05_sim": settle_05_sim,
         "settle_05_traj": settle_05_traj,
+        "max_error_after_converge_traj": max_error_after_converge_traj,
         # Initial conditions
         "x0": x0,
         "goal_vec": goal_vec,
@@ -349,7 +390,7 @@ def save_results(results: Dict[str, Any], run_name: str):
             goal_vec=results["goal_vec"],
         )
     
-    # Save metadata as JSON (convert numpy types)
+    # Save metadata as JSON
     metadata = {
         "run_name": results["run_name"],
         "settings": results["settings"],
@@ -359,6 +400,7 @@ def save_results(results: Dict[str, Any], run_name: str):
         "traj_valid": results["traj_valid"],
         "plan_time": results.get("plan_time", None),
         "rtf": results.get("rtf", None),
+        "initial_error": float(results.get("initial_error", 0)),
         "final_error_sim": float(results.get("final_error_sim", 999)),
         "final_error_traj": float(results.get("final_error_traj", 999)),
         "final_w_sim": float(results.get("final_w_sim", 999)),
@@ -367,6 +409,7 @@ def save_results(results: Dict[str, Any], run_name: str):
         "settle_time_traj": float(results.get("settle_time_traj", results["tf"])),
         "settle_05_sim": float(results.get("settle_05_sim", results["tf"])),
         "settle_05_traj": float(results.get("settle_05_traj", results["tf"])),
+        "max_error_after_converge_traj": float(results.get("max_error_after_converge_traj", 0)),
         "error": results.get("error", None),
         "timestamp": datetime.now().isoformat(),
     }
@@ -399,7 +442,7 @@ def plot_results(results: Dict[str, Any], run_name: str, show: bool = False):
     
     # Figure 1: Pointing Error
     fig1, ax1 = plt.subplots(figsize=(10, 6))
-    ax1.plot(time_traj, errors_traj, 'b-', label='Planned Trajectory', alpha=0.7)
+    ax1.plot(time_traj, errors_traj, 'b-', label='Planned Trajectory', alpha=0.7, linewidth=2)
     ax1.plot(time_sim, errors_sim, 'r--', label='Simulated (TVLQR)', linewidth=1.5)
     ax1.axhline(y=1.0, color='g', linestyle=':', label='1° threshold')
     ax1.axhline(y=0.5, color='orange', linestyle=':', label='0.5° threshold')
@@ -408,26 +451,27 @@ def plot_results(results: Dict[str, Any], run_name: str, show: bool = False):
     ax1.set_title(f'Pointing Error - {run_name}')
     ax1.legend()
     ax1.grid(True, alpha=0.3)
-    ax1.set_ylim([0, max(errors_sim.max(), errors_traj.max()) * 1.1])
+    ax1.set_ylim([0, min(100, max(errors_sim.max(), errors_traj.max()) * 1.1)])
     
     # Add metrics text
     metrics_text = (
-        f"Final error (sim): {results['final_error_sim']:.2f}°\n"
+        f"Initial error: {results['initial_error']:.1f}°\n"
         f"Final error (traj): {results['final_error_traj']:.2f}°\n"
-        f"Settle <1° (sim): {results['settle_time_sim']:.1f}s\n"
-        f"Settle <0.5° (sim): {results['settle_05_sim']:.1f}s\n"
-        f"Plan time: {results['plan_time']:.1f}s (RTF: {results['rtf']:.2f}x)"
+        f"Final error (sim): {results['final_error_sim']:.2f}°\n"
+        f"Settle <1° (traj): {results['settle_time_traj']:.0f}s\n"
+        f"Final ω (traj): {results['final_w_traj']:.2f}°/s\n"
+        f"Plan time: {results['plan_time']:.1f}s"
     )
     ax1.text(0.98, 0.98, metrics_text, transform=ax1.transAxes, 
              verticalalignment='top', horizontalalignment='right',
-             bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
+             bbox=dict(boxstyle='round', facecolor='white', alpha=0.8), fontsize=9)
     
     fig1.tight_layout()
     fig1.savefig(os.path.join(run_dir, "pointing_error.png"), dpi=150)
     
     # Figure 2: Angular Velocity
     fig2, ax2 = plt.subplots(figsize=(10, 6))
-    ax2.plot(time_traj, w_mag_traj, 'b-', label='Planned Trajectory', alpha=0.7)
+    ax2.plot(time_traj, w_mag_traj, 'b-', label='Planned Trajectory', alpha=0.7, linewidth=2)
     ax2.plot(time_sim, w_mag_sim, 'r--', label='Simulated (TVLQR)', linewidth=1.5)
     ax2.set_xlabel('Time [s]')
     ax2.set_ylabel('Angular Velocity Magnitude [deg/s]')
@@ -444,21 +488,19 @@ def plot_results(results: Dict[str, Any], run_name: str, show: bool = False):
     # MTQ control
     ax3a = axes3[0]
     for i in range(min(3, u_traj.shape[1])):
-        ax3a.plot(time_traj, u_traj[:, i], alpha=0.7, label=f'MTQ {i+1} (traj)')
-    for i in range(min(3, u_sim.shape[1])):
-        ax3a.plot(time_sim, u_sim[:, i], '--', alpha=0.7, label=f'MTQ {i+1} (sim)')
-    ax3a.set_ylabel('MTQ Dipole [Am²]')
+        ax3a.plot(time_traj, u_traj[:, i]*1000, alpha=0.7, label=f'MTQ {i+1} (traj)')
+    ax3a.set_ylabel('MTQ Dipole [mAm²]')
     ax3a.set_title(f'Control Effort - {run_name}')
-    ax3a.legend(loc='upper right', ncol=2, fontsize=8)
+    ax3a.legend(loc='upper right', fontsize=8)
     ax3a.grid(True, alpha=0.3)
     
     # RW control (if present)
     ax3b = axes3[1]
     if u_traj.shape[1] > 3:
-        ax3b.plot(time_traj, u_traj[:, 3], 'b-', alpha=0.7, label='RW (traj)')
-        ax3b.plot(time_sim, u_sim[:, 3], 'r--', alpha=0.7, label='RW (sim)')
+        ax3b.plot(time_traj, u_traj[:, 3]*1000, 'b-', alpha=0.7, label='RW (traj)')
+        ax3b.plot(time_sim, u_sim[:, 3]*1000, 'r--', alpha=0.7, label='RW (sim)')
     ax3b.set_xlabel('Time [s]')
-    ax3b.set_ylabel('RW Torque [Nm]')
+    ax3b.set_ylabel('RW Torque [mNm]')
     ax3b.legend()
     ax3b.grid(True, alpha=0.3)
     
@@ -468,7 +510,7 @@ def plot_results(results: Dict[str, Any], run_name: str, show: bool = False):
     # Figure 4: RW Momentum
     fig4, ax4 = plt.subplots(figsize=(10, 6))
     if state_traj.shape[1] > 7:
-        ax4.plot(time_traj, state_traj[:, 7] * 1000, 'b-', label='Planned Trajectory', alpha=0.7)
+        ax4.plot(time_traj, state_traj[:, 7] * 1000, 'b-', label='Planned Trajectory', alpha=0.7, linewidth=2)
         ax4.plot(time_sim, state_sim[:, 7] * 1000, 'r--', label='Simulated (TVLQR)', linewidth=1.5)
     ax4.set_xlabel('Time [s]')
     ax4.set_ylabel('RW Momentum [mNms]')
@@ -479,224 +521,107 @@ def plot_results(results: Dict[str, Any], run_name: str, show: bool = False):
     fig4.tight_layout()
     fig4.savefig(os.path.join(run_dir, "rw_momentum.png"), dpi=150)
     
-    # Figure 5: State components
-    fig5, axes5 = plt.subplots(3, 1, figsize=(10, 10), sharex=True)
-    
-    # Angular velocity components
-    ax5a = axes5[0]
-    labels_w = ['ωx', 'ωy', 'ωz']
-    for i in range(3):
-        ax5a.plot(time_traj, state_traj[:, i] * 180/np.pi, alpha=0.7, label=f'{labels_w[i]} (traj)')
-        ax5a.plot(time_sim, state_sim[:, i] * 180/np.pi, '--', alpha=0.7, label=f'{labels_w[i]} (sim)')
-    ax5a.set_ylabel('Angular Velocity [deg/s]')
-    ax5a.legend(loc='upper right', ncol=2, fontsize=8)
-    ax5a.grid(True, alpha=0.3)
-    ax5a.set_title(f'State History - {run_name}')
-    
-    # Quaternion
-    ax5b = axes5[1]
-    labels_q = ['q0', 'q1', 'q2', 'q3']
-    for i in range(4):
-        ax5b.plot(time_traj, state_traj[:, 3+i], alpha=0.7, label=f'{labels_q[i]} (traj)')
-        ax5b.plot(time_sim, state_sim[:, 3+i], '--', alpha=0.7, label=f'{labels_q[i]} (sim)')
-    ax5b.set_ylabel('Quaternion')
-    ax5b.legend(loc='upper right', ncol=2, fontsize=8)
-    ax5b.grid(True, alpha=0.3)
-    
-    # RW momentum
-    ax5c = axes5[2]
-    if state_traj.shape[1] > 7:
-        ax5c.plot(time_traj, state_traj[:, 7] * 1000, 'b-', label='h (traj)')
-        ax5c.plot(time_sim, state_sim[:, 7] * 1000, 'r--', label='h (sim)')
-    ax5c.set_xlabel('Time [s]')
-    ax5c.set_ylabel('RW Momentum [mNms]')
-    ax5c.legend()
-    ax5c.grid(True, alpha=0.3)
-    
-    fig5.tight_layout()
-    fig5.savefig(os.path.join(run_dir, "state_history.png"), dpi=150)
-    
     plt.close('all')
     print(f"Plots saved to {run_dir}")
-    
-    if show:
-        plt.show()
 
 
 def print_summary(results: Dict[str, Any]):
     """Print summary of results."""
-    print("\n" + "="*60)
+    print("\n" + "="*70)
     print(f"RUN: {results['run_name']}")
-    print("="*60)
+    print("="*70)
     
     if not results.get("traj_valid", False):
         print(f"❌ FAILED: {results.get('error', 'Unknown error')}")
         print(f"Plan time: {results.get('plan_time', 0):.2f}s")
         return
     
-    print(f"✅ Trajectory valid")
-    print(f"Plan time: {results['plan_time']:.2f}s (RTF: {results['rtf']:.3f}x)")
+    print(f"✅ Trajectory valid | Plan time: {results['plan_time']:.1f}s")
+    print(f"Initial error: {results['initial_error']:.1f}°")
     print(f"\nPlanned trajectory:")
-    print(f"  Final error: {results['final_error_traj']:.3f}°")
-    print(f"  Final ω: {results['final_w_traj']:.4f}°/s")
-    print(f"  Settle <1°: {results['settle_time_traj']:.1f}s")
-    print(f"  Settle <0.5°: {results['settle_05_traj']:.1f}s")
+    print(f"  Final error: {results['final_error_traj']:.3f}° | Final ω: {results['final_w_traj']:.3f}°/s")
+    print(f"  Settle <1°: {results['settle_time_traj']:.0f}s | Settle <0.5°: {results['settle_05_traj']:.0f}s")
+    if results.get('max_error_after_converge_traj', 0) > 5:
+        print(f"  ⚠️  Max error after converge: {results['max_error_after_converge_traj']:.1f}° (OSCILLATING)")
     print(f"\nSimulated (TVLQR):")
-    print(f"  Final error: {results['final_error_sim']:.3f}°")
-    print(f"  Final ω: {results['final_w_sim']:.4f}°/s")
-    print(f"  Settle <1°: {results['settle_time_sim']:.1f}s")
-    print(f"  Settle <0.5°: {results['settle_05_sim']:.1f}s")
-    print("="*60)
+    print(f"  Final error: {results['final_error_sim']:.3f}° | Final ω: {results['final_w_sim']:.3f}°/s")
+    print(f"  Settle <1°: {results['settle_time_sim']:.0f}s | Settle <0.5°: {results['settle_05_sim']:.0f}s")
+    print("="*70)
 
 
-def run_tuning_batch(settings_list: List[Dict[str, Any]], tf: float = 100, dt: float = 1, 
-                     seeds: List[int] = [42], verbose: bool = False):
-    """Run batch of tuning tests with different settings."""
-    all_results = []
+def print_trajectory_profile(results: Dict[str, Any]):
+    """Print error profile over time."""
+    if not results.get("traj_valid", False):
+        return
     
-    for i, settings in enumerate(settings_list):
-        run_base_name = settings.get("name", f"config_{i}")
-        
-        for seed in seeds:
-            run_name = f"{run_base_name}_seed{seed}"
-            print(f"\n{'='*60}")
-            print(f"Running: {run_name}")
-            print(f"Settings: {settings}")
-            print(f"{'='*60}")
-            
-            results = run_altro_tuning(
-                settings=settings,
-                tf=tf,
-                dt=dt,
-                seed=seed,
-                verbose=verbose,
-                run_name=run_name
-            )
-            
-            print_summary(results)
-            save_results(results, run_name)
-            plot_results(results, run_name)
-            
-            all_results.append(results)
+    errors_traj = results["errors_traj"]
+    w_mag_traj = results["w_mag_traj"]
+    time_traj = results["time_traj"]
     
-    return all_results
+    print("\nTrajectory profile:")
+    for t in [0, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500]:
+        if t > results["tf"]:
+            break
+        idx = np.argmin(np.abs(time_traj - t))
+        print(f"  t={t:3.0f}s: err={errors_traj[idx]:6.1f}° ω={w_mag_traj[idx]:.2f}°/s")
 
 
 # ============================================================================
-# MAIN - Define settings to test
+# MAIN
 # ============================================================================
 
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument("--tf", type=float, default=200, help="Duration in seconds")
-    parser.add_argument("--seed", type=int, default=42, help="Random seed")
-    parser.add_argument("--config", type=str, default="baseline", help="Config name")
+    parser.add_argument("--tf", type=float, default=500, help="Duration in seconds")
+    parser.add_argument("--name", type=str, default="test", help="Run name")
     args = parser.parse_args()
     
-    # Different configurations to test
-    configs = {
-        "baseline": {
-            "name": "baseline",
-            "dt_tp": 10,
-            "bdot_on": 0,
-            "angle": 1e3,
-            "angle_N": 1e6,
-            "ang_vel": 1e3,
-            "ang_vel_N": 1e5,
-            "control_mult": 1.0,
-            "max_outer_iter": 8,
-            "max_inner_iter": 40,
-            "pass2_max_outer": 5,
-            "pass2_max_inner": 15,
-            "penalty_init": 100,
-            "use_full_cost_hessian": True,
-            "use_dynamics_hess": 1,
-        },
-        "high_terminal": {
-            "name": "high_terminal",
-            "dt_tp": 10,
-            "bdot_on": 0,
-            "angle": 1e2,
-            "angle_N": 1e8,   # Much higher terminal cost
-            "ang_vel": 1e2,
-            "ang_vel_N": 1e8, # Much higher terminal velocity cost
-            "control_mult": 0.1,  # Lower control penalty
-            "max_outer_iter": 15,
-            "max_inner_iter": 50,
-            "pass2_max_outer": 8,
-            "pass2_max_inner": 20,
-            "penalty_init": 100,
-            "use_full_cost_hessian": True,
-            "use_dynamics_hess": 1,
-        },
-        "balanced": {
-            "name": "balanced",
-            "dt_tp": 10,
-            "bdot_on": 0,
-            "angle": 1e4,      # Higher running angle cost
-            "angle_N": 1e6,
-            "ang_vel": 1e4,    # Higher running velocity cost  
-            "ang_vel_N": 1e6,
-            "control_mult": 1.0,
-            "max_outer_iter": 10,
-            "max_inner_iter": 50,
-            "pass2_max_outer": 5,
-            "pass2_max_inner": 20,
-            "penalty_init": 100,
-            "use_full_cost_hessian": True,
-            "use_dynamics_hess": 1,
-        },
-        "aggressive": {
-            "name": "aggressive",
-            "dt_tp": 10,
-            "bdot_on": 0,
-            "angle": 1e5,      # Very high angle cost
-            "angle_N": 1e8,
-            "ang_vel": 1e3,    # Lower velocity cost (allow fast rotation)
-            "ang_vel_N": 1e6,
-            "control_mult": 0.1,  # Allow more control
-            "max_outer_iter": 15,
-            "max_inner_iter": 60,
-            "pass2_max_outer": 8,
-            "pass2_max_inner": 25,
-            "penalty_init": 50,
-            "use_full_cost_hessian": True,
-            "use_dynamics_hess": 1,
-        },
-        "smooth": {
-            "name": "smooth",
-            "dt_tp": 10,
-            "bdot_on": 0,
-            "angle": 1e3,
-            "angle_N": 1e6,
-            "ang_vel": 1e5,    # Higher velocity penalty for smoothness
-            "ang_vel_N": 1e7,
-            "control_mult": 10.0,  # Higher control penalty
-            "max_outer_iter": 10,
-            "max_inner_iter": 50,
-            "pass2_max_outer": 5,
-            "pass2_max_inner": 20,
-            "penalty_init": 100,
-            "use_full_cost_hessian": True,
-            "use_dynamics_hess": 1,
-        },
+    # Test configuration
+    settings = {
+        "name": args.name,
+        # Timestep settings
+        "dt_tp": 10,
+        "dt_tvlqr": 1,
+        "bdot_on": 3,  # Use bdot initial guess
+        
+        # Control weights (actuator preference)
+        "mtq_control_weight": 1e3,
+        "rw_control_weight": 1e7,
+        "rw_AM_weight": 1e4,
+        "rw_stic_weight": 1e0,
+        
+        # Cost weights
+        "angle": 1e4,
+        "angle_N": 1e6,
+        "ang_vel": 1e3,
+        "ang_vel_N": 1e5,
+        "control_mult": 1.0,
+        
+        # Hessian settings
+        "use_full_cost_hessian": True,
+        "use_dynamics_hess": 1,
+        "use_constraint_hess": 0,
+        
+        # Iteration settings
+        "max_outer_iter": 10,
+        "max_inner_iter": 40,
+        "pass2_max_outer": 5,
+        "pass2_max_inner": 15,
+        "penalty_init": 100,
     }
-    
-    settings = configs.get(args.config, configs["baseline"])
-    
-    print(f"Running with config: {args.config}")
-    print(f"Duration: {args.tf}s, Seed: {args.seed}")
     
     results = run_altro_tuning(
         settings=settings,
         tf=args.tf,
         dt=1,
-        seed=args.seed,
+        seed=42,
         verbose=False,
-        run_name=f"{args.config}_tf{int(args.tf)}_seed{args.seed}"
+        run_name=args.name,
+        use_simple_ic=True,
     )
     
     print_summary(results)
-    save_results(results, f"{args.config}_tf{int(args.tf)}_seed{args.seed}")
-    plot_results(results, f"{args.config}_tf{int(args.tf)}_seed{args.seed}")
+    print_trajectory_profile(results)
+    save_results(results, args.name)
+    plot_results(results, args.name)
