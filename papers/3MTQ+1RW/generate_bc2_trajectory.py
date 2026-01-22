@@ -99,28 +99,32 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
         planner_settings.pass1.regularization.use_dynamics_hess = 1
         planner_settings.init_traj.bdot_gain = 500
         planner_settings.pass1.aug_lag.penalty_init = 1e-3
-        planner_settings.pass1.aug_lag.penalty_scale = 2.0
+        planner_settings.pass1.aug_lag.penalty_scale = 10
         planner_settings.pass1.convergence.max_outer_iter = 15
         planner_settings.pass1.convergence.max_inner_iter = 40
         planner_settings.pass2.aug_lag.penalty_init = 1e5
-        planner_settings.pass2.aug_lag.penalty_scale = 0.5
+        planner_settings.pass2.aug_lag.penalty_scale = 10
         planner_settings.pass2.convergence.max_outer_iter = 8
         planner_settings.pass2.convergence.max_inner_iter = 20
 
         planner_settings.cost_main = CostWeights(
-                angle=1e7,
-                angle_N=1e7,   # 10x running cost
-                ang_vel=1e3,
-                ang_vel_N=1e3, # 10x running cost
+                angle=1e1,
+                angle_N=1e1,   # 10x running cost
+                ang_vel=1e4,
+                ang_vel_N=1e4, # 10x running cost
+                ang_vel_err_dir=1e2,
+                ang_vel_err_dir_N=0.0,
                 ang_vel_mag=0.0,
                 ang_vel_mag_N=0.0,
                 control_mult=1.0,
                 ang_cost_func_type=2,
             )
         
+        planner_settings.cost_second = planner_settings.cost_main
+        
         planner_settings.cost_tvlqr = CostWeights(
-                angle=1e2,
-                angle_N=1e3,
+                angle=1e3,
+                angle_N=1e4,
                 ang_vel=1e6,
                 ang_vel_N=1e8,
                 ang_vel_mag=0.0,
@@ -226,7 +230,7 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
 
 # --- Config Generator ---
 def generate_mc_config(run_id: int) -> Dict[str, Any]:
-    rng = np.random.default_rng(seed=run_id + 1000)
+    rng = np.random.default_rng(seed=run_id + 0)
     
     # Matching initial condition randomization from debug/template
     return {
@@ -244,19 +248,19 @@ def generate_mc_config(run_id: int) -> Dict[str, Any]:
 
 if __name__ == "__main__":
     RUN_MC: bool = True
-    OUTPUT_DIR = "papers/ALTRO_Compare/output_data" # Adjusted folder name
+    OUTPUT_DIR = "papers/3MTQ+1RW/output_data" # Adjusted folder name
 
     if RUN_MC:
         runner = MonteCarloRunner(
             sim_func=run_single_sim,
             config_generator=generate_mc_config,
-            num_runs=24,
+            num_runs=100,
             max_workers=24
         )
         full_results = runner.run()
 
         print(f"\n--- Monte Carlo Complete: Generated {len(full_results)} histories ---")
-        save_data("ALTRO_MC_100_500s", full_results, out_dir=OUTPUT_DIR)
+        save_data("3MTQ+1RW_MC_24_500s", full_results, out_dir=OUTPUT_DIR)
 
         plot_target_tracking_mc(full_results=full_results, body_boresight=np.array([0, 1, 0]), title="ALTRO Trajectory Tracking MC:100")
         plot_convergence_histogram_mc(full_results=full_results, body_boresight=np.array([0, 1, 0]), title="ALTRO Convergence")

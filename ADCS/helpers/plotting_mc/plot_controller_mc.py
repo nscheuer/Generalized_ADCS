@@ -109,7 +109,7 @@ def plot_target_tracking_mc(
     # Normalize the fixed body vector once
     v_bore_body = body_boresight / np.linalg.norm(body_boresight)
     
-    plt.figure(figsize=(5, 3))
+    plt.figure(figsize=(10, 6))
     
     # Iterate through every MC run
     for run_idx, res in enumerate(full_results):
@@ -289,7 +289,7 @@ def plot_convergence_histogram_mc(
     max_edge = np.ceil(errors_deg.max() / bin_width_deg) * bin_width_deg
     bins = np.arange(0.0, max_edge + bin_width_deg, bin_width_deg)
 
-    plt.figure(figsize=(5, 3))
+    plt.figure(figsize=(10, 6))
     plt.hist(errors_deg, bins=bins, edgecolor="black")
     plt.xlabel("Final Tracking Error [deg]")
     plt.ylabel("Count")
