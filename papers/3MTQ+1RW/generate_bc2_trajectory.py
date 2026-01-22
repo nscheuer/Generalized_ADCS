@@ -88,47 +88,46 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
         # 5. Controller Setup (Exact settings from debug_altro)
         planner_settings = PlannerSettings(
             est_sat=real_sat,
-            bdot_on=1,  # Skip bdot initial guess
+            bdot_on=0,  # Skip bdot initial guess
             dt_tp=100,
             dt_tvlqr=1,
         )
         
         # --- Apply Debug Gains and Costs ---
-        planner_settings.verbosity = False # Silence internal planner prints for MC
+        planner_settings.verbosity = False
         planner_settings.cost_main.use_full_cost_hessian = True
         planner_settings.pass1.regularization.use_dynamics_hess = 1
         planner_settings.init_traj.bdot_gain = 500
-        planner_settings.cost_main.angle = 100
-        planner_settings.cost_main.angle_N = 50000 
-        planner_settings.pass1.aug_lag.penalty_init = 100
-        planner_settings.pass1.convergence.max_outer_iter = 8
+        planner_settings.pass1.aug_lag.penalty_init = 1e-3
+        planner_settings.pass1.convergence.max_outer_iter = 15
         planner_settings.pass1.convergence.max_inner_iter = 40
-        planner_settings.pass2.convergence.max_outer_iter = 5
+        planner_settings.pass2.aug_lag.penalty_init = 1
+        planner_settings.pass2.convergence.max_outer_iter = 10
         planner_settings.pass2.convergence.max_inner_iter = 15
 
-        planner_settings.rw_control_weight = 1e5
+        planner_settings.rw_control_weight = 1e13
 
         planner_settings.cost_main = CostWeights(
-            angle=1e5,
-            angle_N=1e5,   
-            ang_vel=1e7,
-            ang_vel_N=1e7, 
-            ang_vel_mag=0.0,
-            ang_vel_mag_N=0.0,
-            control_mult=1.0,
-            ang_cost_func_type=2,
-        )
+                angle=1e2,
+                angle_N=1e2,   # 10x running cost
+                ang_vel=1e18,
+                ang_vel_N=1e18, # 10x running cost
+                ang_vel_mag=0.0,
+                ang_vel_mag_N=0.0,
+                control_mult=1.0,
+                ang_cost_func_type=2,
+            )
         
         planner_settings.cost_tvlqr = CostWeights(
-            angle=1e2,
-            angle_N=1e3,
-            ang_vel=1e6,
-            ang_vel_N=1e8,
-            ang_vel_mag=0.0,
-            ang_vel_mag_N=0.0,
-            control_mult=1.0,
-            ang_cost_func_type=2,
-        )
+                angle=1e2,
+                angle_N=1e3,
+                ang_vel=1e6,
+                ang_vel_N=1e8,
+                ang_vel_mag=0.0,
+                ang_vel_mag_N=0.0,
+                control_mult=1.0,
+                ang_cost_func_type=2,
+            )
 
         controller = Plan_and_Track_LQR(est_sat=real_sat, planner_settings=planner_settings)
 
@@ -251,7 +250,7 @@ if __name__ == "__main__":
         runner = MonteCarloRunner(
             sim_func=run_single_sim,
             config_generator=generate_mc_config,
-            num_runs=24,
+            num_runs=12,
             max_workers=24
         )
         full_results = runner.run()

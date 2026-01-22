@@ -249,8 +249,8 @@ class InitTrajConfig:
     hl_angle_limit: float = 10.0 * np.pi / 180.0
     
     # (gyro, damp, vel, quat, rand, umax)
-    high_settings: tuple = (0, -2e0, 0, -0.005, 0.1, 0.5)
-    low_settings: tuple = (0, -1e-4, 0, -0.00001, 0.1, 0.5)
+    high_settings: tuple = (0, -2e0, 0, 0.0, 0.0, 0.5)
+    low_settings: tuple = (0, -2e0, 0, 0.0, 0.0, 0.5)
 
     def to_tuple(self) -> Tuple[float, float, tuple, tuple]:
         return (self.bdot_gain, self.hl_angle_limit, self.high_settings, self.low_settings)
