@@ -158,10 +158,11 @@ class PlanAndTrackBase(Controller):
         buffer_centuries = 10 * dt_seconds * TimeConstants.sec2cent
         t_end_buffered = t_end + buffer_centuries
 
-        sim_orbit = Orbit(os0=os_0, end_time=t_end_buffered, dt=dt_seconds, use_J2=True, fast=False)
+        # Use fast=True for orbit propagation (position/velocity only) - much faster
+        # than fast=False which computes expensive IGRF/sun models at every RK4 step
+        sim_orbit = Orbit(os0=os_0, end_time=t_end_buffered, dt=dt_seconds, use_J2=True, fast=True)
         tp_orbit = sim_orbit.get_range(t_start, t_end, dt_seconds)
 
-        orbit_data_lists = tp_orbit.get_vecs()
         times_arr = np.asarray(tp_orbit.times, dtype=np.float64)
 
         # -------------------------
@@ -201,13 +202,7 @@ class PlanAndTrackBase(Controller):
                 return np.ascontiguousarray(x[:N], dtype=np.float64)
             return np.ascontiguousarray(np.pad(x, (0, N - x.shape[0]), mode="edge"), dtype=np.float64)
 
-        # -------------------------
-        # Orbit vectors: expect [R,V,B,S,Rho] from get_vecs()
-        # -------------------------
-        # Convert lists->arrays before shape logic
-        R_raw, V_raw, B_raw, S_raw, Rho_raw = [np.asarray(d) for d in orbit_data_lists]
-
-        # Clip/pad each (handles both (3,curN) and (curN,3))
+        # Helper: clip/pad matrices
         def clip_pad_mat(x):
             x = np.asarray(x, dtype=np.float64)
             if x.ndim != 2:
@@ -224,10 +219,41 @@ class PlanAndTrackBase(Controller):
                 return x
             return x
 
+        # -------------------------
+        # Get R, V from orbit (already computed during propagation)
+        # -------------------------
+        orbit_data_lists = tp_orbit.get_vecs()
+        R_raw, V_raw, _, _, Rho_raw = [np.asarray(d) for d in orbit_data_lists]
+        
         R = to_mat3xN("R", clip_pad_mat(R_raw))
         V = to_mat3xN("V", clip_pad_mat(V_raw))
-        B = to_mat3xN("B", clip_pad_mat(B_raw))
-        S = to_mat3xN("S", clip_pad_mat(S_raw))
+
+        # -------------------------
+        # Compute B-field using fast batch method (vectorized IGRF)
+        # This is ~100x faster than individual get_b_eci() calls
+        # -------------------------
+        B_batch = tp_orbit.get_b_eci_orbit()  # (curN, 3)
+        B = to_mat3xN("B", clip_pad_mat(B_batch))
+
+        # -------------------------
+        # Compute sun vectors using fast batch method (vectorized skyfield)
+        # -------------------------
+        S_batch = tp_orbit.get_sun_eci_orbit()  # (curN, 3)
+        S = to_mat3xN("S", clip_pad_mat(S_batch))
+
+        # -------------------------
+        # Compute atmospheric density
+        # -------------------------
+        rho_list = []
+        sample_state = tp_orbit.states[tp_orbit.times[0]]
+        for t in tp_orbit.times:
+            os_t = tp_orbit.states[t]
+            if sample_state.density_model is not None:
+                altitude = np.linalg.norm(os_t.R) - 6378.137  # km above Earth surface
+                rho_list.append(sample_state.density_model.interpolate(altitude))
+            else:
+                rho_list.append(0.0)
+        Rho_raw = np.array(rho_list)
         rho = to_vecN("Rho", Rho_raw)
 
         # -------------------------
@@ -259,7 +285,10 @@ class PlanAndTrackBase(Controller):
         x_0: np.ndarray,
         os_0: Orbital_State,
         goals: GoalList,
-        verbose: bool = False
+        verbose: bool = False,
+        vecsPy_precomputed: Tuple = None,
+        N_precomputed: int = None,
+        t_end_precomputed: float = None
     ) -> Tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]]:
         """
         Common trajectory calculation logic.
@@ -273,6 +302,10 @@ class PlanAndTrackBase(Controller):
             os_0: Initial orbital state
             goals: Goal list for attitude reference
             verbose: Whether to print debug information
+            vecsPy_precomputed: Optional pre-computed environment vectors (t, R, V, B, S, A, E, p, rho).
+                                If provided, skips slow orbit propagation.
+            N_precomputed: Number of timesteps (required if vecsPy_precomputed is provided)
+            t_end_precomputed: End time in J2000 centuries (required if vecsPy_precomputed is provided)
 
         Returns:
             Tuple of (lqr_times, Xset, Uset, Kset, Sset)
@@ -300,13 +333,19 @@ class PlanAndTrackBase(Controller):
                 f"Suggested fix: set dt_tp <= {suggested_dt_tp:.1f}s"
             )
 
-        # Calculate N
-        N = int(np.ceil(duration / dt_seconds)) + 1
-
-        t_end = t_start + (duration * TimeConstants.sec2cent)
-
-        # Propagate Environment
-        vecsPy = self._propagate_environment(os_0, t_start, t_end, dt_seconds, N, goals)
+        # Use pre-computed vectors if provided, otherwise propagate
+        if vecsPy_precomputed is not None:
+            if N_precomputed is None or t_end_precomputed is None:
+                raise ValueError("N_precomputed and t_end_precomputed must be provided with vecsPy_precomputed")
+            vecsPy = vecsPy_precomputed
+            N = N_precomputed
+            t_end = t_end_precomputed
+        else:
+            # Calculate N
+            N = int(np.ceil(duration / dt_seconds)) + 1
+            t_end = t_start + (duration * TimeConstants.sec2cent)
+            # Propagate Environment (slow)
+            vecsPy = self._propagate_environment(os_0, t_start, t_end, dt_seconds, N, goals)
 
         # SANITIZE x_0: Force Float64, Copy, and C-Order
         x_0_clean = np.copy(x_0.astype(np.float64).flatten(), order='C')

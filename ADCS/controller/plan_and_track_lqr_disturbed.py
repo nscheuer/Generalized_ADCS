@@ -123,7 +123,10 @@ class Plan_and_Track_LQR_Disturbed(PlanAndTrackBase):
         x_0: np.ndarray,
         os_0: Orbital_State,
         goals: GoalList,
-        verbose: bool = False
+        verbose: bool = False,
+        vecsPy_precomputed: tuple = None,
+        N_precomputed: int = None,
+        t_end_precomputed: float = None
     ) -> Trajectory:
         """
         Calculate an optimal trajectory using ALTRO with KwDist gains.
@@ -135,6 +138,9 @@ class Plan_and_Track_LQR_Disturbed(PlanAndTrackBase):
             os_0: Initial orbital state
             goals: Goal list defining the pointing objectives
             verbose: If True, print debug information
+            vecsPy_precomputed: Optional pre-computed environment vectors to skip slow orbit propagation
+            N_precomputed: Number of timesteps (required with vecsPy_precomputed)
+            t_end_precomputed: End time in J2000 centuries (required with vecsPy_precomputed)
 
         Returns:
             Trajectory object with KwDist gains (use_disturbance_estimation=True)
@@ -143,7 +149,8 @@ class Plan_and_Track_LQR_Disturbed(PlanAndTrackBase):
             print(f"Planning trajectory with KwDist: Start={t_start:.5f}, Dur={duration}s")
 
         lqr_times, Xset, Uset, Kset, Sset = self._calculate_trajectory_common(
-            t_start, duration, x_0, os_0, goals, verbose
+            t_start, duration, x_0, os_0, goals, verbose,
+            vecsPy_precomputed, N_precomputed, t_end_precomputed
         )
 
         # Create trajectory with disturbance estimation enabled

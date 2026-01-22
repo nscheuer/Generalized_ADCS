@@ -41,6 +41,12 @@
 // #include "PlannerPython.hpp"
 // #include "PlannerUtilPy.hpp"
 #include "../ArmaNumpy.hpp"
+
+// OpenMP for parallel cost computation
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 // #include <stdexcept>
 // #include <typeinfo>
 // #include <pybind11/numpy.h>
@@ -68,12 +74,17 @@ OldPlanner::OldPlanner(Satellite sat_in,ALL_SETTINGS_FORM allSettings){
  ALL_SETTINGS_FORM OldPlanner::readParameters() {
   return std::make_tuple( systemSettings,  alilqrSettings,  alilqrSettings2,  initialTrajSettings,  costSettings, costSettings2, costSettings_tvlqr_full);
 }
-void OldPlanner::setVerbosity(bool verbosity) {
-  //REMOVE BEFORE FLIGHT
-  verbose = verbosity;
+void OldPlanner::setVerbosity(int verbosity_level_in) {
+  // Verbosity levels:
+  //   0 = silent (no output)
+  //   1 = summary only (start/end of phases, final convergence)
+  //   2 = progress (outer iterations, convergence metrics)
+  //   3 = detailed (inner iterations, all costs, breaks)
+  //   4 = debug matrices (eigenvalues, jacobians, hessians)
+  verbose_level = verbosity_level_in;
 }
 void OldPlanner::updateParameters_notsat(SYSTEM_SETTINGS_FORM systemSettings_tmp, ALILQR_SETTINGS_FORM alilqrSettings_tmp, ALILQR_SETTINGS_FORM alilqrSettings2_tmp, INITIAL_TRAJ_SETTINGS_FORM initialTrajSettings_tmp, COST_SETTINGS_FORM costSettings_tmp,COST_SETTINGS_FORM costSettings2_tmp,LQR_COST_SETTINGS_FORM costSettings_tvlqr_tmp) {
-    verbose = true;
+    // verbose_level is set via setVerbosity(), not here
 
     costSettings = costSettings_tmp;
     costSettings2 = costSettings2_tmp;
@@ -249,7 +260,7 @@ BEFORE_OUTPUT_FORM OldPlanner::trajOptBefore(VECTOR_INFO_FORM vecs_w_time,double
 //  double penInit = this->penInit;//readJsonDouble(trajOptSettingsFile, "penInit");
   //double penScale = this->penScale;//readJsonDouble(trajOptSettingsFile, "penScale");
   mat ECIvec = get<6>(vecs);
-  // if(verbose) {
+  // if(verbose_level >= 2) {
   // }
   mat satvec = get<5>(vecs);
 
@@ -264,20 +275,15 @@ BEFORE_OUTPUT_FORM OldPlanner::trajOptBefore(VECTOR_INFO_FORM vecs_w_time,double
   mat TQ = mat(3,traj_length).fill(datum::nan);
   TRAJECTORY_FORM traj;
 
-  if(verbose){cout<<"setting bdotOn="<<bdotOn<<endl;}
+  if(verbose_level >= 1){cout<<"setting bdotOn="<<bdotOn<<endl;}
   if(bdotOn==0 || sat.number_MTQ<3 || bdotOn>3)
   {
-    if(verbose)
+    if(verbose_level >= 1)
     {
       cout<<"bdotOn is false, generating random initial trajectory!";
     }
     vec umax = join_cols(vec(sat.MTQ_max),0.1*vec(sat.RW_max_torq),0.1*vec(sat.magic_max_torq));
-    if(verbose){cout << "UMAX" << umax << "\n";}
     U = diagmat(umax)*randn(size(U))/RAND_MAX_INIT;
-    if(verbose)
-    {
-      cout<<U;
-    }
      traj = OldPlanner::generateInitialTrajectory(dt_use,x0, U, vecs);
      assert(approx_equal(get<1>(traj),U,"abstol",1e-10));
      X = get<0>(traj);
@@ -285,7 +291,7 @@ BEFORE_OUTPUT_FORM OldPlanner::trajOptBefore(VECTOR_INFO_FORM vecs_w_time,double
   else
   {
     std::tuple<TRAJECTORY_FORM,double> bdotout = OldPlanner::bdot(x0,dt_use,traj_length,vecs,costSettings_tmp,mu0);
-    if(verbose)
+    if(verbose_level >= 3)
     {
       cout<<"bdot attempted\n";
     }
@@ -293,13 +299,13 @@ BEFORE_OUTPUT_FORM OldPlanner::trajOptBefore(VECTOR_INFO_FORM vecs_w_time,double
     if (bdotOn == 2)
     {
       std::tuple<TRAJECTORY_FORM,double> sbdotout = OldPlanner::smartbdot(x0,dt_use,traj_length,vecs,costSettings_tmp,mu0,false);
-      if(verbose){cout<<"smart bdot complete\n";}
+      if(verbose_level >= 1){cout<<"smart bdot complete\n";}
       traj = std::get<0>(sbdotout);
       mat u0 = get<1>(traj);
-      if(verbose){cout<<size(get<0>(traj))<<" "<<size(get<1>(traj))<<"\n";}
+      if(verbose_level >= 3){cout<<size(get<0>(traj))<<" "<<size(get<1>(traj))<<"\n";}
       TRAJECTORY_FORM traj2 = OldPlanner::generateInitialTrajectory(dt_use,x0, u0,vecs);//+diagmat(mean(abs(u0),1)*randval)*(randu(size(u0))-0.5), vecs);
-      if(verbose){cout<<size(get<0>(traj2))<<" "<<size(get<1>(traj2))<<"\n";}
-      if(verbose){cout<<"smartbdot traj generated\n";}
+      if(verbose_level >= 3){cout<<size(get<0>(traj2))<<" "<<size(get<1>(traj2))<<"\n";}
+      if(verbose_level >= 1){cout<<"smartbdot traj generated\n";}
     }
     else if (bdotOn == 3)
     {
@@ -329,14 +335,17 @@ BEFORE_OUTPUT_FORM OldPlanner::trajOptBefore(VECTOR_INFO_FORM vecs_w_time,double
     U.cols(0,traj_length-1) = get<1>(traj);
     X = get<0>(traj);
     TQ = get<3>(traj);
-    if(verbose){cout<<x0<<dt_use<<traj_length<<mu0<<X.has_nan()<<U.has_nan()<<"\n";}
-    if((X.has_nan() || U.has_nan()) && verbose){
-        cout<<X<<"\n";
-        cout<<U<<"\n";
+    if(verbose_level >= 4){cout<<x0<<dt_use<<traj_length<<mu0<<X.has_nan()<<U.has_nan()<<"\n";}
+    if((X.has_nan() || U.has_nan()) && verbose_level >= 1){
+        cout<<"WARNING: Initial trajectory has NaN! X.has_nan()="<<X.has_nan()<<" U.has_nan()="<<U.has_nan()<<"\n";
+        if(verbose_level >= 4){
+          cout<<X<<"\n";
+          cout<<U<<"\n";
+        }
       }
   }
   traj = make_tuple(X,U,dt_timevec,TQ);
-  if(verbose){cout<<"initial traj done\n";}
+  if(verbose_level >= 1){cout<<"initial traj done\n";}
 
 
   return make_tuple(traj, vecs, costSettings_tmp);
@@ -362,8 +371,8 @@ AFTER_OUTPUT_FORM OldPlanner::trajOptAfter(VECTOR_INFO_FORM vecs_w_time,double d
 
   vec tvlqr_times = get<0>(vecs_tvlqr);
   int traj_length =tvlqr_times.n_elem;
-  if(verbose){cout<<" refs "<<traj_length<<"\n";}
-  if(verbose){cout<<"tvlqr times found\n";}
+  if(verbose_level >= 3){cout<<" refs "<<traj_length<<"\n";}
+  if(verbose_level >= 1){cout<<"tvlqr times found\n";}
   // VECTOR_INFO_FORM vecs_tvlqr = get<1>(time_tuple_tvlqr);
   mat Rset_tvlqr = get<1>(vecs_tvlqr);
   //COST_SETTINGS_FORM costSettings2 = this->costSettings2;
@@ -371,17 +380,33 @@ AFTER_OUTPUT_FORM OldPlanner::trajOptAfter(VECTOR_INFO_FORM vecs_w_time,double d
 
   OPT_FORM opt2;
   TRAJECTORY_FORM trajLong = make_tuple(Xset,Uset,time_vec.head(Xset.n_cols),TQset);
-  if(verbose) {
+  if(verbose_level >= 1) {
     cout<<"completed ALILQR successfully\n";
+  }
+  if(verbose_level >= 3) {
     cout<<dt_prev<<" "<<dt_tvlqr<<endl;
   }
   if(dt_prev/dt_tvlqr > 1){
     double colMissing = max(0,int(Rset_tvlqr.n_cols) - 1 - int((int(Uset.n_cols)-2)*dt_prev/dt_tvlqr));
 
-    if(verbose) {
+    if(verbose_level >= 3) {
       cout<<"colMiss: "<<colMissing<<"\n";
     }
-    mat UsetLong = join_rows(repelem(Uset.cols(0,Uset.n_cols-3),1,int(dt_prev/dt_tvlqr)),repelem(Uset.cols(Uset.n_cols-2,Uset.n_cols-2),1,colMissing),Uset.tail_cols(1));
+    
+    // Handle edge case where Uset has fewer than 3 columns
+    mat UsetLong;
+    if(Uset.n_cols >= 3) {
+      // Normal case: replicate intermediate columns to create finer timestep trajectory
+      UsetLong = join_rows(repelem(Uset.cols(0,Uset.n_cols-3),1,int(dt_prev/dt_tvlqr)),repelem(Uset.cols(Uset.n_cols-2,Uset.n_cols-2),1,colMissing),Uset.tail_cols(1));
+    } else if(Uset.n_cols == 2) {
+      // Only 2 columns: replicate first column, then add last column
+      int nReps = max(1, int(Rset_tvlqr.n_cols) - 1);
+      UsetLong = join_rows(repelem(Uset.col(0), 1, nReps), Uset.tail_cols(1));
+    } else {
+      // Only 1 column: replicate it to fill the needed length
+      int nReps = max(1, int(Rset_tvlqr.n_cols));
+      UsetLong = repelem(Uset.col(0), 1, nReps);
+    }
 
     trajLong = OldPlanner::generateInitialTrajectory(dt_tvlqr,Xset.col(0), UsetLong, vecs_tvlqr);
 
@@ -393,7 +418,7 @@ AFTER_OUTPUT_FORM OldPlanner::trajOptAfter(VECTOR_INFO_FORM vecs_w_time,double d
      opt2 = get<0>(alilqrOut2);
     // double muOut2 = std::get<1>(alilqrOut2);
      gradOut2 = std::get<2>(alilqrOut2);
-    if(verbose) {
+    if(verbose_level >= 1) {
       cout<<"completed full length ALILQR successfully\n";
     }
   }else{
@@ -426,7 +451,7 @@ AFTER_OUTPUT_FORM OldPlanner::trajOptAfter(VECTOR_INFO_FORM vecs_w_time,double d
   double col0 = 0 ;
   double col1 = col0 + (tvlqr_overlap_tmp/dt_tvlqr - 0*1);
   double col1u = 0;
-  if(verbose){cout<<"time to find K\n";}
+  if(verbose_level >= 1){cout<<"time to find K\n";}
 
   mat K2 = get<3>(opt2);
   mat U_lqr = get<1>(opt2);
@@ -452,7 +477,7 @@ AFTER_OUTPUT_FORM OldPlanner::trajOptAfter(VECTOR_INFO_FORM vecs_w_time,double d
       VECTOR_INFO_FORM vecs_tvlqr_tmp = findVecTimes(vecs_w_time,dt_tvlqr/(36525.0*24.0*3600.0),time_start_tmp,time_end_tmp+0*dt_tvlqr/(36525.0*24.0*3600.0));
 
 
-      if(verbose){cout<<col0<<" "<<col1<<" "<<col1u<<" "<<Rset_tvlqr.n_cols<<"\n";}
+      if(verbose_level >= 4){cout<<col0<<" "<<col1<<" "<<col1u<<" "<<Rset_tvlqr.n_cols<<"\n";}
 
       dt_lqr_tmp = dt_lqr.subvec(col0,col1+0*1);
       X_lqr_tmp = X_lqr.cols(col0,col1+0*1);
@@ -485,13 +510,13 @@ AFTER_OUTPUT_FORM OldPlanner::trajOptAfter(VECTOR_INFO_FORM vecs_w_time,double d
       double Slen = ((S_lqr.n_cols-tvlqr_overlap_tmp-1) < 0) ? 0 : S_lqr.n_cols-tvlqr_overlap_tmp-1;
       S_lqr = join_rows(S_lqr.head_cols(Slen),S_lqr_tmp);
 
-      if(verbose){cout<<size(K_lqr)<<"\n";}
-      if(verbose){cout<<size(S_lqr)<<"\n";}
+      if(verbose_level >= 4){cout<<size(K_lqr)<<"\n";}
+      if(verbose_level >= 4){cout<<size(S_lqr)<<"\n";}
       // tvlqr_times = join_cols(tvlqr_times,tvlqr_times_tmp);
 
   }
   while((time_end_tmp<(time_end+0.0/(36525.0*24.0*3600.0))-EPSVAR)&&(time_start_tmp<(time_end-tvlqr_overlap_tmp/(36525.0*24.0*3600.0))));
-  if(verbose){cout<<"K found\n";}
+  if(verbose_level >= 1){cout<<"K found\n";}
 
   // OPT_TIMES_FORM main_opt_times = (addOptTimes(opt));
   OPT_FORM lqr_opt = make_tuple(get<0>(opt2),get<1>(opt2),get<2>(opt2),K_lqr,S_lqr,tvlqr_times.head(get<0>(opt2).n_cols));
@@ -501,7 +526,7 @@ AFTER_OUTPUT_FORM OldPlanner::trajOptAfter(VECTOR_INFO_FORM vecs_w_time,double d
 
 AFTER_OUTPUT_FORM OldPlanner::trajOpt(VECTOR_INFO_FORM &vecs,int N, TIME_FORM time_start, TIME_FORM time_end, vec x0, int bdotOn)
 {
-  if(verbose){
+  if(verbose_level >= 3){
     const arma::vec& t   = std::get<0>(vecs);
     const arma::mat& r   = std::get<1>(vecs);
     const arma::mat& v   = std::get<2>(vecs);
@@ -527,12 +552,12 @@ AFTER_OUTPUT_FORM OldPlanner::trajOpt(VECTOR_INFO_FORM &vecs,int N, TIME_FORM ti
   }
 
   BEFORE_OUTPUT_FORM results = OldPlanner::trajOptBefore(vecs, dt, time_start, time_end, x0, bdotOn);
-  if(verbose){cout<<"past trajOptBefore\n";}
+  if(verbose_level >= 1){cout<<"starting ALTRO optimization\n";}
   TRAJECTORY_FORM traj_init = get<0>(results);
   VECTOR_INFO_FORM vecs_dt = get<1>(results);
   COST_SETTINGS_FORM costSettings_tmp = get<2>(results);
   ALILQR_OUTPUT_FORM alilqrOut = OldPlanner::alilqr(dt,traj_init, vecs_dt, costSettings_tmp,alilqrSettings,false);
-  if(verbose){cout<<"out of alilqr\n";}
+  if(verbose_level >= 3){cout<<"out of alilqr\n";}
 
   //any disturbances?
 
@@ -551,9 +576,9 @@ AFTER_OUTPUT_FORM OldPlanner::trajOpt(VECTOR_INFO_FORM &vecs,int N, TIME_FORM ti
   OPT_FORM opt_tmp = get<0>(alilqrOut);
   mat Xtmp = get<0>(opt_tmp);
   mat Utmp = get<1>(opt_tmp);
-  if(verbose){cout<<"dist done\n";}
+  if(verbose_level >= 3){cout<<"dist done\n";}
   AFTER_OUTPUT_FORM results2 = OldPlanner::trajOptAfter(vecs, dt, time_start, time_end, alilqrOut);
-  if(verbose){cout<<"trajOptAfter done\n";}
+  if(verbose_level >= 1){cout<<"trajOptAfter done\n";}
   return results2;
 }
 
@@ -878,7 +903,7 @@ tuple<cube, cube> OldPlanner::findK(double dt_tvlqr0, TRAJECTORY_FORM traj, VECT
   vec pset = get<7>(vecs);
   vec rhoset = get<8>(vecs);  // atmospheric density
   int N = Xset.n_cols;
-  if(verbose) {
+  if(verbose_level >= 3) {
     cout<<"N is: "<<N<<"\n";
   }
   cube Kset_lqr = cube(sat.control_N(), sat.reduced_state_N(), N-1).zeros();
@@ -964,8 +989,8 @@ tuple<cube, cube> OldPlanner::findK(double dt_tvlqr0, TRAJECTORY_FORM traj, VECT
     // Sk = 0.5*(Sk+lkxx);
     Sset.slice(k) = Sk;
   }
-  if(verbose){cout<<size(Kset_lqr)<<"\n";}
-  if(verbose){cout<<size(Sset)<<"\n";}
+  if(verbose_level >= 4){cout<<"findK Kset_lqr: "<<size(Kset_lqr)<<"\n";}
+  if(verbose_level >= 4){cout<<"findK Sset: "<<size(Sset)<<"\n";}
   return make_tuple(Kset_lqr, Sset);
 }
 tuple<cube, cube> OldPlanner::findKwDist(double dt_tvlqr0, TRAJECTORY_FORM traj, VECTOR_INFO_FORM vecs, COST_SETTINGS_FORM costSettings_tmp)
@@ -983,7 +1008,7 @@ tuple<cube, cube> OldPlanner::findKwDist(double dt_tvlqr0, TRAJECTORY_FORM traj,
   vec pset = get<7>(vecs);
   vec rhoset = get<8>(vecs);  // atmospheric density
   int N = Xset.n_cols;
-  if(verbose) {
+  if(verbose_level >= 3) {
     cout<<"N is: "<<N<<"\n";
   }
 
@@ -1090,8 +1115,8 @@ tuple<cube, cube> OldPlanner::findKwDist(double dt_tvlqr0, TRAJECTORY_FORM traj,
     // Sk = 0.5*(Sk+lkxx);
     Sset.slice(k) = Sk;
   }
-  if(verbose){cout<<size(Kset_lqr)<<"\n";}
-  if(verbose){cout<<size(Sset)<<"\n";}
+  if(verbose_level >= 4){cout<<"findKwDist Kset_lqr: "<<size(Kset_lqr)<<"\n";}
+  if(verbose_level >= 4){cout<<"findKwDist Sset: "<<size(Sset)<<"\n";}
   return make_tuple(Kset_lqr, Sset);
 }
 
@@ -1389,14 +1414,14 @@ ALILQR_OUTPUT_FORM OldPlanner::alilqr(double dt0,TRAJECTORY_FORM traj, VECTOR_IN
   BACKWARD_PASS_RESULTS_FORM BPresults;
   tuple<double,double,mat,double,REG_PAIR,TRAJECTORY_FORM> ilqrRes;
   //Outer loop
-  if(verbose) {
-    cout<<"begin outer\n";
+  if(verbose_level >= 1) {
+    cout<<"begin outer loop (max "<<maxOuterIter_tmp<<" iters)\n";
   }
   double stepsSinceRand = -1;
 
   for(int j = 0; j < maxOuterIter_tmp; j++)
   {
-     if(verbose){cout<<"outer iter "<<j<<"\n";}
+     if(verbose_level >= 1){cout<<"outer iter "<<j<<"\n";}
     //reset cmaxtmp, dlaZcount
     cmaxtmp = 0.0;
     dlaZcount = 0;
@@ -1408,7 +1433,7 @@ ALILQR_OUTPUT_FORM OldPlanner::alilqr(double dt0,TRAJECTORY_FORM traj, VECTOR_IN
     regs = make_tuple(regInit_tmp,0.0);
     //Find initial cost and init dLA
     LA = OldPlanner::cost2Func(traj,vecs, auglag_vals, &costSettings_tmp);
-    if(verbose){
+    if(verbose_level >= 3){
       OldPlanner::costInfo(traj, vecs, auglag_vals,&costSettings_tmp);
     }
     //inner loop
@@ -1416,7 +1441,7 @@ ALILQR_OUTPUT_FORM OldPlanner::alilqr(double dt0,TRAJECTORY_FORM traj, VECTOR_IN
     {
 
       //update iter
-      if(verbose){cout<<"ii: "<<ii<<endl;}
+      if(verbose_level >= 3){cout<<"ii: "<<ii<<endl;}
       iter++;
       // tuple<TRAJECTORY_FORM,double>  rnOut = OldPlanner::addRandNoise(dt0, traj,  dlaZcount,  stepsSinceRand, breakSettings_tmp, regSettings_tmp, &costSettings_tmp, auglag_vals, vecs);
       // traj = get<0>(rnOut);
@@ -1448,26 +1473,30 @@ ALILQR_OUTPUT_FORM OldPlanner::alilqr(double dt0,TRAJECTORY_FORM traj, VECTOR_IN
       current_Uset = get<1>(traj);
       current_ilqr_iter = ii;
       current_outer_iter = j;
-      if(verbose){cout<<ii<<" "<<j<<" cmaxtmp,LA,LA clean "<<cmaxtmp<<" "<<LA<<" "<<LAnc<<"\n";}
+      if(verbose_level >= 3){cout<<ii<<" "<<j<<" cmaxtmp,LA,LA clean "<<cmaxtmp<<" "<<LA<<" "<<LAnc<<"\n";}
 
       //Check if we need to break out of the loop
       if(OldPlanner::ilqrBreak(grad,LA,dLA,dlaZcount,cmaxtmp,iter,breakSettings_tmp)){
-        if(verbose){cout<<"innerbreak\n";}
+        if(verbose_level >= 3){cout<<"innerbreak\n";}
         break;
       }
     }
-    if(OldPlanner::outerBreak(auglag_vals,cmaxtmp,breakSettings_tmp,auglagSettings_tmp)&&j>2&&OldPlanner::ilqrBreak(grad,LA,dLA,dlaZcount,cmaxtmp,iter,breakSettings_tmp,true)) {
-      if(verbose){cout<<"outerbreak\n";}
+    // Level 2: Show progress after each outer iteration
+    if(verbose_level >= 2){
+      cout<<"  outer "<<j<<": cmax="<<cmaxtmp<<" grad="<<grad<<" dLA="<<dLA<<" LA="<<LA<<"\n";
+    }
+    if(OldPlanner::outerBreak(auglag_vals,cmaxtmp,breakSettings_tmp,auglagSettings_tmp)&&j>2){//&&OldPlanner::ilqrBreak(grad,LA,dLA,dlaZcount,cmaxtmp,iter,breakSettings_tmp,true)) {
+      if(verbose_level >= 1){cout<<"converged at outer iter "<<j<<", cmax="<<cmaxtmp<<", LA="<<LA<<"\n";}
       break;
     }
     //update lambdaSet, etc.
     auglag_vals = OldPlanner::incrementAugLag(auglag_vals,clist,auglagSettings_tmp);
   }
-  if(verbose){cout<<"out of loops\n";}
+  if(verbose_level >= 1){cout<<"ALTRO optimization complete\n";}
   mat Kmat = packageK(get<0>(BPresults));
-  if(verbose){cout<<"Kmat done\n";}
+  if(verbose_level >= 3){cout<<"Kmat done\n";}
   OPT_FORM opt = make_tuple(get<0>(traj),get<1>(traj),get<3>(traj),Kmat,lambdaSet,dt_timevec);
-  if(verbose){cout<<"opt packaged\n";}
+  if(verbose_level >= 3){cout<<"opt packaged\n";}
   return make_tuple(opt, mu, grad);
 }
 tuple<double,double,mat,double,REG_PAIR,TRAJECTORY_FORM> OldPlanner::ilqrStep(double dt0,TRAJECTORY_FORM traj,VECTOR_INFO_FORM vecs,AUGLAG_INFO_FORM auglag_vals,REG_PAIR regs,COST_SETTINGS_FORM *costSettings_ptr,REG_SETTINGS_FORM regSettings_tmp, LINE_SEARCH_SETTINGS_FORM lineSearchSettings_tmp,BREAK_SETTINGS_FORM breakSettings_tmp,bool useDist){
@@ -1476,7 +1505,7 @@ tuple<double,double,mat,double,REG_PAIR,TRAJECTORY_FORM> OldPlanner::ilqrStep(do
     throw py::error_already_set();
   }
 
-  if (verbose){
+  if (verbose_level >= 3){
     OldPlanner::costInfo(traj, vecs, auglag_vals,  costSettings_ptr);
   }
 
@@ -1514,7 +1543,7 @@ tuple<double,double,mat,double,REG_PAIR,TRAJECTORY_FORM> OldPlanner::ilqrStep(do
 }
 bool OldPlanner::ilqrBreak(double grad,double LA, double dLA, double dlaZcount, double cmaxtmp, double iter,BREAK_SETTINGS_FORM breakSettings_tmp,bool forOuter)
 {
-  if(verbose){cout<<"ilqrBreak\n";}
+  if(verbose_level >= 4){cout<<"ilqrBreak\n";}
   int maxOuterIter_tmp = get<0>(breakSettings_tmp);
   int maxIter_tmp = get<2>(breakSettings_tmp);
   double gradTol_tmp = get<3>(breakSettings_tmp);
@@ -1528,7 +1557,7 @@ bool OldPlanner::ilqrBreak(double grad,double LA, double dLA, double dlaZcount, 
   if((current_outer_iter>=maxOuterIter_tmp-1) || forOuter){
     useCostTol = costTol_tmp;
   }//
-  if(verbose){cout<<"useCostTol "<<useCostTol<<"\n";}
+  if(verbose_level >= 4){cout<<"useCostTol "<<useCostTol<<"\n";}
   //if ((((cmaxtmp<cmax) || j < maxOuterIter) && grad<gradTol) ||dlaZcount > zCountLim ||(0 < dLA && dLA < ilqrCostTol && ((cmaxtmp<cmax) || j < maxOuterIter ) ))
 
   // (
@@ -1562,7 +1591,7 @@ bool OldPlanner::ilqrBreak(double grad,double LA, double dLA, double dlaZcount, 
   if(((grad<gradTol_tmp)&&(0<dLA && dLA<useCostTol)&&(!ls_failed))||
     (dlaZcount > zCountLim_tmp) )
   {
-    if(verbose) {
+    if(verbose_level >= 3) {
       cout<<"breaking inner loop alilqr with value j: "<<current_outer_iter<<" and value ii: "<<current_ilqr_iter<<"\n";
       cout<<"cmaxtmp "<<cmaxtmp<<"\n";
       cout<<"grad "<<grad<<"vs"<<gradTol_tmp<<"\n";
@@ -1572,23 +1601,21 @@ bool OldPlanner::ilqrBreak(double grad,double LA, double dLA, double dlaZcount, 
     }
     return true;
   }
-  if(verbose){
+  if(verbose_level >= 4){
     cout<<"checked break conditions\n";
-    if(verbose) {
-      cout<<" outer iter: "<<current_outer_iter<<" ilqr iter: "<<current_ilqr_iter<<" cmaxtmp: "<<cmaxtmp<<" grad: "<<grad<<" vs gradtol: "<<gradTol_tmp<<" dLA: "<<dLA<<" vs costTol: "<<useCostTol<<" zcount: "<<dlaZcount<<" vs zcountlim: "<<zCountLim_tmp<<"\n";
-    }
+    cout<<" outer iter: "<<current_outer_iter<<" ilqr iter: "<<current_ilqr_iter<<" cmaxtmp: "<<cmaxtmp<<" grad: "<<grad<<" vs gradtol: "<<gradTol_tmp<<" dLA: "<<dLA<<" vs costTol: "<<useCostTol<<" zcount: "<<dlaZcount<<" vs zcountlim: "<<zCountLim_tmp<<"\n";
   }
   if(iter == maxIter_tmp)
   {
-    if(verbose){cout<<"breaking because iter == maxIter_tmp\n";}
+    if(verbose_level >= 3){cout<<"breaking because iter == maxIter_tmp\n";}
     return true;
   }
   if(iter > maxIter_tmp)
   {
-    if(verbose){cout<<"Total iteration limit exceeded in alilqr\n";}
+    if(verbose_level >= 1){cout<<"Total iteration limit exceeded in alilqr\n";}
     throw "Total iteration limit exceeded in alilqr";
   }
-  if(verbose){cout<<"checked iteration limit\n";}
+  if(verbose_level >= 4){cout<<"checked iteration limit\n";}
   return false;
 }
 
@@ -1597,7 +1624,7 @@ tuple<TRAJECTORY_FORM,double>  OldPlanner::addRandNoise(double dt0, TRAJECTORY_F
 
 
   double randPercent = get<6>(regSettings_tmp);
-  // if(verbose) {
+  // if(verbose_level >= 2) {
   // }
   if(dlaZcount>std::max(2.0,get<6>(breakSettings_tmp)*0.5) && stepsSinceRand<0 && randPercent > 0) {
     mat Xset = get<0>(traj);
@@ -1605,7 +1632,7 @@ tuple<TRAJECTORY_FORM,double>  OldPlanner::addRandNoise(double dt0, TRAJECTORY_F
     mat Uset = get<1>(traj);
     // TRAJECTORY_FORM newTraj = generateInitialTrajectory(dt0,Xset.col(0), Uset.cols(0,N-2) + randPercent*diagmat(max(abs(Uset.cols(0,N-2)),1))*2*(randu(size(Uset.cols(0,N-2)))-0.5),vecs);
     mat Unoise = randPercent*abs(Uset) % (2*randu(size(Uset))-1.0);
-    // if(verbose) {
+    // if(verbose_level >= 2) {
     // }
     TRAJECTORY_FORM newTraj = generateInitialTrajectory(dt0,Xset.col(0), Uset + Unoise,vecs);
 
@@ -1613,7 +1640,7 @@ tuple<TRAJECTORY_FORM,double>  OldPlanner::addRandNoise(double dt0, TRAJECTORY_F
     double testLA = cost2Func(newTraj,vecs,auglag_vals, costSettings_ptr);
     if(!(isnan(testLA)||isinf(testLA)) && randPercent > 0) {
       traj = newTraj;//make_tuple(get<0>(newTraj),get<1>(newTraj),get<2>(traj),get<3>(newTraj));
-      if(verbose) {
+      if(verbose_level >= 3) {
         cout<<"a bit of random added\n";
       }
       stepsSinceRand = 0;
@@ -1626,14 +1653,14 @@ tuple<TRAJECTORY_FORM,double>  OldPlanner::addRandNoise(double dt0, TRAJECTORY_F
 
 bool OldPlanner::outerBreak(AUGLAG_INFO_FORM auglag_vals, double cmaxtmp,BREAK_SETTINGS_FORM breakSettings_tmp,AUGLAG_SETTINGS_FORM auglagSettings_tmp)
 {
-  if(verbose){cout<<"outerBreak\n";}
+  if(verbose_level >= 4){cout<<"outerBreak\n";}
   double mu = get<1>(auglag_vals);
   mat muSet = get<2>(auglag_vals);
   double cmax_tmp = get<7>(breakSettings_tmp);
   double penMax_tmp = get<3>(auglagSettings_tmp);
   if (((cmaxtmp<cmax_tmp)|| (muSet.max() >= penMax_tmp)))
   {
-    if(verbose) {
+    if(verbose_level >= 3) {
       cout<<"breaking outer loop alilqr with value j: "<<current_outer_iter<<"\n";
       cout<<"cmaxtmp: "<<cmaxtmp<<"vs"<<cmax_tmp<<"\n";
       cout<<"penMax: "<<mu<<"vs"<<penMax_tmp<<"\n";
@@ -1826,13 +1853,16 @@ tuple<mat, double> OldPlanner::maxViol(TRAJECTORY_FORM &traj, VECTOR_INFO_FORM &
   //DEBUG
   //mat w2 = sum((Xset.rows(0,2) % Xset.rows(0,2)),0);
   uvec::fixed<2> ss=ind2sub(arma::size(corrected_clist),abs(corrected_clist).index_max());
-  if(verbose){cout<<": "<<cmaxtmp<<" at subscript "<<ss(0)<<", "<<ss(1)<<"\n";}
-  if(verbose){cout<<"state at max viol: "<<Xset.col(ss(1)).t()<<"\n";}
-  if(verbose){cout<<"ctrl at max viol: "<<Uset.col(ss(1)).t()<<"\n";}
-  if(verbose){cout<<corrected_clist.col(ss(1)).t()<<"\n";}
-  if(cmaxtmp>1e10 && verbose){
-    cout<<Xset.cols(0,ss(1))<<"\n";
-    cout<<Uset.cols(0,ss(1))<<"\n";
+  if(verbose_level >= 4){cout<<": "<<cmaxtmp<<" at subscript "<<ss(0)<<", "<<ss(1)<<"\n";}
+  if(verbose_level >= 4){cout<<"state at max viol: "<<Xset.col(ss(1)).t()<<"\n";}
+  if(verbose_level >= 4){cout<<"ctrl at max viol: "<<Uset.col(ss(1)).t()<<"\n";}
+  if(verbose_level >= 4){cout<<corrected_clist.col(ss(1)).t()<<"\n";}
+  if(cmaxtmp>1e10 && verbose_level >= 1){
+    cout<<"WARNING: Extreme constraint violation: "<<cmaxtmp<<"\n";
+    if(verbose_level >= 4){
+      cout<<Xset.cols(0,ss(1))<<"\n";
+      cout<<Uset.cols(0,ss(1))<<"\n";
+    }
   }
 
   return make_tuple(clist, cmaxtmp);
@@ -2036,7 +2066,8 @@ tuple<BACKWARD_PASS_RESULTS_FORM, REG_PAIR> OldPlanner::backwardPass(double dt0,
       Pk = Qkxx;
       Pk = 0.5*(Pk + trans(Pk));
 
-      if(verbose){
+      // Level 4: debug eigenvalue/matrix output at terminal
+      if(verbose_level >= 4){
         vec Pk_eigs;
         eig_sym(Pk_eigs, Pk);
         cout << "Terminal Pk eigenvalues: " << Pk_eigs.t() << endl;
@@ -2088,8 +2119,8 @@ tuple<BACKWARD_PASS_RESULTS_FORM, REG_PAIR> OldPlanner::backwardPass(double dt0,
 
     rho = get<0>(regs);
     reset |= (Qkuu.has_nan()||Qkuu.has_inf());
-    if(verbose&&reset){
-      cout<<"Qkuu has nan or inf: "<<Qkuu.has_nan()<<" "<<Qkuu.has_inf()<<"\n";
+    if((verbose_level >= 1)&&reset){
+      cout<<"WARNING: Qkuu has nan or inf: "<<Qkuu.has_nan()<<" "<<Qkuu.has_inf()<<"\n";
     }
     if(!reset){
 
@@ -2097,7 +2128,7 @@ tuple<BACKWARD_PASS_RESULTS_FORM, REG_PAIR> OldPlanner::backwardPass(double dt0,
         Qkuu = 0.5*(Qkuu+Qkuu.t());//trimatu(Qkuu)+trans(trimatu(Qkuu,1));
 
         // Condition number monitoring for ill-conditioning detection
-        if(verbose){
+        if(verbose_level >= 4){
           double cond_num = arma::cond(Qkuu);
           if(cond_num > 1e10){
             cout << "WARNING: Qkuu condition number = " << cond_num << " at k=" << k << endl;
@@ -2154,31 +2185,34 @@ tuple<BACKWARD_PASS_RESULTS_FORM, REG_PAIR> OldPlanner::backwardPass(double dt0,
       reset |= !chol(Qkuureg_chol,Qkuureg);//,"lower","matrix"); //cheap check for positive-definiteness
 
       reset |= (Qkuureg_chol.has_nan()||Qkuureg_chol.has_inf());
-      if(verbose&&reset){
-        cout<<"Qkuu_reg not PD!\n";//has eigs<=-rho: "<<min(eigs)<<" < "<<-rho<<"\n";
-        cout<<"k "<<k<<"\n";
-        cout<<Qkuu<<"\n";
-        cout<<Qku.t()<<"\n";
+      if((verbose_level >= 3)&&reset){
+        cout<<"Qkuu_reg not PD at k="<<k<<"\n";
+        if(verbose_level >= 4){
+          cout<<Qkuu<<"\n";
+          cout<<Qku.t()<<"\n";
+        }
       }
       if(!reset){
         if(Qkuureg.has_nan()||Qkuureg.has_inf()){
-          if(verbose){
-            cout<<"noreg "<<Qkuu<<"\n";
-            cout<<"reg "<<Qkuureg<<"\n";
-            cout<<"rho "<<rho<<"\n";
-            cout<<"eigs "<<eigs<<"\n";
-            cout<<"cxeigs "<<cxeigs<<"\n";
+          if(verbose_level >= 3){
             cout<<"somehow regularized Qkuu has nan/inf but nonregularized does not\n";
+            if(verbose_level >= 4){
+              cout<<"noreg "<<Qkuu<<"\n";
+              cout<<"reg "<<Qkuureg<<"\n";
+              cout<<"rho "<<rho<<"\n";
+              cout<<"eigs "<<eigs<<"\n";
+              cout<<"cxeigs "<<cxeigs<<"\n";
+            }
           }
           throw("somehow regularized Qkuu has nan/inf but nonregularized does not");
         }
         reset |= !solve(Kk,Qkuureg, Qkux,solve_opts::no_approx);//+solve_opts::likely_sympd);//+solve_opts::fast);//+solve_opts::refine);%+solve_opts::no_approx);//+solve_opts::no_approx);//+solve_opts::equilibrate+solve_opts::refine+solve_opts::no_approx);
-        if(verbose&&reset){
+        if((verbose_level >= 3)&&reset){
           cout<<"Solving Kk failed \n";
         }
         reset |= !solve(dk,Qkuureg, Qku,solve_opts::no_approx);//+solve_opts::likely_sympd);//solve_opts::fast);//+solve_opts::refine+solve_opts::no_approx);//+solve_opts::no_approx);//+solve_opts::equilibrate+solve_opts::refine+solve_opts::no_approx);
         // dk = Qkuureg_chol*Qku;
-        if(verbose&&reset){
+        if((verbose_level >= 3)&&reset){
           cout<<"Solving dk failed \n";
         }
         reset |= (dk.has_nan()||dk.has_inf());
@@ -2193,7 +2227,10 @@ tuple<BACKWARD_PASS_RESULTS_FORM, REG_PAIR> OldPlanner::backwardPass(double dt0,
       pk = Qkx + trans(Kk)*Qkuu*dk + trans(Kk)*Qku + trans(Qkux)*dk;
       Pk = Qkxx + trans(Kk)*Qkuu*Kk + trans(Kk)*Qkux + trans(Qkux)*Kk;
       if(Pk.has_nan()||Pk.has_inf()){
-        if(verbose){
+        if(verbose_level >= 1){
+          cout<<"WARNING: Pk has nan/inf at k="<<k<<"\n";
+        }
+        if(verbose_level >= 4){
           cout<<"Costjac "<<costJac.lxx<<"\n";
           for(int j = 0;j<sat.number_RW;j++){
             double z = xk(7+j);
@@ -2293,14 +2330,14 @@ tuple<TRAJECTORY_FORM,double, REG_PAIR> OldPlanner::forwardPass(double dt0,TRAJE
   // newU = get<1>(newTraj);
   // newLA = cost2Func(newTraj,vecs,auglag_vals, costSettings_tmp_ptr);;
 
-  //if(verbose){cout<<LA<<" "<<newLA<<"\n";}//here overall
+  //if(verbose_level >= 4){cout<<LA<<" "<<newLA<<"\n";}//here overall
   ls_failed = false;
   //Loop while z is NOT between beta2 and beta1, and the new cost is higher than the original cost
-  if(verbose){cout<<delV.t()<<"\n";}
+  if(verbose_level >= 4){cout<<"delV: "<<delV.t()<<"\n";}
 
   newTraj = generateTrajectory(dt0,0,traj,vecs, Kset, dset,useDist);
   newLA = cost2Func(newTraj,vecs,auglag_vals, costSettings_tmp_ptr);
-  // if(verbose){cout<<"ls iter, LA-nLA, nLA,TEST, z,alph,reg "<<-1<<" "<<LA-newLA<<" "<<newLA<<" "<<0<<" "<<nan("1")<<" "<<0<<" "<<get<0>(regs)<<"\n";}
+  // if(verbose_level >= 2){cout<<"ls iter, LA-nLA, nLA,TEST, z,alph,reg "<<-1<<" "<<LA-newLA<<" "<<newLA<<" "<<0<<" "<<nan("1")<<" "<<0<<" "<<get<0>(regs)<<"\n";}
   newLA = 1.79769e+308;//1/eps;
 
   while((z<=beta1_tmp||z>beta2_tmp)||(newLA>=LA))
@@ -2317,7 +2354,7 @@ tuple<TRAJECTORY_FORM,double, REG_PAIR> OldPlanner::forwardPass(double dt0,TRAJE
       regs = make_tuple(get<0>(regs) + get<4>(regSettings_tmp),get<1>(regs));//1.0/get<3>(regSettings_tmp));
 
       regs = increaseReg(regs,regSettings_tmp); //do 2 increases otherwise the backwardpass just undoes it
-      if(verbose){cout<<"*************** z denied\n";}
+      if(verbose_level >= 3){cout<<"*************** z denied\n";}
       ls_failed = true;
       return make_tuple(traj,LA, regs);
 
@@ -2335,12 +2372,12 @@ tuple<TRAJECTORY_FORM,double, REG_PAIR> OldPlanner::forwardPass(double dt0,TRAJE
     if(!(newX.has_nan()||newX.has_inf()||newU.has_nan()||newU.has_inf())){//||(abs(newX).max()>100000000.0))) {
       newLA = cost2Func(newTraj,vecs,auglag_vals, costSettings_tmp_ptr);
       double newLAtest = cost2Func(traj,vecs,auglag_vals, costSettings_tmp_ptr);
-        // if(verbose){cout<<"calced new LA\n";}
+        // if(verbose_level >= 2){cout<<"calced new LA\n";}
       // everythingOK |= !isnan(newLA);
       if(isnan(newLA)||isinf(newLA)){
         newTraj = traj;
         newLA = LA;
-        if(verbose){cout<<"newLA is nan\n";}
+        if(verbose_level >= 3){cout<<"newLA is nan\n";}
         lsiter++;
         alph /= 2.0;
         continue;
@@ -2365,17 +2402,17 @@ tuple<TRAJECTORY_FORM,double, REG_PAIR> OldPlanner::forwardPass(double dt0,TRAJE
       z = (LA-newLA)/exp;
     }
 
-    // if(verbose){cout<<"ls iter, LA-nLA, nLA, exp, z,alph,reg "<<lsiter<<" "<<LA-newLA<<" "<<newLA<<" "<<exp<<" "<<z<<" "<<alph<<" "<<get<0>(regs)<<"\n";}
+    // if(verbose_level >= 2){cout<<"ls iter, LA-nLA, nLA, exp, z,alph,reg "<<lsiter<<" "<<LA-newLA<<" "<<newLA<<" "<<exp<<" "<<z<<" "<<alph<<" "<<get<0>(regs)<<"\n";}
     lsiter++;
     alph /= 2.0;
   }
   //If we somehow increased the cost, we need to throw an exception. This is not supposed to happen! (because we will just keep the old traj if can't find a better one)
   if(newLA > LA)
   {
-    if(verbose){cout<<"Increased cost in forwardpass\n";}
+    if(verbose_level >= 3){cout<<"Increased cost in forwardpass\n";}
     throw("Increased cost in forwardpass");
   }
-  if(verbose){cout<<"*************** z "<<z<<"\n";}
+  if(verbose_level >= 3){cout<<"    z="<<z<<" alph="<<alph<<" LA: "<<LA<<" -> "<<newLA<<"\n";}
   return make_tuple(newTraj, newLA, regs);
 }
 
@@ -2408,7 +2445,6 @@ tuple<TRAJECTORY_FORM,double, REG_PAIR> OldPlanner::forwardPass(double dt0,TRAJE
     Uset = join_rows(Uset,vec(sat.control_N()).zeros());
   }
 
-  COST_SETTINGS_FORM costSettings_tmp = *costSettings_ptr;
   int N = Xset.n_cols;
   mat sunset = get<4>(vecs);
   mat Bset = get<3>(vecs);
@@ -2417,81 +2453,508 @@ tuple<TRAJECTORY_FORM,double, REG_PAIR> OldPlanner::forwardPass(double dt0,TRAJE
   mat lambdaSet = get<0>(auglag_vals);
   double mu = get<1>(auglag_vals);
   mat muSet = get<2>(auglag_vals);
-  vec ck;
-  vec xk;
-  vec uk;
-  vec ukp;
-  vec lamk;
-  vec muk;
-  vec3 bk;
-  vec ek;
-  vec3 sunk;
-  vec3 sk;
-
-  mat Imuk;
-  mat Ilamk;
-  double dLA = 0.0;
 
   double LA = 0.0;
-  ukp = Uset.col(0);
+
+  // OpenMP parallel cost computation
+  // Each timestep is independent - ukp computed directly from Uset
+  #ifdef _OPENMP
+  #pragma omp parallel for reduction(+:LA) schedule(static)
+  #endif
   for(int k = 0; k < N; k++)
   {
-    xk = Xset.col(k);
-    uk = Uset.col(k);
-    bk = Bset.col(k);
-    sunk = normalise(sunset.col(k));
-    sk = satvec.col(k);
-    ek = ECIvec.col(k);
-    //Update ck and Imuk
-    if((ek.n_elem==3)||((ek.n_elem==4)&&(isnan(ek(0))))){
-      ek = ek.tail(3);
-      dLA = sat.stepcost_vec(k, N, xk,uk, ukp,sk, ek,bk, costSettings_ptr);
+    // Thread-local variables (must be inside loop for thread safety)
+    vec xk_local = Xset.col(k);
+    vec uk_local = Uset.col(k);
+    // Fix loop-carried dependency: compute ukp directly instead of from previous iteration
+    vec ukp_local = (k > 0) ? Uset.col(k-1) : Uset.col(0);
+    vec3 bk_local = Bset.col(k);
+    vec3 sunk_local = normalise(sunset.col(k));
+    vec3 sk_local = satvec.col(k);
+    vec ek_local = ECIvec.col(k);
+
+    double dLA = 0.0;
+
+    // Compute step cost
+    if((ek_local.n_elem==3)||((ek_local.n_elem==4)&&(isnan(ek_local(0))))){
+      ek_local = ek_local.tail(3);
+      dLA = sat.stepcost_vec(k, N, xk_local, uk_local, ukp_local, sk_local, ek_local, bk_local, costSettings_ptr);
     }else{
-      dLA = sat.stepcost_quat(k, N, xk,uk, ukp,sk, ek,bk, costSettings_ptr);
+      dLA = sat.stepcost_quat(k, N, xk_local, uk_local, ukp_local, sk_local, ek_local, bk_local, costSettings_ptr);
     }
     LA += dLA;
-    if(isinf(dLA) || isnan(dLA)){
-      if(verbose){
-        cout<<dLA<<"\n";
-        cout<<xk.t()<<"\n";
-        cout<<uk.t()<<"\n";
-        cout<<bk.t()<<"\n";
-        cout<<sk.t()<<"\n";
-        cout<<ek.t()<<"\n";
-        cout<<k<<"\n";
-        if(k>0){
-          cout<<"prev\n";
-          cout<<Xset.col(k-1).t()<<"\n";
-          cout<<Uset.col(k-1).t()<<"\n";
-          cout<<Bset.col(k-1).t()<<"\n";
-        }
-        for(int j = 0;j<sat.number_RW;j++)
-        {
-          double z = xk(7+j);
-          double sz = sign(z);
-          cout<<"RW "<<j<<": |z|="<<z*sz<<", threshold="<<sat.RW_AM_cost_threshold.at(j)<<"\n";
-          cout<<"  shifted_softplus="<<shifted_softplus(z*sz,sat.RW_AM_cost_threshold.at(j))<<"\n";
-          cout<<"  AM_cost="<<0.5*sat.RW_AM_cost.at(j)*pow(shifted_softplus(z*sz,sat.RW_AM_cost_threshold.at(j)),2)<<"\n";
-          double stic_arg = (sat.RW_stiction_threshold.at(j)-z*sz)/sat.RW_stiction_threshold.at(j);
-          cout<<"  stiction_arg="<<stic_arg<<", stiction_cost="<< 0.5*sat.RW_stiction_cost.at(j)*pow(smoothstep(stic_arg)*sat.RW_stiction_threshold.at(j),2)<<"\n";
-        }
-        cout<<"broken, infinite/nan cost on step.\n";
-      }
-      break;
-    }
 
-
-    //assert (!isnan(stepcost_vec(k, N, xk,uk,  sk, ek,bk, costSettings_ptr)) || !(std::cerr<<k<<" "<<N<<" "<<xk.t()<<" "<<uk.t()<<" "<<sk.t()<<" "<<ek.t()<<" "<<bk.t()<<" "<<"\n"));
+    // Constraint costs (getConstraints/getImu/getIlam are thread-safe const methods)
     if(useConstraints){
-      lamk = lambdaSet.col(k);
-      muk = muSet.col(k);
-      ck = sat.getConstraints(k, N, uk, xk,sunk);
-      Ilamk = sat.getIlam(mu, muk, ck, lamk);
-      Imuk = sat.getImu(mu, muk, ck, lamk);
-      LA += as_scalar(trans(lamk)*Ilamk*ck+trans(0.5*Imuk*ck)*ck);
+      vec lamk_local = lambdaSet.col(k);
+      vec muk_local = muSet.col(k);
+      vec ck_local = sat.getConstraints(k, N, uk_local, xk_local, sunk_local);
+      mat Ilamk_local = sat.getIlam(mu, muk_local, ck_local, lamk_local);
+      mat Imuk_local = sat.getImu(mu, muk_local, ck_local, lamk_local);
+      LA += as_scalar(trans(lamk_local)*Ilamk_local*ck_local + trans(0.5*Imuk_local*ck_local)*ck_local);
+    }
+  }
+
+  // Check for errors after parallel section
+  if(isinf(LA) || isnan(LA)){
+    if(verbose_level >= 3){
+      cout<<"cost2Func: infinite/nan total cost detected.\n";
+    }
+  }
+
+  return LA;
+}
+
+
+// ============================================================================
+// BLENDED VERSIONS FOR CONSTRAINT TIGHTENING WARM-START
+// These functions use blended dynamics that interpolate between:
+//   dynAlpha=0: relaxed (linear) MTQ model with well-conditioned Jacobians
+//   dynAlpha=1: true cross-product physics
+// ============================================================================
+
+/*
+ * Blended version of generateTrajectory using rk4zBlended.
+ * dynAlpha controls the dynamics blending (0=relaxed, 1=true physics).
+ */
+TRAJECTORY_FORM OldPlanner::generateTrajectoryBlended(double dt0, double alpha, TRAJECTORY_FORM traj, VECTOR_INFO_FORM vecs, cube Kset, mat dset, bool useDist, double dynAlpha)
+{
+  mat Xset = get<0>(traj);
+  mat Uset = get<1>(traj);
+  int N = Xset.n_cols;
+
+  mat newX = mat(sat.state_N(), N).zeros();
+  mat newU = mat(sat.control_N(), N-1).zeros();
+  mat newTQ = mat(3, N-1).zeros();
+
+  mat Bset = get<3>(vecs);
+  mat Rset = get<1>(vecs);
+  mat Vset = get<2>(vecs);
+  mat Sset = get<4>(vecs);
+  vec pset = get<7>(vecs);
+  vec rhoset = get<8>(vecs);
+
+  vec newXk = Xset.col(0);
+  newX.col(0) = newXk;
+
+  vec newTQk = vec(3).zeros();
+  vec4 Qkprev = vec(4,fill::zeros);
+  vec dt_timevec = get<2>(traj);
+
+  vec oldXprev = mat(newXk);
+  vec4 oldQprev = oldXprev.rows(sat.quat0index(),sat.quat0index()+3);
+  vec newUprev = vec(sat.control_N()).zeros();
+
+  vec3 angErr;
+  vec4 quatErr;
+  vec otherErr = vec(sat.reduced_state_N()-6).zeros();
+  vec3 avErr = vec3().zeros();
+
+  DYNAMICS_INFO_FORM dynamics_info_kn1 = make_tuple(Bset.col(0),Rset.col(0),pset(0),Vset.col(0),Sset.col(0),int(useDist),rhoset(0));
+  DYNAMICS_INFO_FORM dynamics_info_k = dynamics_info_kn1;
+
+  for(int k=1; k<N; k++)
+  {
+    dynamics_info_kn1 = dynamics_info_k;
+    dynamics_info_k = make_tuple(Bset.col(k),Rset.col(k),pset(k),Vset.col(k),Sset.col(k),int(useDist),rhoset(k));
+
+    oldXprev = Xset.col(k-1);
+    oldQprev = oldXprev.rows(sat.quat0index(),sat.quat0index()+3);
+    Qkprev = newXk.rows(sat.quat0index(),sat.quat0index()+3);
+
+    quatErr = normquaterr(oldQprev,Qkprev);
+
+    if(quaternionTo3VecMode >= 2){
+      if(quaternionTo3VecMode == 2){
+        if(abs(quatErr(0))<EPSVAR){
+          quatErr(0) = (abs(quatErr(0))>0) ? EPSVAR*sign(quatErr(0)) : EPSVAR;
+        }
+        angErr = (quatErr.rows(1,3))/(quatErr(0));
+      } else if(quaternionTo3VecMode == 3){
+        if(abs(quatErr(0)) > 0){
+          angErr = quatErr.rows(1,3) * sign(quatErr(0));
+        } else {
+          angErr = quatErr.rows(1,3);
+        }
+      } else if(quaternionTo3VecMode == 4){
+        angErr = quatErr.rows(1,3);
+      } else {
+        throw std::invalid_argument("quaternionTo3VecMode 5 and 6 are not supported.");
+      }
+    } else {
+      if(quaternionTo3VecMode != 1){
+        if(abs(quatErr(0))>0){
+          quatErr *= sign(quatErr(0));
+        }
+      }
+      angErr = 2.0*(quatErr.rows(1,3))/(1+quatErr(0));
     }
 
-    ukp = uk;
+    otherErr = newXk.tail(sat.reduced_state_N()-6) - oldXprev.tail(sat.reduced_state_N()-6);
+    avErr = newXk.head(3) - oldXprev.head(3);
+    newUprev = Uset.col(k-1) + Kset.slice(k-1)*join_cols(avErr,angErr,otherErr) + alpha*dset.col(k-1);
+
+    for(int i = 0; i < sat.control_N(); i++){
+      double ucheck = newUprev(i);
+      if(isnan(ucheck)||isinf(ucheck)){
+        return make_tuple(newX.fill(datum::nan), newU.fill(datum::nan), dt_timevec, newTQ.fill(datum::nan));
+      }
+    }
+
+    // Use blended RK4 integration
+    tuple<vec,vec> rk4out = rk4zBlended(dt0, newXk, newUprev, sat, dynamics_info_kn1, dynamics_info_k, dynAlpha);
+    newXk = get<0>(rk4out);
+    newTQk = get<1>(rk4out);
+    newXk = sat.state_norm(newXk);
+
+    newX.col(k) = newXk;
+    newTQ.col(k-1) = newTQk;
+    newU.col(k-1) = newUprev;
   }
-  return LA;
+  return make_tuple(newX, newU, dt_timevec, newTQ);
+}
+
+
+/*
+ * Blended version of backwardPass using rk4zJacobiansBlended.
+ * dynAlpha controls the dynamics blending (0=relaxed, 1=true physics).
+ */
+tuple<BACKWARD_PASS_RESULTS_FORM, REG_PAIR> OldPlanner::backwardPassBlended(double dt0, TRAJECTORY_FORM traj, VECTOR_INFO_FORM &vecs, AUGLAG_INFO_FORM auglag_vals, REG_PAIR regs, COST_SETTINGS_FORM *costSettings_tmp, REG_SETTINGS_FORM regSettings_tmp, bool useDist, double dynAlpha)
+{
+  mat Uset = get<1>(traj);
+  mat Xset = get<0>(traj);
+  Uset = join_rows(Uset, vec(sat.control_N()).zeros());
+  int N = Xset.n_cols;
+
+  cube Kset = cube(sat.control_N(), sat.reduced_state_N(), N-1).zeros();
+  mat dset = mat(sat.control_N(), N-1).zeros();
+  vec2 delV = vec2().zeros();
+
+  double regMin_tmp = get<1>(regSettings_tmp);
+  bool useDynamicsHess_tmp = bool(get<7>(regSettings_tmp));
+  bool useConstraintsHess_tmp = bool(get<8>(regSettings_tmp));
+
+  mat lambdaSet = get<0>(auglag_vals);
+  double mu = get<1>(auglag_vals);
+  mat muSet = get<2>(auglag_vals);
+
+  mat Rset = get<1>(vecs);
+  mat Vset = get<2>(vecs);
+  mat Bset = get<3>(vecs);
+  mat sunset = get<4>(vecs);
+  mat satvec = get<5>(vecs);
+  mat ECIvec = get<6>(vecs);
+  mat pset = get<7>(vecs);
+  vec rhoset = get<8>(vecs);
+  bool reset = false;
+  double rho = 0.0;
+
+  vec xk = vec(sat.state_N()).zeros();
+  vec4 qk = vec(4).zeros();
+  vec3 sunk = vec(3).zeros();
+  vec dk = vec(sat.control_N()).zeros();
+  mat Kk = mat(sat.control_N(), sat.reduced_state_N()).zeros();
+  vec ck = vec(sat.constraint_N()).zeros();
+  mat Imuk = mat(sat.constraint_N(), sat.constraint_N()).zeros();
+  mat Ilamk = mat(sat.constraint_N(), sat.constraint_N()).zeros();
+
+  vec ukp = vec(sat.control_N()).zeros();
+  vec viol = vec(sat.constraint_N()).zeros();
+  vec pk = vec(sat.reduced_state_N()).zeros();
+  mat Pk = mat(sat.reduced_state_N(), sat.reduced_state_N()).zeros();
+
+  mat Gk = mat(sat.reduced_state_N(), sat.state_N()).zeros();
+  mat Gkp1 = mat(sat.reduced_state_N(), sat.state_N()).zeros();
+
+  tuple<mat, mat, mat> AB;
+  tuple<cube, cube, cube> hesses;
+  mat Aqk = mat(sat.reduced_state_N(), sat.reduced_state_N()).zeros();
+  mat Bqk = mat(sat.reduced_state_N(), sat.control_N()).zeros();
+  cube ddxd__dxdx = cube(sat.state_N(), sat.state_N(), sat.state_N()).zeros();
+  cube ddxd__dudx = cube(sat.control_N(), sat.state_N(), sat.state_N()).zeros();
+  cube ddxd__dudu = cube(sat.control_N(), sat.control_N(), sat.state_N()).zeros();
+  cube ddxd__dxdxQ = cube(sat.reduced_state_N(), sat.reduced_state_N(), sat.reduced_state_N()).zeros();
+  cube ddxd__dudxQ = cube(sat.control_N(), sat.reduced_state_N(), sat.reduced_state_N()).zeros();
+  cube ddxd__duduQ = cube(sat.control_N(), sat.control_N(), sat.reduced_state_N()).zeros();
+
+  cost_jacs costJac;
+  tuple<mat, mat> cnstrJac;
+  tuple<cube, cube, cube> cnstrHess;
+
+  mat cku = mat(sat.constraint_N(), sat.control_N()).zeros();
+  mat ckx = mat(sat.constraint_N(), sat.reduced_state_N()).zeros();
+  mat Qkuu = mat(sat.control_N(), sat.control_N()).zeros();
+  mat Qkuureg = mat(sat.control_N(), sat.control_N()).zeros();
+  mat Qkuureg_chol = mat(sat.control_N(), sat.control_N()).zeros();
+  mat Qkux = mat(sat.control_N(), sat.reduced_state_N()).zeros();
+  mat Qkxx = mat(sat.reduced_state_N(), sat.reduced_state_N()).zeros();
+  vec Qku = vec(sat.control_N()).zeros();
+  vec Qkx = vec(sat.reduced_state_N()).zeros();
+
+  vec eigs = vec(sat.control_N()).zeros();
+  mat eigvecs = mat(sat.control_N(), sat.control_N()).zeros();
+
+  DYNAMICS_INFO_FORM dynamics_info_k;
+  DYNAMICS_INFO_FORM dynamics_info_kp1;
+
+  vec ek;
+  int k = N-1;
+
+  while(k >= 0)
+  {
+    Gkp1 = Gk;
+    dynamics_info_kp1 = dynamics_info_k;
+    xk = Xset.col(k);
+    qk = xk.rows(3, 6);
+    sunk = normalise(sunset.col(k));
+    Gk = sat.findGMat(qk);
+    dynamics_info_k = make_tuple(Bset.col(k), Rset.col(k), pset(k), Vset.col(k), sunset.col(k), int(useDist), rhoset(k));
+
+    Aqk = Aqk.zeros();
+    Bqk = Bqk.zeros();
+    ukp = ukp.zeros();
+
+    if(k < N-1)
+    {
+      // Use blended Jacobians
+      AB = rk4zJacobiansBlended(dt0, xk, Uset.col(k), sat, dynamics_info_k, dynamics_info_kp1, dynAlpha);
+      Aqk = Gkp1*get<0>(AB)*trans(Gk);
+      Bqk = Gkp1*get<1>(AB);
+
+      if(useDynamicsHess_tmp){
+        // Note: Hessians still use original (non-blended) for now
+        hesses = rk4zHessians(dt0, xk, Uset.col(k), sat, dynamics_info_k, dynamics_info_kp1);
+        ddxd__dxdx = get<0>(hesses);
+        ddxd__dudx = get<1>(hesses);
+        ddxd__dudu = get<2>(hesses);
+        ddxd__dxdxQ = matOverCube(Gkp1, matTimesCube(Gk, cubeTimesMat(ddxd__dxdx, trans(Gk))));
+        ddxd__dudxQ = matOverCube(Gkp1, cubeTimesMat(ddxd__dudx, trans(Gk)));
+        ddxd__duduQ = matOverCube(Gkp1, ddxd__dudu);
+      }
+    }
+
+    if(k > 0){ ukp = Uset.col(k-1); } else { ukp = Uset.col(0); }
+    ek = ECIvec.col(k);
+    if((ek.n_elem == 3) || ((ek.n_elem == 4) && (isnan(ek(0))))){
+      ek = ek.tail(3);
+      costJac = sat.veccostJacobians(k, N, xk, Uset.col(k), ukp, satvec.col(k), ek, Bset.col(k), costSettings_tmp);
+    } else {
+      costJac = sat.quatcostJacobians(k, N, xk, Uset.col(k), ukp, satvec.col(k), ek, Bset.col(k), costSettings_tmp);
+    }
+
+    cnstrJac = sat.constraintJacobians(k, N, Uset.col(k), xk, sunk);
+    cku = get<0>(cnstrJac);
+    ckx = get<1>(cnstrJac);
+    ck = sat.getConstraints(k, N, Uset.col(k), xk, sunk);
+    Imuk = sat.getImu(mu, muSet.col(k), ck, lambdaSet.col(k));
+    Ilamk = sat.getIlam(mu, muSet.col(k), ck, lambdaSet.col(k));
+
+    viol = (Ilamk*lambdaSet.col(k) + Imuk*ck);
+    if(useConstraintsHess_tmp){
+      cnstrHess = sat.constraintHessians(k, N, Uset.col(k), xk, sunk);
+    }
+
+    Qkxx = costJac.lxx + trans(Aqk)*Pk*Aqk + trans(ckx)*Imuk*ckx;
+    Qkx = costJac.lx + trans(Aqk)*pk + trans(ckx)*viol;
+    if(useDynamicsHess_tmp){
+      Qkxx += vecOverCube(pk, ddxd__dxdxQ);
+    }
+    if(useConstraintsHess_tmp){
+      Qkxx += vecOverCube(viol, get<2>(cnstrHess));
+    }
+
+    if(k == N-1){
+      pk = Qkx;
+      Pk = Qkxx;
+      Pk = 0.5*(Pk + trans(Pk));
+      k--;
+      continue;
+    }
+
+    Qkux = costJac.lux + trans(Bqk)*Pk*Aqk + trans(cku)*Imuk*ckx;
+    Qku = costJac.lu + trans(Bqk)*pk + trans(cku)*viol;
+    Qkuu = costJac.luu + trans(Bqk)*Pk*Bqk + trans(cku)*Imuk*cku;
+
+    if(useDynamicsHess_tmp){
+      Qkux += vecOverCube(pk, ddxd__dudxQ);
+      Qkuu += vecOverCube(pk, ddxd__duduQ);
+    }
+    if(useConstraintsHess_tmp){
+      Qkux += vecOverCube(viol, get<1>(cnstrHess));
+      Qkuu += vecOverCube(viol, get<0>(cnstrHess));
+    }
+
+    rho = get<0>(regs);
+    reset |= (Qkuu.has_nan() || Qkuu.has_inf());
+
+    if(!reset){
+      Qkuu = 0.5*(Qkuu + Qkuu.t());
+      Qkuureg = Qkuu + rho*mat(sat.control_N(), sat.control_N()).eye();
+
+      reset |= !chol(Qkuureg_chol, Qkuureg);
+      reset |= (Qkuureg_chol.has_nan() || Qkuureg_chol.has_inf());
+
+      if(!reset){
+        reset |= !solve(Kk, Qkuureg, Qkux, solve_opts::no_approx);
+        reset |= !solve(dk, Qkuureg, Qku, solve_opts::no_approx);
+        reset |= (dk.has_nan() || dk.has_inf());
+        reset |= (Kk.has_nan() || Kk.has_inf());
+      }
+    }
+
+    if(!reset){
+      dk *= -1;
+      Kk *= -1;
+      Kset.slice(k) = Kk;
+      dset.col(k) = dk;
+      pk = Qkx + trans(Kk)*Qkuu*dk + trans(Kk)*Qku + trans(Qkux)*dk;
+      Pk = Qkxx + trans(Kk)*Qkuu*Kk + trans(Kk)*Qkux + trans(Qkux)*Kk;
+      if(Pk.has_nan() || Pk.has_inf()){
+        reset = true;
+      }
+    }
+
+    if(reset){
+      k = N-1;
+      delV.zeros();
+      Gk.zeros();
+      Pk.zeros();
+      pk.zeros();
+      Kset.zeros();
+      dset.zeros();
+      dk.zeros();
+      Kk.zeros();
+      reset = false;
+      regs = increaseReg(regs, regSettings_tmp);
+      continue;
+    }
+
+    Pk = 0.5*(Pk + trans(Pk));
+    delV += join_cols(trans(dk)*Qku, 0.5*trans(dk)*Qkuu*dk);
+    dk.zeros();
+    Kk.zeros();
+    k--;
+  }
+
+  regs = decreaseReg(regs, regSettings_tmp);
+  return make_tuple(make_tuple(Kset, dset, delV), regs);
+}
+
+
+/*
+ * Blended version of forwardPass using generateTrajectoryBlended.
+ * dynAlpha controls the dynamics blending (0=relaxed, 1=true physics).
+ */
+tuple<TRAJECTORY_FORM, double, REG_PAIR> OldPlanner::forwardPassBlended(double dt0, TRAJECTORY_FORM traj, VECTOR_INFO_FORM &vecs, AUGLAG_INFO_FORM auglag_vals, BACKWARD_PASS_RESULTS_FORM BPresults, REG_PAIR regs, COST_SETTINGS_FORM *costSettings_tmp_ptr, REG_SETTINGS_FORM regSettings_tmp, LINE_SEARCH_SETTINGS_FORM lineSearchSettings_tmp, bool useDist, double dynAlpha)
+{
+  int maxLsIter_tmp = get<0>(lineSearchSettings_tmp);
+  double beta1_tmp = get<1>(lineSearchSettings_tmp);
+  double beta2_tmp = get<2>(lineSearchSettings_tmp);
+
+  cube Kset = get<0>(BPresults);
+  mat dset = get<1>(BPresults);
+  vec2 delV = get<2>(BPresults);
+
+  mat Xset = get<0>(traj);
+  int N = Xset.n_cols;
+  mat newX = mat(sat.state_N(), N).zeros();
+  mat newU = mat(sat.control_N(), N).zeros();
+
+  double alph = 1.0;
+  double newLA = 1.79769e+308;
+  double z = -1.0;
+  int lsiter = 0;
+  double exp = 0.0;
+
+  TRAJECTORY_FORM newTraj = traj;
+
+  double LA = cost2Func(traj, vecs, auglag_vals, costSettings_tmp_ptr);
+  ls_failed = false;
+
+  // Initial trajectory generation with blended dynamics
+  newTraj = generateTrajectoryBlended(dt0, 0, traj, vecs, Kset, dset, useDist, dynAlpha);
+  newLA = cost2Func(newTraj, vecs, auglag_vals, costSettings_tmp_ptr);
+  newLA = 1.79769e+308;
+
+  while((z <= beta1_tmp || z > beta2_tmp) || (newLA >= LA))
+  {
+    if(lsiter > maxLsIter_tmp)
+    {
+      regs = increaseReg(regs, regSettings_tmp);
+      regs = make_tuple(get<0>(regs) + get<4>(regSettings_tmp), get<1>(regs));
+      regs = increaseReg(regs, regSettings_tmp);
+      ls_failed = true;
+      return make_tuple(traj, LA, regs);
+    }
+
+    // Use blended trajectory generation
+    newTraj = generateTrajectoryBlended(dt0, alph, traj, vecs, Kset, dset, useDist, dynAlpha);
+    newX = get<0>(newTraj);
+    newU = get<1>(newTraj);
+
+    z = -1.0;
+    if(!(newX.has_nan() || newX.has_inf() || newU.has_nan() || newU.has_inf())){
+      newLA = cost2Func(newTraj, vecs, auglag_vals, costSettings_tmp_ptr);
+      if(isnan(newLA) || isinf(newLA)){
+        newTraj = traj;
+        newLA = LA;
+        lsiter++;
+        alph /= 2.0;
+        continue;
+      }
+    }
+
+    exp = -alph*(delV(0) + alph*delV(1));
+    if(exp > 0.0){
+      z = (LA - newLA)/exp;
+    }
+
+    lsiter++;
+    alph /= 2.0;
+  }
+
+  if(newLA > LA){
+    throw("Increased cost in forwardPassBlended");
+  }
+
+  return make_tuple(newTraj, newLA, regs);
+}
+
+
+/*
+ * Blended version of ilqrStep using backwardPassBlended and forwardPassBlended.
+ * dynAlpha controls the dynamics blending (0=relaxed, 1=true physics).
+ */
+tuple<double, double, mat, double, REG_PAIR, TRAJECTORY_FORM> OldPlanner::ilqrStepBlended(double dt0, TRAJECTORY_FORM traj, VECTOR_INFO_FORM vecs, AUGLAG_INFO_FORM auglag_vals, REG_PAIR regs, COST_SETTINGS_FORM *costSettings_ptr, REG_SETTINGS_FORM regSettings_tmp, LINE_SEARCH_SETTINGS_FORM lineSearchSettings_tmp, BREAK_SETTINGS_FORM breakSettings_tmp, bool useDist, double dynAlpha)
+{
+  // Backward pass with blended dynamics
+  tuple<BACKWARD_PASS_RESULTS_FORM, REG_PAIR> backwardPassResults = backwardPassBlended(dt0, traj, vecs, auglag_vals, regs, costSettings_ptr, regSettings_tmp, useDist, dynAlpha);
+  BACKWARD_PASS_RESULTS_FORM BPresults = get<0>(backwardPassResults);
+  regs = get<1>(backwardPassResults);
+
+  // Forward pass with blended dynamics
+  tuple<TRAJECTORY_FORM, double, REG_PAIR> forwardPassResults = forwardPassBlended(dt0, traj, vecs, auglag_vals, BPresults, regs, costSettings_ptr, regSettings_tmp, lineSearchSettings_tmp, useDist, dynAlpha);
+  TRAJECTORY_FORM newTraj = get<0>(forwardPassResults);
+  double LA = get<1>(forwardPassResults);
+  regs = get<2>(forwardPassResults);
+
+  // Compute gradient and constraint violation
+  mat clist = mat(sat.constraint_N(), get<0>(newTraj).n_cols).zeros();
+  mat Xset = get<0>(newTraj);
+  mat Uset = get<1>(newTraj);
+  Uset = join_rows(Uset, vec(sat.control_N()).zeros());
+  mat sunset = get<4>(vecs);
+
+  for(int k = 0; k < (int)Xset.n_cols; k++){
+    vec3 sunk = normalise(sunset.col(k));
+    clist.col(k) = sat.getConstraints(k, Xset.n_cols, Uset.col(k), Xset.col(k), sunk);
+  }
+
+  double cmax_tmp = max(max(clist));
+
+  // Compute gradient from dset
+  mat dset = get<1>(BPresults);
+  double grad = norm(dset, "fro");
+
+  return make_tuple(grad, LA, clist, cmax_tmp, regs, newTraj);
 }

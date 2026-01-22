@@ -22,7 +22,7 @@ public:
     OldPlanner(Satellite sat_in, ALL_SETTINGS_FORM allSettings);
      ALL_SETTINGS_FORM readParameters() ;
 
-    void setVerbosity(bool verbosity);
+    void setVerbosity(int verbosity_level);
     void updateParameters_notsat(SYSTEM_SETTINGS_FORM systemSettings_tmp, ALILQR_SETTINGS_FORM alilqrSettings_tmp, ALILQR_SETTINGS_FORM alilqrSettings2_tmp,  INITIAL_TRAJ_SETTINGS_FORM initialTrajSettings_tmp, COST_SETTINGS_FORM costSettings_tmp,COST_SETTINGS_FORM costSettings2_tmp,LQR_COST_SETTINGS_FORM costSettings_tvlqr_tmp);
 
     BEFORE_OUTPUT_FORM trajOptBefore(VECTOR_INFO_FORM vecs_w_time,double dt_use, TIME_FORM time_start, TIME_FORM time_end, arma::vec x0, int bdotOn);
@@ -44,6 +44,13 @@ public:
     std::tuple<TRAJECTORY_FORM,double, REG_PAIR> forwardPass(double dt0,TRAJECTORY_FORM traj, VECTOR_INFO_FORM &vecs, AUGLAG_INFO_FORM auglag_vals, BACKWARD_PASS_RESULTS_FORM BPresults, REG_PAIR regs, COST_SETTINGS_FORM *costSettings_tmp_ptr, REG_SETTINGS_FORM regSettings_tmp, LINE_SEARCH_SETTINGS_FORM lineSearchSettings_tmp,bool useDist);
     //std::tuple<TRAJECTORY_FORM, double, REG_PAIR> forwardPass(double dt,TRAJECTORY_FORM traj, VECTOR_INFO_FORM vecs, AUGLAG_INFO_FORM auglag_vals, BACKWARD_PASS_RESULTS_FORM BPresults, REG_PAIR regs, COST_SETTINGS_FORM *costSettings_tmp, REG_SETTINGS_FORM regSettings_tmp, LINE_SEARCH_SETTINGS_FORM lineSearchSettings_tmp);
     std::tuple<double,double,arma::mat,double,REG_PAIR,TRAJECTORY_FORM> ilqrStep(double dt0,TRAJECTORY_FORM traj,VECTOR_INFO_FORM vecs,AUGLAG_INFO_FORM auglag_vals,REG_PAIR regs,COST_SETTINGS_FORM *costSettings_ptr,REG_SETTINGS_FORM regSettings_tmp, LINE_SEARCH_SETTINGS_FORM lineSearchSettings_tmp,BREAK_SETTINGS_FORM breakSettings_tmp,bool useDist);
+
+    // Blended versions for constraint tightening warm-start
+    // dynAlpha: 0=relaxed (linear) MTQ model, 1=true cross-product physics
+    TRAJECTORY_FORM generateTrajectoryBlended(double dt, double alpha, TRAJECTORY_FORM traj, VECTOR_INFO_FORM vecs, arma::cube Kset, arma::mat dset, bool useDist, double dynAlpha);
+    std::tuple<BACKWARD_PASS_RESULTS_FORM, REG_PAIR> backwardPassBlended(double dt, TRAJECTORY_FORM traj, VECTOR_INFO_FORM &vecs, AUGLAG_INFO_FORM auglag_vals, REG_PAIR regs, COST_SETTINGS_FORM *costSettings_tmp, REG_SETTINGS_FORM regSettings_tmp, bool useDist, double dynAlpha);
+    std::tuple<TRAJECTORY_FORM, double, REG_PAIR> forwardPassBlended(double dt0, TRAJECTORY_FORM traj, VECTOR_INFO_FORM &vecs, AUGLAG_INFO_FORM auglag_vals, BACKWARD_PASS_RESULTS_FORM BPresults, REG_PAIR regs, COST_SETTINGS_FORM *costSettings_tmp_ptr, REG_SETTINGS_FORM regSettings_tmp, LINE_SEARCH_SETTINGS_FORM lineSearchSettings_tmp, bool useDist, double dynAlpha);
+    std::tuple<double, double, arma::mat, double, REG_PAIR, TRAJECTORY_FORM> ilqrStepBlended(double dt0, TRAJECTORY_FORM traj, VECTOR_INFO_FORM vecs, AUGLAG_INFO_FORM auglag_vals, REG_PAIR regs, COST_SETTINGS_FORM *costSettings_ptr, REG_SETTINGS_FORM regSettings_tmp, LINE_SEARCH_SETTINGS_FORM lineSearchSettings_tmp, BREAK_SETTINGS_FORM breakSettings_tmp, bool useDist, double dynAlpha);
 
     double cost2Func( TRAJECTORY_FORM &traj, VECTOR_INFO_FORM &vecs,  AUGLAG_INFO_FORM &auglag_vals,  COST_SETTINGS_FORM *costSettings_ptr,bool useConstraints = true);
     AUGLAG_INFO_FORM incrementAugLag(AUGLAG_INFO_FORM auglag_vals, arma::mat clist, AUGLAG_SETTINGS_FORM auglagSettings_tmp);
@@ -67,8 +74,8 @@ public:
 
 
 
-    //remove before flight
-    bool verbose;
+    // Verbosity levels: 0=silent, 1=milestones, 2=progress, 3=detailed, 4=expensive debug
+    int verbose_level;
 
     int quaternionTo3VecMode = 0;
 

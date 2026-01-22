@@ -1,0 +1,6 @@
+{
+  "key": "shift+enter",
+  "command": "workbench.action.terminal.sendSequence",
+  "args": { "text": "\u001b[13;2u" },
+  "when": "terminalFocus"
+}
