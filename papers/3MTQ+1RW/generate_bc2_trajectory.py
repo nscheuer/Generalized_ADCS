@@ -114,13 +114,21 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
             rw.h = config["h0"][i]
 
         # --- Planner Setup ---
+        # Use dt_tp=10 for trajectory planning (N = tf/10 + 1 timesteps)
+        # This gives reasonable planning speed while maintaining accuracy
         planner_settings = PlannerSettings(
             est_sat=real_sat,
             bdot_on=0,
-            dt_tp=dt_planning,
-            dt_tvlqr=dt_planning,
+            dt_tp=10,  # 10s timestep for trajectory planning
+            dt_tvlqr=dt_planning,  # TVLQR can use finer timestep
         )
         planner_settings.verbosity = False
+        
+        # Reduced iterations for faster Monte Carlo runs
+        planner_settings.pass1.convergence.max_outer_iter = 8
+        planner_settings.pass1.convergence.max_inner_iter = 30
+        planner_settings.pass2.convergence.max_outer_iter = 4
+        planner_settings.pass2.convergence.max_inner_iter = 15
 
         controller = Plan_and_Track_LQR(
             est_sat=real_sat,

@@ -201,10 +201,11 @@ class Trajectory:
 
         dx = self._state_diff(x_current, x_ref)
 
-        print("u_ref: ", u_ref)
-        print("K: ", K)
-        print("dx: ", dx)
-        print("u_ref - K @ dx: ", u_ref - K @ dx)
+        # Debug prints disabled for performance
+        # print("u_ref: ", u_ref)
+        # print("K: ", K)
+        # print("dx: ", dx)
+        # print("u_ref - K @ dx: ", u_ref - K @ dx)
 
         if self.use_disturbance_estimation:
             # KwDist mode: augment error state with disturbance estimate
