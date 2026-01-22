@@ -123,8 +123,8 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
         planner_settings.cost_second = planner_settings.cost_main
         
         planner_settings.cost_tvlqr = CostWeights(
-                angle=1e3,
-                angle_N=1e4,
+                angle=1e5,
+                angle_N=1e6,
                 ang_vel=1e6,
                 ang_vel_N=1e8,
                 ang_vel_mag=0.0,
@@ -236,7 +236,7 @@ def generate_mc_config(run_id: int) -> Dict[str, Any]:
     return {
         "run_id": run_id,
         "seed": run_id,
-        "tf": 500,  # Explicitly requested 500s
+        "tf": 1000,  # Explicitly requested 500s
         "dt": 1,    # Explicitly requested 1s
         "radius_km": 7000.0,
         "w0": normalize(rng.standard_normal(3)) * (rng.uniform(0.1, 1.0) * np.pi / 180.0),
@@ -254,7 +254,7 @@ if __name__ == "__main__":
         runner = MonteCarloRunner(
             sim_func=run_single_sim,
             config_generator=generate_mc_config,
-            num_runs=24,
+            num_runs=100,
             max_workers=24
         )
         full_results = runner.run()
