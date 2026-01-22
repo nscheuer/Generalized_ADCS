@@ -2032,26 +2032,37 @@ tuple<BACKWARD_PASS_RESULTS_FORM, REG_PAIR> OldPlanner::backwardPass(double dt0,
       costJac = sat.quatcostJacobians(k, N, xk, Uset.col(k), ukp,satvec.col(k),ek,Bset.col(k), costSettings_tmp);
     }
 
-    cnstrJac = sat.constraintJacobians(k, N,Uset.col(k), xk,sunk);
-
-
-    cku = get<0>(cnstrJac);
-    ckx = get<1>(cnstrJac);
+    // === OPTIMIZATION 6: Skip inactive constraints ===
+    // Get constraints first to check if any are near active
     ck = sat.getConstraints(k, N, Uset.col(k), xk,sunk);
-    //update Imuk
-    Imuk = sat.getImu(mu, muSet.col(k), ck, lambdaSet.col(k));
-    Ilamk = sat.getIlam(mu, muSet.col(k), ck, lambdaSet.col(k));
-
-
-    viol = (Ilamk*lambdaSet.col(k)+Imuk*ck);
-    if(useConstraintsHess_tmp){
-      cnstrHess = sat.constraintHessians(k, N, Uset.col(k),xk,sunk);//join_cols(mat33().eye(), -1*mat33().eye());
-      // for(int i = 0; i < sat.constraint_N(); ++i)
-      // {
-      //   violcxx.slice(i) = mat(sat.reduced_state_N(),sat.reduced_state_N(),fill::ones)*viol(i);
-      //   violcux.slice(i) = mat(sat.control_N(),sat.reduced_state_N(),fill::ones)*viol(i);
-      //   violcuu.slice(i) = mat(sat.control_N(),sat.control_N(),fill::ones)*viol(i);
-      // }
+    
+    // Check if any constraint is near active (within margin of violation)
+    // Constraints are active when ck >= 0, so check if any is close
+    const double constraint_margin = -0.1;  // Consider active if ck > -0.1
+    bool any_near_active = false;
+    for(uword i = 0; i < ck.n_elem && !any_near_active; i++) {
+      if(ck(i) > constraint_margin || lambdaSet(i, k) > 1e-6) {
+        any_near_active = true;
+      }
+    }
+    
+    if(any_near_active) {
+      // Full constraint Jacobian computation
+      cnstrJac = sat.constraintJacobians(k, N,Uset.col(k), xk,sunk);
+      cku = get<0>(cnstrJac);
+      ckx = get<1>(cnstrJac);
+      Imuk = sat.getImu(mu, muSet.col(k), ck, lambdaSet.col(k));
+      Ilamk = sat.getIlam(mu, muSet.col(k), ck, lambdaSet.col(k));
+      viol = (Ilamk*lambdaSet.col(k)+Imuk*ck);
+      if(useConstraintsHess_tmp){
+        cnstrHess = sat.constraintHessians(k, N, Uset.col(k),xk,sunk);
+      }
+    } else {
+      // Constraints are far from active - skip Jacobian computation
+      cku.zeros();
+      ckx.zeros();
+      viol.zeros();
+      // Imuk, Ilamk not needed when viol is zero
     }
 
     // === OPTIMIZATION 4: Compute shared intermediate products once ===
