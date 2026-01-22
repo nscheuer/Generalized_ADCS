@@ -13,7 +13,8 @@ namespace py = pybind11;
 
 
 
-#define DYNAMICS_INFO_PY_FORM std::tuple<py::array_t<double>,py::array_t<double>,int,py::array_t<double>,py::array_t<double>,int>
+// Dynamics info tuple: (B, R, prop_torq_on, V, S, dist_on, rho)
+#define DYNAMICS_INFO_PY_FORM std::tuple<py::array_t<double>,py::array_t<double>,int,py::array_t<double>,py::array_t<double>,int,double>
 
 #define SYSTEM_SETTINGS_PY_FORM std::tuple<py::array_t<double>,double,double,double,double,double>
 #define TRAJ_OPT_OUTPUT_PY_FORM std::tuple<int, double, py::array_t<double>, py::array_t<double>, py::array_t<double>, py::array_t<double>, py::array_t<double>, py::array_t<double>, py::array_t<double>, py::array_t<double>, py::array_t<double>, py::array_t<double>>

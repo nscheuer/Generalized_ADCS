@@ -143,7 +143,8 @@ tuple<mat, mat,mat> rk4zJacobians(double dt0,vec xk, vec uk,Satellite sat, DYNAM
                           get<2>(dynamics_info_k)*get<2>(dynamics_info_kp1),
                           0.5*(get<3>(dynamics_info_k)+get<3>(dynamics_info_kp1)),
                           0.5*(get<4>(dynamics_info_k)+get<4>(dynamics_info_kp1)),
-                          get<5>(dynamics_info_k)*get<5>(dynamics_info_kp1)
+                          get<5>(dynamics_info_k)*get<5>(dynamics_info_kp1),
+                          0.5*(get<6>(dynamics_info_k)+get<6>(dynamics_info_kp1))
                           );
   vec xkraw = xk;
   xk = sat.state_norm(xk);
@@ -256,7 +257,8 @@ tuple<mat, mat,mat> rk4zx2Jacobians(double dt0,vec xk, vec uk,Satellite sat, DYN
                           get<2>(dynamics_info_k)*get<2>(dynamics_info_kp1),
                           0.5*(get<3>(dynamics_info_k)+get<3>(dynamics_info_kp1)),
                           0.5*(get<4>(dynamics_info_k)+get<4>(dynamics_info_kp1)),
-                          get<5>(dynamics_info_k)*get<5>(dynamics_info_kp1)
+                          get<5>(dynamics_info_k)*get<5>(dynamics_info_kp1),
+                          0.5*(get<6>(dynamics_info_k)+get<6>(dynamics_info_kp1))
                           );
   vec xkraw = xk;
   xk = sat.state_norm(xk);
@@ -350,7 +352,8 @@ tuple<cube, cube,cube> rk4zHessians(double dt0,vec xk, vec uk,Satellite sat, DYN
                           get<2>(dynamics_info_k)*get<2>(dynamics_info_kp1),
                           0.5*(get<3>(dynamics_info_k)+get<3>(dynamics_info_kp1)),
                           0.5*(get<4>(dynamics_info_k)+get<4>(dynamics_info_kp1)),
-                          get<5>(dynamics_info_k)*get<5>(dynamics_info_kp1)
+                          get<5>(dynamics_info_k)*get<5>(dynamics_info_kp1),
+                          0.5*(get<6>(dynamics_info_k)+get<6>(dynamics_info_kp1))
                           );
   vec xkraw = xk.t().t();
   xk = sat.state_norm(xk);
@@ -559,7 +562,8 @@ tuple<cube, cube,cube,mat,mat,cube,cube,cube,cube,cube> rk4zxkp1rHessians(double
                           get<2>(dynamics_info_k)*get<2>(dynamics_info_kp1),
                           0.5*(get<3>(dynamics_info_k)+get<3>(dynamics_info_kp1)),
                           0.5*(get<4>(dynamics_info_k)+get<4>(dynamics_info_kp1)),
-                          get<5>(dynamics_info_k)*get<5>(dynamics_info_kp1)
+                          get<5>(dynamics_info_k)*get<5>(dynamics_info_kp1),
+                          0.5*(get<6>(dynamics_info_k)+get<6>(dynamics_info_kp1))
                           );
   vec xkraw = xk.t().t();
   xk = sat.state_norm(xk);
@@ -771,7 +775,8 @@ tuple<cube, cube,cube,mat,mat> rk4zx3rHessians(double dt0,vec xk, vec uk,Satelli
                           get<2>(dynamics_info_k)*get<2>(dynamics_info_kp1),
                           0.5*(get<3>(dynamics_info_k)+get<3>(dynamics_info_kp1)),
                           0.5*(get<4>(dynamics_info_k)+get<4>(dynamics_info_kp1)),
-                          get<5>(dynamics_info_k)*get<5>(dynamics_info_kp1)
+                          get<5>(dynamics_info_k)*get<5>(dynamics_info_kp1),
+                          0.5*(get<6>(dynamics_info_k)+get<6>(dynamics_info_kp1))
                           );
   vec xkraw = xk.t().t();
   xk = sat.state_norm(xk);
@@ -943,7 +948,8 @@ tuple<cube, cube,cube> rk4zxd2Hessians(double dt0,vec xk, vec uk,Satellite sat, 
                           get<2>(dynamics_info_k)*get<2>(dynamics_info_kp1),
                           0.5*(get<3>(dynamics_info_k)+get<3>(dynamics_info_kp1)),
                           0.5*(get<4>(dynamics_info_k)+get<4>(dynamics_info_kp1)),
-                          get<5>(dynamics_info_k)*get<5>(dynamics_info_kp1)
+                          get<5>(dynamics_info_k)*get<5>(dynamics_info_kp1),
+                          0.5*(get<6>(dynamics_info_k)+get<6>(dynamics_info_kp1))
                           );
   vec xkraw = xk.t().t();
   xk = sat.state_norm(xk);
@@ -1084,7 +1090,8 @@ tuple<cube, cube,cube> rk4zx3Hessians(double dt0,vec xk, vec uk,Satellite sat, D
                           get<2>(dynamics_info_k)*get<2>(dynamics_info_kp1),
                           0.5*(get<3>(dynamics_info_k)+get<3>(dynamics_info_kp1)),
                           0.5*(get<4>(dynamics_info_k)+get<4>(dynamics_info_kp1)),
-                          get<5>(dynamics_info_k)*get<5>(dynamics_info_kp1)
+                          get<5>(dynamics_info_k)*get<5>(dynamics_info_kp1),
+                          0.5*(get<6>(dynamics_info_k)+get<6>(dynamics_info_kp1))
                           );
   vec xkraw = xk.t().t();
   xk = sat.state_norm(xk);
@@ -1258,7 +1265,8 @@ tuple<cube, cube,cube,mat,mat> rk4zx1Hessians(double dt0,vec xk, vec uk,Satellit
                           get<2>(dynamics_info_k)*get<2>(dynamics_info_kp1),
                           0.5*(get<3>(dynamics_info_k)+get<3>(dynamics_info_kp1)),
                           0.5*(get<4>(dynamics_info_k)+get<4>(dynamics_info_kp1)),
-                          get<5>(dynamics_info_k)*get<5>(dynamics_info_kp1)
+                          get<5>(dynamics_info_k)*get<5>(dynamics_info_kp1),
+                          0.5*(get<6>(dynamics_info_k)+get<6>(dynamics_info_kp1))
                           );
   vec xkraw = xk.t().t();
   xk = sat.state_norm(xk);
@@ -1355,7 +1363,8 @@ tuple<cube, cube,cube> rk4zxd0Hessians(double dt0,vec xk, vec uk,Satellite sat, 
                           get<2>(dynamics_info_k)*get<2>(dynamics_info_kp1),
                           0.5*(get<3>(dynamics_info_k)+get<3>(dynamics_info_kp1)),
                           0.5*(get<4>(dynamics_info_k)+get<4>(dynamics_info_kp1)),
-                          get<5>(dynamics_info_k)*get<5>(dynamics_info_kp1)
+                          get<5>(dynamics_info_k)*get<5>(dynamics_info_kp1),
+                          0.5*(get<6>(dynamics_info_k)+get<6>(dynamics_info_kp1))
                           );
   vec xkraw = xk.t().t();
   xk = sat.state_norm(xk);
@@ -1420,7 +1429,8 @@ tuple<cube, cube,cube> rk4zxd1Hessians(double dt0,vec xk, vec uk,Satellite sat, 
                           get<2>(dynamics_info_k)*get<2>(dynamics_info_kp1),
                           0.5*(get<3>(dynamics_info_k)+get<3>(dynamics_info_kp1)),
                           0.5*(get<4>(dynamics_info_k)+get<4>(dynamics_info_kp1)),
-                          get<5>(dynamics_info_k)*get<5>(dynamics_info_kp1)
+                          get<5>(dynamics_info_k)*get<5>(dynamics_info_kp1),
+                          0.5*(get<6>(dynamics_info_k)+get<6>(dynamics_info_kp1))
                           );
   vec xkraw = xk.t().t();
   xk = sat.state_norm(xk);
@@ -1515,7 +1525,8 @@ tuple<cube, cube,cube,mat,mat> rk4zx2rHessians(double dt0,vec xk, vec uk,Satelli
                           get<2>(dynamics_info_k)*get<2>(dynamics_info_kp1),
                           0.5*(get<3>(dynamics_info_k)+get<3>(dynamics_info_kp1)),
                           0.5*(get<4>(dynamics_info_k)+get<4>(dynamics_info_kp1)),
-                          get<5>(dynamics_info_k)*get<5>(dynamics_info_kp1)
+                          get<5>(dynamics_info_k)*get<5>(dynamics_info_kp1),
+                          0.5*(get<6>(dynamics_info_k)+get<6>(dynamics_info_kp1))
                           );
   vec xkraw = xk.t().t();
   xk = sat.state_norm(xk);
@@ -1640,7 +1651,8 @@ tuple<cube, cube,cube,mat,mat> rk4zx2Hessians(double dt0,vec xk, vec uk,Satellit
                           get<2>(dynamics_info_k)*get<2>(dynamics_info_kp1),
                           0.5*(get<3>(dynamics_info_k)+get<3>(dynamics_info_kp1)),
                           0.5*(get<4>(dynamics_info_k)+get<4>(dynamics_info_kp1)),
-                          get<5>(dynamics_info_k)*get<5>(dynamics_info_kp1)
+                          get<5>(dynamics_info_k)*get<5>(dynamics_info_kp1),
+                          0.5*(get<6>(dynamics_info_k)+get<6>(dynamics_info_kp1))
                           );
   vec xkraw = xk.t().t();
   xk = sat.state_norm(xk);
@@ -1805,7 +1817,8 @@ tuple<vec,vec> rk4z(double dt0, vec xk, vec uk, Satellite sat, DYNAMICS_INFO_FOR
                           get<2>(dynamics_info_k)*get<2>(dynamics_info_kp1),
                           0.5*(get<3>(dynamics_info_k)+get<3>(dynamics_info_kp1)),
                           0.5*(get<4>(dynamics_info_k)+get<4>(dynamics_info_kp1)),
-                          get<5>(dynamics_info_k)*get<5>(dynamics_info_kp1)
+                          get<5>(dynamics_info_k)*get<5>(dynamics_info_kp1),
+                          0.5*(get<6>(dynamics_info_k)+get<6>(dynamics_info_kp1))
                           );
 
   xk = sat.state_norm(xk);
@@ -1844,7 +1857,8 @@ vec rk4zxkp1r(double dt0, vec xk, vec uk, Satellite sat, DYNAMICS_INFO_FORM dyna
                           get<2>(dynamics_info_k)*get<2>(dynamics_info_kp1),
                           0.5*(get<3>(dynamics_info_k)+get<3>(dynamics_info_kp1)),
                           0.5*(get<4>(dynamics_info_k)+get<4>(dynamics_info_kp1)),
-                          get<5>(dynamics_info_k)*get<5>(dynamics_info_kp1)
+                          get<5>(dynamics_info_k)*get<5>(dynamics_info_kp1),
+                          0.5*(get<6>(dynamics_info_k)+get<6>(dynamics_info_kp1))
                           );
 
   xk = sat.state_norm(xk);
@@ -1880,7 +1894,8 @@ vec rk4zxd3(double dt0, vec xk, vec uk, Satellite sat, DYNAMICS_INFO_FORM dynami
                           get<2>(dynamics_info_k)*get<2>(dynamics_info_kp1),
                           0.5*(get<3>(dynamics_info_k)+get<3>(dynamics_info_kp1)),
                           0.5*(get<4>(dynamics_info_k)+get<4>(dynamics_info_kp1)),
-                          get<5>(dynamics_info_k)*get<5>(dynamics_info_kp1)
+                          get<5>(dynamics_info_k)*get<5>(dynamics_info_kp1),
+                          0.5*(get<6>(dynamics_info_k)+get<6>(dynamics_info_kp1))
                           );
 
   xk = sat.state_norm(xk);
@@ -1914,7 +1929,8 @@ vec rk4zx1(double dt0, vec xk, vec uk, Satellite sat, DYNAMICS_INFO_FORM dynamic
                           get<2>(dynamics_info_k)*get<2>(dynamics_info_kp1),
                           0.5*(get<3>(dynamics_info_k)+get<3>(dynamics_info_kp1)),
                           0.5*(get<4>(dynamics_info_k)+get<4>(dynamics_info_kp1)),
-                          get<5>(dynamics_info_k)*get<5>(dynamics_info_kp1)
+                          get<5>(dynamics_info_k)*get<5>(dynamics_info_kp1),
+                          0.5*(get<6>(dynamics_info_k)+get<6>(dynamics_info_kp1))
                           );
 
   xk = sat.state_norm(xk);
@@ -1936,7 +1952,8 @@ vec rk4zxd0(double dt0, vec xk, vec uk, Satellite sat, DYNAMICS_INFO_FORM dynami
                           get<2>(dynamics_info_k)*get<2>(dynamics_info_kp1),
                           0.5*(get<3>(dynamics_info_k)+get<3>(dynamics_info_kp1)),
                           0.5*(get<4>(dynamics_info_k)+get<4>(dynamics_info_kp1)),
-                          get<5>(dynamics_info_k)*get<5>(dynamics_info_kp1)
+                          get<5>(dynamics_info_k)*get<5>(dynamics_info_kp1),
+                          0.5*(get<6>(dynamics_info_k)+get<6>(dynamics_info_kp1))
                           );
 
   xk = sat.state_norm(xk);
@@ -1955,7 +1972,8 @@ vec rk4zx2(double dt0, vec xk, vec uk, Satellite sat, DYNAMICS_INFO_FORM dynamic
                           get<2>(dynamics_info_k)*get<2>(dynamics_info_kp1),
                           0.5*(get<3>(dynamics_info_k)+get<3>(dynamics_info_kp1)),
                           0.5*(get<4>(dynamics_info_k)+get<4>(dynamics_info_kp1)),
-                          get<5>(dynamics_info_k)*get<5>(dynamics_info_kp1)
+                          get<5>(dynamics_info_k)*get<5>(dynamics_info_kp1),
+                          0.5*(get<6>(dynamics_info_k)+get<6>(dynamics_info_kp1))
                           );
 
   xk = sat.state_norm(xk);
@@ -1982,7 +2000,8 @@ vec rk4zx2r(double dt0, vec xk, vec uk, Satellite sat, DYNAMICS_INFO_FORM dynami
                           get<2>(dynamics_info_k)*get<2>(dynamics_info_kp1),
                           0.5*(get<3>(dynamics_info_k)+get<3>(dynamics_info_kp1)),
                           0.5*(get<4>(dynamics_info_k)+get<4>(dynamics_info_kp1)),
-                          get<5>(dynamics_info_k)*get<5>(dynamics_info_kp1)
+                          get<5>(dynamics_info_k)*get<5>(dynamics_info_kp1),
+                          0.5*(get<6>(dynamics_info_k)+get<6>(dynamics_info_kp1))
                           );
 
   xk = sat.state_norm(xk);
@@ -2006,7 +2025,8 @@ vec rk4zxd1(double dt0, vec xk, vec uk, Satellite sat, DYNAMICS_INFO_FORM dynami
                           get<2>(dynamics_info_k)*get<2>(dynamics_info_kp1),
                           0.5*(get<3>(dynamics_info_k)+get<3>(dynamics_info_kp1)),
                           0.5*(get<4>(dynamics_info_k)+get<4>(dynamics_info_kp1)),
-                          get<5>(dynamics_info_k)*get<5>(dynamics_info_kp1)
+                          get<5>(dynamics_info_k)*get<5>(dynamics_info_kp1),
+                          0.5*(get<6>(dynamics_info_k)+get<6>(dynamics_info_kp1))
                           );
 
   xk = sat.state_norm(xk);
@@ -2031,7 +2051,8 @@ vec rk4zx3(double dt0, vec xk, vec uk, Satellite sat, DYNAMICS_INFO_FORM dynamic
                           get<2>(dynamics_info_k)*get<2>(dynamics_info_kp1),
                           0.5*(get<3>(dynamics_info_k)+get<3>(dynamics_info_kp1)),
                           0.5*(get<4>(dynamics_info_k)+get<4>(dynamics_info_kp1)),
-                          get<5>(dynamics_info_k)*get<5>(dynamics_info_kp1)
+                          get<5>(dynamics_info_k)*get<5>(dynamics_info_kp1),
+                          0.5*(get<6>(dynamics_info_k)+get<6>(dynamics_info_kp1))
                           );
 
   xk = sat.state_norm(xk);
@@ -2064,7 +2085,8 @@ vec rk4zx3r(double dt0, vec xk, vec uk, Satellite sat, DYNAMICS_INFO_FORM dynami
                           get<2>(dynamics_info_k)*get<2>(dynamics_info_kp1),
                           0.5*(get<3>(dynamics_info_k)+get<3>(dynamics_info_kp1)),
                           0.5*(get<4>(dynamics_info_k)+get<4>(dynamics_info_kp1)),
-                          get<5>(dynamics_info_k)*get<5>(dynamics_info_kp1)
+                          get<5>(dynamics_info_k)*get<5>(dynamics_info_kp1),
+                          0.5*(get<6>(dynamics_info_k)+get<6>(dynamics_info_kp1))
                           );
 
   xk = sat.state_norm(xk);
@@ -2096,7 +2118,8 @@ vec rk4zxd2(double dt0, vec xk, vec uk, Satellite sat, DYNAMICS_INFO_FORM dynami
                           get<2>(dynamics_info_k)*get<2>(dynamics_info_kp1),
                           0.5*(get<3>(dynamics_info_k)+get<3>(dynamics_info_kp1)),
                           0.5*(get<4>(dynamics_info_k)+get<4>(dynamics_info_kp1)),
-                          get<5>(dynamics_info_k)*get<5>(dynamics_info_kp1)
+                          get<5>(dynamics_info_k)*get<5>(dynamics_info_kp1),
+                          0.5*(get<6>(dynamics_info_k)+get<6>(dynamics_info_kp1))
                           );
 
   xk = sat.state_norm(xk);

@@ -53,12 +53,12 @@ _CACHED_ORBIT_KEY: Optional[Tuple] = None
 def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
     global _CACHED_ORBIT, _CACHED_ORBIT_KEY
 
-    # 1. UI Setup: Claim a slot
+    # 1. UI Setup: Clafim a slot
     slot_id = claim_worker_slot()
     run_id = config["run_id"]
 
     try:
-        tf = config.get("tf", 500)
+        tf = config.get("tf", 1000)
         dt = config.get("dt", 2)
         t0 = 0
         N = int((tf - t0) / dt)
@@ -192,13 +192,13 @@ if __name__ == "__main__":
         runner = MonteCarloRunner(
             sim_func=run_single_sim,
             config_generator=generate_mc_config,
-            num_runs=100,
-            max_workers=24
+            num_runs=12,
+            max_workers=12
         )
         full_results = runner.run()
 
         print(f"\n--- Monte Carlo Complete: Generated {len(full_results)} histories ---")
-        save_data("3MTQ+1RW_LP_mc_100_4000s", full_results, out_dir=OUTPUT_DIR)
+        save_data("3MTQ+1RW_LP_mc_100_1000s", full_results, out_dir=OUTPUT_DIR)
 
         plot_target_tracking_mc(full_results=full_results, body_boresight=np.array([0, 1, 0]), title="3 MTQ + 1 RW LP MC:100")
         plot_convergence_histogram_mc(full_results=full_results, body_boresight=np.array([0, 1, 0]), title="3 MTQ + 1 RW LP")

@@ -85,7 +85,7 @@ TEST_CASE("Optimizer cost decreases monotonically", "[optimizer][convergence]") 
     VECTOR_INFO_FORM vecs = createDefaultVecInfo(N, dt);
     arma::vec3 B_eci = arma::vec({0.0, 3e-5, 2e-5});
     DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_eci, arma::vec3({7000,0,0}), 0,
-                                                        arma::vec3({0,7.5,0}), arma::vec3({1,0,0}), 1);
+                                                        arma::vec3({0,7.5,0}), arma::vec3({1,0,0}), 1, 0.0);
 
     // Generate initial trajectory
     arma::mat Xset = arma::mat(nx, N).zeros();
@@ -204,7 +204,7 @@ TEST_CASE("Optimizer maintains equilibrium at rest", "[optimizer][equilibrium]")
     VECTOR_INFO_FORM vecs = createDefaultVecInfo(N, dt);
     arma::vec3 B_eci = arma::vec({0.0, 3e-5, 2e-5});
     DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_eci, arma::vec3({7000,0,0}), 0,
-                                                        arma::vec3({0,7.5,0}), arma::vec3({1,0,0}), 1);
+                                                        arma::vec3({0,7.5,0}), arma::vec3({1,0,0}), 1, 0.0);
 
     // Generate trajectory - should stay at equilibrium
     arma::mat Xset = arma::mat(nx, N).zeros();
@@ -303,7 +303,7 @@ TEST_CASE("Verify KKT optimality conditions at solution", "[optimizer][kkt]") {
     VECTOR_INFO_FORM vecs = createDefaultVecInfo(N, dt);
     arma::vec3 B_eci = arma::vec({0.0, 3e-5, 2e-5});
     DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_eci, arma::vec3({7000,0,0}), 0,
-                                                        arma::vec3({0,7.5,0}), arma::vec3({1,0,0}), 1);
+                                                        arma::vec3({0,7.5,0}), arma::vec3({1,0,0}), 1, 0.0);
 
     // Cost settings
     COST_SETTINGS_FORM costSettings = std::make_tuple(
@@ -426,7 +426,7 @@ TEST_CASE("ALTRO satisfies control constraints", "[optimizer][constraints]") {
     VECTOR_INFO_FORM vecs = createDefaultVecInfo(N, dt);
     arma::vec3 B_eci = arma::vec({0.0, 3e-5, 2e-5});
     DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_eci, arma::vec3({7000,0,0}), 0,
-                                                        arma::vec3({0,7.5,0}), arma::vec3({1,0,0}), 1);
+                                                        arma::vec3({0,7.5,0}), arma::vec3({1,0,0}), 1, 0.0);
 
     // High weights to encourage aggressive control (which will hit constraints)
     COST_SETTINGS_FORM costSettings = std::make_tuple(
@@ -522,7 +522,7 @@ TEST_CASE("TVLQR gains can be computed", "[optimizer][tvlqr]") {
     VECTOR_INFO_FORM vecs = createDefaultVecInfo(N, dt);
     arma::vec3 B_eci = arma::vec({0.0, 3e-5, 2e-5});
     DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_eci, arma::vec3({7000,0,0}), 0,
-                                                        arma::vec3({0,7.5,0}), arma::vec3({1,0,0}), 1);
+                                                        arma::vec3({0,7.5,0}), arma::vec3({1,0,0}), 1, 0.0);
 
     // Generate trajectory
     arma::mat Xset = arma::mat(nx, N).zeros();
@@ -622,7 +622,7 @@ TEST_CASE("Forward pass trajectory satisfies dynamics", "[optimizer][dynamics]")
     arma::vec3 R_orb = arma::vec({7000.0, 0.0, 0.0});
     arma::vec3 V_orb = arma::vec({0.0, 7.5, 0.0});
     arma::vec3 sun_vec = arma::normalise(arma::vec({1.0, 0.0, 0.0}));
-    DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_eci, R_orb, 0, V_orb, sun_vec, 1);
+    DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_eci, R_orb, 0, V_orb, sun_vec, 1, 0.0);
 
     // Generate initial trajectory with small random controls
     arma::arma_rng::set_seed(42);
@@ -900,11 +900,11 @@ TEST_CASE("MTQ-only satellite convergence", "[optimizer][mtq][convergence]") {
 
     arma::vec3 B_k = Bset.col(0);
     DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_k, arma::vec3({7000,0,0}), 0,
-                                                        arma::vec3({0,7.5,0}), arma::vec3({1,0,0}), 1);
+                                                        arma::vec3({0,7.5,0}), arma::vec3({1,0,0}), 1, 0.0);
     for(int k = 0; k < N-1; k++) {
         B_k = Bset.col(k);
         dynamics_info = std::make_tuple(B_k, arma::vec3({7000,0,0}), 0,
-                                        arma::vec3({0,7.5,0}), arma::vec3({1,0,0}), 1);
+                                        arma::vec3({0,7.5,0}), arma::vec3({1,0,0}), 1, 0.0);
         auto rk4out = rk4z(dt, Xset.col(k), Uset_init.col(k), sat, dynamics_info, dynamics_info);
         Xset.col(k+1) = sat.state_norm(std::get<0>(rk4out));
     }
@@ -1036,7 +1036,7 @@ TEST_CASE("RW-only satellite convergence", "[optimizer][rw][convergence]") {
     VECTOR_INFO_FORM vecs = createDefaultVecInfo(N, dt);
     arma::vec3 B_eci = arma::vec({0.0, 3e-5, 2e-5});
     DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_eci, arma::vec3({7000,0,0}), 0,
-                                                        arma::vec3({0,7.5,0}), arma::vec3({1,0,0}), 1);
+                                                        arma::vec3({0,7.5,0}), arma::vec3({1,0,0}), 1, 0.0);
 
     // Generate initial trajectory
     arma::mat Uset_init = arma::mat(nu, N).zeros();
@@ -1161,7 +1161,7 @@ TEST_CASE("Hybrid MTQ+RW satellite convergence", "[optimizer][hybrid][convergenc
     VECTOR_INFO_FORM vecs = createDefaultVecInfo(N, dt);
     arma::vec3 B_eci = arma::vec({0.0, 3e-5, 2e-5});
     DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_eci, arma::vec3({7000,0,0}), 0,
-                                                        arma::vec3({0,7.5,0}), arma::vec3({1,0,0}), 1);
+                                                        arma::vec3({0,7.5,0}), arma::vec3({1,0,0}), 1, 0.0);
 
     // Generate initial trajectory
     arma::mat Uset_init = arma::mat(nu, N).zeros();
@@ -1298,7 +1298,7 @@ TEST_CASE("Control smoothness with rate penalty", "[optimizer][smoothness]") {
     VECTOR_INFO_FORM vecs = createDefaultVecInfo(N, dt);
     arma::vec3 B_eci = arma::vec({0.0, 3e-5, 2e-5});
     DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_eci, arma::vec3({7000,0,0}), 0,
-                                                        arma::vec3({0,7.5,0}), arma::vec3({1,0,0}), 1);
+                                                        arma::vec3({0,7.5,0}), arma::vec3({1,0,0}), 1, 0.0);
 
     arma::mat Uset_init = arma::mat(nu, N).zeros();
     arma::mat Xset = arma::mat(nx, N).zeros();
@@ -1508,7 +1508,7 @@ TEST_CASE("debug_altro_6Up configuration - spiky behavior analysis", "[optimizer
 
     VECTOR_INFO_FORM vecs = std::make_tuple(times, Rset, Vset, Bset, sunset, satvec, ECIvec, pset, rhoset);
 
-    DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_eci, R_orb, 0, V_orb, eci_goal, 1);
+    DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_eci, R_orb, 0, V_orb, eci_goal, 1, 0.0);
 
     // Generate initial trajectory with zero control
     arma::mat Uset_init = arma::mat(nu, N).zeros();
@@ -1676,7 +1676,7 @@ TEST_CASE("1D rotation regulation - analytical LQR comparison", "[optimizer][ana
     std::get<3>(vecs).zeros();
 
     DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_eci, arma::vec3({7000,0,0}), 0,
-                                                        arma::vec3({0,7.5,0}), arma::vec3({0,0,1}), 1);
+                                                        arma::vec3({0,7.5,0}), arma::vec3({0,0,1}), 1, 0.0);
 
     // Generate initial trajectory
     arma::mat Uset_init = arma::mat(nu, N).zeros();
@@ -1826,7 +1826,7 @@ TEST_CASE("Rest-to-rest maneuver - symmetry check", "[optimizer][analytical][sym
     arma::vec rhoset = arma::vec(N).zeros();
 
     VECTOR_INFO_FORM vecs = std::make_tuple(times, Rset, Vset, Bset, sunset, satvec, ECIvec, pset, rhoset);
-    DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_eci, R_orb, 0, V_orb, goal_vec, 1);
+    DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_eci, R_orb, 0, V_orb, goal_vec, 1, 0.0);
 
     // Generate initial trajectory
     arma::mat Uset_init = arma::mat(nu, N).zeros();
@@ -1956,7 +1956,7 @@ TEST_CASE("LQR gain consistency check", "[optimizer][analytical][gains]") {
     std::get<3>(vecs).zeros();  // Zero B-field
 
     DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_eci, arma::vec3({7000,0,0}), 0,
-                                                        arma::vec3({0,7.5,0}), arma::vec3({0,0,1}), 1);
+                                                        arma::vec3({0,7.5,0}), arma::vec3({0,0,1}), 1, 0.0);
 
     // Generate initial trajectory
     arma::mat Uset_init = arma::mat(nu, N).zeros();
@@ -2108,7 +2108,7 @@ TEST_CASE("Satellite dynamics Jacobians match finite differences", "[satellite][
 
         arma::vec3 B_eci = arma::vec({0.0, 3e-5, 2e-5});
         DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_eci, arma::vec3({7000,0,0}), 0,
-                                                            arma::vec3({0,7.5,0}), arma::vec3({1,0,0}), 1);
+                                                            arma::vec3({0,7.5,0}), arma::vec3({1,0,0}), 1, 0.0);
 
         // Get analytical Jacobians
         auto jacs = sat.dynamicsJacobians(x, u, dynamics_info);
@@ -2168,7 +2168,7 @@ TEST_CASE("Satellite dynamics Jacobians match finite differences", "[satellite][
 
         arma::vec3 B_eci = arma::vec({0.0, 3e-5, 2e-5});
         DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_eci, arma::vec3({7000,0,0}), 0,
-                                                            arma::vec3({0,7.5,0}), arma::vec3({1,0,0}), 1);
+                                                            arma::vec3({0,7.5,0}), arma::vec3({1,0,0}), 1, 0.0);
 
         auto jacs = sat.dynamicsJacobians(x, u, dynamics_info);
         arma::mat Jx_analytic = std::get<0>(jacs);
@@ -2227,7 +2227,7 @@ TEST_CASE("Satellite dynamics Jacobians match finite differences", "[satellite][
 
         arma::vec3 B_eci = arma::vec({1e-5, 3e-5, 2e-5});
         DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_eci, arma::vec3({7000,0,0}), 0,
-                                                            arma::vec3({0,7.5,0}), arma::vec3({1,0,0}), 1);
+                                                            arma::vec3({0,7.5,0}), arma::vec3({1,0,0}), 1, 0.0);
 
         auto jacs = sat.dynamicsJacobians(x, u, dynamics_info);
         arma::mat Jx_analytic = std::get<0>(jacs);
@@ -2287,7 +2287,7 @@ TEST_CASE("Satellite dynamics Hessians match finite differences", "[satellite][h
 
         arma::vec3 B_eci = arma::vec({0.0, 3e-5, 2e-5});
         DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_eci, arma::vec3({7000,0,0}), 0,
-                                                            arma::vec3({0,7.5,0}), arma::vec3({1,0,0}), 1);
+                                                            arma::vec3({0,7.5,0}), arma::vec3({1,0,0}), 1, 0.0);
 
         // Get analytical Hessians
         auto hess = sat.dynamicsHessians(x, u, dynamics_info);
@@ -2382,7 +2382,7 @@ TEST_CASE("Satellite dynamics Hessians match finite differences", "[satellite][h
 
         arma::vec3 B_eci = arma::vec({1e-5, 3e-5, 2e-5});
         DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_eci, arma::vec3({7000,0,0}), 0,
-                                                            arma::vec3({0,7.5,0}), arma::vec3({1,0,0}), 1);
+                                                            arma::vec3({0,7.5,0}), arma::vec3({1,0,0}), 1, 0.0);
 
         auto hess = sat.dynamicsHessians(x, u, dynamics_info);
         arma::cube Hxx_analytic = std::get<0>(hess);
@@ -3233,7 +3233,7 @@ TEST_CASE("RK4 integration Jacobians match finite differences", "[rk4][jacobian]
 
     arma::vec3 B_eci = arma::vec({1e-5, 3e-5, 2e-5});
     DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_eci, arma::vec3({7000,0,0}), 0,
-                                                        arma::vec3({0,7.5,0}), arma::vec3({1,0,0}), 1);
+                                                        arma::vec3({0,7.5,0}), arma::vec3({1,0,0}), 1, 0.0);
 
     // Get analytical RK4 Jacobians
     auto rk4jacs = rk4zJacobians(dt, x, u, sat, dynamics_info, dynamics_info);
@@ -3300,7 +3300,7 @@ TEST_CASE("RK4 integration Hessians match finite differences", "[rk4][hessian][!
 
     arma::vec3 B_eci = arma::vec({1e-5, 3e-5, 2e-5});
     DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_eci, arma::vec3({7000,0,0}), 0,
-                                                        arma::vec3({0,7.5,0}), arma::vec3({1,0,0}), 1);
+                                                        arma::vec3({0,7.5,0}), arma::vec3({1,0,0}), 1, 0.0);
 
     // Get analytical RK4 Hessians
     auto rk4hess = rk4zHessians(dt, x, u, sat, dynamics_info, dynamics_info);
@@ -3361,4 +3361,540 @@ TEST_CASE("RK4 integration Hessians match finite differences", "[rk4][hessian][!
 
     CHECK(Hxx_rel_error < 1e-2);
     CHECK(Hux_rel_error < 1e-2);
+}
+
+// ============================================================================
+// TEST: Surface-based SRP Disturbance Torque
+// ============================================================================
+TEST_CASE("SRP surface disturbance torque computation", "[disturbance][srp]") {
+    cout << "\n=== Test: SRP Surface Disturbance Torque ===" << endl;
+
+    // Physical constants (matching Satellite.hpp)
+    double SOLAR_CONSTANT = 1367.0;  // W/m^2
+    double SPEED_OF_LIGHT = 299792458.0;  // m/s
+    double P_solar = SOLAR_CONSTANT / SPEED_OF_LIGHT;  // N/m^2
+
+    Satellite sat = createSimpleSatellite();
+
+    // Identity quaternion (body frame = ECI frame)
+    arma::vec4 q0 = arma::vec({1.0, 0.0, 0.0, 0.0});
+    arma::vec3 w0 = arma::vec({0.01, 0.0, 0.0});
+    arma::vec x = join_cols(w0, q0);
+
+    SECTION("Single face, purely absorptive, sun along +Y") {
+        cout << "  Test 1: Single face, absorptive, sun along +Y..." << endl;
+
+        // Setup surface: single face with +Y normal at position [1,0,0] from COM
+        arma::mat normals(3, 1);
+        normals.col(0) = arma::vec({0.0, 1.0, 0.0});
+        arma::mat centroids(3, 1);
+        centroids.col(0) = arma::vec({1.0, 0.0, 0.0});
+        arma::vec areas = arma::vec({1.2});
+        arma::vec eta_s = arma::vec({0.0});  // no specular
+        arma::vec eta_d = arma::vec({0.0});  // no diffuse
+        arma::vec eta_a = arma::vec({1.0});  // fully absorptive
+        arma::vec3 COM = arma::vec({0.0, 0.0, 0.0});
+
+        sat.set_srp_surfaces(normals, centroids, areas, eta_s, eta_d, eta_a, COM);
+
+        // Sun far away along +Y (after normalization, sun direction is +Y)
+        arma::vec3 R_orb = arma::vec({7000.0, 0.0, 0.0});  // satellite position
+        arma::vec3 S_vec = arma::vec({7000.0, 1e9, 0.0});  // sun position (far along +Y)
+        arma::vec3 V_orb = arma::vec({0.0, 7.5, 0.0});
+
+        DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(
+            arma::vec3({0.0, 3e-5, 2e-5}),  // B_eci
+            R_orb,   // R
+            0,       // prop_torq_on
+            V_orb,   // V
+            S_vec,   // S (sun position)
+            1,       // dist_on
+            0.0      // rho
+        );
+
+        arma::vec3 torque = sat.dist_torque(x, dynamics_info);
+
+        // Expected: r_i - COM = [1,0,0], s_body = [0,1,0]
+        // cos_gamma = n . s = 1.0
+        // m_s = A * (eta_a + eta_d) * cos_gamma = 1.2 * 1.0 * 1.0 = 1.2
+        // m_n = A * (2*eta_s*cos^2 + 2/3*eta_d) * cos_gamma = 0
+        // torque = -P_solar * [m_s * (r x s)] = -P_solar * 1.2 * [1,0,0] x [0,1,0]
+        //        = -P_solar * 1.2 * [0,0,1]
+        arma::vec3 expected = -P_solar * 1.2 * arma::vec({0.0, 0.0, 1.0});
+
+        cout << "    Expected torque: " << expected.t();
+        cout << "    Computed torque: " << torque.t();
+
+        CHECK(arma::approx_equal(torque, expected, "absdiff", 1e-15));
+    }
+
+    SECTION("Single face, back-facing (shadow), zero torque") {
+        cout << "  Test 2: Single face, back-facing, zero torque..." << endl;
+
+        // Surface with -Y normal (facing away from sun)
+        arma::mat normals(3, 1);
+        normals.col(0) = arma::vec({0.0, -1.0, 0.0});
+        arma::mat centroids(3, 1);
+        centroids.col(0) = arma::vec({1.0, 0.0, 0.0});
+        arma::vec areas = arma::vec({1.2});
+        arma::vec eta_s = arma::vec({0.0});
+        arma::vec eta_d = arma::vec({0.0});
+        arma::vec eta_a = arma::vec({1.0});
+        arma::vec3 COM = arma::vec({0.0, 0.0, 0.0});
+
+        sat.set_srp_surfaces(normals, centroids, areas, eta_s, eta_d, eta_a, COM);
+
+        arma::vec3 R_orb = arma::vec({7000.0, 0.0, 0.0});
+        arma::vec3 S_vec = arma::vec({7000.0, 1e9, 0.0});  // sun along +Y
+        arma::vec3 V_orb = arma::vec({0.0, 7.5, 0.0});
+
+        DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(
+            arma::vec3({0.0, 3e-5, 2e-5}), R_orb, 0, V_orb, S_vec, 1, 0.0
+        );
+
+        arma::vec3 torque = sat.dist_torque(x, dynamics_info);
+
+        // cos_gamma = n . s = -1 < 0, so surface is in shadow -> zero contribution
+        arma::vec3 expected = arma::vec({0.0, 0.0, 0.0});
+
+        cout << "    Expected torque: " << expected.t();
+        cout << "    Computed torque: " << torque.t();
+
+        CHECK(arma::approx_equal(torque, expected, "absdiff", 1e-15));
+    }
+
+    SECTION("Single face, mixed surface properties") {
+        cout << "  Test 3: Single face, mixed surface (eta_a=0.05, eta_d=0.25, eta_s=0.7)..." << endl;
+
+        arma::mat normals(3, 1);
+        normals.col(0) = arma::vec({0.0, 1.0, 0.0});
+        arma::mat centroids(3, 1);
+        centroids.col(0) = arma::vec({1.0, 0.0, 0.0});
+        arma::vec areas = arma::vec({1.2});
+        arma::vec eta_s = arma::vec({0.7});
+        arma::vec eta_d = arma::vec({0.25});
+        arma::vec eta_a = arma::vec({0.05});
+        arma::vec3 COM = arma::vec({0.0, 0.0, 0.0});
+
+        sat.set_srp_surfaces(normals, centroids, areas, eta_s, eta_d, eta_a, COM);
+
+        arma::vec3 R_orb = arma::vec({7000.0, 0.0, 0.0});
+        arma::vec3 S_vec = arma::vec({7000.0, 1e9, 0.0});  // sun along +Y
+        arma::vec3 V_orb = arma::vec({0.0, 7.5, 0.0});
+
+        DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(
+            arma::vec3({0.0, 3e-5, 2e-5}), R_orb, 0, V_orb, S_vec, 1, 0.0
+        );
+
+        arma::vec3 torque = sat.dist_torque(x, dynamics_info);
+
+        // cos_gamma = 1.0
+        // m_s = A * (eta_a + eta_d) * cos_gamma = 1.2 * (0.05 + 0.25) * 1.0 = 0.36
+        // m_n = A * (2*eta_s*cos^2 + 2/3*eta_d) * cos_gamma = 1.2 * (2*0.7*1 + 2/3*0.25) * 1.0
+        //     = 1.2 * (1.4 + 0.16667) = 1.2 * 1.56667 = 1.88
+        // r x s = [1,0,0] x [0,1,0] = [0,0,1]
+        // r x n = [1,0,0] x [0,1,0] = [0,0,1]
+        // torque = -P_solar * (m_s * [0,0,1] + m_n * [0,0,1])
+        //        = -P_solar * (0.36 + 1.88) * [0,0,1]
+        double m_s = 1.2 * (0.05 + 0.25) * 1.0;
+        double m_n = 1.2 * (2.0*0.7*1.0 + (2.0/3.0)*0.25) * 1.0;
+        arma::vec3 expected = -P_solar * (m_s + m_n) * arma::vec({0.0, 0.0, 1.0});
+
+        cout << "    m_s = " << m_s << ", m_n = " << m_n << endl;
+        cout << "    Expected torque: " << expected.t();
+        cout << "    Computed torque: " << torque.t();
+
+        CHECK(arma::approx_equal(torque, expected, "absdiff", 1e-14));
+    }
+
+    SECTION("Single face, oblique sun angle (45 degrees)") {
+        cout << "  Test 4: Single face, 45 degree sun angle..." << endl;
+
+        arma::mat normals(3, 1);
+        normals.col(0) = arma::vec({0.0, 1.0, 0.0});  // +Y normal
+        arma::mat centroids(3, 1);
+        centroids.col(0) = arma::vec({1.0, 0.0, 0.0});
+        arma::vec areas = arma::vec({1.2});
+        arma::vec eta_s = arma::vec({1.0});  // purely specular
+        arma::vec eta_d = arma::vec({0.0});
+        arma::vec eta_a = arma::vec({0.0});
+        arma::vec3 COM = arma::vec({0.0, 0.0, 0.0});
+
+        sat.set_srp_surfaces(normals, centroids, areas, eta_s, eta_d, eta_a, COM);
+
+        arma::vec3 R_orb = arma::vec({7000.0, 0.0, 0.0});
+        // Sun at 45 degrees in XY plane: direction is [1,1,0]/sqrt(2)
+        arma::vec3 S_vec = arma::vec({7000.0 + 1e9, 1e9, 0.0});
+        arma::vec3 V_orb = arma::vec({0.0, 7.5, 0.0});
+
+        DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(
+            arma::vec3({0.0, 3e-5, 2e-5}), R_orb, 0, V_orb, S_vec, 1, 0.0
+        );
+
+        arma::vec3 torque = sat.dist_torque(x, dynamics_info);
+
+        // cos_gamma = n . s_body = [0,1,0] . [1/sqrt(2), 1/sqrt(2), 0] = 1/sqrt(2)
+        double cg = 1.0/std::sqrt(2.0);
+        // m_s = A * (eta_a + eta_d) * cos_gamma = 0
+        // m_n = A * (2*eta_s*cos^2 + 2/3*eta_d) * cos_gamma = 1.2 * 2 * 1 * cg^2 * cg = 1.2 * 2 * cg^3
+        // r x s = [1,0,0] x [1/sqrt(2),1/sqrt(2),0] = [0,0,1/sqrt(2)]
+        // r x n = [1,0,0] x [0,1,0] = [0,0,1]
+        double m_n = 1.2 * 2.0 * cg * cg * cg;
+        arma::vec3 expected = -P_solar * m_n * arma::vec({0.0, 0.0, 1.0});
+
+        cout << "    cos_gamma = " << cg << ", m_n = " << m_n << endl;
+        cout << "    Expected torque: " << expected.t();
+        cout << "    Computed torque: " << torque.t();
+
+        CHECK(arma::approx_equal(torque, expected, "absdiff", 1e-14));
+    }
+
+    SECTION("Multiple faces") {
+        cout << "  Test 5: Multiple faces contributing..." << endl;
+
+        // Two faces: one +Y, one +X
+        arma::mat normals(3, 2);
+        normals.col(0) = arma::vec({0.0, 1.0, 0.0});  // +Y normal
+        normals.col(1) = arma::vec({1.0, 0.0, 0.0});  // +X normal
+        arma::mat centroids(3, 2);
+        centroids.col(0) = arma::vec({1.0, 0.0, 0.0});  // face 0 at +X
+        centroids.col(1) = arma::vec({0.0, 1.0, 0.0});  // face 1 at +Y
+        arma::vec areas = arma::vec({1.0, 0.5});
+        arma::vec eta_s = arma::vec({0.0, 0.0});
+        arma::vec eta_d = arma::vec({0.0, 0.0});
+        arma::vec eta_a = arma::vec({1.0, 1.0});
+        arma::vec3 COM = arma::vec({0.0, 0.0, 0.0});
+
+        sat.set_srp_surfaces(normals, centroids, areas, eta_s, eta_d, eta_a, COM);
+
+        arma::vec3 R_orb = arma::vec({7000.0, 0.0, 0.0});
+        // Sun at 45 degrees in XY plane
+        arma::vec3 S_vec = arma::vec({7000.0 + 1e9, 1e9, 0.0});
+        arma::vec3 V_orb = arma::vec({0.0, 7.5, 0.0});
+
+        DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(
+            arma::vec3({0.0, 3e-5, 2e-5}), R_orb, 0, V_orb, S_vec, 1, 0.0
+        );
+
+        arma::vec3 torque = sat.dist_torque(x, dynamics_info);
+
+        double cg = 1.0/std::sqrt(2.0);
+        // Face 0: cos_gamma0 = [0,1,0].[cg,cg,0] = cg
+        //         m_s0 = 1.0 * 1.0 * cg = cg
+        //         r0 x s = [1,0,0] x [cg,cg,0] = [0,0,cg]
+        // Face 1: cos_gamma1 = [1,0,0].[cg,cg,0] = cg
+        //         m_s1 = 0.5 * 1.0 * cg = 0.5*cg
+        //         r1 x s = [0,1,0] x [cg,cg,0] = [0,0,-cg]
+        arma::vec3 r0_cross_s = arma::vec({0.0, 0.0, cg});
+        arma::vec3 r1_cross_s = arma::vec({0.0, 0.0, -cg});
+        arma::vec3 expected = -P_solar * (1.0*cg*r0_cross_s + 0.5*cg*r1_cross_s);
+
+        cout << "    Expected torque: " << expected.t();
+        cout << "    Computed torque: " << torque.t();
+
+        CHECK(arma::approx_equal(torque, expected, "absdiff", 1e-14));
+    }
+
+    // Clear surfaces for subsequent tests
+    sat.clear_srp_surfaces();
+}
+
+// ============================================================================
+// TEST: Surface-based Drag Disturbance Torque
+// ============================================================================
+TEST_CASE("Drag surface disturbance torque computation", "[disturbance][drag]") {
+    cout << "\n=== Test: Drag Surface Disturbance Torque ===" << endl;
+
+    Satellite sat = createSimpleSatellite();
+
+    // Identity quaternion
+    arma::vec4 q0 = arma::vec({1.0, 0.0, 0.0, 0.0});
+    arma::vec3 w0 = arma::vec({0.01, 0.0, 0.0});
+    arma::vec x = join_cols(w0, q0);
+
+    SECTION("Single face, velocity along +Y") {
+        cout << "  Test 1: Single face, velocity along +Y..." << endl;
+
+        // Surface with +Y normal
+        arma::mat normals(3, 1);
+        normals.col(0) = arma::vec({0.0, 1.0, 0.0});
+        arma::mat centroids(3, 1);
+        centroids.col(0) = arma::vec({1.0, 0.0, 0.0});  // 1m along +X
+        arma::vec areas = arma::vec({1.0});  // 1 m^2
+        arma::vec CDs = arma::vec({2.2});    // drag coefficient
+        arma::vec3 COM = arma::vec({0.0, 0.0, 0.0});
+
+        sat.set_drag_surfaces(normals, centroids, areas, CDs, COM);
+
+        arma::vec3 R_orb = arma::vec({7000.0, 0.0, 0.0});
+        arma::vec3 V_orb = arma::vec({0.0, 7.5, 0.0});  // 7.5 km/s along +Y
+        arma::vec3 S_vec = arma::vec({1e9, 0.0, 0.0});
+        double rho = 1e-12;  // kg/m^3 (typical for LEO)
+
+        DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(
+            arma::vec3({0.0, 3e-5, 2e-5}), R_orb, 0, V_orb, S_vec, 1, rho
+        );
+
+        arma::vec3 torque = sat.dist_torque(x, dynamics_info);
+
+        // V_body = V_orb * 1000 = [0, 7500, 0] m/s
+        // n . V_body = 7500
+        // F = C_D * A * (n.V) = 2.2 * 1.0 * 7500 = 16500
+        // r x V = [1,0,0] x [0,7500,0] = [0,0,7500]
+        // torque = -0.5 * rho * F * (r x V)
+        //        = -0.5 * 1e-12 * 16500 * [0,0,7500]
+        double V_body_y = 7500.0;  // m/s
+        double F = 2.2 * 1.0 * V_body_y;
+        arma::vec3 expected = -0.5 * rho * F * arma::vec({0.0, 0.0, V_body_y});
+
+        cout << "    F = " << F << endl;
+        cout << "    Expected torque: " << expected.t();
+        cout << "    Computed torque: " << torque.t();
+
+        CHECK(arma::approx_equal(torque, expected, "absdiff", 1e-20));
+    }
+
+    SECTION("Single face, back-facing (no drag)") {
+        cout << "  Test 2: Single face, back-facing, zero torque..." << endl;
+
+        // Surface with -Y normal (facing away from velocity)
+        arma::mat normals(3, 1);
+        normals.col(0) = arma::vec({0.0, -1.0, 0.0});
+        arma::mat centroids(3, 1);
+        centroids.col(0) = arma::vec({1.0, 0.0, 0.0});
+        arma::vec areas = arma::vec({1.0});
+        arma::vec CDs = arma::vec({2.2});
+        arma::vec3 COM = arma::vec({0.0, 0.0, 0.0});
+
+        sat.set_drag_surfaces(normals, centroids, areas, CDs, COM);
+
+        arma::vec3 R_orb = arma::vec({7000.0, 0.0, 0.0});
+        arma::vec3 V_orb = arma::vec({0.0, 7.5, 0.0});  // +Y velocity
+        arma::vec3 S_vec = arma::vec({1e9, 0.0, 0.0});
+        double rho = 1e-12;
+
+        DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(
+            arma::vec3({0.0, 3e-5, 2e-5}), R_orb, 0, V_orb, S_vec, 1, rho
+        );
+
+        arma::vec3 torque = sat.dist_torque(x, dynamics_info);
+
+        // n . V_body = -7500 < 0, so surface doesn't contribute
+        arma::vec3 expected = arma::vec({0.0, 0.0, 0.0});
+
+        cout << "    Expected torque: " << expected.t();
+        cout << "    Computed torque: " << torque.t();
+
+        CHECK(arma::approx_equal(torque, expected, "absdiff", 1e-20));
+    }
+
+    SECTION("Multiple faces, different orientations") {
+        cout << "  Test 3: Multiple faces with different orientations..." << endl;
+
+        // Two faces: +Y and +X normals
+        arma::mat normals(3, 2);
+        normals.col(0) = arma::vec({0.0, 1.0, 0.0});  // +Y
+        normals.col(1) = arma::vec({1.0, 0.0, 0.0});  // +X
+        arma::mat centroids(3, 2);
+        centroids.col(0) = arma::vec({1.0, 0.0, 0.0});
+        centroids.col(1) = arma::vec({0.0, 1.0, 0.0});
+        arma::vec areas = arma::vec({1.0, 0.5});
+        arma::vec CDs = arma::vec({2.2, 2.0});
+        arma::vec3 COM = arma::vec({0.0, 0.0, 0.0});
+
+        sat.set_drag_surfaces(normals, centroids, areas, CDs, COM);
+
+        arma::vec3 R_orb = arma::vec({7000.0, 0.0, 0.0});
+        // Velocity at 45 degrees in XY plane
+        arma::vec3 V_orb = arma::vec({5.0, 5.0, 0.0});  // km/s
+        arma::vec3 S_vec = arma::vec({1e9, 0.0, 0.0});
+        double rho = 1e-12;
+
+        DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(
+            arma::vec3({0.0, 3e-5, 2e-5}), R_orb, 0, V_orb, S_vec, 1, rho
+        );
+
+        arma::vec3 torque = sat.dist_torque(x, dynamics_info);
+
+        // V_body = [5000, 5000, 0] m/s
+        arma::vec3 V_body = arma::vec({5000.0, 5000.0, 0.0});
+        // Face 0: n0.V = 5000, F0 = 2.2*1.0*5000 = 11000
+        //         r0 x V = [1,0,0] x [5000,5000,0] = [0,0,5000]
+        // Face 1: n1.V = 5000, F1 = 2.0*0.5*5000 = 5000
+        //         r1 x V = [0,1,0] x [5000,5000,0] = [0,0,-5000]
+        double F0 = 2.2 * 1.0 * 5000.0;
+        double F1 = 2.0 * 0.5 * 5000.0;
+        arma::vec3 r0_x_V = arma::vec({0.0, 0.0, 5000.0});
+        arma::vec3 r1_x_V = arma::vec({0.0, 0.0, -5000.0});
+        arma::vec3 expected = -0.5 * rho * (F0 * r0_x_V + F1 * r1_x_V);
+
+        cout << "    F0 = " << F0 << ", F1 = " << F1 << endl;
+        cout << "    Expected torque: " << expected.t();
+        cout << "    Computed torque: " << torque.t();
+
+        CHECK(arma::approx_equal(torque, expected, "absdiff", 1e-20));
+    }
+
+    SECTION("Zero density means zero drag") {
+        cout << "  Test 4: Zero density, zero drag torque..." << endl;
+
+        arma::mat normals(3, 1);
+        normals.col(0) = arma::vec({0.0, 1.0, 0.0});
+        arma::mat centroids(3, 1);
+        centroids.col(0) = arma::vec({1.0, 0.0, 0.0});
+        arma::vec areas = arma::vec({1.0});
+        arma::vec CDs = arma::vec({2.2});
+        arma::vec3 COM = arma::vec({0.0, 0.0, 0.0});
+
+        sat.set_drag_surfaces(normals, centroids, areas, CDs, COM);
+
+        arma::vec3 R_orb = arma::vec({7000.0, 0.0, 0.0});
+        arma::vec3 V_orb = arma::vec({0.0, 7.5, 0.0});
+        arma::vec3 S_vec = arma::vec({1e9, 0.0, 0.0});
+        double rho = 0.0;  // zero density
+
+        DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(
+            arma::vec3({0.0, 3e-5, 2e-5}), R_orb, 0, V_orb, S_vec, 1, rho
+        );
+
+        arma::vec3 torque = sat.dist_torque(x, dynamics_info);
+
+        arma::vec3 expected = arma::vec({0.0, 0.0, 0.0});
+
+        cout << "    Expected torque: " << expected.t();
+        cout << "    Computed torque: " << torque.t();
+
+        CHECK(arma::approx_equal(torque, expected, "absdiff", 1e-25));
+    }
+
+    // Clear surfaces
+    sat.clear_drag_surfaces();
+}
+
+// ============================================================================
+// TEST: Combined SRP and Drag disturbances
+// ============================================================================
+TEST_CASE("Combined SRP and Drag disturbances", "[disturbance][combined]") {
+    cout << "\n=== Test: Combined SRP and Drag Disturbances ===" << endl;
+
+    double SOLAR_CONSTANT = 1367.0;
+    double SPEED_OF_LIGHT = 299792458.0;
+    double P_solar = SOLAR_CONSTANT / SPEED_OF_LIGHT;
+
+    Satellite sat = createSimpleSatellite();
+
+    arma::vec4 q0 = arma::vec({1.0, 0.0, 0.0, 0.0});
+    arma::vec3 w0 = arma::vec({0.01, 0.0, 0.0});
+    arma::vec x = join_cols(w0, q0);
+
+    // Setup both SRP and drag surfaces
+    arma::mat normals(3, 1);
+    normals.col(0) = arma::vec({0.0, 1.0, 0.0});
+    arma::mat centroids(3, 1);
+    centroids.col(0) = arma::vec({1.0, 0.0, 0.0});
+    arma::vec areas = arma::vec({1.0});
+    arma::vec3 COM = arma::vec({0.0, 0.0, 0.0});
+
+    // SRP surface
+    arma::vec eta_s = arma::vec({0.0});
+    arma::vec eta_d = arma::vec({0.0});
+    arma::vec eta_a = arma::vec({1.0});
+    sat.set_srp_surfaces(normals, centroids, areas, eta_s, eta_d, eta_a, COM);
+
+    // Drag surface
+    arma::vec CDs = arma::vec({2.2});
+    sat.set_drag_surfaces(normals, centroids, areas, CDs, COM);
+
+    arma::vec3 R_orb = arma::vec({7000.0, 0.0, 0.0});
+    arma::vec3 V_orb = arma::vec({0.0, 7.5, 0.0});  // +Y velocity
+    arma::vec3 S_vec = arma::vec({7000.0, 1e9, 0.0});  // sun along +Y
+    double rho = 1e-12;
+
+    DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(
+        arma::vec3({0.0, 3e-5, 2e-5}), R_orb, 0, V_orb, S_vec, 1, rho
+    );
+
+    arma::vec3 torque = sat.dist_torque(x, dynamics_info);
+
+    // Expected SRP: -P_solar * 1.0 * [0,0,1]
+    arma::vec3 expected_srp = -P_solar * 1.0 * arma::vec({0.0, 0.0, 1.0});
+
+    // Expected drag: -0.5 * rho * F * (r x V) where F = CD*A*Vproj
+    double V_body_y = 7500.0;
+    double F_drag = 2.2 * 1.0 * V_body_y;
+    arma::vec3 expected_drag = -0.5 * rho * F_drag * arma::vec({0.0, 0.0, V_body_y});
+
+    arma::vec3 expected = expected_srp + expected_drag;
+
+    cout << "  Expected SRP torque:  " << expected_srp.t();
+    cout << "  Expected drag torque: " << expected_drag.t();
+    cout << "  Expected total:       " << expected.t();
+    cout << "  Computed total:       " << torque.t();
+
+    CHECK(arma::approx_equal(torque, expected, "absdiff", 1e-15));
+
+    sat.clear_srp_surfaces();
+    sat.clear_drag_surfaces();
+}
+
+// ============================================================================
+// TEST: Disturbance with non-identity attitude
+// ============================================================================
+TEST_CASE("Disturbance torque with rotated attitude", "[disturbance][attitude]") {
+    cout << "\n=== Test: Disturbance with Non-Identity Attitude ===" << endl;
+
+    double SOLAR_CONSTANT = 1367.0;
+    double SPEED_OF_LIGHT = 299792458.0;
+    double P_solar = SOLAR_CONSTANT / SPEED_OF_LIGHT;
+
+    Satellite sat = createSimpleSatellite();
+
+    // 90 degree rotation about Z axis: body +X -> ECI +Y, body +Y -> ECI -X
+    // Quaternion for 90 deg about Z: [cos(45), 0, 0, sin(45)] = [sqrt(2)/2, 0, 0, sqrt(2)/2]
+    double s2 = std::sqrt(2.0)/2.0;
+    arma::vec4 q0 = arma::vec({s2, 0.0, 0.0, s2});
+    arma::vec3 w0 = arma::vec({0.0, 0.0, 0.0});
+    arma::vec x = join_cols(w0, q0);
+
+    // Surface with +Y normal in body frame
+    arma::mat normals(3, 1);
+    normals.col(0) = arma::vec({0.0, 1.0, 0.0});
+    arma::mat centroids(3, 1);
+    centroids.col(0) = arma::vec({1.0, 0.0, 0.0});
+    arma::vec areas = arma::vec({1.0});
+    arma::vec eta_s = arma::vec({0.0});
+    arma::vec eta_d = arma::vec({0.0});
+    arma::vec eta_a = arma::vec({1.0});
+    arma::vec3 COM = arma::vec({0.0, 0.0, 0.0});
+
+    sat.set_srp_surfaces(normals, centroids, areas, eta_s, eta_d, eta_a, COM);
+
+    arma::vec3 R_orb = arma::vec({7000.0, 0.0, 0.0});
+    // Sun along ECI +Y means sun direction in body frame is along -X (due to 90 deg Z rotation)
+    arma::vec3 S_vec = arma::vec({7000.0, 1e9, 0.0});
+    arma::vec3 V_orb = arma::vec({0.0, 7.5, 0.0});
+
+    DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(
+        arma::vec3({0.0, 3e-5, 2e-5}), R_orb, 0, V_orb, S_vec, 1, 0.0
+    );
+
+    arma::vec3 torque = sat.dist_torque(x, dynamics_info);
+
+    // With 90 deg rotation about Z:
+    // - ECI sun direction ≈ [0, 1, 0]
+    // - Body frame sun direction = R^T * [0,1,0] = [-1, 0, 0] (body -X)
+    // - Normal in body = [0, 1, 0] (body +Y)
+    // - cos_gamma = [0,1,0] . [-1,0,0] = 0 -> surface not illuminated!
+    arma::vec3 expected = arma::vec({0.0, 0.0, 0.0});
+
+    cout << "  Attitude: 90 deg rotation about Z" << endl;
+    cout << "  Sun in ECI: +Y, in body: -X" << endl;
+    cout << "  Surface normal: body +Y -> perpendicular to sun, cos_gamma = 0" << endl;
+    cout << "  Expected torque: " << expected.t();
+    cout << "  Computed torque: " << torque.t();
+
+    // Allow small tolerance for numerical precision in rotation
+    CHECK(arma::norm(torque - expected) < 1e-14);
+
+    sat.clear_srp_surfaces();
 }

@@ -87,7 +87,7 @@ class RegularizationConfig:
     reg_bump: float = 10.0
     reg_min_cond: int = 2
     rand_add_ratio: float = 0.0
-    use_dynamics_hess: int = 0
+    use_dynamics_hess: int = 1
     use_constraint_hess: int = 0
 
     def to_tuple(self) -> Tuple[float, float, float, float, float, int, float, int, int]:
@@ -119,11 +119,11 @@ class ConvergenceConfig:
     max_outer_iter: int = 30
     max_inner_iter: int = 250
     max_total_iter: int = 7000
-    grad_tol: float = 1e-3
-    ilqr_cost_tol: float = 1e-1
-    total_cost_tol: float = 1e-2
+    grad_tol: float = 1e-4
+    ilqr_cost_tol: float = 1e-2
+    total_cost_tol: float = 1e-4
     z_count_lim: int = 10
-    c_max: float = 0.002
+    c_max: float = 0.0002
     max_cost: float = 1e40
 
     # State bound for divergence check
@@ -219,7 +219,7 @@ class CostWeights:
     #   True (1):  Full Newton - includes second derivative terms (dphi*ddphi for angle,
     #              smoothstep*smoothstep'' for stiction), may be indefinite but can
     #              converge faster when the problem is well-behaved
-    use_full_cost_hessian: bool = False
+    use_full_cost_hessian: bool = True
 
     def to_tuple(self, tracking_formulation: int | None = None) -> Tuple[float, ...]:
         """Convert to tuple for C++ interface.

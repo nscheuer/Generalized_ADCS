@@ -162,9 +162,27 @@ def build_cpp_satellite(est_sat: EstimatedSatellite, planner_settings: PlannerSe
     if planner_settings.plan_for_gg:
         csat.add_gg_torq()
     if planner_settings.plan_for_aero:
-        csat.add_aero_torq(planner_settings.drag_coeff,planner_settings.coeff_N)
+        if planner_settings.drag_surfaces is not None:
+            # Use surface-based drag model
+            surf = planner_settings.drag_surfaces
+            csat.set_drag_surfaces(
+                surf['normals'], surf['centroids'], surf['areas'],
+                surf['CDs'], surf['COM']
+            )
+        else:
+            # Fallback to coefficient-based model
+            csat.add_aero_torq(planner_settings.drag_coeff, planner_settings.coeff_N)
     if planner_settings.plan_for_srp:
-        csat.add_srp_torq(planner_settings.srp_coeff,planner_settings.coeff_N)
+        if planner_settings.srp_surfaces is not None:
+            # Use surface-based SRP model
+            surf = planner_settings.srp_surfaces
+            csat.set_srp_surfaces(
+                surf['normals'], surf['centroids'], surf['areas'],
+                surf['eta_s'], surf['eta_d'], surf['eta_a'], surf['COM']
+            )
+        else:
+            # Fallback to coefficient-based model
+            csat.add_srp_torq(planner_settings.srp_coeff, planner_settings.coeff_N)
     if planner_settings.plan_for_resdipole:
         csat.add_resdipole_torq(planner_settings.res_dipole.reshape((3,1)))
     if planner_settings.plan_for_prop:

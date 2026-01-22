@@ -57,7 +57,8 @@ class Plan_and_Track_Exact(PlanAndTrackBase):
         est_sat: EstimatedSatellite,
         os_hat: Orbital_State,
         goal_vector_eci: Optional[NDArray[np.float64]] = None,
-        w_ref: Optional[NDArray[np.float64]] = None
+        w_ref: Optional[NDArray[np.float64]] = None,
+        clip: bool = True
     ) -> NDArray[np.float64]:
         """
         Get open-loop control from trajectory (no feedback).
@@ -69,20 +70,22 @@ class Plan_and_Track_Exact(PlanAndTrackBase):
             os_hat: Estimated orbital state (for time)
             goal_vector_eci: Goal vector in ECI (unused)
             w_ref: Reference angular velocity (unused)
+            clip: If True, clip control to hardware actuator limits. Default True.
 
         Returns:
-            Open-loop control vector from trajectory
+            Open-loop control vector from trajectory (clipped to hardware limits if clip=True)
         """
         current_time = os_hat.J2000
 
         if self.active_trajectory is None:
-            raise RuntimeError(f"Plan_and_Track_LQR: No active trajectory set at t={current_time}")
+            raise RuntimeError(f"Plan_and_Track_Exact: No active trajectory set at t={current_time}")
 
         if not self.active_trajectory.is_valid_time(current_time):
-            raise RuntimeError(f"Plan_and_Track_LQR: Active trajectory expired or not started. "
+            raise RuntimeError(f"Plan_and_Track_Exact: Active trajectory expired or not started. "
                                 f"Current: {current_time}, Traj: [{self.active_trajectory.start_time}, {self.active_trajectory.end_time}]")
 
-        return self.active_trajectory.get_control_at(current_time)
+        ctrl = self.active_trajectory.get_control_at(current_time)
+        return self.clip_control(ctrl, clip=clip)
 
     def calculate_trajectory(
         self,
