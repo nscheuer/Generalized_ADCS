@@ -41,8 +41,8 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
     real_sat = create_beavercube2_cubesat()
     rw_h0 = 0.0001
 
-    rng = np.random.default_rng(seed=1111)
-    w0 = normalize(rng.standard_normal(3)) * (1.0 * np.pi / 180.0)
+    rng = np.random.default_rng(seed=398)
+    w0 = normalize(rng.standard_normal(3)) * (rng.uniform(0.1, 1.0) * np.pi / 180.0)
     q0 = normalize(rng.standard_normal(4))
     h0 = np.array([rw_h0])
     x = np.concatenate([w0, q0, h0])
@@ -54,7 +54,7 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
     # Build Planner
     planner_settings = PlannerSettings(
         est_sat=real_sat,
-        bdot_on=2,  # Skip bdot initial guess (faster, more reliable)
+        bdot_on=0,  # Skip bdot initial guess (faster, more reliable)
         dt_tp=100,
         dt_tvlqr=1,
     )
@@ -71,28 +71,17 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
     planner_settings.pass2.convergence.max_outer_iter = 10
     planner_settings.pass2.convergence.max_inner_iter = 20
 
-    planner_settings.rw_control_weight = 1e10
-    planner_settings.wmax = 2 * np.pi / 180.0
+    planner_settings.rw_control_weight = 1e8
+    planner_settings.wmax = 5 * np.pi / 180.0
 
     planner_settings.cost_main = CostWeights(
-            angle=1e7,
-            angle_N=1e7,   # 10x running cost
-            ang_vel=1e3,
-            ang_vel_N=1e3, # 10x running cost
+            angle=1e5,
+            angle_N=1e5,   # 10x running cost
+            ang_vel=0,
+            ang_vel_N=0, # 10x running cost
             ang_vel_mag=0.0,
             ang_vel_mag_N=0.0,
             control_mult=1.0,
-            ang_cost_func_type=2,
-        )
-    
-    planner_settings.cost_second = CostWeights(
-            angle=1e8,
-            angle_N=1e8,   # 10x running cost
-            ang_vel=1e3,
-            ang_vel_N=1e3, # 10x running cost
-            ang_vel_mag=0.0,
-            ang_vel_mag_N=0.0,
-            control_mult=1e2,
             ang_cost_func_type=2,
         )
 

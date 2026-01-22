@@ -103,16 +103,16 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
         planner_settings.pass1.convergence.max_inner_iter = 40
         planner_settings.pass2.aug_lag.penalty_init = 1
         planner_settings.pass2.convergence.max_outer_iter = 10
-        planner_settings.pass2.convergence.max_inner_iter = 15
+        planner_settings.pass2.convergence.max_inner_iter = 20
 
-        planner_settings.rw_control_weight = 1e10
+        planner_settings.rw_control_weight = 1e8
         planner_settings.wmax = 5 * np.pi / 180.0
 
         planner_settings.cost_main = CostWeights(
-                angle=1e11,
-                angle_N=1e11,   # 10x running cost
-                ang_vel=1e3,
-                ang_vel_N=1e3, # 10x running cost
+                angle=1e4,
+                angle_N=1e4,   # 10x running cost
+                ang_vel=0,
+                ang_vel_N=0, # 10x running cost
                 ang_vel_mag=0.0,
                 ang_vel_mag_N=0.0,
                 control_mult=1.0,
@@ -236,7 +236,7 @@ def generate_mc_config(run_id: int) -> Dict[str, Any]:
         "tf": 500,  # Explicitly requested 500s
         "dt": 1,    # Explicitly requested 1s
         "radius_km": 7000.0,
-        "w0": normalize(rng.standard_normal(3)) * (rng.uniform(0.1, 0.2) * np.pi / 180.0),
+        "w0": normalize(rng.standard_normal(3)) * (rng.uniform(0.1, 1.0) * np.pi / 180.0),
         "q0": normalize(rng.standard_normal(4)),
         "h0": rng.uniform(-0.0001, 0.0001, size=1), # Small initial momentum like debug
         "goal_eci_vec": normalize(rng.standard_normal(3)),
