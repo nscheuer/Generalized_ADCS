@@ -2208,12 +2208,26 @@ tuple<BACKWARD_PASS_RESULTS_FORM, REG_PAIR> OldPlanner::backwardPass(double dt0,
           }
           throw("somehow regularized Qkuu has nan/inf but nonregularized does not");
         }
-        reset |= !solve(Kk,Qkuureg, Qkux,solve_opts::no_approx);//+solve_opts::likely_sympd);//+solve_opts::fast);//+solve_opts::refine);%+solve_opts::no_approx);//+solve_opts::no_approx);//+solve_opts::equilibrate+solve_opts::refine+solve_opts::no_approx);
+        // Use the pre-computed Cholesky factorization for faster solve
+        // Qkuureg = R^T * R (upper triangular Cholesky), so solve R^T * R * x = b via:
+        //   1. R^T * y = b (forward substitution with lower triangular R^T)
+        //   2. R * x = y (backward substitution with upper triangular R)
+        // Armadillo's chol() returns upper triangular by default
+        mat Kk_temp;
+        reset |= !solve(Kk_temp, trimatu(Qkuureg_chol).t(), Qkux, solve_opts::fast);
+        if(!reset) {
+          reset |= !solve(Kk, trimatu(Qkuureg_chol), Kk_temp, solve_opts::fast);
+        }
         if((verbose_level >= 3)&&reset){
           cout<<"Solving Kk failed \n";
         }
-        reset |= !solve(dk,Qkuureg, Qku,solve_opts::no_approx);//+solve_opts::likely_sympd);//solve_opts::fast);//+solve_opts::refine+solve_opts::no_approx);//+solve_opts::no_approx);//+solve_opts::equilibrate+solve_opts::refine+solve_opts::no_approx);
-        // dk = Qkuureg_chol*Qku;
+        vec dk_temp;
+        if(!reset) {
+          reset |= !solve(dk_temp, trimatu(Qkuureg_chol).t(), Qku, solve_opts::fast);
+          if(!reset) {
+            reset |= !solve(dk, trimatu(Qkuureg_chol), dk_temp, solve_opts::fast);
+          }
+        }
         if((verbose_level >= 3)&&reset){
           cout<<"Solving dk failed \n";
         }
