@@ -1187,6 +1187,9 @@ tuple<cube, cube> OldPlanner::findKwDist(double dt_tvlqr0, TRAJECTORY_FORM traj,
   vec otherErr = vec(sat.reduced_state_N()-6).zeros();
   vec3 avErr = vec3().zeros();
   int N = Xset.n_cols;
+  
+  // Pre-allocate error vector to avoid join_cols allocation in loop
+  vec fullErr = vec(sat.reduced_state_N()).zeros();
   //Loop from k=1 to k=N-1 and update newU and newX
   DYNAMICS_INFO_FORM dynamics_info_kn1 = make_tuple(Bset.col(0),Rset.col(0),pset(0),Vset.col(0),Sset.col(0),int(useDist),rhoset(0));
   DYNAMICS_INFO_FORM dynamics_info_k = dynamics_info_kn1;
@@ -1243,8 +1246,12 @@ tuple<cube, cube> OldPlanner::findKwDist(double dt_tvlqr0, TRAJECTORY_FORM traj,
 
     otherErr = newXk.tail(sat.reduced_state_N()-6) - oldXprev.tail(sat.reduced_state_N()-6);
     avErr = newXk.head(3) - oldXprev.head(3);
-    newUprev = Uset.col(k-1) + Kset.slice(k-1)*join_cols(avErr,angErr,otherErr) + alpha*dset.col(k-1);
-    // newUprev = Uset.col(k-1)+Kset.slice(k-1)*join_cols(newXk.rows(sat.avindex0(),sat.avindex0()+2)-oldXprev.rows(sat.avindex0(),sat.avindex0()+2),(oldQprev(0)*Qkprev.rows(1,3) - Qkprev(0)*oldQprev.rows(1,3)-cross(oldQprev.rows(1,3),Qkprev.rows(1,3)))/(as_scalar(oldQprev.t()*Qkprev))) + alpha*dset.col(k-1);
+    
+    // Build error vector in-place to avoid join_cols allocation
+    fullErr.head(3) = avErr;
+    fullErr.rows(3, 5) = angErr;
+    fullErr.tail(sat.reduced_state_N()-6) = otherErr;
+    newUprev = Uset.col(k-1) + Kset.slice(k-1)*fullErr + alpha*dset.col(k-1);
 
     for(int i = 0; i < sat.control_N(); i++)
     {
@@ -2590,6 +2597,9 @@ TRAJECTORY_FORM OldPlanner::generateTrajectoryBlended(double dt0, double alpha, 
   vec4 quatErr;
   vec otherErr = vec(sat.reduced_state_N()-6).zeros();
   vec3 avErr = vec3().zeros();
+  
+  // Pre-allocate error vector to avoid join_cols allocation in loop
+  vec fullErr = vec(sat.reduced_state_N()).zeros();
 
   DYNAMICS_INFO_FORM dynamics_info_kn1 = make_tuple(Bset.col(0),Rset.col(0),pset(0),Vset.col(0),Sset.col(0),int(useDist),rhoset(0));
   DYNAMICS_INFO_FORM dynamics_info_k = dynamics_info_kn1;
@@ -2633,7 +2643,12 @@ TRAJECTORY_FORM OldPlanner::generateTrajectoryBlended(double dt0, double alpha, 
 
     otherErr = newXk.tail(sat.reduced_state_N()-6) - oldXprev.tail(sat.reduced_state_N()-6);
     avErr = newXk.head(3) - oldXprev.head(3);
-    newUprev = Uset.col(k-1) + Kset.slice(k-1)*join_cols(avErr,angErr,otherErr) + alpha*dset.col(k-1);
+    
+    // Build error vector in-place to avoid join_cols allocation
+    fullErr.head(3) = avErr;
+    fullErr.rows(3, 5) = angErr;
+    fullErr.tail(sat.reduced_state_N()-6) = otherErr;
+    newUprev = Uset.col(k-1) + Kset.slice(k-1)*fullErr + alpha*dset.col(k-1);
 
     for(int i = 0; i < sat.control_N(); i++){
       double ucheck = newUprev(i);
