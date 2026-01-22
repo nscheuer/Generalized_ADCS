@@ -41,7 +41,7 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
     real_sat = create_beavercube2_cubesat()
     rw_h0 = 0.0001
 
-    rng = np.random.default_rng(seed=398)
+    rng = np.random.default_rng(seed=2333)
     w0 = normalize(rng.standard_normal(3)) * (rng.uniform(0.1, 1.0) * np.pi / 180.0)
     q0 = normalize(rng.standard_normal(4))
     h0 = np.array([rw_h0])
@@ -59,32 +59,7 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
         dt_tvlqr=1,
     )
     planner_settings.verbosity = verbose
-
-    # Tuned cost weights: low running + high terminal = fast convergence
-    planner_settings.cost_main.use_full_cost_hessian = True
-    planner_settings.pass1.regularization.use_dynamics_hess = 1
-    planner_settings.init_traj.bdot_gain = 500
-    planner_settings.pass1.aug_lag.penalty_init = 1e-3
-    planner_settings.pass1.convergence.max_outer_iter = 15
-    planner_settings.pass1.convergence.max_inner_iter = 40
-    planner_settings.pass2.aug_lag.penalty_init = 1
-    planner_settings.pass2.convergence.max_outer_iter = 10
-    planner_settings.pass2.convergence.max_inner_iter = 20
-
-    planner_settings.rw_control_weight = 1e8
-    planner_settings.wmax = 5 * np.pi / 180.0
-
-    planner_settings.cost_main = CostWeights(
-            angle=1e5,
-            angle_N=1e5,   # 10x running cost
-            ang_vel=0,
-            ang_vel_N=0, # 10x running cost
-            ang_vel_mag=0.0,
-            ang_vel_mag_N=0.0,
-            control_mult=1.0,
-            ang_cost_func_type=2,
-        )
-
+    
     planner_settings.cost_tvlqr = CostWeights(
             angle=1e2,
             angle_N=1e3,
