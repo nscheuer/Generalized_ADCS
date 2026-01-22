@@ -680,6 +680,8 @@ def quat_diff(q0: np.ndarray, q1: np.ndarray) -> np.ndarray:
     q0 = normalize(q0)
     q1 = normalize(q1)
     q_err = quat_mult(quat_inv(q0),q1)
+    if q_err[0] < 0:
+        q_err = -q_err
     return normalize(q_err)
 
 def limit(u, umax):

@@ -67,17 +67,18 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
     planner_settings.pass1.aug_lag.penalty_init = 1e-3
     planner_settings.pass1.convergence.max_outer_iter = 15
     planner_settings.pass1.convergence.max_inner_iter = 40
-    planner_settings.pass2.aug_lag.penalty_init = 100
-    planner_settings.pass2.convergence.max_outer_iter = 8
-    planner_settings.pass2.convergence.max_inner_iter = 15
+    planner_settings.pass2.aug_lag.penalty_init = 1
+    planner_settings.pass2.convergence.max_outer_iter = 10
+    planner_settings.pass2.convergence.max_inner_iter = 20
 
-    planner_settings.rw_control_weight = 1e13
+    planner_settings.rw_control_weight = 1e10
+    planner_settings.wmax = 2 * np.pi / 180.0
 
     planner_settings.cost_main = CostWeights(
-            angle=1e3,
-            angle_N=1e4,   # 10x running cost
-            ang_vel=1e16,
-            ang_vel_N=1e16, # 10x running cost
+            angle=1e7,
+            angle_N=1e7,   # 10x running cost
+            ang_vel=1e3,
+            ang_vel_N=1e3, # 10x running cost
             ang_vel_mag=0.0,
             ang_vel_mag_N=0.0,
             control_mult=1.0,
@@ -85,16 +86,16 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
         )
     
     planner_settings.cost_second = CostWeights(
-            angle=1e6,
-            angle_N=1e7,   # 10x running cost
-            ang_vel=1e5,
-            ang_vel_N=1e6, # 10x running cost
+            angle=1e8,
+            angle_N=1e8,   # 10x running cost
+            ang_vel=1e3,
+            ang_vel_N=1e3, # 10x running cost
             ang_vel_mag=0.0,
             ang_vel_mag_N=0.0,
-            control_mult=1e3,
+            control_mult=1e2,
             ang_cost_func_type=2,
         )
-    
+
     planner_settings.cost_tvlqr = CostWeights(
             angle=1e2,
             angle_N=1e3,
