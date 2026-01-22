@@ -2054,8 +2054,15 @@ tuple<BACKWARD_PASS_RESULTS_FORM, REG_PAIR> OldPlanner::backwardPass(double dt0,
       // }
     }
 
-    Qkxx = costJac.lxx + trans(Aqk)*Pk*Aqk + trans(ckx)*Imuk*ckx ;
-    Qkx = costJac.lx + trans(Aqk)*pk + trans(ckx)*viol;
+    // === OPTIMIZATION 4: Compute shared intermediate products once ===
+    // These products are reused across Qkxx, Qkux, Qkuu computations
+    const mat AqkT = trans(Aqk);
+    const mat PkAqk = Pk * Aqk;           // Used in Qkxx, Qkux
+    const mat ckxT = trans(ckx);
+    const mat ImukCkx = Imuk * ckx;       // Used in Qkxx, Qkux
+
+    Qkxx = costJac.lxx + AqkT * PkAqk + ckxT * ImukCkx;
+    Qkx = costJac.lx + AqkT * pk + ckxT * viol;
     if(useDynamicsHess_tmp){
       Qkxx += vecOverCube(pk,ddxd__dxdxQ);
     }
@@ -2103,11 +2110,18 @@ tuple<BACKWARD_PASS_RESULTS_FORM, REG_PAIR> OldPlanner::backwardPass(double dt0,
       k--;
       continue;
     }
-    Qkux = costJac.lux + trans(Bqk)*Pk*Aqk + trans(cku)*Imuk*ckx;
-    Qku = costJac.lu + trans(Bqk)*pk + trans(cku)*viol;
+    
+    // More shared intermediate products for Qkux, Qkuu
+    const mat BqkT = trans(Bqk);
+    const mat BqkT_Pk = BqkT * Pk;        // Used in Qkux, Qkuu
+    const mat ckuT = trans(cku);
+    const mat ckuT_Imuk = ckuT * Imuk;    // Used in Qkux, Qkuu
+    
+    Qkux = costJac.lux + BqkT_Pk * Aqk + ckuT_Imuk * ckx;
+    Qku = costJac.lu + BqkT * pk + ckuT * viol;
 
     //find Qkuu and Qkuureg
-    Qkuu = costJac.luu + trans(Bqk)*Pk*Bqk + trans(cku)*Imuk*cku;
+    Qkuu = costJac.luu + BqkT_Pk * Bqk + ckuT_Imuk * cku;
 
 
     if(useDynamicsHess_tmp){
