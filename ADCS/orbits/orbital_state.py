@@ -401,13 +401,14 @@ class Orbital_State:
         return vec @ self.ECI2ENUmat
 
     def get_b_eci(self) -> np.ndarray:
-        r_m = self.geocentric[0]
+        r_km = self.geocentric[0]  # Already in km (same units as R input)
         theta_rad = self.geocentric[1]
         phi_rad = self.geocentric[2]
 
         # IGRF expects radius in km, theta and phi in degrees
+        # geocentric[0] is already in km since R is passed in km
         b_r, b_th, b_ph = ppigrf.igrf_gc(
-            r_m / 1000.0,  # Convert meters to km
+            r_km,
             theta_rad * 180.0 / np.pi,
             phi_rad * 180.0 / np.pi,
             self.datetime,

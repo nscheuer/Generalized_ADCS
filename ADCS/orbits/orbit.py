@@ -220,8 +220,8 @@ class Orbit:
         geos = np.vstack([self.states[j].geocentric for j in self.times])
         dts = [self.states[j].datetime for j in self.times]
         # IGRF expects radius in km, theta and phi in degrees
-        # geos[:,0] is radius in meters, so divide by 1000
-        b_r, b_th, b_ph = ppigrf.igrf_gc(geos[:,0]/1000.0, geos[:,1]*180.0/np.pi, geos[:,2]*180.0/np.pi, dts)
+        # geos[:,0] is already in km (same units as R input to Orbital_State)
+        b_r, b_th, b_ph = ppigrf.igrf_gc(geos[:,0], geos[:,1]*180.0/np.pi, geos[:,2]*180.0/np.pi, dts)
         b_r = np.diagonal(b_r)
         b_th = np.diagonal(b_th)
         b_ph = np.diagonal(b_ph)

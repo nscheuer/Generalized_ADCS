@@ -63,11 +63,13 @@ using namespace arma;
 using namespace std;
 
 OldPlanner::OldPlanner(){
+  verbose_level = 0;  // Default to silent
 }
 
 
 OldPlanner::OldPlanner(Satellite sat_in,ALL_SETTINGS_FORM allSettings){
   sat = sat_in;
+  verbose_level = 0;  // Default to silent
   OldPlanner::updateParameters_notsat(get<0>(allSettings),get<1>(allSettings),get<2>(allSettings),get<3>(allSettings),get<4>(allSettings),get<5>(allSettings),get<6>(allSettings));
 
 }
