@@ -55,7 +55,7 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
     planner_settings = PlannerSettings(
         est_sat=real_sat,
         bdot_on=0,  # Skip bdot initial guess (faster, more reliable)
-        dt_tp=100,
+        dt_tp=50,
         dt_tvlqr=1,
     )
     planner_settings.verbosity = verbose

@@ -89,7 +89,7 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
         planner_settings = PlannerSettings(
             est_sat=real_sat,
             bdot_on=0,  # Skip bdot initial guess
-            dt_tp=100,
+            dt_tp=50,
             dt_tvlqr=1,
         )
         
@@ -106,11 +106,22 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
         planner_settings.pass2.convergence.max_inner_iter = 20
 
         planner_settings.rw_control_weight = 1e8
-        planner_settings.wmax = 5 * np.pi / 180.0
+        planner_settings.wmax = 2 * np.pi / 180.0
 
         planner_settings.cost_main = CostWeights(
-                angle=1e4,
-                angle_N=1e4,   # 10x running cost
+                angle=1e5,
+                angle_N=1e5,   # 10x running cost
+                ang_vel=1e3,
+                ang_vel_N=1e3, # 10x running cost
+                ang_vel_mag=0.0,
+                ang_vel_mag_N=0.0,
+                control_mult=1.0,
+                ang_cost_func_type=2,
+            )
+        
+        planner_settings.cost_main = CostWeights(
+                angle=1e12,
+                angle_N=1e12,   # 10x running cost
                 ang_vel=0,
                 ang_vel_N=0, # 10x running cost
                 ang_vel_mag=0.0,
@@ -227,7 +238,7 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
 
 # --- Config Generator ---
 def generate_mc_config(run_id: int) -> Dict[str, Any]:
-    rng = np.random.default_rng(seed=run_id + 0)
+    rng = np.random.default_rng(seed=run_id + 1000)
     
     # Matching initial condition randomization from debug/template
     return {
@@ -251,7 +262,7 @@ if __name__ == "__main__":
         runner = MonteCarloRunner(
             sim_func=run_single_sim,
             config_generator=generate_mc_config,
-            num_runs=12,
+            num_runs=24,
             max_workers=24
         )
         full_results = runner.run()
