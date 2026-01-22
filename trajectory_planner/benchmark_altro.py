@@ -68,18 +68,18 @@ def setup_test_case():
 def run_benchmark(sat, x0, orb, goals, start_time, duration=60, iterations=5):
     """Run trajectory planning benchmark."""
     
-    # Planner settings
+    # Planner settings - optimized for speed
     planner_settings = PlannerSettings(
         est_sat=sat,
-        bdot_on=2,
-        dt_tp=30,
+        bdot_on=0,      # Skip bdot for speed
+        dt_tp=10,       # Must be <= 20 for N >= 4
         dt_tvlqr=1,
     )
     # Use moderate iteration counts for meaningful benchmark
-    planner_settings.pass1.convergence.max_outer_iter = 5
-    planner_settings.pass1.convergence.max_inner_iter = 20
-    planner_settings.pass2.convergence.max_outer_iter = 3
-    planner_settings.pass2.convergence.max_inner_iter = 10
+    planner_settings.pass1.convergence.max_outer_iter = 8
+    planner_settings.pass1.convergence.max_inner_iter = 40
+    planner_settings.pass2.convergence.max_outer_iter = 5
+    planner_settings.pass2.convergence.max_inner_iter = 15
     
     print(f"Creating controller...")
     controller = Plan_and_Track_LQR(est_sat=sat, planner_settings=planner_settings)
@@ -160,7 +160,7 @@ def main():
     
     # Warmup run
     print("\nWarmup run...")
-    planner_settings = PlannerSettings(est_sat=sat, bdot_on=2, dt_tp=30, dt_tvlqr=1)
+    planner_settings = PlannerSettings(est_sat=sat, bdot_on=0, dt_tp=10, dt_tvlqr=1)
     planner_settings.pass1.convergence.max_outer_iter = 2
     planner_settings.pass1.convergence.max_inner_iter = 5
     controller = Plan_and_Track_LQR(est_sat=sat, planner_settings=planner_settings)
