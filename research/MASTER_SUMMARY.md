@@ -1,6 +1,6 @@
 # Generalized ADCS Control Laws - Master Summary
 
-**Last Updated:** January 23, 2026
+**Last Updated:** January 23, 2026 (Afternoon Session)
 
 ---
 
@@ -16,41 +16,50 @@
 
 ### Q1: Torque Allocation
 
-**Answer: Use LP for direction preservation, optionally LP+QP for better error**
+**Answer: Use LP+QP with projection dominance for optimal performance**
 
-| Method | Direction Error | Magnitude | When to Use |
-|--------|----------------|-----------|-------------|
-| **LP** | 0° (exact) | Lower | Default choice |
-| LP+QP | 0° (constrained) | Higher | Long maneuvers |
-| ~~Single QP~~ | 65° (fails!) | - | Never |
+| Method | Direction Error | Projection | Closed-Loop Performance |
+|--------|----------------|------------|------------------------|
+| **LP** | 0° (exact) | Baseline | 22.0° final error (underactuated) |
+| **LP+QP (1°)** | ≤1° | +3% avg | 16.0° final error |
+| **LP+QP (5°)** | ≤5° | +18% avg | **11.3° final error** |
+| ~~Naive QP~~ | 30-60° | Higher | 72° (FAILS) |
 
-**Key insight:** LP's equality constraint `τ = α·τ̂_des` preserves direction exactly.
-Weighted QP formulations fail because maximizing projection ≠ preserving direction.
+**Key insight:** Direction preservation is essential for Lyapunov stability.
+- LP preserves direction via equality constraint `τ = α·τ̂_des`
+- LP+QP adds projection dominance constraint: `τ·τ̂ ≥ α_LP` AND `τ·τ̂ ≥ cos(θ_max)·|τ|`
+- Naive QP maximizes projection but allows arbitrary direction → destabilizes
+
+**Mathematical Proof:** See `LP_QP_MATHEMATICAL_PROOF.md`
 
 ### Q2: Momentum Desaturation
 
-**Answer: Use torque-free desaturation - it's FREE!**
+**Answer: Torque-free desaturation, but effectiveness depends on actuator config**
 
-| Mode | Pointing Cost | h Reduction | Mechanism |
-|------|---------------|-------------|-----------|
-| **Torque-free** | **0°** | **33%** | MTQ + RW cancel |
-| Slew-only | 0° | 5% | During transients |
-| ~~Error budget~~ | Large | Small | Don't use |
+| Configuration | Mode | Pointing Cost | h Reduction | Notes |
+|--------------|------|---------------|-------------|-------|
+| **3MTQ+3RW** | Torque-free | **0°** | **15%** | Full cancellation possible |
+| **3MTQ+1RW** | Torque-free | 6° | 9% | Partial - residual x-y torque |
+| **3MTQ+1RW** | Scheduled | ~0° | 8% | Only when B ⊥ RW axis |
 
-**Key insight:** Torque-free desaturation adds NO pointing error because:
-- MTQ produces desaturation torque τ_d
-- RW produces canceling torque -τ_d  
-- Net torque on body = 0
-- But momentum flows from RW to outside via MTQ!
+**Key insight for 3MTQ+3RW:** True torque-free desaturation is possible!
+- MTQ produces τ_d, RW produces -τ_d → net body torque = 0
+- Momentum flows from RW to outside via MTQ
+
+**Key insight for 3MTQ+1RW (underactuated):**
+- RW can only produce z-axis torque
+- MTQ produces torque ⊥ to B (generally has x, y, z components)
+- RW can only cancel z-component → residual x-y disturbs pointing
+- **Solution:** Only desaturate when B is in x-y plane (favorable geometry)
 
 **Formulation:**
 ```python
-τ_desat = project(-k_h * h_rw, perpendicular_to_B)  # MTQ achievable
-u_mtq_desat = solve(A_mtq, τ_desat)
-u_rw_desat = solve(A_rw, -A_mtq @ u_mtq_desat)      # Cancels MTQ
-# Add to pointing commands
-u_mtq += u_mtq_desat
-u_rw += u_rw_desat
+# Check if B is favorable (perpendicular to RW axis)
+b_z_fraction = abs(b[2]) / np.linalg.norm(b)
+if b_z_fraction < 0.3:  # B mostly in x-y plane
+    τ_desat = project(-k_h * h_rw, perpendicular_to_B)
+    u_mtq_desat = solve(A_mtq, τ_desat)
+    u_rw_desat = solve(A_rw, -τ_desat_z)  # Only cancel z-component
 ```
 
 ### Q3: Goal Conversion (Reduced → Full Attitude)
