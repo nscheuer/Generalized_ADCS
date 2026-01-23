@@ -4,7 +4,7 @@ __all__ = ["SRP_Disturbance"]
 import numpy as np
 from typing import TYPE_CHECKING
 from ADCS.satellite_hardware.disturbances.disturbance import Disturbance
-from ADCS.satellite_hardware.disturbances.geometry_config import GeometryConfig
+from ADCS.satellite_hardware.disturbances.helpers.geometry_config import GeometryConfig
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.helpers.math_helpers import normalize, normed_vec_jac, normed_vec_hess
 from ADCS.orbits.universal_constants import EarthConstants
@@ -15,81 +15,161 @@ if TYPE_CHECKING:
 
 class SRP_Disturbance(Disturbance):
     r"""
-    **Solar Radiation Pressure (SRP) Disturbance Model**
+    **Solar Radiation Pressure (SRP) Disturbance Torque Model**
 
-    This class models the **solar radiation pressure (SRP)** torque acting on a
-    satellite. The SRP torque arises from the momentum exchange between sunlight
-    and the satellite’s external surfaces due to reflection and absorption.
+    This class models the disturbance torque caused by **solar radiation pressure (SRP)**,
+    i.e., the momentum flux of sunlight impinging on and reflecting from spacecraft
+    exterior surfaces.
 
-    The model computes the total torque by summing contributions from all
-    illuminated surfaces defined in a :class:`~ADCS.satellite_hardware.disturbances.geometry_config.GeometryConfig`.
+    A discrete set of planar faces is used to represent the spacecraft geometry. For
+    each face that is illuminated (Sun-facing), a force is computed using a simplified
+    optical reflection model with **absorptive**, **diffuse**, and **specular** components.
+    The net SRP torque is the sum of moments of these per-face forces about the spacecraft
+    center of mass (COM).
 
-    **Physical Model**
+    Surface geometry and optical parameters are provided by:
 
-    The solar radiation pressure force on a surface element is given by:
+    :class:`~ADCS.satellite_hardware.disturbances.helpers.geometry_config.GeometryConfig`
 
-    .. math::
+    The Sun vector and orbital state are provided by:
 
-        \mathbf{F}_i =
-        -P_{\odot} A_i \max(0, \mathbf{n}_i \cdot \mathbf{s}_b)
-        \left[
-            (1 - \eta_s) \mathbf{s}_b
-            + 2 \eta_s (\mathbf{n}_i \cdot \mathbf{s}_b) \mathbf{n}_i
-            + \tfrac{2}{3} \eta_d \mathbf{n}_i
-        \right]
+    :class:`~ADCS.orbits.orbital_state.Orbital_State`
 
-    where:
+    **Reference Vectors**
 
-    - :math:`P_{\odot} = \dfrac{S_0}{c}` is the solar radiation pressure [N/m²],
-    - :math:`S_0` — Solar constant (:math:`1367~\mathrm{W/m^2}`),
-    - :math:`c` — Speed of light in vacuum [m/s],
-    - :math:`A_i` — Area of the i-th surface [m²],
-    - :math:`\mathbf{n}_i` — Surface normal vector in body frame,
-    - :math:`\mathbf{s}_b` — Unit Sun direction vector in body frame,
-    - :math:`\eta_s, \eta_d, \eta_a` — Specular, diffuse, and absorptive coefficients.
+    Let:
 
-    The total torque on the spacecraft is:
+    - :math:`\mathbf{S}_B` be the Sun position/direction vector expressed in the body frame
+      (as returned by :meth:`~ADCS.orbits.orbital_state.Orbital_State.get_state_vector`)
+    - :math:`\mathbf{R}_B` be the spacecraft position vector (Earth to spacecraft) expressed
+      in the body frame
+
+    The implemented model forms the body-frame unit Sun-look direction:
 
     .. math::
 
-        \mathbf{T}_{\mathrm{SRP}} =
-        \sum_i (\mathbf{r}_i - \mathbf{r}_{\mathrm{COM}}) \times \mathbf{F}_i
+        \mathbf{s}_b
+        =
+        \frac{\mathbf{S}_B - \mathbf{R}_B}{\left\lVert \mathbf{S}_B - \mathbf{R}_B \right\rVert},
 
-    Only surfaces facing the Sun (:math:`\mathbf{n}_i \cdot \mathbf{s}_b > 0`) contribute
-    to the disturbance. If the spacecraft is in eclipse, the torque is zero.
+    using :func:`~ADCS.helpers.math_helpers.normalize`.
 
-    Parameters
-    ----------
-    config : :class:`~ADCS.satellite_hardware.disturbances.geometry_config.GeometryConfig`
-        Configuration containing surface properties (areas, centroids, normals,
-        and optical coefficients).
+    **Illumination Gate**
 
-    Attributes
-    ----------
-    numfaces : int
-        Number of modeled surface elements.
+    SRP is applied only if the spacecraft is illuminated. Illumination is checked via:
 
-    areas : :class:`numpy.ndarray`
-        Surface areas of each face [m²], shape ``(N,)``.
+    :meth:`~ADCS.orbits.orbital_state.Orbital_State.is_sunlit`
 
-    centroids : :class:`numpy.ndarray`
-        Surface centroids in body coordinates [m], shape ``(N, 3)``.
+    If the spacecraft is in eclipse (not sunlit), the SRP torque is identically zero.
 
-    normals : :class:`numpy.ndarray`
-        Surface normal unit vectors in body frame, shape ``(N, 3)``.
+    **Optical Coefficients**
 
-    eta_s, eta_d, eta_a : :class:`numpy.ndarray`
-        Specular, diffuse, and absorptive reflection coefficients.
+    Each face :math:`i=1,\dots,N` has:
+
+    - area :math:`A_i` [m²]
+    - centroid :math:`\mathbf{r}_i` (body frame) [m]
+    - unit normal :math:`\mathbf{n}_i` (body frame)
+    - coefficients :math:`\eta_{s,i}`, :math:`\eta_{d,i}`, :math:`\eta_{a,i}`
+
+    The coefficients represent specular, diffuse, and absorptive contributions, respectively.
+    They are typically constrained such that :math:`\eta_{s,i} + \eta_{d,i} + \eta_{a,i} = 1`,
+    though this class does not enforce the constraint.
+
+    **Radiation Pressure**
+
+    The solar radiation pressure magnitude is modeled using the solar constant :math:`S_0`
+    and the speed of light :math:`c`, both provided by:
+
+    :class:`~ADCS.orbits.universal_constants.EarthConstants`
+
+    .. math::
+
+        P_\odot = \frac{S_0}{c}.
+
+    **Implemented Force/Torque Form**
+
+    Define the incidence cosine:
+
+    .. math::
+
+        \cos\gamma_i = \mathbf{n}_i^\top \mathbf{s}_b,
+        \qquad
+        \cos^+\gamma_i = \max(0,\cos\gamma_i).
+
+    The implementation uses two scalar multipliers:
+
+    .. math::
+
+        m_{s,i} = A_i(\eta_{a,i}+\eta_{d,i})\,\cos^+\gamma_i,
+
+    .. math::
+
+        m_{n,i}
+        =
+        A_i\left(2\,\eta_{s,i}\,(\cos^+\gamma_i)^2 + \tfrac{2}{3}\,\eta_{d,i}\right)\cos^+\gamma_i,
+
+    matching the code’s use of ``proj_area = A_i cos^+γ_i`` and
+    ``m_n = proj_area * (2 η_s cos^+γ_i + 2/3 η_d)``.
+
+    Let the lever arm from COM to the face centroid be:
+
+    .. math::
+
+        \mathbf{c}_i = \mathbf{r}_i - \mathbf{r}_{\mathrm{COM}}.
+
+    The total SRP torque (body frame) is:
+
+    .. math::
+
+        \mathbf{T}_{\mathrm{SRP}}
+        =
+        -\frac{S_0}{c}\sum_{i=1}^N
+        \Big[
+            m_{s,i}\,(\mathbf{c}_i \times \mathbf{s}_b)
+            +
+            m_{n,i}\,(\mathbf{c}_i \times \mathbf{n}_i)
+        \Big].
+
+    **Differentiability**
+
+    The clamping :math:`\cos^+\gamma_i = \max(0,\cos\gamma_i)` introduces a kink at
+    :math:`\cos\gamma_i = 0`. The Jacobian and Hessian methods provided by this class
+    use piecewise derivatives with a Heaviside gate (subgradient-like behavior).
+
+    :param config: Surface geometry and optical coefficients for each face.
+    :type config: :class:`~ADCS.satellite_hardware.disturbances.helpers.geometry_config.GeometryConfig`
     """
 
     def __init__(self, config: GeometryConfig):
         r"""
         Initialize the SRP disturbance model.
 
-        Parameters
-        ----------
-        config : :class:`~ADCS.satellite_hardware.disturbances.geometry_config.GeometryConfig`
-            Configuration instance describing each satellite surface element.
+        This constructor reads per-face geometry and optical parameters from the
+        provided configuration. Normals are normalized using
+        :func:`~ADCS.helpers.math_helpers.normalize`.
+
+        The following arrays are constructed:
+
+        +----------------+----------------------------------------------+-------------+
+        | Attribute      | Meaning                                      | Shape       |
+        +================+==============================================+=============+
+        | ``areas``      | Face areas :math:`A_i`                       | ``(N,)``    |
+        +----------------+----------------------------------------------+-------------+
+        | ``centroids``  | Face centroids :math:`\mathbf{r}_i`          | ``(N,3)``   |
+        +----------------+----------------------------------------------+-------------+
+        | ``normals``    | Unit face normals :math:`\mathbf{n}_i`       | ``(N,3)``   |
+        +----------------+----------------------------------------------+-------------+
+        | ``eta_s``      | Specular coefficients :math:`\eta_{s,i}`     | ``(N,)``    |
+        +----------------+----------------------------------------------+-------------+
+        | ``eta_d``      | Diffuse coefficients :math:`\eta_{d,i}`      | ``(N,)``    |
+        +----------------+----------------------------------------------+-------------+
+        | ``eta_a``      | Absorptive coefficients :math:`\eta_{a,i}`   | ``(N,)``    |
+        +----------------+----------------------------------------------+-------------+
+
+        :param config: Configuration instance describing face geometry and optical coefficients.
+        :type config: :class:`~ADCS.satellite_hardware.disturbances.helpers.geometry_config.GeometryConfig`
+        :return: None
+        :rtype: None
         """
         self.config = config
         params = self.config.params
@@ -106,51 +186,73 @@ class SRP_Disturbance(Disturbance):
 
     def torque(self, sat: Satellite, x: np.ndarray, os: Orbital_State) -> np.ndarray:
         r"""
-        Compute the **solar radiation pressure (SRP) torque** on the spacecraft in the body frame.
+        Compute the **SRP torque** in the body frame.
 
-        The implemented model forms the Sun-look direction
-        :math:`\mathbf{s}_b = \frac{\mathbf{S}_b - \mathbf{R}_b}{\lVert \mathbf{S}_b - \mathbf{R}_b\rVert}`
-        (using :func:`~ADCS.helpers.math_helpers.normalize`) and uses
-        :math:`\cos\gamma_i = \mathbf{n}_i^\top \mathbf{s}_b`. With the *clamped* incidence
-        :math:`\cos^+ \gamma_i = \max(0,\cos\gamma_i)`, the per-face scalar multipliers are
+        This method obtains the Sun and spacecraft position vectors in the body frame via:
+
+        :meth:`~ADCS.orbits.orbital_state.Orbital_State.get_state_vector`
+
+        using keys:
+
+        - ``"s"`` : :math:`\mathbf{S}_B`
+        - ``"r"`` : :math:`\mathbf{R}_B`
+
+        The unit Sun-look direction is:
 
         .. math::
 
-            m_{s,i} \;=\; A_i\,(\eta_a+\eta_d)\,\cos^+\gamma_i, \qquad
-            m_{n,i} \;=\; A_i\!\left(2\,\eta_s\,(\cos^+\gamma_i)^2 + \tfrac{2}{3}\,\eta_d\right),
+            \mathbf{s}_b
+            =
+            \frac{\mathbf{S}_B - \mathbf{R}_B}{\left\lVert \mathbf{S}_B - \mathbf{R}_B \right\rVert}.
 
-        and the SRP torque is
+        Incidence for each face is computed as:
+
+        .. math::
+
+            \cos\gamma_i = \mathbf{n}_i^\top \mathbf{s}_b,
+            \qquad
+            \cos^+\gamma_i = \max(0,\cos\gamma_i).
+
+        Using the per-face multipliers:
+
+        .. math::
+
+            m_{s,i} = A_i(\eta_{a,i}+\eta_{d,i})\,\cos^+\gamma_i,
+
+        .. math::
+
+            m_{n,i}
+            =
+            A_i\left(2\,\eta_{s,i}\,(\cos^+\gamma_i)^2 + \tfrac{2}{3}\,\eta_{d,i}\right)\cos^+\gamma_i,
+
+        and lever arms :math:`\mathbf{c}_i = \mathbf{r}_i - \mathbf{r}_{\mathrm{COM}}`,
+        the torque is:
 
         .. math::
 
             \mathbf{T}_{\mathrm{SRP}}
-            \;=\;
-            -\frac{S_0}{c}\;
-            \sum_i \Big[
-                m_{s,i}\,(\mathbf{r}_i-\mathbf{r}_{\mathrm{COM}})\times \mathbf{s}_b
-                \;+\;
-                m_{n,i}\,(\mathbf{r}_i-\mathbf{r}_{\mathrm{COM}})\times \mathbf{n}_i
-            \Big],
+            =
+            -\frac{S_0}{c}\sum_{i=1}^N
+            \Big[
+                m_{s,i}\,(\mathbf{c}_i \times \mathbf{s}_b)
+                +
+                m_{n,i}\,(\mathbf{c}_i \times \mathbf{n}_i)
+            \Big].
 
-        where :math:`S_0` is the solar constant and :math:`c` the speed of light.
+        If the spacecraft is not illuminated (``os.is_sunlit()`` is false), then:
 
-        Illumination is checked via :meth:`~ADCS.orbits.orbital_state.Orbital_State.is_sunlit`;
-        if the spacecraft is not sunlit, the torque is zero.
+        .. math::
 
-        Parameters
-        ----------
-        sat : :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`
-            Satellite object providing the center-of-mass ``sat.COM`` (body frame) and geometry.
-        x : :class:`numpy.ndarray`
-            Full spacecraft state (contains the attitude quaternion used to form body-frame vectors).
-        os : :class:`~ADCS.orbits.orbital_state.Orbital_State`
-            Provides :math:`\mathbf{S}_b` (Sun vector), :math:`\mathbf{R}_b` (spacecraft position),
-            and illumination status.
+            \mathbf{T}_{\mathrm{SRP}} = \mathbf{0}.
 
-        Returns
-        -------
-        :class:`numpy.ndarray`
-            SRP torque vector in the body frame [N·m], shape ``(3,)``.
+        :param sat: Satellite instance providing the COM position via ``sat.COM``.
+        :type sat: :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`
+        :param x: Full spacecraft state containing the attitude quaternion used by the orbital-state mapping.
+        :type x: :class:`numpy.ndarray`
+        :param os: Orbital state provider supplying ``"s"``, ``"r"``, and illumination status.
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
+        :return: SRP disturbance torque in the body frame [N·m], shape ``(3,)``.
+        :rtype: :class:`numpy.ndarray`
         """
         vecs = os.get_state_vector(x=x)
 
@@ -176,75 +278,108 @@ class SRP_Disturbance(Disturbance):
 
     def torque_qjav(self, sat: Satellite, x: np.ndarray, os: Orbital_State) -> np.ndarray:
         r"""
-        Jacobian of the **SRP torque** with respect to the **attitude quaternion**.
+        Compute the **Jacobian of SRP torque** with respect to the attitude quaternion.
 
-        Let :math:`\mathbf{q}` be the attitude quaternion inside :math:`x`.
-        Define :math:`\mathbf{s}_b(\mathbf{q}) = \frac{\mathbf{S}_b-\mathbf{R}_b}{\lVert \mathbf{S}_b-\mathbf{R}_b\rVert}`
-        and :math:`\cos\gamma_i(\mathbf{q})=\mathbf{n}_i^\top\mathbf{s}_b(\mathbf{q})`.
-        Using the clamped incidence :math:`\cos^+\gamma_i=\max(0,\cos\gamma_i)`, its derivative is
+        Let :math:`\mathbf{q}` denote the attitude quaternion inside :math:`x`. The SRP torque
+        depends on :math:`\mathbf{q}` through the body-frame Sun-look direction:
+
+        .. math::
+
+            \mathbf{s}_b(\mathbf{q})
+            =
+            \frac{\mathbf{S}_B(\mathbf{q}) - \mathbf{R}_B(\mathbf{q})}
+                 {\left\lVert \mathbf{S}_B(\mathbf{q}) - \mathbf{R}_B(\mathbf{q}) \right\rVert}.
+
+        The Jacobian of :math:`\mathbf{s}_b` is computed using:
+
+        :func:`~ADCS.helpers.math_helpers.normed_vec_jac`
+
+        on the vector :math:`\mathbf{S}_B - \mathbf{R}_B`, with quaternion derivatives
+        provided by the orbital state.
+
+        **Clamped incidence derivative**
+
+        For each face:
+
+        .. math::
+
+            \cos\gamma_i(\mathbf{q}) = \mathbf{n}_i^\top \mathbf{s}_b(\mathbf{q}),
+            \qquad
+            \cos^+\gamma_i(\mathbf{q}) = \max(0,\cos\gamma_i(\mathbf{q})).
+
+        Using the Heaviside function :math:`H(\cdot)`:
 
         .. math::
 
             \frac{\partial \cos^+\gamma_i}{\partial \mathbf{q}}
-            \;=\;
-            H\!\big(\cos\gamma_i\big)\;
-            \mathbf{n}_i^\top\frac{\partial \mathbf{s}_b}{\partial \mathbf{q}},
+            =
+            H(\cos\gamma_i)\,
+            \mathbf{n}_i^\top
+            \frac{\partial \mathbf{s}_b}{\partial \mathbf{q}}.
 
-        where :math:`H(\cdot)` is the Heaviside function (subgradient at zero).
-        With
+        **Derivative of per-face multipliers**
 
-        .. math::
-
-            m_{s,i} = A_i(\eta_a+\eta_d)\,\cos^+\gamma_i, \qquad
-            m_{n,i} = A_i\!\left(2\,\eta_s(\cos^+\gamma_i)^2 + \tfrac{2}{3}\eta_d\right),
-
-        the Jacobian follows from the product rule
+        With:
 
         .. math::
 
-            \frac{\partial \mathbf{T}_{\mathrm{SRP}}}{\partial \mathbf{q}}
-            \;=\;
-            -\frac{S_0}{c}\sum_i \Big[
-                \frac{\partial m_{s,i}}{\partial \mathbf{q}}\,
-                (\mathbf{r}_i-\mathbf{r}_{\mathrm{COM}})\times \mathbf{s}_b
-                \;+\;
-                m_{s,i}\,(\mathbf{r}_i-\mathbf{r}_{\mathrm{COM}})\times
-                \frac{\partial \mathbf{s}_b}{\partial \mathbf{q}}
-                \;+\;
-                \frac{\partial m_{n,i}}{\partial \mathbf{q}}\,
-                (\mathbf{r}_i-\mathbf{r}_{\mathrm{COM}})\times \mathbf{n}_i
-            \Big],
+            m_{s,i} = A_i(\eta_{a,i}+\eta_{d,i})\,\cos^+\gamma_i,
 
-        with
+        .. math::
+
+            m_{n,i}
+            =
+            A_i\left(2\,\eta_{s,i}\,(\cos^+\gamma_i)^2 + \tfrac{2}{3}\,\eta_{d,i}\right)\cos^+\gamma_i,
+
+        the derivatives are:
 
         .. math::
 
             \frac{\partial m_{s,i}}{\partial \mathbf{q}}
-            = A_i(\eta_a+\eta_d)\,H(\cos\gamma_i)\,
-            \mathbf{n}_i^\top\frac{\partial \mathbf{s}_b}{\partial \mathbf{q}}, \qquad
+            =
+            A_i(\eta_{a,i}+\eta_{d,i})
+            \frac{\partial \cos^+\gamma_i}{\partial \mathbf{q}},
+
+        .. math::
+
             \frac{\partial m_{n,i}}{\partial \mathbf{q}}
-            = A_i\Big[
-                4\eta_s\,\cos^+\gamma_i\,H(\cos\gamma_i)\,
-                \mathbf{n}_i^\top\frac{\partial \mathbf{s}_b}{\partial \mathbf{q}}
+            =
+            A_i\left(
+                6\eta_{s,i}(\cos^+\gamma_i)^2
+                + \tfrac{2}{3}\eta_{d,i}
+            \right)
+            \frac{\partial \cos^+\gamma_i}{\partial \mathbf{q}},
+
+        where the factor arises from differentiating the code-equivalent scalar form
+        :math:`m_{n,i} = A_i\cos^+\gamma_i\left(2\eta_{s,i}\cos^+\gamma_i + \tfrac{2}{3}\eta_{d,i}\right)`.
+
+        **Torque Jacobian**
+
+        With :math:`\mathbf{c}_i = \mathbf{r}_i - \mathbf{r}_{\mathrm{COM}}`:
+
+        .. math::
+
+            \frac{\partial \mathbf{T}_{\mathrm{SRP}}}{\partial \mathbf{q}}
+            =
+            -\frac{S_0}{c}\sum_{i=1}^N
+            \Big[
+                \frac{\partial m_{s,i}}{\partial \mathbf{q}}(\mathbf{c}_i\times\mathbf{s}_b)
+                + m_{s,i}\,\mathbf{c}_i\times\frac{\partial \mathbf{s}_b}{\partial \mathbf{q}}
+                + \frac{\partial m_{n,i}}{\partial \mathbf{q}}(\mathbf{c}_i\times\mathbf{n}_i)
             \Big].
 
-        In code, :math:`\frac{\partial \mathbf{s}_b}{\partial \mathbf{q}}`
-        is produced via :func:`~ADCS.helpers.math_helpers.normed_vec_jac`
-        applied to :math:`\mathbf{S}_b-\mathbf{R}_b`.
+        If the spacecraft is not illuminated, the Jacobian is returned as zero.
 
-        Parameters
-        ----------
-        sat : :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`
-            Satellite instance providing the COM location.
-        x : :class:`numpy.ndarray`
-            Full spacecraft state containing the quaternion :math:`\mathbf{q}`.
-        os : :class:`~ADCS.orbits.orbital_state.Orbital_State`
-            Provides :math:`\mathbf{S}_b, \mathbf{R}_b` and their quaternion derivatives.
-
-        Returns
-        -------
-        :class:`numpy.ndarray`
-            Jacobian matrix ``∂T_SRP/∂q``, shape ``(3, 4)``.
+        :param sat: Satellite instance providing the COM position via ``sat.COM``.
+        :type sat: :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`
+        :param x: Full spacecraft state containing the attitude quaternion.
+        :type x: :class:`numpy.ndarray`
+        :param os: Orbital state provider supplying vectors and quaternion derivatives via
+                   :meth:`~ADCS.orbits.orbital_state.Orbital_State.get_state_vector`
+                   (typically ``"s"``, ``"r"``, ``"ds"``, ``"dr"``).
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
+        :return: Quaternion Jacobian ``∂T_SRP/∂q``, shape ``(3, 4)``.
+        :rtype: :class:`numpy.ndarray`
         """
         # (Implementation same as in your code; mathematical explanation retained)
         vecs = os.get_state_vector(x=x)
@@ -288,51 +423,92 @@ class SRP_Disturbance(Disturbance):
 
     def torque_qqhess(self, sat: Satellite, x: np.ndarray, os: Orbital_State) -> np.ndarray:
         r"""
-        Hessian of the **SRP torque** with respect to the **attitude quaternion**.
+        Compute the **Hessian of SRP torque** with respect to the attitude quaternion.
 
-        Let :math:`\mathbf{q}` be the attitude quaternion and abbreviate
-        :math:`\mathbf{r}_i'=\mathbf{r}_i-\mathbf{r}_{\mathrm{COM}}`,
-        :math:`\mathbf{s}_b=\mathbf{s}_b(\mathbf{q})`,
-        :math:`\cos^+\gamma_i=\max(0,\mathbf{n}_i^\top\mathbf{s}_b)`.
-        Using the Jacobian in :meth:`torque_qjav` and the product rule, the second derivative is
+        This method returns the second derivative tensor:
 
         .. math::
 
             \frac{\partial^2 \mathbf{T}_{\mathrm{SRP}}}{\partial \mathbf{q}^2}
-            \;=\;
-            -\frac{S_0}{c}\sum_i \Big[
-                \frac{\partial^2 m_{s,i}}{\partial \mathbf{q}^2}\,
-                (\mathbf{r}_i'\times \mathbf{s}_b)
-                \;+\;
-                2\,\frac{\partial m_{s,i}}{\partial \mathbf{q}}\times
-                \frac{\partial (\mathbf{r}_i'\times \mathbf{s}_b)}{\partial \mathbf{q}}
-                \;+\;
-                m_{s,i}\,\mathbf{r}_i'\times
-                \frac{\partial^2 \mathbf{s}_b}{\partial \mathbf{q}^2}
-                \;+\;
-                \frac{\partial^2 m_{n,i}}{\partial \mathbf{q}^2}\,
-                (\mathbf{r}_i'\times \mathbf{n}_i)
+            \in \mathbb{R}^{3\times 4\times 4}.
+
+        The second-order dependence arises through:
+
+        - :math:`\mathbf{s}_b(\mathbf{q})` (a normalized vector)
+        - the clamped incidence :math:`\cos^+\gamma_i(\mathbf{q})`
+
+        The second derivative of the normalized Sun-look direction is computed using:
+
+        :func:`~ADCS.helpers.math_helpers.normed_vec_hess`.
+
+        **Second-order structure**
+
+        Let :math:`\mathbf{c}_i = \mathbf{r}_i - \mathbf{r}_{\mathrm{COM}}` and define:
+
+        .. math::
+
+            \mathbf{t}_{s,i} = \mathbf{c}_i\times\mathbf{s}_b,
+            \qquad
+            \mathbf{t}_{n,i} = \mathbf{c}_i\times\mathbf{n}_i.
+
+        Then:
+
+        .. math::
+
+            \mathbf{T}_{\mathrm{SRP}}
+            =
+            -\frac{S_0}{c}\sum_{i=1}^N
+            \bigl(m_{s,i}\mathbf{t}_{s,i} + m_{n,i}\mathbf{t}_{n,i}\bigr).
+
+        Differentiating twice and collecting terms yields the schematic form:
+
+        .. math::
+
+            \frac{\partial^2 \mathbf{T}_{\mathrm{SRP}}}{\partial \mathbf{q}^2}
+            =
+            -\frac{S_0}{c}\sum_{i=1}^N\Big[
+              \frac{\partial^2 m_{s,i}}{\partial \mathbf{q}^2}\,\mathbf{t}_{s,i}
+              + \frac{\partial m_{s,i}}{\partial \mathbf{q}}\otimes
+                \frac{\partial \mathbf{t}_{s,i}}{\partial \mathbf{q}}
+              + \left(\cdot\right)^\top
+              + m_{s,i}\,\frac{\partial^2 \mathbf{t}_{s,i}}{\partial \mathbf{q}^2}
+              + \frac{\partial^2 m_{n,i}}{\partial \mathbf{q}^2}\,\mathbf{t}_{n,i}
             \Big],
 
-        where the terms involving :math:`\cos^+\gamma_i` inherit a Heaviside factor
-        :math:`H(\cos\gamma_i)` and are undefined exactly at :math:`\cos\gamma_i=0`
-        (a measure-zero set in practice). The implementation follows this structure by
-        building first- and second-order derivatives of the clamped incidence and of
-        :math:`\mathbf{s}_b(\mathbf{q})`.
+        where :math:`(\cdot)^\top` denotes the symmetric transpose term with swapped
+        quaternion indices.
 
-        Parameters
-        ----------
-        sat : :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`
-            Satellite instance providing the COM location.
-        x : :class:`numpy.ndarray`
-            Full spacecraft state containing the quaternion :math:`\mathbf{q}`.
-        os : :class:`~ADCS.orbits.orbital_state.Orbital_State`
-            Provides :math:`\mathbf{S}_b, \mathbf{R}_b` and their first/second quaternion derivatives.
+        **Clamping and gating**
 
-        Returns
-        -------
-        :class:`numpy.ndarray`
-            Quaternion Hessian tensor of the SRP torque, shape ``(3, 4, 4)``.
+        The clamped cosine introduces a kink at :math:`\cos\gamma_i = 0`. The code
+        implements a piecewise (Heaviside-gated) second derivative consistent with:
+
+        .. math::
+
+            \frac{\partial \cos^+\gamma_i}{\partial \mathbf{q}}
+            =
+            H(\cos\gamma_i)\,
+            \mathbf{n}_i^\top \frac{\partial \mathbf{s}_b}{\partial \mathbf{q}},
+            \qquad
+            \frac{\partial^2 \cos^+\gamma_i}{\partial \mathbf{q}^2}
+            \approx
+            H(\cos\gamma_i)\,
+            \mathbf{n}_i^\top \frac{\partial^2 \mathbf{s}_b}{\partial \mathbf{q}^2},
+
+        i.e., distributional terms at the kink are neglected.
+
+        If the spacecraft is not illuminated, the Hessian is returned as zero.
+
+        :param sat: Satellite instance providing the COM position via ``sat.COM``.
+        :type sat: :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`
+        :param x: Full spacecraft state containing the attitude quaternion.
+        :type x: :class:`numpy.ndarray`
+        :param os: Orbital state provider supplying vectors and quaternion derivatives up to second order via
+                   :meth:`~ADCS.orbits.orbital_state.Orbital_State.get_state_vector`
+                   (typically ``"s"``, ``"r"``, ``"ds"``, ``"dr"``, ``"dds"``, ``"ddr"``).
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
+        :return: Quaternion Hessian tensor ``∂²T_SRP/∂q²``, shape ``(3, 4, 4)``.
+        :rtype: :class:`numpy.ndarray`
         """
         # (Implementation as in your original code)
         vecs = os.get_state_vector(x=x)

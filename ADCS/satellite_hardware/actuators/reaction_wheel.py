@@ -5,7 +5,7 @@ import warnings
 from ADCS.satellite_hardware.actuators.actuator import Actuator
 from ADCS.satellite_hardware.errors.bias import Bias
 from ADCS.satellite_hardware.errors.noise import Noise
-from ADCS.satellite_hardware.disturbances.disturbance_mode import DisturbanceMode
+from ADCS.satellite_hardware.disturbances.helpers.disturbance_mode import DisturbanceMode
 from ADCS.orbits.orbital_state import Orbital_State
 
 class RW(Actuator):

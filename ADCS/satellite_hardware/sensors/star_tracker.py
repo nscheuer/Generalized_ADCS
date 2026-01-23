@@ -7,7 +7,7 @@ from numpy.typing import NDArray
 from ADCS.satellite_hardware.sensors.sensor import Sensor
 from ADCS.environment import StarCatalog, NavigationStar
 from ADCS.satellite_hardware.errors import Bias, AnisotropicNoise
-from ADCS.satellite_hardware.disturbances.disturbance_mode import DisturbanceMode
+from ADCS.satellite_hardware.disturbances.helpers.disturbance_mode import DisturbanceMode
 from ADCS.helpers.math_helpers import drotmatTvecdq, rot_mat
 from ADCS.orbits.orbital_state import Orbital_State
 

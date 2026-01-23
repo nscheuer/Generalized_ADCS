@@ -15,7 +15,7 @@ from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.estimators.orbit_estimators import Orbit_EKF
 from ADCS.estimators.estimator_helpers import EstimatedOrbital_State
 from ADCS.helpers.math_helpers import random_n_unit_vec
-from ADCS.satellite_hardware.disturbances.disturbance_mode import DisturbanceMode
+from ADCS.satellite_hardware.disturbances.helpers.disturbance_mode import DisturbanceMode
 
 from ADCS.helpers.plotting.plot_orbit_estimator import plot_gps_error
 from ADCS.helpers.plotting.close_all_plots import create_close_all_button_window

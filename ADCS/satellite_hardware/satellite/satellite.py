@@ -11,7 +11,7 @@ from ADCS.helpers.math_helpers import *
 from ADCS.satellite_hardware.disturbances import Disturbance, SRP_Disturbance, General_Disturbance, Prop_Disturbance
 from ADCS.satellite_hardware.sensors import Sensor, GPS, Gyro, MTM, SunPair, SunSensor
 from ADCS.satellite_hardware.actuators import Actuator, RW, MTQ
-from ADCS.satellite_hardware.disturbances.disturbance_mode import DisturbanceMode
+from ADCS.satellite_hardware.disturbances.helpers.disturbance_mode import DisturbanceMode
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.universal_constants import TimeConstants
 
