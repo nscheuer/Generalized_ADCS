@@ -377,21 +377,26 @@ class DynamicsModel:
         """
         Compute quaternion error q_err = q_goal^(-1) * q.
         
+        Uses scalar-first convention: q = [w, x, y, z]
+        
         Returns 3-vector (reduced attitude error) for optimization.
         """
-        # Quaternion conjugate of q_goal
-        q_goal_conj = np.array([-q_goal[0], -q_goal[1], -q_goal[2], q_goal[3]])
+        # Extract components (scalar-first: w=q[0], v=q[1:4])
+        w0, x0, y0, z0 = q_goal
+        w1, x1, y1, z1 = q
         
-        # Quaternion multiplication
+        # Quaternion conjugate of q_goal: [w, -x, -y, -z]
+        # q_err = q_goal^(-1) * q (quaternion multiplication)
         q_err = np.array([
-            q_goal_conj[3]*q[0] + q_goal_conj[0]*q[3] + q_goal_conj[1]*q[2] - q_goal_conj[2]*q[1],
-            q_goal_conj[3]*q[1] - q_goal_conj[0]*q[2] + q_goal_conj[1]*q[3] + q_goal_conj[2]*q[0],
-            q_goal_conj[3]*q[2] + q_goal_conj[0]*q[1] - q_goal_conj[1]*q[0] + q_goal_conj[2]*q[3],
-            q_goal_conj[3]*q[3] - q_goal_conj[0]*q[0] - q_goal_conj[1]*q[1] - q_goal_conj[2]*q[2]
+            w0*w1 + x0*x1 + y0*y1 + z0*z1,   # w
+            w0*x1 - x0*w1 - y0*z1 + z0*y1,   # x  
+            w0*y1 + x0*z1 - y0*w1 - z0*x1,   # y
+            w0*z1 - x0*y1 + y0*x1 - z0*w1    # z
         ])
         
         # Return vector part (small angle approximation: 2*q_vec ≈ rotation vector)
-        return 2.0 * q_err[:3]
+        # Vector part is q_err[1:4] for scalar-first
+        return 2.0 * q_err[1:4]
     
     @staticmethod
     def quaternion_angle(q: NDArray[np.float64], q_goal: NDArray[np.float64]) -> float:

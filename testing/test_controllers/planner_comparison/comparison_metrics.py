@@ -375,7 +375,7 @@ class ComparisonMetrics:
         ignoring roll around the boresight axis.
         
         Args:
-            q1: First quaternion [qx, qy, qz, qw]
+            q1: First quaternion [qw, qx, qy, qz] (scalar-first)
             q2: Second quaternion
             boresight: Body boresight vector (what we're pointing)
             
@@ -383,9 +383,9 @@ class ComparisonMetrics:
             Pointing error in radians
         """
         def quat_rotate(q, v):
-            """Rotate vector v by quaternion q."""
+            """Rotate vector v by quaternion q (scalar-first: [w,x,y,z])."""
             q = q / np.linalg.norm(q)
-            qx, qy, qz, qw = q
+            qw, qx, qy, qz = q
             R = np.array([
                 [1 - 2*(qy**2 + qz**2), 2*(qx*qy - qz*qw), 2*(qx*qz + qy*qw)],
                 [2*(qx*qy + qz*qw), 1 - 2*(qx**2 + qz**2), 2*(qy*qz - qx*qw)],

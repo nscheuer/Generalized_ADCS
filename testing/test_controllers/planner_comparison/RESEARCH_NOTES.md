@@ -183,24 +183,32 @@ Based on literature relevance, implementation feasibility, and differentiation f
 
 ## Benchmark Results (Quick Test)
 
-From `run_planner_comparison.py --no-altro --quick`:
+From `run_planner_comparison.py --no-altro --quick` (Jan 2026, after quaternion convention fix):
 
 | Planner | Solve Time (ms) | Final Error (deg) | Convergence |
 |---------|-----------------|-------------------|-------------|
-| Polynomial-7 | 10.0 ± 2.8 | 0.000 | 100% |
-| Eigenaxis+Trapezoidal | 12.3 ± 5.4 | 0.000 | 100% |
-| Polynomial-5 | 12.7 ± 6.5 | 0.000 | 100% |
-| ConvexMPC | 678.5 ± 89.4 | 0.000 | 0%* |
-| SCP | 8770.7 ± 3238.5 | 0.000 | 0%* |
+| Polynomial-7 | 8.0 ± 3.9 | 0.000 | 100% |
+| Eigenaxis+Trapezoidal | 8.5 ± 4.4 | 0.000 | 100% |
+| Polynomial-5 | 10.3 ± 4.7 | 0.000 | 100% |
+| ConvexMPC | 436.9 ± 37.5 | 0.000 | 0%* |
+| SCP | 8100.9 ± 2228.0 | 0.000 | 0%* |
 
-*Note: "Convergence" here means the solver's internal convergence flag, not whether it achieved the goal.
-All planners achieved near-zero final attitude error in these tests.
+*Note: "Convergence" here means the solver's internal convergence flag (number of iterations), 
+not whether it achieved the goal. All planners achieved near-zero final attitude error.
 
 ### Key Observations:
 1. **Kinematic planners (Eigenaxis, Polynomial)** are 50-1000x faster than optimization-based methods
 2. **ConvexMPC** offers a good speed/accuracy tradeoff for real-time applications
 3. **SCP** is slower but more robust for complex constraints
-4. **ALTRO** (not shown) is ~5-60s but provides the most complete solution (feedback gains, full dynamics)
+4. **ALTRO** is ~5-60s and provides feedback gains, but currently has issues with full 3-DOF quaternion goals
+
+### ALTRO Quaternion Goal Issue (Jan 2026)
+ALTRO's quaternion goal support (4D E array) is not achieving target attitudes in benchmarks:
+- The C++ code detects 4D goals correctly and uses `quatcostJacobians`
+- However, optimization converges to near-identity instead of the goal quaternion
+- Suspected causes: cost weight tuning, local minimum, or quaternion error computation
+- **Workaround**: Use 2-DOF pointing (ECI_Goal with 3D vector) which works correctly
+- **TODO**: Debug the quatcostJacobians or cost settings for large attitude errors
 
 ---
 

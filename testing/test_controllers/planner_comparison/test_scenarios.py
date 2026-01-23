@@ -354,7 +354,8 @@ class ScenarioLibrary:
         axis = np.array([0, 0, 1])
         
         # Initial: at rest
-        q0 = np.array([0, 0, 0, 1], dtype=np.float64)
+        # Using scalar-first convention: [w, x, y, z] = [1, 0, 0, 0]
+        q0 = np.array([1, 0, 0, 0], dtype=np.float64)
         omega0 = np.zeros(3)
         h_rw0 = np.zeros(3)
         x0 = np.concatenate([omega0, q0, h_rw0])

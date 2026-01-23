@@ -354,7 +354,7 @@ class ALTROWrapper(BasePlanner):
         If boresight is [0,0,1] in body frame, the goal vector in ECI is R @ [0,0,1].
         
         Args:
-            q: Goal quaternion [qx, qy, qz, qw] (body-to-ECI rotation)
+            q: Goal quaternion [qw, qx, qy, qz] (scalar-first, body-to-ECI rotation)
             boresight: Boresight vector in body frame (default [0,0,1])
             
         Returns:
@@ -368,7 +368,8 @@ class ALTROWrapper(BasePlanner):
         boresight = boresight / np.linalg.norm(boresight)
         
         # Quaternion to rotation matrix (body-to-ECI)
-        qx, qy, qz, qw = q
+        # Scalar-first: [w, x, y, z]
+        qw, qx, qy, qz = q
         
         R = np.array([
             [1 - 2*(qy**2 + qz**2), 2*(qx*qy - qz*qw), 2*(qx*qz + qy*qw)],

@@ -417,20 +417,22 @@ class PseudospectralPlanner(BasePlanner):
         q: NDArray[np.float64],
         q_goal: NDArray[np.float64]
     ) -> NDArray[np.float64]:
-        """Compute 3-vector quaternion error."""
+        """Compute 3-vector quaternion error. Uses scalar-first: q = [w, x, y, z]."""
         q = q / np.linalg.norm(q)
         q_goal = q_goal / np.linalg.norm(q_goal)
         
-        q_goal_inv = np.array([-q_goal[0], -q_goal[1], -q_goal[2], q_goal[3]])
+        # q_err = q_goal^(-1) * q
+        w0, x0, y0, z0 = q_goal
+        w1, x1, y1, z1 = q
         
         q_err = np.array([
-            q_goal_inv[3]*q[0] + q_goal_inv[0]*q[3] + q_goal_inv[1]*q[2] - q_goal_inv[2]*q[1],
-            q_goal_inv[3]*q[1] - q_goal_inv[0]*q[2] + q_goal_inv[1]*q[3] + q_goal_inv[2]*q[0],
-            q_goal_inv[3]*q[2] + q_goal_inv[0]*q[1] - q_goal_inv[1]*q[0] + q_goal_inv[2]*q[3],
-            q_goal_inv[3]*q[3] - q_goal_inv[0]*q[0] - q_goal_inv[1]*q[1] - q_goal_inv[2]*q[2]
+            w0*w1 + x0*x1 + y0*y1 + z0*z1,   # w
+            w0*x1 - x0*w1 - y0*z1 + z0*y1,   # x  
+            w0*y1 + x0*z1 - y0*w1 - z0*x1,   # y
+            w0*z1 - x0*y1 + y0*x1 - z0*w1    # z
         ])
         
-        return 2.0 * q_err[:3] * np.sign(q_err[3])
+        return 2.0 * q_err[1:4] * np.sign(q_err[0])
     
     @staticmethod
     def _quaternion_angle(q1: NDArray[np.float64], q2: NDArray[np.float64]) -> float:

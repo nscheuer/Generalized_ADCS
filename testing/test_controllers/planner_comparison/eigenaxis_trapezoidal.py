@@ -201,28 +201,30 @@ class EigenaxisTrapezoidalPlanner(BasePlanner):
         
         The eigenaxis is the axis about which the shortest rotation occurs.
         
+        Uses scalar-first convention: q = [qw, qx, qy, qz]
+        
         Args:
-            q0: Initial quaternion [qx, qy, qz, qw]
-            q_goal: Goal quaternion [qx, qy, qz, qw]
+            q0: Initial quaternion [qw, qx, qy, qz] (scalar-first)
+            q_goal: Goal quaternion [qw, qx, qy, qz] (scalar-first)
             
         Returns:
             (eigenaxis, angle) where eigenaxis is unit vector and angle in radians
         """
         # Compute relative quaternion: q_rel = q_goal * q0^(-1)
-        # q0^(-1) = conjugate for unit quaternion = [-qx, -qy, -qz, qw]
-        q0_inv = np.array([-q0[0], -q0[1], -q0[2], q0[3]])
+        # q0^(-1) = conjugate for unit quaternion = [qw, -qx, -qy, -qz]
+        q0_inv = np.array([q0[0], -q0[1], -q0[2], -q0[3]])
         
         # Quaternion multiplication: q_rel = q_goal * q0_inv
         q_rel = self._quaternion_multiply(q_goal, q0_inv)
         
         # Ensure shortest path (q and -q represent same rotation)
-        if q_rel[3] < 0:
+        if q_rel[0] < 0:  # scalar part is at index 0
             q_rel = -q_rel
         
         # Extract axis and angle
-        # q = [sin(θ/2)*axis, cos(θ/2)]
-        sin_half_angle = np.linalg.norm(q_rel[:3])
-        cos_half_angle = q_rel[3]
+        # q = [cos(θ/2), sin(θ/2)*axis] for scalar-first
+        sin_half_angle = np.linalg.norm(q_rel[1:4])  # vector part
+        cos_half_angle = q_rel[0]  # scalar part
         
         # Handle small angles
         if sin_half_angle < 1e-10:
@@ -230,7 +232,7 @@ class EigenaxisTrapezoidalPlanner(BasePlanner):
             eigenaxis = np.array([0.0, 0.0, 1.0])  # Arbitrary axis
             angle = 0.0
         else:
-            eigenaxis = q_rel[:3] / sin_half_angle
+            eigenaxis = q_rel[1:4] / sin_half_angle  # vector part is [1:4]
             angle = 2.0 * np.arctan2(sin_half_angle, cos_half_angle)
         
         return eigenaxis, angle
@@ -347,16 +349,19 @@ class EigenaxisTrapezoidalPlanner(BasePlanner):
         """
         Integrate quaternion kinematics using RK4.
         
-        q_dot = 0.5 * Omega(omega) * q
+        Uses scalar-first convention: q = [w, x, y, z]
+        q_dot = 0.5 * q ⊗ [0, omega]
         """
         def q_dot(q_val, w):
-            Omega = np.array([
-                [0, w[2], -w[1], w[0]],
-                [-w[2], 0, w[0], w[1]],
-                [w[1], -w[0], 0, w[2]],
-                [-w[0], -w[1], -w[2], 0]
+            # For scalar-first: q = [qw, qx, qy, qz]
+            qw, qx, qy, qz = q_val
+            wx, wy, wz = w
+            return 0.5 * np.array([
+                -qx*wx - qy*wy - qz*wz,  # w_dot
+                qw*wx + qy*wz - qz*wy,   # x_dot  
+                qw*wy + qz*wx - qx*wz,   # y_dot
+                qw*wz + qx*wy - qy*wx    # z_dot
             ])
-            return 0.5 * Omega @ q_val
         
         k1 = q_dot(q, omega)
         k2 = q_dot(q + 0.5*dt*k1, omega)
@@ -429,15 +434,15 @@ class EigenaxisTrapezoidalPlanner(BasePlanner):
     
     @staticmethod
     def _quaternion_multiply(q1: NDArray[np.float64], q2: NDArray[np.float64]) -> NDArray[np.float64]:
-        """Multiply two quaternions q1 * q2."""
-        x1, y1, z1, w1 = q1
-        x2, y2, z2, w2 = q2
+        """Multiply two quaternions q1 * q2. Uses scalar-first: [w, x, y, z]."""
+        w1, x1, y1, z1 = q1
+        w2, x2, y2, z2 = q2
         
         return np.array([
-            w1*x2 + x1*w2 + y1*z2 - z1*y2,
-            w1*y2 - x1*z2 + y1*w2 + z1*x2,
-            w1*z2 + x1*y2 - y1*x2 + z1*w2,
-            w1*w2 - x1*x2 - y1*y2 - z1*z2
+            w1*w2 - x1*x2 - y1*y2 - z1*z2,  # w
+            w1*x2 + x1*w2 + y1*z2 - z1*y2,  # x
+            w1*y2 - x1*z2 + y1*w2 + z1*x2,  # y
+            w1*z2 + x1*y2 - y1*x2 + z1*w2   # z
         ])
     
     @staticmethod
