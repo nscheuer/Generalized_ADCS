@@ -98,10 +98,10 @@ class Actuator:
         :type u_max: float
 
         :param bias: Optional actuator bias model.
-        :type bias: ~ADCS.satellite_hardware.errors.bias.Bias or None
+        :type bias: :class:`~ADCS.satellite_hardware.errors.bias.Bias` or None
 
         :param noise: Optional actuator noise model.
-        :type noise: ~ADCS.satellite_hardware.errors.noise.Noise or None
+        :type noise: :class:`~ADCS.satellite_hardware.errors.noise.Noise` or None
 
         :param estimate_bias: Flag indicating whether bias estimation is enabled.
         :type estimate_bias: bool
@@ -143,10 +143,10 @@ class Actuator:
         :type x: numpy.ndarray of shape ``(7,)``
 
         :param os: Orbital state providing environmental context.
-        :type os: ~ADCS.orbits.orbital_state.Orbital_State
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
 
         :param dmode: Optional disturbance configuration.
-        :type dmode: ~ADCS.satellite_hardware.disturbances.disturbance_mode.DisturbanceMode or None
+        :type dmode: :class:`~ADCS.satellite_hardware.disturbances.disturbance_mode.DisturbanceMode` or None
 
         :return: Body-frame torque vector.
         :rtype: numpy.ndarray of shape ``(3,)``
@@ -169,7 +169,7 @@ class Actuator:
         :type j2000: float
 
         :param dmode: Optional disturbance configuration.
-        :type dmode: ~ADCS.satellite_hardware.disturbances.disturbance_mode.DisturbanceMode or None
+        :type dmode: :class:`~ADCS.satellite_hardware.disturbances.disturbance_mode.DisturbanceMode` or None
 
         :return: Storage torque vector.
         :rtype: numpy.ndarray of shape ``(0,)``
@@ -192,7 +192,7 @@ class Actuator:
         :type x: numpy.ndarray of shape ``(7,)``
 
         :param os: Orbital state.
-        :type os: ~ADCS.orbits.orbital_state.Orbital_State
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
 
         :return: Row-Jacobian of torque w.r.t. input.
         :rtype: numpy.ndarray of shape ``(1, 3)``
@@ -217,7 +217,7 @@ class Actuator:
         :type x: numpy.ndarray of shape ``(7,)``
 
         :param os: Orbital state.
-        :type os: ~ADCS.orbits.orbital_state.Orbital_State
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
 
         :return: Row-Jacobian of torque w.r.t. bias.
         :rtype: numpy.ndarray of shape ``(1, 3)`` or ``(0, 3)``
@@ -247,7 +247,7 @@ class Actuator:
         :type x: numpy.ndarray of shape ``(7,)``
 
         :param os: Orbital state.
-        :type os: ~ADCS.orbits.orbital_state.Orbital_State
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
 
         :return: Row-Jacobian of torque w.r.t. base state.
         :rtype: numpy.ndarray of shape ``(7, 3)``
@@ -267,7 +267,7 @@ class Actuator:
         :type x: numpy.ndarray of shape ``(7,)``
 
         :param os: Orbital state.
-        :type os: ~ADCS.orbits.orbital_state.Orbital_State
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
 
         :return: Row-Jacobian of torque w.r.t. storage state.
         :rtype: numpy.ndarray of shape ``(0, 3)``
@@ -289,7 +289,7 @@ class Actuator:
         :type x: numpy.ndarray of shape ``(7,)``
 
         :param os: Orbital state.
-        :type os: ~ADCS.orbits.orbital_state.Orbital_State
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
 
         :return: Input–input Hessian of torque.
         :rtype: numpy.ndarray of shape ``(1, 1, 3)``
@@ -311,7 +311,7 @@ class Actuator:
         :type x: numpy.ndarray of shape ``(7,)``
 
         :param os: Orbital state.
-        :type os: ~ADCS.orbits.orbital_state.Orbital_State
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
 
         :return: Input–bias Hessian of torque.
         :rtype: numpy.ndarray of shape ``(1, 1, 3)`` or ``(1, 0, 3)``
@@ -341,7 +341,7 @@ class Actuator:
         :type x: numpy.ndarray of shape ``(7,)``
 
         :param os: Orbital state.
-        :type os: ~ADCS.orbits.orbital_state.Orbital_State
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
 
         :return: Input–state Hessian of torque.
         :rtype: numpy.ndarray of shape ``(1, 7, 3)``
@@ -366,7 +366,7 @@ class Actuator:
         :type x: numpy.ndarray of shape ``(7,)``
 
         :param os: Orbital state.
-        :type os: ~ADCS.orbits.orbital_state.Orbital_State
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
 
         :return: Input–storage Hessian of torque.
         :rtype: numpy.ndarray of shape ``(1, 0, 3)``
@@ -388,7 +388,7 @@ class Actuator:
         :type x: numpy.ndarray of shape ``(7,)``
 
         :param os: Orbital state.
-        :type os: ~ADCS.orbits.orbital_state.Orbital_State
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
 
         :return: Bias–bias Hessian of torque.
         :rtype: numpy.ndarray of shape ``(1, 1, 3)`` or ``(0, 0, 3)``
@@ -414,7 +414,7 @@ class Actuator:
         :type x: numpy.ndarray of shape ``(7,)``
 
         :param os: Orbital state.
-        :type os: ~ADCS.orbits.orbital_state.Orbital_State
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
 
         :return: Bias–state Hessian of torque.
         :rtype: numpy.ndarray of shape ``(1, 7, 3)`` or ``(0, 7, 3)``
@@ -439,7 +439,7 @@ class Actuator:
         :type x: numpy.ndarray of shape ``(7,)``
 
         :param os: Orbital state.
-        :type os: ~ADCS.orbits.orbital_state.Orbital_State
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
 
         :return: Bias–storage Hessian of torque.
         :rtype: numpy.ndarray of shape ``(1, 0, 3)`` or ``(0, 0, 3)``
@@ -464,7 +464,7 @@ class Actuator:
         :type x: numpy.ndarray of shape ``(7,)``
 
         :param os: Orbital state.
-        :type os: ~ADCS.orbits.orbital_state.Orbital_State
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
 
         :return: State–state Hessian of torque.
         :rtype: numpy.ndarray of shape ``(7, 7, 3)``
@@ -486,7 +486,7 @@ class Actuator:
         :type x: numpy.ndarray of shape ``(7,)``
 
         :param os: Orbital state.
-        :type os: ~ADCS.orbits.orbital_state.Orbital_State
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
 
         :return: State–storage Hessian of torque.
         :rtype: numpy.ndarray of shape ``(7, 0, 3)``
@@ -508,7 +508,7 @@ class Actuator:
         :type x: numpy.ndarray of shape ``(7,)``
 
         :param os: Orbital state.
-        :type os: ~ADCS.orbits.orbital_state.Orbital_State
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
 
         :return: Storage–storage Hessian of torque.
         :rtype: numpy.ndarray of shape ``(0, 0, 3)``
@@ -530,7 +530,7 @@ class Actuator:
         :type x: numpy.ndarray of shape ``(7,)``
 
         :param os: Orbital state.
-        :type os: ~ADCS.orbits.orbital_state.Orbital_State
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
 
         :return: Row-Jacobian of storage torque w.r.t. input.
         :rtype: numpy.ndarray of shape ``(1, 0)``
@@ -552,7 +552,7 @@ class Actuator:
         :type x: numpy.ndarray of shape ``(7,)``
 
         :param os: Orbital state.
-        :type os: ~ADCS.orbits.orbital_state.Orbital_State
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
 
         :return: Row-Jacobian of storage torque w.r.t. bias.
         :rtype: numpy.ndarray of shape ``(1, 0)`` or ``(0, 0)``
@@ -578,7 +578,7 @@ class Actuator:
         :type x: numpy.ndarray of shape ``(7,)``
 
         :param os: Orbital state.
-        :type os: ~ADCS.orbits.orbital_state.Orbital_State
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
 
         :return: Row-Jacobian of storage torque w.r.t. base state.
         :rtype: numpy.ndarray of shape ``(7, 0)``
@@ -600,7 +600,7 @@ class Actuator:
         :type x: numpy.ndarray of shape ``(7,)``
 
         :param os: Orbital state.
-        :type os: ~ADCS.orbits.orbital_state.Orbital_State
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
 
         :return: Row-Jacobian of storage torque w.r.t. storage state.
         :rtype: numpy.ndarray of shape ``(0, 0)``
@@ -618,7 +618,7 @@ class Actuator:
         :type x: numpy.ndarray of shape ``(7,)``
 
         :param os: Orbital state.
-        :type os: ~ADCS.orbits.orbital_state.Orbital_State
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
 
         :return: Input–input Hessian of storage torque.
         :rtype: numpy.ndarray of shape ``(1, 1, 0)``
@@ -640,7 +640,7 @@ class Actuator:
         :type x: numpy.ndarray of shape ``(7,)``
 
         :param os: Orbital state.
-        :type os: ~ADCS.orbits.orbital_state.Orbital_State
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
 
         :return: Input–bias Hessian of storage torque.
         :rtype: numpy.ndarray of shape ``(1, 1, 0)`` or ``(1, 0, 0)``
@@ -665,7 +665,7 @@ class Actuator:
         :type x: numpy.ndarray of shape ``(7,)``
 
         :param os: Orbital state.
-        :type os: ~ADCS.orbits.orbital_state.Orbital_State
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
 
         :return: Input–state Hessian of storage torque.
         :rtype: numpy.ndarray of shape ``(1, 7, 0)``
@@ -687,7 +687,7 @@ class Actuator:
         :type x: numpy.ndarray of shape ``(7,)``
 
         :param os: Orbital state.
-        :type os: ~ADCS.orbits.orbital_state.Orbital_State
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
 
         :return: Input–storage Hessian of storage torque.
         :rtype: numpy.ndarray of shape ``(1, 0, 0)``
@@ -709,7 +709,7 @@ class Actuator:
         :type x: numpy.ndarray of shape ``(7,)``
 
         :param os: Orbital state.
-        :type os: ~ADCS.orbits.orbital_state.Orbital_State
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
 
         :return: Bias–bias Hessian of storage torque.
         :rtype: numpy.ndarray of shape ``(1, 1, 0)`` or ``(0, 0, 0)``
@@ -734,7 +734,7 @@ class Actuator:
         :type x: numpy.ndarray of shape ``(7,)``
 
         :param os: Orbital state.
-        :type os: ~ADCS.orbits.orbital_state.Orbital_State
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
 
         :return: Bias–state Hessian of storage torque.
         :rtype: numpy.ndarray of shape ``(1, 7, 0)`` or ``(0, 7, 0)``
@@ -759,7 +759,7 @@ class Actuator:
         :type x: numpy.ndarray of shape ``(7,)``
 
         :param os: Orbital state.
-        :type os: ~ADCS.orbits.orbital_state.Orbital_State
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
 
         :return: Bias–storage Hessian of storage torque.
         :rtype: numpy.ndarray of shape ``(1, 0, 0)`` or ``(0, 0, 0)``
@@ -784,7 +784,7 @@ class Actuator:
         :type x: numpy.ndarray of shape ``(7,)``
 
         :param os: Orbital state.
-        :type os: ~ADCS.orbits.orbital_state.Orbital_State
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
 
         :return: State–state Hessian of storage torque.
         :rtype: numpy.ndarray of shape ``(7, 7, 0)``
@@ -806,7 +806,7 @@ class Actuator:
         :type x: numpy.ndarray of shape ``(7,)``
 
         :param os: Orbital state.
-        :type os: ~ADCS.orbits.orbital_state.Orbital_State
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
 
         :return: State–storage Hessian of storage torque.
         :rtype: numpy.ndarray of shape ``(7, 0, 0)``
@@ -828,7 +828,7 @@ class Actuator:
         :type x: numpy.ndarray of shape ``(7,)``
 
         :param os: Orbital state.
-        :type os: ~ADCS.orbits.orbital_state.Orbital_State
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
 
         :return: Storage–storage Hessian of storage torque.
         :rtype: numpy.ndarray of shape ``(0, 0, 0)``
