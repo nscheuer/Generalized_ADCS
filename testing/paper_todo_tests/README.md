@@ -1,145 +1,142 @@
 # Paper TODO Tests & Experiments
 
 This directory contains:
-1. **Pytest tests** - Quick validation that codebase can generate paper data
-2. **Experiment scripts** - Full experiments generating figures, tables, and data for papers
+1. **Pytest tests** (`test_todo_*.py`) - Quick validation tests
+2. **Experiment scripts** (`experiments/`) - Full MC simulations generating publication figures
 
 ## Directory Structure
 
 ```
 paper_todo_tests/
-├── README.md                  # This file
-├── test_todo_*.py            # Quick pytest validation tests
-└── experiments/              # Full experiment scripts
-    ├── README.md
-    ├── run_3p1_architecture_comparison.py
-    ├── run_thesis_monte_carlo.py
-    └── run_lp_vs_qp_comparison.py
+├── README.md                     # This file
+├── test_todo_*.py               # Quick pytest validation tests
+└── experiments/
+    ├── README.md                # Experiment documentation
+    ├── experiment_utils.py      # Shared utilities
+    ├── run_3p1_paper_experiments.py    # 3+1 Paper experiments
+    ├── run_lp_vs_qp_experiment.py      # LP vs QP comparison
+    └── run_goal_formulation_experiment.py  # Goal formulation
 ```
 
 ## Quick Start
 
-### For Validation (pytest)
+### Pytest Validation
 ```bash
+cd /home/pmckeen/Generalized_ADCS
+
 # Run all quick tests
 pytest testing/paper_todo_tests/ -v
 
-# Run with output
-pytest testing/paper_todo_tests/ -v -s
+# Run specific test file
+pytest testing/paper_todo_tests/test_todo_data_generation.py -v
 ```
 
-### For Paper Figures (experiments)
+### Figure Generation (Real Simulations!)
 ```bash
-cd testing/paper_todo_tests/experiments
+cd /home/pmckeen/Generalized_ADCS
 
-# Quick test run
-python run_3p1_architecture_comparison.py --quick
+# 3+1 Paper - Architecture Comparison (3+0 vs 3+1 vs 3+3)
+python testing/paper_todo_tests/experiments/run_3p1_paper_experiments.py --quick
+python testing/paper_todo_tests/experiments/run_3p1_paper_experiments.py --full --output-dir ./figures/3p1
 
-# Full paper run with all trials
-python run_thesis_monte_carlo.py --full --output-dir ./paper_figures
+# Generalized Control Paper - LP vs QP Torque Allocation
+python testing/paper_todo_tests/experiments/run_lp_vs_qp_experiment.py --quick
+python testing/paper_todo_tests/experiments/run_lp_vs_qp_experiment.py --full --output-dir ./figures/lp_qp
 
-# View all options
-python run_lp_vs_qp_comparison.py --help
+# Planner Paper - Goal Formulation Comparison
+python testing/paper_todo_tests/experiments/run_goal_formulation_experiment.py --quick
 ```
 
 ## Experiment Scripts
 
-### `run_3p1_architecture_comparison.py`
-**For Paper**: 3+1 (3-Magnetorquer, 1-Reaction-Wheel Architecture)
+All scripts use **real simulation code** from the ADCS package!
 
-Generates:
-- Table 1: PD Control Monte Carlo Results
-- Table 2: Planner-Enhanced Results
-- Error distribution figures
-- Comparison bar charts
+### `run_3p1_paper_experiments.py`
+**Paper:** 3-Magnetorquer, 1-Reaction-Wheel Architecture
 
-Expected Results:
-| Config | Mean Error | % <1° |
-|--------|------------|-------|
-| 3+0 PD | 21.6° | 15% |
-| 3+1 PD | 2.3° | 73% |
-| 3+1+Planner | 0.05° | 100% |
-| 3+3 PD | 0.24° | 100% |
+Compares:
+- 3+0: 3 MTQs only (MTQ_Lovera controller)
+- 3+1: 3 MTQs + 1 RW (MTQ_w_RW_LP controller)
+- 3+3: 3 MTQs + 3 RWs (baseline)
 
-### `run_thesis_monte_carlo.py`
-**For Paper**: Planner Paper, Thesis Chapter 7
+**Outputs:**
+- `fig_error_trajectories.{png,pdf}` - Time series with MC envelope
+- `fig_error_histogram.{png,pdf}` - Final error distribution  
+- `fig_success_rates.{png,pdf}` - Bar chart of success rates
+- `fig_cdf.{png,pdf}` - Cumulative distribution
+- `table1_results.tex` - LaTeX table
 
-Generates:
-- Single slew comparison (MTQ vs 3+1)
-- Goal formulation impact (6x improvement figure!)
-- Multi-target sequence results
+### `run_lp_vs_qp_experiment.py`
+**Paper:** Generalized Attitude Control System
 
-Key Results:
-- Reduced vs Full attitude: 67% vs 11% within 1° (**6x improvement!**)
-- 3+1: 96% within 1°
-- Multi-target mean: 0.45°, median: 0.03°
+**CORE CONTRIBUTION:** LP-based torque allocation preserves direction.
 
-### `run_lp_vs_qp_comparison.py`
-**For Paper**: Generalized Control Paper (CORE CONTRIBUTION)
+**Key Thesis Results (Table 5.1):**
+- LP: Direction error = 0.0036° (preserves direction)
+- QP: Direction error = 33.01° (direction-wrong when infeasible)
 
-Generates:
-- Direction error distributions
-- Closed-loop pointing comparison
-- Lyapunov stability demonstration
+**Outputs:**
+- `fig_lp_vs_qp_trajectories.{png,pdf}`
+- `fig_lp_vs_qp_boxplot.{png,pdf}`
+- `fig_lp_vs_qp_cdf.{png,pdf}`
+- `table_lp_vs_qp.tex`
 
-Key Finding:
-- LP: 0.0036° direction error → 17.02° final error
-- QP: 33.01° direction error → 25.70° final error
-- **LP wins through direction preservation!**
+### `run_goal_formulation_experiment.py`
+**Paper:** Trajectory Planning for Magnetically Actuated Spacecraft
 
-## Pytest Test Files
+**KEY INSIGHT:** Reduced attitude (2-DOF) is much easier than full (3-DOF).
+
+**Expected Results (with planner):**
+- Reduced: 67% within 1°
+- Full: 11% within 1°
+- **6x improvement!**
+
+**Note:** Full improvement requires trajectory planner (ALTRO), not just feedback control.
+
+## Pytest Test Coverage
 
 | File | Tests | Description |
 |------|-------|-------------|
-| `test_todo_data_computational.py` | 4 | Timing, memory benchmarks |
-| `test_todo_data_desaturation.py` | 18 | Momentum tracking |
-| `test_todo_data_generation.py` | 7 | CubeSat configs |
+| `test_todo_data_generation.py` | 7 | CubeSat config validation |
+| `test_todo_data_computational.py` | 4 | Timing benchmarks |
+| `test_todo_data_desaturation.py` | 18 | Momentum management |
 | `test_todo_data_lp_qp_comparison.py` | 14 | LP vs QP allocation |
 | `test_todo_data_sensitivity.py` | 3 | Parameter sensitivity |
-| `test_todo_data_thruster.py` | 17 | Thruster validation |
-| `test_todo_fig_generation.py` | 9 | Figure data generation |
+| `test_todo_data_thruster.py` | 17 | Thruster models |
+| `test_todo_fig_generation.py` | 9 | Figure data structures |
 | `test_todo_sim_controller_comparison.py` | 6 | Controller comparison |
 | `test_todo_sim_monte_carlo.py` | 4 | MC infrastructure |
-| `test_todo_sim_scenarios.py` | 8 | Scenarios testing |
+| `test_todo_sim_scenarios.py` | 8 | Mission scenarios |
 
 ## Paper Sources
 
-The experiment designs come from the TODO sections in:
-- `/mnt/c/Users/LV - Patrick McKeen/Writing/3+1 Ppaer/` - 3+1 Paper
-- `/mnt/c/Users/LV - Patrick McKeen/Writing/Planner paper/` - Planner Paper
-- `/mnt/c/Users/LV - Patrick McKeen/Writing/Generalied Control Paper/` - Gen. Control
-- `/mnt/c/Users/LV - Patrick McKeen/Writing/Package paper/` - Package Paper
-- `/mnt/c/Users/LV - Patrick McKeen/Writing/Dissertation/` - PhD Thesis
+These experiments implement TODOs from:
+- `3+1 Ppaer/` - 3+1 Architecture Paper
+- `Planner paper/` - Trajectory Planning Paper
+- `Generalied Control Paper/` - Generalized Control Paper
+- `Package paper/` - ADCS Package Paper
+- `Dissertation/` - PhD Thesis
 
-## Output Examples
+Located at: `/mnt/c/Users/LV - Patrick McKeen/Writing/`
 
-Running experiments produces:
+## Command Line Options
 
-```
-output/
-├── fig_error_dist_pd.png       # Error distribution histogram
-├── fig_comparison_pd.png       # Bar chart comparison
-├── fig_goal_formulation.png    # 6x improvement figure
-├── fig_lyapunov_stability.png  # Stability demonstration
-├── table1_pd_results.tex       # LaTeX table for paper
-├── table2_planner_results.tex  # LaTeX table
-└── experiment_data.json        # Raw data for analysis
-```
+All experiment scripts support:
+- `--quick` - Fast validation (10 trials, shorter sim)
+- `--full` - Publication quality (100 trials, full sim)
+- `--output-dir DIR` - Output directory
 
-## Integration Notes
+## Output Format
 
-The experiment scripts currently use **placeholder simulations** generating
-synthetic data matching thesis expected values. To use real simulations:
+Scripts generate:
+- **PNG** (300 DPI) - For presentations
+- **PDF** - For LaTeX papers
+- **LaTeX tables** - Copy-paste into papers
+- **JSON data** - Raw results for analysis
 
-1. Replace placeholder functions with actual control loops
-2. Import controllers from `ADCS.controller`
-3. Connect to ALTRO planner
-4. Run actual orbit propagation
+## Existing MC Infrastructure
 
-See `experiments/README.md` for integration details.
-
-## Related Documentation
-
-- `research/TODO_TEST_COVERAGE.md` - Coverage analysis
-- `research/PAPER_TODO_FEASIBILITY_ANALYSIS.md` - TODO feasibility
-- Papers in `/mnt/c/Users/LV - Patrick McKeen/Writing/`
+For multi-core MC runs with progress dashboard, see:
+- `papers/3MTQ+1RW/generate_bc2_lp.py` - LP controller
+- `papers/3MTQ+1RW/generate_bc2_trajectory.py` - With planner
+- Uses `ADCS.helpers.mc.monte_carlo_runner.MonteCarloRunner`

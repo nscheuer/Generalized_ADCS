@@ -1,149 +1,137 @@
 # Paper Experiment Scripts
 
-This directory contains standalone experiment scripts for generating paper figures, tables, and data.
-
-Unlike pytest tests, these scripts are designed to:
-- Generate publication-quality figures (PNG/PDF)
-- Output LaTeX tables ready for papers
-- Save JSON data for further analysis
-- Produce pretty terminal output with summaries
+Publication-quality figure generation for thesis and paper experiments.
 
 ## Quick Start
 
 ```bash
-cd testing/paper_todo_tests/experiments
+cd /home/pmckeen/Generalized_ADCS
 
-# Quick test run (few trials, fast)
-python run_3p1_architecture_comparison.py --quick
+# 3+1 Paper - Architecture Comparison
+python testing/paper_todo_tests/experiments/run_3p1_paper_experiments.py --quick --output-dir ./output_3p1
 
-# Full paper run (many trials, slow but accurate)
-python run_3p1_architecture_comparison.py --full --output-dir ./paper_figures
+# Generalized Control Paper - LP vs QP Torque Allocation  
+python testing/paper_todo_tests/experiments/run_lp_vs_qp_experiment.py --quick --output-dir ./output_lp_qp
 
-# View help
-python run_thesis_monte_carlo.py --help
+# Planner Paper - Goal Formulation Comparison
+python testing/paper_todo_tests/experiments/run_goal_formulation_experiment.py --quick --output-dir ./output_goal
 ```
 
-## Available Experiments
+## Experiments
 
-### 1. `run_3p1_architecture_comparison.py`
-**Paper**: 3+1 (3-Magnetorquer, 1-Reaction-Wheel)
+### 1. 3+1 Paper: `run_3p1_paper_experiments.py`
 
-Experiments:
-- A1: PD Control Baseline (3+0, 3+1, 3+3)
-- A2: Planner-Enhanced Comparison
+**Paper:** 3-Magnetorquer, 1-Reaction-Wheel Architecture Demonstration
 
-Outputs:
-- `fig_error_dist_pd.png` - Error distributions for PD control
-- `fig_comparison_pd.png` - Bar chart comparison
-- `fig_error_dist_planner.png` - With planner enabled
-- `table1_pd_results.tex` - LaTeX Table 1
-- `table2_planner_results.tex` - LaTeX Table 2
-- `experiment_data.json` - Raw data
+Compares control architectures:
+- **3+0**: 3 MTQs only (Lovera controller)
+- **3+1**: 3 MTQs + 1 RW (LP controller) - **main contribution**
+- **3+3**: 3 MTQs + 3 RWs (full authority baseline)
 
-Expected results (thesis):
-- 3+0 PD: 21.6° mean, 15% <1°
-- 3+1 PD: 2.3° mean, 73% <1°
-- 3+1+Planner: 0.05° mean, 100% <1°
-- 3+3 PD: 0.24° mean, 100% <1°
+**Experiments:**
+- A1: PD Control Baseline Comparison (implemented ✓)
+- A2: Planner-Enhanced Comparison (TODO)
+- A3: Goal Formulation Impact (TODO)
+- B1-B2: Desaturation and Long-Duration (TODO)
+- C1-C3: Mission-Specific Scenarios (TODO)
 
-### 2. `run_thesis_monte_carlo.py`
-**Paper**: Planner Paper, Thesis Chapter 7
+**Outputs:**
+- `fig_error_trajectories.{png,pdf}` - Time series with MC envelope
+- `fig_error_histogram.{png,pdf}` - Final error distribution
+- `fig_success_rates.{png,pdf}` - Bar chart of success rates
+- `fig_cdf.{png,pdf}` - Cumulative distribution function
+- `table1_results.tex` - LaTeX table
 
-Experiments:
-- Single 180° slew (MTQ vs 3+1)
-- Goal formulation impact (Full vs Reduced attitude)
-- Multi-target sequences
+### 2. Generalized Control Paper: `run_lp_vs_qp_experiment.py`
 
-Outputs:
-- `thesis_fig_single_slew.png` - MTQ vs 3+1 comparison
-- `thesis_fig_goal_formulation.png` - 6x improvement figure
-- `thesis_fig_multi_target.png` - Multi-target results
-- `thesis_mc_data.json` - Raw data
+**Paper:** Generalized Attitude Control System
 
-Expected results (thesis):
-- MTQ-only: 73% within 10°
-- Reduced vs Full attitude: 67% vs 11% (6x improvement!)
-- 3+1: 96% within 1°
-- Multi-target mean: 0.45°, median: 0.03°
+**CORE Contribution:** LP-based torque allocation preserves direction better than QP.
 
-### 3. `run_lp_vs_qp_comparison.py`
-**Paper**: Generalized Control Paper (CORE CONTRIBUTION)
+**Key Results (from thesis Table 5.1):**
+- LP: Direction error = 0.0036° (preserves direction)
+- QP: Direction error = 33.01° (direction-wrong when infeasible)
 
-Experiments:
-- A1: Direction Preservation Test
-- A2: Closed-Loop Pointing Comparison
-- A3: Lyapunov Stability Demonstration
+**Outputs:**
+- `fig_lp_vs_qp_trajectories.{png,pdf}` - Comparative MC trajectories
+- `fig_lp_vs_qp_boxplot.{png,pdf}` - Final error box comparison
+- `fig_lp_vs_qp_cdf.{png,pdf}` - CDF comparison
+- `table_lp_vs_qp.tex` - LaTeX comparison table
 
-Outputs:
-- `fig_direction_comparison.png` - Direction error distributions
-- `fig_closed_loop_comparison.png` - Pointing error comparison
-- `fig_lyapunov_stability.png` - Stability demonstration
-- `lp_qp_comparison_data.json` - Raw data
+### 3. Planner Paper: `run_goal_formulation_experiment.py`
 
-Codebase reference values:
-- LP: 0.0036° direction error, 17.02° final error
-- QP: 33.01° direction error, 25.70° final error
-- **LP wins through direction preservation!**
+**Paper:** Trajectory Planning for Magnetically Actuated Spacecraft
 
-## Output Structure
+**KEY INSIGHT:** For imaging missions, you only need to point a camera at a target 
+(reduced attitude / 2-DOF), not achieve exact orientation (full attitude / 3-DOF).
 
-```
-output/
-├── fig_*.png          # Publication figures (300 DPI)
-├── table*.tex         # LaTeX tables
-├── *_data.json        # Raw data for analysis
-└── experiment_log.txt # Console output log
-```
+**Expected Results (from thesis Table 3.2):**
+- Reduced Attitude: 67% within 1°
+- Full Attitude: 11% within 1°
+- **6x improvement!**
 
-## Customization
+**Note:** This comparison requires the trajectory planner (ALTRO) to see the 
+full improvement. With feedback control only, both modes are slow to converge.
 
-Each script has a `Config` dataclass at the top with adjustable parameters:
+**Outputs:**
+- `fig_goal_formulation_trajectories.{png,pdf}` - Error comparison
+- `fig_goal_formulation_success.{png,pdf}` - Success rate bar chart
+- `fig_goal_formulation_cdf.{png,pdf}` - CDF comparison
+- `table_goal_formulation.tex` - LaTeX table
 
-```python
-@dataclass
-class ExperimentConfig:
-    n_trials: int = 100        # Number of MC trials
-    sim_duration_s: float = 1000.0
-    fig_dpi: int = 300
-    fig_format: str = "png"    # or "pdf" for publication
-    # ...
+### 4. Allocation Comparison: `research/allocation_comparison.py`
+
+Direct torque allocation comparison (single-step, not closed-loop).
+Best demonstrates LP vs QP direction preservation.
+
+```bash
+python research/allocation_comparison.py
 ```
 
-## Converting to Paper Figures
+## Command Line Options
 
-1. Run experiment with `--full` for final data
-2. Copy figures from output directory
-3. Tables are ready for `\input{table1_pd_results.tex}`
+All scripts support:
+- `--quick`: Fast validation (10 trials, shorter sim time)
+- `--full`: Publication quality (100 trials, full sim time)
+- `--output-dir DIR`: Specify output directory
 
-For custom styling:
-```python
-import matplotlib.pyplot as plt
-plt.style.use('seaborn-paper')  # or your journal's style
-```
+## Figure Style
 
-## Integration with Simulation Code
+All figures use:
+- Serif fonts (Computer Modern when TeX available)
+- 300 DPI for publication
+- Both PNG and PDF formats
+- Colorblind-friendly palette
+- Clean axes (no top/right spines)
 
-Currently these scripts use **placeholder simulations** that generate synthetic data
-matching thesis expected values. To use real simulations:
+## Expected Results
 
-1. Replace `run_single_trial()` with actual control loop
-2. Import controllers from `ADCS.controller`
-3. Import planner from trajectory module
-4. Connect to orbit propagation
+### 3+1 Paper (Table 2 Expected Values)
+| Config | Mean Error | <1° | <5° |
+|--------|-----------|-----|-----|
+| 3+0    | ~21.6°    | ~15%| -   |
+| 3+1 PD | ~2.3°     | ~73%| -   |
+| 3+1+Plan| ~0.05°   | ~100%| -  |
+| 3+3    | ~0.24°    | ~100%| -  |
 
-Example integration point:
-```python
-def run_single_trial(sat, config_name, trial_id, exp_config, use_planner=False):
-    # TODO: Replace with actual simulation
-    # 1. Create orbit
-    # 2. Initialize controller (PD or with planner)
-    # 3. Run simulation loop
-    # 4. Compute metrics
-    pass
-```
+**Note:** Results depend on simulation duration. Use `--full` for accurate comparison.
 
-## Related Files
+### LP vs QP (Direction Preservation)
+- LP direction error: ~0.004° (essentially zero)
+- QP direction error: ~31-33° (large when infeasible)
 
-- `../test_todo_*.py` - Quick pytest validation tests
-- `../../research/*.py` - Research/exploration scripts
-- `../../../papers/` - Paper data storage
+## Adding New Experiments
+
+1. Create new script in this directory
+2. Follow the pattern in `run_3p1_paper_experiments.py`:
+   - Use `ExpConfig` for trial/duration settings
+   - Use `run_single_trial()` for simulation
+   - Use `run_monte_carlo()` for MC campaigns
+   - Generate figures with matplotlib
+   - Save LaTeX tables and JSON data
+
+## Dependencies
+
+- numpy, scipy, matplotlib
+- tqdm (progress bars)
+- ADCS package (controllers, satellites, orbits)

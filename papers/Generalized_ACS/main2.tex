@@ -1,0 +1,1486 @@
+% SmallSat US + JGCD Mega Paper Draft
+% Generalized Attitude Control Allocation for Small Spacecraft
+%
+% ============================================================
+% KEY NARRATIVE: BOLT-ON CONTROL FRAMEWORK FOR ANY ACTUATOR SET
+% ============================================================
+%
+% MAIN CONTRIBUTION: A modular "bolt-on" framework that wraps ANY control law
+% and adapts it to ANY actuator configuration. The control law outputs a desired
+% torque τ_des; the framework handles everything else.
+%
+% ============================================================
+% PAPER STRUCTURE (Following the Control Pipeline)
+% ============================================================
+%
+% 1. INTRODUCTION: The Problem
+%    - Control laws assume specific actuators, but we want to swap them freely
+%    - Need a wrapper that handles actuator-specific concerns
+%
+% 2. LTI/LTV CONTROLLABILITY ANALYSIS (Bridge: What's Feasible?)
+%    - Before choosing actuators, verify the config CAN achieve your goals
+%    - LTI rank analysis for constant-torque authority
+%    - LTV Gramian analysis for time-varying authority (magnetic field rotation)
+%    - KEY: This tells you WHAT'S ACHIEVABLE before you design control
+%    - Table: Controllability of 3+0, 3+1, 3+3, 0+3, etc.
+%
+% 3. BOLT-ON ADJUSTMENT FRAMEWORK
+%    The framework wraps ANY existing control law with pre- and post-processing:
+%
+%    ════════════════════════════════════════════════════════════════════
+%    STAGE 1: GOAL MODIFICATION (Pre-Control)
+%    ════════════════════════════════════════════════════════════════════
+%    ┌─────────────────────────────────────────────────────────────────┐
+%    │  1. GOAL MODIFICATION                                           │
+%    │     Input: User-specified goal (may be over/under-specified)    │
+%    │     Output: Controller-ready goal (q_goal, ω_goal)              │
+%    │                                                                  │
+%    │     - Full-attitude vs reduced-attitude conversion              │
+%    │     - Keep-out zone avoidance (modify path, not just endpoint)  │
+%    │     - Goal feasibility checking (is this achievable?)           │
+%    │     - Temporal goal sequencing (multi-target missions)          │
+%    │                                                                  │
+%    │  *** FROM research/attitude_goal_conversion.py ***              │
+%    │  Full → Reduced: Extract vector constraint, let 3rd DoF be free │
+%    │                  (relaxes control requirement for underactuated)│
+%    │                                                                  │
+%    │  Reduced → Full: Multiple valid quaternions satisfy vector goal │
+%    │    - Closest quaternion: min rotation from current attitude     │
+%    │    - Dynamics-aware: considers current ω, picks achievable path │
+%    │    - Energy-optimal: minimizes ∫τ²dt over trajectory            │
+%    │    - Reachability-based: picks from actually reachable set      │
+%    │                                                                  │
+%    │  *** FROM research/reduced_to_full_attitude.py ***              │
+%    │  Methods to achieve full 3-DOF using only 2-DOF goals:          │
+%    │    1. Alternating goals: switch between 2 intersecting vectors  │
+%    │    2. Cascaded control: one goal to manifold, another to target │
+%    │    3. Multi-vector: track multiple body vectors simultaneously  │
+%    │    4. Weighted multi-vector: dynamic weights based on error     │
+%    └─────────────────────────────────────────────────────────────────┘
+%                                    │
+%                                    ▼
+%    ════════════════════════════════════════════════════════════════════
+%    STAGE 2: EXISTING CONTROL LAW (User's Choice - Unchanged)
+%    ════════════════════════════════════════════════════════════════════
+%    ┌─────────────────────────────────────────────────────────────────┐
+%    │  2. CONTROL LAW (PD, LQR, Sliding Mode, MPC, etc.)              │
+%    │     Input: Current state (q, ω), modified goal (q_goal, ω_goal) │
+%    │     Output: τ_des (desired torque in body frame)                │
+%    │                                                                  │
+%    │     ** THIS IS THE USER'S EXISTING CONTROL LAW **               │
+%    │     ** THE FRAMEWORK DOES NOT MODIFY IT **                      │
+%    │                                                                  │
+%    │     Examples that work unchanged:                                │
+%    │       - Quaternion PD: τ = -Kp·q_err - Kd·ω                     │
+%    │       - LQR: τ = -K·x                                           │
+%    │       - Sliding mode: τ = -k·sign(s) - λ·s                      │
+%    │       - Any Lyapunov-based controller                           │
+%    │       - Any trajectory-tracking controller                      │
+%    └─────────────────────────────────────────────────────────────────┘
+%                                    │
+%                                    ▼
+%    ════════════════════════════════════════════════════════════════════
+%    STAGE 3: COMPENSATION (Post-Control, Pre-Allocation)
+%    ════════════════════════════════════════════════════════════════════
+%    ┌─────────────────────────────────────────────────────────────────┐
+%    │  3a. DISTURBANCE COMPENSATION (Feedforward)                     │
+%    │      Add feedforward terms to counter known/estimated torques:  │
+%    │      - Gravity gradient torque (from orbit/attitude)            │
+%    │      - Aerodynamic drag torque (from velocity/geometry)         │
+%    │      - Solar radiation pressure torque (from sun/geometry)      │
+%    │      - Magnetic dipole torque (from residual dipole/B-field)    │
+%    │      - Propulsion disturbance (from thruster misalignment)      │
+%    │      - "All-in-one" estimated disturbance (from estimator)      │
+%    │                                                                  │
+%    │      τ_compensated = τ_des - τ_disturbance_estimated            │
+%    │                                                                  │
+%    │      Thesis result: 20° error → 4° with full model,             │
+%    │                     20° error → 5-20° with all-in-one estimate  │
+%    └─────────────────────────────────────────────────────────────────┘
+%                                    │
+%                                    ▼
+%    ┌─────────────────────────────────────────────────────────────────┐
+%    │  3b. GYROSCOPIC COMPENSATION                                    │
+%    │      Counter the ω × (Jω + h_wheels) coupling term:             │
+%    │                                                                  │
+%    │      τ_total = τ_compensated - ω × (Jω + h_wheels)              │
+%    │                                                                  │
+%    │      Especially important for:                                  │
+%    │        - High angular rates (tumbling, fast slews)              │
+%    │        - Large stored momentum (near saturation)                │
+%    │        - Asymmetric inertia tensors                             │
+%    └─────────────────────────────────────────────────────────────────┘
+%                                    │
+%                                    ▼
+%    ┌─────────────────────────────────────────────────────────────────┐
+%    │  3c. DESATURATION TERM (Optional, can also be in Stage 4)       │
+%    │      Add momentum management torque:                            │
+%    │                                                                  │
+%    │      τ_with_desat = τ_total + τ_desat                           │
+%    │                                                                  │
+%    │      Options:                                                   │
+%    │        - Continuous: always include small desat component       │
+%    │        - Scheduled: add desat during favorable B-field windows  │
+%    │        - Threshold: only when momentum exceeds limit            │
+%    └─────────────────────────────────────────────────────────────────┘
+%                                    │
+%                                    ▼
+%    ════════════════════════════════════════════════════════════════════
+%    STAGE 4: ALLOCATION AND BOUNDS (Post-Compensation)
+%    ════════════════════════════════════════════════════════════════════
+%    ┌─────────────────────────────────────────────────────────────────┐
+%    │  4a. ACTUATOR ALLOCATION (LP vs QP vs Constrained)              │
+%    │      Map τ_with_desat to actuator commands:                     │
+%    │                                                                  │
+%    │      min ||Au - τ||  subject to actuator limits                 │
+%    │                                                                  │
+%    │      LP: Maximize torque in desired DIRECTION                   │
+%    │          - Preserves Lyapunov stability                         │
+%    │          - Best for underactuated systems                       │
+%    │          - Direction error: ~0.004°                             │
+%    │                                                                  │
+%    │      QP: Minimize torque ERROR MAGNITUDE                        │
+%    │          - Can destabilize (wrong direction)                    │
+%    │          - Direction error: ~33°                                │
+%    │                                                                  │
+%    │      Constrained QP: Add physics constraints to QP              │
+%    │          - "1a-Power brake only": 3.11° (nearly as good as LP)  │
+%    │          - "3b-Sign critical": 2.35° (matches unconstrained)    │
+%    │                                                                  │
+%    │      Output: u (actuator commands before saturation)            │
+%    └─────────────────────────────────────────────────────────────────┘
+%                                    │
+%                                    ▼
+%    ┌─────────────────────────────────────────────────────────────────┐
+%    │  4b. BOUND RESPECTING (Saturation Handling)                     │
+%    │      Enforce actuator limits:                                   │
+%    │                                                                  │
+%    │      - MTQ: |m| ≤ m_max (magnetic moment limits)                │
+%    │      - RW: |τ_rw| ≤ τ_max, |h| ≤ h_max (torque, momentum)       │
+%    │      - CMG: gimbal rate limits, singularity avoidance           │
+%    │      - Thruster: on/off or min impulse bit                      │
+%    │                                                                  │
+%    │      Graceful degradation when saturated:                       │
+%    │        - Scale uniformly (preserve direction)                   │
+%    │        - Priority-based (protect critical axes)                 │
+%    │        - Optimization-based (minimize performance loss)         │
+%    │                                                                  │
+%    │      Output: u_bounded (feasible actuator commands)             │
+%    └─────────────────────────────────────────────────────────────────┘
+%                                    │
+%                                    ▼
+%    ┌─────────────────────────────────────────────────────────────────┐
+%    │  4c. NULLSPACE DESATURATION (Overactuated Systems)              │
+%    │      For systems with redundant actuators (3+3, 4-wheel, CMG):  │
+%    │                                                                  │
+%    │      u_final = u_bounded + N·u_desat                            │
+%    │                                                                  │
+%    │      where N is the nullspace of the allocation matrix.         │
+%    │      Desaturates wheels WITHOUT affecting net torque.           │
+%    └─────────────────────────────────────────────────────────────────┘
+%                                    │
+%                                    ▼
+%    ┌─────────────────────────────────────────────────────────────────┐
+%    │  ACTUATORS: MTQ, RW, CMG, Thruster                              │
+%    │  Execute commands, affect spacecraft dynamics                   │
+%    └─────────────────────────────────────────────────────────────────┘
+%                                    │
+%                                    ▼
+%    ┌─────────────────────────────────────────────────────────────────┐
+%    │  3b. DISTURBANCE COMPENSATION (Feedforward)                     │
+%    │      - Gravity gradient torque                                  │
+%    │      - Aerodynamic drag torque                                  │
+%    │      - Solar radiation pressure torque                          │
+%    │      - Magnetic dipole torque                                   │
+%    │      - Propulsion disturbance torque                            │
+%    │      - "All-in-one" estimated disturbance (from estimator)      │
+%    │      τ_compensated = τ_des - τ_disturbance                      │
+%    └─────────────────────────────────────────────────────────────────┘
+%                                    │
+%                                    ▼
+%    ┌─────────────────────────────────────────────────────────────────┐
+%    │  3c. GYROSCOPIC COMPENSATION                                    │
+%    │      - ω × (Jω + h_wheels) term                                 │
+%    │      - Especially important at high rates or with stored momentum│
+%    │      τ_total = τ_compensated - ω × (Jω + h)                     │
+%    └─────────────────────────────────────────────────────────────────┘
+%                                    │
+%                                    ▼
+%    ┌─────────────────────────────────────────────────────────────────┐
+%    │  3d. ACTUATOR ALLOCATION (LP vs QP vs other)                    │
+%    │      - Map τ_total to actuator commands                         │
+%    │      - Handle underactuation (MTQ can't torque || to B-field)   │
+%    │      - LP: Maximize torque in desired DIRECTION (preserves stability)│
+%    │      - QP: Minimize torque ERROR MAGNITUDE (can destabilize!)   │
+%    │      - Constrained QP variants (power-brake, sign-critical)     │
+%    │      Output: u (actuator commands)                              │
+%    └─────────────────────────────────────────────────────────────────┘
+%                                    │
+%                                    ▼
+%    ┌─────────────────────────────────────────────────────────────────┐
+%    │  3e. BOUND RESPECTING (Saturation Handling)                     │
+%    │      - Actuator limits (max dipole moment, max wheel torque)    │
+%    │      - Rate limits (slew rate constraints)                      │
+%    │      - Graceful degradation when saturated                      │
+%    │      Output: u_bounded (feasible actuator commands)             │
+%    └─────────────────────────────────────────────────────────────────┘
+%                                    │
+%                                    ▼
+%    ┌─────────────────────────────────────────────────────────────────┐
+%    │  3f. DESATURATION (Momentum Management)                         │
+%    │      - Continuous desaturation (always active)                  │
+%    │      - Scheduled desaturation (favorable B-field windows)       │
+%    │      - Nullspace desaturation (overactuated systems)            │
+%    │      - Trade-off: pointing accuracy vs wheel margin             │
+%    └─────────────────────────────────────────────────────────────────┘
+%                                    │
+%                                    ▼
+%    ┌─────────────────────────────────────────────────────────────────┐
+%    │  ACTUATORS: MTQ, RW, CMG, Thruster                              │
+%    └─────────────────────────────────────────────────────────────────┘
+%
+% 4. ALLOCATION COMPARISON (LP vs QP Deep Dive)
+%    - LP preserves direction → Lyapunov stability maintained
+%    - QP minimizes magnitude error → can inject energy → instability
+%    - Constrained QP variants: "1a-Power brake" achieves 3.11° vs LP 2.94°
+%    - When to use each (LP for underactuated, QP for overactuated)
+%
+% 5. RESULTS: Demonstrated Across Configurations
+%    - 3+0, 3+1, 3+3, failure scenarios
+%    - Same control law, different actuators, framework handles it
+%
+% 6. CONCLUSION: The Value Proposition
+%    - Test any control law on any actuator set without rewriting
+%    - Rapid architecture trade studies
+%    - Graceful degradation on failure
+%
+% ============================================================
+% EMPHASIS (from Patrick's interview):
+% - LP/QP is ONE component, not the main contribution
+% - The FRAMEWORK is the main contribution
+% - LTI/LTV analysis is the BRIDGE from feasibility to implementation
+% ============================================================
+%
+% ACTUAL RESULTS FROM CODEBASE (research/allocation_comparison_*.json, closed_loop_*.json):
+%   LP Performance:
+%     - Direction error mean: 0.0036° (excellent preservation!)
+%     - Magnitude ratio mean: 0.2595 (~26% of desired)
+%     - Solve time: 2220 μs
+%     - Final closed-loop error: 17.02° ± 9.90°
+%   QP Performance:
+%     - Direction error mean: 33.01° (large deviation)
+%     - Magnitude ratio mean: 0.6092 (~60% of desired)
+%     - Solve time: 1515 μs
+%     - Final closed-loop error: 25.70° ± 15.01°
+%   KEY FINDING: LP preserves direction perfectly but achieves lower magnitude.
+%   QP achieves higher magnitude but introduces large direction errors.
+%   For Lyapunov-based control, direction preservation matters more → LP wins.
+%
+% ============================================================
+% VENUE SUMMARY
+% ============================================================
+%
+% SMALLSAT US (practical, accessible, ~6 pages):
+%   Target: Engineers evaluating actuator configurations
+%   Emphasis: "Plug any control law into any actuator set"
+%   TRIM: Detailed proofs, Gramian derivations
+%   KEEP: Controllability tables, LP vs QP results, practical examples
+%   ADD: Block diagram showing modular architecture, decision flowchart
+%
+% JGCD (rigorous, theoretical, ~15 pages):
+%   Target: Controls researchers, GNC engineers
+%   Emphasis: Stability proofs, convergence analysis, mathematical rigor
+%   TRIM: Nothing - this is the full theoretical treatment
+%   KEEP: All proofs, LTV analysis, torque polytopes, desaturation
+%   ADD: Computational complexity, robustness bounds, comparison to MPC/LQR
+%
+% ============================================================
+% DATA GENERATION TODO LIST
+% ============================================================
+% ** HIGH PRIORITY **
+% TODO-DATA-1: Generate LTI/LTV rank tables for additional configurations (CMG, thruster)
+% TODO-DATA-2: Generate torque envelope visualizations for multiple orbits
+% TODO-DATA-3: Run Monte Carlo simulations (N=1000) for pointing accuracy statistics
+%
+% TODO-SIM-1: Add complete spacecraft parameter table
+% TODO-SIM-2: Add orbit and environment parameter table
+% TODO-SIM-3: Generate pointing error time series for all configurations
+% TODO-SIM-4: Generate Monte Carlo statistics (mean, 3-sigma, worst-case)
+%
+% ** MEDIUM PRIORITY **
+% TODO-DATA-4: Generate LP vs QP comparison plots (direction error, magnitude, computation time)
+% TODO-DATA-5: Generate desaturation performance plots (momentum evolution, pointing impact)
+% TODO-DATA-6: Run actuator failure simulations with multiple failure scenarios
+% TODO-DATA-7: Generate computational timing benchmarks on representative flight hardware
+%
+% TODO-SIM-5: Generate inertial hold results
+% TODO-SIM-6: Generate tracking results for time-varying target
+% TODO-SIM-7: Generate failure response plots
+% TODO-SIM-8: Generate LP vs. QP comparison plots
+% TODO-SIM-9: Generate comparison with Lovera-Astolfi, Wisniewski controllers
+%
+% ** LOW PRIORITY **
+% TODO-DATA-8: Create comparison table vs. prior magnetic control methods (quantitative)
+% TODO-DATA-9: Generate sensitivity analysis plots (inertia error, B-field error, alignment error)
+%
+% TODO-DISC-1: Add actual timing benchmarks on representative flight hardware (ARM Cortex-M4, LEON3, etc.)
+% TODO-DISC-2: Add quantitative sensitivity analysis (Monte Carlo with parameter perturbations)
+%
+% ============================================================
+% FIGURE TODO LIST
+% ============================================================
+% TODO-FIG-1: System block diagram showing control law + allocation layer architecture
+% TODO-FIG-2: Torque polytope evolution over orbit (3D animation frames for 3MTQ+1RW)
+% TODO-FIG-3: LP vs QP torque direction preservation comparison (2D projection)
+% TODO-FIG-4: Desaturation scheduling visualization (momentum vs. time with windows marked)
+% TODO-FIG-5: Pointing error time series for each configuration
+% TODO-FIG-6: Monte Carlo pointing error distributions (histogram or CDF)
+% TODO-FIG-7: Actuator failure response (before/during/after failure)
+% TODO-FIG-8: WCDTA sphere visualization for different configurations
+% TODO-FIG-9: Required controllable subspace diagram (full attitude vs. vector pointing)
+%
+% TODO-DAA-1: Add figure showing torque envelope evolution over one orbit for 3MTQ+1RW configuration
+% TODO-DAA-2: Add figure showing WCDTA sphere for different actuator configurations
+% TODO-LP-1: Add figure illustrating LP allocation geometry
+% TODO-INTERPRET-1: Add figure comparing torque polytope shapes for 3RW orthogonal vs 4RW pyramid
+%
+% ============================================================
+% PROOF/ANALYSIS TODO LIST
+% ============================================================
+% TODO-PROOF-1: Complete Lyapunov stability proof for LP allocation with PE condition
+% TODO-PROOF-2: Derive convergence rate bounds for underactuated case
+% TODO-PROOF-3: Prove desaturation-pointing trade-off is Pareto optimal
+% TODO-PROOF-4: Analyze stability with bounded disturbance estimation error
+% TODO-PROOF-5: Derive conditions for guaranteed desaturation over one orbit
+%
+% ============================================================
+% LITERATURE REVIEW TODO LIST (from thesis background.tex)
+% ============================================================
+%
+% ** CORE TEXTBOOKS (must cite) **
+% TODO-LIT-1: Markley & Crassidis "Fundamentals of Spacecraft Attitude Determination
+%             and Control" (2014) - THE textbook for ADCS, cite for PD control,
+%             quaternion feedback, stability proofs
+% TODO-LIT-2: SME (SMAD) "System Mission Engineering" - Standard reference for
+%             actuator types, pointing requirements
+% TODO-LIT-3: Cappelletti "CubeSat Handbook" (2020) - CubeSat-specific ADCS,
+%             practical constraints
+% TODO-LIT-4: Fortescue "Spacecraft Systems Engineering" - General spacecraft reference
+%
+% ** MAGNETIC CONTROL (Background Section) **
+% TODO-LIT-5: Ovchinnikov & Roldugin "Survey of Magnetic Attitude Control" (2019)
+%             - COMPREHENSIVE magnetic control survey, cite for background
+% TODO-LIT-6: Lovera & Astolfi - Magnetic stabilization series (2004, 2005, 2006)
+%             - Global exponential stability for MTQ, cite for Lovera controller
+% TODO-LIT-7: Wisniewski - Ørsted mission, LQR, sliding mode (1996, 1997, 1999, 2000)
+%             - Foundational magnetic control, cite for Wisniewski controller
+% TODO-LIT-8: Psiaki "Magnetic Torquer Attitude Control" (2001)
+%             - LQR for magnetic control, cite for baseline comparison
+%
+% ** FLIGHT-PROVEN MAGNETIC CONTROL **
+% TODO-LIT-9: Chasset et al. - PRISMA TANGO mission (2006, 2013)
+%             - Real flight data for 3-axis magnetic control
+% TODO-LIT-10: Sechi - GOCE mission (2005)
+%              - Another flight-proven magnetic control example
+%
+% ** UNDERACTUATED CONTROL **
+% TODO-LIT-11: Petersen & Kolmanovsky - 2RW underactuated MPC (2015, 2017)
+%              - Relevant for underactuated systems without magnetic
+% TODO-LIT-12: Inamori et al. - Two-step rotation method (2016)
+%              - Alternative approach to magnetic underactuation
+%
+% ** TORQUE ALLOCATION **
+% TODO-LIT-13: Wie & Barba - Quaternion feedback (1985)
+%              - Lyapunov stability for attitude control
+% TODO-LIT-14: Standard QP/LP references for control allocation
+%              (Bodson "Evaluation of Optimization Methods for Control Allocation",
+%               Durham "Constrained Control Allocation")
+%
+% ** DISTURBANCE MODELING **
+% TODO-LIT-15: Standard disturbance references (GG, drag, SRP, magnetic dipole)
+%              - Wertz "Spacecraft Attitude Determination and Control"
+%              - Vallado "Fundamentals of Astrodynamics"
+%
+% ============================================================
+% KEY CITATIONS TO INCLUDE IN PAPER TEXT:
+% ============================================================
+% - Background: cite [Markley2014], [Ovchinnikov2019] for prior art
+% - Controllability: cite [Wisniewski1999] for LTV magnetic controllability
+% - Lovera controller: cite [Lovera2004, Lovera2006]
+% - Wisniewski controller: cite [Wisniewski1997]
+% - Flight heritage: cite [Chasset2013] (TANGO), [Sechi2005] (GOCE)
+% - PD stability: cite [Wie1985], [Markley2014]
+% ============================================================
+%
+% TODO-LP-2: Complete formal stability proof with persistent excitation conditions
+% TODO-LP-3: Derive convergence rate bounds
+% TODO-QP-1: Add stability analysis for QP allocation
+% TODO-QP-2: Characterize conditions under which QP is preferable to LP
+% TODO-QP-3: Add computational complexity comparison
+%
+% ============================================================
+% TODO SUMMARY BY VENUE
+% ============================================================
+%
+% FOR SMALLSAT US (practical, accessible):
+%   - TODO-SMALLSAT-1: Trim theoretical derivations; focus on results and applications
+%   - TODO-SMALLSAT-2: Add 1-page "Getting Started" practical implementation guide
+%   - TODO-SMALLSAT-3: Add SWaP-C comparison table (MTQ-only vs 3MTQ+1RW vs 3RW)
+%   - TODO-SMALLSAT-4: Add specific mission scenario (e.g., Earth observation, IoT relay)
+%   - TODO-SMALLSAT-5: Add computational requirements table (solver time, memory)
+%   - TODO-SMALLSAT-6: Add comparison with COTS ADCS systems (Blue Canyon, etc.)
+%   - TODO-SMALLSAT-7: Emphasize plug-and-play aspect for rapid mission development
+%   - TODO-SMALLSAT-8: Add testbed/HIL validation if available
+%
+% FOR JGCD (rigorous, theoretical):
+%   - TODO-JGCD-1: Expand LTI/LTV controllability proofs with full mathematical rigor
+%   - TODO-JGCD-2: Add formal Lyapunov stability proofs for LP allocation
+%   - TODO-JGCD-3: Add convergence rate analysis (exponential vs. asymptotic)
+%   - TODO-JGCD-4: Add robustness analysis (parameter uncertainty, estimation error)
+%   - TODO-JGCD-5: Add comparison with optimal control (LQR, MPC) approaches
+%   - TODO-JGCD-6: Expand controllability Gramian numerical computation details
+%   - TODO-JGCD-7: Add stability analysis for QP allocation
+%   - TODO-JGCD-8: Add CMG singularity avoidance extension
+%   - TODO-JGCD-9: Add computational complexity analysis (Big-O notation)
+%   - TODO-JGCD-10: Expand simulation results with statistical rigor (confidence intervals)
+%
+% WRITING/POLISH:
+%   - TODO-WRITE-1: Add notation table at beginning of paper
+%   - TODO-WRITE-2: Ensure consistent notation (vectors bold, scalars italic, etc.)
+%   - TODO-WRITE-3: Add acknowledgments section
+%   - TODO-WRITE-4: Complete bibliography with all citations
+%   - TODO-WRITE-5: Add appendix with derivation details (for JGCD version)
+%
+% OTHER:
+%   - TODO-INTRO-1: Add specific mission examples that would benefit
+%   - TODO-BACKGROUND-1: Add subsection on prior work specifically addressing bounded allocation with stability analysis
+%   - TODO-BACKGROUND-2: Add comparison table of prior magnetic control approaches
+%   - TODO-DAA-3: Generate numerical examples for specific CubeSat configurations and orbits
+%   - TODO-DAA-4: Create table comparing WCDTA for different actuator configurations
+%   - TODO-DAA-5: Develop algorithm for optimal desaturation scheduling
+%   - TODO-DAA-6: Quantify trade-off between pointing accuracy and desaturation rate
+%   - TODO-WEIGHTED-1: Add analysis of how weighting affects pointing performance
+%   - TODO-WEIGHTED-2: Develop guidelines for selecting lambda, mu, and R
+%   - TODO-COMP-1: Add numerical examples showing benefit of disturbance compensation
+%   - TODO-COMP-2: Analyze stability with estimation error in disturbance compensation
+%   - TODO-DESAT-1 through TODO-DESAT-6: Desaturation analysis and comparison
+%   - TODO-INTERPRET-2: Add quantitative comparison of WCDTA for configurations near the controllability boundary
+%
+% ============================================================
+% *** THESIS CONTROL RESULTS (Chapters 5-6) - REFERENCE DATA ***
+% ============================================================
+%    Disturbance-aware control (thesis Chapter 6, Wisniewski CubeSat test):
+%      ACTUAL NUMBERS FROM THESIS (Figure 6.X, disturbance.tex:784):
+%      * No disturbance compensation: ~180° error (essentially uncontrolled)
+%      * All-in-one estimated disturbance: 5-20° error (huge improvement!)
+%      * Full disturbance model: 0-4° error (best performance)
+%      CONTEXT: The "20° reduction" refers to improvement from all-in-one
+%      to full model (20° → 4°), OR from uncontrolled to all-in-one (180° → 20°)
+%      The key insight: even rough disturbance estimates dramatically help.
+%      * Validated across Lovera, Wisniewski, modified sliding controllers
+%      * "all-in-one" disturbance term works without precise models
+%    Control law comparison results:
+%      * Wisniewski sliding mode: good for MTQ-only
+%      * Modified sliding: better when disturbances not modeled
+%      * Hogan-Schaub: works for hybrid configs
+%    Novel actuator combinations enabled:
+%      * 3MTQ+1RW: "novel actuator combination" - thesis contribution
+%      * Constant desaturation during pointing (not just scheduled)
+%    Allocation comparison (from codebase):
+%      * LP: 0.0036° direction error, 17.02° final error
+%      * QP: 33.01° direction error, 25.70° final error
+%      * LP preserves Lyapunov stability through direction preservation
+%    Key thesis quote: "keeping things general makes debugging and testing
+%      easier... the primary value is that results and methods produced are
+%      applicable to a wide variety of missions, spacecraft, and problems"
+%
+% ============================================================
+% DETAILED EXPERIMENT LIST (Priority Order)
+% ============================================================
+%
+% === EXPERIMENT SET A: LP vs QP Allocation (CORE CONTRIBUTION) ===
+%
+% KEY POINT: Generalized Control paper shows allocation works across ALL configs!
+% This is the "bolt-on adapter" that makes any control law work with any actuator set.
+%
+% A1. Direction Preservation Test - MULTIPLE CONFIGURATIONS
+%     Configs to test (show generalizability):
+%       - 3+0 (MTQ only, most underactuated)
+%       - 3+1 (hybrid, BC2-like)
+%       - 3+3 (fully actuated)
+%       - 0+3 (RW only, no magnetic)
+%       - 0+4 (4-wheel pyramid, overactuated)
+%       - Failed actuator scenarios (3+3 → 3+2 → 3+1)
+%     Input: Desired torque τ_ref from PD controller
+%     Measure for LP: direction error, magnitude ratio, solve time
+%     Measure for QP: same metrics
+%     Trials: 1000 random τ_ref directions
+%     Expected: LP ~0° direction error, QP ~30° direction error
+%     Output: Distribution plots, summary table
+%
+% A2. Closed-Loop Pointing Comparison
+%     Config: 3+1
+%     Controller: Same PD law, different allocators (LP, QP)
+%     Duration: 500s, 100 MC trials
+%     Metrics: Final pointing error, settling time, saturation %
+%     Expected: LP outperforms QP due to direction preservation
+%     Output: Table comparing final errors
+%
+% A3. Stability Demonstration (KEY FIGURE)
+%     Scenario: Find a case where QP causes instability, LP succeeds
+%     Approach: Large initial error, weak actuators, challenging B-field
+%     Show: Lyapunov function V(t) for both allocators
+%     Expected: QP causes V to increase (energy injection), LP maintains V decreasing
+%     Output: Time series of V(t), pointing error, actuator commands
+%
+% A4. Constrained QP Investigation
+%     Goal: Add constraint to QP to force direction preservation
+%
+%     *** EXISTING RESEARCH (research/ folder) - 10+ constraint variants tested! ***
+%     NOTE: These results are PRELIMINARY - need full MC validation with randomized
+%     initial conditions. Current tests used single scenarios. Validate before publishing!
+%
+%     BEST PERFORMERS (from REVISED_CONSTRAINT_SUMMARY.md, 120s closed-loop):
+%       | Method              | θ_final | Notes                           |
+%       |---------------------|---------|--------------------------------|
+%       | QP unconstrained    | 2.35°   | Best but no physics guarantee   |
+%       | 3b-Sign critical    | 2.35°   | TIED BEST, per-axis sign check |
+%       | Phase-aware         | 2.69°   | Good, adapts to convergence    |
+%       | LP                  | 2.94°   | Reliable baseline              |
+%       | 1a-Power brake only | 3.11°   | Physics-based, nearly as good! |
+%
+%     KEY INSIGHT: Constraints should be CONDITIONAL on controller intent:
+%       - When braking (P_des < 0): Apply energy constraint (ω'τ ≤ 0)
+%       - When accelerating (P_des > 0): Relax constraints
+%       - The naive "always constrain energy" FAILS because during convergence
+%         we NEED to inject energy to slow down approach velocity
+%
+%     RECOMMENDED: "1a-Power brake only" constraint
+%       if P_des = ω·τ_des < -ε:
+%           constraint: ω·τ ≤ 0  (don't accelerate when braking)
+%       else:
+%           no constraint (let controller work)
+%
+%     FAILED APPROACHES (DO NOT USE):
+%       - Pure Lyapunov (V̇ ≤ 0): Too restrictive, causes oscillation
+%       - Always-on power bound: Prevents convergence (117-125° final error!)
+%       - Global sign preservation: Can't achieve enough torque on weak axes
+%
+%     Test: Compare LP, unconstrained QP, and "1a-Power brake only" QP
+%     Output: Show constrained QP nearly matches LP with better magnitude
+%
+% === EXPERIMENT SET B: Controllability Analysis (THEORY VALIDATION) ===
+%
+% B1. LTI/LTV Rank Computation
+%     Configs: 3+0, 3+1, 3+3, 1+3 (exotic), CMG (if relevant)
+%     Compute: Rank of controllability Gramian over 1 orbit
+%     Vary: Orbital inclination (0° to 90°)
+%     Output: Table of ranks, plot vs inclination
+%     Key result: Show 3+1 is controllable for reduced-attitude
+%
+% B2. Torque Polytope Visualization
+%     Config: 3+1
+%     Compute: Achievable torque set at different orbital positions
+%     Visualization: 3D polytope animation over orbit
+%     Show: How B-field rotation expands effective authority
+%     Output: Figure with polytopes at 4-6 orbital positions
+%
+% B3. Reduced-Attitude Controllability
+%     Compare: Full-attitude (rank 6) vs reduced-attitude (rank 4)
+%     Show: Configs uncontrollable for full-attitude become controllable for reduced
+%     Config: 3+0 at specific orbital positions
+%     Output: Table showing rank requirements met/not met
+%
+% === EXPERIMENT SET C: Modular Framework Demonstration ===
+%
+% C1. Plug-and-Play Controller Test
+%     Controllers: PD, sliding mode, LQR
+%     Configs: 3+0, 3+1, 3+3
+%     Show: Same controller works across configs with only allocation change
+%     Metrics: Pointing accuracy for each combination
+%     Output: 3×3 matrix of results (controller × config)
+%
+% C2. Actuator Failure Adaptation
+%     Config: Start 3+3, fail 1 wheel, then fail 2nd wheel
+%     Show: Allocation layer adapts automatically
+%     Controller: Unchanged PD law
+%     Output: Time series showing graceful degradation
+%
+% C3. Disturbance Feedforward Comparison
+%     Control approaches:
+%       - No feedforward (disturbance as noise)
+%       - Full disturbance model (gravity gradient, drag, SRP, dipole)
+%       - All-in-one estimated disturbance
+%     Config: 3+0 (where disturbances matter most)
+%     Metrics: Pointing error with each approach
+%     Expected: Full model best, all-in-one good, none poor
+%     Output: Comparison plot (reproducing thesis Figure 6.X)
+%     CONTEXT FOR 20° CLAIM: Thesis shows:
+%       - No compensation: ~180° error (uncontrolled)
+%       - All-in-one: 5-20° error
+%       - Full model: 0-4° error
+%
+% === EXPERIMENT SET D: Desaturation Strategies ===
+%
+% D1. Overactuated Nullspace Desaturation
+%     Config: 3+3 (overactuated)
+%     Show: Desaturation without affecting pointing (nullspace projection)
+%     Metrics: Wheel momentum evolution, pointing accuracy maintained
+%
+% D2. Underactuated Scheduled Desaturation
+%     Config: 3+1
+%     Approach: Wait for favorable B-field geometry, then desaturate
+%     Show: Scheduling algorithm identifies windows
+%     Metrics: Time to desaturate, pointing impact during window
+%
+% D3. Continuous vs Scheduled Trade-off
+%     Same as Experiment B1 in 3+1 paper
+%     Cross-reference results
+%
+% === EXPERIMENT SET E: Monte Carlo Validation ===
+%
+% E1. Large-Scale MC Campaign
+%     Config: 3+1
+%     Trials: 1000 (for statistical significance)
+%     Randomize: initial state, goal, orbit position, inclination
+%     Metrics: Mean, std, 3σ, worst-case pointing error
+%     Output: CDF plot, summary statistics with confidence intervals
+%
+% E2. Sensitivity Sweeps
+%     Parameters: Inertia error, B-field error, actuator scaling
+%     Levels: ±5%, ±10%, ±20%
+%     100 MC trials per level
+%     Output: Degradation curves
+%
+% ============================================================
+
+\documentclass[conference]{IEEEtran}
+
+% ----------------------------
+% Packages
+% ----------------------------
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{hyperref}
+\usepackage{cite}
+\usepackage{float}
+\usepackage{verbatim}
+
+% ----------------------------
+% Title / Authors
+% ----------------------------
+\title{Generalized Attitude Control Allocation for Small Spacecraft}
+
+\author{\IEEEauthorblockN{Patrick McKeen, Niclas Scheuer, Kerri Cahoy}
+\IEEEauthorblockA{Department of Aeronautics and Astronautics\\
+Massachusetts Institute of Technology\\
+Email: pmckeen@mit.edu}
+}
+
+\begin{document}
+\maketitle
+
+% ============================================================
+% SMALLSAT US ABSTRACT
+% ============================================================
+\section{Abstract - SmallSat US}
+
+Classical attitude controllers assume unconstrained torque authority and fixed actuator configurations, requiring redesign for each new spacecraft. This paper presents a generalized control framework that adapts existing attitude control laws to heterogeneous and underactuated actuator sets while respecting actuator bounds, disturbances, and gyroscopic effects. A baseline control law is treated as a torque-generating element and augmented through structured allocation and compensation layers.
+
+We first develop controllability and reachability metrics for systems with arbitrary combinations of magnetorquers, reaction wheels, and other actuators using LTI and LTV formulations and Gramian-based analysis. These metrics enable quantitative evaluation of achievable control authority over an orbit. We show that attitude controllability is determined by the dimension of the available torque envelope, while reaction wheel desaturation under active pointing depends on the intersection between reaction wheel and auxiliary actuator torque envelopes. Our results also indicate a real-world time-varying geomagnetic field significantly enhances both controllability and desaturation capability over an orbit. Finally, we demonstrate that reduced attitude objectives, such as vector pointing, relax controllability requirements and render previously uncontrollable actuator configurations fully controllable.
+
+For torque allocation under bounds, we examine linear and quadratic programming approaches to matching the actual torque to the desired torque from an arbitrary control law. We investigate these allocation methods using analytical methods such as Lyapunov analysis, to understand the performance limits of each. They are compared through Monte Carlo simulations to validate the results. We also consider a cost-minimization method applicable especially for overactuated architectures and compare its performance to the QP and LP results. Disturbance and gyroscopic compensation are incorporated, and actuator biases are addressed through affine augmentation. Simulation results demonstrate robust performance without redesigning the underlying control law across diverse actuator configurations and with varied disturbances.
+
+The methods described here are particularly useful to small satellites. By increasing the feasibility of magnetic control and other underactuated architectures (including some that are novel, e.g. three magnetorquers and one reaction wheel) and defining what that feasibility is, this method makes it possible to meet better pointing goals for lower SWaP-C. Additionally, this approach makes it simpler to test the combination of various control laws and actuator configurations for specific satellites, allowing easier development and less time spent adapting mission-specific control laws to new use cases. This enables principled reuse of classical controllers for small spacecraft.
+
+% ----------------------------
+% Big Ideas / To Add
+% ----------------------------
+\textbf{Big Ideas}
+\begin{itemize}
+    \item LTI/LTV formulation
+    \item Bounded Allocation rules (QP, LP, weighted???), convexity and solution space
+    \item compensation (torque, destuartion, gyroscopic)
+    \item Simulation results
+    \item overactuated case
+    \item Desaturation (overactuated by using nullspace, underactuated allowing rotation, weighted effect???)
+\end{itemize}
+
+\textbf{To Add}
+\begin{itemize}
+    \item LTI/LTV formulation result highlights (actual numbers and descriptions)
+    \item Bounded Allocation rules (QP, LP, weighted???), convexity and solution space (describe advantages of these and how they differ)
+    \item compensation (torque, desaturation, gyroscopic)
+    \item Simulation results (actuator failure case (adapts as needed), slewing and disturbances) --mention validation and exploring interesting edge cases including actuator failure
+    \item overactuated case -- describe what we do.
+    \item Desaturation (overactuatued by using nullspace, underactuated allowing rotation, weighted effect???)
+\end{itemize}
+
+\newpage
+
+% ============================================================
+% JGCD ABSTRACT
+% ============================================================
+\section{Abstract - JGCD}
+
+\begin{itemize}
+    \item Old-school satellites were heavy (large inertia), and had large disturances (large area). They relied on redundant actuator sets with large control authority.
+    \item Smaller satellites and actuator developments enabled new heterogeneous actuator layouts, such as magnetorquer-only control
+    \item We analytically reason and show that heterogeneous actuator layouts, including single reaction wheels with magnetic control, can achieve significant pointing goals for small satellites.
+    \item We develop general-purpose allocators that allocate commanded torque vectors, such as from existing control laws, and allocates input to heterogeneous sets of actuators.
+    \item We show the feasibility, convexity, and convergence of these allocation schemes and compare them to a cost-minimization scheme
+    \item [Math results about having more aggressive control laws makes the allocator more convergent
+    \item The allocator is actuator-aware (gyroscopic compensation), can track moving targets (feedforward), handles reference frame rotation (frame compensation)
+    \item The allocation schemes gracefully handle underactuated and overactuated cases, with methods to enable reaction wheel desaturation in either case
+    \item We provide simulation results comparing the allocation scheme for underactuated, overactuated, and failing actuator cases against traditional control laws
+\end{itemize}
+
+\newpage
+\tableofcontents
+\newpage
+
+% ============================================================
+% INTRODUCTION
+% ============================================================
+\section{Introduction}\label{sec:intro}
+
+The attitude determination and control system (ADCS) is critical to spacecraft mission success. The utility of most spacecraft depends on controlling their orientation with respect to external entities---imagers must maintain precise pointing at targets, solar panels must track the sun, and communication antennas must align with ground stations or relay satellites. From the earliest days of spaceflight, engineers have worked to control the rotational motion of their spacecraft, developing a rich set of methods ranging from passive stabilization to sophisticated active control.
+
+However, there is a gap between the elegant control laws found in textbooks and the practical realities of implementing them on diverse spacecraft. Classical attitude controllers---primarily proportional-derivative (PD) and sliding mode controllers---assume unconstrained torque authority and fixed actuator configurations \cite{markley_fundamentals_2014}. When actuators are heterogeneous, bounded, or underactuated, these controllers must be substantially redesigned or replaced entirely. This creates a significant burden for mission designers, who must often develop custom control solutions for each new spacecraft configuration.
+
+\subsection{Motivation}
+This challenge is particularly acute for small satellites. The miniaturization of spacecraft has enabled new mission architectures---constellations, formation flying, rapid technology demonstration---but has also introduced severe constraints on actuator size, weight, and power (SWaP). Magnetorquers, for instance, offer compelling advantages: no moving parts, unlimited lifetime, no fuel requirements, and low cost. However, they suffer from weak torque generation (typically micro-Newton-meters for CubeSat-scale devices) and fundamental underactuation---they cannot torque parallel to the local magnetic field, reducing three degrees of freedom to two instantaneous degrees of control.
+
+% ============================================================
+% MODULAR FRAMEWORK MOTIVATION - KEY NARRATIVE (Option C)
+% For SmallSat US: Keep this section prominent
+% For JGCD: This motivation leads into the theoretical contributions
+% ============================================================
+\subsubsection{The Need for Modular Architecture Testing}
+The practical impetus for this work arose from a common research challenge: comparing control law performance across different actuator configurations. Each comparison required significant rework because published control laws assume specific actuators, orbits, goals, and disturbance environments. A quaternion PD controller designed for three reaction wheels cannot be directly applied to a magnetorquer-only system; a magnetic sliding mode controller assumes specific field geometry; a momentum-biased controller requires particular wheel configurations.
+
+What was needed was a modular ``adapter'' that could bolt onto the front and back of existing control laws---a front-end that characterizes what the actuators can achieve, and a back-end that maps desired torques to achievable commands. With such an adapter, any control law producing a torque command could be rapidly tested against any actuator configuration, enabling systematic comparison without reimplementation.
+
+This paper provides that adapter. The allocation and compensation framework presented here treats any baseline control law as a torque-generating element and wraps it with:
+\begin{itemize}
+    \item A \textbf{controllability layer} that determines whether the actuator set can achieve the pointing objective (Section~\ref{sec:ltiltv})
+    \item An \textbf{allocation layer} that maps desired torques to actuator commands while respecting bounds (Section~\ref{sec:allocation})
+    \item A \textbf{compensation layer} that handles gyroscopic effects, frame rotation, and disturbance feedforward
+    \item A \textbf{momentum management layer} for configurations with reaction wheels (Section~\ref{sec:desat})
+\end{itemize}
+
+The result is that mission designers can evaluate multiple actuator configurations rapidly, swapping between magnetorquer-only, hybrid, and fully actuated systems while keeping the same underlying control law. This separation of concerns also simplifies stability analysis: the control law can be verified independently of the allocation mechanism.
+
+The growing interest in magnetic-only and hybrid actuator configurations motivates the need for a more general approach to attitude control. Rather than designing a new control law for each actuator combination, we seek a framework that can adapt \emph{any} existing control law to \emph{any} actuator set. This separation of concerns---control law design from actuator allocation---offers several practical benefits:
+\begin{itemize}
+    \item \textbf{Reusability}: Well-understood control laws with proven stability properties can be applied to new actuator configurations without modification.
+    \item \textbf{Graceful degradation}: When actuators fail or constraints change, the allocation layer adapts automatically while the control law continues unchanged.
+    \item \textbf{Design flexibility}: Mission designers can evaluate multiple actuator configurations rapidly, without redesigning the entire ADCS for each option.
+    \item \textbf{Reduced verification burden}: Stability analysis can focus on the control law and allocation layer separately, rather than on a monolithic, mission-specific controller.
+\end{itemize}
+
+\subsection{Problem Statement}
+Consider a spacecraft equipped with a heterogeneous actuator set---perhaps three magnetorquers and a single reaction wheel, or two reaction wheels after one has failed. A baseline attitude control law (e.g., quaternion feedback) produces a desired torque vector $\boldsymbol{\tau}_{\text{ref}} \in \mathbb{R}^3$ based on the current state error. The fundamental questions are:
+
+\begin{enumerate}
+    \item \textbf{Controllability}: Can the actuator set achieve the pointing objective? Under what conditions? How does the objective formulation (full attitude vs. vector pointing) affect controllability?
+    \item \textbf{Allocation}: Given $\boldsymbol{\tau}_{\text{ref}}$, how should we command the actuators to best approximate this torque while respecting their bounds? What stability guarantees can we provide?
+    \item \textbf{Compensation}: How do we incorporate gyroscopic effects, frame rotation (for tracking goals), and disturbance feedforward into the allocation framework?
+    \item \textbf{Momentum management}: For configurations with reaction wheels, how do we prevent saturation while maintaining pointing performance? What if simultaneous desaturation and pointing is not possible?
+\end{enumerate}
+
+These questions have been addressed individually in the literature, but typically for specific actuator configurations or control laws. This paper develops a unified framework that addresses all four questions for arbitrary actuator sets.
+
+\subsection{Contributions}
+This paper makes the following contributions:
+\begin{enumerate}
+    \item \textbf{Controllability characterization via torque polytopes}: We derive necessary and sufficient conditions for LTI and LTV attitude controllability in terms of the geometry of the achievable torque set. We show that controllability reduces to a simple dimensional condition on the union of instantaneous torque polytopes over an orbit.
+
+    \item \textbf{Task-dependent controllability analysis}: We introduce a framework for analyzing controllability with respect to a ``required controllable subspace'' that depends on the pointing objective. Full attitude control requires rank 6, while vector pointing requires only rank 4---enabling actuator configurations that are uncontrollable for full attitude to become fully controllable for reduced-attitude objectives.
+
+    \item \textbf{LP and QP allocation with stability guarantees}: We develop linear and quadratic programming formulations for torque allocation under actuator bounds. The LP formulation preserves torque direction exactly (important for Lyapunov-based control laws), while the QP formulation minimizes overall torque error. We provide conditions under which closed-loop stability is preserved.
+
+    \item \textbf{Compensation framework}: We show how gyroscopic torques, reference frame rotation, and estimated disturbances can be incorporated as feedforward terms in the allocation layer, enabling active disturbance rejection without modifying the baseline control law.
+
+    \item \textbf{Desaturation strategies for under- and overactuated configurations}: For overactuated systems, we use the nullspace of the allocation matrix for momentum management without affecting pointing. For underactuated systems (e.g., 3MTQ+1RW), we develop a scheduling approach that exploits time-varying controllability to desaturate during favorable magnetic field orientations.
+
+    \item \textbf{Validation across actuator configurations}: We provide Monte Carlo simulation results demonstrating the framework's performance across MTQ-only, hybrid (3MTQ+1RW), fully actuated (3MTQ+3RW), and actuator-failure scenarios.
+\end{enumerate}
+
+\subsection{Paper Organization}
+Section~\ref{sec:background} reviews prior work on attitude control, magnetic actuation, and control allocation. Section~\ref{sec:ltiltv} develops the LTI and LTV controllability analysis using torque polytopes. Section~\ref{sec:daa} introduces the degree of actuation authority metric for quantifying worst-case control capability. Section~\ref{sec:allocation} presents the LP and QP allocation methods with stability analysis. Section~\ref{sec:desat} addresses momentum management strategies. Section~\ref{sec:results} provides simulation results, and Section~\ref{sec:conclusion} concludes with a discussion of limitations and future work.
+
+% ============================================================
+% BACKGROUND AND PRIOR WORK
+% ============================================================
+\section{Background and Prior Work}\label{sec:background}
+
+\subsection{Classical Attitude Control}
+Attitude control for spacecraft has historically relied on proportional-derivative (PD) control laws derived from Lyapunov stability analysis. Wie and Barba established the foundational quaternion feedback law \cite{wie_quaternion_1985}:
+\begin{equation}
+ \boldsymbol{\tau}_\text{act} = -k_p \mathbf{\delta q}_v - k_d\boldsymbol{\omega},
+ \label{eq:pd_control}
+\end{equation}
+where $\mathbf{\delta q}_v$ is the vector component of the quaternion error $\bar{\delta q} = \bar{q}_g^{-1} \bar{q}$ (the difference between the goal orientation $\bar{q}_g$ and current orientation $\bar{q}$), $\boldsymbol{\omega}$ is the angular velocity error, and $k_p, k_d > 0$ are gains. This law is globally asymptotically stable for full-authority actuators, a result that follows from the Lyapunov function $V = k_p(1 - \delta q_0^2) + \frac{1}{2}\boldsymbol{\omega}^\top J \boldsymbol{\omega}$.
+
+Variations on this basic law include sign correction for short-path rotation \cite{markley_fundamentals_2014}, velocity-dependent gain scheduling, and extensions to reaction wheel systems. All share a common structure: they produce a \emph{desired torque} that, if applied perfectly, would drive the system to the goal state.
+
+Sliding mode control represents the other primary approach, offering robustness to parameter uncertainty and bounded disturbances. Wisniewski developed early sliding mode controllers specifically for magnetically actuated spacecraft \cite{wisniewski_satellite_1997}, while Wang and Shtessel pursued alternative formulations \cite{wang_satellite_1998}. More recently, ``super-twisting'' variants have been proposed that eliminate chattering while preserving robustness \cite{janardhanan_attitude_2012}.
+
+The common thread is that these control laws assume the commanded torque can be achieved exactly. When actuators are bounded or underactuated, this assumption fails, and the control law must either be redesigned or augmented with an allocation layer.
+
+\subsection{Magnetic Attitude Control}\label{subsec:magnetic_control}
+Magnetorquer-based control has received significant attention due to its advantages for small satellites: no moving parts, unlimited lifetime, no fuel requirements, and relatively low cost and complexity. However, magnetorquers present two fundamental challenges.
+
+First, they are \emph{weak}. The torque generated by a magnetorquer is $\boldsymbol{\tau} = \mathbf{m} \times \mathbf{B}$, where $\mathbf{m}$ is the magnetic dipole moment and $\mathbf{B}$ is the local geomagnetic field. For a CubeSat-scale magnetorquer with maximum dipole moment of 0.2~Am$^2$ in a 400~km orbit where $|\mathbf{B}| \approx 30~\mu$T, the maximum torque is on the order of $6~\mu$Nm---small compared to typical disturbance torques and dramatically smaller than reaction wheel authority.
+
+Second, they are \emph{underactuated}. No torque can be generated parallel to $\mathbf{B}$, as $\mathbf{m} \times \mathbf{B} \perp \mathbf{B}$ for any $\mathbf{m}$. This means that at any instant, only two of three rotational degrees of freedom are controllable. The key insight exploited in magnetic control is that $\mathbf{B}$ varies along the orbit, so over time the ``uncontrollable'' direction sweeps through different orientations. If the pointing objective is compatible with this time-varying controllability structure, effective control is possible.
+
+Lovera and Astolfi demonstrated global asymptotic stability for a simple magnetic feedback controller that projects the three-axis torque demand onto the plane perpendicular to $\mathbf{B}$ \cite{lovera_spacecraft_2004, lovera_global_2005}. Their key result is that for a satellite in an inclined orbit (where $\mathbf{B}$ rotates sufficiently), the time-averaged controllability is full-rank, and stability follows from averaging theory. The GOCE and PRISMA TANGO missions successfully demonstrated three-axis magnetic control using variants of this approach \cite{sechi_magnetic_2005, chasset_3_axis_2013}.
+
+However, these methods are tied to specific control law structures. Our goal is to decouple the control law from the allocation, enabling any control law to be used with magnetic (or hybrid) actuation.
+
+\subsection{Reduced Attitude Control}\label{subsec:reduced_attitude}
+Many spacecraft objectives require only partial attitude specification. Pointing a camera nadir, for instance, constrains only two degrees of freedom---rotation about the boresight axis is unconstrained. This ``reduced attitude'' or ``single-axis pointing'' formulation has been studied extensively \cite{hu_reduced_2019, pong_reduced-attitude_2015, bullo_control_1995}.
+
+The key insight is that when the control objective can be reduced to aligning a body-fixed vector $\mathbf{a}_b$ with an inertial direction $\mathbf{a}_I(t)$, the controllability requirements are correspondingly relaxed. We formalize this through the projection matrix
+\begin{equation}
+P_\perp = I_3 - \mathbf{a}_b \mathbf{a}_b^\top,
+\end{equation}
+which maps states to the subspace relevant for vector alignment. The ``required controllable subspace'' then includes only the projected attitude and rate states, reducing the rank requirement from 6 to 4.
+
+This observation has profound implications for underactuated systems. A 3MTQ configuration that is uncontrollable for full attitude may be fully controllable for vector pointing. We quantify this relationship precisely in Section~\ref{sec:ltiltv}.
+
+\subsection{Control Allocation}
+The control allocation problem---distributing a desired force or torque among multiple actuators---has been studied extensively in aerospace and automotive applications \cite{johansen_control_2013}. For attitude control, the problem is: given a desired torque $\boldsymbol{\tau}_{\text{ref}} \in \mathbb{R}^3$ and an actuator command space $\mathcal{U} \subset \mathbb{R}^m$ with $m$ actuator inputs, find $\mathbf{u} \in \mathcal{U}$ such that the achieved torque $B_\tau \mathbf{u}$ is as close to $\boldsymbol{\tau}_{\text{ref}}$ as possible.
+
+For overactuated systems ($m > 3$, e.g., four reaction wheels for three-axis control), the allocation matrix $B_\tau$ has a nontrivial nullspace, and the extra degrees of freedom can be used for secondary objectives like minimizing power or managing wheel speeds. Pseudoinverse allocation, weighted least squares, and quadratic programming are common approaches \cite{johansen_control_2013}.
+
+For underactuated systems ($\text{rank}(B_\tau) < 3$), exact torque matching is generally impossible, and the allocation must make trade-offs. Linear programming can be used to maximize torque along the desired direction, while quadratic programming minimizes the overall error. We develop both approaches and analyze their stability properties.
+
+\subsection{Momentum Management}
+Reaction wheels store angular momentum internally, enabling precise torque control without external interaction. However, persistent disturbance torques cause wheel speeds to drift toward saturation limits. ``Desaturation'' or ``momentum dumping'' uses external torques (typically from magnetorquers or thrusters) to reduce stored momentum while maintaining attitude.
+
+For fully actuated systems, desaturation can occur continuously in the nullspace of the pointing objective. For underactuated systems, simultaneous pointing and desaturation may not be possible, requiring careful scheduling. The condition for instantaneous desaturation without attitude disturbance is that the magnetorquer torque polytope $\mathcal{T}_{mtq}$ intersects the negative reaction wheel torque polytope $-\mathcal{T}_{rw}$ nontrivially---a geometric condition we analyze in Section~\ref{sec:ltiltv}.
+
+% ============================================================
+% LTI/LTV CONTROLLABILITY ANALYSIS
+% ============================================================
+
+Before developing the allocation framework, we must understand what actuator configurations can achieve what pointing objectives. The following section develops the controllability analysis through state-space formulations and torque polytope geometry. The key insight is that controllability reduces to a simple dimensional condition on the achievable torque set: the system is controllable if and only if the union of instantaneous torque polytopes over the analysis horizon spans the required subspace.
+
+The analysis proceeds in three stages. First, we derive the state-space equations for spacecraft with arbitrary combinations of magnetorquers and reaction wheels, in both nonlinear (quaternion and MRP) and linearized (LTI and LTV) forms. Second, we reformulate controllability in terms of torque polytopes, establishing the geometric conditions for attitude control and reaction wheel desaturation. Third, we present numerical results across a systematic grid of actuator configurations, demonstrating how controllability depends on the number of actuators, the pointing objective (full attitude vs. vector pointing), and whether the magnetic field is treated as frozen (LTI) or time-varying (LTV).
+
+\input{sec2_ltiltv}
+
+% ----------------------------
+% Interpretation of Results
+% ----------------------------
+\subsection{Interpretation of Controllability Results}\label{subsec:ltiltv_interpretation}
+
+The LTI and LTV rank tables in Tables~\ref{tab:lti_mega} and~\ref{tab:ltv_rank_summary} encode a wealth of information about what actuator configurations can achieve what pointing objectives. We highlight several key findings.
+
+\subsubsection{Time-Variation Enhances Controllability}
+Comparing the LTI results (frozen magnetic field) with the LTV results (time-varying field), we observe that time variation significantly expands the set of controllable configurations. Consider the 3MTQ+0RW case:
+\begin{itemize}
+    \item \textbf{LTI (frozen field)}: Full attitude controllability rank is 4/6---the system is \emph{uncontrollable} for full attitude. The instantaneous torque envelope is a plane perpendicular to $\mathbf{B}$, missing one dimension.
+    \item \textbf{LTV (time-varying field)}: Full attitude controllability rank is 6/6---the system is \emph{fully controllable}. As $\mathbf{B}$ rotates over the orbit, the torque plane sweeps through all orientations, and the union of instantaneous envelopes spans all of $\mathbb{R}^3$.
+\end{itemize}
+This result formalizes the intuition behind successful magnetic-only missions like GOCE and PRISMA TANGO: although magnetorquers are instantaneously underactuated, orbital motion provides the ``persistent excitation'' needed for full three-axis control.
+
+\subsubsection{Reduced Attitude Relaxes Requirements}
+The vector pointing columns (``Vec'' and ``VecD'') consistently show lower rank requirements than full attitude (``Full''). For example:
+\begin{itemize}
+    \item The 2MTQ+0RW configuration achieves rank 4/4 for vector pointing under both LTI and LTV assumptions---full controllability for reduced attitude, despite being uncontrollable (4/6) for full attitude.
+    \item Even the 1MTQ+0RW configuration under LTV assumptions achieves rank 2/4 for vector pointing, meaning two of the four required dimensions are controllable. While not fully controllable, this may be sufficient if disturbances happen to lie in the controllable subspace.
+\end{itemize}
+The practical implication is significant: \emph{many missions only require vector pointing} (nadir, sun, target tracking), and for these missions, simpler actuator configurations may suffice. A mission designer should first determine the true pointing objective before specifying actuators.
+
+\subsubsection{Momentum Management Increases Rank Requirements}
+Including reaction wheel momentum $h$ in the required controllable subspace (rows labeled $h+$) increases the state dimension and, in some configurations, reveals additional controllability limitations:
+\begin{itemize}
+    \item The 3MTQ+1RW configuration achieves 6/6 for full attitude without momentum control ($h-$), but only 6/7 with momentum control ($h+$) under LTI assumptions. The seventh state (wheel momentum) is not independently controllable---changes to $h$ necessarily couple to attitude.
+    \item Under LTV assumptions, the same configuration achieves 7/7 with momentum control---the time variation provides the additional degree of freedom needed for independent momentum management.
+\end{itemize}
+This has direct implications for desaturation: configurations that appear adequate for pointing may require careful scheduling if momentum management is also required.
+
+\subsubsection{Hybrid Configurations Provide Robustness}
+The 3MTQ+1RW configuration emerges as a particularly interesting ``sweet spot'':
+\begin{itemize}
+    \item Full attitude controllability (6/6) under both LTI and LTV assumptions
+    \item Vector pointing controllability (4/4) with margin
+    \item Desaturation capability (the single wheel can be desaturated using magnetorquer torque)
+    \item Lower SWaP than 3RW configurations
+    \item Graceful degradation: if the wheel fails, the system reverts to 3MTQ-only with LTV controllability
+\end{itemize}
+This configuration has been underexplored in the literature relative to MTQ-only and 3RW systems, yet offers compelling advantages for small satellites where a single reaction wheel may be acceptable.
+
+\subsubsection{Overactuation and Redundancy}
+The RW=4 column shows the benefits of overactuation: all configurations with 4 reaction wheels achieve full controllability with momentum management ($h+$ rows). More importantly, overactuation provides:
+\begin{itemize}
+    \item \textbf{Fault tolerance}: Loss of one wheel still leaves 3RW capability
+    \item \textbf{Nullspace for secondary objectives}: The extra degree of freedom can be used for desaturation, power balancing, or vibration minimization
+    \item \textbf{Improved isotropy}: Pyramid configurations provide more uniform torque authority across directions than orthogonal configurations
+\end{itemize}
+
+% ============================================================
+% DEGREE OF ACTUATION AUTHORITY
+% ============================================================
+\section{Degree of Actuation Authority}\label{sec:daa}
+
+The LTI and LTV controllability analyses in Section~\ref{sec:ltiltv} provide binary reachability guarantees: either the system is controllable or it is not. However, these analyses do not account for actuator saturation limits, magnetic field magnitude, or the specific geometry of the pointing objective. In practice, even a controllable spacecraft may experience prolonged intervals where the available torque authority is insufficient to counteract disturbances or execute maneuvers at acceptable rates.
+
+To address this gap, we introduce a heuristic metric that quantifies the \emph{worst-case achievable torque} along a given orbit, explicitly accounting for magnetic field strength, actuator limits, and the time-varying nature of the torque envelope. This metric bridges the gap between theoretical controllability and practical control authority.
+
+\subsection{Worst-Case Directional Torque Authority}
+Let $\mathcal{T}(t)$ denote the instantaneous torque envelope at time $t$---the set of all torques achievable given the actuator constraints and current magnetic field orientation. For a direction of interest $\hat{\mathbf{d}} \in \mathbb{S}^2$, we define the \emph{worst-case directional torque authority} (WCDTA) as:
+\begin{equation}
+    \alpha_{\min}(\hat{\mathbf{d}}) = \min_{t \in \mathcal{O}} \max_{\boldsymbol{\tau} \in \mathcal{T}(t)} \hat{\mathbf{d}}^\top \boldsymbol{\tau}
+\end{equation}
+where $\mathcal{O}$ denotes one orbital period.
+
+The WCDTA has a clear physical interpretation: it is the minimum guaranteed torque magnitude in direction $\hat{\mathbf{d}}$ at any point during the orbit. If $\alpha_{\min}(\hat{\mathbf{d}}) > \tau_{\text{dist}}$ for all relevant directions, where $\tau_{\text{dist}}$ is the maximum expected disturbance torque, then the spacecraft can counteract disturbances at all times---a strong operational guarantee.
+
+\subsection{Torque Envelope Geometry}
+The geometry of $\mathcal{T}(t)$ depends on the actuator configuration:
+
+\textbf{Reaction wheels only}: If the spacecraft has $N_{rw}$ reaction wheels with spin axes $\hat{\boldsymbol{\alpha}}_{rw,i}$ and torque limits $\pm u_{rw,\max}$, the torque envelope is a zonotope (Minkowski sum of line segments):
+\begin{equation}
+\mathcal{T}_{rw} = \left\{ \sum_{i=1}^{N_{rw}} u_i \hat{\boldsymbol{\alpha}}_{rw,i} : |u_i| \leq u_{rw,\max} \right\}
+\end{equation}
+For three orthogonal wheels, this is a cube. For four wheels in a pyramid configuration, it is a more complex polytope with improved isotropy.
+
+\textbf{Magnetorquers only}: For $N_{mtq}$ magnetorquers with dipole axes $\hat{\boldsymbol{\alpha}}_{mtq,j}$ and dipole limits $\pm m_{\max}$, the torque envelope is:
+\begin{equation}
+\mathcal{T}_{mtq}(t) = \left\{ -[\mathbf{B}(t)]_\times \sum_{j=1}^{N_{mtq}} m_j \hat{\boldsymbol{\alpha}}_{mtq,j} : |m_j| \leq m_{\max} \right\}
+\end{equation}
+This is a time-varying parallelotope (for 3 MTQs) that lies in the plane perpendicular to $\mathbf{B}(t)$. As $\mathbf{B}$ rotates during the orbit, the parallelotope rotates and scales, sweeping out different orientations.
+
+\textbf{Hybrid systems}: For combined MTQ and RW actuation, the total envelope is the Minkowski sum:
+\begin{equation}
+\mathcal{T}(t) = \mathcal{T}_{mtq}(t) \oplus \mathcal{T}_{rw}
+\end{equation}
+The RW component provides a fixed ``core'' of guaranteed authority, while the MTQ component adds a time-varying ``halo'' that extends the envelope in directions perpendicular to $\mathbf{B}$.
+
+\subsection{Application to Control Design}
+The WCDTA metric enables several practical analyses:
+
+\textbf{Disturbance rejection capability}: If $\alpha_{\min}(\hat{\mathbf{d}}) > \tau_{\text{dist}}$ for all directions, the spacecraft can reject worst-case disturbances at all orbital positions. If not, there may be intervals where disturbances accumulate faster than they can be countered.
+
+\textbf{Slew rate limits}: The maximum angular acceleration in direction $\hat{\mathbf{d}}$ is $\alpha_{\min}(\hat{\mathbf{d}})/J_{\hat{d}}$, where $J_{\hat{d}}$ is the moment of inertia about that axis. This sets fundamental limits on achievable slew rates for underactuated systems.
+
+\textbf{Actuator sizing}: During mission design, the WCDTA can guide actuator selection. If a candidate configuration yields $\alpha_{\min} < \tau_{\text{dist}}$ for some directions, stronger actuators or additional actuators may be needed.
+
+\subsection{Desaturation Windows}
+For hybrid systems with reaction wheels, the WCDTA analysis extends naturally to desaturation capability. As shown in Section~\ref{sec:ltiltv}, desaturation without attitude disturbance requires $\mathcal{T}_{mtq}(t) \cap (-\mathcal{T}_{rw}) \neq \{0\}$. The \emph{desaturation authority} at time $t$ can be quantified as:
+\begin{equation}
+\beta(t) = \max \{ \|\boldsymbol{\tau}\| : \boldsymbol{\tau} \in \mathcal{T}_{mtq}(t) \cap (-\mathcal{T}_{rw}) \}
+\end{equation}
+
+When $\beta(t) > 0$, some desaturation is possible without attitude disturbance. The integral $\int_{\mathcal{O}} \beta(t) \, dt$ represents the total desaturation authority available over an orbit. If this integral is insufficient to counteract the momentum accumulated from disturbances, the spacecraft must either accept periodic attitude disturbances during desaturation or employ a weighted strategy that trades pointing accuracy for momentum management.
+
+% ============================================================
+% TORQUE ALLOCATION
+% ============================================================
+\section{Torque Allocation}\label{sec:allocation}
+
+Given the controllability analysis of Section~\ref{sec:ltiltv} and the authority metrics of Section~\ref{sec:daa}, we now address the core allocation problem: how to command actuators to best approximate a desired torque while respecting their bounds.
+
+\subsection{Problem Formulation}
+Let $\boldsymbol{\tau}_{\text{ref}} \in \mathbb{R}^3$ be the reference torque produced by an arbitrary baseline control law. This reference may include several components:
+\begin{equation}
+    \boldsymbol{\tau}_{\text{ref}} = \boldsymbol{\tau}_{\text{control}}(\mathbf{x}, \mathbf{x}_g) + \boldsymbol{\tau}_{\text{gyro}} + \boldsymbol{\tau}_{\text{frame}} + \boldsymbol{\tau}_{\text{dist}}
+    \label{eq:tau_ref}
+\end{equation}
+where:
+\begin{itemize}
+    \item $\boldsymbol{\tau}_{\text{control}}(\mathbf{x}, \mathbf{x}_g)$ is the output of the baseline control law (e.g., PD feedback from Equation~\ref{eq:pd_control})
+    \item $\boldsymbol{\tau}_{\text{gyro}} = \boldsymbol{\omega} \times (J\boldsymbol{\omega} + \mathbf{h}_{\text{vec}})$ compensates for gyroscopic coupling
+    \item $\boldsymbol{\tau}_{\text{frame}}$ compensates for reference frame rotation when tracking a moving target (e.g., nadir pointing requires continuous rotation at orbital rate)
+    \item $\boldsymbol{\tau}_{\text{dist}}$ is the estimated disturbance torque, enabling feedforward rejection
+\end{itemize}
+
+The allocation problem is to find actuator commands $\mathbf{u} = [\mathbf{u}_{rw}^\top, \mathbf{u}_{mtq}^\top]^\top \in \mathcal{U}$ such that the achieved torque $B_\tau(t) \mathbf{u}$ approximates $\boldsymbol{\tau}_{\text{ref}}$, where $\mathcal{U} = \{\mathbf{u} : \mathbf{u}_{\min} \leq \mathbf{u} \leq \mathbf{u}_{\max}\}$ is the box constraint set and $B_\tau(t)$ is the (possibly time-varying) torque effectiveness matrix.
+
+Two natural formulations arise, depending on whether we prioritize torque direction or magnitude.
+
+\subsection{LP Allocation: Directional Best Effort}
+The linear programming (LP) formulation maximizes torque magnitude along the desired direction:
+\begin{equation}
+\begin{aligned}
+\max_{\mathbf{u}, \alpha} \quad & \alpha \\
+\text{s.t.} \quad & B_\tau(t) \mathbf{u} = \alpha \, \hat{\boldsymbol{\tau}}_{\text{ref}} \\
+& \mathbf{u} \in \mathcal{U} \\
+& \alpha \geq 0
+\end{aligned}
+\label{eq:lp_allocation}
+\end{equation}
+where $\hat{\boldsymbol{\tau}}_{\text{ref}} = \boldsymbol{\tau}_{\text{ref}} / \|\boldsymbol{\tau}_{\text{ref}}\|$ is the desired torque direction.
+
+This formulation has several important properties:
+
+\textbf{Always feasible}: The trivial solution $\mathbf{u} = 0$, $\alpha = 0$ is always feasible, so the LP never fails. When the desired torque direction lies outside the achievable envelope, the LP returns $\alpha = 0$; when it lies inside, it returns the maximum achievable magnitude in that direction.
+
+\textbf{Direction preservation}: The achieved torque is always parallel to the desired torque (or zero). This property is crucial for preserving stability of Lyapunov-based control laws, as we show below.
+
+\textbf{Potential underutilization}: The LP may not fully utilize actuator authority in directions perpendicular to $\hat{\boldsymbol{\tau}}_{\text{ref}}$. If the desired torque is near the boundary of the achievable envelope but not aligned with a vertex, the LP returns a torque smaller than what could be achieved with a slightly different direction.
+
+\subsubsection{Stability Analysis for LP Allocation}
+Consider a Lyapunov-based control law of the form $\boldsymbol{\tau}_{\text{control}} = -k_p \mathbf{e}_\sigma - k_d \boldsymbol{\omega}$, where $\mathbf{e}_\sigma$ is an attitude error (e.g., $\mathbf{\delta q}_v$ or the MRP error). The standard Lyapunov function is:
+\begin{equation}
+V = k_p \Phi(\mathbf{e}_\sigma) + \frac{1}{2} \boldsymbol{\omega}^\top J \boldsymbol{\omega}
+\end{equation}
+where $\Phi(\mathbf{e}_\sigma) \geq 0$ with $\Phi(0) = 0$ (e.g., $\Phi = 1 - \delta q_0$ for quaternion error).
+
+With full torque authority, $\dot{V} = -k_d \|\boldsymbol{\omega}\|^2 \leq 0$, establishing stability. With LP allocation, the achieved torque is $\boldsymbol{\tau}_{\text{actual}} = \alpha \hat{\boldsymbol{\tau}}_{\text{ref}}$ where $0 \leq \alpha \leq \|\boldsymbol{\tau}_{\text{ref}}\|$.
+
+If the compensation terms are zero or exactly achieved (i.e., $\boldsymbol{\tau}_{\text{gyro}} + \boldsymbol{\tau}_{\text{frame}} + \boldsymbol{\tau}_{\text{dist}} = 0$ or these are handled separately), then:
+\begin{equation}
+\dot{V} = -\boldsymbol{\omega}^\top \boldsymbol{\tau}_{\text{actual}} = -\alpha \, \boldsymbol{\omega}^\top \hat{\boldsymbol{\tau}}_{\text{control}}
+\end{equation}
+
+Since $\boldsymbol{\tau}_{\text{control}} = -k_p \mathbf{e}_\sigma - k_d \boldsymbol{\omega}$ and the LP preserves direction, we have $\hat{\boldsymbol{\tau}}_{\text{control}} \propto -(k_p \mathbf{e}_\sigma + k_d \boldsymbol{\omega})$, and:
+\begin{equation}
+\boldsymbol{\omega}^\top \hat{\boldsymbol{\tau}}_{\text{control}} = \frac{-k_p \boldsymbol{\omega}^\top \mathbf{e}_\sigma - k_d \|\boldsymbol{\omega}\|^2}{\|k_p \mathbf{e}_\sigma + k_d \boldsymbol{\omega}\|}
+\end{equation}
+
+The sign of $\dot{V}$ depends on $\boldsymbol{\omega}^\top \mathbf{e}_\sigma$, which is not sign-definite. However, detailed analysis (following arguments similar to those in \cite{lovera_global_2005}) shows that under persistent excitation conditions on the magnetic field, the closed-loop system remains stable.
+
+\subsection{QP Allocation: Minimum Error}
+The quadratic programming (QP) formulation minimizes the squared torque error:
+\begin{equation}
+\begin{aligned}
+\min_{\mathbf{u}} \quad & \|B_\tau(t) \mathbf{u} - \boldsymbol{\tau}_{\text{ref}}\|^2_W \\
+\text{s.t.} \quad & \mathbf{u} \in \mathcal{U}
+\end{aligned}
+\label{eq:qp_allocation}
+\end{equation}
+where $W \succ 0$ is a positive-definite weighting matrix and $\|\mathbf{x}\|^2_W = \mathbf{x}^\top W \mathbf{x}$.
+
+This formulation has complementary properties to the LP:
+
+\textbf{Convex with unique solution}: The objective is strictly convex and the constraint set is a box, so the QP has a unique global minimum that can be found efficiently.
+
+\textbf{Minimum overall error}: The QP finds the achievable torque closest to the desired torque in the weighted norm. This may be preferable when the control law is robust to small directional deviations.
+
+\textbf{Does not preserve direction}: The achieved torque may have a component perpendicular to $\boldsymbol{\tau}_{\text{ref}}$. For some control laws, this can introduce unwanted coupling or even instability.
+
+\textbf{Closed-form solution for unconstrained case}: If $\mathcal{U} = \mathbb{R}^m$ (no actuator bounds), the solution is the weighted pseudoinverse:
+\begin{equation}
+\mathbf{u}^* = (B_\tau^\top W B_\tau)^{-1} B_\tau^\top W \boldsymbol{\tau}_{\text{ref}}
+\end{equation}
+When constraints are active, iterative methods or active-set solvers are required.
+
+\subsection{Weighted Allocation for Overactuated Systems}
+When the actuator set is overactuated ($m > \text{rank}(B_\tau)$), exact torque matching may be possible for a range of actuator commands. The extra degrees of freedom can be used for secondary objectives:
+\begin{equation}
+\begin{aligned}
+\min_{\mathbf{u}} \quad & \|B_\tau(t) \mathbf{u} - \boldsymbol{\tau}_{\text{ref}}\|^2_W + \lambda \|\mathbf{u}\|^2_R + \mu \|\mathbf{u} - \mathbf{u}_{\text{pref}}\|^2 \\
+\text{s.t.} \quad & \mathbf{u} \in \mathcal{U}
+\end{aligned}
+\label{eq:weighted_allocation}
+\end{equation}
+where:
+\begin{itemize}
+    \item $R \succeq 0$ encodes actuator costs (e.g., power consumption, wear rate)
+    \item $\lambda > 0$ weights the importance of minimizing actuator usage
+    \item $\mathbf{u}_{\text{pref}}$ is a preferred actuator state (e.g., zero wheel speed for desaturation)
+    \item $\mu \geq 0$ weights the importance of achieving the preferred state
+\end{itemize}
+
+This formulation is particularly useful when:
+\begin{itemize}
+    \item Minimizing reaction wheel usage to reduce vibration for sensitive payloads
+    \item Balancing power consumption across actuators for thermal management
+    \item Preferring magnetorquers over reaction wheels to avoid momentum accumulation
+    \item Driving wheel speeds toward zero when pointing authority permits
+\end{itemize}
+
+\subsection{Compensation Terms}
+The compensation terms in Equation~\ref{eq:tau_ref} require careful treatment.
+
+\textbf{Gyroscopic compensation}: The term $\boldsymbol{\tau}_{\text{gyro}} = \boldsymbol{\omega} \times (J\boldsymbol{\omega} + \mathbf{h}_{\text{vec}})$ can be significant during slews or when reaction wheels carry substantial momentum. Including it in $\boldsymbol{\tau}_{\text{ref}}$ enables feedforward cancellation, but if the allocation cannot achieve the full compensation torque, the residual will appear as a disturbance. For small satellites with modest slew rates, gyroscopic torques are typically small ($<1~\mu$Nm for a CubeSat at $1^\circ$/s), but they scale quadratically with rate.
+
+\textbf{Frame compensation}: When tracking a moving target (e.g., nadir pointing from a circular orbit), the reference frame rotates at the orbital rate $n = \sqrt{\mu/a^3}$. The body must apply a torque $\boldsymbol{\tau}_{\text{frame}} \approx n \times (J \cdot n)$ to maintain the tracking orientation. For a typical LEO orbit ($n \approx 0.001$ rad/s) and CubeSat inertia ($J \sim 0.01$ kg$\cdot$m$^2$), this is $\sim 10^{-8}$ Nm---negligible for most applications, but relevant for very precise pointing.
+
+\textbf{Disturbance compensation}: If the estimator provides an estimate $\hat{\boldsymbol{\tau}}_{\text{dist}}$ of the current disturbance torque, including it in $\boldsymbol{\tau}_{\text{ref}}$ enables active disturbance rejection. The effectiveness depends on the estimation accuracy and the allocation's ability to achieve the compensation torque. When the disturbance estimate is accurate and the compensation torque is achievable, steady-state pointing error can be dramatically reduced.
+
+% ============================================================
+% DESATURATION STRATEGIES
+% ============================================================
+\section{Desaturation Strategies}\label{sec:desat}
+
+Reaction wheels store angular momentum internally, enabling precise torque control independent of the external environment. However, this same property leads to momentum accumulation when counteracting persistent disturbances. Without external momentum exchange, wheel speeds drift toward saturation limits, eventually rendering the wheels ineffective.
+
+Desaturation (or ``momentum dumping'') uses external torques---typically from magnetorquers or thrusters---to reduce stored momentum while maintaining acceptable attitude performance. The strategy depends critically on whether the system is over- or underactuated.
+
+\subsection{Overactuated Case: Nullspace Utilization}
+When the actuator set includes both reaction wheels and magnetorquers with sufficient authority to achieve the desired torque exactly, the allocation matrix $B_\tau$ has a nontrivial nullspace. Any component of $\mathbf{u}$ in the nullspace produces zero net torque on the spacecraft body.
+
+Let $N = I - B_\tau^\dagger B_\tau$ be the nullspace projector, where $B_\tau^\dagger$ is the Moore-Penrose pseudoinverse. The actuator command can be decomposed as:
+\begin{equation}
+\mathbf{u} = \mathbf{u}_{\text{pointing}} + N \mathbf{u}_{\text{desat}}
+\end{equation}
+where $\mathbf{u}_{\text{pointing}}$ achieves the desired torque and $N \mathbf{u}_{\text{desat}}$ lies in the nullspace.
+
+For desaturation, we choose $\mathbf{u}_{\text{desat}}$ to drive the reaction wheel momentum $\mathbf{h}$ toward a target value $\mathbf{h}_{\text{target}}$ (typically zero):
+\begin{equation}
+\mathbf{u}_{\text{desat}} = -k_h (\mathbf{h} - \mathbf{h}_{\text{target}})
+\end{equation}
+where $k_h > 0$ is a gain. The projected command $N \mathbf{u}_{\text{desat}}$ produces the maximum desaturation effort achievable without affecting pointing.
+
+This approach enables continuous, transparent desaturation: the pointing control law operates unchanged, while the allocation layer automatically manages momentum in the background.
+
+\subsection{Underactuated Case: Scheduled Desaturation}
+For underactuated systems (e.g., 3MTQ+1RW), the nullspace may be empty or insufficient for effective desaturation. Simultaneous pointing and desaturation is not always possible, requiring a scheduling approach.
+
+From Section~\ref{sec:ltiltv}, desaturation without attitude disturbance requires:
+\begin{equation}
+\mathcal{T}_{mtq}(t) \cap (-\mathcal{T}_{rw}) \neq \{0\}
+\end{equation}
+This condition is time-varying: as $\mathbf{B}(t)$ evolves along the orbit, the intersection may become nontrivial even if it is empty at most times.
+
+We propose a scheduling strategy:
+\begin{enumerate}
+    \item \textbf{Monitor}: Track $\beta(t) = \max\{\|\boldsymbol{\tau}\| : \boldsymbol{\tau} \in \mathcal{T}_{mtq}(t) \cap (-\mathcal{T}_{rw})\}$ continuously.
+    \item \textbf{Accumulate}: When $\beta(t) = 0$, allocate all authority to pointing. Allow momentum to accumulate.
+    \item \textbf{Desaturate}: When $\beta(t) > \epsilon$ for some threshold $\epsilon$, divert a fraction of authority to desaturation.
+    \item \textbf{Limit}: If momentum approaches saturation limits, accept temporary pointing degradation to prioritize desaturation.
+\end{enumerate}
+
+The key trade-off is between pointing accuracy and desaturation rate. Aggressive desaturation during favorable windows may introduce pointing disturbances; conservative desaturation may allow momentum to reach dangerous levels.
+
+\subsection{Weighted Desaturation}
+An alternative to discrete scheduling is a continuous weighted approach:
+\begin{equation}
+\begin{aligned}
+\min_{\mathbf{u}} \quad & w_1(t) \|B_\tau(t) \mathbf{u} - \boldsymbol{\tau}_{\text{ref}}\|^2 + w_2(t) \|\mathbf{h} - \mathbf{h}_{\text{target}}\|^2 \\
+\text{s.t.} \quad & \mathbf{u} \in \mathcal{U}
+\end{aligned}
+\end{equation}
+where the weights $w_1(t), w_2(t)$ vary based on mission phase, momentum state, and desaturation opportunity.
+
+Possible weight schedules include:
+\begin{itemize}
+    \item \textbf{Fixed ratio}: $w_1/w_2 = \text{const}$, providing steady-state balance
+    \item \textbf{Momentum-dependent}: $w_2$ increases as $\|\mathbf{h}\|$ approaches saturation
+    \item \textbf{Opportunity-dependent}: $w_2$ increases when $\beta(t)$ is large
+    \item \textbf{Mission-phase-dependent}: $w_1$ dominates during imaging, $w_2$ dominates during idle periods
+\end{itemize}
+
+% ============================================================
+% SIMULATION RESULTS
+% ============================================================
+\section{Simulation Results}\label{sec:results}
+
+We validate the proposed framework through Monte Carlo simulations of a 3U CubeSat across multiple actuator configurations. The goal is to demonstrate that the allocation framework enables effective attitude control without redesigning the baseline control law, and that it gracefully handles actuator constraints, underactuation, and failures.
+
+\subsection{Simulation Setup}
+
+\subsubsection{Spacecraft Model}
+The simulated spacecraft is a 3U CubeSat with:
+\begin{itemize}
+    \item Mass: 4 kg
+    \item Inertia: $J = \text{diag}(0.02, 0.02, 0.005)$ kg$\cdot$m$^2$
+    \item Orbit: 500 km circular, 45$^\circ$ inclination (representative LEO)
+    \item Magnetorquers: Three orthogonal, $\pm 0.2$ Am$^2$ maximum dipole
+    \item Reaction wheels: Up to three, aligned with principal axes, $\pm 0.001$ Nm maximum torque
+\end{itemize}
+
+\subsubsection{Actuator Configurations}
+We evaluate four configurations:
+\begin{enumerate}
+    \item \textbf{MTQ-only}: Three magnetorquers, no reaction wheels (underactuated)
+    \item \textbf{3MTQ+1RW}: Three magnetorquers plus one reaction wheel along $z$-axis (partially actuated)
+    \item \textbf{3MTQ+3RW}: Full actuation with three orthogonal reaction wheels (baseline)
+    \item \textbf{Failed RW}: 3MTQ+3RW configuration with one wheel failed mid-simulation
+\end{enumerate}
+
+\subsubsection{Baseline Control Law}
+All configurations use the same quaternion feedback control law:
+\begin{equation}
+\boldsymbol{\tau}_{\text{control}} = -k_p \, \text{sign}(\delta q_0) \, \mathbf{\delta q}_v - k_d \boldsymbol{\omega}
+\end{equation}
+with $k_p = 0.001$ Nm and $k_d = 0.01$ Nm$\cdot$s. The sign correction ensures short-path rotation. This control law is \emph{not} modified for different actuator configurations---only the allocation layer changes.
+
+\subsubsection{Disturbance Model}
+Simulated disturbances include:
+\begin{itemize}
+    \item Gravity gradient torque (computed from $J$ and orbital position)
+    \item Residual magnetic dipole: $\mathbf{m}_{\text{res}} = [0.01, 0.005, 0.002]$ Am$^2$
+    \item Aerodynamic drag (simplified model based on ram direction and cross-section)
+\end{itemize}
+Total disturbance magnitude is typically $0.1$--$1~\mu$Nm for this spacecraft.
+
+\subsection{Pointing Performance}
+
+\subsubsection{Nadir Pointing (Vector Goal)}
+We evaluate nadir pointing performance, where the objective is to align the $-z$ body axis with the nadir direction. This is a vector (reduced-attitude) goal, requiring only rank 4 controllability. Based on the LTV controllability analysis (Table~\ref{tab:ltv_rank_summary}), we expect:
+
+\begin{itemize}
+    \item \textbf{MTQ-only (3MTQ+0RW)}: Full vector controllability (4/4). The time-varying magnetic field provides access to all required torque directions over the orbit. Convergence should be slower than actuated configurations due to weak torque authority, with settling times on the order of 1--2 orbits from large initial errors. Steady-state performance depends on the balance between disturbance torques and magnetorquer authority.
+
+    \item \textbf{Hybrid (3MTQ+1RW)}: Full vector controllability (4/4) with additional torque authority along the wheel axis. The reaction wheel provides high-bandwidth authority for one axis, while magnetorquers handle the orthogonal components. We expect faster convergence than MTQ-only (settling within 0.5--1 orbit) and tighter steady-state pointing due to the wheel's ability to counteract persistent disturbances along its axis.
+
+    \item \textbf{Fully actuated (3MTQ+3RW)}: Full vector controllability (4/4) with abundant margin. Convergence should be limited primarily by control law gains rather than actuator authority. Settling within minutes is expected, with steady-state errors limited by sensor noise and estimation accuracy rather than actuator capability.
+\end{itemize}
+
+\emph{[Results to be generated: Pointing error vs. time for each configuration, Monte Carlo statistics over 100 random initial conditions, comparison of LP vs. QP allocation]}
+
+\subsubsection{Inertial Hold (Full Attitude Goal)}
+For inertial hold, the spacecraft must maintain a fixed orientation in the inertial frame. This requires full rank 6 controllability, which has different implications for each configuration:
+
+\begin{itemize}
+    \item \textbf{MTQ-only (3MTQ+0RW)}: Under LTI assumptions, full attitude controllability rank is only 4/6---the system is uncontrollable. However, under LTV assumptions with sufficient orbital inclination, rank 6/6 is achieved. The practical implication is that MTQ-only can achieve inertial hold, but only through averaging over the orbit. The spacecraft will oscillate about the target orientation as the magnetic field rotates, with the oscillation amplitude depending on the balance between the control law's corrective torques and the instantaneous torque capability. For a CubeSat-scale system, we expect oscillations of several degrees during portions of the orbit where the torque envelope is poorly aligned with the required correction.
+
+    \item \textbf{Hybrid (3MTQ+1RW)}: Full controllability (6/6) under both LTI and LTV assumptions. The reaction wheel provides the ``third axis'' authority that magnetorquers lack instantaneously. However, the wheel will accumulate momentum from counteracting the persistent torque required to maintain the inertial orientation against gravity gradient and other disturbances. Without desaturation, the wheel will eventually saturate, at which point performance degrades toward the MTQ-only case.
+
+    \item \textbf{Fully actuated (3MTQ+3RW)}: Full controllability with high authority. Inertial hold to arc-second accuracy is achievable if sensors support it. Momentum management occurs continuously in the nullspace.
+\end{itemize}
+
+This scenario provides a direct test of the distinction between LTI and LTV controllability: MTQ-only systems can achieve inertial hold through time-averaging, but with performance limitations that do not affect vector pointing objectives.
+
+\emph{[Results to be generated: Comparison showing MTQ-only achieves degraded but stable inertial hold under LTV, comparison of oscillation amplitude vs. pointing error for nadir case]}
+
+\subsubsection{Ground Target Tracking}
+Ground target tracking requires pointing the camera axis at a specific Earth-fixed location, which creates a time-varying pointing direction as the spacecraft orbits. This scenario tests several aspects of the framework:
+
+\begin{itemize}
+    \item \textbf{Frame compensation}: The target direction rotates in the inertial frame as the spacecraft orbits. Without frame compensation ($\boldsymbol{\tau}_{\text{frame}} = 0$), the controller treats this rotation as an error and responds reactively. With frame compensation, the controller anticipates the required rotation and applies the necessary torque proactively. The difference is most pronounced during high-rate portions of the pass (near closest approach).
+
+    \item \textbf{Slew capability}: During a typical LEO ground pass, the target direction may slew at rates up to 1--2$^\circ$/s near the closest approach. The WCDTA analysis (Section~\ref{sec:daa}) determines whether this slew rate is achievable given the actuator configuration. For MTQ-only systems, the weak torque authority may limit achievable slew rates, particularly if the required torque direction happens to align poorly with the instantaneous torque envelope.
+
+    \item \textbf{Settling before acquisition}: After the slew to acquire the target, the spacecraft must settle to the required pointing accuracy before useful data collection can begin. Faster settling extends the usable portion of the pass. The hybrid and fully actuated configurations should demonstrate significantly shorter settling times than MTQ-only.
+\end{itemize}
+
+We simulate a ground pass with the target starting 60$^\circ$ off boresight, passing through the nadir, and ending 60$^\circ$ on the opposite side. The pass duration is approximately 10 minutes for a 500 km orbit.
+
+\emph{[Results to be generated: Tracking error during target pass, comparison with/without frame compensation, settling time comparison across configurations]}
+
+\subsection{Actuator Failure Response}
+A key advantage of the allocation framework is automatic adaptation to changing actuator capabilities. Unlike traditional controllers that are designed for a specific actuator configuration, the allocation-based approach requires only an update to the constraint set $\mathcal{U}$ and effectiveness matrix $B_\tau$---the baseline control law continues to produce desired torques, unaware of the failure.
+
+We simulate three failure scenarios:
+
+\textbf{Scenario A: Single Reaction Wheel Failure}. Starting from a 3MTQ+3RW configuration during steady-state nadir pointing, one reaction wheel fails (output stuck at zero) at $t = 1000$ s.
+\begin{itemize}
+    \item Before failure: System operates as 3MTQ+3RW with full actuation
+    \item At failure: Allocation layer detects constraint change (failed wheel column removed from $B_\tau$)
+    \item After failure: System continues as 3MTQ+2RW
+\end{itemize}
+The controllability analysis predicts that 3MTQ+2RW achieves full rank (6/6) for attitude controllability, so no degradation in steady-state performance is expected. However, the torque envelope becomes asymmetric, potentially affecting transient performance for maneuvers that require torque along the failed wheel's axis.
+
+\textbf{Scenario B: Complete Wheel System Failure}. All three reaction wheels fail simultaneously (e.g., due to power bus anomaly), leaving only the 3MTQ configuration.
+\begin{itemize}
+    \item Before failure: System operates as 3MTQ+3RW with full actuation
+    \item At failure: All wheel columns removed from $B_\tau$; system reverts to MTQ-only
+    \item After failure: System operates as 3MTQ+0RW with LTV controllability
+\end{itemize}
+The transition is more dramatic: the torque envelope shrinks significantly, and the system loses instantaneous three-axis authority. However, the LTV analysis predicts full controllability (6/6) for an inclined orbit, so pointing objectives should still be achievable---albeit with slower convergence and larger transient excursions. This scenario demonstrates the graceful degradation property: even a severe failure does not cause complete loss of control.
+
+\textbf{Scenario C: Magnetorquer Failure}. One magnetorquer fails in a 3MTQ+1RW configuration.
+\begin{itemize}
+    \item Before failure: System operates as 3MTQ+1RW with full LTV controllability
+    \item At failure: Failed MTQ column removed from $A_{mtq}$
+    \item After failure: System operates as 2MTQ+1RW
+\end{itemize}
+The LTV controllability analysis indicates that 2MTQ+1RW achieves full attitude controllability (6/6), so pointing performance should be preserved. However, the reduced MTQ torque envelope affects desaturation capability, potentially leading to wheel saturation under persistent disturbances.
+
+For all scenarios, the baseline control law (Equation~\ref{eq:pd_control}) is unchanged. Only the allocation layer adapts to the new actuator configuration.
+
+\emph{[Results to be generated: Pointing error before/during/after failure for all scenarios, wheel momentum evolution for Scenario C, comparison showing transient response and recovery time]}
+
+\subsection{LP vs. QP Allocation Comparison}
+We compare LP and QP allocation across the actuator configurations. The theoretical analysis of Section~\ref{sec:allocation} predicts distinct trade-offs:
+
+\textbf{Direction Preservation}: The LP formulation maintains perfect alignment between desired and achieved torque directions (or achieves zero torque if the desired direction is unattainable). The QP formulation minimizes overall torque error, which may introduce perpendicular components when the desired torque is near the boundary of the achievable envelope. For Lyapunov-based control laws like the PD controller, direction preservation (LP) provides stronger stability guarantees, but the QP formulation may still be stable if the perpendicular components are small relative to the parallel component.
+
+\textbf{Magnitude Trade-off}: When the desired torque lies outside the achievable envelope, the LP returns the maximum achievable torque along the desired direction, while the QP returns the closest achievable torque in the weighted norm. The QP solution has smaller overall error (by construction), but the LP solution may produce faster convergence if the control law was designed with direction preservation in mind.
+
+\textbf{Underactuated Regimes}: The difference between LP and QP is most pronounced when actuators are near saturation or when the desired torque direction lies near the boundary of the instantaneous envelope. For the MTQ-only configuration, this occurs frequently---whenever the desired torque has a significant component parallel to the magnetic field. For fully actuated configurations, both methods produce nearly identical results except during aggressive maneuvers.
+
+We quantify these trade-offs through:
+\begin{itemize}
+    \item \textbf{Torque direction error}: $\angle(\boldsymbol{\tau}_{\text{achieved}}, \boldsymbol{\tau}_{\text{desired}})$. LP should show zero error; QP may show nonzero error especially for underactuated configurations.
+    \item \textbf{Torque magnitude ratio}: $\|\boldsymbol{\tau}_{\text{achieved}}\| / \|\boldsymbol{\tau}_{\text{desired}}\|$. QP may achieve higher ratios by ``borrowing'' from perpendicular directions.
+    \item \textbf{Pointing accuracy}: Steady-state and 3$\sigma$ transient errors. The relationship to allocation method depends on the specific control law and actuator configuration.
+    \item \textbf{Computational time}: LP typically requires fewer iterations than QP. For the 6-variable problem with box constraints, we expect LP to complete in $\sim$50--100 $\mu$s and QP in $\sim$200--500 $\mu$s on representative embedded hardware.
+\end{itemize}
+
+\emph{[Results to be generated: Time series of direction error and magnitude ratio, scatter plot of LP vs. QP pointing accuracy, histogram of computation times]}
+
+\subsection{Comparison with Traditional Controllers}
+To contextualize the results, we compare the generalized allocation approach against controllers specifically designed for magnetic actuation. This comparison addresses the natural question: does the generality of the allocation approach come at a performance cost compared to purpose-built controllers?
+
+\textbf{Lovera-Astolfi Magnetic Feedback Controller} \cite{lovera_spacecraft_2004, lovera_global_2005}. This controller projects a three-axis torque demand onto the plane perpendicular to $\mathbf{B}$:
+\begin{equation}
+\boldsymbol{\tau}_{\text{LA}} = (I - \hat{\mathbf{B}}\hat{\mathbf{B}}^\top)(-k_p \mathbf{\delta q}_v - k_d \boldsymbol{\omega})
+\end{equation}
+Global asymptotic stability is proven via averaging theory. This is mathematically equivalent to our LP allocation when the desired torque direction lies outside the achievable plane and the LP returns the projection. However, the Lovera-Astolfi controller is inherently tied to MTQ-only actuation; extending it to hybrid configurations requires redesign.
+
+\textbf{Wisniewski Sliding Mode Controller} \cite{wisniewski_satellite_1997}. This controller uses sliding mode techniques for robustness:
+\begin{equation}
+\boldsymbol{\tau}_{\text{W}} = -\text{sat}(\mathbf{s}/\epsilon) \cdot \|\mathbf{B}\| \cdot (I - \hat{\mathbf{B}}\hat{\mathbf{B}}^\top)\hat{\mathbf{s}}
+\end{equation}
+where $\mathbf{s}$ is the sliding surface and $\epsilon$ is the boundary layer thickness. The sliding mode formulation provides robustness to bounded disturbances and parameter uncertainty, but again is specific to magnetic actuation.
+
+\textbf{Mission-Specific Tuned PD Controller}. A PD controller with gains tuned for the specific spacecraft inertia and actuator configuration, potentially using LQR or pole placement methods.
+
+We expect the following comparison outcomes:
+\begin{itemize}
+    \item \textbf{Steady-state accuracy}: Comparable across methods, limited by disturbance torques and actuator authority rather than controller structure.
+    \item \textbf{Convergence rate}: Purpose-built controllers may show slightly faster convergence (5--10\%) due to optimized gain tuning, but the difference should be small compared to actuator limitations.
+    \item \textbf{Robustness}: Sliding mode provides formal robustness guarantees; the allocation approach relies on the robustness properties of the underlying control law (which may also be sliding mode).
+    \item \textbf{Generality}: The allocation approach works across actuator configurations without modification; purpose-built controllers require redesign for each configuration.
+    \item \textbf{Adaptation}: The allocation approach adapts automatically to actuator failures; purpose-built controllers typically do not.
+\end{itemize}
+
+The key finding should be that the generalized approach achieves performance within a few percent of purpose-built controllers while providing the flexibility to operate across actuator configurations---a favorable trade-off for missions where development time and risk are important considerations.
+
+\emph{[Results to be generated: Performance metrics (steady-state error, settling time, robustness margins) for allocation approach vs. Lovera-Astolfi vs. Wisniewski vs. mission-tuned PD, for MTQ-only and hybrid configurations]}
+
+% ============================================================
+% DISCUSSION
+% ============================================================
+\section{Discussion}\label{sec:discussion}
+
+\subsection{Practical Considerations}
+
+\subsubsection{Computational Requirements}
+The allocation methods require solving an LP or QP at each control cycle. For modern embedded processors, this is typically tractable:
+\begin{itemize}
+    \item LP with 6 decision variables and box constraints: $\sim 100~\mu$s on ARM Cortex-M4
+    \item QP with same dimensions: $\sim 500~\mu$s using active-set method
+\end{itemize}
+For a 10 Hz control loop, both are feasible. However, resource-constrained flight computers may benefit from precomputed solutions or lookup tables for common operating points.
+
+Several implementation strategies can reduce computational burden:
+\begin{itemize}
+    \item \textbf{Warm starting}: Initialize the solver with the previous solution. For smooth reference torque trajectories, the solution changes slowly between time steps, and warm starting can reduce solve time by 50--80\%.
+    \item \textbf{Early termination}: For real-time systems, a suboptimal but feasible solution is preferable to missing a control deadline. Solvers can be configured to return the best feasible solution found within a time budget.
+    \item \textbf{Explicit MPC / Lookup tables}: For fixed actuator configurations, the allocation problem can be solved offline for a grid of desired torques and stored as a lookup table. Runtime then requires only interpolation.
+    \item \textbf{Analytic solutions for special cases}: When constraints are not active (desired torque well within the envelope), the pseudoinverse solution is optimal and requires only a matrix multiplication.
+\end{itemize}
+
+The computational requirements scale with the number of actuators ($m$) and the number of active constraints. For the configurations considered here ($m \leq 7$), simple active-set solvers are sufficient. Larger actuator sets (e.g., distributed propulsion with many thrusters) may require more sophisticated methods.
+
+\subsubsection{Sensitivity to Model Errors}
+The allocation framework assumes accurate knowledge of:
+\begin{itemize}
+    \item Actuator effectiveness matrix $B_\tau(t)$, which depends on magnetorquer alignment and magnetic field model
+    \item Actuator limits $\mathbf{u}_{\min}, \mathbf{u}_{\max}$
+    \item Spacecraft inertia $J$ (for gyroscopic compensation)
+\end{itemize}
+
+The impact of errors in each parameter differs:
+
+\textbf{Magnetorquer Alignment Errors}. Misalignment between the assumed and actual magnetorquer axes causes the achieved torque direction to differ from the planned direction. For small misalignments ($<5^\circ$), the effect is a few percent reduction in effective torque along the intended axis, which the feedback loop compensates. Larger misalignments may cause the allocator to command torques that are suboptimal or even counterproductive if the actual torque direction has a negative projection onto the desired direction. On-orbit calibration using magnetometer data can estimate and correct alignment errors.
+
+\textbf{Magnetic Field Model Errors}. The IGRF model has typical errors of 50--200 nT (less than 1\% at LEO altitudes), which introduces negligible error in the torque effectiveness matrix. However, hard/soft iron distortions from spacecraft-generated fields can cause larger errors if not calibrated. The good news is that the allocator uses the measured magnetic field (from the magnetometer), not the modeled field, for real-time allocation---model errors affect only predictive analyses (controllability assessment, WCDTA computation) rather than real-time performance.
+
+\textbf{Actuator Limit Errors}. If the allocator assumes actuator limits tighter than reality, it underutilizes available authority---inefficient but safe. If it assumes limits looser than reality, it may command unachievable torques, leading to saturation behavior that differs from the allocation solution. Conservative limit assumptions (e.g., 90\% of datasheet values) provide margin for thermal derating and aging.
+
+\textbf{Inertia Errors}. Errors in $J$ affect the gyroscopic compensation term $\boldsymbol{\tau}_{\text{gyro}} = \boldsymbol{\omega} \times (J\boldsymbol{\omega} + \mathbf{h}_{\text{vec}})$. For small satellites with low slew rates ($<1^\circ$/s), gyroscopic torques are small ($<1~\mu$Nm), so even large percentage errors in $J$ produce negligible absolute errors. For larger spacecraft or higher slew rates, inertia estimation becomes more important.
+
+Errors in these parameters degrade performance but typically do not cause instability. The feedback control law provides robustness to small model errors; large errors may require online calibration or adaptive methods.
+
+\subsubsection{Integration with Onboard Estimation}
+The disturbance compensation term $\boldsymbol{\tau}_{\text{dist}}$ requires an estimate of the current disturbance torque. This can be obtained from:
+\begin{itemize}
+    \item Physics-based models (gravity gradient, drag, SRP)
+    \item Augmented state estimation (residual dipole, propulsion offsets)
+    \item Disturbance observer or adaptive estimation
+\end{itemize}
+
+Each approach has trade-offs:
+
+\textbf{Physics-based models} are deterministic and computationally cheap, but require accurate knowledge of spacecraft geometry (for drag and SRP) and mass properties (for gravity gradient). For a CubeSat with $J_{\max}/J_{\min} \approx 4$, gravity gradient torque at 500 km is approximately $0.3~\mu$Nm at 45$^\circ$ off-nadir. Drag and SRP torques depend strongly on the spacecraft configuration and can be modeled accurately if the geometry is known.
+
+\textbf{Augmented state estimation} treats disturbance parameters (e.g., residual magnetic dipole $\mathbf{m}_{\text{res}}$) as additional states in the estimator. This approach can track slowly varying disturbances and provides uncertainty quantification through the estimator covariance. However, it requires observability of the disturbance states, which may not hold for all configurations.
+
+\textbf{Disturbance observers} estimate the net disturbance torque directly from the difference between commanded and achieved angular acceleration. This approach requires no a priori knowledge of disturbance sources but is sensitive to inertia errors and actuator model errors.
+
+The accuracy of disturbance compensation depends on the estimation quality. Poor estimates may introduce rather than reduce errors, so conservative use (or disabling) of disturbance compensation may be appropriate when estimation confidence is low. A practical approach is to enable disturbance compensation only when:
+\begin{enumerate}
+    \item The estimator has converged (covariance below threshold)
+    \item The estimated disturbance is larger than the estimation uncertainty
+    \item The compensation torque is achievable within the actuator envelope
+\end{enumerate}
+
+\subsection{Limitations}
+
+\textbf{Actuator dynamics neglected}: The allocation assumes instantaneous actuator response. In practice, magnetorquers have electromagnetic time constants ($\sim$10 ms) and reaction wheels have motor dynamics (torque rise time $\sim$50 ms). For control cycles longer than these time constants (typical ADCS loops run at 1--10 Hz), the quasi-static assumption is reasonable. For very fast control (>50 Hz) or aggressive maneuvers where actuator dynamics become limiting, the allocation should be augmented with actuator models or replaced by model predictive control that explicitly accounts for dynamics.
+
+\textbf{Magnetic field model required}: The time-varying controllability analysis and magnetorquer torque computation require knowledge of the magnetic field. Onboard magnetometers provide measurements, but propagating future values (for planning) requires an orbit model and geomagnetic field model (e.g., IGRF). Model errors affect the predicted controllability analysis but not the real-time allocation, which uses measured $\mathbf{B}$.
+
+\textbf{LP/QP solvers required}: Not all flight software frameworks include LP/QP solvers. However, for the small problem sizes involved (6 variables, box constraints), simple implementations are feasible. The simplex algorithm for LP with box constraints requires $\sim$100 lines of C code; active-set QP solvers require $\sim$300 lines. Alternatively, precomputed lookup tables can approximate the solution for fixed actuator configurations.
+
+\textbf{Stability guarantees are conditional}: The stability analysis in Section~\ref{sec:allocation} relies on persistent excitation conditions (for LTV systems) and assumptions about the baseline control law (Lyapunov-based). For non-Lyapunov control laws (e.g., time-optimal bang-bang control), the stability analysis does not directly apply, though the allocation mechanics remain valid.
+
+\textbf{Optimality not guaranteed}: The allocation finds a feasible (and in some sense optimal) actuator command for each time step, but does not optimize over a horizon. For scenarios where current actuator choices affect future capabilities (e.g., using reaction wheel authority now may lead to saturation later), model predictive control or trajectory optimization may provide better performance.
+
+\subsection{Extensions}
+
+\textbf{CMG allocation}: The framework extends naturally to control moment gyroscopes (CMGs), which provide high torque authority but suffer from geometric singularities. The torque effectiveness matrix for a CMG cluster is the Jacobian $B_{\text{cmg}} = A(\boldsymbol{\delta}) \partial\mathbf{h}/\partial\boldsymbol{\delta}$, which depends on the gimbal angles $\boldsymbol{\delta}$ and becomes singular at certain configurations. The allocation can incorporate singularity avoidance as an additional constraint:
+\begin{equation}
+\min_{\dot{\boldsymbol{\delta}}} \|B_{\text{cmg}} \dot{\boldsymbol{\delta}} - \boldsymbol{\tau}_{\text{ref}}\|^2 + \lambda \| \nabla_{\boldsymbol{\delta}} \det(B_{\text{cmg}} B_{\text{cmg}}^\top) \|^2
+\end{equation}
+where the second term penalizes motion toward singularities. This is an active area of research, and the allocation framework provides a natural structure for incorporating various singularity-avoidance strategies.
+
+\textbf{Thruster allocation}: For spacecraft with attitude thrusters, the continuous allocation framework must accommodate discrete constraints: thrusters are typically on/off devices with minimum impulse requirements. Two approaches are:
+\begin{itemize}
+    \item \textbf{Pulse-width modulation (PWM)}: Solve the continuous allocation, then convert the continuous solution to a pulse train. For control cycles much longer than the minimum impulse width, this approximates the continuous solution well.
+    \item \textbf{Mixed-integer programming (MIP)}: Formulate the allocation with binary decision variables for thruster on/off states. This provides optimal solutions but may be computationally expensive for real-time use.
+\end{itemize}
+The thruster allocation problem also involves fuel optimality, which can be incorporated through appropriate weighting of actuator costs.
+
+\textbf{Integration with trajectory planning}: The controllability analysis can inform trajectory planners, which can schedule maneuvers during periods of favorable controllability and avoid commands that exceed actuator authority. For example:
+\begin{itemize}
+    \item Schedule large slews to begin when the WCDTA is high in the required direction
+    \item Avoid scheduling observations during orbital phases where the pointing axis lies near the magnetic field direction (for MTQ-dominated systems)
+    \item Coordinate desaturation maneuvers with periods of excess controllability margin
+\end{itemize}
+This integration requires propagating the magnetic field and computing WCDTA over the planning horizon, which is computationally tractable for planning cycles of minutes to hours.
+
+\textbf{Online learning and adaptation}: The allocation framework can be augmented with online estimation of the effectiveness matrix $B_\tau$. By comparing commanded and achieved torques (inferred from angular acceleration measurements), the allocator can detect actuator degradation, calibrate alignment errors, and adapt to changing actuator characteristics. This extension requires careful observability analysis to ensure the estimation problem is well-posed.
+
+% ============================================================
+% CONCLUSION
+% ============================================================
+\section{Conclusion}\label{sec:conclusion}
+
+This paper presented a generalized framework for attitude control allocation that enables principled reuse of classical controllers across heterogeneous actuator configurations. The key contributions are:
+
+\begin{enumerate}
+    \item \textbf{Torque polytope characterization}: We showed that LTI and LTV controllability can be understood geometrically in terms of the achievable torque envelope. The dimension of the union of instantaneous torque polytopes over an orbit determines controllability.
+
+    \item \textbf{Task-dependent analysis}: By introducing the ``required controllable subspace,'' we demonstrated that reduced-attitude objectives (vector pointing) relax controllability requirements, enabling actuator configurations that are uncontrollable for full attitude to become fully controllable for practical pointing objectives.
+
+    \item \textbf{LP and QP allocation}: We developed allocation methods that preserve stability guarantees of the underlying control law. The LP formulation preserves torque direction (critical for Lyapunov-based laws), while the QP formulation minimizes overall error.
+
+    \item \textbf{Unified compensation framework}: Gyroscopic, frame rotation, and disturbance compensation terms can be incorporated as feedforward in the allocation layer, enabling active disturbance rejection without modifying the baseline control law.
+
+    \item \textbf{Momentum management}: For overactuated systems, nullspace utilization enables continuous desaturation. For underactuated systems, scheduling and weighted approaches trade pointing accuracy for momentum management.
+\end{enumerate}
+
+The framework is particularly valuable for small satellites where SWaP constraints drive novel actuator architectures. By separating the control law from the allocation layer, mission designers can evaluate multiple actuator configurations without redesigning the entire ADCS. The same quaternion feedback law that controls a fully actuated spacecraft can be applied, unchanged, to a magnetorquer-only system---the allocation layer handles the translation.
+
+\subsection{Future Work}
+Several directions merit further investigation:
+\begin{itemize}
+    \item Formal stability proofs for LP and QP allocation under persistent excitation
+    \item Extension to CMG systems with singularity avoidance
+    \item Integration with trajectory optimization for maneuver planning
+    \item Online learning of actuator effectiveness for fault detection and adaptation
+    \item Hardware validation through ground testbed or flight demonstration
+\end{itemize}
+
+% ============================================================
+% BIBLIOGRAPHY
+% ============================================================
+\bibliographystyle{IEEEtran}
+% \bibliography{references}
+
+\end{document}

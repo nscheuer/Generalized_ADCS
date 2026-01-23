@@ -1733,6 +1733,61 @@ Each paper now has comprehensive experiment lists in the header comments:
    - BC2 parameters (where appropriate)
    - Emphasis on GENERALIZABILITY (diverse configs)
    - QP constraint research findings (with caveats)
+   - **Literature review TODOs** (comprehensive references from thesis)
+   - **Bolt-on framework structure** for Generalized Control paper
+   - **Goal conversion methods** (full↔reduced attitude)
+   - **Alternating/weighted multi-vector experiments** for Planner paper
+
+### Literature Review Added (from thesis background.tex)
+
+**Core Textbooks:**
+- Markley & Crassidis "Fundamentals of Spacecraft Attitude Determination and Control" (2014)
+- Cappelletti "CubeSat Handbook" (2020)
+- Fortescue "Spacecraft Systems Engineering"
+- SME (SMAD)
+
+**Magnetic Control:**
+- Ovchinnikov & Roldugin - Survey (2019) - COMPREHENSIVE
+- Lovera & Astolfi (2004, 2005, 2006) - stability proofs
+- Wisniewski (1996-2000) - Ørsted mission, sliding mode
+- Psiaki (2001) - LQR magnetic control
+
+**Flight Heritage:**
+- PRISMA TANGO (Chasset 2006, 2013)
+- GOCE (Sechi 2005)
+
+**Trajectory Planning:**
+- ALTRO (Howell 2019, Jackson 2021)
+- Gatherer (2019) - ALTRO for MTQ
+- Krogstad (2005) - Explicit MPC
+- Liang (2004) - RIOTS optimization
+
+**Goal Conversion (from research/ folder):**
+- Full → Reduced: Extract vector constraint, relax 3rd DoF
+- Reduced → Full: Alternating vectors, multi-vector, weighted methods
+- Key experiment added: Alternating reduced-attitude for full 3-DOF control
+
+### Bolt-On Framework Structure (Generalized Control Paper)
+
+```
+Control Law (PD, LQR, etc.) → τ_des
+    ↓
+3a. Goal Modification (full/reduced conversion, keep-out)
+    ↓
+3b. Disturbance Compensation (GG, drag, SRP, dipole, all-in-one)
+    ↓
+3c. Gyroscopic Compensation (ω × Jω term)
+    ↓
+3d. Actuator Allocation (LP vs QP vs constrained)
+    ↓
+3e. Bound Respecting (saturation handling)
+    ↓
+3f. Desaturation (continuous vs scheduled)
+    ↓
+Actuators (MTQ, RW, CMG, thruster)
+```
+
+LP/QP is ONE component, not the main contribution. The FRAMEWORK is the contribution.
 
 ---
 

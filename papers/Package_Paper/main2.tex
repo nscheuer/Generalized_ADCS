@@ -1,0 +1,1674 @@
+% SmallSat Europe + JOSS Mega Paper Draft
+% Generalized ADCS Python Framework
+%
+% ============================================================
+% KEY THEME: CONOPS-Coupled ADCS Design
+% ============================================================
+% - Framework enables rapid evaluation of ADCS architectures against mission CONOPS
+% - "Makes it easy to explore the design space and find new options"
+% - Reduces development time by enabling configuration-based architecture trades
+% - Unlike other subsystems, ADCS has DISCRETE CAPABILITY THRESHOLDS:
+%   * Adding one RW to 3MTQ doesn't give "33% more pointing"—it unlocks NEW capability classes
+%   * Which missions fall within a capability class depends on orbit, timing, goal formulation
+%   * This framework reveals those boundaries through rapid simulation
+%
+% ============================================================
+% VENUE SUMMARY
+% ============================================================
+%
+% SMALLSAT EUROPE: Practical, accessible, practitioner-focused (~8 pages)
+%   Target: Engineers who want to evaluate ADCS options for their mission
+%   Emphasis: "5-minute demo", rapid configuration, practical guidance
+%   TRIM: Detailed math derivations, complexity analysis, stability proofs
+%   KEEP: Code examples, workflow timing, debugging guidance, case studies
+%   ADD: CONOPS coupling motivation, decision flowcharts
+%
+% JOSS: Software contribution, reproducibility, methodology (~12 pages)
+%   Target: Researchers and developers wanting to use or extend the framework
+%   Emphasis: API design, reproducibility, Basilisk comparison, validation
+%   TRIM: Mission-specific cost analysis
+%   KEEP: All technical content, estimation math, stability analysis
+%   ADD: Software availability, citation guidance, test coverage
+%
+% ============================================================
+% DATA GENERATION TODO LIST
+% ============================================================
+% ** HIGH PRIORITY **
+% TODO-DATA-1: Generate framework benchmarks
+%    - Run example simulations, log execution times
+%    - Compare against baseline implementations
+%    - Record: mean estimation error, control accuracy, setup time
+%
+% TODO-DATA-2: Run comparative case studies
+%    - Implement same scenario in ADCS-Py vs manual implementation
+%    - Record: lines of code, development time, accuracy
+%    - Document configuration vs code rewrite effort
+%
+% ** MEDIUM PRIORITY **
+% TODO-DATA-3: Generate estimation accuracy results
+%    - Run TRMM and CubeSat estimation cases from dissertation
+%    - Compute confidence intervals (bootstrap, 1000 resamples)
+%    - Compare against USQUE baseline
+%
+% TODO-DATA-4: Run control law comparison campaigns
+%    - Test Lovera, Wisniewski, Hogan-Schaub across configurations
+%    - Record pointing accuracy, settling time, saturation events
+%
+% TODO-DATA-5: Generate allocation method comparisons
+%    - Compare LP, QP, QPW allocation schemes
+%    - Measure computational cost and accuracy trade-offs
+%
+% ** LOW PRIORITY **
+% TODO-DATA-6: Profile memory and computational requirements
+%    - Measure Python memory footprint
+%    - Compare against C++ implementations
+%
+% TODO-DATA-7: Run hardware-in-the-loop validation
+%    - Test with Raspberry Pi flight computer
+%    - Measure timing margins and resource usage
+%
+% ** SMALLSAT-SPECIFIC **
+% TODO-SMALLSAT-1: Create "5-minute demo" case study
+%    - Show complete workflow from config to results
+%    - Emphasize lines-of-code savings vs custom implementation
+%    - Target: "I could do this on my CubeSat" reaction
+%
+% TODO-SMALLSAT-2: Add practitioner-focused metrics
+%    - Wall-clock simulation time (e.g., "1 orbit in 30 seconds")
+%    - Memory footprint on Raspberry Pi
+%    - Setup time for new spacecraft configuration
+%
+% TODO-SMALLSAT-3: Document common failure modes and debugging
+%    - What happens when magnetorquers saturate?
+%    - How to diagnose estimator divergence?
+%    - Practical tuning guidance for gains
+%
+% ** JGCD-SPECIFIC **
+% TODO-JGCD-1: Formal Basilisk comparison
+%    - Implement same scenario in both frameworks
+%    - Compare: setup complexity, runtime, accuracy, extensibility
+%    - Discuss architectural differences (C++ monolith vs Python modular)
+%
+% TODO-JGCD-2: Estimation error bounds analysis
+%    - Derive theoretical bounds for UAKF with dynamics model
+%    - Compare to Crassidis USQUE bounds
+%    - Show when dynamics-aware approach provides largest gains
+%
+% TODO-JGCD-3: Stability/convergence analysis
+%    - Lyapunov analysis for hybrid MTQ-RW controller
+%    - Prove convergence of B-dot under orbit-averaged field
+%    - Allocation layer stability with saturating actuators
+%
+% TODO-JGCD-4: Computational complexity analysis
+%    - O() analysis for each estimator variant
+%    - Scaling with state dimension, number of actuators
+%    - Compare to EKF baseline
+%
+% TODO-JGCD-5: Expanded prior work comparison table (see Related Work section)
+%
+% TODO-JGCD-6: Python vs C++ performance comparison
+%    - Profile critical path components
+%    - Identify bottlenecks and optimization opportunities
+%
+% TODO-JGCD-7: Complete validation campaign documentation
+%    - Unit test coverage report
+%    - Integration test results
+%    - Cross-validation with Basilisk
+%
+% TODO-DATA-8: Document unit test coverage percentage
+% TODO-DATA-9: TRMM flight data comparison results
+%
+% ============================================================
+% LITERATURE REVIEW TODO LIST (from thesis background.tex)
+% ============================================================
+%
+% ** ADCS FRAMEWORKS TO COMPARE AGAINST **
+% TODO-LIT-1: Basilisk (NASA JPL/CU Boulder)
+%             - C++/Python hybrid, message-passing architecture
+%             - Comprehensive but complex setup
+%             - https://hanspeterschaub.info/basilisk/
+% TODO-LIT-2: GMAT (NASA) - General Mission Analysis Tool
+%             - Broader scope (orbits, maneuvers), less ADCS-specific
+% TODO-LIT-3: Orekit (CS GROUP) - Java-based, extensive orbit/attitude
+% TODO-LIT-4: poliastro (Python) - Orbit-focused, less ADCS
+%
+% ** ESTIMATION ALGORITHMS **
+% TODO-LIT-5: Crassidis "Unscented Filtering for Spacecraft Attitude" (2003)
+%             - USQUE baseline to compare against
+% TODO-LIT-6: Van der Merwe "Square-Root UKF" (2001)
+%             - SRUKF implementation reference
+% TODO-LIT-7: Sola "Quaternion Kinematics for Error-State KF" (2017)
+%             - Quaternion handling in filters
+% TODO-LIT-8: Trawny "Indirect Kalman Filter for 3D Attitude" (2005)
+%             - Sensor noise modeling, bias estimation
+%
+% ** CONTROL ALGORITHMS IMPLEMENTED **
+% TODO-LIT-9: Lovera & Astolfi - Magnetic feedback control (2004, 2006)
+%             - Lovera controller implementation reference
+% TODO-LIT-10: Wisniewski - Sliding mode magnetic control (1997)
+%              - Wisniewski controller implementation reference
+% TODO-LIT-11: Markley & Crassidis textbook (2014)
+%              - PD control, quaternion feedback derivations
+%
+% ** DISTURBANCE MODELING **
+% TODO-LIT-12: Wertz "Spacecraft Attitude Determination and Control"
+%              - Standard disturbance models (GG, drag, SRP, dipole)
+% TODO-LIT-13: Vallado "Fundamentals of Astrodynamics"
+%              - Orbit propagation, J2, atmospheric models
+%
+% ** SOFTWARE ENGINEERING / JOSS REQUIREMENTS **
+% TODO-LIT-14: JOSS review criteria
+%              - Statement of need, documentation, tests, examples
+% TODO-LIT-15: Related Python scientific packages
+%              - numpy, scipy, astropy, skyfield integration
+%
+% ============================================================
+% KEY CITATIONS FOR PACKAGE PAPER TEXT:
+% ============================================================
+% Statement of Need:
+%   - "Existing frameworks [Basilisk] require significant setup"
+%   - "Simpler alternatives [poliastro] lack ADCS depth"
+% Estimation:
+%   - UAKF based on [Crassidis2003], extended with dynamics
+%   - SRUKF from [VanDerMerwe2001]
+% Control:
+%   - Implements [Lovera2004], [Wisniewski1997] controllers
+% Validation:
+%   - TRMM comparison per [thesis] methodology
+% ============================================================
+%
+% ============================================================
+% *** THESIS ESTIMATION RESULTS (Chapter 4) - REFERENCE DATA ***
+% ============================================================
+%    TRMM satellite (3000 kg, high-quality sensors):
+%      * Sub-degree pointing accuracy achieved
+%      * >2 orders of magnitude improvement over USQUE baseline
+%    CubeSat (4 kg, lower-quality sensors):
+%      * ~0.1° level estimation accuracy (Cases C and D)
+%      * Demonstrates framework works across satellite scales
+%    Multi-parameter tracking (thesis Section 4.7):
+%      * Successfully tracks: sensor biases, actuator biases,
+%        propulsion disturbances, and internal dynamics simultaneously
+%      * Key for debugging and mission optimization
+%    Disturbance-aware control (thesis Chapter 6):
+%      * 20° reduction in pointing errors when disturbances included
+%      * "all-in-one" disturbance term works without precise models
+%    Key thesis quote: "the resulting ADC tools and simulation are valuable
+%      for debugging and other development tasks, as they allow for simpler
+%      testing and a shared framework"
+%
+% ============================================================
+% DETAILED EXPERIMENT LIST (Priority Order)
+% ============================================================
+%
+% === EXPERIMENT SET A: Usability Metrics (ESSENTIAL FOR JOSS) ===
+%
+% A1. Lines-of-Code Comparison
+%     Task: Configure 3U CubeSat with 3+1 actuators, run 1-orbit sim
+%     Measure for ADCS-Py:
+%       - Lines to define spacecraft (YAML or Python)
+%       - Lines to configure estimator
+%       - Lines to set control law
+%       - Lines to run simulation
+%       - Total: expect ~20-50 lines
+%     Measure for Basilisk (if possible):
+%       - Same metrics
+%       - Expected: 200-500 lines (C++ setup + Python wrapper)
+%     Measure for "from scratch":
+%       - Estimate effort to implement same functionality
+%
+% A2. Time-to-First-Simulation
+%     Scenario: New user, fresh install, run example
+%     Measure: Wall-clock time from git clone to working plot
+%     ADCS-Py: Target <5 minutes
+%     Basilisk: Measure (expect longer due to C++ compilation)
+%
+% A3. Configuration Change Effort
+%     Baseline: Working 3+0 simulation
+%     Change: Add 1 reaction wheel (3+0 → 3+1)
+%     Measure: Lines changed, time to modify
+%     ADCS-Py: Should be 1-3 lines
+%     From scratch: Would require allocation rewrite
+%
+% === EXPERIMENT SET B: Accuracy Validation (ESSENTIAL) ===
+%
+% B1. TRMM Estimation Test (from thesis)
+%     Replicate thesis Cases A and B
+%     Metrics: angular error, angular velocity error
+%     Compare: ADCS-Py UAKF vs USQUE baseline
+%     Expected: >2 orders of magnitude improvement
+%     Output: Time series + error statistics table
+%
+% B2. CubeSat Estimation Test (from thesis)
+%     Replicate thesis Cases C and D
+%     Different satellite scale, lower-quality sensors
+%     Expected: ~0.1° accuracy
+%     Output: Demonstrates framework generality
+%
+% B3. Control Law Reproduction
+%     Implement Lovera, Wisniewski, Hogan-Schaub from literature
+%     Run on identical test cases from original papers
+%     Verify: Results match published figures within tolerance
+%     Output: Side-by-side comparison plots
+%
+% === EXPERIMENT SET C: Performance Benchmarks (FOR JOSS) ===
+%
+% C1. Simulation Speed
+%     Scenario: 3U CubeSat, 1 orbit (90 min), 1s timestep
+%     Measure: Wall-clock time on reference hardware (specify CPU)
+%     Compare: ADCS-Py (Python) vs target (if C++ version exists)
+%     Output: Table with timing
+%
+% C2. Memory Footprint
+%     Measure: Peak memory during 1-orbit simulation
+%     Breakdown: Estimator, controller, propagator contributions
+%
+% C3. Raspberry Pi Benchmarks
+%     Run same simulations on Pi 4
+%     Measure: Timing, memory, feasibility for flight
+%     Output: "Can this run on flight hardware?" answer
+%
+% === EXPERIMENT SET D: Basilisk Comparison (FOR DIFFERENTIATION) ===
+%
+% D1. Setup Complexity Comparison
+%     Task: Identical 3U CubeSat simulation in both frameworks
+%     Document: Step-by-step for each
+%     Measure: Total lines of code, number of files touched
+%     Note: Basilisk uses message-passing architecture vs ADCS-Py direct calls
+%
+% D2. Feature Comparison Table
+%     Create matrix: Feature × Framework
+%     Features: Estimator types, control laws, actuators, sensors,
+%               disturbances, trajectory planning, HIL support,
+%               documentation quality, test coverage
+%     Rate: Yes/No/Partial for each
+%
+% D3. Extension Complexity
+%     Task: Add new sensor type (e.g., star tracker) to each framework
+%     Measure: Lines of code, files modified, time required
+%     Expected: ADCS-Py simpler due to Python + clear interfaces
+%
+% D4. Runtime Comparison (if possible)
+%     Same scenario in both, measure wall-clock time
+%     Expected: Basilisk faster (C++), ADCS-Py easier (Python)
+%     Document trade-off explicitly
+%
+% === EXPERIMENT SET E: Framework Demonstration Cases ===
+%
+% *** EXISTING TEST INFRASTRUCTURE (testing/paper_todo_tests/) ***
+%   90 tests covering 42 of ~47 testable TODOs (89% coverage!)
+%   Run with: pytest testing/paper_todo_tests/ -v -s
+%
+%   | File                              | Tests | Description                        |
+%   |-----------------------------------|-------|------------------------------------|
+%   | test_todo_data_computational.py   | 4     | Timing, memory benchmarks          |
+%   | test_todo_data_desaturation.py    | 18    | Momentum tracking analysis         |
+%   | test_todo_data_generation.py      | 7     | CubeSat configs, practitioner      |
+%   | test_todo_data_lp_qp_comparison.py| 14    | LP vs QP allocation comparison     |
+%   | test_todo_data_sensitivity.py     | 3     | Parameter sensitivity              |
+%   | test_todo_fig_generation.py       | 9     | Polytopes, envelopes, spheres      |
+%   | test_todo_sim_controller_comparison.py | 6 | Controller comparison tables   |
+%   | test_todo_sim_monte_carlo.py      | 4     | Monte Carlo infrastructure         |
+%   | test_todo_sim_scenarios.py        | 8     | Pointing, tracking, failure        |
+%
+%   SPACECRAFT VARIETY - KEY TO DEMONSTRATING GENERALIZABILITY:
+%     The Package paper must show the framework works across DIVERSE configs!
+%
+%     Available factory functions:
+%       create_beavercube2_cubesat() - 3U, 4kg, 3+1 (real mission)
+%       create_3_3_beavercube2_cubesat() - 3U, 4kg, 3+3
+%       create_beavercube1_cubesat() - 3U, 4kg, 3+0 (MTQ only)
+%
+%     EXPERIMENTS SHOULD INCLUDE DIVERSE CONFIGS:
+%       - Different masses: 1U (1.3kg), 3U (4kg), 6U (8kg), 12U (20kg)
+%       - Different actuator sets: 3+0, 3+1, 3+3, 0+3, with thrusters
+%       - Different orbits: LEO (400km), SSO (600km), polar, equatorial
+%       - Different goals: nadir, sun, ground track, inertial hold
+%       - Different sensors: with/without gyro, different noise levels
+%
+%     This variety demonstrates: "configuration replaces custom code"
+%
+% E1. Quick Architecture Trade Study
+%     Scenario: Mission needs 2° pointing, compare 3+0, 3+1, 3+3
+%     Show: How framework enables rapid comparison
+%     Output: Decision table + code snippets
+%
+% E2. Failure Mode Analysis
+%     Scenario: Wheel failure mid-mission
+%     Show: Framework handles graceful degradation automatically
+%     Output: Before/after pointing performance
+%
+% E3. Multi-Goal Sequence
+%     Scenario: Imaging pass with 3 targets
+%     Show: Goal list → simulation → results
+%     Minimal code example
+%
+% ============================================================
+%
+% ============================================================
+% TODO SUMMARY BY VENUE
+% ============================================================
+%
+% FOR SMALLSAT (practical, accessible):
+%   - SMALLSAT-1: "5-minute demo" workflow timing
+%   - SMALLSAT-2: Practitioner metrics (sim speed, memory, RPi benchmarks)
+%   - SMALLSAT-3: Debugging guidance (divergence, saturation, momentum)
+%   - SMALLSAT-4: "When to use which framework" guidance
+%   - SMALLSAT-5: HIL test setup photos/diagram
+%   - SMALLSAT-6: Hardware interface specifications
+%   - SMALLSAT-7: When is Python performance sufficient?
+%   - SMALLSAT-8: Installation quickstart
+%
+% FOR JGCD (rigorous, theoretical):
+%   - JGCD-1: Formal Basilisk comparison with quantitative data
+%   - JGCD-2: Estimation error bounds derivation
+%   - JGCD-3: Stability/convergence proofs (Lyapunov, averaging)
+%   - JGCD-4: Computational complexity O() analysis
+%   - JGCD-5: Expanded feature comparison table
+%   - JGCD-6: Python vs C++ performance analysis
+%   - JGCD-7: Validation campaign documentation
+%
+% ============================================================
+
+\documentclass[conference]{IEEEtran}
+
+% ----------------------------
+% Packages
+% ----------------------------
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{siunitx}
+\usepackage{hyperref}
+\usepackage{cite}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{subcaption}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{verbatim}
+
+% Code listing style
+\lstset{
+    language=Python,
+    basicstyle=\ttfamily\footnotesize,
+    keywordstyle=\color{blue},
+    commentstyle=\color{gray},
+    stringstyle=\color{red},
+    frame=single,
+    breaklines=true
+}
+
+% Path to local images folder
+\graphicspath{{images/}}
+
+% ----------------------------
+% Title / Authors
+% ----------------------------
+\title{A Modular Open-Source Python Framework for Small Satellite Attitude Determination and Control}
+
+\author{\IEEEauthorblockN{Patrick McKeen, Niclas Scheuer, Kerri Cahoy}
+\IEEEauthorblockA{Department of Aeronautics and Astronautics\\
+Massachusetts Institute of Technology\\
+Email: pmckean@mit.edu}
+}
+
+\begin{document}
+\maketitle
+
+% ============================================================
+% SMALLSAT EUROPE ABSTRACT (targeting ~350 words)
+% ============================================================
+% \begin{abstract}
+% [PLACEHOLDER FOR SMALLSAT EU VERSION - trim to conference requirements]
+% \end{abstract}
+
+% ============================================================
+% JOSS ABSTRACT (targeting ~250 words, software-focused)
+% ============================================================
+% \begin{abstract}
+% [PLACEHOLDER FOR JOSS VERSION - emphasize software contribution]
+% \end{abstract}
+
+% ----------------------------
+% Abstract (CURRENT - MEGA PAPER VERSION)
+% ----------------------------
+\begin{abstract}
+Advanced attitude determination and control (ADCS) techniques are often difficult for small satellite teams to adopt due to tightly coupled implementations and the need to rapidly evaluate alternative architectures. Evaluating prospective ADCS options may require significant modification of existing code for specific actuator combinations, sensor hardware, orbits, mission goals, and control laws. Existing options are limited: Basilisk and OpenSatKit use C++ cores with Python wrappers and message-passing architectures that are difficult to adapt, and most options focus on orbit mechanics or overall flight software rather than closed-loop ADCS. This paper presents an open-source, modular ADCS framework in pure Python that enables rapid development, repeatable testing, and flight-oriented integration across heterogeneous spacecraft.
+
+The package supports torque- and command-level control, bound-respecting allocation, and full- and reduced-attitude objectives. Estimation, control, planning, and actuator/sensor modeling are implemented as interchangeable modules reconfigured through configuration rather than code restructuring. Integrated simulation includes attitude and orbit propagation, configurable sensor and actuator models with bias and noise, and environmental disturbances. An actuator-aware planner supports underactuated architectures, while hardware-in-the-loop capability enables testing on mission-representative computers.
+
+We demonstrate the framework through a variety of case studies including a 3U CubeSat with three magnetorquers and one reaction wheel, a magnetorquer-only 1U, and a 6U with three reaction wheels and thrusters. Across these, we showcase actuator and sensor failure modes, full- and reduced-attitude goals, and momentum management. HIL testing on a Raspberry Pi is demonstrated in the same package. Adapting a published control law to a new actuator configuration requires less than 5 lines of configuration changes. The framework underpins flight software for an Earth-observing CubeSat with visible and long-wave infrared imagers, three magnetorquers, and one reaction wheel, without star trackers or propulsion.
+\end{abstract}
+
+% ============================================================
+% ALTERNATE ABSTRACT (shorter, for section heading)
+% ============================================================
+\section{Abstract}
+
+Advanced attitude determination and control techniques are often difficult for small satellite teams to adopt due to tightly coupled implementations, limited testing infrastructure, and the need to rapidly evaluate alternative architectures. Evaluating prospective ADCS options may require significant modification of existing code for specific actuator combinations, sensor hardware, orbits, mission goals, and control laws. This paper presents an open-source, modular Python ADCS framework that enables rapid development, repeatable testing, and flight-oriented integration across heterogeneous spacecraft. The framework decomposes ADCS into interchangeable modules for estimation, control, planning, actuator/sensor modeling, disturbance and gyroscopic compensation, and goal specification, allowing users to evaluate new architectures primarily through configuration rather than mission-specific rewrites.
+
+The package supports torque- and command-level control, bound-respecting allocation, and full- and reduced-attitude objectives for a variety of pointing goals. Integrated simulation provides attitude and orbit propagation, sensor and actuator models with bias and noise, and environmental disturbances for closed-loop evaluation. Built-in augmented-state estimators support evaluation of coupled, sensor-driven estimation and control. The framework includes an actuator- and disturbance-aware planner for flight use or performance bounding, and supports hardware-in-the-loop testing with flight software running on mission-appropriate hardware. It is easily extensible to user-added control and estimation methods, with allocation layers that adapt controllers to different actuator sets and disturbance environments.
+
+We demonstrate the framework through case studies showing how published controllers can be incorporated as torque-generating elements and executed via unified allocation layers across multiple configurations, including underactuated architectures using magnetorquers and reaction wheels. Simulation campaigns show consistent closed-loop behavior across actuator sets while substantially reducing development complexity. The framework underpins ongoing flight software development for BeaverCube 2 (AICube) and aims to significantly lower the barrier to ADCS development for small satellite teams.
+
+% ============================================================
+% PREVIOUS ABSTRACT VERSION (too long)
+% ============================================================
+\begin{comment}
+\section{Abstract | too long}
+
+Advanced attitude determination and control techniques are often difficult for small satellite teams to adopt due to tightly coupled implementations, limited testing infrastructure, and the need to rapidly evaluate alternative architectures. This coupling makes it rather difficult to evaluate the performance of prospective ADCS options as evaluating and testing may require consideration and modification of existing results for specific actuator combinations, sensor hardware, orbits, mission goals, and control laws. This paper presents an open-source, modular Python ADCS framework that enables rapid development, repeatable testing, and flight-oriented integration across heterogeneous spacecraft with a wide variety of sensor and actuator options. The framework decomposes ADCS into interchangeable modules for estimation, control, planning, actuator/sensor modeling, inclusion of disturbance and gyroscopic effects, and goal specification, allowing users to evaluate new architectures and control laws primarily through configuration rather than mission-specific rewrites.
+
+The package supports both torque-level and command-level control, bound-respecting torque allocation, and reduced-attitude objectives. In addition to standard inertial and Earth-relative pointing, it includes ground-target tracking and predictive ground tracking goals that explicitly account for limited slew authority by leading the target prior to overflight. Integrated high-fidelity simulation provides attitude and orbit propagation, reaction wheel dynamics, configurable sensor and actuator models (including bias and noise), and common environmental disturbances, enabling end-to-end closed-loop evaluation. General-purpose estimators (e.g., UKF-based variants) with augmented  states (supporting bias and time-varying disturbances) and orbit estimation modules are included to support realistic sensor-driven studies and understanding the coupled effects of estimation and control. In addition to several existing control laws and estimators included with the package, it is easily extensible to user-added control and determination methods, as well as built-in methods to adapt controls to different actuator sets, goals, and disturbances. There is also an actuator- and disturbance-aware planner with built-in scheduling that can be used in flight or to provide an upper-bound on the performance of a specific architecture. The package also includes functionality for testing hardware in the loop, using an external computer to simulate the real world and while the flight software itself runs on a smaller computer appropriate for a mission.
+
+We demonstrate the framework through case studies showing how published controllers can be incorporated as torque-generating elements and executed via unified allocation and compensation layers across multiple spacecraft configurations, including underactuated architectures using magnetorquers and reaction wheels. Extensive simulation campaigns show consistent closed-loop behavior across actuator sets while substantially reducing integration time and enabling systematic architecture trades. The framework underpins ongoing flight software development for BeaverCube 2 (AICube) and is intended to serve as both a research platform and a practical ADCS solution for small satellite teams.
+\end{comment}
+
+% ============================================================
+% OLD ABSTRACT VERSION
+% ============================================================
+\begin{comment}
+\section{Abstract | Old}
+Advanced attitude determination and control techniques are often difficult for small satellite teams to adopt due to tightly coupled implementations, limited testing infrastructure, and the need to rapidly evaluate alternative architectures. This paper presents a modular and generalized ADCS software framework designed to support rapid development, experimentation, and deployment across heterogeneous spacecraft. The framework decouples estimation, control, planning, actuator modeling, and goal specification into interchange components, enabling users to switch between satellites, actuators, sensors, or control laws through configuratoin rather than code rewrites.
+
+The package supports torque-level and command-level controllers, reduced-attitude goal representations, disturbance and gyroscopic modeling, and bound-respecting allocation. It can be used both as a high-fidelity simulation environment and as a flight-capable ADCS implementation. Example case studies demonstrate how existing controls laws from the literature can be integrated with minimal code changes and evaluated across multiple spacecraft configurations. Results drawn from extensive simulation campaigns show consistent behavior across architectures and significantly reduced development effort. The framework underpins ongoing flight software development for BeaverCube-2 (AICube) and is intended to serve as both a research platform and a practical ADCS solutoin for small satellite teams.
+\end{comment}
+
+\newpage
+
+% ============================================================
+% FEATURE LIST
+% ============================================================
+Features
+\begin{itemize}
+    \item RK4 6 DoF attitude \& reaction wheel dynamics
+    \item Disturbances: GG, SRP, Dipole
+    \item Sensors: SunSensor, Gyroscopes, MTM, GPS
+    \item Actuators: RW, MTQ
+    \item Configurable bias and noise for sensors and actuators
+    \item RK4 orbit propagation
+    \item General-Purpose Attitude Estimators, including augmented states (biases): UAKF, SRUAKF
+    \item General-Purpose Orbit Estimators: Instantaneous, EKF
+    \item Control Laws for Fully-Actuated and Under-actuated Satellites: Hogan \& Schaub, Lovera, Wisniewski
+    \item Control Laws for Planner (ALTRO)
+    \item Allocation Schemes: LP, QP, QPW, Cost Functions
+    \item Pointing schemes, including ECI, Ground Tracking, Predictive Ground Tracking, Optimal Vector Pointing
+    \item Flight Computer Simulation using Scheduling
+    \item Usage Instructions, Tutorials, Examples, and Documentation
+\end{itemize}
+
+\begin{comment}
+The package supports torque-level and command-level control, bound-respecting allocation, and reduced-attitude objectives including inertial pointing, Earth-relative pointing, ground-target tracking, and predictive tracking that accounts for limited slew authority. Integrated simulation provides attitude and orbit propagation, reaction wheel dynamics, configurable sensor and actuator models with bias and noise, and environmental disturbances for end-to-end closed-loop evaluation. General-purpose estimators with augmented states support realistic sensor-driven studies of coupled estimation and control performance. The framework includes an actuator- and disturbance-aware planner for flight use or architecture performance bounding, and supports hardware-in-the-loop testing with flight software running on mission-appropriate hardware. It is easily extensible to user-added control and estimation methods, with built-in allocation layers that adapt controllers to different actuator sets and disturbance environments.
+\end{comment}
+
+
+% ----------------------------
+% Keywords
+% ----------------------------
+\begin{IEEEkeywords}
+Attitude control, small satellites, CubeSats, open-source software, modular framework, magnetorquers, reaction wheels, state estimation
+\end{IEEEkeywords}
+
+% ==================================================
+\section{Introduction}\label{sec:introduction}
+
+Small satellites increasingly operate with diverse actuator configurations, sensor suites, and mission requirements. Despite significant advances in ADCS algorithms, translating research results into flight-capable software remains challenging for resource-constrained teams. Most published ADCS approaches are mission- or spacecraft-specific and cannot be easily generalized to satellites with different sensors, actuators, inertia properties, goals, orbits, or disturbance environments~\cite{wertz1978spacecraft,wie2008spacecraft}.
+
+This coupling between algorithm and implementation creates several practical difficulties. Evaluating prospective ADCS options may require consideration and modification of existing results for specific actuator combinations, sensor hardware, orbits, mission goals, and control laws. Testing new control approaches often requires significant software development effort even for conceptually simple changes. The result is that many small satellite teams either adopt conservative, well-understood approaches or invest substantial development time in custom implementations.
+
+The question of pointing a rigid-body satellite in space is almost a textbook physics problem. The dynamics are perfectly defined. The goals can be stated explicitly. There is uncertainty, but it can be quantified. There are disturbances, but they are generally understood and can be estimated. Unlike other autonomy problems, there is no chance of sudden unexpected events requiring immediate response. The problem can be written in full mathematical detail, so it seems like there should be a general solution---one where the spacecraft's own control system processes desired goals, incorporates actuation limits and disturbance effects, and guides the system to meet those goals.
+
+This vision motivates the development of a generalized ADCS framework. An ADCS approach that can be generally applied has become more valuable as miniaturization and mass-production of satellites have created many more satellites with a wider variety of architectures and goals than ever before. Such a framework allows effort to be spent on improving the systems, as opposed to customizing or re-developing the ADCS for each satellite.
+
+Generalizability goes hand-in-hand with enabling autonomy. Throughout this work, we have pursued a vision of ADCS where operators only need to give the satellite a set of pointing goals and associated times, along with constraints such as rotation rate limits or keep-out zones. The spacecraft would then work on its own to achieve these goals, adapting to its own physical parameters, actuator limits, constraints, and disturbances as needed.
+
+% ============================================================
+% CONOPS COUPLING - KEY FRAMING FOR SMALLSAT EU
+% (For JOSS, this section can be trimmed to focus on software contribution)
+% ============================================================
+\subsection{CONOPS-Coupled ADCS Design}\label{subsec:conops}
+
+Traditional ADCS development treats actuator selection as an early, fixed decision based on worst-case pointing requirements. This approach fails to account for how actuator capability interacts with mission operations. Unlike other spacecraft subsystems---where more hardware provides proportionally more capability (more solar panels yield more power, more bandwidth yields more data)---ADCS exhibits \emph{discrete capability thresholds} that depend on mission profile.
+
+Adding one reaction wheel to a magnetorquer-only system does not improve pointing by 33\%; it unlocks an entirely new class of achievable missions. But which missions fall within that class depends on orbit, timing, and goal formulation---factors invisible without proper analysis tools.
+
+This insight motivates a different approach to ADCS design: one that couples actuator selection with mission concept of operations (CONOPS) from the start. Rather than asking ``what actuators do I need for 1-degree pointing?'' the mission designer should ask ``what pointing accuracy can I achieve with this actuator set, given my operational constraints?'' This framework provides the tools to answer that question rapidly, enabling mission teams to:
+
+\begin{itemize}
+    \item Explore architecture-mission trade spaces through configuration rather than reimplementation
+    \item Discover that simpler actuator configurations may suffice when goals are reformulated
+    \item Identify operational windows where underactuated systems achieve full capability
+    \item Validate CONOPS assumptions against realistic closed-loop simulation before hardware selection
+\end{itemize}
+
+By enabling rapid architecture evaluation, the framework makes CONOPS-coupled design practical. A team can evaluate dozens of actuator configurations against their mission profile in hours rather than months, finding optimal combinations that would otherwise require extensive custom development to discover.
+
+% ============================================================
+% SIMPLIFYING OPERATIONS - KEY FOR SMALLSAT AUDIENCE
+% (For JOSS, focus more on software architecture and reproducibility)
+% ============================================================
+\subsubsection{Configuration Replaces Custom Code}
+
+A key operational benefit is that \textbf{spacecraft configuration replaces custom software development}. Traditional ADCS development requires:
+\begin{itemize}
+    \item Writing estimator code tailored to specific sensor suites
+    \item Implementing control laws matched to specific actuator configurations
+    \item Developing allocation schemes for each actuator combination
+    \item Creating simulation infrastructure from scratch
+\end{itemize}
+
+With this framework, these steps become configuration:
+\begin{lstlisting}[caption={Configuration-based spacecraft definition}]
+# Define actuator configuration
+actuators = [MTQ('x'), MTQ('y'), MTQ('z'), RW('z')]
+
+# Framework automatically:
+# - Constructs appropriate allocation layer
+# - Configures controllability analysis
+# - Sets up momentum management
+# - Enables compatible control laws
+\end{lstlisting}
+
+Changing from magnetorquer-only to a 3+1 hybrid configuration requires modifying one line, not rewriting the control system. This enables mission designers to focus on \emph{what} the spacecraft should do rather than \emph{how} to implement the control system.
+
+The same philosophy applies to goal specification. Rather than programming detailed slew sequences, operators specify high-level pointing objectives:
+\begin{lstlisting}[caption={Goal-based operation}]
+goals = GoalList([
+    (t_start, Nadir_Goal()),      # Point camera nadir
+    (t_image, Sun_Goal()),        # Charge batteries
+    (t_downlink, Ground_Goal(gs)) # Point antenna at station
+])
+\end{lstlisting}
+
+The framework handles feasibility assessment, trajectory generation, and execution---transforming ADCS operations from manual flight control to goal-based autonomy.
+
+\subsection{Statement of Need}\label{subsec:need}
+
+% JOSS requirement: clearly state the need for the software
+Existing ADCS software falls into several categories, each with limitations for small satellite development:
+
+\begin{itemize}
+    \item \textbf{Commercial packages} (e.g., STK, GMAT attitude modules): Expensive licensing, often closed-source, difficult to modify for research purposes
+    \item \textbf{Flight heritage codebases}: Tightly coupled to specific missions, require significant adaptation for new configurations
+    \item \textbf{Research implementations}: Often proof-of-concept, lacking documentation, testing infrastructure, or practical deployment considerations
+    \item \textbf{Simple educational tools}: Insufficient fidelity for mission-realistic evaluation
+\end{itemize}
+
+The ADCS-Py framework addresses this gap by providing a modular, well-documented, open-source implementation suitable for both research exploration and flight software development. The package enables:
+
+\begin{itemize}
+    \item Rapid evaluation of ADCS architectures through configuration rather than code changes
+    \item Consistent comparison of control laws, estimators, and allocation methods
+    \item Transition from simulation to hardware-in-the-loop to flight with minimal modification
+    \item Reproducible research through standardized interfaces and test cases
+\end{itemize}
+
+\subsection{Contributions}\label{subsec:contributions}
+
+The core contributions of this work are:
+
+\begin{itemize}
+    \item A modular ADCS framework decomposing estimation, control, planning, allocation, and simulation into interchangeable components
+    \item Support for heterogeneous actuator configurations including magnetorquer-only, reaction wheel, and hybrid systems
+    \item Built-in augmented-state estimators incorporating dynamics, disturbances, and bias estimation
+    \item Integration with trajectory planning for underactuated and disturbance-dominated systems
+    \item Hardware-in-the-loop testing infrastructure connecting simulation to flight computers
+    \item Comprehensive documentation, examples, and tutorials enabling adoption by small satellite teams
+\end{itemize}
+
+The remainder of this paper is organized as follows. Section~\ref{sec:related_work} reviews related software and approaches. Section~\ref{sec:architecture} presents the framework architecture. Section~\ref{sec:estimation} describes the estimation subsystem. Section~\ref{sec:control} covers control laws and allocation. Section~\ref{sec:planning} discusses trajectory planning integration. Section~\ref{sec:simulation} details the simulation environment. Section~\ref{sec:examples} demonstrates the framework through case studies. Section~\ref{sec:discussion} discusses implications and limitations, and Section~\ref{sec:conclusion} concludes.
+
+
+% ==================================================
+\section{Related Work}\label{sec:related_work}
+
+Several software packages address portions of the ADCS development workflow, though none provide the integrated, modular approach presented here.
+
+\subsection{Simulation Environments}\label{subsec:related_simulation}
+
+General-purpose spacecraft simulation tools include NASA's GMAT~\cite{gmat} and ESA's poliastro~\cite{poliastro}. These provide orbital mechanics and basic attitude propagation but lack detailed ADCS component modeling. Basilisk~\cite{basilisk} offers more comprehensive attitude simulation with modular architecture, though its C/C++ implementation and complexity present barriers for rapid prototyping.
+
+% TODO-JGCD-1: Expand Basilisk comparison with quantitative data
+\subsubsection{Comparison with Basilisk}
+Basilisk is the most directly comparable framework. Table~\ref{tab:basilisk_comparison} summarizes key differences.
+
+\begin{table}[t]
+    \centering
+    \caption{Framework Comparison: ADCS-Py vs Basilisk}
+    \label{tab:basilisk_comparison}
+    \begin{tabular}{lcc}
+        \toprule
+        Feature & ADCS-Py & Basilisk \\
+        \midrule
+        Primary language & Python & C/C++ \\
+        Lines to configure 3U CubeSat & [TBD] & [TBD] \\
+        Time to first simulation & [TBD] min & [TBD] min \\
+        Built-in estimators & 5 & [TBD] \\
+        Analytical Jacobians/Hessians & Yes & No \\
+        Trajectory optimization & Integrated & External \\
+        Documentation pages & [TBD] & [TBD] \\
+        \midrule
+        Sim speed (1 orbit, 3U) & [TBD] s & [TBD] s \\
+        Memory footprint & [TBD] MB & [TBD] MB \\
+        \bottomrule
+    \end{tabular}
+    \begin{flushleft}
+    \small Basilisk excels in simulation speed due to C++ core; ADCS-Py prioritizes rapid development and algorithm exploration.
+    \end{flushleft}
+\end{table}
+
+% TODO-SMALLSAT-4: Add "when to use which" guidance
+% - Use ADCS-Py for: prototyping, algorithm research, small teams, Python shops
+% - Use Basilisk for: high-fidelity sim campaigns, C++ flight software, large teams
+
+\subsection{Control Libraries}\label{subsec:related_control}
+
+The Python Control Systems Library~\cite{python_control} provides general linear systems tools but lacks spacecraft-specific functionality. ROS-based approaches~\cite{ros} offer modularity but introduce significant infrastructure overhead for standalone ADCS development.
+
+\subsection{Estimation Packages}\label{subsec:related_estimation}
+
+FilterPy~\cite{filterpy} and similar packages provide Kalman filter implementations but require users to define spacecraft-specific dynamics models. The USQUE algorithm~\cite{crassidis_unscented_2003} is widely implemented but typically in mission-specific codebases.
+
+\subsection{Differentiating Features}\label{subsec:related_diff}
+
+This framework differs from prior work by:
+\begin{itemize}
+    \item Integrating estimation, control, planning, and simulation in a unified package
+    \item Providing spacecraft-specific models for common sensors, actuators, and disturbances
+    \item Supporting both research exploration (Python flexibility) and flight deployment (HIL testing)
+    \item Emphasizing underactuated and unconventionally actuated configurations
+    \item Providing analytical Jacobians and Hessians for all dynamics, enabling gradient-based optimization
+\end{itemize}
+
+% TODO-JGCD-5: Expand comparison table to include more packages
+\begin{table}[t]
+    \centering
+    \caption{Feature Comparison with Related Software}
+    \label{tab:feature_comparison}
+    \begin{tabular}{lccccc}
+        \toprule
+        Feature & ADCS-Py & Basilisk & GMAT & poliastro & FilterPy \\
+        \midrule
+        Attitude dynamics & \checkmark & \checkmark & \checkmark & -- & -- \\
+        Sensor models & \checkmark & \checkmark & -- & -- & -- \\
+        Actuator models & \checkmark & \checkmark & -- & -- & -- \\
+        Built-in estimators & \checkmark & \checkmark & -- & -- & \checkmark \\
+        Built-in controllers & \checkmark & \checkmark & -- & -- & -- \\
+        Trajectory optimization & \checkmark & -- & -- & -- & -- \\
+        Analytical derivatives & \checkmark & -- & -- & -- & -- \\
+        Python API & \checkmark & \checkmark & -- & \checkmark & \checkmark \\
+        Open source & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+
+% ==================================================
+\section{Framework Architecture}\label{sec:architecture}
+
+The ADCS-Py framework decomposes attitude determination and control into modular components with well-defined interfaces, as shown in Fig.~\ref{fig:architecture}.
+
+% TODO-FIGURE: Add architecture diagram similar to planner paper ADCS_overview.png
+% \begin{figure}[t]
+%     \centering
+%     \includegraphics[width=0.95\linewidth]{architecture_diagram.png}
+%     \caption{ADCS-Py framework architecture showing modular components and data flow.}
+%     \label{fig:architecture}
+% \end{figure}
+
+\subsection{Core Components}\label{subsec:components}
+
+The framework comprises the following primary subsystems:
+
+\begin{enumerate}
+    \item \textbf{Spacecraft Model}: Defines mass properties, actuator configurations, sensor suites, and physical parameters. All other components reference this central definition.
+
+    \item \textbf{Environment Model}: Provides time-varying environmental data including magnetic field (IGRF), solar position, atmospheric density, and orbital elements.
+
+    \item \textbf{Sensor Models}: Simulate sensor outputs with configurable noise, bias, and measurement functions for magnetometers, sun sensors, gyroscopes, star trackers, and GPS.
+
+    \item \textbf{Actuator Models}: Model magnetorquers, reaction wheels, and thrusters with saturation limits, rate constraints, bias, noise, and dynamic response characteristics. Each actuator provides torque computation, Jacobians ($\partial\boldsymbol{\tau}/\partial u$, $\partial\boldsymbol{\tau}/\partial\mathbf{x}$), and Hessians for optimization.
+
+    \item \textbf{Estimator}: Processes sensor measurements to estimate spacecraft state including attitude, angular velocity, biases, and disturbances.
+
+    \item \textbf{Controller}: Computes desired control torques based on current state estimate and pointing goals.
+
+    \item \textbf{Allocator}: Maps desired torques to actuator commands respecting hardware constraints.
+
+    \item \textbf{Planner}: Generates feasible trajectories for complex maneuvers or underactuated systems.
+
+    \item \textbf{Simulator}: Integrates all components for closed-loop evaluation with configurable fidelity.
+\end{enumerate}
+
+\subsection{State Representation}\label{subsec:state}
+
+The spacecraft state vector $\mathbf{x}$ represents orientation, angular velocity, actuator states, and relevant biases or uncertainties:
+
+\begin{equation}
+\mathbf{x}_{\text{base}} =
+\begin{bmatrix}
+\mathbf{q} \\
+\boldsymbol{\omega} \\
+\mathbf{h}
+\end{bmatrix}, \quad
+\mathbf{x}_{\text{full}} =
+\begin{bmatrix}
+\mathbf{x}_{\text{base}} \\
+\boldsymbol{\beta}_{\text{act}} \\
+\boldsymbol{\beta}_{\text{sens}} \\
+\mathbf{p}_{\text{dist}}
+\end{bmatrix},
+\end{equation}
+where $\mathbf{q}$ is the orientation quaternion, $\boldsymbol{\omega}$ is the body-frame angular velocity, $\mathbf{h}$ represents stored angular momentum from actuators, $\boldsymbol{\beta}_{\text{act}}$ and $\boldsymbol{\beta}_{\text{sens}}$ are actuator and sensor biases, and $\mathbf{p}_{\text{dist}}$ encapsulates disturbance parameters.
+
+\subsection{Dynamics Model}\label{subsec:dynamics}
+
+The spacecraft motion follows Euler's equations extended to include stored momentum, actuator contributions, and disturbances:
+
+\begin{equation}
+\dot{\mathbf{q}} = \frac{1}{2} \mathbf{q} \otimes
+\begin{bmatrix}
+0 \\
+\boldsymbol{\omega}
+\end{bmatrix},
+\end{equation}
+\begin{equation}\label{eq:euler}
+\dot{\boldsymbol{\omega}} = \mathbf{J}^{-1} \left(
+\boldsymbol{\tau}_{\text{act}} + \boldsymbol{\tau}_{\text{dist}} - \boldsymbol{\omega} \times (\mathbf{J} \boldsymbol{\omega} + \mathbf{h})
+\right),
+\end{equation}
+where $\mathbf{J}$ is the spacecraft inertia tensor, $\boldsymbol{\tau}_{\text{act}}$ represents actuator torques, $\boldsymbol{\tau}_{\text{dist}}$ accounts for disturbances, and $\mathbf{h}$ is stored angular momentum.
+
+For spacecraft with reaction wheels, the momentum-inclusive dynamics become:
+\begin{equation}
+\label{eq:av_dynamics_reduced}
+\dot{\boldsymbol{\omega}} = \mathbf{J}_b^{-1}\left(-\boldsymbol{\omega}\times \left(\mathbf{J}_b\boldsymbol{\omega} +\mathbf{A}^T\mathbf{h}_{\text{rw}}\right)+\boldsymbol{\tau}_{\text{ctrl}} + \boldsymbol{\tau}_{\text{dist}} \right),
+\end{equation}
+where $\mathbf{J}_b = \mathbf{J}_{\text{noRW}}$ is the bus inertia excluding wheel rotors and $\mathbf{A}$ stacks the wheel spin axis unit vectors. Wheel momentum evolves as:
+\begin{equation}
+\dot{\mathbf{h}}_{\text{rw}} = \mathbf{u}_{\text{rw}} - \text{diag}(\mathbf{J}_{\text{rw}}) \mathbf{A}^T \dot{\boldsymbol{\omega}},
+\end{equation}
+coupling wheel dynamics to body angular acceleration.
+
+\subsubsection{Numerical Integration}
+The framework implements fourth-order Runge-Kutta (RK4) integration with quaternion renormalization at each substep:
+\begin{align}
+\mathbf{k}_1 &= f(\mathbf{x}_n, \mathbf{u}, t_n), \\
+\mathbf{k}_2 &= f\left(\mathbf{x}_n + \tfrac{\Delta t}{2}\mathbf{k}_1, \mathbf{u}, t_n + \tfrac{\Delta t}{2}\right), \\
+\mathbf{k}_3 &= f\left(\mathbf{x}_n + \tfrac{\Delta t}{2}\mathbf{k}_2, \mathbf{u}, t_n + \tfrac{\Delta t}{2}\right), \\
+\mathbf{k}_4 &= f(\mathbf{x}_n + \Delta t \mathbf{k}_3, \mathbf{u}, t_{n+1}), \\
+\mathbf{x}_{n+1} &= \mathbf{x}_n + \tfrac{\Delta t}{6}(\mathbf{k}_1 + 2\mathbf{k}_2 + 2\mathbf{k}_3 + \mathbf{k}_4),
+\end{align}
+with $\mathbf{q} \leftarrow \mathbf{q}/\|\mathbf{q}\|$ applied after each intermediate state computation to prevent numerical drift from the unit quaternion manifold.
+
+For trajectory optimization requiring Lie-group-consistent attitude integration, the framework provides an optional commutator-free fifth-order (CG5) scheme that propagates quaternions using exponential maps $\exp(\mathbf{F}_i)$ rather than additive updates.
+
+\subsubsection{Analytical Jacobians and Hessians}
+The \texttt{Satellite} class provides analytical first and second derivatives of the dynamics for use in estimation and trajectory optimization:
+\begin{equation}
+\frac{\partial \dot{\mathbf{x}}}{\partial \mathbf{x}}, \quad
+\frac{\partial \dot{\mathbf{x}}}{\partial \mathbf{u}}, \quad
+\frac{\partial^2 \dot{\mathbf{x}}}{\partial \mathbf{x}^2}, \quad
+\frac{\partial^2 \dot{\mathbf{x}}}{\partial \mathbf{x} \partial \mathbf{u}}, \quad
+\frac{\partial^2 \dot{\mathbf{x}}}{\partial \mathbf{u}^2}.
+\end{equation}
+These derivatives aggregate contributions from each actuator and disturbance model, enabling Differential Dynamic Programming (DDP) and iterative LQR (iLQR) algorithms.
+
+\subsection{Configuration-Based Instantiation}\label{subsec:config}
+
+Users define spacecraft configurations through structured parameter dictionaries:
+
+\begin{lstlisting}[caption={Example spacecraft configuration}]
+spacecraft_config = {
+    'mass': 4.0,  # kg
+    'inertia': np.diag([0.04, 0.04, 0.02]),
+    'actuators': [
+        MTQ(axis=[1,0,0], max_moment=0.19),
+        MTQ(axis=[0,1,0], max_moment=0.19),
+        MTQ(axis=[0,0,1], max_moment=0.19),
+    ],
+    'sensors': [
+        Magnetometer(noise_std=100e-9),
+        SunSensor(noise_std=0.02),
+        Gyroscope(noise_std=0.001, bias_std=0.0001),
+    ],
+}
+\end{lstlisting}
+
+This configuration-centric approach enables rapid architecture trades by modifying parameters rather than code.
+
+
+% ==================================================
+\section{Estimation Subsystem}\label{sec:estimation}
+
+The estimation subsystem provides generalized attitude state estimation incorporating dynamics, disturbances, and bias tracking for a wide variety of spacecraft, sensors, actuators, and disturbance environments.
+
+\subsection{Estimator Design Philosophy}\label{subsec:est_philosophy}
+
+Traditional attitude estimators often treat dynamics as secondary to sensor fusion. This framework takes a dynamics-aware approach, fully incorporating system dynamics and individual sources of uncertainty or noise while accounting for (and estimating) disturbances. This proves particularly valuable for small spacecraft with lower-quality sensors where dynamics prediction between measurements provides significant information.
+
+\subsection{Augmented State Estimation}\label{subsec:augmented}
+
+The estimator supports augmented states for tracking slowly-varying parameters:
+
+\begin{equation}
+\mathbf{x}_{\text{aug}} = \begin{bmatrix}
+\mathbf{q} \\ \boldsymbol{\omega} \\ \mathbf{h} \\ \boldsymbol{\beta}_{\text{gyro}} \\ \boldsymbol{\beta}_{\text{mtm}} \\ \mathbf{m}_{\text{residual}} \\ \boldsymbol{\tau}_{\text{est}}
+\end{bmatrix},
+\end{equation}
+where $\boldsymbol{\beta}_{\text{gyro}}$ and $\boldsymbol{\beta}_{\text{mtm}}$ are sensor biases, $\mathbf{m}_{\text{residual}}$ is estimated spacecraft magnetic dipole, and $\boldsymbol{\tau}_{\text{est}}$ is an ``all-in-one'' disturbance torque estimate.
+
+\subsubsection{Generalized Bias and Disturbance Estimation}
+A key strength of the framework is the \emph{generalizability} of its bias and disturbance estimation architecture. Any sensor or actuator can optionally contribute bias states to the estimator by setting \texttt{estimate\_bias=True} during instantiation. This applies uniformly to:
+\begin{itemize}
+    \item \textbf{Sensor biases}: Gyroscope drift, magnetometer hard/soft iron offsets, sun sensor alignment errors
+    \item \textbf{Actuator biases}: Magnetorquer dipole moment offsets, reaction wheel torque scale factors, thruster misalignment
+    \item \textbf{Disturbance parameters}: Residual magnetic dipole components, propulsion torque offsets, unmodeled constant torques
+\end{itemize}
+
+The framework automatically constructs the augmented state vector and covariance matrices based on which components have estimation enabled. This allows the same estimator implementation to handle configurations ranging from minimal (attitude-only) to comprehensive (attitude + rates + biases + disturbances) without code changes.
+
+\subsubsection{Propulsion Torque Estimation}
+For spacecraft with propulsion systems, unmodeled or misaligned thrust can create persistent torque disturbances. The framework supports estimation of propulsion-induced torques through:
+\begin{equation}
+\boldsymbol{\tau}_{\text{prop}} = \boldsymbol{\tau}_{\text{prop},0} + \Delta\boldsymbol{\tau}_{\text{prop}}(t),
+\end{equation}
+where $\boldsymbol{\tau}_{\text{prop},0}$ represents a slowly-varying offset (estimated as part of the augmented state) and $\Delta\boldsymbol{\tau}_{\text{prop}}(t)$ captures time-varying components modeled as process noise. The \texttt{Prop\_Disturbance} class models thrust misalignment and center-of-mass offset effects, with optional estimation of the offset parameters.
+
+% TODO-MATH: Add full UKF/SRUAKF equations
+% TODO-MATH: Add measurement model equations for each sensor type
+
+\subsection{Unscented Kalman Filter Implementation}\label{subsec:ukf}
+
+The framework implements several Kalman filter variants, each extending the base \texttt{Attitude\_Estimator} class:
+\begin{itemize}
+    \item Extended Kalman Filter (EKF)
+    \item Unscented Kalman Filter (UKF)
+    \item Square-Root Unscented Kalman Filter (SRUKF)
+    \item Unscented Attitude Kalman Filter (UAKF) with error-state quaternion handling
+    \item Square-Root UAKF (SRUAKF) combining both approaches
+\end{itemize}
+
+The UAKF maintains covariance in a reduced error-state representation. The full state stores the 4-component quaternion, while covariance tracks a 3-parameter attitude error $\delta\boldsymbol{\theta}$:
+\begin{equation}
+\mathbf{x}_{\text{full}} = [\boldsymbol{\omega}, \mathbf{q}, \mathbf{h}, \dots]^T, \quad
+P \text{ corresponds to } [\delta\boldsymbol{\omega}, \delta\boldsymbol{\theta}, \dots].
+\end{equation}
+
+Sigma point perturbations are applied multiplicatively for quaternions:
+\begin{equation}
+\mathbf{q}_{\text{new}} = \mathbf{q}_{\text{old}} \otimes \delta\mathbf{q}(\delta\boldsymbol{\theta}),
+\end{equation}
+ensuring the attitude state remains on the unit quaternion manifold.
+
+\subsubsection{Sigma Point Generation}
+The augmented sigma points incorporate state, process noise, and control uncertainty:
+\begin{equation}
+L = L_x + L_q + L_r, \quad \lambda = \alpha^2(L + \kappa) - L,
+\end{equation}
+where $\alpha = 10^{-3}$, $\kappa = 0$, and $\beta = 2$ are tuning parameters. The sigma point weights are:
+\begin{equation}
+W_0^{(m)} = \frac{\lambda}{L + \lambda}, \quad
+W_0^{(c)} = W_0^{(m)} + (1 - \alpha^2 + \beta), \quad
+W_i = \frac{1}{2(L + \lambda)}.
+\end{equation}
+
+\subsubsection{Square-Root Formulation}
+The SRUAKF propagates the upper-triangular Cholesky factor $\mathbf{S}$ where $P = \mathbf{S}^T\mathbf{S}$, using the \texttt{choldate} C-extension for efficient rank-1 updates and downdates:
+\begin{equation}
+\mathbf{S}_{\text{new}}^T \mathbf{S}_{\text{new}} = \mathbf{S}^T \mathbf{S} \pm \sqrt{|w|} \mathbf{v} \mathbf{v}^T.
+\end{equation}
+This formulation handles negative weights (required for the central sigma point) while maintaining positive semi-definiteness. The time update uses QR decomposition:
+\begin{equation}
+\mathbf{S}^- = \text{qr}\left([\sqrt{W_i}(\mathcal{X}_{k|k-1}^{(i)} - \hat{\mathbf{x}}_k^-), \mathbf{S}_Q]\right),
+\end{equation}
+followed by a rank-1 downdate for the central point.
+
+\subsection{Estimation Results}\label{subsec:est_results}
+
+% TODO-DATA-3: Insert estimation accuracy results
+The dynamics-aware filtering approach demonstrates significant improvements over baseline methods. Table~\ref{tab:estimation_results} summarizes estimation accuracy across test cases.
+
+\begin{table}[t]
+    \centering
+    \caption{Estimation Accuracy Comparison}
+    \label{tab:estimation_results}
+    \begin{tabular}{llcc}
+        \toprule
+        Satellite & Method & Attitude Error & Rate Error \\
+        \midrule
+        TRMM & USQUE & [TBD]$^\circ$ & [TBD]$^\circ$/s \\
+        TRMM & ADCS-Py UAKF & [TBD]$^\circ$ & [TBD]$^\circ$/s \\
+        \midrule
+        3U CubeSat & USQUE & [TBD]$^\circ$ & [TBD]$^\circ$/s \\
+        3U CubeSat & ADCS-Py UAKF & [TBD]$^\circ$ & [TBD]$^\circ$/s \\
+        \bottomrule
+    \end{tabular}
+    \begin{flushleft}
+    \small Results from [TBD]-trial simulations. See dissertation cases A-D for details.
+    \end{flushleft}
+\end{table}
+
+For satellites with low-quality sensors, the dynamics-aware estimator demonstrates improvements of more than two orders of magnitude in state estimation accuracy compared to sensor-only approaches. The framework achieves sub-degree estimation accuracy even for CubeSats with noisy sensors.
+
+\subsection{Estimation Error Bounds}\label{subsec:error_bounds}
+
+% TODO-JGCD-2: Complete formal error bounds derivation
+The steady-state estimation error for the dynamics-aware filter can be bounded by analyzing the observability Gramian. For a system with process noise covariance $Q$ and measurement noise covariance $R$, the steady-state covariance $P_\infty$ satisfies the continuous-time algebraic Riccati equation:
+\begin{equation}
+\mathbf{A}P_\infty + P_\infty\mathbf{A}^T - P_\infty\mathbf{C}^T\mathbf{R}^{-1}\mathbf{C}P_\infty + \mathbf{Q} = 0,
+\end{equation}
+where $\mathbf{A}$ is the dynamics Jacobian and $\mathbf{C}$ is the measurement Jacobian.
+
+The key insight is that the dynamics-aware approach introduces additional ``virtual measurements'' through the dynamics model. When sensor quality is poor (large $R$), the dynamics prediction dominates; when sensors are excellent, the filter approaches pure sensor fusion. The crossover occurs when:
+\begin{equation}
+\sigma_{\text{sensor}} \approx \sigma_{\text{dynamics}} \cdot \sqrt{\Delta t / \tau_{\text{corr}}},
+\end{equation}
+where $\tau_{\text{corr}}$ is the correlation time of disturbance torques.
+
+% TODO-JGCD-2: Add plots showing error bounds vs sensor quality
+% TODO-JGCD-2: Compare theoretical bounds to Monte Carlo results
+% TODO-JGCD-2: Discuss conditions where dynamics-aware approach provides >10x improvement
+
+\subsubsection{Comparison to USQUE}
+The Unscented Quaternion Estimator (USQUE)~\cite{crassidis_unscented_2003} is a widely-used baseline for attitude estimation. Our framework extends USQUE in several ways:
+\begin{itemize}
+    \item Augmented state for bias and disturbance estimation
+    \item Full dynamics model rather than kinematic-only propagation
+    \item Square-root formulation for numerical stability
+    \item Analytical Jacobians enabling covariance analysis
+\end{itemize}
+
+% TODO-DATA-3: Show USQUE vs ADCS-Py UAKF comparison across sensor quality levels
+Table~\ref{tab:usque_comparison} compares estimation accuracy across sensor quality regimes.
+
+\begin{table}[t]
+    \centering
+    \caption{USQUE vs ADCS-Py UAKF Error Comparison}
+    \label{tab:usque_comparison}
+    \begin{tabular}{lccc}
+        \toprule
+        Sensor Quality & USQUE & UAKF & Improvement \\
+        \midrule
+        High (star tracker) & [TBD]$''$ & [TBD]$''$ & [TBD]$\times$ \\
+        Medium (sun sensor + MTM) & [TBD]$'$ & [TBD]$'$ & [TBD]$\times$ \\
+        Low (MTM only) & [TBD]$^\circ$ & [TBD]$^\circ$ & [TBD]$\times$ \\
+        \bottomrule
+    \end{tabular}
+    \begin{flushleft}
+    \small The dynamics-aware approach provides largest gains for low-quality sensors where dynamics prediction fills measurement gaps.
+    \end{flushleft}
+\end{table}
+
+
+% ==================================================
+\section{Control Laws and Allocation}\label{sec:control}
+
+The framework supports multiple control law formulations with a unified allocation layer that adapts torque commands to available actuators.
+
+\subsection{Supported Control Laws}\label{subsec:control_laws}
+
+Built-in control laws include:
+
+\begin{itemize}
+    \item \textbf{B-Dot Detumbling}: Magnetic control for initial detumbling after deployment
+    \item \textbf{Quaternion PD}: Standard proportional-derivative control on quaternion error
+    \item \textbf{MTQ with RW}: Hybrid control with continuous momentum dumping~\cite{hogan2015}
+    \item \textbf{Lovera}~\cite{lovera2004periodic}: Periodic control for magnetorquer-only systems
+    \item \textbf{Wisniewski}~\cite{wisniewski1999sliding}: Sliding mode magnetic control
+    \item \textbf{Trajectory-Following}: TVLQR and MPC for tracking planned trajectories
+\end{itemize}
+
+Each control law produces a desired torque vector $\boldsymbol{\tau}_{\text{des}}$ that is then processed by the allocation layer. All controllers inherit from a base \texttt{Controller} class providing common utilities for sensor matrix construction and actuator mapping.
+
+\subsubsection{B-Dot Detumbling Controller}
+The B-Dot algorithm reduces angular velocity using magnetometer rate-of-change feedback:
+\begin{equation}
+\mathbf{m}_{\text{req}} = -K \dot{\mathbf{B}}_b, \quad \dot{\mathbf{B}}_b \approx \frac{\mathbf{B}_{\text{curr}} - \mathbf{B}_{\text{prev}}}{\Delta t}.
+\end{equation}
+For a tumbling satellite, $\dot{\mathbf{B}}_b \approx \boldsymbol{\omega} \times \mathbf{B}_b$, producing torque $\boldsymbol{\tau} = -K(\dot{\mathbf{B}} \times \mathbf{B})$ that dissipates rotational kinetic energy perpendicular to the magnetic field.
+
+\subsubsection{Hybrid MTQ-RW Controller}
+The hybrid controller combines reaction wheel precision with continuous MTQ momentum dumping:
+\begin{equation}
+\boldsymbol{\tau}_{\text{att}} = -K_p \mathbf{q}_{\text{err}} - K_d(\boldsymbol{\omega} - \boldsymbol{\omega}_{\text{ref}}) + \boldsymbol{\tau}_{\text{gyro}},
+\end{equation}
+where gyroscopic compensation accounts for stored wheel momentum:
+\begin{equation}
+\boldsymbol{\tau}_{\text{gyro}} = \boldsymbol{\omega} \times (\mathbf{J}\boldsymbol{\omega} + \mathbf{h}_{\text{rw}}).
+\end{equation}
+Momentum dumping drives wheel momentum toward a target configuration:
+\begin{equation}
+\boldsymbol{\tau}_{\text{dump}} = -K_c(\mathbf{h}_{\text{rw}} - \mathbf{h}_{\text{target}}),
+\end{equation}
+allocated to magnetorquers via the pseudo-inverse of the effective torque mapping $\mathbf{M}_{\text{mag}} = -[\mathbf{B}]_\times \mathbf{A}_{\text{mtq}}$.
+
+\subsection{Disturbance Feedforward}\label{subsec:disturbance_ff}
+
+A key feature is the ability to incorporate estimated disturbances as feedforward control:
+
+\begin{equation}
+\boldsymbol{\tau}_{\text{cmd}} = \boldsymbol{\tau}_{\text{feedback}} + \boldsymbol{\tau}_{\text{ff}},
+\end{equation}
+where $\boldsymbol{\tau}_{\text{ff}}$ may include modeled disturbances (gravity gradient, SRP, drag, propulsion) or the estimator's all-in-one disturbance estimate.
+
+% TODO-MATH: Add detailed control law equations for each method
+
+\subsection{Control Law Results}\label{subsec:control_results}
+
+Including disturbances as feedforward control improves pointing accuracy by up to 20 degrees in underactuated systems with significant disturbances. The ``all-in-one'' disturbance term provides robust enhancement even without precise disturbance modeling.
+
+\subsection{Stability Analysis}\label{subsec:stability}
+
+% TODO-JGCD-3: Complete formal stability proofs
+\subsubsection{B-Dot Convergence}
+The B-dot controller is globally asymptotically stable for detumbling under the orbit-averaged magnetic field assumption. The Lyapunov function $V = \frac{1}{2}\boldsymbol{\omega}^T\mathbf{J}\boldsymbol{\omega}$ (rotational kinetic energy) has time derivative:
+\begin{equation}
+\dot{V} = \boldsymbol{\omega}^T\boldsymbol{\tau} = -K\boldsymbol{\omega}^T(\dot{\mathbf{B}} \times \mathbf{B}).
+\end{equation}
+For a tumbling spacecraft where $\dot{\mathbf{B}} \approx \boldsymbol{\omega} \times \mathbf{B}$:
+\begin{equation}
+\dot{V} \approx -K\|\boldsymbol{\omega} \times \mathbf{B}\|^2 \leq 0,
+\end{equation}
+with equality only when $\boldsymbol{\omega} \parallel \mathbf{B}$. Over an orbit, the time-varying field direction ensures $\dot{V} < 0$ on average, guaranteeing convergence.
+
+% TODO-JGCD-3: Add convergence rate analysis
+% TODO-JGCD-3: Discuss effect of orbit inclination on B-dot performance
+
+\subsubsection{Hybrid Controller Stability}
+The hybrid MTQ-RW controller stability follows from passivity arguments. The reaction wheel loop is locally exponentially stable for $K_p, K_d > 0$. The MTQ momentum dumping loop is stable under the averaging theorem when the dumping gain $K_c$ is sufficiently small relative to the orbital period:
+\begin{equation}
+K_c < \frac{2\pi}{T_{\text{orbit}}} \cdot \frac{\|\mathbf{B}_{\min}\|^2}{\|\mathbf{h}_{\max}\|}.
+\end{equation}
+
+% TODO-JGCD-3: Prove composite stability of cascaded loops
+% TODO-JGCD-3: Add region of attraction analysis for large initial errors
+
+\subsubsection{Allocation with Saturation}
+When actuators saturate, the allocation layer returns a scaled torque $\alpha \boldsymbol{\tau}_{\text{des}}$ with $\alpha \in [0, 1]$. This preserves stability of the closed-loop system provided the controller is designed for the reduced authority case. The framework supports gain scheduling based on $\alpha$ to maintain performance margins.
+
+% TODO-DATA-4: Insert control law comparison table
+\begin{table}[t]
+    \centering
+    \caption{Control Law Performance with Disturbance Feedforward}
+    \label{tab:control_results}
+    \begin{tabular}{llcc}
+        \toprule
+        Control Law & Config & Without FF & With FF \\
+        \midrule
+        Wisniewski & MTQ-only & [TBD]$^\circ$ & [TBD]$^\circ$ \\
+        Lovera & MTQ-only & [TBD]$^\circ$ & [TBD]$^\circ$ \\
+        Quat PD & MTQ+RW & [TBD]$^\circ$ & [TBD]$^\circ$ \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\subsection{Torque Allocation}\label{subsec:allocation}
+
+The allocation layer maps desired torques to actuator commands:
+
+\begin{equation}
+\mathbf{u}^* = \arg\min_{\mathbf{u}} \|\mathbf{A}\mathbf{u} - \boldsymbol{\tau}_{\text{des}}\|^2 + \lambda\|\mathbf{u}\|^2 \quad \text{s.t.} \quad \mathbf{u}_{\min} \leq \mathbf{u} \leq \mathbf{u}_{\max},
+\end{equation}
+where $\mathbf{A}$ maps actuator commands to body torques.
+
+Supported allocation methods include:
+\begin{itemize}
+    \item \textbf{LP}: Linear programming for minimum-effort allocation
+    \item \textbf{QP}: Quadratic programming via bounded least-squares (\texttt{scipy.optimize.lsq\_linear})
+    \item \textbf{QPW}: Weighted QP with actuator preferences
+    \item \textbf{QPG}: QP with additional goal-based weighting
+    \item \textbf{Pseudoinverse}: Moore-Penrose least-squares for unconstrained cases
+\end{itemize}
+
+For magnetorquers, the allocation accounts for the rank-deficient torque mapping:
+\begin{equation}
+\boldsymbol{\tau} = \mathbf{m} \times \mathbf{B},
+\end{equation}
+where torque is inherently orthogonal to the local magnetic field. The effective torque mapping for MTQs is:
+\begin{equation}
+\boldsymbol{\tau}_{\text{mag}} = -[\mathbf{B}_b]_\times \mathbf{A}_{\text{mtq}} \mathbf{u}_{\text{mtq}} = \mathbf{M}_{\text{eff}} \mathbf{u}_{\text{mtq}},
+\end{equation}
+where $\mathbf{A}_{\text{mtq}}$ stacks the MTQ axis vectors and $[\cdot]_\times$ denotes the skew-symmetric cross-product matrix.
+
+\subsubsection{Bounded Least-Squares Allocation}
+The QP allocation solves the constrained optimization:
+\begin{equation}
+\mathbf{u}^* = \arg\min_{\mathbf{u}} \|\mathbf{A}_{\text{total}}\mathbf{u} - \boldsymbol{\tau}_{\text{des}}\|^2, \quad \text{s.t.} \quad -\mathbf{u}_{\max} \leq \mathbf{u} \leq \mathbf{u}_{\max},
+\end{equation}
+where $\mathbf{A}_{\text{total}} = [\mathbf{A}_{\text{rw}} \; \mathbf{M}_{\text{eff}}]$ combines reaction wheel and magnetorquer torque mappings. The allocation returns the achieved fraction $\alpha = \boldsymbol{\tau}_{\text{achieved}} \cdot \hat{\boldsymbol{\tau}}_{\text{des}} / \|\boldsymbol{\tau}_{\text{des}}\|$ indicating how much of the requested torque was satisfied.
+
+% TODO-DATA-5: Insert allocation method comparison
+
+
+% ==================================================
+\section{Goal Specification}\label{sec:goals}
+
+The framework supports flexible goal specification beyond full-attitude targets.
+
+\subsection{Goal Types}\label{subsec:goal_types}
+
+\begin{table}[t]
+    \centering
+    \caption{Goal Type Classification}
+    \label{tab:goal_types}
+    \begin{tabular}{lccl}
+        \toprule
+        Goal Type & DoF & Solution Set & Examples \\
+        \midrule
+        No goal & 3 & All of $SO(3)$ & Momentum mgmt., drift \\
+        Reduced-attitude & 1 & Circle ($S^1$) & Camera nadir, panel sun \\
+        Full-attitude & 0 & Point & Docking, inertial hold \\
+        Set-based & -- & Cone/region & Keep-out, pointing cone \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+Specifying goals as vector alignments rather than full orientations has significant advantages: it allows the controller flexibility in \emph{how} to meet goals, potentially finding solutions that would be infeasible with fully specified orientations. For underactuated systems, this flexibility can mean the difference between feasible and infeasible maneuvers.
+
+\subsection{Reduced-Attitude Goals}\label{subsec:reduced_goals}
+
+For a reduced-attitude goal requiring alignment of body vector $\hat{\mathbf{b}}$ with inertial direction $\hat{\mathbf{r}}_{\text{des}}$, the set of acceptable quaternions forms a one-parameter family. The framework provides utilities to:
+\begin{itemize}
+    \item Find the minimum-slew quaternion from current orientation
+    \item Identify quaternions avoiding keep-out zones
+    \item Select orientations optimizing secondary criteria
+\end{itemize}
+
+All goals inherit from a base \texttt{Goal} class and implement two key methods: \texttt{to\_ref()} returning the inertial reference direction and angular velocity, and \texttt{error()} computing the attitude error vector. The error computation uses quaternion-based vector alignment:
+\begin{equation}
+\mathbf{q}_{\text{err}} = \text{normalize}\left(\begin{bmatrix} 1 + \hat{\mathbf{b}}_{\text{body}} \cdot \hat{\mathbf{r}}_{\text{body}} \\ \hat{\mathbf{r}}_{\text{body}} \times \hat{\mathbf{b}}_{\text{body}} \end{bmatrix}\right),
+\end{equation}
+where $\hat{\mathbf{r}}_{\text{body}} = \mathbf{R}_{I \to B}^T \hat{\mathbf{r}}_{\text{ECI}}$ transforms the goal direction to body frame. The controller receives $\mathbf{q}_{\text{err}}[1{:}4] \cdot \text{sign}(\mathbf{q}_{\text{err}}[0])$ as a 3-vector error term.
+
+\subsection{Available Goal Types}\label{subsec:goal_types_impl}
+
+The framework implements common pointing goals as \texttt{Vector\_Goal} subclasses:
+
+\begin{itemize}
+    \item \textbf{Nadir\_Goal}: Align boresight with local nadir $\hat{\mathbf{r}}_{\text{goal}} = -\hat{\mathbf{r}}$, with reference rate $\boldsymbol{\omega}_{\text{ref}} = (\mathbf{r} \times \mathbf{v})/\|\mathbf{r}\|^2$
+    \item \textbf{Sun\_Goal / AntiSun\_Goal}: Point toward or away from the Sun
+    \item \textbf{BField\_Goal / AntiBField\_Goal}: Align with geomagnetic field direction
+    \item \textbf{PerpBField\_Goal}: Maintain orientation perpendicular to magnetic field
+    \item \textbf{Velocity\_Goal / AntiVelocity\_Goal}: Align with velocity vector (ram/wake pointing)
+    \item \textbf{LVLH\_Tangential\_Goal}: Track local-vertical-local-horizontal frame
+    \item \textbf{Coordinate\_Goal}: Point at fixed ground coordinates
+    \item \textbf{ECI\_Goal}: Point at fixed inertial direction
+    \item \textbf{Fixed\_Attitude\_Goal}: Maintain specific quaternion orientation
+\end{itemize}
+
+The \texttt{GoalList} class enables time-sequenced goal switching for mission scheduling.
+
+% TODO-MATH: Add quaternion set formulas from dissertation goals chapter
+
+
+% ==================================================
+\section{Trajectory Planning Integration}\label{sec:planning}
+
+The framework integrates with the ALTRO-based trajectory planner for underactuated and disturbance-dominated systems.
+
+\subsection{Planner Interface}\label{subsec:planner_interface}
+
+The planner receives:
+\begin{itemize}
+    \item Current state estimate from the estimator
+    \item Goal sequence with timing
+    \item Environmental models (magnetic field, disturbances)
+    \item Actuator constraints
+\end{itemize}
+
+And produces:
+\begin{itemize}
+    \item Time-indexed state trajectory
+    \item Time-indexed control trajectory
+    \item Optional TVLQR gains for trajectory following
+\end{itemize}
+
+\subsection{Graceful Degradation}\label{subsec:graceful}
+
+When goals are infeasible, the planner converges to the closest achievable behavior rather than saturating actuators or failing. This is particularly valuable for underactuated systems where exact goal satisfaction may be geometrically impossible.
+
+\subsection{Planning Results}\label{subsec:planning_results}
+
+% Reference to companion planner paper
+Extensive Monte Carlo results demonstrating planner performance across actuator configurations are presented in the companion paper~\cite{mckeen_planner_2026}. Integration with this framework enables seamless transition from offline trajectory generation to closed-loop execution.
+
+
+% ==================================================
+\section{Simulation Environment}\label{sec:simulation}
+
+The integrated simulation environment enables closed-loop evaluation with configurable fidelity.
+
+\subsection{Simulation Modes}\label{subsec:sim_modes}
+
+\begin{enumerate}
+    \item \textbf{Truth simulation}: High-fidelity propagation for ground truth generation
+    \item \textbf{Flight simulation}: Realistic sensor/actuator models, real-time constraints
+    \item \textbf{HIL simulation}: External flight computer executing ADCS, environment simulated
+    \item \textbf{Monte Carlo}: Batch evaluation with parameter variation
+\end{enumerate}
+
+\subsection{Environmental Models}\label{subsec:env_models}
+
+Built-in environmental models include:
+\begin{itemize}
+    \item Geomagnetic field (IGRF-13)
+    \item Gravitational potential (J2-J6 harmonics)
+    \item Atmospheric density (NRLMSISE-00)
+    \item Solar flux and planetary positions
+\end{itemize}
+
+\subsection{Disturbance Models}\label{subsec:disturbance_models}
+
+Modeled disturbances include:
+\begin{itemize}
+    \item Gravity gradient torque
+    \item Aerodynamic drag torque
+    \item Solar radiation pressure torque
+    \item Residual magnetic dipole interaction
+    \item Propulsion misalignment/offset torques
+\end{itemize}
+
+All disturbance models inherit from a base \texttt{Disturbance} class and implement \texttt{torque()}, \texttt{torque\_qjac()}, and \texttt{torque\_qqhess()} methods for the torque value, quaternion Jacobian, and quaternion Hessian respectively. These derivatives enable gradient-based optimization and uncertainty propagation.
+
+\subsubsection{Aerodynamic Drag Torque}
+The drag model uses configurable surface geometry:
+\begin{equation}
+\mathbf{F}_i = -\tfrac{1}{2}\rho C_{D,i} A_i \max(0, \hat{\mathbf{n}}_i \cdot \mathbf{V}_b) \hat{\mathbf{V}}_b, \quad
+\boldsymbol{\tau}_{\text{drag}} = \sum_i (\mathbf{r}_i - \mathbf{r}_{\text{COM}}) \times \mathbf{F}_i,
+\end{equation}
+where each surface face $i$ has area $A_i$, drag coefficient $C_{D,i}$, normal $\hat{\mathbf{n}}_i$, and centroid $\mathbf{r}_i$. The quaternion Jacobian captures how attitude changes affect which surfaces are exposed to flow:
+\begin{equation}
+\frac{\partial \boldsymbol{\tau}_{\text{drag}}}{\partial \mathbf{q}} = -\tfrac{1}{2}\rho\left[\frac{\partial (F \cdot \mathbf{r})}{\partial \mathbf{q}} \times \mathbf{V}_b + (F \cdot \mathbf{r}) \times \frac{\partial \mathbf{V}_b}{\partial \mathbf{q}}\right],
+\end{equation}
+using Heaviside functions for the $\max(0, \cdot)$ gradient.
+
+\subsubsection{Magnetic Dipole Disturbance}
+The residual dipole disturbance models parasitic magnetic moments:
+\begin{equation}
+\boldsymbol{\tau}_d = \mathbf{m}_d \times \mathbf{B}_b, \quad \mathbf{m}_d(t) = \mathbf{m}_{d,0} + \mathbf{n}(t),
+\end{equation}
+where $\mathbf{m}_{d,0}$ is the nominal dipole and $\mathbf{n}(t)$ represents time-varying noise. The quaternion Jacobian uses the derivative of the body-frame magnetic field:
+\begin{equation}
+\frac{\partial \boldsymbol{\tau}_d}{\partial \mathbf{q}} = \mathbf{m}_d \times \frac{\partial \mathbf{B}_b}{\partial \mathbf{q}}.
+\end{equation}
+When disturbance estimation is enabled (\texttt{estimate\_dist=True}), the dipole components augment the estimator state.
+
+\subsubsection{Propulsion Disturbance}
+The propulsion disturbance model captures torques from thrust misalignment and center-of-mass offset:
+\begin{equation}
+\boldsymbol{\tau}_{\text{prop}} = \mathbf{r}_{\text{thruster}} \times \mathbf{F}_{\text{thrust}} + \boldsymbol{\tau}_{\text{plume}},
+\end{equation}
+where $\mathbf{r}_{\text{thruster}}$ is the thruster location relative to the instantaneous center of mass, $\mathbf{F}_{\text{thrust}}$ includes both nominal and misaligned components, and $\boldsymbol{\tau}_{\text{plume}}$ captures plume impingement effects. The framework supports estimation of propulsion-related parameters (thrust offset, misalignment angles) as part of the augmented state when \texttt{estimate\_dist=True}.
+
+
+% ==================================================
+\section{Hardware-in-the-Loop Testing}\label{sec:hil}
+
+The framework supports hardware-in-the-loop (HIL) testing for flight software validation.
+
+\subsection{Architecture}\label{subsec:hil_arch}
+
+In HIL mode, the simulation runs on a host computer while flight software executes on target hardware (e.g., Raspberry Pi, mission flight computer). Communication occurs via configurable interfaces (serial, network).
+
+\subsection{Real-Time Considerations}\label{subsec:realtime}
+
+The HIL framework handles:
+\begin{itemize}
+    \item Synchronized timing between simulation and flight software
+    \item Sensor message generation matching flight interfaces
+    \item Actuator command capture and validation
+    \item Fault injection for robustness testing
+\end{itemize}
+
+\subsection{Computational Requirements}\label{subsec:hil_compute}
+
+% TODO-JGCD-4: Complete computational complexity analysis
+% TODO-SMALLSAT-2: Add Raspberry Pi benchmark data
+
+Table~\ref{tab:computational} summarizes computational requirements for common configurations.
+
+\begin{table}[t]
+    \centering
+    \caption{Computational Requirements}
+    \label{tab:computational}
+    \begin{tabular}{lccc}
+        \toprule
+        Component & Complexity & RPi 4 Time & Desktop Time \\
+        \midrule
+        SRUAKF (15-state) & $O(n^2)$ & [TBD] ms & [TBD] ms \\
+        QP Allocation (6 act) & $O(m^3)$ & [TBD] ms & [TBD] ms \\
+        RK4 Step & $O(n)$ & [TBD] ms & [TBD] ms \\
+        Full ADCS loop & -- & [TBD] ms & [TBD] ms \\
+        \midrule
+        Typical loop rate & -- & [TBD] Hz & [TBD] Hz \\
+        Memory footprint & -- & [TBD] MB & [TBD] MB \\
+        \bottomrule
+    \end{tabular}
+    \begin{flushleft}
+    \small RPi 4 = Raspberry Pi 4 (4GB). Desktop = Intel i7-10700.
+    \end{flushleft}
+\end{table}
+
+The Python implementation achieves [TBD] Hz update rates on embedded hardware, sufficient for most small satellite applications where 1--10 Hz control is typical. For missions requiring higher rates, the \texttt{choldate} C extension and NumPy's BLAS backend provide significant acceleration without leaving Python.
+
+% TODO-DATA-7: Insert HIL validation results
+
+\subsection{HIL Validation Results}\label{subsec:hil_results}
+
+% TODO-DATA-7: Complete HIL testing campaign
+Preliminary HIL testing with a Raspberry Pi 4 flight computer demonstrates:
+
+\begin{itemize}
+    \item Deterministic timing: [TBD]\% of loops complete within deadline
+    \item Sensor interface latency: [TBD] ms (I2C), [TBD] ms (SPI)
+    \item Actuator command latency: [TBD] ms
+    \item End-to-end loop closure: [TBD] ms (sensor read to actuator command)
+\end{itemize}
+
+% TODO-SMALLSAT-5: Add photos/diagram of HIL test setup
+% TODO-SMALLSAT-6: Document interface specifications for common hardware
+
+
+% ==================================================
+\section{Demonstrations and Examples}\label{sec:examples}
+
+This section demonstrates framework capabilities through representative case studies.
+
+\subsection{Case Study 1: Rapid Architecture Trade}\label{subsec:case1}
+
+To evaluate adding a reaction wheel to a magnetorquer-only CubeSat, a user modifies only the configuration:
+
+\begin{lstlisting}[caption={Adding reaction wheel to configuration}]
+# Original MTQ-only
+config_mtq = create_cubesat_config(
+    actuators=['mtq_x', 'mtq_y', 'mtq_z'])
+
+# With added reaction wheel
+config_hybrid = create_cubesat_config(
+    actuators=['mtq_x', 'mtq_y', 'mtq_z', 'rw_y'])
+
+# Run identical scenarios
+results_mtq = run_scenario(config_mtq, scenario)
+results_hybrid = run_scenario(config_hybrid, scenario)
+\end{lstlisting}
+
+% TODO-DATA-2: Insert development time comparison
+This configuration change enables complete ADCS evaluation without code modification, reducing development time from [TBD] hours to [TBD] minutes.
+
+\subsection{Case Study 2: Control Law Comparison}\label{subsec:case2}
+
+Comparing control laws requires only specifying the controller type:
+
+% TODO-DATA-4: Insert control law comparison results across configurations
+\begin{table}[t]
+    \centering
+    \caption{Control Law Comparison Across Configurations}
+    \label{tab:control_comparison}
+    \begin{tabular}{llccc}
+        \toprule
+        Config & Control Law & Mean Error & Settling Time & Saturation \\
+        \midrule
+        MTQ-only & Lovera & [TBD]$^\circ$ & [TBD]s & [TBD]\% \\
+        MTQ-only & Wisniewski & [TBD]$^\circ$ & [TBD]s & [TBD]\% \\
+        MTQ+1RW & Quat PD & [TBD]$^\circ$ & [TBD]s & [TBD]\% \\
+        MTQ+1RW & Trajectory & [TBD]$^\circ$ & [TBD]s & [TBD]\% \\
+        3RW & Quat PD & [TBD]$^\circ$ & [TBD]s & [TBD]\% \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\subsection{Case Study 3: Estimation Evaluation}\label{subsec:case3}
+
+The framework's dynamics-aware estimator demonstrates particular value for low-quality sensors. Enabling bias tracking and disturbance estimation requires only configuration changes:
+
+\begin{lstlisting}[caption={Enabling bias and disturbance estimation}]
+# Enable gyro bias estimation
+gyro = Gyroscope(noise_std=0.001,
+                 bias_std=0.0001,
+                 estimate_bias=True)
+
+# Enable residual dipole estimation
+dipole = Dipole_Disturbance(
+    m_residual=[0.01, 0.01, 0.01],
+    estimate_dist=True)
+
+# Enable propulsion torque estimation
+prop = Prop_Disturbance(
+    thrust_offset=[0, 0, 0.001],
+    estimate_dist=True)
+
+# Estimator automatically includes these
+# in augmented state
+\end{lstlisting}
+
+% TODO-DATA-3: Insert estimation case study results
+
+\subsection{Case Study 4: Complete Mission Workflow}\label{subsec:case4}
+
+% TODO-SMALLSAT-1: Flesh out with actual timing data
+This case study demonstrates a complete workflow from spacecraft definition to closed-loop results, targeting the ``5-minute demo'' experience for new users.
+
+\begin{lstlisting}[caption={Complete mission workflow example}]
+# 1. Define spacecraft (30 seconds)
+sat = Satellite(
+    mass=4.0,
+    inertia=np.diag([0.04, 0.04, 0.02]),
+    actuators=[MTQ('x'), MTQ('y'), MTQ('z')],
+    sensors=[MTM(), SunSensor(), Gyro()])
+
+# 2. Define orbit and environment (10 seconds)
+orbit = TLE("ISS (ZARYA)")
+env = Environment(orbit, epoch="2024-06-01")
+
+# 3. Define goals (10 seconds)
+goals = GoalList([
+    (0, Nadir_Goal()),
+    (2700, Sun_Goal()),  # Switch after 45 min
+])
+
+# 4. Configure ADCS (20 seconds)
+estimator = SRUAKF(sat, estimate_bias=True)
+controller = MTQ_w_RW_QP(sat, Kp=0.01, Kd=0.1)
+
+# 5. Run simulation (varies by duration)
+sim = Simulation(sat, env, estimator, controller, goals)
+results = sim.run(duration=5400)  # 1.5 orbits
+
+# 6. Analyze results
+print(f"Mean pointing error: {results.mean_error:.2f} deg")
+results.plot_attitude()
+\end{lstlisting}
+
+% TODO-SMALLSAT-2: Add timing breakdown
+\begin{table}[t]
+    \centering
+    \caption{Workflow Timing Breakdown}
+    \label{tab:workflow_timing}
+    \begin{tabular}{lcc}
+        \toprule
+        Step & ADCS-Py & Custom Implementation \\
+        \midrule
+        Spacecraft definition & [TBD] min & [TBD] hours \\
+        Environment setup & [TBD] min & [TBD] hours \\
+        Estimator configuration & [TBD] min & [TBD] days \\
+        Controller implementation & [TBD] min & [TBD] days \\
+        First simulation run & [TBD] min & [TBD] weeks \\
+        \midrule
+        \textbf{Total to first results} & [TBD] min & [TBD] weeks \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\subsection{Case Study 5: Debugging Common Issues}\label{subsec:case5}
+
+% TODO-SMALLSAT-3: Add practical debugging guidance
+Practitioners frequently encounter several failure modes. The framework provides diagnostic tools for each:
+
+\subsubsection{Estimator Divergence}
+Symptoms: Attitude error grows unbounded, covariance matrix becomes ill-conditioned.
+
+\begin{lstlisting}[caption={Diagnosing estimator divergence}]
+# Check covariance condition number
+print(f"Cond(P): {np.linalg.cond(est.P):.2e}")
+
+# Enable covariance monitoring
+sim.run(monitor_covariance=True)
+
+# Common fixes:
+# 1. Increase process noise Q
+# 2. Check sensor noise parameters match reality
+# 3. Verify dynamics model matches spacecraft
+\end{lstlisting}
+
+\subsubsection{Actuator Saturation}
+Symptoms: Pointing error persists, allocation $\alpha < 1$ frequently.
+
+\begin{lstlisting}[caption={Diagnosing actuator saturation}]
+# Check allocation efficiency
+print(f"Mean alpha: {results.mean_alpha:.2f}")
+print(f"Saturation events: {results.saturation_count}")
+
+# Visualize torque demand vs capability
+results.plot_torque_envelope()
+\end{lstlisting}
+
+\subsubsection{Momentum Buildup}
+Symptoms: Reaction wheel speeds drift toward limits.
+
+\begin{lstlisting}[caption={Diagnosing momentum buildup}]
+# Check wheel momentum trend
+results.plot_wheel_momentum()
+
+# Common fixes:
+# 1. Increase MTQ dumping gain Kc
+# 2. Verify MTQ axes not aligned with B-field
+# 3. Consider different h_target orientation
+\end{lstlisting}
+
+
+% ==================================================
+\section{Discussion}\label{sec:discussion}
+
+\subsection{Implications for Small Satellite Development}\label{subsec:implications}
+
+The modular framework reduces the barrier to ADCS development by shifting complexity from implementation to configuration. Teams can evaluate architectures, compare algorithms, and validate designs with significantly reduced development effort.
+
+From an operational standpoint, the framework functions as an autonomy enabler. Higher-level mission logic can issue pointing requests without detailed knowledge of actuator feasibility, relying on the framework to produce achievable behavior. This separation of concerns simplifies ADCS architecture, reduces ground intervention, and supports more aggressive mission concepts.
+
+\subsection{Generality Across Configurations}\label{subsec:generality}
+
+A key strength is that the same framework applies across actuator configurations with minimal modification. The framework discovers how to exploit available control authority regardless of actuator geometry through its allocation and planning layers.
+
+This generality extends to the estimation subsystem. The same estimator architecture handles any combination of sensors and biases---adding a new sensor type or enabling bias estimation for an existing sensor requires only configuration changes, not algorithmic modifications. Similarly, disturbance models (magnetic dipole, propulsion torque, drag) can be selectively enabled for estimation, allowing the filter to adapt to mission-specific error sources.
+
+This generality enables unconventional configurations that would be difficult to control with hand-designed laws. For example, hybrid architectures combining magnetorquers with a single reaction wheel present challenges due to underactuation and non-aligned torque directions. The framework handles such configurations by coordinating between actuator types through its allocation layer.
+
+\subsection{Research Reproducibility}\label{subsec:reproducibility}
+
+By providing standardized interfaces and documented implementations, the framework enables reproducible ADCS research. Published results can be replicated by sharing configuration files rather than complete codebases.
+
+\subsection{Limitations}\label{subsec:limitations}
+
+Current limitations include:
+
+\begin{itemize}
+    \item \textbf{Computational requirements}: Python implementation prioritizes flexibility over performance; compute-intensive applications may require compiled extensions or C++ reimplementation of critical paths
+    \item \textbf{Sensor/actuator coverage}: Current models focus on common small satellite hardware; specialized sensors (e.g., horizon sensors, fine sun sensors) and actuators (CMGs, variable-speed CMGs) require user extension
+    \item \textbf{Validation status}: While extensively tested in simulation and HIL, flight demonstration remains future work pending BeaverCube 2 launch
+    \item \textbf{Multi-body dynamics}: Current implementation assumes rigid body; flexible appendages and fuel slosh are not modeled
+    \item \textbf{Fault tolerance}: The framework does not currently include fault detection, isolation, and recovery (FDIR) logic
+\end{itemize}
+
+% TODO-JGCD-6: Add quantitative comparison of Python vs C++ performance
+% TODO-JGCD-6: Discuss which components are performance-critical
+% TODO-SMALLSAT-7: Add guidance on when Python performance is sufficient
+
+\subsection{Validation Approach}\label{subsec:validation}
+
+% TODO-JGCD-7: Complete validation campaign documentation
+The framework validation follows a multi-level approach:
+
+\begin{enumerate}
+    \item \textbf{Unit testing}: Individual components tested against analytical solutions where available (e.g., torque-free motion, circular orbit magnetic field)
+    \item \textbf{Integration testing}: Closed-loop scenarios compared to heritage results (TRMM flight data, published simulation results)
+    \item \textbf{Cross-validation}: Key scenarios implemented in Basilisk for comparison
+    \item \textbf{Hardware-in-the-loop}: Flight software executed on target hardware with simulated environment
+    \item \textbf{Flight demonstration}: Pending BeaverCube 2 (AICube) mission
+\end{enumerate}
+
+% TODO-DATA-8: Document unit test coverage percentage
+% TODO-DATA-9: TRMM flight data comparison results
+% TODO-JGCD-1: Basilisk cross-validation results
+
+\subsection{Future Work}\label{subsec:future_work}
+
+Several areas warrant continued development:
+
+\subsubsection{Software and Implementation}
+\begin{itemize}
+    \item Additional sensors and actuators (star trackers, Earth horizon sensors, CMGs)
+    \item C++ core implementation for flight-critical paths
+    \item Efficiency improvements through compiled extensions
+    \item Improved user interface and visualization tools
+\end{itemize}
+
+\subsubsection{Control Methodology Extensions}
+\begin{itemize}
+    \item Quaternion set heuristics for reduced-attitude control
+    \item Adaptive estimation with online parameter tuning
+    \item AI-driven mode selection and planning
+\end{itemize}
+
+\subsubsection{Validation}
+\begin{itemize}
+    \item Extended hardware-in-the-loop testing
+    \item Flight demonstration on BeaverCube 2 (AICube)
+    \item Community validation through open-source contributions
+\end{itemize}
+
+Beyond technical improvements, this work embodies a broader vision: the pursuit of ADCS systems that are resilient, mission-agnostic, and adaptable. By fully modeling satellite dynamics and incorporating disturbances directly into control, this framework enables satellites to operate effectively even in constrained environments with limited actuation. In doing so, it expands the possibilities for satellite architectures and missions, especially in the growing fields of nanosatellites and mega-constellations.
+
+
+% ==================================================
+\section{Conclusion}\label{sec:conclusion}
+
+This paper presented ADCS-Py, a modular open-source Python framework for small satellite attitude determination and control. By decomposing ADCS into interchangeable components with well-defined interfaces, the framework enables rapid architecture evaluation, algorithm comparison, and flight software development.
+
+Key capabilities include:
+\begin{itemize}
+    \item Support for heterogeneous actuator configurations including magnetorquer-only, hybrid, and conventional reaction wheel systems
+    \item Augmented-state estimation incorporating dynamics, biases, and disturbances
+    \item Multiple control laws with unified allocation layer
+    \item Integration with trajectory planning for underactuated systems
+    \item Hardware-in-the-loop testing infrastructure
+\end{itemize}
+
+% TODO-DATA: Fill in quantitative summary results
+Case studies demonstrate [TBD]$\times$ reduction in development time for architecture trades and consistent performance across configurations. The framework underpins ongoing flight software development for BeaverCube 2 (AICube) and is intended to serve as both a research platform and practical ADCS solution for small satellite teams.
+
+The framework is available at: \url{https://github.com/patrickmckeen/ADCS-Py}
+
+% TODO-SMALLSAT-8: Add installation/quickstart section for practitioners
+\subsection*{Getting Started}
+Installation requires Python 3.9+ and standard scientific packages:
+\begin{lstlisting}[language=bash]
+pip install adcs-py
+\end{lstlisting}
+Example notebooks and documentation are available at the repository. A minimal working example runs in under 20 lines of code (see Case Study 4).
+
+% ----------------------------
+% Acknowledgments
+% ----------------------------
+\section*{Acknowledgments}
+The authors thank the MIT Space Telecommunications, Astronomy, and Radiation Laboratory for support. The planner in this work builds on contributions from the BeaverCube team and trajectory optimization methods developed by Zac Manchester and colleagues.
+
+% ----------------------------
+% Bibliography
+% ----------------------------
+\bibliographystyle{IEEEtran}
+\bibliography{my_refs}
+
+\end{document}

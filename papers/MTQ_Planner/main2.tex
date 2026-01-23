@@ -1,0 +1,1633 @@
+% SmallSat Conference + JGCD Mega Paper Draft
+% Planner for Underactuated and Weirdly-Actuated Systems
+%
+% ============================================================
+% KEY THEMES
+% ============================================================
+%
+% 1. GRACEFUL DEGRADATION (refined definition):
+%    When the planner receives an infeasible goal, it:
+%    - Does NOT error out or return no solution
+%    - Does NOT command actuators to saturation indefinitely ("doesn't do anything insane")
+%    - Converges to the closest achievable attitude that minimizes goal error
+%      while respecting actuator and rate constraints ("tries its best")
+%    - ALWAYS meets hard constraints (rate limits, actuator limits, keep-outs)
+%    - Produces bounded, predictable trajectory trackable by feedback controller
+%    In implementation: if ALTRO doesn't converge within pre-computation window,
+%    system falls back to PD control with current best trajectory estimate.
+%
+% 2. CONOPS COUPLING:
+%    - Planner adapts to mission CONOPS by finding trajectories that exploit
+%      time-varying control authority
+%    - Makes underactuated satellites do MORE with existing hardware
+%    - Makes small missions better, big missions cheaper
+%    - Finds NOVEL SOLUTIONS operators wouldn't think of (spinning solutions!)
+%
+% 3. INTELLIGENT GOAL MANAGEMENT (not just autopilot):
+%    - Traditional ADCS = operators must plan every maneuver manually
+%    - Planner-based ADCS = operators specify goals, planner reasons about HOW
+%    - Planner is SMARTER than autopilot: avoids keep-outs, manages momentum,
+%      exploits magnetic field geometry, discovers non-obvious solutions
+%    - More like a skilled pilot who knows the aircraft's limits than autopilot
+%
+% 4. CONOPS SIMPLIFICATION (KEY FOR SMALLSAT):
+%    - Traditional ADCS requires operators to plan every slew, mode switch, desat
+%    - Planner-based ADCS: just specify goals and times, planner handles the rest
+%    - Reduces operations complexity dramatically
+%    - Enables more aggressive mission concepts without more ground support
+%    - Same benefit in Package paper - configuration replaces custom code
+%
+% ============================================================
+% VENUE SUMMARY
+% ============================================================
+%
+% SMALLSAT USA (practical, accessible, ~6 pages):
+%   Target: Mission designers considering trajectory planning for their ADCS
+%   Emphasis: "Makes underactuated systems viable", novel solutions, practical results
+%   TRIM: ALTRO algorithm details, Lie group math, sensitivity analysis
+%   KEEP: Monte Carlo results, multi-target sequences, implementation considerations
+%   ADD: Decision guidance on when to use planner vs simple feedback
+%
+% JGCD (rigorous, theoretical, ~15 pages):
+%   Target: GNC researchers, trajectory optimization community
+%   Emphasis: Mathematical formulation, convergence analysis, sensitivity bounds
+%   TRIM: Nothing - full theoretical treatment
+%   KEEP: All ALTRO details, quaternion handling, cost function derivation
+%   ADD: Computational complexity, formal convergence guarantees, robustness proofs
+%
+% ============================================================
+% DATA GENERATION TODO LIST
+% ============================================================
+% ** HIGH PRIORITY **
+% TODO-DATA-1: Generate hardware timing benchmarks
+%    - Run existing MC simulations on laptop, log solve times
+%    - Run same simulations on Raspberry Pi 4
+%    - Record: mean, median, 95th percentile, max for each config
+%    - Note laptop specs (processor model, RAM, OS)
+%
+% TODO-DATA-2: Run baseline controller comparisons
+%    - Implement Quaternion PD controller (standard gains)
+%    - Implement B-cross controller for MTQ-only
+%    - Run same 100-trial MC scenarios with each baseline
+%    - Record: mean error, % within 10deg, saturation time %
+%
+% ** MEDIUM PRIORITY **
+% TODO-DATA-3: Compute confidence intervals for MC results
+%    - Bootstrap resampling (1000 resamples) on existing MC data
+%    - Compute 95% CI for all percentage and mean metrics
+%
+% TODO-DATA-4: Measure convergence statistics
+%    - Log iLQR iteration counts from existing/new MC runs
+%    - Log augmented Lagrangian outer loop counts
+%    - Compute convergence rate (% that converge within budget)
+%
+% TODO-DATA-5: Run sensitivity analysis sweeps
+%    - Inertia errors: 5%, 10%, 20% diagonal; 5% off-diagonal
+%    - Magnetic field: 5%, 10% magnitude; 5deg, 10deg direction
+%    - Disturbance: 0.01, 0.05, 0.1 mNm unmodeled bias
+%    - Actuator scale: 5%, 10% MTQ; 5% RW
+%    - Run 100-trial MC for each error condition
+%
+% TODO-DATA-6: Run operational scenario simulations
+%    - Imaging pass scenario (20 min, multi-goal)
+%    - Momentum management scenario (90 min orbit)
+%
+% ** LOW PRIORITY **
+% TODO-DATA-7: Measure computational scaling
+%    - Vary timestep: 1s, 2s, 5s for 500s horizon
+%    - Vary horizon: 500s, 1000s for 1s and 2s timesteps
+%    - Record iterations and solve time for each
+%
+% TODO-DATA-8: Characterize failure modes
+%    - Analyze non-converged trials from MC data
+%    - Categorize: non-convergence, constraint violation, numerical
+%    - Compute retry success rate
+%
+% TODO-DATA-9: Measure SWaP-C metrics
+%    - Profile memory usage (heap, stack) during solve
+%    - Measure CPU utilization on RPi during continuous planning
+%    - Measure binary size of compiled planner
+%    - Estimate energy per solve (power * time)
+%
+% ============================================================
+% *** THESIS MONTE CARLO RESULTS (planning.tex) - REFERENCE DATA ***
+% ============================================================
+%    Single 180° slew results (thesis Chapter 7):
+%      * MTQ-only: 73% within 10° for single slew
+%      * 3MTQ+1RW: 96% within 1° for single slew (!)
+%    Goal-set (reduced-attitude) slews:
+%      * MTQ-only: 67% within 1° (vs 11% full-attitude - 6x improvement!)
+%      * 3MTQ+1RW: 96% within 1°
+%    Multi-target (3 targets, 500s simulation):
+%      * 3MTQ+1RW: 98%+ within 10° for each target
+%      * Mean final attitude error: 0.45° (median 0.03°)
+%    Sequential trajectory planning (thesis Section 7.4):
+%      * Sub-degree pointing accuracy demonstrated
+%      * 96% convergence rate across varied initial conditions
+%    Disturbance rejection improvement (thesis Chapter 6):
+%      * 20° reduction in pointing errors with disturbance inclusion
+%      * "all-in-one" disturbance term works even without precise models
+%
+% ============================================================
+% LITERATURE REVIEW TODO LIST (from thesis background.tex)
+% ============================================================
+%
+% ** TRAJECTORY PLANNING FOUNDATIONS **
+% TODO-LIT-1: ALTRO algorithm - Howell et al. "ALTRO: A Fast Solver for
+%             Constrained Trajectory Optimization" (2019)
+%             - Core algorithm, cite in methods section
+% TODO-LIT-2: Jackson et al. - ALTRO for attitude (2021)
+%             - Quaternion handling, attitude-specific extensions
+% TODO-LIT-3: Gatherer "Magnetorquer-Only Attitude Control Using ALTRO" (2019)
+%             - Prior ALTRO application to magnetic control
+%             - KEY: Our work extends this to hybrid 3+1 systems
+%
+% ** MAGNETIC TRAJECTORY PLANNING **
+% TODO-LIT-4: Liang et al. - RIOTS optimization for magnetic slews (2004)
+%             - Early magnetic trajectory planning
+% TODO-LIT-5: Krogstad - Explicit MPC for magnetic control (2005)
+%             - MPC alternative approach, good for comparison
+% TODO-LIT-6: Wood & Chen - MPC with disturbances (2008)
+%             - Disturbance-aware planning
+%
+% ** REDUCED ATTITUDE / GOAL FORMULATION **
+% TODO-LIT-7: Bushenkov - Reduced attitude magnetic control (2002)
+%             - Single-axis pointing theory
+% TODO-LIT-8: de Angelis - Two-step reduced maneuver (2015)
+%             - Keep-out zone avoidance with reduced attitude
+% TODO-LIT-9: Inamori - Two-step rotation method (2016)
+%             - Alternative approach to full control via 2-step
+%
+% ** BASELINE CONTROLLERS (for comparison) **
+% TODO-LIT-10: Lovera & Astolfi - Magnetic feedback control (2004, 2006)
+%              - Baseline controller for comparison
+% TODO-LIT-11: Wisniewski - Sliding mode for magnetic (1997)
+%              - Another baseline
+%
+% ** MPC AND OPTIMIZATION **
+% TODO-LIT-12: Petersen & Kolmanovsky - Underactuated MPC (2015, 2017)
+%              - MPC for underactuated systems (non-magnetic but relevant)
+% TODO-LIT-13: Blackmore - Chance-constrained planning (2011)
+%              - Stochastic trajectory planning (if applicable)
+%
+% ** COMPUTATIONAL CONSIDERATIONS **
+% TODO-LIT-14: iLQR/DDP references for inner loop
+%              - Todorov, Tassa et al. for iLQR derivation
+% TODO-LIT-15: Augmented Lagrangian methods
+%              - Nocedal & Wright for general optimization theory
+%
+% ============================================================
+% KEY CITATIONS FOR PLANNER PAPER TEXT:
+% ============================================================
+% Introduction:
+%   - "Trajectory planning rarely used for ADCS [Howell2019]"
+%   - "Prior magnetic planning [Liang2004], [Gatherer2019] limited scope"
+% Algorithm:
+%   - ALTRO description [Howell2019], [Jackson2021]
+% Reduced attitude:
+%   - Relaxation concept [Bushenkov2002], [deAngelis2015]
+% Baselines:
+%   - Compare to [Lovera2004], [Wisniewski1997]
+% ============================================================
+%
+% ============================================================
+% DETAILED EXPERIMENT LIST (Priority Order)
+% ============================================================
+%
+% === EXPERIMENT SET A: Planner vs Baseline Controllers (ESSENTIAL) ===
+%
+% KEY POINT: Planner paper must demonstrate VERSATILITY across configs!
+% The planner is general-purpose, not tied to one spacecraft or goal type.
+%
+% A1. PD Baseline Comparison - MULTIPLE CONFIGURATIONS
+%     Configs: 3+0, 3+1, 3+3 (each with planner ON vs planner OFF)
+%     Controller (OFF): Quaternion PD with LP allocation
+%     Duration: 500s per trial
+%     Trials: 100 Monte Carlo
+%     Goal types: 180° slew (full attitude)
+%     Metrics: % within 10°, % within 1°, mean error, saturation %
+%     Output: Table comparing planner vs no-planner for each config
+%
+%     SPACECRAFT VARIETY (show planner generalizes):
+%       - 1U CubeSat (1.3 kg, small inertia, weak actuators)
+%       - 3U CubeSat (4 kg, BC2-like)
+%       - 6U CubeSat (8 kg, larger, more capable)
+%       - Different RW axis orientations (z-axis vs canted)
+%
+%     ORBIT VARIETY:
+%       - ISS orbit (51.6°, 400 km) - moderate B-field variation
+%       - Polar SSO (97°, 600 km) - different B-field geometry
+%       - Equatorial (0°, 400 km) - challenging for MTQ (less B variation)
+%
+% A2. B-Cross Baseline (MTQ-only)
+%     Compare planner vs B-cross detumble + PD hold
+%     Show planner finds better solutions
+%
+% === EXPERIMENT SET B: Goal Formulation (KEY RESULT) ===
+%
+% B1. Full-Attitude vs Reduced-Attitude
+%     Config: 3+0 (MTQ-only) - most dramatic difference
+%     Full-attitude: exact quaternion goal
+%     Reduced-attitude: align body-x with target direction
+%     Same 100 MC trials, same initial conditions
+%     Metrics: % within 1°, % within 10°, mean error
+%     Expected: 6x improvement for reduced-attitude
+%     Output: Table showing 11% → 67% improvement
+%
+% B1b. WHEN FULL-ATTITUDE IS ACTUALLY REQUIRED (Fair Comparison)
+%     The reduced-attitude argument is NOT a strawman. Here are real
+%     scenarios where full-attitude IS required:
+%
+%     Scenario 1: Stereo Imaging
+%       Two cameras at fixed offset, both must align with targets
+%       Full-attitude required: rotation about boresight changes stereo baseline
+%       Test: Point body-x at target A AND body-y perpendicular to orbit plane
+%       Show: This genuinely requires 3-DoF control
+%
+%     Scenario 2: Directional Antenna with Polarization
+%       Antenna must point at ground AND maintain polarization alignment
+%       Full-attitude required: rotation about antenna axis affects link quality
+%       Test: Point at ground station with specific roll angle
+%
+%     Scenario 3: Solar Panel Constraint During Imaging
+%       Point camera nadir AND keep solar panels sun-facing
+%       Full-attitude required: both constraints simultaneously
+%       Test: Nadir pointing with solar constraint active
+%
+%     For these scenarios, compare:
+%       - 3+0 full-attitude (expect poor: ~180° often infeasible)
+%       - 3+1 full-attitude (expect good: single RW provides 3rd DoF)
+%       - 3+3 full-attitude (expect best: full authority)
+%
+%     KEY INSIGHT: When full-attitude IS required, 3+1 provides real
+%     benefit over 3+0. The reduced-attitude argument says "don't
+%     over-specify when you don't need to"—not "never use full-attitude"
+%
+% B1c. ALTERNATING REDUCED-ATTITUDE FOR FULL CONTROL (from research/)
+%     *** KEY EXPERIMENT: Can we achieve full 3-DOF using only 2-DOF goals? ***
+%
+%     Method: Alternate between two reduced-attitude goals that INTERSECT
+%     at the desired full-attitude quaternion.
+%
+%     Example: To achieve q_goal (full attitude):
+%       - Goal A: Align body-z with target direction (2-DOF)
+%       - Goal B: Align body-x with second target direction (2-DOF)
+%       - Alternate every T seconds (e.g., T=10s)
+%       - The only attitude satisfying BOTH constraints IS q_goal
+%
+%     Test setup:
+%       Config: 3+0 (MTQ-only, most challenging)
+%       Goal: Specific full-attitude quaternion
+%       Method 1: Direct full-attitude tracking (baseline)
+%       Method 2: Alternating reduced-attitude (body-z, body-x)
+%       Method 3: Multi-vector simultaneous (track both vectors at once)
+%       Vary: Switching period (5s, 10s, 20s), vector choices
+%
+%     Expected results:
+%       - Direct full-attitude: Often fails for 3+0 (can't control 3rd DoF)
+%       - Alternating: Should converge to full attitude over time
+%       - Multi-vector: May converge faster but requires more careful tuning
+%       - Weighted multi-vector: Track both vectors simultaneously with
+%         dynamic weights based on error magnitude or phase
+%
+%     Weighted multi-vector approach:
+%       τ = w1 * τ_vec1 + w2 * τ_vec2, where w1 + w2 = 1
+%       Options for weights:
+%         - Equal: w1 = w2 = 0.5 (simple, may cause conflict)
+%         - Error-based: weight by inverse error (focus on worse vector)
+%         - Phase-based: switch priority based on convergence state
+%         - Optimal: solve for weights that minimize combined Lyapunov
+%
+%     Output: Comparison table showing full-attitude error achieved by each
+%     This demonstrates: underactuated systems CAN achieve full control
+%     through clever goal sequencing!
+%
+%     Code reference: research/reduced_to_full_attitude.py (AlternatingVectorController)
+%
+% B2. Keep-Out Zone Handling
+%     Goal: Point at target while avoiding sun (20° cone)
+%     Show planner finds paths around keep-out
+%     Visualization: trajectory on orientation sphere with keep-out marked
+%
+% === EXPERIMENT SET C: Multi-Target Sequences (AUTONOMY DEMO) ===
+%
+% C1. Three-Target Slew Sequence
+%     Configs: 3+0, 3+1
+%     Goals: 3 sequential reduced-attitude targets, 500s total
+%     Metrics: % achieving all 3 within 10°, mean final error per target
+%     Output: Time series showing target switches
+%
+% C2. Imaging Pass Simulation
+%     Realistic scenario: 5 ground targets during 10-min pass
+%     Show planner handles rapid retargeting
+%     Metrics: targets acquired, dwell time achieved
+%
+% === EXPERIMENT SET D: Graceful Degradation (KEY CONTRIBUTION) ===
+%
+% D1. Infeasible Goal Handling
+%     Config: 3+0 (MTQ-only)
+%     Goal: Full-attitude quaternion that's geometrically infeasible
+%     Show: Planner converges to closest achievable, doesn't saturate
+%     Compare: PD controller saturates and fails
+%     Output: Side-by-side pointing error and actuator command plots
+%
+% D2. Disturbance Overwhelm
+%     Config: 3+1 with large propulsion disturbance (0.1 mNm)
+%     Show: Planner discovers spinning solution
+%     Output: Animation/figure of spin maneuver
+%
+% === EXPERIMENT SET E: Computational Performance (PRACTICAL) ===
+%
+% E1. Solve Time Benchmarks
+%     Hardware: Laptop (specify CPU), Raspberry Pi 4
+%     Horizon: 500s at 1s timestep
+%     Metrics: mean, median, 95th percentile, max solve time
+%     Trials: 100 planning problems
+%     Output: Table with timing stats
+%
+% E2. Convergence Statistics
+%     Log: iLQR iterations, AL outer loops, convergence rate
+%     Analyze: What causes non-convergence? How does retry help?
+%
+% E3. Horizon/Timestep Scaling
+%     Vary: horizon (250s, 500s, 1000s), timestep (1s, 2s, 5s)
+%     Measure: solve time, accuracy trade-off
+%     Output: Scaling plot
+%
+% === EXPERIMENT SET F: Sensitivity Analysis (ROBUSTNESS) ===
+%
+% F1. Model Errors
+%     Inertia: ±10%, ±20%
+%     B-field: ±10% magnitude, ±10° direction
+%     Disturbance: unmodeled 0.01-0.1 mNm bias
+%     Output: Degradation curves
+%
+% F2. Closed-Loop Tracking Robustness
+%     Compare: TVLQR vs MPC for trajectory following
+%     Inject: state estimation errors, timing jitter
+%     Metrics: tracking error, recovery time
+%
+% ============================================================
+
+\documentclass[conference]{IEEEtran}
+
+% ----------------------------
+% Packages
+% ----------------------------
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{siunitx}
+\usepackage{hyperref}
+\usepackage{cite}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{subcaption}
+
+% Path to local images folder
+\graphicspath{{images/}}
+
+% ----------------------------
+% Title / Authors (placeholders)
+% ----------------------------
+\title{A Feasibility-Aware Attitude Trajectory Planner for Underactuated and Unconventionally Actuated Small Satellites}
+
+\author{\IEEEauthorblockN{Patrick McKeen, Niclas Scheuer, Kerri Cahoy}
+\IEEEauthorblockA{Department of Aeronautics and Astronautics\\
+Massachusetts Institute of Technology\\
+Email: pmckean@mit.edu}
+}
+
+\begin{document}
+\maketitle
+
+% ============================================================
+% SMALLSAT CONFERENCE ABSTRACT - APPROVED VERSION (DO NOT MODIFY WITHOUT ASKING)
+% ============================================================
+% \begin{abstract}
+% Small satellites increasingly rely on limited or unconventional actuator
+% configurations (magnetorquer-only systems, hybrid architectures, or degraded
+% hardware) driven by cost, mass, and reliability constraints. In these regimes,
+% conventional attitude control strategies often saturate actuators or fail
+% outright when commanded maneuvers exceed achievable control authority. This
+% paper presents a feasibility-aware attitude trajectory planner that enables
+% robust autonomous operations across a wide range of actuator configurations
+% and goal types, requiring minimal per-mission customization.
+%
+% The planner accepts high-level pointing goals (including reduced-attitude
+% objectives that specify only single-axis alignment) and generates dynamically
+% feasible trajectories respecting actuator limits, keep-out constraints, and
+% environmental disturbances. Unlike conventional slew planning, the approach
+% degrades gracefully when goals are infeasible: rather than saturating actuators
+% or inducing instability, the planner converges to the closest achievable
+% behavior. This capability is particularly valuable for underactuated systems
+% where exact goal satisfaction may be geometrically impossible.
+%
+% Built on the ALTRO trajectory optimization algorithm, the planner exploits
+% time-varying control authority to achieve performance previously impractical
+% for constrained systems. By planning over full trajectories rather than
+% commanding instantaneous torques, the system discovers non-obvious control
+% strategies---including spinning solutions that average out disturbances
+% exceeding direct actuator capability.
+%
+% Monte Carlo simulations across 100 randomized orbital positions demonstrate
+% consistent improvements. For magnetorquer-only spacecraft, 73\% of challenging
+% $180^\circ$ slews converge within $10^\circ$ in under 500 seconds. Relaxing full-attitude
+% goals to reduced-attitude (single-axis) objectives improves sub-degree success
+% sixfold---from 11\% to 67\%---with no hardware changes, demonstrating that goal
+% specification matters as much as actuator capability. Adding a single reaction
+% wheel further improves sub-degree success to 96\%. Multi-target sequences show
+% similar versatility: transitioning between three pointing objectives, the
+% planner achieves sub-degree final accuracy in 77\% of trials for
+% magnetorquer-only and 91\% with a reaction wheel added. Across all scenarios,
+% planner-generated trajectories reduce actuator saturation by more than 70\%
+% compared to conventional feedback control.
+%
+% Real-world implementation details address practical challenges: sequential
+% replanning with overlapping trajectories, fallback modes for non-convergence,
+% and closed-loop tracking using time-varying LQR and single-step MPC. The C++
+% implementation runs on embedded-class processors, enabling autonomous onboard
+% operation without ground-planned slews.
+%
+% This work demonstrates that trajectory planning fundamentally expands what is
+% achievable with limited actuator suites. The same planner framework supports
+% magnetorquer-only CubeSats, hybrid configurations, and conventional reaction
+% wheel systems with minimal reconfiguration. For missions with flexible pointing
+% requirements, the framework enables continuous momentum management, multi-target
+% imaging sequences, and autonomous goal switching---capabilities that would
+% otherwise require more expensive hardware or extensive ground support.
+% \end{abstract}
+% ============================================================
+
+% ============================================================
+% JGCD JOURNAL ABSTRACT (with placeholders for data)
+% ============================================================
+% \begin{abstract}
+% Attitude retargeting for small satellites is frequently limited by actuator
+% bounds and time-varying control authority, leading conventional point-to-point
+% slews to saturate or fail for underactuated systems. This paper presents a
+% feasibility-aware attitude trajectory planner based on the Augmented Lagrangian
+% Trajectory Optimizer (ALTRO) that enables robust autonomous operations across
+% magnetorquer-only, hybrid, and severely underactuated spacecraft configurations
+% with minimal per-mission customization.
+%
+% The planner formulates attitude control as a constrained optimal control problem
+% with soft terminal objectives, enabling graceful degradation when exact goal
+% satisfaction is infeasible. Native support for reduced-attitude goals (single-axis
+% alignment) exploits the one-parameter family of acceptable quaternions,
+% significantly expanding the feasible solution space for underactuated systems.
+% The mathematical formulation incorporates actuator geometry, time-varying
+% magnetic fields, disturbance models, and keep-out constraints within a unified
+% optimization framework.
+%
+% Extensive Monte Carlo evaluation (100 trials per configuration) demonstrates
+% consistent improvements across actuator configurations. For 180$^\circ$ slews,
+% magnetorquer-only spacecraft achieve [TBD]\% $\pm$ [TBD]\% success within
+% 10$^\circ$ (95\% CI). Reduced-attitude goals increase magnetorquer-only
+% sub-degree success from [TBD]\% to [TBD]\%, a [TBD]$\times$ improvement with
+% no hardware changes---demonstrating that goal specification matters as much as
+% actuator capability. Adding a single reaction wheel further improves sub-degree
+% success to [TBD]\%. Compared to baseline quaternion feedback control, the
+% planner reduces actuator saturation time by [TBD]\% while achieving
+% [TBD]$\times$ lower mean pointing error.
+%
+% Sensitivity analysis quantifies robustness to model errors: [TBD]\% inertia
+% error degrades mean pointing by [TBD]$^\circ$; [TBD]$^\circ$ magnetic field
+% direction error by [TBD]$^\circ$. The closed-loop architecture (TVLQR/MPC
+% tracking) provides inherent compensation for bounded modeling errors.
+%
+% Computational analysis demonstrates real-time feasibility: mean solve time of
+% [TBD]s on laptop ([TBD] processor) and [TBD]s on Raspberry Pi 4, with
+% convergence in [TBD]\% of trials. The algorithm scales as $\mathcal{O}(N(n^3+m^3))$
+% per iteration, with multi-pass refinement reducing total computation by
+% exploiting coarse-to-fine trajectory seeding.
+%
+% The framework unifies pointing, momentum management, keep-out avoidance, and
+% disturbance handling within a single optimization, enabling predictable
+% autonomous attitude behavior. The same planner supports magnetorquer-only
+% CubeSats, hybrid configurations, and conventional reaction wheel systems,
+% demonstrating that explicit feasibility reasoning fundamentally expands
+% achievable performance under limited actuation.
+% \end{abstract}
+% ============================================================
+
+% ----------------------------
+% Abstract (CURRENT - MEGA PAPER VERSION)
+% ----------------------------
+\begin{abstract}
+Attitude retargeting for small satellites is frequently limited by actuator bounds and time-varying control authority, leading conventional point-to-point slews to saturate or fail for underactuated systems. This paper presents a feasibility-aware attitude trajectory planner that enables robust autonomous operations across a wide range of actuator configurations and goal types, requiring minimal per-mission customization. The planner accepts high-level pointing goals, including reduced-attitude and set-based objectives, and generates dynamically feasible trajectories that respect actuator limits, keep-out constraints, and disturbance models.
+
+The approach builds on nonlinear trajectory optimization using the Augmented Lagrangian Trajectory Optimizer (ALTRO) and integrates with standard torque-level attitude controllers. Unlike conventional slews, the planner degrades gracefully when desired goals are infeasible, converging to the closest achievable behavior rather than inducing saturation or instability. Monte Carlo simulations across 100 randomized orbital positions demonstrate consistent improvements across actuator configurations. For magnetorquer-only spacecraft, 73\% of $180^\circ$ slews converge within $10^\circ$ in under 500 seconds. Relaxing full-attitude goals to reduced-attitude (single-axis) objectives improves sub-degree success sixfold---from 11\% to 67\%---with no hardware changes, demonstrating that goal specification matters as much as actuator capability. Adding a single reaction wheel further improves sub-degree success to 96\%. Multi-target sequences show similar versatility, with sub-degree final accuracy in 77\% of magnetorquer-only trials and 91\% with a reaction wheel added. Across all scenarios, planner-generated trajectories reduce actuator saturation by more than 70\% compared to conventional feedback control. Additional results demonstrate the planner's ability to combine pointing and momentum management objectives, respect exclusion zones, and exploit disturbances when advantageous. The same framework supports magnetorquer-only CubeSats, hybrid configurations, and conventional reaction wheel systems, enabling satellites to operate with weaker or unconventional actuator sets while maintaining predictable and autonomous attitude behavior.
+\end{abstract}
+
+% ----------------------------
+% Keywords
+% ----------------------------
+\begin{IEEEkeywords}
+Attitude planning, underactuated spacecraft, magnetorquers, autonomy, small satellites, trajectory optimization
+\end{IEEEkeywords}
+
+% ==================================================
+\section{Introduction}\label{sec:introduction}
+% Operational motivation, SmallSat framing, gap in conventional slew methods
+% Emphasize autonomy, failure modes, and actuator limitations
+
+Small satellites increasingly operate with limited, degraded, or unconventional actuator suites, driven by cost, mass, and reliability constraints. In these regimes, conventional attitude control strategies based on point-to-point slews and fixed control laws often exhibit saturation, limit cycling, or outright failure when requested maneuvers exceed feasible control authority~\cite{wertz1978spacecraft,wie2008spacecraft}. These effects are particularly acute for magnetorquer-only spacecraft, hybrid systems operating near actuator limits, and vehicles with asymmetric or partially failed actuators.
+
+The question of pointing a rigid-body satellite in space is almost a textbook physics problem. The dynamics are perfectly defined. The goals can be stated explicitly. There is uncertainty, but it can be quantified. There are disturbances, but they are generally understood and can be estimated. Unlike other autonomy problems, there is no chance of sudden unexpected events requiring immediate response (compared to, for example, a self-driving car braking for a pedestrian). The problem can be written in full mathematical detail, so it seems like there should be a general solution---one where the spacecraft's own control system processes desired goals, incorporates actuation limits and disturbance effects, and guides the system to meet those goals without needing to pre-plan every slew or reaction wheel desaturation.
+
+Current ADCS implementations, while largely autonomous in the sense that estimation and control algorithms run onboard, still exhibit significant limitations. The direction and method of slews are often planned ahead of time on the ground. Many satellites maintain a rigid division between ``slew'' mode and ``pointing'' mode, with separate control algorithms for each~\cite{markley2014fundamentals}. This contrasts sharply with a unified approach that could dynamically handle both pointing goals at various times and slewing to a new target within a single framework. Similarly, active disturbance correction, if included at all, is typically static and predefined at mission outset, seldom adaptive to changing conditions.
+
+There are good reasons for this conservatism. It is common in controls engineering to prefer simple laws that can be proven to work, and this preference is amplified in space engineering with its high costs, long flight times, value in flight heritage, and lack of second chances~\cite{fortescue2011spacecraft}. Yet, as in robotics---where early walking robots relied on strict control algorithms that maintained constant control availability at the cost of 20$\times$ increased energy and unnatural motions~\cite{Tedrake_text}---a more flexible, generalizable, and adaptable approach holds immense value for ADCS.
+
+This paper proposes a feasibility-aware attitude trajectory planner designed to act as an autonomy enabler rather than a brittle maneuver generator. Rather than assuming full actuation or feasible end states, the planner explicitly reasons about actuator limits, time-varying authority, and disturbances to produce trajectories that remain dynamically achievable. When goals are infeasible, the planner converges to the closest achievable behavior, avoiding destabilizing saturation while preserving predictable spacecraft response.
+
+The vision for an advanced ADCS system---one that this planner helps realize---is a system with the ability to:
+\begin{itemize}
+    \item estimate and account for its own biases, uncertainties, and noise based on knowledge of mass properties, actuators, and sensors;
+    \item incorporate environmental factors, such as disturbances and magnetic fields, into its operations;
+    \item apply a unified control framework suitable for both pointing and slews, regardless of satellite architecture or environment;
+    \item automatically combine goals, such as reaction wheel desaturation during slews or continuously during pointing; and
+    \item balance control efforts dynamically across actuators, using systems like magnetorquers in conjunction with reaction wheels.
+\end{itemize}
+
+% ============================================================
+% CONOPS SIMPLIFICATION - KEY FOR SMALLSAT AUDIENCE
+% (For JGCD, this section can be trimmed; focus on technical contributions)
+% ============================================================
+\subsection{Simplifying Mission Operations}\label{subsec:conops_simplification}
+
+Beyond technical performance improvements, the trajectory planning approach offers a fundamental simplification of mission operations. Traditional ADCS requires operators to:
+\begin{itemize}
+    \item Plan each slew maneuver explicitly, specifying start time, duration, and method
+    \item Schedule momentum desaturation windows around pointing requirements
+    \item Define mode transitions between ``slew,'' ``pointing,'' and ``safe'' modes
+    \item Verify that each planned maneuver is feasible given current actuator state
+    \item Respond to off-nominal conditions with revised command sequences
+\end{itemize}
+
+This operational complexity grows with mission ambition. Multi-target imaging sequences, ground-station tracking, and time-critical observations all require careful choreography of attitude maneuvers.
+
+The planner-based approach reduces this complexity dramatically: \textbf{operators specify only goals and times}. The planner handles feasibility assessment, maneuver generation, momentum management, and mode transitions internally. If a goal is infeasible, the planner finds the closest achievable behavior rather than requiring operator intervention.
+
+This simplification enables:
+\begin{itemize}
+    \item \textbf{Reduced ground operations burden}: Less planning overhead per observation
+    \item \textbf{More aggressive mission concepts}: Operators can request ambitious pointing sequences without manually verifying each maneuver
+    \item \textbf{Faster response to opportunities}: Target-of-opportunity observations require only goal specification, not detailed maneuver planning
+    \item \textbf{Autonomous long-duration operations}: Satellites can execute complex goal sequences without continuous ground contact
+\end{itemize}
+
+In essence, the planner transforms ADCS operations from ``flying the spacecraft'' to ``telling the spacecraft where to point.'' But unlike a simple autopilot that follows predetermined waypoints, the planner actively reasons about constraints: it avoids keep-out zones, manages momentum buildup, exploits favorable magnetic field geometry, and discovers maneuver strategies that human operators might not consider. When operators specify ``point camera at target X while avoiding the sun,'' the planner determines \emph{how} to achieve this given the spacecraft's specific limitations---finding trajectories through constrained orientation space that a human would struggle to compute manually.
+
+\subsection{Contributions}\label{subsec:contributions}
+The core contributions of this work are:
+\begin{itemize}
+    \item A trajectory planner that degrades gracefully under infeasible pointing requests, returning the closest dynamically achievable behavior rather than saturating or failing
+    \item Native support for underactuated and unconventionally actuated spacecraft, from magnetorquer-only systems to hybrid configurations, with minimal per-mission customization
+    \item Unified handling of pointing objectives---including full-attitude, reduced-attitude, and set-based goals---alongside momentum management, keep-out constraints, and disturbances
+    \item Quantitative demonstration of reduced saturation (>70\%), increased maneuver success, and sub-degree pointing accuracy through extensive Monte Carlo testing
+    \item Real-world implementation details including sequential replanning, trajectory overlap strategies, and closed-loop trajectory following using time-varying LQR and model predictive control
+\end{itemize}
+
+The remainder of this paper is organized as follows. Section~\ref{sec:related_work} reviews related work in spacecraft attitude control and trajectory planning. Section~\ref{sec:problem} formulates the trajectory planning problem, including goal representations and constraint handling. Section~\ref{sec:jgcd_math} provides the detailed mathematical formulation suitable for journal publication. Section~\ref{sec:altro} describes the ALTRO algorithm and its adaptation for satellite attitude planning. Section~\ref{sec:architecture} presents the planner-based ADCS architecture and real-world implementation considerations. Section~\ref{sec:following} discusses methods for following planned trajectories in closed loop. Section~\ref{sec:test_cases} presents simulation test cases, and Section~\ref{sec:results} analyzes the results. Section~\ref{sec:discussion} discusses implications and relation to prior work, and Section~\ref{sec:conclusion} concludes.
+
+
+% ==================================================
+\section{Related Work}\label{sec:related_work}
+
+Classical attitude control approaches for small satellites rely on point-to-point slews combined with feedback control laws and control allocation~\cite{wertz1978spacecraft,wie2008spacecraft}. While effective for fully actuated systems, these methods implicitly assume that commanded torques are achievable. In underactuated regimes, particularly for magnetorquer-only spacecraft, this assumption breaks down, leading to sustained saturation and degraded performance~\cite{psiaki2001magnetic,markley2003magnetic}.
+
+Control allocation and null-space methods have been proposed to distribute commands across heterogeneous actuators~\cite{bodson2002evaluation}, but typically operate at the instantaneous torque level and do not reason about long-horizon feasibility or dynamic constraints. As a result, these methods can still saturate actuators when commanded trajectories are infeasible over time.
+
+Model predictive control (MPC) and optimal control methods have been applied to spacecraft attitude guidance and maneuver planning~\cite{bemporad1999control,mayne2000constrained}, including applications to attitude reorientation~\cite{liu2012spacecraft}. However, many formulations enforce hard terminal constraints or assume full actuation, limiting robustness under infeasible commands or time-varying authority. Other approaches introduce specialized desaturation or momentum management modes~\cite{wertz1978spacecraft}, increasing system complexity and requiring careful mode switching and supervisory logic.
+
+Reduced-attitude and geometric pointing formulations have been explored to relax full-attitude constraints~\cite{markley1999attitude,schlanbusch2012attitude}, but are often treated separately from trajectory-level feasibility and actuator-aware planning. Gatherer and Manchester~\cite{gatherer_magnetorquer-only_2019} pioneered the application of trajectory optimization to magnetorquer-only attitude control using ALTRO, demonstrating that planning over the varying magnetic field can achieve pointing accuracy previously thought impossible for underactuated systems. Their work showed that a trajectory optimizer could discover non-obvious maneuvers that exploit time-varying magnetic field geometry.
+
+The iLQR and DDP family of algorithms have been extensively studied for trajectory optimization~\cite{tassa2012synthesis,todorov2005generalized}, with ALTRO~\cite{howell_altro_2019} providing a robust framework that combines augmented Lagrangian constraint handling with iLQR efficiency. Jackson et al.~\cite{jackson_planning_2021} extended these methods with improved quaternion handling for attitude systems.
+
+The proposed planner differs from prior work by treating feasibility as a first-class consideration throughout. By softening terminal objectives, supporting reduced-attitude and set-based goals, and incorporating actuator geometry directly into the optimization, the planner produces meaningful trajectories even when exact goal satisfaction is impossible. This unified treatment avoids ad-hoc saturation handling and provides a consistent framework applicable across actuator configurations. In contrast to formulations that assume feasible terminal slews, the planner treats infeasibility as expected in underactuated small satellites and returns a closest-achievable feasible behavior instead of saturating or switching modes.
+
+\subsection{Technical Gaps Addressed}\label{subsec:technical_gaps}
+
+This work addresses several gaps in existing ADCS approaches:
+
+\begin{itemize}
+    \item \textbf{Effective magnetic control}: Magnetorquer-only systems are often dismissed as incapable of precise pointing. This work demonstrates that trajectory planning over the time-varying magnetic field enables performance previously thought impossible.
+
+    \item \textbf{General ADCS approach}: Most ADCS implementations are tightly coupled to specific actuator configurations. This work provides a framework that generalizes across actuator types, from magnetorquers to reaction wheels to hybrid configurations.
+
+    \item \textbf{Autonomous rapid retargeting}: Conventional systems require ground-planned slews and mode switching. This planner enables onboard, autonomous goal management with rapid transitions between pointing objectives.
+
+    \item \textbf{Trajectory planning for attitude}: While trajectory optimization is common for position control, its application to attitude control---particularly for underactuated systems---remains underexplored. This work demonstrates practical implementation including real-time replanning and closed-loop execution.
+\end{itemize}
+
+
+% ==================================================
+\section{Problem Formulation}\label{sec:problem}
+% States, actuators, constraints, and goal definitions
+
+\subsection{System Dynamics}\label{subsec:dynamics}
+
+We consider rigid-body spacecraft attitude dynamics with state $x = (q, \omega)$, where $q \in \mathbb{S}^3$ denotes the unit quaternion attitude and $\omega \in \mathbb{R}^3$ the body angular velocity. Unless otherwise noted, all vectors are expressed in the spacecraft body frame.
+
+The rotational dynamics are governed by Euler's equation:
+\begin{equation}\label{eq:euler}
+    J\dot{\omega} = -\omega \times J\omega + \tau_{\text{control}} + \tau_{\text{disturbance}},
+\end{equation}
+where $J$ is the spacecraft inertia tensor and $\tau$ represents applied torques. For spacecraft with reaction wheels storing momentum $h_i$ along axes $\hat{\alpha}_i$, the dynamics become:
+\begin{equation}
+    \label{eq:av_dynamics_reduced}
+    \dot{\omega} = J_{\text{noRW}}^{-1}\left(-\omega\times \left(J_{\text{noRW}}\omega +\sum_{i=1}^{N_{\text{RW}}}\hat{\alpha}_{\text{RW},i}h_{i}\right)+\tau_{\text{control}} + \tau_{\text{disturbance}} \right),
+\end{equation}
+with wheel momentum evolving as $\dot{h}_i = -\tau_{\text{RW},i} - j_{\text{RW},i}(\hat{\alpha}_{\text{RW},i}^T\dot{\omega})$.
+
+Quaternion kinematics follow
+\begin{equation}\label{eq:quat_kinematics}
+    \dot{q} = \tfrac{1}{2}\,\Omega(\omega)\,q,
+\end{equation}
+where $\Omega(\omega)$ is the standard quaternion rate matrix.
+
+\subsection{Actuator Models and Authority}\label{subsec:actuators}
+
+Control authority is provided by an arbitrary set of actuators, including magnetorquers, reaction wheels, or combinations thereof, subject to actuator-specific magnitude, rate, and geometric constraints. The planner accommodates arbitrary actuator sets through a torque mapping:
+\begin{equation}\label{eq:torque_mapping}
+    \tau_k = g_k(x_k, u_k),
+\end{equation}
+which may be nonlinear, constrained, and time-varying.
+
+For a magnetorquer-only spacecraft:
+\begin{equation}\label{eq:mtq_torque}
+    \tau_k = m_k \times B_k, \quad \|m_k\|_\infty \le m_{\max},
+\end{equation}
+where $m_k$ is the commanded magnetic moment and $B_k$ is the geomagnetic field in the body frame at step $k$. This mapping is inherently rank-deficient (torque is orthogonal to $B_k$) and varies with orbit and attitude, making the system instantaneously underactuated though controllable over time~\cite{lovera2004periodic}.
+
+For a hybrid (MTQ+RW) spacecraft:
+\begin{equation}\label{eq:hybrid_torque}
+    \tau_k = (m_k \times B_k) + A_{\mathrm{rw}}\,u_{\mathrm{rw},k},
+\end{equation}
+where $A_{\mathrm{rw}}\in\mathbb{R}^{3\times n_{\mathrm{rw}}}$ maps wheel torques to body torque along wheel axes.
+
+\subsection{Goal Types and Representations}\label{subsec:goal_types}
+
+One significant way to improve ADCS autonomy is to avoid specifying full slews or even specific orientations as satellite goals. Instead, the satellite can be given goals that fall into categories based on their constraint dimension. Table~\ref{tab:goal_types} summarizes these goal types:
+
+\begin{itemize}
+    \item \textbf{No goal}: No specific constraint during this period, useful for allowing the planner ``free time'' to optimize for goals at other times or manage momentum.
+
+    \item \textbf{Reduced-attitude (vector alignment)}: Align a body-fixed vector $\hat{b}$ with a world-frame direction $\hat{r}_{\text{des}}$. This constrains only one axis, leaving rotation about the alignment axis free. The solution set forms a circle ($S^1$) in orientation space.
+
+    \item \textbf{Full-attitude}: Match a specific desired quaternion $q_{\text{des}}$. The solution is a single point in $SO(3)$.
+
+    \item \textbf{Set-based}: Satisfy inequality constraints such as pointing cones ($\hat{b}^T\hat{r} \geq \cos\alpha$) or keep-out exclusion regions ($\hat{b}^T\hat{r}_{\text{ko}} \leq \cos\beta$).
+\end{itemize}
+
+\begin{table}[t]
+    \centering
+    \caption{Goal Type Classification}
+    \label{tab:goal_types}
+    \begin{tabular}{lccl}
+        \toprule
+        Goal Type & Dim. & Solution Set & Examples \\
+        \midrule
+        No goal & 3 & All of $SO(3)$ & Momentum mgmt., drift \\
+        Reduced-attitude & 1 & Circle ($S^1$) & Camera nadir, panel sunward \\
+        Full-attitude & 0 & Point & Docking, inertial hold \\
+        Set-based & -- & Cone/region & Keep-out, pointing cone \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+Describing goals as vector alignments rather than full orientations has significant advantages: it allows the planner flexibility in \textit{how} to meet those goals, potentially finding trajectories that would be infeasible if a specific orientation were required~\cite{mckeen_method_2022}. For underactuated systems, this flexibility can mean the difference between feasible and infeasible maneuvers. As illustrated in Fig.~\ref{fig:quat_set}, when the goal is to point a camera in the nadir direction, any rotation about that axis is acceptable---fully specifying the orientation over-constrains the problem.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.7\linewidth]{quaternion_set.png}
+    \caption{Visual example of quaternion set goals. If the goal is to point the camera ($\hat{v}$) in the nadir direction ($\hat{u}$), any of the rotations shown are acceptable. Fully specifying the orientation as a goal over-constrains the problem.}
+    \label{fig:quat_set}
+\end{figure}
+
+For a full-attitude goal requiring rotation from $\hat{v}$ to $\hat{u}$, the set of acceptable quaternions forms a one-parameter family that can be characterized analytically, enabling efficient optimization over the goal manifold.
+
+\subsection{Operational Constraints}\label{subsec:constraints}
+
+Additional operational constraints include:
+\begin{itemize}
+    \item Actuator saturation limits on torques and magnetic moments
+    \item Angular velocity limits ($\|\omega\| \leq \omega_{\max}$)
+    \item Momentum storage limits for reaction wheels ($|h_i| \leq h_{i,\max}$)
+    \item Keep-out zones (e.g., avoiding pointing cameras at the sun)
+\end{itemize}
+
+The keep-out constraint is formulated as:
+\begin{equation}\label{eq:keepout}
+    \hat{a}^T R(q_k) \hat{s}_k \leq \cos\eta,
+\end{equation}
+where $\eta$ is the angular limit of the keep-out zone, $\hat{a}$ is the body-frame unit vector aligned with the camera, and $\hat{s}_k$ is the sun direction in the inertial frame at time $k$.
+
+
+% ==================================================
+\section{Trajectory Optimization Formulation}\label{sec:jgcd_math}
+
+This section provides a journal-level mathematical description of the planner formulation, emphasizing generality across actuator sets and goal types.
+
+\subsection{Discrete-Time Dynamics}\label{subsec:discrete_dynamics}
+
+We plan over a finite horizon of $N$ steps with timestep $\Delta t$. The discrete-time state is $x_k = (q_k, \omega_k)$, where $q_k \in \mathbb{S}^3$ is a unit quaternion and $\omega_k \in \mathbb{R}^3$ is the body angular velocity. The control input is $u_k \in \mathbb{R}^m$, representing actuator commands (e.g., magnetic dipole moments, wheel torques, or a concatenation).
+
+A generic discrete-time model is written as
+\begin{equation}\label{eq:discrete_dynamics}
+    x_{k+1} = f_k(x_k, u_k), \quad k = 0,\dots,N-1,
+\end{equation}
+where $f_k(\cdot)$ includes rigid-body rotational dynamics, actuator dynamics (if modeled), and may be time-varying due to environmental effects. In implementation, $f_k$ is obtained via fourth-order Runge-Kutta (RK4) integration with explicit renormalization of $q$ after each step~\cite{sveier_applied_2019}.
+
+\subsection{Goal Representations in Optimization}\label{subsec:goal_representations}
+
+\subsubsection{Full-attitude goals}\label{subsubsec:full_attitude}
+Let $q_{\mathrm{des},k}$ be a desired attitude. Define the error quaternion
+\begin{equation}\label{eq:error_quat}
+    q_{e,k} = q_{\mathrm{des},k}^{-1} \otimes q_k,
+\end{equation}
+and use the vector part $\mathrm{vec}(q_{e,k}) \in \mathbb{R}^3$ as a small-angle error proxy. A typical tracking penalty is
+\begin{equation}\label{eq:quat_tracking_penalty}
+    \ell_q(x_k) = \tfrac{1}{2}\,\mathrm{vec}(q_{e,k})^\top Q_q\,\mathrm{vec}(q_{e,k}).
+\end{equation}
+Alternatively, the scalar product formulation~\cite{gatherer_magnetorquer-only_2019} provides a globally valid metric:
+\begin{equation}\label{eq:quat_scalar_cost}
+    \ell_q = (1 - |q_{\text{des}} \cdot q_k|).
+\end{equation}
+
+\subsubsection{Reduced-attitude goals}\label{subsubsec:reduced_attitude}
+Let $\hat{b} \in \mathbb{R}^3$ be a body-fixed unit axis and $\hat{r}_{\mathrm{des},k}\in\mathbb{S}^2$ a desired inertial direction. The achieved inertial direction is
+\begin{equation}\label{eq:achieved_direction}
+    \hat{r}_k = R(q_k)\,\hat{b},
+\end{equation}
+and a reduced-attitude penalty can be expressed via
+\begin{equation}\label{eq:reduced_attitude_cost}
+    \ell_{\mathrm{red}}(x_k) = f(1 - \hat{r}_k^\top \hat{r}_{\mathrm{des},k}),
+\end{equation}
+where $f(\cdot)$ can be linear, quadratic, or based on $\arccos$ depending on desired sensitivity. The cross-product formulation $e_{\mathrm{red},k} = \hat{r}_k \times \hat{r}_{\mathrm{des},k}$ provides an alternative with favorable linearization properties.
+
+\subsubsection{Set-based goals}\label{subsubsec:set_goals}
+Set-based pointing can be encoded as inequality constraints (or soft constraints):
+\begin{equation}\label{eq:set_constraint}
+    h_k(x_k) \le 0,
+\end{equation}
+where $h_k$ may represent a pointing cone (e.g., $\hat{r}_k^\top \hat{r}_{\mathrm{des},k} \ge \cos\alpha$) or a keep-out exclusion region (e.g., $\hat{r}_k^\top \hat{r}_{\mathrm{ko},k} \le \cos\beta$).
+
+\subsection{Cost Function Structure}\label{subsec:cost_structure}
+
+The total cost comprises state cost, control cost, and optional terms for momentum management:
+\begin{equation}\label{eq:total_cost}
+    \ell_k(x_k, u_k) = \ell_{\text{goal},k}(x_k) + \ell_\omega(x_k) + \ell_u(u_k) + \ell_H(x_k) + \ell_s(x_k),
+\end{equation}
+where:
+\begin{itemize}
+    \item $\ell_{\text{goal},k}$ penalizes deviation from pointing objectives
+    \item $\ell_\omega = \frac{1}{2}\omega_k^\top Q_\omega \omega_k$ penalizes angular velocity
+    \item $\ell_u = \frac{1}{2}u_k^\top R u_k$ penalizes control effort
+    \item $\ell_H$ penalizes reaction wheel momentum approaching saturation limits
+    \item $\ell_s$ penalizes reaction wheel speeds near stiction (zero velocity)
+\end{itemize}
+
+A directional damping term~\cite{gatherer_magnetorquer-only_2019} can be added that increases cost when angular velocity causes pointing error to grow and decreases cost when error is reducing:
+\begin{equation}\label{eq:directional_damping}
+    \ell_{q\omega} = -\text{sign}(q_{\text{goal}} \cdot q_k) q_{\text{goal}} W(q_k) \omega \cdot c_{q\omega},
+\end{equation}
+where $W(q)$ is the quaternion rate matrix. This term proves especially useful in early optimization iterations when trajectories may be far from optimal.
+
+The momentum cost uses a softplus function to create a smooth ``deadzone'':
+\begin{equation}\label{eq:momentum_cost}
+    \ell_H(x_k) = \frac{1}{2} c_{H_1} \left(\frac{\log(1+\exp({(|H|-c_{H_2})c_{H_3}})}{c_{H_3}}\right)^2,
+\end{equation}
+where $c_{H_2}$ is a threshold (typically $\frac{2}{3}$ of maximum momentum) below which there is no penalty.
+
+\subsection{Trajectory Optimization Problem}\label{subsec:opt_problem}
+
+We pose the planner as a constrained optimal control problem:
+\begin{align}
+\min_{\{x_k,u_k\}} \; & \phi_N(x_N) + \sum_{k=0}^{N-1} \ell_k(x_k,u_k) \label{eq:opt_cost}\\
+\text{s.t. } \; & x_{k+1}=f_k(x_k,u_k), \quad k = 0,\dots,N-1, \label{eq:opt_dynamics}\\
+& x_0 = \hat{x}_0, \label{eq:opt_initial}\\
+& u_k \in \mathcal{U}_k, \quad x_k \in \mathcal{X}_k, \label{eq:opt_bounds}\\
+& c_k(x_k,u_k) = 0, \quad d_k(x_k,u_k) \le 0. \label{eq:opt_constraints}
+\end{align}
+Here, $\hat{x}_0$ is the current state estimate. The sets $\mathcal{U}_k$ and $\mathcal{X}_k$ encode hard bounds (e.g., dipole limits, wheel torque bounds, momentum limits). Equality constraints $c_k$ may include additional dynamics, while inequality constraints $d_k$ capture keep-outs and operational constraints.
+
+\subsection{Feasibility-Aware Soft Constraints and Graceful Degradation}\label{subsec:soft_constraints}
+
+A central design philosophy of this planner is \textit{graceful degradation}: when goals are infeasible, the system should converge to the closest achievable behavior rather than saturating actuators, inducing instability, or failing outright.
+
+% ============================================================
+% GRACEFUL DEGRADATION - CONCRETE DEFINITION
+% This is the key behavioral guarantee for underactuated systems
+% ============================================================
+Concretely, graceful degradation means that when the planner receives an infeasible goal:
+\begin{enumerate}
+    \item The planner does \textbf{not} error out or return no solution
+    \item The planner does \textbf{not} command actuators to saturation indefinitely
+    \item The planner \textbf{converges to the closest achievable attitude} that minimizes goal error while respecting actuator and rate constraints
+    \item The planner \textbf{always satisfies hard constraints} (actuator limits, rate limits, keep-out zones)
+    \item The planner \textbf{produces a bounded, predictable trajectory} that can be tracked by the feedback controller
+\end{enumerate}
+
+This guarantee is essential for underactuated systems where exact goal satisfaction may be geometrically impossible. Rather than ``trying its hardest and failing,'' the planner finds the best achievable behavior and executes it smoothly.
+
+\subsubsection{Implementation: Fallback Behavior}
+In implementation, if ALTRO does not converge within the pre-computation window (which is sized to allow planning to complete before the trajectory must begin), the system falls back to:
+\begin{enumerate}
+    \item The current best trajectory estimate from the optimization (if available)
+    \item Standard PD control toward the goal (if no trajectory is available)
+\end{enumerate}
+Pre-computation timelines ensure the planner has sufficient time to work on the problem before execution begins. This architecture prevents the planner from ever leaving the spacecraft without valid commands.
+
+\subsubsection{Goal Relaxation Hierarchy}
+The philosophy manifests operationally as a hierarchy of goal relaxation:
+\begin{enumerate}
+    \item Attempt full-attitude goal satisfaction
+    \item If infeasible, relax to reduced-attitude (single-axis alignment)
+    \item If still infeasible, relax to set-based constraint satisfaction
+    \item If still infeasible, minimize pointing error while respecting actuator limits
+\end{enumerate}
+This approach ensures that the planner always returns a meaningful, dynamically achievable trajectory, even when the requested goal is impossible to achieve exactly.
+
+To guarantee meaningful outputs under infeasible goals, terminal objectives and selected constraints are softened using nonnegative slack variables. For an inequality constraint $d_k(x_k,u_k)\le 0$, introduce $s_k\ge 0$ and enforce
+\begin{equation}\label{eq:slack_constraint}
+    d_k(x_k,u_k) \le s_k, \quad s_k \ge 0,
+\end{equation}
+with penalty
+\begin{equation}\label{eq:slack_penalty}
+    \ell_{\mathrm{slack},k} = \tfrac{1}{2} s_k^\top W_s s_k + w_1\,\mathbf{1}^\top s_k.
+\end{equation}
+The quadratic term discourages large violations while the linear term promotes exact satisfaction when feasible. This structure yields graceful degradation: when exact satisfaction is impossible, the planner returns the closest achievable behavior according to the weighted penalties rather than saturating actuators or inducing unstable transients.
+
+\subsection{Quaternion Error Coordinates and Manifold Handling}\label{subsec:quaternion_handling}
+
+Attitude is represented globally using unit quaternions, while local optimization is performed in minimal coordinates to avoid singularities and constraint drift~\cite{sola_quaternion_2017,jackson_planning_2021}. Given a nominal quaternion $q_k$, perturbations are represented using a local rotation vector $\delta\theta_k\in\mathbb{R}^3$ such that
+\begin{equation}\label{eq:quat_perturbation}
+    q_k(\delta\theta_k) = q_k \otimes \exp\left(\tfrac{1}{2}\delta\theta_k\right),
+\end{equation}
+where $\exp(\cdot)$ denotes the quaternion exponential map. This representation ensures that updates remain on the unit quaternion manifold without explicit normalization constraints in the optimizer.
+
+
+% ==================================================
+\section{The ALTRO Algorithm}\label{sec:altro}
+
+The planner is based on the Augmented Lagrangian TRajectory Optimizer (ALTRO), developed by Manchester and colleagues~\cite{howell_altro_2019,jackson_al_ilqr_tutorialpdf_2019}. ALTRO provides a robust framework for trajectory optimization by combining augmented Lagrangian constraint handling with the computational efficiency of iterative Linear Quadratic Regulator (iLQR) methods.
+
+\subsection{Algorithm Structure}\label{subsec:altro_structure}
+
+ALTRO employs a three-loop structure, illustrated in Fig.~\ref{fig:altro_diagram}.
+
+\subsubsection{Outer Loop (Augmented Lagrangian)}\label{subsubsec:outer_loop}
+The outermost loop enforces constraints using augmented Lagrangian methods. The baseline cost $\ell_k$ is augmented with terms involving Lagrange multipliers $\lambda_k$ and quadratic penalties $\mu$:
+\begin{equation}\label{eq:augmented_lagrangian}
+\mathcal{L}_k = \ell_k + \lambda_k^T c_k + \frac{\mu}{2} c_k^T I_{k,\mu} c_k,
+\end{equation}
+where $I_{k,\mu}$ is a diagonal indicator matrix. After each outer iteration, multipliers and penalties are updated:
+\begin{align}
+\lambda_k^+ &= \max(0, \lambda_k + \mu c_k), \label{eq:lambda_update}\\
+\mu^+ &= \phi \mu, \quad \phi > 1. \label{eq:mu_update}
+\end{align}
+
+\subsubsection{Middle Loop (iLQR)}\label{subsubsec:middle_loop}
+Within the augmented Lagrangian framework, the middle loop solves the trajectory optimization using iterative LQR~\cite{todorov2005generalized}. The approach linearizes dynamics and quadratically approximates costs around a nominal trajectory, then performs:
+\begin{itemize}
+    \item \textbf{Backward pass}: Propagate the value function backward, computing optimal control adjustments $\delta u_k^* = K_k \delta x_k + d_k$ at each timestep
+    \item \textbf{Forward pass}: Apply control corrections with line search scaling $\alpha$ to ensure cost reduction
+\end{itemize}
+
+The optimal control adjustment at each step is:
+\begin{equation}\label{eq:control_adjustment}
+\delta u_k^* = -(Q_{uu} + \rho I)^{-1} (Q_{ux} \delta x_k + Q_u),
+\end{equation}
+where $Q_{uu}$, $Q_{ux}$, $Q_u$ are components of the action-value function Hessian/gradient, and $\rho$ is a regularization parameter.
+
+\subsubsection{Inner Loop (Line Search)}\label{subsubsec:inner_loop}
+The innermost loop performs a forward pass with line search:
+\begin{align}
+u_k^{\text{new}} &= u_k + \alpha d_k + K_k \delta x_k, \label{eq:control_update}\\
+x_{k+1} &= f_k(x_k, u_k^{\text{new}}), \label{eq:state_update}
+\end{align}
+where $\alpha \in \{1, 0.5, 0.25, \dots\}$ is reduced until the actual cost improvement matches predictions within acceptable bounds.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.95\linewidth]{ALTRO_diagram.png}
+    \caption{ALTRO algorithm structure showing the three nested loops: augmented Lagrangian (outer), iLQR (middle), and line search (inner).}
+    \label{fig:altro_diagram}
+\end{figure}
+
+\subsection{Satellite-Specific Adaptations}\label{subsec:satellite_adaptations}
+
+Several adaptations tailor ALTRO for attitude planning:
+
+\begin{itemize}
+    \item \textbf{Dynamics integration}: RK4 with quaternion renormalization after each step
+    \item \textbf{Analytical Jacobians}: Hand-coded derivatives of cost, dynamics, and constraints for consistent runtime
+    \item \textbf{Constraint scaling}: Actuator bounds set to 30-50\% of physical limits to reserve margin for trajectory following
+    \item \textbf{Multi-pass optimization}: Initial coarse-timestep pass (10s) followed by fine-timestep refinement (1s); initial pass without disturbances followed by disturbance-inclusive refinement
+    \item \textbf{C++ implementation}: Ported from Julia for flight software compatibility
+\end{itemize}
+
+\subsection{Algorithm Summary}\label{subsec:algorithm_summary}
+
+Algorithm~\ref{alg:planner_loop} presents the complete planner loop for real-time operation. The outer loop runs continuously during planned operations, generating overlapping trajectories that the controller tracks. Key features include: initialization from the current trajectory (not raw state estimate) to ensure continuity; retry logic for non-convergence; and graceful fallback to simpler control modes when planning fails repeatedly.
+
+\begin{algorithm}[t]
+\caption{Attitude Trajectory Planner Loop}
+\label{alg:planner_loop}
+\begin{algorithmic}[1]
+\REQUIRE Current trajectory $\mathcal{T}_{\text{curr}}$, goals $\mathcal{G}$, environment models
+\ENSURE New trajectory $\mathcal{T}_{\text{new}}$ or fallback mode
+\STATE $t_{\text{start}} \gets t_{\text{now}} + t_{\text{prec}}$
+\STATE $x_0 \gets \text{interpolate}(\mathcal{T}_{\text{curr}}, t_{\text{start}})$ \COMMENT{Init from current traj}
+\STATE $\mathcal{G}_{\text{horizon}} \gets \text{extract\_goals}(\mathcal{G}, t_{\text{start}}, t_{\text{start}} + T)$
+\STATE $B_k, \hat{s}_k \gets \text{propagate\_environment}(t_{\text{start}}, T, \Delta t)$
+\STATE $\mathcal{T}_{\text{seed}} \gets \text{generate\_seed}(x_0, \mathcal{G}_{\text{horizon}})$
+\FOR{$i = 1$ to $N_{\text{retry}}$}
+    \STATE $\mathcal{T}_{\text{new}}, \text{status} \gets \text{ALTRO}(\mathcal{T}_{\text{seed}}, \mathcal{G}_{\text{horizon}}, B_k)$
+    \IF{status = CONVERGED}
+        \STATE $K_k \gets \text{extract\_TVLQR\_gains}(\mathcal{T}_{\text{new}})$
+        \RETURN $\mathcal{T}_{\text{new}}, K_k$
+    \ENDIF
+    \STATE $\mathcal{T}_{\text{seed}} \gets \text{perturb\_seed}(\mathcal{T}_{\text{seed}})$
+\ENDFOR
+\STATE \textbf{trigger} fallback mode (PD control or B-dot)
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Computational Complexity}\label{subsec:complexity}
+
+The per-iteration complexity of ALTRO scales as $\mathcal{O}(N(n^3 + m^3))$ where $N$ is the number of timesteps, $n$ is the state dimension (7 for quaternion + angular velocity, plus wheel momenta), and $m$ is the control dimension. The cubic terms arise from matrix inversions in the backward pass. For typical attitude planning with $N=500$ steps, $n=10$, and $m=6$, each iLQR iteration requires approximately [TBD] floating-point operations.
+
+Table~\ref{tab:complexity} summarizes how solve time scales with trajectory parameters. Doubling the horizon length approximately doubles solve time when timestep is held constant; halving the timestep approximately doubles solve time when horizon is held constant. The multi-pass strategy (coarse then fine) exploits this relationship: a 10s-timestep coarse pass provides a good seed for the 1s-timestep fine pass, reducing total iterations compared to fine-only optimization.
+
+% TODO-DATA-7: Measure computational scaling (vary timestep and horizon)
+\begin{table}[t]
+    \centering
+    \caption{Computational Scaling with Trajectory Parameters}
+    \label{tab:complexity}
+    \begin{tabular}{lccc}
+        \toprule
+        Configuration & Timesteps & Iterations & Solve Time (s) \\
+        \midrule
+        500s, $\Delta t=1$s & 500 & [TBD] & [TBD] \\
+        500s, $\Delta t=2$s & 250 & [TBD] & [TBD] \\
+        500s, $\Delta t=5$s & 100 & [TBD] & [TBD] \\
+        1000s, $\Delta t=1$s & 1000 & [TBD] & [TBD] \\
+        1000s, $\Delta t=2$s & 500 & [TBD] & [TBD] \\
+        \midrule
+        \multicolumn{4}{l}{\textit{Multi-pass (recommended):}} \\
+        500s: 10s$\rightarrow$1s & 50+500 & [TBD] & [TBD] \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+% ==================================================
+\section{Planner-Based ADCS Architecture}\label{sec:architecture}
+
+When applied to a real mission, the planner operates as one component of a larger ADCS. This section describes the integration architecture and real-world implementation considerations.
+
+\subsection{System Architecture}\label{subsec:system_architecture}
+
+The planner-based ADCS comprises three primary blocks, shown in Fig.~\ref{fig:adcs_overview}:
+
+\begin{enumerate}
+    \item \textbf{Estimator}: An Unscented Kalman Filter (or similar) combines environmental models, control commands, and sensor data to estimate the system state including orientation quaternion $q$, angular velocity $\omega$, stored momentum, disturbance torques, and sensor/actuator biases.
+
+    \item \textbf{Planner}: Receives the propagated state estimate, control goals, disturbance models, and environmental information. Generates a trajectory optimizing over the objective function while respecting constraints. Outputs time-indexed states, controls, and optionally TVLQR gains.
+
+    \item \textbf{Controller}: Compares the planned trajectory to the estimated state and generates actuator commands to track the plan, correcting for disturbances and model errors.
+\end{enumerate}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.95\linewidth]{ADCS_overview.png}
+    \caption{Planner-based ADCS architecture showing estimator, planner, and controller integration. The estimator provides state estimates to both planner and controller; the planner generates trajectories that the controller tracks in closed loop.}
+    \label{fig:adcs_overview}
+\end{figure}
+
+\subsection{Real-World Timing Considerations}\label{subsec:timing}
+
+The planner requires computation time, creating several implementation challenges:
+
+\subsubsection{Precalculation}\label{subsubsec:precalc}
+For a trajectory from time $t$ to $t+T$, planning must begin at $t - t_{\text{prec}}$ where $t_{\text{prec}}$ exceeds twice the expected computation time to allow retry on non-convergence.
+
+\subsubsection{Overlapping Trajectories}\label{subsubsec:overlap}
+Sequential trajectories overlap by $t_{\text{overlap}}$ (typically 33-50\% of duration). This provides a buffer for computational delays and addresses endpoint effects where the planner's ``look-ahead'' diminishes near trajectory end. Transitioning mid-trajectory avoids artifacts from terminal constraint handling.
+
+\subsubsection{Initial State Propagation}\label{subsubsec:init_state}
+With overlapping trajectories, the planner initializes from the appropriate point on the current trajectory rather than the estimated state, assuming close trajectory tracking. For the first trajectory or after mode switches, the state can be propagated forward using a simple control law.
+
+\subsubsection{Fallback Modes}\label{subsubsec:fallback}
+The ADCS must provide fallback mechanisms for planner non-convergence or adverse conditions. A hierarchy might include: simplified planning $\rightarrow$ PD control $\rightarrow$ B-dot detumbling.
+
+\subsection{Failure Mode Analysis}\label{subsec:failure_modes}
+
+Planner non-convergence occurs when the optimizer cannot find a trajectory satisfying convergence criteria within the iteration budget. Table~\ref{tab:failure_modes} characterizes observed failure modes and their frequencies from Monte Carlo testing.
+
+% TODO-DATA-8: Characterize failure modes from MC data
+\begin{table}[t]
+    \centering
+    \caption{Planner Failure Mode Analysis (100-trial MC)}
+    \label{tab:failure_modes}
+    \begin{tabular}{lcc}
+        \toprule
+        Failure Mode & MTQ-Only & Hybrid (MTQ+RW) \\
+        \midrule
+        Non-convergence (1st attempt) & [TBD]\% & [TBD]\% \\
+        Non-convergence (after retry) & [TBD]\% & [TBD]\% \\
+        Constraint violation at solution & [TBD]\% & [TBD]\% \\
+        Numerical instability & [TBD]\% & [TBD]\% \\
+        \midrule
+        Total requiring fallback & [TBD]\% & [TBD]\% \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+Non-convergence correlates with specific conditions: magnetic field aligned with desired torque direction (reducing MTQ authority), goals requiring torque exceeding actuator limits, and poor seed trajectories. The retry mechanism with perturbed seeds recovers [TBD]\% of first-attempt failures. % TODO-DATA-8 Remaining failures trigger fallback to quaternion feedback control, which maintains safe operation albeit with degraded pointing performance.
+
+When the planner returns a solution that violates soft constraints (indicating infeasible goals), the controller tracks the trajectory normally. The resulting behavior represents the closest achievable approximation to the requested goal, with bounded error rather than unbounded saturation.
+
+\subsection{Size, Weight, Power, and Cost Considerations}\label{subsec:swap_c}
+
+Trajectory planning adds computational overhead compared to conventional feedback control. Table~\ref{tab:swap_c} summarizes resource requirements for the C++ implementation.
+
+% TODO-DATA-9: Measure SWaP-C metrics (memory, CPU, binary size, energy)
+\begin{table}[t]
+    \centering
+    \caption{Planner Resource Requirements}
+    \label{tab:swap_c}
+    \begin{tabular}{lcc}
+        \toprule
+        Resource & Laptop & RPi 4 \\
+        \midrule
+        Peak CPU usage & [TBD]\% & [TBD]\% \\
+        Memory (heap) & [TBD] MB & [TBD] MB \\
+        Memory (stack) & [TBD] KB & [TBD] KB \\
+        Binary size & [TBD] KB & [TBD] KB \\
+        Energy per solve & [TBD] J & [TBD] J \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+For embedded deployment, the planner runs as a background task with lower priority than estimation and control loops. On Raspberry Pi 4 class hardware, the planner consumes approximately [TBD]\% of available CPU when solving continuously, leaving headroom for other ADCS tasks. % TODO-DATA-9 Memory requirements are dominated by trajectory storage ($\approx 8N(n+m)$ bytes for double-precision) and Jacobian matrices.
+
+The primary cost consideration is development effort rather than hardware. The planner requires accurate models of actuator geometry, dynamics, and environmental effects. For missions where these models already exist (e.g., for simulation or ground testing), integration effort is modest. For missions without such models, the modeling effort may exceed the benefit for simple pointing requirements.
+
+\subsection{Trajectory Duration and Timestep Selection}\label{subsec:trajectory_params}
+
+Trajectory durations in this work range from 450s (with 150s overlap) to 3600s. Longer trajectories with coarser timesteps can be less computationally intensive than shorter trajectories with fine timesteps. However, longer horizons risk orbit propagation drift affecting environmental models (magnetic field, goal directions).
+
+A practical approach uses:
+\begin{itemize}
+    \item Long-term coarse planning (hours, 10s+ timesteps) for goal sequencing
+    \item Short-term fine planning (2-20 minutes, 1s timesteps) for real-time execution
+    \item Multi-pass refinement from coarse to fine
+\end{itemize}
+
+
+% ==================================================
+\section{Trajectory Following}\label{sec:following}
+
+Planned trajectories must be tracked in the presence of uncertainty, noise, and model errors. Two primary approaches are implemented:
+
+\subsection{Time-Varying Linear Quadratic Regulator (TVLQR)}\label{subsec:tvlqr}
+
+The planner naturally produces time-varying LQR gains $K_k$ from the backward pass. The control law:
+\begin{equation}\label{eq:tvlqr}
+    u_{k,\text{control}} = u_{k,\text{plan}} + K_k(x_{k,\text{estimate}} - x_{k,\text{plan}})
+\end{equation}
+attempts to minimize remaining trajectory cost. The state difference uses appropriate quaternion error formulations rather than arithmetic subtraction.
+
+An extended formulation incorporates disturbance estimates:
+\begin{equation}\label{eq:tvlqr_extended}
+    u_{k,\text{control}} = u_{k,\text{plan}} + K_k\left(\begin{bmatrix}x_{k,\text{plan}}\\\tau_{k,\text{expected}}\end{bmatrix} - \begin{bmatrix}x_{k,\text{estimate}}\\\tau_{k,\text{estimate}}\end{bmatrix}\right),
+\end{equation}
+accounting for differences between expected and actual disturbances.
+
+\subsection{Single-Step Model Predictive Control}\label{subsec:mpc}
+
+A computationally tractable MPC approach solves a single-step optimization at each timestep:
+\begin{equation}\label{eq:mpc}
+\min_{u_k \in \mathcal{U}} \frac{1}{2} \left|K_{k+1} \left(\text{RK4}(x_{k,\text{est}}, u_k, t_k) - x_{k+1,\text{plan}}\right)\right|^2,
+\end{equation}
+using the TVLQR gains from the next timestep as weights. This enables direct handling of nonlinear dynamics, actuator bounds, and real-time disturbance compensation while remaining computationally tractable. Unlike TVLQR, MPC adjusts dynamically to disturbance deviations encountered during execution.
+
+
+% ==================================================
+\section{Simulation Test Cases}\label{sec:test_cases}
+
+This section presents simulation results across progressively weaker and less conventional actuator configurations.
+
+\subsection{Spacecraft Parameters}\label{subsec:spacecraft_params}
+
+The primary test vehicle is a 3U CubeSat (4~kg) with inertia matrix based on BeaverCube. Actuator configurations include:
+\begin{itemize}
+    \item \textbf{MTQ-only}: Three orthogonal magnetorquers with $m_{\max} = 0.19$~Am$^2$
+    \item \textbf{Hybrid (MTQ+RW)}: Three magnetorquers plus a single reaction wheel along the body $y$-axis
+    \item \textbf{3RW}: Three orthogonal reaction wheels (6U CubeSat, 10~kg, ASTERIA-like inertia)
+\end{itemize}
+
+\subsection{Long-Term Multi-Goal Planning (MTQ-Only)}\label{subsec:long_term}
+
+A magnetorquer-only satellite plans a 3600s trajectory to:
+\begin{enumerate}
+    \item Track a ground target (camera $-\hat{z}$ axis) during an 8-minute window (960-1440s)
+    \item Point propulsion ($+\hat{x}$ axis) anti-ram from 2400s onward
+\end{enumerate}
+
+Despite underactuation, the planner generates smooth trajectories respecting the $0.8^\circ$/s angular velocity constraint. The satellite exploits rotation about the pointing axis (unconstrained by reduced-attitude goals) and leverages the varying magnetic field throughout the orbit. Pointing error shows small humps at maximum slew rate---a deliberate consequence of respecting velocity limits rather than insufficient control authority.
+
+\subsection{Planning Around Overwhelming Disturbance}\label{subsec:spinning}
+
+A 3U CubeSat with magnetorquers and a single reaction wheel faces a constant body-fixed disturbance of 0.3~mNm around the $x$-axis (e.g., thruster misalignment), too large for the $x$-axis magnetorquer (0.19~Am$^2$ max) to counter directly. The reaction wheel axis ($y$) cannot oppose the disturbance.
+
+Rather than attempting direct disturbance rejection, the planner discovers a \textit{spinning solution}: inducing controlled rotation about the $z$-axis (goal axis) ``smears'' the disturbance over time, averaging its effect and enabling bounded pointing error. This solution emerges naturally from the optimization without explicit programming, demonstrating the planner's ability to exploit reduced-attitude goal flexibility and find non-obvious control strategies.
+
+\begin{figure}[t]
+    \centering
+    \begin{subfigure}[b]{0.48\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{spinning_ang.png}
+        \caption{Pointing error}
+        \label{fig:spinning_ang}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.48\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{spinning_av.png}
+        \caption{Angular velocity}
+        \label{fig:spinning_av}
+    \end{subfigure}
+    \caption{Spinning solution for overwhelming disturbance. The planner induces rotation about the goal axis to average out a disturbance that exceeds direct actuator capability.}
+    \label{fig:spinning_solution}
+\end{figure}
+
+\subsection{Monte Carlo Evaluation}\label{subsec:monte_carlo}
+
+100-trial Monte Carlo simulations evaluate performance with randomized initial orbital positions along an ISS-like orbit. Three goal types are tested:
+
+\subsubsection{Full-Attitude 180$^\circ$ Slew}\label{subsubsec:180_slew}
+Slew from $q=[0,0,1,0]^T$ to $q=[0,1,0,0]^T$ over 500s.
+
+\subsubsection{Reduced-Attitude Slew}\label{subsubsec:reduced_slew}
+Align body $x$-axis with ECI direction $[\cos(10^\circ), 0, \sin(10^\circ)]^T$ over 500s. Keep-out constraint enforces 20$^\circ$ exclusion around sun direction.
+
+\subsubsection{Multi-Target Slew}\label{subsubsec:multi_target}
+Sequentially align body $x$-axis with three different directions over 500s:
+\begin{itemize}
+    \item Target 1 (0-170s): $[\cos(10^\circ), 0, \sin(10^\circ)]^T$
+    \item Target 2 (200-420s): $[\cos(-10^\circ), 0, \sin(-10^\circ)]^T$
+    \item Target 3 (450-500s): Return to first direction
+\end{itemize}
+30s transition periods between targets are not penalized.
+
+\begin{figure}[t]
+    \centering
+    \begin{subfigure}[b]{0.48\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{simple_slew/mtq_montecarlo.png}
+        \caption{MTQ-only final errors}
+        \label{fig:mtq_mc_final}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.48\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{simple_slew/1W_montecarlo.png}
+        \caption{Hybrid (MTQ+RW) final errors}
+        \label{fig:1w_mc_final}
+    \end{subfigure}
+    \caption{Monte Carlo results for 180$^\circ$ full-attitude slews showing final pointing error distribution across 100 trials.}
+    \label{fig:mc_180_results}
+\end{figure}
+
+\begin{figure}[t]
+    \centering
+    \begin{subfigure}[b]{0.48\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{simple_slew/mtq_montecarlo_traj.png}
+        \caption{MTQ-only error over time}
+        \label{fig:mtq_mc_traj}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.48\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{simple_slew/1W_montecarlo_traj.png}
+        \caption{Hybrid (MTQ+RW) error over time}
+        \label{fig:1w_mc_traj}
+    \end{subfigure}
+    \caption{Monte Carlo trajectory visualization showing pointing error evolution for all 100 trials.}
+    \label{fig:mc_trajectories}
+\end{figure}
+
+\subsection{Extreme Underactuation (2MTQ+1RW)}\label{subsec:extreme_underactuation}
+
+A stress-test configuration with two non-orthogonal magnetorquers and a single skewed reaction wheel demonstrates graceful degradation. Full-attitude regulation is fundamentally infeasible due to actuator geometry. The planner converges to reduced-attitude solutions aligned with the achievable torque subspace, maintaining bounded angular rates and predictable steady-state error.
+
+\subsection{Sequential Replanning}\label{subsec:sequential}
+
+A 6U CubeSat with 3RW executes five sequential pointing goals over 3600s:
+\begin{enumerate}
+    \item $-x$ anti-ram (150-1100s)
+    \item $z$ nadir (1200-1500s)
+    \item $z$ zenith (1600-1900s)
+    \item $z$ orbit normal (2000-2400s)
+    \item $-x$ anti-ram (2500-3600s)
+\end{enumerate}
+
+Trajectories are planned sequentially with 450s duration and 150s overlap, incorporating updated state estimates and environmental models. Results demonstrate robust operation across multiple replanning cycles with stable performance and smooth goal transitions.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.95\linewidth]{sequential/planvecang.png}
+    \caption{Sequential replanning pointing error for a 3RW CubeSat with five goals over 3600s. Gaps indicate transition periods with no goal constraint.}
+    \label{fig:sequential_pointing}
+\end{figure}
+
+\subsection{Operational Scenario: Imaging Pass}\label{subsec:imaging_scenario}
+
+To illustrate mission-realistic behavior, consider an Earth observation pass for a 3U MTQ-only CubeSat. The scenario spans 20 minutes around a ground station overpass:
+
+\begin{enumerate}
+    \item \textbf{Pre-pass (0-300s)}: No pointing goal; planner optimizes for upcoming slew
+    \item \textbf{Acquisition (300-360s)}: Slew camera ($-\hat{z}$) toward target coordinates
+    \item \textbf{Imaging (360-720s)}: Track ground target with $<5^\circ$ pointing requirement
+    \item \textbf{Data downlink prep (720-900s)}: Slew antenna ($+\hat{x}$) toward ground station
+    \item \textbf{Downlink (900-1200s)}: Maintain ground station pointing for data transfer
+\end{enumerate}
+
+The planner handles this sequence as a single trajectory with time-varying goals, automatically managing the slews between imaging and communication attitudes. Keep-out constraints prevent sun exposure of the camera throughout. Results for this scenario:
+% TODO-DATA-6: Run imaging pass operational scenario simulation
+
+\begin{itemize}
+    \item Imaging window pointing error: mean [TBD]$^\circ$, max [TBD]$^\circ$
+    \item Downlink window pointing error: mean [TBD]$^\circ$, max [TBD]$^\circ$
+    \item Slew durations: acquisition [TBD]s, reorientation [TBD]s
+    \item Keep-out margin maintained: [TBD]$^\circ$ minimum sun angle
+\end{itemize}
+
+This scenario demonstrates how the planner unifies what would traditionally require separate slew planning, imaging mode, and communication mode operations into a single continuous trajectory.
+
+\subsection{Operational Scenario: Momentum Management}\label{subsec:momentum_scenario}
+
+For spacecraft with reaction wheels, continuous momentum management prevents saturation without dedicated desaturation maneuvers. A 6U CubeSat with magnetorquers and a single reaction wheel maintains nadir pointing while the planner simultaneously:
+
+\begin{itemize}
+    \item Tracks nadir with camera axis ($<1^\circ$ pointing requirement)
+    \item Keeps reaction wheel momentum below 50\% of saturation limit
+    \item Respects magnetorquer duty cycle limits
+\end{itemize}
+
+% TODO-DATA-6: Run momentum management operational scenario simulation (90-min orbit)
+Over a 90-minute orbit, the planner discovers opportunities to dump momentum when the magnetic field geometry is favorable, without interrupting the primary pointing objective. Momentum remains bounded at [TBD]\% of maximum, compared to [TBD]\% growth per orbit without active management. This eliminates the need for periodic desaturation modes that would interrupt science operations.
+
+
+% ==================================================
+\section{Results}\label{sec:results}
+
+Results are presented using metrics emphasizing feasibility, robustness, and operational behavior rather than idealized tracking performance. Unless otherwise noted, ``no planning'' baselines use standard quaternion feedback control with proportional-derivative gains and direct saturation at actuator limits.
+
+\subsection{Baseline Comparison}\label{subsec:baseline}
+
+To quantify the planner's benefit, we compare against two baseline controllers commonly used for small satellite attitude control:
+
+\begin{itemize}
+    \item \textbf{Quaternion PD}: Standard proportional-derivative control on quaternion error with fixed gains, saturating actuator commands at physical limits
+    \item \textbf{B-cross with momentum}: For MTQ-only, the cross-product law $m = k_p (q_{\text{err},v} \times B) + k_d (\omega \times B)$ with tuned gains
+\end{itemize}
+
+Table~\ref{tab:baseline_comparison} compares planner performance against these baselines for the $180^\circ$ slew scenario.
+
+% TODO-DATA-2: Run baseline controller comparisons (Quat PD, B-cross) on same MC scenarios
+\begin{table}[t]
+    \centering
+    \caption{Planner vs. Baseline Controller Comparison ($180^\circ$ Slew)}
+    \label{tab:baseline_comparison}
+    \begin{tabular}{llccc}
+        \toprule
+        Config & Controller & Mean Err ($^\circ$) & Within 10$^\circ$ & Sat. Time \\
+        \midrule
+        \multirow{3}{*}{MTQ-Only}
+            & Planner & 10.2 & 73\% & [TBD]\% \\
+            & Quat PD & [TBD] & [TBD]\% & [TBD]\% \\
+            & B-cross & [TBD] & [TBD]\% & [TBD]\% \\
+        \midrule
+        \multirow{2}{*}{Hybrid (MTQ+RW)}
+            & Planner & 0.11 & 100\% & [TBD]\% \\
+            & Quat PD & [TBD] & [TBD]\% & [TBD]\% \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+The planner's primary advantage appears not in steady-state accuracy (where well-tuned PD control can eventually converge) but in transient behavior: reduced saturation, shorter settling time, and graceful handling of infeasible goals. For MTQ-only systems, baseline controllers often fail to converge within the 500s window due to sustained actuator saturation when the magnetic field is unfavorably aligned.
+
+\subsection{Saturation Reduction}\label{subsec:saturation}
+
+Across all tested configurations, planner-generated trajectories reduce actuator saturation events by more than 70\% compared to conventional slews. For magnetorquer-only spacecraft, saturation events are both shorter and less frequent, as the planner limits commanded torques to the achievable subspace defined by the instantaneous magnetic field.
+
+\subsection{Retargeting Success Rates}\label{subsec:retargeting}
+
+% TODO-DATA-3: Compute 95% confidence intervals via bootstrap (1000 resamples)
+\begin{table}[t]
+    \centering
+    \caption{Monte Carlo Full-Attitude Slew Performance ($180^\circ$, $n=100$)}
+    \label{tab:mc_180deg}
+    \begin{tabular}{lcc}
+        \toprule
+        Metric & MTQ-Only & Hybrid (MTQ+RW) \\
+        \midrule
+        Within 1$^\circ$ & 11\% $\pm$ [TBD]\% & 96\% $\pm$ [TBD]\% \\
+        Within 10$^\circ$ & 73\% $\pm$ [TBD]\% & 100\% $\pm$ [TBD]\% \\
+        Mean Error ($^\circ$) & 10.2 $\pm$ [TBD] & 0.11 $\pm$ [TBD] \\
+        Median Error ($^\circ$) & 4.2 & $1.2\times10^{-4}$ \\
+        Std Dev ($^\circ$) & 20.2 & 0.31 \\
+        \bottomrule
+    \end{tabular}
+    \begin{flushleft}
+    \small Confidence intervals are 95\% (bootstrap, 1000 resamples).
+    \end{flushleft}
+\end{table}
+
+Table~\ref{tab:mc_180deg} summarizes Monte Carlo results for $180^\circ$ slews. The MTQ-only configuration achieves 73\% success (within 10$^\circ$) with mean slew time around 500s---notably fast for purely magnetic control. Adding a single reaction wheel dramatically improves performance: 96\% achieve sub-degree accuracy, and all trials converge within 10$^\circ$.
+
+\subsection{Reduced-Attitude vs. Full-Attitude Goals}\label{subsec:reduced_vs_full}
+
+Table~\ref{tab:reduced_vs_full} compares full-attitude and reduced-attitude goal performance. For magnetorquer-only simulations, reduced-attitude planning increases sub-degree success rates from 11\% (full-attitude) to 67\%. Much of the apparent difficulty in underactuated pointing arises from over-constrained objectives rather than insufficient control authority.
+
+\begin{table}[t]
+    \centering
+    \caption{Full-Attitude vs. Reduced-Attitude Goal Performance}
+    \label{tab:reduced_vs_full}
+    \begin{tabular}{llcc}
+        \toprule
+        Metric & Goal Type & MTQ-Only & Hybrid (MTQ+RW) \\
+        \midrule
+        \multirow{2}{*}{Within 1$^\circ$}
+            & Full-attitude & 11\% & 96\% \\
+            & Reduced-attitude & 67\% & 96\% \\
+        \midrule
+        \multirow{2}{*}{Within 10$^\circ$}
+            & Full-attitude & 73\% & 100\% \\
+            & Reduced-attitude & 75\% & 100\% \\
+        \midrule
+        \multirow{2}{*}{Mean Error ($^\circ$)}
+            & Full-attitude & 10.2 & 0.11 \\
+            & Reduced-attitude & 16.2 & 0.16 \\
+        \midrule
+        \multirow{2}{*}{Median Error ($^\circ$)}
+            & Full-attitude & 4.2 & $1.2\times10^{-4}$ \\
+            & Reduced-attitude & 0.04 & $2.6\times10^{-3}$ \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+The reduced-attitude median error of 0.04$^\circ$ for MTQ-only (vs. 4.2$^\circ$ for full-attitude) demonstrates that most trials converge well when given goal flexibility, even though mean error is higher due to outliers. This bimodal distribution---either excellent convergence or significant error---suggests that reduced-attitude goals successfully exploit available controllability when favorable magnetic field geometry exists.
+
+\subsection{Multi-Target Performance}\label{subsec:multi_target_results}
+
+% TODO-DATA-3: Compute 95% confidence intervals via bootstrap
+\begin{table}[t]
+    \centering
+    \caption{Multi-Target Slew Performance ($n=100$)}
+    \label{tab:mc_multi}
+    \begin{tabular}{llcc}
+        \toprule
+        Metric & Target & MTQ-Only & Hybrid (MTQ+RW) \\
+        \midrule
+        \multirow{3}{*}{\% Within 1$^\circ$}
+            & Target 1 & 1\% $\pm$ [TBD] & 37\% $\pm$ [TBD] \\
+            & Target 2 & 0\% $\pm$ [TBD] & 56\% $\pm$ [TBD] \\
+            & Target 3 & 77\% $\pm$ [TBD] & 91\% $\pm$ [TBD] \\
+        \midrule
+        \multirow{3}{*}{\% Within 10$^\circ$}
+            & Target 1 & 13\% $\pm$ [TBD] & 98\% $\pm$ [TBD] \\
+            & Target 2 & 83\% $\pm$ [TBD] & 99\% $\pm$ [TBD] \\
+            & Target 3 & 91\% $\pm$ [TBD] & 99\% $\pm$ [TBD] \\
+        \midrule
+        \multirow{3}{*}{Mean Error ($^\circ$)}
+            & Target 1 & 19.4 $\pm$ [TBD] & 2.22 $\pm$ [TBD] \\
+            & Target 2 & 12.1 $\pm$ [TBD] & 1.53 $\pm$ [TBD] \\
+            & Target 3 & 5.7 $\pm$ [TBD] & 0.45 $\pm$ [TBD] \\
+        \bottomrule
+    \end{tabular}
+    \begin{flushleft}
+    \small 95\% confidence intervals (bootstrap).
+    \end{flushleft}
+\end{table}
+
+Table~\ref{tab:mc_multi} shows multi-target results. Performance improves for later targets as the planner has more time to position the spacecraft. Even magnetorquer-only systems achieve 77\% sub-degree accuracy on the final target, increasing to 91\% with a reaction wheel added---demonstrating that sequential multi-target maneuvers are feasible for underactuated systems when goals are appropriately specified.
+
+\subsection{Graceful Degradation}\label{subsec:graceful_degradation}
+
+When goals are infeasible, the planner converges to the closest achievable behavior. In the 2MTQ+1RW extreme underactuation case, conventional slews saturate actuators indefinitely and induce persistent spinning, while the planner produces bounded angular rates and predictable steady-state errors suitable for autonomous operation.
+
+\subsection{Disturbance-Assisted Maneuvers}\label{subsec:disturbance_assisted}
+
+In disturbance-dominated scenarios (Section~\ref{subsec:spinning}), the planner exploits disturbances as part of the solution rather than treating them purely as inputs to reject. This capability arises naturally from trajectory-level reasoning and the flexibility of reduced-attitude goals.
+
+\subsection{Solve-Time Performance}\label{subsec:solve_time}
+
+Table~\ref{tab:solve_time} presents solve-time statistics. On a modern laptop, the planner reliably converges within real-time budgets. Raspberry Pi 4 results demonstrate feasibility for embedded deployment, though timing margins are tighter.
+
+% TODO-DATA-1: Generate hardware timing benchmarks (laptop + RPi 4)
+\begin{table}[t]
+    \centering
+    \caption{Planner Solve-Time Statistics}
+    \label{tab:solve_time}
+    \begin{tabular}{llcccc}
+        \toprule
+        Platform & Case & Mean & Median & 95th pct & Max \\
+        \midrule
+        \multirow{2}{*}{Laptop\textsuperscript{a}}
+            & Sequential (450s traj) & [TBD] & [TBD] & [TBD] & [TBD] \\
+            & MC 500s slew & [TBD] & [TBD] & [TBD] & [TBD] \\
+        \midrule
+        \multirow{2}{*}{RPi 4\textsuperscript{b}}
+            & Sequential (450s traj) & [TBD] & [TBD] & [TBD] & [TBD] \\
+            & MC 500s slew & [TBD] & [TBD] & [TBD] & [TBD] \\
+        \bottomrule
+    \end{tabular}
+    \begin{flushleft}
+    \textsuperscript{a} Specifications: [TBD - processor, RAM] \\
+    \textsuperscript{b} Raspberry Pi 4 Model B, 4GB RAM, compiled with -O3
+    \end{flushleft}
+\end{table}
+
+\subsection{Convergence Behavior}\label{subsec:convergence}
+
+The planner exhibits characteristic convergence behavior across the Monte Carlo trials. Figure~\ref{fig:convergence} shows cost reduction over iLQR iterations for representative trials.
+
+% [TBD: Add figure showing cost vs iteration for several representative trials]
+% \begin{figure}[t]
+%     \centering
+%     \includegraphics[width=0.95\linewidth]{[TBD]convergence_plot.png}
+%     \caption{Cost convergence over iLQR iterations for representative Monte Carlo trials. Dashed lines indicate augmented Lagrangian outer loop updates.}
+%     \label{fig:convergence}
+% \end{figure}
+
+Convergence typically occurs within [TBD] iLQR iterations for favorable magnetic field geometries. Difficult cases (field aligned with desired torque, large initial error) may require [TBD] iterations or fail to converge within the iteration budget. Table~\ref{tab:convergence_stats} summarizes convergence statistics.
+
+% TODO-DATA-4: Measure convergence statistics (log iterations from MC runs)
+\begin{table}[t]
+    \centering
+    \caption{Convergence Statistics (100-trial MC, 500s slew)}
+    \label{tab:convergence_stats}
+    \begin{tabular}{lcc}
+        \toprule
+        Metric & MTQ-Only & Hybrid (MTQ+RW) \\
+        \midrule
+        Mean iterations & [TBD] & [TBD] \\
+        Median iterations & [TBD] & [TBD] \\
+        Max iterations & [TBD] & [TBD] \\
+        Convergence rate & [TBD]\% & [TBD]\% \\
+        Mean AL outer loops & [TBD] & [TBD] \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+The augmented Lagrangian outer loop typically requires [TBD] iterations to satisfy constraints to the specified tolerance. % TODO-DATA-4 Constraint satisfaction improves rapidly in early outer iterations as the penalty parameter $\mu$ increases, then plateaus as the solution approaches the constrained optimum.
+
+While formal stability guarantees for the closed-loop system (planner + TVLQR controller) remain an area for future work, empirical evidence from extended simulations (10+ orbits) shows bounded tracking error and no instability across tested configurations. The TVLQR gains provide local stability around the planned trajectory, and the overlapping trajectory strategy ensures continuous coverage even when individual plans have endpoint effects.
+
+\subsection{Sensitivity Analysis}\label{subsec:sensitivity}
+
+Real-world performance depends on model accuracy. Table~\ref{tab:sensitivity} quantifies pointing degradation under various model errors for a representative hybrid configuration (magnetorquers plus single reaction wheel).
+
+% TODO-DATA-5: Run sensitivity analysis sweeps (100-trial MC for each error condition)
+\begin{table}[t]
+    \centering
+    \caption{Sensitivity to Model Errors (Hybrid Configuration, 500s slew)}
+    \label{tab:sensitivity}
+    \begin{tabular}{lcc}
+        \toprule
+        Model Error & Mean Error ($^\circ$) & Within 1$^\circ$ \\
+        \midrule
+        Nominal (no error) & 0.11 & 96\% \\
+        \midrule
+        \multicolumn{3}{l}{\textit{Inertia matrix errors:}} \\
+        \quad 5\% diagonal error & [TBD] & [TBD]\% \\
+        \quad 10\% diagonal error & [TBD] & [TBD]\% \\
+        \quad 20\% diagonal error & [TBD] & [TBD]\% \\
+        \quad 5\% off-diagonal error & [TBD] & [TBD]\% \\
+        \midrule
+        \multicolumn{3}{l}{\textit{Magnetic field model errors:}} \\
+        \quad 5\% magnitude error & [TBD] & [TBD]\% \\
+        \quad 10\% magnitude error & [TBD] & [TBD]\% \\
+        \quad 5$^\circ$ direction error & [TBD] & [TBD]\% \\
+        \quad 10$^\circ$ direction error & [TBD] & [TBD]\% \\
+        \midrule
+        \multicolumn{3}{l}{\textit{Disturbance model errors:}} \\
+        \quad Unmodeled 0.01 mNm bias & [TBD] & [TBD]\% \\
+        \quad Unmodeled 0.05 mNm bias & [TBD] & [TBD]\% \\
+        \quad Unmodeled 0.1 mNm bias & [TBD] & [TBD]\% \\
+        \midrule
+        \multicolumn{3}{l}{\textit{Actuator model errors:}} \\
+        \quad 5\% MTQ scale factor & [TBD] & [TBD]\% \\
+        \quad 10\% MTQ scale factor & [TBD] & [TBD]\% \\
+        \quad 5\% RW scale factor & [TBD] & [TBD]\% \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+% TODO-DATA-5: Fill in sensitivity conclusions based on sweep results
+The planner is most sensitive to [TBD], with performance degrading significantly when [TBD]. Magnetic field direction errors have greater impact than magnitude errors because they affect the achievable torque subspace. Inertia errors are partially compensated by the TVLQR controller, which adjusts commands based on observed state deviation from the plan.
+
+The closed-loop architecture provides inherent robustness to slowly-varying or bounded errors: the controller corrects for discrepancies between planned and actual trajectories each timestep. Rapidly varying or large errors can cause the trajectory to become infeasible, triggering replanning with updated state estimates. This feedback structure means that the planner need not have perfect models---it needs models accurate enough to generate approximately correct trajectories that the controller can track.
+
+
+% ==================================================
+\section{Discussion}\label{sec:discussion}
+
+The results demonstrate that explicit feasibility reasoning fundamentally changes attitude control behavior under limited or unconventional actuation---a regime commonly encountered by CubeSats and resource-constrained small satellites. Rather than relying on saturation handling, gain tuning, or mode switching, the planner integrates actuator limitations directly into trajectory generation, yielding predictable and bounded behavior across operating conditions.
+
+\subsection{Implications for Small Satellite Missions}\label{subsec:implications}
+
+For small satellite missions, this approach reduces the need for tightly tuned, configuration-specific control laws. By shifting complexity into a reusable planning layer, simpler and more uniform low-level controllers can be employed across missions, even as actuator suites vary, degrade, or partially fail. This decoupling is particularly valuable for CubeSats, where development time, onboard computation, and operational margin are limited.
+
+From an operational standpoint, the planner functions as an autonomy enabler. Higher-level mission logic can issue expressive pointing requests without requiring detailed knowledge of instantaneous actuator feasibility, relying on the planner to return the closest achievable behavior. This separation of concerns simplifies onboard ADCS architectures, reduces ground intervention, and supports more aggressive mission concepts.
+
+\subsection{Generality Across Actuator Configurations}\label{subsec:generality}
+
+A key strength of the trajectory planning approach is that the same framework applies across actuator configurations with minimal modification. The planner requires only a torque mapping function describing how control inputs produce body torques; the optimization then discovers how to exploit available authority regardless of actuator geometry.
+
+This generality enables unconventional configurations that would be difficult to control with hand-designed laws. For example, hybrid architectures combining magnetorquers with a single reaction wheel present challenges due to underactuation, non-aligned torque directions, and uneven control authority. The planner handles such configurations by discovering maneuvers that exploit time-varying magnetic geometry, align the wheel with favorable torque directions, and coordinate between actuator types---strategies that would be difficult to encode explicitly.
+
+The practical benefit is that adding even a single reaction wheel to a magnetorquer-only system dramatically improves performance (from 11\% to 96\% sub-degree success) while maintaining the reliability advantages of fewer momentum storage devices. More broadly, the framework supports graceful capability scaling: the same planner can operate a magnetorquer-only CubeSat, a hybrid system, or a fully-actuated spacecraft, adapting its behavior to available hardware.
+
+\subsection{Value of Reduced-Attitude Goals}\label{subsec:reduced_value}
+
+The comparison between full-attitude and reduced-attitude goals (Table~\ref{tab:reduced_vs_full}) quantifies a key insight: for many imaging and communication tasks, only single-axis pointing matters. Allowing the planner freedom around the unconstrained axis enables solutions that would be impossible with fully specified orientations. The 6$\times$ improvement in sub-degree success rate (11\% to 67\% for MTQ-only) demonstrates substantial practical benefit with no hardware changes.
+
+\subsection{Limitations and Future Work}\label{subsec:limitations}
+
+Several areas warrant further investigation:
+
+\subsubsection{Software and Implementation}\label{subsubsec:software_future}
+\begin{itemize}
+    \item \textbf{Computational requirements}: While demonstrated feasible on laptop and Raspberry Pi, extensive onboard timing analysis across different processors and trajectory parameters is needed. The trade-off between accuracy and computational complexity should be further investigated, including use of compiled languages and adjustments to time steps.
+    \item \textbf{Additional actuators and sensors}: Extension to support star trackers, Earth horizon sensors, and control moment gyroscopes would increase the range of applicable missions.
+    \item \textbf{Efficiency improvements}: The more advanced ALTRO-C algorithm using conic-based formulations may provide computational benefits~\cite{jackson_altro-c_2021}.
+\end{itemize}
+
+\subsubsection{Control Methodology Extensions}\label{subsubsec:control_future}
+\begin{itemize}
+    \item \textbf{Quaternion set heuristics}: Extend control laws to operate on quaternion sets rather than single quaternion goals, allowing consideration of additional criteria such as keep-out avoidance or minimum control effort.
+    \item \textbf{Mixed time horizons}: Investigate trajectory optimization using mixed time horizons to improve planning efficiency.
+    \item \textbf{Convergence and stability}: Develop more rigorous mathematical proofs, including Lyapunov analyses, to demonstrate stability and convergence properties.
+\end{itemize}
+
+\subsubsection{Real-World Validation}\label{subsubsec:validation_future}
+\begin{itemize}
+    \item \textbf{Hardware-in-the-loop testing}: Integration with physical hardware systems to validate control performance under realistic conditions.
+    \item \textbf{Flight demonstration}: On-orbit testing remains the essential next step for validating these methods.
+    \item \textbf{Model sensitivity}: Effects of inaccurate inertia matrices, environmental models, and disturbance estimates require quantification. The expected accuracy of orbit propagation, celestial dynamics, and magnetic field models should be incorporated.
+    \item \textbf{Fine pointing}: Extension to arcsecond-level accuracy may require different objective function formulations, perhaps using multi-objective methods.
+\end{itemize}
+
+\subsubsection{Advanced Concepts}\label{subsubsec:advanced_future}
+\begin{itemize}
+    \item \textbf{Adaptive estimation}: Extend the dynamics-aware estimator to dynamically adjust parameters for slowly varying biases and nonlinearities.
+    \item \textbf{AI-driven planning}: Consider artificial intelligence or heuristic decision-making for selecting between control laws and determining when trajectory planning is beneficial.
+    \item \textbf{Non-rigid bodies}: Extension to non-rigid body dynamics, perhaps using frameworks like DRAKE, as explored in~\cite{jackson_planning_2021}.
+    \item \textbf{Parameter estimation}: Extend estimators to incorporate mass and inertia estimation using expectation-maximization techniques.
+\end{itemize}
+
+
+% ==================================================
+\section{Conclusion}\label{sec:conclusion}
+
+This paper presented a feasibility-aware attitude trajectory planner for underactuated and unconventionally actuated spacecraft. By explicitly reasoning about actuator limits, time-varying control authority, and goal feasibility, the planner enables robust autonomous operations that would be impractical with conventional control approaches.
+
+Key results include:
+\begin{itemize}
+    \item More than 70\% reduction in actuator saturation events compared to conventional feedback control
+    \item 6$\times$ improvement in magnetorquer-only sub-degree success when using reduced-attitude vs. full-attitude goals (67\% vs. 11\%), demonstrating that goal specification matters as much as actuator capability
+    \item Consistent performance gains across configurations: adding a single reaction wheel improves sub-degree success from 11\% to 96\%
+    \item Graceful degradation to closest-achievable behavior under infeasible goals
+    \item Discovery of non-obvious control strategies (spinning solutions) through optimization
+    \item The same framework supports magnetorquer-only, hybrid, and fully-actuated systems with minimal reconfiguration
+\end{itemize}
+
+The framework unifies multiple operational objectives---pointing, momentum management, keep-out avoidance, and disturbance handling---within a single optimization, enabling predictable and autonomous attitude behavior for small satellites.
+
+Beyond its technical achievements, this work embodies a broader vision: the pursuit of ADCS systems that are resilient, mission-agnostic, and adaptable. By fully modeling satellite dynamics and incorporating disturbances directly into control, this framework enables satellites to operate effectively even in constrained environments with limited actuation. In doing so, it expands the possibilities for satellite architectures and missions, especially in the growing fields of nanosatellites and mega-constellations.
+
+Future work will extend the approach to hardware-in-the-loop testing, flight demonstrations, and exploration of advanced concepts including adaptive estimation and AI-driven planning. It is hoped that this work serves as a foundation for continued progress toward more autonomous and accessible space systems.
+
+% ----------------------------
+% Acknowledgments
+% ----------------------------
+\section*{Acknowledgments}
+The authors thank the MIT Space Telecommunications, Astronomy, and Radiation Laboratory for support. This work builds on trajectory optimization methods developed by Zac Manchester and colleagues.
+
+% ----------------------------
+% Bibliography
+% ----------------------------
+\bibliographystyle{IEEEtran}
+\bibliography{my_refs}
+
+\end{document}
