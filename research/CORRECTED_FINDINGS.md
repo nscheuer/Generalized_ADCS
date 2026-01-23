@@ -121,10 +121,30 @@
 
 For **3 RW + MTQ** (most CubeSats):
 1. Monitor wheel momentum continuously
-2. When |h| > threshold, enter torque-free desaturation
-3. Compute τ_desat = -k_h * h that's achievable by MTQ (⊥ to B)
-4. Command: u_mtq for τ_desat, u_rw = -τ_desat (canceling torque)
-5. Accept temporary pointing degradation OR schedule during low-activity
+2. Apply **continuous torque-free desaturation** (no pointing cost!)
+3. Compute τ_desat = -k_h * h projected perpendicular to B
+4. MTQ produces τ_desat, RW produces -τ_desat → net body torque = 0
+5. Momentum flows from RW to outside via MTQ
+
+### Key Finding: Torque-Free Desaturation is "FREE"
+
+Validation results (3RW+3MTQ, 500s simulation):
+
+| Mode | Final Error | h Reduction | Notes |
+|------|-------------|-------------|-------|
+| Pointing only | 0.00° | -0.2% | Baseline |
+| **Torque-free continuous** | **0.00°** | **33.2%** | No pointing cost! |
+| Slew-only | 0.00° | 5.2% | Less effective |
+
+The earlier finding of "severe trade-off" was due to an incorrect formulation
+that ADDED desaturation torque rather than using torque-free cancellation.
+
+**Correct formulation:**
+```
+τ_mtq = project(-k_h * h, perp_to_B)  # MTQ achievable
+u_rw += A_rw^(-1) @ (-τ_mtq)          # RW cancels MTQ torque
+```
+Net torque on body = τ_mtq + τ_rw = 0, but h_rw changes!
 
 ---
 
