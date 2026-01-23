@@ -370,14 +370,18 @@ class Thruster(Actuator):
             )
             u = 0.0
         
-        if abs(u) > 1.0:
+        # Ensure scalar for compatibility with numdifftools
+        u_scalar = float(u) if np.ndim(u) == 0 else float(np.asarray(u).flatten()[0])
+        
+        if abs(u_scalar) > 1.0:
             warnings.warn(
-                f"Thruster command |u|={abs(u):.4f} exceeds normalized limit of 1.0. "
+                f"Thruster command |u|={abs(u_scalar):.4f} exceeds normalized limit of 1.0. "
                 f"Clamping to ±1.0.",
                 category=UserWarning,
                 stacklevel=2
             )
-            u = np.clip(u, -1.0 if self.bidirectional else 0.0, 1.0)
+            u_scalar = np.clip(u_scalar, -1.0 if self.bidirectional else 0.0, 1.0)
+        u = u_scalar
 
         if dmode is None:
             dmode = DisturbanceMode(add_bias=True, add_noise=True, update_bias=True, update_noise=True)
