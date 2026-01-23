@@ -195,20 +195,21 @@ def main():
         h_target=np.array([0.005, 0.0, 0.0]),
     )
     
-    # Test configurations
+    # Test configurations - comprehensive
     B_fields = [
         (np.array([0.0, 30e-6, 10e-6]), "B_yz"),
         (np.array([30e-6, 0.0, 10e-6]), "B_xz"),
+        (np.array([20e-6, 20e-6, 20e-6]), "B_diag"),
     ]
     
     goals = [
+        (ECI_Goal(np.array([0.0, 0.0, 1.0])), "Goal_Z"),
         (ECI_Goal(np.array([1.0, 0.0, 0.0])), "Goal_X"),
-        (ECI_Goal(np.array([0.0, 1.0, 0.0])), "Goal_Y"),
     ]
     
     ICs = [
-        (normalize(np.array([0.9, 0.3, 0.2, 0.1])), "q_small"),
-        (normalize(np.array([0.7, 0.7, 0.0, 0.0])), "q_90deg"),
+        (normalize(np.array([0.95, 0.2, 0.1, 0.1])), "q_small"),
+        (normalize(np.array([0.7, 0.5, 0.3, 0.3])), "q_med"),
     ]
     
     all_results = []
