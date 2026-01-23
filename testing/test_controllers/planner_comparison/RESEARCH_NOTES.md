@@ -202,13 +202,17 @@ not whether it achieved the goal. All planners achieved near-zero final attitude
 3. **SCP** is slower but more robust for complex constraints
 4. **ALTRO** is ~5-60s and provides feedback gains, but currently has issues with full 3-DOF quaternion goals
 
-### ALTRO Quaternion Goal Issue (Jan 2026)
-ALTRO's quaternion goal support (4D E array) is not achieving target attitudes in benchmarks:
-- The C++ code detects 4D goals correctly and uses `quatcostJacobians`
-- However, optimization converges to near-identity instead of the goal quaternion
-- Suspected causes: cost weight tuning, local minimum, or quaternion error computation
-- **Workaround**: Use 2-DOF pointing (ECI_Goal with 3D vector) which works correctly
-- **TODO**: Debug the quatcostJacobians or cost settings for large attitude errors
+### ALTRO Quaternion Goal Fix (Jan 2026)
+**FIXED**: Found and fixed a bug in `Satellite.cpp` where `w_ang` (angle cost weight) was being
+applied twice in cost function case 2 (Cayley-like formulation):
+- In `stepcost_quat` and `quatcostJacobians`, case 2 had: `angcost = 0.5*w_ang*...`
+- But then `angcost *= w_ang` was applied after the switch statement
+- This resulted in costs ~1000x larger than intended, causing optimization issues
+- **Fix**: Removed `w_ang` from inside case 2, consistent with other cases (0, 1, 3, 4)
+
+After fix:
+- 30° maneuver: 0.000° error in ~4s
+- 90° maneuver: 0.039° error in ~13s
 
 ---
 
