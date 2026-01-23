@@ -14,10 +14,9 @@ from ADCS.satellite_hardware.actuators import Actuator, RW, MTQ
 from ADCS.satellite_hardware.disturbances.disturbance_mode import DisturbanceMode
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.universal_constants import TimeConstants
-from ADCS.logging.logger import ADCSLogger
 
 class Satellite:
-    """
+    r"""
     Represents a rigid satellite with inertia, actuators, and sensors.
 
     This class defines the physical parameters of a spacecraft,
@@ -100,7 +99,7 @@ class Satellite:
         self.update_J(J_0=J_0, COM=COM)
 
     def update_J(self, J_0: np.ndarray = None, COM: np.ndarray = None) -> None:
-        """
+        r"""
         Update the satellite's inertia matrices.
 
         Applies physical validation, symmetry checks, and the
@@ -183,35 +182,35 @@ class Satellite:
                 getattr(d, "turn_on" if on else "turn_off")()
 
     def srp_dist_on(self) -> None:
-        """Turn on all Solar Radiation Pressure disturbances."""
+        r"""Turn on all Solar Radiation Pressure disturbances."""
         self._toggle_disturbance(SRP_Disturbance, on=True)
 
     def srp_dist_off(self) -> None:
-        """Turn off all Solar Radiation Pressure disturbances."""
+        r"""Turn off all Solar Radiation Pressure disturbances."""
         self._toggle_disturbance(SRP_Disturbance, on=False)
 
     def gen_dist_on(self, ind: int | None = None) -> None:
-        """Turn on general disturbances."""
+        r"""Turn on general disturbances."""
         self._toggle_disturbance(General_Disturbance, on=True, ind=ind)
 
     def gen_dist_off(self, ind: int | None = None) -> None:
-        """Turn off general disturbances."""
+        r"""Turn off general disturbances."""
         self._toggle_disturbance(General_Disturbance, on=False, ind=ind)
 
     def prop_dist_on(self, ind: int | None = None) -> None:
-        """Turn on propulsion disturbances."""
+        r"""Turn on propulsion disturbances."""
         self._toggle_disturbance(Prop_Disturbance, on=True, ind=ind)
 
     def prop_dist_off(self, ind: int | None = None) -> None:
-        """Turn off propulsion disturbances."""
+        r"""Turn off propulsion disturbances."""
         self._toggle_disturbance(Prop_Disturbance, on=False, ind=ind)
 
     def specific_dist_on(self, ind: int) -> None:
-        """Turn on a specific disturbance by index."""
+        r"""Turn on a specific disturbance by index."""
         self.disturbances[ind].turn_on()
 
     def specific_dist_off(self, ind: int) -> None:
-        """Turn off a specific disturbance by index."""
+        r"""Turn off a specific disturbance by index."""
         self.disturbances[ind].turn_off()
 
     def RWhs(self) -> np.ndarray:
@@ -791,8 +790,6 @@ class Satellite:
 
         ---
         
-        Parameters
-        
         :param x:
             Current state vector :math:`\mathbf{x}` containing:
             - :math:`\boldsymbol{\omega}` — angular velocity in body frame [rad/s]
@@ -852,7 +849,6 @@ class Satellite:
         :type give_err_est: bool, optional
 
         ---
-        **Returns**
 
         :return:
             - If ``give_err_est = False`` → Updated state vector :math:`\mathbf{x}_{n+1}` (shape ``(n_x,)``).  

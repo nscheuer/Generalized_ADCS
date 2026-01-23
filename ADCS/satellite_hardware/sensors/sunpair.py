@@ -148,7 +148,7 @@ class SunPair(Sensor):
             return np.zeros((0, 1))
 
     def basestate_jac(self, x: np.ndarray, os: Orbital_State) -> np.ndarray:
-        """
+        r"""
         Jacobian of the clean Sun-sensor measurement with respect to the base
         state
 

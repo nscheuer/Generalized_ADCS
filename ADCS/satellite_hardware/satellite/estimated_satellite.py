@@ -12,11 +12,10 @@ from ADCS.satellite_hardware.disturbances import Disturbance, SRP_Disturbance, G
 from ADCS.satellite_hardware.sensors import Sensor, GPS
 from ADCS.satellite_hardware.actuators import Actuator, RW
 from ADCS.orbits.orbital_state import Orbital_State
-from ADCS.logging.logger import ADCSLogger
 from ADCS.estimators.estimator_helpers.estimator_helpers import EstimatedArray
 
 class EstimatedSatellite(Satellite):
-    """
+    r"""
     A satellite model that augments the base :class:`~ADCS.satellite_hardware.satellite.Satellite`
     with estimator-driven state synchronization and bias/parameter tracking.
 
@@ -105,7 +104,7 @@ class EstimatedSatellite(Satellite):
         self.dist_param_len = sum([self.disturbances[j].estimated_vector_length for j in self.dist_param_inds]) # Number of sensors with bias
 
     def match_estimate(self, est_state: EstimatedArray, dt: float) -> None:
-        """
+        r"""
         Synchronize the satellite model with the latest estimated state and covariance.
 
         This method updates the satellite’s internal state, actuator and sensor biases,
@@ -279,7 +278,7 @@ class EstimatedSatellite(Satellite):
         return ddist_torq__dx,ddist_torq__ddmp
 
     def dist_torque_hess(self, x: np.ndarray, vecs: Dict[str, np.ndarray]) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-        """
+        r"""
         Compute the Hessian tensors of the total disturbance torque with respect to
         both the spacecraft state and the disturbance model parameters.
 
@@ -798,7 +797,7 @@ class EstimatedSatellite(Satellite):
         return [[ddxdot__dxdx,ddxdot__dxdu],[ddxdot__dxdu.T,ddxdot__dudu]]
 
     def sensor_bias_slice(self, att_sensor_index: int) -> Optional[slice]:
-        """
+        r"""
         Return the [start:stop] slice in the *full* estimator state vector
         corresponding to the bias of attitude_sensors[att_sensor_index].
 
@@ -831,21 +830,21 @@ class EstimatedSatellite(Satellite):
         )
     
     def control_cov(self) -> np.ndarray:
-        """
+        r"""
         Block-diagonal covariance matrix for all actuator noises.
         """
         blocks = [actuator.noise.cov() for actuator in self.actuators]
         return np.array(block_diag(*blocks))
 
     def control_srcov(self) -> np.ndarray:
-        """
+        r"""
         Block-diagonal square-root covariance matrix for all actuator noises.
         """
         blocks = [actuator.noise.srcov() for actuator in self.actuators]
         return np.array(block_diag(*blocks))
 
     def sensor_cov(self, which_sensors: List[bool]) -> np.ndarray:
-        """
+        r"""
         Block-diagonal covariance matrix for all attitude sensor noises.
         """
         if which_sensors is None:
@@ -862,7 +861,7 @@ class EstimatedSatellite(Satellite):
         return block_diag(*blocks) if blocks else np.zeros((0, 0))
 
     def sensor_srcov(self, which_sensors: List[bool]) -> np.ndarray:
-        """
+        r"""
         Block-diagonal square-root covariance matrix for all attitude sensor noises.
         """
         if which_sensors is None:

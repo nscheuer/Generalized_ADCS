@@ -97,7 +97,7 @@ class MTM(Sensor):
         return np.dot(vecs["b"], self.axis)
     
     def bias_jac(self, x: np.ndarray, os: Orbital_State) -> np.ndarray:
-        """
+        r"""
         Jacobian of the measurement with respect to the sensor bias state.
 
         If a bias model is present, the measurement is assumed to be
