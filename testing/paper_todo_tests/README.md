@@ -1,88 +1,115 @@
 # Paper TODO Tests
 
 This directory contains test infrastructure and validation tests organized by paper TODO items.
-These tests verify that the codebase capabilities match what's needed for paper figures and tables.
+These tests verify that the codebase can generate data needed for paper figures and tables.
 
-## Running Tests
+**Total Tests: 90**
+**TODO Coverage: 42 of ~47 testable TODOs (89%)**
+
+## Quick Start
 
 ```bash
 # Run all paper TODO tests
 pytest testing/paper_todo_tests/ -v
 
-# Run with pretty output (visible tables and formatted results)
+# Run with pretty output (tables, formatted results)
 pytest testing/paper_todo_tests/ -v -s
 
-# Run specific TODO category
-pytest testing/paper_todo_tests/test_todo_data_computational.py -v -s
+# Quick summary
+pytest testing/paper_todo_tests/ -q
 ```
 
 ## Test Files Overview
 
-| File | TODO IDs Covered | Tests | Description |
-|------|------------------|-------|-------------|
-| `test_todo_data_computational.py` | TODO-DATA-6, DATA-7, SMALLSAT-5, JGCD-4, JGCD-6 | 4 | Timing benchmarks, memory profiling, computational requirements |
-| `test_todo_data_desaturation.py` | TODO-DATA-5, DESAT-1 to DESAT-6 | 18 | RW momentum tracking, desaturation gain sweeps |
-| `test_todo_data_lp_qp_comparison.py` | TODO-DATA-4 | 14 | LP vs QP allocation comparison, timing |
-| `test_todo_data_sensitivity.py` | TODO-DATA-5, DATA-9, JGCD-4 | 3 | Inertia/B-field error sensitivity analysis |
-| `test_todo_data_thruster.py` | TODO-DATA-1 | 17 | Thruster model validation, MIB quantization |
-| `test_todo_sim_controller_comparison.py` | TODO-SIM-9, DATA-2, BACKGROUND-2 | 6 | Controller comparison tables |
-| `test_todo_sim_monte_carlo.py` | TODO-DATA-3, SIM-4, JGCD-10 | 4 | Monte Carlo infrastructure, bootstrap CI |
+| File | Tests | Description |
+|------|-------|-------------|
+| `test_todo_data_computational.py` | 4 | Timing, memory, computational requirements |
+| `test_todo_data_desaturation.py` | 18 | Momentum tracking, desaturation analysis |
+| `test_todo_data_generation.py` | 7 | CubeSat configs, practitioner metrics |
+| `test_todo_data_lp_qp_comparison.py` | 14 | LP vs QP allocation comparison |
+| `test_todo_data_sensitivity.py` | 3 | Parameter sensitivity analysis |
+| `test_todo_data_thruster.py` | 17 | Thruster model validation |
+| `test_todo_fig_generation.py` | 9 | Figure data: polytopes, envelopes, spheres |
+| `test_todo_sim_controller_comparison.py` | 6 | Controller comparison tables |
+| `test_todo_sim_monte_carlo.py` | 4 | Monte Carlo infrastructure |
+| `test_todo_sim_scenarios.py` | 8 | Pointing, tracking, failure response |
 
-**Total: 66 tests**
+## TODO Coverage by Category
+
+| Category | Covered | Total | Coverage |
+|----------|---------|-------|----------|
+| DATA | 9 | 9 | 100% |
+| SIM | 7 | 7 | 100% |
+| FIG | 6 | 6 | 100% |
+| DAA | 4 | 4 | 100% |
+| DESAT | 5 | 6 | 83% |
+| SMALLSAT | 4 | 5 | 80% |
+| Other | 7 | 10 | 70% |
+
+**Not testable:** ~15 items (proofs, writing tasks)
 
 ## Adjustable Parameters
 
-Each test file has adjustable parameters at the top for easy modification as paper requirements change:
+Each test file has parameters at the top for easy modification:
 
 ```python
 # Example from test_todo_data_sensitivity.py
 INERTIA_ERROR_RANGE = [-20, -10, -5, 0, 5, 10, 20]  # Percent
 N_TRIALS_PER_CONDITION = 10
+PRETTY_OUTPUT = True
 ```
 
-Modify these to adjust sweep ranges, number of trials, or tolerances.
+## Pretty Output Examples
 
-## Pretty Output
-
-Tests include a `PrettyOutput` class that displays formatted tables and results during test runs.
-Use `-s` flag with pytest to see this output:
+When run with `-s`, tests produce formatted tables:
 
 ```
 ══════════════════════════════════════════════════════════════════════
-  TODO-DATA-7: Allocation Timing Benchmarks
+  TODO-FIG-7: Actuator Failure Response Data
 ══════════════════════════════════════════════════════════════════════
 
-  Timing Benchmark Results
-  ──────────────────────────────────────────────────────────────────────
-  │       Component       │  Mean (ms)  │  Std (ms)   │  Min (ms)   │  Max (ms)   │
-  ├───────────────────────┼─────────────┼─────────────┼─────────────┼─────────────┤
-  │    LP Allocation      │    0.234    │    0.045    │    0.198    │    0.412    │
-  │    QP Allocation      │    0.567    │    0.089    │    0.489    │    0.834    │
-  └───────────────────────┴─────────────┴─────────────┴─────────────┴─────────────┘
+  ── Failure Response Summary ──
+  ┌────────────────────┬────────────┬────────────┬─────────────┐
+  │ Scenario           │ Mean α     │ Min α      │ Degradation │
+  ├────────────────────┼────────────┼────────────┼─────────────┤
+  │ No Failure         │     1.0000 │     1.0000 │        0.0% │
+  │ RW-X Fails         │     0.9234 │     0.8567 │        7.7% │
+  │ RW-Y Fails         │     0.9156 │     0.8423 │        8.4% │
+  │ RW-Z Fails         │     0.9312 │     0.8734 │        6.9% │
+  │ MTQ-X Fails        │     0.8945 │     0.7823 │       10.6% │
+  └────────────────────┴────────────┴────────────┴─────────────┘
 ```
 
-## TODO ID Reference
+## Converting to Paper Figures
 
-See `research/PAPER_TODO_FEASIBILITY_ANALYSIS.md` for complete TODO list and feasibility analysis.
+Tests generate data structures. To create publication figures:
 
-### Key TODO Categories
+1. Run test to generate data
+2. Export data to CSV/pickle
+3. Use matplotlib scripts in `research/paper_figures/`
 
-- **TODO-DATA-X**: Data generation for figures/tables
-- **TODO-SIM-X**: Simulation capabilities
-- **TODO-JGCD-X**: JGCD paper specific items
-- **TODO-SMALLSAT-X**: SmallSat paper specific items
-- **TODO-DESAT-X**: Desaturation analysis items
+Example workflow:
+```python
+# In a script or notebook
+import sys
+sys.path.append('testing/paper_todo_tests')
+from test_todo_fig_generation import TestTorqueEnvelopeData
+
+# Generate data
+test = TestTorqueEnvelopeData()
+# ... access internal data for plotting
+```
+
+## Related Documentation
+
+- `research/TODO_TEST_COVERAGE.md` - Full coverage analysis
+- `research/PAPER_TODO_FEASIBILITY_ANALYSIS.md` - TODO feasibility
+- `research/THRUSTER_INTEGRATION_ANALYSIS.md` - Thruster integration plan
 
 ## Adding New Tests
 
-1. Create a new file: `test_todo_<category>_<topic>.py`
-2. Add TODO IDs in docstring
+1. Create file: `test_todo_<category>_<topic>.py`
+2. Add TODO IDs in module docstring
 3. Include adjustable parameters at top
-4. Add `PrettyOutput` for formatted display
-5. Update this README
-
-## Related Files
-
-- `research/PAPER_TODO_FEASIBILITY_ANALYSIS.md` - Full TODO analysis
-- `research/THRUSTER_INTEGRATION_ANALYSIS.md` - Thruster integration plan
-- `ADCS/satellite_hardware/actuators/thruster.py` - Thruster actuator implementation
+4. Add `PrettyOutput` class for formatting
+5. Update this README and coverage doc
