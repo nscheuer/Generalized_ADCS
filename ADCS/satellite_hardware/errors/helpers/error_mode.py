@@ -1,9 +1,9 @@
-__all__ = ["DisturbanceMode"]
+__all__ = ["ErrorMode"]
 
 from dataclasses import dataclass
 
 @dataclass
-class DisturbanceMode:
+class ErrorMode:
     r"""
     Disturbance Mode Configuration.
 

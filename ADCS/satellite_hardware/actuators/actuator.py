@@ -5,7 +5,7 @@ from ADCS.satellite_hardware.errors.bias import Bias
 from ADCS.satellite_hardware.errors.noise import Noise
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.universal_constants import TimeConstants
-from ADCS.satellite_hardware.disturbances.helpers.disturbance_mode import DisturbanceMode
+from ADCS.satellite_hardware.errors import ErrorMode
 from ADCS.helpers.math_helpers import normalize
 
 class Actuator:
@@ -123,7 +123,7 @@ class Actuator:
         self.input_len: int = 1
         self.last_bias_time: float = float('nan')
 
-    def torque(self, u: float, x: np.ndarray, os: Orbital_State, dmode: DisturbanceMode = None) -> float:
+    def torque(self, u: float, x: np.ndarray, os: Orbital_State, dmode: ErrorMode = None) -> float:
         r"""
         Compute the body-frame torque produced by the actuator.
 
@@ -146,14 +146,14 @@ class Actuator:
         :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
 
         :param dmode: Optional disturbance configuration.
-        :type dmode: :class:`~ADCS.satellite_hardware.disturbances.disturbance_mode.DisturbanceMode` or None
+        :type dmode: :class:`~ADCS.satellite_hardware.errors.error_mode.ErrorMode` or None
 
         :return: Body-frame torque vector.
         :rtype: numpy.ndarray of shape ``(3,)``
         """
         return np.ndarray([0, 0, 0])
     
-    def storage_torque(self, u: float, j2000: float, dmode: DisturbanceMode = None)-> float:
+    def storage_torque(self, u: float, j2000: float, dmode: ErrorMode = None)-> float:
         r"""
         Compute the torque contribution associated with momentum storage states.
 
@@ -169,7 +169,7 @@ class Actuator:
         :type j2000: float
 
         :param dmode: Optional disturbance configuration.
-        :type dmode: :class:`~ADCS.satellite_hardware.disturbances.disturbance_mode.DisturbanceMode` or None
+        :type dmode: :class:`~ADCS.satellite_hardware.errors.error_mode.ErrorMode` or None
 
         :return: Storage torque vector.
         :rtype: numpy.ndarray of shape ``(0,)``

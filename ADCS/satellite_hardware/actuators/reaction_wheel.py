@@ -5,7 +5,7 @@ import warnings
 from ADCS.satellite_hardware.actuators.actuator import Actuator
 from ADCS.satellite_hardware.errors.bias import Bias
 from ADCS.satellite_hardware.errors.noise import Noise
-from ADCS.satellite_hardware.disturbances.helpers.disturbance_mode import DisturbanceMode
+from ADCS.satellite_hardware.errors import ErrorMode
 from ADCS.orbits.orbital_state import Orbital_State
 
 class RW(Actuator):
@@ -73,7 +73,7 @@ class RW(Actuator):
     - Inherits from :class:`~ADCS.satellite_hardware.actuators.actuator.Actuator`.
     - Bias model: :class:`~ADCS.satellite_hardware.errors.bias.Bias`.
     - Noise model: :class:`~ADCS.satellite_hardware.errors.noise.Noise`.
-    - Disturbance toggles: :class:`~ADCS.satellite_hardware.disturbances.disturbance_mode.DisturbanceMode`.
+    - Disturbance toggles: :class:`~ADCS.satellite_hardware.errors.error_mode.ErrorMode`.
     - Orbital state (for time-tagging): :class:`~ADCS.orbits.orbital_state.Orbital_State`.
     """
 
@@ -147,12 +147,12 @@ class RW(Actuator):
             self.h_meas_noise = Noise()
         super().__init__(axis=axis, u_max=max_torque, bias=bias, noise=noise, estimate_bias=estimate_bias)
 
-    def torque(self, u: float, x: np.ndarray, os: Orbital_State, dmode: DisturbanceMode = None) -> float:
+    def torque(self, u: float, x: np.ndarray, os: Orbital_State, dmode: ErrorMode = None) -> float:
         r"""
         Compute the reaction-wheel torque vector applied to the spacecraft body.
 
         The commanded scalar motor torque :math:`u` is mapped onto the wheel axis :math:`\mathbf{a}` to
-        produce a 3D body torque. If enabled via :class:`~ADCS.satellite_hardware.disturbances.disturbance_mode.DisturbanceMode`,
+        produce a 3D body torque. If enabled via :class:`~ADCS.satellite_hardware.errors.error_mode.ErrorMode`,
         additive bias :math:`b(t)` and noise :math:`n(t)` are applied to the scalar torque before mapping.
 
         .. math::
@@ -178,7 +178,7 @@ class RW(Actuator):
         :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
 
         :param dmode: Disturbance mode toggles controlling inclusion and update of bias and noise.
-        :type dmode: :class:`~ADCS.satellite_hardware.disturbances.disturbance_mode.DisturbanceMode` | None
+        :type dmode: :class:`~ADCS.satellite_hardware.errors.error_mode.ErrorMode` | None
 
         :return: Body torque vector :math:`\boldsymbol{\tau}_{\mathrm{RW}}` [N·m], shape ``(3,)``.
         :rtype: numpy.ndarray
@@ -187,7 +187,7 @@ class RW(Actuator):
             warnings.warn("requested torque exceeds actuation limit")
 
         if dmode is None:
-            dmode = DisturbanceMode(add_bias=True, add_noise=True, update_bias=True, update_noise=True)
+            dmode = ErrorMode(add_bias=True, add_noise=True, update_bias=True, update_noise=True)
 
         torque = u
 
@@ -203,7 +203,7 @@ class RW(Actuator):
 
         return self.axis*torque
 
-    def storage_torque(self, u: float, x: np.ndarray, os: Orbital_State, dmode: DisturbanceMode = None) -> float:
+    def storage_torque(self, u: float, x: np.ndarray, os: Orbital_State, dmode: ErrorMode = None) -> float:
         r"""
         Compute the internal torque acting on the wheel (equal and opposite to the body torque).
 
@@ -234,7 +234,7 @@ class RW(Actuator):
         :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
 
         :param dmode: Disturbance mode toggles controlling inclusion and update of bias and noise.
-        :type dmode: :class:`~ADCS.satellite_hardware.disturbances.disturbance_mode.DisturbanceMode` | None
+        :type dmode: :class:`~ADCS.satellite_hardware.errors.error_mode.ErrorMode` | None
 
         :return: Internal wheel torque vector :math:`\boldsymbol{\tau}_{\mathrm{wheel}}` [N·m], shape ``(3,)``.
         :rtype: numpy.ndarray
@@ -244,7 +244,7 @@ class RW(Actuator):
             warnings.warn("RW Requested Torque exceeds actuation limit")
 
         if dmode is None:
-            dmode = DisturbanceMode(add_bias=True, add_noise=True, update_bias=True, update_noise=True)
+            dmode = ErrorMode(add_bias=True, add_noise=True, update_bias=True, update_noise=True)
         
         command = u
 

@@ -12,7 +12,7 @@ from choldate import cholupdate, choldowndate
 from ADCS.estimators.estimator_helpers.estimator_helpers import EstimatedArray
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
 from ADCS.satellite_hardware.sensors import SunSensor, SunPair
-from ADCS.satellite_hardware.disturbances import DisturbanceMode
+from ADCS.satellite_hardware.errors import ErrorMode
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.universal_constants import CG5Coefficients
 from ADCS.helpers.math_helpers import (
@@ -456,7 +456,7 @@ class SRUAKF(UAKF):
             post_pts[j, :] = post_statej.copy()
 
             self.sat_match(satj, post_full_statej)
-            dmode = DisturbanceMode(add_bias=True, add_noise=False, update_bias=False, update_noise=False)
+            dmode = ErrorMode(add_bias=True, add_noise=False, update_bias=False, update_noise=False)
             sensj = satj.sensor_readings(x=post_full_statej[:state_len],os=os, dmode=dmode)
             post_sens[j, :] = sensj[which_outputs] + sens_noise_j
 

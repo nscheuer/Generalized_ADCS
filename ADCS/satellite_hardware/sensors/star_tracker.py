@@ -7,7 +7,7 @@ from numpy.typing import NDArray
 from ADCS.satellite_hardware.sensors.sensor import Sensor
 from ADCS.environment import StarCatalog, NavigationStar
 from ADCS.satellite_hardware.errors import Bias, AnisotropicNoise
-from ADCS.satellite_hardware.disturbances.helpers.disturbance_mode import DisturbanceMode
+from ADCS.satellite_hardware.errors import ErrorMode
 from ADCS.helpers.math_helpers import drotmatTvecdq, rot_mat
 from ADCS.orbits.orbital_state import Orbital_State
 
@@ -299,7 +299,7 @@ class StarTracker(Sensor):
         A = rot_mat(q)
         return A.T @ star.s_eci
 
-    def reading(self, x: NDArray[np.float64], os: Orbital_State, dmode: Optional[DisturbanceMode] = None) -> NDArray[np.float64]:
+    def reading(self, x: NDArray[np.float64], os: Orbital_State, dmode: Optional[ErrorMode] = None) -> NDArray[np.float64]:
         r"""
         Compute the full star tracker measurement including bias and noise.
 

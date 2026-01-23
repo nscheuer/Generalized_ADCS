@@ -165,7 +165,7 @@ def main() -> None:
     for step in tqdm(range(steps), desc="Simulating ukf"):
         u = np.zeros(3)
 
-        dmode = DisturbanceMode(add_bias=True, add_noise=True, update_bias=True, update_noise=True)
+        dmode = ErrorMode(add_bias=True, add_noise=True, update_bias=True, update_noise=True)
         noisy_sensor_readings = real_sat.sensor_readings(x=x, os=os, dmode=dmode)
         clean_sensor_readings = real_sat.noiseless_sensor_readings(x=x, os=os)
         x_hat = ukf.update(u=u, sensors=noisy_sensor_readings, os=os)

@@ -15,9 +15,10 @@ from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.satellite_hardware.satellite.satellite import Satellite
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
-from ADCS.satellite_hardware.errors import Noise, Bias, MTQ, RW
+from ADCS.satellite_hardware.errors import Noise, Bias
+from ADCS.satellite_hardware.actuators import MTQ, RW
 from ADCS.satellite_hardware.sensors import MTM, Gyro, SunPair
-from ADCS.satellite_hardware.disturbances import GeometryFace, GG_Disturbance, Drag_Disturbance, GeometryConfig, DisturbanceMode
+from ADCS.satellite_hardware.disturbances import GeometryFace, GG_Disturbance, Drag_Disturbance, GeometryConfig
 from ADCS.helpers.math_constants import MathConstants
 from ADCS.helpers.math_helpers import random_n_unit_vec, normalize
 from ADCS.flight_software.single_core.ttc_single_core import TTC_Single_Core
@@ -273,7 +274,7 @@ def main():
         os = orb.get_os(J2000)
         core.memory["orbital_state"] = os
 
-        dmode = DisturbanceMode(
+        dmode = ErrorMode(
             add_bias=True, add_noise=True,
             update_bias=True, update_noise=True
         )

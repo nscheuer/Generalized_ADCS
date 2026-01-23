@@ -11,60 +11,161 @@ from ADCS.helpers.math_helpers import *
 from ADCS.satellite_hardware.disturbances import Disturbance, SRP_Disturbance, General_Disturbance, Prop_Disturbance
 from ADCS.satellite_hardware.sensors import Sensor, GPS, Gyro, MTM, SunPair, SunSensor
 from ADCS.satellite_hardware.actuators import Actuator, RW, MTQ
-from ADCS.satellite_hardware.disturbances.helpers.disturbance_mode import DisturbanceMode
+from ADCS.satellite_hardware.errors import ErrorMode
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.universal_constants import TimeConstants
 
 class Satellite:
     r"""
-    Represents a rigid satellite with inertia, actuators, and sensors.
+    Rigid-body spacecraft model with sensors, actuators, and environmental disturbances.
 
-    This class defines the physical parameters of a spacecraft,
-    including its mass, center of mass (COM), inertia matrix, and
-    associated subsystems. It also provides utilities to compute
-    derived inertial properties such as the inertia at the center
-    of mass and bus-only inertia (excluding reaction wheels).
+    This class bundles the spacecraft **physical properties** (mass, center of mass, inertia),
+    a set of **actuators** (e.g., :class:`~ADCS.satellite_hardware.actuators.RW`,
+    :class:`~ADCS.satellite_hardware.actuators.MTQ`), **sensors**
+    (e.g., :class:`~ADCS.satellite_hardware.sensors.Gyro`,
+    :class:`~ADCS.satellite_hardware.sensors.MTM`,
+    :class:`~ADCS.satellite_hardware.sensors.SunSensor`,
+    :class:`~ADCS.satellite_hardware.sensors.GPS`), and **disturbance models**
+    (e.g., :class:`~ADCS.satellite_hardware.disturbances.SRP_Disturbance`).
 
-    Parameters
-    ----------
-    mass : float, optional
-        Total satellite mass [kg]. Defaults to 1.0.
-    COM : np.ndarray, optional
-        Center of mass vector (shape (3,)). Defaults to [0, 0, 0].
-    J_0 : np.ndarray, optional
-        Inertia tensor about the reference origin (shape (3,3)).
-        Defaults to identity.
-    disturbances : List[Disturbance], optional
-        List of environmental disturbance models (e.g., drag, SRP).
-    sensors : List[Sensor], optional
-        List of sensor models (e.g., gyros, star trackers, GPS).
-    actuators : List[Actuator], optional
-        List of actuator models (e.g., reaction wheels, thrusters).
+    The rotational state is represented by body angular velocity and a unit quaternion.
+    Reaction wheel angular momentum states may be appended.
 
-    Attributes
-    ----------
-    mass : float
-        Satellite total mass [kg].
-    COM : np.ndarray
-        Center of mass vector (3,).
-    J_0 : np.ndarray
-        Inertia tensor about the reference origin (3,3).
-    J_COM : np.ndarray
-        Inertia tensor about the center of mass (3,3).
-    J_noRW : np.ndarray
-        Inertia tensor without reaction wheel contributions (3,3).
-    invJ_COM : np.ndarray
-        Inverse of the inertia tensor at the center of mass.
-    state_len : int
-        Dimension of the satellite's full state vector.
+    **State definition**
 
-    Raises
-    ------
-    ValueError
-        If COM or J_0 are not of the correct shape.
+    Let the full state be
+
+    .. math::
+
+        \mathbf{x} \;=\;
+        \begin{bmatrix}
+        \boldsymbol{\omega} \\
+        \mathbf{q} \\
+        \mathbf{h}_{\mathrm{RW}}
+        \end{bmatrix}
+        \in \mathbb{R}^{7+n_{\mathrm{RW}}},
+
+    where
+
+    * :math:`\boldsymbol{\omega}\in\mathbb{R}^3` is the body angular velocity (rad/s),
+    * :math:`\mathbf{q}\in\mathbb{R}^4` is a unit quaternion (Hamilton convention, body→ECI),
+    * :math:`\mathbf{h}_{\mathrm{RW}}\in\mathbb{R}^{n_{\mathrm{RW}}}` are wheel momenta.
+
+    **Kinematics**
+
+    Quaternion kinematics are
+
+    .. math::
+
+        \dot{\mathbf{q}} = \frac{1}{2}\,\Omega(\boldsymbol{\omega})\,\mathbf{q},
+
+    with an equivalent matrix form implemented via :func:`~ADCS.helpers.math_helpers.Wmat`.
+
+    **Dynamics (bus + wheels)**
+
+    Define the total external torque
+
+    .. math::
+
+        \boldsymbol{\tau} \;=\; \boldsymbol{\tau}_{\mathrm{dist}}(\mathbf{x}, \mathrm{os}) \;+\;
+        \boldsymbol{\tau}_{\mathrm{act}}(\mathbf{x}, \mathbf{u}, \mathrm{os}).
+
+    The rigid-body rotational equation is
+
+    .. math::
+
+        \mathbf{J}\,\dot{\boldsymbol{\omega}}
+        \;=\;
+        -\boldsymbol{\omega}\times\Big(\mathbf{J}\boldsymbol{\omega} + \mathbf{H}_{\mathrm{RW}}\Big)
+        \;+\; \boldsymbol{\tau},
+
+    where :math:`\mathbf{H}_{\mathrm{RW}}` is the body-frame contribution of stored wheel momentum.
+    When wheels exist, wheel momentum dynamics follow actuator storage torques and the coupling term
+    induced by :math:`\dot{\boldsymbol{\omega}}`.
+
+    **Frames and environment**
+
+    Environmental vectors are provided by :class:`~ADCS.orbits.orbital_state.Orbital_State`
+    and rotated into the body frame via :func:`~ADCS.helpers.math_helpers.rot_mat`.
+
+    **Inertia shifting**
+
+    The inertia tensor about the center of mass is computed using the parallel axis theorem:
+
+    .. math::
+
+        \mathbf{J}_{\mathrm{COM}}
+        \;=\;
+        \mathbf{J}_0 \;-\; m\left(\|\mathbf{r}_{\mathrm{COM}}\|^2\mathbf{I}
+        \;-\;\mathbf{r}_{\mathrm{COM}}\mathbf{r}_{\mathrm{COM}}^\top\right),
+
+    where :math:`\mathbf{J}_0` is the inertia about the reference origin and
+    :math:`\mathbf{r}_{\mathrm{COM}}` is the COM offset in the same frame.
+
+    .. note::
+        Many methods accept an :class:`~ADCS.satellite_hardware.errors.ErrorMode` to control
+        bias/noise injection for Monte-Carlo simulation vs. deterministic propagation.
+
+    .. rubric:: Stored attributes (selected)
+
+    +-------------------+--------------------------------+
+    | Attribute         | Meaning                        |
+    +===================+================================+
+    | ``mass``          | Total mass (kg)                |
+    +-------------------+--------------------------------+
+    | ``COM``           | Center of mass vector (m)      |
+    +-------------------+--------------------------------+
+    | ``J_0``           | Inertia about reference (kg·m²)|
+    +-------------------+--------------------------------+
+    | ``J_COM``         | Inertia about COM (kg·m²)      |
+    +-------------------+--------------------------------+
+    | ``J_noRW``        | Bus inertia excluding wheels   |
+    +-------------------+--------------------------------+
+    | ``state_len``     | ``7 + number_RW``              |
+    +-------------------+--------------------------------+
+    | ``control_len``   | ``len(actuators)``             |
+    +-------------------+--------------------------------+
+
+    :raises ValueError:
+        If ``COM`` is not shape ``(3,)`` or ``J_0`` is not shape ``(3,3)``.
     """
     def __init__(self, mass: float = 1.0, COM: np.ndarray = None, J_0: np.ndarray = None, disturbances: List[Disturbance] = [], sensors: List[Sensor] = [], actuators: List[Actuator] = [], boresight: np.ndarray = np.array([0, 0, 1])) -> None:
-        # Assign variables
+        r"""
+        Construct a :class:`~ADCS.satellite.Satellite`.
+
+        Initializes mass/inertia properties, categorizes sensors and actuators by type,
+        computes derived inertia matrices via :meth:`~ADCS.satellite.Satellite.update_J`,
+        and determines state/control vector dimensions.
+
+        :param mass: Total satellite mass including angular momentum storage hardware (kg).
+        :type mass: float
+
+        :param COM: Center of mass vector in the body/reference frame, shape ``(3,)``.
+            If ``None``, defaults to ``[0,0,0]``.
+        :type COM: numpy.ndarray | None
+
+        :param J_0: Inertia tensor about the reference origin, shape ``(3,3)`` (kg·m²).
+            If ``None``, defaults to identity.
+        :type J_0: numpy.ndarray | None
+
+        :param disturbances: List of disturbance models (e.g., SRP, drag, gravity gradient).
+        :type disturbances: list[:class:`~ADCS.satellite_hardware.disturbances.Disturbance`]
+
+        :param sensors: List of sensor models.
+        :type sensors: list[:class:`~ADCS.satellite_hardware.sensors.Sensor`]
+
+        :param actuators: List of actuator models.
+        :type actuators: list[:class:`~ADCS.satellite_hardware.actuators.Actuator`]
+
+        :param boresight: Nominal body-frame boresight direction, shape ``(3,)``.
+        :type boresight: numpy.ndarray
+
+        :return: ``None``.
+        :rtype: None
+
+        :raises ValueError:
+            If ``COM`` is not shape ``(3,)`` or ``J_0`` is not shape ``(3,3)``.
+        """
         self.mass = mass # Includes angular momentum storage
         self.COM = np.asarray(COM, dtype=float) # Includes angular momentum storage
         if COM is None:
@@ -100,32 +201,58 @@ class Satellite:
 
     def update_J(self, J_0: np.ndarray = None, COM: np.ndarray = None) -> None:
         r"""
-        Update the satellite's inertia matrices.
+        Update inertia matrices and cached inverses.
 
-        Applies physical validation, symmetry checks, and the
-        parallel axis theorem to shift the inertia tensor from
-        the reference origin to the center of mass (COM).
+        This method validates the inertia tensor, enforces symmetry, checks positive definiteness,
+        shifts the inertia to the center of mass, and computes additional derived inertias.
 
-        Parameters
-        ----------
-        J : np.ndarray, optional
-            Inertia tensor about the reference origin (3,3). If None,
-            uses the stored ``self.J_0``.
-        COM : np.ndarray, optional
-            Center of mass offset (3,). If None, uses the stored ``self.COM``.
+        **Validation**
 
-        Raises
-        ------
-        ValueError
-            If J cannot be reshaped to (3,3), contains non-real values,
-            is non-symmetric, or not positive definite.
+        The inertia is required to be real, symmetric, and positive definite:
 
-        Notes
-        -----
-        This method also computes:
-            - ``self.J_COM`` : inertia about the COM,
-            - ``self.J_noRW`` : inertia without reaction wheels,
-            - Inverse matrices for each of these for efficient dynamics.
+        .. math::
+
+            \mathbf{J} = \mathbf{J}^\top,\qquad \lambda_i(\mathbf{J})>0.
+
+        **Parallel axis theorem**
+
+        If :math:`\mathbf{J}_0` is about the reference origin and :math:`\mathbf{r}_{COM}` is the COM offset,
+        then
+
+        .. math::
+
+            \mathbf{J}_{COM}
+            \;=\;
+            \mathbf{J}_0
+            \;-\;
+            m\left(\|\mathbf{r}_{COM}\|^2\mathbf{I} - \mathbf{r}_{COM}\mathbf{r}_{COM}^\top\right).
+
+        **Excluding reaction wheel inertia**
+
+        If wheels are present, the bus-only inertia is approximated by subtracting wheel spin-axis
+        contributions:
+
+        .. math::
+
+            \mathbf{J}_{noRW} \;=\; \mathbf{J}_{COM} \;-\;
+            \sum_{k=1}^{n_{RW}} J_{RW,k}\,\hat{\mathbf{a}}_k \hat{\mathbf{a}}_k^\top,
+
+        where :math:`J_{RW,k}` and :math:`\hat{\mathbf{a}}_k` are the wheel rotor inertia and spin axis.
+
+        Cached inverses are computed for efficient dynamics evaluation.
+
+        :param J_0: Inertia tensor about the reference origin, shape ``(3,3)``. If ``None``, uses ``self.J_0``.
+        :type J_0: numpy.ndarray | None
+
+        :param COM: Center of mass offset, shape ``(3,)``. If ``None``, uses ``self.COM``.
+        :type COM: numpy.ndarray | None
+
+        :return: ``None``.
+        :rtype: None
+
+        :raises ValueError:
+            If ``J_0`` cannot be reshaped to ``(3,3)``, contains non-real values,
+            is not symmetric within tolerance, or is not positive definite.
         """
         if J_0 is None: J_0 = self.J_0
         if COM is None: COM = self.COM
@@ -167,6 +294,29 @@ class Satellite:
         self.invJ_noRW = np.linalg.inv(self.J_noRW)
 
     def _toggle_disturbance(self, dist_class: Disturbance, on: bool, ind: int | None = None) -> None:
+        r"""
+        Enable or disable disturbance model(s) by type and optional index.
+
+        If ``ind`` is provided, only the disturbance at that index is toggled and must be an instance of
+        ``dist_class``. Otherwise, all registered disturbances of that type are toggled.
+
+        This method calls each model's ``turn_on()`` / ``turn_off()`` methods.
+
+        :param dist_class: Disturbance class to match against.
+        :type dist_class: type[:class:`~ADCS.satellite_hardware.disturbances.Disturbance`]
+
+        :param on: If ``True``, turn on. If ``False``, turn off.
+        :type on: bool
+
+        :param ind: Optional index into ``self.disturbances`` to toggle a single disturbance.
+        :type ind: int | None
+
+        :return: ``None``.
+        :rtype: None
+
+        :raises ValueError:
+            If ``ind`` is given and the disturbance at ``ind`` is not an instance of ``dist_class``.
+        """
         if ind is not None:
             d = self.disturbances[ind]
             if not isinstance(d, dist_class):
@@ -182,41 +332,152 @@ class Satellite:
                 getattr(d, "turn_on" if on else "turn_off")()
 
     def srp_dist_on(self) -> None:
-        r"""Turn on all Solar Radiation Pressure disturbances."""
+        r"""
+        Turn on all Solar Radiation Pressure disturbances.
+
+        Equivalent to calling:
+
+        .. code-block:: python
+
+            self._toggle_disturbance(SRP_Disturbance, on=True)
+
+        :return: ``None``.
+        :rtype: None
+        """
         self._toggle_disturbance(SRP_Disturbance, on=True)
 
     def srp_dist_off(self) -> None:
-        r"""Turn off all Solar Radiation Pressure disturbances."""
+        r"""
+        Turn off all Solar Radiation Pressure disturbances.
+
+        Equivalent to calling:
+
+        .. code-block:: python
+
+            self._toggle_disturbance(SRP_Disturbance, on=False)
+
+        :return: ``None``.
+        :rtype: None
+        """
         self._toggle_disturbance(SRP_Disturbance, on=False)
 
     def gen_dist_on(self, ind: int | None = None) -> None:
-        r"""Turn on general disturbances."""
+        r"""
+        Turn on general disturbances.
+
+        General disturbances correspond to :class:`~ADCS.satellite_hardware.disturbances.General_Disturbance`.
+
+        :param ind: Optional index to toggle only one disturbance instance.
+        :type ind: int | None
+
+        :return: ``None``.
+        :rtype: None
+        """
         self._toggle_disturbance(General_Disturbance, on=True, ind=ind)
 
     def gen_dist_off(self, ind: int | None = None) -> None:
-        r"""Turn off general disturbances."""
+        r"""
+        Turn off general disturbances.
+
+        General disturbances correspond to :class:`~ADCS.satellite_hardware.disturbances.General_Disturbance`.
+
+        :param ind: Optional index to toggle only one disturbance instance.
+        :type ind: int | None
+
+        :return: ``None``.
+        :rtype: None
+        """
         self._toggle_disturbance(General_Disturbance, on=False, ind=ind)
 
     def prop_dist_on(self, ind: int | None = None) -> None:
-        r"""Turn on propulsion disturbances."""
+        r"""
+        Turn on propulsion disturbances.
+
+        Propulsion disturbances correspond to :class:`~ADCS.satellite_hardware.disturbances.Prop_Disturbance`.
+
+        :param ind: Optional index to toggle only one disturbance instance.
+        :type ind: int | None
+
+        :return: ``None``.
+        :rtype: None
+        """
         self._toggle_disturbance(Prop_Disturbance, on=True, ind=ind)
 
     def prop_dist_off(self, ind: int | None = None) -> None:
-        r"""Turn off propulsion disturbances."""
+        r"""
+        Turn off propulsion disturbances.
+
+        Propulsion disturbances correspond to :class:`~ADCS.satellite_hardware.disturbances.Prop_Disturbance`.
+
+        :param ind: Optional index to toggle only one disturbance instance.
+        :type ind: int | None
+
+        :return: ``None``.
+        :rtype: None
+        """
         self._toggle_disturbance(Prop_Disturbance, on=False, ind=ind)
 
     def specific_dist_on(self, ind: int) -> None:
-        r"""Turn on a specific disturbance by index."""
+        r"""
+        Turn on a specific disturbance model by index.
+
+        :param ind: Index into ``self.disturbances``.
+        :type ind: int
+
+        :return: ``None``.
+        :rtype: None
+
+        :raises IndexError:
+            If ``ind`` is out of range.
+        """
         self.disturbances[ind].turn_on()
 
     def specific_dist_off(self, ind: int) -> None:
-        r"""Turn off a specific disturbance by index."""
+        r"""
+        Turn off a specific disturbance model by index.
+
+        :param ind: Index into ``self.disturbances``.
+        :type ind: int
+
+        :return: ``None``.
+        :rtype: None
+
+        :raises IndexError:
+            If ``ind`` is out of range.
+        """
         self.disturbances[ind].turn_off()
 
     def RWhs(self) -> np.ndarray:
+        r"""
+        Return the current reaction wheel momenta as a vector.
+
+        The returned vector is ordered according to ``self.momentum_inds`` (indices of
+        :class:`~ADCS.satellite_hardware.actuators.RW` within ``self.actuators``).
+
+        :return: Reaction wheel momentum vector, shape ``(number_RW,)``.
+        :rtype: numpy.ndarray
+        """
         return np.array([self.actuators[j].h for j in self.momentum_inds])
 
     def update_RWhs(self,state_or_RWhs) -> None:
+        r"""
+        Update stored wheel momentum values in each :class:`~ADCS.satellite_hardware.actuators.RW`.
+
+        If ``state_or_RWhs`` has length ``self.state_len``, it is interpreted as the full state
+        :math:`\mathbf{x}` and wheel momenta are extracted via
+        :meth:`~ADCS.satellite.Satellite.RWhs_from_state`. Otherwise, it is interpreted as the
+        wheel momentum vector directly.
+
+        :param state_or_RWhs: Either full state vector (shape ``(state_len,)``) or wheel momenta
+            (shape ``(number_RW,)``).
+        :type state_or_RWhs: numpy.ndarray
+
+        :return: ``None``.
+        :rtype: None
+
+        :raises ValueError:
+            If the inferred wheel momentum vector length does not equal ``self.number_RW``.
+        """
         if np.size(state_or_RWhs) == self.state_len:
             RWhs = self.RWhs_from_state(state_or_RWhs)
         else:
@@ -226,9 +487,114 @@ class Satellite:
         [self.actuators[self.momentum_inds[i]].update_momentum(RWhs[i]) for i in range(len(self.momentum_inds))]
 
     def RWhs_from_state(self,state) -> np.ndarray:
+        r"""
+        Extract the reaction wheel momenta subvector from a full state vector.
+
+        Using the state layout
+
+        .. math::
+
+            \mathbf{x} =
+            \begin{bmatrix}
+            \boldsymbol{\omega} & \mathbf{q} & \mathbf{h}_{RW}
+            \end{bmatrix}^\top,
+
+        this returns :math:`\mathbf{h}_{RW} = \mathbf{x}[7:]`.
+
+        :param state: Full state vector, shape ``(state_len,)``.
+        :type state: numpy.ndarray
+
+        :return: Reaction wheel momentum vector, shape ``(number_RW,)``.
+        :rtype: numpy.ndarray
+        """
         return state[7:]
     
-    def dynamics_core(self, x: np.ndarray, u: np.ndarray, orbital_state: Orbital_State, dmode: DisturbanceMode = None, verbose: bool = False) -> np.ndarray:
+    def dynamics_core(self, x: np.ndarray, u: np.ndarray, orbital_state: Orbital_State, dmode: ErrorMode = None, verbose: bool = False) -> np.ndarray:
+        r"""
+        Continuous-time attitude dynamics :math:`\dot{\mathbf{x}} = f(\mathbf{x},\mathbf{u},\mathrm{os})`.
+
+        This is the primary nonlinear dynamics model used by propagation, simulation,
+        and linearization routines.
+
+        **Kinematics**
+
+        Quaternion kinematics are computed as
+
+        .. math::
+
+            \dot{\mathbf{q}}
+            \;=\;\frac{1}{2}\,W(\mathbf{q})^\top\,\boldsymbol{\omega},
+
+        where :math:`W(\mathbf{q})` is produced by :func:`~ADCS.helpers.math_helpers.Wmat`.
+
+        **Torques**
+
+        Disturbance and actuator torques are summed:
+
+        .. math::
+
+            \boldsymbol{\tau}_{dist} = \sum_i \boldsymbol{\tau}_{dist,i}(\mathbf{x},\mathrm{os}),
+            \qquad
+            \boldsymbol{\tau}_{act} = \sum_j \boldsymbol{\tau}_{act,j}(\mathbf{x},\mathbf{u},\mathrm{os}),
+
+        using :meth:`~ADCS.satellite.Satellite.dist_torques` and
+        :meth:`~ADCS.satellite.Satellite.act_torque`.
+
+        **Rigid-body dynamics**
+
+        If no reaction wheels are present:
+
+        .. math::
+
+            \dot{\boldsymbol{\omega}}
+            \;=\;\mathbf{J}_{noRW}^{-1}\Big(
+            -\boldsymbol{\omega}\times(\mathbf{J}\boldsymbol{\omega}) + \boldsymbol{\tau}
+            \Big).
+
+        If reaction wheels are present, let :math:`\mathbf{A}\in\mathbb{R}^{n_{RW}\times 3}`
+        stack wheel spin axes as rows, and let :math:`\mathbf{h}\in\mathbb{R}^{n_{RW}}`
+        be wheel momenta. Then the coupled term uses the body-frame stored momentum
+        :math:`\mathbf{H}_{RW} = \mathbf{h}^\top \mathbf{A}` and
+
+        .. math::
+
+            \dot{\boldsymbol{\omega}}
+            \;=\;\mathbf{J}_{noRW}^{-1}\Big(
+            -\boldsymbol{\omega}\times(\mathbf{J}\boldsymbol{\omega} + \mathbf{H}_{RW})
+            + \boldsymbol{\tau}
+            \Big).
+
+        Wheel momentum dynamics use the actuator storage torque commands
+        (from each :class:`~ADCS.satellite_hardware.actuators.RW`) and subtract the
+        coupling term from body acceleration:
+
+        .. math::
+
+            \dot{\mathbf{h}}
+            \;=\;\mathbf{u}_{RW} \;-\; \mathbf{A}\,\dot{\boldsymbol{\omega}}\,\mathrm{diag}(J_{RW}),
+
+        matching the implementation structure.
+
+        :param x: State vector ``[w(3), q(4), h(number_RW)]``, shape ``(state_len,)``.
+        :type x: numpy.ndarray
+
+        :param u: Control vector, one element per actuator, shape ``(control_len,)``.
+        :type u: numpy.ndarray
+
+        :param orbital_state: Orbital/environmental state providing vectors (e.g. magnetic field),
+            used by torques.
+        :type orbital_state: :class:`~ADCS.orbits.orbital_state.Orbital_State`
+
+        :param dmode: Error/noise/bias mode used by sensors/actuators/disturbances. If ``None``,
+            a default with bias+noise enabled and updated is used.
+        :type dmode: :class:`~ADCS.satellite_hardware.errors.ErrorMode` | None
+
+        :param verbose: If ``True``, prints a detailed torque and derivative breakdown.
+        :type verbose: bool
+
+        :return: Time derivative vector :math:`\dot{\mathbf{x}}`, shape ``(state_len,)``.
+        :rtype: numpy.ndarray
+        """
         w = x[0:3]
         q = x[3:7]
         h = x[7:]
@@ -236,7 +602,7 @@ class Satellite:
         invJ_noRW = self.invJ_noRW
 
         if dmode is None:
-            dmode = DisturbanceMode(add_bias=True, add_noise=True, update_bias=True, update_noise=True)
+            dmode = ErrorMode(add_bias=True, add_noise=True, update_bias=True, update_noise=True)
 
         disturbance_torque: np.ndarray = self.dist_torques(x=x, os=orbital_state, dmode=dmode)
         actuator_torque: np.ndarray = self.act_torque(x=x, u=u, os=orbital_state, dmode=dmode)
@@ -288,8 +654,40 @@ class Satellite:
         return result
         
     def dynamics_for_solver(self, t: float, x: np.ndarray, u: np.ndarray, os0: Orbital_State, os1: Orbital_State) -> np.ndarray:
-        # solve_ivp() should use one sample of bias and noise
-        dmode = DisturbanceMode(add_bias=True, add_noise=True, update_bias=False, update_noise=False)
+        r"""
+        Wrapper for ODE solvers expecting signature ``f(t, x)``.
+
+        This method interpolates the orbital/environmental state between ``os0`` and ``os1`` using
+        the fraction of elapsed time
+
+        .. math::
+
+            \alpha = \frac{t}{\Delta t},\qquad
+            \Delta t = (J2000_1 - J2000_0)\cdot C_{\mathrm{cent}\to \mathrm{sec}},
+
+        and calls :meth:`~ADCS.satellite.Satellite.dynamics_core` with an
+        :class:`~ADCS.satellite_hardware.errors.ErrorMode` that **does not update** bias/noise
+        so the solver uses a consistent noise sample.
+
+        :param t: Time since start of the interval (s).
+        :type t: float
+
+        :param x: Current state vector, shape ``(state_len,)``.
+        :type x: numpy.ndarray
+
+        :param u: Constant (or externally provided) control input for the interval, shape ``(control_len,)``.
+        :type u: numpy.ndarray
+
+        :param os0: Orbital state at the interval start.
+        :type os0: :class:`~ADCS.orbits.orbital_state.Orbital_State`
+
+        :param os1: Orbital state at the interval end.
+        :type os1: :class:`~ADCS.orbits.orbital_state.Orbital_State`
+
+        :return: State derivative :math:`\dot{\mathbf{x}}`, shape ``(state_len,)``.
+        :rtype: numpy.ndarray
+        """
+        dmode = ErrorMode(add_bias=True, add_noise=True, update_bias=False, update_noise=False)
         delta_t_between_os = (os1.J2000 - os0.J2000)*TimeConstants.cent2sec
         time_frac = t/delta_t_between_os
 
@@ -300,7 +698,32 @@ class Satellite:
         return x_dot
     
 
-    def dist_torques(self, x: np.ndarray, os: Orbital_State, dmode: DisturbanceMode = None) -> np.ndarray:
+    def dist_torques(self, x: np.ndarray, os: Orbital_State, dmode: ErrorMode = None) -> np.ndarray:
+        r"""
+        Compute the total disturbance torque.
+
+        The total disturbance torque is the sum over all registered disturbances:
+
+        .. math::
+
+            \boldsymbol{\tau}_{dist}(\mathbf{x},\mathrm{os})
+            \;=\;\sum_{i=1}^{N_d} \boldsymbol{\tau}_{dist,i}(\mathbf{x},\mathrm{os}).
+
+        Disturbance implementations may optionally accept a ``sat`` keyword argument; if so,
+        the current :class:`~ADCS.satellite.Satellite` instance is provided.
+
+        :param x: State vector, shape ``(state_len,)``.
+        :type x: numpy.ndarray
+
+        :param os: Orbital/environmental state.
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
+
+        :param dmode: Optional error/noise mode (typically used inside disturbances if supported).
+        :type dmode: :class:`~ADCS.satellite_hardware.errors.ErrorMode` | None
+
+        :return: Disturbance torque vector in body frame, shape ``(3,)`` (N·m).
+        :rtype: numpy.ndarray
+        """
         torque_total = np.zeros(3)
 
         for j in self.disturbances:
@@ -313,50 +736,85 @@ class Satellite:
 
         return torque_total
     
-    def act_torque(self, x: np.ndarray, u: np.ndarray, os: Orbital_State, dmode: DisturbanceMode = None) -> np.ndarray:
+    def act_torque(self, x: np.ndarray, u: np.ndarray, os: Orbital_State, dmode: ErrorMode = None) -> np.ndarray:
+        r"""
+        Compute the total actuator torque.
+
+        The total actuator torque is
+
+        .. math::
+
+            \boldsymbol{\tau}_{act}(\mathbf{x},\mathbf{u},\mathrm{os})
+            \;=\;\sum_{j=1}^{N_u} \boldsymbol{\tau}_{act,j}(u_j,\mathbf{x},\mathrm{os}),
+
+        where each actuator is a subclass of :class:`~ADCS.satellite_hardware.actuators.Actuator`.
+
+        :param x: State vector, shape ``(state_len,)``.
+        :type x: numpy.ndarray
+
+        :param u: Control input vector, shape ``(control_len,)``.
+        :type u: numpy.ndarray
+
+        :param os: Orbital/environmental state.
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
+
+        :param dmode: Error/noise mode passed to actuator torque models.
+        :type dmode: :class:`~ADCS.satellite_hardware.errors.ErrorMode` | None
+
+        :return: Actuator torque vector in body frame, shape ``(3,)`` (N·m).
+        :rtype: numpy.ndarray
+        """
+
         act_list = [self.actuators[j].torque(u[j], x, os=os, dmode=dmode) for j in range(len(self.actuators))]
         return sum(act_list, np.zeros(3))
 
     
     def dist_torques_jacobian(self, x: np.ndarray, vecs: Dict[str, np.ndarray]) -> Union[np.ndarray, np.ndarray]:
         r"""
-        Compute the Jacobian of the total disturbance torque with respect to the
-        system state and disturbance model parameters.
+        Jacobians of total disturbance torque with respect to the state and disturbance parameters.
 
-        The function aggregates the first-order derivatives of all registered
-        disturbance models and returns a pair of Jacobian matrices. The state
-        derivative includes only the quaternion components (indices 3--6),
-        as these determine the attitude-dependent disturbance torque.
+        Let :math:`\boldsymbol{\tau}_{dist}(\mathbf{x})` be the total disturbance torque. This method
+        returns:
 
         .. math::
 
-            \frac{\partial \boldsymbol{\tau}_d}{\partial \mathbf{x}}, \qquad
-            \frac{\partial \boldsymbol{\tau}_d}{\partial \boldsymbol{\theta}_d}
+            \frac{\partial \boldsymbol{\tau}_{dist}}{\partial \mathbf{x}}
+            \in \mathbb{R}^{n_x\times 3},
+            \qquad
+            \frac{\partial \boldsymbol{\tau}_{dist}}{\partial \boldsymbol{\theta}_d}
+            \in \mathbb{R}^{n_{\theta_d}\times 3}.
 
-        where :math:`\boldsymbol{\tau}_d` is the total disturbance torque,
-        :math:`\mathbf{x}` is the state vector, and
-        :math:`\boldsymbol{\theta}_d` are disturbance model parameters.
+        In the provided implementation, only the quaternion components affect the disturbance torque
+        Jacobian, because environment vectors are rotated by attitude. Thus, the nonzero block is
 
-        Parameters
-        ----------
-        x : numpy.ndarray
-            Current system state vector of length ``state_len``.
-        vecs : Dict[str, numpy.ndarray]
-            Dictionary of environment vectors (e.g., magnetic field, sun vector,
-            aerodynamic flow) required by each disturbance model.
+        .. math::
 
-        Returns
-        -------
-        ddist_torq__dx : numpy.ndarray, shape (state_len, 3)
-            Jacobian of disturbance torque with respect to the state vector.
-        ddist_torq__ddmp : numpy.ndarray, shape (dist_param_len, 3)
-            Jacobian of disturbance torque with respect to disturbance model
-            parameters. Empty if no parameters are estimated.
+            \left[\frac{\partial \boldsymbol{\tau}_{dist}}{\partial \mathbf{x}}\right]_{3:7,:}
+            = \sum_i \frac{\partial \boldsymbol{\tau}_{dist,i}}{\partial \mathbf{q}}.
 
-        Notes
-        -----
-        - Only the quaternion part of the state contributes to the torque derivative.
-        - Each disturbance model ``j`` must implement ``torque_qjac(self, vecs)``.
+        Each disturbance model must implement:
+
+        * ``torque_qjac(self, vecs)`` → :math:`\partial \boldsymbol{\tau}/\partial \mathbf{q}`.
+
+        :param x: Current state vector, shape ``(state_len,)``.
+        :type x: numpy.ndarray
+
+        :param vecs: Dictionary of body-frame environment vectors and their quaternion derivatives, e.g.
+            ``{"b","r","s","v","rho","db","dr","ds","dv","os"}``.
+        :type vecs: dict[str, numpy.ndarray]
+
+        :return: Pair ``(ddist_torq__dx, ddist_torq__ddmp)``.
+        :rtype: tuple[numpy.ndarray, numpy.ndarray]
+
+        .. rubric:: Return shapes
+
+        +----------------------+--------------------------+
+        | Name                 | Shape                    |
+        +======================+==========================+
+        | ``ddist_torq__dx``   | ``(state_len, 3)``       |
+        +----------------------+--------------------------+
+        | ``ddist_torq__ddmp`` | ``(dist_param_len, 3)``  |
+        +----------------------+--------------------------+
         """
         ddist_torq__dx = np.zeros((self.state_len,3))
         ddist_torq__dx[3:7,:] = sum([j.torque_qjac(self,vecs) for j in self.disturbances],np.zeros((4,3)))
@@ -365,42 +823,43 @@ class Satellite:
 
     def dist_torque_hess(self, x: np.ndarray, vecs: Dict[str, np.ndarray]) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         r"""
-        Compute the Hessian tensors of the total disturbance torque with respect
-        to the state vector and disturbance parameters.
+        Hessian tensors of total disturbance torque.
 
-        The function aggregates second-order derivatives of all registered
-        disturbance models. The output consists of three 3D tensors representing
-        second-order sensitivities with respect to state, parameter, and
-        mixed (state--parameter) terms.
+        Returns second derivatives of :math:`\boldsymbol{\tau}_{dist}`:
 
         .. math::
 
-            \frac{\partial^2 \boldsymbol{\tau}_d}{\partial \mathbf{x}^2}, \qquad
-            \frac{\partial^2 \boldsymbol{\tau}_d}{\partial \mathbf{x}\,\partial \boldsymbol{\theta}_d}, \qquad
-            \frac{\partial^2 \boldsymbol{\tau}_d}{\partial \boldsymbol{\theta}_d^2}
+            \frac{\partial^2 \boldsymbol{\tau}_{dist}}{\partial \mathbf{x}^2},
+            \qquad
+            \frac{\partial^2 \boldsymbol{\tau}_{dist}}{\partial \mathbf{x}\,\partial \boldsymbol{\theta}_d},
+            \qquad
+            \frac{\partial^2 \boldsymbol{\tau}_{dist}}{\partial \boldsymbol{\theta}_d^2}.
 
-        Parameters
-        ----------
-        x : numpy.ndarray
-            Current system state vector of length ``state_len``.
-        vecs : Dict[str, numpy.ndarray]
-            Dictionary of environmental vectors required by the disturbance models.
+        As with :meth:`~ADCS.satellite.Satellite.dist_torques_jacobian`, only quaternion components
+        contribute in the current formulation, and each disturbance must implement:
 
-        Returns
-        -------
-        dddist_torq__dxdx : numpy.ndarray, shape (state_len, state_len, 3)
-            Second derivative of disturbance torque with respect to the state vector.
-        dddist_torq__dxddmp : numpy.ndarray, shape (state_len, dist_param_len, 3)
-            Mixed derivative tensor (state–parameter coupling).
-        dddist_torq__ddmpddmp : numpy.ndarray, shape (dist_param_len, dist_param_len, 3)
-            Second derivative of disturbance torque with respect to disturbance
-            model parameters.
+        * ``torque_qqhess(self, vecs)`` → :math:`\partial^2 \boldsymbol{\tau}/\partial \mathbf{q}^2`.
 
-        Notes
-        -----
-        - Only the quaternion portion of the state contributes to second-order terms.
-        - Each disturbance model ``j`` must implement:
-        ``torque_qqhess(self, vecs)`` for quaternion–quaternion derivatives.
+        :param x: Current state vector, shape ``(state_len,)``.
+        :type x: numpy.ndarray
+
+        :param vecs: Dictionary of body-frame environment vectors and their first/second quaternion derivatives.
+        :type vecs: dict[str, numpy.ndarray]
+
+        :return: Triple ``(dddist_torq__dxdx, dddist_torq__dxddmp, dddist_torq__ddmpddmp)``.
+        :rtype: tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray]
+
+        .. rubric:: Return shapes
+
+        +----------------------------+-----------------------------------------+
+        | Name                       | Shape                                   |
+        +============================+=========================================+
+        | ``dddist_torq__dxdx``      | ``(state_len, state_len, 3)``           |
+        +----------------------------+-----------------------------------------+
+        | ``dddist_torq__dxddmp``    | ``(state_len, dist_param_len, 3)``      |
+        +----------------------------+-----------------------------------------+
+        | ``dddist_torq__ddmpddmp``  | ``(dist_param_len, dist_param_len, 3)`` |
+        +----------------------------+-----------------------------------------+
         """
         dddist_torq__dxdx = np.zeros((self.state_len,self.state_len,3))
         dddist_torq__dxdx[3:7,3:7,:] = sum([j.torque_qqhess(self,vecs) for j in self.disturbances],np.zeros((4,4,3)))
@@ -410,6 +869,59 @@ class Satellite:
 
 
     def dynJacCore(self, x: np.ndarray, u: np.ndarray, orbital_state: Orbital_State) -> Union[np.ndarray, np.ndarray]:
+        r"""
+        Compute Jacobians of the dynamics with respect to state and input.
+
+        This method returns the first-order linearization
+
+        .. math::
+
+            \delta \dot{\mathbf{x}}
+            \approx
+            \mathbf{A}\,\delta\mathbf{x} + \mathbf{B}\,\delta\mathbf{u},
+
+        where
+
+        .. math::
+
+            \mathbf{A} = \frac{\partial f}{\partial \mathbf{x}},\qquad
+            \mathbf{B} = \frac{\partial f}{\partial \mathbf{u}}.
+
+        Environmental vectors (magnetic field, sun vector, velocity, position) are rotated into the body frame:
+
+        .. math::
+
+            \mathbf{v}_B(\mathbf{q}) = R(\mathbf{q})^\top \mathbf{v}_{ECI},
+
+        and derivatives :math:`\partial \mathbf{v}_B/\partial \mathbf{q}` are obtained via
+        :func:`~ADCS.helpers.math_helpers.drotmatTvecdq`.
+
+        Actuator torque derivatives are aggregated via each actuator's methods, e.g.
+        ``dtorq__dbasestate`` and ``dtorq__du``; disturbance derivatives are aggregated via
+        :meth:`~ADCS.satellite.Satellite.dist_torques_jacobian`.
+
+        :param x: Current state vector, shape ``(state_len,)``.
+        :type x: numpy.ndarray
+
+        :param u: Current control vector, shape ``(control_len,)``.
+        :type u: numpy.ndarray
+
+        :param orbital_state: Orbital/environmental state.
+        :type orbital_state: :class:`~ADCS.orbits.orbital_state.Orbital_State`
+
+        :return: List ``[dxdot__dx, dxdot__du]``.
+        :rtype: list[numpy.ndarray]
+
+        .. rubric:: Return shapes
+
+        +--------------+-------------------------------+
+        | Name         | Shape                         |
+        +==============+===============================+
+        | ``dxdot__dx``| ``(state_len, state_len)``    |
+        +--------------+-------------------------------+
+        | ``dxdot__du``| ``(control_len, state_len)``  |
+        +--------------+-------------------------------+
+        """
         R = orbital_state.R # Position in ECI [km]
         V = orbital_state.V # Velocity in body frame [km/s]
         B = orbital_state.B # Magnetic field in ECI [T]
@@ -468,189 +980,72 @@ class Satellite:
     
     def dynamics_Hessians(self, x: np.ndarray, u: np.ndarray, orbital_state: Orbital_State) -> List[List[np.ndarray]]:
         r"""
-        Compute the **second-order partial derivatives (Hessians)** of the spacecraft attitude dynamics
-        with respect to the system state and control inputs.
+        Compute second-order partial derivatives (Hessians) of the dynamics.
 
-        This function analytically evaluates the **Hessian tensors** of the spacecraft’s nonlinear
-        rotational dynamics model:
-
-        .. math::
-
-            \dot{\mathbf{x}} = f(\mathbf{x}, \mathbf{u}, \mathbf{p})
-
-        where the state vector :math:`\mathbf{x}` includes angular velocity, quaternion, and reaction
-        wheel angular momenta, and :math:`\mathbf{u}` represents actuator torques or control inputs.
-
-        The Hessians quantify the **second-order curvature** of the dynamics — i.e., how the Jacobians
-        (first derivatives) themselves change with respect to the state and control. These tensors are
-        essential for second-order estimation or control algorithms such as Differential Dynamic
-        Programming (DDP), iterative LQR (iLQR), and nonlinear uncertainty propagation.
-
-        **Mathematical Formulation**
-
-        The rotational dynamics are defined as:
+        Returns the second derivatives of the dynamics map
+        :math:`\dot{\mathbf{x}} = f(\mathbf{x},\mathbf{u},\mathrm{os})` with respect to state and input:
 
         .. math::
 
-            \begin{aligned}
-            \dot{\boldsymbol{\omega}} &= J^{-1} \left[
-                -\boldsymbol{\omega} \times \left(J \boldsymbol{\omega} + A_{RW}^T \mathbf{h}_{RW}\right)
-                + \boldsymbol{\tau}_{act}(\mathbf{x}, \mathbf{u})
-                + \boldsymbol{\tau}_{dist}(\mathbf{x})
-            \right] \\
-            \dot{\mathbf{q}} &= \tfrac{1}{2} W(\mathbf{q})^T \boldsymbol{\omega} \\
-            \dot{\mathbf{h}}_{RW} &= \mathbf{u}_{RW}
-                - \mathrm{diag}(J_{RW}) A_{RW}^T \dot{\boldsymbol{\omega}}
-            \end{aligned}
+            \frac{\partial^2 f}{\partial \mathbf{x}^2},
+            \qquad
+            \frac{\partial^2 f}{\partial \mathbf{x}\partial \mathbf{u}},
+            \qquad
+            \frac{\partial^2 f}{\partial \mathbf{u}^2}.
 
-        The second derivatives are computed for each component of :math:`f(\mathbf{x}, \mathbf{u})`:
+        These are useful for second-order trajectory optimization methods (DDP/iLQR) and
+        nonlinear uncertainty propagation.
 
-        .. math::
+        **Frame rotation derivatives**
 
-            \frac{\partial^2 f_i}{\partial z_j \, \partial z_k},
-            \quad
-            \mathbf{z} = [\mathbf{x}, \mathbf{u}]
-
-        where each element of the returned Hessian tensors represents a mixed second derivative of the
-        system dynamics with respect to state and/or control variables.
-
-        ---
-        **Inputs**
-
-        :param x: 
-            Current spacecraft state vector.
-            
-            .. math::
-
-                \mathbf{x} =
-                \begin{bmatrix}
-                    \boldsymbol{\omega} \\[3pt]
-                    \mathbf{q} \\[3pt]
-                    \mathbf{h}_{RW}
-                \end{bmatrix}
-                \in \mathbb{R}^{n_x}
-
-            - :math:`\boldsymbol{\omega}` — body angular velocity (rad/s), shape ``(3,)``  
-            - :math:`\mathbf{q}` — attitude quaternion (Hamilton convention, body→ECI), shape ``(4,)``  
-            - :math:`\mathbf{h}_{RW}` — reaction wheel momenta, shape ``(n_{RW},)``  
-
-        :type x: np.ndarray
-
-        :param u:
-            Control input vector representing actuator torque commands, wheel speed commands,
-            or other control variables. Shape ``(n_u,)``.
-
-        :type u: np.ndarray
-
-        :param orbital_state:
-            Object containing current orbital and environmental parameters:
-            - ``R`` — position vector in ECI [m]  
-            - ``V`` — velocity vector in ECI [m/s]  
-            - ``B`` — magnetic field vector in ECI [T]  
-            - ``S`` — Sun direction vector in ECI  
-            - ``rho`` — atmospheric density [kg/m³]
-
-            These are internally transformed into the body frame and their first and second
-            derivatives with respect to the quaternion are computed.
-
-        :type orbital_state: Orbital_State
-
-        ---
-        **Outputs**
-
-        :return:
-            Nested list of Hessian tensors for each derivative block.  
-            When estimation extensions are disabled (`self.estimated == False`):
-
-            .. code-block:: text
-
-                [
-                [ddxdot__dxdx, ddxdot__dxdu],
-                [ddxdot__dxdu.T, ddxdot__dudu]
-                ]
-
-            where each element is a 3D array:
-
-            +-------------------+----------------------------+--------------------------+
-            | Symbol            | Definition                 | Shape                    |
-            +===================+============================+==========================+
-            | ``ddxdot__dxdx``  | ∂²ẋ / ∂x² (state Hessian)  | (nₓ, nₓ, nₓ)            |
-            +-------------------+----------------------------+--------------------------+
-            | ``ddxdot__dxdu``  | ∂²ẋ / ∂x∂u (cross term)    | (nₓ, nᵤ, nₓ)            |
-            +-------------------+----------------------------+--------------------------+
-            | ``ddxdot__dudu``  | ∂²ẋ / ∂u² (input Hessian)  | (nᵤ, nᵤ, nₓ)            |
-            +-------------------+----------------------------+--------------------------+
-
-            Each 3D tensor’s third index corresponds to a state derivative component.
-
-        :rtype: List[List[np.ndarray]]
-
-        ---
-        **Computation Steps**
-
-        1. **Frame transformation**
-
-        Environmental vectors are rotated from ECI to body frame using:
+        Environmental vectors are rotated into body frame and their first and second derivatives
+        with respect to the quaternion are computed:
 
         .. math::
 
-            \mathbf{v}_B = R_{ECI\to B} \, \mathbf{v}_{ECI}
+            \mathbf{v}_B(\mathbf{q}) = R(\mathbf{q})^\top \mathbf{v}_{ECI},\quad
+            \frac{\partial \mathbf{v}_B}{\partial \mathbf{q}},\quad
+            \frac{\partial^2 \mathbf{v}_B}{\partial \mathbf{q}^2},
 
-        and both their first and second quaternion derivatives
-        (:func:`drotmatTvecdq`, :func:`ddrotmatTvecdqdq`) are evaluated.
+        using :func:`~ADCS.helpers.math_helpers.drotmatTvecdq` and
+        :func:`~ADCS.helpers.math_helpers.ddrotmatTvecdqdq`.
 
-        2. **Torque derivatives**
+        **Output structure**
 
-        For each actuator and disturbance source:
-        - Compute first- and second-order derivatives of the generated torque:
-            :math:`\frac{\partial \boldsymbol{\tau}}{\partial \mathbf{x}}`,
-            :math:`\frac{\partial^2 \boldsymbol{\tau}}{\partial \mathbf{x}^2}`,
-            :math:`\frac{\partial^2 \boldsymbol{\tau}}{\partial \mathbf{u}^2}`,
-            and mixed derivatives.
+        The return is a nested list representing the block Hessians:
 
-        3. **Hessian assembly**
+        .. code-block:: text
 
-        Populate the combined second derivative tensors:
-        - ``ddxdot__dxdx`` — curvature of dynamics wrt state
-        - ``ddxdot__dxdu`` — curvature wrt state–control interaction
-        - ``ddxdot__dudu`` — curvature wrt control inputs
+            [
+              [ ddxdot__dxdx, ddxdot__dxdu ],
+              [ ddxdot__dxdu.T, ddxdot__dudu ]
+            ]
 
-        4. **Reaction wheel coupling**
+        where the final tensor index selects the component of :math:`\dot{\mathbf{x}}`.
 
-        If reaction wheels are present (:attr:`self.number_RW > 0`),
-        additional second-order coupling terms are added to capture
-        body–wheel cross-dynamics via the wheel inertia, spin axes,
-        and stored momentum.
+        :param x: Current state vector, shape ``(state_len,)``.
+        :type x: numpy.ndarray
 
-        5. **Final tensor contraction**
+        :param u: Current control vector, shape ``(control_len,)``.
+        :type u: numpy.ndarray
 
-        All torques are pre-multiplied by :math:`J^{-1}` (the inverse of the bus inertia
-        tensor excluding reaction wheels) to yield accelerations in body coordinates.
+        :param orbital_state: Orbital/environmental state.
+        :type orbital_state: :class:`~ADCS.orbits.orbital_state.Orbital_State`
 
-        ---
-        **Notes**
+        :return: Nested list of Hessian tensors ``[[ddxdot__dxdx, ddxdot__dxdu],[ddxdot__dxdu.T, ddxdot__dudu]]``.
+        :rtype: list[list[numpy.ndarray]]
 
-        - The quaternion formulation follows the **Hamilton convention**, where
-        :math:`\mathbf{q}` represents the body-to-ECI rotation.
-        - Returned tensors are symmetric along appropriate axes for physical consistency.
-        - Designed for use in second-order dynamic linearization and trajectory optimization.
+        .. rubric:: Return shapes
 
-        ---
-        **Example**
-
-        .. code-block:: python
-
-            ddH = sat.dynamics_Hessians(x, u, orb)
-            ddx_dx, dx_du = ddH[0]
-            print(ddx_dx.shape)   # (n_x, n_x, n_x)
-            print(dx_du.shape)    # (n_x, n_u, n_x)
-
-        ---
-        **References**
-
-        - Wie, B. *Space Vehicle Dynamics and Control*, 2nd Ed. AIAA, 2008.  
-        - Diebel, J. “Representing Attitude: Euler Angles, Unit Quaternions, and Rotation Vectors.” Stanford University, 2006.  
-        - Tassa, Y. *et al.* “Synthesis and Stabilization of Complex Behaviors through Online Trajectory Optimization.” IROS, 2012.  
+        +-------------------+------------------------------------------+
+        | Name              | Shape                                    |
+        +===================+==========================================+
+        | ``ddxdot__dxdx``  | ``(state_len, state_len, state_len)``    |
+        +-------------------+------------------------------------------+
+        | ``ddxdot__dxdu``  | ``(state_len, control_len, state_len)``  |
+        +-------------------+------------------------------------------+
+        | ``ddxdot__dudu``  | ``(control_len, control_len, state_len)``|
+        +-------------------+------------------------------------------+
         """
         w = x[0:3]#.reshape((3,1))
         q = x[3:7]#normalize(x[3:7,:])
@@ -755,143 +1150,72 @@ class Satellite:
 
     def noiseless_rk4(self, x: np.ndarray, u: np.ndarray, dt: float, orbital_state0: Orbital_State, orbital_state1: Orbital_State, verbose: bool=False,mid_orbital_state: Orbital_State = None, quat_as_vec: bool = True, give_err_est = False) -> np.ndarray:
         r"""
-        Integrate the spacecraft rotational dynamics forward in time using a **fourth-order Runge–Kutta (RK4)**
-        method or an optional **commutator-free fifth-order (CG5)** scheme for quaternion propagation.
+        Propagate the state forward one step using RK4 (and optional embedded error estimate).
 
-        This method advances the state vector :math:`\mathbf{x}` over one time step :math:`\Delta t`
-        according to the nonlinear dynamics model
+        Quaternion components are normalized at each substep to avoid drift.
 
-        .. math::
-
-            \dot{\mathbf{x}} = f(\mathbf{x}, \mathbf{u}, t),
-
-        where :math:`\mathbf{x}` contains the spacecraft angular velocity, quaternion attitude, and (optionally)
-        reaction wheel states. The quaternion is renormalized at each substep to prevent numerical drift.
-
-        **Integration Formulas**
-
-        *For standard RK4:*
+        **RK4 update**
 
         .. math::
+
             \begin{aligned}
-            k_1 &= f(\mathbf{x}_n, \mathbf{u}, t_n) \\
-            k_2 &= f(\mathbf{x}_n + \tfrac{1}{2} \Delta t\, k_1, \mathbf{u}, t_n + \tfrac{1}{2}\Delta t) \\
-            k_3 &= f(\mathbf{x}_n + \tfrac{1}{2} \Delta t\, k_2, \mathbf{u}, t_n + \tfrac{1}{2}\Delta t) \\
-            k_4 &= f(\mathbf{x}_n + \Delta t\, k_3, \mathbf{u}, t_n + \Delta t) \\
-            \mathbf{x}_{n+1} &= \mathbf{x}_n + \tfrac{\Delta t}{6}(k_1 + 2k_2 + 2k_3 + k_4)
+            \mathbf{k}_1 &= f(\mathbf{x}_n,\mathbf{u},\mathrm{os}_0) \\
+            \mathbf{k}_2 &= f(\mathbf{x}_n+\tfrac{dt}{2}\mathbf{k}_1,\mathbf{u},\mathrm{os}_{1/2}) \\
+            \mathbf{k}_3 &= f(\mathbf{x}_n+\tfrac{dt}{2}\mathbf{k}_2,\mathbf{u},\mathrm{os}_{1/2}) \\
+            \mathbf{k}_4 &= f(\mathbf{x}_n+dt\,\mathbf{k}_3,\mathbf{u},\mathrm{os}_1) \\
+            \mathbf{x}_{n+1} &= \mathbf{x}_n + \tfrac{dt}{6}\left(\mathbf{k}_1 + 2\mathbf{k}_2 + 2\mathbf{k}_3 + \mathbf{k}_4\right)
             \end{aligned}
 
-        *For quaternion integration*, each intermediate state’s quaternion is renormalized and the final quaternion
-        is normalized again after the update.
+        where :math:`\mathrm{os}_{1/2}` is the midpoint orbital state; if not provided it is computed via
+        :meth:`~ADCS.orbits.orbital_state.Orbital_State.average`.
 
-        *For CG5 (Lie group) variant:*  
-        Quaternion increments are represented using rotational exponentials :math:`\exp(\mathbf{F}_i)` to ensure
-        attitude integration on the manifold :math:`\mathrm{SO}(3)` via the commutator-free Runge–Kutta method.
+        **Embedded error estimate (optional)**
 
-        ---
-        
-        :param x:
-            Current state vector :math:`\mathbf{x}` containing:
-            - :math:`\boldsymbol{\omega}` — angular velocity in body frame [rad/s]
-            - :math:`\mathbf{q}` — attitude quaternion (Hamilton form, body→ECI)
-            - (optional) reaction wheel states
+        When ``give_err_est=True``, a third-order embedded estimate :math:`\mathbf{x}^{(3)}_{n+1}` is computed,
+        and the elementwise difference is returned as a local truncation error proxy.
 
-            Shape: ``(n_x,)``
+        **Noise/bias behavior**
 
+        This routine enforces a deterministic propagation by using an
+        :class:`~ADCS.satellite_hardware.errors.ErrorMode` with all noise/bias additions disabled.
+
+        :param x: Current state vector, shape ``(state_len,)``.
         :type x: numpy.ndarray
 
-        :param u:
-            Control input vector :math:`\mathbf{u}` (e.g., actuator or wheel torques).  
-            Shape: ``(n_u,)``
-
+        :param u: Control vector, shape ``(control_len,)``.
         :type u: numpy.ndarray
 
-        :param dt:
-            Integration time step [s]
-
+        :param dt: Integration time step (s).
         :type dt: float
 
-        :param orbital_state0:
-            Orbital/environmental state at the beginning of the step.
-            Provides quantities such as :math:`\mathbf{R}, \mathbf{V}, \mathbf{B}, \mathbf{S}, \rho`
-            used in environmental torque models.
+        :param orbital_state0: Orbital state at the start of the step.
+        :type orbital_state0: :class:`~ADCS.orbits.orbital_state.Orbital_State`
 
-        :type orbital_state0: Orbital_State
+        :param orbital_state1: Orbital state at the end of the step.
+        :type orbital_state1: :class:`~ADCS.orbits.orbital_state.Orbital_State`
 
-        :param orbital_state1:
-            Orbital/environmental state at the end of the step.
+        :param verbose: If ``True``, prints intermediate RK stages.
+        :type verbose: bool
 
-        :type orbital_state1: Orbital_State
+        :param mid_orbital_state: Optional precomputed midpoint orbital state.
+        :type mid_orbital_state: :class:`~ADCS.orbits.orbital_state.Orbital_State` | None
 
-        :param verbose:
-            If ``True``, prints intermediate derivative stages :math:`k_1, k_2, k_3, k_4`.
+        :param quat_as_vec: If ``True``, propagate quaternions using RK4 on the quaternion components with normalization.
+            If ``False``, use a commutator-free Lie group method (CG5) for quaternion propagation.
+        :type quat_as_vec: bool
 
-        :type verbose: bool, optional
+        :param give_err_est: If ``True``, return ``(x_next, err_est)`` using an embedded lower-order estimate.
+        :type give_err_est: bool
 
-        :param mid_orbital_state:
-            Precomputed midpoint orbital state.  
-            If ``None``, computed as ``orbital_state0.average(orbital_state1)``.
+        :return: Next state, or ``(next_state, error_estimate)`` if ``give_err_est=True``.
+        :rtype: numpy.ndarray | tuple[numpy.ndarray, numpy.ndarray]
 
-        :type mid_orbital_state: Optional[Orbital_State], optional
-
-        :param quat_as_vec:
-            If ``True``, uses standard RK4 with quaternion normalization.  
-            If ``False``, uses commutator-free fifth-order (CG5) method with exponential maps.
-
-        :type quat_as_vec: bool, optional
-
-        :type save_info: bool, optional
-
-        :param give_err_est:
-            If ``True``, performs a third-order embedded RK method for **error estimation**, returning an additional
-            error vector :math:`\hat{e}` representing the difference between the 4th- and 3rd-order solutions.
-
-        :type give_err_est: bool, optional
-
-        ---
-
-        :return:
-            - If ``give_err_est = False`` → Updated state vector :math:`\mathbf{x}_{n+1}` (shape ``(n_x,)``).  
-            - If ``give_err_est = True`` → Tuple ``(x_next, err_est)``:
-            
-            * :math:`x_{\text{next}}` — next-step state vector  
-            * :math:`\hat{e}` — elementwise integration error estimate
-
-        :rtype: Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]
-
-        ---
-        **Computation Notes**
-
-        1. Quaternion components are renormalized after each substep to prevent drift.  
-        2. The error estimate (when enabled) uses an embedded RK3 formula:
-
-        .. math::
-            \mathbf{x}_{n+1}^{(3)} = \mathbf{x}_n + \tfrac{\Delta t}{6}(k_1 + 4k_2 + k_{33})
-
-        The elementwise difference :math:`|\mathbf{x}_{n+1}^{(4)} - \mathbf{x}_{n+1}^{(3)}|` provides
-        a per-state local truncation error estimate.
-        3. The CG5 variant propagates quaternions directly on the Lie group using exponential maps
-        :math:`\exp(\mathbf{F}_i)`, avoiding small-angle linearizations.
-
-        ---
-        **Example**
-
-        .. code-block:: python
-
-            x_next = sat.noiseless_rk4(x, u, 0.1, orb0, orb1)
-            # or with embedded error estimate
-            x_next, err = sat.noiseless_rk4(x, u, 0.1, orb0, orb1, give_err_est=True)
-
-        ---
-        **References**
-
-        - Hairer, E., Lubich, C., Wanner, G., *Geometric Numerical Integration*, 2nd Ed., Springer, 2006.  
-        - Wie, B., *Space Vehicle Dynamics and Control*, AIAA, 2008.  
-        - Celledoni, E., et al., “Commutator-Free Lie Group Methods,” *J. Comput. Phys.*, 2003.  
+        :raises ValueError:
+            If ``give_err_est=True`` while using the CG5 quaternion propagation variant.
         """
         x[3:7] = normalize(x[3:7])
         # Use no noise, no bias, no updates to either
-        dmode = DisturbanceMode(add_bias=False, add_noise=False, update_bias=False, update_noise=False)
+        dmode = ErrorMode(add_bias=False, add_noise=False, update_bias=False, update_noise=False)
         if quat_as_vec:
             if mid_orbital_state is None:
                 mid_orbital_state = orbital_state0.average(orbital_state1)
@@ -965,28 +1289,138 @@ class Satellite:
     
 
         
-    def sensor_readings(self, x: np.ndarray, os: Orbital_State, dmode: DisturbanceMode = None) -> np.ndarray:
+    def sensor_readings(self, x: np.ndarray, os: Orbital_State, dmode: ErrorMode = None) -> np.ndarray:
+        r"""
+        Compute concatenated sensor readings (attitude sensors + wheel momentum measurements).
+
+        Readings are collected from all non-GPS sensors in ``self.attitude_sensors`` and appended with
+        reaction wheel momentum measurements from each :class:`~ADCS.satellite_hardware.actuators.RW`.
+
+        Let :math:`\mathbf{y}` denote the stacked measurement vector:
+
+        .. math::
+
+            \mathbf{y} =
+            \begin{bmatrix}
+            \mathbf{y}_1 \\
+            \vdots \\
+            \mathbf{y}_{N_s} \\
+            \hat{\mathbf{h}}_{RW}
+            \end{bmatrix},
+
+        where each :math:`\mathbf{y}_i` is a sensor-specific output (possibly vector-valued).
+
+        :param x: Current state vector, shape ``(state_len,)``.
+        :type x: numpy.ndarray
+
+        :param os: Orbital/environmental state.
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
+
+        :param dmode: Error/noise mode controlling sensor noise/bias injection.
+        :type dmode: :class:`~ADCS.satellite_hardware.errors.ErrorMode` | None
+
+        :return: Concatenated measurement vector.
+        :rtype: numpy.ndarray
+        """
         sensor_readings: List[np.ndarray] = [np.atleast_1d(self.attitude_sensors[j].reading(x=x, os=os, dmode=dmode)) for j in range(len(self.attitude_sensors))]
         rw_readings: List[np.ndarray] = [np.atleast_1d(self.rw_actuators[j].measure_momentum()) for j in range(len(self.rw_actuators))]
         return np.concatenate(sensor_readings + rw_readings)
         # return np.array(sensor_readings)
     
     def noiseless_sensor_readings(self, x: np.ndarray, os: Orbital_State) -> np.ndarray:
-        dmode = DisturbanceMode(add_bias=True, add_noise=False, update_bias=False, update_noise=False)
+        r"""
+        Compute sensor readings with noise disabled (bias may be included but not updated).
+
+        Uses an :class:`~ADCS.satellite_hardware.errors.ErrorMode` configured as:
+
+        * add_bias = True
+        * add_noise = False
+        * update_bias = False
+        * update_noise = False
+
+        This is useful for deterministic filtering tests where bias is treated as a fixed offset.
+
+        :param x: Current state vector, shape ``(state_len,)``.
+        :type x: numpy.ndarray
+
+        :param os: Orbital/environmental state.
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
+
+        :return: Concatenated measurement vector.
+        :rtype: numpy.ndarray
+        """
+        dmode = ErrorMode(add_bias=True, add_noise=False, update_bias=False, update_noise=False)
         return self.sensor_readings(x=x, os=os, dmode=dmode)
     
     def noiseless_RW_readings(self, x: np.ndarray, os: Orbital_State) -> List[np.ndarray]:
+        r"""
+        Return noiseless reaction wheel momentum measurements.
+
+        Delegates to each wheel's ``measure_momentum_noiseless()`` (implementation-specific).
+
+        :param x: Current state vector (unused by some wheel models but included for interface consistency).
+        :type x: numpy.ndarray
+
+        :param os: Orbital/environmental state (unused by some wheel models but included for interface consistency).
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
+
+        :return: List of per-wheel measurement arrays.
+        :rtype: list[numpy.ndarray]
+        """
         return [rw.measure_momentum_noiseless() for rw in self.rw_actuators]
     
     def RW_readings(self, x: np.ndarray, os: Orbital_State) -> List[np.ndarray]:
+        r"""
+        Return reaction wheel momentum measurements (with wheel measurement model behavior).
+
+        Delegates to each wheel's ``measure_momentum()``.
+
+        :param x: Current state vector (unused by some wheel models but included for interface consistency).
+        :type x: numpy.ndarray
+
+        :param os: Orbital/environmental state (unused by some wheel models but included for interface consistency).
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
+
+        :return: List of per-wheel measurement arrays.
+        :rtype: list[numpy.ndarray]
+        """
         return [rw.measure_momentum() for rw in self.rw_actuators]
 
 
     def GPS_readings(self, x: np.ndarray, os: Orbital_State) -> List[np.ndarray]:
+        r"""
+        Return GPS sensor readings.
+
+        GPS sensors are identified as instances of :class:`~ADCS.satellite_hardware.sensors.GPS`.
+
+        :param x: Current state vector, shape ``(state_len,)``.
+        :type x: numpy.ndarray
+
+        :param os: Orbital/environmental state.
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
+
+        :return: List of GPS reading arrays (model-specific shapes).
+        :rtype: list[numpy.ndarray]
+        """
         return [gps.reading(x=x, os=os) for gps in self.GPS_sensors]
 
 
     def gyro_readings(self, x: np.ndarray, os: Orbital_State) -> List[np.ndarray]:
+        r"""
+        Return readings from all gyroscopes.
+
+        Filters ``self.attitude_sensors`` by :class:`~ADCS.satellite_hardware.sensors.Gyro`
+        and returns ``sensor.reading(x, os)`` for each.
+
+        :param x: Current state vector, shape ``(state_len,)``.
+        :type x: numpy.ndarray
+
+        :param os: Orbital/environmental state.
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
+
+        :return: List of gyro measurement arrays (typically angular rate, rad/s).
+        :rtype: list[numpy.ndarray]
+        """
         return [
             sensor.reading(x=x, os=os)
             for sensor in self.attitude_sensors
@@ -995,6 +1429,20 @@ class Satellite:
 
 
     def mtm_readings(self, x: np.ndarray, os: Orbital_State) -> List[np.ndarray]:
+        r"""
+        Return readings from all magnetometers.
+
+        Filters ``self.attitude_sensors`` by :class:`~ADCS.satellite_hardware.sensors.MTM`.
+
+        :param x: Current state vector, shape ``(state_len,)``.
+        :type x: numpy.ndarray
+
+        :param os: Orbital/environmental state.
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
+
+        :return: List of magnetometer measurement arrays (typically magnetic field, T).
+        :rtype: list[numpy.ndarray]
+        """
         return [
             sensor.reading(x=x, os=os)
             for sensor in self.attitude_sensors
@@ -1003,6 +1451,20 @@ class Satellite:
 
 
     def sunpair_readings(self, x: np.ndarray, os: Orbital_State) -> List[np.ndarray]:
+        r"""
+        Return readings from all sun-pair sensors.
+
+        Filters ``self.attitude_sensors`` by :class:`~ADCS.satellite_hardware.sensors.SunPair`.
+
+        :param x: Current state vector, shape ``(state_len,)``.
+        :type x: numpy.ndarray
+
+        :param os: Orbital/environmental state.
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
+
+        :return: List of sun-pair measurement arrays (model-specific shapes).
+        :rtype: list[numpy.ndarray]
+        """
         return [
             sensor.reading(x=x, os=os)
             for sensor in self.attitude_sensors
@@ -1011,6 +1473,20 @@ class Satellite:
 
 
     def sunsensor_readings(self, x: np.ndarray, os: Orbital_State) -> List[np.ndarray]:
+        r"""
+        Return readings from all sun sensors.
+
+        Filters ``self.attitude_sensors`` by :class:`~ADCS.satellite_hardware.sensors.SunSensor`.
+
+        :param x: Current state vector, shape ``(state_len,)``.
+        :type x: numpy.ndarray
+
+        :param os: Orbital/environmental state.
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
+
+        :return: List of sun sensor measurement arrays (model-specific shapes).
+        :rtype: list[numpy.ndarray]
+        """
         return [
             sensor.reading(x=x, os=os)
             for sensor in self.attitude_sensors
