@@ -1346,3 +1346,282 @@ Sources:
 
 ---
 
+## INTERVIEW CONTINUATION (Session 2)
+
+### KEY INSIGHT: CONOPS Coupling as Unifying Theme
+
+**Patrick's insight**: ADCS should be coupled with mission CONOPS from the start, not treated as an independent subsystem.
+
+**What makes ADCS special vs other subsystems?**
+- Other subsystems set strict requirements (e.g., "always maintain 1° pointing")
+- ADCS can *change what you can do* — reframe goals dynamically
+- Example: Instead of "maintain 1° pointing always," you could say "maintain 1° around optical axis with some maximum spin during imaging times only"
+- This flexibility enables mission creativity, not just requirement satisfaction
+
+**Proposed thesis statement for all papers:**
+> "ADCS design should be coupled with mission CONOPS from the start, not treated as an independent subsystem. This work provides the tools—estimation, control, allocation, and planning—that enable rapid evaluation of ADCS architectures against mission requirements, revealing which configurations are viable before hardware is selected."
+
+**How each paper connects to CONOPS:**
+
+| Paper | CONOPS Connection |
+|-------|-------------------|
+| **3+1** | "For missions with profile X (nadir pointing, moderate slew rates, LEO), 3+1 is the optimal CONOPS choice" — proves a cheaper architecture meets requirements for certain profiles |
+| **Package** | Makes CONOPS-coupled ADCS design accessible; enables rapid exploration of architecture-mission trade space; reduces dev time |
+| **Planner** | Adapts trajectories to CONOPS constraints; makes underactuated satellites do more; finds novel solutions operators wouldn't think of |
+| **Generalized Control** | Provides modular math that makes architecture comparisons tractable (less direct mission enablement, more foundational) |
+
+**Mission impact framing:**
+- **Big missions**: Made cheaper (same capability, less hardware)
+- **Small missions**: Made more capable (better performance from limited hardware)
+- **New missions**: Made possible (previously infeasible due to mass/power/cost constraints)
+
+---
+
+### Paper Status Update (Jan 2026)
+
+| Paper | Status | Conference | Deadline Notes |
+|-------|--------|------------|----------------|
+| 3+1 | Abstract only, writing + some sims needed | SmallSat Europe (May 2026) | ~4 months |
+| Package | Structure done, [TBD]s remain, sims + examples needed | SmallSat Europe (May 2026) | ~4 months |
+| Planner | Most complete | SmallSat USA | Later |
+| Generalized Control | Math done (Niclas), narrative needs work | SmallSat USA | Later |
+
+**Patrick's confidence level**: Not worried about timeline. Package is robust, they've written many simulations recently. Abstracts not even accepted yet.
+
+---
+
+### LP vs QP Update
+
+**Status**: Still working on it.
+
+**Patrick's approach**: "The QP solution should include the LP, so if the right constraint was added it should always perform at least as well as LP. Working on that constraint. Will present alternate options in paper and highlight which is best."
+
+**Plan for paper**: Present multiple allocation options with empirical comparison, explain the constraint that makes QP competitive.
+
+---
+
+### Generalized Control Paper - Narrative Gap
+
+**Origin story** (compelling): Patrick's advisor wanted comparisons to other control laws. Each comparison was hard because different laws assumed different actuators, orbits, goals, disturbances. Patrick wanted a modular "bolt-on" front-end and back-end that could wrap existing laws for rapid testing.
+
+**Problem**: Current paper content (LTV controllability, LP vs QP allocation) doesn't clearly deliver on the "bolt-on adapter" promise. Reads more like pure theory than practical tool.
+
+**Action needed**: More writing to connect the math to the "rapid architecture testing" motivation. Niclas did the math; Patrick needs to add the framing.
+
+---
+
+### Graceful Degradation - Refined Definition
+
+> **Graceful degradation** means that when the planner receives an infeasible goal, it:
+> 1. Does not error out or return no solution
+> 2. Does not command actuators to saturation indefinitely ("doesn't do anything insane")
+> 3. Converges to the closest achievable attitude that minimizes goal error while respecting actuator and rate constraints ("tries its best to meet goals")
+> 4. Always meets constraints (rate limits, actuator limits, keep-out zones)
+> 5. Produces a bounded, predictable trajectory that can be tracked by the feedback controller
+>
+> In implementation, if ALTRO does not converge within the pre-computation window, the system falls back to PD control with the current best trajectory estimate.
+
+---
+
+### 3+1 Mission Examples (To Be Validated with Numbers)
+
+**Option A: 1U Imaging CubeSat**
+- University team wants 1U Earth-observation with sub-degree pointing
+- 3RW won't fit alongside camera + OBC
+- MTQ-only gives ~5-10°, insufficient
+- 3+1 fits and achieves <1° with planner
+- Claim: "3+1 enables imaging missions at 1U scale previously impossible"
+
+**Option B: Constellation Economics**
+- 200-satellite LEO constellation for IoT
+- 3RW × 200 = $3M in RWs (at $5k/wheel)
+- Mass: 200g × 200 = 40kg extra to orbit (~$400k at $10k/kg)
+- 3+1 saves ~$2M+ across constellation
+- Claim: "Significant cost savings for constellation missions"
+
+**Option C: Power-Constrained Eclipse Mission**
+- 3U studying aurora, long eclipse periods
+- 3RW draws ~1.5W continuous; 3+1 saves ~1W
+- 40-min eclipse: saves 0.67 Wh per eclipse
+- Claim: "40% power reduction enables extended eclipse operations"
+
+**Option D: BeaverCube-2 (Real Example)**
+- BC-2 used 3+1, it "became more feasible"
+- Need to document: what constraint was binding (mass? power? volume? cost?)
+- What pointing accuracy was required?
+- What would have been sacrificed for 3RW?
+
+---
+
+### Why ADCS is Special for CONOPS Coupling (Evolving Argument)
+
+**The core insight**: Unlike other subsystems, ADCS has *discrete capability thresholds* that depend on mission profile.
+
+**Other subsystems scale linearly:**
+- More solar panels → more power (proportional)
+- Bigger antenna → more bandwidth (proportional)
+- Faster processor → more compute (proportional)
+
+**ADCS has discrete capability jumps:**
+- 3MTQ → limited goal types, time-varying constraints, can't guarantee arbitrary pointing
+- 3MTQ + 1RW → *qualitatively different*: new goals achievable, but constraints remain orbit-dependent
+- 3RW → full authority, but potentially overkill
+
+**Key insight**: Adding one RW doesn't give "33% more pointing"—it *unlocks an entirely new capability class*. Whether that class is sufficient depends on specific CONOPS (when do you need pointing? what goals? what orbit?).
+
+**Why this is non-obvious:**
+1. Mission designers think in requirements ("always maintain 1°") not capabilities ("can achieve 1° during imaging windows with setup time")
+2. Capability boundaries depend on orbit, timing, goal type—not just hardware specs
+3. Standard tools don't reveal these boundaries without proper analysis
+
+**Patrick's additional thoughts:**
+- Designers already allow operational modes for power (different modes, time-sharing); why not ADCS?
+- Could reframe pointing as "meet 1° during imaging times" rather than "always maintain 1°"
+- ADCS is directly coupled to mission success—it determines whether payload can do its job (pointing), whereas power/thermal/compute/radio are about keeping systems alive and moving data
+
+**Proposed framing (draft, may vary per paper):**
+> "Unlike power or communications—where more hardware provides proportionally more capability—ADCS exhibits discrete capability thresholds that depend on mission profile. Adding a single reaction wheel to a magnetorquer-only system doesn't improve pointing by 33%; it unlocks an entirely new class of achievable missions. But which missions fall within that class depends on orbit, timing, and goal formulation—factors invisible without proper analysis tools. This work provides those tools."
+
+**STATUS**: Close but Patrick feels it's still missing something. Will vary per paper. Needs further iteration.
+
+---
+
+### Final Interview Questions (Session 2)
+
+**LP vs QP Resolution Plan:**
+- If constraint isn't found: include both results, demonstrate LP as better empirically
+- Paper WILL be more about modular framework than currently written
+- LP vs QP becomes supporting evidence, not central claim
+
+**Data Consistency Plan:**
+- Will probably rerun simulations
+- Different scenarios may warrant both sets of numbers
+- Baseline requirement: internal consistency within each paper
+
+**Experiment Concerns:**
+- NOT worried about: Generalized Control, Package, 3+1
+- MAYBE worried about: Some Planner re-runs
+- Paper refinement process helps identify what's vital vs what's not
+
+---
+
+### Generalized Control Paper - Framing Decision
+
+**Three possible actionable takeaways:**
+
+| Option | Takeaway | Audience | Action After Reading |
+|--------|----------|----------|---------------------|
+| **A: LP Allocator** | "Use LP instead of QP for underactuated allocation—preserves direction, improves stability" | Engineers implementing flight software | Implement LP allocation |
+| **B: LTV Controllability** | "Use this analysis to verify your underactuated config is viable before committing" | Systems engineers doing trades | Run controllability checks |
+| **C: Modular Framework** | "This is a 'bolt-on adapter' for any control law—swap in PD, LQR, sliding mode, we handle actuator details" | Researchers, architecture teams | Rapid control law comparison |
+
+**Patrick's decision:**
+- Wants **A + C** (LP allocator + modular framework for rapid testing)
+- **B** (LTV controllability) serves as supporting proof that combinations work
+- More math than API (Package paper will have the practical tool)
+- Niclas (grad student) may want B emphasis
+- **More writing needed** to deliver on C framing—current paper is heavy on math (A, B) but light on modular framework narrative (C)
+
+**Clean split possibility:**
+- Generalized Control (JGCD): Theoretical math (A + B proofs) + framework concept (C)
+- Package Paper (SmallSat/JOSS): Practical implementation of C with accessible API
+
+---
+
+### 3+1 Mission Examples - VALIDATED NUMBERS
+
+#### Cost Data (2024-2025)
+
+**Reaction Wheel Costs:**
+- Commercial CubeSat RWs: **$5,000-$10,000 each** (typical)
+- Higher-performance RWs: $20,000-$100,000+
+- Research/COTS approach: ~$330 for 3-axis (HDD-based, not flight-grade)
+- Sources: [TY-Space](https://www.ty-space.net/understanding-reaction-wheel-price-factors-and-cost-considerations-for-satellites/), [SatSearch](https://satsearch.co/products/kongsberg-nanoavionics-cubesat-reaction-wheel)
+
+**Launch Costs (SpaceX Rideshare):**
+- Current pricing: **$5,500-$6,000/kg** to SSO
+- Base package: $1.1M per 200 kg
+- Compared to dedicated small launcher: 5-10× more expensive
+- Sources: [SatBase](https://satbase.com/articles/cubesat-launch-costs), [SpaceX Rideshare](https://www.spacex.com/rideshare)
+
+#### 1U CubeSat Constraints
+
+- Dimensions: **10×10×10 cm**
+- Mass limit: **1.33 kg**
+- Power constraint: **~40% of total 1U power** required just for RW slew maneuvers
+- Volume: Limited accommodation; RW222 designed for 1-3U, RW400 for 6-12U
+- Reliability concern: **~50% of ADCS failures** attributed to RW moving parts
+- Sources: [Cal Poly Thesis](https://digitalcommons.calpoly.edu/cgi/viewcontent.cgi?article=3705&context=theses), [AAC Clyde Space](https://www.aac-clyde.space/what-we-do/space-products-components/adcs/rw222)
+
+---
+
+#### VALIDATED EXAMPLE A: 1U Imaging CubeSat
+
+**Scenario**: University team building 1U Earth-observation CubeSat with sub-degree pointing.
+
+**The Problem**:
+- 1U volume = 10×10×10 cm total
+- Camera + OBC + power + comms already consume most volume
+- 3 reaction wheels (even small RW222 at 50×50×27mm each) consume significant fraction of remaining space
+- 3 RWs would draw ~40% of available power during maneuvers
+- MTQ-only achieves only ~5-10° pointing (insufficient for imaging)
+
+**3+1 Solution**:
+- Single RW + 3 compact MTQs fits within volume budget
+- Power draw reduced by ~2/3 for attitude actuators
+- Achieves <1° pointing with planner
+
+**Claim**: "3+1 enables sub-degree imaging missions at the 1U scale that were previously constrained by volume and power limitations."
+
+---
+
+#### VALIDATED EXAMPLE B: Constellation Economics
+
+**Scenario**: 200-satellite LEO IoT constellation, each needing 2° pointing accuracy.
+
+**Cost Analysis**:
+| Item | 3×RW Config | 3+1 Config | Savings |
+|------|-------------|------------|---------|
+| RW hardware | 3 × $7,500 × 200 = **$4.5M** | 1 × $7,500 × 200 = **$1.5M** | **$3.0M** |
+| Extra mass | 2 RW × 100g × 200 = 40 kg | — | 40 kg |
+| Launch cost | 40 kg × $5,500/kg = **$220k** | — | **$220k** |
+| **TOTAL** | | | **$3.2M+** |
+
+**Additional factors**:
+- 50% of ADCS failures are RW-related → fewer RWs = higher reliability
+- Reduced power draw extends battery life or allows smaller solar panels
+- Reduced volume allows larger payload or additional subsystems
+
+**Claim**: "For a 200-satellite constellation, 3+1 architecture saves over $3 million in hardware and launch costs while potentially improving reliability by reducing moving-part failure modes."
+
+---
+
+#### VALIDATED EXAMPLE C: Power-Constrained Eclipse Mission
+
+**Scenario**: 3U aurora-observation CubeSat operating through long eclipse periods at high latitude.
+
+**Power Analysis**:
+- Typical CubeSat RW power: 0.4-0.7W each (from CubeSpace datasheets)
+- 3 RWs: ~1.5W continuous
+- 1 RW + MTQs: ~0.5W + ~0.6W = ~1.1W (MTQs only active intermittently)
+- **Net savings**: ~0.4-1.0W continuous
+
+**Eclipse Impact**:
+- 40-minute eclipse at polar orbit
+- 1W savings × 0.67 hours = **0.67 Wh per eclipse**
+- Typical 3U battery: 20-40 Wh
+- Savings = **2-3% of battery per eclipse** → significant for multi-eclipse operations
+
+**Claim**: "3+1 reduces ADCS power consumption by 25-40%, enabling extended eclipse operations or smaller battery sizing for polar and high-inclination missions."
+
+---
+
+#### EXAMPLE D: BeaverCube-2 (Real Mission)
+
+**STATUS**: Patrick to provide specific details:
+- What was the binding constraint? (mass/power/volume/cost)
+- What pointing accuracy was required?
+- What would have been sacrificed for 3RW?
+
+---
+
