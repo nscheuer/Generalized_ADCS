@@ -1,3 +1,9 @@
+__all__ = [
+    "plot_h_tracking_mc_compare",
+    "plot_target_tracking_mc_compare",
+    "plot_convergence_histogram_mc_compare",
+]
+
 import numpy as np
 import matplotlib.pyplot as plt
 from typing import List, Dict, Any, Tuple
@@ -51,8 +57,67 @@ def plot_h_tracking_mc_compare(
     label_A: str = "Case A",
     label_B: str = "Case B",
 ) -> None:
-    """
-    Compare stored angular momentum histories for two MC result sets.
+    r"""
+    Compare stored reaction wheel angular momentum across two Monte Carlo cases.
+
+    This function overlays stored angular momentum time histories from two sets
+    of Monte Carlo simulation results, enabling qualitative comparison of
+    momentum buildup, dispersion, and actuator usage.
+
+    ======================
+    State Assumption
+    ======================
+
+    Each Monte Carlo result dictionary is expected to contain:
+
+    * ``"time"`` — time history
+    * ``"state"`` — state history with reaction wheel momentum stored from
+      index 7 onward
+
+    The reaction wheel momentum vector is assumed to be
+
+    .. math::
+
+        \mathbf{h}_{\text{rw}}(t) \in \mathbb{R}^{N_{\text{rw}}}
+
+    ======================
+    Visualization Strategy
+    ======================
+
+    * Each Monte Carlo run is plotted with low opacity
+    * Each wheel component uses a consistent color within a case
+    * Separate colormaps are used for Case A and Case B
+
+    :param full_results_A:
+        Monte Carlo result set for Case A.
+    :type full_results_A:
+        list of dict
+
+    :param full_results_B:
+        Monte Carlo result set for Case B.
+    :type full_results_B:
+        list of dict
+
+    :param title:
+        Plot title.
+    :type title:
+        str
+
+    :param label_A:
+        Legend label for Case A.
+    :type label_A:
+        str
+
+    :param label_B:
+        Legend label for Case B.
+    :type label_B:
+        str
+
+    :return:
+        None. The function generates a Matplotlib figure.
+    :rtype:
+        None
+
     """
 
     if not full_results_A and not full_results_B:
@@ -123,8 +188,81 @@ def plot_target_tracking_mc_compare(
     label_A: str = "Case A",
     label_B: str = "Case B",
 ) -> None:
-    """
-    Compare angular tracking error histories for two MC result sets.
+    r"""
+    Compare target tracking angular error histories for two Monte Carlo cases.
+
+    This function computes and overlays the instantaneous angular tracking
+    error between a body-fixed boresight and an inertial target direction for
+    two sets of Monte Carlo simulations.
+
+    ==========================
+    Tracking Error Definition
+    ==========================
+
+    Let:
+
+    * :math:`\hat{\mathbf{b}}` be the normalized boresight direction in the body frame
+    * :math:`\mathbf{R}_{\mathcal{B}\rightarrow\mathcal{I}}` be the attitude rotation matrix
+    * :math:`\hat{\mathbf{g}}_i` be the normalized target direction in ECI
+
+    The boresight direction in ECI is
+
+    .. math::
+
+        \hat{\mathbf{b}}_i^{\text{ECI}} =
+        \mathbf{R}_{\mathcal{B}\rightarrow\mathcal{I}} \hat{\mathbf{b}}
+
+    The angular tracking error is
+
+    .. math::
+
+        \theta_i =
+        \cos^{-1}\!\left(
+        \hat{\mathbf{b}}_i^{\text{ECI}} \cdot \hat{\mathbf{g}}_i
+        \right)
+
+    ======================
+    Visualization Strategy
+    ======================
+
+    * Each Monte Carlo run is plotted with low opacity
+    * Case A and Case B are distinguished by color
+
+    :param full_results_A:
+        Monte Carlo result set for Case A.
+    :type full_results_A:
+        list of dict
+
+    :param full_results_B:
+        Monte Carlo result set for Case B.
+    :type full_results_B:
+        list of dict
+
+    :param body_boresight:
+        Fixed boresight direction expressed in the body frame.
+    :type body_boresight:
+        numpy.ndarray
+
+    :param title:
+        Plot title.
+    :type title:
+        str
+
+    :param label_A:
+        Legend label for Case A.
+    :type label_A:
+        str
+
+    :param label_B:
+        Legend label for Case B.
+    :type label_B:
+        str
+
+    :return:
+        None. The function generates a Matplotlib figure.
+    :rtype:
+        None
+
     """
 
     v_bore_body = np.asarray(body_boresight, dtype=float)
@@ -192,9 +330,93 @@ def plot_convergence_histogram_mc_compare(
     label_A: str = "Case A",
     label_B: str = "Case B",
 ) -> Tuple[np.ndarray, np.ndarray]:
-    """
-    Compare final-timestep tracking error histograms for two MC result sets
-    and display comparative statistics.
+    r"""
+    Compare final-timestep tracking error distributions for two Monte Carlo cases.
+
+    This function computes the final angular tracking error for each Monte Carlo
+    run and visualizes the resulting distributions using overlaid histograms.
+    Summary statistics are displayed directly on the plot.
+
+    ======================
+    Final Error Definition
+    ======================
+
+    For each Monte Carlo run, the final tracking error is computed as
+
+    .. math::
+
+        \theta_f =
+        \cos^{-1}\!\left(
+        \hat{\mathbf{b}}_f^{\text{ECI}} \cdot \hat{\mathbf{g}}_f
+        \right)
+
+    where:
+
+    * :math:`\hat{\mathbf{b}}_f^{\text{ECI}}` is the final boresight direction
+    * :math:`\hat{\mathbf{g}}_f` is the final target direction
+
+    ======================
+    Histogram Construction
+    ======================
+
+    * Bin width is user-defined in degrees
+    * Overlapping histograms are shown with transparency
+    * A statistics box reports:
+        - Sample count
+        - Percentage below a threshold
+        - Mean and maximum error
+
+    ======================
+    Return Values
+    ======================
+
+    The raw error arrays are returned to support further statistical analysis.
+
+    :param full_results_A:
+        Monte Carlo result set for Case A.
+    :type full_results_A:
+        list of dict
+
+    :param full_results_B:
+        Monte Carlo result set for Case B.
+    :type full_results_B:
+        list of dict
+
+    :param body_boresight:
+        Fixed boresight direction expressed in the body frame.
+    :type body_boresight:
+        numpy.ndarray
+
+    :param title:
+        Plot title.
+    :type title:
+        str
+
+    :param bin_width_deg:
+        Histogram bin width in degrees.
+    :type bin_width_deg:
+        float
+
+    :param under_thresh_deg:
+        Threshold angle (degrees) used for convergence statistics.
+    :type under_thresh_deg:
+        float
+
+    :param label_A:
+        Legend label for Case A.
+    :type label_A:
+        str
+
+    :param label_B:
+        Legend label for Case B.
+    :type label_B:
+        str
+
+    :return:
+        Tuple containing final tracking error arrays for Case A and Case B.
+    :rtype:
+        tuple of numpy.ndarray
+
     """
 
     v_bore_body = np.asarray(body_boresight, dtype=float)

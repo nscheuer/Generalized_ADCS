@@ -1,3 +1,10 @@
+__all__ = [
+    "plot_state_comparison",
+    "plot_error_and_sun",
+    "plot_sensor_data",
+    "plot_bias_comparison"
+]
+
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
@@ -12,9 +19,82 @@ def plot_state_comparison(
     state_hist: np.ndarray,
     est_state_hist: Optional[np.ndarray] = None
 ) -> None:
-    """
-    Plot angular velocity and Euler angles.
-    If est_state_hist is provided, also overlay estimated values.
+    r"""
+    Plot angular velocity and Euler angle time histories, with optional estimation overlay.
+
+    This function visualizes the rotational state of a spacecraft by plotting:
+
+    * Body angular velocity components :math:`\boldsymbol{\omega} = [\omega_1, \omega_2, \omega_3]^T`
+    * Euler attitude angles (roll, pitch, yaw) derived from attitude quaternions
+
+    If an estimated state history is provided, estimated values are overlaid
+    for direct comparison against the true (simulated) states.
+
+    ========================
+    Mathematical Background
+    ========================
+
+    The spacecraft attitude is represented by a quaternion
+
+    .. math::
+
+        \mathbf{q} =
+        \begin{bmatrix}
+        q_0 & q_1 & q_2 & q_3
+        \end{bmatrix}^T
+
+    which is converted to Euler angles
+
+    .. math::
+
+        (\phi, \theta, \psi)
+
+    using :func:`~ADCS.helpers.math_helpers.quat_to_euler`. The angular velocity
+    components are assumed to be stored directly in the state vector as
+
+    .. math::
+
+        \boldsymbol{\omega}(t_i) = [\omega_1, \omega_2, \omega_3]^T
+
+    ======================
+    Visualization Layout
+    ======================
+
+    The figure consists of six subplots arranged in a 3×2 grid:
+
+    * Top three: angular velocity components
+    * Bottom three: Euler angles (roll, pitch, yaw)
+
+    ======================
+    Usage Notes
+    ======================
+
+    * Euler angles are plotted in degrees
+    * Angular velocities are plotted in their native units (typically rad/s)
+    * Legends are shown only when estimated states are provided
+
+    :param time:
+        One-dimensional array of time stamps in seconds.
+    :type time:
+        numpy.ndarray
+
+    :param state_hist:
+        True spacecraft state history. Columns ``[0:3]`` contain angular velocity
+        and columns ``[3:7]`` contain attitude quaternions.
+    :type state_hist:
+        numpy.ndarray
+
+    :param est_state_hist:
+        Optional estimated spacecraft state history with the same layout as
+        ``state_hist``.
+    :type est_state_hist:
+        numpy.ndarray or None
+
+    :return:
+        None. The function generates a Matplotlib figure.
+    :rtype:
+        None
+
     """
     euler_real = np.array([quat_to_euler(q) for q in state_hist[:, 3:7]])
 
@@ -66,21 +146,98 @@ def plot_error_and_sun(
     est_state_hist: np.ndarray,
     os_hist: List
 ) -> None:
-    """
-    Compute and plot quaternion error, angular velocity error, and sunlit state.
+    r"""
+    Plot attitude error, angular velocity error, and sunlight state over time.
 
-    Parameters
-    ----------
-    time : np.ndarray
-        1D array of time stamps [s].
-    state_hist : np.ndarray
-        Real (truth) state history. Expected shape (N, >=7):
-        [ω1, ω2, ω3, q0, q1, q2, q3, ...].
-    est_state_hist : np.ndarray
-        Estimated state history with same layout as state_hist.
-    os_hist : List
-        List of orbit/spacecraft state objects, each with:
-            - .is_sunlit() -> bool
+    This function evaluates estimation performance by computing and plotting:
+
+    * Quaternion attitude error magnitude
+    * Angular velocity estimation error norm
+    * Binary sunlight (sunlit / eclipse) state
+
+    All quantities are plotted against time in a shared x-axis layout.
+
+    ========================
+    Quaternion Error Metric
+    ========================
+
+    Let the true and estimated quaternions be :math:`\mathbf{q}` and
+    :math:`\hat{\mathbf{q}}`, respectively. The scalar quaternion alignment
+    measure is computed via the dot product:
+
+    .. math::
+
+        d = \hat{\mathbf{q}}^T \mathbf{q}
+
+    The equivalent rotation angle error is
+
+    .. math::
+
+        \theta_q =
+        \cos^{-1}\!\left(-1 + 2 d^2\right)
+
+    which represents the smallest angular rotation between the two attitudes.
+    The result is reported in degrees.
+
+    ========================
+    Angular Velocity Error
+    ========================
+
+    The angular velocity error is computed as the Euclidean norm of the
+    difference between estimated and true angular velocity vectors:
+
+    .. math::
+
+        e_\omega =
+        \left\| \hat{\boldsymbol{\omega}} - \boldsymbol{\omega} \right\|
+
+    and converted from rad/s to deg/s.
+
+    ======================
+    Sunlight State
+    ======================
+
+    The sunlight state is obtained from each orbital state object via
+    ``is_sunlit()`` and plotted as a binary signal:
+
+    * 1 — Sunlit
+    * 0 — Eclipse
+
+    ======================
+    Visualization Layout
+    ======================
+
+    The figure consists of three stacked subplots:
+
+    #. Quaternion attitude error
+    #. Angular velocity error
+    #. Sunlight state (step plot)
+
+    :param time:
+        One-dimensional array of time stamps in seconds.
+    :type time:
+        numpy.ndarray
+
+    :param state_hist:
+        True spacecraft state history.
+    :type state_hist:
+        numpy.ndarray
+
+    :param est_state_hist:
+        Estimated spacecraft state history.
+    :type est_state_hist:
+        numpy.ndarray
+
+    :param os_hist:
+        List of orbital state objects providing sunlight information.
+    :type os_hist:
+        list
+
+    :return:
+        None. The function generates a Matplotlib figure.
+    :rtype:
+        None
+
     """
     # Allocate error arrays
     quat_err = np.zeros_like(time, dtype=float)
@@ -131,7 +288,64 @@ def plot_sensor_data(
     sensor_hist: np.ndarray,
     clean_sensor_hist: np.ndarray
 ) -> None:
-    """Plot measured vs clean sensor readings for N sensors."""
+    r"""
+    Plot measured versus clean sensor data for multiple sensor channels.
+
+    This function visualizes raw (measured) sensor outputs alongside their
+    corresponding clean or noise-free values, enabling assessment of sensor
+    noise, bias, and filtering performance.
+
+    ======================
+    Data Organization
+    ======================
+
+    Let the sensor measurement matrix be
+
+    .. math::
+
+        \mathbf{Y}(t) \in \mathbb{R}^{N \times M}
+
+    where:
+
+    * :math:`N` is the number of time samples
+    * :math:`M` is the number of sensor channels
+
+    Each sensor channel :math:`j` is plotted as:
+
+    .. math::
+
+        y_j^{\text{meas}}(t_i), \quad
+        y_j^{\text{clean}}(t_i)
+
+    ======================
+    Visualization Layout
+    ======================
+
+    * Subplots are arranged in a near-square grid
+    * Each subplot corresponds to one sensor channel
+    * Unused subplot axes are hidden automatically
+
+    :param time:
+        One-dimensional array of time stamps in seconds.
+    :type time:
+        numpy.ndarray
+
+    :param sensor_hist:
+        Measured sensor data history.
+    :type sensor_hist:
+        numpy.ndarray
+
+    :param clean_sensor_hist:
+        Clean or reference sensor data history.
+    :type clean_sensor_hist:
+        numpy.ndarray
+
+    :return:
+        None. The function generates a Matplotlib figure.
+    :rtype:
+        None
+
+    """
 
     n = sensor_hist.shape[1]  # number of sensor channels
 
@@ -172,7 +386,73 @@ def plot_bias_comparison(
     title: str,
     units: str
 ) -> None:
-    """Generic function for plotting N bias components."""
+    r"""
+    Plot true versus estimated bias components over time.
+
+    This function provides a generic visualization for comparing real and
+    estimated bias states, such as gyro bias, accelerometer bias, or sensor
+    offsets.
+
+    ======================
+    Mathematical Context
+    ======================
+
+    Let the bias vector be
+
+    .. math::
+
+        \mathbf{b}(t) =
+        \begin{bmatrix}
+        b_1(t) & b_2(t) & \dots & b_M(t)
+        \end{bmatrix}^T
+
+    with corresponding estimates :math:`\hat{\mathbf{b}}(t)`. The function
+    plots each component:
+
+    .. math::
+
+        b_k(t_i), \quad \hat{b}_k(t_i)
+
+    ======================
+    Visualization Layout
+    ======================
+
+    * One subplot per bias component
+    * Shared time axis
+    * Real bias shown as solid line
+    * Estimated bias shown as dashed line
+
+    :param time:
+        One-dimensional array of time stamps in seconds.
+    :type time:
+        numpy.ndarray
+
+    :param real_bias:
+        True bias history. Can be one- or two-dimensional.
+    :type real_bias:
+        numpy.ndarray
+
+    :param est_bias:
+        Estimated bias history. Must match ``real_bias`` in shape.
+    :type est_bias:
+        numpy.ndarray
+
+    :param title:
+        Title displayed at the top of the figure.
+    :type title:
+        str
+
+    :param units:
+        Units of the bias values shown on the y-axis.
+    :type units:
+        str
+
+    :return:
+        None. The function generates a Matplotlib figure.
+    :rtype:
+        None
+
+    """
     real_bias = np.atleast_2d(real_bias).reshape(len(real_bias), -1)
     est_bias  = np.atleast_2d(est_bias).reshape(len(est_bias), -1)
 

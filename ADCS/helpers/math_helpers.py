@@ -1,17 +1,3 @@
-r"""
-quaternion_utils.py
-===================
-
-Core quaternion and rotation math utilities for the ADCS framework.
-
-This module provides quaternion algebra, rotation matrix conversions,
-and associated differential operations such as Jacobians and Hessians.
-
-All functions are standalone and compatible with onboard estimator
-and simulator modules.
-
-"""
-
 import numpy as np
 import math
 import ADCS.orbits.universal_constants as uc
@@ -28,32 +14,40 @@ zeroquat = uc.DefaultStates.zeroquat
 
 def rot_mat(q: np.ndarray) -> np.ndarray:
     r"""
-    Compute the direction cosine matrix (rotation matrix) corresponding
-    to a given quaternion, using the **Hamilton convention**.
+    Construct the direction cosine matrix (DCM) corresponding to a quaternion
+    using the **Hamilton quaternion convention**.
 
-    This defines the rotation from **body frame → inertial (ECI) frame**, so
-    the returned matrix :math:`\mathbf{A}` transforms body-frame vectors
-    into the inertial frame:
+    The returned matrix performs a rotation from the **body frame** to the
+    **inertial (ECI) frame**, such that
 
     .. math::
-        \mathbf{v}_{\text{ECI}} = \mathbf{A}\,\mathbf{v}_{\text{body}}
 
-    Conversely, to rotate from ECI to body frame, use :math:`\mathbf{A}^\top`.
+        \mathbf{v}_{\mathrm{ECI}} = \mathbf{R}(\mathbf{q})\,\mathbf{v}_{\mathrm{body}}
 
-    Parameters
-    ----------
-    q : numpy.ndarray, shape (4,)
-        Quaternion in Hamilton form, :math:`[q_0, q_1, q_2, q_3]`, normalized.
+    where the quaternion is defined as
 
-    Returns
-    -------
-    A : numpy.ndarray, shape (3, 3)
-        Direction cosine matrix mapping body-frame vectors to ECI frame.
+    .. math::
 
-    Notes
-    -----
-    - Quaternion follows Hamilton convention with scalar first.
-    - :math:`q_0` is the scalar part, :math:`[q_1, q_2, q_3]` are the vector parts.
+        \mathbf{q} = \begin{bmatrix} q_0 & q_1 & q_2 & q_3 \end{bmatrix}^\mathsf{T}
+
+    with scalar-first ordering.
+
+    The rotation matrix is explicitly given by
+
+    .. math::
+
+        \mathbf{R}(\mathbf{q}) =
+        \begin{bmatrix}
+        q_0^2+q_1^2-q_2^2-q_3^2 & 2(q_1q_2-q_0q_3) & 2(q_1q_3+q_0q_2) \\
+        2(q_1q_2+q_0q_3) & q_0^2-q_1^2+q_2^2-q_3^2 & 2(q_2q_3-q_0q_1) \\
+        2(q_1q_3-q_0q_2) & 2(q_2q_3+q_0q_1) & q_0^2-q_1^2-q_2^2+q_3^2
+        \end{bmatrix}
+
+    :param q: Unit quaternion in Hamilton form ``[q0, q1, q2, q3]``.
+    :type q: numpy.ndarray
+    :return: Direction cosine matrix mapping body-frame vectors to inertial frame.
+    :rtype: numpy.ndarray
+
     """
 
     q0, q1, q2, q3 = q
@@ -66,28 +60,35 @@ def rot_mat(q: np.ndarray) -> np.ndarray:
 
 def Wmat(q: np.ndarray) -> np.ndarray:
     r"""
-    Compute the quaternion kinematic matrix :math:`\mathbf{W}(\mathbf{q})`
-    such that:
+    Compute the quaternion kinematic matrix used in first-order quaternion
+    propagation.
+
+    The quaternion derivative is expressed as
 
     .. math::
-        \dot{\mathbf{q}} = \tfrac{1}{2}\,\mathbf{W}(\mathbf{q})\,\boldsymbol{\omega}
 
-    where :math:`\boldsymbol{\omega}` is the angular velocity in body frame.
+        \dot{\mathbf{q}} = \frac{1}{2}\,\mathbf{W}(\mathbf{q})\,\boldsymbol{\omega}
 
-    Parameters
-    ----------
-    q : numpy.ndarray, shape (4,)
-        Quaternion in Hamilton form.
+    where :math:`\boldsymbol{\omega}` is the angular velocity expressed in the
+    body frame.
 
-    Returns
-    -------
-    W : numpy.ndarray, shape (4, 3)
-        Quaternion kinematic matrix.
+    The matrix :math:`\mathbf{W}(\mathbf{q})` is defined as
 
-    Notes
-    -----
-    - The derivative satisfies :math:`\dot{\mathbf{q}} = \frac{1}{2}W(q)\omega`.
-    - Consistent with the same quaternion convention as :func:`rot_mat`.
+    .. math::
+
+        \mathbf{W}(\mathbf{q}) =
+        \begin{bmatrix}
+        -\mathbf{q}_v^\mathsf{T} \\
+        q_0\mathbf{I}_3 + [\mathbf{q}_v]_\times
+        \end{bmatrix}
+
+    with :math:`[\cdot]_\times` denoting the skew-symmetric operator.
+
+    :param q: Quaternion in Hamilton convention.
+    :type q: numpy.ndarray
+    :return: Quaternion kinematic matrix.
+    :rtype: numpy.ndarray
+
     """
     W = np.zeros((4, 3))
     qv = q[1:4]
@@ -98,38 +99,42 @@ def Wmat(q: np.ndarray) -> np.ndarray:
 
 def drotmatTvecdq(q: np.ndarray, v: np.ndarray) -> np.ndarray:
     r"""
-    Compute the derivative of the rotated vector
-    :math:`\mathbf{v}_B = \mathbf{R}^\top(\mathbf{q}) \mathbf{v}`
-    with respect to the quaternion :math:`\mathbf{q}`.
+    Compute the Jacobian of a rotated vector with respect to the quaternion.
+
+    This function evaluates
 
     .. math::
-        \frac{\partial (\mathbf{R}^\top(\mathbf{q}) \mathbf{v})}{\partial \mathbf{q}}
-        = 2
+
+        \frac{\partial}{\partial \mathbf{q}}
+        \left( \mathbf{R}^\mathsf{T}(\mathbf{q})\,\mathbf{v} \right)
+
+    where :math:`\mathbf{R}(\mathbf{q})` is the DCM associated with the quaternion.
+
+    The closed-form expression is
+
+    .. math::
+
+        2
         \begin{bmatrix}
-        q_0\,\mathbf{v} - \boldsymbol{q}_v \times \mathbf{v} \\
-        (\boldsymbol{q}_v \cdot \mathbf{v})\mathbf{I}_3
-        - \boldsymbol{q}_v \mathbf{v}^\top
-        + \mathbf{v}\boldsymbol{q}_v^\top
-        - q_0\,\text{skew}(\mathbf{v})
+        q_0\mathbf{v} - \mathbf{q}_v \times \mathbf{v} \\
+        (\mathbf{q}_v \cdot \mathbf{v})\mathbf{I}
+        - \mathbf{q}_v\mathbf{v}^\mathsf{T}
+        + \mathbf{v}\mathbf{q}_v^\mathsf{T}
+        - q_0[\mathbf{v}]_\times
         \end{bmatrix}
 
-    Parameters
-    ----------
-    q : numpy.ndarray, shape (4,)
-        Quaternion in Hamilton form.
-    v : numpy.ndarray, shape (3,)
-        Vector to be rotated.
+    This Jacobian is frequently used in attitude estimation and disturbance
+    torque linearization.
 
-    Returns
-    -------
-    dRBTv__dq : numpy.ndarray, shape (4, 3)
-        Partial derivative of :math:`\mathbf{R}^\top(\mathbf{q})\mathbf{v}` w.r.t. quaternion.
+    :param q: Quaternion in Hamilton form.
+    :type q: numpy.ndarray
+    :param v: Vector expressed in the inertial frame.
+    :type v: numpy.ndarray
+    :return: Jacobian of the rotated vector with respect to the quaternion.
+    :rtype: numpy.ndarray
 
-    Notes
-    -----
-    - Used for computing Jacobians of disturbance torques or forces.
-    - :func:`skewsym` builds the skew-symmetric cross-product matrix.
     """
+
     qv = q[1:]
     return 2 * np.vstack([
         q[0]*v - np.cross(qv, v),
@@ -140,25 +145,30 @@ def drotmatTvecdq(q: np.ndarray, v: np.ndarray) -> np.ndarray:
 
 def skewsym(v: np.ndarray) -> np.ndarray:
     r"""
-    Return the skew-symmetric matrix corresponding to a 3D vector.
+    Construct the skew-symmetric matrix associated with a 3D vector.
+
+    The skew-symmetric operator satisfies
 
     .. math::
-        \text{skew}(\mathbf{v}) =
+
+        [\mathbf{v}]_\times \mathbf{a} = \mathbf{v} \times \mathbf{a}
+
+    and is defined as
+
+    .. math::
+
+        [\mathbf{v}]_\times =
         \begin{bmatrix}
         0 & -v_3 & v_2 \\
         v_3 & 0 & -v_1 \\
         -v_2 & v_1 & 0
         \end{bmatrix}
 
-    Parameters
-    ----------
-    v : numpy.ndarray, shape (3,)
-        3D vector.
+    :param v: Three-dimensional vector.
+    :type v: numpy.ndarray
+    :return: Skew-symmetric cross-product matrix.
+    :rtype: numpy.ndarray
 
-    Returns
-    -------
-    S : numpy.ndarray, shape (3, 3)
-        Skew-symmetric matrix such that :math:`S\mathbf{a} = \mathbf{v} \times \mathbf{a}`.
     """
     return np.array([
         [0, -v[2], v[1]],
@@ -169,20 +179,27 @@ def skewsym(v: np.ndarray) -> np.ndarray:
 
 def ddrotmatTvecdqdq(q: np.ndarray, v: np.ndarray) -> np.ndarray:
     r"""
-    Compute the second derivative (Hessian) of
-    :math:`\mathbf{R}^\top(\mathbf{q})\mathbf{v}` with respect to the quaternion.
+    Compute the Hessian of a rotated vector with respect to the quaternion.
 
-    Parameters
-    ----------
-    q : numpy.ndarray, shape (4,)
-        Quaternion.
-    v : numpy.ndarray, shape (3,)
-        Vector to be rotated.
+    This function evaluates the second derivative tensor
 
-    Returns
-    -------
-    H : numpy.ndarray, shape (4, 4, 3)
-        Hessian of rotated vector with respect to quaternion.
+    .. math::
+
+        \frac{\partial^2}{\partial \mathbf{q}^2}
+        \left( \mathbf{R}^\mathsf{T}(\mathbf{q})\,\mathbf{v} \right)
+
+    yielding a rank-3 tensor with dimensions :math:`4 \times 4 \times 3`.
+
+    This quantity is required in second-order optimization, uncertainty
+    propagation, and higher-order filters.
+
+    :param q: Quaternion.
+    :type q: numpy.ndarray
+    :param v: Vector to be rotated.
+    :type v: numpy.ndarray
+    :return: Hessian tensor of the rotated vector with respect to the quaternion.
+    :rtype: numpy.ndarray
+
     """
     qv = q[1:]
     output = np.zeros((4, 4, 3))
@@ -329,6 +346,39 @@ def quat_to_vec3(quat: np.ndarray, mode: int = 0) -> np.ndarray:
 
 
 def vec3_to_quat(v3,mode):
+    r"""
+    Convert a 3-element attitude parameter vector into a quaternion according
+    to a specified representation mode.
+
+    This function implements the inverse mapping of
+    :func:`~ADCS.attitude.quat_to_vec3`, supporting Modified Rodrigues
+    Parameters (MRP), Cayley parameters, direct vector-part representations,
+    and scaled variants.
+
+    Depending on ``mode``, the conversion is defined as:
+
+    .. math::
+
+        \mathbf{q} =
+        \begin{cases}
+        \text{MRP}^{-1}(\tfrac{1}{2}\mathbf{v}), & \text{mode}=5,6 \\
+        \begin{bmatrix}\sqrt{1-\|\mathbf{v}\|^2} \\ \mathbf{v}\end{bmatrix},
+        & \text{mode}=3,4 \\
+        \text{Cayley}^{-1}(\mathbf{v}), & \text{mode}=2 \\
+        \text{MRP}^{-1}(\mathbf{v}), & \text{mode}=0,1
+        \end{cases}
+
+    Sign conventions are enforced where applicable to ensure a positive scalar
+    component.
+
+    :param v3: 3-element attitude parameter vector.
+    :type v3: numpy.ndarray
+    :param mode: Conversion mode selector.
+    :type mode: int
+    :return: Quaternion in Hamilton convention.
+    :rtype: numpy.ndarray
+
+    """
     if mode == 6:
         q = mrp_to_quat(v3/2.0)
         sq = np.sign(q[0])
@@ -354,8 +404,40 @@ def vec3_to_quat(v3,mode):
     
 
 def mrp_to_quat(mrp):
-    #https://ntrs.nasa.gov/api/citations/19960035754/downloads/19960035754.pdf
-    # return (1/np.sqrt(1+norm(mrp)**2))*np.vstack([np.array([1]),mrp]).reshape((4,1))
+    r"""
+    Convert Modified Rodrigues Parameters (MRP) to a quaternion.
+
+    The mapping is defined using the rotation angle
+
+    .. math::
+
+        \theta = 4\arctan\left(\frac{\|\boldsymbol{\sigma}\|}{2}\right)
+
+    and unit rotation axis
+
+    .. math::
+
+        \hat{\mathbf{u}} = \frac{\boldsymbol{\sigma}}{\|\boldsymbol{\sigma}\|}
+
+    yielding the quaternion
+
+    .. math::
+
+        \mathbf{q} =
+        \begin{bmatrix}
+        \cos(\theta/2) \\
+        \hat{\mathbf{u}}\sin(\theta/2)
+        \end{bmatrix}
+
+    This formulation follows the standard aerospace definition
+    (see NASA TR-19960035754).
+
+    :param mrp: Modified Rodrigues Parameters.
+    :type mrp: numpy.ndarray
+    :return: Equivalent quaternion.
+    :rtype: numpy.ndarray
+
+    """
     thetad2 = 2*math.atan(norm(mrp)*0.5)
     nhat = normalize(mrp)
     costd2 = math.cos(thetad2)
@@ -363,31 +445,60 @@ def mrp_to_quat(mrp):
 
 
 def cayley_to_quat(cly):
-    #https://ntrs.nasa.gov/api/citations/19960035754/downloads/19960035754.pdf
-    # return (1/np.sqrt(1+norm(mrp)**2))*np.vstack([np.array([1]),mrp]).reshape((4,1))
+    r"""
+    Convert Cayley parameters to a quaternion.
+
+    Cayley parameters :math:`\mathbf{p}` are related to the quaternion by
+
+    .. math::
+
+        \mathbf{q} =
+        \frac{1}{\sqrt{1+\|\mathbf{p}\|^2}}
+        \begin{bmatrix}
+        1 \\
+        \mathbf{p}
+        \end{bmatrix}
+
+    This representation avoids trigonometric functions but is singular at
+    rotations of :math:`\pm\pi`.
+
+    :param cly: Cayley parameter vector.
+    :type cly: numpy.ndarray
+    :return: Quaternion corresponding to the Cayley parameters.
+    :rtype: numpy.ndarray
+
+    """
     return np.concatenate([[1],cly])/np.sqrt(1+norm(cly)**2)
 
 
 def quat_mult(p: np.ndarray, q: np.ndarray, *extra) -> np.ndarray:
     r"""
-    Multiply one or more quaternions using the **Hamilton product**.
+    Compute the Hamilton product of one or more quaternions.
 
-    Parameters
-    ----------
-    p, q : numpy.ndarray, shape (4,)
-        Input quaternions.
-    *extra : numpy.ndarray or list
-        Additional quaternions to multiply.
+    Given two quaternions :math:`\mathbf{p}` and :math:`\mathbf{q}`, the Hamilton
+    product is defined as
 
-    Returns
-    -------
-    pq : numpy.ndarray, shape (4,)
-        Resulting quaternion from successive multiplications.
+    .. math::
 
-    Raises
-    ------
-    ValueError
-        If input arguments are not valid quaternions.
+        \mathbf{p} \otimes \mathbf{q} =
+        \begin{bmatrix}
+        p_0 q_0 - \mathbf{p}_v^\mathsf{T}\mathbf{q}_v \\
+        p_0\mathbf{q}_v + q_0\mathbf{p}_v + \mathbf{p}_v \times \mathbf{q}_v
+        \end{bmatrix}
+
+    This operation composes rotations and is non-commutative.
+
+    Multiple quaternions may be supplied and are multiplied in sequence.
+
+    :param p: First quaternion.
+    :type p: numpy.ndarray
+    :param q: Second quaternion.
+    :type q: numpy.ndarray
+    :param extra: Additional quaternions to multiply sequentially.
+    :type extra: tuple
+    :return: Resulting quaternion product.
+    :rtype: numpy.ndarray
+
     """
     if isinstance(extra, np.ndarray):
         return quat_mult(quat_mult(p, q), extra)
@@ -435,17 +546,22 @@ def rot_exp(v: np.ndarray) -> np.ndarray:
 
 def quat_inv(q: np.ndarray) -> np.ndarray:
     r"""
-    Compute the inverse (conjugate) of a quaternion.
+    Compute the inverse of a quaternion.
 
-    Parameters
-    ----------
-    q : numpy.ndarray, shape (4,)
-        Quaternion.
+    For a quaternion :math:`\mathbf{q}`, the inverse is
 
-    Returns
-    -------
-    q_inv : numpy.ndarray, shape (4,)
-        Inverse quaternion :math:`q^{-1}`.
+    .. math::
+
+        \mathbf{q}^{-1} = \frac{\mathbf{q}^*}{\|\mathbf{q}\|^2}
+
+    where :math:`\mathbf{q}^*` denotes the conjugate quaternion.
+
+    For unit quaternions, this reduces to the conjugate.
+
+    :param q: Quaternion.
+    :type q: numpy.ndarray
+    :return: Inverse quaternion.
+    :rtype: numpy.ndarray
     """
     q0 = q[0]
     qv = q[-3:]
@@ -583,6 +699,26 @@ def random_n_unit_vec(n: int) -> np.ndarray:
 
 
 def vec_norm_jac(v: np.ndarray, dv: np.ndarray = None) -> np.ndarray:
+    r"""
+    Compute the Jacobian of the Euclidean norm of a vector.
+
+    For :math:`n = \|\mathbf{v}\|`, the gradient is
+
+    .. math::
+
+        \frac{\partial n}{\partial \mathbf{v}} =
+        \frac{\mathbf{v}}{\|\mathbf{v}\|}
+
+    When an external Jacobian ``dv`` is provided, the chain rule is applied.
+
+    :param v: Input vector.
+    :type v: numpy.ndarray
+    :param dv: Optional external Jacobian.
+    :type dv: numpy.ndarray or None
+    :return: Jacobian of the vector norm.
+    :rtype: numpy.ndarray
+
+    """
     l = v.size
     normv = norm(v)
     if normv > num_eps:
@@ -595,6 +731,30 @@ def vec_norm_jac(v: np.ndarray, dv: np.ndarray = None) -> np.ndarray:
 
 
 def vec_norm_hess(v: np.ndarray, dv: np.ndarray = None, ddv: np.ndarray = None) -> np.ndarray:
+    r"""
+    Compute the Hessian of the Euclidean norm of a vector.
+
+    The second derivative of :math:`\|\mathbf{v}\|` is
+
+    .. math::
+
+        \frac{\partial^2 \|\mathbf{v}\|}{\partial \mathbf{v}^2} =
+        \frac{1}{\|\mathbf{v}\|}\mathbf{I}
+        - \frac{\mathbf{v}\mathbf{v}^\mathsf{T}}{\|\mathbf{v}\|^3}
+
+    External Jacobians and Hessians are propagated using the chain rule.
+
+    :param v: Input vector.
+    :type v: numpy.ndarray
+    :param dv: Jacobian of the vector.
+    :type dv: numpy.ndarray or None
+    :param ddv: Hessian of the vector.
+    :type ddv: numpy.ndarray or None
+    :return: Hessian of the vector norm.
+    :rtype: numpy.ndarray
+
+    """
+
     l = v.size
     normv = norm(v)
     dndv = v/normv
@@ -609,16 +769,81 @@ def vec_norm_hess(v: np.ndarray, dv: np.ndarray = None, ddv: np.ndarray = None) 
         return dv@ddndvdv@dv.T + ddv@dndv
     
 def matrix_row_normalize(m: np.ndarray) -> np.ndarray:
+    r"""
+    Normalize each row of a matrix to unit Euclidean norm.
+
+    Each row :math:`\mathbf{m}_i` is transformed as
+
+    .. math::
+
+        \hat{\mathbf{m}}_i =
+        \frac{\mathbf{m}_i}{\|\mathbf{m}_i\|}
+
+    This operation is commonly used for normalizing vector observations.
+
+    :param m: Input matrix.
+    :type m: numpy.ndarray
+    :return: Row-normalized matrix.
+    :rtype: numpy.ndarray
+
+    """
     return m/np.expand_dims(matrix_row_norm(m), axis=1)
 
 def matrix_row_norm(m: np.ndarray) -> np.ndarray:
+    r"""
+    Compute the Euclidean norm of each row of a matrix.
+
+    The output vector satisfies
+
+    .. math::
+
+        n_i = \|\mathbf{m}_i\|
+
+    for each row :math:`\mathbf{m}_i`.
+
+    :param m: Two-dimensional input matrix.
+    :type m: numpy.ndarray
+    :return: Vector of row norms.
+    :rtype: numpy.ndarray
+
+    """
     if len(m.shape) != 2:
         raise ValueError("Not a 2D matrix")
     return np.linalg.norm(m, ord=2, axis=1)
 
 def wahbas_svd(weights, body, inertial):
-    """
-    Solves Wahba's problem using SVD and returns a quaternion [q0, q1, q2, q3].
+    r"""
+    Solve Wahba's attitude determination problem using singular value decomposition.
+
+    Wahba's problem minimizes the cost function
+
+    .. math::
+
+        J(\mathbf{R}) =
+        \frac{1}{2} \sum_{i=1}^N w_i
+        \left\| \mathbf{b}_i - \mathbf{R}\mathbf{r}_i \right\|^2
+
+    where :math:`\mathbf{b}_i` are body-frame measurements and
+    :math:`\mathbf{r}_i` are inertial-frame reference vectors.
+
+    The optimal rotation matrix is obtained via the SVD of the attitude profile
+    matrix
+
+    .. math::
+
+        \mathbf{B} = \sum_i w_i\,\mathbf{b}_i\mathbf{r}_i^\mathsf{T}
+
+    and subsequently converted to a quaternion.
+
+    :param weights: Scalar weights associated with each vector observation.
+    :type weights: iterable
+    :param body: Body-frame measurement vectors.
+    :type body: iterable
+    :param inertial: Inertial-frame reference vectors.
+    :type inertial: iterable
+    :return: Optimal attitude quaternion.
+    :rtype: numpy.ndarray
+
     """
 
     # Build attitude profile matrix B
@@ -666,17 +891,77 @@ def wahbas_svd(weights, body, inertial):
     return np.array([q0, q1, q2, q3])
 
 def square_mat_sections(mat: np.ndarray, vals: np.ndarray):
+    r"""
+    Extract a square submatrix from a matrix using index selection.
+
+    The returned matrix is formed by selecting rows and columns specified
+    by ``vals``:
+
+    .. math::
+
+        \mathbf{M}_{\mathrm{sub}} = \mathbf{M}[\text{vals}, \text{vals}]
+
+    This utility is frequently used for covariance sub-block extraction.
+
+    :param mat: Input matrix.
+    :type mat: numpy.ndarray
+    :param vals: Index array defining the submatrix.
+    :type vals: numpy.ndarray
+    :return: Square submatrix.
+    :rtype: numpy.ndarray
+
+    """
+
     tmp = mat[vals,:]
     return tmp[:,vals]
 
 def state_norm_jac(xk):
+    r"""
+    Construct the Jacobian of a state vector with quaternion normalization.
+
+    The Jacobian is identity except for the quaternion components, which are
+    replaced by the quaternion normalization Jacobian
+
+    .. math::
+
+        \frac{\partial \hat{\mathbf{q}}}{\partial \mathbf{q}}
+
+    This is commonly used in extended Kalman filters with quaternion states.
+
+    :param xk: State vector containing a quaternion in indices ``[3:7]``.
+    :type xk: numpy.ndarray
+    :return: State normalization Jacobian.
+    :rtype: numpy.ndarray
+
+    """
     l = xk.shape[0]
     q = xk[3:7]
     out = np.eye(l)
-    out[3:7,3:7] = quat_norm_jac(q)#np.eye(4)/norm(q) - np.outer(q,q)/norm(q)**3
+    out[3:7,3:7] = np.eye(4)/norm(q) - np.outer(q,q)/norm(q)**3
     return out
 
 def quat_diff(q0: np.ndarray, q1: np.ndarray) -> np.ndarray:
+    r"""
+    Compute the relative quaternion between two attitudes.
+
+    The quaternion error is defined as
+
+    .. math::
+
+        \mathbf{q}_{\mathrm{err}} =
+        \mathbf{q}_0^{-1} \otimes \mathbf{q}_1
+
+    The result is normalized and forced to have a non-negative scalar part,
+    ensuring a unique minimal-angle representation.
+
+    :param q0: Reference quaternion.
+    :type q0: numpy.ndarray
+    :param q1: Target quaternion.
+    :type q1: numpy.ndarray
+    :return: Relative quaternion mapping ``q0`` to ``q1``.
+    :rtype: numpy.ndarray
+
+    """
     q0 = normalize(q0)
     q1 = normalize(q1)
     q_err = quat_mult(quat_inv(q0),q1)
@@ -685,6 +970,29 @@ def quat_diff(q0: np.ndarray, q1: np.ndarray) -> np.ndarray:
     return normalize(q_err)
 
 def limit(u, umax):
+    r"""
+    Apply element-wise saturation limits to a control vector.
+
+    The saturation rule depends on the type of ``umax``:
+
+    ================= ============================================
+    ``umax`` type      Behavior
+    ================= ============================================
+    scalar             symmetric limit ``[-umax, umax]``
+    array              symmetric element-wise limits
+    ``(umin, umax)``   asymmetric limits
+    ================= ============================================
+
+    This function is typically used for actuator saturation modeling.
+
+    :param u: Input vector or scalar.
+    :type u: array-like
+    :param umax: Saturation specification.
+    :type umax: scalar, array-like, or tuple
+    :return: Saturated output.
+    :rtype: numpy.ndarray
+
+    """
     u = np.asarray(u)
 
     # CASE 1: umax is a scalar → symmetric clip
@@ -707,7 +1015,28 @@ def limit(u, umax):
 
 
 def quat_to_euler(q: np.ndarray) -> np.ndarray:
-    """Convert quaternion to Euler angles [deg]."""
+    r"""
+    Convert a quaternion to 3-2-1 (yaw-pitch-roll) Euler angles.
+
+    The conversion is performed via the corresponding direction cosine matrix
+    and yields
+
+    .. math::
+
+        \begin{aligned}
+        \phi &= \arctan2(R_{32}, R_{33}) \\
+        \theta &= -\arcsin(R_{31}) \\
+        \psi &= \arctan2(R_{21}, R_{11})
+        \end{aligned}
+
+    The output angles are expressed in degrees.
+
+    :param q: Quaternion in Hamilton convention.
+    :type q: numpy.ndarray
+    :return: Euler angles ``[roll, pitch, yaw]`` in degrees.
+    :rtype: numpy.ndarray
+
+    """
     R = rot_mat(q)
     roll = np.arctan2(R[2, 1], R[2, 2])
     pitch = -np.arcsin(R[2, 0])
@@ -715,11 +1044,28 @@ def quat_to_euler(q: np.ndarray) -> np.ndarray:
     return np.array([roll, pitch, yaw]) * 180/np.pi
 
 def dcm_to_quat(R: np.ndarray) -> np.ndarray:
-    """
-    Convert a direction cosine matrix (DCM) to a quaternion [q0, q1, q2, q3]
-    using the Hamilton convention and the stable Sheppard algorithm.
-    """
+    r"""
+    Convert a direction cosine matrix to a quaternion using a numerically
+    stable algorithm.
 
+    The method evaluates the matrix trace
+
+    .. math::
+
+        \mathrm{tr}(\mathbf{R}) = R_{11} + R_{22} + R_{33}
+
+    and selects the computation branch that maximizes numerical stability
+    (Sheppard's method).
+
+    The resulting quaternion follows the Hamilton convention with scalar-first
+    ordering.
+
+    :param R: Direction cosine matrix.
+    :type R: numpy.ndarray
+    :return: Unit quaternion corresponding to the rotation matrix.
+    :rtype: numpy.ndarray
+
+    """
     tr = np.trace(R)
 
     if tr > 0:
