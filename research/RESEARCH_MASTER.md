@@ -143,23 +143,31 @@ Ties unconstrained QP at 2.35°.
 
 ## Controller Comparison Results
 
-### 3MTQ + 1RW (Underactuated)
+### Real Orbit Test (1000s with time-varying B-field)
 
-| B-field | Goal | LP Final | QP Final | Winner |
-|---------|------|----------|----------|--------|
-| B_yz | X | 4.66° | 4.45° | QP |
-| B_yz | Y | 22.3° | 26.6° | LP |
-| B_xz | X | 13.8° | 18.9° | LP |
-| B_xz | Y | 29.7° | 2.92° | **QP** |
+| Metric | LP | QP | Winner |
+|--------|----|----|--------|
+| Mean Final Error | **2.48°** | 5.52° | LP |
+| Max Final Error | **13.01°** | 31.01° | LP |
+| Mean Steady-State | 3.35° | 4.65° | LP |
+| Convergence | 5/6 | 5/6 | Tie |
+| Head-to-head | **2** | 1 | LP |
 
-**Observation:** Performance is highly geometry-dependent. Neither method dominates.
+### Constant B-field Test (500s, 12 configurations)
+
+| Metric | LP | QP | Winner |
+|--------|----|----|--------|
+| Mean Error | 3.12° | **2.70°** | QP |
+| Max Error | **16.84°** | 21.42° | LP |
+| Convergence | 9/12 | **11/12** | QP |
 
 ### Key Takeaways
 
-1. **LP is more robust** to challenging geometries
-2. **QP can achieve better results** when geometry is favorable
-3. **Both fail** on some configurations (180° errors when control authority insufficient)
-4. **Convergence is actuator-limited** - failures are due to insufficient authority, not allocator choice
+1. **LP is more robust** with time-varying B-fields (real orbits)
+2. **QP can achieve better results** with constant/favorable geometry
+3. **LP has lower worst-case error** (more predictable)
+4. **QP converges more often** but can fail catastrophically
+5. **Convergence is actuator-limited** - failures are insufficient authority, not allocator choice
 
 ---
 
