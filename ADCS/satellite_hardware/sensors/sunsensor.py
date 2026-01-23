@@ -76,9 +76,9 @@ class SunSensor(Sensor):
     where
 
     * :math:`b` is an additive scalar bias modeled by
-      :class:`~ADCS.satellite_hardware.errors.Bias`,
+      :class:`~ADCS.satellite_hardware.errors.bias.Bias`,
     * :math:`n` is additive noise modeled by
-      :class:`~ADCS.satellite_hardware.errors.Noise`.
+      :class:`~ADCS.satellite_hardware.errors.noise.Noise`.
 
     Notes
     -----
@@ -99,9 +99,9 @@ class SunSensor(Sensor):
         :param sample_time: Sampling period of the sensor in seconds.
         :type sample_time: float
         :param bias: Additive bias model applied to the measurement.
-        :type bias: :class:`~ADCS.satellite_hardware.errors.Bias` or None
+        :type bias: :class:`~ADCS.satellite_hardware.errors.bias.Bias` or None
         :param noise: Additive noise model applied to the measurement.
-        :type noise: :class:`~ADCS.satellite_hardware.errors.Noise` or None
+        :type noise: :class:`~ADCS.satellite_hardware.errors.noise.Noise` or None
         :param estimate_bias: Flag indicating whether the bias is included in the
             estimator state.
         :type estimate_bias: bool

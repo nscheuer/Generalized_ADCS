@@ -62,24 +62,22 @@ class Gyro(Sensor):
     ======================= ==============================================
 
     Bias and noise are modeled using
-    :class:`~ADCS.satellite_hardware.errors.Bias` and
-    :class:`~ADCS.satellite_hardware.errors.Noise`.
+    :class:`~ADCS.satellite_hardware.errors.bias.Bias` and
+    :class:`~ADCS.satellite_hardware.errors.noise.Noise`.
 
-    Parameters
-    ----------
-    axis : numpy.ndarray
-        Body–frame sensing axis of the gyroscope, shape ``(3,)``.
-        The axis is automatically normalized to unit length using
-        :func:`~ADCS.helpers.math_helpers.normalize`.
-    sample_time : float
-        Sensor sampling period in seconds.
-    bias : :class:`~ADCS.satellite_hardware.errors.Bias`
-        Bias model providing an additive scalar bias.
-    noise : :class:`~ADCS.satellite_hardware.errors.Noise`
-        Noise model providing additive scalar measurement noise.
-    estimate_bias : bool
-        Flag indicating whether the gyroscope bias is included as part of the
-        estimated state in filtering algorithms.
+    :param axis: Body–frame measurement axis, shape ``(3,)``.
+                     The axis is normalized internally to ensure unit magnitude.
+    :type axis: numpy.ndarray
+    :param sample_time: Sampling period of the gyroscope in seconds.
+    :type sample_time: float
+    :param bias: Gyroscope bias model. If ``None``, a zero-bias model is used.
+    :type bias: :class:`~ADCS.satellite_hardware.errors.bias.Bias` or None
+    :param noise: Gyroscope noise model. If ``None``, a zero-noise model is used.
+    :type noise: :class:`~ADCS.satellite_hardware.errors.noise.Noise` or None
+    :param estimate_bias: Indicates whether the gyroscope bias is included in the estimated filter state.
+    :type estimate_bias: bool
+    :return: None
+    :rtype: None
 
     Notes
     -----
@@ -93,21 +91,17 @@ class Gyro(Sensor):
         r"""
         Initialize the single–axis gyroscope sensor.
 
-        Parameters
-        ----------
-        axis : numpy.ndarray
-            Body–frame measurement axis, shape ``(3,)``. The axis is normalized
-            internally to ensure unit magnitude.
-        sample_time : float
-            Sampling period of the gyroscope in seconds.
-        bias : :class:`~ADCS.satellite_hardware.errors.Bias` or None
-            Gyroscope bias model. If ``None``, a zero-bias model is used.
-        noise : :class:`~ADCS.satellite_hardware.errors.Noise` or None
-            Gyroscope noise model. If ``None``, a zero-noise model is used.
-        estimate_bias : bool
-            Indicates whether the gyroscope bias is included in the estimated
-            filter state.
-
+        :param axis: Body–frame measurement axis, shape ``(3,)``.
+                     The axis is normalized internally to ensure unit magnitude.
+        :type axis: numpy.ndarray
+        :param sample_time: Sampling period of the gyroscope in seconds.
+        :type sample_time: float
+        :param bias: Gyroscope bias model. If ``None``, a zero-bias model is used.
+        :type bias: :class:`~ADCS.satellite_hardware.errors.bias.Bias` or None
+        :param noise: Gyroscope noise model. If ``None``, a zero-noise model is used.
+        :type noise: :class:`~ADCS.satellite_hardware.errors.noise.Noise` or None
+        :param estimate_bias: Indicates whether the gyroscope bias is included in the estimated filter state.
+        :type estimate_bias: bool
         :return: None
         :rtype: None
         """
@@ -133,18 +127,14 @@ class Gyro(Sensor):
             =
             \boldsymbol{\omega}^\top \hat{\mathbf{a}}.
 
-        Parameters
-        ----------
-        x : numpy.ndarray
-            Full system state vector. The first three elements must correspond
-            to the body–frame angular velocity vector
-            :math:`\boldsymbol{\omega}`.
-        os : :class:`~ADCS.orbits.orbital_state.Orbital_State`
-            Orbital state object. This argument is unused by the gyroscope and
-            is provided for interface consistency.
-
-        :return:
-            Clean single–axis angular rate measurement.
+        :param x: Full system state vector. The first three elements must correspond
+                  to the body–frame angular velocity vector
+                  :math:`\boldsymbol{\omega}`.
+        :type x: numpy.ndarray
+        :param os: Orbital state object. This argument is unused by the gyroscope and
+                   is provided for interface consistency.
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
+        :return: Clean single–axis angular rate measurement.
         :rtype: numpy.ndarray
         """
         return np.dot(x[0:3], self.axis)
@@ -175,16 +165,12 @@ class Gyro(Sensor):
 
         If no bias model is included, an empty Jacobian is returned.
 
-        Parameters
-        ----------
-        x : numpy.ndarray
-            Full system state vector (unused).
-        os : :class:`~ADCS.orbits.orbital_state.Orbital_State`
-            Orbital state object (unused).
-
-        :return:
-            ``(1, 1)`` matrix containing ``1`` if a bias model exists;
-            otherwise a ``(0, 1)`` empty matrix.
+        :param x: Full system state vector (unused).
+        :type x: numpy.ndarray
+        :param os: Orbital state object (unused).
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
+        :return: ``(1, 1)`` matrix containing ``1`` if a bias model exists;
+                 otherwise a ``(0, 1)`` empty matrix.
         :rtype: numpy.ndarray
         """
         if self.bias:
@@ -228,15 +214,11 @@ class Gyro(Sensor):
             \end{bmatrix}
             \in \mathbb{R}^{7 \times 1}.
 
-        Parameters
-        ----------
-        x : numpy.ndarray
-            Full system state vector.
-        os : :class:`~ADCS.orbits.orbital_state.Orbital_State`
-            Orbital state object (unused).
-
-        :return:
-            Base–state Jacobian matrix of shape ``(7, 1)``.
+        :param x: Full system state vector.
+        :type x: numpy.ndarray
+        :param os: Orbital state object (unused).
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
+        :return: Base–state Jacobian matrix of shape ``(7, 1)``.
         :rtype: numpy.ndarray
         """
         return np.vstack([self.axis.reshape((3, 1)), np.zeros((4,1))])

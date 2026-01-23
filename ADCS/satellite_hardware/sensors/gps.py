@@ -57,23 +57,20 @@ class GPS(Sensor):
     where:
 
     * :math:`\mathbf{b}` is a 6-element GPS bias vector modeled using
-      :class:`~ADCS.satellite_hardware.errors.Bias`
+      :class:`~ADCS.satellite_hardware.errors.bias.Bias`
     * :math:`\mathbf{n}` is a 6-element measurement noise vector modeled using
-      :class:`~ADCS.satellite_hardware.errors.Noise`
+      :class:`~ADCS.satellite_hardware.errors.noise.Noise`
 
-    Parameters
-    ----------
-    sample_time : float
-        Sampling period of the GPS sensor in seconds.
-    bias : :class:`~ADCS.satellite_hardware.errors.Bias`
-        Bias model for the GPS measurement. Must be 6-dimensional.
-        If ``None``, a zero-bias model is used.
-    noise : :class:`~ADCS.satellite_hardware.errors.Noise`
-        Noise model for the GPS measurement. Must be 6-dimensional.
-        If ``None``, a zero-noise model is used.
-    estimate_bias : bool
-        Flag indicating whether the GPS bias is included as part of the
-        estimated filter state.
+    :param sample_time: Sampling period of the GPS sensor in seconds.
+    :type sample_time: float
+    :param bias: GPS bias model. If ``None``, a zero 6-element bias is used.
+    :type bias: :class:`~ADCS.satellite_hardware.errors.bias.Bias` or None
+    :param noise: GPS noise model. If ``None``, a zero 6-element noise model is used.
+    :type noise: :class:`~ADCS.satellite_hardware.errors.noise.Noise` or None
+    :param estimate_bias: Indicates whether the GPS bias is estimated as part of the system state.
+    :type estimate_bias: bool
+    :return: None
+    :rtype: None
 
     Notes
     -----
@@ -86,18 +83,14 @@ class GPS(Sensor):
         r"""
         Initialize the GPS sensor model.
 
-        Parameters
-        ----------
-        sample_time : float
-            Sampling period of the GPS sensor in seconds.
-        bias : :class:`~ADCS.satellite_hardware.errors.Bias` or None
-            GPS bias model. If ``None``, a zero 6-element bias is used.
-        noise : :class:`~ADCS.satellite_hardware.errors.Noise` or None
-            GPS noise model. If ``None``, a zero 6-element noise model is used.
-        estimate_bias : bool
-            Indicates whether the GPS bias is estimated as part of the system
-            state.
-
+        :param sample_time: Sampling period of the GPS sensor in seconds.
+        :type sample_time: float
+        :param bias: GPS bias model. If ``None``, a zero 6-element bias is used.
+        :type bias: :class:`~ADCS.satellite_hardware.errors.bias.Bias` or None
+        :param noise: GPS noise model. If ``None``, a zero 6-element noise model is used.
+        :type noise: :class:`~ADCS.satellite_hardware.errors.noise.Noise` or None
+        :param estimate_bias: Indicates whether the GPS bias is estimated as part of the system state.
+        :type estimate_bias: bool
         :return: None
         :rtype: None
         """
@@ -136,17 +129,13 @@ class GPS(Sensor):
         where :math:`C_{\mathrm{ECI}\rightarrow\mathrm{ECEF}}` is the coordinate
         transformation matrix from the inertial to Earth-fixed frame.
 
-        Parameters
-        ----------
-        x : numpy.ndarray
-            Full system state vector. This argument is unused by the GPS model.
-        os : :class:`~ADCS.orbits.orbital_state.Orbital_State`
-            Orbital state providing position, velocity, and frame transforms.
-
-        :return:
-            Clean GPS measurement vector
-            ``[r_ECEF, v_ECEF]``.
+        :param x: Full system state vector. This argument is unused by the GPS model.
+        :type x: numpy.ndarray
+        :param os: Orbital state providing position, velocity, and frame transforms.
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
+        :return: Clean GPS measurement vector ``[r_ECEF, v_ECEF]``.
         :rtype: numpy.ndarray
+
         """
         ecef = os.ECEF
         v = os.V
@@ -176,17 +165,14 @@ class GPS(Sensor):
             =
             I_6.
 
-        Parameters
-        ----------
-        x : numpy.ndarray
-            Full system state vector (unused).
-        os : :class:`~ADCS.orbits.orbital_state.Orbital_State`
-            Orbital state object (unused).
-
-        :return:
-            ``6 × 6`` identity matrix if a bias model exists;
-            otherwise an empty ``0 × 6`` matrix.
+        :param x: Full system state vector (unused).
+        :type x: numpy.ndarray
+        :param os: Orbital state object (unused).
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
+        :return: ``6 × 6`` identity matrix if a bias model exists;
+                 otherwise an empty ``0 × 6`` matrix.
         :rtype: numpy.ndarray
+
         """
         if self.bias:
             return np.eye(6)
@@ -230,15 +216,11 @@ class GPS(Sensor):
         basis vectors defined in
         :class:`~ADCS.helpers.math_constants.MathConstants`.
 
-        Parameters
-        ----------
-        x : numpy.ndarray
-            Full system state vector (unused).
-        os : :class:`~ADCS.orbits.orbital_state.Orbital_State`
-            Orbital state providing the ECI→ECEF transformation.
-
-        :return:
-            Block-diagonal Jacobian matrix of shape ``6 × 6``.
+        :param x: Full system state vector (unused).
+        :type x: numpy.ndarray
+        :param os: Orbital state providing the ECI→ECEF transformation.
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
+        :return: Block-diagonal Jacobian matrix of shape ``6 × 6``.
         :rtype: numpy.ndarray
         """
         mat = np.stack([os.eci_to_ecef(j) for j in MathConstants.unitvecs]).T

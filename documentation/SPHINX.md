@@ -21,6 +21,7 @@ Write a Sphinx+LaTeX documentation for these classes and functions, including:
 - r""" strings
 - Full math explanation with equations
 - When referencing other classes or methods, use the full link :class:`~ADCS.etc`
-- Use :param: and :return:, include the full param and return type
+- STRICTLY use :param:, :type:, :return:, :rtype:
 - When using or creating tables, follow reST rules
+- Every docstring field list must end with a blank line.
 Write only the function header and the documentation.
