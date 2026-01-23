@@ -18,8 +18,8 @@ import ADCS.orbits.universal_constants as uc
 from typing import List
 
 
-num_eps = uc.TIME.num_eps
-zeroquat = uc.DEFAULT.zeroquat
+num_eps = uc.TimeConstants.num_eps
+zeroquat = uc.DefaultStates.zeroquat
 
 
 # ===============================================================
