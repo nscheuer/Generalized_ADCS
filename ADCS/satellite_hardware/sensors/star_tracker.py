@@ -13,86 +13,94 @@ from ADCS.orbits.orbital_state import Orbital_State
 
 class StarTracker(Sensor):
     r"""
-    **Star Tracker Sensor Model**
+    Star tracker direction sensor model.
 
-    This class implements a simplified but estimator-consistent **star tracker sensor**
-    that measures the direction to a single navigation star expressed in the spacecraft
-    body frame.
+    This class implements a simplified but estimator-consistent **star tracker**
+    that provides a **vector observation** corresponding to the line-of-sight
+    (LOS) from the spacecraft to a selected navigation star, expressed in the
+    spacecraft body frame.
 
-    The sensor outputs a **unit vector** corresponding to the line-of-sight (LOS)
-    from the spacecraft to the brightest visible star within the field of view (FOV),
-    subject to geometric visibility and exclusion constraints.
+    Unlike a full star tracker attitude solution, this model returns a **single
+    unit vector measurement**, making it suitable for tightly coupled state
+    estimation frameworks such as EKF or UKF.
 
-    The star tracker is modeled as a **direction sensor**, not a full attitude solver.
-    It provides a vector observation suitable for use in EKF/UKF-style estimators.
+    The class conforms to the generic sensor interface defined by
+    :class:`~ADCS.satellite_hardware.sensors.sensor.Sensor`.
 
-    ---
-    **Measurement Model**
-
+    Measurement model
+    -----------------
     Let
 
-    - :math:`\mathbf{q}` — spacecraft attitude quaternion (body → inertial)
-    - :math:`\mathbf{s}_\mathrm{ECI}` — inertial-frame unit vector toward a navigation star
-    - :math:`\mathbf{C}(\mathbf{q})` — rotation matrix mapping body → inertial
+    ============================== ============================================
+    Symbol                          Description
+    ============================== ============================================
+    :math:`\mathbf{q}`              Attitude quaternion (body → inertial)
+    :math:`\mathbf{s}_{\mathrm{ECI}}`
+                                    Inertial-frame unit vector to a star
+    :math:`\mathbf{C}(\mathbf{q})`  Rotation matrix (body → inertial)
+    ============================== ============================================
 
-    The ideal (noise-free, bias-free) measurement is
-
-    .. math::
-
-        \mathbf{y}
-        \;=\;
-        \mathbf{C}(\mathbf{q})^\top \, \mathbf{s}_\mathrm{ECI}
-        \;\in\; \mathbb{R}^3
-
-    i.e. the star direction expressed in the **body frame**.
-
-    ---
-    **Bias and Noise**
-
-    Measurement corruption is handled by the base class
-    :class:`~ADCS.satellite_hardware.sensors.sensor.Sensor`:
+    The clean (ideal) star tracker measurement is
 
     .. math::
 
-        \tilde{\mathbf{y}} = \mathbf{y} + \mathbf{b} + \mathbf{n}
+        \mathbf{y}_{\text{clean}}
+        =
+        \mathbf{C}(\mathbf{q})^\top \mathbf{s}_{\mathrm{ECI}}
+        \in \mathbb{R}^3,
 
-    where
+    which represents the star direction expressed in the **body frame**.
 
-    - :math:`\mathbf{b}` is an optional additive bias modeled by
+    Including bias and noise, the full measurement is
+
+    .. math::
+
+        \tilde{\mathbf{y}}
+        =
+        \mathbf{y}_{\text{clean}}
+        + \mathbf{b}
+        + \mathbf{n},
+
+    where:
+
+    * :math:`\mathbf{b}` is an optional additive bias modeled by
       :class:`~ADCS.satellite_hardware.errors.bias.Bias`
-    - :math:`\mathbf{n}` is optional anisotropic noise modeled by
+    * :math:`\mathbf{n}` is anisotropic noise modeled by
       :class:`~ADCS.satellite_hardware.errors.noise.AnisotropicNoise`
 
-    The final output is **renormalized** to enforce a unit-vector constraint.
+    After corruption, the measurement is **renormalized** to enforce a
+    unit-vector constraint:
 
-    ---
-    **Star Selection Logic**
+    .. math::
 
-    At each measurement time step, the sensor:
+        \tilde{\mathbf{y}} \leftarrow
+        \frac{\tilde{\mathbf{y}}}{\lVert \tilde{\mathbf{y}} \rVert}.
+
+    Star selection
+    --------------
+    At each measurement epoch, the sensor:
 
     1. Projects the sensor boresight into the inertial frame
     2. Queries the :class:`~ADCS.environment.StarCatalog` for visible stars
-    3. Applies field-of-view, Sun exclusion, and optional Moon exclusion checks
+    3. Applies field-of-view and exclusion constraints (Sun, optional Moon)
     4. Selects the **brightest visible star** (minimum visual magnitude)
 
-    If no valid star is available, the sensor returns ``NaN``.
+    If no valid star is available, the sensor output is ``NaN``.
 
-    ---
-    **Estimator Properties**
-
-    - Output dimension: 3
-    - Depends on attitude quaternion only
-    - Jacobian is nonzero only w.r.t. quaternion states
-    - No momentum or bias-state coupling
-
-    This makes the model well-suited for tightly coupled attitude estimators.
+    Estimator properties
+    --------------------
+    * Output dimension: 3
+    * Depends only on attitude quaternion
+    * Jacobian is nonzero only w.r.t. quaternion states
+    * No coupling to angular velocity or momentum states
 
     See Also
     --------
-    ~ADCS.environment.StarCatalog  
-    ~ADCS.environment.NavigationStar  
-    ~ADCS.satellite_hardware.sensors.sensor.Sensor
+    :class:`~ADCS.environment.StarCatalog`  
+    :class:`~ADCS.environment.NavigationStar`  
+    :class:`~ADCS.satellite_hardware.sensors.sensor.Sensor`
     """
+
     output_length: int = 3
 
     def __init__(self, 
@@ -106,41 +114,31 @@ class StarTracker(Sensor):
         star_catalog: Optional[StarCatalog] = None
     ) -> None:
         r"""
-        Initialize a star tracker sensor instance.
+        Initialize the star tracker sensor.
 
         Parameters
         ----------
-        sample_time : float, optional
-            Sampling period of the sensor [s].
-
-        bias : ~ADCS.satellite_hardware.errors.bias.Bias, optional
-            Additive measurement bias model.
-
-        anisotropic_noise : ~ADCS.satellite_hardware.errors.noise.AnisotropicNoise, optional
+        sample_time : float
+            Sampling period of the star tracker [s].
+        bias : :class:`~ADCS.satellite_hardware.errors.bias.Bias`
+            Optional additive bias model.
+        anisotropic_noise : :class:`~ADCS.satellite_hardware.errors.noise.AnisotropicNoise`
             Direction-dependent noise model expressed in the sensor frame.
-
-        estimate_bias : bool, optional
-            If ``True``, the bias is included in the estimator state vector.
-
-        boresight : ndarray, shape (3,), optional
-            Sensor boresight direction expressed in the spacecraft body frame.
+        estimate_bias : bool
+            If ``True``, the bias is included in the estimator state.
+        boresight : numpy.ndarray
+            Sensor boresight direction in the body frame, shape ``(3,)``.
             This vector is normalized internally.
-
-        fov : float, optional
+        fov : float
             Full-angle field of view of the star tracker [rad].
+        sun_exclusion : float
+            Minimum allowable angular separation between the boresight and the
+            Sun direction [rad].
+        star_catalog : :class:`~ADCS.environment.StarCatalog`
+            Navigation star catalog used for visibility queries.
 
-        sun_exclusion : float, optional
-            Minimum allowable angular separation between the sensor boresight
-            and the Sun direction [rad].
-
-        star_catalog : ~ADCS.environment.StarCatalog, optional
-            Catalog of navigation stars used for visibility queries.
-            If not provided, a default catalog is constructed.
-
-        Notes
-        -----
-        The anisotropic noise covariance is rotated internally such that its
-        principal axes are aligned with the sensor boresight.
+        :return: None
+        :rtype: None
         """
         
         # 1. Geometry Setup
@@ -175,17 +173,16 @@ class StarTracker(Sensor):
 
     def _build_noise_rotation(self) -> NDArray[np.float64]:
         r"""
-        Construct a rotation matrix that aligns the sensor boresight
-        with the positive body-frame :math:`\hat{z}` axis.
+        Construct a rotation matrix that aligns the sensor boresight with the
+        positive body-frame :math:`\hat{z}` axis.
 
-        This rotation is used to express anisotropic noise statistics
-        in the physical sensor frame.
+        This rotation is used to express anisotropic noise statistics in the
+        physical sensor frame.
 
-        Returns
-        -------
-        ndarray, shape (3, 3)
-            Rotation matrix mapping the nominal sensor frame
-            to the spacecraft body frame.
+        :return:
+            Rotation matrix mapping the nominal sensor frame to the spacecraft
+            body frame.
+        :rtype: numpy.ndarray
         """
         z = np.array([0.0, 0.0, 1.0])
 
@@ -227,27 +224,27 @@ class StarTracker(Sensor):
         Select the brightest visible navigation star.
 
         Visibility is determined using the
-        :class:`~ADCS.environment.StarCatalog`, based on:
+        :class:`~ADCS.environment.StarCatalog` based on:
 
-        - Sensor boresight direction
-        - Field-of-view constraint
-        - Spacecraft position
-        - Sun exclusion angle
-        - Optional Moon exclusion
+        * Sensor boresight direction
+        * Field-of-view constraint
+        * Spacecraft position
+        * Sun exclusion angle
+        * Optional Moon exclusion
 
         Parameters
         ----------
-        q : ndarray, shape (4,)
-            Spacecraft attitude quaternion (body → inertial).
-
-        os : ~ADCS.orbits.orbital_state.Orbital_State
+        q : numpy.ndarray
+            Spacecraft attitude quaternion (body → inertial), shape ``(4,)``.
+        os : :class:`~ADCS.orbits.orbital_state.Orbital_State`
             Orbital state providing spacecraft position and ephemerides.
 
-        Returns
-        -------
-        ~ADCS.environment.NavigationStar or None
-            Brightest visible star, or ``None`` if no valid star is available.
+        :return:
+            Brightest visible navigation star, or ``None`` if no valid star is
+            available.
+        :rtype: :class:`~ADCS.environment.NavigationStar` or None
         """
+
         A = rot_mat(q)
         boresight_eci = A @ self.boresight
         r_sat_eci = os.R
@@ -270,23 +267,33 @@ class StarTracker(Sensor):
 
     def clean_reading(self, x: NDArray[np.float64], os: Orbital_State) -> NDArray[np.float64]:
         r"""
-        Compute the **noise-free, bias-free** star tracker measurement.
+        Compute the noise-free, bias-free star tracker measurement.
+
+        The attitude quaternion is extracted from the state vector as
+
+        .. math::
+
+            \mathbf{q} = x_{3:7},
+
+        and the measurement is computed as
+
+        .. math::
+
+            \mathbf{y}_{\text{clean}}
+            =
+            \mathbf{C}(\mathbf{q})^\top \mathbf{s}_{\mathrm{ECI}}.
 
         Parameters
         ----------
-        x : ndarray
-            Full spacecraft state vector. The quaternion is extracted
-            from ``x[3:7]``.
-
-        os : ~ADCS.orbits.orbital_state.Orbital_State
+        x : numpy.ndarray
+            Full spacecraft state vector.
+        os : :class:`~ADCS.orbits.orbital_state.Orbital_State`
             Orbital state used for star visibility determination.
 
-        Returns
-        -------
-        ndarray, shape (3,)
-            Unit vector pointing toward the selected navigation star
-            expressed in the spacecraft body frame.
-            Returns ``NaN`` if no star is visible.
+        :return:
+            Unit vector pointing toward the selected navigation star in the
+            body frame, or ``NaN`` if no star is visible.
+        :rtype: numpy.ndarray
         """
         q = x[3:7]
         star = self._select_star(q, os)
@@ -303,25 +310,23 @@ class StarTracker(Sensor):
         r"""
         Compute the full star tracker measurement including bias and noise.
 
-        This method delegates bias and noise injection to
-        :meth:`~ADCS.satellite_hardware.sensors.sensor.Sensor.reading`
-        and then enforces a unit-vector constraint.
+        Bias and noise are applied using
+        :meth:`~ADCS.satellite_hardware.sensors.sensor.Sensor.reading`,
+        after which the output is renormalized to enforce a unit-vector
+        constraint.
 
         Parameters
         ----------
-        x : ndarray
+        x : numpy.ndarray
             Full spacecraft state vector.
-
-        os : ~ADCS.orbits.orbital_state.Orbital_State
+        os : :class:`~ADCS.orbits.orbital_state.Orbital_State`
             Orbital state.
+        dmode : :class:`~ADCS.satellite_hardware.errors.ErrorMode`
+            Controls whether bias and noise are applied and propagated.
 
-        dmode : ~ADCS.satellite_hardware.disturbances.disturbance_mode.DisturbanceMode, optional
-            Controls whether bias and noise are applied and updated.
-
-        Returns
-        -------
-        ndarray, shape (3,)
+        :return:
             Normalized star direction measurement in the body frame.
+        :rtype: numpy.ndarray
         """
         # Sensor.reading() handles clean + bias + noise
         measurement = super().reading(x, os, dmode)
@@ -336,38 +341,34 @@ class StarTracker(Sensor):
 
     def basestate_jac(self, x: NDArray[np.float64], os: Orbital_State) -> NDArray[np.float64]:
         r"""
-        Compute the Jacobian of the star tracker measurement
-        with respect to the spacecraft base state.
+        Jacobian of the star tracker measurement with respect to the base state.
 
-        The measurement depends **only on the attitude quaternion**.
-        All derivatives with respect to angular velocity are zero.
-
-        Let
+        The measurement depends **only** on the attitude quaternion. Therefore,
 
         .. math::
 
-            \mathbf{y} = \mathbf{C}(\mathbf{q})^\top \mathbf{s}_\mathrm{ECI}
-
-        Then
-
-        .. math::
-
-            \frac{\partial \mathbf{y}}{\partial \boldsymbol{\omega}} = \mathbf{0}, \qquad
+            \frac{\partial \mathbf{y}}{\partial \boldsymbol{\omega}} = \mathbf{0},
+            \qquad
             \frac{\partial \mathbf{y}}{\partial \mathbf{q}}
-            = D_\mathbf{q}\!\left(\mathbf{C}^\top \mathbf{s}_\mathrm{ECI}\right)
+            =
+            D_{\mathbf{q}}
+            \left(
+                \mathbf{C}(\mathbf{q})^\top \mathbf{s}_{\mathrm{ECI}}
+            \right).
+
+        The quaternion derivative is computed using
+        :func:`~ADCS.helpers.math_helpers.drotmatTvecdq`.
 
         Parameters
         ----------
-        x : ndarray
-            Spacecraft state vector.
-
-        os : ~ADCS.orbits.orbital_state.Orbital_State
+        x : numpy.ndarray
+            Full spacecraft state vector.
+        os : :class:`~ADCS.orbits.orbital_state.Orbital_State`
             Orbital state.
 
-        Returns
-        -------
-        ndarray, shape (7, 3)
-            Base-state Jacobian stacked as ``[ω; q]``.
+        :return:
+            Base-state Jacobian stacked as ``[ω; q]``, shape ``(7, 3)``.
+        :rtype: numpy.ndarray
         """
         if self.current_star is None:
             return np.zeros((7, self.output_length))
@@ -382,15 +383,14 @@ class StarTracker(Sensor):
 
     def bias_jac(self, x: NDArray[np.float64], os: Orbital_State) -> NDArray[np.float64]:
         r"""
-        Jacobian of the measurement with respect to sensor bias states.
+        Jacobian of the measurement with respect to bias states.
 
-        The star tracker bias is modeled as additive but is **not included**
-        in the estimator state for this sensor.
+        The star tracker bias is not included in the estimator state for this
+        model, so the bias Jacobian is empty.
 
-        Returns
-        -------
-        ndarray, shape (0, 3)
-            Empty bias Jacobian.
+        :return:
+            Empty bias Jacobian of shape ``(0, 3)``.
+        :rtype: numpy.ndarray
         """
         return np.zeros((0, self.output_length))
 
@@ -399,10 +399,9 @@ class StarTracker(Sensor):
         r"""
         Measurement noise covariance matrix.
 
-        Returns
-        -------
-        ndarray, shape (3, 3)
-            Noise covariance expressed in the spacecraft body frame.
+        :return:
+            Measurement noise covariance expressed in the spacecraft body frame.
+        :rtype: numpy.ndarray
         """
         if self.noise:
             return self.noise.cov()

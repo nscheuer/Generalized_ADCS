@@ -8,33 +8,108 @@ from ADCS.satellite_hardware.errors import ErrorMode
 
 class Sensor:
     r"""
-    Base class for all ADCS sensor models.
+    Base class for all Attitude Determination and Control System (ADCS) sensor models.
 
-    This class defines a standard interface for sensor measurement generation,
-    including clean (noise– and bias–free) readings, application of stochastic
-    bias and noise models, and measurement Jacobians for filtering (e.g., EKF).
+    This class defines a **unified measurement interface** for all onboard sensors
+    (e.g., gyroscopes, magnetometers, sun sensors, star trackers). It encapsulates
+    the full sensor measurement pipeline, including:
 
-    Concrete sensor subclasses (e.g., :class:`Gyro`, :class:`MTM`,
-    star trackers, sun sensors) must implement at least
-    :meth:`clean_reading` and may override Jacobian functions as needed.
+    * Ideal (noise– and bias–free) measurement generation
+    * Additive stochastic bias modeling
+    * Additive measurement noise modeling
+    * Time propagation of bias and noise processes
+    * Analytical Jacobians for use in estimation filters (e.g., EKF, UKF)
+
+    Subclasses must implement at least :meth:`clean_reading` and may override
+    Jacobian methods as required by the sensor physics.
+
+    Mathematical measurement model
+    --------------------------------
+    The generic sensor model implemented by this class is
+
+    .. math::
+
+        \mathbf{z}_k = \mathbf{h}(\mathbf{x}_k, \mathcal{O}_k)
+        + \mathbf{b}_k + \mathbf{n}_k
+
+    where:
+
+    .. list-table:: Notation
+        :widths: 30 70
+        :header-rows: 1
+
+        * - Symbol
+          - Description
+        * - :math:`\mathbf{z}_k`
+          - Sensor measurement vector
+        * - :math:`\mathbf{x}_k`
+          - Full system state vector
+        * - :math:`\mathcal{O}_k`
+          - Orbital/environmental state
+        * - :math:`\mathbf{h}`
+          - Ideal (clean) sensor model
+        * - :math:`\mathbf{b}_k`
+          - Sensor bias
+        * - :math:`\mathbf{n}_k`
+          - Measurement noise
+
+
+    Bias and noise are modeled using instances of
+    :class:`~ADCS.satellite_hardware.errors.Bias` and
+    :class:`~ADCS.satellite_hardware.errors.Noise`, respectively.
+
+    Bias evolution is typically time-dependent:
+
+    .. math::
+
+        \mathbf{b}_{k+1} = f_b(\mathbf{b}_k, t_k)
+
+    while noise is assumed to be white or colored stochastic noise:
+
+    .. math::
+
+        \mathbf{n}_k \sim \mathcal{N}(\mathbf{0}, \mathbf{R})
 
     Parameters
     ----------
-    sample_time : float, optional
-        Sampling period of the sensor in seconds (default: ``0.1``).
-    output_length : int, optional
-        Dimension of the sensor measurement output (default: ``1``).
-    bias : Bias, optional
-        Bias model that provides additive measurement bias and bias evolution.
-        If not provided, initializes with a zero bias model.
-    noise : Noise, optional
-        Noise model providing measurement noise with a chosen distribution.
-        If not provided, initializes with a zero-noise model.
-    estimate_bias : bool, optional
-        Indicates whether the filter should include bias as part of the
-        estimated state. (Stored by subclasses; not used directly here.)
+    sample_time : float
+        Sampling period of the sensor in seconds.
+    output_length : int
+        Dimension of the sensor measurement vector.
+    bias : :class:`~ADCS.satellite_hardware.errors.Bias`
+        Bias model providing additive measurement bias and bias evolution.
+    noise : :class:`~ADCS.satellite_hardware.errors.Noise`
+        Noise model providing stochastic measurement noise.
+    estimate_bias : bool
+        Flag indicating whether the sensor bias is included in the estimated
+        filter state.
+
+    Notes
+    -----
+    * This class does **not** assume any specific state ordering.
+    * Bias and noise updates are controlled via
+      :class:`~ADCS.satellite_hardware.errors.ErrorMode`.
     """
     def __init__(self, sample_time: float = 0.1, output_length: int = 1, bias: Bias = None, noise: Noise = None, estimate_bias: bool = False):
+        r"""
+        Initialize a generic sensor model.
+
+        Parameters
+        ----------
+        sample_time : float
+            Sampling period of the sensor in seconds.
+        output_length : int
+            Dimension of the sensor measurement output.
+        bias : :class:`~ADCS.satellite_hardware.errors.Bias` or None
+            Bias model instance. If ``None``, a zero-bias model is used.
+        noise : :class:`~ADCS.satellite_hardware.errors.Noise` or None
+            Noise model instance. If ``None``, a zero-noise model is used.
+        estimate_bias : bool
+            Indicates whether the sensor bias is included in the estimator state.
+
+        :return: None
+        :rtype: None
+        """
         if bias:
             self.bias = bias.copy()
         else:
@@ -49,26 +124,50 @@ class Sensor:
 
     def reading(self, x: np.ndarray, os: Orbital_State, dmode: ErrorMode = None) -> np.ndarray:
         r"""
-        Compute the full sensor measurement, including bias and noise.
+        Compute the full sensor measurement including bias and noise.
 
-        The process is:
+        This method evaluates the complete sensor pipeline:
 
-        1. Compute the clean measurement using :meth:`clean_reading`.
-        2. Add the current sensor bias, obtained via :meth:`Bias.get_bias`.
-        3. Add measurement noise, via :meth:`Noise.get_noise`.
+        1. Compute the clean (ideal) sensor reading
+        2. Add the current sensor bias
+        3. Update the bias process (if enabled)
+        4. Add measurement noise
+        5. Update the noise process (if enabled)
+
+        Formally, the measurement is computed as
+
+        .. math::
+
+            \mathbf{z} =
+            \mathbf{h}(\mathbf{x}, \mathcal{O})
+            + \mathbf{b}(t)
+            + \mathbf{n}
+
+        where:
+
+        * :math:`\mathbf{h}` is implemented by :meth:`clean_reading`
+        * :math:`\mathbf{b}(t)` is provided by
+          :class:`~ADCS.satellite_hardware.errors.Bias`
+        * :math:`\mathbf{n}` is provided by
+          :class:`~ADCS.satellite_hardware.errors.Noise`
+
+        The inclusion and propagation of bias and noise are controlled via
+        :class:`~ADCS.satellite_hardware.errors.ErrorMode`.
 
         Parameters
         ----------
         x : numpy.ndarray
             Full system state vector.
-        os : Orbital_State
-            Orbital and environmental model. Provides the time (``os.J2000``)
-            required for time-varying bias processes.
+        os : :class:`~ADCS.orbits.orbital_state.Orbital_State`
+            Orbital and environmental state. Provides the current time
+            ``os.J2000`` required for time-varying bias evolution.
+        dmode : :class:`~ADCS.satellite_hardware.errors.ErrorMode` or None
+            Error mode configuration controlling whether bias and noise are
+            added and/or propagated. If ``None``, all effects are enabled.
 
-        Returns
-        -------
-        numpy.ndarray
-            The final sensor measurement, shape ``(output_length,)``.
+        :return: Sensor measurement vector.
+        :rtype: numpy.ndarray
+        
         """
         if dmode is None:
             dmode = ErrorMode(add_bias=True, add_noise=True, update_bias=True, update_noise=True)
@@ -88,24 +187,34 @@ class Sensor:
     
     def basestate_jac(self, x: np.ndarray, os: Orbital_State) -> np.ndarray:
         r"""
-        Jacobian of the clean sensor measurement with respect to the
-        base (non-bias) states.
+        Jacobian of the clean sensor measurement with respect to the base states.
 
-        This base implementation returns a zero matrix, corresponding to a
-        measurement independent of the satellite state. Subclasses should
-        override this method to provide the correct Jacobian.
+        This method returns the Jacobian
+
+        .. math::
+
+            \mathbf{H}_x =
+            \frac{\partial \mathbf{h}(\mathbf{x}, \mathcal{O})}
+            {\partial \mathbf{x}_{\text{base}}}
+
+        where :math:`\mathbf{x}_{\text{base}}` denotes the non-bias portion of the
+        system state.
+
+        The default implementation assumes that the measurement is **independent**
+        of the base state and returns a zero matrix. Sensor subclasses should
+        override this method to provide physically meaningful derivatives.
 
         Parameters
         ----------
         x : numpy.ndarray
             Full system state vector.
-        os : Orbital_State
-            Orbital and environmental model.
+        os : :class:`~ADCS.orbits.orbital_state.Orbital_State`
+            Orbital and environmental state.
 
-        Returns
-        -------
-        numpy.ndarray
-            Zero matrix of shape ``(7, output_length)`` by default.
+        :return:
+            Jacobian matrix of shape ``(output_length, N_base_states)``.
+        :rtype: numpy.ndarray
+
         """
         return np.zeros((7, self.output_length))
     
@@ -113,33 +222,37 @@ class Sensor:
         r"""
         Jacobian of the measurement with respect to the sensor bias state.
 
-        If the sensor has a bias model, the measurement is assumed to be
+        If the measurement model is
 
         .. math::
 
-            z = y + b,
+            \mathbf{z} = \mathbf{h}(\mathbf{x}, \mathcal{O}) + \mathbf{b},
 
-        where :math:`b` is a vector of length ``output_length``. Therefore,
+        then the Jacobian with respect to the bias is
 
         .. math::
 
-            \frac{\partial z}{\partial b} = I,
+            \mathbf{H}_b =
+            \frac{\partial \mathbf{z}}{\partial \mathbf{b}}
+            = \mathbf{I}
 
-        the identity matrix. If no bias model is present, an empty Jacobian is
-        returned.
+        where :math:`\mathbf{I}` is the identity matrix of dimension
+        ``output_length``.
+
+        If the sensor does not include a bias model, an empty Jacobian is returned.
 
         Parameters
         ----------
         x : numpy.ndarray
             Full system state vector (unused).
-        os : Orbital_State
+        os : :class:`~ADCS.orbits.orbital_state.Orbital_State`
             Orbital state object (unused).
 
-        Returns
-        -------
-        numpy.ndarray
-            ``(output_length, output_length)`` identity matrix if bias exists,
-            otherwise a ``(0, output_length)`` empty matrix.
+        :return:
+            Identity matrix of shape ``(output_length, output_length)`` if a bias
+            model exists; otherwise an empty matrix.
+        :rtype: numpy.ndarray
+
         """
         if self.bias:
             return np.eye(self.output_length)
