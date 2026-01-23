@@ -6,7 +6,7 @@ import numpy as np
 from scipy.linalg import block_diag
 
 from ADCS.orbits.orbital_state import Orbital_State
-from ADCS.satellite_hardware.actuators import Noise, Bias
+from ADCS.satellite_hardware.errors import Noise, Bias
 from ADCS.helpers.math_constants import MathConstants
 from ADCS.helpers.math_helpers import normalize, normed_vec_jac, rot_mat
 
@@ -42,10 +42,10 @@ class MTM(Sensor):
     bias : Bias, optional
         Bias model associated with the sensor. If provided, the bias state
         will be added to the base state and propagated according to
-        :class:`ADCS.satellite_hardware.actuators.Bias`.
+        :class:`ADCS.satellite_hardware.errors.bias`.
     noise : Noise, optional
         Noise model associated with the sensor. If provided, the measurement
-        will be corrupted according to :class:`ADCS.satellite_hardware.actuators.Noise`.
+        will be corrupted according to :class:`ADCS.satellite_hardware.errors.noise`.
     estimate_bias : bool, optional
         If ``True``, the bias is included as an estimated state for filtering
         (e.g. EKF). If ``False``, the bias is treated as known (or zero).

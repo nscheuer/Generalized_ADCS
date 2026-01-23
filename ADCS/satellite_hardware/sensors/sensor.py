@@ -3,7 +3,7 @@ __all__ = ["Sensor"]
 import numpy as np
 
 from ADCS.orbits.orbital_state import Orbital_State
-from ADCS.satellite_hardware.actuators import Noise, Bias
+from ADCS.satellite_hardware.errors import Noise, Bias
 from ADCS.satellite_hardware.disturbances.disturbance_mode import DisturbanceMode
 
 class Sensor:

@@ -6,7 +6,7 @@ import numpy as np
 from scipy.linalg import block_diag
 
 from ADCS.orbits.orbital_state import Orbital_State
-from ADCS.satellite_hardware.actuators import Noise, Bias
+from ADCS.satellite_hardware.errors import Noise, Bias
 from ADCS.helpers.math_constants import MathConstants
 from ADCS.helpers.math_helpers import normalize
 

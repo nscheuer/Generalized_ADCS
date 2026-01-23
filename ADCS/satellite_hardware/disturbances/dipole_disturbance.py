@@ -3,7 +3,7 @@ __all__ = ["Dipole_Disturbance"]
 import numpy as np
 from typing import TYPE_CHECKING
 from ADCS.satellite_hardware.disturbances.disturbance import Disturbance
-from ADCS.satellite_hardware.actuators.noise import Noise
+from ADCS.satellite_hardware.errors.noise import Noise
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.helpers.math_helpers import normalize
 
@@ -35,7 +35,7 @@ class Dipole_Disturbance(Disturbance):
     ----------
     dipole_torque : :class:`numpy.ndarray`
         Nominal magnetic dipole vector in body coordinates [A·m²], shape ``(3,)``.
-    noise : :class:`~ADCS.satellite_hardware.actuators.noise.Noise`
+    noise : :class:`~ADCS.satellite_hardware.errors.noise.Noise`
         Noise model instance used to perturb the nominal dipole vector.
     """
 
@@ -47,7 +47,7 @@ class Dipole_Disturbance(Disturbance):
         ----------
         dipole_torque : :class:`numpy.ndarray`
             Nominal magnetic dipole vector [A·m²], shape ``(3,)``.
-        noise : :class:`~ADCS.satellite_hardware.actuators.noise.Noise`
+        noise : :class:`~ADCS.satellite_hardware.errors.noise.Noise`
             Noise generator to inject random variations into the dipole.
         """
         self.torque_nominal = dipole_torque

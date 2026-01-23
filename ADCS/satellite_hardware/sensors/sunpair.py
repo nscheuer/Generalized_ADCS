@@ -5,7 +5,7 @@ from .sensor import Sensor
 import numpy as np
 from typing import Tuple
 from ADCS.orbits.orbital_state import Orbital_State
-from ADCS.satellite_hardware.actuators import Noise, Bias
+from ADCS.satellite_hardware.errors import Noise, Bias
 from ADCS.helpers.math_helpers import normalize, rot_mat
 
 

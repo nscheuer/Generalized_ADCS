@@ -9,7 +9,7 @@ sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))
 from ADCS.satellite_hardware.sensors import StarTracker
 from ADCS.environment import StarCatalog, NavigationStar
 from ADCS.satellite_factory.sensors import create_bct_nst, create_terma_t1, create_generic_star_tracker
-from ADCS.satellite_hardware.actuators import AnisotropicNoise
+from ADCS.satellite_hardware.errors import AnisotropicNoise
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.helpers.math_helpers import random_n_unit_vec, rot_mat

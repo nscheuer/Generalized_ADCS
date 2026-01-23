@@ -5,8 +5,8 @@ import warnings
 from typing import Union, Dict
 
 from ADCS.satellite_hardware.actuators.actuator import Actuator
-from ADCS.satellite_hardware.actuators.bias import Bias
-from ADCS.satellite_hardware.actuators.noise import Noise
+from ADCS.satellite_hardware.errors.bias import Bias
+from ADCS.satellite_hardware.errors.noise import Noise
 from ADCS.satellite_hardware.disturbances.disturbance_mode import DisturbanceMode
 from ADCS.orbits.orbital_state import Orbital_State
 
@@ -60,10 +60,10 @@ class MTQ(Actuator):
     max_torque : float
         Maximum allowable torque magnitude [N·m].
 
-    bias : :class:`~ADCS.satellite_hardware.actuators.bias.Bias`, optional
+    bias : :class:`~ADCS.satellite_hardware.errors.bias.Bias`, optional
         Bias model representing constant or slowly varying offset in magnetic moment.
 
-    noise : :class:`~ADCS.satellite_hardware.actuators.noise.Noise`, optional
+    noise : :class:`~ADCS.satellite_hardware.errors.noise.Noise`, optional
         Noise model representing stochastic fluctuations in actuation.
 
     estimate_bias : bool, optional

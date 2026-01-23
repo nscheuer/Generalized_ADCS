@@ -3,8 +3,8 @@ __all__ = ["RW"]
 import numpy as np
 import warnings
 from ADCS.satellite_hardware.actuators.actuator import Actuator
-from ADCS.satellite_hardware.actuators.bias import Bias
-from ADCS.satellite_hardware.actuators.noise import Noise
+from ADCS.satellite_hardware.errors.bias import Bias
+from ADCS.satellite_hardware.errors.noise import Noise
 from ADCS.satellite_hardware.disturbances.disturbance_mode import DisturbanceMode
 from ADCS.orbits.orbital_state import Orbital_State
 
@@ -59,10 +59,10 @@ class RW(Actuator):
     h_max : :class:`numpy.ndarray`
         Maximum allowable stored momentum (saturation limit) [N·m·s].
 
-    bias : :class:`~ADCS.satellite_hardware.actuators.bias.Bias`, optional
+    bias : :class:`~ADCS.satellite_hardware.errors.bias.Bias`, optional
         Bias model instance representing constant or time-varying actuator offset.
 
-    noise : :class:`~ADCS.satellite_hardware.actuators.noise.Noise`, optional
+    noise : :class:`~ADCS.satellite_hardware.errors.noise.Noise`, optional
         Noise model instance representing stochastic torque fluctuations.
 
     estimate_bias : bool, optional

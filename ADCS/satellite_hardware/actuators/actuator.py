@@ -1,8 +1,8 @@
 __all__ = ["Actuator"]
 
 import numpy as np
-from ADCS.satellite_hardware.actuators.bias import Bias
-from ADCS.satellite_hardware.actuators.noise import Noise
+from ADCS.satellite_hardware.errors.bias import Bias
+from ADCS.satellite_hardware.errors.noise import Noise
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.satellite_hardware.disturbances.disturbance_mode import DisturbanceMode

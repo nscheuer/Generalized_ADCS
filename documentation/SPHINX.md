@@ -10,7 +10,7 @@ make html
 In order to register new Python modules (generate new .rst files):
 ```bash
 cd docs/
-sphinx-apidoc -f -e -o source/ ../ADCS/
+sphinx-apidoc -f -e --maxdepth 1 -o source/ ../ADCS/
 ```
 
 ## Viewing Documentation

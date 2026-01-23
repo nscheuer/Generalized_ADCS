@@ -6,7 +6,7 @@ from numpy.typing import NDArray
 
 from ADCS.satellite_hardware.sensors.sensor import Sensor
 from ADCS.environment import StarCatalog, NavigationStar
-from ADCS.satellite_hardware.actuators import Bias, AnisotropicNoise
+from ADCS.satellite_hardware.errors import Bias, AnisotropicNoise
 from ADCS.satellite_hardware.disturbances.disturbance_mode import DisturbanceMode
 from ADCS.helpers.math_helpers import drotmatTvecdq, rot_mat
 from ADCS.orbits.orbital_state import Orbital_State
@@ -59,9 +59,9 @@ class StarTracker(Sensor):
     where
 
     - :math:`\mathbf{b}` is an optional additive bias modeled by
-      :class:`~ADCS.satellite_hardware.actuators.bias.Bias`
+      :class:`~ADCS.satellite_hardware.errors.bias.Bias`
     - :math:`\mathbf{n}` is optional anisotropic noise modeled by
-      :class:`~ADCS.satellite_hardware.actuators.noise.AnisotropicNoise`
+      :class:`~ADCS.satellite_hardware.errors.noise.AnisotropicNoise`
 
     The final output is **renormalized** to enforce a unit-vector constraint.
 
@@ -113,10 +113,10 @@ class StarTracker(Sensor):
         sample_time : float, optional
             Sampling period of the sensor [s].
 
-        bias : ~ADCS.satellite_hardware.actuators.bias.Bias, optional
+        bias : ~ADCS.satellite_hardware.errors.bias.Bias, optional
             Additive measurement bias model.
 
-        anisotropic_noise : ~ADCS.satellite_hardware.actuators.noise.AnisotropicNoise, optional
+        anisotropic_noise : ~ADCS.satellite_hardware.errors.noise.AnisotropicNoise, optional
             Direction-dependent noise model expressed in the sensor frame.
 
         estimate_bias : bool, optional

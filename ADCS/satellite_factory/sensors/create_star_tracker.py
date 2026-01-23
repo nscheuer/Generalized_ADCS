@@ -10,7 +10,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from ADCS.satellite_hardware.sensors.star_tracker import StarTracker
-from ADCS.satellite_hardware.actuators import AnisotropicNoise
+from ADCS.satellite_hardware.errors import AnisotropicNoise
 
 _ARCSEC2RAD = np.pi / (180.0 * 3600.0)
 

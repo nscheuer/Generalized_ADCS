@@ -3,7 +3,7 @@ __all__ = ["Prop_Disturbance"]
 import numpy as np
 from typing import TYPE_CHECKING
 from ADCS.satellite_hardware.disturbances.disturbance import Disturbance
-from ADCS.satellite_hardware.actuators.noise import Noise
+from ADCS.satellite_hardware.errors.noise import Noise
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.helpers.math_helpers import normalize, normed_vec_jac, normed_vec_hess
 from ADCS.orbits.universal_constants import EarthConstants
@@ -40,7 +40,7 @@ class Prop_Disturbance(Disturbance):
     torque_nominal : :class:`numpy.ndarray`
         Nominal propulsion disturbance torque vector [N·m], shape ``(3,)``.
 
-    noise : :class:`~ADCS.satellite_hardware.actuators.noise.Noise`
+    noise : :class:`~ADCS.satellite_hardware.errors.noise.Noise`
         Noise model instance providing stochastic variations in the disturbance torque.
 
     Attributes
@@ -61,7 +61,7 @@ class Prop_Disturbance(Disturbance):
         torque_nominal : :class:`numpy.ndarray`
             Constant nominal torque vector (3,) [N·m].
 
-        noise : :class:`~ADCS.satellite_hardware.actuators.noise.Noise`
+        noise : :class:`~ADCS.satellite_hardware.errors.noise.Noise`
             Noise model instance providing additive random torque fluctuations.
         """
         self.torque_nominal = torque_nominal
