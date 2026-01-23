@@ -5,6 +5,32 @@
 This document analyzes TODOs from papers in the Writing folder, identifying which can be achieved using existing code in the Generalized_ADCS repository or with reasonable adaptations.
 
 **Analysis Date:** January 23, 2026
+**Last Updated:** January 23, 2026
+
+## Recent Additions (This Session)
+
+### New Thruster Actuator Class
+- **File:** `ADCS/satellite_hardware/actuators/thruster.py`
+- **Tests:** `testing/test_actuators/test_actuator_thruster.py` (36 tests)
+- Supports: cold gas, monopropellant, bipropellant, pulsed electric
+- Features: propellant tracking, minimum impulse bit, full Jacobian/Hessian support
+- References: Sutton & Biblarz, Wertz & Larson, Lemmer (CubeSat propulsion)
+
+### New Test Suites
+1. **LP vs QP Allocation Comparison** (`test_allocation_comparison.py`) - 13 tests
+   - Direction preservation tests for LP
+   - Magnitude minimization tests for QP
+   - B-field sweep tests
+   - Saturation behavior tests
+   - Timing benchmarks
+
+2. **Desaturation Tests** (`test_desaturation.py`) - 12 tests
+   - Momentum tracking tests
+   - Controller configuration tests
+   - Saturation behavior tests
+   - Statistical tests
+
+**Total New Tests:** 61 tests, all passing
 
 ---
 
