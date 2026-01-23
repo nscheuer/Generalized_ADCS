@@ -3898,3 +3898,1499 @@ TEST_CASE("Disturbance torque with rotated attitude", "[disturbance][attitude]")
 
     sat.clear_srp_surfaces();
 }
+
+// ============================================================================
+// RW DYNAMICS JACOBIAN AND HESSIAN TESTS
+// These tests ensure correctness of dynamics derivatives for reaction wheel
+// configurations, including with disturbances (SRP, Drag).
+// ============================================================================
+
+// Helper: Create RW-only satellite with disturbance surfaces
+Satellite createRWOnlySatelliteWithSurfaces() {
+    Satellite sat = Satellite();
+    sat.change_Jcom(arma::diagmat(arma::vec({0.05, 0.06, 0.055})));
+    // 3-axis RW configuration
+    sat.add_RW(arma::vec({1,0,0}), 1e-5, 0.001, 0.01, 1.0, 0.1, 0.005, 0.0, 0.001);
+    sat.add_RW(arma::vec({0,1,0}), 1e-5, 0.001, 0.01, 1.0, 0.1, 0.005, 0.0, 0.001);
+    sat.add_RW(arma::vec({0,0,1}), 1e-5, 0.001, 0.01, 1.0, 0.1, 0.005, 0.0, 0.001);
+    return sat;
+}
+
+// Helper: Create hybrid satellite with disturbance surfaces
+Satellite createHybridSatelliteWithSurfaces() {
+    Satellite sat = Satellite();
+    sat.change_Jcom(arma::diagmat(arma::vec({0.05, 0.06, 0.055})));
+    // MTQs
+    sat.add_MTQ(arma::vec({1,0,0}), 0.1, 1.0);
+    sat.add_MTQ(arma::vec({0,1,0}), 0.1, 1.0);
+    sat.add_MTQ(arma::vec({0,0,1}), 0.1, 1.0);
+    // RWs
+    sat.add_RW(arma::vec({1,0,0}), 1e-5, 0.001, 0.01, 1.0, 0.1, 0.005, 0.0, 0.001);
+    sat.add_RW(arma::vec({0,1,0}), 1e-5, 0.001, 0.01, 1.0, 0.1, 0.005, 0.0, 0.001);
+    sat.add_RW(arma::vec({0,0,1}), 1e-5, 0.001, 0.01, 1.0, 0.1, 0.005, 0.0, 0.001);
+    return sat;
+}
+
+// Helper: Add SRP surfaces to satellite
+void addSRPSurfaces(Satellite& sat) {
+    arma::mat normals(3, 6);
+    normals.col(0) = arma::vec({1.0, 0.0, 0.0});
+    normals.col(1) = arma::vec({-1.0, 0.0, 0.0});
+    normals.col(2) = arma::vec({0.0, 1.0, 0.0});
+    normals.col(3) = arma::vec({0.0, -1.0, 0.0});
+    normals.col(4) = arma::vec({0.0, 0.0, 1.0});
+    normals.col(5) = arma::vec({0.0, 0.0, -1.0});
+
+    arma::mat centroids(3, 6);
+    centroids.col(0) = arma::vec({0.05, 0.0, 0.0});
+    centroids.col(1) = arma::vec({-0.05, 0.0, 0.0});
+    centroids.col(2) = arma::vec({0.0, 0.05, 0.0});
+    centroids.col(3) = arma::vec({0.0, -0.05, 0.0});
+    centroids.col(4) = arma::vec({0.0, 0.0, 0.05});
+    centroids.col(5) = arma::vec({0.0, 0.0, -0.05});
+
+    arma::vec areas = arma::vec({0.01, 0.01, 0.01, 0.01, 0.01, 0.01});
+    arma::vec eta_s = arma::vec({0.5, 0.5, 0.5, 0.5, 0.5, 0.5});
+    arma::vec eta_d = arma::vec({0.3, 0.3, 0.3, 0.3, 0.3, 0.3});
+    arma::vec eta_a = arma::vec({0.2, 0.2, 0.2, 0.2, 0.2, 0.2});
+    arma::vec3 COM = arma::vec({0.0, 0.0, 0.0});
+    sat.set_srp_surfaces(normals, centroids, areas, eta_s, eta_d, eta_a, COM);
+}
+
+// Helper: Add drag surfaces to satellite
+void addDragSurfaces(Satellite& sat) {
+    arma::mat normals(3, 6);
+    normals.col(0) = arma::vec({1.0, 0.0, 0.0});
+    normals.col(1) = arma::vec({-1.0, 0.0, 0.0});
+    normals.col(2) = arma::vec({0.0, 1.0, 0.0});
+    normals.col(3) = arma::vec({0.0, -1.0, 0.0});
+    normals.col(4) = arma::vec({0.0, 0.0, 1.0});
+    normals.col(5) = arma::vec({0.0, 0.0, -1.0});
+
+    arma::mat centroids(3, 6);
+    centroids.col(0) = arma::vec({0.05, 0.0, 0.0});
+    centroids.col(1) = arma::vec({-0.05, 0.0, 0.0});
+    centroids.col(2) = arma::vec({0.0, 0.05, 0.0});
+    centroids.col(3) = arma::vec({0.0, -0.05, 0.0});
+    centroids.col(4) = arma::vec({0.0, 0.0, 0.05});
+    centroids.col(5) = arma::vec({0.0, 0.0, -0.05});
+
+    arma::vec areas = arma::vec({0.01, 0.01, 0.01, 0.01, 0.01, 0.01});
+    arma::vec CDs = arma::vec({2.2, 2.2, 2.2, 2.2, 2.2, 2.2});
+    arma::vec3 COM = arma::vec({0.0, 0.0, 0.0});
+    sat.set_drag_surfaces(normals, centroids, areas, CDs, COM);
+}
+
+// ============================================================================
+// TEST: RW-only dynamics Hessians (was missing)
+// ============================================================================
+TEST_CASE("RW-only satellite dynamics Hessians match finite differences", "[satellite][hessian][dynamics][rw]") {
+    cout << "\n=== Test: RW-Only Satellite Dynamics Hessians ===" << endl;
+
+    Satellite sat = createRWOnlySatellite();
+    int nx = sat.state_N();
+    int nu = sat.control_N();
+
+    arma::arma_rng::set_seed(47);
+    arma::vec3 w0 = 0.03 * arma::randn(3);
+    arma::vec4 q0 = arma::normalise(arma::vec({1.0, 0.1, 0.1, 0.1}) + 0.1*arma::randn(4));
+    arma::vec x_base = join_cols(w0, q0);
+    arma::vec rw_h = 0.002 * arma::randn(sat.number_RW);
+    arma::vec x = join_cols(x_base, rw_h);
+    arma::vec u = 0.0005 * arma::randn(nu);
+
+    arma::vec3 B_eci = arma::vec({0.0, 3e-5, 2e-5});
+    DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_eci, arma::vec3({7000,0,0}), 0,
+                                                        arma::vec3({0,7.5,0}), arma::vec3({1,0,0}), 1, 0.0);
+
+    auto hess = sat.dynamicsHessians(x, u, dynamics_info);
+    arma::cube Hxx_analytic = std::get<0>(hess);
+    arma::cube Hux_analytic = std::get<1>(hess);
+
+    double eps = 1e-5;
+    auto jacs0 = sat.dynamicsJacobians(x, u, dynamics_info);
+    arma::mat Jx0 = std::get<0>(jacs0);
+
+    // Compute Hxx via finite difference of Jacobian
+    arma::cube Hxx_fd(nx, nx, nx, arma::fill::zeros);
+    for(int i = 0; i < nx; i++) {
+        arma::vec x_pert = x;
+        x_pert(i) += eps;
+        auto jacs_pert = sat.dynamicsJacobians(x_pert, u, dynamics_info);
+        arma::mat Jx_pert = std::get<0>(jacs_pert);
+        for(int j = 0; j < nx; j++) {
+            for(int k = 0; k < nx; k++) {
+                Hxx_fd(i, j, k) = (Jx_pert(k, j) - Jx0(k, j)) / eps;
+            }
+        }
+    }
+
+    // Compute Hux via finite difference
+    arma::cube Hux_fd(nu, nx, nx, arma::fill::zeros);
+    for(int i = 0; i < nu; i++) {
+        arma::vec u_pert = u;
+        u_pert(i) += eps;
+        auto jacs_pert = sat.dynamicsJacobians(x, u_pert, dynamics_info);
+        arma::mat Jx_pert = std::get<0>(jacs_pert);
+        for(int j = 0; j < nx; j++) {
+            for(int k = 0; k < nx; k++) {
+                Hux_fd(i, j, k) = (Jx_pert(k, j) - Jx0(k, j)) / eps;
+            }
+        }
+    }
+
+    // Compare Hxx
+    double Hxx_error = 0.0;
+    double Hxx_norm = 0.0;
+    for(int k = 0; k < nx; k++) {
+        Hxx_error += arma::norm(Hxx_analytic.slice(k) - Hxx_fd.slice(k), "fro");
+        Hxx_norm += arma::norm(Hxx_fd.slice(k), "fro");
+    }
+    double Hxx_rel_error = Hxx_error / (Hxx_norm + 1e-10);
+
+    // Compare Hux
+    double Hux_error = 0.0;
+    double Hux_norm = 0.0;
+    for(int k = 0; k < nx; k++) {
+        Hux_error += arma::norm(Hux_analytic.slice(k) - Hux_fd.slice(k), "fro");
+        Hux_norm += arma::norm(Hux_fd.slice(k), "fro");
+    }
+    double Hux_rel_error = Hux_error / (Hux_norm + 1e-10);
+
+    cout << "  RW-only Hxx error (abs): " << Hxx_error << ", (rel): " << Hxx_rel_error << endl;
+    cout << "  RW-only Hux error (abs): " << Hux_error << ", (rel): " << Hux_rel_error << endl;
+
+    CHECK(Hxx_rel_error < 1e-2);
+    CHECK(Hux_rel_error < 1e-2);
+}
+
+// ============================================================================
+// TEST: Single RW dynamics Jacobians
+// ============================================================================
+TEST_CASE("Single RW satellite dynamics Jacobians match finite differences", "[satellite][jacobian][dynamics][rw][single]") {
+    cout << "\n=== Test: Single RW Satellite Dynamics Jacobians ===" << endl;
+
+    Satellite sat = Satellite();
+    sat.change_Jcom(arma::diagmat(arma::vec({0.05, 0.06, 0.055})));
+    // Single RW along Z-axis
+    sat.add_RW(arma::vec({0,0,1}), 1e-5, 0.001, 0.01, 1.0, 0.1, 0.005, 0.0, 0.001);
+
+    int nx = sat.state_N();
+    int nu = sat.control_N();
+
+    cout << "  Single RW config: nx=" << nx << ", nu=" << nu << endl;
+
+    arma::arma_rng::set_seed(48);
+    arma::vec3 w0 = 0.03 * arma::randn(3);
+    arma::vec4 q0 = arma::normalise(arma::vec({1.0, 0.1, 0.1, 0.1}) + 0.1*arma::randn(4));
+    arma::vec x_base = join_cols(w0, q0);
+    arma::vec rw_h = 0.002 * arma::randn(sat.number_RW);
+    arma::vec x = join_cols(x_base, rw_h);
+    arma::vec u = 0.0005 * arma::randn(nu);
+
+    arma::vec3 B_eci = arma::vec({1e-5, 3e-5, 2e-5});
+    DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_eci, arma::vec3({7000,0,0}), 0,
+                                                        arma::vec3({0,7.5,0}), arma::vec3({1,0,0}), 1, 0.0);
+
+    auto jacs = sat.dynamicsJacobians(x, u, dynamics_info);
+    arma::mat Jx_analytic = std::get<0>(jacs);
+    arma::mat Ju_analytic = std::get<1>(jacs);
+
+    double eps = 1e-7;
+    arma::vec f0 = sat.dynamics_pure(x, u, dynamics_info);
+
+    arma::mat Jx_fd(nx, nx);
+    for(int i = 0; i < nx; i++) {
+        arma::vec x_pert = x;
+        x_pert(i) += eps;
+        arma::vec f_pert = sat.dynamics_pure(x_pert, u, dynamics_info);
+        Jx_fd.col(i) = (f_pert - f0) / eps;
+    }
+
+    arma::mat Ju_fd(nx, nu);
+    for(int i = 0; i < nu; i++) {
+        arma::vec u_pert = u;
+        u_pert(i) += eps;
+        arma::vec f_pert = sat.dynamics_pure(x, u_pert, dynamics_info);
+        Ju_fd.col(i) = (f_pert - f0) / eps;
+    }
+
+    double Jx_error = arma::norm(Jx_analytic - Jx_fd, "fro");
+    double Ju_error = arma::norm(Ju_analytic - Ju_fd, "fro");
+    double Jx_rel_error = Jx_error / (arma::norm(Jx_fd, "fro") + 1e-10);
+    double Ju_rel_error = Ju_error / (arma::norm(Ju_fd, "fro") + 1e-10);
+
+    cout << "  Single RW Jx error (abs): " << Jx_error << ", (rel): " << Jx_rel_error << endl;
+    cout << "  Single RW Ju error (abs): " << Ju_error << ", (rel): " << Ju_rel_error << endl;
+
+    CHECK(Jx_rel_error < 1e-4);
+    CHECK(Ju_rel_error < 1e-4);
+}
+
+// ============================================================================
+// TEST: RW-only + SRP dynamics Jacobians
+// ============================================================================
+TEST_CASE("RW-only satellite with SRP dynamics Jacobians match finite differences", "[satellite][jacobian][dynamics][rw][srp]") {
+    cout << "\n=== Test: RW-Only + SRP Dynamics Jacobians ===" << endl;
+
+    Satellite sat = createRWOnlySatelliteWithSurfaces();
+    addSRPSurfaces(sat);
+
+    int nx = sat.state_N();
+    int nu = sat.control_N();
+
+    arma::arma_rng::set_seed(49);
+    arma::vec3 w0 = 0.02 * arma::randn(3);
+    arma::vec4 q0 = arma::normalise(arma::vec({1.0, 0.1, 0.1, 0.1}) + 0.1*arma::randn(4));
+    arma::vec x_base = join_cols(w0, q0);
+    arma::vec rw_h = 0.002 * arma::randn(sat.number_RW);
+    arma::vec x = join_cols(x_base, rw_h);
+    arma::vec u = 0.0005 * arma::randn(nu);
+
+    // Environment with SRP (sun position at ~1 AU)
+    arma::vec3 R_k = 7000.0 * arma::normalise(arma::vec(3, arma::fill::randn));
+    arma::vec3 V_k = 7.5 * arma::normalise(arma::cross(R_k, arma::vec(3, arma::fill::randn)));
+    arma::vec3 S_k = 1.496e8 * arma::normalise(arma::vec(3, arma::fill::randn));
+    arma::vec3 B_k = 3e-5 * arma::normalise(arma::vec(3, arma::fill::randn));
+
+    DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_k, R_k, 0, V_k, S_k, 1, 0.0);
+
+    auto jacs = sat.dynamicsJacobians(x, u, dynamics_info);
+    arma::mat Jx_analytic = std::get<0>(jacs);
+    arma::mat Ju_analytic = std::get<1>(jacs);
+
+    double eps = 1e-7;
+    arma::vec f0 = sat.dynamics_pure(x, u, dynamics_info);
+
+    arma::mat Jx_fd(nx, nx);
+    for(int i = 0; i < nx; i++) {
+        arma::vec x_pert = x;
+        x_pert(i) += eps;
+        arma::vec f_pert = sat.dynamics_pure(x_pert, u, dynamics_info);
+        Jx_fd.col(i) = (f_pert - f0) / eps;
+    }
+
+    arma::mat Ju_fd(nx, nu);
+    for(int i = 0; i < nu; i++) {
+        arma::vec u_pert = u;
+        u_pert(i) += eps;
+        arma::vec f_pert = sat.dynamics_pure(x, u_pert, dynamics_info);
+        Ju_fd.col(i) = (f_pert - f0) / eps;
+    }
+
+    double Jx_error = arma::norm(Jx_analytic - Jx_fd, "fro");
+    double Ju_error = arma::norm(Ju_analytic - Ju_fd, "fro");
+    double Jx_rel_error = Jx_error / (arma::norm(Jx_fd, "fro") + 1e-10);
+    double Ju_rel_error = Ju_error / (arma::norm(Ju_fd, "fro") + 1e-10);
+
+    cout << "  RW+SRP Jx error (abs): " << Jx_error << ", (rel): " << Jx_rel_error << endl;
+    cout << "  RW+SRP Ju error (abs): " << Ju_error << ", (rel): " << Ju_rel_error << endl;
+
+    CHECK(Jx_rel_error < 1e-4);
+    CHECK(Ju_rel_error < 1e-4);
+}
+
+// ============================================================================
+// TEST: RW-only + SRP dynamics Hessians
+// ============================================================================
+TEST_CASE("RW-only satellite with SRP dynamics Hessians match finite differences", "[satellite][hessian][dynamics][rw][srp]") {
+    cout << "\n=== Test: RW-Only + SRP Dynamics Hessians ===" << endl;
+
+    Satellite sat = createRWOnlySatelliteWithSurfaces();
+    addSRPSurfaces(sat);
+
+    int nx = sat.state_N();
+    int nu = sat.control_N();
+
+    arma::arma_rng::set_seed(50);
+    arma::vec3 w0 = 0.02 * arma::randn(3);
+    arma::vec4 q0 = arma::normalise(arma::vec({1.0, 0.1, 0.1, 0.1}) + 0.1*arma::randn(4));
+    arma::vec x_base = join_cols(w0, q0);
+    arma::vec rw_h = 0.002 * arma::randn(sat.number_RW);
+    arma::vec x = join_cols(x_base, rw_h);
+    arma::vec u = 0.0005 * arma::randn(nu);
+
+    arma::vec3 R_k = 7000.0 * arma::normalise(arma::vec(3, arma::fill::randn));
+    arma::vec3 V_k = 7.5 * arma::normalise(arma::cross(R_k, arma::vec(3, arma::fill::randn)));
+    arma::vec3 S_k = 1.496e8 * arma::normalise(arma::vec(3, arma::fill::randn));
+    arma::vec3 B_k = 3e-5 * arma::normalise(arma::vec(3, arma::fill::randn));
+
+    DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_k, R_k, 0, V_k, S_k, 1, 0.0);
+
+    auto hess = sat.dynamicsHessians(x, u, dynamics_info);
+    arma::cube Hxx_analytic = std::get<0>(hess);
+
+    double eps = 1e-5;
+    auto jacs0 = sat.dynamicsJacobians(x, u, dynamics_info);
+    arma::mat Jx0 = std::get<0>(jacs0);
+
+    arma::cube Hxx_fd(nx, nx, nx, arma::fill::zeros);
+    for(int i = 0; i < nx; i++) {
+        arma::vec x_pert = x;
+        x_pert(i) += eps;
+        auto jacs_pert = sat.dynamicsJacobians(x_pert, u, dynamics_info);
+        arma::mat Jx_pert = std::get<0>(jacs_pert);
+        for(int j = 0; j < nx; j++) {
+            for(int k = 0; k < nx; k++) {
+                Hxx_fd(i, j, k) = (Jx_pert(k, j) - Jx0(k, j)) / eps;
+            }
+        }
+    }
+
+    double Hxx_error = 0.0;
+    double Hxx_norm = 0.0;
+    for(int k = 0; k < nx; k++) {
+        Hxx_error += arma::norm(Hxx_analytic.slice(k) - Hxx_fd.slice(k), "fro");
+        Hxx_norm += arma::norm(Hxx_fd.slice(k), "fro");
+    }
+    double Hxx_rel_error = Hxx_error / (Hxx_norm + 1e-10);
+
+    cout << "  RW+SRP Hxx error (abs): " << Hxx_error << ", (rel): " << Hxx_rel_error << endl;
+
+    CHECK(Hxx_rel_error < 1e-2);
+}
+
+// ============================================================================
+// TEST: RW-only + Drag dynamics Jacobians
+// ============================================================================
+TEST_CASE("RW-only satellite with Drag dynamics Jacobians match finite differences", "[satellite][jacobian][dynamics][rw][drag]") {
+    cout << "\n=== Test: RW-Only + Drag Dynamics Jacobians ===" << endl;
+
+    Satellite sat = createRWOnlySatelliteWithSurfaces();
+    addDragSurfaces(sat);
+
+    int nx = sat.state_N();
+    int nu = sat.control_N();
+
+    arma::arma_rng::set_seed(51);
+    arma::vec3 w0 = 0.02 * arma::randn(3);
+    arma::vec4 q0 = arma::normalise(arma::vec({1.0, 0.1, 0.1, 0.1}) + 0.1*arma::randn(4));
+    arma::vec x_base = join_cols(w0, q0);
+    arma::vec rw_h = 0.002 * arma::randn(sat.number_RW);
+    arma::vec x = join_cols(x_base, rw_h);
+    arma::vec u = 0.0005 * arma::randn(nu);
+
+    // LEO environment with drag
+    arma::vec3 R_k = 6778.0 * arma::normalise(arma::vec(3, arma::fill::randn));
+    arma::vec3 V_k = 7.67 * arma::normalise(arma::cross(R_k, arma::vec(3, arma::fill::randn)));
+    arma::vec3 S_k = 1.496e8 * arma::normalise(arma::vec(3, arma::fill::randn));
+    arma::vec3 B_k = 3e-5 * arma::normalise(arma::vec(3, arma::fill::randn));
+    double rho = 1e-12;
+
+    DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_k, R_k, 0, V_k, S_k, 1, rho);
+
+    auto jacs = sat.dynamicsJacobians(x, u, dynamics_info);
+    arma::mat Jx_analytic = std::get<0>(jacs);
+    arma::mat Ju_analytic = std::get<1>(jacs);
+
+    double eps = 1e-7;
+    arma::vec f0 = sat.dynamics_pure(x, u, dynamics_info);
+
+    arma::mat Jx_fd(nx, nx);
+    for(int i = 0; i < nx; i++) {
+        arma::vec x_pert = x;
+        x_pert(i) += eps;
+        arma::vec f_pert = sat.dynamics_pure(x_pert, u, dynamics_info);
+        Jx_fd.col(i) = (f_pert - f0) / eps;
+    }
+
+    arma::mat Ju_fd(nx, nu);
+    for(int i = 0; i < nu; i++) {
+        arma::vec u_pert = u;
+        u_pert(i) += eps;
+        arma::vec f_pert = sat.dynamics_pure(x, u_pert, dynamics_info);
+        Ju_fd.col(i) = (f_pert - f0) / eps;
+    }
+
+    double Jx_error = arma::norm(Jx_analytic - Jx_fd, "fro");
+    double Ju_error = arma::norm(Ju_analytic - Ju_fd, "fro");
+    double Jx_rel_error = Jx_error / (arma::norm(Jx_fd, "fro") + 1e-10);
+    double Ju_rel_error = Ju_error / (arma::norm(Ju_fd, "fro") + 1e-10);
+
+    cout << "  RW+Drag Jx error (abs): " << Jx_error << ", (rel): " << Jx_rel_error << endl;
+    cout << "  RW+Drag Ju error (abs): " << Ju_error << ", (rel): " << Ju_rel_error << endl;
+
+    CHECK(Jx_rel_error < 1e-4);
+    CHECK(Ju_rel_error < 1e-4);
+}
+
+// ============================================================================
+// TEST: RW-only + Drag dynamics Hessians
+// ============================================================================
+TEST_CASE("RW-only satellite with Drag dynamics Hessians match finite differences", "[satellite][hessian][dynamics][rw][drag]") {
+    cout << "\n=== Test: RW-Only + Drag Dynamics Hessians ===" << endl;
+
+    Satellite sat = createRWOnlySatelliteWithSurfaces();
+    addDragSurfaces(sat);
+
+    int nx = sat.state_N();
+    int nu = sat.control_N();
+
+    arma::arma_rng::set_seed(52);
+    arma::vec3 w0 = 0.02 * arma::randn(3);
+    arma::vec4 q0 = arma::normalise(arma::vec({1.0, 0.1, 0.1, 0.1}) + 0.1*arma::randn(4));
+    arma::vec x_base = join_cols(w0, q0);
+    arma::vec rw_h = 0.002 * arma::randn(sat.number_RW);
+    arma::vec x = join_cols(x_base, rw_h);
+    arma::vec u = 0.0005 * arma::randn(nu);
+
+    arma::vec3 R_k = 6778.0 * arma::normalise(arma::vec(3, arma::fill::randn));
+    arma::vec3 V_k = 7.67 * arma::normalise(arma::cross(R_k, arma::vec(3, arma::fill::randn)));
+    arma::vec3 S_k = 1.496e8 * arma::normalise(arma::vec(3, arma::fill::randn));
+    arma::vec3 B_k = 3e-5 * arma::normalise(arma::vec(3, arma::fill::randn));
+    double rho = 1e-12;
+
+    DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_k, R_k, 0, V_k, S_k, 1, rho);
+
+    auto hess = sat.dynamicsHessians(x, u, dynamics_info);
+    arma::cube Hxx_analytic = std::get<0>(hess);
+
+    double eps = 1e-5;
+    auto jacs0 = sat.dynamicsJacobians(x, u, dynamics_info);
+    arma::mat Jx0 = std::get<0>(jacs0);
+
+    arma::cube Hxx_fd(nx, nx, nx, arma::fill::zeros);
+    for(int i = 0; i < nx; i++) {
+        arma::vec x_pert = x;
+        x_pert(i) += eps;
+        auto jacs_pert = sat.dynamicsJacobians(x_pert, u, dynamics_info);
+        arma::mat Jx_pert = std::get<0>(jacs_pert);
+        for(int j = 0; j < nx; j++) {
+            for(int k = 0; k < nx; k++) {
+                Hxx_fd(i, j, k) = (Jx_pert(k, j) - Jx0(k, j)) / eps;
+            }
+        }
+    }
+
+    double Hxx_error = 0.0;
+    double Hxx_norm = 0.0;
+    for(int k = 0; k < nx; k++) {
+        Hxx_error += arma::norm(Hxx_analytic.slice(k) - Hxx_fd.slice(k), "fro");
+        Hxx_norm += arma::norm(Hxx_fd.slice(k), "fro");
+    }
+    double Hxx_rel_error = Hxx_error / (Hxx_norm + 1e-10);
+
+    cout << "  RW+Drag Hxx error (abs): " << Hxx_error << ", (rel): " << Hxx_rel_error << endl;
+
+    CHECK(Hxx_rel_error < 1e-2);
+}
+
+// ============================================================================
+// TEST: Hybrid (MTQ+RW) + SRP dynamics Jacobians
+// ============================================================================
+TEST_CASE("Hybrid satellite with SRP dynamics Jacobians match finite differences", "[satellite][jacobian][dynamics][hybrid][srp]") {
+    cout << "\n=== Test: Hybrid (MTQ+RW) + SRP Dynamics Jacobians ===" << endl;
+
+    Satellite sat = createHybridSatelliteWithSurfaces();
+    addSRPSurfaces(sat);
+
+    int nx = sat.state_N();
+    int nu = sat.control_N();
+
+    arma::arma_rng::set_seed(53);
+    arma::vec3 w0 = 0.02 * arma::randn(3);
+    arma::vec4 q0 = arma::normalise(arma::vec({1.0, 0.1, 0.1, 0.1}) + 0.1*arma::randn(4));
+    arma::vec x_base = join_cols(w0, q0);
+    arma::vec rw_h = 0.002 * arma::randn(sat.number_RW);
+    arma::vec x = join_cols(x_base, rw_h);
+
+    // Mixed control: MTQs and RW torques
+    arma::vec u = arma::vec(nu).zeros();
+    u.head(sat.number_MTQ) = 0.05 * arma::randn(sat.number_MTQ);
+    u.tail(sat.number_RW) = 0.0005 * arma::randn(sat.number_RW);
+
+    arma::vec3 R_k = 7000.0 * arma::normalise(arma::vec(3, arma::fill::randn));
+    arma::vec3 V_k = 7.5 * arma::normalise(arma::cross(R_k, arma::vec(3, arma::fill::randn)));
+    arma::vec3 S_k = 1.496e8 * arma::normalise(arma::vec(3, arma::fill::randn));
+    arma::vec3 B_k = 3e-5 * arma::normalise(arma::vec(3, arma::fill::randn));
+
+    DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_k, R_k, 0, V_k, S_k, 1, 0.0);
+
+    auto jacs = sat.dynamicsJacobians(x, u, dynamics_info);
+    arma::mat Jx_analytic = std::get<0>(jacs);
+    arma::mat Ju_analytic = std::get<1>(jacs);
+
+    double eps = 1e-7;
+    arma::vec f0 = sat.dynamics_pure(x, u, dynamics_info);
+
+    arma::mat Jx_fd(nx, nx);
+    for(int i = 0; i < nx; i++) {
+        arma::vec x_pert = x;
+        x_pert(i) += eps;
+        arma::vec f_pert = sat.dynamics_pure(x_pert, u, dynamics_info);
+        Jx_fd.col(i) = (f_pert - f0) / eps;
+    }
+
+    arma::mat Ju_fd(nx, nu);
+    for(int i = 0; i < nu; i++) {
+        arma::vec u_pert = u;
+        u_pert(i) += eps;
+        arma::vec f_pert = sat.dynamics_pure(x, u_pert, dynamics_info);
+        Ju_fd.col(i) = (f_pert - f0) / eps;
+    }
+
+    double Jx_error = arma::norm(Jx_analytic - Jx_fd, "fro");
+    double Ju_error = arma::norm(Ju_analytic - Ju_fd, "fro");
+    double Jx_rel_error = Jx_error / (arma::norm(Jx_fd, "fro") + 1e-10);
+    double Ju_rel_error = Ju_error / (arma::norm(Ju_fd, "fro") + 1e-10);
+
+    cout << "  Hybrid+SRP Jx error (abs): " << Jx_error << ", (rel): " << Jx_rel_error << endl;
+    cout << "  Hybrid+SRP Ju error (abs): " << Ju_error << ", (rel): " << Ju_rel_error << endl;
+
+    CHECK(Jx_rel_error < 1e-4);
+    CHECK(Ju_rel_error < 1e-4);
+}
+
+// ============================================================================
+// TEST: Hybrid (MTQ+RW) + SRP dynamics Hessians
+// ============================================================================
+TEST_CASE("Hybrid satellite with SRP dynamics Hessians match finite differences", "[satellite][hessian][dynamics][hybrid][srp]") {
+    cout << "\n=== Test: Hybrid (MTQ+RW) + SRP Dynamics Hessians ===" << endl;
+
+    Satellite sat = createHybridSatelliteWithSurfaces();
+    addSRPSurfaces(sat);
+
+    int nx = sat.state_N();
+    int nu = sat.control_N();
+
+    arma::arma_rng::set_seed(54);
+    arma::vec3 w0 = 0.02 * arma::randn(3);
+    arma::vec4 q0 = arma::normalise(arma::vec({1.0, 0.1, 0.1, 0.1}) + 0.1*arma::randn(4));
+    arma::vec x_base = join_cols(w0, q0);
+    arma::vec rw_h = 0.002 * arma::randn(sat.number_RW);
+    arma::vec x = join_cols(x_base, rw_h);
+
+    arma::vec u = arma::vec(nu).zeros();
+    u.head(sat.number_MTQ) = 0.03 * arma::randn(sat.number_MTQ);
+    u.tail(sat.number_RW) = 0.0003 * arma::randn(sat.number_RW);
+
+    arma::vec3 R_k = 7000.0 * arma::normalise(arma::vec(3, arma::fill::randn));
+    arma::vec3 V_k = 7.5 * arma::normalise(arma::cross(R_k, arma::vec(3, arma::fill::randn)));
+    arma::vec3 S_k = 1.496e8 * arma::normalise(arma::vec(3, arma::fill::randn));
+    arma::vec3 B_k = 3e-5 * arma::normalise(arma::vec(3, arma::fill::randn));
+
+    DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_k, R_k, 0, V_k, S_k, 1, 0.0);
+
+    auto hess = sat.dynamicsHessians(x, u, dynamics_info);
+    arma::cube Hxx_analytic = std::get<0>(hess);
+
+    double eps = 1e-5;
+    auto jacs0 = sat.dynamicsJacobians(x, u, dynamics_info);
+    arma::mat Jx0 = std::get<0>(jacs0);
+
+    arma::cube Hxx_fd(nx, nx, nx, arma::fill::zeros);
+    for(int i = 0; i < nx; i++) {
+        arma::vec x_pert = x;
+        x_pert(i) += eps;
+        auto jacs_pert = sat.dynamicsJacobians(x_pert, u, dynamics_info);
+        arma::mat Jx_pert = std::get<0>(jacs_pert);
+        for(int j = 0; j < nx; j++) {
+            for(int k = 0; k < nx; k++) {
+                Hxx_fd(i, j, k) = (Jx_pert(k, j) - Jx0(k, j)) / eps;
+            }
+        }
+    }
+
+    double Hxx_error = 0.0;
+    double Hxx_norm = 0.0;
+    for(int k = 0; k < nx; k++) {
+        Hxx_error += arma::norm(Hxx_analytic.slice(k) - Hxx_fd.slice(k), "fro");
+        Hxx_norm += arma::norm(Hxx_fd.slice(k), "fro");
+    }
+    double Hxx_rel_error = Hxx_error / (Hxx_norm + 1e-10);
+
+    cout << "  Hybrid+SRP Hxx error (abs): " << Hxx_error << ", (rel): " << Hxx_rel_error << endl;
+
+    CHECK(Hxx_rel_error < 1e-2);
+}
+
+// ============================================================================
+// TEST: Hybrid (MTQ+RW) + Drag dynamics Jacobians
+// ============================================================================
+TEST_CASE("Hybrid satellite with Drag dynamics Jacobians match finite differences", "[satellite][jacobian][dynamics][hybrid][drag]") {
+    cout << "\n=== Test: Hybrid (MTQ+RW) + Drag Dynamics Jacobians ===" << endl;
+
+    Satellite sat = createHybridSatelliteWithSurfaces();
+    addDragSurfaces(sat);
+
+    int nx = sat.state_N();
+    int nu = sat.control_N();
+
+    arma::arma_rng::set_seed(55);
+    arma::vec3 w0 = 0.02 * arma::randn(3);
+    arma::vec4 q0 = arma::normalise(arma::vec({1.0, 0.1, 0.1, 0.1}) + 0.1*arma::randn(4));
+    arma::vec x_base = join_cols(w0, q0);
+    arma::vec rw_h = 0.002 * arma::randn(sat.number_RW);
+    arma::vec x = join_cols(x_base, rw_h);
+
+    arma::vec u = arma::vec(nu).zeros();
+    u.head(sat.number_MTQ) = 0.05 * arma::randn(sat.number_MTQ);
+    u.tail(sat.number_RW) = 0.0005 * arma::randn(sat.number_RW);
+
+    arma::vec3 R_k = 6778.0 * arma::normalise(arma::vec(3, arma::fill::randn));
+    arma::vec3 V_k = 7.67 * arma::normalise(arma::cross(R_k, arma::vec(3, arma::fill::randn)));
+    arma::vec3 S_k = 1.496e8 * arma::normalise(arma::vec(3, arma::fill::randn));
+    arma::vec3 B_k = 3e-5 * arma::normalise(arma::vec(3, arma::fill::randn));
+    double rho = 1e-12;
+
+    DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_k, R_k, 0, V_k, S_k, 1, rho);
+
+    auto jacs = sat.dynamicsJacobians(x, u, dynamics_info);
+    arma::mat Jx_analytic = std::get<0>(jacs);
+    arma::mat Ju_analytic = std::get<1>(jacs);
+
+    double eps = 1e-7;
+    arma::vec f0 = sat.dynamics_pure(x, u, dynamics_info);
+
+    arma::mat Jx_fd(nx, nx);
+    for(int i = 0; i < nx; i++) {
+        arma::vec x_pert = x;
+        x_pert(i) += eps;
+        arma::vec f_pert = sat.dynamics_pure(x_pert, u, dynamics_info);
+        Jx_fd.col(i) = (f_pert - f0) / eps;
+    }
+
+    arma::mat Ju_fd(nx, nu);
+    for(int i = 0; i < nu; i++) {
+        arma::vec u_pert = u;
+        u_pert(i) += eps;
+        arma::vec f_pert = sat.dynamics_pure(x, u_pert, dynamics_info);
+        Ju_fd.col(i) = (f_pert - f0) / eps;
+    }
+
+    double Jx_error = arma::norm(Jx_analytic - Jx_fd, "fro");
+    double Ju_error = arma::norm(Ju_analytic - Ju_fd, "fro");
+    double Jx_rel_error = Jx_error / (arma::norm(Jx_fd, "fro") + 1e-10);
+    double Ju_rel_error = Ju_error / (arma::norm(Ju_fd, "fro") + 1e-10);
+
+    cout << "  Hybrid+Drag Jx error (abs): " << Jx_error << ", (rel): " << Jx_rel_error << endl;
+    cout << "  Hybrid+Drag Ju error (abs): " << Ju_error << ", (rel): " << Ju_rel_error << endl;
+
+    CHECK(Jx_rel_error < 1e-4);
+    CHECK(Ju_rel_error < 1e-4);
+}
+
+// ============================================================================
+// TEST: Hybrid (MTQ+RW) + Drag dynamics Hessians
+// ============================================================================
+TEST_CASE("Hybrid satellite with Drag dynamics Hessians match finite differences", "[satellite][hessian][dynamics][hybrid][drag]") {
+    cout << "\n=== Test: Hybrid (MTQ+RW) + Drag Dynamics Hessians ===" << endl;
+
+    Satellite sat = createHybridSatelliteWithSurfaces();
+    addDragSurfaces(sat);
+
+    int nx = sat.state_N();
+    int nu = sat.control_N();
+
+    arma::arma_rng::set_seed(56);
+    arma::vec3 w0 = 0.02 * arma::randn(3);
+    arma::vec4 q0 = arma::normalise(arma::vec({1.0, 0.1, 0.1, 0.1}) + 0.1*arma::randn(4));
+    arma::vec x_base = join_cols(w0, q0);
+    arma::vec rw_h = 0.002 * arma::randn(sat.number_RW);
+    arma::vec x = join_cols(x_base, rw_h);
+
+    arma::vec u = arma::vec(nu).zeros();
+    u.head(sat.number_MTQ) = 0.03 * arma::randn(sat.number_MTQ);
+    u.tail(sat.number_RW) = 0.0003 * arma::randn(sat.number_RW);
+
+    arma::vec3 R_k = 6778.0 * arma::normalise(arma::vec(3, arma::fill::randn));
+    arma::vec3 V_k = 7.67 * arma::normalise(arma::cross(R_k, arma::vec(3, arma::fill::randn)));
+    arma::vec3 S_k = 1.496e8 * arma::normalise(arma::vec(3, arma::fill::randn));
+    arma::vec3 B_k = 3e-5 * arma::normalise(arma::vec(3, arma::fill::randn));
+    double rho = 1e-12;
+
+    DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_k, R_k, 0, V_k, S_k, 1, rho);
+
+    auto hess = sat.dynamicsHessians(x, u, dynamics_info);
+    arma::cube Hxx_analytic = std::get<0>(hess);
+
+    double eps = 1e-5;
+    auto jacs0 = sat.dynamicsJacobians(x, u, dynamics_info);
+    arma::mat Jx0 = std::get<0>(jacs0);
+
+    arma::cube Hxx_fd(nx, nx, nx, arma::fill::zeros);
+    for(int i = 0; i < nx; i++) {
+        arma::vec x_pert = x;
+        x_pert(i) += eps;
+        auto jacs_pert = sat.dynamicsJacobians(x_pert, u, dynamics_info);
+        arma::mat Jx_pert = std::get<0>(jacs_pert);
+        for(int j = 0; j < nx; j++) {
+            for(int k = 0; k < nx; k++) {
+                Hxx_fd(i, j, k) = (Jx_pert(k, j) - Jx0(k, j)) / eps;
+            }
+        }
+    }
+
+    double Hxx_error = 0.0;
+    double Hxx_norm = 0.0;
+    for(int k = 0; k < nx; k++) {
+        Hxx_error += arma::norm(Hxx_analytic.slice(k) - Hxx_fd.slice(k), "fro");
+        Hxx_norm += arma::norm(Hxx_fd.slice(k), "fro");
+    }
+    double Hxx_rel_error = Hxx_error / (Hxx_norm + 1e-10);
+
+    cout << "  Hybrid+Drag Hxx error (abs): " << Hxx_error << ", (rel): " << Hxx_rel_error << endl;
+
+    CHECK(Hxx_rel_error < 1e-2);
+}
+
+// ============================================================================
+// TEST: Hybrid (MTQ+RW) + Combined SRP+Drag dynamics Jacobians
+// ============================================================================
+TEST_CASE("Hybrid satellite with combined SRP+Drag dynamics Jacobians match finite differences", "[satellite][jacobian][dynamics][hybrid][combined]") {
+    cout << "\n=== Test: Hybrid (MTQ+RW) + Combined SRP+Drag Dynamics Jacobians ===" << endl;
+
+    Satellite sat = createHybridSatelliteWithSurfaces();
+    addSRPSurfaces(sat);
+    addDragSurfaces(sat);
+
+    int nx = sat.state_N();
+    int nu = sat.control_N();
+
+    arma::arma_rng::set_seed(57);
+    arma::vec3 w0 = 0.02 * arma::randn(3);
+    arma::vec4 q0 = arma::normalise(arma::vec({1.0, 0.1, 0.1, 0.1}) + 0.1*arma::randn(4));
+    arma::vec x_base = join_cols(w0, q0);
+    arma::vec rw_h = 0.002 * arma::randn(sat.number_RW);
+    arma::vec x = join_cols(x_base, rw_h);
+
+    arma::vec u = arma::vec(nu).zeros();
+    u.head(sat.number_MTQ) = 0.05 * arma::randn(sat.number_MTQ);
+    u.tail(sat.number_RW) = 0.0005 * arma::randn(sat.number_RW);
+
+    // LEO with both SRP and drag
+    arma::vec3 R_k = 6778.0 * arma::normalise(arma::vec(3, arma::fill::randn));
+    arma::vec3 V_k = 7.67 * arma::normalise(arma::cross(R_k, arma::vec(3, arma::fill::randn)));
+    arma::vec3 S_k = 1.496e8 * arma::normalise(arma::vec(3, arma::fill::randn));
+    arma::vec3 B_k = 3e-5 * arma::normalise(arma::vec(3, arma::fill::randn));
+    double rho = 1e-12;
+
+    DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_k, R_k, 0, V_k, S_k, 1, rho);
+
+    auto jacs = sat.dynamicsJacobians(x, u, dynamics_info);
+    arma::mat Jx_analytic = std::get<0>(jacs);
+    arma::mat Ju_analytic = std::get<1>(jacs);
+
+    double eps = 1e-7;
+    arma::vec f0 = sat.dynamics_pure(x, u, dynamics_info);
+
+    arma::mat Jx_fd(nx, nx);
+    for(int i = 0; i < nx; i++) {
+        arma::vec x_pert = x;
+        x_pert(i) += eps;
+        arma::vec f_pert = sat.dynamics_pure(x_pert, u, dynamics_info);
+        Jx_fd.col(i) = (f_pert - f0) / eps;
+    }
+
+    arma::mat Ju_fd(nx, nu);
+    for(int i = 0; i < nu; i++) {
+        arma::vec u_pert = u;
+        u_pert(i) += eps;
+        arma::vec f_pert = sat.dynamics_pure(x, u_pert, dynamics_info);
+        Ju_fd.col(i) = (f_pert - f0) / eps;
+    }
+
+    double Jx_error = arma::norm(Jx_analytic - Jx_fd, "fro");
+    double Ju_error = arma::norm(Ju_analytic - Ju_fd, "fro");
+    double Jx_rel_error = Jx_error / (arma::norm(Jx_fd, "fro") + 1e-10);
+    double Ju_rel_error = Ju_error / (arma::norm(Ju_fd, "fro") + 1e-10);
+
+    cout << "  Hybrid+Combined Jx error (abs): " << Jx_error << ", (rel): " << Jx_rel_error << endl;
+    cout << "  Hybrid+Combined Ju error (abs): " << Ju_error << ", (rel): " << Ju_rel_error << endl;
+
+    CHECK(Jx_rel_error < 1e-4);
+    CHECK(Ju_rel_error < 1e-4);
+}
+
+// ============================================================================
+// TEST: Hybrid (MTQ+RW) + Combined SRP+Drag dynamics Hessians
+// ============================================================================
+TEST_CASE("Hybrid satellite with combined SRP+Drag dynamics Hessians match finite differences", "[satellite][hessian][dynamics][hybrid][combined]") {
+    cout << "\n=== Test: Hybrid (MTQ+RW) + Combined SRP+Drag Dynamics Hessians ===" << endl;
+
+    Satellite sat = createHybridSatelliteWithSurfaces();
+    addSRPSurfaces(sat);
+    addDragSurfaces(sat);
+
+    int nx = sat.state_N();
+    int nu = sat.control_N();
+
+    arma::arma_rng::set_seed(58);
+    arma::vec3 w0 = 0.02 * arma::randn(3);
+    arma::vec4 q0 = arma::normalise(arma::vec({1.0, 0.1, 0.1, 0.1}) + 0.1*arma::randn(4));
+    arma::vec x_base = join_cols(w0, q0);
+    arma::vec rw_h = 0.002 * arma::randn(sat.number_RW);
+    arma::vec x = join_cols(x_base, rw_h);
+
+    arma::vec u = arma::vec(nu).zeros();
+    u.head(sat.number_MTQ) = 0.03 * arma::randn(sat.number_MTQ);
+    u.tail(sat.number_RW) = 0.0003 * arma::randn(sat.number_RW);
+
+    arma::vec3 R_k = 6778.0 * arma::normalise(arma::vec(3, arma::fill::randn));
+    arma::vec3 V_k = 7.67 * arma::normalise(arma::cross(R_k, arma::vec(3, arma::fill::randn)));
+    arma::vec3 S_k = 1.496e8 * arma::normalise(arma::vec(3, arma::fill::randn));
+    arma::vec3 B_k = 3e-5 * arma::normalise(arma::vec(3, arma::fill::randn));
+    double rho = 1e-12;
+
+    DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_k, R_k, 0, V_k, S_k, 1, rho);
+
+    auto hess = sat.dynamicsHessians(x, u, dynamics_info);
+    arma::cube Hxx_analytic = std::get<0>(hess);
+
+    double eps = 1e-5;
+    auto jacs0 = sat.dynamicsJacobians(x, u, dynamics_info);
+    arma::mat Jx0 = std::get<0>(jacs0);
+
+    arma::cube Hxx_fd(nx, nx, nx, arma::fill::zeros);
+    for(int i = 0; i < nx; i++) {
+        arma::vec x_pert = x;
+        x_pert(i) += eps;
+        auto jacs_pert = sat.dynamicsJacobians(x_pert, u, dynamics_info);
+        arma::mat Jx_pert = std::get<0>(jacs_pert);
+        for(int j = 0; j < nx; j++) {
+            for(int k = 0; k < nx; k++) {
+                Hxx_fd(i, j, k) = (Jx_pert(k, j) - Jx0(k, j)) / eps;
+            }
+        }
+    }
+
+    double Hxx_error = 0.0;
+    double Hxx_norm = 0.0;
+    for(int k = 0; k < nx; k++) {
+        Hxx_error += arma::norm(Hxx_analytic.slice(k) - Hxx_fd.slice(k), "fro");
+        Hxx_norm += arma::norm(Hxx_fd.slice(k), "fro");
+    }
+    double Hxx_rel_error = Hxx_error / (Hxx_norm + 1e-10);
+
+    cout << "  Hybrid+Combined Hxx error (abs): " << Hxx_error << ", (rel): " << Hxx_rel_error << endl;
+
+    CHECK(Hxx_rel_error < 1e-2);
+}
+
+// ============================================================================
+// TEST: RW-only + Combined SRP+Drag dynamics Jacobians
+// ============================================================================
+TEST_CASE("RW-only satellite with combined SRP+Drag dynamics Jacobians match finite differences", "[satellite][jacobian][dynamics][rw][combined]") {
+    cout << "\n=== Test: RW-Only + Combined SRP+Drag Dynamics Jacobians ===" << endl;
+
+    Satellite sat = createRWOnlySatelliteWithSurfaces();
+    addSRPSurfaces(sat);
+    addDragSurfaces(sat);
+
+    int nx = sat.state_N();
+    int nu = sat.control_N();
+
+    arma::arma_rng::set_seed(59);
+    arma::vec3 w0 = 0.02 * arma::randn(3);
+    arma::vec4 q0 = arma::normalise(arma::vec({1.0, 0.1, 0.1, 0.1}) + 0.1*arma::randn(4));
+    arma::vec x_base = join_cols(w0, q0);
+    arma::vec rw_h = 0.002 * arma::randn(sat.number_RW);
+    arma::vec x = join_cols(x_base, rw_h);
+    arma::vec u = 0.0005 * arma::randn(nu);
+
+    arma::vec3 R_k = 6778.0 * arma::normalise(arma::vec(3, arma::fill::randn));
+    arma::vec3 V_k = 7.67 * arma::normalise(arma::cross(R_k, arma::vec(3, arma::fill::randn)));
+    arma::vec3 S_k = 1.496e8 * arma::normalise(arma::vec(3, arma::fill::randn));
+    arma::vec3 B_k = 3e-5 * arma::normalise(arma::vec(3, arma::fill::randn));
+    double rho = 1e-12;
+
+    DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_k, R_k, 0, V_k, S_k, 1, rho);
+
+    auto jacs = sat.dynamicsJacobians(x, u, dynamics_info);
+    arma::mat Jx_analytic = std::get<0>(jacs);
+    arma::mat Ju_analytic = std::get<1>(jacs);
+
+    double eps = 1e-7;
+    arma::vec f0 = sat.dynamics_pure(x, u, dynamics_info);
+
+    arma::mat Jx_fd(nx, nx);
+    for(int i = 0; i < nx; i++) {
+        arma::vec x_pert = x;
+        x_pert(i) += eps;
+        arma::vec f_pert = sat.dynamics_pure(x_pert, u, dynamics_info);
+        Jx_fd.col(i) = (f_pert - f0) / eps;
+    }
+
+    arma::mat Ju_fd(nx, nu);
+    for(int i = 0; i < nu; i++) {
+        arma::vec u_pert = u;
+        u_pert(i) += eps;
+        arma::vec f_pert = sat.dynamics_pure(x, u_pert, dynamics_info);
+        Ju_fd.col(i) = (f_pert - f0) / eps;
+    }
+
+    double Jx_error = arma::norm(Jx_analytic - Jx_fd, "fro");
+    double Ju_error = arma::norm(Ju_analytic - Ju_fd, "fro");
+    double Jx_rel_error = Jx_error / (arma::norm(Jx_fd, "fro") + 1e-10);
+    double Ju_rel_error = Ju_error / (arma::norm(Ju_fd, "fro") + 1e-10);
+
+    cout << "  RW+Combined Jx error (abs): " << Jx_error << ", (rel): " << Jx_rel_error << endl;
+    cout << "  RW+Combined Ju error (abs): " << Ju_error << ", (rel): " << Ju_rel_error << endl;
+
+    CHECK(Jx_rel_error < 1e-4);
+    CHECK(Ju_rel_error < 1e-4);
+}
+
+// ============================================================================
+// TEST: RW-only + Combined SRP+Drag dynamics Hessians
+// ============================================================================
+TEST_CASE("RW-only satellite with combined SRP+Drag dynamics Hessians match finite differences", "[satellite][hessian][dynamics][rw][combined]") {
+    cout << "\n=== Test: RW-Only + Combined SRP+Drag Dynamics Hessians ===" << endl;
+
+    Satellite sat = createRWOnlySatelliteWithSurfaces();
+    addSRPSurfaces(sat);
+    addDragSurfaces(sat);
+
+    int nx = sat.state_N();
+    int nu = sat.control_N();
+
+    arma::arma_rng::set_seed(60);
+    arma::vec3 w0 = 0.02 * arma::randn(3);
+    arma::vec4 q0 = arma::normalise(arma::vec({1.0, 0.1, 0.1, 0.1}) + 0.1*arma::randn(4));
+    arma::vec x_base = join_cols(w0, q0);
+    arma::vec rw_h = 0.002 * arma::randn(sat.number_RW);
+    arma::vec x = join_cols(x_base, rw_h);
+    arma::vec u = 0.0003 * arma::randn(nu);
+
+    arma::vec3 R_k = 6778.0 * arma::normalise(arma::vec(3, arma::fill::randn));
+    arma::vec3 V_k = 7.67 * arma::normalise(arma::cross(R_k, arma::vec(3, arma::fill::randn)));
+    arma::vec3 S_k = 1.496e8 * arma::normalise(arma::vec(3, arma::fill::randn));
+    arma::vec3 B_k = 3e-5 * arma::normalise(arma::vec(3, arma::fill::randn));
+    double rho = 1e-12;
+
+    DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(B_k, R_k, 0, V_k, S_k, 1, rho);
+
+    auto hess = sat.dynamicsHessians(x, u, dynamics_info);
+    arma::cube Hxx_analytic = std::get<0>(hess);
+
+    double eps = 1e-5;
+    auto jacs0 = sat.dynamicsJacobians(x, u, dynamics_info);
+    arma::mat Jx0 = std::get<0>(jacs0);
+
+    arma::cube Hxx_fd(nx, nx, nx, arma::fill::zeros);
+    for(int i = 0; i < nx; i++) {
+        arma::vec x_pert = x;
+        x_pert(i) += eps;
+        auto jacs_pert = sat.dynamicsJacobians(x_pert, u, dynamics_info);
+        arma::mat Jx_pert = std::get<0>(jacs_pert);
+        for(int j = 0; j < nx; j++) {
+            for(int k = 0; k < nx; k++) {
+                Hxx_fd(i, j, k) = (Jx_pert(k, j) - Jx0(k, j)) / eps;
+            }
+        }
+    }
+
+    double Hxx_error = 0.0;
+    double Hxx_norm = 0.0;
+    for(int k = 0; k < nx; k++) {
+        Hxx_error += arma::norm(Hxx_analytic.slice(k) - Hxx_fd.slice(k), "fro");
+        Hxx_norm += arma::norm(Hxx_fd.slice(k), "fro");
+    }
+    double Hxx_rel_error = Hxx_error / (Hxx_norm + 1e-10);
+
+    cout << "  RW+Combined Hxx error (abs): " << Hxx_error << ", (rel): " << Hxx_rel_error << endl;
+
+    CHECK(Hxx_rel_error < 1e-2);
+}
+
+// ============================================================================
+// RW CONSTRAINT JACOBIAN AND HESSIAN TESTS
+// ============================================================================
+
+// ============================================================================
+// TEST: RW-only constraint Jacobians (AV constraint)
+// ============================================================================
+TEST_CASE("RW-only satellite constraint Jacobians match finite differences", "[satellite][jacobian][constraint][rw]") {
+    cout << "\n=== Test: RW-Only Satellite Constraint Jacobians ===" << endl;
+
+    Satellite sat = createRWOnlySatellite();
+    sat.set_AV_constraint(0.1);  // Angular velocity constraint
+
+    int nx = sat.state_N();
+    int nxr = sat.reduced_state_N();
+    int nu = sat.control_N();
+    int nc = sat.constraint_N();
+    int N = 10;
+    int k = 5;
+
+    cout << "  RW-only config: nx=" << nx << ", nu=" << nu << ", nc=" << nc << endl;
+
+    arma::arma_rng::set_seed(61);
+    arma::vec3 w0 = 0.05 * arma::randn(3);
+    arma::vec4 q0 = arma::normalise(arma::vec({1.0, 0.1, 0.1, 0.1}) + 0.1*arma::randn(4));
+    arma::vec x_base = join_cols(w0, q0);
+    arma::vec rw_h = 0.005 * arma::randn(sat.number_RW);
+    arma::vec x = join_cols(x_base, rw_h);
+    arma::vec u = 0.0005 * arma::randn(nu);
+    arma::vec3 sun = arma::normalise(arma::vec({1.0, 0.5, 0.2}));
+
+    auto jacs = sat.constraintJacobians(k, N, u, x, sun);
+    arma::mat Jcu_analytic = std::get<0>(jacs);
+    arma::mat Jcx_analytic = std::get<1>(jacs);
+
+    arma::vec c0 = sat.getConstraints(k, N, u, x, sun);
+
+    double eps = 1e-7;
+    arma::mat Jcu_fd(nc, nu, arma::fill::zeros);
+    for(int i = 0; i < nu; i++) {
+        arma::vec u_pert = u;
+        u_pert(i) += eps;
+        arma::vec c_pert = sat.getConstraints(k, N, u_pert, x, sun);
+        Jcu_fd.col(i) = (c_pert - c0) / eps;
+    }
+
+    // Perturb angular velocity part of state
+    arma::mat Jcx_av_fd(nc, 3, arma::fill::zeros);
+    for(int i = 0; i < 3; i++) {
+        arma::vec x_pert = x;
+        x_pert(sat.avindex0() + i) += eps;
+        arma::vec c_pert = sat.getConstraints(k, N, u, x_pert, sun);
+        Jcx_av_fd.col(i) = (c_pert - c0) / eps;
+    }
+
+    // Perturb RW momentum part of state (RW states start at index 7 = quat0index + 4)
+    int rw_start_idx = 7;  // After w (0-2) and q (3-6)
+    arma::mat Jcx_rw_fd(nc, sat.number_RW, arma::fill::zeros);
+    for(int i = 0; i < sat.number_RW; i++) {
+        arma::vec x_pert = x;
+        x_pert(rw_start_idx + i) += eps;
+        arma::vec c_pert = sat.getConstraints(k, N, u, x_pert, sun);
+        Jcx_rw_fd.col(i) = (c_pert - c0) / eps;
+    }
+
+    double Jcu_error = arma::norm(Jcu_analytic - Jcu_fd, "fro");
+    double Jcu_rel_error = Jcu_error / (arma::norm(Jcu_fd, "fro") + 1e-10);
+
+    double Jcx_av_error = arma::norm(Jcx_analytic.cols(0, 2) - Jcx_av_fd, "fro");
+    double Jcx_av_rel_error = Jcx_av_error / (arma::norm(Jcx_av_fd, "fro") + 1e-10);
+
+    cout << "  Jcu error (abs): " << Jcu_error << ", (rel): " << Jcu_rel_error << endl;
+    cout << "  Jcx (AV part) error (abs): " << Jcx_av_error << ", (rel): " << Jcx_av_rel_error << endl;
+
+    CHECK(Jcu_rel_error < 1e-4);
+    CHECK(Jcx_av_rel_error < 1e-4);
+}
+
+// ============================================================================
+// TEST: RW-only constraint Hessians
+// ============================================================================
+TEST_CASE("RW-only satellite constraint Hessians match finite differences", "[satellite][hessian][constraint][rw]") {
+    cout << "\n=== Test: RW-Only Satellite Constraint Hessians ===" << endl;
+
+    Satellite sat = createRWOnlySatellite();
+    sat.set_AV_constraint(0.2);
+
+    int nx = sat.state_N();
+    int nxr = sat.reduced_state_N();
+    int nu = sat.control_N();
+    int nc = sat.constraint_N();
+    int N = 10;
+    int k = 5;
+
+    cout << "  RW-only: nx=" << nx << ", nu=" << nu << ", nc=" << nc << endl;
+
+    arma::arma_rng::set_seed(62);
+    arma::vec3 w0 = 0.02 * arma::randn(3);
+    arma::vec4 q0 = arma::normalise(arma::vec({1.0, 0.1, 0.1, 0.1}) + 0.1*arma::randn(4));
+    arma::vec x_base = join_cols(w0, q0);
+    arma::vec rw_h = 0.005 * arma::randn(sat.number_RW);
+    arma::vec x = join_cols(x_base, rw_h);
+    arma::vec u = 0.0005 * arma::randn(nu);
+    arma::vec3 sun = arma::normalise(arma::vec({1.0, 0.5, 0.2}));
+
+    auto hess = sat.constraintHessians(k, N, u, x, sun);
+    arma::cube Hcuu_analytic = std::get<0>(hess);
+
+    auto jacs0 = sat.constraintJacobians(k, N, u, x, sun);
+    arma::mat Jcu0 = std::get<0>(jacs0);
+
+    double eps = 1e-5;
+    arma::cube Hcuu_fd(nu, nu, nc, arma::fill::zeros);
+    for(int i = 0; i < nu; i++) {
+        arma::vec u_pert = u;
+        u_pert(i) += eps;
+        auto jacs_pert = sat.constraintJacobians(k, N, u_pert, x, sun);
+        arma::mat Jcu_pert = std::get<0>(jacs_pert);
+        for(int j = 0; j < nc; j++) {
+            Hcuu_fd.slice(j).col(i) = (Jcu_pert.row(j).t() - Jcu0.row(j).t()) / eps;
+        }
+    }
+
+    double Hcuu_error = 0.0;
+    double Hcuu_norm = 0.0;
+    for(int i = 0; i < nc; i++) {
+        Hcuu_error += arma::norm(Hcuu_analytic.slice(i) - Hcuu_fd.slice(i), "fro");
+        Hcuu_norm += arma::norm(Hcuu_fd.slice(i), "fro");
+    }
+    double Hcuu_rel_error = Hcuu_error / (Hcuu_norm + 1e-10);
+
+    cout << "  Hcuu error (abs): " << Hcuu_error << ", (rel): " << Hcuu_rel_error << endl;
+
+    CHECK(Hcuu_rel_error < 0.1);
+}
+
+// ============================================================================
+// TEST: RW-only cost Jacobians (veccostJacobians)
+// ============================================================================
+TEST_CASE("RW-only satellite veccostJacobians matches finite differences", "[satellite][jacobian][cost][rw]") {
+    cout << "\n=== Test: RW-Only veccostJacobians Verification ===" << endl;
+
+    Satellite sat = createRWOnlySatellite();
+    int nx = sat.state_N();
+    int nu = sat.control_N();
+    int nxr = sat.reduced_state_N();
+
+    arma::arma_rng::set_seed(63);
+
+    int N = 20;
+    int k = 10;
+
+    arma::vec3 w0 = 0.03 * arma::randn(3);
+    arma::vec4 q0 = arma::normalise(arma::vec({1.0, 0.1, 0.1, 0.1}) + 0.1*arma::randn(4));
+    arma::vec x_base = join_cols(w0, q0);
+    arma::vec rw_h = 0.002 * arma::randn(sat.number_RW);
+    arma::vec x = join_cols(x_base, rw_h);
+    x = sat.state_norm(x);
+
+    arma::vec u = 0.0003 * arma::randn(nu);
+    arma::vec u_prev = 0.9 * u + 0.00001 * arma::randn(nu);
+
+    arma::vec3 satvec = arma::normalise(arma::vec({0, 0, 1}));
+    arma::vec3 ECIvec = arma::normalise(arma::vec({1, 0, 0}));
+    arma::vec3 B_eci = arma::vec({1e-5, 3e-5, 2e-5});
+
+    COST_SETTINGS_FORM costSettings = std::make_tuple(
+        1e2, 1e1, 1.0, 0.0, 0.0,
+        1e3, 1e2, 0.0, 0.0,
+        2, 0, 0
+    );
+
+    cost_jacs jacs = sat.veccostJacobians(k, N, x, u, u_prev, satvec, ECIvec, B_eci, &costSettings);
+    double c0 = sat.stepcost_vec(k, N, x, u, u_prev, satvec, ECIvec, B_eci, &costSettings);
+
+    double eps = 1e-7;
+    arma::vec lu_fd(nu);
+    for(int i = 0; i < nu; i++) {
+        arma::vec u_pert = u;
+        u_pert(i) += eps;
+        double c_pert = sat.stepcost_vec(k, N, x, u_pert, u_prev, satvec, ECIvec, B_eci, &costSettings);
+        lu_fd(i) = (c_pert - c0) / eps;
+    }
+
+    double lu_error = arma::norm(jacs.lu - lu_fd);
+    double lu_rel_error = lu_error / (arma::norm(lu_fd) + 1e-10);
+
+    cout << "  RW-only lu error (abs): " << lu_error << ", (rel): " << lu_rel_error << endl;
+    CHECK(lu_rel_error < 1e-3);
+
+    // Finite difference for luu
+    double eps_hess = 1e-5;
+    arma::mat luu_fd(nu, nu);
+    for(int i = 0; i < nu; i++) {
+        arma::vec u_pert = u;
+        u_pert(i) += eps_hess;
+        cost_jacs jacs_pert = sat.veccostJacobians(k, N, x, u_pert, u_prev, satvec, ECIvec, B_eci, &costSettings);
+        luu_fd.col(i) = (jacs_pert.lu - jacs.lu) / eps_hess;
+    }
+
+    double luu_error = arma::norm(jacs.luu - luu_fd, "fro");
+    double luu_rel_error = luu_error / (arma::norm(luu_fd, "fro") + 1e-10);
+
+    cout << "  RW-only luu error (abs): " << luu_error << ", (rel): " << luu_rel_error << endl;
+    CHECK(luu_rel_error < 1e-2);
+}
+
+// ============================================================================
+// TEST: RW-only cost Jacobians (quatcostJacobians)
+// ============================================================================
+TEST_CASE("RW-only satellite quatcostJacobians matches finite differences", "[satellite][jacobian][cost][rw]") {
+    cout << "\n=== Test: RW-Only quatcostJacobians Verification ===" << endl;
+
+    Satellite sat = createRWOnlySatellite();
+    int nx = sat.state_N();
+    int nu = sat.control_N();
+
+    arma::arma_rng::set_seed(64);
+
+    int N = 20;
+    int k = 10;
+
+    arma::vec3 w0 = 0.03 * arma::randn(3);
+    arma::vec4 q0 = arma::normalise(arma::vec({1.0, 0.1, 0.1, 0.1}) + 0.1*arma::randn(4));
+    arma::vec x_base = join_cols(w0, q0);
+    arma::vec rw_h = 0.002 * arma::randn(sat.number_RW);
+    arma::vec x = join_cols(x_base, rw_h);
+    x = sat.state_norm(x);
+
+    arma::vec u = 0.0003 * arma::randn(nu);
+    arma::vec u_prev = 0.9 * u + 0.00001 * arma::randn(nu);
+
+    arma::vec3 satvec = arma::normalise(arma::vec({0, 0, 1}));
+    arma::vec4 ECIquat = arma::normalise(arma::vec({1, 0, 0, 0}));
+    arma::vec3 B_eci = arma::vec({1e-5, 3e-5, 2e-5});
+
+    COST_SETTINGS_FORM costSettings = std::make_tuple(
+        1e2, 1e1, 1.0, 0.0, 0.0,
+        1e3, 1e2, 0.0, 0.0,
+        2, 0, 0
+    );
+
+    cost_jacs jacs = sat.quatcostJacobians(k, N, x, u, u_prev, satvec, ECIquat, B_eci, &costSettings);
+    double c0 = sat.stepcost_quat(k, N, x, u, u_prev, satvec, ECIquat, B_eci, &costSettings);
+
+    double eps = 1e-7;
+    arma::vec lu_fd(nu);
+    for(int i = 0; i < nu; i++) {
+        arma::vec u_pert = u;
+        u_pert(i) += eps;
+        double c_pert = sat.stepcost_quat(k, N, x, u_pert, u_prev, satvec, ECIquat, B_eci, &costSettings);
+        lu_fd(i) = (c_pert - c0) / eps;
+    }
+
+    double lu_error = arma::norm(jacs.lu - lu_fd);
+    double lu_rel_error = lu_error / (arma::norm(lu_fd) + 1e-10);
+
+    cout << "  RW-only quat lu error (abs): " << lu_error << ", (rel): " << lu_rel_error << endl;
+    CHECK(lu_rel_error < 2e-3);  // Slightly looser for RW-only
+}
+
+// ============================================================================
+// TEST: Single RW constraint Jacobians
+// ============================================================================
+TEST_CASE("Single RW satellite constraint Jacobians match finite differences", "[satellite][jacobian][constraint][rw][single]") {
+    cout << "\n=== Test: Single RW Satellite Constraint Jacobians ===" << endl;
+
+    Satellite sat = Satellite();
+    sat.change_Jcom(arma::diagmat(arma::vec({0.05, 0.06, 0.055})));
+    sat.add_RW(arma::vec({0,0,1}), 1e-5, 0.001, 0.01, 1.0, 0.1, 0.005, 0.0, 0.001);
+    sat.set_AV_constraint(0.1);
+
+    int nx = sat.state_N();
+    int nu = sat.control_N();
+    int nc = sat.constraint_N();
+    int N = 10;
+    int k = 5;
+
+    cout << "  Single RW: nx=" << nx << ", nu=" << nu << ", nc=" << nc << endl;
+
+    arma::arma_rng::set_seed(65);
+    arma::vec3 w0 = 0.05 * arma::randn(3);
+    arma::vec4 q0 = arma::normalise(arma::vec({1.0, 0.1, 0.1, 0.1}) + 0.1*arma::randn(4));
+    arma::vec x_base = join_cols(w0, q0);
+    arma::vec rw_h = 0.005 * arma::randn(sat.number_RW);
+    arma::vec x = join_cols(x_base, rw_h);
+    arma::vec u = 0.0005 * arma::randn(nu);
+    arma::vec3 sun = arma::normalise(arma::vec({1.0, 0.5, 0.2}));
+
+    auto jacs = sat.constraintJacobians(k, N, u, x, sun);
+    arma::mat Jcu_analytic = std::get<0>(jacs);
+
+    arma::vec c0 = sat.getConstraints(k, N, u, x, sun);
+
+    double eps = 1e-7;
+    arma::mat Jcu_fd(nc, nu, arma::fill::zeros);
+    for(int i = 0; i < nu; i++) {
+        arma::vec u_pert = u;
+        u_pert(i) += eps;
+        arma::vec c_pert = sat.getConstraints(k, N, u_pert, x, sun);
+        Jcu_fd.col(i) = (c_pert - c0) / eps;
+    }
+
+    double Jcu_error = arma::norm(Jcu_analytic - Jcu_fd, "fro");
+    double Jcu_rel_error = Jcu_error / (arma::norm(Jcu_fd, "fro") + 1e-10);
+
+    cout << "  Single RW Jcu error (abs): " << Jcu_error << ", (rel): " << Jcu_rel_error << endl;
+
+    CHECK(Jcu_rel_error < 1e-4);
+}
+
+// ============================================================================
+// TEST: Single RW cost Jacobians
+// ============================================================================
+TEST_CASE("Single RW satellite veccostJacobians matches finite differences", "[satellite][jacobian][cost][rw][single]") {
+    cout << "\n=== Test: Single RW veccostJacobians Verification ===" << endl;
+
+    Satellite sat = Satellite();
+    sat.change_Jcom(arma::diagmat(arma::vec({0.05, 0.06, 0.055})));
+    sat.add_RW(arma::vec({0,0,1}), 1e-5, 0.001, 0.01, 1.0, 0.1, 0.005, 0.0, 0.001);
+
+    int nx = sat.state_N();
+    int nu = sat.control_N();
+
+    arma::arma_rng::set_seed(66);
+
+    int N = 20;
+    int k = 10;
+
+    arma::vec3 w0 = 0.03 * arma::randn(3);
+    arma::vec4 q0 = arma::normalise(arma::vec({1.0, 0.1, 0.1, 0.1}) + 0.1*arma::randn(4));
+    arma::vec x_base = join_cols(w0, q0);
+    arma::vec rw_h = 0.002 * arma::randn(sat.number_RW);
+    arma::vec x = join_cols(x_base, rw_h);
+    x = sat.state_norm(x);
+
+    arma::vec u = 0.0003 * arma::randn(nu);
+    arma::vec u_prev = 0.9 * u + 0.00001 * arma::randn(nu);
+
+    arma::vec3 satvec = arma::normalise(arma::vec({0, 0, 1}));
+    arma::vec3 ECIvec = arma::normalise(arma::vec({1, 0, 0}));
+    arma::vec3 B_eci = arma::vec({1e-5, 3e-5, 2e-5});
+
+    COST_SETTINGS_FORM costSettings = std::make_tuple(
+        1e2, 1e1, 1.0, 0.0, 0.0,
+        1e3, 1e2, 0.0, 0.0,
+        2, 0, 0
+    );
+
+    cost_jacs jacs = sat.veccostJacobians(k, N, x, u, u_prev, satvec, ECIvec, B_eci, &costSettings);
+    double c0 = sat.stepcost_vec(k, N, x, u, u_prev, satvec, ECIvec, B_eci, &costSettings);
+
+    double eps = 1e-7;
+    arma::vec lu_fd(nu);
+    for(int i = 0; i < nu; i++) {
+        arma::vec u_pert = u;
+        u_pert(i) += eps;
+        double c_pert = sat.stepcost_vec(k, N, x, u_pert, u_prev, satvec, ECIvec, B_eci, &costSettings);
+        lu_fd(i) = (c_pert - c0) / eps;
+    }
+
+    double lu_error = arma::norm(jacs.lu - lu_fd);
+    double lu_rel_error = lu_error / (arma::norm(lu_fd) + 1e-10);
+
+    cout << "  Single RW lu error (abs): " << lu_error << ", (rel): " << lu_rel_error << endl;
+    CHECK(lu_rel_error < 2e-2);  // Single RW has less averaging, higher relative error
+}
+
+// ============================================================================
+// TEST: RW with momentum constraint Jacobians
+// ============================================================================
+TEST_CASE("RW satellite with momentum constraints Jacobians match finite differences", "[satellite][jacobian][constraint][rw][momentum]") {
+    cout << "\n=== Test: RW with Momentum Constraint Jacobians ===" << endl;
+
+    // Create satellite with RWs that have momentum constraints (high momentum cost)
+    Satellite sat = Satellite();
+    sat.change_Jcom(arma::diagmat(arma::vec({0.05, 0.06, 0.055})));
+    // Add RWs with momentum cost enabled (AM_cost > 0, low AM_cost_threshold)
+    sat.add_RW(arma::vec({1,0,0}), 1e-5, 0.001, 0.01, 1.0, 1.0, 0.002, 0.0, 0.001);
+    sat.add_RW(arma::vec({0,1,0}), 1e-5, 0.001, 0.01, 1.0, 1.0, 0.002, 0.0, 0.001);
+    sat.add_RW(arma::vec({0,0,1}), 1e-5, 0.001, 0.01, 1.0, 1.0, 0.002, 0.0, 0.001);
+    sat.set_AV_constraint(0.2);
+
+    int nx = sat.state_N();
+    int nu = sat.control_N();
+    int nc = sat.constraint_N();
+    int N = 10;
+    int k = 5;
+
+    cout << "  RW with momentum: nx=" << nx << ", nu=" << nu << ", nc=" << nc << endl;
+
+    arma::arma_rng::set_seed(67);
+    arma::vec3 w0 = 0.02 * arma::randn(3);
+    arma::vec4 q0 = arma::normalise(arma::vec({1.0, 0.1, 0.1, 0.1}) + 0.1*arma::randn(4));
+    arma::vec x_base = join_cols(w0, q0);
+    // Higher RW momentum to trigger momentum cost
+    arma::vec rw_h = 0.008 * arma::randn(sat.number_RW);
+    arma::vec x = join_cols(x_base, rw_h);
+    arma::vec u = 0.0005 * arma::randn(nu);
+    arma::vec3 sun = arma::normalise(arma::vec({1.0, 0.5, 0.2}));
+
+    auto jacs = sat.constraintJacobians(k, N, u, x, sun);
+    arma::mat Jcu_analytic = std::get<0>(jacs);
+    arma::mat Jcx_analytic = std::get<1>(jacs);
+
+    arma::vec c0 = sat.getConstraints(k, N, u, x, sun);
+
+    double eps = 1e-7;
+    arma::mat Jcu_fd(nc, nu, arma::fill::zeros);
+    for(int i = 0; i < nu; i++) {
+        arma::vec u_pert = u;
+        u_pert(i) += eps;
+        arma::vec c_pert = sat.getConstraints(k, N, u_pert, x, sun);
+        Jcu_fd.col(i) = (c_pert - c0) / eps;
+    }
+
+    double Jcu_error = arma::norm(Jcu_analytic - Jcu_fd, "fro");
+    double Jcu_rel_error = Jcu_error / (arma::norm(Jcu_fd, "fro") + 1e-10);
+
+    cout << "  Momentum Jcu error (abs): " << Jcu_error << ", (rel): " << Jcu_rel_error << endl;
+
+    CHECK(Jcu_rel_error < 1e-4);
+}
+
+// ============================================================================
+// TEST: RW cost with stiction penalty Jacobians
+// ============================================================================
+TEST_CASE("RW satellite cost with stiction penalty Jacobians match finite differences", "[satellite][jacobian][cost][rw][stiction]") {
+    cout << "\n=== Test: RW Cost with Stiction Penalty Jacobians ===" << endl;
+
+    // Create satellite with RWs that have stiction cost enabled
+    Satellite sat = Satellite();
+    sat.change_Jcom(arma::diagmat(arma::vec({0.05, 0.06, 0.055})));
+    // stiction_cost=1.0, stiction_threshold=0.002 (near zero crossing)
+    sat.add_RW(arma::vec({1,0,0}), 1e-5, 0.001, 0.01, 1.0, 0.1, 0.005, 1.0, 0.002);
+    sat.add_RW(arma::vec({0,1,0}), 1e-5, 0.001, 0.01, 1.0, 0.1, 0.005, 1.0, 0.002);
+    sat.add_RW(arma::vec({0,0,1}), 1e-5, 0.001, 0.01, 1.0, 0.1, 0.005, 1.0, 0.002);
+
+    int nx = sat.state_N();
+    int nu = sat.control_N();
+
+    arma::arma_rng::set_seed(68);
+
+    int N = 20;
+    int k = 10;
+
+    arma::vec3 w0 = 0.03 * arma::randn(3);
+    arma::vec4 q0 = arma::normalise(arma::vec({1.0, 0.1, 0.1, 0.1}) + 0.1*arma::randn(4));
+    arma::vec x_base = join_cols(w0, q0);
+    // Small RW momentum to trigger stiction cost
+    arma::vec rw_h = 0.001 * arma::randn(sat.number_RW);
+    arma::vec x = join_cols(x_base, rw_h);
+    x = sat.state_norm(x);
+
+    arma::vec u = 0.0003 * arma::randn(nu);
+    arma::vec u_prev = 0.9 * u + 0.00001 * arma::randn(nu);
+
+    arma::vec3 satvec = arma::normalise(arma::vec({0, 0, 1}));
+    arma::vec3 ECIvec = arma::normalise(arma::vec({1, 0, 0}));
+    arma::vec3 B_eci = arma::vec({1e-5, 3e-5, 2e-5});
+
+    COST_SETTINGS_FORM costSettings = std::make_tuple(
+        1e2, 1e1, 1.0, 0.0, 0.0,
+        1e3, 1e2, 0.0, 0.0,
+        2, 0, 0
+    );
+
+    cost_jacs jacs = sat.veccostJacobians(k, N, x, u, u_prev, satvec, ECIvec, B_eci, &costSettings);
+    double c0 = sat.stepcost_vec(k, N, x, u, u_prev, satvec, ECIvec, B_eci, &costSettings);
+
+    double eps = 1e-7;
+    arma::vec lu_fd(nu);
+    for(int i = 0; i < nu; i++) {
+        arma::vec u_pert = u;
+        u_pert(i) += eps;
+        double c_pert = sat.stepcost_vec(k, N, x, u_pert, u_prev, satvec, ECIvec, B_eci, &costSettings);
+        lu_fd(i) = (c_pert - c0) / eps;
+    }
+
+    double lu_error = arma::norm(jacs.lu - lu_fd);
+    double lu_rel_error = lu_error / (arma::norm(lu_fd) + 1e-10);
+
+    cout << "  Stiction cost lu error (abs): " << lu_error << ", (rel): " << lu_rel_error << endl;
+    CHECK(lu_rel_error < 1e-2);  // Stiction penalty involves smoothstep, slightly less precise
+
+    // Verify luu
+    double eps_hess = 1e-5;
+    arma::mat luu_fd(nu, nu);
+    for(int i = 0; i < nu; i++) {
+        arma::vec u_pert = u;
+        u_pert(i) += eps_hess;
+        cost_jacs jacs_pert = sat.veccostJacobians(k, N, x, u_pert, u_prev, satvec, ECIvec, B_eci, &costSettings);
+        luu_fd.col(i) = (jacs_pert.lu - jacs.lu) / eps_hess;
+    }
+
+    double luu_error = arma::norm(jacs.luu - luu_fd, "fro");
+    double luu_rel_error = luu_error / (arma::norm(luu_fd, "fro") + 1e-10);
+
+    cout << "  Stiction cost luu error (abs): " << luu_error << ", (rel): " << luu_rel_error << endl;
+    CHECK(luu_rel_error < 1e-2);
+}

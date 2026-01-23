@@ -1,0 +1,428 @@
+{
+  "timestamp": "2026-01-23T15:11:16.194847",
+  "results": [
+    {
+      "planner_name": "Eigenaxis+Trapezoidal",
+      "scenario_name": "RestToRest_30deg",
+      "final_angle_error_deg": 0.0,
+      "final_pointing_error_deg": 0.0,
+      "final_omega_error": 0.0,
+      "max_angle_error_deg": 29.999999999999993,
+      "rms_angle_error_deg": 11.562151704498646,
+      "solve_time_seconds": 0.0068955149999965215,
+      "converged": true,
+      "iterations": 1,
+      "control_effort": 0.002,
+      "max_control": 0.00020000000000000004,
+      "smoothness": 1.7421431801603474e-05,
+      "trajectory_duration": 45.0,
+      "max_constraint_violation": 0.0,
+      "control_limit_violations": 0,
+      "solver_info": {
+        "eigenaxis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "rotation_angle_deg": 29.999999999999996,
+        "omega_peak": 0.05,
+        "t_accel": 5.0,
+        "t_coast": 5.471975511965976,
+        "t_decel": 5.0,
+        "final_angle_error_deg": 0.0,
+        "final_omega_error": 0.0
+      }
+    },
+    {
+      "planner_name": "Polynomial-5",
+      "scenario_name": "RestToRest_30deg",
+      "final_angle_error_deg": 0.0,
+      "final_pointing_error_deg": 0.0,
+      "final_omega_error": 7.894919286223336e-17,
+      "max_angle_error_deg": 29.999999999999993,
+      "rms_angle_error_deg": 18.83387412582352,
+      "solve_time_seconds": 0.006136248999609961,
+      "converged": true,
+      "iterations": 1,
+      "control_effort": 0.0008718029478211139,
+      "max_control": 2.9793762570243043e-05,
+      "smoothness": 1.2081263072146711e-06,
+      "trajectory_duration": 45.0,
+      "max_constraint_violation": 0.0,
+      "control_limit_violations": 0,
+      "solver_info": {
+        "eigenaxis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "rotation_angle_deg": 29.999999999999996,
+        "maneuver_time": 45.0,
+        "poly_order": 5,
+        "max_omega": 0.02179507369552784,
+        "max_alpha": 0.0014896881285121522,
+        "final_angle_error_deg": 0.0,
+        "final_omega_error": 7.894919286223336e-17,
+        "coefficients": [
+          0.0,
+          0.0,
+          0.0,
+          5.235987755982978,
+          -7.853981633974469,
+          3.1415926535897873
+        ]
+      }
+    },
+    {
+      "planner_name": "Polynomial-7",
+      "scenario_name": "RestToRest_30deg",
+      "final_angle_error_deg": 0.0,
+      "final_pointing_error_deg": 0.0,
+      "final_omega_error": 9.473903143468002e-16,
+      "max_angle_error_deg": 29.999999999999993,
+      "rms_angle_error_deg": 19.136298817472827,
+      "solve_time_seconds": 0.0071535789993504295,
+      "converged": true,
+      "iterations": 1,
+      "control_effort": 0.0010186102590344164,
+      "max_control": 3.876144675378402e-05,
+      "smoothness": 1.5837567337813426e-06,
+      "trajectory_duration": 45.0,
+      "max_constraint_violation": 0.0,
+      "control_limit_violations": 0,
+      "solver_info": {
+        "eigenaxis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "rotation_angle_deg": 29.999999999999996,
+        "maneuver_time": 45.0,
+        "poly_order": 7,
+        "max_omega": 0.02541502914553294,
+        "max_alpha": 0.001938072337689201,
+        "final_angle_error_deg": 0.0,
+        "final_omega_error": 9.473903143468002e-16,
+        "coefficients": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          18.325957145939697,
+          -43.98229715025529,
+          36.651914291879415,
+          -10.471975511965548
+        ]
+      }
+    },
+    {
+      "planner_name": "ConvexMPC",
+      "scenario_name": "RestToRest_30deg",
+      "final_angle_error_deg": 0.0,
+      "final_pointing_error_deg": 0.0,
+      "final_omega_error": 0.0,
+      "max_angle_error_deg": 29.999999999999993,
+      "rms_angle_error_deg": 14.11528037263302,
+      "solve_time_seconds": 0.5891731880001316,
+      "converged": false,
+      "iterations": 1,
+      "control_effort": 0.0,
+      "max_control": 0.0,
+      "smoothness": 0.0,
+      "trajectory_duration": 45.0,
+      "max_constraint_violation": 0.0,
+      "control_limit_violations": 0,
+      "solver_info": {
+        "final_angle_error_deg": 0.0,
+        "final_omega_error": 0.0,
+        "mpc_horizon": 30,
+        "n_linearization_iters": 1,
+        "qp_status": "failed: Problem could not be reduced to a QP, and no conic solvers exist among candidate solvers ({'qp_solvers': ['OSQP'], 'conic_solvers': []})."
+      }
+    },
+    {
+      "planner_name": "SCP",
+      "scenario_name": "RestToRest_30deg",
+      "final_angle_error_deg": 0.0,
+      "final_pointing_error_deg": 0.0,
+      "final_omega_error": 0.0,
+      "max_angle_error_deg": 29.999999999999993,
+      "rms_angle_error_deg": 17.426104750480796,
+      "solve_time_seconds": 5.532200900999669,
+      "converged": false,
+      "iterations": 7,
+      "control_effort": 0.0,
+      "max_control": 0.0,
+      "smoothness": 0.0,
+      "trajectory_duration": 45.0,
+      "max_constraint_violation": 0.0,
+      "control_limit_violations": 0,
+      "solver_info": {
+        "final_angle_error_deg": 0.0,
+        "final_omega_error": 0.0,
+        "scp_iterations": 7,
+        "final_trust_radius": 0.0078125
+      }
+    },
+    {
+      "planner_name": "Eigenaxis+Trapezoidal",
+      "scenario_name": "RestToRest_90deg",
+      "final_angle_error_deg": 0.0,
+      "final_pointing_error_deg": 0.0,
+      "final_omega_error": 0.0,
+      "max_angle_error_deg": 90.0,
+      "rms_angle_error_deg": 35.19422383492443,
+      "solve_time_seconds": 0.017726676000165753,
+      "converged": true,
+      "iterations": 1,
+      "control_effort": 0.002,
+      "max_control": 0.00020000000000000004,
+      "smoothness": 1.2326012776689902e-05,
+      "trajectory_duration": 90.0,
+      "max_constraint_violation": 0.0,
+      "control_limit_violations": 0,
+      "solver_info": {
+        "eigenaxis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "rotation_angle_deg": 90.0,
+        "omega_peak": 0.05,
+        "t_accel": 5.0,
+        "t_coast": 26.41592653589793,
+        "t_decel": 5.0,
+        "final_angle_error_deg": 0.0,
+        "final_omega_error": 0.0
+      }
+    },
+    {
+      "planner_name": "Polynomial-5",
+      "scenario_name": "RestToRest_90deg",
+      "final_angle_error_deg": 0.0,
+      "final_pointing_error_deg": 0.0,
+      "final_omega_error": 7.894919286223336e-17,
+      "max_angle_error_deg": 90.0,
+      "rms_angle_error_deg": 56.41816929807505,
+      "solve_time_seconds": 0.0192048650005745,
+      "converged": true,
+      "iterations": 1,
+      "control_effort": 0.0013083505207542657,
+      "max_control": 2.2392566322615104e-05,
+      "smoothness": 4.6207842320905945e-07,
+      "trajectory_duration": 90.0,
+      "max_constraint_violation": 0.0,
+      "control_limit_violations": 0,
+      "solver_info": {
+        "eigenaxis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "rotation_angle_deg": 90.0,
+        "maneuver_time": 90.0,
+        "poly_order": 5,
+        "max_omega": 0.0327249234748936,
+        "max_alpha": 0.0011196283161307552,
+        "final_angle_error_deg": 0.0,
+        "final_omega_error": 7.894919286223336e-17,
+        "coefficients": [
+          0.0,
+          0.0,
+          0.0,
+          15.707963267948935,
+          -23.561944901923408,
+          9.424777960769363
+        ]
+      }
+    },
+    {
+      "planner_name": "Polynomial-7",
+      "scenario_name": "RestToRest_90deg",
+      "final_angle_error_deg": 0.0,
+      "final_pointing_error_deg": 0.0,
+      "final_omega_error": 6.315935428978669e-16,
+      "max_angle_error_deg": 90.0,
+      "rms_angle_error_deg": 57.33666606932101,
+      "solve_time_seconds": 0.0127573610006948,
+      "converged": true,
+      "iterations": 1,
+      "control_effort": 0.001526785831976423,
+      "max_control": 2.913857566186899e-05,
+      "smoothness": 5.917498664219635e-07,
+      "trajectory_duration": 90.0,
+      "max_constraint_violation": 0.0,
+      "control_limit_violations": 0,
+      "solver_info": {
+        "eigenaxis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "rotation_angle_deg": 90.0,
+        "maneuver_time": 90.0,
+        "poly_order": 7,
+        "max_omega": 0.038179077387374374,
+        "max_alpha": 0.0014569287830934496,
+        "final_angle_error_deg": 0.0,
+        "final_omega_error": 6.315935428978669e-16,
+        "coefficients": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          54.977871437819125,
+          -131.94689145076592,
+          109.95574287563826,
+          -31.41592653589665
+        ]
+      }
+    },
+    {
+      "planner_name": "ConvexMPC",
+      "scenario_name": "RestToRest_90deg",
+      "final_angle_error_deg": 0.0,
+      "final_pointing_error_deg": 0.0,
+      "final_omega_error": 0.0,
+      "max_angle_error_deg": 90.0,
+      "rms_angle_error_deg": 30.242172659074793,
+      "solve_time_seconds": 0.7679061340004409,
+      "converged": false,
+      "iterations": 1,
+      "control_effort": 0.0,
+      "max_control": 0.0,
+      "smoothness": 0.0,
+      "trajectory_duration": 90.0,
+      "max_constraint_violation": 0.0,
+      "control_limit_violations": 0,
+      "solver_info": {
+        "final_angle_error_deg": 0.0,
+        "final_omega_error": 0.0,
+        "mpc_horizon": 30,
+        "n_linearization_iters": 1,
+        "qp_status": "failed: Problem could not be reduced to a QP, and no conic solvers exist among candidate solvers ({'qp_solvers': ['OSQP'], 'conic_solvers': []})."
+      }
+    },
+    {
+      "planner_name": "SCP",
+      "scenario_name": "RestToRest_90deg",
+      "final_angle_error_deg": 0.0,
+      "final_pointing_error_deg": 0.0,
+      "final_omega_error": 0.0,
+      "max_angle_error_deg": 90.0,
+      "rms_angle_error_deg": 52.37827448675542,
+      "solve_time_seconds": 12.009168750999379,
+      "converged": false,
+      "iterations": 7,
+      "control_effort": 0.0,
+      "max_control": 0.0,
+      "smoothness": 0.0,
+      "trajectory_duration": 90.0,
+      "max_constraint_violation": 0.0,
+      "control_limit_violations": 0,
+      "solver_info": {
+        "final_angle_error_deg": 0.0,
+        "final_omega_error": 0.0,
+        "scp_iterations": 7,
+        "final_trust_radius": 0.0078125
+      }
+    }
+  ],
+  "aggregates": {
+    "Eigenaxis+Trapezoidal": {
+      "planner_name": "Eigenaxis+Trapezoidal",
+      "n_runs": 2,
+      "solve_time": {
+        "mean": 0.012311095500081137,
+        "std": 0.005415580500084616,
+        "min": 0.0068955149999965215,
+        "max": 0.017726676000165753
+      },
+      "final_error": {
+        "mean": 0.0,
+        "std": 0.0
+      },
+      "control_effort": {
+        "mean": 0.002,
+        "std": 0.0
+      },
+      "convergence_rate": 1.0
+    },
+    "Polynomial-5": {
+      "planner_name": "Polynomial-5",
+      "n_runs": 2,
+      "solve_time": {
+        "mean": 0.01267055700009223,
+        "std": 0.0065343080004822696,
+        "min": 0.006136248999609961,
+        "max": 0.0192048650005745
+      },
+      "final_error": {
+        "mean": 0.0,
+        "std": 0.0
+      },
+      "control_effort": {
+        "mean": 0.0010900767342876898,
+        "std": 0.00021827378646657592
+      },
+      "convergence_rate": 1.0
+    },
+    "Polynomial-7": {
+      "planner_name": "Polynomial-7",
+      "n_runs": 2,
+      "solve_time": {
+        "mean": 0.009955470000022615,
+        "std": 0.0028018910006721853,
+        "min": 0.0071535789993504295,
+        "max": 0.0127573610006948
+      },
+      "final_error": {
+        "mean": 0.0,
+        "std": 0.0
+      },
+      "control_effort": {
+        "mean": 0.0012726980455054198,
+        "std": 0.0002540877864710033
+      },
+      "convergence_rate": 1.0
+    },
+    "ConvexMPC": {
+      "planner_name": "ConvexMPC",
+      "n_runs": 2,
+      "solve_time": {
+        "mean": 0.6785396610002863,
+        "std": 0.08936647300015466,
+        "min": 0.5891731880001316,
+        "max": 0.7679061340004409
+      },
+      "final_error": {
+        "mean": 0.0,
+        "std": 0.0
+      },
+      "control_effort": {
+        "mean": 0.0,
+        "std": 0.0
+      },
+      "convergence_rate": 0.0
+    },
+    "SCP": {
+      "planner_name": "SCP",
+      "n_runs": 2,
+      "solve_time": {
+        "mean": 8.770684825999524,
+        "std": 3.238483924999855,
+        "min": 5.532200900999669,
+        "max": 12.009168750999379
+      },
+      "final_error": {
+        "mean": 0.0,
+        "std": 0.0
+      },
+      "control_effort": {
+        "mean": 0.0,
+        "std": 0.0
+      },
+      "convergence_rate": 0.0
+    }
+  }
+}

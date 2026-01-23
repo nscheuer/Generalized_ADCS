@@ -1,0 +1,353 @@
+{
+  "timestamp": "2026-01-23T14:36:26.739284",
+  "results": [
+    {
+      "planner_name": "Eigenaxis+Trapezoidal",
+      "scenario_name": "RestToRest_30deg",
+      "final_angle_error_deg": 0.0,
+      "final_omega_error": 0.0,
+      "max_angle_error_deg": 29.999999999999993,
+      "rms_angle_error_deg": 11.562151704498646,
+      "solve_time_seconds": 0.007101688000147988,
+      "converged": true,
+      "iterations": 1,
+      "control_effort": 0.002,
+      "max_control": 0.00020000000000000004,
+      "smoothness": 1.7421431801603474e-05,
+      "trajectory_duration": 45.0,
+      "max_constraint_violation": 0.0,
+      "control_limit_violations": 0,
+      "solver_info": {
+        "eigenaxis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "rotation_angle_deg": 29.999999999999996,
+        "omega_peak": 0.05,
+        "t_accel": 5.0,
+        "t_coast": 5.471975511965976,
+        "t_decel": 5.0,
+        "final_angle_error_deg": 0.0,
+        "final_omega_error": 0.0
+      }
+    },
+    {
+      "planner_name": "Polynomial-5",
+      "scenario_name": "RestToRest_30deg",
+      "final_angle_error_deg": 0.0,
+      "final_omega_error": 7.894919286223336e-17,
+      "max_angle_error_deg": 29.999999999999993,
+      "rms_angle_error_deg": 18.83387412582352,
+      "solve_time_seconds": 0.004932140999699186,
+      "converged": true,
+      "iterations": 1,
+      "control_effort": 0.0008718029478211139,
+      "max_control": 2.9793762570243043e-05,
+      "smoothness": 1.2081263072146711e-06,
+      "trajectory_duration": 45.0,
+      "max_constraint_violation": 0.0,
+      "control_limit_violations": 0,
+      "solver_info": {
+        "eigenaxis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "rotation_angle_deg": 29.999999999999996,
+        "maneuver_time": 45.0,
+        "poly_order": 5,
+        "max_omega": 0.02179507369552784,
+        "max_alpha": 0.0014896881285121522,
+        "final_angle_error_deg": 0.0,
+        "final_omega_error": 7.894919286223336e-17,
+        "coefficients": [
+          0.0,
+          0.0,
+          0.0,
+          5.235987755982978,
+          -7.853981633974469,
+          3.1415926535897873
+        ]
+      }
+    },
+    {
+      "planner_name": "Polynomial-7",
+      "scenario_name": "RestToRest_30deg",
+      "final_angle_error_deg": 0.0,
+      "final_omega_error": 9.473903143468002e-16,
+      "max_angle_error_deg": 29.999999999999993,
+      "rms_angle_error_deg": 19.136298817472827,
+      "solve_time_seconds": 0.005913680000048771,
+      "converged": true,
+      "iterations": 1,
+      "control_effort": 0.0010186102590344164,
+      "max_control": 3.876144675378402e-05,
+      "smoothness": 1.5837567337813426e-06,
+      "trajectory_duration": 45.0,
+      "max_constraint_violation": 0.0,
+      "control_limit_violations": 0,
+      "solver_info": {
+        "eigenaxis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "rotation_angle_deg": 29.999999999999996,
+        "maneuver_time": 45.0,
+        "poly_order": 7,
+        "max_omega": 0.02541502914553294,
+        "max_alpha": 0.001938072337689201,
+        "final_angle_error_deg": 0.0,
+        "final_omega_error": 9.473903143468002e-16,
+        "coefficients": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          18.325957145939697,
+          -43.98229715025529,
+          36.651914291879415,
+          -10.471975511965548
+        ]
+      }
+    },
+    {
+      "planner_name": "ALTRO",
+      "scenario_name": "RestToRest_30deg",
+      "final_angle_error_deg": 30.101362353775485,
+      "final_omega_error": 0.0002358067928563602,
+      "max_angle_error_deg": 30.101362353775485,
+      "rms_angle_error_deg": 30.01067028517532,
+      "solve_time_seconds": 3.738293987000361,
+      "converged": true,
+      "iterations": -1,
+      "control_effort": 6.2273402962868446e-12,
+      "max_control": 0.0003946087461377096,
+      "smoothness": 5.38589206701327e-05,
+      "trajectory_duration": 1.4259639524727419e-08,
+      "max_constraint_violation": 0.0,
+      "control_limit_violations": 0,
+      "solver_info": {
+        "final_angle_error_deg": 30.101362353775485,
+        "final_omega_error": 0.0002358067928563602,
+        "control_effort": 0.019651991134053474,
+        "dt_tp": 10.0,
+        "dt_tvlqr": 1.0
+      }
+    },
+    {
+      "planner_name": "Eigenaxis+Trapezoidal",
+      "scenario_name": "RestToRest_90deg",
+      "final_angle_error_deg": 0.0,
+      "final_omega_error": 0.0,
+      "max_angle_error_deg": 90.0,
+      "rms_angle_error_deg": 35.19422383492443,
+      "solve_time_seconds": 0.014202520999788248,
+      "converged": true,
+      "iterations": 1,
+      "control_effort": 0.002,
+      "max_control": 0.00020000000000000004,
+      "smoothness": 1.2326012776689902e-05,
+      "trajectory_duration": 90.0,
+      "max_constraint_violation": 0.0,
+      "control_limit_violations": 0,
+      "solver_info": {
+        "eigenaxis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "rotation_angle_deg": 90.0,
+        "omega_peak": 0.05,
+        "t_accel": 5.0,
+        "t_coast": 26.41592653589793,
+        "t_decel": 5.0,
+        "final_angle_error_deg": 0.0,
+        "final_omega_error": 0.0
+      }
+    },
+    {
+      "planner_name": "Polynomial-5",
+      "scenario_name": "RestToRest_90deg",
+      "final_angle_error_deg": 0.0,
+      "final_omega_error": 7.894919286223336e-17,
+      "max_angle_error_deg": 90.0,
+      "rms_angle_error_deg": 56.41816929807505,
+      "solve_time_seconds": 0.011099580000518472,
+      "converged": true,
+      "iterations": 1,
+      "control_effort": 0.0013083505207542657,
+      "max_control": 2.2392566322615104e-05,
+      "smoothness": 4.6207842320905945e-07,
+      "trajectory_duration": 90.0,
+      "max_constraint_violation": 0.0,
+      "control_limit_violations": 0,
+      "solver_info": {
+        "eigenaxis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "rotation_angle_deg": 90.0,
+        "maneuver_time": 90.0,
+        "poly_order": 5,
+        "max_omega": 0.0327249234748936,
+        "max_alpha": 0.0011196283161307552,
+        "final_angle_error_deg": 0.0,
+        "final_omega_error": 7.894919286223336e-17,
+        "coefficients": [
+          0.0,
+          0.0,
+          0.0,
+          15.707963267948935,
+          -23.561944901923408,
+          9.424777960769363
+        ]
+      }
+    },
+    {
+      "planner_name": "Polynomial-7",
+      "scenario_name": "RestToRest_90deg",
+      "final_angle_error_deg": 0.0,
+      "final_omega_error": 6.315935428978669e-16,
+      "max_angle_error_deg": 90.0,
+      "rms_angle_error_deg": 57.33666606932101,
+      "solve_time_seconds": 0.010113122999428015,
+      "converged": true,
+      "iterations": 1,
+      "control_effort": 0.001526785831976423,
+      "max_control": 2.913857566186899e-05,
+      "smoothness": 5.917498664219635e-07,
+      "trajectory_duration": 90.0,
+      "max_constraint_violation": 0.0,
+      "control_limit_violations": 0,
+      "solver_info": {
+        "eigenaxis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "rotation_angle_deg": 90.0,
+        "maneuver_time": 90.0,
+        "poly_order": 7,
+        "max_omega": 0.038179077387374374,
+        "max_alpha": 0.0014569287830934496,
+        "final_angle_error_deg": 0.0,
+        "final_omega_error": 6.315935428978669e-16,
+        "coefficients": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          54.977871437819125,
+          -131.94689145076592,
+          109.95574287563826,
+          -31.41592653589665
+        ]
+      }
+    },
+    {
+      "planner_name": "ALTRO",
+      "scenario_name": "RestToRest_90deg",
+      "final_angle_error_deg": 90.00157032097336,
+      "final_omega_error": 0.0001438321779615947,
+      "max_angle_error_deg": 90.01204722575031,
+      "rms_angle_error_deg": 89.99228366905346,
+      "solve_time_seconds": 14.062022854000134,
+      "converged": true,
+      "iterations": -1,
+      "control_effort": 1.1119140319589958e-11,
+      "max_control": 0.0003787774674515124,
+      "smoothness": 4.3726686380614056e-05,
+      "trajectory_duration": 2.8519279021699262e-08,
+      "max_constraint_violation": 0.0,
+      "control_limit_violations": 0,
+      "solver_info": {
+        "final_angle_error_deg": 90.00157032097336,
+        "final_omega_error": 0.0001438321779615947,
+        "control_effort": 0.03508933775614776,
+        "dt_tp": 10.0,
+        "dt_tvlqr": 1.0
+      }
+    }
+  ],
+  "aggregates": {
+    "Eigenaxis+Trapezoidal": {
+      "planner_name": "Eigenaxis+Trapezoidal",
+      "n_runs": 2,
+      "solve_time": {
+        "mean": 0.010652104499968118,
+        "std": 0.0035504164998201304,
+        "min": 0.007101688000147988,
+        "max": 0.014202520999788248
+      },
+      "final_error": {
+        "mean": 0.0,
+        "std": 0.0
+      },
+      "control_effort": {
+        "mean": 0.002,
+        "std": 0.0
+      },
+      "convergence_rate": 1.0
+    },
+    "Polynomial-5": {
+      "planner_name": "Polynomial-5",
+      "n_runs": 2,
+      "solve_time": {
+        "mean": 0.008015860500108829,
+        "std": 0.003083719500409643,
+        "min": 0.004932140999699186,
+        "max": 0.011099580000518472
+      },
+      "final_error": {
+        "mean": 0.0,
+        "std": 0.0
+      },
+      "control_effort": {
+        "mean": 0.0010900767342876898,
+        "std": 0.00021827378646657592
+      },
+      "convergence_rate": 1.0
+    },
+    "Polynomial-7": {
+      "planner_name": "Polynomial-7",
+      "n_runs": 2,
+      "solve_time": {
+        "mean": 0.008013401499738393,
+        "std": 0.002099721499689622,
+        "min": 0.005913680000048771,
+        "max": 0.010113122999428015
+      },
+      "final_error": {
+        "mean": 0.0,
+        "std": 0.0
+      },
+      "control_effort": {
+        "mean": 0.0012726980455054198,
+        "std": 0.0002540877864710033
+      },
+      "convergence_rate": 1.0
+    },
+    "ALTRO": {
+      "planner_name": "ALTRO",
+      "n_runs": 2,
+      "solve_time": {
+        "mean": 8.900158420500247,
+        "std": 5.161864433499886,
+        "min": 3.738293987000361,
+        "max": 14.062022854000134
+      },
+      "final_error": {
+        "mean": 60.05146633737442,
+        "std": 29.950103983598936
+      },
+      "control_effort": {
+        "mean": 8.673240307938401e-12,
+        "std": 2.4459000116515566e-12
+      },
+      "convergence_rate": 1.0
+    }
+  }
+}
