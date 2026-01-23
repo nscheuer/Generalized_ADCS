@@ -1,115 +1,145 @@
-# Paper TODO Tests
+# Paper TODO Tests & Experiments
 
-This directory contains test infrastructure and validation tests organized by paper TODO items.
-These tests verify that the codebase can generate data needed for paper figures and tables.
+This directory contains:
+1. **Pytest tests** - Quick validation that codebase can generate paper data
+2. **Experiment scripts** - Full experiments generating figures, tables, and data for papers
 
-**Total Tests: 90**
-**TODO Coverage: 42 of ~47 testable TODOs (89%)**
+## Directory Structure
+
+```
+paper_todo_tests/
+├── README.md                  # This file
+├── test_todo_*.py            # Quick pytest validation tests
+└── experiments/              # Full experiment scripts
+    ├── README.md
+    ├── run_3p1_architecture_comparison.py
+    ├── run_thesis_monte_carlo.py
+    └── run_lp_vs_qp_comparison.py
+```
 
 ## Quick Start
 
+### For Validation (pytest)
 ```bash
-# Run all paper TODO tests
+# Run all quick tests
 pytest testing/paper_todo_tests/ -v
 
-# Run with pretty output (tables, formatted results)
+# Run with output
 pytest testing/paper_todo_tests/ -v -s
-
-# Quick summary
-pytest testing/paper_todo_tests/ -q
 ```
 
-## Test Files Overview
+### For Paper Figures (experiments)
+```bash
+cd testing/paper_todo_tests/experiments
+
+# Quick test run
+python run_3p1_architecture_comparison.py --quick
+
+# Full paper run with all trials
+python run_thesis_monte_carlo.py --full --output-dir ./paper_figures
+
+# View all options
+python run_lp_vs_qp_comparison.py --help
+```
+
+## Experiment Scripts
+
+### `run_3p1_architecture_comparison.py`
+**For Paper**: 3+1 (3-Magnetorquer, 1-Reaction-Wheel Architecture)
+
+Generates:
+- Table 1: PD Control Monte Carlo Results
+- Table 2: Planner-Enhanced Results
+- Error distribution figures
+- Comparison bar charts
+
+Expected Results:
+| Config | Mean Error | % <1° |
+|--------|------------|-------|
+| 3+0 PD | 21.6° | 15% |
+| 3+1 PD | 2.3° | 73% |
+| 3+1+Planner | 0.05° | 100% |
+| 3+3 PD | 0.24° | 100% |
+
+### `run_thesis_monte_carlo.py`
+**For Paper**: Planner Paper, Thesis Chapter 7
+
+Generates:
+- Single slew comparison (MTQ vs 3+1)
+- Goal formulation impact (6x improvement figure!)
+- Multi-target sequence results
+
+Key Results:
+- Reduced vs Full attitude: 67% vs 11% within 1° (**6x improvement!**)
+- 3+1: 96% within 1°
+- Multi-target mean: 0.45°, median: 0.03°
+
+### `run_lp_vs_qp_comparison.py`
+**For Paper**: Generalized Control Paper (CORE CONTRIBUTION)
+
+Generates:
+- Direction error distributions
+- Closed-loop pointing comparison
+- Lyapunov stability demonstration
+
+Key Finding:
+- LP: 0.0036° direction error → 17.02° final error
+- QP: 33.01° direction error → 25.70° final error
+- **LP wins through direction preservation!**
+
+## Pytest Test Files
 
 | File | Tests | Description |
 |------|-------|-------------|
-| `test_todo_data_computational.py` | 4 | Timing, memory, computational requirements |
-| `test_todo_data_desaturation.py` | 18 | Momentum tracking, desaturation analysis |
-| `test_todo_data_generation.py` | 7 | CubeSat configs, practitioner metrics |
-| `test_todo_data_lp_qp_comparison.py` | 14 | LP vs QP allocation comparison |
-| `test_todo_data_sensitivity.py` | 3 | Parameter sensitivity analysis |
-| `test_todo_data_thruster.py` | 17 | Thruster model validation |
-| `test_todo_fig_generation.py` | 9 | Figure data: polytopes, envelopes, spheres |
-| `test_todo_sim_controller_comparison.py` | 6 | Controller comparison tables |
-| `test_todo_sim_monte_carlo.py` | 4 | Monte Carlo infrastructure |
-| `test_todo_sim_scenarios.py` | 8 | Pointing, tracking, failure response |
+| `test_todo_data_computational.py` | 4 | Timing, memory benchmarks |
+| `test_todo_data_desaturation.py` | 18 | Momentum tracking |
+| `test_todo_data_generation.py` | 7 | CubeSat configs |
+| `test_todo_data_lp_qp_comparison.py` | 14 | LP vs QP allocation |
+| `test_todo_data_sensitivity.py` | 3 | Parameter sensitivity |
+| `test_todo_data_thruster.py` | 17 | Thruster validation |
+| `test_todo_fig_generation.py` | 9 | Figure data generation |
+| `test_todo_sim_controller_comparison.py` | 6 | Controller comparison |
+| `test_todo_sim_monte_carlo.py` | 4 | MC infrastructure |
+| `test_todo_sim_scenarios.py` | 8 | Scenarios testing |
 
-## TODO Coverage by Category
+## Paper Sources
 
-| Category | Covered | Total | Coverage |
-|----------|---------|-------|----------|
-| DATA | 9 | 9 | 100% |
-| SIM | 7 | 7 | 100% |
-| FIG | 6 | 6 | 100% |
-| DAA | 4 | 4 | 100% |
-| DESAT | 5 | 6 | 83% |
-| SMALLSAT | 4 | 5 | 80% |
-| Other | 7 | 10 | 70% |
+The experiment designs come from the TODO sections in:
+- `/mnt/c/Users/LV - Patrick McKeen/Writing/3+1 Ppaer/` - 3+1 Paper
+- `/mnt/c/Users/LV - Patrick McKeen/Writing/Planner paper/` - Planner Paper
+- `/mnt/c/Users/LV - Patrick McKeen/Writing/Generalied Control Paper/` - Gen. Control
+- `/mnt/c/Users/LV - Patrick McKeen/Writing/Package paper/` - Package Paper
+- `/mnt/c/Users/LV - Patrick McKeen/Writing/Dissertation/` - PhD Thesis
 
-**Not testable:** ~15 items (proofs, writing tasks)
+## Output Examples
 
-## Adjustable Parameters
-
-Each test file has parameters at the top for easy modification:
-
-```python
-# Example from test_todo_data_sensitivity.py
-INERTIA_ERROR_RANGE = [-20, -10, -5, 0, 5, 10, 20]  # Percent
-N_TRIALS_PER_CONDITION = 10
-PRETTY_OUTPUT = True
-```
-
-## Pretty Output Examples
-
-When run with `-s`, tests produce formatted tables:
+Running experiments produces:
 
 ```
-══════════════════════════════════════════════════════════════════════
-  TODO-FIG-7: Actuator Failure Response Data
-══════════════════════════════════════════════════════════════════════
-
-  ── Failure Response Summary ──
-  ┌────────────────────┬────────────┬────────────┬─────────────┐
-  │ Scenario           │ Mean α     │ Min α      │ Degradation │
-  ├────────────────────┼────────────┼────────────┼─────────────┤
-  │ No Failure         │     1.0000 │     1.0000 │        0.0% │
-  │ RW-X Fails         │     0.9234 │     0.8567 │        7.7% │
-  │ RW-Y Fails         │     0.9156 │     0.8423 │        8.4% │
-  │ RW-Z Fails         │     0.9312 │     0.8734 │        6.9% │
-  │ MTQ-X Fails        │     0.8945 │     0.7823 │       10.6% │
-  └────────────────────┴────────────┴────────────┴─────────────┘
+output/
+├── fig_error_dist_pd.png       # Error distribution histogram
+├── fig_comparison_pd.png       # Bar chart comparison
+├── fig_goal_formulation.png    # 6x improvement figure
+├── fig_lyapunov_stability.png  # Stability demonstration
+├── table1_pd_results.tex       # LaTeX table for paper
+├── table2_planner_results.tex  # LaTeX table
+└── experiment_data.json        # Raw data for analysis
 ```
 
-## Converting to Paper Figures
+## Integration Notes
 
-Tests generate data structures. To create publication figures:
+The experiment scripts currently use **placeholder simulations** generating
+synthetic data matching thesis expected values. To use real simulations:
 
-1. Run test to generate data
-2. Export data to CSV/pickle
-3. Use matplotlib scripts in `research/paper_figures/`
+1. Replace placeholder functions with actual control loops
+2. Import controllers from `ADCS.controller`
+3. Connect to ALTRO planner
+4. Run actual orbit propagation
 
-Example workflow:
-```python
-# In a script or notebook
-import sys
-sys.path.append('testing/paper_todo_tests')
-from test_todo_fig_generation import TestTorqueEnvelopeData
-
-# Generate data
-test = TestTorqueEnvelopeData()
-# ... access internal data for plotting
-```
+See `experiments/README.md` for integration details.
 
 ## Related Documentation
 
-- `research/TODO_TEST_COVERAGE.md` - Full coverage analysis
+- `research/TODO_TEST_COVERAGE.md` - Coverage analysis
 - `research/PAPER_TODO_FEASIBILITY_ANALYSIS.md` - TODO feasibility
-- `research/THRUSTER_INTEGRATION_ANALYSIS.md` - Thruster integration plan
-
-## Adding New Tests
-
-1. Create file: `test_todo_<category>_<topic>.py`
-2. Add TODO IDs in module docstring
-3. Include adjustable parameters at top
-4. Add `PrettyOutput` class for formatting
-5. Update this README and coverage doc
+- Papers in `/mnt/c/Users/LV - Patrick McKeen/Writing/`
