@@ -188,7 +188,7 @@ def plot_convergence_histogram_mc_compare(
     body_boresight: np.ndarray = np.array([0.0, 0.0, 1.0]),
     title: str = "Final Tracking Error Distribution (Comparison)",
     bin_width_deg: float = 5.0,
-    under_thresh_deg: float = 0.5,
+    under_thresh_deg: float = 1.0,
     label_A: str = "Case A",
     label_B: str = "Case B",
 ) -> Tuple[np.ndarray, np.ndarray]:
