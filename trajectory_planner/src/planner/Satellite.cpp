@@ -968,7 +968,9 @@ double Satellite::stepcost_quat(int k, int N, vec xk, vec uk,vec ukprev, vec3 sa
       angcost = 0.5*as_scalar(qk.t()*WeWeT*qk);
       break;
     case 2:
-      angcost = 0.5*w_ang*dot(angerrvec,angerrvec);
+      // Cayley-like cost: 0.5 * ||qerr_vec||^2 / qerr_scalar^2
+      // Note: w_ang is applied after the switch, so don't include it here
+      angcost = 0.5*dot(angerrvec,angerrvec);
       if(abs(qerr(0))>EPSVAR){
           angcost *= 1.0/(qerr(0)*qerr(0));
         }else if(qerr(0)==0){
@@ -1377,7 +1379,9 @@ cost_jacs  Satellite::quatcostJacobians(int k, int N, vec xk, vec uk,vec ukprev,
       dd_sc_ang = Wq.t()*We*We.t()*Wq - mat33().eye()*dot(qk,We*We.t()*qk);;// - mat33().eye()*dot(qk,We*We.t()*qk);;//mat33().eye();//Wq.t()*We*We.t()*Wq;//mat33().eye();// Wq.t()*We*We.t()*Wq;// - mat33().eye()*dot(qk,We*We.t()*qk);
       break;
     case 2:
-      sc_ang = 0.5*w_ang*dot(angerrvec,angerrvec);
+      // Cayley-like cost: 0.5 * ||qerr_vec||^2 / qerr_scalar^2
+      // Note: w_ang is applied after the switch (state_cost = ... + w_ang*sc_ang)
+      sc_ang = 0.5*dot(angerrvec,angerrvec);
       if(abs(qerr(0))>EPSVAR){
         sc_ang *= 1.0/(qerr(0)*qerr(0));
         d_sc_ang = angerrvec/qerr(0);
