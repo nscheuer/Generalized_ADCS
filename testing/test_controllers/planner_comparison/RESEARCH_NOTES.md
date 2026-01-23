@@ -213,6 +213,23 @@ applied twice in cost function case 2 (Cayley-like formulation):
 After fix:
 - 30° maneuver: 0.000° error in ~4s
 - 90° maneuver: 0.039° error in ~13s
+- 180° maneuver: **Struggles** - Cayley parametrization has singularity at 180°
+
+### Comparison Results (Jan 2026)
+
+| Planner | Solve Time | Error (deg) | Notes |
+|---------|-----------|-------------|-------|
+| Polynomial-5/7 | 6 ± 5 ms | 0.000 | Fastest, perfect |
+| Eigenaxis+Trap | 7 ± 4 ms | 0.002 | Industry baseline |
+| ConvexMPC | 287 ± 100 ms | 0.000 | Real-time capable |
+| SCP | 4.5 ± 2.7 s | 0.000 | Robust but slow |
+| ALTRO | 14 ± 15 s | 11.8* | *180° failures skew mean |
+
+**ALTRO's issues with 180° maneuvers**: The Cayley cost (mode 2) divides by `qerr(0)²` 
+which approaches 0 for 180° rotations, causing cost → infinity. Solutions:
+1. Use a different cost function (mode 0 or 4) for large maneuvers
+2. Limit maneuvers to <170° and chain smaller moves
+3. Add singularity handling in the cost function
 
 ---
 
