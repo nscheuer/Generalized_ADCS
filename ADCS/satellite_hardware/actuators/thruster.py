@@ -2,7 +2,8 @@ __all__ = ["Thruster"]
 
 import numpy as np
 import warnings
-from typing import Optional
+from typing import Optional, Tuple
+from enum import Enum
 
 from ADCS.satellite_hardware.actuators.actuator import Actuator
 from ADCS.satellite_hardware.actuators.bias import Bias
@@ -12,9 +13,47 @@ from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.helpers.math_helpers import normalize, skewsym
 
 
+class MIBBehavior(Enum):
+    """
+    Behavior when commanded thrust is below minimum impulse bit.
+    
+    Physical thrusters have a minimum on-time due to valve dynamics.
+    Commands below this threshold must be handled:
+    
+    - QUANTIZE_TO_ZERO: Command below MIB produces zero thrust (conservative)
+    - QUANTIZE_TO_MIB: Command below MIB produces full MIB pulse (wastes propellant)
+    - ACCUMULATE: Accumulate small commands until MIB is reached (requires state)
+    
+    References
+    ----------
+    .. [1] Wie, B. (2008). Space Vehicle Dynamics and Control (2nd ed.). 
+           AIAA. Section 7.4.2: Thruster Minimum Impulse Bit Effects.
+    """
+    QUANTIZE_TO_ZERO = "zero"
+    QUANTIZE_TO_MIB = "mib"
+    ACCUMULATE = "accumulate"
+
+
+# Global flag to track if thruster integration warning has been shown
+_THRUSTER_INTEGRATION_WARNING_SHOWN = False
+
+
 class Thruster(Actuator):
     r"""
     **Thruster Actuator Model for Attitude Control**
+
+    .. warning::
+        **INTEGRATION STATUS: EXPERIMENTAL**
+        
+        Thruster integration with the control allocation system is not yet complete.
+        The following features need implementation before operational use:
+        
+        1. Control allocation (LP/QP) does not yet support thrusters
+        2. Fuel consumption is tracked but not integrated with mission planning
+        3. Minimum impulse bit effects on closed-loop stability need analysis
+        4. Force effects on translational dynamics are not propagated
+        
+        Use with caution and verify behavior for your specific application.
 
     This class represents a single **thruster** (also called a reaction control system 
     jet or RCS thruster) used for spacecraft attitude control. Thrusters generate torque 
@@ -50,50 +89,32 @@ class Thruster(Actuator):
     where :math:`\mathbf{r}` is the position vector from the spacecraft CoM to the thruster 
     application point in the body frame [m].
 
-    This can be rewritten as:
-
-    .. math::
-
-        \boldsymbol{\tau} = (\mathbf{r} \times \hat{\mathbf{n}}) \cdot F_{\max} \cdot u = \mathbf{a}_{\mathrm{eff}} \cdot u
-
-    where :math:`\mathbf{a}_{\mathrm{eff}} = (\mathbf{r} \times \hat{\mathbf{n}}) \cdot F_{\max}` is the 
-    effective torque axis and magnitude for unit command.
-
-    **Propellant Consumption:**
-
-    Mass flow rate follows the rocket equation [1]_:
-
-    .. math::
-
-        \dot{m} = \frac{F}{I_{sp} \cdot g_0}
-
-    where:
-
-    - :math:`I_{sp}` — Specific impulse [s]
-    - :math:`g_0 = 9.80665` m/s² — Standard gravity
-
     **Minimum Impulse Bit (MIB):**
 
-    Real thrusters have a minimum on-time, leading to a minimum impulse bit [2]_:
+    Real thrusters have a minimum on-time due to valve actuation dynamics [1]_:
 
     .. math::
 
         I_{\min} = F_{\max} \cdot t_{\min}
 
-    This is modeled via the ``min_on_time`` parameter.
+    Commands below this threshold are handled according to ``mib_behavior``:
+    
+    - ``QUANTIZE_TO_ZERO``: No thrust (conservative, may cause limit cycles)
+    - ``QUANTIZE_TO_MIB``: Full MIB pulse (wastes propellant, better tracking)
+    - ``ACCUMULATE``: Integrate small commands until MIB reached (complex)
 
-    **Thruster Types Supported:**
+    **Propellant Consumption:**
 
-    1. **Cold Gas** — Simple, low Isp (~50-80 s), commonly used on CubeSats [3]_
-    2. **Monopropellant** — Hydrazine or "green" propellants, Isp ~200-230 s [4]_
-    3. **Bipropellant** — MMH/NTO or similar, Isp ~290-320 s [5]_
-    4. **Electric (Pulsed)** — Can be modeled with appropriate Isp and thrust
+    Mass flow rate follows the rocket equation [2]_:
+
+    .. math::
+
+        \dot{m} = \frac{F}{I_{sp} \cdot g_0}
 
     Parameters
     ----------
     thrust_direction : np.ndarray
         Unit vector (3,) defining thrust direction in body frame.
-        Will be normalized internally.
     
     position : np.ndarray
         Position vector (3,) from spacecraft CoM to thruster [m].
@@ -102,111 +123,56 @@ class Thruster(Actuator):
         Maximum thrust force [N].
     
     isp : float
-        Specific impulse [s]. Typical values:
-        - Cold gas: 50-80 s
-        - Monopropellant (hydrazine): 220-230 s
-        - Bipropellant: 290-320 s
+        Specific impulse [s].
     
     min_on_time : float, optional
-        Minimum thruster on-time [s], determines minimum impulse bit.
-        Default is 0.0 (ideal thruster).
+        Minimum thruster on-time [s]. Default 0.0 (ideal thruster).
+    
+    mib_behavior : MIBBehavior, optional
+        How to handle commands below MIB. Default QUANTIZE_TO_ZERO.
     
     bidirectional : bool, optional
-        If True, thruster can fire in both directions (u in [-1, 1]).
-        If False, u in [0, 1] only. Default is False.
+        If True, thruster can fire in both directions. Default False.
+    
+    control_dt : float, optional
+        Control loop timestep [s]. Used to convert normalized command to impulse.
+        Default 1.0.
     
     bias : Bias, optional
         Bias model for thrust uncertainty.
     
     noise : Noise, optional
         Noise model for stochastic thrust variations.
-    
-    estimate_bias : bool, optional
-        Whether to include bias in state estimation.
 
     Attributes
     ----------
-    position : np.ndarray
-        Thruster position relative to CoM [m].
-    
-    thrust_direction : np.ndarray
-        Normalized thrust direction in body frame.
-    
-    max_thrust : float
-        Maximum thrust [N].
-    
-    isp : float
-        Specific impulse [s].
-    
-    min_on_time : float
-        Minimum on-time [s].
-    
-    bidirectional : bool
-        Whether bidirectional firing is allowed.
-    
     effective_torque_axis : np.ndarray
-        The direction and magnitude of torque per unit command:
-        :math:`\mathbf{a}_{\mathrm{eff}} = (\mathbf{r} \times \hat{\mathbf{n}}) \cdot F_{\max}`
+        Torque per unit command: :math:`(\mathbf{r} \times \hat{\mathbf{n}}) \cdot F_{\max}`
     
     total_impulse : float
-        Accumulated impulse [N·s] (for propellant tracking).
+        Accumulated impulse [N·s].
     
     total_mass_expended : float
         Accumulated mass expelled [kg].
+    
+    accumulated_command : float
+        For ACCUMULATE mode: integrated sub-MIB commands.
+    
+    firing_count : int
+        Number of thruster firings (for lifetime tracking).
 
     References
     ----------
-    .. [1] Sutton, G. P., & Biblarz, O. (2016). Rocket Propulsion Elements (9th ed.). 
+    .. [1] Wie, B. (2008). Space Vehicle Dynamics and Control (2nd ed.). 
+           AIAA. Section 7.4.2: Thruster Minimum Impulse Bit Effects.
+    
+    .. [2] Sutton, G. P., & Biblarz, O. (2016). Rocket Propulsion Elements (9th ed.). 
            Wiley. Chapter 2: Definitions and Fundamentals.
     
-    .. [2] Wertz, J. R., & Larson, W. J. (1999). Space Mission Analysis and Design 
+    .. [3] Wertz, J. R., & Larson, W. J. (1999). Space Mission Analysis and Design 
            (3rd ed.). Microcosm Press. Section 17.2: Reaction Control Systems.
     
-    .. [3] Lemmer, K. (2017). Propulsion for CubeSats. Acta Astronautica, 134, 231-243.
-           https://doi.org/10.1016/j.actaastro.2017.01.048
-    
-    .. [4] Anflo, K., et al. (2008). Flight demonstration of new thruster and green 
-           propellant technology on the PRISMA satellite. Acta Astronautica, 65(9-10), 
-           1238-1249. https://doi.org/10.1016/j.actaastro.2009.03.056
-    
-    .. [5] Humble, R. W., Henry, G. N., & Larson, W. J. (1995). Space Propulsion 
-           Analysis and Design. McGraw-Hill. Chapter 5: Liquid Rocket Engines.
-
-    Examples
-    --------
-    Create a cold gas thruster for CubeSat attitude control:
-
-    >>> import numpy as np
-    >>> from ADCS.satellite_hardware.actuators import Thruster
-    >>> 
-    >>> # Thruster mounted at corner, firing in +X direction
-    >>> thruster = Thruster(
-    ...     thrust_direction=np.array([1, 0, 0]),
-    ...     position=np.array([0.05, 0.05, 0.05]),  # 5cm from CoM
-    ...     max_thrust=0.1,  # 100 mN cold gas thruster
-    ...     isp=65,          # Cold gas specific impulse
-    ...     min_on_time=0.01  # 10 ms minimum pulse
-    ... )
-    >>> 
-    >>> # Effective torque axis
-    >>> print(f"Torque axis: {thruster.effective_torque_axis}")
-
-    Create a pair of bipropellant thrusters for pitch control:
-
-    >>> thruster_pos = Thruster(
-    ...     thrust_direction=np.array([0, 1, 0]),
-    ...     position=np.array([1.0, 0, 0]),
-    ...     max_thrust=22.0,  # 22 N thruster
-    ...     isp=290,
-    ...     bidirectional=False
-    ... )
-    >>> thruster_neg = Thruster(
-    ...     thrust_direction=np.array([0, -1, 0]),
-    ...     position=np.array([-1.0, 0, 0]),
-    ...     max_thrust=22.0,
-    ...     isp=290,
-    ...     bidirectional=False
-    ... )
+    .. [4] Lemmer, K. (2017). Propulsion for CubeSats. Acta Astronautica, 134, 231-243.
     """
 
     # Standard gravity for mass flow calculation
@@ -219,74 +185,144 @@ class Thruster(Actuator):
         max_thrust: float,
         isp: float,
         min_on_time: float = 0.0,
+        mib_behavior: MIBBehavior = MIBBehavior.QUANTIZE_TO_ZERO,
         bidirectional: bool = False,
+        control_dt: float = 1.0,
         bias: Bias = None,
         noise: Noise = None,
         estimate_bias: bool = False,
     ) -> None:
-        r"""
-        Initialize a thruster actuator.
-
-        Parameters
-        ----------
-        thrust_direction : np.ndarray
-            Thrust direction in body frame (will be normalized).
-        
-        position : np.ndarray
-            Position from CoM to thruster application point [m].
-        
-        max_thrust : float
-            Maximum thrust force [N].
-        
-        isp : float
-            Specific impulse [s].
-        
-        min_on_time : float, optional
-            Minimum on-time [s]. Default 0.0.
-        
-        bidirectional : bool, optional
-            Allow negative commands. Default False.
-        
-        bias : Bias, optional
-            Thrust bias model.
-        
-        noise : Noise, optional
-            Thrust noise model.
-        
-        estimate_bias : bool, optional
-            Include bias in estimation. Default False.
-        """
         # Store thruster-specific parameters
         self.thrust_direction = normalize(thrust_direction)
         self.position = np.asarray(position, dtype=float)
         self.max_thrust = float(max_thrust)
         self.isp = float(isp)
         self.min_on_time = float(min_on_time)
+        self.mib_behavior = mib_behavior
         self.bidirectional = bool(bidirectional)
+        self.control_dt = float(control_dt)
 
         # Compute effective torque axis: τ = r × (n * F_max * u)
-        # For unit command u=1: τ_eff = r × n * F_max
         self.effective_torque_axis = np.cross(self.position, self.thrust_direction) * self.max_thrust
 
-        # Propellant tracking
+        # Propellant and lifetime tracking
         self.total_impulse = 0.0  # [N·s]
         self.total_mass_expended = 0.0  # [kg]
+        self.accumulated_command = 0.0  # For ACCUMULATE mode
+        self.firing_count = 0  # Number of firings
 
-        # The actuator "axis" for the parent class is the effective torque direction
-        # u_max is 1.0 for normalized command
+        # Compute minimum normalized command that produces MIB
+        # MIB = F_max * t_min, so u_min = t_min / control_dt (for one control step)
+        if self.control_dt > 0 and self.min_on_time > 0:
+            self.u_min = self.min_on_time / self.control_dt
+        else:
+            self.u_min = 0.0
+
+        # The actuator "axis" for the parent class
         if np.linalg.norm(self.effective_torque_axis) > 1e-12:
             axis = self.effective_torque_axis
         else:
-            # Thruster aligned with CoM → no torque, but we still need an axis
             axis = self.thrust_direction
         
         super().__init__(
             axis=axis,
-            u_max=1.0,  # Normalized command
+            u_max=1.0,
             bias=bias,
             noise=noise,
             estimate_bias=estimate_bias
         )
+
+    def _issue_integration_warning(self) -> None:
+        """Issue one-time warning about thruster integration status."""
+        global _THRUSTER_INTEGRATION_WARNING_SHOWN
+        if not _THRUSTER_INTEGRATION_WARNING_SHOWN:
+            warnings.warn(
+                "\n" + "="*70 + "\n"
+                "THRUSTER INTEGRATION WARNING\n"
+                "="*70 + "\n"
+                "Thruster actuators are EXPERIMENTAL. Key limitations:\n"
+                "  1. Control allocation (LP/QP) does not yet support thrusters\n"
+                "  2. Fuel consumption not integrated with mission planning\n"
+                "  3. MIB effects on closed-loop stability not fully analyzed\n"
+                "  4. Translational dynamics coupling not implemented\n"
+                "\n"
+                "This warning appears once per session. Verify thruster behavior\n"
+                "carefully for your specific application.\n"
+                "="*70,
+                category=UserWarning,
+                stacklevel=3
+            )
+            _THRUSTER_INTEGRATION_WARNING_SHOWN = True
+
+    def _apply_mib_quantization(self, u: float) -> Tuple[float, bool]:
+        """
+        Apply minimum impulse bit quantization to command.
+        
+        Parameters
+        ----------
+        u : float
+            Raw normalized command.
+        
+        Returns
+        -------
+        u_quantized : float
+            Quantized command after MIB logic.
+        fired : bool
+            Whether the thruster actually fired.
+        """
+        u_abs = abs(u)
+        sign = np.sign(u) if u != 0 else 1.0
+        
+        # No MIB constraint
+        if self.u_min <= 0:
+            return u, (u_abs > 1e-10)
+        
+        # Command above MIB threshold - fire normally
+        if u_abs >= self.u_min:
+            return u, True
+        
+        # Command below MIB threshold
+        if self.mib_behavior == MIBBehavior.QUANTIZE_TO_ZERO:
+            # Don't fire - command too small
+            if u_abs > 1e-10:
+                warnings.warn(
+                    f"Thruster command |u|={u_abs:.4f} below MIB threshold u_min={self.u_min:.4f}. "
+                    f"Quantized to ZERO (no firing). Consider adjusting control gains or MIB behavior.",
+                    category=UserWarning,
+                    stacklevel=4
+                )
+            return 0.0, False
+        
+        elif self.mib_behavior == MIBBehavior.QUANTIZE_TO_MIB:
+            # Fire full MIB pulse
+            if u_abs > 1e-10:
+                warnings.warn(
+                    f"Thruster command |u|={u_abs:.4f} below MIB threshold u_min={self.u_min:.4f}. "
+                    f"Quantized to MIB={self.u_min:.4f} (may waste propellant).",
+                    category=UserWarning,
+                    stacklevel=4
+                )
+            return sign * self.u_min, True
+        
+        elif self.mib_behavior == MIBBehavior.ACCUMULATE:
+            # Accumulate until MIB reached
+            self.accumulated_command += u_abs
+            
+            if self.accumulated_command >= self.u_min:
+                # Fire accumulated pulse
+                fire_amount = sign * self.accumulated_command
+                self.accumulated_command = 0.0
+                warnings.warn(
+                    f"Thruster accumulated command reached MIB. Firing pulse u={fire_amount:.4f}.",
+                    category=UserWarning,
+                    stacklevel=4
+                )
+                return fire_amount, True
+            else:
+                # Keep accumulating
+                return 0.0, False
+        
+        return u, (u_abs > 1e-10)
 
     def torque(
         self,
@@ -298,26 +334,20 @@ class Thruster(Actuator):
         r"""
         Compute the torque generated by the thruster.
 
-        The torque is:
-
-        .. math::
-
-            \boldsymbol{\tau} = (\mathbf{r} \times \hat{\mathbf{n}}) \cdot F_{\max} \cdot (u + b) + \mathbf{n}
-
-        where :math:`b` is bias and :math:`\mathbf{n}` is noise.
+        .. warning::
+            This method includes MIB quantization. The actual torque produced
+            may differ from a linear model due to thruster physics.
 
         Parameters
         ----------
         u : float
-            Normalized thrust command. Range depends on ``bidirectional``:
-            - If False: :math:`u \in [0, 1]`
-            - If True: :math:`u \in [-1, 1]`
+            Normalized thrust command in [0, 1] or [-1, 1] if bidirectional.
         
         x : np.ndarray
-            Spacecraft state vector (unused for thruster torque, included for API consistency).
+            Spacecraft state vector.
         
         os : Orbital_State
-            Orbital state (provides J2000 time for bias updates).
+            Orbital state.
         
         dmode : DisturbanceMode, optional
             Controls bias/noise application.
@@ -326,35 +356,51 @@ class Thruster(Actuator):
         -------
         np.ndarray
             Torque vector in body frame [N·m], shape (3,).
-
-        Warnings
-        --------
-        Issues UserWarning if command exceeds limits.
         """
-        # Validate command
+        # Issue integration warning on first use
+        self._issue_integration_warning()
+        
+        # Validate command bounds
         if not self.bidirectional and u < 0:
-            warnings.warn(f"Thruster received negative command u={u} but is not bidirectional")
+            warnings.warn(
+                f"Thruster received negative command u={u:.4f} but is not bidirectional. "
+                f"Clamping to zero.",
+                category=UserWarning,
+                stacklevel=2
+            )
             u = 0.0
         
         if abs(u) > 1.0:
-            warnings.warn(f"Thruster command |u|={abs(u)} exceeds normalized limit of 1.0")
+            warnings.warn(
+                f"Thruster command |u|={abs(u):.4f} exceeds normalized limit of 1.0. "
+                f"Clamping to ±1.0.",
+                category=UserWarning,
+                stacklevel=2
+            )
+            u = np.clip(u, -1.0 if self.bidirectional else 0.0, 1.0)
 
         if dmode is None:
             dmode = DisturbanceMode(add_bias=True, add_noise=True, update_bias=True, update_noise=True)
 
-        # Apply bias
+        # Apply bias before MIB quantization
         command = u
         if self.bias and dmode.add_bias:
             command += self.bias.get_bias(j2000=os.J2000)
         if dmode.update_bias and self.bias:
             self.bias._update_bias(j2000=os.J2000)
 
-        # Compute torque: τ = (r × n) * F_max * command = effective_torque_axis * command
-        torque = self.effective_torque_axis * command
+        # Apply MIB quantization
+        command_quantized, fired = self._apply_mib_quantization(command)
+        
+        # Track firing
+        if fired:
+            self.firing_count += 1
+
+        # Compute torque
+        torque = self.effective_torque_axis * command_quantized
 
         # Apply noise
-        if self.noise and dmode.add_noise:
-            # Noise is applied as additive torque perturbation
+        if self.noise and dmode.add_noise and fired:
             torque += self.noise.get_noise() * np.linalg.norm(self.effective_torque_axis)
         if dmode.update_noise and self.noise:
             self.noise._update_noise()
@@ -371,33 +417,19 @@ class Thruster(Actuator):
         r"""
         Compute the force generated by the thruster.
 
-        .. math::
-
-            \mathbf{F} = \hat{\mathbf{n}} \cdot F_{\max} \cdot (u + b)
+        .. warning::
+            Force is computed but NOT currently propagated to translational dynamics.
+            This method is for analysis/logging purposes only.
 
         Parameters
         ----------
         u : float
             Normalized thrust command.
         
-        x : np.ndarray
-            Spacecraft state vector.
-        
-        os : Orbital_State
-            Orbital state.
-        
-        dmode : DisturbanceMode, optional
-            Controls bias/noise application.
-
         Returns
         -------
         np.ndarray
             Force vector in body frame [N], shape (3,).
-
-        Notes
-        -----
-        This method is useful for translational dynamics coupling or
-        for computing the effect on orbit.
         """
         if not self.bidirectional and u < 0:
             u = 0.0
@@ -409,7 +441,10 @@ class Thruster(Actuator):
         if self.bias and dmode.add_bias:
             command += self.bias.get_bias(j2000=os.J2000)
 
-        force = self.thrust_direction * self.max_thrust * command
+        # Apply MIB quantization
+        command_quantized, _ = self._apply_mib_quantization(command)
+
+        force = self.thrust_direction * self.max_thrust * command_quantized
 
         if self.noise and dmode.add_noise:
             force += self.noise.get_noise() * self.max_thrust * self.thrust_direction
@@ -419,10 +454,6 @@ class Thruster(Actuator):
     def mass_flow_rate(self, u: float) -> float:
         r"""
         Compute instantaneous mass flow rate.
-
-        .. math::
-
-            \dot{m} = \frac{F_{\max} \cdot |u|}{I_{sp} \cdot g_0}
 
         Parameters
         ----------
@@ -441,10 +472,15 @@ class Thruster(Actuator):
         r"""
         Update propellant tracking and return mass expended.
 
+        .. note::
+            This must be called explicitly by the simulation loop.
+            Automatic propellant tracking in torque() is not implemented
+            to avoid double-counting in multi-rate simulations.
+
         Parameters
         ----------
         u : float
-            Normalized thrust command.
+            Normalized thrust command (should be post-MIB-quantization).
         
         dt : float
             Time step [s].
@@ -464,151 +500,59 @@ class Thruster(Actuator):
         return mass_used
 
     def minimum_impulse_bit(self) -> float:
-        r"""
-        Return the minimum impulse bit.
-
-        .. math::
-
-            I_{\min} = F_{\max} \cdot t_{\min}
-
-        Returns
-        -------
-        float
-            Minimum impulse bit [N·s].
-        """
+        """Return the minimum impulse bit [N·s]."""
         return self.max_thrust * self.min_on_time
 
-    def storage_torque(self, u: float, x: np.ndarray, os: Orbital_State, dmode: DisturbanceMode = None) -> np.ndarray:
-        r"""
-        Thrusters have no momentum storage.
-
-        Returns
-        -------
-        np.ndarray
-            Empty array, shape (0,).
-        """
+    def storage_torque(self, u: float, x: np.ndarray, os: Orbital_State, 
+                       dmode: DisturbanceMode = None) -> np.ndarray:
+        """Thrusters have no momentum storage. Returns empty array."""
         return np.zeros((0,))
 
     # ========================================================================
     # JACOBIANS (First Derivatives)
     # ========================================================================
+    # Note: Jacobians assume linear model (no MIB quantization).
+    # This is appropriate for trajectory optimization but may not reflect
+    # actual closed-loop behavior with MIB effects.
 
     def dtorq__du(self, u: float, x: np.ndarray, os: Orbital_State) -> np.ndarray:
         r"""
-        First derivative of torque w.r.t. command: :math:`\partial\boldsymbol{\tau}/\partial u`.
+        First derivative :math:`\partial\boldsymbol{\tau}/\partial u`.
 
-        Since :math:`\boldsymbol{\tau} = \mathbf{a}_{\mathrm{eff}} \cdot u`, we have:
-
-        .. math::
-
-            \frac{\partial\boldsymbol{\tau}}{\partial u} = \mathbf{a}_{\mathrm{eff}}
-
-        Returns
-        -------
-        np.ndarray
-            Shape (1, 3).
+        .. note::
+            Returns linear derivative. Does not account for MIB quantization
+            discontinuities (appropriate for trajectory optimization).
         """
         return self.effective_torque_axis.reshape((1, 3))
 
     def dtorq__dbasestate(self, u: float, x: np.ndarray, os: Orbital_State) -> np.ndarray:
-        r"""
-        First derivative of torque w.r.t. state: :math:`\partial\boldsymbol{\tau}/\partial \mathbf{x}`.
-
-        Thruster torque does not depend on spacecraft state (unlike MTQ which depends
-        on attitude via B-field), so this is zero.
-
-        Returns
-        -------
-        np.ndarray
-            Shape (7, 3), all zeros.
-        """
+        """Thruster torque is independent of spacecraft state."""
         return np.zeros((7, 3))
 
     def dtorq__dh(self, u: float, x: np.ndarray, os: Orbital_State) -> np.ndarray:
-        r"""
-        Derivative w.r.t. momentum storage state.
-
-        Thrusters have no momentum coupling.
-
-        Returns
-        -------
-        np.ndarray
-            Shape (0, 3).
-        """
+        """Thrusters have no momentum coupling."""
         return np.zeros((0, 3))
 
     # ========================================================================
-    # HESSIANS (Second Derivatives)
+    # HESSIANS (Second Derivatives) - All zero for linear torque model
     # ========================================================================
 
     def ddtorq__dudu(self, u: float, x: np.ndarray, os: Orbital_State) -> np.ndarray:
-        r"""
-        Second derivative :math:`\partial^2\boldsymbol{\tau}/\partial u^2`.
-
-        Since torque is linear in u, this is zero.
-
-        Returns
-        -------
-        np.ndarray
-            Shape (1, 1, 3), all zeros.
-        """
         return np.zeros((1, 1, 3))
 
     def ddtorq__dudbasestate(self, u: float, x: np.ndarray, os: Orbital_State) -> np.ndarray:
-        r"""
-        Mixed derivative :math:`\partial^2\boldsymbol{\tau}/\partial u \partial \mathbf{x}`.
-
-        Zero since torque doesn't depend on state.
-
-        Returns
-        -------
-        np.ndarray
-            Shape (1, 7, 3), all zeros.
-        """
         return np.zeros((1, 7, 3))
 
     def ddtorq__dudh(self, u: float, x: np.ndarray, os: Orbital_State) -> np.ndarray:
-        r"""
-        Mixed derivative :math:`\partial^2\boldsymbol{\tau}/\partial u \partial \mathbf{h}`.
-
-        Returns
-        -------
-        np.ndarray
-            Shape (1, 0, 3).
-        """
         return np.zeros((1, 0, 3))
 
     def ddtorq__dbasestatedbasestate(self, u: float, x: np.ndarray, os: Orbital_State) -> np.ndarray:
-        r"""
-        Second derivative :math:`\partial^2\boldsymbol{\tau}/\partial \mathbf{x}^2`.
-
-        Returns
-        -------
-        np.ndarray
-            Shape (7, 7, 3), all zeros.
-        """
         return np.zeros((7, 7, 3))
 
     def ddtorq__dbasestatedh(self, u: float, x: np.ndarray, os: Orbital_State) -> np.ndarray:
-        r"""
-        Mixed derivative :math:`\partial^2\boldsymbol{\tau}/\partial \mathbf{x} \partial \mathbf{h}`.
-
-        Returns
-        -------
-        np.ndarray
-            Shape (7, 0, 3).
-        """
         return np.zeros((7, 0, 3))
 
     def ddtorq__dhdh(self, u: float, x: np.ndarray, os: Orbital_State) -> np.ndarray:
-        r"""
-        Second derivative :math:`\partial^2\boldsymbol{\tau}/\partial \mathbf{h}^2`.
-
-        Returns
-        -------
-        np.ndarray
-            Shape (0, 0, 3).
-        """
         return np.zeros((0, 0, 3))
 
     # ========================================================================
@@ -619,10 +563,36 @@ class Thruster(Actuator):
         """Reset accumulated propellant usage counters."""
         self.total_impulse = 0.0
         self.total_mass_expended = 0.0
+        self.accumulated_command = 0.0
+        self.firing_count = 0
+
+    def get_status(self) -> dict:
+        """
+        Get thruster status for logging/telemetry.
+        
+        Returns
+        -------
+        dict
+            Status information including propellant usage and firing count.
+        """
+        return {
+            'total_impulse_Ns': self.total_impulse,
+            'total_mass_kg': self.total_mass_expended,
+            'firing_count': self.firing_count,
+            'accumulated_command': self.accumulated_command,
+            'mib_behavior': self.mib_behavior.value,
+        }
 
     def __repr__(self) -> str:
         return (
             f"Thruster(dir={self.thrust_direction}, pos={self.position}, "
             f"F_max={self.max_thrust} N, Isp={self.isp} s, "
+            f"MIB={self.minimum_impulse_bit():.4f} N·s, "
             f"τ_eff={np.linalg.norm(self.effective_torque_axis):.4f} N·m/cmd)"
         )
+
+
+def reset_thruster_warnings():
+    """Reset the global thruster integration warning flag (for testing)."""
+    global _THRUSTER_INTEGRATION_WARNING_SHOWN
+    _THRUSTER_INTEGRATION_WARNING_SHOWN = False

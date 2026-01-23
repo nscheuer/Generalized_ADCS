@@ -305,12 +305,22 @@ class ALTROWrapper(BasePlanner):
         
         # Create orbital state
         ephem = Ephemeris()
+        
+        # Handle B_field: could be (3,) constant or (N, 3) time-varying
+        if B_field is not None:
+            if B_field.ndim == 1:
+                B_initial = B_field
+            else:
+                B_initial = B_field[0]  # First timestep
+        else:
+            B_initial = np.array([2e-5, 1e-5, 3e-5])
+        
         orbital_state = Orbital_State(
             ephem=ephem,
             J2000=0.22,
             R=6778 * np.array([1, 0, 0]),
             V=np.array([0, 7.67, 0]),
-            B=B_field[:3] if B_field is not None else np.array([2e-5, 1e-5, 3e-5]),
+            B=B_initial,
             S=np.array([1e5, 0, 0]),
             rho=0.0
         )

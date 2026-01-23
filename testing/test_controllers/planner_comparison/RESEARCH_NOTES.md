@@ -275,3 +275,41 @@ which approaches 0 for 180° rotations, causing cost → infinity. Solutions:
 | DIRCOL | Doesn't naturally provide feedback gains |
 | Pseudospectral | Struggles with bang-bang control from saturation |
 
+---
+
+## Feature Comparison Matrix
+
+| Feature | Eigenaxis | Polynomial | ConvexMPC | SCP | ALTRO |
+|---------|-----------|------------|-----------|-----|-------|
+| Full 3-DOF attitude | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Underactuated (MTQ-only) | ✗ | ✗ | ~ | ~ | ✓ |
+| RW momentum dynamics | ✗ | ✗ | ~ | ✓ | ✓ |
+| Desaturation (momentum dump) | ✗ | ✗ | ~ | ~ | ✓ |
+| External disturbances | ✗ | ✗ | ✗ | ✗ | ~ |
+| Path/pointing constraints | ✗ | ✗ | ✗ | ~ | ✓ |
+| TVLQR feedback gains | ✗ | ✗ | ✗ | ✗ | ✓ |
+| Solve time (30° slew) | 5ms | 5ms | 250ms | 3s | 4s |
+
+**Legend:** ✓=supported, ✗=not supported, ~=partial/requires setup
+
+### Where ALTRO is Essential:
+
+1. **Underactuated systems (MTQ-only)**: Only ALTRO properly handles the constraint that
+   magnetorquers cannot produce torque along the magnetic field direction. Simple planners
+   generate infeasible trajectories.
+
+2. **Momentum management**: ALTRO can jointly optimize attitude pointing AND reaction wheel
+   desaturation using the `AM_cost` parameter. This is critical for long-duration missions.
+
+3. **Feedback control**: ALTRO produces TVLQR gains as a byproduct, enabling closed-loop
+   trajectory tracking. Other planners require a separate gain computation step.
+
+4. **Path constraints**: ALTRO's augmented Lagrangian handles keep-out cones (e.g., don't
+   point sensor at sun) naturally as inequality constraints.
+
+### When to Use Simpler Planners:
+
+- **Quick rest-to-rest slews**: Eigenaxis/Polynomial are 1000x faster and sufficient
+- **Real-time replanning**: ConvexMPC provides bounded solve times
+- **Prototyping**: Simple planners for initial testing before ALTRO tuning
+
