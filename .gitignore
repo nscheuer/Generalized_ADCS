@@ -227,3 +227,4 @@ output_dir/*
 **/output/
 **/output_data/*.o
 build_*/
+experiment_outputs/
