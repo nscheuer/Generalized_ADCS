@@ -157,6 +157,73 @@ ALTRO (Augmented Lagrangian TRajectory Optimizer) has several key advantages:
 | Poorly initialized problems | DIRCOL | More robust to bad initial guess |
 | Embedded systems | TinyMPC/Convex MPC | Lower memory, faster |
 
+## Feature Comparison Matrix
+
+| Feature | Eigenaxis | Polynomial | ConvexMPC | SCP | ALTRO |
+|---------|-----------|------------|-----------|-----|-------|
+| Full 3-DOF attitude | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Underactuated (MTQ-only) | ✗ | ✗ | ~ | ~ | ✓ |
+| RW momentum dynamics | ✗ | ✗ | ~ | ✓ | ✓ |
+| Desaturation (momentum dump) | ✗ | ✗ | ~ | ~ | ✓ |
+| External disturbances | ✗ | ✗ | ✗ | ✗ | ~ |
+| Path/pointing constraints | ✗ | ✗ | ✗ | ~ | ✓ |
+| TVLQR feedback gains | ✗ | ✗ | ✗ | ✗ | ✓ |
+| Solve time (30° slew) | 5ms | 5ms | 250ms | 3s | 4s |
+
+**Legend:** ✓=supported, ✗=not supported, ~=partial/requires setup
+
+### When ALTRO is Essential
+
+1. **Underactuated systems (MTQ-only)**: Only ALTRO properly handles the constraint that
+   magnetorquers cannot produce torque along the magnetic field direction.
+
+2. **Momentum management/desaturation**: ALTRO can jointly optimize attitude pointing AND 
+   reaction wheel desaturation using the `AM_cost` parameter.
+
+3. **Path constraints**: Keep-out cones (don't point sensor at sun), slew rate limits are
+   handled naturally via augmented Lagrangian.
+
+4. **Feedback control**: ALTRO produces TVLQR gains as a byproduct for closed-loop tracking.
+
+## Advanced Test Scenarios
+
+The framework includes scenarios that test ALTRO's unique capabilities:
+
+```python
+from test_scenarios import ScenarioLibrary
+
+# Underactuated: MTQ-only (no reaction wheels)
+scenario = ScenarioLibrary.create_mtq_only(30.0, horizon=300.0)
+
+# Momentum management: desaturate RWs while slewing
+scenario = ScenarioLibrary.create_desaturation(angle_deg=30.0, horizon=180.0)
+
+# Disturbance rejection
+scenario = ScenarioLibrary.create_with_disturbance(30.0, horizon=60.0)
+
+# Path constraints: avoid pointing at sun
+scenario = ScenarioLibrary.create_pointing_constraint(45.0, keep_out_cone_deg=30.0)
+
+# Reduced attitude: 2-DOF boresight pointing (roll-free)
+scenario = ScenarioLibrary.create_reduced_attitude()
+
+# Get all ALTRO showcase scenarios
+scenarios = ScenarioLibrary.get_altro_showcase_scenarios()
+```
+
+## Benchmark Results (Jan 2026)
+
+| Planner | Solve Time | Error (deg) | Notes |
+|---------|-----------|-------------|-------|
+| Polynomial-5/7 | 6 ± 5 ms | 0.000 | Fastest, perfect for simple slews |
+| Eigenaxis+Trap | 7 ± 4 ms | 0.002 | Industry baseline |
+| ConvexMPC | 287 ± 100 ms | 0.000 | Real-time capable |
+| SCP | 4.5 ± 2.7 s | 0.000 | Robust but slow |
+| ALTRO | 4-14 s | 0.000-0.04 | Best for constrained problems |
+
+**Note**: ALTRO's Cayley cost (mode 2) has a singularity at 180° rotations. Use mode 0 or 4
+for large maneuvers, or chain smaller slews.
+
 ## References
 
 1. ALTRO: Howell, T.A., et al. "ALTRO: A Fast Solver for Constrained Trajectory Optimization"
