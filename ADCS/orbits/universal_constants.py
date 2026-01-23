@@ -1,17 +1,5 @@
-r"""
-Global, immutable constants used throughout the spacecraft dynamics and control codebase.
-
-This module provides:
-
-- **Physical constants** (e.g., gravitational constant, speed of light)
-- **Planetary constants** (Earth radius, mass, J2 term)
-- **Numerical tolerances** (machine epsilon, time epsilon)
-- **Integration coefficients** (for CG5 Lie-group integrator)
-
-All constants are grouped into dataclasses for clarity and immutability.
-"""
-
 from __future__ import annotations
+
 import numpy as np
 from dataclasses import dataclass, field
 
@@ -192,23 +180,25 @@ DEFAULT = DefaultStates()
 CG5 = CG5Coefficients()
 
 # convenient aliases for backward compatibility
+#: :no-index:
 R_e = EARTH.R_e
+#: :no-index:
 mu_e = EARTH.mu_e
+#: :no-index:
 J2 = EARTH.J2
+#: :no-index:
 c = PHYS.c
+#: :no-index:
 CG5_a = CG5.a
+#: :no-index:
 CG5_b = CG5.b
+#: :no-index:
 CG5_c = CG5.c
-
 __all__ = [
     "PhysicalConstants",
     "EarthConstants",
     "TimeConstants",
     "DefaultStates",
     "CG5Coefficients",
-    "PHYS",
-    "EARTH",
-    "TIME",
-    "DEFAULT",
     "CG5",
 ]
