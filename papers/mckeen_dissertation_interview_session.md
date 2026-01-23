@@ -1625,3 +1625,114 @@ Sources:
 
 ---
 
+## Session 3: Paper Sharpening & Experiment Planning
+**Date**: 2026-01-23 (continued)
+
+### Key Decisions Made
+
+#### 1. GENERALIZABILITY IS THE CORE THESIS
+**Critical insight**: Papers must show VERSATILITY across diverse configurations, not just BC2.
+
+- **3+1 Paper**: BC2 is primary example (real mission)
+- **Package Paper**: Must show MULTIPLE spacecraft (1U, 3U, 6U, different actuators)
+- **Planner Paper**: Must work across MTQ-only, 3+1, 3+3, different orbits/goals
+- **Generalized Control**: Allocation works across ALL configs (that's the point!)
+
+The message is: "Configuration replaces custom code" — one framework handles everything.
+
+#### 2. LP vs QP Resolution
+From research/ folder exploration, extensive constraint research completed:
+
+**Best QP Constraints (120s closed-loop test)**:
+| Method | θ_final | Notes |
+|--------|---------|-------|
+| QP unconstrained | 2.35° | Best but no physics guarantee |
+| 3b-Sign critical | 2.35° | Tied best, per-axis sign check |
+| Phase-aware | 2.69° | Adapts to convergence phase |
+| LP | 2.94° | Reliable baseline |
+| 1a-Power brake only | 3.11° | Physics-based, nearly as good |
+
+**Key insight**: Constraints must be CONDITIONAL on controller intent:
+- When braking (P_des < 0): Constrain energy
+- When accelerating: Let controller work
+
+**Failed approaches** (caused 70-125° errors): Pure Lyapunov, always-on power bound
+
+**STATUS**: Results are preliminary - need full MC validation before publishing.
+
+#### 3. Test Infrastructure Discovered
+`testing/paper_todo_tests/` has **90 tests** covering 89% of paper TODOs!
+
+Key test files:
+- `test_todo_data_lp_qp_comparison.py` - 14 tests
+- `test_todo_sim_monte_carlo.py` - MC infrastructure
+- `test_todo_data_desaturation.py` - 18 tests
+- `test_todo_sim_scenarios.py` - pointing, tracking, failure
+
+Run with: `pytest testing/paper_todo_tests/ -v -s`
+
+#### 4. BC2 Parameters (from codebase)
+```python
+# ADCS/satellite_factory/satellites/create_cubesats.py
+mass = 4  # kg
+J = [[0.0314, 0.0001, -0.0067],
+     [0.0001, 0.0341, -0.0001],
+     [-0.0067, -0.0001, 0.0100]]  # kg·m²
+# 3U, ISIS MTQs, CubeWheel SmallPlus RW (z-axis)
+# Boresight: y-axis (camera)
+# Mission: Ground target tracking (REDUCED-ATTITUDE goals)
+```
+
+Factory functions available:
+- `create_beavercube2_cubesat()` - 3+1
+- `create_3_3_beavercube2_cubesat()` - 3+3
+- `create_beavercube1_cubesat()` - 3+0
+
+#### 5. Planner Benchmarking
+ALTRO is the final choice, but will benchmark against alternatives in `papers/planner_comparison/`:
+- Convex MPC
+- Direct collocation
+- Pseudospectral
+- Polynomial shaping
+- Eigenaxis trapezoidal
+
+### Thesis Results Incorporated (from planning.tex, disturbance.tex)
+
+**Monte Carlo Results**:
+- Single 180° slew: MTQ-only 73% within 10°; 3MTQ+1RW 96% within 1°
+- Goal-set slews: MTQ-only 67% within 1°; 3MTQ+1RW 96% within 1°
+- Multi-target: 3MTQ+1RW 98%+ within 10°, mean 0.45°, median 0.03°
+
+**Disturbance Context (thesis Figure 6.X)**:
+- No compensation: ~180° error (uncontrolled)
+- All-in-one disturbance: 5-20° error
+- Full disturbance model: 0-4° error
+
+### Detailed Experiment Lists Added to Papers
+
+Each paper now has comprehensive experiment lists in the header comments:
+- **3+1 Paper**: Sets A-D (core comparison, momentum mgmt, mission scenarios, sensitivity)
+- **Planner Paper**: Sets A-F (baselines, goal formulation, multi-target, graceful degradation, computational, sensitivity)
+- **Package Paper**: Sets A-E (usability, validation, benchmarks, Basilisk comparison, demos)
+- **Generalized Control**: Sets A-E (LP/QP, controllability, modular demo, desaturation, MC validation)
+
+### Open Items for Patrick
+
+| Item | Status | Action Needed |
+|------|--------|---------------|
+| BC2 pointing requirement | Unknown | Get from mission team |
+| BC2 launch timeline | Unknown | Get from mission team |
+| QP constraint MC validation | Undecided | Decide: full MC or representative? |
+| Basilisk comparison | Not started | Need to install Basilisk |
+| Pi 4 timing benchmarks | Not started | Need hardware access |
+
+### Papers Updated This Session
+1. All four main2.tex files updated with:
+   - Detailed experiment lists
+   - Thesis results references
+   - BC2 parameters (where appropriate)
+   - Emphasis on GENERALIZABILITY (diverse configs)
+   - QP constraint research findings (with caveats)
+
+---
+
