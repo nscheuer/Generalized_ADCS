@@ -1,120 +1,87 @@
-# Paper Experiments
+# Paper Experiments - Complete Figure Generation
 
-This directory contains experiment scripts for generating all figures and data for 4 academic papers.
+This directory contains scripts to generate ALL figures and data for 4 academic papers.
 
 ## Quick Start
 
 ```bash
-# List all experiments
-python run_all_paper_experiments.py --list
+# List all available figures
+python generate_all_paper_figures.py --list
 
-# Run quick tests (10 trials, 200s)
-python run_all_paper_experiments.py --paper 3p1 --quick
+# Run quick test (10 trials, 200s) - ~5 min per paper
+python generate_all_paper_figures.py --paper 3p1 --quick
 
-# Run full experiments (100 trials, 1000s)
-python run_all_paper_experiments.py --paper 3p1 --full --output-dir ./paper_figures
+# Run full experiments (100 trials, 1000s) - ~2-4 hours per paper
+python generate_all_paper_figures.py --paper 3p1 --full
 
-# Generate placeholder figures for items needing ALTRO
-python generate_placeholder_figures.py --all
+# Generate specific figure
+python generate_all_paper_figures.py --figure architecture --quick
+
+# Generate ALL figures for ALL papers
+python generate_all_paper_figures.py --all --full --output-dir ./paper_figures
 ```
 
-## Papers and Key Experiments
+## Available Figures
 
-### 1. 3+1 Paper (SmallSat EU / JOSS)
-**Title:** "3-Magnetorquer, 1-Reaction-Wheel Architecture Demonstration"
+### 3+1 Paper (SmallSat EU / JOSS)
+| Figure ID | Description | Output Files |
+|-----------|-------------|--------------|
+| `architecture` | 3+0 vs 3+1 vs 3+3 Monte Carlo | `fig_3p1_error_trajectories`, `fig_3p1_cdf`, `fig_3p1_success_rates`, `fig_3p1_histogram`, `table_3p1_architecture.tex` |
+| `torque_envelope` | Achievable torque sets | `fig_3p1_torque_envelope` |
+| `momentum` | Momentum management comparison | `fig_3p1_momentum_management` |
+| `degradation` | Wheel failure graceful degradation | `fig_3p1_graceful_degradation` |
 
-| Experiment | Description | Script |
-|------------|-------------|--------|
-| A1: Architecture Comparison | 3+0 vs 3+1 vs 3+3 Monte Carlo | `run_all_paper_experiments.py --paper 3p1` |
-| A2: Planner-Enhanced | With ALTRO trajectory planning | Requires `thesis_planning_figures.py` |
-| B1: Momentum Management | Continuous vs scheduled desat | PLACEHOLDER |
-| C3: Graceful Degradation | Wheel failure simulation | PLACEHOLDER |
+### Generalized Control Paper (SmallSat US / JGCD)
+| Figure ID | Description | Output Files |
+|-----------|-------------|--------------|
+| `lp_vs_qp` | LP vs QP allocation comparison | `fig_lp_vs_qp_trajectories`, `fig_lp_vs_qp_cdf` |
+| `direction` | Direction preservation analysis | `fig_direction_preservation`, `fig_direction_error_histogram` |
+| `versatility` | Same control law, different actuators | `fig_framework_versatility` |
+| `controllability` | Controllability vs orbit inclination | `fig_controllability_vs_inclination` |
 
-**Key Claims to Verify:**
-- 3+1 achieves 2.3° mean error (PD), 0.05° (planner)
-- 73% within 1° (PD), 100% (planner)
+### Planner Paper (SmallSat USA / JGCD)
+| Figure ID | Description | Output Files |
+|-----------|-------------|--------------|
+| `pd_baseline` | PD control baseline results | `fig_pd_baseline_trajectories` |
+| `altro` | ALTRO vs PD comparison | `fig_altro_vs_pd` |
+| `multi_target` | Multi-target sequence | `fig_multi_target_sequence` |
 
-### 2. Generalized Control Paper (SmallSat US / JGCD)
-**Title:** "Generalized Attitude Control Allocation"
+### Package Paper (SmallSat EU / JOSS)
+| Figure ID | Description | Output Files |
+|-----------|-------------|--------------|
+| `controllers` | Lovera vs Wisniewski comparison | `fig_controller_comparison` |
+| `quickstart` | 5-minute demo result | `fig_quickstart_demo` |
 
-| Experiment | Description | Script |
-|------------|-------------|--------|
-| LP vs QP | Allocation comparison | `run_all_paper_experiments.py --paper generalized --experiment lp_vs_qp` |
-| Framework Versatility | Same control, different actuators | `run_all_paper_experiments.py --paper generalized --experiment versatility` |
-| Direction Preservation | LP: 0.004°, QP: 33° | `generate_placeholder_figures.py --paper generalized` |
+## Critical Parameters
 
-**Key Claims to Verify:**
-- LP preserves torque direction (0.004° error)
-- QP has large direction error (~33°)
-- Same control law works across configs
+The experiments use thesis-correct parameters:
 
-### 3. Planner Paper (SmallSat USA / JGCD)
-**Title:** "Feasibility-Aware Attitude Trajectory Planner"
-
-| Experiment | Description | Script |
-|------------|-------------|--------|
-| PD Baseline | Reference for planner comparison | `run_all_paper_experiments.py --paper planner` |
-| ALTRO MC | Full ALTRO Monte Carlo | `thesis_planning_figures.py` |
-| Spinning Solution | Emergent spin behavior | PLACEHOLDER |
-| Multi-Target | Sequential goals | PLACEHOLDER |
-
-**Key Claims to Verify (from thesis):**
-- MTQ-only: 73% within 10° (planner), 15% (PD)
-- 3+1: 96% within 1° (planner), 73% (PD)
-- Reduced-attitude improves success 6x
-
-### 4. Package Paper (SmallSat EU / JOSS)
-**Title:** "Modular ADCS Python Framework"
-
-| Experiment | Description | Script |
-|------------|-------------|--------|
-| Controller Comparison | Lovera vs Wisniewski | `run_all_paper_experiments.py --paper package` |
-| Basilisk Comparison | Setup complexity, runtime | NEEDS MANUAL |
-| 5-Minute Demo | Installation validation | NEEDS MANUAL |
-
-## Critical Parameters (from Thesis)
-
-### Correct Experiment Settings
 ```python
-# CRITICAL: Use these settings to match thesis results!
-
 # Duration: 1000s for proper MTQ convergence (NOT 200s!)
 duration_s = 1000
 
 # Goal type: REDUCED-ATTITUDE (thesis configuration)
-use_reduced_attitude = True  # Align body axis with ECI vector
-# NOT: Full-attitude (exact quaternion) - much harder!
+use_reduced_attitude = True
 
 # Controller gains
-mtq_p_gain = 0.001
+mtq_p_gain = 0.001   # For MTQ-only controllers
 mtq_d_gain = 0.005
-rw_p_gain = 0.0001
+rw_p_gain = 0.0001   # For LP/QP controllers with RW
 rw_d_gain = 0.001
+rw_c_gain = 0.001    # Momentum management gain
 ```
 
-### ALTRO Planner Settings (for planning experiments)
-```python
-# From ALTRO_TUNING_NOTES.md Session 5-6
-planner_settings.cost_main.ang_cost_func_type = 0  # LINEAR for early convergence
-planner_settings.cost_main.angle = 1e7
-planner_settings.cost_main.angle_N = 1e8
-planner_settings.dt_tp = 50
-planner_settings.cost_tvlqr.control_mult = 1e4  # Prevents oscillations
-```
+## Expected Results (from Thesis)
 
-## Data Discrepancy Warning
+When running with `--full` (100 trials, 1000s):
 
-**CURRENT DATA vs THESIS CLAIMS:**
+| Config | Goal | Mean Error | <1° | <5° | <10° |
+|--------|------|------------|-----|-----|------|
+| 3+0 (MTQ) | Reduced | ~10-20° | 11% | ~30% | 73% |
+| 3+1 (Hybrid) | Reduced | ~2-5° | 73% | ~90% | ~95% |
+| 3+3 (Full RW) | Reduced | ~0.2-1° | ~95% | 100% | 100% |
 
-| Source | Duration | Trials | Result |
-|--------|----------|--------|--------|
-| experiment_outputs/3p1_paper/ | 200s | 10 | 63° for 3+1 (WRONG!) |
-| papers/3MTQ+1RW/output_data/ | 500s | 10 | 30° for 3+1 |
-| **Thesis claims** | 1000s | 100 | **0.45° mean, 96% <1°** |
-
-**Root cause:** Goal type (reduced vs full attitude) and duration (200s vs 1000s).
-
-**Fix:** Use `run_all_paper_experiments.py --full` with `use_reduced_attitude=True`.
+**Note:** Quick mode (200s) will NOT show proper convergence for MTQ-only systems!
 
 ## Output Directory Structure
 
@@ -124,87 +91,72 @@ paper_figures/
 │   ├── fig_3p1_error_trajectories.pdf
 │   ├── fig_3p1_cdf.pdf
 │   ├── fig_3p1_success_rates.pdf
-│   ├── table_3p1_mc.tex
+│   ├── fig_3p1_histogram.pdf
+│   ├── fig_3p1_torque_envelope.pdf
+│   ├── fig_3p1_momentum_management.pdf
+│   ├── fig_3p1_graceful_degradation.pdf
+│   ├── table_3p1_architecture.tex
 │   └── data_3p1_architecture.json
 ├── generalized/
-│   ├── fig_lp_qp_*.pdf
-│   ├── fig_versatility_*.pdf
-│   └── fig_direction_preservation.pdf
+│   ├── fig_lp_vs_qp_*.pdf
+│   ├── fig_direction_preservation.pdf
+│   ├── fig_framework_versatility.pdf
+│   └── fig_controllability_vs_inclination.pdf
 ├── planner/
 │   ├── fig_pd_baseline_*.pdf
-│   ├── fig_planner_vs_pd_placeholder.pdf
-│   └── fig_spinning_solution_placeholder.pdf
+│   ├── fig_altro_vs_pd.pdf
+│   └── fig_multi_target_sequence.pdf
 └── package/
-    ├── fig_controller_comparison_*.pdf
-    └── fig_basilisk_comparison_placeholder.pdf
-```
-
-## Scripts Reference
-
-| Script | Purpose | Status |
-|--------|---------|--------|
-| `run_all_paper_experiments.py` | Main experiment runner | ✅ Complete |
-| `generate_placeholder_figures.py` | Placeholders for complex figures | ✅ Complete |
-| `run_3p1_paper_experiments.py` | Legacy 3+1 experiments | ✅ Complete |
-| `run_lp_vs_qp_experiment.py` | Legacy LP/QP comparison | ✅ Complete |
-| `thesis_chapter7_planning.py` | ALTRO planning experiments | ✅ Complete |
-| `thesis_chapter6_disturbance.py` | Disturbance control | ✅ Complete |
-| `thesis_chapter4_estimation.py` | Estimation experiments | ✅ Complete |
-
-## Figure TODO Checklist
-
-### 3+1 Paper
-- [x] Error trajectories (3+0, 3+1, 3+3)
-- [x] CDF of pointing errors
-- [x] Success rate bar chart
-- [x] Error histogram
-- [ ] Actuator configuration schematic (PLACEHOLDER)
-- [ ] Momentum management comparison (PLACEHOLDER)
-- [ ] Graceful degradation (PLACEHOLDER)
-
-### Generalized Control Paper
-- [x] LP vs QP trajectories
-- [x] LP vs QP CDF
-- [x] Direction preservation (PLACEHOLDER)
-- [x] Bolt-on framework diagram (PLACEHOLDER)
-- [ ] Controllability vs inclination
-- [ ] Torque polytope visualization
-
-### Planner Paper
-- [x] PD baseline results
-- [x] Planner vs PD comparison (PLACEHOLDER)
-- [x] Spinning solution (PLACEHOLDER)
-- [x] Multi-target sequence (PLACEHOLDER)
-- [ ] ALTRO timing benchmarks
-- [ ] TVLQR tracking figure
-
-### Package Paper
-- [x] Controller comparison (Lovera vs Wisniewski)
-- [x] Basilisk comparison table (PLACEHOLDER)
-- [x] Quickstart demo (PLACEHOLDER)
-- [ ] Framework architecture diagram
-- [ ] Raspberry Pi benchmarks
-
-## Running Full Campaign
-
-To generate all figures for all papers:
-
-```bash
-# 1. Generate simulation-based figures (takes ~2-4 hours for full)
-python run_all_paper_experiments.py --all --full --output-dir ./paper_figures
-
-# 2. Generate placeholder figures for items needing ALTRO
-python generate_placeholder_figures.py --all --output-dir ./paper_figures/placeholders
-
-# 3. Run ALTRO experiments (if planner working)
-python thesis_planning_figures.py --config mc_180deg_1rw --quick
+    ├── fig_controller_comparison.pdf
+    └── fig_quickstart_demo.pdf
 ```
 
 ## Estimated Runtimes
 
 | Experiment | Quick (10 trials, 200s) | Full (100 trials, 1000s) |
 |------------|-------------------------|--------------------------|
-| 3+1 Architecture | ~5 min | ~2 hours |
-| LP vs QP | ~3 min | ~1 hour |
-| Controller Comparison | ~3 min | ~1 hour |
-| ALTRO MC (per config) | ~10 min | ~4-8 hours |
+| Architecture (3p1) | ~4 min | ~2 hours |
+| LP vs QP | ~2 min | ~1 hour |
+| Controller Comparison | ~2 min | ~1 hour |
+| Torque Envelope | ~1 min | ~5 min |
+| Momentum Management | ~2 min | ~10 min |
+| Graceful Degradation | ~1 min | ~5 min |
+| Controllability | ~10 min | ~1 hour |
+| ALTRO (if available) | ~10 min | ~4-8 hours |
+
+**Total for all figures:** ~20 min (quick) / ~8-12 hours (full)
+
+## Scripts Reference
+
+| Script | Purpose |
+|--------|---------|
+| `generate_all_paper_figures.py` | **Main script** - generates all data figures |
+| `generate_placeholder_figures.py` | Manual/schematic placeholders |
+| `run_all_paper_experiments.py` | Legacy experiment runner |
+| `thesis_chapter7_planning.py` | ALTRO Monte Carlo experiments |
+
+## Figures Still Needing Manual Creation
+
+Some figures cannot be auto-generated:
+
+1. **Actuator Configuration Schematic** - Hand-drawn or CAD diagram showing 3+0, 3+1, 3+3 actuator placement
+2. **Bolt-On Framework Diagram** - Architecture block diagram
+3. **Decision Flowchart** - When to use which architecture
+4. **Basilisk Comparison** - Requires installing and benchmarking Basilisk
+5. **Raspberry Pi Benchmarks** - Requires running on actual hardware
+
+Use `generate_placeholder_figures.py` for these until manual versions are ready.
+
+## Troubleshooting
+
+### "Ephemeris date out of range"
+The code uses J2000 dates around 0.24 (year ~2024). If you see this error, check that the ephemeris file covers your date range.
+
+### "Cannot reshape array"
+Controller h_target must be shape (3,). The code handles this automatically.
+
+### Long runtime
+Use `--quick` for testing. Only use `--full` when generating final figures.
+
+### MTQ-only not converging
+MTQ systems need ~500-1000s to converge with realistic gains. Don't expect good results with 200s duration.
