@@ -1,0 +1,18 @@
+ADCS.satellite\_hardware.errors.helpers package
+===============================================
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 4
+
+   ADCS.satellite_hardware.errors.helpers.error_mode
+
+Module contents
+---------------
+
+.. automodule:: ADCS.satellite_hardware.errors.helpers
+   :members:
+   :show-inheritance:
+   :undoc-members:

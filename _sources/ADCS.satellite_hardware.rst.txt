@@ -9,6 +9,7 @@ Subpackages
 
    ADCS.satellite_hardware.actuators
    ADCS.satellite_hardware.disturbances
+   ADCS.satellite_hardware.errors
    ADCS.satellite_hardware.satellite
    ADCS.satellite_hardware.sensors
 

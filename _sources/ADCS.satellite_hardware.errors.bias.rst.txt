@@ -1,0 +1,7 @@
+ADCS.satellite\_hardware.errors.bias module
+===========================================
+
+.. automodule:: ADCS.satellite_hardware.errors.bias
+   :members:
+   :show-inheritance:
+   :undoc-members:

@@ -1,0 +1,7 @@
+ADCS.helpers.plotting\_mc.plot\_controller\_compare\_mc module
+==============================================================
+
+.. automodule:: ADCS.helpers.plotting_mc.plot_controller_compare_mc
+   :members:
+   :show-inheritance:
+   :undoc-members:

@@ -8,9 +8,7 @@ Submodules
    :maxdepth: 4
 
    ADCS.satellite_hardware.actuators.actuator
-   ADCS.satellite_hardware.actuators.bias
    ADCS.satellite_hardware.actuators.magnetotorquer
-   ADCS.satellite_hardware.actuators.noise
    ADCS.satellite_hardware.actuators.reaction_wheel
 
 Module contents

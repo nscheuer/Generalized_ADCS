@@ -1,0 +1,18 @@
+ADCS.environment package
+========================
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 4
+
+   ADCS.environment.star_catalog
+
+Module contents
+---------------
+
+.. automodule:: ADCS.environment
+   :members:
+   :show-inheritance:
+   :undoc-members:

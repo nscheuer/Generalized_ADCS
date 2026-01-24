@@ -7,6 +7,7 @@ Submodules
 .. toctree::
    :maxdepth: 4
 
+   ADCS.helpers.plotting_mc.plot_controller_compare_mc
    ADCS.helpers.plotting_mc.plot_controller_mc
 
 Module contents

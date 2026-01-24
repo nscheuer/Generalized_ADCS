@@ -9,20 +9,12 @@ Subpackages
 
    ADCS.CONOPS
    ADCS.controller
+   ADCS.environment
    ADCS.estimators
    ADCS.flight_software
    ADCS.helpers
-   ADCS.logging
    ADCS.orbits
    ADCS.satellite_hardware
-
-Submodules
-----------
-
-.. toctree::
-   :maxdepth: 4
-
-   ADCS.ADCS
 
 Module contents
 ---------------

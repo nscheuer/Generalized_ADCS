@@ -1,0 +1,18 @@
+ADCS.satellite\_hardware.disturbances.helpers package
+=====================================================
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 4
+
+   ADCS.satellite_hardware.disturbances.helpers.geometry_config
+
+Module contents
+---------------
+
+.. automodule:: ADCS.satellite_hardware.disturbances.helpers
+   :members:
+   :show-inheritance:
+   :undoc-members:

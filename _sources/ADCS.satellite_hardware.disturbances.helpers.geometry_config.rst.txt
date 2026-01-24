@@ -1,0 +1,7 @@
+ADCS.satellite\_hardware.disturbances.helpers.geometry\_config module
+=====================================================================
+
+.. automodule:: ADCS.satellite_hardware.disturbances.helpers.geometry_config
+   :members:
+   :show-inheritance:
+   :undoc-members:

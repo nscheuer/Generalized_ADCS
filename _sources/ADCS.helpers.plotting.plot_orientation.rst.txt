@@ -1,7 +1,0 @@
-ADCS.helpers.plotting.plot\_orientation module
-==============================================
-
-.. automodule:: ADCS.helpers.plotting.plot_orientation
-   :members:
-   :show-inheritance:
-   :undoc-members:

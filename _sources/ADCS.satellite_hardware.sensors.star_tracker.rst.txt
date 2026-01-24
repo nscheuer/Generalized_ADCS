@@ -1,0 +1,7 @@
+ADCS.satellite\_hardware.sensors.star\_tracker module
+=====================================================
+
+.. automodule:: ADCS.satellite_hardware.sensors.star_tracker
+   :members:
+   :show-inheritance:
+   :undoc-members:

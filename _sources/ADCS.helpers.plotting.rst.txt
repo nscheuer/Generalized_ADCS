@@ -14,7 +14,6 @@ Submodules
    ADCS.helpers.plotting.plot_controller
    ADCS.helpers.plotting.plot_estimator
    ADCS.helpers.plotting.plot_orbit_estimator
-   ADCS.helpers.plotting.plot_orientation
 
 Module contents
 ---------------

@@ -8,6 +8,7 @@ Submodules
    :maxdepth: 4
 
    ADCS.controller.helpers.build_csat
+   ADCS.controller.helpers.debug_planner
    ADCS.controller.helpers.planner_settings
    ADCS.controller.helpers.planner_subsettings
    ADCS.controller.helpers.quaternion_math

@@ -1,0 +1,7 @@
+ADCS.controller.plan\_and\_track\_exact module
+==============================================
+
+.. automodule:: ADCS.controller.plan_and_track_exact
+   :members:
+   :show-inheritance:
+   :undoc-members:

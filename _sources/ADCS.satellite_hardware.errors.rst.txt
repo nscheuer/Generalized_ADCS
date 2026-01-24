@@ -1,0 +1,28 @@
+ADCS.satellite\_hardware.errors package
+=======================================
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   ADCS.satellite_hardware.errors.helpers
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 4
+
+   ADCS.satellite_hardware.errors.anisotropicnoise
+   ADCS.satellite_hardware.errors.bias
+   ADCS.satellite_hardware.errors.noise
+
+Module contents
+---------------
+
+.. automodule:: ADCS.satellite_hardware.errors
+   :members:
+   :show-inheritance:
+   :undoc-members:

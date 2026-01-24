@@ -1,0 +1,7 @@
+ADCS.controller.plan\_and\_track\_lqr\_disturbed module
+=======================================================
+
+.. automodule:: ADCS.controller.plan_and_track_lqr_disturbed
+   :members:
+   :show-inheritance:
+   :undoc-members:

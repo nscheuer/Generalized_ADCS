@@ -1,0 +1,7 @@
+ADCS.satellite\_hardware.errors.helpers.error\_mode module
+==========================================================
+
+.. automodule:: ADCS.satellite_hardware.errors.helpers.error_mode
+   :members:
+   :show-inheritance:
+   :undoc-members:

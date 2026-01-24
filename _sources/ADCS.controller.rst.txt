@@ -25,7 +25,10 @@ Submodules
    ADCS.controller.mtq_w_rw_QPG
    ADCS.controller.mtq_w_rw_QPW
    ADCS.controller.mtq_wisniewski
+   ADCS.controller.plan_and_track_base
+   ADCS.controller.plan_and_track_exact
    ADCS.controller.plan_and_track_lqr
+   ADCS.controller.plan_and_track_lqr_disturbed
 
 Module contents
 ---------------

@@ -1,0 +1,7 @@
+ADCS.satellite\_hardware.errors.anisotropicnoise module
+=======================================================
+
+.. automodule:: ADCS.satellite_hardware.errors.anisotropicnoise
+   :members:
+   :show-inheritance:
+   :undoc-members:

@@ -1,0 +1,7 @@
+ADCS.environment.star\_catalog module
+=====================================
+
+.. automodule:: ADCS.environment.star_catalog
+   :members:
+   :show-inheritance:
+   :undoc-members:

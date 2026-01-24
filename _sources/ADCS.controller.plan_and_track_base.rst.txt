@@ -1,0 +1,7 @@
+ADCS.controller.plan\_and\_track\_base module
+=============================================
+
+.. automodule:: ADCS.controller.plan_and_track_base
+   :members:
+   :show-inheritance:
+   :undoc-members:
