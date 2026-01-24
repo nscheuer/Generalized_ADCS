@@ -56,8 +56,31 @@
 %   ADD: Computational complexity, formal convergence guarantees, robustness proofs
 %
 % ============================================================
+% *** CRITICAL DATA GAP ASSESSMENT (2026-01-24 Session 4) ***
+% ============================================================
+%
+% PROBLEM: Current ALTRO results do NOT match thesis claims!
+%
+% Extracted from papers/3MTQ+1RW/output_data/ (ALTRO+TVLQR, 10 trials, 500s):
+%   Mean: 30.03°, Std: 24.44°, Within 1°: 0%, Within 10°: 30%
+%
+% Thesis claims (planning.tex):
+%   - 3MTQ+1RW: 96% within 1°, mean 0.45° (median 0.03°)
+%
+% DISCREPANCY: ~60x worse than thesis! Likely cause: GOAL TYPE
+%   - Thesis: REDUCED-ATTITUDE goals (align body axis)
+%   - Current: FULL-ATTITUDE goals (exact quaternion)
+%
+% ACTION: Verify by running identical scenarios with both goal types.
+%
+% ============================================================
 % DATA GENERATION TODO LIST
 % ============================================================
+% ** CRITICAL - BEFORE SUBMISSION **
+% TODO-DATA-0: REPRODUCE THESIS RESULTS
+%   - Use REDUCED-ATTITUDE goals, 1000s, 100 trials
+%   - ALTRO params from ALTRO_TUNING_NOTES.md Session 6
+%
 % ** HIGH PRIORITY **
 % TODO-DATA-1: Generate hardware timing benchmarks
 %    - Run existing MC simulations on laptop, log solve times

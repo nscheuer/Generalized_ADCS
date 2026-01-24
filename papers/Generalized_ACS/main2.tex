@@ -295,8 +295,32 @@
 %   ADD: Computational complexity, robustness bounds, comparison to MPC/LQR
 %
 % ============================================================
+% *** CRITICAL DATA GAP ASSESSMENT (2026-01-24 Session 4) ***
+% ============================================================
+%
+% EXISTING DATA in experiment_outputs/lp_qp_paper/ (10 trials, 200s, PD):
+%   - LP: 74.3° mean, QP: 41.9° mean (TOO SHORT, not converged!)
+%
+% EXISTING DATA in research/ (120s tests):
+%   - LP: 2.94°, QP unconstrained: 2.35°, 1a-Power: 3.11°
+%   - These are better but still short duration
+%
+% WHAT'S MISSING:
+%   - Long-duration (1000s) LP vs QP comparison
+%   - Monte Carlo (100+ trials) for statistical significance
+%   - Framework demo: same control law, swap actuators
+%
+% ACTION: Regenerate LP vs QP with 1000s, 100 trials, multiple configs
+%
+% ============================================================
 % DATA GENERATION TODO LIST
 % ============================================================
+% ** CRITICAL - BEFORE SUBMISSION **
+% TODO-DATA-0: REGENERATE LP vs QP with proper duration
+%   - Duration: 1000s, Trials: 100
+%   - Configs: 3+0, 3+1, 3+3
+%   - Script: research/qp_controller_comparison.py (extend duration)
+%
 % ** HIGH PRIORITY **
 % TODO-DATA-1: Generate LTI/LTV rank tables for additional configurations (CMG, thruster)
 % TODO-DATA-2: Generate torque envelope visualizations for multiple orbits

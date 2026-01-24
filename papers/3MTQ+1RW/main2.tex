@@ -28,8 +28,37 @@
 %   - TRIM: Mission cost analysis (less relevant for software paper)
 %
 % ============================================================
+% *** CRITICAL DATA GAP ASSESSMENT (2026-01-24 Session 4) ***
+% ============================================================
+%
+% PROBLEM: Current figures in experiment_outputs/ are NOT publication-ready!
+%
+% What experiment_outputs/3p1_paper/ actually contains:
+%   - Duration: 200 seconds (TOO SHORT - MTQs need 500-1000s to converge)
+%   - Controller: PD only (NO ALTRO planner)
+%   - Trials: 10 (NOT statistically significant)
+%   - Results: 3+0=87°, 3+1=63°, 3+3=7° (WRONG - too short to converge)
+%
+% What papers/3MTQ+1RW/output_data/ contains (ALTRO + TVLQR, 10 trials, 500s):
+%   Mean: 30°, range 3.6°-78° (DOES NOT MATCH THESIS)
+%
+% What thesis claims (planning.tex):
+%   - 3MTQ+1RW: 96% within 1° for single slew
+%   - Mean final error: 0.45° (median 0.03°)
+%   THIS IS ~60x BETTER THAN CURRENT DATA
+%
+% REQUIRED ACTION: Re-run experiments with proper settings:
+%   - Duration: 1000s minimum
+%   - Trials: 100 minimum
+%   - Goal type: REDUCED-ATTITUDE (thesis used this!)
+%   - ALTRO params from ALTRO_TUNING_NOTES.md Session 6
+%
+% ============================================================
 % DATA GENERATION TODO LIST
 % ============================================================
+% ** CRITICAL - BEFORE SUBMISSION **
+% TODO-DATA-0: REPRODUCE THESIS RESULTS with proper parameters
+%
 % ** HIGH PRIORITY **
 % TODO-DATA-1: Verify Monte Carlo numbers match simulation data
 %    - TEST STRUCTURE:

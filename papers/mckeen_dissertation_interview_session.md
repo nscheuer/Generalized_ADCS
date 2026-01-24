@@ -1791,3 +1791,93 @@ LP/QP is ONE component, not the main contribution. The FRAMEWORK is the contribu
 
 ---
 
+
+## Session 4: Figure & Data Audit (2026-01-24)
+
+### Critical Discovery: Data Gap
+
+**Problem:** Current figures in `experiment_outputs/` are NOT publication-ready.
+
+#### What experiment_outputs/ actually contains:
+
+| Directory | Duration | Controller | Trials | Results |
+|-----------|----------|------------|--------|---------|
+| `3p1_paper/` | 200s | PD only | 10 | 3+0=87°, 3+1=63°, 3+3=7° |
+| `lp_qp_paper/` | 200s | PD only | 10 | LP=74°, QP=42° |
+| `goal_formulation/` | 200s | PD only | 10 | Reduced=86°, Full=139° |
+
+#### What ALTRO actually produces (extracted from pickle):
+
+```
+papers/3MTQ+1RW/output_data/ (ALTRO + TVLQR, 10 trials, 500s):
+  Run 0: 15.15°    Run 5: 8.97°
+  Run 1: 36.98°    Run 6: 69.15°
+  Run 2: 6.90°     Run 7: 78.34°
+  Run 3: 33.35°    Run 8: 30.12°
+  Run 4: 3.59°     Run 9: 17.73°
+  
+  Mean: 30.03°, Std: 24.44°
+  Within 1°: 0%, Within 5°: 10%, Within 10°: 30%
+```
+
+#### What thesis claims (planning.tex):
+- 3MTQ+1RW: 96% within 1° for single slew
+- Mean final error: 0.45° (median 0.03°)
+- Multi-target: 98%+ within 10° for each target
+
+### Discrepancy Analysis
+
+**The current data is ~60x WORSE than thesis claims!**
+
+Possible causes:
+1. **Goal type:** Thesis may have used REDUCED-ATTITUDE goals (align body axis) while current tests use FULL-ATTITUDE goals (exact quaternion)
+2. **Duration:** 200s is too short for MTQ systems to converge (need 500-1000s)
+3. **ALTRO parameters:** Thesis used optimized tuning from ALTRO_TUNING_NOTES.md
+4. **Bug/regression:** Code may have changed since thesis validation
+
+### Figures That ARE Ready
+
+From `thesis_figures/` (52 figures):
+- Controller comparisons: Lovera, Wisniewski, WIE
+- MTQ-only Monte Carlo results
+- Single-wheel Monte Carlo results
+- These appear to be from longer, properly-configured runs
+
+### Required Actions Before Paper Submission
+
+1. **Re-run 3+1 experiments** with:
+   - Duration: 1000s (not 200s)
+   - Trials: 100 (not 10)
+   - Goal type: REDUCED-ATTITUDE
+   - Verify thesis results are reproducible
+
+2. **Re-run LP vs QP experiments** with:
+   - Duration: 1000s (not 120s)
+   - Trials: 100
+   - Test constrained QP variants (1a-Power, 3b-Sign)
+
+3. **Investigate discrepancy:**
+   - Test same scenario with reduced vs full attitude goals
+   - If reduced-attitude explains difference, clearly document in papers
+
+4. **Basilisk comparison** (for Package paper):
+   - Install Basilisk
+   - Implement identical scenario
+   - Measure setup complexity, runtime, lines of code
+
+### Papers Updated This Session
+
+All four papers now have:
+- **CRITICAL DATA GAP ASSESSMENT** section at top
+- Specific script commands and parameters for experiments
+- Clear warnings about which data needs regeneration
+- Exact ALTRO parameters to use (from ALTRO_TUNING_NOTES.md)
+
+### Key Insight
+
+If reduced-attitude goals explain the difference, this is **GOOD NEWS**:
+- Thesis is correct for reduced-attitude (the intended use case)
+- Full-attitude is harder (expected, and justifies Goal Modification stage)
+- Papers should clearly distinguish reduced vs full attitude results
+
+---

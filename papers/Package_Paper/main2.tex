@@ -31,8 +31,32 @@
 %   ADD: Software availability, citation guidance, test coverage
 %
 % ============================================================
+% *** CRITICAL DATA GAP ASSESSMENT (2026-01-24 Session 4) ***
+% ============================================================
+%
+% EXISTING:
+%   - 90 tests in testing/paper_todo_tests/ (89% TODO coverage)
+%   - thesis_figures/: Controller comparisons (Lovera, Wisniewski, WIE)
+%
+% MISSING:
+%   1. Basilisk comparison - NOT DONE
+%   2. "5-minute demo" timing - NOT DOCUMENTED
+%   3. Raspberry Pi benchmarks - NOT DONE
+%   4. Diverse configuration demo (1U, 6U, etc.) - PARTIAL
+%
+% ACTION:
+%   - Install Basilisk, run identical scenario
+%   - Document actual "git clone to working plot" time
+%   - Get Pi 4 or estimate from laptop scaling
+%
+% ============================================================
 % DATA GENERATION TODO LIST
 % ============================================================
+% ** CRITICAL - BASILISK COMPARISON **
+% TODO-DATA-0: Implement identical scenario in Basilisk
+%   - Measure: lines of code, setup time, runtime
+%   - Document architectural differences
+%
 % ** HIGH PRIORITY **
 % TODO-DATA-1: Generate framework benchmarks
 %    - Run example simulations, log execution times
