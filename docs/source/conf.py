@@ -17,7 +17,7 @@ extensions = [
     'myst_parser',
 ]
 
-autodoc_mock_imports = ["matplotlib", "mpl_toolkits", "pyvista", "vtk"]
+autodoc_mock_imports = ["matplotlib", "mpl_toolkits", "pyvista", "vtk", "rich", "choldate", "trajectory_planner.build"]
 
 autosummary_generate = False
 autosummary_imported_members = False
