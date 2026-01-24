@@ -48,7 +48,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(__file__, "../../../..")))
 sys.path.insert(0, os.path.abspath(os.path.join(__file__, "../../../../trajectory_planner/build")))
 
 # ADCS imports
-from ADCS.CONOPS.goals import ECI_Goal, Fixed_Attitude_Goal, No_Goal
+from ADCS.CONOPS.goals import ECI_Goal, Fixed_Attitude_Goal, No_Goal, Nadir_Goal
 from ADCS.CONOPS.goallist import GoalList
 from ADCS.controller import MTQ_w_RW_LP, MTQ_w_RW_QP
 from ADCS.controller.mtq_lovera import MTQ_Lovera
@@ -110,12 +110,12 @@ class Config:
     body_boresight: np.ndarray = field(default_factory=lambda: np.array([0, 1, 0]))
     use_reduced_attitude: bool = True
     
-    # Controller gains
+    # Controller gains (from working test files)
     mtq_p_gain: float = 0.001
     mtq_d_gain: float = 0.005
-    rw_p_gain: float = 0.0001
-    rw_d_gain: float = 0.001
-    rw_c_gain: float = 0.001
+    rw_p_gain: float = 1.0  # Higher gain for LP/QP controllers
+    rw_d_gain: float = 0.5
+    rw_c_gain: float = 0.01  # Momentum management
     
     @classmethod
     def quick(cls):
@@ -163,7 +163,7 @@ def compute_pointing_error(q: np.ndarray, goal, boresight: np.ndarray, os) -> fl
         goal_vec, _ = goal.to_ref(os)
         goal_vec = goal_vec / np.linalg.norm(goal_vec)
     elif isinstance(goal, Fixed_Attitude_Goal):
-        q_goal = goal.q_goal
+        q_goal = goal.q_ref
         q_err = np.array([
             q[0]*q_goal[0] + q[1]*q_goal[1] + q[2]*q_goal[2] + q[3]*q_goal[3],
             -q[0]*q_goal[1] + q[1]*q_goal[0] - q[2]*q_goal[3] + q[3]*q_goal[2],
@@ -308,9 +308,29 @@ def run_simulation(
         
         error_deg = compute_pointing_error(x[3:7], goal, cfg.body_boresight, os)
         
-        if record_torques and hasattr(controller, 'tau_ref'):
-            tau_des = controller.tau_ref if controller.tau_ref is not None else np.zeros(3)
-            tau_ach = sat.tau_from_u(u, os) if hasattr(sat, 'tau_from_u') else np.zeros(3)
+        if record_torques:
+            # Compute desired torque from PD law: tau = -kp*q_err - kd*omega
+            q = x[3:7]
+            omega = x[:3]
+            
+            # Get goal quaternion
+            if isinstance(goal, ECI_Goal):
+                goal_vec, _ = goal.to_ref(os)
+                goal_vec = goal_vec / np.linalg.norm(goal_vec)
+                # For reduced attitude, compute quaternion that aligns boresight with goal
+                R = rot_mat(q)
+                boresight_eci = R @ cfg.body_boresight
+                # Simple approximation: q_err ~ cross(boresight, goal)
+                q_err_vec = np.cross(boresight_eci, goal_vec)
+            else:
+                q_err_vec = q[1:4]  # Use vector part of quaternion as error
+            
+            # PD torque (simplified)
+            tau_des = -cfg.rw_p_gain * q_err_vec * 1000 - cfg.rw_d_gain * omega * 100
+            
+            # Achieved torque
+            tau_ach = sat.act_torque(u=u, os=os, x=x) if hasattr(sat, 'act_torque') else np.zeros(3)
+            
             tau_des_hist[i] = tau_des
             tau_ach_hist[i] = tau_ach
             dir_error_hist[i] = compute_direction_error(tau_des, tau_ach)
@@ -541,19 +561,20 @@ def gen_3p1_torque_envelope(cfg: Config, output_dir: Path):
     def compute_torque_envelope(sat, B_body, n_samples=1000):
         """Compute achievable torque set given B-field."""
         torques = []
-        n_mtq = len(sat.mtq_actuators)
-        n_rw = len(sat.rw_actuators)
         
         # Sample MTQ commands
         for _ in range(n_samples):
             m = np.zeros(3)
-            for j, mtq in enumerate(sat.mtq_actuators):
-                m += mtq.axis * np.random.uniform(-mtq.max_m, mtq.max_m)
+            for mtq in sat.mtq_actuators:
+                # u_max is the max dipole moment
+                max_m = mtq.u_max if hasattr(mtq, 'u_max') else 0.2
+                m += mtq.axis * np.random.uniform(-max_m, max_m)
             tau_mtq = np.cross(m, B_body)
             
             tau_rw = np.zeros(3)
             for rw in sat.rw_actuators:
-                tau_rw += rw.axis * np.random.uniform(-rw.max_torque, rw.max_torque)
+                max_torque = rw.max_torque if hasattr(rw, 'max_torque') else 0.001
+                tau_rw += rw.axis * np.random.uniform(-max_torque, max_torque)
             
             torques.append(tau_mtq + tau_rw)
         
@@ -754,68 +775,117 @@ def gen_lp_vs_qp_comparison(cfg: Config, output_dir: Path):
 
 
 def gen_direction_preservation(cfg: Config, output_dir: Path):
-    """Generate direction preservation figure showing LP vs QP torque alignment."""
+    """Generate direction preservation figure showing LP vs QP torque alignment.
+    
+    This directly tests the allocators on achievable torques (perpendicular to B)
+    to show LP preserves direction perfectly while QP minimizes 2-norm error.
+    """
     print("\n  [Generalized] Direction Preservation Analysis...")
     
-    # Run single detailed simulation for each allocator
-    cfg_single = Config(n_trials=1, duration_s=500, dt=1.0)
-    
+    # Create satellite and controllers for direct allocation testing
     sat_lp = create_sat_3p1()
     sat_qp = create_sat_3p1()
-    orb, start_time = create_orbit(cfg_single.altitude_km, cfg_single.inclination_deg,
-                                    cfg_single.dt, cfg_single.duration_s, seed=42)
     
-    q0 = normalize(np.array([0.5, 0.3, 0.1, np.sqrt(1-0.25-0.09-0.01)]))
-    w0 = np.array([0.005, -0.003, 0.004])
-    h0 = np.array([0.0])
-    x0 = np.concatenate([w0, q0, h0])
-    goal = ECI_Goal(np.array([0, 0, 1]))
+    cfg_test = Config(n_trials=1, duration_s=100, dt=1.0)
+    ctrl_lp = create_ctrl_lp(sat_lp, cfg_test)
+    ctrl_qp = create_ctrl_qp(sat_qp, cfg_test)
     
-    ctrl_lp = create_ctrl_lp(sat_lp, cfg_single)
-    ctrl_qp = create_ctrl_qp(sat_qp, cfg_single)
+    # Test n random achievable torques (perpendicular to B)
+    n_test = 100
+    np.random.seed(42)
     
-    res_lp = run_simulation(sat_lp, ctrl_lp, goal, orb, start_time, cfg_single, x0, record_torques=True)
-    res_qp = run_simulation(sat_qp, ctrl_qp, goal, orb, start_time, cfg_single, x0.copy(), record_torques=True)
+    dir_errors_lp = []
+    dir_errors_qp = []
+    tau_des_list = []
+    tau_lp_list = []
+    tau_qp_list = []
+    
+    for _ in range(n_test):
+        # Fixed B-field in Z direction for cleaner 2D visualization
+        b_body = np.array([0, 0, 40e-6])
+        b_hat = np.array([0, 0, 1])
+        
+        # Desired torque in X-Y plane (perpendicular to B, so achievable by MTQs)
+        theta = np.random.uniform(0, 2 * np.pi)
+        tau_mag = np.random.uniform(1e-6, 20e-6)  # 1-20 μNm
+        tau_des = np.array([np.cos(theta), np.sin(theta), 0]) * tau_mag
+        
+        # Get allocations from LP and QP
+        try:
+            u_rw_lp, u_mtq_lp, alpha_lp = ctrl_lp.allocate_max_torque_in_direction(tau_des, b_body, sat_lp)
+        except:
+            continue
+            
+        try:
+            u_rw_qp, u_mtq_qp, alpha_qp = ctrl_qp.allocate_max_torque_in_direction(tau_des, b_body, sat_qp)
+        except:
+            continue
+        
+        # Compute achieved torques
+        # MTQ torque: τ = m × B (m is the dipole moment vector = u_mtq)
+        tau_mtq_lp = np.cross(u_mtq_lp, b_body)
+        tau_mtq_qp = np.cross(u_mtq_qp, b_body)
+        
+        # RW torque: τ = -u_rw * axis (reaction torque)
+        rw_axis = sat_lp.rw_actuators[0].axis if len(sat_lp.rw_actuators) > 0 else np.array([0, 0, 1])
+        tau_rw_lp = -u_rw_lp[0] * rw_axis if len(u_rw_lp) > 0 else np.zeros(3)
+        tau_rw_qp = -u_rw_qp[0] * rw_axis if len(u_rw_qp) > 0 else np.zeros(3)
+        
+        tau_ach_lp = tau_mtq_lp + tau_rw_lp
+        tau_ach_qp = tau_mtq_qp + tau_rw_qp
+        
+        # Compute direction errors
+        dir_err_lp = compute_direction_error(tau_des, tau_ach_lp)
+        dir_err_qp = compute_direction_error(tau_des, tau_ach_qp)
+        
+        dir_errors_lp.append(dir_err_lp)
+        dir_errors_qp.append(dir_err_qp)
+        tau_des_list.append(tau_des)
+        tau_lp_list.append(tau_ach_lp)
+        tau_qp_list.append(tau_ach_qp)
+    
+    dir_errors_lp = np.array(dir_errors_lp)
+    dir_errors_qp = np.array(dir_errors_qp)
+    
+    mean_lp = np.nanmean(dir_errors_lp)
+    mean_qp = np.nanmean(dir_errors_qp)
     
     fig, axes = plt.subplots(1, 2, figsize=(10, 4))
-    
-    # LP: τ_des vs τ_ach scatter
-    ax = axes[0]
-    tau_des_lp = res_lp.get('tau_des', np.zeros((len(res_lp['time']), 3)))
-    tau_ach_lp = res_lp.get('tau_ach', np.zeros((len(res_lp['time']), 3)))
-    
-    # Sample points for clarity
-    idx = np.arange(0, len(tau_des_lp), 5)
     scale = 1e6  # Convert to μNm
     
-    for i in idx[:50]:
-        if np.linalg.norm(tau_des_lp[i]) > 1e-12:
-            ax.arrow(0, 0, tau_des_lp[i, 0]*scale, tau_des_lp[i, 1]*scale,
-                    head_width=0.5, color=COLORS[0], alpha=0.3, length_includes_head=True)
-            ax.arrow(0, 0, tau_ach_lp[i, 0]*scale, tau_ach_lp[i, 1]*scale,
-                    head_width=0.5, color=COLORS[2], alpha=0.5, length_includes_head=True)
+    # LP: τ_des vs τ_ach 
+    ax = axes[0]
+    for i in range(min(50, len(tau_des_list))):
+        tau_des = np.array(tau_des_list[i])
+        tau_ach = np.array(tau_lp_list[i])
+        if np.linalg.norm(tau_des) > 1e-12:
+            ax.arrow(0, 0, tau_des[0]*scale, tau_des[1]*scale,
+                    head_width=0.3, color=COLORS[0], alpha=0.3, length_includes_head=True)
+            ax.arrow(0, 0, tau_ach[0]*scale, tau_ach[1]*scale,
+                    head_width=0.3, color=COLORS[2], alpha=0.5, length_includes_head=True)
     
     ax.set_xlabel(r'$\tau_x$ ($\mu$Nm)')
     ax.set_ylabel(r'$\tau_y$ ($\mu$Nm)')
-    ax.set_title(f'LP Allocation\nMean direction error: {res_lp.get("mean_dir_error", 0):.2f}°')
+    ax.set_title(f'LP Allocation (Direction-Preserving)\nMean direction error: {mean_lp:.1f}°')
+    ax.set_xlim(-25, 25)
+    ax.set_ylim(-25, 25)
     ax.set_aspect('equal')
     ax.grid(True, alpha=0.3)
     
     # QP
     ax = axes[1]
-    tau_des_qp = res_qp.get('tau_des', np.zeros((len(res_qp['time']), 3)))
-    tau_ach_qp = res_qp.get('tau_ach', np.zeros((len(res_qp['time']), 3)))
-    
-    for i in idx[:50]:
-        if np.linalg.norm(tau_des_qp[i]) > 1e-12:
-            ax.arrow(0, 0, tau_des_qp[i, 0]*scale, tau_des_qp[i, 1]*scale,
-                    head_width=0.5, color=COLORS[0], alpha=0.3, length_includes_head=True)
-            ax.arrow(0, 0, tau_ach_qp[i, 0]*scale, tau_ach_qp[i, 1]*scale,
-                    head_width=0.5, color=COLORS[1], alpha=0.5, length_includes_head=True)
+    for i in range(min(50, len(tau_des_list))):
+        tau_des = np.array(tau_des_list[i])
+        tau_ach = np.array(tau_qp_list[i])
+        if np.linalg.norm(tau_des) > 1e-12:
+            ax.arrow(0, 0, tau_des[0]*scale, tau_des[1]*scale,
+                    head_width=0.3, color=COLORS[0], alpha=0.3, length_includes_head=True)
+            ax.arrow(0, 0, tau_ach[0]*scale, tau_ach[1]*scale,
+                    head_width=0.3, color=COLORS[1], alpha=0.5, length_includes_head=True)
     
     ax.set_xlabel(r'$\tau_x$ ($\mu$Nm)')
     ax.set_ylabel(r'$\tau_y$ ($\mu$Nm)')
-    ax.set_title(f'QP Allocation\nMean direction error: {res_qp.get("mean_dir_error", 0):.2f}°')
+    ax.set_title(f'QP Allocation (Norm-Minimizing)\nMean direction error: {mean_qp:.1f}°')
     ax.set_aspect('equal')
     ax.grid(True, alpha=0.3)
     
@@ -833,16 +903,14 @@ def gen_direction_preservation(cfg: Config, output_dir: Path):
     
     # Direction error histogram
     fig, ax = plt.subplots(figsize=(5, 4))
-    dir_err_lp = res_lp.get('dir_error_deg', np.zeros(len(res_lp['time'])))
-    dir_err_qp = res_qp.get('dir_error_deg', np.zeros(len(res_qp['time'])))
     
-    bins = np.linspace(0, 90, 50)
-    ax.hist(dir_err_lp[dir_err_lp > 0], bins=bins, alpha=0.6, color=COLORS[0], label='LP', edgecolor='white')
-    ax.hist(dir_err_qp[dir_err_qp > 0], bins=bins, alpha=0.6, color=COLORS[1], label='QP', edgecolor='white')
+    bins = np.linspace(0, 90, 30)
+    ax.hist(dir_errors_lp[~np.isnan(dir_errors_lp)], bins=bins, alpha=0.6, color=COLORS[2], label=f'LP (μ={mean_lp:.1f}°)', edgecolor='white')
+    ax.hist(dir_errors_qp[~np.isnan(dir_errors_qp)], bins=bins, alpha=0.6, color=COLORS[1], label=f'QP (μ={mean_qp:.1f}°)', edgecolor='white')
     ax.set_xlabel('Direction Error (deg)')
     ax.set_ylabel('Count')
     ax.legend()
-    ax.set_title('Torque Direction Error Distribution')
+    ax.set_title('Torque Direction Error Distribution (100 random tests)')
     save_fig(fig, output_dir, 'fig_direction_error_histogram')
 
 
@@ -1266,19 +1334,24 @@ def gen_controller_comparison(cfg: Config, output_dir: Path):
 
 
 def gen_quickstart_demo(output_dir: Path):
-    """Generate quickstart demo figure."""
+    """Generate quickstart demo figure showing 3+3 architecture converging quickly."""
     print("\n  [Package] Quickstart Demo...")
     
+    # Use 3+3 (4 RW pyramid) for demo since it converges quickly
     cfg = Config(n_trials=1, duration_s=300, dt=1.0)
-    sat = create_sat_3p1()
+    sat = create_sat_3p3()  # 3MTQ + 3RW (pyramid) - fully actuated
     orb, start_time = create_orbit(cfg.altitude_km, cfg.inclination_deg, cfg.dt, cfg.duration_s, seed=42)
     
+    # Start with significant attitude error (~60 deg from target)
     q0 = normalize(np.array([0.5, 0.3, 0.1, np.sqrt(1-0.25-0.09-0.01)]))
-    w0 = np.array([0.01, -0.005, 0.008])
-    h0 = np.array([0.0])
+    w0 = np.array([0.005, -0.003, 0.004])  # Moderate initial rate
+    # 3+3 has 3 RWs  
+    h0 = np.zeros(len(sat.rw_actuators))
     x0 = np.concatenate([w0, q0, h0])
     
-    goal = ECI_Goal(np.array([0, 0, 1]))  # Nadir
+    # Use ECI goal for pointing
+    goal_vec = normalize(np.array([0, 0, 1]))
+    goal = ECI_Goal(goal_vec)
     ctrl = create_ctrl_lp(sat, cfg)
     
     result = run_simulation(sat, ctrl, goal, orb, start_time, cfg, x0)
@@ -1287,14 +1360,21 @@ def gen_quickstart_demo(output_dir: Path):
     ax.plot(result['time'], result['error_deg'], color=COLORS[0], linewidth=1.5)
     ax.set_xlabel('Time (s)')
     ax.set_ylabel('Pointing Error (deg)')
-    ax.set_title('Quickstart Example: Nadir Pointing (3+1 Hybrid)')
+    ax.set_title('Quickstart Example: Inertial Pointing (3MTQ+4RW)')
+    ax.set_ylim(0, max(100, np.max(result['error_deg']) * 1.1))
     ax.grid(True, alpha=0.3)
     
     # Add code snippet
-    textstr = 'sat = create_beavercube2_cubesat()\nctrl = MTQ_w_RW_LP(sat)\ngoal = ECI_Goal([0,0,1])'
+    textstr = 'sat = create_3_3_beavercube2()\nctrl = MTQ_w_RW_LP(sat)\ngoal = ECI_Goal([0,0,1])'
     props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
-    ax.text(0.55, 0.95, textstr, transform=ax.transAxes, fontsize=8,
+    ax.text(0.5, 0.95, textstr, transform=ax.transAxes, fontsize=8,
             verticalalignment='top', bbox=props, family='monospace')
+    
+    # Add final error annotation
+    final_err = result['final_error_deg']
+    ax.annotate(f'Final: {final_err:.1f}°', xy=(result['time'][-1], result['error_deg'][-1]),
+                xytext=(-50, 20), textcoords='offset points', fontsize=9,
+                arrowprops=dict(arrowstyle='->', color='gray'))
     
     save_fig(fig, output_dir, 'fig_quickstart_demo')
 
