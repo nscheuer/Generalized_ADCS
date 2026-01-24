@@ -44,10 +44,150 @@
 %   3. Raspberry Pi benchmarks - NOT DONE
 %   4. Diverse configuration demo (1U, 6U, etc.) - PARTIAL
 %
-% ACTION:
-%   - Install Basilisk, run identical scenario
-%   - Document actual "git clone to working plot" time
-%   - Get Pi 4 or estimate from laptop scaling
+% ============================================================
+% CRITICAL EXPERIMENTS FOR PACKAGE PAPER
+% ============================================================
+%
+% KEY CLAIMS TO VERIFY:
+%   1. "5-minute demo from git clone to working plot"
+%   2. "Simpler than Basilisk for ADCS-focused tasks"
+%   3. "Runs on Raspberry Pi flight hardware"
+%   4. "Configuration replaces custom code"
+%
+% ============================================================
+% EXPERIMENT K0: BASILISK COMPARISON (ESSENTIAL FOR JOSS)
+% ============================================================
+%
+% EXP-K0A: Setup Complexity
+%   Task: Configure 3U CubeSat with 3+1 actuators, nadir pointing, 1 orbit
+%
+%   For ADCS-Py:
+%     Document:
+%       - Lines of Python to define spacecraft
+%       - Lines to configure estimator
+%       - Lines to set control law
+%       - Lines to run simulation
+%       - Total lines of code
+%       - Time from "I want to simulate this" to working code
+%
+%   For Basilisk:
+%     Install: pip install Basilisk (or build from source)
+%     Implement same scenario
+%     Document same metrics
+%
+%   Output:
+%     - Table: Metric × Framework
+%     - Code snippets in paper showing side-by-side
+%
+%   EXPECTED: ADCS-Py ~30-50 lines, Basilisk ~200-500 lines
+%
+% EXP-K0B: Runtime Comparison
+%   Same scenario as K0A
+%   Measure: Wall-clock time for 1-orbit simulation
+%
+%   EXPECTED: Basilisk faster (C++), ADCS-Py slower but acceptable
+%   Document the tradeoff: "2x slower but 5x easier to set up"
+%
+% EXP-K0C: Extension Complexity
+%   Task: Add a new sensor type (e.g., horizon sensor)
+%   Measure: Lines of code, files modified, time to implement
+%
+% ============================================================
+% EXPERIMENT K1: "5-MINUTE DEMO" VALIDATION
+% ============================================================
+%
+% EXP-K1: Fresh Install to Working Plot
+%   Starting point: Clean Python environment (venv)
+%   Steps:
+%     1. git clone [repo URL]
+%     2. pip install -e .
+%     3. python examples/quickstart.py
+%
+%   Record:
+%     - Wall-clock time for each step
+%     - Any errors encountered
+%     - Total time to see working plot
+%
+%   Do this on:
+%     - Fresh Ubuntu 22.04 VM
+%     - Fresh macOS
+%     - Fresh Windows (with WSL)
+%
+%   Output: Table of install times by platform
+%   Target: <5 minutes on all platforms
+%
+% ============================================================
+% EXPERIMENT K2: RASPBERRY PI BENCHMARKS
+% ============================================================
+%
+% Hardware: Raspberry Pi 4, 4GB RAM, Raspberry Pi OS 64-bit
+%
+% EXP-K2A: Simulation Speed
+%   Scenario: 3U CubeSat, 3+1, nadir pointing, 1 orbit (5400s)
+%   Timestep: 1s
+%   Measure:
+%     - Wall-clock time for full simulation
+%     - Real-time factor (simulation_time / wall_time)
+%     - Memory usage (peak)
+%
+%   EXPECTED: >10x real-time (i.e., 1 orbit simulates in <9 min)
+%
+% EXP-K2B: Control Loop Timing
+%   Scenario: Single control loop iteration
+%   Measure:
+%     - Estimator update time
+%     - Controller compute time
+%     - Allocator solve time
+%     - Total loop time
+%
+%   EXPECTED: <100ms total (sufficient for 10Hz control)
+%
+% EXP-K2C: ALTRO on Pi 4
+%   Same as K2A but with ALTRO planner
+%   Measure: ALTRO solve time for 500s horizon
+%
+%   EXPECTED: 3-5x slower than laptop (~150-300s solve time)
+%   Note: May be too slow for real-time use, but good for pre-planning
+%
+% ============================================================
+% EXPERIMENT K3: CONFIGURATION DIVERSITY DEMO
+% ============================================================
+%
+% Purpose: Show framework works across spacecraft scales
+%
+% EXP-K3: Multi-Scale Comparison
+%   Spacecraft configs:
+%     - 1U: 1.33 kg, 3+0 (MTQ only, volume-constrained)
+%     - 3U: 4 kg, 3+1 (BC2-like)
+%     - 6U: 8 kg, 3+3 (standard)
+%     - 12U: 20 kg, 3+3 + thrusters
+%
+%   For each:
+%     - Lines of code to configure (expect ~same)
+%     - Simulation runtime
+%     - Pointing accuracy achieved
+%
+%   Output:
+%     - Table: Config × Lines of Code × Runtime × Accuracy
+%     - Key message: "Same framework handles 1U to 12U"
+%
+% ============================================================
+% FIGURE WEAKNESSES
+% ============================================================
+%
+% WEAKNESS 1: No "5-minute demo" screenshot
+%   Action: Create fig_quickstart.png showing terminal + plot
+%
+% WEAKNESS 2: No Basilisk comparison table
+%   Action: Generate from EXP-K0 data
+%
+% WEAKNESS 3: No architecture diagram
+%   Action: Create fig_architecture.pdf showing:
+%     Satellite Factory → Estimator → Controller → Allocator → Actuators
+%     With sensor/actuator plugins marked
+%
+% WEAKNESS 4: thesis_figures/*.pdf may be from different framework version
+%   Action: Verify or regenerate with current code
 %
 % ============================================================
 % *** AVAILABLE DATA - READY TO USE ***

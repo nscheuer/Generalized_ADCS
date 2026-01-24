@@ -234,6 +234,125 @@
 % ============================================================
 %
 % ============================================================
+% CRITICAL EXPERIMENTS TO RESOLVE DATA DISCREPANCY (RUN FIRST!)
+% ============================================================
+%
+% ISSUE: Abstract claims 2.3° mean (PD) and 0.05° (planner), but current data shows:
+%   - experiment_outputs/3p1_paper/ (200s, PD): 63° mean for 3+1
+%   - papers/3MTQ+1RW/output_data/ (500s, ALTRO): 30° mean for 3+1
+%   - Thesis claims: 96% within 1°, mean 0.45°
+%
+% HYPOTHESIS: The difference is GOAL TYPE (reduced vs full attitude)
+%
+% ============================================================
+% EXPERIMENT 0: DIAGNOSE THE DISCREPANCY (RUN IMMEDIATELY)
+% ============================================================
+%
+% EXP-0A: REDUCED-ATTITUDE Goal (thesis configuration)
+%   Purpose: Verify thesis results are reproducible
+%   Spacecraft: BC2 (create_beavercube2_cubesat())
+%   Orbit: 400km circular, 51.6° inclination
+%   Duration: 1000s
+%   Trials: 10 (quick validation), then 100 (full MC)
+%   Goal type: REDUCED-ATTITUDE (align body-y with target direction)
+%              goal = ReducedAttitudeGoal(body_axis=[0,1,0], target_dir=random_unit_vector)
+%   Controller: ALTRO + TVLQR
+%   ALTRO params (from ALTRO_TUNING_NOTES.md Session 5):
+%     ps.cost_main.ang_cost_func_type = 0  # LINEAR - critical for early convergence!
+%     ps.cost_main.angle = 1e7
+%     ps.cost_main.angle_N = 1e8
+%     ps.cost_main.ang_vel = 1e4
+%     ps.cost_main.ang_vel_N = 1e5
+%     ps.dt_tp = 50
+%     ps.cost_main.use_full_cost_hessian = True
+%     ps.pass1.regularization.use_dynamics_hess = 1
+%     ps.pass1.convergence.max_outer_iter = 8
+%     ps.pass1.convergence.max_inner_iter = 50
+%     ps.pass2.convergence.max_outer_iter = 5
+%     ps.pass2.convergence.max_inner_iter = 20
+%     ps.init_traj.bdot_gain = 500
+%     ps.pass1.aug_lag.penalty_init = 100
+%   TVLQR gains (critical - see ALTRO_TUNING_NOTES.md):
+%     cost_tvlqr.angle = 1e4
+%     cost_tvlqr.angle_N = 1e5
+%     cost_tvlqr.ang_vel = 1e4
+%     cost_tvlqr.ang_vel_N = 1e5
+%     cost_tvlqr.control_mult = 1e4  # CRITICAL: prevents oscillations
+%   Output data:
+%     - quaternion(t), angular_velocity(t), pointing_error(t)
+%     - final_error_deg, settle_time_to_5deg, settle_time_to_1deg
+%     - altro_solve_time_s, altro_iterations
+%   Expected result: ~1° mean, 90%+ within 5° (matching thesis)
+%
+% EXP-0B: FULL-ATTITUDE Goal (current configuration)
+%   Purpose: Understand why current data shows 30° error
+%   Same as EXP-0A but:
+%   Goal type: FULL-ATTITUDE (exact quaternion)
+%              goal = QuaternionGoal(q_target=random_quaternion)
+%   Expected result: ~30° mean (matching current data)
+%
+%   IF EXP-0A matches thesis AND EXP-0B matches current data:
+%     CONCLUSION: Goal type explains discrepancy
+%     ACTION: Clearly document in paper that thesis results use reduced-attitude
+%
+%   IF BOTH fail to match:
+%     CONCLUSION: Something else changed (bug, parameters, orbit)
+%     ACTION: Debug systematically
+%
+% ============================================================
+% EXPERIMENT 0C: PD-ONLY BASELINE (no planner)
+% ============================================================
+%   Purpose: Generate correct numbers for Table 1 (PD results)
+%   Spacecraft: BC2
+%   Orbit: 400km circular, 51.6° inclination
+%   Duration: 1000s (NOT 200s like current data!)
+%   Trials: 100
+%   Configs: 3+0, 3+1, 3+3
+%   Goal type: REDUCED-ATTITUDE (body-y aligned with target)
+%   Controller: Quaternion PD (no planner)
+%   PD gains (need tuning recommendation):
+%     kp = [TBD based on config - see thesis values]
+%     kd = [TBD based on config]
+%     For 3+0: kp=0.0001, kd=0.001 (weak due to MTQ limits)
+%     For 3+1: kp=0.001, kd=0.01 (moderate)
+%     For 3+3: kp=0.01, kd=0.1 (aggressive)
+%   Allocation: LP (direction-preserving)
+%   Output data:
+%     - error_trajectory_deg[t] for each trial
+%     - histogram of final_error_deg
+%     - CDF of pointing_error
+%   Output figures:
+%     - fig_pd_cdf.pdf: CDF comparing 3+0, 3+1, 3+3
+%     - fig_pd_histogram.pdf: Error distribution
+%     - fig_pd_trajectories.pdf: Representative error vs time
+%
+% ============================================================
+% FIGURE WEAKNESSES IN CURRENT DATA
+% ============================================================
+%
+% WEAKNESS 1: thesis_figures/fig_3p1_cdf.pdf
+%   Issue: May be from different parameters than current code
+%   Action: Regenerate with EXP-0C to ensure consistency
+%
+% WEAKNESS 2: thesis_figures/fig_3p1_error_trajectories.pdf
+%   Issue: Only shows select "good" trajectories, not representative
+%   Action: Regenerate showing 10 random trajectories overlaid
+%
+% WEAKNESS 3: No planner vs PD comparison figure
+%   Issue: Key claim is planner improves 3+1, but no direct comparison
+%   Action: Generate figure with:
+%     - 3+1 PD error trajectory
+%     - 3+1 ALTRO error trajectory
+%     - Same initial conditions, same goal
+%
+% WEAKNESS 4: No figure showing "emergent spinning behavior"
+%   Issue: Abstract mentions spin for disturbance rejection but no figure
+%   Action: Generate figure showing:
+%     - Angular velocity magnitude vs time
+%     - Pointing error vs time (showing spin maintains pointing)
+%     - Control commands showing MTQ+RW coordination
+%
+% ============================================================
 % DETAILED EXPERIMENT LIST (Priority Order)
 % ============================================================
 %

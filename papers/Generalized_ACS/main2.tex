@@ -313,6 +313,158 @@
 % ACTION: Regenerate LP vs QP with 1000s, 100 trials, multiple configs
 %
 % ============================================================
+% CRITICAL EXPERIMENTS FOR GENERALIZED CONTROL PAPER
+% ============================================================
+%
+% KEY CLAIMS TO VERIFY:
+%   1. "LP preserves torque direction perfectly (0.004° error)"
+%   2. "Framework enables same control law across different actuator sets"
+%   3. "Constrained QP (1a-Power) nearly matches LP performance"
+%   4. "Automatic adaptation to actuator failures"
+%
+% ============================================================
+% EXPERIMENT G0: LP vs QP LONG-DURATION (CORE RESULT)
+% ============================================================
+%
+% EXP-G0: LP vs QP Closed-Loop Comparison
+%   Spacecraft: BC2 (3+1)
+%   Orbit: 400km, 51.6° inclination
+%   Duration: 1000s (NOT 120s like current data!)
+%   Trials: 100
+%   Initial: Random attitude, ±0.5°/s rate
+%   Goal: REDUCED-ATTITUDE (body-y → nadir)
+%
+%   Controller: Quaternion PD (same for all allocators)
+%     kp = 0.001, kd = 0.01
+%
+%   Allocation methods to compare:
+%     1. LP (cvxpy, direction-preserving)
+%     2. QP unconstrained (cvxpy, minimum error)
+%     3. QP with "1a-Power brake" constraint
+%     4. QP with "3b-Sign critical" constraint
+%
+%   Record per trial (at 1Hz):
+%     - pointing_error_deg[t]
+%     - torque_desired[t] (3-vector from PD)
+%     - torque_achieved[t] (3-vector from allocator)
+%     - direction_error_deg[t] = angle(τ_des, τ_ach)
+%     - magnitude_ratio[t] = ||τ_ach|| / ||τ_des||
+%     - solve_time_us[t]
+%
+%   Output data:
+%     - final_error_deg (mean of last 100s)
+%     - mean_direction_error, max_direction_error
+%     - mean_magnitude_ratio
+%     - mean_solve_time_us, p95_solve_time_us
+%
+%   Output figures:
+%     - fig_lp_qp_error_comparison.pdf: Error trajectory (4 methods overlaid)
+%     - fig_lp_qp_cdf.pdf: CDF of final pointing errors
+%     - fig_lp_qp_direction.pdf: Direction error histogram (LP ~0°, QP ~30°)
+%     - fig_allocation_timing.pdf: Solve time distribution
+%
+%   EXPECTED:
+%     - LP: ~2-4° final error, 0° direction error
+%     - QP unconstrained: ~2-3° final error, ~30° direction error
+%     - 1a-Power: ~3-4° final error, physics-based stability
+%     - 3b-Sign: ~2-3° final error, per-axis guarantee
+%
+% ============================================================
+% EXPERIMENT G1: FRAMEWORK VERSATILITY (KEY CONTRIBUTION)
+% ============================================================
+%
+% Purpose: Show same PD law works across configs with only allocation change
+%
+% EXP-G1: Same Control Law, Different Actuators
+%   Configs: 3+0, 3+1, 3+3, 0+3 (RW-only)
+%   Controller: IDENTICAL QuaternionPD for all
+%     kp = 0.001, kd = 0.01 (same gains!)
+%   Allocation: LP for all
+%   Duration: 1000s
+%   Trials: 50 per config
+%   Goal: REDUCED-ATTITUDE
+%
+%   Output:
+%     - Table comparing final error across configs
+%     - Key message: Control law unchanged, only allocation differs
+%
+%   Output figure:
+%     - fig_framework_versatility.pdf: 4-panel showing same scenario, 4 configs
+%       Each panel: error vs time with actuator commands
+%
+% EXP-G1B: Actuator Failure Adaptation
+%   Config: Start 3+3, fail 1 RW at t=500s, fail 2nd at t=800s
+%   Controller: UNCHANGED through failures
+%   Duration: 1200s
+%
+%   Output figure:
+%     - fig_failure_adaptation.pdf:
+%       Panel 1: Pointing error (showing brief transient at failure, recovery)
+%       Panel 2: Actuator commands (showing redistribution)
+%       Annotations marking failure times
+%
+% ============================================================
+% EXPERIMENT G2: CONTROLLABILITY VALIDATION
+% ============================================================
+%
+% EXP-G2: LTV Controllability Rank Over Orbit
+%   Configs: 3+0, 3+1, 3+3
+%   Orbit: 400km, vary inclination (0°, 30°, 51.6°, 90°)
+%   Compute: Controllability Gramian W over 1 orbit
+%   Record: rank(W), smallest eigenvalue, condition number
+%
+%   Output:
+%     - Table: Config × Inclination → rank for reduced-attitude (needs 4)
+%     - Table: Config × Inclination → rank for full-attitude (needs 6)
+%
+%   Output figure:
+%     - fig_controllability_vs_inclination.pdf
+%
+%   KEY RESULT: Show 3+0 is controllable for reduced-attitude at all inclinations
+%
+% ============================================================
+% EXPERIMENT G3: DISTURBANCE COMPENSATION
+% ============================================================
+%
+% EXP-G3: Feedforward Comparison
+%   Config: 3+0 (where disturbances matter most)
+%   Disturbances: GG + residual dipole + aero drag
+%   Duration: 500s
+%   Trials: 50
+%
+%   Compare:
+%     1. No feedforward (disturbance as noise)
+%     2. Full model feedforward (GG + dipole + drag computed)
+%     3. "All-in-one" estimated disturbance (from estimator)
+%
+%   Output:
+%     - Table: Mean error for each approach
+%     - fig_disturbance_feedforward.pdf: Error vs time (3 traces)
+%
+%   EXPECTED (from thesis): No-FF ~180°, All-in-one ~10°, Full ~3°
+%   This validates the "20° improvement" claim
+%
+% ============================================================
+% FIGURE WEAKNESSES
+% ============================================================
+%
+% WEAKNESS 1: Tables 8-9 have PRELIMINARY data from 120s tests
+%   Action: Replace with EXP-G0 data (1000s, 100 trials)
+%   Note in paper that preliminary data showed same trends
+%
+% WEAKNESS 2: No figure showing LP direction preservation visually
+%   Action: Generate fig_direction_preservation.pdf
+%     - 2D projection of desired vs achieved torque vectors
+%     - LP: vectors aligned; QP: vectors diverge
+%
+% WEAKNESS 3: No "bolt-on framework" block diagram
+%   Action: Generate fig_bolt_on_framework.pdf showing:
+%     Goal Mod → PD Law → Disturbance Comp → Allocation → Actuators
+%
+% WEAKNESS 4: thesis_figures/ctrl_*.pdf may show different scenario
+%   Action: Verify parameters match, or regenerate
+%
+% ============================================================
 % *** AVAILABLE DATA - READY TO USE ***
 % ============================================================
 %

@@ -111,12 +111,177 @@
 %   - tinympc_comparison.png
 %
 % ============================================================
+% CRITICAL EXPERIMENTS FOR PLANNER PAPER
+% ============================================================
+%
+% KEY CLAIMS TO VERIFY:
+%   1. "73% of MTQ-only 180° slews converge within 10° in 500s"
+%   2. "Reduced-attitude improves sub-degree success 6x (11% → 67%)"
+%   3. "3+1 with planner achieves 96% within 1°"
+%   4. "Planner discovers spinning solutions for disturbance rejection"
+%   5. "ALTRO solves in <60s on laptop"
+%
+% ============================================================
+% EXPERIMENT P0: PLANNER VS PD DIRECT COMPARISON (KEY RESULT)
+% ============================================================
+%
+% EXP-P0A: 3+0 MTQ-only, Planner vs PD
+%   Spacecraft: BC2 with RW disabled (create_beavercube1_cubesat())
+%   Orbit: 400km, 51.6° inclination
+%   Duration: 500s
+%   Trials: 100
+%   Initial condition: Random attitude, random angular rate ±0.5°/s
+%   Goal: REDUCED-ATTITUDE (body-y → nadir)
+%
+%   RUN 1: PD control only
+%     Controller: QuaternionPD
+%     Gains: kp=0.0001, kd=0.001 (weak for MTQ)
+%     Allocation: LP
+%
+%   RUN 2: ALTRO + TVLQR
+%     Planner: ALTRO with early-convergence params
+%       ang_cost_func_type = 0 (LINEAR!)
+%       angle = 1e7, angle_N = 1e8
+%       dt_tp = 50
+%     Tracker: TVLQR with control_mult=1e4
+%
+%   Output data (per trial):
+%     - error_trajectory_deg[t] at 1Hz
+%     - final_error_deg (mean of last 50s)
+%     - settle_time_to_10deg, settle_time_to_5deg
+%     - altro_solve_time_s (for planner runs)
+%     - actuator_saturation_percent
+%
+%   Output figures:
+%     - fig_planner_vs_pd_3p0.pdf: Overlaid error trajectories (10 samples each)
+%     - fig_planner_vs_pd_cdf.pdf: CDF comparison
+%     - fig_planner_improvement_bar.pdf: Bar chart of % within 10°, 5°, 1°
+%
+%   EXPECTED: PD ~15% within 10°, Planner ~73% within 10° (thesis claim)
+%
+% EXP-P0B: 3+1, Planner vs PD
+%   Same as P0A but with RW enabled
+%   EXPECTED: PD ~73% within 1°, Planner ~96% within 1° (thesis claim)
+%
+% ============================================================
+% EXPERIMENT P1: GRACEFUL DEGRADATION DEMO (KEY CONTRIBUTION)
+% ============================================================
+%
+% EXP-P1A: Infeasible Goal Response
+%   Spacecraft: 3+0 (MTQ-only)
+%   Goal: FULL-ATTITUDE quaternion (often geometrically infeasible for 3+0)
+%   Duration: 500s
+%
+%   Compare:
+%     - PD: Expected to saturate actuators indefinitely, oscillate
+%     - Planner: Expected to converge to closest achievable, bounded commands
+%
+%   Output figures:
+%     - fig_graceful_pd.pdf: PD error + actuator commands (showing saturation)
+%     - fig_graceful_planner.pdf: Planner error + commands (showing bounded)
+%     - Key visual: Side-by-side showing planner "tries its best" vs PD "goes crazy"
+%
+% EXP-P1B: Disturbance Overwhelm (Spinning Solution)
+%   Spacecraft: 3+0 with strong propulsion disturbance
+%   Disturbance: 0.05 mNm constant bias (exceeds MTQ authority)
+%   Goal: Nadir pointing
+%   Duration: 1000s
+%
+%   EXPECTED: Planner discovers spinning solution that averages out disturbance
+%
+%   Output figures:
+%     - fig_spin_solution.pdf:
+%       Panel 1: Angular velocity magnitude vs time (showing spin)
+%       Panel 2: Pointing error vs time (showing stability despite spin)
+%       Panel 3: MTQ commands (showing periodic pattern)
+%     - This is the "emergent behavior" figure for the abstract claim!
+%
+% ============================================================
+% EXPERIMENT P2: ALTERNATING REDUCED-ATTITUDE (NEW CONTRIBUTION)
+% ============================================================
+%
+% Purpose: Show full 3-DOF control using only 2-DOF goals
+%
+% EXP-P2A: Alternating Vector Goals
+%   Spacecraft: 3+0
+%   Target: Specific full-attitude quaternion q_target
+%   Method: Alternate between:
+%     - Goal A: body-y → direction_1 (computed from q_target)
+%     - Goal B: body-x → direction_2 (computed from q_target)
+%   Switching period: T = 10s, 20s, 50s (test different values)
+%   Duration: 500s
+%   Trials: 50
+%
+%   Output:
+%     - Full quaternion error vs time
+%     - Compare to direct full-attitude (expected to fail for 3+0)
+%
+%   EXPECTED: Alternating converges to q_target within ~5° over 500s
+%
+% EXP-P2B: Weighted Multi-Vector
+%   Same as P2A but track both vectors simultaneously with weights
+%   Weights: w1=w2=0.5 (equal), or error-based (focus on worse)
+%
+%   Output: Compare convergence rate to alternating
+%
+% ============================================================
+% EXPERIMENT P3: TIMING BENCHMARKS (PRACTICAL)
+% ============================================================
+%
+% Hardware:
+%   - Laptop: Intel i7-xxxx @ x.xGHz, xxGB RAM (document actual)
+%   - Raspberry Pi 4: 1.5GHz ARM Cortex-A72, 4GB RAM
+%
+% EXP-P3A: ALTRO Solve Time Distribution
+%   Spacecraft: BC2 (3+1)
+%   Duration: 500s trajectory
+%   Trials: 100 random initial conditions
+%
+%   Record per trial:
+%     - altro_total_time_s
+%     - pass1_time_s, pass2_time_s
+%     - pass1_outer_iters, pass1_inner_iters
+%     - convergence_status (converged/max_iter/failed)
+%
+%   Output:
+%     - Table: mean, std, median, 95th percentile, max
+%     - fig_solve_time_histogram.pdf
+%
+%   EXPECTED: Mean <60s on laptop, <180s on Pi 4
+%
+% EXP-P3B: Horizon Scaling
+%   Vary horizon: 100s, 250s, 500s, 1000s
+%   Fixed dt_tp=50
+%   Record solve time vs horizon
+%
+%   Output: fig_horizon_scaling.pdf (solve time vs horizon)
+%
+% ============================================================
+% FIGURE WEAKNESSES
+% ============================================================
+%
+% WEAKNESS 1: No "before/after planner" comparison figure
+%   Action: Generate EXP-P0 figures showing clear improvement
+%
+% WEAKNESS 2: Benchmark table from JSON may be outdated
+%   Action: Re-run benchmarks with current code, document hardware
+%
+% WEAKNESS 3: No figure showing TVLQR tracking in action
+%   Action: Generate figure with:
+%     - Planned trajectory (dashed)
+%     - Actual tracked trajectory (solid)
+%     - TVLQR feedback commands
+%
+% WEAKNESS 4: thesis_figures/mtq_montecarlo.pdf may not match current code
+%   Action: Regenerate with documented parameters
+%
+% ============================================================
 % DATA GENERATION TODO LIST
 % ============================================================
 % ** CRITICAL - BEFORE SUBMISSION **
 % TODO-DATA-0: REPRODUCE THESIS RESULTS
 %   - Use REDUCED-ATTITUDE goals, 1000s, 100 trials
-%   - ALTRO params from ALTRO_TUNING_NOTES.md Session 6
+%   - ALTRO params: ang_cost_func_type=0, angle=1e7, angle_N=1e8, dt_tp=50
 %
 % ** HIGH PRIORITY **
 % TODO-DATA-1: Generate hardware timing benchmarks

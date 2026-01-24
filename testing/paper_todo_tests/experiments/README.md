@@ -1,137 +1,173 @@
-# Paper Experiment Scripts
+# Thesis and Paper Experiments
 
-Publication-quality figure generation for thesis and paper experiments.
+This directory contains experiment scripts for generating all data-based figures in the PhD thesis and 4 associated papers.
 
 ## Quick Start
 
 ```bash
-cd /home/pmckeen/Generalized_ADCS
+# List all experiments
+python thesis_chapter7_planning.py --list
+python thesis_chapter6_disturbance.py --list
+python thesis_chapter4_estimation.py --list
+python paper_experiments.py --paper 3p1 --list
 
-# 3+1 Paper - Architecture Comparison
-python testing/paper_todo_tests/experiments/run_3p1_paper_experiments.py --quick --output-dir ./output_3p1
+# Run quick test (10 trials, 100s)
+python thesis_chapter7_planning.py --experiment mc_180deg_1rw --quick
 
-# Generalized Control Paper - LP vs QP Torque Allocation  
-python testing/paper_todo_tests/experiments/run_lp_vs_qp_experiment.py --quick --output-dir ./output_lp_qp
-
-# Planner Paper - Goal Formulation Comparison
-python testing/paper_todo_tests/experiments/run_goal_formulation_experiment.py --quick --output-dir ./output_goal
+# Run full experiment (100 trials, 500s)
+python thesis_chapter7_planning.py --experiment mc_180deg_1rw --full
 ```
 
-## Experiments
+## Experiment Scripts
 
-### 1. 3+1 Paper: `run_3p1_paper_experiments.py`
+### Thesis Chapters
 
-**Paper:** 3-Magnetorquer, 1-Reaction-Wheel Architecture Demonstration
+| Script | Chapter | Description | Est. Runtime (Full) |
+|--------|---------|-------------|---------------------|
+| `thesis_chapter4_estimation.py` | Ch 4 | USQUE vs DAF filter comparison | 2-4 hours |
+| `thesis_chapter6_disturbance.py` | Ch 6 | Wie/Lovera/Wisniewski controllers | 1-2 hours |
+| `thesis_chapter7_planning.py` | Ch 7 | ALTRO trajectory planning MC | 8-16 hours |
 
-Compares control architectures:
-- **3+0**: 3 MTQs only (Lovera controller)
-- **3+1**: 3 MTQs + 1 RW (LP controller) - **main contribution**
-- **3+3**: 3 MTQs + 3 RWs (full authority baseline)
+### Papers
 
-**Experiments:**
-- A1: PD Control Baseline Comparison (implemented ✓)
-- A2: Planner-Enhanced Comparison (TODO)
-- A3: Goal Formulation Impact (TODO)
-- B1-B2: Desaturation and Long-Duration (TODO)
-- C1-C3: Mission-Specific Scenarios (TODO)
+| Script | Paper | Description |
+|--------|-------|-------------|
+| `paper_experiments.py --paper 3p1` | 3+1 Paper | Architecture comparison |
+| `paper_experiments.py --paper generalized` | Generalized Paper | LP vs QP allocation |
+| `paper_experiments.py --paper planner` | Planner Paper | ALTRO results |
+| `paper_experiments.py --paper package` | Package Paper | Validation tests |
 
-**Outputs:**
-- `fig_error_trajectories.{png,pdf}` - Time series with MC envelope
-- `fig_error_histogram.{png,pdf}` - Final error distribution
-- `fig_success_rates.{png,pdf}` - Bar chart of success rates
-- `fig_cdf.{png,pdf}` - Cumulative distribution function
-- `table1_results.tex` - LaTeX table
+## Thesis Parameters (Extracted from LaTeX)
 
-### 2. Generalized Control Paper: `run_lp_vs_qp_experiment.py`
+### Chapter 7: Planning (Table 7.2 - Monte Carlo Satellite)
 
-**Paper:** Generalized Attitude Control System
+```
+Satellite Inertia:
+  J_xx = 0.005256 kg·m²
+  J_yy = J_zz = 0.04939 kg·m²
 
-**CORE Contribution:** LP-based torque allocation preserves direction better than QP.
+MTQ Limits:
+  x-axis: 0.19 Am²
+  y/z-axis: 0.57 Am²
 
-**Key Results (from thesis Table 5.1):**
-- LP: Direction error = 0.0036° (preserves direction)
-- QP: Direction error = 33.01° (direction-wrong when infeasible)
+Reaction Wheel (y-axis aligned):
+  Max torque: 0.0002 Nm (0.2 mNm)
+  Momentum storage: 0.002 Nms (2 mNms)
+  Wheel inertia: 2e-6 kg·m²
 
-**Outputs:**
-- `fig_lp_vs_qp_trajectories.{png,pdf}` - Comparative MC trajectories
-- `fig_lp_vs_qp_boxplot.{png,pdf}` - Final error box comparison
-- `fig_lp_vs_qp_cdf.{png,pdf}` - CDF comparison
-- `table_lp_vs_qp.tex` - LaTeX comparison table
-
-### 3. Planner Paper: `run_goal_formulation_experiment.py`
-
-**Paper:** Trajectory Planning for Magnetically Actuated Spacecraft
-
-**KEY INSIGHT:** For imaging missions, you only need to point a camera at a target 
-(reduced attitude / 2-DOF), not achieve exact orientation (full attitude / 3-DOF).
-
-**Expected Results (from thesis Table 3.2):**
-- Reduced Attitude: 67% within 1°
-- Full Attitude: 11% within 1°
-- **6x improvement!**
-
-**Note:** This comparison requires the trajectory planner (ALTRO) to see the 
-full improvement. With feedback control only, both modes are slow to converge.
-
-**Outputs:**
-- `fig_goal_formulation_trajectories.{png,pdf}` - Error comparison
-- `fig_goal_formulation_success.{png,pdf}` - Success rate bar chart
-- `fig_goal_formulation_cdf.{png,pdf}` - CDF comparison
-- `table_goal_formulation.tex` - LaTeX table
-
-### 4. Allocation Comparison: `research/allocation_comparison.py`
-
-Direct torque allocation comparison (single-step, not closed-loop).
-Best demonstrates LP vs QP direction preservation.
-
-```bash
-python research/allocation_comparison.py
+Orbit:
+  ISS-like: 51.5° inclination, 429 km altitude
 ```
 
-## Command Line Options
+### Expected Results (from Thesis Tables)
 
-All scripts support:
-- `--quick`: Fast validation (10 trials, shorter sim time)
-- `--full`: Publication quality (100 trials, full sim time)
-- `--output-dir DIR`: Specify output directory
+#### Table 7.3: 180° Slew Monte Carlo
+| Metric | MTQ-Only | 3MTQ+1RW |
+|--------|----------|----------|
+| % within 1° | 11% | 96% |
+| % within 10° | 73% | 100% |
+| Mean error | 10.2° | 0.11° |
+| Median error | 4.2° | 1.2e-4° |
 
-## Figure Style
+#### Table 7.4: Reduced Attitude Monte Carlo
+| Metric | MTQ-Only | 3MTQ+1RW |
+|--------|----------|----------|
+| % within 1° | 67% | 96% |
+| % within 10° | 75% | 100% |
+| Mean error | 16.2° | 0.16° |
+| Median error | 0.04° | 2.6e-3° |
 
-All figures use:
-- Serif fonts (Computer Modern when TeX available)
-- 300 DPI for publication
-- Both PNG and PDF formats
-- Colorblind-friendly palette
-- Clean axes (no top/right spines)
+## Chapter 7 Experiments
 
-## Expected Results
+### Monte Carlo Tests
+- `mc_180deg_mtq`: 180° slew with MTQ-only (Table 7.3)
+- `mc_180deg_1rw`: 180° slew with 3MTQ+1RW (Table 7.3)
+- `mc_reduced_mtq`: Reduced attitude with MTQ-only (Table 7.4)
+- `mc_reduced_1rw`: Reduced attitude with 3MTQ+1RW (Table 7.4)
+- `mc_multi_mtq`: Multi-target with MTQ-only (Table 7.5)
+- `mc_multi_1rw`: Multi-target with 3MTQ+1RW (Table 7.5)
 
-### 3+1 Paper (Table 2 Expected Values)
-| Config | Mean Error | <1° | <5° |
-|--------|-----------|-----|-----|
-| 3+0    | ~21.6°    | ~15%| -   |
-| 3+1 PD | ~2.3°     | ~73%| -   |
-| 3+1+Plan| ~0.05°   | ~100%| -  |
-| 3+3    | ~0.24°    | ~100%| -  |
+### Special Tests
+- `spinning_solution`: Satellite spinning to counter disturbance (Table 7.1)
+- `sequential_planning`: Sequential trajectory planning (Table 7.6)
+- `two_goal_trajectory`: Long trajectory with two goals (Table 7.7)
 
-**Note:** Results depend on simulation duration. Use `--full` for accurate comparison.
+## Chapter 6 Experiments
 
-### LP vs QP (Direction Preservation)
-- LP direction error: ~0.004° (essentially zero)
-- QP direction error: ~31-33° (large when infeasible)
+### Controller Comparisons
+- `wie_*`: Wie 3RW controller (Section 6.3)
+- `lovera_*`: Lovera MTQ controller (Section 6.4)
+- `wisniewski_*`: Wisniewski sliding mode (Section 6.5)
+- `wisniewski_twist_*`: Modified Wisniewski (Section 6.6)
 
-## Adding New Experiments
+## Chapter 4 Experiments
 
-1. Create new script in this directory
-2. Follow the pattern in `run_3p1_paper_experiments.py`:
-   - Use `ExpConfig` for trial/duration settings
-   - Use `run_single_trial()` for simulation
-   - Use `run_monte_carlo()` for MC campaigns
-   - Generate figures with matplotlib
-   - Save LaTeX tables and JSON data
+### Filter Comparison Cases
+- `case_a`: TRMM, large initial errors
+- `case_b`: TRMM, small initial errors
+- `case_c`: CubeSat, large initial errors
+- `case_d`: CubeSat, small initial errors
+- `case_e/f/g`: CubeSat inclusion tests
+- `case_g_full`: Full state estimation
 
-## Dependencies
+## Output Structure
 
-- numpy, scipy, matplotlib
-- tqdm (progress bars)
-- ADCS package (controllers, satellites, orbits)
+```
+experiment_outputs/
+├── chapter4_figures/
+│   ├── case_a/
+│   ├── case_b/
+│   ├── inclusion/
+│   └── many_var/
+├── chapter6_figures/
+│   └── (controller comparison plots)
+├── chapter7_figures/
+│   ├── simple_slew/
+│   ├── single_target_imaging/
+│   ├── multi_target_imaging/
+│   └── sequential/
+└── paper_figures/
+    ├── 3p1_paper/
+    ├── generalized_paper/
+    ├── planner_paper/
+    └── package_paper/
+```
+
+## Key Implementation Notes
+
+### ALTRO Planner Settings
+```python
+planner_settings = PlannerSettings(
+    est_sat=sat,
+    bdot_on=0,      # 0=off, 1=simple, 2=advanced
+    dt_tp=10,       # MUST be <= 20 for N >= 4 per segment
+    dt_tvlqr=1,
+)
+```
+
+### Satellite Factory Functions
+- `create_beavercube1_cubesat()`: MTQ-only (3+0)
+- `create_beavercube2_cubesat()`: 3MTQ+1RW (z-axis RW)
+- `create_3_3_beavercube2_cubesat()`: 3MTQ+3RW
+
+### Controller API
+```python
+# MTQ-only
+controller = MTQ_Lovera(est_sat, p_gain=0.001, d_gain=0.005, eps=1.0)
+
+# With RW (LP allocation)
+controller = MTQ_w_RW_LP(est_sat, p_gain=0.0001, d_gain=0.001, c_gain=0.001,
+                          h_target=np.array([0.0, 0.0, 0.0]))
+
+# With RW (QP allocation)
+controller = MTQ_w_RW_QP(est_sat, p_gain=0.0001, d_gain=0.001, c_gain=0.001,
+                          h_target=np.array([0.0, 0.0, 0.0]))
+```
+
+## TODO
+
+- [ ] Run full MC experiments (100 trials, 500s each)
+- [ ] Implement actual UKF/USQUE for Chapter 4
+- [ ] Add Wisniewski_twist controller
+- [ ] Add spinning solution with body-frame disturbance
+- [ ] Validate against thesis expected results
