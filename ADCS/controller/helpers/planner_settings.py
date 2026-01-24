@@ -1,120 +1,3 @@
-"""
-ALTRO Trajectory Planner Settings Configuration.
-
-This module defines PlannerSettings, the main configuration class for the Augmented
-Lagrangian iLQR (ALTRO) trajectory optimizer used for spacecraft attitude control.
-
-Key Concepts
-------------
-**Two-Pass Optimization**: The planner runs two sequential optimization passes:
-  - Pass 1 (Main): Finds a feasible trajectory from the initial guess
-  - Pass 2 (Refinement): Polish the solution with tighter convergence
-
-**Timing Hierarchy**: Three time scales interact:
-  - dt_tp: Trajectory planner timestep (coarse, e.g., 30s) - controls trajectory resolution
-  - dt_tvlqr: TVLQR controller timestep (fine, e.g., 1s) - controls feedback update rate
-  - dt_control: Actual control loop rate - typically matches dt_tvlqr
-
-**Cost Function Structure**: The cost J = Σ[state_cost + control_cost] + terminal_cost
-  - Running costs (angle, ang_vel) penalize deviation during trajectory
-  - Terminal costs (*_N) penalize final state error - typically 10x running costs
-  - control_mult scales ALL actuator costs uniformly
-
-Settings Interdependencies
---------------------------
-1. **Timing Relations**:
-   - dt_tp should be a multiple of dt_tvlqr (e.g., dt_tp = 10 * dt_tvlqr)
-   - tvlqr_len determines how far ahead the TVLQR looks
-   - tvlqr_overlap prevents discontinuities when switching trajectories
-   - precalculation_time must exceed tvlqr_len for smooth operation
-
-2. **Cost Weight Interactions**:
-   - Higher angle costs → prioritizes pointing accuracy over velocity damping
-   - Higher ang_vel costs → smoother trajectories but slower convergence
-   - control_mult scales ALL actuator costs uniformly
-   - Individual actuator weights (mtq_control_weight, rw_control_weight) set relative priority
-
-3. **Actuator Weight Effects**:
-   - mtq_control_weight vs rw_control_weight ratio determines actuator preference
-   - Higher RW weight → prefers MTQs when both available
-   - rw_AM_weight penalizes RW momentum buildup (prevents saturation)
-   - rw_stic_weight penalizes low RW speeds (avoids stiction region)
-
-4. **Constraint Interactions**:
-   - wmax (angular velocity limit) affects trajectory aggressiveness
-   - sun_limit_angle + camera_axis define keep-out zone
-   - control_limit_scale reduces actuator limits for margin (default 75%)
-
-5. **Convergence Tuning**:
-   - Pass 1: Lower penalty_init (1e-3) for exploration, more iterations
-   - Pass 2: Higher penalty_init (1e4) for constraint enforcement, fewer iterations
-   - If not converging: increase max_outer_iter, decrease reg_init
-
-Tuning Guide
-------------
-**Quick Start Presets**:
-
-For **fast, aggressive maneuvers** (large angles, short time):
-    cost_main = CostWeights(
-        angle=1e4, angle_N=1e5,      # High pointing priority
-        ang_vel=1e2, ang_vel_N=1e3,  # Allow high rates
-        control_mult=0.1             # Cheap control
-    )
-    settings.wmax = 30 * np.pi / 180  # 30 deg/s limit
-
-For **smooth, precise pointing** (imaging, communication):
-    cost_main = CostWeights(
-        angle=1e3, angle_N=1e4,
-        ang_vel=1e5, ang_vel_N=1e6,  # Penalize velocity heavily
-        control_mult=10.0            # Expensive control = smoother
-    )
-    settings.wmax = 5 * np.pi / 180   # 5 deg/s limit
-
-For **detumbling** (rate reduction only):
-    cost_main = CostWeights(
-        angle=0.0, angle_N=0.0,      # Don't care about pointing
-        ang_vel=1e4, ang_vel_N=1e6,  # Only minimize rates
-        control_mult=1.0
-    )
-
-**Common Problems and Solutions**:
-
-Problem: Trajectory doesn't converge (max iterations reached)
-  - Increase max_outer_iter (try 40-50)
-  - Decrease reg_init (try 1e-4)
-  - Increase penalty_scale (try 20-50)
-  - Check if maneuver is physically feasible given actuator limits
-
-Problem: Oscillating controls (chattering)
-  - Increase control_mult (penalize control changes)
-  - Increase ang_vel cost weights
-  - Decrease dt_tp for finer resolution
-  - Check regularization settings (increase reg_min)
-
-Problem: Constraint violations in final trajectory
-  - Increase penalty_init for pass 2 (try 1e5-1e6)
-  - Decrease c_max tolerance
-  - Increase max_outer_iter
-
-Problem: Slow computation time
-  - Increase dt_tp (coarser trajectory)
-  - Decrease max_inner_iter
-  - Use lighter convergence tolerances (grad_tol=1e-2)
-
-Problem: RW saturation during tracking
-  - Increase rw_AM_weight (penalize momentum buildup)
-  - Decrease RWh_max_mult (leave more margin)
-  - Consider longer trajectory duration
-
-**Tuning Order** (recommended sequence):
-  1. Start with default CostWeights
-  2. Adjust angle vs ang_vel ratio based on mission (pointing vs smoothness)
-  3. Set appropriate wmax for your satellite
-  4. Run trajectory, check convergence
-  5. If not converging, adjust solver settings (iterations, penalties)
-  6. If oscillating, increase control_mult or ang_vel weights
-  7. Fine-tune actuator weights based on preferred actuator usage
-"""
 from __future__ import annotations
 
 __all__ = ["PlannerSettings"]
@@ -129,6 +12,168 @@ from ADCS.satellite_hardware.disturbances import Dipole_Disturbance, Prop_Distur
 
 
 class PlannerSettings:
+    r"""
+    Container class for all configuration parameters required by the trajectory planner.
+
+    This class aggregates physical parameters, solver configurations, actuator limits,
+    cost weights, timing parameters, and disturbance models into a single interface
+    consumed by the C++ trajectory planner.
+
+    Mathematically, the planner solves a constrained optimal control problem of the form
+
+    .. math::
+
+        \min_{\mathbf{u}(t)} \;
+        \int_{0}^{T}
+        \ell\bigl(\mathbf{x}(t), \mathbf{u}(t)\bigr)\, dt
+        + \ell_N\bigl(\mathbf{x}(T)\bigr)
+
+    subject to nonlinear rigid-body dynamics
+
+    .. math::
+
+        \dot{\mathbf{x}} = f(\mathbf{x}, \mathbf{u}, \mathbf{d})
+
+    actuator saturation limits, and optional environmental disturbance torques
+    :math:`\mathbf{d}`.
+
+    The settings in this class parameterize both the dynamics and the optimization
+    algorithm, including multi-pass augmented Lagrangian iLQR configurations.
+
+    :param est_sat:
+        Estimated satellite model providing inertia, actuator definitions,
+        state dimension, and disturbances.
+
+    :type est_sat:
+        :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+
+    :param dt_control:
+        Control update period in seconds.
+
+    :type dt_control:
+        float
+
+    :param pass1_config:
+        Solver configuration for the first (exploration) optimization pass.
+
+    :type pass1_config:
+        :class:`~ADCS.controller.helpers.planner_subsettings.SolverPassConfig`
+
+    :param pass2_config:
+        Solver configuration for the second (refinement) optimization pass.
+
+    :type pass2_config:
+        :class:`~ADCS.controller.helpers.planner_subsettings.SolverPassConfig`
+
+    :param cost_main:
+        Cost weights for the main optimization pass.
+
+    :type cost_main:
+        :class:`~ADCS.controller.helpers.planner_subsettings.CostWeights`
+
+    :param cost_second:
+        Cost weights for the second optimization pass.
+
+    :type cost_second:
+        :class:`~ADCS.controller.helpers.planner_subsettings.CostWeights`
+
+    :param cost_tvlqr:
+        Cost weights for time-varying LQR tracking.
+
+    :type cost_tvlqr:
+        :class:`~ADCS.controller.helpers.planner_subsettings.CostWeights`
+
+    :param init_traj:
+        Initial trajectory generation configuration.
+
+    :type init_traj:
+        :class:`~ADCS.controller.helpers.planner_subsettings.InitTrajConfig`
+
+    :param dt_tvlqr:
+        Time step for TVLQR controller discretization.
+
+    :type dt_tvlqr:
+        float
+
+    :param tvlqr_len:
+        Duration of each TVLQR segment in seconds.
+
+    :type tvlqr_len:
+        float
+
+    :param tvlqr_overlap:
+        Overlap duration between consecutive TVLQR segments in seconds.
+
+    :type tvlqr_overlap:
+        float
+
+    :param dt_tp:
+        Time step used by the trajectory planner.
+
+    :type dt_tp:
+        float
+
+    :param precalculation_time:
+        Planning horizon precomputation time in seconds.
+
+    :type precalculation_time:
+        float
+
+    :param traj_overlap:
+        Overlap duration between planned trajectories.
+
+    :type traj_overlap:
+        float
+
+    :param bdot_on:
+        Flag enabling B-dot detumbling logic.
+
+    :type bdot_on:
+        int
+
+    :param debug_plot_on:
+        Flag enabling debug plotting.
+
+    :type debug_plot_on:
+        bool
+
+    :param include_gg:
+        Flag enabling gravity-gradient disturbance modeling.
+
+    :type include_gg:
+        bool
+
+    :param include_resdipole:
+        Flag enabling residual dipole disturbance modeling.
+
+    :type include_resdipole:
+        bool
+
+    :param include_prop:
+        Flag enabling propulsion disturbance modeling.
+
+    :type include_prop:
+        bool
+
+    :param include_drag:
+        Flag enabling aerodynamic drag disturbance modeling.
+
+    :type include_drag:
+        bool
+
+    :param include_srp:
+        Flag enabling solar radiation pressure disturbance modeling.
+
+    :type include_srp:
+        bool
+
+    :param include_gendist:
+        Flag enabling generic disturbance torque modeling.
+
+    :type include_gendist:
+        bool
+
+    """
     def __init__(
             self, 
             est_sat: EstimatedSatellite, 
@@ -252,12 +297,48 @@ class PlannerSettings:
         self.J_est = est_sat.J_0
 
     def systemSettings(self) -> Tuple[NDArray[np.float64], float, float, float, float, float]:
-        """Return system configuration tuple for C++ planner."""
+        r"""
+        Return system-level configuration parameters for the C++ planner.
+
+        These parameters define the rigid-body dynamics discretization and numerical
+        tolerances used by the planner. The inertia matrix enters the rotational
+        equations of motion
+
+        .. math::
+
+            \mathbf{J}\dot{\boldsymbol{\omega}} =
+            \boldsymbol{\tau} - \boldsymbol{\omega} \times (\mathbf{J}\boldsymbol{\omega})
+
+        where :math:`\mathbf{J}` is the estimated inertia tensor.
+
+        :return:
+            Tuple containing inertia matrix, trajectory planner time step,
+            TVLQR time step, numerical epsilon, TVLQR segment length,
+            and TVLQR overlap duration.
+
+        :rtype:
+            Tuple[numpy.ndarray, float, float, float, float, float]
+
+        """
         return (self.J_est, self.dt_tp, self.dt_tvlqr, self.eps,
                 self.tvlqr_len, self.tvlqr_overlap)
 
     def mainAlilqrSettings(self) -> Tuple[Tuple, Tuple, Tuple, Tuple]:
-        """Return first pass solver settings for C++ planner."""
+        r"""
+        Return solver settings for the first augmented Lagrangian iLQR pass.
+
+        The first pass prioritizes global exploration with a low penalty parameter
+        and increased iteration limits, solving a relaxed constrained optimization
+        problem.
+
+        :return:
+            Tuple containing line search, augmented Lagrangian,
+            convergence, and regularization settings.
+
+        :rtype:
+            Tuple[Tuple, Tuple, Tuple, Tuple]
+
+        """
         return (
             self.pass1.line_search.to_tuple(),
             self.pass1.aug_lag.to_tuple(),
@@ -266,7 +347,20 @@ class PlannerSettings:
         )
 
     def secondAlilqrSettings(self) -> Tuple[Tuple, Tuple, Tuple, Tuple]:
-        """Return second pass solver settings for C++ planner."""
+        r"""
+        Return solver settings for the second augmented Lagrangian iLQR pass.
+
+        The second pass increases constraint penalties to enforce feasibility
+        and refine the solution obtained from the first pass.
+
+        :return:
+            Tuple containing line search, augmented Lagrangian,
+            convergence, and regularization settings.
+
+        :rtype:
+            Tuple[Tuple, Tuple, Tuple, Tuple]
+
+        """
         return (
             self.pass2.line_search.to_tuple(),
             self.pass2.aug_lag.to_tuple(),
@@ -275,22 +369,115 @@ class PlannerSettings:
         )
 
     def initTrajSettings(self) -> Tuple[float, float, Tuple, Tuple]:
-        """Return initial trajectory generation settings."""
+        r"""
+        Return initial trajectory generation parameters.
+
+        These settings define how the initial guess trajectory is constructed
+        prior to optimization, which can significantly affect convergence.
+
+        :return:
+            Tuple containing initial trajectory configuration parameters.
+
+        :rtype:
+            Tuple[float, float, Tuple, Tuple]
+
+        """
         return self.init_traj.to_tuple()
 
     def optMainCostSettings(self) -> Tuple:
-        """Return main pass cost weights for C++ planner."""
+        r"""
+        Return cost weights for the main optimization pass.
+
+        The running and terminal costs are defined as
+
+        .. math::
+
+            \ell = \mathbf{x}^\top \mathbf{Q} \mathbf{x}
+            + \mathbf{u}^\top \mathbf{R} \mathbf{u}
+
+        with increased terminal penalties to emphasize goal convergence.
+
+        :return:
+            Tuple encoding main-pass cost weights.
+
+        :rtype:
+            Tuple
+
+        """
         return self.cost_main.to_tuple()
 
     def optSecondCostSettings(self) -> Tuple:
-        """Return second pass cost weights for C++ planner."""
+        r"""
+        Return cost weights for the second optimization pass.
+
+        These weights may differ from the main pass to emphasize constraint
+        satisfaction or control smoothing.
+
+        :return:
+            Tuple encoding second-pass cost weights.
+
+        :rtype:
+            Tuple
+
+        """
         return self.cost_second.to_tuple()
 
     def optTVLQRCostSettings(self, tracking_LQR_formulation: int) -> Tuple:
-        """Return TVLQR cost weights with tracking formulation flag."""
+        r"""
+        Return cost weights for the time-varying LQR controller.
+
+        The TVLQR controller minimizes a quadratic tracking cost
+
+        .. math::
+
+            J = \int
+            (\mathbf{x} - \mathbf{x}_r)^\top \mathbf{Q}
+            (\mathbf{x} - \mathbf{x}_r)
+            + \mathbf{u}^\top \mathbf{R} \mathbf{u} \, dt
+
+        where the formulation can be adjusted via the tracking flag.
+
+        :param tracking_LQR_formulation:
+            Integer flag selecting the tracking LQR formulation.
+
+        :type tracking_LQR_formulation:
+            int
+
+        :return:
+            Tuple encoding TVLQR cost weights.
+
+        :rtype:
+            Tuple
+
+        """
         return self.cost_tvlqr.to_tuple(tracking_LQR_formulation)
 
     def planner_disturbance_settings(self) -> Tuple[Tuple[bool, ...], NDArray, NDArray, int, NDArray, NDArray, NDArray]:
+        r"""
+        Return disturbance configuration parameters for the C++ planner.
+
+        Disturbance torques are modeled as additive inputs
+
+        .. math::
+
+            \boldsymbol{\tau}_{\text{total}} =
+            \boldsymbol{\tau}_{\text{control}} +
+            \boldsymbol{\tau}_{\text{dist}}
+
+        where the disturbance torque may include aerodynamic drag, solar radiation
+        pressure, gravity-gradient effects, propulsion torques, residual dipole
+        effects, or generic disturbances.
+
+        :return:
+            Tuple containing disturbance enable flags, SRP coefficients,
+            drag coefficients, normalization factor, propulsion torque,
+            generic disturbance torque, and residual dipole torque.
+
+        :rtype:
+            Tuple[Tuple[bool, ...], numpy.ndarray, numpy.ndarray, int,
+                numpy.ndarray, numpy.ndarray, numpy.ndarray]
+
+        """
         return (
             (self.plan_for_aero, self.plan_for_prop, self.plan_for_srp, 
              self.plan_for_gg, self.plan_for_resdipole, self.plan_for_gendist),

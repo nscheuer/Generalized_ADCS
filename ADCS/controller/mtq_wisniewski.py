@@ -12,70 +12,112 @@ from ADCS.helpers.math_helpers import rot_mat, Wmat
 
 class MTQ_Wisniewski(Controller):
     r"""
-    MTQ_Wisniewski
-    ==============
+    Sliding mode magnetic attitude controller based on Wisniewski (1998).
 
-    Sliding Mode Magnetic Attitude Controller
-    -----------------------------------------
+    This controller implements a sliding mode control law for spacecraft
+    attitude regulation using magnetic torquers as the sole actuation
+    mechanism. The formulation follows the work of R. Wisniewski and is
+    designed to handle the nonlinear, time-varying, and underactuated
+    nature of magnetic attitude control.
 
-    This controller implements the **Sliding Mode Control (SMC)** law for magnetic actuation proposed by Rafal Wisniewski (1998).
+    The controller defines a sliding surface in terms of angular velocity
+    error and attitude error. Control action is chosen such that system
+    trajectories are driven onto this surface and remain there, ensuring
+    robustness to modeling uncertainties and disturbances.
 
-    Unlike linear controllers (PD/LQR) which may struggle with the highly nonlinear and time-varying nature of magnetic control, this SMC formulation drives the system states onto a predefined "sliding surface" in the phase plane. Once on this surface, the system dynamics are governed by the surface design itself, providing robustness against model uncertainties and disturbances.
-
-    
-
-    Reference
-    ^^^^^^^^^
-    **Wisniewski, R.** "Sliding Mode Attitude Control for Magnetic Actuated Satellite."
-    *IFAC Proceedings Volumes*, 31(18), 1998.
-
-    Control Law Derivation
-    ----------------------
-
-    **1. Error Definitions**
-
-    Let the attitude error quaternion be :math:`\boldsymbol{q}_{\mathrm{err}}` and the angular velocity error be :math:`\boldsymbol{\omega}_{\mathrm{err}} = \boldsymbol{\omega} - \boldsymbol{\omega}_{\mathrm{ref}}`.
-
-    **2. Sliding Surface**
-
-    The sliding manifold :math:`\boldsymbol{s}` is defined as a linear combination of the angular momentum error and the attitude error:
+    Attitude and angular velocity errors are defined as:
 
     .. math::
 
-        \boldsymbol{s} = J \boldsymbol{\omega}_{\mathrm{err}} + \Lambda_q \boldsymbol{q}_{\mathrm{err}}
-
-    where :math:`\Lambda_q` is a positive definite gain matrix governing the convergence speed of the attitude error once the sliding mode is established (:math:`\boldsymbol{s} \approx 0`).
-
-    **3. Lyapunov Stability & Control Torque**
-
-    To ensure reachability of the sliding surface, we choose a Lyapunov candidate :math:`V = \frac{1}{2} \boldsymbol{s}^T \boldsymbol{s}`. The condition :math:`\dot{V} < 0` leads to the desired control torque definition.
-
-    Differentiating the surface:
+        \boldsymbol{\omega}_{\mathrm{err}} =
+        \boldsymbol{\omega} - \boldsymbol{\omega}_{\mathrm{ref}}
 
     .. math::
 
-        \dot{\boldsymbol{s}} = J \dot{\boldsymbol{\omega}}_{\mathrm{err}} + \Lambda_q \dot{\boldsymbol{q}}_{\mathrm{err}}
+        \boldsymbol{q}_{\mathrm{err}} \in \mathbb{R}^3
 
-    Substituting Euler's equations of motion and solving for the control torque :math:`\boldsymbol{\tau}_{\mathrm{ctrl}}` that cancels nonlinearities (feedback linearization) and imposes a decaying dynamics :math:`-\Lambda_s \boldsymbol{s}`:
+    The sliding surface is constructed as:
+
+    .. math::
+
+        \boldsymbol{s} =
+        J \boldsymbol{\omega}_{\mathrm{err}} +
+        \Lambda_q \boldsymbol{q}_{\mathrm{err}}
+
+    where :math:`J` is the spacecraft inertia matrix and
+    :math:`\Lambda_q` is a positive definite gain matrix.
+
+    A Lyapunov candidate function is chosen as:
+
+    .. math::
+
+        V = \frac{1}{2} \boldsymbol{s}^\mathsf{T} \boldsymbol{s}
+
+    Enforcing :math:`\dot{V} < 0` leads to the desired control torque:
 
     .. math::
 
         \boldsymbol{\tau}_{\mathrm{des}} =
-        \boldsymbol{\omega} \times (J \boldsymbol{\omega} + \boldsymbol{h}_{\mathrm{rw}})
+        \boldsymbol{\omega} \times (J\boldsymbol{\omega} + \boldsymbol{h}_{\mathrm{rw}})
         + J (\boldsymbol{\omega} \times \boldsymbol{\omega}_{\mathrm{err}})
         - \Lambda_q \dot{\boldsymbol{q}}_{\mathrm{err}}
         - \Lambda_s \boldsymbol{s}
 
-    **4. Magnetic Allocation**
-
-    Since magnetic torque is constrained to be perpendicular to the local B-field (:math:`\boldsymbol{\tau} = \boldsymbol{m} \times \boldsymbol{B}`), the desired torque :math:`\boldsymbol{\tau}_{\mathrm{des}}` is projected onto the available plane using the standard cross-product law:
+    Since magnetic actuation can only generate torque orthogonal to the
+    local magnetic field, the desired torque is mapped to a magnetic
+    dipole moment using:
 
     .. math::
 
-        \boldsymbol{m} = \frac{\boldsymbol{B} \times \boldsymbol{\tau}_{\mathrm{des}}}{\|\boldsymbol{B}\|^2}
+        \boldsymbol{m} =
+        \frac{\boldsymbol{B} \times \boldsymbol{\tau}_{\mathrm{des}}}
+        {\lVert \boldsymbol{B} \rVert^2}
+
+    Parameters
+    ----------
+    est_sat : :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+        Estimated satellite model providing inertia, actuator geometry,
+        and sensor configuration.
+    lambda_s : numpy.ndarray
+        Positive definite sliding surface gain matrix.
+    lambda_q : numpy.ndarray
+        Positive definite attitude error gain matrix.
+
+    Returns
+    -------
+    None
+
+    References
+    ----------
+    R. Wisniewski,
+    Sliding Mode Attitude Control for Magnetic Actuated Satellite,
+    IFAC Proceedings Volumes, Vol. 31, No. 18, 1998.
 
     """
     def __init__(self, est_sat: EstimatedSatellite, lambda_s: np.ndarray, lambda_q: np.ndarray) -> None:
+        r"""
+        Initialize the Wisniewski sliding mode magnetic controller.
+
+        This method stores the sliding surface gain matrices, constructs
+        the magnetic field reconstruction mapping from magnetometer
+        sensors, and extracts magnetic torquer actuation limits from the
+        satellite model.
+
+        Parameters
+        ----------
+        est_sat : :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+            Estimated satellite object containing sensors, actuators,
+            and inertia properties.
+        lambda_s : numpy.ndarray
+            Sliding surface convergence gain matrix.
+        lambda_q : numpy.ndarray
+            Attitude error gain matrix.
+
+        Returns
+        -------
+        None
+
+        """
         self.lambda_s = lambda_s
         self.lambda_q = lambda_q
 
@@ -84,6 +126,66 @@ class MTQ_Wisniewski(Controller):
         self.mtq_umax = np.array([a.u_max for a in est_sat.actuators if isinstance(a, MTQ)], dtype=float)
         
     def find_u(self, x_hat: np.ndarray, sens: np.ndarray, est_sat: EstimatedSatellite, os_hat: Orbital_State, goal: Goal | None = None) -> np.ndarray:
+        r"""
+        Compute magnetic torquer command vector using sliding mode control.
+
+        This method evaluates the estimated spacecraft state and sensor
+        measurements to compute a magnetic dipole command that enforces
+        the sliding mode dynamics. Reaction wheel momentum is included
+        in the gyroscopic compensation term when available.
+
+        The sliding surface is computed as:
+
+        .. math::
+
+            \boldsymbol{s} =
+            J \boldsymbol{\omega}_{\mathrm{err}} +
+            \Lambda_q \boldsymbol{q}_{\mathrm{err}}
+
+        The desired control torque is formed as:
+
+        .. math::
+
+            \boldsymbol{\tau}_{\mathrm{des}} =
+            \boldsymbol{\omega} \times (J\boldsymbol{\omega} + \boldsymbol{h}_{\mathrm{rw}})
+            + J (\boldsymbol{\omega} \times \boldsymbol{\omega}_{\mathrm{err}})
+            - \Lambda_q \dot{\boldsymbol{q}}_{\mathrm{err}}
+            - \Lambda_s \boldsymbol{s}
+
+        Magnetic dipole allocation is performed using the cross-product
+        projection law:
+
+        .. math::
+
+            \boldsymbol{u}_{\mathrm{mtq}} =
+            \frac{\boldsymbol{B} \times \boldsymbol{\tau}_{\mathrm{des}}}
+            {\lVert \boldsymbol{B} \rVert^2}
+
+        Actuator saturation is enforced by uniform scaling to respect
+        maximum dipole moment limits.
+
+        Parameters
+        ----------
+        x_hat : numpy.ndarray
+            Estimated spacecraft state vector containing angular rates,
+            attitude quaternion, and optional reaction wheel momentum states.
+        sens : numpy.ndarray
+            Raw magnetometer sensor measurements.
+        est_sat : :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+            Satellite model providing actuator configuration and inertia.
+        os_hat : :class:`~ADCS.orbits.orbital_state.Orbital_State`
+            Estimated orbital state providing geomagnetic field information.
+        goal : :class:`~ADCS.CONOPS.goals.Goal`, optional
+            Attitude guidance goal used to compute reference attitude and
+            angular velocity.
+
+        Returns
+        -------
+        numpy.ndarray
+            Actuator command vector containing magnetic torquer commands
+            ordered according to ``est_sat.actuators``.
+
+        """
         if goal is None:
             goal = No_Goal()
 

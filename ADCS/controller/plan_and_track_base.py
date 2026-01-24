@@ -1,9 +1,3 @@
-"""
-Base class for Plan and Track controllers.
-
-This module provides the common functionality shared by all Plan and Track
-controller variants (LQR, LQR with disturbance estimation, Exact).
-"""
 from __future__ import annotations
 
 __all__ = ["PlanAndTrackBase"]
@@ -26,26 +20,68 @@ import trajectory_planner.build.pysat as pysat
 
 
 class PlanAndTrackBase(Controller):
-    """
-    Base class for Plan and Track controllers.
+    r"""
+    Base class for Plan-and-Track trajectory controllers.
 
-    Provides common functionality for trajectory-based controllers including:
-    - Planner initialization
-    - Environment propagation
-    - Trajectory management
+    This class factors out the shared machinery needed by all Plan-and-Track
+    controller variants (e.g. time-varying LQR tracking, tracking with
+    disturbance estimation, and exact/quaternion formulations). It provides:
 
-    Subclasses must implement:
-    - find_u(): Control computation method
-    - calculate_trajectory(): Trajectory generation method
+    - Construction of a C++ planner stack from a Python satellite model.
+    - Propagation of orbital/environment vectors into the exact memory layout
+      expected by the C++ planner.
+    - A common trajectory-optimization call path and post-processing of the
+      returned controls/gains into Python actuator ordering.
 
-    Attributes:
-        est_sat: Estimated satellite model
-        planner_settings: Configuration for the trajectory planner
-        csat: C++ satellite model for the planner
-        planner: C++ ALTRO planner instance
-        active_trajectory: Currently active trajectory for tracking
-        state_dim: Dimension of state vector
-        ctrl_dim: Dimension of control vector
+    The class is a concrete :class:`~ADCS.controller.Controller` but remains
+    abstract in the sense that subclasses must implement the controller’s
+    control law and planning policy (e.g. ``find_u()`` and a public
+    trajectory-generation entry point) on top of the helpers provided here.
+
+    Mathematical overview
+    ---------------------
+    The trajectory planner receives a time grid and a collection of
+    environment vectors sampled along an orbit segment.
+
+    Let the planning horizon be :math:`T` seconds with a planner time step
+    :math:`\Delta t`. The number of knot points is
+
+    .. math::
+
+       N = \left\lceil \frac{T}{\Delta t} \right\rceil + 1.
+
+    The start time is expressed in J2000 centuries, :math:`t_0`, and the end
+    time passed to the planner is
+
+    .. math::
+
+       t_1 = t_0 + T \cdot c_{\mathrm{sec}\rightarrow\mathrm{cent}},
+
+    where :math:`c_{\mathrm{sec}\rightarrow\mathrm{cent}}` is the conversion
+    factor from seconds to J2000 centuries
+    (:class:`~ADCS.orbits.universal_constants.TimeConstants`).
+
+    For each knot point :math:`k \in \{0,\dots,N-1\}`, the propagated orbit
+    provides inertial position and velocity :math:`\mathbf{r}_k, \mathbf{v}_k`
+    along with environment vectors such as magnetic field and sun direction
+    (symbolically :math:`\mathbf{b}_k, \mathbf{s}_k`). The goal system provides
+    a reference attitude/pointing direction :math:`\mathbf{e}_k` via
+    :meth:`~ADCS.CONOPS.goallist.GoalList.to_ref`.
+
+    Implementation notes
+    --------------------
+    The C++ side expects specific array shapes and memory layouts:
+
+    - Time: ``(N,)`` contiguous float64.
+    - Vectors: ``(3, N)`` float64 Fortran-contiguous (column-major), compatible
+      with Armadillo-style matrix views.
+    - Scalars: ``(N,)`` contiguous float64.
+
+    Returned controls and gains are converted from the planner’s internal
+    actuator ordering (e.g. MTQ then RW) to the Python actuator ordering using
+    :func:`~ADCS.controller.helpers.reorder_controls_cpp_to_python` and
+    :func:`~ADCS.controller.helpers.reorder_gains_cpp_to_python`.
+
     """
 
     est_sat: EstimatedSatellite
@@ -63,18 +99,55 @@ class PlanAndTrackBase(Controller):
         tracking_lqr_formulation: int,
         quat_to_3vec_mode: int = 0
     ) -> None:
-        """
-        Common planner initialization.
+        r"""
+        Initialize the C++ trajectory planner and bind it to the satellite model.
 
-        Args:
-            est_sat: Estimated satellite model with actuators and sensors
-            planner_settings: Configuration for the ALTRO trajectory planner
-            tracking_lqr_formulation: LQR tracking formulation type:
-                0 = Standard TVLQR
-                2 = findKwDist (with disturbance estimation)
-            quat_to_3vec_mode: Quaternion to 3-vector conversion mode:
-                0 = Use reduced 3-parameter attitude representation
-                2 = Use exact 4-parameter quaternion
+        This method builds the C++ satellite representation and constructs a C++
+        ALTRO planner instance configured with the provided settings. It also sets
+        the planner’s quaternion-to-3-vector conversion mode, which determines the
+        internal attitude representation used during planning and tracking.
+
+        Mathematical meaning of options
+        -------------------------------
+        The tracking formulation selects which time-varying LQR (TVLQR) variant is
+        used around the optimized nominal trajectory:
+
+        - ``tracking_lqr_formulation = 0`` uses a standard TVLQR tracking law.
+        - ``tracking_lqr_formulation = 2`` uses a formulation that estimates a
+        (typically constant or slowly varying) disturbance term within the
+        tracking controller.
+
+        The attitude parameterization option selects the state representation used
+        by the C++ tracking logic:
+
+        - ``quat_to_3vec_mode = 0`` uses a reduced 3-parameter attitude error
+        representation (locally minimal) derived from quaternions.
+        - ``quat_to_3vec_mode = 2`` uses the full 4-parameter quaternion.
+
+        Referenced components
+        ---------------------
+        - Satellite conversion:
+        :func:`~ADCS.controller.helpers.build_csat.build_cpp_satellite`.
+        - Planner settings container:
+        :class:`~ADCS.controller.helpers.PlannerSettings`.
+        - Estimated satellite model:
+        :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`.
+
+        :param est_sat: Estimated satellite model that defines the state and control
+            dimensions and contains actuator/sensor configuration.
+        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+        :param planner_settings: Configuration bundle for system and solver settings
+            used by the C++ planner.
+        :type planner_settings: :class:`~ADCS.controller.helpers.PlannerSettings`
+        :param tracking_lqr_formulation: Tracking LQR formulation selector used by
+            the planner’s TVLQR cost configuration.
+        :type tracking_lqr_formulation: int
+        :param quat_to_3vec_mode: Quaternion-to-3-vector conversion mode used by the
+            C++ planner/tracker.
+        :type quat_to_3vec_mode: int
+        :return: None.
+        :rtype: None
+
         """
         self.est_sat = est_sat
         self.planner_settings = planner_settings
@@ -98,7 +171,23 @@ class PlanAndTrackBase(Controller):
         self.ctrl_dim = est_sat.control_len
 
     def set_active_trajectory(self, traj: Trajectory) -> None:
-        """Set the active trajectory for tracking."""
+        r"""
+        Set the active trajectory used for tracking.
+
+        The active trajectory is the nominal plan that the tracking controller
+        follows. Subclasses typically reference this trajectory inside their
+        control computation (e.g. selecting the nearest knot point and applying
+        the corresponding TVLQR feedback gains).
+
+        The trajectory type is the shared planning container
+        :class:`~ADCS.controller.helpers.Trajectory`.
+
+        :param traj: The trajectory to mark as active for subsequent tracking.
+        :type traj: :class:`~ADCS.controller.helpers.Trajectory`
+        :return: None.
+        :rtype: None
+
+        """
         self.active_trajectory = traj
 
     def _propagate_environment(
@@ -110,24 +199,88 @@ class PlanAndTrackBase(Controller):
         N: int,
         goals: GoalList
     ) -> Tuple[NDArray[np.float64], ...]:
-        """
-        Propagate environment vectors for the C++ planner.
+        r"""
+        Propagate orbit and environment vectors into the C++ planner input format.
 
-        Generates environment vectors in the exact format C++ expects:
-        - t: (N,) time array
-        - r,v,b,s,a,e: (3,N) position, velocity, B-field, sun, attitude, goal vectors (FORTRAN contiguous)
-        - p,rho: (N,) propellant and density arrays
+        This method samples the orbit and associated environment quantities over
+        the planning window and returns a tuple of arrays matching the exact shape
+        and memory-order requirements of the C++ planner.
 
-        Args:
-            os_0: Initial orbital state
-            t_start: Start time in J2000 centuries
-            t_end: End time in J2000 centuries
-            dt_seconds: Time step in seconds
-            N: Number of time points
-            goals: Goal list for attitude reference
+        Time base and buffering
+        -----------------------
+        The planner window is :math:`[t_{\mathrm{start}}, t_{\mathrm{end}}]` in
+        J2000 centuries. An additional buffer is appended beyond
+        :math:`t_{\mathrm{end}}` to ensure that interpolation and internal requests
+        remain valid near the terminal time:
 
-        Returns:
-            Tuple of (t, R, V, B, S, A, E, p, rho) arrays
+        .. math::
+
+        t_{\mathrm{end,buf}} = t_{\mathrm{end}} + 10 \, \Delta t \,
+        c_{\mathrm{sec}\rightarrow\mathrm{cent}}.
+
+        Orbit sampling then produces a sequence of times
+        :math:`\{t_k\}_{k=0}^{N-1}` with nominal spacing :math:`\Delta t` seconds.
+
+        Shape and layout contracts
+        --------------------------
+        The returned arrays satisfy:
+
+        - ``t`` has shape ``(N,)`` and is C-contiguous.
+        - ``R, V, B, S, A, E`` have shape ``(3, N)`` and are Fortran-contiguous.
+        - ``p`` and ``rho`` have shape ``(N,)`` and are C-contiguous.
+
+        Each vector matrix uses the convention that column :math:`k` corresponds to
+        time :math:`t_k`:
+
+        .. math::
+
+        R[:,k] = \mathbf{r}(t_k), \quad
+        V[:,k] = \mathbf{v}(t_k), \quad
+        B[:,k] = \mathbf{b}(t_k), \quad
+        S[:,k] = \mathbf{s}(t_k).
+
+        The attitude and goal vectors are:
+
+        - ``A[:,k]`` is the satellite body-frame reference vector (e.g. boresight)
+        duplicated across the horizon.
+        - ``E[:,k]`` is the inertial reference vector returned by the goal system
+        for time :math:`t_k`, computed via
+        :meth:`~ADCS.CONOPS.goallist.GoalList.to_ref`.
+
+        Clipping and padding
+        --------------------
+        If the sampled orbit yields :math:`N_{\mathrm{cur}} \neq N` points, vectors
+        are clipped or padded by edge extension to enforce exactly ``N`` points,
+        preserving endpoint values when padding.
+
+        Referenced components
+        ---------------------
+        - Orbit propagation:
+        :class:`~ADCS.orbits.orbit.Orbit`.
+        - Orbital state container:
+        :class:`~ADCS.orbits.orbital_state.Orbital_State`.
+        - Goal reference generation:
+        :class:`~ADCS.CONOPS.goallist.GoalList`.
+        - Seconds-to-centuries conversion:
+        :class:`~ADCS.orbits.universal_constants.TimeConstants`.
+
+        :param os_0: Initial orbital state used to seed the orbit propagator.
+        :type os_0: :class:`~ADCS.orbits.orbital_state.Orbital_State`
+        :param t_start: Start time of the propagation window in J2000 centuries.
+        :type t_start: float
+        :param t_end: End time of the propagation window in J2000 centuries.
+        :type t_end: float
+        :param dt_seconds: Sampling time step in seconds.
+        :type dt_seconds: float
+        :param N: Number of time points required by the planner input contract.
+        :type N: int
+        :param goals: Goal list used to compute inertial reference vectors.
+        :type goals: :class:`~ADCS.CONOPS.goallist.GoalList`
+        :return: A tuple ``(t, R, V, B, S, A, E, p, rho)`` where ``t, p, rho`` are
+            length-``N`` vectors and the others are ``(3, N)`` matrices with the
+            memory layouts expected by the C++ planner.
+        :rtype: tuple[numpy.typing.NDArray[numpy.float64], ...]
+
         """
         buffer_centuries = 10 * dt_seconds * TimeConstants.sec2cent
         t_end_buffered = t_end + buffer_centuries
@@ -235,21 +388,97 @@ class PlanAndTrackBase(Controller):
         goals: GoalList,
         verbose: bool = False
     ) -> Tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]]:
-        """
-        Common trajectory calculation logic.
+        r"""
+        Compute a nominal trajectory and TVLQR tracking data using the C++ planner.
 
-        Handles environment propagation, planner call, and control/gain reordering.
+        This method implements the shared planning workflow:
 
-        Args:
-            t_start: Start time in J2000 centuries
-            duration: Duration in seconds
-            x_0: Initial state vector
-            os_0: Initial orbital state
-            goals: Goal list for attitude reference
-            verbose: Whether to print debug information
+        1. Construct the planner time grid based on :math:`\Delta t` from
+        :class:`~ADCS.controller.helpers.PlannerSettings`.
+        2. Propagate orbit/environment vectors into C++-compatible arrays using
+        :meth:`~PlanAndTrackBase._propagate_environment`.
+        3. Call the C++ planner optimization routine to obtain a nominal state and
+        control trajectory plus tracking gains.
+        4. Reorder controls and gains from C++ actuator ordering to Python actuator
+        ordering.
 
-        Returns:
-            Tuple of (lqr_times, Xset, Uset, Kset, Sset)
+        Discretization
+        --------------
+        The horizon is ``duration`` seconds with planner step
+        :math:`\Delta t = \texttt{planner\_settings.dt\_tvlqr}`. The knot count is:
+
+        .. math::
+
+        N = \left\lceil \frac{\texttt{duration}}{\Delta t} \right\rceil + 1.
+
+        The end time passed to planning (in J2000 centuries) is:
+
+        .. math::
+
+        t_{\mathrm{end}} = t_{\mathrm{start}} +
+        \texttt{duration} \cdot c_{\mathrm{sec}\rightarrow\mathrm{cent}}.
+
+        Planner inputs and outputs
+        --------------------------
+        The C++ routine returns an optimized nominal trajectory and TVLQR data.
+        Denote the nominal discrete-time trajectory:
+
+        .. math::
+
+        \{\mathbf{x}_k\}_{k=0}^{N-1}, \quad
+        \{\mathbf{u}_k\}_{k=0}^{N-2}.
+
+        The tracking law typically uses time-varying feedback gains:
+
+        .. math::
+
+        \mathbf{u}(t_k) = \mathbf{u}_k - K_k \left(\mathbf{x}(t_k) - \mathbf{x}_k\right),
+
+        where the exact form depends on the chosen tracking formulation configured
+        during :meth:`~PlanAndTrackBase._init_planner`.
+
+        Control and gain reordering
+        ---------------------------
+        The planner returns controls and gains in an internal actuator ordering
+        (commonly magnetorquers before reaction wheels). To match the Python
+        actuator ordering defined by the estimated satellite model, the outputs are
+        transformed using:
+
+        - :func:`~ADCS.controller.helpers.reorder_controls_cpp_to_python`
+        - :func:`~ADCS.controller.helpers.reorder_gains_cpp_to_python`
+
+        Referenced components
+        ---------------------
+        - Planner settings:
+        :class:`~ADCS.controller.helpers.PlannerSettings`.
+        - Estimated satellite and actuator ordering:
+        :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`.
+        - Goal system:
+        :class:`~ADCS.CONOPS.goallist.GoalList`.
+        - Seconds-to-centuries conversion:
+        :class:`~ADCS.orbits.universal_constants.TimeConstants`.
+
+        :param t_start: Planning start time in J2000 centuries.
+        :type t_start: float
+        :param duration: Planning horizon length in seconds.
+        :type duration: float
+        :param x_0: Initial state vector used to seed the optimizer.
+        :type x_0: numpy.ndarray
+        :param os_0: Initial orbital state used to seed environment propagation.
+        :type os_0: :class:`~ADCS.orbits.orbital_state.Orbital_State`
+        :param goals: Goal list used to compute inertial reference vectors along the
+            horizon.
+        :type goals: :class:`~ADCS.CONOPS.goallist.GoalList`
+        :param verbose: If true, enable planner verbosity and print vector shape
+            diagnostics.
+        :type verbose: bool
+        :return: ``(lqr_times, Xset, Uset, Kset, Sset)`` where ``lqr_times`` is the
+            time grid associated with the TVLQR data, ``Xset`` is the nominal state
+            sequence, ``Uset`` is the reordered nominal control sequence, ``Kset``
+            is the reordered TVLQR gain sequence, and ``Sset`` is the planner’s
+            auxiliary TVLQR data sequence.
+        :rtype: tuple[numpy.typing.NDArray[numpy.float64], numpy.typing.NDArray[numpy.float64], numpy.typing.NDArray[numpy.float64], numpy.typing.NDArray[numpy.float64], numpy.typing.NDArray[numpy.float64]]
+
         """
         if verbose:
             print(f"Planning traj: Start={t_start:.5f}, Dur={duration}s")

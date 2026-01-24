@@ -20,8 +20,8 @@ class NavigationStar:
     The class encapsulates both the catalog metadata and the corresponding
     inertial-frame unit vector.
 
-    ------------------------------------------------------------------------
-    **Inertial Direction Model**
+    Inertial Direction Model
+    ------------------------
 
     Each star is assumed to be located at an effectively infinite distance.
     Therefore, its apparent direction is constant and independent of the
@@ -43,8 +43,8 @@ class NavigationStar:
     This mapping follows the standard spherical-to-Cartesian conversion
     described in Vallado (2013).
 
-    ------------------------------------------------------------------------
-    **Intended Usage**
+    Intended Usage
+    --------------
 
     Instances of this class are typically constructed by
     :class:`~ADCS.environment.StarCatalog` and returned by
@@ -54,8 +54,8 @@ class NavigationStar:
     :class:`~ADCS.satellite_hardware.sensors.star_tracker.StarTracker`
     for centroiding, pattern matching, and attitude estimation.
 
-    ------------------------------------------------------------------------
-    **Assumptions**
+    Assumptions
+    -----------
 
     - Stellar parallax is neglected
     - Proper motion is neglected
@@ -63,9 +63,6 @@ class NavigationStar:
 
     These approximations are appropriate for typical small-satellite
     star tracker simulations.
-
-    ------------------------------------------------------------------------
-    **Attributes**
 
     :param hip_id: Hipparcos catalog identifier.
     :type hip_id: int
@@ -85,8 +82,8 @@ class NavigationStar:
     :param s_eci: Unit direction vector toward the star in the ECI frame.
     :type s_eci: numpy.ndarray
 
-    ------------------------------------------------------------------------
-    **References**
+    References
+    ----------
 
     - Vallado, D. A., *Fundamentals of Astrodynamics and Applications*,
       4th ed., Section 2.3.
@@ -112,8 +109,8 @@ class StarCatalog:
     apparent brightness to reflect realistic onboard sensor constraints
     and to reduce computational load.
 
-    ------------------------------------------------------------------------
-    **Catalog Composition**
+    Catalog Composition
+    -------------------
 
     Each catalog entry is represented by a
     :class:`~ADCS.environment.NavigationStar` object containing:
@@ -126,8 +123,8 @@ class StarCatalog:
 
     The default catalog is derived from the **Hipparcos Catalog (ESA, 1997)**.
 
-    ------------------------------------------------------------------------
-    **Visibility Model Overview**
+    Visibility Model Overview
+    --------------------------
 
     A star is considered *visible* to a star tracker if all of the following
     geometric conditions are satisfied:
@@ -140,16 +137,14 @@ class StarCatalog:
     These checks are purely geometric and are independent of sensor noise,
     detector physics, or image processing effects.
 
-    ------------------------------------------------------------------------
-    **Coordinate Frames**
+    Coordinate Frames
+    -----------------
 
     - All direction vectors are expressed in the Earth-Centered Inertial (ECI)
       frame.
     - Position vectors are expressed in kilometers.
     - Angular quantities are expressed in radians.
 
-    ------------------------------------------------------------------------
-    **Attributes**
 
     :param R_EARTH: Mean Earth radius [km].
     :type R_EARTH: float
@@ -157,8 +152,8 @@ class StarCatalog:
     :param R_MOON: Mean Moon radius [km].
     :type R_MOON: float
 
-    ------------------------------------------------------------------------
-    **See Also**
+    See Also
+    --------
 
     - :class:`~ADCS.environment.NavigationStar`
     - :class:`~ADCS.satellite_hardware.sensors.star_tracker.StarTracker`
@@ -181,8 +176,8 @@ class StarCatalog:
         - Inertial-frame unit vectors are computed and stored
         - The catalog is cached for repeated visibility queries
 
-        ------------------------------------------------------------------------
-        **Model Limitations**
+        Model Limitations
+        -----------------
 
         The catalog is static and does not account for:
 
@@ -193,7 +188,6 @@ class StarCatalog:
         These effects are negligible for most Earth-orbiting spacecraft star
         tracker applications.
 
-        ------------------------------------------------------------------------
         :return: None
         :rtype: None
 
@@ -211,8 +205,8 @@ class StarCatalog:
         Angular coordinates are provided in degrees for readability and are
         internally converted to radians.
 
-        ------------------------------------------------------------------------
-        **Direction Vector Conversion**
+        Direction Vector Conversion
+        ---------------------------
 
         For each star, the inertial direction vector is computed using:
 
@@ -232,12 +226,11 @@ class StarCatalog:
 
         The resulting vector is normalized by construction.
 
-        ------------------------------------------------------------------------
         :return: List of initialized navigation star objects.
         :rtype: list[~ADCS.environment.NavigationStar]
 
-        ------------------------------------------------------------------------
-        **References**
+        References
+        ----------
 
         - Hipparcos Catalog, ESA (1997)
         - Vallado (2013), Section 2.3
@@ -304,7 +297,6 @@ class StarCatalog:
         This property provides read-only access to the internally stored list
         of :class:`~ADCS.environment.NavigationStar` objects.
 
-        ------------------------------------------------------------------------
         :return: List of navigation stars.
         :rtype: list[~ADCS.environment.NavigationStar]
 
@@ -326,8 +318,8 @@ class StarCatalog:
         This method applies a sequence of geometric visibility checks to every
         star in the catalog and returns only those that satisfy all criteria.
 
-        ------------------------------------------------------------------------
-        **1. Field-of-View Constraint**
+        1. Field-of-View Constraint
+        ---------------------------
 
         A star is inside the sensor field of view if the angular separation
         between the boresight direction :math:`\mathbf{b}` and the star direction
@@ -338,8 +330,8 @@ class StarCatalog:
             \arccos(\mathbf{b}^\top \mathbf{s})
             \le \frac{\mathrm{FOV}}{2}
 
-        ------------------------------------------------------------------------
-        **2. Earth Occlusion**
+        2. Earth Occlusion
+        ------------------
 
         The Earth subtends an angular radius as seen from the spacecraft:
 
@@ -354,8 +346,8 @@ class StarCatalog:
 
             \arccos(\mathbf{n}^\top \mathbf{s}) < \theta_\oplus
 
-        ------------------------------------------------------------------------
-        **3. Moon Occlusion (Optional)**
+        3. Moon Occlusion (Optional)
+        ----------------------------
 
         If the Moon position is provided, its angular radius is computed as:
 
@@ -366,8 +358,8 @@ class StarCatalog:
 
         The star is rejected if it lies within this angular radius.
 
-        ------------------------------------------------------------------------
-        **4. Sun Exclusion**
+        4. Sun Exclusion
+        -----------------
 
         If the Sun direction lies closer than ``sun_exclusion_rad`` to the
         boresight, the star tracker is assumed to be completely blinded and
@@ -377,7 +369,6 @@ class StarCatalog:
 
             \arccos(\mathbf{b}^\top \mathbf{s}_{\odot}) < \theta_{\mathrm{excl}}
 
-        ------------------------------------------------------------------------
         :param boresight_eci: Star tracker boresight direction (unit vector).
         :type boresight_eci: numpy.ndarray
 
@@ -396,12 +387,11 @@ class StarCatalog:
         :param sun_exclusion_rad: Minimum allowable Sun–boresight separation [rad].
         :type sun_exclusion_rad: float
 
-        ------------------------------------------------------------------------
         :return: List of visible navigation stars.
         :rtype: list[~ADCS.environment.NavigationStar]
 
-        ------------------------------------------------------------------------
-        **References**
+        References
+        ----------
 
         - Vallado (2013), Section 5.3 — Earth occlusion geometry
         - Liebe (2002), Section IV-A — Star tracker Sun exclusion

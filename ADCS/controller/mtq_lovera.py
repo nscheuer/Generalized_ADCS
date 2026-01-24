@@ -12,149 +12,168 @@ from ADCS.helpers.math_helpers import rot_mat
 
 class MTQ_Lovera(Controller):
     r"""
-    Magnetic PD Attitude Controller (Lovera–Astolfi)
+    Magnetic proportional–derivative attitude controller using magnetorquers only,
+    based on the global stabilization law of Lovera and Astolfi [1]_.
 
-    This controller implements the global magnetic attitude stabilization law
-    proposed in:
+    This controller implements the magnetic attitude control strategy presented in
 
-        M. Lovera and A. Astolfi,
-        *Global Magnetic Attitude Control of Inertially Pointing Spacecraft*,
-        Journal of Guidance, Control, and Dynamics, Vol. 28, No. 5, 2005,
-        pp. 1065–1072.
+    M. Lovera and A. Astolfi,
+    Global Magnetic Attitude Control of Inertially Pointing Spacecraft,
+    Journal of Guidance, Control, and Dynamics, Vol. 28, No. 5, 2005, pp. 1065–1072.
 
-    The controller achieves global asymptotic stabilization of an inertially
-    fixed attitude using **magnetorquers only**, exploiting the time-varying
-    nature of the geomagnetic field along the orbit.
+    The control law achieves global asymptotic stabilization of a constant inertial
+    attitude using only magnetic torquers by exploiting the time-varying nature of
+    the geomagnetic field along the orbit.
 
-    ---------------------------------------------------------------------------
-    Mathematical Background
-    ---------------------------------------------------------------------------
+    Rotational Dynamics
 
-    Let the spacecraft rotational dynamics be
+    The spacecraft rotational dynamics are modeled as
 
     .. math::
 
-        J \dot{\omega} = -\omega \times (J\omega + h_{rw}) + \tau
+        J \dot{\boldsymbol{\omega}}
+        =
+        -\boldsymbol{\omega} \times (J \boldsymbol{\omega} + \boldsymbol{h}_{rw})
+        + \boldsymbol{\tau}
 
     where
-    - :math:`\omega \in \mathbb{R}^3` is the body angular velocity,
-    - :math:`J` is the inertia matrix,
-    - :math:`h_{rw}` is the total reaction-wheel angular momentum (if present),
-    - :math:`\tau` is the control torque.
 
-    Magnetic actuators generate torque according to
+    +---------------------+----------------------------------------------------------+
+    | Symbol                      | Description                                      |
+    +=====================+==========================================================+
+    | :math:`\boldsymbol{\omega}` | Body angular velocity                            |
+    +---------------------+----------------------------------------------------------+
+    | :math:`J`                   | Spacecraft inertia matrix                        |
+    +---------------------+----------------------------------------------------------+
+    | :math:`\boldsymbol{h}_{rw}` | Total reaction wheel angular momentum            |
+    +---------------------+----------------------------------------------------------+
+    | :math:`\boldsymbol{\tau}`   | Control torque                                   |
+    +---------------------+----------------------------------------------------------+
 
-    .. math::
+    Magnetic Torque Model
+    ---------------------
 
-        \tau = m \times B
-
-    where
-    - :math:`m \in \mathbb{R}^3` is the commanded magnetic dipole moment,
-    - :math:`B \in \mathbb{R}^3` is the geomagnetic field expressed in body frame.
-
-    ---------------------------------------------------------------------------
-    Reference Tracking Errors
-    ---------------------------------------------------------------------------
-
-    Let :math:`q` be the spacecraft attitude quaternion and
-    :math:`q_d` the desired inertial reference attitude.
-    The attitude error vector is computed as
+    Magnetorquers generate torque according to
 
     .. math::
 
-        e_q = \text{vec}(q_d^{-1} \otimes q)
+        \boldsymbol{\tau} = \boldsymbol{m} \times \boldsymbol{B}
 
-    where :math:`\otimes` denotes quaternion multiplication.
+    where :math:`\boldsymbol{m}` is the commanded magnetic dipole moment and
+    :math:`\boldsymbol{B}` is the geomagnetic field expressed in the body frame.
 
-    The angular velocity error is
+    Attitude and Angular Velocity Errors
+    ------------------------------------
 
-    .. math::
-
-        e_\omega = \omega - R_{b}^{i}(q)^T \omega_d
-
-    where :math:`\omega_d` is the reference angular velocity expressed in ECI
-    coordinates.
-
-    ---------------------------------------------------------------------------
-    PD + Gyroscopic Compensation Law
-    ---------------------------------------------------------------------------
-
-    The desired control torque is defined as
+    Let q be the current attitude quaternion and q_d the desired inertial
+    reference quaternion. The attitude error vector is defined as
 
     .. math::
 
-        \tau_{des} =
-        -\varepsilon^2 k_p e_q
-        -\varepsilon k_d e_\omega
-        + \omega \times (J\omega + h_{rw})
+        \boldsymbol{e}_q = \mathrm{vec}(q_d^{-1} \otimes q)
 
-    where
-    - :math:`k_p`, :math:`k_d` are positive scalar gains,
-    - :math:`\varepsilon > 0` is a small tuning parameter separating time scales.
-
-    This structure ensures that the closed-loop dynamics can be cast in a
-    singular perturbation framework, as shown in the cited paper.
-
-    ---------------------------------------------------------------------------
-    Magnetic Dipole Command
-    ---------------------------------------------------------------------------
-
-    Since magnetic torquers cannot generate torque parallel to the geomagnetic
-    field, the commanded dipole is chosen as
+    The angular velocity error is defined as
 
     .. math::
 
-        m^* = \frac{B \times \tau_{des}}{\|B\|^2}
+        \boldsymbol{e}_{\omega}
+        =
+        \boldsymbol{\omega}
+        -
+        R_b^i(q)^\top \boldsymbol{\omega}_d
 
-    which guarantees
+    where :math:`R_b^i(q)` is the body-to-inertial rotation matrix and
+    :math:`\boldsymbol{\omega}_d` is the desired inertial angular rate.
 
-    .. math::
+    PD Control with Gyroscopic Compensation
+    ---------------------------------------
 
-        m^* \times B = \Pi_{B^\perp}(\tau_{des})
-
-    i.e. the projection of the desired torque onto the plane orthogonal to
-    :math:`B`.
-
-    If :math:`\|B\|` is below a numerical threshold, the dipole command is set
-    to zero.
-
-    ---------------------------------------------------------------------------
-    Actuator Saturation Handling
-    ---------------------------------------------------------------------------
-
-    Each magnetorquer is subject to dipole magnitude limits
+    The desired control torque is chosen as
 
     .. math::
 
-        |m_i| \le m_{i,\max}
+        \boldsymbol{\tau}_{des}
+        =
+        -\varepsilon^2 k_p \boldsymbol{e}_q
+        -\varepsilon k_d \boldsymbol{e}_{\omega}
+        +
+        \boldsymbol{\omega} \times (J \boldsymbol{\omega} + \boldsymbol{h}_{rw})
 
-    Rather than applying component-wise saturation (which would distort the
-    torque direction), the dipole command is **uniformly scaled**:
+    where :math:`k_p` and :math:`k_d` are positive scalar gains and :math:`\varepsilon` is a small
+    positive parameter separating time scales.
+
+    Magnetic Dipole Allocation
+    --------------------------
+
+    Since magnetorquers cannot generate torque parallel to the geomagnetic field,
+    the commanded magnetic dipole is computed as
 
     .. math::
 
-        m = \alpha m^*, \quad
-        \alpha = \min\!\left(1,
-        \min_i \frac{m_{i,\max}}{|m^*_i|}
+        \boldsymbol{m}^*
+        =
+        \frac{\boldsymbol{B} \times \boldsymbol{\tau}_{des}}{\|\boldsymbol{B}\|^2}
+
+    which yields
+
+    .. math::
+
+        \boldsymbol{m}^* \times \boldsymbol{B}
+        =
+        \Pi_{\boldsymbol{B}^\perp}(\boldsymbol{\tau}_{des})
+
+    If the magnetic field magnitude falls below a numerical threshold, the dipole
+    command is set to zero.
+
+    Actuator Saturation
+    -------------------
+
+    Magnetorquer dipole limits are enforced by uniformly scaling the commanded
+    dipole:
+
+    .. math::
+
+        \boldsymbol{m} = \alpha \boldsymbol{m}^*,
+        \quad
+        \alpha =
+        \min\left(
+            1,
+            \min_i \frac{m_{i,\max}}{|m_i^*|}
         \right)
 
-    This preserves the direction of the magnetic dipole—and therefore the
-    resulting torque direction—while guaranteeing feasibility.
+    This preserves the dipole direction and therefore the resulting torque
+    direction.
 
-    This saturation strategy is consistent with the assumptions used in the
-    stability analysis of Lovera & Astolfi and is standard practice in
-    flight-qualified magnetic attitude controllers.
-
-    ---------------------------------------------------------------------------
     References
-    ---------------------------------------------------------------------------
+    ----------
 
     .. [1] M. Lovera and A. Astolfi,
-        *Global Magnetic Attitude Control of Inertially Pointing Spacecraft*,
-        Journal of Guidance, Control, and Dynamics,
-        Vol. 28, No. 5, 2005, pp. 1065–1072.
+       Global Magnetic Attitude Control of Inertially Pointing Spacecraft,
+       Journal of Guidance, Control, and Dynamics,
+       Vol. 28, No. 5, 2005, pp. 1065–1072.
+
     """
     def __init__(self, est_sat: EstimatedSatellite, p_gain: float, d_gain: float, eps: float) -> None:
+        r"""
+        Initializes the Lovera–Astolfi magnetic attitude controller.
+
+        This constructor stores the controller gains, constructs the magnetic
+        field reconstruction matrix using onboard magnetometers, and extracts
+        the maximum allowable magnetic dipole moments from the magnetorquer
+        actuators.
+
+        :param est_sat: Estimated satellite object containing sensors and actuators
+        :type est_sat: ~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite
+        :param p_gain: Proportional gain k_p for attitude error feedback
+        :type p_gain: float
+        :param d_gain: Derivative gain k_d for angular velocity error feedback
+        :type d_gain: float
+        :param eps: Small positive time-scale separation parameter \varepsilon
+        :type eps: float
+        :return: None
+        :rtype: None
+
+        """
         self.p_gain = p_gain
         self.d_gain = d_gain
         self.eps = eps
@@ -164,6 +183,31 @@ class MTQ_Lovera(Controller):
         self.mtq_umax = np.array([a.u_max for a in est_sat.actuators if isinstance(a, MTQ)], dtype=float)
         
     def find_u(self, x_hat: np.ndarray, sens: np.ndarray, est_sat: EstimatedSatellite, os_hat: Orbital_State, goal: Goal | None = None) -> np.ndarray:
+        r"""
+        Computes magnetorquer actuator commands using the Lovera–Astolfi control law.
+
+        This method evaluates the magnetic PD attitude stabilization controller
+        using the current state estimate, sensor measurements, and mission goal.
+        Reaction wheel angular momentum is included in the gyroscopic compensation
+        term if present.
+
+        The output command vector contains nonzero entries only for magnetorquer
+        actuators; all other actuator commands are set to zero.
+
+        :param x_hat: Estimated state vector containing angular velocity and attitude
+        :type x_hat: numpy.ndarray
+        :param sens: Raw sensor measurement vector
+        :type sens: numpy.ndarray
+        :param est_sat: Estimated satellite object providing hardware properties
+        :type est_sat: ~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite
+        :param os_hat: Estimated orbital state
+        :type os_hat: ~ADCS.orbits.orbital_state.Orbital_State
+        :param goal: Optional mission goal definition
+        :type goal: ~ADCS.CONOPS.goals.Goal or None
+        :return: Actuator command vector with magnetorquer dipole commands
+        :rtype: numpy.ndarray
+
+        """
         if goal is None:
             goal = No_Goal()
 

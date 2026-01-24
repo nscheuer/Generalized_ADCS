@@ -20,173 +20,157 @@ from ADCS.helpers.math_helpers import rot_mat, skewsym, limit
 
 class MTQ_w_RW_LP(Controller):
     r"""
-    MTQ_w_RW_LP
-    ===========
+    Linear–Programming–Based Torque Allocation for Mixed RW–MTQ ADCS.
 
-    Linear–Programming–Based Torque Allocation for Mixed RW–MTQ ADCS
-    ----------------------------------------------------------------
+    This controller allocates attitude control effort between reaction wheels (RWs) and
+    magnetorquers (MTQs) using a geometry-aware linear program (LP). The LP computes the
+    maximum physically achievable torque colinear with a requested torque direction while
+    enforcing hard actuator saturation limits and the MTQ torque-plane constraint.
 
-    This controller implements a **physically correct, geometry-aware linear program (LP)**
-    to allocate control effort between **reaction wheels (RWs)** and **magnetorquers (MTQs)**
-    for an underactuated spacecraft attitude determination and control system (ADCS).
+    The implementation is intended for use with an estimated satellite model
+    :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+    and goal objects derived from :class:`~ADCS.CONOPS.goals.Goal`.
 
-    The controller supports:
+    Actuator Models
+    ----------------
 
-    - Arbitrary numbers and orientations of RWs and MTQs
-    - Hard actuator saturation limits
-    - Exact handling of the MTQ torque plane constraint
-    - Graceful degradation when full torque is not achievable
-    - A single scalar performance metric :math:`\alpha \in [0,1]` measuring achievable torque
-
-    The LP formulation guarantees that the commanded actuator signals correspond to the
-    **maximum physically achievable torque in the desired direction**, rather than an
-    unconstrained least–squares approximation.
-
-    System Model
-    ------------
-
-    Let the desired body-frame control torque be
+    Desired body-frame control torque:
 
     .. math::
 
         \boldsymbol{\tau}_{\mathrm{des}} \in \mathbb{R}^3, \qquad
-        \|\boldsymbol{\tau}_{\mathrm{des}}\| = T_{\mathrm{des}}
+        T_{\mathrm{des}} = \|\boldsymbol{\tau}_{\mathrm{des}}\|, \qquad
+        \hat{\boldsymbol{\tau}} = \frac{\boldsymbol{\tau}_{\mathrm{des}}}{T_{\mathrm{des}}}.
 
-    Define the unit torque direction
-
-    .. math::
-
-        \hat{\boldsymbol{\tau}} = \frac{\boldsymbol{\tau}_{\mathrm{des}}}{T_{\mathrm{des}}}
-
-    Reaction Wheels (RW)
-    ^^^^^^^^^^^^^^^^^^^^
-
-    For :math:`N_{\mathrm{rw}}` reaction wheels with unit axes
-    :math:`\boldsymbol{a}_i \in \mathbb{R}^3`, the torque mapping is
+    Reaction wheels (for :math:`N_{\mathrm{rw}}` wheels):
 
     .. math::
 
         \boldsymbol{\tau}_{\mathrm{rw}}
-        = \sum_{i=1}^{N_{\mathrm{rw}}} \boldsymbol{a}_i \, u_i
-        = A_{\mathrm{rw}} \, \boldsymbol{u}_{\mathrm{rw}}
+        = \sum_{i=1}^{N_{\mathrm{rw}}} \boldsymbol{a}_i u_i
+        = A_{\mathrm{rw}} \boldsymbol{u}_{\mathrm{rw}},
+        \qquad
+        |u_i| \le u_{i,\max},
 
-    with bounds
+    where :math:`\boldsymbol{a}_i` are unit wheel axes.
 
-    .. math::
-
-        |u_i| \le u_{i,\max}
-
-    Magnetorquers (MTQ)
-    ^^^^^^^^^^^^^^^^^^^
-
-    For :math:`N_{\mathrm{mtq}}` magnetorquers with dipole axes
-    :math:`\boldsymbol{m}_j`, the torque is generated via the geomagnetic field
-    :math:`\boldsymbol{B}`:
+    Magnetorquers (for :math:`N_{\mathrm{mtq}}` rods) produce a dipole moment
+    :math:`\boldsymbol{m} = A_{\mathrm{mtq}} \boldsymbol{u}_{\mathrm{mtq}}` and torque:
 
     .. math::
 
         \boldsymbol{\tau}_{\mathrm{mtq}}
         = \boldsymbol{m} \times \boldsymbol{B}
-        = -[\boldsymbol{B}]_\times \, A_{\mathrm{mtq}} \, \boldsymbol{u}_{\mathrm{mtq}}
+        = -[\boldsymbol{B}]_\times A_{\mathrm{mtq}} \boldsymbol{u}_{\mathrm{mtq}},
+        \qquad
+        \boldsymbol{\tau}_{\mathrm{mtq}} \perp \boldsymbol{B},
 
-    where :math:`[\boldsymbol{B}]_\times` is the skew–symmetric cross-product matrix.
-    This enforces the fundamental MTQ constraint:
+    with the skew-symmetric matrix :math:`[\boldsymbol{B}]_\times` satisfying
+    :math:`[\boldsymbol{B}]_\times \boldsymbol{x} = \boldsymbol{B} \times \boldsymbol{x}`.
+    The cross-product matrix is consistent with :func:`~ADCS.helpers.math_helpers.skewsym`.
 
-    .. math::
-
-        \boldsymbol{\tau}_{\mathrm{mtq}} \perp \boldsymbol{B}
-
-    Combined Actuator Model
-    ^^^^^^^^^^^^^^^^^^^^^^^
-
-    Stacking both actuator types:
+    Combined actuator mapping:
 
     .. math::
 
         \boldsymbol{\tau}
-        = A_{\mathrm{tot}} \, \boldsymbol{u}
         =
         \begin{bmatrix}
-        A_{\mathrm{rw}} & -[\boldsymbol{B}]_\times A_{\mathrm{mtq}}
+            A_{\mathrm{rw}} &
+            -[\boldsymbol{B}]_\times A_{\mathrm{mtq}}
         \end{bmatrix}
         \begin{bmatrix}
-        \boldsymbol{u}_{\mathrm{rw}} \\
-        \boldsymbol{u}_{\mathrm{mtq}}
+            \boldsymbol{u}_{\mathrm{rw}} \\
+            \boldsymbol{u}_{\mathrm{mtq}}
         \end{bmatrix}
-
-    Linear Program Formulation
-    --------------------------
-
-    Rather than enforcing
-
-    .. math::
-
-        A_{\mathrm{tot}} \boldsymbol{u} = \boldsymbol{\tau}_{\mathrm{des}}
-
-    (which may be infeasible), we introduce a **scalar torque availability variable**
-    :math:`T_{\mathrm{avail}} \ge 0` and solve
-
-    .. math::
-
-        A_{\mathrm{tot}} \boldsymbol{u}
         =
-        T_{\mathrm{avail}} \, \hat{\boldsymbol{\tau}}
+        A_{\mathrm{tot}} \boldsymbol{u}.
 
-    Decision Variables
-    ^^^^^^^^^^^^^^^^^^
+    LP Formulation
+    ---------------
 
-    .. math::
-
-        \boldsymbol{x}
-        =
-        \begin{bmatrix}
-        \boldsymbol{u} \\
-        T_{\mathrm{avail}}
-        \end{bmatrix}
-
-    Optimization Problem
-    ^^^^^^^^^^^^^^^^^^^^
+    Directly enforcing :math:`A_{\mathrm{tot}} \boldsymbol{u} = \boldsymbol{\tau}_{\mathrm{des}}`
+    may be infeasible due to underactuation (MTQ plane) and saturation. Instead, introduce a
+    scalar availability variable :math:`T_{\mathrm{avail}} \ge 0` and solve:
 
     .. math::
 
-        \begin{aligned}
-        \max_{\boldsymbol{u},\,T_{\mathrm{avail}}} \quad &
-        T_{\mathrm{avail}} \\
-        \text{subject to} \quad &
-        A_{\mathrm{tot}} \boldsymbol{u} - T_{\mathrm{avail}} \hat{\boldsymbol{\tau}} = \boldsymbol{0} \\
-        &
-        -u_{i,\max} \le u_i \le u_{i,\max} \\
-        &
-        T_{\mathrm{avail}} \ge 0
-        \end{aligned}
+        \max_{\boldsymbol{u},\,T_{\mathrm{avail}}}\; T_{\mathrm{avail}}
+        \quad \text{s.t.}\quad
+        A_{\mathrm{tot}} \boldsymbol{u} - T_{\mathrm{avail}}\hat{\boldsymbol{\tau}} = \boldsymbol{0},
+        \quad
+        -u_{k,\max} \le u_k \le u_{k,\max},
+        \quad
+        T_{\mathrm{avail}} \ge 0.
 
-    This LP is **always well-conditioned**, even for small
-    :math:`\|\boldsymbol{\tau}_{\mathrm{des}}\|`, because the direction and magnitude
-    are decoupled.
+    Let :math:`T_{\max}` be the optimizer value of :math:`T_{\mathrm{avail}}`.
 
-    Scaling and Output
-    ------------------
+    - If :math:`T_{\max} \ge T_{\mathrm{des}}`, the commanded effort is scaled to reproduce
+      :math:`\boldsymbol{\tau}_{\mathrm{des}}` exactly.
+    - If :math:`T_{\max} < T_{\mathrm{des}}`, the controller applies the maximum feasible torque
+      in the requested direction.
 
-    Let the optimal solution yield :math:`T_{\max}`.
-
-    - If :math:`T_{\max} \ge T_{\mathrm{des}}`:
-      the system has sufficient authority and commands are scaled exactly to match
-      :math:`\boldsymbol{\tau}_{\mathrm{des}}`.
-
-    - If :math:`T_{\max} < T_{\mathrm{des}}`:
-      the system is saturated, and the controller applies the **maximum physically
-      achievable torque in the desired direction**.
-
-    The scalar effectiveness metric is defined as
+    Define the scalar effectiveness metric:
 
     .. math::
 
-        \alpha = \frac{T_{\max}}{T_{\mathrm{des}}} \in [0,1]
+        \alpha = \frac{T_{\max}}{T_{\mathrm{des}}} \in [0,1].
 
-    This formulation provides a rigorous and geometrically faithful foundation
-    for underactuated spacecraft control and momentum management.
+    Pointing and Torque-Free Momentum Management
+    ---------------------------------------------
+
+    In pointing mode (non-:class:`~ADCS.CONOPS.goals.No_Goal`), the controller:
+
+    1. Computes a PD+gyro torque request using goal attitude error and angular-rate error.
+       The goal error is obtained from :meth:`~ADCS.CONOPS.goals.Goal.error` and the reference
+       rate from :meth:`~ADCS.CONOPS.goals.Goal.to_ref`.
+    2. Uses the LP allocator to achieve the largest feasible torque colinear with the request.
+    3. If both RWs and MTQs are present and authority remains, attempts a torque-free secondary
+       desaturation by selecting MTQ torque (projected into the MTQ plane) to reduce stored wheel
+       momentum and commanding an equal-and-opposite RW torque so the net additional body torque is
+       approximately zero.
+
+    In desaturation mode (:class:`~ADCS.CONOPS.goals.No_Goal`), the controller uses MTQ-only logic
+    (B-dot style) with optional RW coordination to reduce rates and dump wheel momentum while
+    respecting actuator limits.
     """
     def __init__(self, est_sat: EstimatedSatellite, p_gain: float, d_gain: float, c_gain: float, h_target: np.ndarray | list = np.zeros(3)) -> None:
+        r"""
+        Construct the LP-based mixed RW–MTQ controller.
+
+        The constructor inspects the satellite hardware configuration in
+        :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`,
+        extracts MTQs and RWs, builds sensor and actuator mapping matrices using inherited
+        controller helpers, and validates configuration assumptions.
+
+        The momentum target :math:`\boldsymbol{h}_{\mathrm{target}}` is interpreted as a
+        body-frame angular momentum vector to be stored in the reaction-wheel subspace.
+        If the RW axis set is rank-deficient, the target is projected into the achievable
+        subspace:
+
+        .. math::
+
+            \boldsymbol{h}_{\mathrm{ach}} = P_{\mathrm{rw}} \boldsymbol{h}_{\mathrm{target}},
+            \qquad
+            P_{\mathrm{rw}} = A_{\mathrm{rw}} A_{\mathrm{rw}}^{+},
+
+        where :math:`A_{\mathrm{rw}}^{+}` is the Moore–Penrose pseudoinverse.
+
+        :param est_sat: Estimated satellite object providing actuators, sensors, inertia,
+            and boresight information.
+        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+        :param p_gain: Proportional gain applied to the goal attitude error signal.
+        :type p_gain: float
+        :param d_gain: Derivative gain applied to angular-rate error (and used for B-dot style damping).
+        :type d_gain: float
+        :param c_gain: Momentum management gain used to drive wheel momentum toward ``h_target``.
+        :type c_gain: float
+        :param h_target: Body-frame target momentum vector (3,) to be stored in wheels when possible.
+        :type h_target: numpy.ndarray | list
+        :return: None
+        :rtype: None
+
+        """
         self.mtqs = [a for a in est_sat.actuators if isinstance(a, MTQ)]
         self.rws  = [a for a in est_sat.actuators if isinstance(a, RW)]
         
@@ -226,6 +210,25 @@ class MTQ_w_RW_LP(Controller):
         self._warnings()
 
     def _warnings(self):
+        r"""
+        Emit configuration warnings and normalize the momentum target.
+
+        This method evaluates:
+        - Presence of RWs without MTQs (no momentum desaturation capability).
+        - Rank of MTQ axes combined with limited RW rank (inability to desaturate while pointing).
+        - Consistency of ``h_target`` with the RW achievable momentum subspace.
+
+        If ``h_target`` contains an unachievable component, it is projected into the RW
+        subspace using:
+
+        .. math::
+
+            \boldsymbol{h}_{\mathrm{ach}} = A_{\mathrm{rw}} A_{\mathrm{rw}}^{+}\boldsymbol{h}_{\mathrm{target}}.
+
+        :return: None
+        :rtype: None
+
+        """
         rank_mtq = 0
         if self.n_mtq > 0:
             mtq_axes_mat = np.column_stack([np.asarray(m.axis, float).reshape(3,) for m in self.mtqs])
@@ -290,6 +293,33 @@ class MTQ_w_RW_LP(Controller):
         os_hat: Orbital_State,
         goal: Goal | None = None,
     ) -> np.ndarray:
+        r"""
+        Compute actuator commands for either pointing or desaturation mode.
+
+        If ``goal`` is :class:`~ADCS.CONOPS.goals.No_Goal` (or ``None``), this method routes
+        to :meth:`~ADCS.controller.MTQ_w_RW_LP.find_u_desaturate`. Otherwise it routes to
+        :meth:`~ADCS.controller.MTQ_w_RW_LP.find_u_pointing`.
+
+        The returned vector is ordered in the same actuator ordering as
+        ``est_sat.actuators`` and contains MTQ and RW command signals consistent with each
+        actuator's ``u_max`` bounds.
+
+        :param x_hat: Estimated state vector. The first 3 elements are body rates
+            :math:`\boldsymbol{\omega}` and elements 3:7 are the attitude quaternion.
+            If present, elements 7:7+N_rw store RW scalar momentum states.
+        :type x_hat: numpy.ndarray
+        :param sens: Raw sensor vector used to estimate the body magnetic field via the MTM model.
+        :type sens: numpy.ndarray
+        :param est_sat: Estimated satellite object providing hardware configuration and inertia.
+        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+        :param os_hat: Estimated orbital state used by the goal to compute reference vectors and rates.
+        :type os_hat: :class:`~ADCS.orbits.orbital_state.Orbital_State`
+        :param goal: Pointing goal. If ``None``, the controller uses :class:`~ADCS.CONOPS.goals.No_Goal`.
+        :type goal: :class:`~ADCS.CONOPS.goals.Goal` | None
+        :return: Actuator command vector in ``est_sat.actuators`` ordering.
+        :rtype: numpy.ndarray
+
+        """
         if goal is None:
             goal = No_Goal()
 
@@ -319,21 +349,107 @@ class MTQ_w_RW_LP(Controller):
         os_hat: Orbital_State,
         goal: Goal,
     ) -> np.ndarray:
-        """
-        Pointing (LP torque-envelope aware) + torque-free RW desaturation using leftover authority.
+        r"""
+        Compute actuator commands for pointing with LP allocation and torque-free desaturation.
 
-        Step 1 (Primary): use LP allocator to achieve the maximum feasible torque colinear with tau_des.
-            -> returns (u_rw_cmd, u_mtq_cmd, alpha) such that A_tot u ~= alpha * tau_des, with limits enforced.
+        This method performs two stages:
 
-        Step 2 (Secondary): if RWs+MTQs exist, attempt *torque-free* desaturation:
-            Choose an MTQ torque tau_mtq_des that reduces wheel momentum (projected into the MTQ plane),
-            then command RW torques to cancel it: tau_rw_sec = -tau_mtq_sec.
-            Map these torques to actuator commands and scale by remaining actuator margin so limits are
-            never violated and the net additional body torque stays ~zero.
+        Stage 1: LP torque allocation in the requested direction
+        ---------------------------------------------------------
+
+        A desired control torque is computed as PD feedback plus a gyroscopic compensation term:
+
+        .. math::
+
+            \boldsymbol{\tau}_{\mathrm{pd}} =
+            -k_p \boldsymbol{q}_{\mathrm{err}} - k_d(\boldsymbol{\omega} - \boldsymbol{\omega}_{\mathrm{ref}}),
+
+        where :math:`\boldsymbol{q}_{\mathrm{err}}` is obtained from
+        :meth:`~ADCS.CONOPS.goals.Goal.error`, and :math:`\boldsymbol{\omega}_{\mathrm{ref}}`
+        is the body-frame reference rate from :meth:`~ADCS.CONOPS.goals.Goal.to_ref` and
+        :func:`~ADCS.helpers.math_helpers.rot_mat`.
+
+        The gyroscopic term uses satellite inertia :math:`J` and wheel momentum:
+
+        .. math::
+
+            \boldsymbol{h}_{\mathrm{rw}} = A_{\mathrm{rw}}\boldsymbol{h}_{\mathrm{rw,scalars}},
+            \qquad
+            \boldsymbol{\tau}_{\mathrm{gyro}} =
+            \boldsymbol{\omega} \times (J\boldsymbol{\omega} + \boldsymbol{h}_{\mathrm{rw}}),
+
+        giving:
+
+        .. math::
+
+            \boldsymbol{\tau}_{\mathrm{des}} = \boldsymbol{\tau}_{\mathrm{pd}} + \boldsymbol{\tau}_{\mathrm{gyro}}.
+
+        The body magnetic field :math:`\boldsymbol{B}` is reconstructed from MTM readings using the
+        sensor mapping built in the constructor. The LP allocator
+        :meth:`~ADCS.controller.MTQ_w_RW_LP.allocate_max_torque_in_direction` then returns a
+        feasible command achieving :math:`\alpha \boldsymbol{\tau}_{\mathrm{des}}` with
+        :math:`\alpha \in [0,1]`.
+
+        Stage 2: torque-free momentum desaturation using leftover authority
+        --------------------------------------------------------------------
+
+        If both RWs and MTQs are present, the controller attempts to reduce wheel momentum error
+        without introducing additional net body torque. Define the body-frame wheel momentum error:
+
+        .. math::
+
+            \boldsymbol{h}_{\mathrm{err}} = \boldsymbol{h}_{\mathrm{rw}} - \boldsymbol{h}_{\mathrm{target}}.
+
+        A desired dumping torque is:
+
+        .. math::
+
+            \boldsymbol{\tau}_{\mathrm{dump}}^{\ast} = -k_c \boldsymbol{h}_{\mathrm{err}}.
+
+        Because MTQ torque must satisfy :math:`\boldsymbol{\tau}_{\mathrm{mtq}} \perp \boldsymbol{B}`,
+        the dump torque is projected into the achievable plane:
+
+        .. math::
+
+            \boldsymbol{\tau}_{\mathrm{mtq,sec}}
+            =
+            \boldsymbol{\tau}_{\mathrm{dump}}^{\ast}
+            - (\boldsymbol{\tau}_{\mathrm{dump}}^{\ast} \cdot \hat{\boldsymbol{B}})\hat{\boldsymbol{B}},
+            \qquad
+            \hat{\boldsymbol{B}} = \frac{\boldsymbol{B}}{\|\boldsymbol{B}\|}.
+
+        Torque-free cancellation is imposed by selecting the secondary wheel torque:
+
+        .. math::
+
+            \boldsymbol{\tau}_{\mathrm{rw,sec}} = -\boldsymbol{\tau}_{\mathrm{mtq,sec}}.
+
+        The method maps these secondary torques into actuator commands via pseudoinverses, then
+        computes the largest scalar :math:`\beta \in [0,1]` such that the combined primary+secondary
+        commands remain within hard bounds:
+
+        .. math::
+
+            -u_{k,\max} \le u_k^{\mathrm{primary}} + \beta u_k^{\mathrm{sec}} \le u_{k,\max}.
+
+        This coupled scaling preserves the near-zero net secondary torque by avoiding independent
+        clipping of RW and MTQ channels.
+
+        :param x_hat: Estimated state vector containing body rates, quaternion, and optionally RW momentum states.
+        :type x_hat: numpy.ndarray
+        :param sens: Sensor vector used to estimate the body magnetic field from MTM measurements.
+        :type sens: numpy.ndarray
+        :param est_sat: Estimated satellite object containing actuators, inertia, and boresight configuration.
+        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+        :param os_hat: Estimated orbital state used by the goal to define reference vectors and rates.
+        :type os_hat: :class:`~ADCS.orbits.orbital_state.Orbital_State`
+        :param goal: Pointing goal providing reference vector and attitude error computation.
+        :type goal: :class:`~ADCS.CONOPS.goals.Goal`
+        :return: Actuator command vector in ``est_sat.actuators`` ordering, including any torque-free
+            desaturation contribution that fits within remaining authority.
+        :rtype: numpy.ndarray
+
         """
-        # -------------------------
-        # 0) Parse state
-        # -------------------------
         w = x_hat[0:3]
         q = x_hat[3:7]
 
@@ -493,6 +609,102 @@ class MTQ_w_RW_LP(Controller):
         os_hat: Orbital_State,
         goal: Goal | None = None,    
     ):
+        r"""
+        Compute actuator commands for desaturation mode (No_Goal).
+
+        This mode prioritizes:
+        - Rate damping in the MTQ-achievable plane (perpendicular to :math:`\boldsymbol{B}`).
+        - Momentum dumping toward :math:`\boldsymbol{h}_{\mathrm{target}}` when RWs exist.
+
+        Magnetic field estimation
+        -------------------------
+
+        The body magnetic field :math:`\boldsymbol{B}` is reconstructed from MTM readings.
+        If :math:`\|\boldsymbol{B}\|` is near zero, no MTQ torque is possible and this method
+        returns zeros.
+
+        Rate damping (B-dot style plane damping)
+        ----------------------------------------
+
+        MTQs can only generate torque perpendicular to :math:`\boldsymbol{B}`. The method dampens
+        body rates only in that plane. Let:
+
+        .. math::
+
+            \hat{\boldsymbol{B}} = \frac{\boldsymbol{B}}{\|\boldsymbol{B}\|}, \qquad
+            \boldsymbol{\omega}_{\perp} = \boldsymbol{\omega} - (\boldsymbol{\omega}\cdot\hat{\boldsymbol{B}})\hat{\boldsymbol{B}}.
+
+        The plane-damping torque is:
+
+        .. math::
+
+            \boldsymbol{\tau}_{\mathrm{bdot}} = -k_{\omega}\boldsymbol{\omega}_{\perp}.
+
+        Momentum dumping
+        ----------------
+
+        For RWs, the stored body-frame wheel momentum is:
+
+        .. math::
+
+            \boldsymbol{h}_{\mathrm{rw}} = A_{\mathrm{rw}}\boldsymbol{h}_{\mathrm{rw,scalars}}.
+
+        The error relative to the target is:
+
+        .. math::
+
+            \boldsymbol{h}_{\mathrm{err}} = \boldsymbol{h}_{\mathrm{rw}} - \boldsymbol{h}_{\mathrm{target}}.
+
+        A nominal dumping torque is computed (gain and sign follow the implementation):
+
+        .. math::
+
+            \boldsymbol{\tau}_{\mathrm{dump}}^{\ast} = k_h \boldsymbol{h}_{\mathrm{err}}.
+
+        The commanded dump torque is then projected into the MTQ-achievable plane:
+
+        .. math::
+
+            \boldsymbol{\tau}_{\mathrm{dump},\perp}
+            =
+            \boldsymbol{\tau}_{\mathrm{dump}}^{\ast}
+            - (\boldsymbol{\tau}_{\mathrm{dump}}^{\ast}\cdot\hat{\boldsymbol{B}})\hat{\boldsymbol{B}}.
+
+        MTQ allocation and saturation scaling
+        -------------------------------------
+
+        The MTQ command is computed by a pseudoinverse of the effective MTQ torque map:
+
+        .. math::
+
+            A_{\mathrm{mtq,eff}} = -[\boldsymbol{B}]_\times A_{\mathrm{mtq}},
+            \qquad
+            \boldsymbol{u}_{\mathrm{mtq}} = A_{\mathrm{mtq,eff}}^{+}\boldsymbol{\tau}_{\mathrm{mtq,des}}.
+
+        If any MTQ channel exceeds its limit, a scalar scale factor :math:`\alpha_{\mathrm{mtq}} \in [0,1]`
+        is applied to keep commands feasible.
+
+        RW coordination
+        ---------------
+
+        When MTQ authority is limited (small :math:`\alpha_{\mathrm{mtq}}`), the RW torque request is
+        scaled accordingly to avoid injecting uncompensated body torque. The RW command is produced using
+        the RW torque-to-command mapping built in the constructor and then saturated to bounds.
+
+        :param x_hat: Estimated state vector containing body rates, quaternion, and optionally RW momentum states.
+        :type x_hat: numpy.ndarray
+        :param sens: Sensor vector used to estimate the body magnetic field from MTM measurements.
+        :type sens: numpy.ndarray
+        :param est_sat: Estimated satellite object providing actuators and inertia.
+        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+        :param os_hat: Estimated orbital state (not required by the current desaturation logic but included for interface compatibility).
+        :type os_hat: :class:`~ADCS.orbits.orbital_state.Orbital_State`
+        :param goal: Optional goal (unused in this mode). Included for signature compatibility.
+        :type goal: :class:`~ADCS.CONOPS.goals.Goal` | None
+        :return: Actuator command vector in ``est_sat.actuators`` ordering for desaturation mode.
+        :rtype: numpy.ndarray
+
+        """
         w = x_hat[0:3]
         q = x_hat[3:7]
 
@@ -574,6 +786,64 @@ class MTQ_w_RW_LP(Controller):
         
 
     def allocate_max_torque_in_direction(self, tau_des: np.ndarray, b_body: np.ndarray, est_sat: EstimatedSatellite) -> tuple[np.ndarray, np.ndarray, float]:    
+        r"""
+        Solve the LP to maximize feasible torque colinear with a desired torque direction.
+
+        This method implements the normalized LP:
+
+        .. math::
+
+            \max_{\boldsymbol{u},\,T_{\mathrm{avail}}}\; T_{\mathrm{avail}}
+            \quad \text{s.t.}\quad
+            A_{\mathrm{tot}}\boldsymbol{u} = T_{\mathrm{avail}}\hat{\boldsymbol{\tau}},
+            \quad
+            -u_{k,\max} \le u_k \le u_{k,\max},
+            \quad
+            T_{\mathrm{avail}} \ge 0,
+
+        where :math:`\hat{\boldsymbol{\tau}} = \boldsymbol{\tau}_{\mathrm{des}}/\|\boldsymbol{\tau}_{\mathrm{des}}\|`.
+        The combined map is:
+
+        .. math::
+
+            A_{\mathrm{tot}} =
+            \begin{bmatrix}
+                A_{\mathrm{rw}} & -[\boldsymbol{B}]_\times A_{\mathrm{mtq,axes}}
+            \end{bmatrix}.
+
+        The MTQ block uses the body magnetic field :math:`\boldsymbol{B}` and enforces the plane
+        constraint :math:`\boldsymbol{\tau}_{\mathrm{mtq}} \perp \boldsymbol{B}` by construction.
+
+        Output scaling
+        --------------
+
+        Let :math:`T_{\max}` be the optimizer value of :math:`T_{\mathrm{avail}}` and
+        :math:`T_{\mathrm{des}} = \|\boldsymbol{\tau}_{\mathrm{des}}\|`.
+
+        - If :math:`T_{\max} \le T_{\mathrm{des}}`, the system is saturated and the method returns
+          the maximizing command and :math:`\alpha = T_{\max}/T_{\mathrm{des}}`.
+        - If :math:`T_{\max} > T_{\mathrm{des}}`, the method scales the maximizing command by
+          :math:`T_{\mathrm{des}}/T_{\max}` to match :math:`\boldsymbol{\tau}_{\mathrm{des}}` exactly
+          and returns :math:`\alpha = 1`.
+
+        Degenerate cases
+        ----------------
+
+        If :math:`\|\boldsymbol{\tau}_{\mathrm{des}}\|` is near zero, the method returns zeros and
+        :math:`\alpha = 1`. If the LP solver fails (e.g., no torque achievable in the requested direction),
+        the method returns zeros and :math:`\alpha = 0`.
+
+        :param tau_des: Desired body-frame torque vector :math:`\boldsymbol{\tau}_{\mathrm{des}}`.
+        :type tau_des: numpy.ndarray
+        :param b_body: Body-frame magnetic field vector :math:`\boldsymbol{B}`.
+        :type b_body: numpy.ndarray
+        :param est_sat: Estimated satellite providing the RW and MTQ actuator sets and limits.
+        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+        :return: Tuple ``(u_rw_cmd, u_mtq_cmd, alpha)`` where ``u_rw_cmd`` has shape ``(N_rw,)``,
+            ``u_mtq_cmd`` has shape ``(N_mtq,)``, and ``alpha`` is the achievable torque fraction.
+        :rtype: tuple[numpy.ndarray, numpy.ndarray, float]
+
+        """
         t_mag = np.linalg.norm(tau_des)
         if t_mag < 1e-9:
             # Re-calculate indices just to return correct shaped zeros
@@ -668,6 +938,49 @@ class MTQ_w_RW_LP(Controller):
             return np.zeros(n_rw), np.zeros(n_mtq), 0.0
 
     def plot_torques(self, tau_des: np.ndarray, b_body: np.ndarray, est_sat: EstimatedSatellite) -> None:
+        r"""
+        Plot achievable torque envelopes and the allocated torque vectors in 3D.
+
+        This method:
+        - Calls :meth:`~ADCS.controller.MTQ_w_RW_LP.allocate_max_torque_in_direction` to obtain RW and MTQ commands and the effectiveness metric :math:`\alpha`.
+        - Constructs representative point clouds of extreme actuator combinations (hypercube corners) for RWs and MTQs and draws their convex hulls.
+        - Plots vectors for RW torque, MTQ torque, total achieved torque, and desired torque.
+
+        Torque reconstruction
+        ----------------------
+
+        RW torque is reconstructed as:
+
+        .. math::
+
+            \boldsymbol{\tau}_{\mathrm{rw}} = A_{\mathrm{rw}}\boldsymbol{u}_{\mathrm{rw}}.
+
+        MTQ torque is reconstructed from dipole moment and magnetic field:
+
+        .. math::
+
+            \boldsymbol{\tau}_{\mathrm{mtq}} = \boldsymbol{m} \times \boldsymbol{B},
+            \qquad
+            \boldsymbol{m} = A_{\mathrm{mtq,axes}}\boldsymbol{u}_{\mathrm{mtq}}.
+
+        The achieved torque is:
+
+        .. math::
+
+            \boldsymbol{\tau}_{\mathrm{ach}} = \boldsymbol{\tau}_{\mathrm{rw}} + \boldsymbol{\tau}_{\mathrm{mtq}}.
+
+        Hull plotting uses :meth:`~ADCS.controller.MTQ_w_RW_LP.plot_capacity`.
+
+        :param tau_des: Desired body-frame torque vector to visualize.
+        :type tau_des: numpy.ndarray
+        :param b_body: Body-frame magnetic field vector used for MTQ torque mapping.
+        :type b_body: numpy.ndarray
+        :param est_sat: Estimated satellite providing actuator configuration and limits.
+        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+        :return: None
+        :rtype: None
+
+        """
         # --- Solve allocation ---
         u_rw, u_mtq, alpha = self.allocate_max_torque_in_direction(tau_des, b_body, est_sat)
 
@@ -756,6 +1069,41 @@ class MTQ_w_RW_LP(Controller):
                   face_color: str,
                   edge_color: str,
                   alpha: float = 0.25):
+        r"""
+        Plot a convex capacity set (line, polygon, or 3D hull) from a point cloud.
+
+        The method determines the intrinsic rank (dimension) of the point set by SVD and renders:
+        - Rank 1: a line segment between extreme projections.
+        - Rank 2: a filled convex polygon in 3D via a 2D convex hull in the best-fit plane.
+        - Rank 3: a 3D convex hull surface, plus silhouette edges.
+
+        Rank detection
+        ---------------
+
+        Let :math:`P \in \mathbb{R}^{N \times 3}` be the unique points and :math:`\bar{\boldsymbol{p}}`
+        be their centroid. Compute the SVD of centered points:
+
+        .. math::
+
+            P_c = P - \mathbf{1}\bar{\boldsymbol{p}}^{\mathsf{T}} = U \Sigma V^{\mathsf{T}}.
+
+        The number of singular values above a tolerance defines the effective rank, which selects
+        the plotting primitive.
+
+        :param ax: A Matplotlib 3D axis object used for plotting.
+        :type ax: matplotlib.axes.Axes
+        :param points: Point cloud in torque space with shape ``(N, 3)``.
+        :type points: numpy.ndarray
+        :param face_color: Face color for polygon or hull rendering.
+        :type face_color: str
+        :param edge_color: Edge color for line/polygon edges and hull silhouettes.
+        :type edge_color: str
+        :param alpha: Transparency value used for filled primitives.
+        :type alpha: float
+        :return: None
+        :rtype: None
+
+        """
         
         pts = np.unique(points, axis=0)
         if len(pts) < 2:

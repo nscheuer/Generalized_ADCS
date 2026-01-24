@@ -1,10 +1,3 @@
-"""
-C++ satellite model construction utilities.
-
-This module provides functions to build pysat.Satellite objects from
-Python EstimatedSatellite instances and handle control vector reordering
-between C++ (MTQ, RW) and Python actuator orderings.
-"""
 from __future__ import annotations
 
 __all__ = ["build_cpp_satellite", "get_cpp_to_python_control_permutation", "reorder_controls_cpp_to_python"]
@@ -23,25 +16,49 @@ import trajectory_planner.build.pysat as pysat
 
 
 def get_cpp_to_python_control_permutation(actuators: List[Actuator]) -> Tuple[NDArray[np.intp], NDArray[np.intp]]:
-    """
-    Compute the permutation indices to reorder controls from C++ ordering to Python ordering.
+    r"""
+    Compute the permutation between C++ planner control ordering and Python actuator ordering.
 
-    C++ planner outputs controls in fixed order: [MTQs, RWs, magic]
-    Python actuator list can have any order (e.g., [RW, RW, RW, MTQ, MTQ, MTQ])
+    The C++ trajectory planner outputs control vectors in a fixed, type-based order:
 
-    Parameters
-    ----------
-    actuators : List[Actuator]
-        The Python actuator list in the order they appear in est_sat.actuators
+    .. math::
 
-    Returns
-    -------
-    cpp_to_py : np.ndarray
-        Permutation array where cpp_to_py[i] gives the Python index for C++ control index i.
-        Use: python_controls = cpp_controls[cpp_to_py] (for 1D) or
-             python_controls = cpp_controls[cpp_to_py, :] (for 2D row-major)
-    py_to_cpp : np.ndarray
-        Inverse permutation. py_to_cpp[i] gives the C++ index for Python actuator index i.
+        \mathbf{u}_{\text{C++}} =
+        \begin{bmatrix}
+        \mathbf{u}_{\text{MTQ}} \\
+        \mathbf{u}_{\text{RW}}
+        \end{bmatrix}
+
+    where all magnetorquers (MTQs) are listed first, followed by all reaction wheels (RWs).
+    In contrast, the Python-side actuator list stored in
+    :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+    may have an arbitrary ordering.
+
+    This function computes permutation indices that allow reordering control vectors
+    and matrices between these two conventions.
+
+    Let :math:`\pi` be a permutation such that
+
+    .. math::
+
+        \mathbf{u}_{\text{Python}} = \mathbf{u}_{\text{C++}}[\pi]
+
+    and :math:`\pi^{-1}` its inverse.
+
+    :param actuators:
+        List of Python actuator objects in the order they appear in
+        :attr:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.actuators`.
+
+    :type actuators:
+        List[:class:`~ADCS.satellite_hardware.actuators.Actuator`]
+
+    :return:
+        A tuple ``(cpp_to_py, py_to_cpp)`` where ``cpp_to_py`` maps C++ control indices
+        to Python indices, and ``py_to_cpp`` is the inverse permutation.
+
+    :rtype:
+        Tuple[numpy.ndarray, numpy.ndarray]
+
     """
     # Find indices of each actuator type in Python ordering
     mtq_py_indices = [i for i, act in enumerate(actuators) if isinstance(act, MTQ)]
@@ -77,21 +94,52 @@ def get_cpp_to_python_control_permutation(actuators: List[Actuator]) -> Tuple[ND
 
 
 def reorder_controls_cpp_to_python(Uset: NDArray[np.float64], actuators: List[Actuator]) -> NDArray[np.float64]:
-    """
-    Reorder control matrix from C++ ordering (MTQ, RW) to Python actuator ordering.
+    r"""
+    Reorder a control matrix from C++ planner ordering to Python actuator ordering.
 
-    Parameters
-    ----------
-    Uset : np.ndarray
-        Control matrix from C++ planner. Shape is either (n_controls, n_timesteps) [col-major]
-        or (n_timesteps, n_controls) [row-major].
-    actuators : List[Actuator]
-        Python actuator list defining the target ordering.
+    The C++ planner outputs control trajectories using the ordering described in
+    :func:`~ADCS.controller.helpers.get_cpp_to_python_control_permutation`.
+    This function applies the appropriate permutation to match the actuator order
+    expected by the Python simulation and control stack.
 
-    Returns
-    -------
-    np.ndarray
-        Reordered control matrix with same shape as input.
+    Two matrix layouts are supported:
+
+    - Column-major controls:
+
+      .. math::
+
+          \mathbf{U} \in \mathbb{R}^{n_u \times N}
+
+      where each row corresponds to one control input over time.
+
+    - Row-major controls:
+
+      .. math::
+
+          \mathbf{U} \in \mathbb{R}^{N \times n_u}
+
+      where each column corresponds to one control input.
+
+    The output matrix preserves the original layout and dimensions.
+
+    :param Uset:
+        Control matrix produced by the C++ planner.
+
+    :type Uset:
+        numpy.ndarray
+
+    :param actuators:
+        Python actuator list defining the desired control ordering.
+
+    :type actuators:
+        List[:class:`~ADCS.satellite_hardware.actuators.Actuator`]
+
+    :return:
+        Control matrix reordered to match Python actuator ordering.
+
+    :rtype:
+        numpy.ndarray
+
     """
     cpp_to_py, _ = get_cpp_to_python_control_permutation(actuators)
     n_ctrl = len(cpp_to_py)
@@ -108,26 +156,54 @@ def reorder_controls_cpp_to_python(Uset: NDArray[np.float64], actuators: List[Ac
 
 
 def reorder_gains_cpp_to_python(Kset: NDArray[np.float64], actuators: List[Actuator]) -> NDArray[np.float64]:
-    """
-    Reorder gain matrix from C++ ordering to Python actuator ordering.
+    r"""
+    Reorder a feedback gain tensor from C++ planner ordering to Python actuator ordering.
 
-    The gain matrix K maps state errors to control adjustments: u = -K @ dx
-    We need to reorder the rows of K to match Python control ordering.
+    The feedback law implemented by the planner is
 
-    Parameters
-    ----------
-    Kset : np.ndarray
-        Gain tensor from C++ planner. Expected shapes:
-        - (n_timesteps, n_controls, n_states) for row-major time
-        - (n_controls, n_states, n_timesteps) for col-major time
-        - (n_controls * n_states, n_timesteps) for flattened
-    actuators : List[Actuator]
-        Python actuator list defining the target ordering.
+    .. math::
 
-    Returns
-    -------
-    np.ndarray
-        Reordered gain tensor with same shape as input.
+        \mathbf{u} = -\mathbf{K} \, \delta\mathbf{x}
+
+    where :math:`\mathbf{K}` maps state errors to control inputs.
+    Since the C++ planner uses a fixed actuator ordering, the rows of
+    :math:`\mathbf{K}` must be permuted to match the Python actuator list.
+
+    Supported gain tensor layouts include:
+
+    - Time-major:
+
+      .. math::
+
+          \mathbf{K} \in \mathbb{R}^{N \times n_u \times n_x}
+
+    - Control-major:
+
+      .. math::
+
+          \mathbf{K} \in \mathbb{R}^{n_u \times n_x \times N}
+
+    Flattened 2D representations are passed through unchanged and are expected
+    to be handled at a higher level.
+
+    :param Kset:
+        Gain tensor produced by the C++ planner.
+
+    :type Kset:
+        numpy.ndarray
+
+    :param actuators:
+        Python actuator list defining the desired control ordering.
+
+    :type actuators:
+        List[:class:`~ADCS.satellite_hardware.actuators.Actuator`]
+
+    :return:
+        Gain tensor reordered to match Python actuator ordering.
+
+    :rtype:
+        numpy.ndarray
+
     """
     cpp_to_py, _ = get_cpp_to_python_control_permutation(actuators)
     n_ctrl = len(cpp_to_py)
@@ -149,6 +225,41 @@ def reorder_gains_cpp_to_python(Kset: NDArray[np.float64], actuators: List[Actua
 
 
 def build_cpp_satellite(est_sat: EstimatedSatellite, planner_settings: PlannerSettings) -> pysat.Satellite:
+    r"""
+    Construct a C++ planner-compatible satellite model from a Python estimated satellite.
+
+    This function converts an instance of
+    :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+    into a :class:`~trajectory_planner.build.pysat.Satellite` object used by the
+    C++ trajectory planner. The conversion includes:
+
+    - Inertia tensor assignment
+    - Actuator definitions
+    - Environmental disturbance torques
+    - Operational constraints
+
+    The resulting satellite model is dynamically equivalent to the Python-side
+    representation and suitable for optimization-based planning.
+
+    :param est_sat:
+        Estimated satellite containing inertia and actuator definitions.
+
+    :type est_sat:
+        :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+
+    :param planner_settings:
+        Planner configuration including weights, limits, and disturbance flags.
+
+    :type planner_settings:
+        :class:`~ADCS.controller.helpers.PlannerSettings`
+
+    :return:
+        Satellite object compatible with the C++ trajectory planner.
+
+    :rtype:
+        :class:`~trajectory_planner.build.pysat.Satellite`
+
+    """
     csat = pysat.Satellite()
     csat.change_Jcom(est_sat.J_0)
 
@@ -176,6 +287,44 @@ def build_cpp_satellite(est_sat: EstimatedSatellite, planner_settings: PlannerSe
 
 
 def add_actuator(act: Actuator, csat: pysat.Satellite, planner_settings: PlannerSettings) -> None:
+    r"""
+    Add a single actuator to a C++ planner satellite model.
+
+    This function translates a Python actuator object into its corresponding
+    C++ planner representation and registers it with the satellite model.
+    Supported actuator types include:
+
+    - Magnetorquers, modeled as magnetic dipole actuators
+    - Reaction wheels, modeled with inertia, torque limits, and angular momentum bounds
+
+    Actuator cost weights and saturation limits are taken from
+    :class:`~ADCS.controller.helpers.PlannerSettings`.
+
+    :param act:
+        Actuator instance to be added.
+
+    :type act:
+        :class:`~ADCS.satellite_hardware.actuators.Actuator`
+
+    :param csat:
+        C++ planner satellite object to which the actuator is added.
+
+    :type csat:
+        :class:`~trajectory_planner.build.pysat.Satellite`
+
+    :param planner_settings:
+        Planner configuration providing weights and scaling factors.
+
+    :type planner_settings:
+        :class:`~ADCS.controller.helpers.PlannerSettings`
+
+    :return:
+        None.
+
+    :rtype:
+        None
+
+    """
     if isinstance(act, MTQ):
         csat.add_MTQ(act.axis, act.u_max, planner_settings.mtq_control_weight)
     elif isinstance(act, RW):

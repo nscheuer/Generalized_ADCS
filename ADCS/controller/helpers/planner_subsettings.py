@@ -1,9 +1,3 @@
-"""
-Configuration dataclasses for ALTRO trajectory planner.
-
-This module defines the configuration structures for the Augmented Lagrangian iLQR
-optimizer, including solver settings, cost weights, and convergence criteria.
-"""
 from __future__ import annotations
 
 __all__ = ["LineSearchConfig", "AugLagConfig", "RegularizationConfig", "ConvergenceConfig", "SolverPassConfig", "CostWeights", "InitTrajConfig"]
@@ -15,17 +9,44 @@ from numpy.typing import NDArray
 
 @dataclass
 class LineSearchConfig:
-    """
-    Configuration for backtracking line search in the forward pass.
+    r"""
+    Configuration for backtracking line search in the iLQR forward pass.
 
-    The line search finds a step size alpha that ensures sufficient cost decrease.
-    It checks that the ratio z = (actual_decrease) / (expected_decrease) satisfies
-    beta1 < z < beta2.
+    During the forward rollout, a step size :math:`\alpha` is chosen to ensure
+    sufficient decrease of the cost function. Let
 
-    Attributes:
-        max_iters: Maximum line search iterations before giving up
-        beta1: Lower bound for acceptable cost decrease ratio (prevents tiny steps)
-        beta2: Upper bound for acceptable cost decrease ratio (prevents model trust issues)
+    .. math::
+
+        z = \frac{J_{\text{actual}} - J_{\text{new}}}{J_{\text{expected}}}
+
+    where :math:`J_{\text{expected}}` is the quadratic model prediction.
+    The step is accepted if
+
+    .. math::
+
+        \beta_1 < z < \beta_2
+
+    which prevents both excessively small steps and steps that violate the
+    local quadratic approximation.
+
+    :param max_iters:
+        Maximum number of line search iterations.
+
+    :type max_iters:
+        int
+
+    :param beta1:
+        Lower bound on acceptable cost decrease ratio.
+
+    :type beta1:
+        float
+
+    :param beta2:
+        Upper bound on acceptable cost decrease ratio.
+
+    :type beta2:
+        float
+
     """
     max_iters: int = 20
     beta1: float = 1e-10
@@ -36,20 +57,55 @@ class LineSearchConfig:
     
 @dataclass
 class AugLagConfig:
-    """
-    Configuration for Augmented Lagrangian constraint handling.
+    r"""
+    Configuration for augmented Lagrangian constraint handling.
 
-    The augmented Lagrangian method converts constrained optimization into a sequence
-    of unconstrained problems by adding penalty terms: L_A = L + lambda*c + (mu/2)*c^2
-    where c is the constraint violation.
+    The augmented Lagrangian formulation transforms a constrained problem
 
-    Attributes:
-        lag_mult_init: Initial value for Lagrange multipliers (lambda)
-        lag_mult_max: Maximum allowed Lagrange multiplier magnitude
-        penalty_init: Initial penalty parameter (mu). Higher values enforce
-            constraints more strictly but can cause ill-conditioning.
-        penalty_max: Maximum penalty parameter
-        penalty_scale: Factor to increase penalty when constraints not satisfied
+    .. math::
+
+        \min_x J(x) \quad \text{s.t.} \quad c(x) = 0
+
+    into an unconstrained sequence of problems by augmenting the cost:
+
+    .. math::
+
+        \mathcal{L}_A(x, \lambda, \mu) =
+        J(x) + \lambda^\top c(x) + \frac{\mu}{2}\|c(x)\|^2
+
+    where :math:`\lambda` are Lagrange multipliers and :math:`\mu` is the
+    penalty parameter.
+
+    :param lag_mult_init:
+        Initial Lagrange multiplier value.
+
+    :type lag_mult_init:
+        float
+
+    :param lag_mult_max:
+        Maximum allowed magnitude of Lagrange multipliers.
+
+    :type lag_mult_max:
+        float
+
+    :param penalty_init:
+        Initial penalty parameter.
+
+    :type penalty_init:
+        float
+
+    :param penalty_max:
+        Maximum penalty parameter.
+
+    :type penalty_max:
+        float
+
+    :param penalty_scale:
+        Multiplicative factor used to increase the penalty.
+
+    :type penalty_scale:
+        float
+
     """
     lag_mult_init: float = 0.0
     lag_mult_max: float = 1e20
@@ -62,23 +118,74 @@ class AugLagConfig:
     
 @dataclass
 class RegularizationConfig:
-    """
-    Configuration for Levenberg-Marquardt style regularization in the backward pass.
+    r"""
+    Configuration for Levenberg–Marquardt regularization in the backward pass.
 
-    Regularization ensures the control Hessian Quu is positive definite, which is
-    required for computing valid feedback gains. When Quu is ill-conditioned or
-    indefinite, regularization adds rho*I to make it invertible.
+    To compute feedback gains, the control Hessian :math:`\mathbf{Q}_{uu}`
+    must be positive definite. When it is ill-conditioned or indefinite,
+    regularization modifies it as
 
-    Attributes:
-        reg_init: Initial regularization parameter (rho)
-        reg_min: Minimum regularization (floor value)
-        reg_max: Maximum regularization (triggers failure if exceeded)
-        reg_scale: Factor to increase/decrease regularization adaptively
-        reg_bump: Additional increase when line search fails
-        reg_min_cond: Condition for applying reg_min (0=ignore, 1=enforce, 2=default)
-        rand_add_ratio: Ratio of random noise to add for escaping local minima
-        use_dynamics_hess: Include dynamics Hessian terms (0=no, 1=yes)
-        use_constraint_hess: Include constraint Hessian terms (0=no, 1=yes)
+    .. math::
+
+        \mathbf{Q}_{uu}^{\text{reg}} =
+        \mathbf{Q}_{uu} + \rho \mathbf{I}
+
+    where :math:`\rho` is adapted during optimization.
+
+    :param reg_init:
+        Initial regularization parameter.
+
+    :type reg_init:
+        float
+
+    :param reg_min:
+        Minimum allowable regularization value.
+
+    :type reg_min:
+        float
+
+    :param reg_max:
+        Maximum allowable regularization value.
+
+    :type reg_max:
+        float
+
+    :param reg_scale:
+        Factor used to scale regularization up or down.
+
+    :type reg_scale:
+        float
+
+    :param reg_bump:
+        Additional increase applied after failed line search.
+
+    :type reg_bump:
+        float
+
+    :param reg_min_cond:
+        Condition flag controlling minimum regularization enforcement.
+
+    :type reg_min_cond:
+        int
+
+    :param rand_add_ratio:
+        Ratio of random noise added to escape local minima.
+
+    :type rand_add_ratio:
+        float
+
+    :param use_dynamics_hess:
+        Flag enabling second-order dynamics terms.
+
+    :type use_dynamics_hess:
+        int
+
+    :param use_constraint_hess:
+        Flag enabling second-order constraint terms.
+
+    :type use_constraint_hess:
+        int
+
     """
     reg_init: float = 1e-2
     reg_min: float = 1e-8
@@ -97,24 +204,77 @@ class RegularizationConfig:
     
 @dataclass
 class ConvergenceConfig:
-    """
+    r"""
     Configuration for convergence criteria and iteration limits.
 
-    The optimizer has nested loops: outer loop (augmented Lagrangian updates) and
-    inner loop (iLQR iterations). Convergence is declared when cost changes are
-    small and constraints are satisfied.
+    The optimization uses nested iterations:
 
-    Attributes:
-        max_outer_iter: Maximum augmented Lagrangian iterations
-        max_inner_iter: Maximum iLQR iterations per outer iteration
-        max_total_iter: Absolute maximum iterations across all loops
-        grad_tol: Gradient norm tolerance for declaring convergence
-        ilqr_cost_tol: Cost change tolerance for iLQR inner loop
-        total_cost_tol: Cost change tolerance for outer loop convergence
-        z_count_lim: Number of small-z iterations before giving up
-        c_max: Maximum constraint violation for feasibility
-        max_cost: Cost threshold for detecting divergence
-        xmax_val: State magnitude threshold for detecting divergence
+    - Outer loop for augmented Lagrangian updates
+    - Inner loop for iLQR refinement
+
+    Convergence is declared when cost reduction and constraint violations
+    satisfy specified tolerances.
+
+    :param max_outer_iter:
+        Maximum number of augmented Lagrangian iterations.
+
+    :type max_outer_iter:
+        int
+
+    :param max_inner_iter:
+        Maximum number of iLQR iterations per outer loop.
+
+    :type max_inner_iter:
+        int
+
+    :param max_total_iter:
+        Absolute maximum number of iterations.
+
+    :type max_total_iter:
+        int
+
+    :param grad_tol:
+        Gradient norm tolerance.
+
+    :type grad_tol:
+        float
+
+    :param ilqr_cost_tol:
+        Cost change tolerance for inner loop convergence.
+
+    :type ilqr_cost_tol:
+        float
+
+    :param total_cost_tol:
+        Cost change tolerance for outer loop convergence.
+
+    :type total_cost_tol:
+        float
+
+    :param z_count_lim:
+        Maximum number of consecutive small-decrease iterations.
+
+    :type z_count_lim:
+        int
+
+    :param c_max:
+        Maximum allowable constraint violation.
+
+    :type c_max:
+        float
+
+    :param max_cost:
+        Cost threshold for divergence detection.
+
+    :type max_cost:
+        float
+
+    :param xmax_val:
+        State magnitude bound for divergence detection.
+
+    :type xmax_val:
+        float
+
     """
     max_outer_iter: int = 30
     max_inner_iter: int = 250
@@ -137,6 +297,37 @@ class ConvergenceConfig:
 
 @dataclass
 class SolverPassConfig:
+    r"""
+    Aggregate configuration for a single optimization pass.
+
+    This class bundles line search, augmented Lagrangian, convergence,
+    and regularization settings into a single structure used by the solver.
+
+    :param line_search:
+        Line search configuration.
+
+    :type line_search:
+        :class:`~ADCS.controller.helpers.planner_subsettings.LineSearchConfig`
+
+    :param aug_lag:
+        Augmented Lagrangian configuration.
+
+    :type aug_lag:
+        :class:`~ADCS.controller.helpers.planner_subsettings.AugLagConfig`
+
+    :param convergence:
+        Convergence configuration.
+
+    :type convergence:
+        :class:`~ADCS.controller.helpers.planner_subsettings.ConvergenceConfig`
+
+    :param regularization:
+        Regularization configuration.
+
+    :type regularization:
+        :class:`~ADCS.controller.helpers.planner_subsettings.RegularizationConfig`
+
+    """
     line_search: LineSearchConfig = field(default_factory=LineSearchConfig)
     aug_lag: AugLagConfig = field(default_factory=AugLagConfig)
     convergence: ConvergenceConfig = field(default_factory=ConvergenceConfig)
@@ -144,53 +335,100 @@ class SolverPassConfig:
 
 @dataclass
 class CostWeights:
-    """
-    Cost function weights for the trajectory optimization problem.
+    r"""
+    Cost function weights for trajectory optimization.
 
-    The cost function is: J = sum_k [state_cost + control_cost] + terminal_cost
+    The discrete-time cost function minimized by the planner is
 
-    Terminal costs (*_N) should typically be higher than running costs to
-    prioritize reaching the goal state.
+    .. math::
 
-    Attributes:
-        angle: Running cost weight on attitude error
-        ang_vel: Running cost on angular velocity squared: 0.5*w'*w*w_av
-        control_mult: Multiplier for actuator-specific control costs
-        ang_vel_mag: Cost on ang vel component along B-field: |dot(w, R'*B)|
-        ang_vel_err_dir: Cost on ang vel along attitude error direction.
-            For vector goals: dot(w, cross(R'*goal_body, boresight))
-            For quaternion goals: dot(w, quat_error_vector)
-        angle_N: Terminal attitude error cost weight
-        ang_vel_N: Terminal angular velocity cost weight
-        ang_vel_mag_N: Terminal cost on ang vel along B-field
-        ang_vel_err_dir_N: Terminal cost on ang vel along error direction
-        ang_cost_func_type: Attitude cost formulation:
-            0=(1-dot), 1=0.5*(1-dot)^2, 2=acos(dot), 3=0.5*acos(dot)^2
-        use_raw_control_cost: If True, use control values directly in cost
-        consider_vector_in_tvlqr: Flag for TVLQR vector tracking mode
+        J = \sum_{k=0}^{N-1}
+        \left(
+        \mathbf{x}_k^\top \mathbf{Q} \mathbf{x}_k +
+        \mathbf{u}_k^\top \mathbf{R} \mathbf{u}_k
+        \right)
+        + \mathbf{x}_N^\top \mathbf{Q}_N \mathbf{x}_N
 
-    Tuning Guidelines:
-        The ratio of angle to ang_vel determines the trade-off between
-        pointing accuracy and trajectory smoothness:
+    where running and terminal costs may differ.
 
-        - angle >> ang_vel: Aggressive maneuvers, reaches goal fast but may overshoot
-        - angle << ang_vel: Smooth trajectories, slower convergence but no overshoot
-        - Typical ratio: angle = 0.1 * ang_vel (balance accuracy and smoothness)
+    :param angle:
+        Running attitude error weight.
 
-        Terminal vs running cost ratio:
-        - *_N = 10 * running: Strong goal-reaching behavior (recommended default)
-        - *_N = running: All timesteps equally weighted (good for tracking)
-        - *_N >> running: Very strong terminal constraint (may cause aggressive end)
+    :type angle:
+        float
 
-    Example Configurations:
-        # Fast slew maneuver (prioritize reaching goal quickly)
-        fast_slew = CostWeights(angle=1e4, angle_N=1e5, ang_vel=1e2, ang_vel_N=1e3)
+    :param ang_vel:
+        Running angular velocity weight.
 
-        # Precision pointing (smooth, accurate)
-        precision = CostWeights(angle=1e3, angle_N=1e4, ang_vel=1e5, ang_vel_N=1e6)
+    :type ang_vel:
+        float
 
-        # Detumbling only (minimize angular velocity)
-        detumble = CostWeights(angle=0, angle_N=0, ang_vel=1e4, ang_vel_N=1e6)
+    :param control_mult:
+        Multiplier applied to actuator control costs.
+
+    :type control_mult:
+        float
+
+    :param ang_vel_mag:
+        Running cost on angular velocity projected onto magnetic field.
+
+    :type ang_vel_mag:
+        float
+
+    :param ang_vel_err_dir:
+        Running cost on angular velocity along error direction.
+
+    :type ang_vel_err_dir:
+        float
+
+    :param angle_N:
+        Terminal attitude error weight.
+
+    :type angle_N:
+        float
+
+    :param ang_vel_N:
+        Terminal angular velocity weight.
+
+    :type ang_vel_N:
+        float
+
+    :param ang_vel_mag_N:
+        Terminal magnetic-field angular velocity weight.
+
+    :type ang_vel_mag_N:
+        float
+
+    :param ang_vel_err_dir_N:
+        Terminal angular velocity error-direction weight.
+
+    :type ang_vel_err_dir_N:
+        float
+
+    :param ang_cost_func_type:
+        Attitude cost formulation selector.
+
+    :type ang_cost_func_type:
+        int
+
+    :param use_raw_control_cost:
+        Flag selecting raw or scaled control costs.
+
+    :type use_raw_control_cost:
+        bool
+
+    :param consider_vector_in_tvlqr:
+        Flag enabling vector tracking in TVLQR.
+
+    :type consider_vector_in_tvlqr:
+        int
+
+    :param use_full_cost_hessian:
+        Flag enabling full Newton cost Hessian.
+
+    :type use_full_cost_hessian:
+        bool
+
     """
     angle: float = 1e3
     ang_vel: float = 1e4
@@ -244,7 +482,38 @@ class CostWeights:
 
 @dataclass
 class InitTrajConfig:
-    # Settings for generating the initial guess
+    r"""
+    Configuration for initial trajectory generation.
+
+    The initial guess trajectory may use B-dot detumbling and heuristic
+    saturation limits to provide a dynamically feasible starting point
+    for optimization.
+
+    :param bdot_gain:
+        Gain used for B-dot detumbling initialization.
+
+    :type bdot_gain:
+        float
+
+    :param hl_angle_limit:
+        High-level angle threshold for switching strategies.
+
+    :type hl_angle_limit:
+        float
+
+    :param high_settings:
+        Tuple defining high-level initialization parameters.
+
+    :type high_settings:
+        tuple
+
+    :param low_settings:
+        Tuple defining low-level initialization parameters.
+
+    :type low_settings:
+        tuple
+
+    """
     bdot_gain: float = 1000.0
     hl_angle_limit: float = 10.0 * np.pi / 180.0
     
