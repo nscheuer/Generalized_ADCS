@@ -3,10 +3,27 @@ from matplotlib.widgets import Button
 
 
 def create_close_all_button_window() -> None:
-    """
-    Create a small figure with a single red button centered.
-    Pressing the button closes ALL open Matplotlib figures
-    (including any active animations).
+    r"""
+    Create a small control window with a button that closes all Matplotlib figures.
+
+    This function opens a dedicated Matplotlib figure containing a single
+    prominently colored button. When pressed, the button closes **all**
+    currently open Matplotlib figures, including those with active animations
+    or interactive callbacks.
+
+    The function is useful as a global emergency stop for visualization-heavy
+    workflows.
+
+    :param:
+        None.
+    :type:
+        None
+
+    :return:
+        None. All open Matplotlib figures are closed upon user interaction.
+    :rtype:
+        None
+
     """
 
     # Create a small dedicated figure

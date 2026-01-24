@@ -17,7 +17,7 @@ def create_isis_magnetorquer_board(axes: np.ndarray = np.array([[1, 0, 0], [0, 1
         std_noise = 0.0001*np.ones(3)
         std_noise = np.zeros(3)
         noise = [Noise(noise=e_noise[j], std_noise=std_noise[j]) for j in range(3)]
-    mtq_max = 1.0
+    mtq_max = 0.2
 
     return [MTQ(axis=axes[j], max_torque=mtq_max, bias=bias[j], noise=noise[j], estimate_bias=estimate_bias) for j in range(3)]
 

@@ -5,69 +5,101 @@ import warnings
 from typing import Union, Dict
 
 from ADCS.satellite_hardware.actuators.actuator import Actuator
-from ADCS.satellite_hardware.actuators.bias import Bias
-from ADCS.satellite_hardware.actuators.noise import Noise
-from ADCS.satellite_hardware.disturbances.disturbance_mode import DisturbanceMode
+from ADCS.satellite_hardware.errors.bias import Bias
+from ADCS.satellite_hardware.errors.noise import Noise
+from ADCS.satellite_hardware.errors import ErrorMode
 from ADCS.orbits.orbital_state import Orbital_State
 
 class MTQ(Actuator):
     r"""
-    **Magnetorquer (MTQ) Actuator Model**
+    **Magnetorquer (MTQ) actuator model**
 
-    This class represents a single-axis **Magnetorquer (MTQ)** used for satellite attitude
-    control. The MTQ generates torque through the interaction between its magnetic
-    dipole moment and the Earth's geomagnetic field.
+    This class models a single-axis magnetorquer that generates body torque from the
+    interaction between a commanded magnetic dipole moment and the local geomagnetic
+    field.
 
-    **Physical Model**
+    The model extends :class:`~ADCS.satellite_hardware.actuators.actuator.Actuator`.
 
-    The torque produced by a magnetorquer is defined as:
+    Physical model
+    --------------
 
-    .. math::
-
-        \mathbf{T}_{\mathrm{MTQ}} = -(\mathbf{B}_b \times \mathbf{m})
-
-    where:
-
-    - :math:`\mathbf{B}_b` — Magnetic field vector in the body frame [T]
-    - :math:`\mathbf{m}` — Magnetic dipole moment vector [A·m²]
-    - The negative sign accounts for the coil winding convention
-
-    The commanded magnetic dipole moment is modeled as:
+    The torque produced by a magnetic dipole :math:`\mathbf{m}` in a magnetic field
+    :math:`\mathbf{B}_{\mathcal{B}}` (expressed in the body frame) is
 
     .. math::
 
-        \mathbf{m} = \mathbf{a}_{\mathrm{axis}} (u + b)
+        \boldsymbol{\tau}_{\mathrm{MTQ}}
+        = -\,\mathbf{B}_{\mathcal{B}} \times \mathbf{m}.
 
-    where:
-
-    - :math:`\mathbf{a}_{\mathrm{axis}}` — Magnetorquer unit axis direction  
-    - :math:`u` — Commanded magnetic dipole magnitude [A·m²]  
-    - :math:`b` — Bias term (constant or slowly varying)
-
-    Combining both expressions gives:
+    The dipole is constrained to a fixed body-axis :math:`\mathbf{a}` (unit vector) and
+    commanded with a scalar magnitude :math:`u` (with optional scalar bias :math:`b`):
 
     .. math::
 
-        \mathbf{T}_{\mathrm{MTQ}} = -(\mathbf{B}_b \times \mathbf{a}_{\mathrm{axis}})(u + b) + \mathbf{n}
+        \mathbf{m} = \mathbf{a}\,(u + b).
 
-    where :math:`\mathbf{n}` is a random noise term representing actuator uncertainty.
+    Combining the two gives the actuation model used by :meth:`~ADCS.satellite_hardware.actuators.magnetotorquer.MTQ.torque`:
 
-    Parameters
-    ----------
-    axis : :class:`numpy.ndarray`
-        Unit vector ``(3,)`` defining the magnetorquer alignment in the body frame.
+    .. math::
 
-    max_torque : float
-        Maximum allowable torque magnitude [N·m].
+        \boldsymbol{\tau}_{\mathrm{MTQ}}
+        = -(\mathbf{B}_{\mathcal{B}} \times \mathbf{a})\,(u+b) + \mathbf{n},
 
-    bias : :class:`~ADCS.satellite_hardware.actuators.bias.Bias`, optional
-        Bias model representing constant or slowly varying offset in magnetic moment.
+    where :math:`\mathbf{n}` is an additive noise term (if enabled).
 
-    noise : :class:`~ADCS.satellite_hardware.actuators.noise.Noise`, optional
-        Noise model representing stochastic fluctuations in actuation.
+    Symbols
+    --------
 
-    estimate_bias : bool, optional
-        If ``True``, includes this actuator's bias term in the estimator state vector.
+    .. list-table::
+       :header-rows: 1
+       :widths: 30 70
+
+       * - Symbol
+         - Meaning
+       * - :math:`\mathbf{B}_{\mathcal{B}}`
+         - Earth's magnetic field expressed in the body frame [T]
+       * - :math:`\mathbf{m}`
+         - Magnetic dipole moment vector [A·m²]
+       * - :math:`\mathbf{a}`
+         - Magnetorquer unit axis in the body frame
+       * - :math:`u`
+         - Commanded dipole magnitude [A·m²]
+       * - :math:`b`
+         - Bias in the commanded dipole (modeled by :class:`~ADCS.satellite_hardware.errors.bias.Bias`)
+       * - :math:`\mathbf{n}`
+         - Additive actuator torque noise (modeled by :class:`~ADCS.satellite_hardware.errors.noise.Noise`)
+
+    State dependence
+    -----------------
+
+    The body-frame field depends on the attitude quaternion :math:`\mathbf{q}` via the
+    direction cosine matrix :math:`\mathbf{C}(\mathbf{q})`:
+
+    .. math::
+
+        \mathbf{B}_{\mathcal{B}}(\mathbf{q})
+        = \mathbf{C}(\mathbf{q})^\top \mathbf{B}_{\mathrm{ECI}}.
+
+    The orbital-state provider :class:`~ADCS.orbits.orbital_state.Orbital_State` supplies
+    :math:`\mathbf{B}_{\mathcal{B}}`, its Jacobian :math:`D_{\mathbf{q}}\mathbf{B}_{\mathcal{B}}`,
+    and Hessian :math:`D^2_{\mathbf{q}\mathbf{q}}\mathbf{B}_{\mathcal{B}}` through
+    :meth:`~ADCS.orbits.orbital_state.Orbital_State.get_state_vector`.
+
+    :param axis: Unit vector defining the magnetorquer alignment in the body frame.
+    :type axis: numpy.ndarray
+
+    :param max_torque: Maximum allowable commanded dipole magnitude (used as the actuator
+        saturation limit).
+    :type max_torque: float
+
+    :param bias: Bias model representing constant or slowly varying dipole offset.
+    :type bias: :class:`~ADCS.satellite_hardware.errors.bias.Bias` | None
+
+    :param noise: Noise model representing stochastic actuation uncertainty.
+    :type noise: :class:`~ADCS.satellite_hardware.errors.noise.Noise` | None
+
+    :param estimate_bias: If ``True``, includes this actuator's bias term in the estimator state vector.
+    :type estimate_bias: bool
     """
 
     def __init__(
@@ -79,28 +111,30 @@ class MTQ(Actuator):
         estimate_bias: bool = False,
     ) -> None:
         r"""
-        Initialize a magnetorquer actuator.
+        Initialize a magnetorquer actuator model.
 
-        Parameters
-        ----------
-        axis : np.ndarray
-            Unit vector (3,) defining the physical alignment of the magnetorquer 
-            in the satellite body frame.
+        This constructor configures the physical axis, saturation limits, and optional
+        stochastic error models. All parameters are passed through to the base
+        :class:`~ADCS.satellite_hardware.actuators.actuator.Actuator` class.
 
-        max_torque : float
-            Maximum allowable torque magnitude [N·m].
+        :param axis: Unit vector defining the physical alignment of the magnetorquer
+            in the spacecraft body frame.
+        :type axis: numpy.ndarray, shape ``(3,)``
 
-        bias : Bias, optional
-            Bias model instance that describes slow variations or offsets in 
-            magnetic moment (default is None).
+        :param max_torque: Maximum allowable magnetic dipole magnitude.
+        :type max_torque: float
 
-        noise : Noise, optional
-            Noise model instance representing stochastic actuation noise 
-            (default is None).
+        :param bias: Optional bias model applied additively to the commanded dipole.
+        :type bias: :class:`~ADCS.satellite_hardware.errors.bias.Bias` | None
 
-        estimate_bias : bool, optional
-            Whether to include this actuator’s bias in the state estimation 
-            process (default is False).
+        :param noise: Optional noise model applied additively to the generated torque.
+        :type noise: :class:`~ADCS.satellite_hardware.errors.noise.Noise` | None
+
+        :param estimate_bias: If ``True``, the bias is appended to the estimator state.
+        :type estimate_bias: bool
+
+        :return: None
+        :rtype: None
         """
         super().__init__(axis=axis, u_max=max_torque, bias=bias, noise=noise, estimate_bias=estimate_bias)
 
@@ -109,50 +143,40 @@ class MTQ(Actuator):
         u: float,
         x: np.ndarray,
         os: Orbital_State | Dict[str, np.ndarray],
-        dmode: DisturbanceMode = None
+        dmode: ErrorMode = None
     ) -> np.ndarray:
         r"""
-        Compute the **torque generated by the magnetorquer**.
+        Compute the torque generated by the magnetorquer.
 
-        The magnetorquer produces a body torque defined as:
+        The applied body-frame torque is given by:
 
         .. math::
 
-            \mathbf{T}_{\mathrm{MTQ}} = -(\mathbf{B}_b \times \mathbf{a}_{\mathrm{axis}})(u + b) + \mathbf{n}
+            \boldsymbol{\tau}
+            = -(\mathbf{B}_{\mathcal{B}} \times \mathbf{a})\,(u + b) + \mathbf{n}
 
-        where:
+        where the magnetic field and its derivatives are obtained from
+        :class:`~ADCS.orbits.orbital_state.Orbital_State`.
 
-        - :math:`u` — Commanded magnetic moment magnitude [A·m²]  
-        - :math:`b` — Actuator bias term (if ``bias=True``)  
-        - :math:`\mathbf{n}` — Noise term (if ``noise=True``)  
-        - :math:`\mathbf{B}_b` — Magnetic field vector in body frame [T]  
-        - :math:`\mathbf{a}_{\mathrm{axis}}` — Magnetorquer axis direction
+        Bias and noise terms are conditionally applied according to
+        :class:`~ADCS.satellite_hardware.errors.error_mode.ErrorMode`.
 
-        Parameters
-        ----------
-        u : float
-            Commanded magnetic moment [A·m²].
+        :param u: Commanded magnetic dipole magnitude.
+        :type u: float
 
-        x : :class:`numpy.ndarray`
-            Full spacecraft state vector containing attitude quaternion.
+        :param x: Full spacecraft state vector
+            :math:`[\boldsymbol{\omega};\mathbf{q}]`.
+        :type x: numpy.ndarray, shape ``(7,)``
 
-        os : :class:`~ADCS.orbits.orbital_state.Orbital_State`
-            Provides local magnetic field vector ``\mathbf{B}_b`` and related derivatives.
+        :param os: Orbital state providing geomagnetic field vectors and derivatives.
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State` | dict[str, numpy.ndarray]
 
-        bias : bool, optional
-            Whether to include bias effects (default is False).
+        :param dmode: Disturbance mode specifying whether bias and noise are applied
+            and/or updated.
+        :type dmode: :class:`~ADCS.satellite_hardware.errors.error_mode.ErrorMode` | None
 
-        noise : bool, optional
-            Whether to include noise effects (default is False).
-
-        Returns
-        -------
-        :class:`numpy.ndarray`
-            Torque vector in body frame [N·m], shape ``(3,)``.
-
-        Warnings
-        --------
-        Emits a :class:`UserWarning` if ``|u| > self.u_max``.
+        :return: Body-frame torque vector.
+        :rtype: numpy.ndarray, shape ``(3,)``
         """
         if abs(u) > self.u_max:
             warnings.warn("requested torque exceeds actuation limit")
@@ -161,7 +185,7 @@ class MTQ(Actuator):
         b_body = vecs["b"]
 
         if dmode is None:
-            dmode = DisturbanceMode(add_bias=True, add_noise=True, update_bias=True, update_noise=True)
+            dmode = ErrorMode(add_bias=True, add_noise=True, update_bias=True, update_noise=True)
 
         if self.bias and dmode.add_bias:
             u += self.bias.get_bias(j2000=os.J2000)
@@ -177,7 +201,28 @@ class MTQ(Actuator):
 
         return torque
     
-    def storage_torque(self, u: float, x: np.ndarray, os: Orbital_State, dmode: DisturbanceMode = None) -> float:
+    def storage_torque(self, u: float, x: np.ndarray, os: Orbital_State, dmode: ErrorMode = None) -> float:
+        r"""
+        Storage torque contribution of the actuator.
+
+        Magnetorquers do **not** store angular momentum. Consequently, this method
+        always returns an empty vector.
+
+        :param u: Commanded dipole magnitude.
+        :type u: float
+
+        :param x: Spacecraft state vector.
+        :type x: numpy.ndarray
+
+        :param os: Orbital state.
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
+
+        :param dmode: Disturbance mode (unused).
+        :type dmode: :class:`~ADCS.satellite_hardware.errors.error_mode.ErrorMode` | None
+
+        :return: Empty storage-torque vector.
+        :rtype: numpy.ndarray, shape ``(0,)``
+        """
         return np.zeros((0,))
 
     def jacobians(
@@ -187,40 +232,75 @@ class MTQ(Actuator):
         os: Orbital_State,
     ) -> Union[np.ndarray, np.ndarray]:
         r"""
-        Compute **first-order derivatives (Jacobians)** of the magnetorquer torque.
+        Compute first-order derivatives (Jacobians) of the torque.
 
-        1. **Jacobian of torque w.r.t. control input**:
-
-        .. math::
-
-            \frac{\partial \mathbf{T}}{\partial u} = -(\mathbf{B}_b \times \mathbf{a}_{\mathrm{axis}})
-
-        2. **Jacobian of torque w.r.t. base state** (e.g., attitude quaternion):
+        Let :math:`\mathbf{a}=\texttt{self.axis}` and let :math:`b` be the (optional) scalar bias.
+        The torque model (without noise) is
 
         .. math::
 
-            \frac{\partial \mathbf{T}}{\partial \mathbf{x}} =
+            \boldsymbol{\tau}(u,\mathbf{q})
+            = -(\mathbf{B}_{\mathcal{B}}(\mathbf{q}) \times \mathbf{a})\,(u+b).
+
+        Jacobian w.r.t. control input
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+        Since :math:`\boldsymbol{\tau}` is affine in :math:`u`:
+
+        .. math::
+
+            \frac{\partial\boldsymbol{\tau}}{\partial u}
+            = -(\mathbf{B}_{\mathcal{B}}(\mathbf{q}) \times \mathbf{a}).
+
+        Jacobian w.r.t. base state
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+        The base state is :math:`\mathbf{x}=[\boldsymbol{\omega};\mathbf{q}]\in\mathbb{R}^7`.
+        The torque depends on :math:`\mathbf{q}` only through :math:`\mathbf{B}_{\mathcal{B}}(\mathbf{q})`
+        and does not depend on :math:`\boldsymbol{\omega}`:
+
+        .. math::
+
+            \frac{\partial\boldsymbol{\tau}}{\partial\boldsymbol{\omega}} = \mathbf{0}_{3\times 3}.
+
+        With :math:`D_{\mathbf{q}}\mathbf{B}_{\mathcal{B}}(\mathbf{q})\in\mathbb{R}^{4\times 3}` (provided as ``"db"``),
+        the quaternion Jacobian is
+
+        .. math::
+
+            \frac{\partial\boldsymbol{\tau}}{\partial\mathbf{q}}
+            = -\bigl(D_{\mathbf{q}}\mathbf{B}_{\mathcal{B}}(\mathbf{q}) \times \mathbf{a}\bigr)\,(u+b),
+
+        where the matrix–vector cross is applied row-wise:
+        :math:`( \mathbf{M}\times\mathbf{v})_{i:}=\mathbf{M}_{i:}\times\mathbf{v}`.
+
+        The returned base-state Jacobian stacks these blocks as
+
+        .. math::
+
+            \frac{\partial\boldsymbol{\tau}}{\partial\mathbf{x}}
+            =
             \begin{bmatrix}
-            \mathbf{0}_{3\times3} \\
-            -\left( \frac{\partial \mathbf{B}_b}{\partial q} \times \mathbf{a}_{\mathrm{axis}} \right)(u + b)
-            \end{bmatrix}
+            \mathbf{0}_{3\times 3}\\
+            -\bigl(D_{\mathbf{q}}\mathbf{B}_{\mathcal{B}}(\mathbf{q}) \times \mathbf{a}\bigr)\,(u+b)
+            \end{bmatrix}.
 
-        Parameters
-        ----------
-        u : float
-            Commanded magnetic moment [A·m²].
+        :param u: Commanded magnetic dipole magnitude.
+        :type u: float
 
-        x : :class:`numpy.ndarray`
-            Satellite state (7,).
+        :param x: Spacecraft base state :math:`[\boldsymbol{\omega};\mathbf{q}]`.
+        :type x: numpy.ndarray
 
-        os : :class:`~ADCS.orbits.orbital_state.Orbital_State`
-            Orbital state instance providing field vectors and their derivatives.
+        :param os: Orbital state providing :math:`\mathbf{B}_{\mathcal{B}}` and :math:`D_{\mathbf{q}}\mathbf{B}_{\mathcal{B}}`
+            via :meth:`~ADCS.orbits.orbital_state.Orbital_State.get_state_vector`.
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
 
-        Returns
-        -------
-        tuple[np.ndarray, np.ndarray]
-            - ``dT_du`` : shape ``(1, 3)`` — Jacobian of torque w.r.t. control input  
-            - ``dT_dx`` : shape ``(7, 3)`` — Jacobian of torque w.r.t. base state
+        :return: ``(dT_du, dT_dx)`` where:
+
+            * ``dT_du`` has shape ``(1,3)`` and equals :math:`\partial\boldsymbol{\tau}/\partial u`.
+            * ``dT_dx`` has shape ``(7,3)`` and equals :math:`\partial\boldsymbol{\tau}/\partial \mathbf{x}`.
+
+        :rtype: tuple[numpy.ndarray, numpy.ndarray]
         """
         vecs = os.get_state_vector(x=x)
         b_body = vecs["b"]
@@ -242,41 +322,77 @@ class MTQ(Actuator):
         os: Orbital_State,
     ) -> Union[np.ndarray, np.ndarray]:
         r"""
-        Compute **second-order derivatives (Hessians)** of the magnetorquer torque.
+        Compute second-order derivatives (Hessians) of the torque.
 
-        1. **Mixed derivative (torque w.r.t. control and state):**
+        Using the noise-free model
 
         .. math::
 
-            \frac{\partial^2 \mathbf{T}}{\partial u \, \partial \mathbf{x}} =
+            \boldsymbol{\tau}(u,\mathbf{q})
+            = -(\mathbf{B}_{\mathcal{B}}(\mathbf{q}) \times \mathbf{a})\,(u+b),
+
+        and defining
+
+        * :math:`D_{\mathbf{q}}\mathbf{B}_{\mathcal{B}}(\mathbf{q})\in\mathbb{R}^{4\times 3}` (provided as ``"db"``),
+        * :math:`D^2_{\mathbf{q}\mathbf{q}}\mathbf{B}_{\mathcal{B}}(\mathbf{q})\in\mathbb{R}^{4\times 4\times 3}` (provided as ``"ddb"``),
+
+        the only nonzero second derivatives involve the quaternion.
+
+        Mixed control–state Hessian
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+        The mixed derivative :math:`\partial^2\boldsymbol{\tau}/(\partial u\,\partial\mathbf{x})`
+        has zero angular-velocity block and a quaternion block:
+
+        .. math::
+
+            \frac{\partial^2\boldsymbol{\tau}}{\partial u\,\partial\boldsymbol{\omega}}
+            = \mathbf{0}_{1\times 3\times 3},
+
+        .. math::
+
+            \frac{\partial^2\boldsymbol{\tau}}{\partial u\,\partial\mathbf{q}}
+            = -\bigl(D_{\mathbf{q}}\mathbf{B}_{\mathcal{B}}(\mathbf{q}) \times \mathbf{a}\bigr).
+
+        In stacked form (matching the base state :math:`[\boldsymbol{\omega};\mathbf{q}]`):
+
+        .. math::
+
+            \frac{\partial^2\boldsymbol{\tau}}{\partial u\,\partial\mathbf{x}}
+            =
             \begin{bmatrix}
-            \mathbf{0}_{3\times3} \\
-            -\left( \frac{\partial \mathbf{B}_b}{\partial q} \times \mathbf{a}_{\mathrm{axis}} \right)
-            \end{bmatrix}
+            \mathbf{0}_{3\times 3}\\
+            -\bigl(D_{\mathbf{q}}\mathbf{B}_{\mathcal{B}}(\mathbf{q}) \times \mathbf{a}\bigr)
+            \end{bmatrix}.
 
-        2. **Second derivative w.r.t. base state:**
+        Pure base-state Hessian
+        ~~~~~~~~~~~~~~~~~~~~~~~
+
+        All second derivatives involving :math:`\boldsymbol{\omega}` vanish, and the only nonzero block is
+        the quaternion–quaternion block:
 
         .. math::
 
-            \frac{\partial^2 \mathbf{T}}{\partial \mathbf{x}^2} =
-            -\left( \frac{\partial^2 \mathbf{B}_b}{\partial q^2} \times \mathbf{a}_{\mathrm{axis}} \right)(u + b)
+            \frac{\partial^2\boldsymbol{\tau}}{\partial\mathbf{q}\,\partial\mathbf{q}}
+            = -\bigl(D^2_{\mathbf{q}\mathbf{q}}\mathbf{B}_{\mathcal{B}}(\mathbf{q}) \times \mathbf{a}\bigr)\,(u+b).
 
-        Parameters
-        ----------
-        u : float
-            Commanded magnetic moment [A·m²].
+        :param u: Commanded magnetic dipole magnitude.
+        :type u: float
 
-        x : :class:`numpy.ndarray`
-            Satellite state vector (7,).
+        :param x: Spacecraft base state.
+        :type x: numpy.ndarray
 
-        os : :class:`~ADCS.orbits.orbital_state.Orbital_State`
-            Orbital state instance providing higher-order magnetic field derivatives.
+        :param os: Orbital state providing :math:`D_{\mathbf{q}}\mathbf{B}_{\mathcal{B}}` and
+            :math:`D^2_{\mathbf{q}\mathbf{q}}\mathbf{B}_{\mathcal{B}}` via
+            :meth:`~ADCS.orbits.orbital_state.Orbital_State.get_state_vector`.
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
 
-        Returns
-        -------
-        tuple[np.ndarray, np.ndarray]
-            - ``ddT_du_dx`` : shape ``(1, 7, 3)`` — Mixed Hessian of torque w.r.t. control and state  
-            - ``ddT_dx2`` : shape ``(7, 7, 3)`` — Hessian of torque w.r.t. base state
+        :return: ``(ddT_du_dx, ddT_dx2)`` where:
+
+            * ``ddT_du_dx`` has shape ``(1,7,3)`` and equals :math:`\partial^2\boldsymbol{\tau}/(\partial u\,\partial\mathbf{x})`.
+            * ``ddT_dx2`` has shape ``(7,7,3)`` and equals :math:`\partial^2\boldsymbol{\tau}/(\partial\mathbf{x}\,\partial\mathbf{x})`.
+
+        :rtype: tuple[numpy.ndarray, numpy.ndarray]
         """
         vecs = os.get_state_vector(x=x)
         db_body__dq = vecs["db"]
@@ -297,26 +413,25 @@ class MTQ(Actuator):
 
     def dtorq__du(self, u: float, x: np.ndarray, os: Orbital_State) -> np.ndarray:
         r"""
-        First derivative :math:`\displaystyle \frac{\partial\boldsymbol{\tau}}{\partial u}`.
+        First derivative of torque with respect to the control input.
 
-        **Model.** The actuator torque is modeled as
-        :math:`\boldsymbol{\tau}(u,\mathbf{x}) = (u + b)\,\mathbf{a}\times\mathbf{B}_\mathcal{B}(\mathbf{q})`,
-        where :math:`\mathbf{a}=\texttt{self.axis}` (unit), :math:`b=\texttt{bias.get_bias(J2000)}` is a
-        scalar bias, and :math:`\mathbf{B}_\mathcal{B}(\mathbf{q})=\mathbf{C}(\mathbf{q})^\top\mathbf{B}_\text{ECI}` is the
-        geomagnetic field expressed in the body frame. (Here :math:`\mathbf{C}(\mathbf{q})` maps body→ECI.)
+        .. math::
 
-        Since :math:`\boldsymbol{\tau}` is affine in :math:`u`, we have
-        :math:`\frac{\partial\boldsymbol{\tau}}{\partial u}=\mathbf{a}\times\mathbf{B}_\mathcal{B}(\mathbf{q})`.
+            \frac{\partial\boldsymbol{\tau}}{\partial u}
+            = \mathbf{a} \times \mathbf{B}_{\mathcal{B}}
+            = -\,\mathbf{B}_{\mathcal{B}} \times \mathbf{a}
 
-        **Returned form.** The implementation returns
-        :math:`-\mathbf{B}_\mathcal{B}(\mathbf{q})\times\mathbf{a}`, which is equal to
-        :math:`\mathbf{a}\times\mathbf{B}_\mathcal{B}(\mathbf{q})` by the identity
-        :math:`\mathbf{x}\times\mathbf{y}=-\,\mathbf{y}\times\mathbf{x}`.
+        :param u: Commanded magnetic dipole magnitude.
+        :type u: float
 
-        Returns
-        -------
-        (1, 3) ndarray
-            Row-Jacobian w.r.t. the scalar input :math:`u`.
+        :param x: Spacecraft state vector.
+        :type x: numpy.ndarray
+
+        :param os: Orbital state providing the body-frame magnetic field.
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
+
+        :return: Row Jacobian of torque w.r.t. control input.
+        :rtype: numpy.ndarray, shape ``(1,3)``
         """
         vecs = os.get_state_vector(x=x)
         b_body = vecs["b"]
@@ -324,35 +439,23 @@ class MTQ(Actuator):
 
     def dtorq__dbasestate(self, u: float, x: np.ndarray, os: Orbital_State) -> np.ndarray:
         r"""
-        First derivative :math:`\displaystyle \frac{\partial\boldsymbol{\tau}}{\partial \mathbf{x}}`
-        with :math:`\mathbf{x}=[\boldsymbol{\omega};\mathbf{q}] \in \mathbb{R}^7`.
+        First derivative of torque with respect to the base spacecraft state.
 
-        **Notation.**
-        Let :math:`b=\texttt{bias.get_bias(J2000)}`, :math:`\mathbf{a}=\texttt{self.axis}`,
-        :math:`\mathbf{B}_\mathcal{B}(\mathbf{q})=\mathbf{C}(\mathbf{q})^\top\mathbf{B}_\text{ECI}`,
-        and :math:`D_\mathbf{q}\mathbf{B}_\mathcal{B}(\mathbf{q})\in\mathbb{R}^{4\times 3}` denote the Jacobian
-        of :math:`\mathbf{B}_\mathcal{B}` w.r.t. the quaternion components (this is ``vecs["db"]``).
-        Define the *rowwise cross* between a matrix :math:`\mathbf{M}\in\mathbb{R}^{n\times 3}` and a vector
-        :math:`\mathbf{v}\in\mathbb{R}^3` as :math:`(\mathbf{M}\times\mathbf{v})_{i:}=\mathbf{M}_{i:}\times\mathbf{v}`.
+        The torque does not depend on angular velocity, and depends on attitude only
+        through the magnetic field transformation.
 
-        **Result.**
-        Since :math:`\boldsymbol{\tau}(u,\mathbf{x}) = (u+b)\,\mathbf{a}\times\mathbf{B}_\mathcal{B}(\mathbf{q})`
-        depends on :math:`\mathbf{q}` but not on :math:`\boldsymbol{\omega}`, we obtain
+        :param u: Commanded magnetic dipole magnitude.
+        :type u: float
 
-        .. math::
+        :param x: Spacecraft state vector
+            :math:`[\boldsymbol{\omega};\mathbf{q}]`.
+        :type x: numpy.ndarray, shape ``(7,)``
 
-            \frac{\partial\boldsymbol{\tau}}{\partial\boldsymbol{\omega}}=\mathbf{0}_{3\times 3},\qquad
-            \frac{\partial\boldsymbol{\tau}}{\partial\mathbf{q}}
-            = (u+b)\,\mathbf{a}\times D_\mathbf{q}\mathbf{B}_\mathcal{B}(\mathbf{q})
-            = -\,\big(D_\mathbf{q}\mathbf{B}_\mathcal{B}(\mathbf{q}) \times \mathbf{a}\big)\,(u+b).
+        :param os: Orbital state providing magnetic field Jacobians.
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
 
-        The implementation returns the vertically stacked matrix
-        :math:`\begin{bmatrix}\mathbf{0}_{3\times 3}\\ -\,D_\mathbf{q}\mathbf{B}_\mathcal{B}\times\mathbf{a}\,(u+b)\end{bmatrix}`.
-
-        Returns
-        -------
-        (7, 3) ndarray
-            Rows correspond to :math:`(\partial/\partial\boldsymbol{\omega},\,\partial/\partial\mathbf{q})`.
+        :return: Jacobian of torque w.r.t. base state.
+        :rtype: numpy.ndarray, shape ``(7,3)``
         """
         vecs = os.get_state_vector(x=x)
         db_body__dq = vecs["db"]
@@ -364,33 +467,36 @@ class MTQ(Actuator):
 
     def ddtorq__dudbasestate(self, u: float, x: np.ndarray, os: Orbital_State) -> np.ndarray:
         r"""
-        Mixed second derivative :math:`\displaystyle \frac{\partial^2\boldsymbol{\tau}}{\partial u\,\partial \mathbf{x}}`.
+        Mixed second derivative :math:`\partial^2\boldsymbol{\tau}/(\partial u\,\partial\mathbf{x})`.
 
-        **Derivation.**
-        Because :math:`\boldsymbol{\tau}(u,\mathbf{x})=(u+b)\,\mathbf{a}\times\mathbf{B}_\mathcal{B}(\mathbf{q})`,
-
-        .. math::
-
-        \frac{\partial\boldsymbol{\tau}}{\partial u}=\mathbf{a}\times\mathbf{B}_\mathcal{B}(\mathbf{q})
-        = -\,\mathbf{B}_\mathcal{B}(\mathbf{q})\times\mathbf{a}.
-
-        Differentiating w.r.t. :math:`\mathbf{x}` gives
+        With
 
         .. math::
 
-            \frac{\partial^2\boldsymbol{\tau}}{\partial u\,\partial\boldsymbol{\omega}}=\mathbf{0}_{1\times 3\times 3},\qquad
+            \boldsymbol{\tau}(u,\mathbf{q})
+            = -(\mathbf{B}_{\mathcal{B}}(\mathbf{q}) \times \mathbf{a})\,(u+b),
+
+        the mixed derivative is independent of :math:`u` and has zero angular-velocity block:
+
+        .. math::
+
+            \frac{\partial^2\boldsymbol{\tau}}{\partial u\,\partial\boldsymbol{\omega}}
+            = \mathbf{0}_{1\times 3\times 3},\qquad
             \frac{\partial^2\boldsymbol{\tau}}{\partial u\,\partial\mathbf{q}}
-            = \mathbf{a}\times D_\mathbf{q}\mathbf{B}_\mathcal{B}(\mathbf{q})
-            = -\,\big(D_\mathbf{q}\mathbf{B}_\mathcal{B}(\mathbf{q})\times\mathbf{a}\big).
+            = -\bigl(D_{\mathbf{q}}\mathbf{B}_{\mathcal{B}}(\mathbf{q}) \times \mathbf{a}\bigr).
 
-        **Returned form.** Implemented as
-        :math:`\begin{bmatrix}\mathbf{0}_{3\times 3}\\ -\,D_\mathbf{q}\mathbf{B}_\mathcal{B}\times\mathbf{a}\end{bmatrix}`
-        with an added leading singleton dimension.
+        :param u: Commanded magnetic dipole magnitude.
+        :type u: float
 
-        Returns
-        -------
-        (1, 7, 3) ndarray
-            Mixed Hessian stacked by :math:`(\boldsymbol{\omega}, \mathbf{q})`.
+        :param x: Spacecraft base state.
+        :type x: numpy.ndarray
+
+        :param os: Orbital state providing ``"db"`` via :meth:`~ADCS.orbits.orbital_state.Orbital_State.get_state_vector`.
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
+
+        :return: Mixed Hessian tensor stacked by :math:`(\boldsymbol{\omega},\mathbf{q})` with a leading singleton
+            control dimension.
+        :rtype: numpy.ndarray
         """
         vecs = os.get_state_vector(x=x)
         db_body__dq = vecs["db"]
@@ -401,30 +507,34 @@ class MTQ(Actuator):
 
     def ddtorq__dbasestatedbasestate(self, u: float, x: np.ndarray, os: Orbital_State) -> np.ndarray:
         r"""
-        Pure base-state Hessian :math:`\displaystyle \frac{\partial^2\boldsymbol{\tau}}{\partial \mathbf{x}\,\partial \mathbf{x}}`.
+        Base-state Hessian :math:`\partial^2\boldsymbol{\tau}/(\partial\mathbf{x}\,\partial\mathbf{x})`.
 
-        **Notation.**
-        Let :math:`D^2_{\mathbf{q}\mathbf{q}}\mathbf{B}_\mathcal{B}(\mathbf{q})\in\mathbb{R}^{4\times 4\times 3}` denote the
-        Hessian of :math:`\mathbf{B}_\mathcal{B}` w.r.t. quaternion components (this is ``vecs["ddb"]``).
-
-        **Derivation.**
-        Since :math:`\boldsymbol{\tau}(u,\mathbf{x})=(u+b)\,\mathbf{a}\times\mathbf{B}_\mathcal{B}(\mathbf{q})`,
-        all second derivatives involving :math:`\boldsymbol{\omega}` vanish and the only nonzero block is
-        the quaternion–quaternion block:
+        With the noise-free model
 
         .. math::
 
-            \frac{\partial^2\boldsymbol{\tau}}{\partial \mathbf{q}\,\partial \mathbf{q}}
-            \;=\; (u+b)\,\mathbf{a}\times D^2_{\mathbf{q}\mathbf{q}}\mathbf{B}_\mathcal{B}(\mathbf{q})
-            \;=\; -\,(u+b)\,\big(D^2_{\mathbf{q}\mathbf{q}}\mathbf{B}_\mathcal{B}(\mathbf{q})\times\mathbf{a}\big).
+            \boldsymbol{\tau}(u,\mathbf{q})
+            = -(\mathbf{B}_{\mathcal{B}}(\mathbf{q}) \times \mathbf{a})\,(u+b),
 
-        The implementation fills the :math:`[3\!:\!7,\,3\!:\!7,:]` block with
-        :math:`-\,(D^2_{\mathbf{q}\mathbf{q}}\mathbf{B}_\mathcal{B}\times\mathbf{a})\,(u+b)` and zeros elsewhere.
+        all second derivatives involving :math:`\boldsymbol{\omega}` vanish. The only nonzero block is the
+        quaternion–quaternion block, using :math:`D^2_{\mathbf{q}\mathbf{q}}\mathbf{B}_{\mathcal{B}}(\mathbf{q})` (``"ddb"``):
 
-        Returns
-        -------
-        (7, 7, 3) ndarray
-            Base-state Hessian; only the :math:`4\times 4` quaternion block is nonzero.
+        .. math::
+
+            \frac{\partial^2\boldsymbol{\tau}}{\partial\mathbf{q}\,\partial\mathbf{q}}
+            = -\bigl(D^2_{\mathbf{q}\mathbf{q}}\mathbf{B}_{\mathcal{B}}(\mathbf{q}) \times \mathbf{a}\bigr)\,(u+b).
+
+        :param u: Commanded magnetic dipole magnitude.
+        :type u: float
+
+        :param x: Spacecraft base state.
+        :type x: numpy.ndarray
+
+        :param os: Orbital state providing ``"ddb"`` via :meth:`~ADCS.orbits.orbital_state.Orbital_State.get_state_vector`.
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
+
+        :return: Base-state Hessian tensor (only the quaternion block is nonzero).
+        :rtype: numpy.ndarray
         """
         vecs = os.get_state_vector(x=x)
         ddb_body__dqdq = vecs["ddb"]
@@ -439,18 +549,25 @@ class MTQ(Actuator):
 
     def ddtorq__dbiasdbias(self, u: float, x: np.ndarray, os: Orbital_State) -> np.ndarray:
         r"""
-        Second derivative :math:`\displaystyle \frac{\partial^2\boldsymbol{\tau}}{\partial b^2}`.
+        Second derivative :math:`\partial^2\boldsymbol{\tau}/\partial b^2`.
 
-        **Result.**
-        With :math:`\boldsymbol{\tau}=(u+b)\,\mathbf{a}\times\mathbf{B}_\mathcal{B}(\mathbf{q})`, the dependence on
-        :math:`b` is linear; hence :math:`\partial^2\boldsymbol{\tau}/\partial b^2=\mathbf{0}`. The method mirrors
-        :meth:`ddtorq__dudu` when a bias model is present (all zeros there), and returns an empty
-        :math:`(0,0,3)` array otherwise.
+        The bias :math:`b` enters the torque linearly through :math:`(u+b)`, so:
 
-        Returns
-        -------
-        (1, 1, 3) or (0, 0, 3) ndarray
-            Zero tensor if bias exists; empty when bias is not modeled.
+        .. math::
+
+            \frac{\partial^2\boldsymbol{\tau}}{\partial b^2} = \mathbf{0}.
+
+        :param u: Commanded magnetic dipole magnitude.
+        :type u: float
+
+        :param x: Spacecraft base state.
+        :type x: numpy.ndarray
+
+        :param os: Orbital state.
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
+
+        :return: Zero tensor if a bias model exists; otherwise an empty tensor consistent with no bias state.
+        :rtype: numpy.ndarray
         """
         if self.bias:
             return self.ddtorq__dudu(u=u, x=x, os=os)
@@ -459,30 +576,32 @@ class MTQ(Actuator):
 
     def ddtorq__dbiasdbasestate(self, u: float, x: np.ndarray, os: Orbital_State) -> np.ndarray:
         r"""
-        Mixed second derivative :math:`\displaystyle \frac{\partial^2\boldsymbol{\tau}}{\partial b\,\partial \mathbf{x}}`.
+        Mixed second derivative :math:`\partial^2\boldsymbol{\tau}/(\partial b\,\partial\mathbf{x})`.
 
-        **Result.**
-        Since :math:`\boldsymbol{\tau}=(u+b)\,\mathbf{a}\times\mathbf{B}_\mathcal{B}(\mathbf{q})` and :math:`b` enters
-        multiplicatively like :math:`u`, we have
+        Since :math:`b` enters identically to :math:`u` in :math:`(u+b)`, the mixed derivative equals the
+        control–state mixed derivative:
 
         .. math::
 
-            \frac{\partial^2\boldsymbol{\tau}}{\partial b\,\partial \mathbf{x}}
-            \;=\;\frac{\partial^2\boldsymbol{\tau}}{\partial u\,\partial \mathbf{x}}
-            \;=\; \begin{bmatrix}
-            \mathbf{0}_{3\times 3}\\[2pt] \mathbf{a}\times D_\mathbf{q}\mathbf{B}_\mathcal{B}(\mathbf{q})
-            \end{bmatrix}
-            \;=\; \begin{bmatrix}
-            \mathbf{0}_{3\times 3}\\[2pt] -\,D_\mathbf{q}\mathbf{B}_\mathcal{B}(\mathbf{q})\times\mathbf{a}
+            \frac{\partial^2\boldsymbol{\tau}}{\partial b\,\partial\mathbf{x}}
+            = \frac{\partial^2\boldsymbol{\tau}}{\partial u\,\partial\mathbf{x}}
+            =
+            \begin{bmatrix}
+            \mathbf{0}_{3\times 3}\\
+            -\bigl(D_{\mathbf{q}}\mathbf{B}_{\mathcal{B}}(\mathbf{q}) \times \mathbf{a}\bigr)
             \end{bmatrix}.
 
-        The implementation returns :meth:`ddtorq__dudbasestate` when bias exists, and an empty
-        :math:`(0,7,3)` tensor otherwise.
+        :param u: Commanded magnetic dipole magnitude.
+        :type u: float
 
-        Returns
-        -------
-        (1, 7, 3) or (0, 7, 3) ndarray
-            Mixed Hessian w.r.t. bias and base state (or empty if no bias).
+        :param x: Spacecraft base state.
+        :type x: numpy.ndarray
+
+        :param os: Orbital state.
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
+
+        :return: Mixed Hessian tensor if a bias model exists; otherwise an empty tensor consistent with no bias state.
+        :rtype: numpy.ndarray
         """
         if self.bias:
             return self.ddtorq__dudbasestate(u=u, x=x, os=os)
@@ -491,17 +610,28 @@ class MTQ(Actuator):
 
     def ddtorq__dudh(self, u: float, x: np.ndarray, os: Orbital_State) -> np.ndarray:
         r"""
-        Mixed second derivative :math:`\displaystyle \frac{\partial^2\boldsymbol{\tau}}{\partial u\,\partial \mathbf{h}}`.
+        Mixed second derivative :math:`\partial^2\boldsymbol{\tau}/(\partial u\,\partial\mathbf{h})`.
 
-        **Result.**
-        The actuator has no momentum-storage state in this model; hence
-        :math:`\partial\boldsymbol{\tau}/\partial \mathbf{h}=\mathbf{0}` and therefore
-        :math:`\partial^2\boldsymbol{\tau}/\partial u\,\partial \mathbf{h}=\mathbf{0}`.
+        This actuator has no momentum-storage state :math:`\mathbf{h}` in the model, so all derivatives
+        w.r.t. :math:`\mathbf{h}` are empty:
 
-        Returns
-        -------
-        (1, 0, 3) ndarray
-            Empty along the storage-state dimension.
+        .. math::
+
+            \frac{\partial\boldsymbol{\tau}}{\partial\mathbf{h}}=\mathbf{0}
+            \quad\Longrightarrow\quad
+            \frac{\partial^2\boldsymbol{\tau}}{\partial u\,\partial\mathbf{h}}=\mathbf{0}.
+
+        :param u: Commanded magnetic dipole magnitude.
+        :type u: float
+
+        :param x: Spacecraft base state.
+        :type x: numpy.ndarray
+
+        :param os: Orbital state.
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
+
+        :return: Empty tensor along the storage-state dimension (shape ``(1,0,3)``).
+        :rtype: numpy.ndarray
         """
         return np.zeros((1, 0, 3))
 

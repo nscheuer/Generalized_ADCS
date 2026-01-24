@@ -33,6 +33,7 @@ public:
     py::tuple trajOptBeforePython(VECTOR_INFO_PY_FORM vecs_w_timePy,double dt_use, TIME_FORM time_start,TIME_FORM time_end, py::array_t<double> x0Numpy, int bdotOn);
     py::tuple trajOptAfterPython(VECTOR_INFO_PY_FORM vecs_w_timePy,double dt_prev, TIME_FORM time_start, TIME_FORM time_end, ALILQR_OUTPUT_PY_FORM alilqrOut);
     py::array_t<double> rk4zPython(double dt, py::array_t<double> x, py::array_t<double> u,  DYNAMICS_INFO_PY_FORM dynamics_info_k_py, DYNAMICS_INFO_PY_FORM dynamics_info_kp1_py);
+    int echo_int(int x);
     py::array_t<double> dynamicsPython(py::array_t<double> x, py::array_t<double> u,DYNAMICS_INFO_PY_FORM dynamics_info_py);
     double cost2FuncPython(TRAJECTORY_PY_FORM trajPy, VECTOR_INFO_PY_FORM vecsPy, AUGLAG_INFO_PY_FORM auglag_valsPy, COST_SETTINGS_FORM costSettings_tmp);
     py::tuple backwardPassPython(double dt, TRAJECTORY_PY_FORM trajPy, VECTOR_INFO_PY_FORM vecsPy,   AUGLAG_INFO_PY_FORM auglag_valsPy,REG_PAIR regs, COST_SETTINGS_FORM costSettings_tmp, REG_SETTINGS_FORM regSettings_tmp,bool useDist);

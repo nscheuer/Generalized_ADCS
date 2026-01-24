@@ -6,131 +6,178 @@ import numpy as np
 from scipy.linalg import block_diag
 
 from ADCS.orbits.orbital_state import Orbital_State
-from ADCS.satellite_hardware.actuators import Noise, Bias
+from ADCS.satellite_hardware.errors import Noise, Bias
 from ADCS.helpers.math_constants import MathConstants
 from ADCS.helpers.math_helpers import normalize, normed_vec_jac, rot_mat
 
 class MTM(Sensor):
     r"""
-    Magnetometer (MTM) sensor model.
+    Single–axis magnetometer (MTM) sensor model.
 
-    This sensor measures the component of the local magnetic field along a
-    specified body–fixed axis. The *clean* (noise– and bias–free) measurement
-    is given by
+    This class implements a **single–axis magnetic field sensor** that measures
+    the projection of the local geomagnetic field onto a specified body–fixed
+    axis. It conforms to the generic sensor interface defined by
+    :class:`~ADCS.satellite_hardware.sensor.Sensor`.
+
+    Measurement model
+    ------------------
+    Let the geomagnetic field expressed in the spacecraft body frame be
 
     .. math::
 
-        y = \mathbf{b}^\top \hat{\mathbf{a}},
+        \mathbf{b}
+        =
+        \begin{bmatrix}
+            b_x & b_y & b_z
+        \end{bmatrix}^\top \in \mathbb{R}^3,
 
-    where
+    and let the magnetometer sensitive axis be the unit vector
+    :math:`\hat{\mathbf{a}} \in \mathbb{R}^3`.
 
-    * :math:`\mathbf{b} \in \mathbb{R}^3` is the magnetic field vector in the
-      body frame, and
-    * :math:`\hat{\mathbf{a}} \in \mathbb{R}^3` is a **unit vector**
-      representing the sensitive axis of the magnetometer.
+    The clean (ideal) magnetometer measurement is
 
-    When combined with :class:`ADCS.orbits.orbital_state.Orbital_State`, this
-    class can also provide Jacobians for use in extended Kalman filters (EKF).
+    .. math::
 
-    Parameters
-    ----------
-    axis : numpy.ndarray
-        Body–frame axis of the magnetometer, shape ``(3,)``.
-        This will be internally normalized to unit length.
-    sample_time : float, optional
-        Sampling period of the sensor in seconds (default: ``0.1`` s).
-    bias : Bias, optional
-        Bias model associated with the sensor. If provided, the bias state
-        will be added to the base state and propagated according to
-        :class:`ADCS.satellite_hardware.actuators.Bias`.
-    noise : Noise, optional
-        Noise model associated with the sensor. If provided, the measurement
-        will be corrupted according to :class:`ADCS.satellite_hardware.actuators.Noise`.
-    estimate_bias : bool, optional
-        If ``True``, the bias is included as an estimated state for filtering
-        (e.g. EKF). If ``False``, the bias is treated as known (or zero).
+        y_{\text{clean}}
+        =
+        \mathbf{b}^\top \hat{\mathbf{a}}.
+
+    Including bias and noise, the full measurement is
+
+    .. math::
+
+        z
+        =
+        \mathbf{b}^\top \hat{\mathbf{a}}
+        + b + n,
+
+    where:
+
+    ======================= ==============================================
+    Symbol                  Description
+    ======================= ==============================================
+    :math:`b`               Scalar magnetometer bias
+    :math:`n`               Scalar measurement noise
+    ======================= ==============================================
+
+    The geomagnetic field vector :math:`\mathbf{b}` and its Jacobian with respect
+    to the system state are provided by
+    :class:`~ADCS.orbits.orbital_state.Orbital_State`.
+
+    :param axis: Body–frame sensitive axis of the magnetometer, shape ``(3,)``.
+                     The axis is normalized internally to unit length.
+    :type axis: numpy.ndarray
+    :param sample_time: Sampling period of the magnetometer in seconds.
+    :type sample_time: float
+    :param bias: Magnetometer bias model. If ``None``, a zero-bias model is used.
+    :type bias: :class:`~ADCS.satellite_hardware.errors.bias.Bias` or None
+    :param noise: Magnetometer noise model. If ``None``, a zero-noise model is used.
+    :type noise: :class:`~ADCS.satellite_hardware.errors.noise.Noise` or None
+    :param estimate_bias: Indicates whether the magnetometer bias is included as part of the estimated filter state.
+    :type estimate_bias: bool
+    :return: None
+    :rtype: None
 
     Notes
     -----
-    * ``output_length`` is set to ``1`` because this is a single–axis
-      magnetometer.
-    * The attribute :attr:`axis` is always stored as a normalized vector,
-      regardless of the magnitude of the input ``axis``.
+    * This is a **single–axis** sensor; therefore ``output_length = 1``.
+    * The magnetometer itself is not an attitude sensor, but it provides
+      attitude information when combined with an orbital magnetic field model.
     """
     def __init__(self, axis: np.ndarray,  sample_time: float = 0.1, bias: Bias = None, noise: Noise = None, estimate_bias: bool = False):
+        r"""
+        Initialize the magnetometer sensor model.
+
+        :param axis: Body–frame sensitive axis of the magnetometer, shape ``(3,)``.
+                     The axis is normalized internally to unit length.
+        :type axis: numpy.ndarray
+        :param sample_time: Sampling period of the magnetometer in seconds.
+        :type sample_time: float
+        :param bias: Magnetometer bias model. If ``None``, a zero-bias model is used.
+        :type bias: :class:`~ADCS.satellite_hardware.errors.bias.Bias` or None
+        :param noise: Magnetometer noise model. If ``None``, a zero-noise model is used.
+        :type noise: :class:`~ADCS.satellite_hardware.errors.noise.Noise` or None
+        :param estimate_bias: Indicates whether the magnetometer bias is included as part of the estimated filter state.
+        :type estimate_bias: bool
+        :return: None
+        :rtype: None
+        """
         self.axis = normalize(axis)
         self.attitude_sensor = False
         super().__init__(sample_time=sample_time, output_length=1, bias=bias, noise=noise, estimate_bias=estimate_bias)
 
     def clean_reading(self, x: np.ndarray, os: Orbital_State) -> np.ndarray:
         r"""
-        Compute the bias– and noise–free magnetometer measurement.
+        Compute the clean (bias– and noise–free) magnetometer measurement.
 
-        This method evaluates
+        The geomagnetic field vector in the body frame is obtained from the
+        orbital state via
 
         .. math::
 
-            y = \mathbf{b}^\top \hat{\mathbf{a}},
+            \mathbf{b} = \mathbf{b}(\mathbf{x}, t),
 
-        where :math:`\mathbf{b}` is obtained from the orbital state and
-        expressed in the body frame.
+        and projected onto the magnetometer axis:
 
-        Parameters
-        ----------
-        x : numpy.ndarray
-            Current full state vector of the system (satellite attitude,
-            angular velocity, and any additional states required by
-            :class:`ADCS.orbits.orbital_state.Orbital_State`).
-        os : Orbital_State
-            Orbital and environmental model used to compute the magnetic field.
-            The call ``os.get_state_vector(x=x)`` must return a dictionary with
-            key ``"b"`` corresponding to the body–frame magnetic field
-            :math:`\mathbf{b}`.
+        .. math::
 
-        Returns
-        -------
-        numpy.ndarray
-            Clean measurement of the magnetic field along :attr:`axis`,
-            shape ``(1,)``.
+            y_{\text{clean}}
+            =
+            \mathbf{b}^\top \hat{\mathbf{a}}.
+
+        The magnetic field vector is expected to be provided by
+
+        .. math::
+
+            \texttt{os.get_state_vector(x)["b"]},
+
+        where :math:`\mathbf{b} \in \mathbb{R}^3`.
+
+        :param x: Full system state vector. This includes attitude and any additional
+                  states required by the magnetic field model.
+        :type x: numpy.ndarray
+        :param os: Orbital and environmental model providing the geomagnetic field
+                   in the body frame.
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
+        :return: Clean magnetometer measurement along the sensor axis.
+        :rtype: numpy.ndarray
         """
         vecs = os.get_state_vector(x=x)
         return np.dot(vecs["b"], self.axis)
     
     def bias_jac(self, x: np.ndarray, os: Orbital_State) -> np.ndarray:
-        """
-        Jacobian of the measurement with respect to the sensor bias state.
+        r"""
+        Jacobian of the magnetometer measurement with respect to the bias state.
 
-        If a bias model is present, the measurement is assumed to be
-
-        .. math::
-
-            z = y + b,
-
-        where :math:`b` is a scalar bias. Hence
+        When a bias model is present, the measurement equation is
 
         .. math::
 
-            \frac{\partial z}{\partial b} = 1.
+            z = y_{\text{clean}} + b,
 
-        If no bias is present, an empty Jacobian is returned.
+        where :math:`b` is a scalar bias term.
 
-        Parameters
-        ----------
-        x : numpy.ndarray
-            Current full state vector (unused here, included for interface
-            consistency).
-        os : Orbital_State
-            Orbital state object (unused here, included for interface
-            consistency).
+        The Jacobian with respect to the bias is therefore
 
-        Returns
-        -------
-        numpy.ndarray
-            Bias Jacobian matrix:
+        .. math::
 
-            * shape ``(1, 1)`` with value ``1`` if ``self.bias`` is not
-              ``None``;
-            * shape ``(0, 1)`` (empty) otherwise.
+            \mathbf{H}_b
+            =
+            \frac{\partial z}{\partial b}
+            =
+            \begin{bmatrix}
+                1
+            \end{bmatrix}.
+
+        If no bias model is included, an empty Jacobian is returned.
+
+        :param x: Full system state vector (unused).
+        :type x: numpy.ndarray
+        :param os: Orbital state object (unused).
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
+        :return: ``(1, 1)`` Jacobian matrix if a bias model exists;
+                 otherwise a ``(0, 1)`` empty matrix.
+        :rtype: numpy.ndarray
         """
         if self.bias:
             return np.ones((1,1))
@@ -139,52 +186,58 @@ class MTM(Sensor):
         
     def basestate_jac(self, x: np.ndarray, os: Orbital_State) -> np.ndarray:
         r"""
-        Jacobian of the measurement with respect to the base (non–bias) states.
+        Jacobian of the magnetometer measurement with respect to the base
+        (non-bias) system states.
 
-        The base–state Jacobian is defined as
+        The clean measurement is
 
         .. math::
 
-            \frac{\partial y}{\partial \mathbf{x}_\text{base}}
+            y_{\text{clean}} = \mathbf{b}^\top \hat{\mathbf{a}}.
+
+        Taking the derivative with respect to the base state
+        :math:`\mathbf{x}_{\text{base}}` yields
+
+        .. math::
+
+            \frac{\partial y_{\text{clean}}}{\partial \mathbf{x}_{\text{base}}}
+            =
+            \left(
+            \frac{\partial \mathbf{b}}{\partial \mathbf{x}_{\text{base}}}
+            \right)^\top
+            \hat{\mathbf{a}}.
+
+        The orbital state is expected to provide the magnetic field Jacobian via
+
+        .. math::
+
+            \texttt{os.get_state_vector(x)["db"]}
+            =
+            \frac{\partial \mathbf{b}}{\partial \mathbf{x}_{\text{base}}}
+            \in \mathbb{R}^{3 \times n_{\text{base}}}.
+
+        The full base–state Jacobian returned by this method is
+
+        .. math::
+
+            \mathbf{H}_x
             =
             \begin{bmatrix}
                 \mathbf{0}_{3 \times 1} \\
-                \frac{\partial \mathbf{b}}{\partial \mathbf{x}_\text{base}}
+                \left(
+                \frac{\partial \mathbf{b}}{\partial \mathbf{x}_{\text{base}}}
                 \hat{\mathbf{a}}
-            \end{bmatrix},
+                \right)
+            \end{bmatrix}.
 
-        where :math:`\mathbf{b}` is the body–frame magnetic field and
-        :math:`\hat{\mathbf{a}}` is the unit axis of the MTM.
-
-        This assumes that
-
-        .. code-block:: python
-
-            vecs = os.get_state_vector(x=x)
-            vecs["db"]
-
-        returns :math:`\partial \mathbf{b} / \partial \mathbf{x}_\text{base}`
-        with shape ``(3, n_base)``. Post–multiplication by ``axis`` yields a
-        column vector of length ``n_base``.
-
-        Parameters
-        ----------
-        x : numpy.ndarray
-            Current full state vector of the system.
-        os : Orbital_State
-            Orbital and environmental model providing both the magnetic field
-            and its Jacobian with respect to the base states. Must supply
-            keys ``"b"`` and ``"db"`` in the dictionary returned by
-            :meth:`Orbital_State.get_state_vector`.
-
-        Returns
-        -------
-        numpy.ndarray
-            Jacobian of the measurement with respect to the base states.
-            The returned array has shape ``(n_state_base, 1)``, where the first
-            three rows are zeros and the remaining rows correspond to
-            :math:`\partial \mathbf{b} / \partial \mathbf{x}_\text{base}
-            \; \hat{\mathbf{a}}`.
+        :param x: Full system state vector.
+        :type x: numpy.ndarray
+        :param os: Orbital and environmental model providing both the geomagnetic
+                   field and its Jacobian with respect to the base states.
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
+        :return: Base–state Jacobian of the magnetometer measurement with respect
+                 to the non-bias system states.
+        :rtype: numpy.ndarray
         """
         vecs = os.get_state_vector(x=x)
         return np.vstack([np.zeros((3,1)), vecs['db']@np.expand_dims(self.axis,1)])

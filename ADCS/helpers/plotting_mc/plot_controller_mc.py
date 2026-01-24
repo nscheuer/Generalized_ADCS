@@ -1,3 +1,9 @@
+__all__ = [
+    "plot_h_tracking_mc",
+    "plot_target_tracking_mc",
+    "plot_convergence_histogram_mc",
+]
+
 import numpy as np
 import matplotlib.pyplot as plt
 from typing import List, Dict, Any, Tuple
@@ -30,15 +36,64 @@ def _rot_mat_vec(q: np.ndarray) -> np.ndarray:
     
     return R
     
-    
-
 def plot_h_tracking_mc(
     full_results: List[Dict[str, Any]],
     body_boresight: np.ndarray = np.array([0, 0, 1]),
     title: str = "Monte Carlo Target Stored Angular Momentum"
 ) -> None:
-    """
-    Plots the stored angular momentum for multiple Monte Carlo runs on a single figure.
+    r"""
+    Plot stored reaction wheel angular momentum for multiple Monte Carlo runs.
+
+    This function overlays reaction wheel stored angular momentum histories
+    from a set of Monte Carlo simulations on a single figure. Each Monte Carlo
+    run is plotted with low opacity to visualize dispersion and trends across
+    the ensemble.
+
+    ======================
+    State Assumption
+    ======================
+
+    Each Monte Carlo result dictionary is expected to contain:
+
+    * ``"time"`` — time history
+    * ``"state"`` — state history with reaction wheel momentum stored from
+      index 7 onward
+
+    The reaction wheel momentum vector is assumed to be
+
+    .. math::
+
+        \mathbf{h}_{\text{rw}}(t) \in \mathbb{R}^{N_{\text{rw}}}
+
+    ======================
+    Visualization Strategy
+    ======================
+
+    * Each reaction wheel component is assigned a consistent color
+    * Individual Monte Carlo runs are plotted with transparency
+    * A non-transparent legend entry is added for clarity
+
+    :param full_results:
+        List of Monte Carlo result dictionaries.
+    :type full_results:
+        list of dict
+
+    :param body_boresight:
+        Fixed boresight direction expressed in the body frame.
+        (Included for interface consistency; not used in computation.)
+    :type body_boresight:
+        numpy.ndarray
+
+    :param title:
+        Plot title.
+    :type title:
+        str
+
+    :return:
+        None. The function generates a Matplotlib figure.
+    :rtype:
+        None
+
     """
     
     if not full_results:
@@ -100,8 +155,66 @@ def plot_target_tracking_mc(
     body_boresight: np.ndarray = np.array([0, 0, 1]),
     title: str = "Monte Carlo Target Tracking Error"
 ) -> None:
-    """
-    Plots the angular tracking error for multiple Monte Carlo runs on a single figure.
+    r"""
+    Plot angular target tracking error for multiple Monte Carlo runs.
+
+    This function computes and overlays the instantaneous angular tracking
+    error between a fixed body-frame boresight and a desired inertial target
+    direction across many Monte Carlo simulations.
+
+    ==========================
+    Tracking Error Definition
+    ==========================
+
+    Let:
+
+    * :math:`\hat{\mathbf{b}}` be the normalized boresight direction in the body frame
+    * :math:`\mathbf{R}_{\mathcal{B}\rightarrow\mathcal{I}}` be the attitude rotation matrix
+    * :math:`\hat{\mathbf{g}}_i` be the normalized target direction in ECI
+
+    The boresight direction in ECI is
+
+    .. math::
+
+        \hat{\mathbf{b}}_i^{\text{ECI}} =
+        \mathbf{R}_{\mathcal{B}\rightarrow\mathcal{I}} \hat{\mathbf{b}}
+
+    The angular tracking error at time :math:`t_i` is
+
+    .. math::
+
+        \theta_i =
+        \cos^{-1}\!\left(
+        \hat{\mathbf{b}}_i^{\text{ECI}} \cdot \hat{\mathbf{g}}_i
+        \right)
+
+    ======================
+    Visualization Strategy
+    ======================
+
+    * Each Monte Carlo run is plotted with low opacity
+    * All runs share a common color for ensemble visualization
+
+    :param full_results:
+        List of Monte Carlo result dictionaries.
+    :type full_results:
+        list of dict
+
+    :param body_boresight:
+        Fixed boresight direction expressed in the body frame.
+    :type body_boresight:
+        numpy.ndarray
+
+    :param title:
+        Plot title.
+    :type title:
+        str
+
+    :return:
+        None. The function generates a Matplotlib figure.
+    :rtype:
+        None
+
     """
     
     if not full_results:
@@ -111,7 +224,7 @@ def plot_target_tracking_mc(
     # Normalize the fixed body vector once
     v_bore_body = body_boresight / np.linalg.norm(body_boresight)
     
-    plt.figure(figsize=(5, 3))
+    plt.figure(figsize=(10, 6))
     
     # Iterate through every MC run
     for run_idx, res in enumerate(full_results):
@@ -169,25 +282,101 @@ def plot_convergence_histogram_mc(
     body_boresight: np.ndarray = np.array([0.0, 0.0, 1.0]),
     title: str = "Monte Carlo Convergence Error (Final Timestep)",
     bin_width_deg: float = 5.0,
-    under_thresh_deg: float = 0.5,
+    under_thresh_deg: float = 1.0,
     show_stats_box: bool = True,
 ) -> Tuple[np.ndarray, Dict[str, float]]:
-    """
-    Computes the angular tracking error at the final timestep for each MC run
-    and plots a histogram with fixed-degree bins.
+    r"""
+    Plot and analyze the distribution of final-timestep tracking error
+    across Monte Carlo simulations.
 
-    Returns
-    -------
-    errors_deg : np.ndarray
-        Final-timestep errors for each valid run.
-    stats : Dict[str, float]
-        Summary statistics:
-          - pct_under_thresh
-          - min
-          - max
-          - mean
-          - median
-          - n
+    This function computes the angular tracking error at the final timestep
+    for each valid Monte Carlo run and visualizes the resulting distribution
+    using a histogram with fixed-width angular bins. Summary statistics are
+    optionally displayed on the plot.
+
+    ======================
+    Final Error Definition
+    ======================
+
+    For each Monte Carlo run, the final angular tracking error is defined as
+
+    .. math::
+
+        \theta_f =
+        \cos^{-1}\!\left(
+        \hat{\mathbf{b}}_f^{\text{ECI}} \cdot \hat{\mathbf{g}}_f
+        \right)
+
+    where:
+
+    * :math:`\hat{\mathbf{b}}_f^{\text{ECI}}` is the final boresight direction
+    * :math:`\hat{\mathbf{g}}_f` is the final target direction
+
+    ======================
+    Statistics Reported
+    ======================
+
+    The following summary statistics are computed:
+
+    +----------------------+----------------------------------+
+    | Statistic            | Description                      |
+    +======================+==================================+
+    | ``pct_under_thresh`` | Percent of runs below threshold  |
+    +----------------------+----------------------------------+
+    | ``min``              | Minimum final error (deg)        |
+    +----------------------+----------------------------------+
+    | ``max``              | Maximum final error (deg)        |
+    +----------------------+----------------------------------+
+    | ``mean``             | Mean final error (deg)           |
+    +----------------------+----------------------------------+
+    | ``median``           | Median final error (deg)         |
+    +----------------------+----------------------------------+
+    | ``n``                | Number of valid runs             |
+    +----------------------+----------------------------------+
+
+    ======================
+    Histogram Construction
+    ======================
+
+    * Histogram bins start at 0 degrees
+    * Bin width is user-defined
+    * Bins cover the full range of observed errors
+
+    :param full_results:
+        List of Monte Carlo result dictionaries.
+    :type full_results:
+        list of dict
+
+    :param body_boresight:
+        Fixed boresight direction expressed in the body frame.
+    :type body_boresight:
+        numpy.ndarray
+
+    :param title:
+        Plot title.
+    :type title:
+        str
+
+    :param bin_width_deg:
+        Width of histogram bins in degrees.
+    :type bin_width_deg:
+        float
+
+    :param under_thresh_deg:
+        Threshold angle (degrees) used for convergence statistics.
+    :type under_thresh_deg:
+        float
+
+    :param show_stats_box:
+        If True, display a statistics summary box on the plot.
+    :type show_stats_box:
+        bool
+
+    :return:
+        Array of final tracking errors (degrees) and a dictionary of summary statistics.
+    :rtype:
+        tuple of numpy.ndarray and dict
+
     """
 
     if not full_results:
@@ -291,7 +480,7 @@ def plot_convergence_histogram_mc(
     max_edge = np.ceil(errors_deg.max() / bin_width_deg) * bin_width_deg
     bins = np.arange(0.0, max_edge + bin_width_deg, bin_width_deg)
 
-    plt.figure(figsize=(5, 3))
+    plt.figure(figsize=(10, 6))
     plt.hist(errors_deg, bins=bins, edgecolor="black")
     plt.xlabel("Final Tracking Error [deg]")
     plt.ylabel("Count")

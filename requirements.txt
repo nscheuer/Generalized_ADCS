@@ -7,11 +7,13 @@ cycler==0.12.1
 Cython==3.1.5
 dill==0.4.0
 fonttools==4.60.1
+furo==2025.12.19
 importlib_resources==6.5.2
 iniconfig==2.3.0
 jplephem==2.23
 kiwisolver==1.4.9
 matplotlib==3.10.7
+myst-parser==5.0.0
 np==1.0.2
 numpy==2.2.6
 numdifftools==0.9.41
@@ -28,10 +30,12 @@ python-dateutil==2.9.0.post0
 pytz==2025.2
 pyvista==0.46.4
 PyYAML==6.0.3
+rich==14.2.0
 scipy==1.15.3
 sgp4==2.25
 six==1.17.0
 skyfield==1.53
+Sphinx==9.1.0
 squaternion==2025.3.2
 setuptools==80.9.0
 tqdm==4.67.1

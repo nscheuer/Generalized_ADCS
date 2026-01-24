@@ -15,6 +15,28 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(BUILD_SHARED_LIBS ON)
 
+# =============================================================================
+# Build Speed Optimizations
+# =============================================================================
+
+# Use ccache if available (dramatically speeds up rebuilds)
+find_program(CCACHE_PROGRAM ccache)
+if(CCACHE_PROGRAM)
+    message(STATUS "Found ccache: ${CCACHE_PROGRAM}")
+    set(CMAKE_CXX_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
+    set(CMAKE_C_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
+endif()
+
+# Export compile commands for IDE integration
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+# Parallel compilation (for single-threaded make)
+include(ProcessorCount)
+ProcessorCount(NPROC)
+if(NOT NPROC EQUAL 0)
+    set(CMAKE_BUILD_PARALLEL_LEVEL ${NPROC} CACHE STRING "Parallel build level")
+endif()
+
 # --- Find the correct Python first ---
 find_package(Python3 3.10 REQUIRED COMPONENTS Interpreter Development.Module Development.Embed)
 
@@ -46,6 +68,7 @@ FetchContent_Declare(
   GIT_TAG v3.5.2
 )
 FetchContent_MakeAvailable(Catch2)
+list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
 
 # --- Armadillo ---
 find_package(Armadillo REQUIRED)
@@ -81,9 +104,14 @@ add_library(sat_nopy STATIC
 set_target_properties(sat_nopy PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 add_executable(tp_test
-			   src/planner/main.cpp
+			   src/planner/tp_test.cpp
 			   )
 set_target_properties(tp_test PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+add_executable(tp_test2
+			   src/planner/tp_test2.cpp
+			   )
+set_target_properties(tp_test2 PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 
 pybind11_add_module(tplaunch MODULE src/planner/PyPlanner.cpp)
@@ -96,7 +124,8 @@ target_link_libraries(sat_nopy PUBLIC ${ARMADILLO_LIBRARIES} ${ARMADILLO_LIBRARY
 target_link_libraries(pysat PUBLIC ${ARMADILLO_LIBRARIES} ${ARMADILLO_LIBRARY} sat ${PYTHON_LIBRARY} ${PYTHON_LIBRARIES}  )
 target_link_libraries(tp PUBLIC ${ARMADILLO_LIBRARIES} ${ARMADILLO_LIBRARY} pybind11::module sat ${PYBIND11_INCLUDE_DIRS} ${PYTHON_LIBRARY} ${PYTHON_LIBRARIES}   )
 target_link_libraries(tplaunch PUBLIC ${ARMADILLO_LIBRARIES} ${ARMADILLO_LIBRARY} tp tp_nopy sat sat_nopy  pybind11::module ${PYBIND11_INCLUDE_DIRS} ${PYTHON_LIBRARY} ${PYTHON_LIBRARIES}  )
-target_link_libraries(tp_test PRIVATE Catch2::Catch2WithMain PUBLIC pybind11::module ${PYBIND11_INCLUDE_DIRS} ${ARMADILLO_LIBRARIES} ${ARMADILLO_LIBRARY} sat tp sat_nopy tp_nopy ${PYTHON_LIBRARY} ${PYTHON_LIBRARIES})
+target_link_libraries(tp_test PRIVATE Catch2::Catch2WithMain PUBLIC pybind11::embed ${ARMADILLO_LIBRARIES} ${ARMADILLO_LIBRARY} sat tp sat_nopy tp_nopy)
+target_link_libraries(tp_test2 PRIVATE Catch2::Catch2WithMain PUBLIC pybind11::embed ${ARMADILLO_LIBRARIES} ${ARMADILLO_LIBRARY} sat tp sat_nopy tp_nopy)
 
 
 target_include_directories(tp PUBLIC
@@ -149,3 +178,51 @@ target_include_directories(tp_test PUBLIC
          ${PYBIND11_INCLUDE_DIRS}
          ${ARMADILLO_INCLUDE_DIRS}
 		   )
+
+target_include_directories(tp_test2 PUBLIC
+			   "${PROJECT_SOURCE_DIR}/src"
+ 			   ${PROJECT_SOURCE_DIR}
+         ${PYTHON_INCLUDE_DIRS}
+         ${PYBIND11_INCLUDE_DIRS}
+         ${ARMADILLO_INCLUDE_DIRS}
+		   )
+
+# =============================================================================
+# CTest Integration
+# =============================================================================
+include(CTest)
+enable_testing()
+
+# Use Catch2's CMake integration for automatic test discovery
+include(Catch)
+
+# Discover and register all Catch2 tests
+catch_discover_tests(tp_test
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    TEST_PREFIX "tp_test::"
+)
+
+catch_discover_tests(tp_test2
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    TEST_PREFIX "tp_test2::"
+)
+
+# =============================================================================
+# Custom Targets for Convenience
+# =============================================================================
+
+# Quick test target (runs all tests)
+add_custom_target(check
+    COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure -j${NPROC}
+    DEPENDS tp_test tp_test2
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    COMMENT "Running all C++ tests..."
+)
+
+# Verbose test target
+add_custom_target(check-verbose
+    COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure --verbose
+    DEPENDS tp_test tp_test2
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    COMMENT "Running all C++ tests (verbose)..."
+)

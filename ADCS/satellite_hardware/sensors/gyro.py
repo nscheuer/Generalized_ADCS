@@ -6,7 +6,7 @@ import numpy as np
 from scipy.linalg import block_diag
 
 from ADCS.orbits.orbital_state import Orbital_State
-from ADCS.satellite_hardware.actuators import Noise, Bias
+from ADCS.satellite_hardware.errors import Noise, Bias
 from ADCS.helpers.math_constants import MathConstants
 from ADCS.helpers.math_helpers import normalize
 
@@ -14,95 +14,164 @@ class Gyro(Sensor):
     r"""
     Single–axis gyroscope sensor model.
 
-    This sensor measures the component of the satellite's angular velocity
-    vector :math:`\boldsymbol{\omega}` along a specified body–fixed axis.
-    The *clean* (noise– and bias–free) measurement is
+    This class implements a body–fixed **single–axis angular rate sensor** that
+    measures the projection of the spacecraft angular velocity vector onto a
+    specified measurement axis.
+
+    The gyroscope model follows the generic sensor interface defined in
+    :class:`~ADCS.satellite_hardware.sensor.Sensor`.
+
+    Measurement model
+    ------------------
+    Let the spacecraft angular velocity expressed in the body frame be
 
     .. math::
 
-        y = \boldsymbol{\omega}^\top \hat{\mathbf{a}},
+        \boldsymbol{\omega}
+        =
+        \begin{bmatrix}
+            \omega_x & \omega_y & \omega_z
+        \end{bmatrix}^\top.
 
-    where :math:`\hat{\mathbf{a}}` is the unit measurement axis.
+    The clean (ideal) gyroscope measurement is
 
-    Parameters
-    ----------
-    axis : numpy.ndarray
-        Body–frame sensing axis of the gyroscope, shape ``(3,)``.
-        Automatically normalized to unit length.
-    sample_time : float, optional
-        Sensor sampling period in seconds (default: ``0.1``).
-    bias : Bias, optional
-        Bias model for the sensor (if present). Treated as an additive scalar
-        bias to the measurement.
-    noise : Noise, optional
-        Noise model specifying additive measurement noise statistics.
-    estimate_bias : bool, optional
-        If ``True``, includes the bias as an estimated state for filtering
-        (e.g., in an EKF). Otherwise the bias is treated as fixed or zero.
+    .. math::
+
+        y_{\text{clean}}
+        =
+        \boldsymbol{\omega}^\top \hat{\mathbf{a}},
+
+    where :math:`\hat{\mathbf{a}}` is the unit measurement axis of the gyroscope.
+
+    Including bias and noise, the full measurement is
+
+    .. math::
+
+        z
+        =
+        \boldsymbol{\omega}^\top \hat{\mathbf{a}}
+        + b + n,
+
+    with:
+
+    ======================= ==============================================
+    Symbol                  Description
+    ======================= ==============================================
+    :math:`b`               Scalar gyroscope bias
+    :math:`n`               Scalar measurement noise
+    ======================= ==============================================
+
+    Bias and noise are modeled using
+    :class:`~ADCS.satellite_hardware.errors.bias.Bias` and
+    :class:`~ADCS.satellite_hardware.errors.noise.Noise`.
+
+    :param axis: Body–frame measurement axis, shape ``(3,)``.
+                     The axis is normalized internally to ensure unit magnitude.
+    :type axis: numpy.ndarray
+    :param sample_time: Sampling period of the gyroscope in seconds.
+    :type sample_time: float
+    :param bias: Gyroscope bias model. If ``None``, a zero-bias model is used.
+    :type bias: :class:`~ADCS.satellite_hardware.errors.bias.Bias` or None
+    :param noise: Gyroscope noise model. If ``None``, a zero-noise model is used.
+    :type noise: :class:`~ADCS.satellite_hardware.errors.noise.Noise` or None
+    :param estimate_bias: Indicates whether the gyroscope bias is included in the estimated filter state.
+    :type estimate_bias: bool
+    :return: None
+    :rtype: None
+
+    Notes
+    -----
+    * This sensor measures **angular rate only** and is not an attitude sensor.
+    * The angular velocity is assumed to occupy the first three elements of the
+      system state vector.
     """
 
+
     def __init__(self, axis: np.ndarray, sample_time: float = 0.1, bias: Bias = None, noise: Noise = None, estimate_bias: bool = False):
+        r"""
+        Initialize the single–axis gyroscope sensor.
+
+        :param axis: Body–frame measurement axis, shape ``(3,)``.
+                     The axis is normalized internally to ensure unit magnitude.
+        :type axis: numpy.ndarray
+        :param sample_time: Sampling period of the gyroscope in seconds.
+        :type sample_time: float
+        :param bias: Gyroscope bias model. If ``None``, a zero-bias model is used.
+        :type bias: :class:`~ADCS.satellite_hardware.errors.bias.Bias` or None
+        :param noise: Gyroscope noise model. If ``None``, a zero-noise model is used.
+        :type noise: :class:`~ADCS.satellite_hardware.errors.noise.Noise` or None
+        :param estimate_bias: Indicates whether the gyroscope bias is included in the estimated filter state.
+        :type estimate_bias: bool
+        :return: None
+        :rtype: None
+        """
         self.axis = normalize(axis)
         self.attitude_sensor = False
         super().__init__(sample_time=sample_time, output_length=1, bias=bias, noise=noise, estimate_bias=estimate_bias)
 
     def clean_reading(self, x: np.ndarray, os: Orbital_State) -> np.ndarray:
         r"""
-        Compute the bias– and noise–free gyroscope measurement.
+        Compute the clean (bias– and noise–free) gyroscope measurement.
 
-        This method extracts the angular velocity
-
-        .. math:: \boldsymbol{\omega} = x_{0:3}
-
-        from the satellite state vector ``x`` and computes its projection onto
-        the sensor axis:
+        The angular velocity is extracted from the system state vector as
 
         .. math::
 
-            y = \boldsymbol{\omega}^\top \hat{\mathbf{a}}.
+            \boldsymbol{\omega} = x_{0:3},
 
-        Parameters
-        ----------
-        x : numpy.ndarray
-            Full system state vector. The first three entries must be the
-            body–frame angular velocity :math:`\boldsymbol{\omega}`.
-        os : Orbital_State
-            Unused for gyroscope measurements (provided for interface
-            consistency).
+        and projected onto the sensor axis:
 
-        Returns
-        -------
-        numpy.ndarray
-            Clean single–axis angular rate measurement, shape ``(1,)``.
+        .. math::
+
+            y_{\text{clean}}
+            =
+            \boldsymbol{\omega}^\top \hat{\mathbf{a}}.
+
+        :param x: Full system state vector. The first three elements must correspond
+                  to the body–frame angular velocity vector
+                  :math:`\boldsymbol{\omega}`.
+        :type x: numpy.ndarray
+        :param os: Orbital state object. This argument is unused by the gyroscope and
+                   is provided for interface consistency.
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
+        :return: Clean single–axis angular rate measurement.
+        :rtype: numpy.ndarray
         """
         return np.dot(x[0:3], self.axis)
     
     def bias_jac(self, x: np.ndarray, os: Orbital_State) -> np.ndarray:
         r"""
-        Jacobian of the measurement with respect to the gyroscope bias.
+        Jacobian of the gyroscope measurement with respect to the bias state.
 
-        If a bias model is present, the measurement is modeled as
+        When a bias model is present, the measurement equation is
 
-        .. math:: z = y + b,
+        .. math::
 
-        with scalar bias :math:`b`. Therefore
+            z = y_{\text{clean}} + b,
 
-        .. math:: \frac{\partial z}{\partial b} = 1.
+        where :math:`b` is a scalar bias term.
 
-        If no bias is included, returns an empty Jacobian.
+        The Jacobian with respect to the bias is therefore
 
-        Parameters
-        ----------
-        x : numpy.ndarray
-            Current full state vector (unused).
-        os : Orbital_State
-            Orbital state object (unused).
+        .. math::
 
-        Returns
-        -------
-        numpy.ndarray
-            A ``(1,1)`` matrix containing ``1`` if bias is present,
-            or a ``(0,1)`` empty matrix otherwise.
+            \mathbf{H}_b
+            =
+            \frac{\partial z}{\partial b}
+            =
+            \begin{bmatrix}
+                1
+            \end{bmatrix}.
+
+        If no bias model is included, an empty Jacobian is returned.
+
+        :param x: Full system state vector (unused).
+        :type x: numpy.ndarray
+        :param os: Orbital state object (unused).
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
+        :return: ``(1, 1)`` matrix containing ``1`` if a bias model exists;
+                 otherwise a ``(0, 1)`` empty matrix.
+        :rtype: numpy.ndarray
         """
         if self.bias:
             return np.ones((1,1))
@@ -112,43 +181,45 @@ class Gyro(Sensor):
     def basestate_jac(self, x: np.ndarray, os: Orbital_State) -> np.ndarray:
         r"""
         Jacobian of the clean gyroscope measurement with respect to the
-        base states (non–bias states).
+        base (non-bias) system states.
 
-        The measurement depends only on angular velocity:
-
-        .. math::
-
-            y = \boldsymbol{\omega}^\top \hat{\mathbf{a}},
-
-        so
+        The clean measurement depends only on angular velocity:
 
         .. math::
 
-            \frac{\partial y}{\partial \boldsymbol{\omega}}
-            = \hat{\mathbf{a}}, \qquad
-            \frac{\partial y}{\partial q} = \mathbf{0}_{4 \times 1}.
+            y_{\text{clean}} = \boldsymbol{\omega}^\top \hat{\mathbf{a}}.
 
-        Thus, the Jacobian returned is
+        Therefore,
 
         .. math::
 
+            \frac{\partial y_{\text{clean}}}{\partial \boldsymbol{\omega}}
+            =
+            \hat{\mathbf{a}}, \qquad
+            \frac{\partial y_{\text{clean}}}{\partial \mathbf{q}}
+            =
+            \mathbf{0}_{4 \times 1},
+
+        where :math:`\mathbf{q}` is the attitude quaternion.
+
+        The resulting Jacobian is
+
+        .. math::
+
+            \mathbf{H}_x
+            =
             \begin{bmatrix}
                 \hat{\mathbf{a}} \\
                 \mathbf{0}_{4 \times 1}
-            \end{bmatrix}.
+            \end{bmatrix}
+            \in \mathbb{R}^{7 \times 1}.
 
-        Parameters
-        ----------
-        x : numpy.ndarray
-            Full system state vector.
-        os : Orbital_State
-            Orbital state object (unused).
-
-        Returns
-        -------
-        numpy.ndarray
-            Base–state Jacobian of shape ``(7, 1)``, consisting of the
-            3-component gyroscope axis followed by four zeros.
+        :param x: Full system state vector.
+        :type x: numpy.ndarray
+        :param os: Orbital state object (unused).
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
+        :return: Base–state Jacobian matrix of shape ``(7, 1)``.
+        :rtype: numpy.ndarray
         """
         return np.vstack([self.axis.reshape((3, 1)), np.zeros((4,1))])
 

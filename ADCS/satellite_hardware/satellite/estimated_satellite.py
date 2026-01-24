@@ -12,88 +12,112 @@ from ADCS.satellite_hardware.disturbances import Disturbance, SRP_Disturbance, G
 from ADCS.satellite_hardware.sensors import Sensor, GPS
 from ADCS.satellite_hardware.actuators import Actuator, RW
 from ADCS.orbits.orbital_state import Orbital_State
-from ADCS.logging.logger import ADCSLogger
 from ADCS.estimators.estimator_helpers.estimator_helpers import EstimatedArray
 
 class EstimatedSatellite(Satellite):
-    """
-    A satellite model that augments the base :class:`~ADCS.satellite_hardware.satellite.Satellite`
-    with estimator-driven state synchronization and bias/parameter tracking.
+    r"""
+    Satellite model with estimator-synchronized biases and disturbance parameters.
 
-    This class bridges the simulated physical satellite and an estimation framework
-    (e.g., Kalman filter or nonlinear observer). It allows dynamic updates of the
-    satellite's internal state, actuator and sensor biases, and disturbance parameters
-    using estimated data.
+    :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite` extends
+    :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite` by tracking additional
+    estimator-driven quantities:
 
-    The :class:`EstimatedSatellite` is primarily intended for **hardware-in-the-loop**
-    or **estimation validation** scenarios, where the true spacecraft dynamics are
-    compared or synchronized with the estimated state vector.
+    * actuator bias states (for actuators with ``estimate_bias=True``),
+    * attitude sensor bias states (for sensors with ``estimate_bias=True``),
+    * disturbance parameter states (for disturbances with ``estimate_dist=True``).
 
-    Parameters
-    ----------
-    mass : float, optional
-        Satellite mass in kilograms. Default is ``1.0``.
-    COM : numpy.ndarray, optional
-        Center of mass vector in body coordinates [m].
-    J_0 : numpy.ndarray, optional
-        Nominal inertia tensor about the body frame [kg·m²].
-    disturbances : list[Disturbance], optional
-        List of disturbance models (e.g., SRP, aerodynamic, propulsion)
-        that influence satellite dynamics.
-    sensors : list[Sensor], optional
-        List of sensor objects (e.g., :class:`~ADCS.satellite_hardware.sensors.GPS`).
-    actuators : list[Actuator], optional
-        List of actuator objects (e.g., :class:`~ADCS.satellite_hardware.actuators.RW`).
+    These extra states typically live in an estimator state vector, while the physical simulation
+    maintains internal subsystem objects. This class provides a **synchronization bridge** between
+    them via :meth:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.match_estimate`.
 
-    Attributes
-    ----------
-    act_bias_inds : list[int]
-        Indices of actuators that include estimated bias parameters.
-    act_bias_len : int
-        Total length of actuator bias state components.
-    att_sens_bias_inds : list[int]
-        Indices of attitude sensors that include estimated bias parameters.
-    att_sens_bias_len : int
-        Total length of attitude sensor bias state components.
-    dist_param_inds : list[int]
-        Indices of disturbances that include estimated parameters.
-    dist_param_len : int
-        Total length of disturbance parameter state components.
-    actuators : list[Actuator]
-        List of actuator instances associated with the satellite.
-    sensors : list[Sensor]
-        List of sensor instances associated with the satellite.
-    disturbances : list[Disturbance]
-        List of disturbance models influencing dynamics.
+    **Augmented estimator state layout**
 
-    Notes
-    -----
-    - The constructor automatically determines which actuators, sensors, and
-      disturbances include **estimated parameters** by checking their
-      respective attributes:
-      ``.estimated_bias`` or ``.estimated_param``.
-    - These indices and lengths are stored to facilitate block-based extraction
-      and update of corresponding state segments during estimation.
-    - The model can later be synchronized with an estimator output using
-      :meth:`match_estimate`, which aligns simulated states and parameters
-      with the current estimated values.
+    The estimator is assumed to output a stacked vector
 
-    Examples
-    --------
-    >>> from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
-    >>> from ADCS.satellite_hardware.actuators import RW
-    >>> from ADCS.satellite_hardware.sensors import GPS
-    >>> sat = EstimatedSatellite(
-    ...     mass=2.5,
-    ...     COM=np.array([0.0, 0.0, 0.02]),
-    ...     actuators=[RW(...), RW(...), RW(...)],
-    ...     sensors=[GPS()]
-    ... )
-    >>> print(sat.act_bias_len, sat.att_sens_bias_len)
-    3  # number of bias parameters found
+    .. math::
+
+        \mathbf{x}_{\mathrm{est}} \;=\;
+        \begin{bmatrix}
+        \mathbf{x} \\
+        \mathbf{b}_{act} \\
+        \mathbf{b}_{sens} \\
+        \boldsymbol{\theta}_{dist}
+        \end{bmatrix},
+
+    where
+
+    * :math:`\mathbf{x}\in\mathbb{R}^{n_x}` is the base satellite state used by
+      :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`,
+    * :math:`\mathbf{b}_{act}\in\mathbb{R}^{n_{ab}}` concatenates actuator bias parameters,
+    * :math:`\mathbf{b}_{sens}\in\mathbb{R}^{n_{sb}}` concatenates sensor bias parameters,
+    * :math:`\boldsymbol{\theta}_{dist}\in\mathbb{R}^{n_{dp}}` concatenates disturbance parameters.
+
+    The total expected estimator dimension is:
+
+    .. math::
+
+        n_{\mathrm{tot}} \;=\; n_x + n_{ab} + n_{sb} + n_{dp}.
+
+    **Bias and parameter covariance mapping**
+
+    The estimator provides a covariance :math:`\mathbf{P}` and an integrated covariance
+    :math:`\int \mathbf{P}\,dt` (stored as ``int_cov``). :meth:`match_estimate` extracts the diagonal
+    blocks corresponding to each bias/parameter group and maps them to per-subsystem standard deviations
+    (square roots of block diagonals).
+
+    .. note::
+        During matching, noise is disabled in actuators/sensors and time variation is disabled in
+        disturbances to ensure deterministic consistency when comparing propagation to estimation.
+
+    :raises ValueError:
+        If an estimator state vector with incompatible dimension is provided to
+        :meth:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.match_estimate`.
     """
 
     def __init__(self, mass: float = 1.0, COM: np.ndarray = None, J_0: np.ndarray = None, disturbances: List[Disturbance] = [], sensors: List[Sensor] = [], actuators: List[Actuator] = [], boresight: np.ndarray = np.array([0, 0, 1])) -> None:
+        r"""
+        Construct an estimator-augmented satellite.
+
+        Calls :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite` initialization and then
+        detects which subsystems include estimated parameters by reading:
+
+        * ``actuator.estimate_bias`` for each :class:`~ADCS.satellite_hardware.actuators.Actuator`,
+        * ``sensor.estimate_bias`` for each attitude :class:`~ADCS.satellite_hardware.sensors.Sensor`
+          (excluding :class:`~ADCS.satellite_hardware.sensors.GPS`),
+        * ``disturbance.estimate_dist`` for each :class:`~ADCS.satellite_hardware.disturbances.Disturbance`.
+
+        The detected indices are stored in:
+
+        * ``act_bias_inds`` and total length ``act_bias_len``,
+        * ``att_sens_bias_inds`` and total length ``att_sens_bias_len``,
+        * ``dist_param_inds`` and total length ``dist_param_len``.
+
+        :param mass: Total satellite mass including angular momentum storage hardware (kg).
+        :type mass: float
+
+        :param COM: Center of mass vector in the body/reference frame, shape ``(3,)``.
+            If ``None``, defaults to ``[0,0,0]``.
+        :type COM: numpy.ndarray | None
+
+        :param J_0: Inertia tensor about the reference origin, shape ``(3,3)`` (kg·m²).
+            If ``None``, defaults to identity.
+        :type J_0: numpy.ndarray | None
+
+        :param disturbances: Disturbance model list.
+        :type disturbances: list[:class:`~ADCS.satellite_hardware.disturbances.Disturbance`]
+
+        :param sensors: Sensor model list.
+        :type sensors: list[:class:`~ADCS.satellite_hardware.sensors.Sensor`]
+
+        :param actuators: Actuator model list.
+        :type actuators: list[:class:`~ADCS.satellite_hardware.actuators.Actuator`]
+
+        :param boresight: Body-frame boresight direction, shape ``(3,)``.
+        :type boresight: numpy.ndarray
+
+        :return: ``None``.
+        :rtype: None
+        """
         super().__init__(mass, COM, J_0, disturbances, sensors, actuators, boresight)
 
         # Add estimated states
@@ -105,49 +129,86 @@ class EstimatedSatellite(Satellite):
         self.dist_param_len = sum([self.disturbances[j].estimated_vector_length for j in self.dist_param_inds]) # Number of sensors with bias
 
     def match_estimate(self, est_state: EstimatedArray, dt: float) -> None:
-        """
-        Synchronize the satellite model with the latest estimated state and covariance.
+        r"""
+        Synchronize the satellite instance with the estimator output.
 
-        This method updates the satellite’s internal state, actuator and sensor biases,
-        and disturbance parameters using an :class:`EstimatedArray` provided by an estimator.
-        It also disables noise and time variation in subsystems to maintain deterministic
-        consistency between simulation and estimation models.
+        This method maps the estimator output into the simulation model by:
 
-        Parameters
-        ----------
-        est : EstimatedArray
-            The estimated full state vector including the satellite’s dynamic state,
-            actuator biases, sensor biases, and disturbance parameters. Must include
-            covariance (`cov`) and integrated covariance (`int_cov`) matrices.
-        dt : float
-            Integration time step, used to normalize the integrated covariance.
+        1. Extracting wheel momenta from the base state portion and updating wheel objects via
+           :meth:`~ADCS.satellite_hardware.satellite.satellite.Satellite.update_RWhs`.
+        2. Writing actuator biases into each actuator's bias object and setting per-bias standard
+           deviations from the corresponding covariance block.
+        3. Writing sensor biases into each attitude sensor's bias object and setting per-bias standard
+           deviations from the corresponding covariance block.
+        4. Writing disturbance parameters into each disturbance model (for active disturbances) and
+           setting their parameter standard deviations from covariance blocks.
+        5. For deterministic matching, disabling:
+           * ``actuator.use_noise = False`` for all actuators,
+           * ``sensor.use_noise = False`` for all sensors,
+           * ``disturbance.time_varying = False`` for all disturbances.
 
-        Raises
-        ------
-        ValueError
-            If the provided estimated state does not match the expected total length.
+        **Estimator vector partition**
 
-        Notes
-        -----
-        - The method assumes that `est.val` has the following structure:
+        With
 
         .. math::
 
-            [ x_{state},\; b_{act},\; b_{sens},\; p_{dist} ]
+            \mathbf{x}_{\mathrm{est}}
+            =
+            \begin{bmatrix}
+            \mathbf{x} \\
+            \mathbf{b}_{act} \\
+            \mathbf{b}_{sens} \\
+            \boldsymbol{\theta}_{dist}
+            \end{bmatrix},
 
-        where each segment corresponds to the system state, actuator biases,
-        sensor biases, and disturbance parameters.
+        indices are:
 
-        - After synchronization, actuator and sensor noise are disabled via
-        ``use_noise = False``, and disturbance time variations are frozen by setting
-        ``time_varying = False``. This ensures deterministic propagation when
-        comparing true and estimated dynamics.
+        .. math::
 
-        Examples
-        --------
-        >>> sat = EstimatedSatellite(...)
-        >>> est = EstimatedArray(val, cov, int_cov)
-        >>> sat.match_estimate(est, dt=0.1)
+            \begin{aligned}
+            \mathbf{x} &\in \mathbb{R}^{n_x},\\
+            \mathbf{b}_{act} &\in \mathbb{R}^{n_{ab}},\\
+            \mathbf{b}_{sens} &\in \mathbb{R}^{n_{sb}},\\
+            \boldsymbol{\theta}_{dist} &\in \mathbb{R}^{n_{dp}},
+            \end{aligned}
+
+        where
+
+        .. math::
+
+            n_x=\texttt{self.state\_len},\;
+            n_{ab}=\texttt{self.act\_bias\_len},\;
+            n_{sb}=\texttt{self.att\_sens\_bias\_len},\;
+            n_{dp}=\texttt{self.dist\_param\_len}.
+
+        **Covariance-to-standard-deviation mapping**
+
+        For each extracted block covariance :math:`\mathbf{P}_{block}`, per-element standard deviations are
+        assigned as:
+
+        .. math::
+
+            \boldsymbol{\sigma} = \sqrt{\operatorname{diag}(\mathbf{P}_{block})}.
+
+        In the implementation, the estimator provides an *integrated* covariance block (``int_cov``) that may
+        be dimension-shifted by one element in some configurations (e.g., quaternion handling). The method
+        applies an index adjustment ``adj`` when ``int_cov`` is off-by-one.
+
+        :param est_state: Estimator output container providing
+            ``val`` (state vector), ``cov`` (covariance), and ``int_cov`` (integrated covariance).
+        :type est_state: :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray`
+
+        :param dt: Estimator propagation step (s). Used by some pipelines to normalize integrated covariance.
+            (The current implementation partitions ``int_cov`` directly.)
+        :type dt: float
+
+        :return: ``None``.
+        :rtype: None
+
+        :raises ValueError:
+            If ``est_state.val`` does not have length
+            ``self.state_len + self.act_bias_len + self.att_sens_bias_len + self.dist_param_len``.
         """
         # Extract state
         full_state = est_state.val
@@ -225,51 +286,78 @@ class EstimatedSatellite(Satellite):
 
     def dist_torques_jacobian(self, x: np.ndarray, vecs: Dict[str, np.ndarray]) -> Tuple[np.ndarray, np.ndarray]:
         r"""
-        Compute the Jacobian of the total disturbance torque with respect to both
-        the spacecraft state and disturbance model parameters.
+        Jacobians of total disturbance torque w.r.t. state and disturbance parameters.
 
-        This method accumulates the first-order derivatives contributed by each
-        disturbance source in :attr:`self.disturbances`. The quaternion components
-        of the state (indices 3--6) determine the attitude-dependent part of the
-        disturbance torque, so only these affect the state Jacobian.
+        This overrides :meth:`~ADCS.satellite_hardware.satellite.satellite.Satellite.dist_torques_jacobian`
+        by additionally returning the derivative of the total disturbance torque w.r.t. estimated disturbance
+        parameters.
+
+        Let the total disturbance torque be
 
         .. math::
 
-            \frac{\partial \boldsymbol{\tau}_d}{\partial \mathbf{x}},
+            \boldsymbol{\tau}_d(\mathbf{x},\boldsymbol{\theta}_d)
+            =
+            \sum_{i=1}^{N_d}\boldsymbol{\tau}_{d,i}(\mathbf{x},\boldsymbol{\theta}_{d,i}).
+
+        The method returns:
+
+        .. math::
+
+            \mathbf{J}_x = \frac{\partial \boldsymbol{\tau}_d}{\partial \mathbf{x}},
             \qquad
-            \frac{\partial \boldsymbol{\tau}_d}{\partial \boldsymbol{\theta}_d}
+            \mathbf{J}_{\theta} = \frac{\partial \boldsymbol{\tau}_d}{\partial \boldsymbol{\theta}_d}.
 
-        where :math:`\boldsymbol{\tau}_d` is the total disturbance torque,
-        :math:`\mathbf{x}` is the spacecraft state vector, and
-        :math:`\boldsymbol{\theta}_d` represents disturbance model parameters.
+        **State Jacobian structure**
 
-        Parameters
-        ----------
-        x : numpy.ndarray
-            Current spacecraft state vector of length ``state_len``.
-        vecs : Dict[str, numpy.ndarray]
-            Dictionary of environmental vectors (e.g., magnetic field, Sun vector,
-            aerodynamic flow) passed to each disturbance model.
+        Only attitude (quaternion) affects rotated environment vectors and thus torque for the provided
+        disturbance interface; therefore:
 
-        Returns
-        -------
-        ddist_torq__dx : numpy.ndarray, shape (state_len, 3)
-            Partial derivative of disturbance torque with respect to the state vector.
-            Non-zero contributions occur only in the quaternion block (indices 3–6).
-        ddist_torq__ddmp : numpy.ndarray, shape (dist_param_len, 3)
-            Partial derivative of disturbance torque with respect to disturbance
-            parameters. Empty if no disturbance parameters are defined.
+        .. math::
 
-        Notes
-        -----
-        - Each disturbance model ``j`` must implement:
+            \mathbf{J}_x[3:7,:] =
+            \sum_i \frac{\partial \boldsymbol{\tau}_{d,i}}{\partial \mathbf{q}},\qquad
+            \mathbf{J}_x[k,:]=0\;\text{for}\;k\notin\{3,4,5,6\}.
 
-        
-        * :func:`torque_qjac(self, vecs)` — attitude derivatives
-        * :func:`torque_valjac(self, vecs)` — parameter derivatives
+        **Parameter Jacobian assembly**
 
-        - The total Jacobian is computed by summing the contributions from all
-        registered disturbances.
+        If ``self.dist_param_len > 0``, the parameter Jacobian is formed by vertically stacking each
+        estimated disturbance's parameter Jacobian:
+
+        .. math::
+
+            \mathbf{J}_{\theta} =
+            \begin{bmatrix}
+            \frac{\partial \boldsymbol{\tau}_{d,i_1}}{\partial \boldsymbol{\theta}_{d,i_1}} \\
+            \vdots \\
+            \frac{\partial \boldsymbol{\tau}_{d,i_m}}{\partial \boldsymbol{\theta}_{d,i_m}}
+            \end{bmatrix}.
+
+        Each estimated disturbance is expected to implement:
+
+        * ``torque_qjac(self, vecs)`` → :math:`\partial \boldsymbol{\tau}/\partial\mathbf{q}`,
+        * ``torque_valjac(self, vecs)`` → :math:`\partial \boldsymbol{\tau}/\partial\boldsymbol{\theta}`.
+
+        :param x: Current base spacecraft state vector, shape ``(state_len,)``.
+        :type x: numpy.ndarray
+
+        :param vecs: Dictionary containing body-frame environment vectors and their quaternion derivatives,
+            typically including keys like ``"b"``, ``"r"``, ``"s"``, ``"v"``, ``"rho"``, and derivative keys
+            like ``"db"``, ``"dr"``, ``"ds"``, ``"dv"``.
+        :type vecs: dict[str, numpy.ndarray]
+
+        :return: Tuple ``(ddist_torq__dx, ddist_torq__ddmp)``.
+        :rtype: tuple[numpy.ndarray, numpy.ndarray]
+
+        .. rubric:: Return shapes
+
+        +--------------------+------------------------------------+
+        | Name               | Shape                              |
+        +====================+====================================+
+        | ``ddist_torq__dx`` | ``(state_len, 3)``                 |
+        +--------------------+------------------------------------+
+        | ``ddist_torq__ddmp`` | ``(dist_param_len, 3)``          |
+        +--------------------+------------------------------------+
         """
         ddist_torq__dx = np.zeros((self.state_len,3))
         ddist_torq__dx[3:7,:] = sum([j.torque_qjac(self,vecs) for j in self.disturbances],np.zeros((4,3)))
@@ -279,49 +367,78 @@ class EstimatedSatellite(Satellite):
         return ddist_torq__dx,ddist_torq__ddmp
 
     def dist_torque_hess(self, x: np.ndarray, vecs: Dict[str, np.ndarray]) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-        """
-        Compute the Hessian tensors of the total disturbance torque with respect to
-        both the spacecraft state and the disturbance model parameters.
+        r"""
+        Hessians of total disturbance torque w.r.t. state and disturbance parameters.
 
-        This routine aggregates the second-order derivatives of all disturbance
-        models, yielding three Hessian tensors corresponding to pure state,
-        mixed state–parameter, and pure parameter terms.
+        This overrides :meth:`~ADCS.satellite_hardware.satellite.satellite.Satellite.dist_torque_hess`
+        by populating parameter–parameter and quaternion–parameter second derivatives for disturbances
+        with estimated parameters.
+
+        Let :math:`\boldsymbol{\tau}_d(\mathbf{x},\boldsymbol{\theta}_d)` be the total disturbance torque.
+        This method returns:
 
         .. math::
 
-            \frac{\partial^2 \boldsymbol{\tau}_d}{\partial \mathbf{x}^2}, \qquad
-            \frac{\partial^2 \boldsymbol{\tau}_d}{\partial \mathbf{x}\,\partial \boldsymbol{\theta}_d}, \qquad
-            \frac{\partial^2 \boldsymbol{\tau}_d}{\partial \boldsymbol{\theta}_d^2}
+            \mathbf{H}_{xx} = \frac{\partial^2 \boldsymbol{\tau}_d}{\partial \mathbf{x}^2},
+            \qquad
+            \mathbf{H}_{x\theta} = \frac{\partial^2 \boldsymbol{\tau}_d}{\partial \mathbf{x}\,\partial \boldsymbol{\theta}_d},
+            \qquad
+            \mathbf{H}_{\theta\theta} = \frac{\partial^2 \boldsymbol{\tau}_d}{\partial \boldsymbol{\theta}_d^2}.
 
-        Parameters
-        ----------
-        x : numpy.ndarray
-            Current spacecraft state vector of length ``state_len``.
-        vecs : Dict[str, numpy.ndarray]
-            Dictionary of environmental vectors required by the disturbance models.
+        **State Hessian sparsity**
 
-        Returns
-        -------
-        dddist_torq__dxdx : numpy.ndarray, shape (state_len, state_len, 3)
-            Second derivative of the disturbance torque with respect to the state.
-            Only the quaternion block (indices 3–6) contains non-zero entries.
-        dddist_torq__dxddmp : numpy.ndarray, shape (state_len, dist_param_len, 3)
-            Cross-derivative tensor coupling state and parameter effects.
-        dddist_torq__ddmpddmp : numpy.ndarray, shape (dist_param_len, dist_param_len, 3)
-            Second derivative of the disturbance torque with respect to disturbance
-            model parameters.
+        As in the base class, only quaternion components contribute to state second derivatives:
 
-        Notes
-        -----
-        - Each disturbance model ``j`` must implement the following methods:
+        .. math::
 
-        * :func:`torque_qqhess(self, vecs)`
-        * :func:`torque_qvalhess(self, vecs)`
-        * :func:`torque_valvalhess(self, vecs)`
- 
-        - Parameter block sizes are managed according to
-        :attr:`self.dist_param_inds` and the parameter dimension of each disturbance
-        model.
+            \mathbf{H}_{xx}[3:7,3:7,:]
+            =
+            \sum_i \frac{\partial^2 \boldsymbol{\tau}_{d,i}}{\partial \mathbf{q}^2}.
+
+        **Parameter blocks**
+
+        For each estimated disturbance :math:`i` with parameter vector size :math:`\ell_i`, the method places:
+
+        .. math::
+
+            \mathbf{H}_{\theta\theta}[k:k+\ell_i,\,k:k+\ell_i,:]
+            =
+            \frac{\partial^2 \boldsymbol{\tau}_{d,i}}{\partial \boldsymbol{\theta}_{d,i}^2},
+
+        and
+
+        .. math::
+
+            \mathbf{H}_{x\theta}[3:7,\,k:k+\ell_i,:]
+            =
+            \frac{\partial^2 \boldsymbol{\tau}_{d,i}}{\partial \mathbf{q}\,\partial \boldsymbol{\theta}_{d,i}}.
+
+        Each estimated disturbance is expected to implement:
+
+        * ``torque_qqhess(self, vecs)`` → :math:`\partial^2 \boldsymbol{\tau}/\partial\mathbf{q}^2`,
+        * ``torque_qvalhess(self, vecs)`` → :math:`\partial^2 \boldsymbol{\tau}/\partial\mathbf{q}\partial\boldsymbol{\theta}`,
+        * ``torque_valvalhess(self, vecs)`` → :math:`\partial^2 \boldsymbol{\tau}/\partial\boldsymbol{\theta}^2`.
+
+        :param x: Current base spacecraft state vector, shape ``(state_len,)``.
+        :type x: numpy.ndarray
+
+        :param vecs: Dictionary containing body-frame environment vectors and their derivatives.
+        :type vecs: dict[str, numpy.ndarray]
+
+        :return: Tuple ``(dddist_torq__dxdx, dddist_torq__dxddmp, dddist_torq__ddmpddmp)``.
+        :rtype: tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray]
+
+        .. rubric:: Return shapes
+
+        +---------------------------+-----------------------------------------+
+        | Name                      | Shape                                   |
+        +===========================+=========================================+
+        | ``dddist_torq__dxdx``     | ``(state_len, state_len, 3)``           |
+        +---------------------------+-----------------------------------------+
+        | ``dddist_torq__dxddmp``   | ``(state_len, dist_param_len, 3)``      |
+        +---------------------------+-----------------------------------------+
+        | ``dddist_torq__ddmpddmp`` | ``(dist_param_len, dist_param_len, 3)`` |
+        +---------------------------+-----------------------------------------+
         """
         dddist_torq__dxdx = np.zeros((self.state_len,self.state_len,3))
         dddist_torq__dxdx[3:7,3:7,:] = sum([j.torque_qqhess(self,vecs) for j in self.disturbances],np.zeros((4,4,3)))
@@ -336,6 +453,81 @@ class EstimatedSatellite(Satellite):
         return dddist_torq__dxdx,dddist_torq__dxddmp,dddist_torq__ddmpddmp
     
     def dynJacCore(self, x: np.ndarray, u: np.ndarray, orbital_state: Orbital_State) -> Union[np.ndarray, np.ndarray]:
+        r"""
+        Jacobians of augmented dynamics w.r.t. state, inputs, and estimated parameters.
+
+        This method extends the base linearization from
+        :meth:`~ADCS.satellite_hardware.satellite.satellite.Satellite.dynJacCore` by additionally
+        returning Jacobians of :math:`\dot{\mathbf{x}}` w.r.t.:
+
+        * actuator bias vector :math:`\mathbf{b}_{act}`,
+        * sensor bias vector :math:`\mathbf{b}_{sens}` (typically zeros for the process model),
+        * disturbance parameter vector :math:`\boldsymbol{\theta}_{dist}`.
+
+        The local first-order model is:
+
+        .. math::
+
+            \delta\dot{\mathbf{x}}
+            \approx
+            \mathbf{A}\,\delta\mathbf{x}
+            + \mathbf{B}\,\delta\mathbf{u}
+            + \mathbf{G}_{ab}\,\delta\mathbf{b}_{act}
+            + \mathbf{G}_{sb}\,\delta\mathbf{b}_{sens}
+            + \mathbf{G}_{dp}\,\delta\boldsymbol{\theta}_{dist}.
+
+        **Returned blocks**
+
+        The method returns a list:
+
+        .. math::
+
+            \left[
+            \frac{\partial \dot{\mathbf{x}}}{\partial \mathbf{x}},
+            \frac{\partial \dot{\mathbf{x}}}{\partial \mathbf{u}},
+            \frac{\partial \dot{\mathbf{x}}}{\partial \mathbf{b}_{act}},
+            \frac{\partial \dot{\mathbf{x}}}{\partial \mathbf{b}_{sens}},
+            \frac{\partial \dot{\mathbf{x}}}{\partial \boldsymbol{\theta}_{dist}}
+            \right].
+
+        Where the last three blocks are assembled via actuator- and disturbance-provided derivatives:
+
+        * actuators implement ``dtorq__dbias`` and (if wheels) storage-torque bias derivatives,
+        * disturbances provide parameter Jacobians via
+          :meth:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.dist_torques_jacobian`.
+
+        .. note::
+            Sensor bias Jacobians are typically **zero in the process model** because sensor biases affect
+            measurements, not rotational dynamics; therefore ``dxdot__dsb`` is returned as zeros.
+
+        :param x: Current base state vector, shape ``(state_len,)``.
+        :type x: numpy.ndarray
+
+        :param u: Current control vector, shape ``(control_len,)``.
+        :type u: numpy.ndarray
+
+        :param orbital_state: Orbital/environmental state supplying ECI vectors and scalars used by torque models.
+        :type orbital_state: :class:`~ADCS.orbits.orbital_state.Orbital_State`
+
+        :return: List ``[dxdot__dx, dxdot__du, dxdot__dab, dxdot__dsb, dxdot__ddmp]``.
+        :rtype: list[numpy.ndarray]
+
+        .. rubric:: Return shapes
+
+        +----------------+--------------------------------------+
+        | Name           | Shape                                |
+        +================+======================================+
+        | ``dxdot__dx``  | ``(state_len, state_len)``           |
+        +----------------+--------------------------------------+
+        | ``dxdot__du``  | ``(control_len, state_len)``         |
+        +----------------+--------------------------------------+
+        | ``dxdot__dab`` | ``(act_bias_len, state_len)``        |
+        +----------------+--------------------------------------+
+        | ``dxdot__dsb`` | ``(att_sens_bias_len, state_len)``   |
+        +----------------+--------------------------------------+
+        | ``dxdot__ddmp``| ``(dist_param_len, state_len)``      |
+        +----------------+--------------------------------------+
+        """
         R = orbital_state.R # Position in ECI [km]
         V = orbital_state.V # Velocity in body frame [km/s]
         B = orbital_state.B # Magnetic field in ECI [T]
@@ -412,227 +604,96 @@ class EstimatedSatellite(Satellite):
 
     def dynamics_Hessians(self, x: np.ndarray, u: np.ndarray, orbital_state: Orbital_State) -> List[List[np.ndarray]]:
         r"""
-        Compute the **second-order derivatives (Hessians)** of the spacecraft attitude dynamics
-        with respect to all relevant variables — including state, control inputs, actuator biases,
-        sensor biases, and disturbance parameters.
+        Second-order derivatives (Hessians) of augmented dynamics.
 
-        This function provides a full analytic **second-order linearization** of the rotational
-        dynamics model, extending beyond the first-order Jacobians to capture curvature effects
-        in the equations of motion. These Hessians are used in second-order control, estimation,
-        and sensitivity analysis algorithms such as Differential Dynamic Programming (DDP),
-        Iterative LQR (iLQR), or Extended Second-Order Kalman Filters.
-
-        ---
-        **Mathematical Definition**
-
-        The nonlinear attitude dynamics are expressed as:
+        This method computes second derivatives of the base rotational dynamics and extends them to
+        include curvature terms w.r.t. actuator biases and disturbance parameters. The Hessians are
+        organized as a block matrix over the stacked variable vector
 
         .. math::
 
-            \begin{aligned}
-            \dot{\boldsymbol{\omega}} &= J^{-1}
-            \Big[
-                -\boldsymbol{\omega} \times (J \boldsymbol{\omega} + A_{RW}^T \mathbf{h}_{RW})
-                + \boldsymbol{\tau}_{\text{act}}(\mathbf{x}, \mathbf{u})
-                + \boldsymbol{\tau}_{\text{dist}}(\mathbf{x})
-            \Big] \\
-            \dot{\mathbf{q}} &= \tfrac{1}{2} W(\mathbf{q})^T \boldsymbol{\omega} \\
-            \dot{\mathbf{h}}_{RW} &= \mathbf{u}_{RW}
-                - \mathrm{diag}(J_{RW}) A_{RW}^T \dot{\boldsymbol{\omega}}
-            \end{aligned}
+            \mathbf{z} =
+            \begin{bmatrix}
+            \mathbf{x} \\
+            \mathbf{u} \\
+            \mathbf{b}_{act} \\
+            \mathbf{b}_{sens} \\
+            \boldsymbol{\theta}_{dist}
+            \end{bmatrix}.
 
-        where:
-        - :math:`J` is the spacecraft body inertia matrix,
-        - :math:`A_{RW}` contains reaction wheel spin axes,
-        - :math:`\mathbf{h}_{RW}` are reaction wheel momenta,
-        - :math:`\boldsymbol{\tau}_{\text{act}}` and :math:`\boldsymbol{\tau}_{\text{dist}}`
-        represent actuator and disturbance torques respectively.
-
-        This function computes the full set of **second-order derivatives** of the dynamics function:
+        For each state-derivative component :math:`\dot{x}_k`, the Hessian stores
 
         .. math::
-            f(\mathbf{x}, \mathbf{u}) = \dot{\mathbf{x}},
 
-        i.e.
+            \frac{\partial^2 \dot{x}_k}{\partial z_i\,\partial z_j}.
 
-        .. math::
-            \frac{\partial^2 f_i}{\partial z_j \, \partial z_k},
-            \quad
-            \mathbf{z} = [\mathbf{x}, \mathbf{u}, \boldsymbol{\theta}_{act}, \boldsymbol{\theta}_{sens}, \boldsymbol{\theta}_{dist}],
-        
-        where each tensor element represents a curvature term coupling any two of the state,
-        control, or parameter dimensions.
+        **Returned structure**
 
-        ---
-        **Inputs**
+        If reaction wheels are present (and extended estimation terms are active), the method returns:
 
-        :param x:
-            Full spacecraft state vector:
-            .. math::
+        .. code-block:: text
 
-                \mathbf{x} =
-                \begin{bmatrix}
-                    \boldsymbol{\omega} \\
-                    \mathbf{q} \\
-                    \mathbf{h}_{RW}
-                \end{bmatrix}
+            [
+              [ddxdot__dxdx,  ddxdot__dxdu,  ddxdot__dxdab, ddxdot__dxdsb, ddxdot__dxddmp],
+              [ddxdot__dxdu.T, ddxdot__dudu, ddxdot__dudab, ddxdot__dudsb, ddxdot__duddmp],
+              [0,              0,           ddxdot__dabdab, ddxdot__dabdsb, ddxdot__dabddmp],
+              [0,              0,           0,             ddxdot__dsbdsb,  ddxdot__dsbddmp],
+              [0,              0,           0,             0,              ddxdot__ddmpddmp]
+            ]
 
-            - :math:`\boldsymbol{\omega}` — angular velocity in body frame [rad/s], shape ``(3,)``  
-            - :math:`\mathbf{q}` — quaternion (Hamilton form, body→ECI), shape ``(4,)``  
-            - :math:`\mathbf{h}_{RW}` — reaction wheel momenta, shape ``(n_{RW},)``  
+        If extended estimation terms are not used, it falls back to the base 2×2 structure:
 
+        .. code-block:: text
+
+            [
+              [ddxdot__dxdx, ddxdot__dxdu],
+              [ddxdot__dxdu.T, ddxdot__dudu]
+            ]
+
+        **Key analytic contributions**
+
+        * Quaternion kinematics curvature terms from :math:`\dot{\mathbf{q}} = \tfrac12 W(\mathbf{q})^\top\boldsymbol{\omega}`.
+        * Rigid-body dynamics curvature from the gyroscopic term
+          :math:`-\boldsymbol{\omega}\times(\mathbf{J}\boldsymbol{\omega} + \mathbf{H}_{RW})`.
+        * Disturbance torque curvature terms from
+          :meth:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.dist_torque_hess`.
+        * Actuator torque curvature terms from actuator-provided second derivatives, including bias couplings.
+
+        :param x: Current base state vector, shape ``(state_len,)``.
         :type x: numpy.ndarray
 
-        :param u:
-            Control input vector (actuator torque or wheel speed command signals), shape ``(n_u,)``.
-
+        :param u: Current control vector, shape ``(control_len,)``.
         :type u: numpy.ndarray
 
-        :param orbital_state:
-            Object containing orbital and environmental quantities:
-            - ``R``: ECI position vector [m]  
-            - ``V``: ECI velocity vector [m/s]  
-            - ``B``: Magnetic field vector [T]  
-            - ``S``: Sun direction vector [-]  
-            - ``rho``: Atmospheric density [kg/m³]  
+        :param orbital_state: Orbital/environmental state providing ECI vectors and scalars for torque models.
+        :type orbital_state: :class:`~ADCS.orbits.orbital_state.Orbital_State`
 
-            These vectors are rotated into the body frame using :func:`rot_mat(q).T`, and both
-            their first and second quaternion derivatives (:func:`drotmatTvecdq`,
-            :func:`ddrotmatTvecdqdq`) are computed for use in torque partials.
+        :return: Nested list of Hessian tensors (see structure above).
+        :rtype: list[list[numpy.ndarray]]
 
-        :type orbital_state: Orbital_State
+        .. rubric:: Common tensor shapes (extended case)
 
-        ---
-        **Outputs**
-
-        :return:
-            Nested list of Hessian tensors. The exact structure depends on whether
-            estimation-related parameters (biases, disturbances) are enabled.
-
-            **If extended estimation is active:**
-
-            .. code-block:: text
-
-                [
-                [ddxdot__dxdx, ddxdot__dxdu, ddxdot__dxdab, ddxdot__dxdsb, ddxdot__dxddmp],
-                [ddxdot__dxdu.T, ddxdot__dudu, ddxdot__dudab, ddxdot__dudsb, ddxdot__duddmp],
-                [0, 0, ddxdot__dabdab, ddxdot__dabdsb, ddxdot__dabddmp],
-                [0, 0, 0, ddxdot__dsbdsb, ddxdot__dsbddmp],
-                [0, 0, 0, 0, ddxdot__ddmpddmp]
-                ]
-
-            Each entry is a 3D array of the form ``(dim₁, dim₂, n_state)``, where each slice
-            corresponds to the curvature of one state derivative component.
-
-            +-------------------+--------------------------------------+--------------------------+
-            | Symbol            | Description                          | Shape                    |
-            +===================+======================================+==========================+
-            | ``ddxdot__dxdx``  | ∂²ẋ / ∂x²  (state Hessian)           | (nₓ, nₓ, nₓ)            |
-            +-------------------+--------------------------------------+--------------------------+
-            | ``ddxdot__dxdu``  | ∂²ẋ / ∂x∂u  (state–control coupling) | (nₓ, nᵤ, nₓ)            |
-            +-------------------+--------------------------------------+--------------------------+
-            | ``ddxdot__dudu``  | ∂²ẋ / ∂u²  (control Hessian)         | (nᵤ, nᵤ, nₓ)            |
-            +-------------------+--------------------------------------+--------------------------+
-            | ``ddxdot__dxdab`` | ∂²ẋ / ∂x∂(actuator bias)             | (nₓ, n_{ab}, nₓ)        |
-            +-------------------+--------------------------------------+--------------------------+
-            | ``ddxdot__dxdsb`` | ∂²ẋ / ∂x∂(sensor bias)               | (nₓ, n_{sb}, nₓ)        |
-            +-------------------+--------------------------------------+--------------------------+
-            | ``ddxdot__dxddmp``| ∂²ẋ / ∂x∂(disturbance param)         | (nₓ, n_{dp}, nₓ)        |
-            +-------------------+--------------------------------------+--------------------------+
-            | ``ddxdot__dabdab``| ∂²ẋ / ∂(actuator bias)²              | (n_{ab}, n_{ab}, nₓ)    |
-            +-------------------+--------------------------------------+--------------------------+
-            | ``ddxdot__dsbdsb``| ∂²ẋ / ∂(sensor bias)²                | (n_{sb}, n_{sb}, nₓ)    |
-            +-------------------+--------------------------------------+--------------------------+
-            | ``ddxdot__ddmpddmp``| ∂²ẋ / ∂(disturbance param)²        | (n_{dp}, n_{dp}, nₓ)    |
-            +-------------------+--------------------------------------+--------------------------+
-
-            **If estimation is disabled:**
-
-            .. code-block:: text
-
-                [
-                [ddxdot__dxdx, ddxdot__dxdu],
-                [ddxdot__dxdu.T, ddxdot__dudu]
-                ]
-
-        :rtype: List[List[np.ndarray]]
-
-        ---
-        **Computation Summary**
-
-        1. **Quaternion and environment transformation**
-        
-        Environmental vectors (``R``, ``V``, ``B``, ``S``) are rotated into the body frame and
-        their first- and second-order quaternion derivatives are computed to capture
-        attitude-dependent effects in environmental torques.
-
-        2. **Actuator torque Hessians**
-
-        For each actuator, compute:
-        - :math:`\frac{\partial^2 \boldsymbol{\tau}_{act}}{\partial \mathbf{x}^2}`,
-        - :math:`\frac{\partial^2 \boldsymbol{\tau}_{act}}{\partial \mathbf{u}^2}`,
-        - :math:`\frac{\partial^2 \boldsymbol{\tau}_{act}}{\partial \mathbf{x} \partial \mathbf{u}}`,
-        - and mixed terms w.r.t. wheel momentum or bias parameters.
-
-        3. **Disturbance torque Hessians**
-
-        Second derivatives of environmental torque models
-        :math:`\boldsymbol{\tau}_{dist}(\mathbf{x})`
-        are obtained from :func:`dist_torque_hess`.
-
-        4. **Reaction wheel coupling**
-
-        If reaction wheels are active (:attr:`self.number_RW > 0`),
-        adds higher-order coupling terms due to wheel inertia, axes, and stored momentum:
-
-        .. math::
-            \frac{\partial^2 \dot{\omega}}{\partial h_{RW}\, \partial x},
-            \quad
-            \frac{\partial^2 \dot{h}_{RW}}{\partial x^2}
-
-        5. **Bias and disturbance parameter extension**
-
-        If biases and disturbances are modeled, additional Hessians
-        are computed for cross-derivatives w.r.t. actuator bias,
-        sensor bias, and disturbance parameters.
-
-        6. **Inertia mapping**
-
-        All torque Hessians are post-multiplied by :math:`J^{-1}` to yield angular acceleration
-        Hessians in body coordinates.
-
-        ---
-        **Notes**
-
-        - Quaternion convention follows **Hamilton form**, representing a body→ECI rotation.
-        - All returned Hessian tensors are stored as 3D arrays; index 3 corresponds to the affected
-        component of :math:`\dot{\mathbf{x}}`.
-        - Symmetry of second derivatives is preserved wherever applicable.
-        - These tensors can be contracted with perturbation vectors to compute second-order
-        variations in the dynamics, e.g.:
-
-        .. math::
-            \delta^2 \dot{\mathbf{x}} \approx
-            \tfrac{1}{2} \sum_{i,j} \frac{\partial^2 f}{\partial z_i \partial z_j}
-            \delta z_i \delta z_j
-
-        ---
-        **Example**
-
-        .. code-block:: python
-
-            ddH = sat.dynamics_Hessians(x, u, orb)
-            ddx_dx, dx_du = ddH[0]
-            print(ddx_dx.shape)   # (n_x, n_x, n_x)
-            print(dx_du.shape)    # (n_x, n_u, n_x)
-
-        ---
-        **References**
-
-        - Wie, B. *Space Vehicle Dynamics and Control*, 2nd Ed. AIAA, 2008.  
-        - Crassidis, J.L., Junkins, J.L. *Optimal Estimation of Dynamic Systems*, 2nd Ed. CRC Press, 2011.  
-        - Tassa, Y. *et al.*, “Synthesis and Stabilization of Complex Behaviors through Online Trajectory Optimization,” *IROS*, 2012.  
-        - Diebel, J., “Representing Attitude: Euler Angles, Unit Quaternions, and Rotation Vectors,” Stanford University, 2006.
+        +--------------------+------------------------------------------------------+
+        | Tensor             | Shape                                                |
+        +====================+======================================================+
+        | ``ddxdot__dxdx``   | ``(state_len, state_len, state_len)``                |
+        +--------------------+------------------------------------------------------+
+        | ``ddxdot__dxdu``   | ``(state_len, control_len, state_len)``              |
+        +--------------------+------------------------------------------------------+
+        | ``ddxdot__dudu``   | ``(control_len, control_len, state_len)``            |
+        +--------------------+------------------------------------------------------+
+        | ``ddxdot__dxdab``  | ``(state_len, act_bias_len, state_len)``             |
+        +--------------------+------------------------------------------------------+
+        | ``ddxdot__dxdsb``  | ``(state_len, att_sens_bias_len, state_len)``        |
+        +--------------------+------------------------------------------------------+
+        | ``ddxdot__dxddmp`` | ``(state_len, dist_param_len, state_len)``           |
+        +--------------------+------------------------------------------------------+
+        | ``ddxdot__dabdab`` | ``(act_bias_len, act_bias_len, state_len)``          |
+        +--------------------+------------------------------------------------------+
+        | ``ddxdot__dsbdsb`` | ``(att_sens_bias_len, att_sens_bias_len, state_len)``|
+        +--------------------+------------------------------------------------------+
+        |``ddxdot__ddmpddmp``| ``(dist_param_len, dist_param_len, state_len)``      |
+        +--------------------+------------------------------------------------------+
         """
         w = x[0:3]#.reshape((3,1))
         q = x[3:7]#normalize(x[3:7,:])
@@ -798,17 +859,42 @@ class EstimatedSatellite(Satellite):
         return [[ddxdot__dxdx,ddxdot__dxdu],[ddxdot__dxdu.T,ddxdot__dudu]]
 
     def sensor_bias_slice(self, att_sensor_index: int) -> Optional[slice]:
-        """
-        Return the [start:stop] slice in the *full* estimator state vector
-        corresponding to the bias of attitude_sensors[att_sensor_index].
+        r"""
+        Slice for an attitude sensor's bias block in the full estimator state vector.
 
-        Full estimator state is ordered as:
-            [ base_state (state_len),
-              actuator_bias (act_bias_len),
-              attitude_sensor_bias (att_sens_bias_len),
-              disturbance_params (dist_param_len) ]
+        The full estimator state is assumed to be ordered as:
 
-        If the sensor has no associated bias state, returns None.
+        .. math::
+
+            \mathbf{x}_{\mathrm{est}} =
+            \begin{bmatrix}
+            \mathbf{x} \\
+            \mathbf{b}_{act} \\
+            \mathbf{b}_{sens} \\
+            \boldsymbol{\theta}_{dist}
+            \end{bmatrix},
+
+        where the sensor-bias block starts at offset:
+
+        .. math::
+
+            k_0 = n_x + n_{ab}
+            \;=\;
+            \texttt{self.state\_len} + \texttt{self.act\_bias\_len}.
+
+        This method returns the Python ``slice(start, stop)`` selecting the bias elements for
+        ``self.attitude_sensors[att_sensor_index]`` **within** :math:`\mathbf{x}_{\mathrm{est}}`.
+        If the specified sensor does not have an estimated bias (i.e., not in ``att_sens_bias_inds``),
+        the method returns ``None``.
+
+        :param att_sensor_index: Index into ``self.attitude_sensors``.
+        :type att_sensor_index: int
+
+        :return: Slice selecting the sensor's bias portion in the estimator vector, or ``None``.
+        :rtype: slice | None
+
+        :raises RuntimeError:
+            If the sensor index is listed as bias-estimated but the slice cannot be constructed.
         """
         if att_sensor_index not in self.att_sens_bias_inds:
             return None
@@ -831,22 +917,71 @@ class EstimatedSatellite(Satellite):
         )
     
     def control_cov(self) -> np.ndarray:
-        """
-        Block-diagonal covariance matrix for all actuator noises.
+        r"""
+        Block-diagonal covariance of actuator input noise.
+
+        For each actuator :math:`j`, let its input noise covariance be
+        :math:`\mathbf{R}_{u_j}` returned by ``actuator.noise.cov()``.
+        This method constructs:
+
+        .. math::
+
+            \mathbf{R}_u = \mathrm{blkdiag}\left(\mathbf{R}_{u_1}, \mathbf{R}_{u_2}, \dots, \mathbf{R}_{u_{N_u}}\right).
+
+        This covariance is commonly used as the control-noise covariance in stochastic propagation or
+        estimator process-noise modeling.
+
+        :return: Block-diagonal actuator noise covariance matrix.
+        :rtype: numpy.ndarray
         """
         blocks = [actuator.noise.cov() for actuator in self.actuators]
         return np.array(block_diag(*blocks))
 
     def control_srcov(self) -> np.ndarray:
-        """
-        Block-diagonal square-root covariance matrix for all actuator noises.
+        r"""
+        Block-diagonal square-root covariance of actuator input noise.
+
+        For each actuator :math:`j`, let its square-root covariance be
+        :math:`\mathbf{S}_{u_j}` returned by ``actuator.noise.srcov()`` such that:
+
+        .. math::
+
+            \mathbf{R}_{u_j} = \mathbf{S}_{u_j}\mathbf{S}_{u_j}^\top.
+
+        This method constructs:
+
+        .. math::
+
+            \mathbf{S}_u = \mathrm{blkdiag}\left(\mathbf{S}_{u_1}, \mathbf{S}_{u_2}, \dots, \mathbf{S}_{u_{N_u}}\right).
+
+        :return: Block-diagonal actuator noise square-root covariance matrix.
+        :rtype: numpy.ndarray
         """
         blocks = [actuator.noise.srcov() for actuator in self.actuators]
         return np.array(block_diag(*blocks))
 
     def sensor_cov(self, which_sensors: List[bool]) -> np.ndarray:
-        """
-        Block-diagonal covariance matrix for all attitude sensor noises.
+        r"""
+        Block-diagonal covariance of attitude sensor noise (and wheel momentum measurement noise).
+
+        For each attitude sensor :math:`i` with covariance :math:`\mathbf{R}_{y_i}` (from
+        ``sensor.noise.cov()``), the attitude-sensor covariance is:
+
+        .. math::
+
+            \mathbf{R}_y = \mathrm{blkdiag}\left(\mathbf{R}_{y_{i_1}}, \dots, \mathbf{R}_{y_{i_m}}\right),
+
+        where the set :math:`\{i_1,\dots,i_m\}` is selected by ``which_sensors``.
+
+        If reaction wheels are present, each wheel contributes an additional measurement covariance
+        for its momentum measurement model (e.g., ``rw.h_meas_noise.cov()``), appended to the block diagonal.
+
+        :param which_sensors: Boolean selector list of length ``len(self.attitude_sensors)`` indicating
+            which attitude sensors to include. If ``None`` is passed in the implementation, all are included.
+        :type which_sensors: list[bool]
+
+        :return: Block-diagonal measurement covariance matrix. If no sensors are selected, returns a ``(0,0)`` array.
+        :rtype: numpy.ndarray
         """
         if which_sensors is None:
             which_sensors = [True for j in self.attitude_sensors]
@@ -862,8 +997,28 @@ class EstimatedSatellite(Satellite):
         return block_diag(*blocks) if blocks else np.zeros((0, 0))
 
     def sensor_srcov(self, which_sensors: List[bool]) -> np.ndarray:
-        """
-        Block-diagonal square-root covariance matrix for all attitude sensor noises.
+        r"""
+        Block-diagonal square-root covariance of attitude sensor noise (and wheel momentum measurement noise).
+
+        For each attitude sensor :math:`i` with square-root covariance :math:`\mathbf{S}_{y_i}` (from
+        ``sensor.noise.srcov()``) such that :math:`\mathbf{R}_{y_i}=\mathbf{S}_{y_i}\mathbf{S}_{y_i}^\top`,
+        this method constructs
+
+        .. math::
+
+            \mathbf{S}_y = \mathrm{blkdiag}\left(\mathbf{S}_{y_{i_1}}, \dots, \mathbf{S}_{y_{i_m}}\right),
+
+        with selection controlled by ``which_sensors``.
+
+        If reaction wheels are present, each wheel contributes an additional square-root covariance
+        block for its momentum measurement model (e.g., ``rw.h_meas_noise.srcov()``).
+
+        :param which_sensors: Boolean selector list of length ``len(self.attitude_sensors)`` indicating
+            which attitude sensors to include. If ``None`` is passed in the implementation, all are included.
+        :type which_sensors: list[bool]
+
+        :return: Block-diagonal measurement square-root covariance matrix. If no sensors are selected, returns a ``(0,0)`` array.
+        :rtype: numpy.ndarray
         """
         if which_sensors is None:
             which_sensors = [True for j in self.attitude_sensors]

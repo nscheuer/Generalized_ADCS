@@ -1,3 +1,9 @@
+__all__ = [
+    "plot_control",
+    "plot_rw_momentum",
+    "plot_target_tracking",
+]
+
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
@@ -12,20 +18,71 @@ def plot_control(
     title: str = "Control Effort Over Time",
     units: str = "Command"
 ) -> None:
-    """
-    Plot control command time series.
+    r"""
+    Plot time histories of spacecraft control commands.
 
-    Parameters
-    ----------
-    time : np.ndarray
-        1D array of time stamps [s], shape (N,).
-    u_hist : np.ndarray
-        Control history, shape (N, M) where M is the number of actuators /
-        control channels.
-    title : str, optional
-        Title of the plot.
-    units : str, optional
-        Units of the control command for the y-label (e.g. "N·m").
+    This function visualizes actuator or control-command outputs as a function
+    of time. Each control channel is plotted as a separate curve, enabling
+    direct comparison of magnitudes, trends, and relative activity among
+    actuators.
+
+    ======================
+    Mathematical Context
+    ======================
+
+    Let the control input vector be
+
+    .. math::
+
+        \mathbf{u}(t) =
+        \begin{bmatrix}
+        u_1(t) & u_2(t) & \dots & u_M(t)
+        \end{bmatrix}^T
+
+    where :math:`M` is the number of control channels (e.g., reaction wheels,
+    magnetorquers, thrusters).
+
+    Given discrete time samples :math:`t_i`, the function plots
+
+    .. math::
+
+        u_j(t_i), \qquad i = 1, \dots, N,\; j = 1, \dots, M
+
+    on a shared set of axes.
+
+    ======================
+    Visualization Details
+    ======================
+
+    * Each control channel is labeled as :math:`u_1, u_2, \dots, u_M`
+    * The y-axis units are user-configurable
+    * A grid and legend are automatically enabled
+
+    :param time:
+        One-dimensional array of time stamps in seconds.
+    :type time:
+        numpy.ndarray
+
+    :param u_hist:
+        Control command history. Each column corresponds to one control channel.
+    :type u_hist:
+        numpy.ndarray
+
+    :param title:
+        Title displayed at the top of the plot.
+    :type title:
+        str
+
+    :param units:
+        Units of the control command shown on the y-axis.
+    :type units:
+        str
+
+    :return:
+        None. The function creates a Matplotlib figure.
+    :rtype:
+        None
+
     """
     time = np.asarray(time)
     u_hist = np.asarray(u_hist)
@@ -57,25 +114,75 @@ def plot_rw_momentum(
     title: str = "Reaction Wheel Stored Momentum",
     units: str = "N·m·s"
 ) -> None:
-    """
-    Plot reaction wheel stored angular momentum over time using state history.
+    r"""
+    Plot reaction wheel stored angular momentum over time.
 
-    Assumes state vector structure:
-        x = [w(3), q(4), h_rw(N_rw)]
+    This function extracts reaction wheel momentum states from the spacecraft
+    state history and visualizes their evolution. It is commonly used to
+    evaluate momentum buildup, desaturation events, and long-term actuator
+    usage.
 
-    i.e. RW momentum terms begin at index 7 onward.
+    =========================
+    State Vector Assumption
+    =========================
 
-    Parameters
-    ----------
-    time : np.ndarray
-        Time array of shape (N,).
-    state_hist : np.ndarray
-        State history of shape (N, 7 + N_rw), where N_rw >= 1.
-        Momentum components must be stored from index 7 onward.
-    title : str
-        Plot title.
-    units : str
-        Units for y-label (default: "N·m·s").
+    The spacecraft state vector is assumed to be ordered as
+
+    .. math::
+
+        \mathbf{x} =
+        \begin{bmatrix}
+        \boldsymbol{\omega} \\
+        \mathbf{q} \\
+        \mathbf{h}_{\text{rw}}
+        \end{bmatrix}
+
+    where:
+
+    * :math:`\boldsymbol{\omega} \in \mathbb{R}^3` is body angular rate
+    * :math:`\mathbf{q} \in \mathbb{R}^4` is the attitude quaternion
+    * :math:`\mathbf{h}_{\text{rw}} \in \mathbb{R}^{N_{\text{rw}}}` is the
+      reaction wheel stored angular momentum
+
+    The reaction wheel momentum components are assumed to begin at index 7.
+
+    ======================
+    Mathematical Meaning
+    ======================
+
+    For each reaction wheel :math:`k`, the plotted quantity is
+
+    .. math::
+
+        h_k(t_i), \qquad i = 1, \dots, N
+
+    expressed in units of angular momentum.
+
+    :param time:
+        One-dimensional array of time stamps in seconds.
+    :type time:
+        numpy.ndarray
+
+    :param state_hist:
+        Spacecraft state history containing reaction wheel momentum states.
+    :type state_hist:
+        numpy.ndarray
+
+    :param title:
+        Title displayed at the top of the plot.
+    :type title:
+        str
+
+    :param units:
+        Units of stored momentum shown on the y-axis.
+    :type units:
+        str
+
+    :return:
+        None. The function creates a Matplotlib figure.
+    :rtype:
+        None
+
     """
     time = np.asarray(time)
     state_hist = np.asarray(state_hist)
@@ -125,20 +232,98 @@ def plot_target_tracking(
     body_boresight: np.ndarray,
     time: Optional[np.ndarray] = None
 ) -> None:
-    """
-    Plot angular tracking error between body boresight and ECI target vector.
+    r"""
+    Plot angular tracking error between a body-fixed boresight and an inertial target.
 
-    Parameters
-    ----------
-    state_hist : np.ndarray
-        True state history including quaternions (cols 3-7), shape (N, >7).
-        Quaternion assumed to be Hamilton, body -> ECI (same as animate_attitude).
-    boresight_hist : np.ndarray
-        Target boresight vector in ECI frame, shape (N, 3).
-    body_boresight : np.ndarray
-        Fixed boresight vector in BODY frame, shape (3,).
-    time : np.ndarray, optional
-        Time vector for x-axis. If None, index is used.
+    This function computes and visualizes the angular separation between a
+    spacecraft-fixed boresight vector and a desired target direction expressed
+    in the Earth-Centered Inertial (ECI) frame. It is commonly used to assess
+    pointing performance for payloads, antennas, or sensors.
+
+    ======================
+    Attitude and Geometry
+    ======================
+
+    Let the spacecraft attitude be represented by a unit quaternion
+
+    .. math::
+
+        \mathbf{q} =
+        \begin{bmatrix}
+        q_0 & q_1 & q_2 & q_3
+        \end{bmatrix}^T
+
+    mapping vectors from the body frame to the ECI frame via the rotation matrix
+
+    .. math::
+
+        \mathbf{R}_{\mathcal{B}\rightarrow\mathcal{I}}(\mathbf{q})
+
+    computed using :func:`~ADCS.helpers.math_helpers.rot_mat`.
+
+    ============================
+    Tracking Error Computation
+    ============================
+
+    Let:
+
+    * :math:`\hat{\mathbf{b}} \in \mathbb{R}^3` be the normalized boresight
+      direction expressed in the body frame
+    * :math:`\hat{\mathbf{g}}_i \in \mathbb{R}^3` be the normalized target
+      direction in ECI at time step :math:`i`
+
+    The boresight direction in ECI is
+
+    .. math::
+
+        \hat{\mathbf{b}}_i^{\text{ECI}} =
+        \mathbf{R}_{\mathcal{B}\rightarrow\mathcal{I}}(\mathbf{q}_i)\,
+        \hat{\mathbf{b}}
+
+    The instantaneous pointing error angle is computed using the dot product:
+
+    .. math::
+
+        \theta_i =
+        \cos^{-1}\!\left(
+        \hat{\mathbf{b}}_i^{\text{ECI}} \cdot \hat{\mathbf{g}}_i
+        \right)
+
+    The resulting angle is converted to degrees for visualization.
+
+    ========================
+    Visualization Options
+    ========================
+
+    * If a time vector is provided, the error is plotted versus time
+    * Otherwise, the error is plotted versus sample index
+
+    :param state_hist:
+        True spacecraft state history containing attitude quaternions in
+        columns ``[3:7]``.
+    :type state_hist:
+        numpy.ndarray
+
+    :param boresight_hist:
+        Desired target boresight vectors expressed in the ECI frame.
+    :type boresight_hist:
+        numpy.ndarray
+
+    :param body_boresight:
+        Fixed boresight direction expressed in the spacecraft body frame.
+    :type body_boresight:
+        numpy.ndarray
+
+    :param time:
+        Optional time array for the x-axis.
+    :type time:
+        numpy.ndarray or None
+
+    :return:
+        None. The function creates a Matplotlib figure.
+    :rtype:
+        None
+
     """
 
     N = min(len(state_hist), len(boresight_hist))

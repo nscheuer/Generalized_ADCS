@@ -16,7 +16,141 @@ _I3 = np.eye(3)
 _I6 = np.eye(6)
 
 class Orbital_State:
+    r"""
+    Complete dynamical and environmental representation of a spacecraft orbit state.
+
+    This class encapsulates the translational orbital state of a spacecraft
+    together with time, reference-frame transformations, environmental models,
+    and auxiliary vectors required for guidance, navigation, and control (GNC)
+    and attitude determination and control systems (ADCS).
+
+    An :class:`~ADCS.orbits.orbital_state.Orbital_State` is defined primarily by
+    its inertial position and velocity vectors expressed in the Earth-Centered
+    Inertial (ECI / ICRF) frame at a given epoch. From this core state, the class
+    derives:
+
+    * Earth-fixed (ECEF) coordinates
+    * Geocentric spherical coordinates
+    * Sun direction vector
+    * Geomagnetic field vector (IGRF)
+    * Atmospheric density
+    * Linearized orbital dynamics and Jacobians
+    * Frame transformations (ECI, ECEF, ENU, body)
+
+    Mathematical Model
+    ------------------
+    The orbital motion is governed by Newton’s equation with optional J2
+    perturbation:
+
+    .. math::
+
+        \ddot{\mathbf{r}} =
+        -\frac{\mu}{r^3}\mathbf{r}
+        + \mathbf{a}_{J_2},
+
+    where
+
+    .. math::
+
+        \mathbf{a}_{J_2}
+        = \frac{3 J_2 \mu R_E^2}{2 r^5}
+        \begin{bmatrix}
+            x \left(5 \frac{z^2}{r^2} - 1\right) \\
+            y \left(5 \frac{z^2}{r^2} - 1\right) \\
+            z \left(5 \frac{z^2}{r^2} - 3\right)
+        \end{bmatrix}.
+
+    Environmental quantities such as atmospheric density
+    :math:`\rho(h)` and geomagnetic field :math:`\mathbf{B}` are evaluated
+    using empirical models via
+    :class:`~ADCS.orbits.density_model.DensityModel` and IGRF.
+
+    :param ephem:
+        Planetary ephemeris object providing Earth and Sun states.
+    :type ephem: Ephemeris
+
+    :param J2000:
+        Epoch expressed in Julian centuries since J2000.
+    :type J2000: float
+
+    :param R:
+        Spacecraft position vector in ECI frame [km].
+    :type R: numpy.ndarray
+
+    :param V:
+        Spacecraft velocity vector in ECI frame [km/s].
+    :type V: numpy.ndarray
+
+    :param S:
+        Optional Sun direction vector in ECI frame [km].
+    :type S: numpy.ndarray or None
+
+    :param B:
+        Optional geomagnetic field vector in ECI frame [T].
+    :type B: numpy.ndarray or None
+
+    :param rho:
+        Optional atmospheric density [kg/m³].
+    :type rho: float or None
+
+    :param density_model:
+        Atmospheric density interpolation model.
+    :type density_model: DensityModel or None
+
+    :param fast:
+        If ``True``, skips expensive environment and frame computations.
+    :type fast: bool
+
+    """
     def __init__(self, ephem: Ephemeris, J2000: float, R: np.ndarray, V: np.ndarray, S: np.ndarray = None, B: np.ndarray = None, rho: float = None, density_model: DensityModel = None, fast: bool = False) -> None:
+        r"""
+        Initialize a fully defined orbital state.
+
+        This constructor initializes the inertial orbital state and derives
+        all dependent quantities such as Earth-fixed coordinates, Sun vector,
+        geomagnetic field, and atmospheric density.
+
+        :param ephem:
+            Ephemeris object used for Sun and Earth position queries.
+        :type ephem: Ephemeris
+
+        :param J2000:
+            Epoch in Julian centuries since J2000.
+        :type J2000: float
+
+        :param R:
+            Position vector in ECI frame [km].
+        :type R: numpy.ndarray
+
+        :param V:
+            Velocity vector in ECI frame [km/s].
+        :type V: numpy.ndarray
+
+        :param S:
+            Optional Sun vector in ECI frame.
+        :type S: numpy.ndarray or None
+
+        :param B:
+            Optional geomagnetic field vector in ECI frame.
+        :type B: numpy.ndarray or None
+
+        :param rho:
+            Optional atmospheric density [kg/m³].
+        :type rho: float or None
+
+        :param density_model:
+            Atmospheric density model.
+        :type density_model: DensityModel or None
+
+        :param fast:
+            Skip non-essential calculations if ``True``.
+        :type fast: bool
+
+        :return:
+            ``None``
+        :rtype: None
+
+        """
         self.ephem = ephem
         self.ts = self.ephem.ts
 
@@ -106,10 +240,46 @@ class Orbital_State:
 
 
     def copy(self):
+        r"""
+        Return a deep copy of the orbital state.
+
+        :return:
+            Independent copy of the orbital state.
+        :rtype: Orbital_State
+
+        """
         return self.average(self, 0)
     
 
     def average(self, orbital_state_2, ratio: float = 0.5, fast: bool = False):
+        r"""
+        Linearly interpolate between two orbital states.
+
+        The interpolation is performed element-wise on all state quantities:
+
+        .. math::
+
+            \mathbf{x}_{\text{avg}} =
+            (1-\alpha)\mathbf{x}_1 + \alpha \mathbf{x}_2.
+
+        :param orbital_state_2:
+            Second orbital state.
+        :type orbital_state_2: Orbital_State
+
+        :param ratio:
+            Interpolation ratio :math:`\alpha \in [0,1]`.
+        :type ratio: float
+
+        :param fast:
+            Skip non-essential calculations in the output state.
+        :type fast: bool
+
+        :return:
+            Interpolated orbital state.
+        :rtype: Orbital_State
+
+        """
+
         os2 = orbital_state_2
         a = 1.0 - ratio
         b = ratio
@@ -136,6 +306,39 @@ class Orbital_State:
 
     @staticmethod
     def _orbit_dynamics_raw(R: np.ndarray, V: np.ndarray, mu_e: float, R_e: float, J2coeff: float, J2_perturbation_on: bool = True) -> Tuple[np.ndarray, np.ndarray]:
+        r"""
+        Compute raw orbital dynamics.
+
+        :param R:
+            Position vector in ECI frame.
+        :type R: numpy.ndarray
+
+        :param V:
+            Velocity vector in ECI frame.
+        :type V: numpy.ndarray
+
+        :param mu_e:
+            Earth gravitational parameter.
+        :type mu_e: float
+
+        :param R_e:
+            Earth mean radius.
+        :type R_e: float
+
+        :param J2coeff:
+            Earth J2 coefficient.
+        :type J2coeff: float
+
+        :param J2_perturbation_on:
+            Enable J2 perturbation.
+        :type J2_perturbation_on: bool
+
+        :return:
+            Tuple of position and velocity derivatives.
+        :rtype:
+            tuple[numpy.ndarray, numpy.ndarray]
+
+        """
         r2 = float(np.dot(R, R))
         rn = np.sqrt(r2)
         r3 = r2 * rn
@@ -162,6 +365,35 @@ class Orbital_State:
 
     @staticmethod
     def _orbit_dynamics_jacobians_raw(R: np.ndarray, mu_e: float, R_e: float, J2coeff: float, J2_perturbation_on: bool = True):
+        r"""
+        Compute Jacobians of orbital dynamics.
+
+        :param R:
+            Position vector in ECI frame.
+        :type R: numpy.ndarray
+
+        :param mu_e:
+            Earth gravitational parameter.
+        :type mu_e: float
+
+        :param R_e:
+            Earth mean radius.
+        :type R_e: float
+
+        :param J2coeff:
+            Earth J2 coefficient.
+        :type J2coeff: float
+
+        :param J2_perturbation_on:
+            Enable J2 perturbation.
+        :type J2_perturbation_on: bool
+
+        :return:
+            Partial derivatives of dynamics.
+        :rtype:
+            tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray, numpy.ndarray]
+
+        """
         rn = np.linalg.norm(R)
         nr = R / rn
         zk = R[2]
@@ -195,14 +427,60 @@ class Orbital_State:
     
 
     def orbit_dynamics(self, J2_perturbation_on: bool = True) -> Tuple[np.ndarray, np.ndarray]:
+        r"""
+        Compute translational orbital dynamics at the current state.
+
+        :param J2_perturbation_on:
+            Enable J2 perturbation.
+        :type J2_perturbation_on: bool
+
+        :return:
+            Time derivatives of position and velocity.
+        :rtype:
+            tuple[numpy.ndarray, numpy.ndarray]
+
+        """
         return self._orbit_dynamics_raw(R=self.R, V=self.V, mu_e=self.mu_e, R_e=self.R_e, J2coeff=self.J2coeff, J2_perturbation_on=J2_perturbation_on)
     
 
     def orbit_dynamics_jacobians(self, J2_perturbation_on: bool = True) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        r"""
+        Compute Jacobians of the translational dynamics.
+
+        :param J2_perturbation_on:
+            Enable J2 perturbation.
+        :type J2_perturbation_on: bool
+
+        :return:
+            Jacobian matrices of the dynamics.
+        :rtype:
+            tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray, numpy.ndarray]
+
+        """
         return self._orbit_dynamics_jacobians_raw(R=self.R, mu_e=self.mu_e, R_e=self.R_e, J2coeff=self.J2coeff, J2_perturbation_on=J2_perturbation_on)
     
 
     def propagate_orbit(self, dt: float, J2_perturbation_on: bool = True, fast: bool = True):
+        r"""
+        Propagate the orbital state forward using first-order integration.
+
+        :param dt:
+            Time step in seconds.
+        :type dt: float
+
+        :param J2_perturbation_on:
+            Enable J2 perturbation.
+        :type J2_perturbation_on: bool
+
+        :param fast:
+            Skip environment updates if ``True``.
+        :type fast: bool
+
+        :return:
+            Propagated orbital state.
+        :rtype: Orbital_State
+
+        """
         r_ECI = self.R
         v_ECI = self.V
 
@@ -217,6 +495,26 @@ class Orbital_State:
     
 
     def propagate_orbit_rk4(self, dt: float, J2_perturbation_on: bool = True, fast: bool = True):
+        r"""
+        Propagate the orbital state using fourth-order Runge–Kutta integration.
+
+        :param dt:
+            Time step in seconds.
+        :type dt: float
+
+        :param J2_perturbation_on:
+            Enable J2 perturbation.
+        :type J2_perturbation_on: bool
+
+        :param fast:
+            Skip environment updates if ``True``.
+        :type fast: bool
+
+        :return:
+            Propagated orbital state.
+        :rtype: Orbital_State
+
+        """
         r0 = self.R
         v0 = self.V
 
@@ -265,6 +563,23 @@ class Orbital_State:
     
     
     def propagate_jacobians(self, dt: float, J2_perturbation_on: bool = True) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        r"""
+        Propagate state transition Jacobians using first-order integration.
+
+        :param dt:
+            Time step in seconds.
+        :type dt: float
+
+        :param J2_perturbation_on:
+            Enable J2 perturbation.
+        :type J2_perturbation_on: bool
+
+        :return:
+            State transition Jacobian blocks.
+        :rtype:
+            tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray, numpy.ndarray]
+
+        """
         drd0__dr0, drd0__dv0, dvd0__dr0, dvd0__dv0 = self._orbit_dynamics_jacobians_raw(
             self.R,
             self.mu_e,
@@ -282,6 +597,24 @@ class Orbital_State:
     
 
     def propagate_jacobians_rk4(self, dt: float, J2_perturbation_on: bool = True) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        r"""
+        Propagate state transition Jacobians using RK4 integration.
+
+        :param dt:
+            Time step in seconds.
+        :type dt: float
+
+        :param J2_perturbation_on:
+            Enable J2 perturbation.
+        :type J2_perturbation_on: bool
+
+        :return:
+            State transition Jacobian blocks.
+        :rtype:
+            tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray, numpy.ndarray]
+
+        """
+
         r0 = self.R
         v0 = self.V
 
@@ -383,24 +716,105 @@ class Orbital_State:
     
 
     def eci_to_ecef(self, vec: np.ndarray) -> np.ndarray:
+        r"""
+        Transform a vector from ECI to ECEF coordinates.
+
+        :param vec:
+            Vector in ECI frame.
+        :type vec: numpy.ndarray
+
+        :return:
+            Vector in ECEF frame.
+        :rtype: numpy.ndarray
+
+        """
+
         return self._R_eci2ecef @ vec
 
     def ecef_to_eci(self, vec: np.ndarray) -> np.ndarray:
+        r"""
+        Transform a vector from ECEF to ECI coordinates.
+
+        :param vec:
+            Vector in ECEF frame.
+        :type vec: numpy.ndarray
+
+        :return:
+            Vector in ECI frame.
+        :rtype: numpy.ndarray
+
+        """
         return self._R_ecef2eci @ vec
 
     def ecef_to_geocentric(self, vec: np.ndarray) -> np.ndarray:
+        r"""
+        Transform an ECEF vector to local geocentric coordinates.
+
+        :param vec:
+            Vector in ECEF frame.
+        :type vec: numpy.ndarray
+
+        :return:
+            Vector in geocentric basis.
+        :rtype: numpy.ndarray
+
+        """
         return self._ecef_to_geo.T @ vec
 
     def geocentric_to_ecef(self, vec: np.ndarray) -> np.ndarray:
+        r"""
+        Transform a geocentric vector to ECEF coordinates.
+
+        :param vec:
+            Vector in geocentric basis.
+        :type vec: numpy.ndarray
+
+        :return:
+            Vector in ECEF frame.
+        :rtype: numpy.ndarray
+
+        """
         return vec[0] * self._n_ecef + vec[1] * self._tvec + vec[2] * self._svec
 
     def eci_to_enu(self, vec: np.ndarray) -> np.ndarray:
+        r"""
+        Transform a vector from ECI to local ENU frame.
+
+        :param vec:
+            Vector in ECI frame.
+        :type vec: numpy.ndarray
+
+        :return:
+            Vector in ENU frame.
+        :rtype: numpy.ndarray
+
+        """
         return vec @ self.ECI2ENUmat.T
 
     def enu_to_eci(self, vec: np.ndarray) -> np.ndarray:
+        r"""
+        Transform a vector from ENU to ECI frame.
+
+        :param vec:
+            Vector in ENU frame.
+        :type vec: numpy.ndarray
+
+        :return:
+            Vector in ECI frame.
+        :rtype: numpy.ndarray
+
+        """
         return vec @ self.ECI2ENUmat
 
     def get_b_eci(self) -> np.ndarray:
+        r"""
+        Compute the geomagnetic field vector in the ECI frame.
+
+        :return:
+            Magnetic field vector [Tesla].
+        :rtype: numpy.ndarray
+
+        """
         r = self.geocentric[0]
         theta_rad = self.geocentric[1]
         phi_rad = self.geocentric[2]
@@ -418,9 +832,25 @@ class Orbital_State:
         return b_eci * 1e-9 # Returned in Tesla
 
     def j2000_to_tai(self):
+        r"""
+        Convert J2000 centuries to TAI Julian date.
+
+        :return:
+            TAI Julian date.
+        :rtype: float
+
+        """
         return self.J2000 * 36525.0 + 2451545.0
 
     def get_sun_eci(self) -> np.ndarray:
+        r"""
+        Compute the Sun position vector in the ECI frame.
+
+        :return:
+            Sun vector in ECI coordinates [km].
+        :rtype: numpy.ndarray
+
+        """
         timescale_object: api.Timescale = self.ephem.ts
         pos_time = timescale_object.tai_jd(self.TAI)
 
@@ -431,6 +861,18 @@ class Orbital_State:
         return sun_eci
 
     def update_vecs(self, x: np.ndarray) -> None:
+        r"""
+        Update body-frame vectors and their derivatives from a state vector.
+
+        :param x:
+            Full spacecraft state vector including attitude quaternion.
+        :type x: numpy.ndarray
+
+        :return:
+            ``None``
+        :rtype: None
+
+        """
         q0 = x[3:7]
 
         R = self.R
@@ -472,14 +914,43 @@ class Orbital_State:
         self._last_x = x
 
     def get_state_vector(self, x: Optional[np.ndarray]) -> Dict[str, np.ndarray]:
+        r"""
+        Retrieve cached or updated body-frame vectors.
+
+        :param x:
+            Current spacecraft state vector.
+        :type x: numpy.ndarray or None
+
+        :return:
+            Dictionary of vectors and derivatives.
+        :rtype:
+            dict[str, numpy.ndarray]
+
+        """
         if not np.array_equal(x, self._last_x):
             self.update_vecs(x=x)
         return self.vecs
 
     def is_sunlit(self) -> bool:
+        r"""
+        Determine whether the spacecraft is illuminated by the Sun.
+
+        :return:
+            ``True`` if sunlit, ``False`` otherwise.
+        :rtype: bool
+
+        """
         return self.sf_pos.is_sunlit(self.ephem.planets)
     
     def to_dict(self) -> dict:
+        r"""
+        Serialize the orbital state to a dictionary.
+
+        :return:
+            Dictionary representation of the orbital state.
+        :rtype: dict
+
+        """
         return {
             "J2000": self.J2000,
             "R": self.R,
@@ -492,6 +963,30 @@ class Orbital_State:
 
     @classmethod
     def from_dict(cls, d: dict, ephem: Ephemeris, density_model: DensityModel | None = None, fast: bool = True):
+        r"""
+        Construct an orbital state from a dictionary.
+
+        :param d:
+            Dictionary containing orbital state fields.
+        :type d: dict
+
+        :param ephem:
+            Ephemeris object.
+        :type ephem: Ephemeris
+
+        :param density_model:
+            Atmospheric density model.
+        :type density_model: DensityModel or None
+
+        :param fast:
+            Skip non-essential calculations if ``True``.
+        :type fast: bool
+
+        :return:
+            Reconstructed orbital state.
+        :rtype: Orbital_State
+
+        """
         return cls(
             ephem=ephem,
             J2000=d["J2000"],
