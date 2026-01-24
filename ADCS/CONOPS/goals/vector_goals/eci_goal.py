@@ -8,7 +8,7 @@ from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.helpers.math_helpers import normalize
 
 class ECI_Goal(Vector_Goal):
-    """
+    r"""
     Fixed inertial pointing goal.
 
     The :class:`ECI_Goal` represents a pointing objective toward a
@@ -35,7 +35,7 @@ class ECI_Goal(Vector_Goal):
     :class:`~ADCS.orbits.orbital_state.Orbital_State`
     """
     def __init__(self, eci_vector: np.ndarray) -> None:
-        """
+        r"""
         Initialize an inertial pointing goal.
 
         Parameters
@@ -47,7 +47,7 @@ class ECI_Goal(Vector_Goal):
         self.eci_vector = normalize(eci_vector)
 
     def to_ref(self, os0: Orbital_State) -> Tuple[np.ndarray, np.ndarray]:
-        """
+        r"""
         Return inertial reference vectors for fixed ECI pointing.
 
         This method returns a constant inertial reference direction and

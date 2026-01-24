@@ -36,7 +36,7 @@ jobs:
     - name: Build HTML documentation
       run: |
         # This step verifies the docs build correctly, regardless of the branch.
-        sphinx-build -b html docs/source _build/html
+        sphinx-build -b html -W --keep-going docs/source _build/html
     # 3. Conditional Deployment (ONLY runs on the main branch)
     # The job condition checks the branch name.
     # The expression github.ref == 'refs/heads/main' is TRUE only for the main branch.
