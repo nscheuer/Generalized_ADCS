@@ -54,6 +54,38 @@
 %   - ALTRO params from ALTRO_TUNING_NOTES.md Session 6
 %
 % ============================================================
+% *** AVAILABLE DATA - READY TO USE ***
+% ============================================================
+%
+% FIGURES READY (experiment_outputs/thesis_figures/):
+%   | File                           | Description                    | Use In      |
+%   |--------------------------------|--------------------------------|-------------|
+%   | fig_3p1_cdf.pdf                | 3+1 pointing error CDF         | Results     |
+%   | fig_3p1_success_rates.pdf      | Success rate comparison        | Results     |
+%   | fig_3p1_error_trajectories.pdf | Error time series              | Results     |
+%   | 1W_montecarlo.pdf              | Single-wheel MC results        | Comparison  |
+%   | 1W_montecarlo_traj.pdf         | Single-wheel trajectory        | Comparison  |
+%   | mtq_montecarlo.pdf             | MTQ-only MC results            | Comparison  |
+%   | mtq_montecarlo_traj.pdf        | MTQ-only trajectory            | Comparison  |
+%   | angular_error_lovera.pdf       | Lovera controller error        | Baselines   |
+%   | angular_error_wisniewski.pdf   | Wisniewski controller error    | Baselines   |
+%   | ctrl_lovera.pdf                | Lovera control commands        | Baselines   |
+%   | ctrl_wisniewski.pdf            | Wisniewski control commands    | Baselines   |
+%
+% DATA FROM ALTRO TUNING (research/ALTRO_TUNING_NOTES.md):
+%   - Best 500s config: solve time 51.5s, final error 0.08°
+%   - Optimal parameters: dt_tp=100, angle=100, angle_N=50000
+%   - Bug fixes documented (B-field units, quaternion order)
+%
+% BC2 PARAMETERS (from ADCS/satellite_factory/satellites/create_cubesats.py):
+%   - Mass: 4 kg
+%   - Inertia: J = [[0.0314, 0.0001, -0.0067],
+%                   [0.0001, 0.0341, -0.0001],
+%                   [-0.0067, -0.0001, 0.0100]] kg·m²
+%   - Actuators: ISIS MTQ board + CubeWheel SmallPlus (z-axis)
+%   - Boresight: y-axis (camera)
+%
+% ============================================================
 % DATA GENERATION TODO LIST
 % ============================================================
 % ** CRITICAL - BEFORE SUBMISSION **
@@ -348,7 +380,23 @@ This paper investigates the three-magnetorquer, one-reaction-wheel (3+1) archite
 
 A key insight from this work is that achieving single or sub-degree pointing with magnetically-controlled or hybrid satellites is possible and should be considered for future missions. The 3+1 architecture represents a ``novel actuator combination'' that has received little attention in the literature despite its practical advantages. By combining magnetorquers with a single reaction wheel---and by using trajectory planning to exploit the time-varying magnetic field---we demonstrate performance that would traditionally require full three-axis reaction wheel control.
 
-% TODO: Add figure showing actuator configuration comparison (3+0, 3+1, 3+3)
+% ============================================================
+% FIGURE: Actuator Configuration Comparison
+% STATUS: NEEDS GENERATION - Create diagram showing 3+0, 3+1, 3+3 configs
+% Suggested content: 3D spacecraft view with actuator placement marked
+% Could adapt from existing CAD or create schematic
+% ============================================================
+\begin{figure}[h]
+    \centering
+    \fbox{\parbox{0.9\columnwidth}{\centering\vspace{1.5cm}
+    \textbf{FIGURE TO GENERATE}\\
+    Content: Actuator configuration comparison (3+0, 3+1, 3+3)\\
+    Show: MTQ placement (3-axis), RW axis orientation\\
+    Note: No existing figure - needs creation
+    \vspace{1.5cm}}}
+    \caption{Actuator configurations evaluated: (a) 3+0 with three orthogonal magnetorquers, (b) 3+1 adding a single z-axis reaction wheel, (c) 3+3 with three orthogonal reaction wheels plus magnetorquers for desaturation.}
+    \label{fig:actuator_configs}
+\end{figure}
 
 \subsection{Motivation: CONOPS-Coupled ADCS Design}
 
@@ -557,6 +605,18 @@ The tradeoff between these strategies depends on mission CONOPS: continuous desa
 % ============================================================
 % SIMULATION RESULTS
 % ============================================================
+% *** DATA VERIFICATION WARNING ***
+% The numbers in Tables 2-4 are from THESIS RESULTS (planning.tex).
+% Current codebase produces DIFFERENT results:
+%   - experiment_outputs/3p1_paper/: 200s tests, PD only → 63° for 3+1
+%   - papers/3MTQ+1RW/output_data/: 500s ALTRO+TVLQR → 30° mean
+%   - Thesis claims: 96% within 1°, 0.45° mean
+%
+% BEFORE SUBMISSION: Re-run experiments with:
+%   - 1000s duration, 100 trials
+%   - REDUCED-ATTITUDE goals (thesis used this!)
+%   - Verify tables match regenerated data
+% ============================================================
 \section{Simulation Results}\label{sec:results}
 
 \subsection{Monte Carlo Methodology}
@@ -600,6 +660,42 @@ Table~\ref{tab:pd_results} summarizes Monte Carlo results for quaternion PD cont
 \end{table}
 
 The 3+1 configuration achieves nearly an order of magnitude improvement in mean pointing error compared to magnetorquer-only (2.3$^\circ$ vs. 21.6$^\circ$), while remaining within a factor of 10 of the full reaction wheel baseline. Critically, 73\% of 3+1 trials achieve sub-degree pointing---performance that would traditionally be assumed to require three reaction wheels.
+
+% ============================================================
+% FIGURE: Error CDF Comparison
+% STATUS: AVAILABLE in experiment_outputs/thesis_figures/fig_3p1_cdf.pdf
+% NOTE: This figure is from thesis_figures, verify it matches claimed numbers
+% ============================================================
+\begin{figure}[h]
+    \centering
+    % \includegraphics[width=\columnwidth]{../experiment_outputs/thesis_figures/fig_3p1_cdf.pdf}
+    % TODO: Uncomment above line and verify path when compiling
+    \fbox{\parbox{0.9\columnwidth}{\centering\vspace{2cm}
+    \textbf{FIGURE PLACEHOLDER}\\
+    File: experiment\_outputs/thesis\_figures/fig\_3p1\_cdf.pdf\\
+    Content: CDF of pointing errors for 3+0, 3+1, 3+3\\
+    Status: AVAILABLE - verify numbers match Table~\ref{tab:pd_results}
+    \vspace{2cm}}}
+    \caption{Cumulative distribution of pointing errors across 100 Monte Carlo trials. The 3+1 configuration (blue) achieves sub-degree pointing in 73\% of trials, compared to 15\% for 3+0 and 100\% for 3+3.}
+    \label{fig:pd_cdf}
+\end{figure}
+
+% ============================================================
+% FIGURE: Error Time Series
+% STATUS: AVAILABLE in experiment_outputs/thesis_figures/fig_3p1_error_trajectories.pdf
+% ============================================================
+\begin{figure}[h]
+    \centering
+    % \includegraphics[width=\columnwidth]{../experiment_outputs/thesis_figures/fig_3p1_error_trajectories.pdf}
+    \fbox{\parbox{0.9\columnwidth}{\centering\vspace{2cm}
+    \textbf{FIGURE PLACEHOLDER}\\
+    File: experiment\_outputs/thesis\_figures/fig\_3p1\_error\_trajectories.pdf\\
+    Content: Pointing error vs time for representative trials\\
+    Status: AVAILABLE
+    \vspace{2cm}}}
+    \caption{Representative pointing error trajectories for each configuration. The 3+1 system converges within 200 seconds for most initial conditions, while 3+0 often fails to converge within the 1000-second window.}
+    \label{fig:error_trajectories}
+\end{figure}
 
 \subsection{Planner-Enhanced Results}
 

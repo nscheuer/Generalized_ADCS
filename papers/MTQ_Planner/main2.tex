@@ -74,6 +74,43 @@
 % ACTION: Verify by running identical scenarios with both goal types.
 %
 % ============================================================
+% *** AVAILABLE DATA - READY TO USE ***
+% ============================================================
+%
+% ALTRO TUNING RESULTS (research/ALTRO_TUNING_NOTES.md):
+%   | Config          | Solve Time | Final Error | Notes                    |
+%   |-----------------|------------|-------------|--------------------------|
+%   | Best 500s       | 51.5s      | 0.08°       | Optimal params           |
+%   | With B-dot init | 29.2s      | 0.72°       | Faster, slightly worse   |
+%   | High terminal   | 42.1s      | 0.15°       | Better final accuracy    |
+%
+%   Optimal ALTRO parameters (from Session 6):
+%     - dt_tp=100, dt_tvlqr=1
+%     - angle=100, angle_N=50000
+%     - use_full_cost_hessian=True
+%     - ang_cost_func_type=2 (geodesic for speed)
+%
+% BENCHMARK DATA (research/trajectory_planner/benchmark_*.json):
+%   | Method          | Solve Time | Notes                    |
+%   |-----------------|------------|--------------------------|
+%   | Eigenaxis+Trap  | 5-8ms      | Fast but no constraints  |
+%   | ConvexMPC       | 437ms      | Good for short horizons  |
+%   | SCP             | 8.1s       | Robust but slow          |
+%   | ALTRO           | 5-60s      | Best constraint handling |
+%
+% FIGURES READY (experiment_outputs/thesis_figures/):
+%   - mtq_montecarlo.pdf: MTQ-only baseline (100 trials)
+%   - mtq_montecarlo_traj.pdf: Sample MTQ trajectory
+%   - mtq_quatset_montecarlo.pdf: Quatset goal results
+%   - 1W_montecarlo.pdf: Single-wheel comparison
+%
+% DEBUG FIGURES (debug/debug_plan_and_track/debug_plots/):
+%   - Constrained_TVLQR_detailed.png
+%   - TVLQR_Baseline_detailed.png
+%   - planned_controls.png
+%   - tinympc_comparison.png
+%
+% ============================================================
 % DATA GENERATION TODO LIST
 % ============================================================
 % ** CRITICAL - BEFORE SUBMISSION **

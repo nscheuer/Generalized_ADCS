@@ -50,6 +50,36 @@
 %   - Get Pi 4 or estimate from laptop scaling
 %
 % ============================================================
+% *** AVAILABLE DATA - READY TO USE ***
+% ============================================================
+%
+% TEST INFRASTRUCTURE (testing/paper_todo_tests/):
+%   | File                              | Tests | Description                |
+%   |-----------------------------------|-------|----------------------------|
+%   | test_todo_data_computational.py   | 4     | Timing, memory benchmarks  |
+%   | test_todo_data_desaturation.py    | 18    | Momentum tracking          |
+%   | test_todo_data_generation.py      | 7     | CubeSat configs            |
+%   | test_todo_data_lp_qp_comparison.py| 14    | LP vs QP allocation        |
+%   | test_todo_data_sensitivity.py     | 3     | Parameter sensitivity      |
+%   | test_todo_fig_generation.py       | 9     | Polytopes, envelopes       |
+%   | test_todo_sim_controller_comparison.py| 6 | Controller comparison      |
+%   | test_todo_sim_monte_carlo.py      | 4     | Monte Carlo infrastructure |
+%   | test_todo_sim_scenarios.py        | 8     | Pointing, tracking, failure|
+%   Total: 90 tests, 89% TODO coverage
+%
+% CONTROLLER FIGURES (experiment_outputs/thesis_figures/):
+%   - angular_error_lovera.pdf: Lovera controller performance
+%   - angular_error_wisniewski.pdf: Wisniewski controller
+%   - angular_error_wie.pdf: WIE controller
+%   - ctrl_lovera.pdf, ctrl_wisniewski.pdf, ctrl_wie.pdf: Control commands
+%   - mtq_montecarlo.pdf, 1W_montecarlo.pdf: Monte Carlo results
+%
+% SPACECRAFT FACTORY (ADCS/satellite_factory/satellites/create_cubesats.py):
+%   - create_beavercube2_cubesat(): 3U, 4kg, 3+1 (real mission)
+%   - create_3_3_beavercube2_cubesat(): 3U, 4kg, 3+3
+%   - create_beavercube1_cubesat(): 3U, 4kg, 3+0 (MTQ only)
+%
+% ============================================================
 % DATA GENERATION TODO LIST
 % ============================================================
 % ** CRITICAL - BASILISK COMPARISON **

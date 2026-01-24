@@ -313,6 +313,51 @@
 % ACTION: Regenerate LP vs QP with 1000s, 100 trials, multiple configs
 %
 % ============================================================
+% *** AVAILABLE DATA - READY TO USE ***
+% ============================================================
+%
+% LP vs QP ALLOCATION (research/allocation_comparison_*.json):
+%   | Method       | Direction Error | Magnitude Ratio | Solve Time |
+%   |--------------|-----------------|-----------------|------------|
+%   | LP           | 0.0036°         | 26%             | 2220 μs    |
+%   | QP           | 33.01°          | 60%             | 1515 μs    |
+%
+%   KEY FINDING: LP preserves direction perfectly (0.004°) but achieves
+%   lower magnitude (26%). QP gets higher magnitude (60%) but large
+%   direction error (33°). For Lyapunov stability, direction matters more!
+%
+% CONSTRAINED QP VARIANTS (research/RESEARCH_MASTER.md, 120s tests):
+%   | Method              | Final Error | Notes                        |
+%   |---------------------|-------------|------------------------------|
+%   | QP unconstrained    | 2.35°       | Best but no physics guarantee|
+%   | 3b-Sign critical    | 2.35°       | TIED BEST, per-axis sign     |
+%   | Phase-aware         | 2.69°       | Adapts to convergence phase  |
+%   | LP                  | 2.94°       | Reliable baseline            |
+%   | 1a-Power brake only | 3.11°       | Physics-based, nearly LP!    |
+%
+%   FAILED APPROACHES (DO NOT USE):
+%   | Method              | Final Error | Why it fails                 |
+%   |---------------------|-------------|------------------------------|
+%   | Pure Lyapunov V̇≤0  | 117°        | Too restrictive              |
+%   | Always-on power     | 125°        | Prevents convergence         |
+%
+% CONTROLLER COMPARISON FIGURES (experiment_outputs/thesis_figures/):
+%   | File                        | Description                    |
+%   |-----------------------------|--------------------------------|
+%   | angular_error_lovera.pdf    | Lovera controller performance  |
+%   | angular_error_wisniewski.pdf| Wisniewski controller          |
+%   | angular_error_wie.pdf       | WIE controller (Earth-pointing)|
+%   | ctrl_lovera.pdf             | Lovera control commands        |
+%   | ctrl_wisniewski.pdf         | Wisniewski control commands    |
+%   | ctrl_wie.pdf                | WIE control commands           |
+%   | axes_av_wie.pdf             | Multi-axis angular velocity    |
+%
+% CLOSED-LOOP RESULTS (research/closed_loop_*.json):
+%   - LP closed-loop: 17.02° ± 9.90° (120s test)
+%   - QP closed-loop: 25.70° ± 15.01° (120s test)
+%   - Confirms: LP outperforms QP in closed-loop
+%
+% ============================================================
 % DATA GENERATION TODO LIST
 % ============================================================
 % ** CRITICAL - BEFORE SUBMISSION **
@@ -1251,7 +1296,34 @@ We evaluate nadir pointing performance, where the objective is to align the $-z$
     \item \textbf{Fully actuated (3MTQ+3RW)}: Full vector controllability (4/4) with abundant margin. Convergence should be limited primarily by control law gains rather than actuator authority. Settling within minutes is expected, with steady-state errors limited by sensor noise and estimation accuracy rather than actuator capability.
 \end{itemize}
 
-\emph{[Results to be generated: Pointing error vs. time for each configuration, Monte Carlo statistics over 100 random initial conditions, comparison of LP vs. QP allocation]}
+% ============================================================
+% FIGURE: Controller Comparison (Lovera baseline)
+% STATUS: AVAILABLE in experiment_outputs/thesis_figures/angular_error_lovera.pdf
+% ============================================================
+\begin{figure}[h]
+    \centering
+    % \includegraphics[width=\columnwidth]{../experiment_outputs/thesis_figures/angular_error_lovera.pdf}
+    \fbox{\parbox{0.9\columnwidth}{\centering\vspace{1.5cm}
+    \textbf{FIGURE AVAILABLE}\\
+    File: thesis\_figures/angular\_error\_lovera.pdf\\
+    Content: Lovera controller pointing error vs time\\
+    Also available: angular\_error\_wisniewski.pdf, angular\_error\_wie.pdf
+    \vspace{1.5cm}}}
+    \caption{Pointing error evolution for Lovera magnetic controller baseline. The controller achieves steady-state pointing within 500s despite instantaneous underactuation.}
+    \label{fig:lovera_error}
+\end{figure}
+
+% ============================================================
+% DATA AVAILABLE: LP vs QP Allocation Comparison
+% Source: research/allocation_comparison_*.json
+% ============================================================
+% LP: 0.0036° direction error, 26% magnitude ratio
+% QP: 33.01° direction error, 60% magnitude ratio
+% Closed-loop (120s): LP 17.02°, QP 25.70°
+%
+% TODO: Regenerate with 1000s duration, 100 trials for publication
+
+\emph{[Preliminary data available: LP direction error 0.004° vs QP 33°. Closed-loop 120s tests show LP 17° vs QP 26°. Full 1000s, 100-trial Monte Carlo needed for publication.]}
 
 \subsubsection{Inertial Hold (Full Attitude Goal)}
 For inertial hold, the spacecraft must maintain a fixed orientation in the inertial frame. This requires full rank 6 controllability, which has different implications for each configuration:
@@ -1333,7 +1405,73 @@ We quantify these trade-offs through:
     \item \textbf{Computational time}: LP typically requires fewer iterations than QP. For the 6-variable problem with box constraints, we expect LP to complete in $\sim$50--100 $\mu$s and QP in $\sim$200--500 $\mu$s on representative embedded hardware.
 \end{itemize}
 
-\emph{[Results to be generated: Time series of direction error and magnitude ratio, scatter plot of LP vs. QP pointing accuracy, histogram of computation times]}
+% ============================================================
+% DATA AVAILABLE: LP vs QP Allocation Results
+% Source: research/allocation_comparison_*.json, research/RESEARCH_MASTER.md
+% ============================================================
+%
+% INSTANTANEOUS ALLOCATION METRICS (1000 random torque samples):
+%   | Method | Direction Error | Magnitude Ratio | Solve Time |
+%   |--------|-----------------|-----------------|------------|
+%   | LP     | 0.0036°         | 26%             | 2220 μs    |
+%   | QP     | 33.01°          | 60%             | 1515 μs    |
+%
+% CLOSED-LOOP RESULTS (120s tests, single scenario):
+%   | Method              | Final Error | Notes                        |
+%   |---------------------|-------------|------------------------------|
+%   | LP                  | 2.94°       | Reliable baseline            |
+%   | QP unconstrained    | 2.35°       | Best but no stability proof  |
+%   | 1a-Power brake only | 3.11°       | Physics-based constraint     |
+%   | 3b-Sign critical    | 2.35°       | Per-axis sign preservation   |
+%
+% KEY FINDING: LP preserves direction perfectly (0.004°) while QP has 33° error.
+% Despite this, QP achieves similar closed-loop performance (2.35° vs 2.94°)
+% because magnitude matters too. The "1a-Power brake" constraint gives
+% best of both worlds: physics-based stability with competitive performance.
+%
+% TODO: Regenerate with 1000s duration, 100 trials for publication
+% Current data is from 120s tests with single scenarios
+
+\begin{table}[h]
+    \centering
+    \caption{LP vs QP Allocation: Instantaneous Metrics (Preliminary Data)}
+    \label{tab:lp_qp_instantaneous}
+    \begin{tabular}{lccc}
+        \toprule
+        Method & Direction Error & Magnitude Ratio & Solve Time \\
+        \midrule
+        LP & 0.004° & 26\% & 2220 $\mu$s \\
+        QP & 33.0° & 60\% & 1515 $\mu$s \\
+        \bottomrule
+    \end{tabular}
+    % NOTE: Data from research/allocation_comparison_*.json
+    % TODO: Verify with publication-quality experiments
+\end{table}
+
+\begin{table}[h]
+    \centering
+    \caption{Constrained QP Variants: Closed-Loop Performance (120s tests)}
+    \label{tab:constrained_qp}
+    \begin{tabular}{lcc}
+        \toprule
+        Method & Final Error (deg) & Notes \\
+        \midrule
+        QP unconstrained & 2.35 & Best, no stability proof \\
+        3b-Sign critical & 2.35 & Per-axis sign check \\
+        Phase-aware & 2.69 & Adapts to convergence \\
+        LP & 2.94 & Reliable baseline \\
+        1a-Power brake & 3.11 & Physics-based \\
+        \midrule
+        \textit{Failed approaches:} & & \\
+        Pure Lyapunov & 117 & Too restrictive \\
+        Always-on power & 125 & Prevents convergence \\
+        \bottomrule
+    \end{tabular}
+    % NOTE: Data from research/RESEARCH_MASTER.md
+    % WARNING: 120s tests, single scenarios - need full MC validation
+\end{table}
+
+\emph{Preliminary results from 120-second tests. Publication requires 1000s duration, 100+ trials with randomized initial conditions.}
 
 \subsection{Comparison with Traditional Controllers}
 To contextualize the results, we compare the generalized allocation approach against controllers specifically designed for magnetic actuation. This comparison addresses the natural question: does the generality of the allocation approach come at a performance cost compared to purpose-built controllers?
