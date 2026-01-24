@@ -9,22 +9,50 @@ def check_numpy_size(
     cols: Optional[int] = None, 
     depth: Optional[int] = None
 ) -> None:
-    """
-    Checks the dimensions of a NumPy array against provided optional constraints.
-    
-    Assumes standard convention:
-    - Rows = Axis 0
-    - Cols = Axis 1
-    - Depth = Axis 2
-    
-    Args:
-        arr: The input numpy array to check.
-        rows: Expected number of rows (axis 0).
-        cols: Expected number of columns (axis 1).
-        depth: Expected depth/channels (axis 2).
-        
-    Raises:
-        AssertionError: If dimensions are not met or if array lacks sufficient dimensions.
+    r"""
+    Validate the dimensionality of a NumPy array against expected size constraints.
+
+    This utility enforces structural assumptions on NumPy arrays by checking
+    selected axes against expected sizes. It follows the conventional axis
+    interpretation:
+
+    .. math::
+
+        \begin{aligned}
+        \text{Axis }0 &\rightarrow \text{Rows} \\
+        \text{Axis }1 &\rightarrow \text{Columns} \\
+        \text{Axis }2 &\rightarrow \text{Depth / Channels}
+        \end{aligned}
+
+    Let :math:`\mathbf{A} \in \mathbb{R}^{d_0 \times d_1 \times d_2 \times \dots}`
+    denote the input array. For each non-``None`` constraint, the function asserts
+
+    .. math::
+
+        d_i = n_i
+
+    where :math:`n_i` is the expected size along axis :math:`i`.
+
+    This function performs **no reshaping or casting**; it is intended purely
+    as a defensive programming and validation tool, commonly used in numerical
+    pipelines, estimation routines, and control algorithms to guarantee
+    dimensional consistency.
+
+    If a requested axis does not exist (i.e., the array has insufficient
+    dimensions), or if the size does not match, an :class:`AssertionError`
+    is raised with a detailed diagnostic message.
+
+    :param arr: Input NumPy array whose shape is to be validated.
+    :type arr: numpy.ndarray
+    :param rows: Expected number of rows (size of axis 0). If ``None``, axis 0 is not checked.
+    :type rows: int or None
+    :param cols: Expected number of columns (size of axis 1). If ``None``, axis 1 is not checked.
+    :type cols: int or None
+    :param depth: Expected depth or channel count (size of axis 2). If ``None``, axis 2 is not checked.
+    :type depth: int or None
+    :return: ``None``. The function succeeds silently if all checks pass.
+    :rtype: None
+
     """
     shape = arr.shape
     ndim = arr.ndim

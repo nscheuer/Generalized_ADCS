@@ -1,7 +1,8 @@
+__all__ = ["animate_orbit_pyvista"]
+
 import os
 import warnings
 
-# --- 1. DRIVER FIXES ---
 os.environ["MESA_LOADER_DRIVER_OVERRIDE"] = "llvmpipe"
 os.environ["LIBGL_ALWAYS_SOFTWARE"] = "1"
 warnings.filterwarnings("ignore", category=UserWarning, module="matplotlib")
@@ -17,23 +18,91 @@ from scipy.spatial.transform import Slerp
 from scipy.interpolate import interp1d
 from typing import List, Optional
 
-# --- Custom Imports ---
 from ADCS.CONOPS.goals import Coordinate_Goal
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.universal_constants import EarthConstants
 
-# ==========================================
-#   CONFIGURATION
-# ==========================================
-# Adjust this angle to align the texture's Greenwich meridian 
-# to the Red ECEF X-axis.
-# For standard NASA textures, this is often -180 or -90.
 TEXTURE_ALIGNMENT_ANGLE = -180  
 THIS_DIR = Path(__file__).resolve().parent
 DEFAULT_TEXTURE_PATH = THIS_DIR / "textures" / "2k_earth_daymap.jpg"
 
 def get_rotation_from_vectors(vec1, vec2):
-    """ Returns a 3x3 rotation matrix that aligns vec1 to vec2. """
+    r"""
+    Compute a rotation matrix that aligns one vector with another.
+
+    This function computes a proper orthogonal rotation matrix
+    :math:`\mathbf{R} \in \mathbb{R}^{3\times3}` such that
+
+    .. math::
+
+        \mathbf{R}\,\hat{\mathbf{v}}_1 = \hat{\mathbf{v}}_2
+
+    where :math:`\hat{\mathbf{v}}_1` and :math:`\hat{\mathbf{v}}_2` are the
+    normalized versions of the input vectors ``vec1`` and ``vec2``,
+    respectively.
+
+    **Mathematical Formulation**
+
+    Let
+
+    .. math::
+
+        \hat{\mathbf{a}} = \frac{\mathbf{v}_1}{\|\mathbf{v}_1\|}, \qquad
+        \hat{\mathbf{b}} = \frac{\mathbf{v}_2}{\|\mathbf{v}_2\|}
+
+    Define the rotation axis and angle via
+
+    .. math::
+
+        \mathbf{v} = \hat{\mathbf{a}} \times \hat{\mathbf{b}}, \qquad
+        c = \hat{\mathbf{a}} \cdot \hat{\mathbf{b}}, \qquad
+        s = \|\mathbf{v}\|
+
+    The skew-symmetric cross-product matrix is
+
+    .. math::
+
+        [\mathbf{v}]_\times =
+        \begin{bmatrix}
+        0 & -v_z & v_y \\
+        v_z & 0 & -v_x \\
+        -v_y & v_x & 0
+        \end{bmatrix}
+
+    The resulting rotation matrix is given by Rodrigues' rotation formula:
+
+    .. math::
+
+        \mathbf{R} =
+        \mathbf{I}
+        + [\mathbf{v}]_\times
+        + [\mathbf{v}]_\times^2 \frac{1 - c}{s^2}
+
+    **Degenerate Cases**
+
+    * If either input vector has near-zero magnitude, the identity matrix
+      is returned.
+    * If the vectors are parallel (:math:`s \approx 0, c > 0`), the identity
+      matrix is returned.
+    * If the vectors are anti-parallel (:math:`s \approx 0, c < 0`), a
+      reflection matrix :math:`-\mathbf{I}` is returned.
+
+    :param vec1:
+        Initial vector to be rotated.
+    :type vec1:
+        numpy.ndarray
+
+    :param vec2:
+        Target vector after rotation.
+    :type vec2:
+        numpy.ndarray
+
+    :return:
+        Rotation matrix that aligns ``vec1`` with ``vec2``.
+    :rtype:
+        numpy.ndarray
+
+    """
     norm1 = np.linalg.norm(vec1)
     norm2 = np.linalg.norm(vec2)
     if norm1 < 1e-12 or norm2 < 1e-12:
@@ -61,12 +130,180 @@ def animate_orbit_pyvista(
     coord_goal: Optional[Coordinate_Goal] = None,
     texture_path: Optional[str | Path] = None
 ) -> None:
-    
-    print(f"Preprocessing: Interpolating data...")
+    r"""
+    Animate spacecraft orbital motion, attitude, and environment in a 3D Earth-centered scene.
 
-    # -----------------------------
-    # 2. INTERPOLATION
-    # -----------------------------
+    This function generates a real-time, interactive 3D visualization using
+    ``pyvista`` that depicts:
+
+    * Earth with a textured, rotating surface
+    * Spacecraft orbit trajectory
+    * Spacecraft body-frame axes derived from attitude quaternions
+    * Environmental vectors (Sun and magnetic field)
+    * Optional coordinate-based pointing goals fixed in the Earth-fixed frame
+
+    All physical quantities are rendered in the Earth-Centered Inertial (ECI)
+    frame, while Earth-fixed quantities are transformed from the Earth-Centered
+    Earth-Fixed (ECEF) frame using time-varying Earth rotation matrices.
+
+    **Reference Frames**
+
+    The visualization involves three principal frames:
+
+    +----------------+---------------------------------------------+
+    | Frame          | Description                                 |
+    +================+=============================================+
+    | ECI            | Inertial reference frame                    |
+    +----------------+---------------------------------------------+
+    | ECEF           | Earth-fixed rotating frame                  |
+    +----------------+---------------------------------------------+
+    | Body           | Spacecraft body-fixed frame                 |
+    +----------------+---------------------------------------------+
+
+    **Orbit and Attitude Interpolation**
+
+    To ensure smooth animation, all time histories are interpolated onto a
+    refined uniform time grid :math:`t_k`:
+
+    .. math::
+
+        t_k \in [t_0, t_f], \quad k = 1,\dots,N_\text{smooth}
+
+    Spacecraft position:
+
+    .. math::
+
+        \mathbf{r}_\text{ECI}(t) \in \mathbb{R}^3
+
+    Attitude quaternion:
+
+    .. math::
+
+        \mathbf{q}(t) =
+        \begin{bmatrix}
+        q_0 & q_1 & q_2 & q_3
+        \end{bmatrix}^T,
+        \qquad \|\mathbf{q}\| = 1
+
+    Quaternions are normalized after interpolation to preserve valid rotations.
+
+    **Earth Rotation**
+
+    The Earth rotation is represented by a time-varying rotation matrix
+    :math:`\mathbf{R}_{\text{ECEF}\rightarrow\text{ECI}}(t)` computed from
+    the orbital state objects via
+    :meth:`~ADCS.orbits.orbital_state.Orbital_State.ecef_to_eci`.
+
+    Smooth Earth rotation is achieved using spherical linear interpolation
+    (SLERP):
+
+    .. math::
+
+        \mathbf{R}(t) = \text{SLERP}\left(\mathbf{R}_i, \mathbf{R}_{i+1}, \alpha\right)
+
+    where :math:`\alpha \in [0,1]`.
+
+    **Attitude Visualization**
+
+    Spacecraft body axes are extracted from the quaternion-derived rotation
+    matrix:
+
+    .. math::
+
+        \mathbf{R}_{\mathcal{B}\rightarrow\mathcal{I}}(\mathbf{q})
+
+    with each column representing a body axis expressed in ECI:
+
+    .. math::
+
+        \hat{\mathbf{x}}_b, \hat{\mathbf{y}}_b, \hat{\mathbf{z}}_b
+
+    These axes are rendered as scaled arrows originating from the spacecraft
+    position.
+
+    **Environmental Vectors**
+
+    Environmental vectors are visualized as inertial unit vectors:
+
+    .. math::
+
+        \hat{\mathbf{S}} = \frac{\mathbf{S}}{\|\mathbf{S}\|}, \qquad
+        \hat{\mathbf{B}} = \frac{\mathbf{B}}{\|\mathbf{B}\|}
+
+    representing the Sun direction and magnetic field direction,
+    respectively.
+
+    **Coordinate Goal Visualization**
+
+    When a coordinate-based pointing goal is provided via
+    :class:`~ADCS.CONOPS.goals.Coordinate_Goal`, the target location is defined
+    in the ECEF frame and transformed into ECI using the Earth rotation matrix:
+
+    .. math::
+
+        \mathbf{r}_\text{goal}^\text{ECI}(t) =
+        \mathbf{R}_{\text{ECEF}\rightarrow\text{ECI}}(t)
+        \mathbf{r}_\text{goal}^\text{ECEF}
+
+    The goal remains fixed to Earth's surface while rotating with the planet.
+
+    **Rendering Notes**
+
+    * Earth texture alignment is corrected by rotating the mesh geometry
+      rather than modifying physics transforms.
+    * All actor transforms are applied via homogeneous transformation
+      matrices.
+
+    :param time_hist:
+        Time history corresponding to the provided state and orbital data.
+    :type time_hist:
+        numpy.ndarray
+
+    :param state_hist:
+        True spacecraft state history containing quaternion attitude in
+        columns ``[3:7]``.
+    :type state_hist:
+        numpy.ndarray
+
+    :param os_hist:
+        List of orbital state objects providing position, environmental
+        vectors, and Earth rotation information.
+    :type os_hist:
+        list of :class:`~ADCS.orbits.orbital_state.Orbital_State`
+
+    :param est_state_hist:
+        Optional estimated spacecraft state history.
+    :type est_state_hist:
+        numpy.ndarray or None
+
+    :param est_os_hist:
+        Optional estimated orbital state history.
+    :type est_os_hist:
+        list of :class:`~ADCS.orbits.orbital_state.Orbital_State` or None
+
+    :param boresight_goal_hist:
+        Optional inertial-frame boresight goal direction history.
+    :type boresight_goal_hist:
+        numpy.ndarray or None
+
+    :param coord_goal:
+        Optional Earth-fixed coordinate goal defining a surface target.
+    :type coord_goal:
+        :class:`~ADCS.CONOPS.goals.Coordinate_Goal` or None
+
+    :param texture_path:
+        Path to an Earth texture image. If not provided, a default or fallback
+        texture is used.
+    :type texture_path:
+        str or pathlib.Path or None
+
+    :return:
+        None. The function launches and controls an interactive visualization.
+    :rtype:
+        None
+
+    """
+
     original_N = len(time_hist)
     target_N = max(original_N * 4, 1000) 
     
@@ -116,18 +353,11 @@ def animate_orbit_pyvista(
     slerp = Slerp(t_orig, rot_obj)
     earth_rot_smooth = slerp(t_new)
 
-    # -----------------------------
-    # 3. SETUP PLOTTER
-    # -----------------------------
     pl = pv.Plotter(window_size=[1200, 900], lighting="three lights")
     pl.set_background('black')
     
-    # -----------------------------
-    # 4. EARTH ACTOR & TEXTURE FIX
-    # -----------------------------
     R_e = EarthConstants.R_e
     
-    # 1. Create Mesh
     earth_mesh = pv.Sphere(radius=R_e, theta_resolution=120, phi_resolution=120)
     
     # 2. Load Texture
@@ -148,25 +378,14 @@ def animate_orbit_pyvista(
         print(f"Texture load failed ({e}), using fallback Earth texture.")
         tex = examples.planets.download_earth_2k()
 
-    # 3. Map Texture
     earth_mesh.texture_map_to_sphere(inplace=True, prevent_seam=False)
-    
-    # --- CRITICAL FIX: ROTATE MESH GEOMETRY ---
-    # Rotate the mesh points around Z so that Greenwich aligns with ECEF X.
-    # We do this 'inplace' on the mesh data, so we don't need matrix math later.
+
     earth_mesh.rotate_z(TEXTURE_ALIGNMENT_ANGLE, inplace=True)
     
     earth_actor = pl.add_mesh(earth_mesh, texture=tex, smooth_shading=True, specular=0.2)
 
-    # -----------------------------
-    # DEBUG: ECEF REFERENCE AXES
-    # -----------------------------
-    # Red Arrow = ECEF X. This must stay fixed to Physics X.
     ref_scale = R_e * 1.5
 
-    # -----------------------------
-    # 5. OTHER ACTORS
-    # -----------------------------
     goal_actor = None
     if coord_goal is not None:
         goal_r = 0.1 * R_e
@@ -200,9 +419,6 @@ def animate_orbit_pyvista(
         'goal':   create_arrow_actor('cyan', opacity=0.5)
     }
 
-    # -----------------------------
-    # 6. ANIMATION LOOP
-    # -----------------------------
     pl.camera_position = 'iso'
     print("Starting Animation... Press 'q' to close.")
     pl.show(interactive_update=True)

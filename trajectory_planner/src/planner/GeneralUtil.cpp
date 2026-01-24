@@ -300,22 +300,59 @@ double shifted_swish(double val, double limit, double beta)
 
 double softplus(double val, double k)
 {
-  double res = log(1.0+exp(val*k))/k;
-  if(isinf(res)){ res = val;}
-  return res;
+  // Numerically stable softplus: log(1 + exp(x)) / k
+  // For CubeSat RWs with h ~ 0.001-0.05 Nms, we need stability for |val| up to ~0.1
+  // With k=1e6, exp(val*k) overflows for |val| > 7e-4
+  // Use asymptotic approximations to avoid overflow
+  double x = val * k;
+  if (x > 30.0) {
+    // For large positive x: log(1+exp(x)) ≈ x
+    return val;
+  } else if (x < -30.0) {
+    // For large negative x: log(1+exp(x)) ≈ exp(x) → 0
+    return 0.0;
+  }
+  return log(1.0 + exp(x)) / k;
 }
 
 double softplus_deriv(double val, double k)
 {
-  return 1.0/(1.0+exp(-val*k));
+  // Derivative of softplus is sigmoid: σ(x) = 1/(1+exp(-x))
+  // Numerically stable sigmoid: use different formulas for positive/negative x
+  double x = val * k;
+  if (x > 30.0) {
+    return 1.0;  // sigmoid → 1
+  } else if (x < -30.0) {
+    return 0.0;  // sigmoid → 0
+  }
+  // For |x| <= 30, standard formula is safe
+  if (x >= 0) {
+    double e = exp(-x);
+    return 1.0 / (1.0 + e);
+  } else {
+    double e = exp(x);
+    return e / (1.0 + e);
+  }
 }
 
 double softplus_deriv2(double val, double k)
 {
-  double evk = exp(val*k);
-  // if(isinf(evk)){return 0;}
-  return k*1.0/(2.0+evk+exp(-val*k));//pow(1+exp(val*k),2);
-
+  // Second derivative: σ'(x) * k = σ(x) * (1 - σ(x)) * k
+  // Peak value is k/4 at x=0, decays exponentially for |x| >> 0
+  double x = val * k;
+  if (x > 30.0 || x < -30.0) {
+    return 0.0;  // Exponentially small
+  }
+  // Compute sigmoid in numerically stable way
+  double sig;
+  if (x >= 0) {
+    double e = exp(-x);
+    sig = 1.0 / (1.0 + e);
+  } else {
+    double e = exp(x);
+    sig = e / (1.0 + e);
+  }
+  return k * sig * (1.0 - sig);
 }
 
 double shifted_softplus(double val, double limit, double k)
@@ -489,14 +526,18 @@ tuple<double, vec3,mat33> cost2angQ(vec4 q, vec3 s, vec3 e)
   e = normalise(e);
 
   mat::fixed<4,3> Wq = findWMat(q);
-  double zz = norm_dot(s,rotMat(q).t()*e);
+  vec3 r = rotMat(q).t()*e;
+  double zz = norm_dot(s,r);
+  vec3 c = cross(s, r);        // s × r
+  double sin_phi = sqrt(1.0 - zz*zz);
   // zz = min(max(zz,-1.0),1.0);
   double dphidz = 0.0;
   double ddphidzz = 0.0;
   if(abs(zz)<=acos_limitL){
     phi = acos(zz);
-    dphidz = -1.0/sqrt(1.0-zz*zz);
+    dphidz = -1.0/sin_phi;
     ddphidzz = -pow(1.0-zz*zz,-1.5)*zz;
+    
   }else{
     double interp_valH = 0.0;
     double d_interp_valH = 0.0;
@@ -538,7 +579,43 @@ tuple<double, vec3,mat33> cost2angQ(vec4 q, vec3 s, vec3 e)
   vec3 dzdq = (s.t()*dRTBdqQ(q,e)).t();
   mat33 ddzdqq = ddvTRTudqQ(q,s,e);
   dphi = dphidz*dzdq;
-  ddphi = ddphidzz*dzdq*dzdq.t() + dphidz*ddzdqq;
+
+
+  // Only C term is positive, others are negative (or A can be positive when z < 0)
+  // Use Taylor series approximations when sin_phi is small to avoid division by zero
+  double A, B, C;
+  if(abs(zz) <= acos_limitL) {
+    // Standard formulas - sin_phi is safely bounded away from zero
+    A = -2.0 * zz / pow(sin_phi, 3);
+    B = -1.0 / ((1.0 + zz) * sin_phi);  // always negative
+    C =  1.0 / ((1.0 - zz) * sin_phi);  // always positive
+  } else if(zz > 0) {
+    // Near zz = +1: use Taylor series with eps = 1-zz
+    // sin_phi ≈ sqrt(2*eps), so sin_phi^3 ≈ 2*sqrt(2)*eps^(3/2)
+    double eps = 1.0 - zz;
+    if(eps < 1e-15) eps = 1e-15;  // protect against exactly zz=1
+    double eps32 = pow(eps, 1.5);
+    double sqrt2 = sqrt(2.0);
+    A = -1.0 / (sqrt2 * eps32);  // Taylor: -2*zz/sin_phi^3 → -1/(sqrt(2)*eps^(3/2))
+    B = -1.0 / ((1.0 + zz) * sqrt(2.0 * eps));  // (1+zz) ≈ 2, sin_phi ≈ sqrt(2*eps)
+    C =  1.0 / (sqrt2 * eps32);  // Taylor: 1/((1-zz)*sin_phi) → 1/(sqrt(2)*eps^(3/2))
+  } else {
+    // Near zz = -1: use Taylor series with delta = 1+zz
+    // sin_phi ≈ sqrt(2*delta), so sin_phi^3 ≈ 2*sqrt(2)*delta^(3/2)
+    double delta = 1.0 + zz;
+    if(delta < 1e-15) delta = 1e-15;  // protect against exactly zz=-1
+    double delta32 = pow(delta, 1.5);
+    double sqrt2 = sqrt(2.0);
+    A =  1.0 / (sqrt2 * delta32);  // Taylor: -2*zz/sin_phi^3 → +1/(sqrt(2)*delta^(3/2)) since zz<0
+    B = -1.0 / (sqrt2 * delta32);  // Taylor: -1/((1+zz)*sin_phi) → -1/(sqrt(2)*delta^(3/2))
+    C =  1.0 / ((1.0 - zz) * sqrt(2.0 * delta));  // (1-zz) ≈ 2, sin_phi ≈ sqrt(2*delta)
+  }
+
+  vec3 sp = s + r;
+  vec3 sm = s - r;
+
+  // Clamp: keep only non-negative eigenvalue contributions
+  ddphi = max(A, 0.0) * c * c.t() + C * sm * sm.t();
 
   return std::make_tuple(phi,dphi,ddphi);
 

@@ -20,37 +20,69 @@ SMAD_rhovsalt: NDArray[np.float64] = np.array([
 
 class DensityModel:
     r"""
-    Represents a simple atmospheric density model for interpolating between
-    tabulated altitude–density pairs.
+    Simple atmospheric density interpolation model.
 
-    This class provides a lightweight empirical model for approximating
-    atmospheric density :math:`\rho(h)` as a function of altitude above
-    Earth’s surface. It performs 1D linear interpolation over a predefined
-    dataset of altitude and density values, such as those derived from
-    standard atmosphere models (e.g., *SMAD*).
+    This class implements a lightweight empirical atmospheric density model
+    based on tabulated altitude–density reference data. The density
+    :math:`\rho(h)` is obtained by one–dimensional linear interpolation
+    between known data points, making the model suitable for preliminary
+    orbital dynamics and drag analyses.
 
-    Attributes
-    ----------
-    altitude_range : ndarray of float
-        Array of reference altitude points :math:`h_i` [km].
-    rho_range : ndarray of float
-        Corresponding air density values :math:`\rho_i` [kg/m³].
+    The model is conceptually equivalent to a simplified version of standard
+    atmospheric models (e.g. SMAD – *Space Mission Analysis and Design*),
+    where density is assumed to be a deterministic and monotonically
+    decreasing function of altitude.
 
-    Notes
-    -----
-    The interpolation assumes a monotonic relationship between altitude and
-    density, i.e. :math:`\frac{d\rho}{dh} < 0`.  
-    It is suitable for use in orbital dynamics models and drag force
-    calculations of low-Earth orbit satellites:
+    Mathematical Model
+    ------------------
+    Given a discrete set of altitude–density pairs
 
     .. math::
 
-        F_D = \tfrac{1}{2} C_D A \rho(h) v^2
+        \{(h_i, \rho_i)\}_{i=0}^{N-1},
+
+    the density at an arbitrary altitude :math:`h` is computed via linear
+    interpolation:
+
+    .. math::
+
+        \rho(h) =
+        \rho_i +
+        \frac{\rho_{i+1} - \rho_i}{h_{i+1} - h_i}
+        \left(h - h_i\right),
+        \quad h_i \le h \le h_{i+1}.
+
+    This density model is commonly used in aerodynamic drag formulations:
+
+    .. math::
+
+        F_D = \frac{1}{2} C_D A \rho(h) v^2,
 
     where :math:`C_D` is the drag coefficient, :math:`A` is the reference area,
     and :math:`v` is the relative velocity magnitude.
-    """
 
+    :param altitude_range:
+        Reference altitude samples :math:`h_i` in kilometers (km).
+        Values must be non-negative and strictly ordered.
+    :type altitude_range: numpy.typing.NDArray[numpy.float64]
+
+    :param rho_range:
+        Atmospheric density samples :math:`\rho_i` in kg/m³ corresponding
+        to ``altitude_range``.
+        All values must be strictly positive.
+    :type rho_range: numpy.typing.NDArray[numpy.float64]
+
+    :raises ValueError:
+        If the altitude and density arrays have mismatched shapes,
+        contain negative altitudes, or contain non-positive density values.
+
+    .. note::
+
+        This model does **not** account for temporal, solar, geomagnetic,
+        or latitudinal variations in atmospheric density. It is intended
+        for simplified analyses and educational use.
+
+    """
 
     def __init__(
         self,
@@ -58,27 +90,27 @@ class DensityModel:
         rho_range: NDArray[np.float64] = SMAD_rhovsalt,
     ) -> None:
         r"""
-        Initialize the atmospheric density model with altitude–density data.
+        Initialize the atmospheric density model.
 
-        Parameters
-        ----------
-        altitude_range : ndarray of float, optional
-            Array of altitude values :math:`h_i` in **kilometers (km)**.
-            Must be strictly non-negative and of the same length as `rho_range`.
-        rho_range : ndarray of float, optional
-            Corresponding atmospheric density values :math:`\rho_i` in **kg/m³**.
-            Must be strictly positive and match the shape of `altitude_range`.
+        This constructor stores and validates the altitude–density reference
+        data used by the interpolation model. The provided arrays define the
+        discrete function :math:`\rho(h)` that is interpolated by
+        :meth:`~ADCS.etc.DensityModel.interpolate`.
 
-        Raises
-        ------
-        ValueError
-            If `altitude_range` and `rho_range` have mismatched shapes,
-            contain negative altitudes, or non-positive density values.
+        :param altitude_range:
+            Array of reference altitudes :math:`h_i` in kilometers (km).
+            Must be non-negative and have the same shape as ``rho_range``.
+        :type altitude_range: numpy.typing.NDArray[numpy.float64]
 
-        Notes
-        -----
-        The model represents a simple 1D interpolation curve :math:`\rho(h)`
-        using tabulated reference data, such as from *SMAD* (Space Mission Analysis and Design).
+        :param rho_range:
+            Array of atmospheric densities :math:`\rho_i` in kg/m³.
+            Must be strictly positive and match ``altitude_range`` in size.
+        :type rho_range: numpy.typing.NDArray[numpy.float64]
+
+        :raises ValueError:
+            If array shapes do not match, altitudes are negative,
+            or densities are non-positive.
+
         """
 
         # Store references (or copies if you prefer)
@@ -95,45 +127,50 @@ class DensityModel:
 
     def interpolate(self, altitude_km: float) -> float:
         r"""
-        Interpolate and return the atmospheric density at a given altitude.
+        Interpolate atmospheric density at a given altitude.
 
-        Parameters
-        ----------
-        altitude_km : float
-            Altitude above Earth's mean radius [km].
+        This method evaluates the atmospheric density :math:`\rho(h)` at a
+        specified altitude using linear interpolation over the stored
+        reference data.
 
-        Returns
-        -------
-        float
-            Interpolated atmospheric density :math:`\rho(h)` [kg/m³].
-
-        Notes
-        -----
-        The interpolation is performed linearly in altitude–density space:
+        Mathematically, for an altitude :math:`h` between two reference points
+        :math:`h_i` and :math:`h_{i+1}`, the density is given by
 
         .. math::
 
-            \rho(h) = \rho_i + \frac{(\rho_{i+1} - \rho_i)}{(h_{i+1} - h_i)} (h - h_i)
+            \rho(h) =
+            \rho_i +
+            \frac{\rho_{i+1} - \rho_i}{h_{i+1} - h_i}
+            (h - h_i).
 
-        where :math:`(h_i, \rho_i)` are tabulated reference points.
+        If :math:`h` lies outside the reference range, the boundary density
+        values are returned (constant extrapolation).
+
+        :param altitude_km:
+            Altitude above Earth’s mean radius in kilometers (km).
+        :type altitude_km: float
+
+        :return:
+            Interpolated atmospheric density :math:`\rho(h)` in kg/m³.
+        :rtype: float
+
         """
 
         return float(np.interp(altitude_km, self.altitude_range, self.rho_range))
 
     def __repr__(self) -> str:
         r"""
-        Return a concise string representation of the model.
+        Return a concise string representation of the density model.
 
-        Returns
-        -------
-        str
-            String summary showing the number of altitude–density samples, e.g.:
+        The representation reports only the number of reference
+        altitude–density samples stored in the model, making it suitable
+        for debugging and logging without exposing large numerical arrays.
 
-            ``'DensityModel(n=50)'``
+        :return:
+            Human-readable summary string of the form
+            ``DensityModel(n=<number_of_samples>)``.
+        :rtype: str
 
-        Notes
-        -----
-        Intended for debugging and logging. Does not display array contents.
         """
 
         return f"DensityModel(n={len(self.altitude_range)})"

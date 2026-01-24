@@ -20,61 +20,158 @@ from ADCS.helpers.math_helpers import rot_mat, skewsym, limit
 
 class MTQ_w_RW_QPC(MTQ_w_RW_LP):
     r"""
-    MTQ_w_RW_QPC
-    ============
+    Constrained Quadratic–Programming Torque Allocation for Mixed RW–MTQ ADCS.
 
-    Constrained Quadratic–Programming Torque Allocation
-    ---------------------------------------------------
+    This controller performs constrained torque allocation for a spacecraft equipped with
+    reaction wheels (RWs) and magnetorquers (MTQs). It extends the bounded least-squares
+    allocation idea by enforcing an additional Lyapunov-style instantaneous power constraint
+    that prevents the allocator from producing torque that increases rotational kinetic energy
+    when the higher-level control law intends to dissipate it.
 
-    This controller implements a **Constrained Least Squares (CLS)** allocation scheme.
-    It extends the standard QP formulation by enforcing an additional **Lyapunov-based stability constraint** on the instantaneous power delivered to the system.
+    The class inherits from :class:`~ADCS.controller.MTQ_w_RW_LP` and uses a constrained
+    least-squares formulation solved with :meth:`scipy.optimize.minimize` using the SLSQP
+    algorithm. If the constrained optimizer fails, it falls back to a geometry-aware scaling
+    Linear Program implemented in :meth:`~ADCS.controller.MTQ_w_RW_QPC.solve_lp_scaling`.
 
-    In underactuated systems (like magnetic ADCS), a standard Least Squares allocator can sometimes produce a torque vector that minimizes the geometric error but has a component in the "wrong" direction relative to the spacecraft's rotation. This can inadvertently add kinetic energy to the system when the desired control law intended to remove it (damping).
+    Combined Actuator Torque Model
+    -------------------------------
 
-    **This controller strictly forbids such destabilizing allocations.**
-
-    
-
-    Key Features:
-
-    - **Stability Guarantee:** Enforces :math:`\dot{V}_{\mathrm{ach}} \le \dot{V}_{\mathrm{des}}` (roughly) to ensure the allocator never "fights" the high-level control law's energy intent.
-    - **Optimization Objective:** Minimizes :math:`\|\boldsymbol{\tau}_{\mathrm{des}} - \boldsymbol{\tau}_{\mathrm{ach}}\|^2` subject to the stability constraint.
-    - **Safe Degradation:** If the desired torque is physically impossible without violating stability (e.g., due to B-field alignment), the controller sacrifices tracking accuracy to maintain stability.
-
-    Optimization Problem
-    --------------------
-
-    **Objective Function:**
-    
-    .. math::
-
-        \min_{\boldsymbol{u}} \quad \frac{1}{2} \| A_{\mathrm{tot}} \boldsymbol{u} - \boldsymbol{\tau}_{\mathrm{des}} \|_2^2
-
-    **Standard Constraints:**
-    
-    .. math::
-
-        -u_{i,\max} \le u_i \le u_{i,\max}
-
-    **Stability Constraint (The "Energy Gate"):**
-    
-    Let :math:`P = \boldsymbol{\omega} \cdot \boldsymbol{\tau}` be the mechanical power. The controller enforces:
+    Let the desired body torque be :math:`\boldsymbol{\tau}_{\mathrm{des}} \in \mathbb{R}^3`.
+    Define the stacked command vector
 
     .. math::
 
-        \boldsymbol{\omega}^T (A_{\mathrm{tot}} \boldsymbol{u}) \le \max(0, \boldsymbol{\omega}^T \boldsymbol{\tau}_{\mathrm{des}})
+        \boldsymbol{u}
+        =
+        \begin{bmatrix}
+        \boldsymbol{u}_{\mathrm{rw}} \\
+        \boldsymbol{u}_{\mathrm{mtq}}
+        \end{bmatrix}
+        \in \mathbb{R}^{n_{\mathrm{rw}} + n_{\mathrm{mtq}}}.
 
-    - **Damping Case:** If the control law wants to spin down (:math:`\boldsymbol{\omega}^T \boldsymbol{\tau}_{\mathrm{des}} < 0`), the allocator is **forced** to produce a net torque that dissipates energy (or is at least neutral). It cannot produce a "best fit" torque that accidentally spins the satellite up.
-    - **Slew Case:** If the control law wants to add energy (:math:`\boldsymbol{\omega}^T \boldsymbol{\tau}_{\mathrm{des}} > 0`), the constraint is relaxed, allowing the allocator to track the reference normally.
+    Reaction wheel torque is generated along wheel axes stacked in
+    :math:`A_{\mathrm{rw}} \in \mathbb{R}^{3 \times n_{\mathrm{rw}}}`:
 
-    Solver Implementation
-    ^^^^^^^^^^^^^^^^^^^^^
-    
-    This problem is solved using `scipy.optimize.minimize(method='SLSQP')` to handle the linear inequality constraints involving the state vector :math:`\boldsymbol{\omega}`. 
-    
-    If the solver fails to find a feasible solution (rare), it gracefully falls back to the geometry-aware Linear Program (LP) solution to ensure a safe, scaled command is always available.
+    .. math::
+
+        \boldsymbol{\tau}_{\mathrm{rw}} = A_{\mathrm{rw}} \boldsymbol{u}_{\mathrm{rw}}.
+
+    Magnetorquer torque is produced from the commanded dipole moment and geomagnetic field
+    :math:`\boldsymbol{B}`:
+
+    .. math::
+
+        \boldsymbol{\tau}_{\mathrm{mtq}}
+        =
+        \boldsymbol{m} \times \boldsymbol{B}
+        =
+        -[\boldsymbol{B}]_{\times}\boldsymbol{m}
+        =
+        \left(-[\boldsymbol{B}]_{\times} A_{\mathrm{mtq}}\right)\boldsymbol{u}_{\mathrm{mtq}}.
+
+    The combined mapping is
+
+    .. math::
+
+        A_{\mathrm{tot}}
+        =
+        \begin{bmatrix}
+        A_{\mathrm{rw}} & -[\boldsymbol{B}]_{\times} A_{\mathrm{mtq}}
+        \end{bmatrix},
+        \qquad
+        \boldsymbol{\tau}_{\mathrm{ach}} = A_{\mathrm{tot}} \boldsymbol{u}.
+
+    Constrained Least Squares Objective
+    ------------------------------------
+
+    The allocator seeks the command vector that minimizes torque tracking error while obeying
+    actuator saturations:
+
+    .. math::
+
+        \min_{\boldsymbol{u}}
+        \;\frac{1}{2}\left\|A_{\mathrm{tot}}\boldsymbol{u}-\boldsymbol{\tau}_{\mathrm{des}}\right\|_2^2
+
+    subject to box bounds
+
+    .. math::
+
+        -u_{i,\max} \le u_i \le u_{i,\max}, \qquad \forall i.
+
+    Energy Gate Constraint
+    -----------------------
+
+    Let :math:`\boldsymbol{\omega}` be the body angular velocity. The instantaneous mechanical
+    power delivered by a control torque :math:`\boldsymbol{\tau}` is
+
+    .. math::
+
+        P = \boldsymbol{\omega}^{\mathsf{T}}\boldsymbol{\tau}.
+
+    This controller enforces a linear inequality constraint on the achieved torque to prevent
+    destabilizing allocations when the requested torque implies damping:
+
+    .. math::
+
+        \boldsymbol{\omega}^{\mathsf{T}}\left(A_{\mathrm{tot}}\boldsymbol{u}\right)
+        \le
+        \max\!\left(0,\boldsymbol{\omega}^{\mathsf{T}}\boldsymbol{\tau}_{\mathrm{des}}\right).
+
+    When :math:`\boldsymbol{\omega}^{\mathsf{T}}\boldsymbol{\tau}_{\mathrm{des}} < 0`, the
+    constraint forbids achieved torque that injects energy (:math:`P>0`). When
+    :math:`\boldsymbol{\omega}^{\mathsf{T}}\boldsymbol{\tau}_{\mathrm{des}} \ge 0`, the gate is
+    non-restrictive and the allocator can focus on tracking accuracy.
+
+    Post-hoc Effectiveness Metric
+    ------------------------------
+
+    After computing :math:`\boldsymbol{u}^*`, the achieved torque
+    :math:`\boldsymbol{\tau}_{\mathrm{ach}} = A_{\mathrm{tot}}\boldsymbol{u}^*` is projected onto
+    the desired direction to compute a scalar effectiveness:
+
+    .. math::
+
+        \hat{\boldsymbol{\tau}} = \frac{\boldsymbol{\tau}_{\mathrm{des}}}{\|\boldsymbol{\tau}_{\mathrm{des}}\|},
+        \qquad
+        \alpha = \max\!\left(0,\frac{\boldsymbol{\tau}_{\mathrm{ach}}\cdot\hat{\boldsymbol{\tau}}}
+        {\|\boldsymbol{\tau}_{\mathrm{des}}\|}\right).
+
+    :param est_sat: Estimated satellite model providing actuator instances and configuration.
+    :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+    :param p_gain: Proportional gain used by the parent controller law.
+    :type p_gain: float
+    :param d_gain: Derivative gain used by the parent controller law.
+    :type d_gain: float
+    :param c_gain: Additional control gain used by the parent controller law.
+    :type c_gain: float
+    :param h_target: Target wheel momentum vector used by the parent mixed-actuation controller.
+    :type h_target: numpy.ndarray | list
+
     """
     def __init__(self, est_sat: EstimatedSatellite, p_gain: float, d_gain: float, c_gain: float, h_target: np.ndarray | list = np.zeros(3)) -> None:
+        r"""
+        Initialize the constrained QP torque allocator.
+
+        The initializer delegates to :class:`~ADCS.controller.MTQ_w_RW_LP` to construct actuator
+        bookkeeping such as axis matrices, maximum command limits, and sensor projection matrices.
+        The allocation behavior is implemented in
+        :meth:`~ADCS.controller.MTQ_w_RW_QPC.allocate_max_torque_in_direction` and invoked from
+        :meth:`~ADCS.controller.MTQ_w_RW_QPC.find_u`.
+
+        :param est_sat: Estimated satellite model providing actuators and configuration.
+        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+        :param p_gain: Proportional gain used by the parent control law.
+        :type p_gain: float
+        :param d_gain: Derivative gain used by the parent control law.
+        :type d_gain: float
+        :param c_gain: Additional gain used by the parent control law.
+        :type c_gain: float
+        :param h_target: Target wheel momentum vector used for momentum management.
+        :type h_target: numpy.ndarray | list
+        :return: None.
+        :rtype: NoneType
+
+        """
         super().__init__(est_sat=est_sat, p_gain=p_gain, d_gain=d_gain, c_gain=c_gain, h_target=h_target)
 
     def find_u(
@@ -85,6 +182,52 @@ class MTQ_w_RW_QPC(MTQ_w_RW_LP):
         os_hat: Orbital_State,
         goal: Goal | None = None,
     ) -> tuple[np.ndarray, np.ndarray | None]:
+        r"""
+        Compute actuator commands for either detumble or goal-tracking operation.
+
+        This method computes a commanded actuator vector based on the estimated state, sensor
+        measurements, and an optional pointing goal.
+
+        When ``goal`` is :class:`~ADCS.CONOPS.goals.No_Goal`, the controller performs a detumble
+        and momentum-management style behavior:
+        
+        - The body angular rate is damped in the MTQ-achievable plane perpendicular to the
+          geomagnetic field.
+        - A momentum dumping torque is computed from the error between current wheel momentum
+          and ``h_target`` and is also projected into the MTQ-achievable plane.
+        - MTQ commands are computed and scaled to respect saturation. A scalar scaling
+          :math:`\alpha_{\mathrm{mtq}}` is derived from MTQ saturation.
+        - RW commands are scaled by :math:`\alpha_{\mathrm{mtq}}` to avoid net body spin-up when
+          MTQs cannot supply the intended damping or dumping torque.
+
+        When ``goal`` is not :class:`~ADCS.CONOPS.goals.No_Goal`, the controller computes a PD-style
+        desired torque using pointing error and rate error derived from the goal reference
+        generated by :meth:`~ADCS.CONOPS.goals.Goal.to_ref`. It adds the gyroscopic torque term
+        :math:`\boldsymbol{\tau}_{\mathrm{gyro}} = \boldsymbol{\omega} \times (J\boldsymbol{\omega} + \boldsymbol{h})`
+        and then calls
+        :meth:`~ADCS.controller.MTQ_w_RW_QPC.allocate_max_torque_in_direction` to allocate the
+        requested torque under actuator bounds and the energy gate constraint.
+
+        Returned torque is the internally formed desired body torque for the goal-tracking branch
+        and is not defined for the detumble branch in this implementation.
+
+        :param x_hat: Estimated state vector containing angular rate, attitude quaternion, and
+                      optionally wheel momentum states.
+        :type x_hat: numpy.ndarray
+        :param sens: Sensor measurement vector used to estimate body magnetic field through the
+                     MTM readout model.
+        :type sens: numpy.ndarray
+        :param est_sat: Estimated satellite model providing actuators, inertia, and boresight.
+        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+        :param os_hat: Estimated orbital state used by goal reference generation and error models.
+        :type os_hat: :class:`~ADCS.orbits.orbital_state.Orbital_State`
+        :param goal: Optional goal object providing desired pointing and reference rates.
+        :type goal: :class:`~ADCS.CONOPS.goals.Goal` | None
+        :return: Tuple of commanded actuator vector and the desired torque used for allocation in
+                 the goal-tracking branch.
+        :rtype: tuple[numpy.ndarray, numpy.ndarray | None]
+
+        """
         if goal is None:
             goal = No_Goal()
 
@@ -223,6 +366,74 @@ class MTQ_w_RW_QPC(MTQ_w_RW_LP):
         return u_out, tau_des
 
     def allocate_max_torque_in_direction(self, tau_des: np.ndarray, b_body: np.ndarray, est_sat: EstimatedSatellite, omega: np.ndarray, h: np.ndarray) -> tuple[np.ndarray, np.ndarray, float]:
+        r"""
+        Allocate bounded RW and MTQ commands with a linear power constraint.
+
+        This method constructs the combined actuator mapping
+
+        .. math::
+
+            A_{\mathrm{tot}}
+            =
+            \begin{bmatrix}
+            A_{\mathrm{rw}} & -[\boldsymbol{B}]_{\times} A_{\mathrm{mtq}}
+            \end{bmatrix}
+
+        from actuator axes contained in
+        :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`, using
+        :class:`~ADCS.satellite_hardware.actuators.RW` and
+        :class:`~ADCS.satellite_hardware.actuators.MTQ`.
+
+        It then solves a constrained least-squares problem
+
+        .. math::
+
+            \min_{\boldsymbol{u}}
+            \;\frac{1}{2}\left\|A_{\mathrm{tot}}\boldsymbol{u}-\boldsymbol{\tau}_{\mathrm{des}}\right\|_2^2
+
+        subject to actuator saturation bounds
+
+        .. math::
+
+            -u_{i,\max} \le u_i \le u_{i,\max}, \qquad \forall i,
+
+        and an instantaneous power gate
+
+        .. math::
+
+            \boldsymbol{\omega}^{\mathsf{T}}\left(A_{\mathrm{tot}}\boldsymbol{u}\right)
+            \le
+            \max\!\left(0,\boldsymbol{\omega}^{\mathsf{T}}\boldsymbol{\tau}_{\mathrm{des}}\right).
+
+        The optimizer is implemented via :meth:`scipy.optimize.minimize` with method ``SLSQP``.
+        If the constrained solve fails, the method falls back to a scaled LP feasibility solve
+        using :meth:`~ADCS.controller.MTQ_w_RW_QPC.solve_lp_scaling`.
+
+        After solving, it computes an effectiveness scalar
+
+        .. math::
+
+            \hat{\boldsymbol{\tau}} = \frac{\boldsymbol{\tau}_{\mathrm{des}}}{\|\boldsymbol{\tau}_{\mathrm{des}}\|},
+            \qquad
+            \alpha = \max\!\left(0,\frac{(A_{\mathrm{tot}}\boldsymbol{u}^*)\cdot\hat{\boldsymbol{\tau}}}
+            {\|\boldsymbol{\tau}_{\mathrm{des}}\|}\right),
+
+        and returns separated RW and MTQ command vectors.
+
+        :param tau_des: Desired body-frame torque vector :math:`\boldsymbol{\tau}_{\mathrm{des}}` in N·m.
+        :type tau_des: numpy.ndarray
+        :param b_body: Body-frame geomagnetic field vector :math:`\boldsymbol{B}` in tesla.
+        :type b_body: numpy.ndarray
+        :param est_sat: Estimated satellite model providing actuator instances and limits.
+        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+        :param omega: Body angular velocity vector :math:`\boldsymbol{\omega}` in rad/s used by the power constraint.
+        :type omega: numpy.ndarray
+        :param h: Wheel momentum state vector used by the allocator state-dependent constraint terms.
+        :type h: numpy.ndarray
+        :return: Tuple of RW commands, MTQ commands, and effectiveness scalar :math:`\alpha`.
+        :rtype: tuple[numpy.ndarray, numpy.ndarray, float]
+
+        """
         tau_des = np.asarray(tau_des, float).reshape(3,)
         t_mag = np.linalg.norm(tau_des)
         if t_mag < 1e-9:
@@ -278,14 +489,6 @@ class MTQ_w_RW_QPC(MTQ_w_RW_LP):
         taudes_dot_omega = np.dot(omega,tau_des)
         
         SCALE = 1e9
-
-
-        
-        # # Step 1: Get LP baseline
-        # tau_lp, lambda_star, u_lp = self.solve_lp_scaling(tau_des*SCALE, A_total, lb*SCALE, ub*SCALE)
-        # energy_lp = np.dot(omega, tau_lp/SCALE)
-        # # print(f"lambda*={lambda_star:.4f}, energy_lp={energy_lp:.6e}, ||tau_lp||={np.linalg.norm(tau_lp/SCALE):.6e}, ||tau_des||={np.linalg.norm(tau_des):.6e}")
-        
             
         def fun(u):
             r = A_total @ u - tau_des*SCALE
@@ -443,9 +646,59 @@ class MTQ_w_RW_QPC(MTQ_w_RW_LP):
         
         
     def solve_lp_scaling(self, tau_des, A_total, lb, ub):
-        """
-        Find max λ such that λ*τ_des is achievable.
-        Returns (τ_lp, λ_star, u_lp)
+        r"""
+        Compute the maximum feasible scaling of a desired torque direction under box bounds.
+
+        This method solves a linear program that finds the largest scalar
+        :math:`T_{\mathrm{available}} \ge 0` such that a torque of magnitude
+        :math:`T_{\mathrm{available}}` can be generated along the unit direction
+        :math:`\hat{\boldsymbol{\tau}}` of the desired torque.
+
+        Let
+
+        .. math::
+
+            \hat{\boldsymbol{\tau}} =
+            \frac{\boldsymbol{\tau}_{\mathrm{des}}}{\|\boldsymbol{\tau}_{\mathrm{des}}\|}.
+
+        The LP introduces decision variables :math:`\boldsymbol{u}` and
+        :math:`T_{\mathrm{available}}` and enforces
+
+        .. math::
+
+            A_{\mathrm{tot}}\boldsymbol{u} = T_{\mathrm{available}}\hat{\boldsymbol{\tau}}.
+
+        The objective maximizes :math:`T_{\mathrm{available}}`:
+
+        .. math::
+
+            \max_{\boldsymbol{u},\,T_{\mathrm{available}}}\; T_{\mathrm{available}}
+
+        subject to the actuator bounds
+
+        .. math::
+
+            \boldsymbol{\ell} \le \boldsymbol{u} \le \boldsymbol{u},
+
+        where :math:`\boldsymbol{\ell}` and :math:`\boldsymbol{u}` are provided as ``lb`` and ``ub``.
+
+        If :math:`T_{\mathrm{available}}` exceeds the requested torque magnitude, the solution is
+        scaled down to return a command that exactly achieves :math:`\boldsymbol{\tau}_{\mathrm{des}}`
+        while preserving direction.
+
+        The solver is implemented via :meth:`scipy.optimize.linprog` using the ``highs`` backend.
+
+        :param tau_des: Desired torque vector used to define :math:`\hat{\boldsymbol{\tau}}`.
+        :type tau_des: numpy.ndarray
+        :param A_total: Combined actuator influence matrix :math:`A_{\mathrm{tot}}`.
+        :type A_total: numpy.ndarray
+        :param lb: Lower bounds for actuator commands.
+        :type lb: numpy.ndarray
+        :param ub: Upper bounds for actuator commands.
+        :type ub: numpy.ndarray
+        :return: Tuple containing the achievable torque vector, the scaling factor, and the actuator command vector.
+        :rtype: tuple[numpy.ndarray, float, numpy.ndarray]
+
         """
         t_mag = np.linalg.norm(tau_des)
         if t_mag < 1e-12:

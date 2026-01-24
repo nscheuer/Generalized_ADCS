@@ -14,22 +14,136 @@ def animate_attitude(
     os_hist: Optional[List] = None,
     boresight_goal_hist: Optional[np.ndarray] = None
 ) -> None:
-    """
-    3D animation of body axes, magnetic field vector, sun vector, and goal vector.
+    r"""
+    Animate spacecraft attitude, estimated attitude, environment vectors, and boresight goals in 3D.
 
-    Parameters
-    ----------
-    time : np.ndarray
-        1D array of time stamps [s].
-    state_hist : np.ndarray, optional
-        True state history including quaternions (cols 3-7), shape (N, >7).
-    est_state_hist : np.ndarray, optional
-        Estimated state history including quaternions (cols 3-7), shape (N, >7).
-    os_hist : List, optional
-        List of orbit/spacecraft state objects.
-    boresight_goal_hist : np.ndarray, optional
-        History of the target boresight vector in ECI frame. Shape (N, 3).
-        Plotted as a dotted line.
+    This function produces a real-time 3D animation in the Earth-Centered Inertial (ECI) frame,
+    visualizing spacecraft body axes derived from quaternion attitude states, along with optional
+    estimated attitudes, environmental vectors (magnetic field and Sun direction), and a desired
+    boresight pointing direction.
+
+    The animation is driven by a discrete time history and uses quaternion-to-rotation-matrix
+    conversion to map body-frame basis vectors into the inertial frame.
+
+    **Reference Frames**
+
+    * Body frame :math:`\mathcal{B}` with orthonormal axes
+      :math:`\{\hat{\mathbf{b}}_x, \hat{\mathbf{b}}_y, \hat{\mathbf{b}}_z\}`
+    * Inertial frame :math:`\mathcal{I}` (ECI)
+
+    **Quaternion Kinematics**
+
+    Let the attitude quaternion be
+
+    .. math::
+
+        \mathbf{q} =
+        \begin{bmatrix}
+        q_0 & q_1 & q_2 & q_3
+        \end{bmatrix}^T
+
+    where :math:`q_0` is the scalar part. The corresponding direction cosine matrix
+    :math:`\mathbf{R} \in \mathbb{R}^{3 \times 3}` mapping body-frame vectors into ECI is computed
+    via :func:`~ADCS.helpers.math_helpers.rot_mat` such that
+
+    .. math::
+
+        \mathbf{v}_{\mathcal{I}} = \mathbf{R}(\mathbf{q}) \, \mathbf{v}_{\mathcal{B}}
+
+    The body axes are defined as the identity basis
+
+    .. math::
+
+        \mathbf{B} =
+        \begin{bmatrix}
+        1 & 0 & 0 \\
+        0 & 1 & 0 \\
+        0 & 0 & 1
+        \end{bmatrix}
+
+    and the inertial representation of each axis at time step :math:`i` is
+
+    .. math::
+
+        \mathbf{A}_i = \mathbf{R}(\mathbf{q}_i)\,\mathbf{B}
+
+    where column :math:`k` of :math:`\mathbf{A}_i` corresponds to the inertial direction of the
+    :math:`k`-th body axis.
+
+    **Estimated vs. True Attitude**
+
+    If both true and estimated state histories are provided, the animation simultaneously displays
+
+    * True body axes (solid lines)
+    * Estimated body axes (dashed lines)
+
+    allowing visual assessment of attitude estimation error over time.
+
+    **Environmental Vectors**
+
+    When orbital state history objects are supplied, the following normalized inertial vectors
+    are rendered as arrows originating at the origin:
+
+    * Magnetic field vector :math:`\hat{\mathbf{B}} = \mathbf{B}/\|\mathbf{B}\|`
+    * Sun direction vector :math:`\hat{\mathbf{S}} = \mathbf{S}/\|\mathbf{S}\|`
+
+    If eclipse information is available via ``is_sunlit()``, the Sun vector is suppressed during
+    eclipse intervals.
+
+    **Boresight Goal Vector**
+
+    If a boresight goal history is provided, the desired pointing direction
+
+    .. math::
+
+        \hat{\mathbf{g}}_i = \frac{\mathbf{g}_i}{\|\mathbf{g}_i\|}
+
+    is plotted as a dotted line in the inertial frame for each time step :math:`i`.
+
+    **User Interaction**
+
+    The animation includes interactive controls:
+
+    * Pause / play toggle
+    * Playback speed scaling :math:`\{0.25\times, 0.5\times, 1\times, 2\times, 4\times\}`
+
+    These controls do not alter the underlying data, only the visualization rate.
+
+    :param time:
+        One-dimensional array of monotonically increasing time stamps in seconds.
+    :type time:
+        numpy.ndarray
+
+    :param state_hist:
+        True spacecraft state history. Quaternion attitude must be stored in columns
+        ``[3:7]`` as :math:`(q_0, q_1, q_2, q_3)`.
+    :type state_hist:
+        numpy.ndarray or None
+
+    :param est_state_hist:
+        Estimated spacecraft state history with quaternion attitude stored in columns
+        ``[3:7]``.
+    :type est_state_hist:
+        numpy.ndarray or None
+
+    :param os_hist:
+        List of orbital or spacecraft state objects providing environmental vectors.
+        Each object may expose attributes ``B`` (magnetic field), ``S`` (Sun vector),
+        and a method ``is_sunlit()``.
+    :type os_hist:
+        list or None
+
+    :param boresight_goal_hist:
+        Time history of desired boresight vectors expressed in the ECI frame.
+        Each row corresponds to a single time step.
+    :type boresight_goal_hist:
+        numpy.ndarray or None
+
+    :return:
+        None. The function creates and displays a Matplotlib animation.
+    :rtype:
+        None
+
     """
     fig = plt.figure(figsize=(9, 9))
     ax = fig.add_subplot(111, projection="3d")

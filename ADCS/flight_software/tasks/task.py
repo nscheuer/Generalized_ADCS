@@ -4,22 +4,42 @@ from typing import Callable
 
 
 class Task:
-    """
+    r"""
     Periodic task definition for a time-triggered single-core scheduler.
 
-    This class represents a cooperative, non-preemptive task that executes
-    periodically according to a fixed rate and consumes a fixed amount of
-    CPU time equal to its Worst-Case Execution Time (WCET).
+    This class models a **cooperative, non-preemptive, periodic task** intended
+    to be executed by a time-triggered scheduler such as
+    :class:`~ADCS.flight_software.schedulers.ttc_single_core.TTC_Single_Core`.
 
-    The scheduler assumes that:
-    - If a task executes, it consumes exactly ``wcet`` seconds of CPU time
-    - If insufficient budget is available, the task is skipped
-    - Tasks do not overrun their WCET (overruns are modeled at a higher level)
+    Each task is characterized by:
 
-    This deterministic model is suitable for:
-    - Unit testing
-    - Schedulability analysis
-    - TTC flight software simulations
+    * A fixed execution period :math:`T`
+    * A fixed worst-case execution time (WCET) :math:`C`
+    * A static priority
+    * A callback function representing the task body
+
+    The execution period is derived from the configured rate:
+
+    .. math::
+
+        T = \frac{1}{f}
+
+    where :math:`f` is the task rate in Hertz.
+
+    Scheduling and execution assumptions:
+
+    * Tasks are **non-preemptive**
+    * If a task executes, it consumes exactly its WCET
+    * If insufficient CPU budget exists, the task is skipped
+    * WCET overruns are not modeled at this level
+    * Task releases are consumed only upon execution
+
+    This abstraction is designed for:
+
+    * Deterministic schedulability analysis
+    * TTC (Time-Triggered Cooperative) flight software
+    * Offline simulation and testing
+
     """
 
     def __init__(
@@ -31,37 +51,60 @@ class Task:
         priority: int,
         enabled: bool = True,
     ) -> None:
-        """
-        Initialize a periodic task.
+        r"""
+        Initialize a periodic task definition.
 
-        Parameters
-        ----------
-        name : str
+        This constructor defines all static properties of the task. Dynamic
+        scheduling state (such as next release time and execution count) is
+        initialized to default values and maintained by the scheduler.
+
+        The task execution period is computed as:
+
+        .. math::
+
+            T = \frac{1}{\text{rate\_hz}}
+
+        The scheduler charges the WCET to the CPU budget **only if the task runs**.
+
+        :param name:
             Human-readable task name.
+        :type name: str
 
-        callback : Callable
+        :param callback:
             Function executed when the task runs.
-            Signature: ``callback(t_fsw: float, memory: dict)``.
 
-        rate_hz : float
+            The callback must have the signature:
+
+            .. code-block:: python
+
+                callback(t_fsw: float, memory: dict) -> None
+
+            where ``t_fsw`` is the logical flight software time and ``memory`` is the
+            shared inter-task memory dictionary.
+        :type callback: Callable
+
+        :param rate_hz:
             Task execution rate in Hertz.
+        :type rate_hz: float
 
-            The execution period is:
+        :param wcet:
+            Worst-case execution time of the task, in seconds.
+        :type wcet: float
 
-            .. math::
-
-                T = \\frac{1}{\\text{rate\\_hz}}
-
-        wcet : float
-            Worst-case execution time (seconds).
-            This value is *charged* to the CPU budget when the task runs.
-
-        priority : int
+        :param priority:
             Fixed scheduling priority.
-            Lower values indicate higher priority.
+            Lower numerical values indicate higher priority.
+        :type priority: int
 
-        enabled : bool, optional
+        :param enabled:
             Whether the task is initially enabled.
+        :type enabled: bool
+
+        :return:
+            None
+        :rtype:
+            None
+
         """
         self.name = name
         self.callback = callback

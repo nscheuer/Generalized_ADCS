@@ -19,98 +19,210 @@ from ADCS.helpers.math_helpers import rot_mat, skewsym, limit
 
 class MTQ_w_RW_QP(MTQ_w_RW_LP):
     r"""
-    MTQ_w_RW_QP
-    ===========
+    Quadratic–Programming–Based Torque Allocation for Mixed RW–MTQ ADCS.
 
-    Quadratic–Programming–Based Torque Allocation for Mixed RW–MTQ ADCS
-    -------------------------------------------------------------------
+    This controller allocates actuator commands for a mixed-actuation attitude control system
+    composed of reaction wheels (RWs) and magnetorquers (MTQs). It computes bounded actuator
+    inputs that best reproduce a desired body torque in a least-squares sense, while strictly
+    respecting actuator saturation limits.
 
-    This controller implements a **Bounded Least Squares (BLS)** allocation scheme
-    to distribute control effort between **reaction wheels (RWs)** and **magnetorquers (MTQs)**.
+    The class extends :class:`~ADCS.controller.MTQ_w_RW_LP` and replaces the LP-style directional
+    prioritization with a bounded least-squares formulation solved via
+    :meth:`scipy.optimize.lsq_linear`.
 
-    Unlike the Linear Program (LP) formulation—which strictly prioritizes torque directionality
-    at the cost of magnitude—this Quadratic Program (QP) formulation minimizes the total
-    Euclidean error between the requested and achieved torque. This approach often results in
-    a "closest possible" torque vector when the system is saturated or underactuated (e.g.,
-    due to the MTQ orthogonality constraint).
+    Actuator Model
+    ---------------
 
-    Key Features:
-    
-    - **Optimization Objective:** Minimizes :math:`\|\boldsymbol{\tau}_{\mathrm{des}} - \boldsymbol{\tau}_{\mathrm{ach}}\|^2`.
-    - **Soft Directionality:** May allow small angular errors if they significantly reduce the torque magnitude error.
-    - **Actuator Constraints:** Strictly enforces hard saturation limits for all actuators.
-    - **Robustness:** Utilizes a Trust Region Reflective (TRF) algorithm robust to rank-deficient matrices (common in underactuated magnetic control).
-
-    
-
-    System Model
-    ------------
-
-    The actuator mappings remain identical to the standard model.
-    Let the desired torque be :math:`\boldsymbol{\tau}_{\mathrm{des}}`.
-
-    The combined actuator influence matrix :math:`A_{\mathrm{tot}}` is constructed
-    from RW alignments and the local geomagnetic field interaction:
+    Let the desired body torque be :math:`\boldsymbol{\tau}_{\mathrm{des}} \in \mathbb{R}^3`.
+    Stack RW and MTQ commands into a single vector
 
     .. math::
 
-        A_{\mathrm{tot}}
-        =
-        \begin{bmatrix}
-        A_{\mathrm{rw}} & -[\boldsymbol{B}]_\times A_{\mathrm{mtq}}
-        \end{bmatrix},
-        \quad
         \boldsymbol{u}
         =
         \begin{bmatrix}
         \boldsymbol{u}_{\mathrm{rw}} \\
         \boldsymbol{u}_{\mathrm{mtq}}
         \end{bmatrix}
+        \in \mathbb{R}^{n_{\mathrm{rw}} + n_{\mathrm{mtq}}}.
 
-    Quadratic Program Formulation
-    -----------------------------
-
-    The controller solves a Bounded Least Squares problem.
-    We seek the control command :math:`\boldsymbol{u}` that minimizes the residual torque error
-    subject to actuator saturation limits.
-
-    **Objective Function:**
+    Reaction wheels generate torque along their spin axes. With RW unit axes stacked as columns
+    in :math:`A_{\mathrm{rw}} \in \mathbb{R}^{3 \times n_{\mathrm{rw}}}`, the RW torque is
 
     .. math::
 
-        \min_{\boldsymbol{u}} \quad \frac{1}{2} \| A_{\mathrm{tot}} \boldsymbol{u} - \boldsymbol{\tau}_{\mathrm{des}} \|_2^2
+        \boldsymbol{\tau}_{\mathrm{rw}} = A_{\mathrm{rw}} \, \boldsymbol{u}_{\mathrm{rw}}.
 
-    **Constraints:**
-
-    .. math::
-
-        -u_{i,\max} \le u_i \le u_{i,\max} \quad \forall i
-
-    Solver Implementation
-    ^^^^^^^^^^^^^^^^^^^^^
-
-    The problem is solved using `scipy.optimize.lsq_linear`, which handles the box constraints
-    efficiently without requiring a full generic QP solver.
-
-    Performance Metric
-    ------------------
-
-    Because the QP does not explicitly solve for a scaling factor, the effectiveness metric
-    :math:`\alpha` is calculated post-hoc by projecting the achieved torque
-    :math:`\boldsymbol{\tau}_{\mathrm{ach}} = A_{\mathrm{tot}} \boldsymbol{u}^*` onto the
-    desired torque direction :math:`\hat{\boldsymbol{\tau}}`.
+    Magnetorquers generate a magnetic dipole :math:`\boldsymbol{m}` that produces torque via
+    the cross product with the geomagnetic field :math:`\boldsymbol{B}`:
 
     .. math::
 
-        \alpha = \frac{\boldsymbol{\tau}_{\mathrm{ach}} \cdot \hat{\boldsymbol{\tau}}}{\|\boldsymbol{\tau}_{\mathrm{des}}\|}
+        \boldsymbol{\tau}_{\mathrm{mtq}} = \boldsymbol{m} \times \boldsymbol{B}
+        =
+        -[\boldsymbol{B}]_{\times}\,\boldsymbol{m}.
 
-    - **If** :math:`\alpha \approx 1`: The requested torque was fully feasible.
-    - **If** :math:`\alpha < 1`: The system is saturated or geometrically constrained (e.g., trying to torque parallel to B-field). The controller provides the closest physical approximation.
+    If MTQ axes are stacked in :math:`A_{\mathrm{mtq}} \in \mathbb{R}^{3 \times n_{\mathrm{mtq}}}`,
+    and :math:`\boldsymbol{u}_{\mathrm{mtq}}` scales dipole moments along those axes, then
+
+    .. math::
+
+        \boldsymbol{\tau}_{\mathrm{mtq}}
+        =
+        \left(-[\boldsymbol{B}]_{\times} A_{\mathrm{mtq}}\right)\boldsymbol{u}_{\mathrm{mtq}}.
+
+    The combined mapping becomes
+
+    .. math::
+
+        A_{\mathrm{tot}}
+        =
+        \begin{bmatrix}
+        A_{\mathrm{rw}} & -[\boldsymbol{B}]_{\times} A_{\mathrm{mtq}}
+        \end{bmatrix},
+        \qquad
+        \boldsymbol{\tau}_{\mathrm{ach}} = A_{\mathrm{tot}} \boldsymbol{u}.
+
+    Bounded Least Squares Allocation
+    ----------------------------------
+
+    The allocation is formulated as a box-constrained least-squares problem:
+
+    .. math::
+
+        \min_{\boldsymbol{u}}
+        \;\frac{1}{2}\,\left\|A_{\mathrm{tot}} \boldsymbol{u} - \boldsymbol{\tau}_{\mathrm{des}}\right\|_2^2
+
+    subject to actuator limits
+
+    .. math::
+
+        -u_{i,\max} \le u_i \le u_{i,\max}, \qquad \forall i.
+
+    This approach minimizes Euclidean torque error and naturally returns the closest feasible
+    torque when constraints or MTQ underactuation prevent exact tracking (e.g., torque requests
+    parallel to :math:`\boldsymbol{B}`).
+
+    Post-hoc Effectiveness Metric
+    ------------------------------
+
+    After solving for :math:`\boldsymbol{u}^*`, the achieved torque is projected onto the desired
+    torque direction to compute an effectiveness scalar :math:`\alpha`:
+
+    .. math::
+
+        \hat{\boldsymbol{\tau}} = \frac{\boldsymbol{\tau}_{\mathrm{des}}}{\|\boldsymbol{\tau}_{\mathrm{des}}\|},
+        \qquad
+        \alpha = \frac{\boldsymbol{\tau}_{\mathrm{ach}} \cdot \hat{\boldsymbol{\tau}}}{\|\boldsymbol{\tau}_{\mathrm{des}}\|}.
+
+    Values near :math:`1` indicate the request is feasible; smaller values indicate saturation
+    or geometric infeasibility.
+
+    :param est_sat: Estimated satellite model providing actuator instances and configuration, via
+                    :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`.
+    :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+    :param p_gain: Proportional gain used by the parent controller law.
+    :type p_gain: float
+    :param d_gain: Derivative gain used by the parent controller law.
+    :type d_gain: float
+    :param c_gain: Additional control gain used by the parent controller law.
+    :type c_gain: float
+    :param h_target: Target wheel momentum vector used by the parent mixed-actuation controller.
+    :type h_target: numpy.ndarray | list
+
     """
     def __init__(self, est_sat: EstimatedSatellite, p_gain: float, d_gain: float, c_gain: float, h_target: np.ndarray | list = np.zeros(3)) -> None:
+        r"""
+        Construct a QP-style allocator for mixed reaction wheel and magnetorquer actuation.
+
+        This initializer delegates setup to :class:`~ADCS.controller.MTQ_w_RW_LP`, preserving the
+        same external controller interface while changing the internal allocation strategy used
+        by :meth:`~ADCS.controller.MTQ_w_RW_QP.allocate_max_torque_in_direction`.
+
+        :param est_sat: Estimated satellite model providing actuators and current state estimates.
+        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+        :param p_gain: Proportional gain used by the parent control law.
+        :type p_gain: float
+        :param d_gain: Derivative gain used by the parent control law.
+        :type d_gain: float
+        :param c_gain: Additional gain used by the parent control law.
+        :type c_gain: float
+        :param h_target: Target wheel momentum vector used for momentum management.
+        :type h_target: numpy.ndarray | list
+        :return: None.
+        :rtype: NoneType
+
+        """
         super().__init__(est_sat=est_sat, p_gain=p_gain, d_gain=d_gain, c_gain=c_gain, h_target=h_target)
 
+
     def allocate_max_torque_in_direction(self, tau_des: np.ndarray, b_body: np.ndarray, est_sat: EstimatedSatellite) -> tuple[np.ndarray, np.ndarray, float]:
+        r"""
+        Allocate bounded RW and MTQ commands that best achieve a desired body torque.
+
+        The method constructs the combined actuator mapping
+
+        .. math::
+
+            A_{\mathrm{tot}}
+            =
+            \begin{bmatrix}
+            A_{\mathrm{rw}} & -[\boldsymbol{B}]_{\times} A_{\mathrm{mtq}}
+            \end{bmatrix}
+
+        using RW axes from :class:`~ADCS.satellite_hardware.actuators.RW` actuators and MTQ axes
+        from :class:`~ADCS.satellite_hardware.actuators.MTQ` actuators contained in
+        :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`.
+
+        It then solves the box-constrained least-squares problem
+
+        .. math::
+
+            \min_{\boldsymbol{u}}
+            \;\frac{1}{2}\,\left\|A_{\mathrm{tot}} \boldsymbol{u} - \boldsymbol{\tau}_{\mathrm{des}}\right\|_2^2,
+            \qquad
+            -u_{i,\max} \le u_i \le u_{i,\max}
+
+        where :math:`u_{i,\max}` are the per-actuator saturation limits (RW torque bounds and MTQ
+        dipole-moment bounds, as represented in the actuator objects). The solver used is
+        :meth:`scipy.optimize.lsq_linear`, which provides a robust Trust Region Reflective method
+        suitable for rank-deficient cases common in magnetic control.
+
+        For the solved command :math:`\boldsymbol{u}^*`, the achieved torque is
+
+        .. math::
+
+            \boldsymbol{\tau}_{\mathrm{ach}} = A_{\mathrm{tot}} \boldsymbol{u}^*.
+
+        A post-hoc effectiveness scalar :math:`\alpha` is computed as the achieved torque component
+        along the desired direction, normalized by requested magnitude:
+
+        .. math::
+
+            \hat{\boldsymbol{\tau}} = \frac{\boldsymbol{\tau}_{\mathrm{des}}}{\|\boldsymbol{\tau}_{\mathrm{des}}\|},
+            \qquad
+            \alpha = \max\!\left(0,\frac{\boldsymbol{\tau}_{\mathrm{ach}} \cdot \hat{\boldsymbol{\tau}}}{\|\boldsymbol{\tau}_{\mathrm{des}}\|}\right).
+
+        Edge Cases
+        ----------
+
+        If :math:`\|\boldsymbol{\tau}_{\mathrm{des}}\|` is near zero, the method returns zero commands
+        for all actuators and :math:`\alpha = 1` (trivially satisfied request). If there are no
+        actuators, it returns empty command vectors and :math:`\alpha = 0`.
+
+        :param tau_des: Desired body-frame torque vector :math:`\boldsymbol{\tau}_{\mathrm{des}}` in N·m.
+        :type tau_des: numpy.ndarray
+        :param b_body: Body-frame geomagnetic field vector :math:`\boldsymbol{B}` in tesla.
+        :type b_body: numpy.ndarray
+        :param est_sat: Estimated satellite model providing actuator instances and their limits.
+        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+        :return: Tuple of RW commands, MTQ commands, and effectiveness scalar :math:`\alpha`.
+                 The RW command vector has length equal to the number of
+                 :class:`~ADCS.satellite_hardware.actuators.RW` actuators. The MTQ command vector has
+                 length equal to the number of :class:`~ADCS.satellite_hardware.actuators.MTQ` actuators.
+        :rtype: tuple[numpy.ndarray, numpy.ndarray, float]
+
+        """
         tau_des = np.asarray(tau_des, float).reshape(3,)
         t_mag = np.linalg.norm(tau_des)
         if t_mag < 1e-9:

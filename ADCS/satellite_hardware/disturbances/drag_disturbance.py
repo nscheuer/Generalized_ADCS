@@ -5,7 +5,7 @@ import numpy as np
 import time
 from typing import TYPE_CHECKING
 from ADCS.satellite_hardware.disturbances.disturbance import Disturbance
-from ADCS.satellite_hardware.disturbances.geometry_config import GeometryConfig
+from ADCS.satellite_hardware.disturbances.helpers.geometry_config import GeometryConfig
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.helpers.math_helpers import normalize
 
@@ -17,70 +17,122 @@ class Drag_Disturbance(Disturbance):
     **Aerodynamic Drag Disturbance Model**
 
     This class models the **aerodynamic drag torque** acting on a satellite in
-    low Earth orbit (LEO). The drag force on each exposed surface is computed
-    from the relative atmospheric flow in the body frame, and the net disturbance
-    torque is obtained as the cross product of surface forces with their lever arms
-    from the satellite’s center of mass.
+    low Earth orbit (LEO). A discrete set of planar surface elements (faces) is
+    used to approximate the spacecraft geometry. For each face, a drag force is
+    computed from the relative atmospheric flow expressed in the **body frame**,
+    and the net disturbance torque is obtained by summing the moments of the
+    face forces about the spacecraft center of mass (COM).
 
-    **Physical Model**
+    **Geometry and Parameters**
 
-    The drag force acting on a satellite surface is modeled as:
+    The disturbance is parameterized by a configuration object:
+
+    :class:`~ADCS.satellite_hardware.disturbances.helpers.geometry_config.GeometryConfig`
+
+    which provides, for each face :math:`i = 1,\dots,N`:
+
+    - area :math:`A_i` [m²]
+    - centroid position :math:`\mathbf{r}_i` in the body frame [m]
+    - outward unit normal :math:`\mathbf{n}_i` in the body frame (unitless)
+    - drag coefficient :math:`C_{D,i}` (unitless)
+
+    The satellite COM is provided by:
+
+    :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`
+    via ``sat.COM``.
+
+    **Relative Flow**
+
+    The body-frame relative velocity vector :math:`\mathbf{V}_b` and density
+    :math:`\rho` are obtained from the orbital state interface:
+
+    :class:`~ADCS.orbits.orbital_state.Orbital_State`
+
+    specifically via ``os.get_state_vector(x=...)``.
+
+    **Face Drag Force**
+
+    For a face with normal :math:`\mathbf{n}_i`, define the (clipped) incidence term:
 
     .. math::
 
-        \mathbf{F}_i = -\tfrac{1}{2} \rho \, C_{D,i} \, A_i \,
-        \max(0, \mathbf{n}_i \cdot \mathbf{V}_b) \, \frac{\mathbf{V}_b}{\|\mathbf{V}_b\|}
+        s_i \;=\; \max\!\bigl(0,\ \mathbf{n}_i^\top \mathbf{V}_b \bigr).
 
-    where:
+    The implemented per-face drag force is collinear with the relative flow and
+    acts opposite the flow direction. Using the standard dynamic-pressure scaling,
+    a compact model consistent with the implementation is:
 
-    - :math:`\rho` — Atmospheric density [kg/m³]
-    - :math:`C_{D,i}` — Drag coefficient of the *i*-th surface
-    - :math:`A_i` — Area of the *i*-th surface [m²]
-    - :math:`\mathbf{n}_i` — Surface normal (unit vector) in the body frame
-    - :math:`\mathbf{V}_b` — Relative velocity vector in the body frame [m/s]
+    .. math::
 
-    The **total drag torque** acting on the spacecraft is:
+        \mathbf{F}_i
+        \;=\;
+        -\tfrac{1}{2}\,\rho\,C_{D,i}\,A_i\,
+        s_i\,\frac{\mathbf{V}_b}{\|\mathbf{V}_b\|}.
+
+    (Some implementations absorb the normalization by :math:`\|\mathbf{V}_b\|`
+    into other terms. Here, :math:`s_i` is linear in :math:`\mathbf{V}_b` and the
+    net torque expression below is written to match the code path.)
+
+    **Net Drag Torque**
+
+    Let :math:`\mathbf{r}_{\mathrm{COM}}` be the spacecraft COM in body coordinates.
+    The total drag torque about COM is:
 
     .. math::
 
         \mathbf{T}_{\mathrm{drag}}
-        = \sum_i (\mathbf{r}_i - \mathbf{r}_{\mathrm{COM}}) \times \mathbf{F}_i
+        \;=\;
+        \sum_{i=1}^N
+        \bigl(\mathbf{r}_i - \mathbf{r}_{\mathrm{COM}}\bigr)\times \mathbf{F}_i.
 
-    where :math:`\mathbf{r}_i` is the centroid of the i-th surface and
-    :math:`\mathbf{r}_{\mathrm{COM}}` is the satellite center of mass.
+    In the form used by the implementation, define
 
-    Parameters
-    ----------
-    config : :class:`~ADCS.satellite_hardware.geometry.GeometryConfig`
-        Configuration object containing face areas, centroids, normals, and drag coefficients
-        for each surface element.
+    .. math::
 
-    Attributes
-    ----------
-    numfaces : int
-        Number of discrete surface faces modeled.
+        F_i \;=\; C_{D,i}A_i\,\max\!\bigl(0,\mathbf{n}_i^\top\mathbf{V}_b\bigr),
 
-    areas : :class:`numpy.ndarray`
-        Surface areas of each face [m²], shape ``(N,)``.
+    stack lever arms :math:`\mathbf{c}_i = \mathbf{r}_i - \mathbf{r}_{\mathrm{COM}}`,
+    and write:
 
-    centroids : :class:`numpy.ndarray`
-        Centroid positions of each face in body coordinates [m], shape ``(N, 3)``.
+    .. math::
 
-    normals : :class:`numpy.ndarray`
-        Unit normal vectors of each face in the body frame, shape ``(N, 3)``.
+        \mathbf{T}_{\mathrm{drag}}
+        \;=\;
+        -\tfrac{1}{2}\rho
+        \left(\sum_{i=1}^N F_i\,\mathbf{c}_i\right)\times\mathbf{V}_b.
 
-    CDs : :class:`numpy.ndarray`
-        Drag coefficients :math:`C_D` for each face.
+    **Differentiability**
+
+    The incidence clipping :math:`\max(0,\cdot)` introduces a kink at
+    :math:`\mathbf{n}_i^\top\mathbf{V}_b = 0`. The Jacobian and Hessian provided by
+    :meth:`~ADCS.satellite_hardware.disturbances.drag_disturbance.Drag_Disturbance.torque_qjac`
+    and
+    :meth:`~ADCS.satellite_hardware.disturbances.drag_disturbance.Drag_Disturbance.torque_qqhess`
+    follow the piecewise derivatives using a Heaviside-gated term. At the kink,
+    derivatives are understood in the piecewise (one-sided) sense used by the code.
+
+    :param config: Geometry and aerodynamic coefficients for each face.
+    :type config: :class:`~ADCS.satellite_hardware.disturbances.helpers.geometry_config.GeometryConfig`
     """
     def __init__(self, config: GeometryConfig):
         r"""
-        Initialize the aerodynamic drag disturbance model.
+        Initialize the aerodynamic drag disturbance model from a geometry configuration.
 
-        Parameters
-        ----------
-        config : :class:`~ADCS.satellite_hardware.geometry.GeometryConfig`
-            Configuration instance providing geometric and aerodynamic parameters
-            for each surface element.
+        This constructor reads the per-face parameters from
+        :class:`~ADCS.satellite_hardware.disturbances.helpers.geometry_config.GeometryConfig`,
+        normalizes the provided face normals using
+        :func:`~ADCS.helpers.math_helpers.normalize`, and stores:
+
+        - ``numfaces``: number of modeled faces :math:`N`
+        - ``areas``: :math:`A_i` for each face, shape ``(N,)``
+        - ``centroids``: :math:`\mathbf{r}_i` for each face, shape ``(N,3)``
+        - ``normals``: unit normals :math:`\mathbf{n}_i`, shape ``(N,3)``
+        - ``CDs``: drag coefficients :math:`C_{D,i}`, shape ``(N,)``
+
+        :param config: Configuration containing face areas, centroids, normals, and drag coefficients.
+        :type config: :class:`~ADCS.satellite_hardware.disturbances.helpers.geometry_config.GeometryConfig`
+        :return: None
+        :rtype: None
         """
         self.config = config
         params = self.config.params
@@ -97,33 +149,65 @@ class Drag_Disturbance(Disturbance):
         r"""
         Compute the **aerodynamic drag torque** in the body frame.
 
-        Using the force model above, the implemented torque expression is
+        The orbital state interface is queried as:
+
+        .. math::
+
+            \{\mathbf{V}_b,\rho\} \leftarrow \texttt{os.get\_state\_vector}(x),
+
+        where :math:`\mathbf{V}_b` is the relative velocity in the **body frame**
+        and :math:`\rho` is the atmospheric density.
+
+        If the orbital-state velocity is provided in km/s, it is converted to m/s
+        prior to use:
+
+        .. math::
+
+            \mathbf{V}_b[\mathrm{m/s}] \;=\; 1000\,\mathbf{V}_b[\mathrm{km/s}].
+
+        For each face, define the clipped incidence scalar:
+
+        .. math::
+
+            s_i \;=\; \max\!\bigl(0,\ \mathbf{n}_i^\top \mathbf{V}_b\bigr),
+
+        and the scalar face factor:
+
+        .. math::
+
+            F_i \;=\; C_{D,i}A_i\,s_i.
+
+        Let the lever arm from COM to face centroid be:
+
+        .. math::
+
+            \mathbf{c}_i \;=\; \mathbf{r}_i - \mathbf{r}_{\mathrm{COM}}.
+
+        The implemented net torque is:
 
         .. math::
 
             \mathbf{T}_{\mathrm{drag}}
-            = -\tfrac{1}{2}\,\rho
-              \sum_i C_{D,i}A_i
-              \max\!\big(0,\ \mathbf{n}_i^\top\mathbf{V}_b\big)
-              \big(\mathbf{r}_i-\mathbf{r}_{\mathrm{COM}}\big)\times \mathbf{V}_b.
+            \;=\;
+            -\tfrac{1}{2}\rho
+            \left(\sum_{i=1}^N F_i\,\mathbf{c}_i\right)\times\mathbf{V}_b.
 
-        **State dependency.** The full state :math:`x` contains the attitude quaternion
-        :math:`\mathbf{q}`; the relative flow :math:`\mathbf{V}_b=\mathbf{V}_b(\mathbf{q})`
-        is provided by :class:`~ADCS.orbits.orbital_state.Orbital_State`.
+        **Units**
 
-        Parameters
-        ----------
-        sat : :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`
-            Satellite instance providing the COM position via ``sat.COM``.
-        x : :class:`numpy.ndarray`
-            Full spacecraft state; must contain the attitude quaternion.
-        os : :class:`~ADCS.orbits.orbital_state.Orbital_State`
-            Provides body-frame relative velocity :math:`\mathbf{V}_b` and density :math:`\rho`.
+        - :math:`\rho` in kg/m³
+        - :math:`\mathbf{V}_b` in m/s
+        - :math:`A_i` in m²
+        - torque output in N·m
 
-        Returns
-        -------
-        :class:`numpy.ndarray`
-            Total aerodynamic drag torque [N·m], shape ``(3,)``.
+        :param sat: Satellite instance providing the center of mass via ``sat.COM``.
+        :type sat: :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`
+        :param x: Full spacecraft state; must contain the attitude quaternion used by the orbital-state mapping.
+        :type x: :class:`numpy.ndarray`
+        :param os: Orbital state provider that supplies ``"v"`` (body-frame relative velocity) and ``"rho"`` (density)
+                   through ``os.get_state_vector(x=...)``. Some applications may pass a mapping with equivalent keys.
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State` | :class:`dict`\\[:class:`str`, :class:`numpy.ndarray`\\]
+        :return: Total aerodynamic drag torque in the body frame, shape ``(3,)``.
+        :rtype: :class:`numpy.ndarray`
         """
         vecs = os.get_state_vector(x=x)
 
@@ -144,46 +228,84 @@ class Drag_Disturbance(Disturbance):
         r"""
         Compute the **Jacobian of drag torque with respect to the attitude quaternion**.
 
-        Let :math:`\mathbf{q}` be the attitude quaternion inside :math:`x`. The torque depends
-        on :math:`\mathbf{q}` via :math:`\mathbf{V}_b(\mathbf{q})` and via the term
-        :math:`\max(0,\,\mathbf{n}_i^\top\mathbf{V}_b)`.
-        Using :math:`H(\cdot)` for the Heaviside function,
+        The drag torque depends on the attitude quaternion :math:`\mathbf{q}` (contained in :math:`x`)
+        through the body-frame flow :math:`\mathbf{V}_b(\mathbf{q})`. The orbital state provider is
+        expected to return:
+
+        - :math:`\mathbf{V}_b` via ``"v"``
+        - :math:`\rho` via ``"rho"``
+        - :math:`\dfrac{\partial \mathbf{V}_b}{\partial \mathbf{q}}` via ``"dv"``
+
+        from:
+
+        :meth:`~ADCS.orbits.orbital_state.Orbital_State.get_state_vector`.
+
+        **Piecewise derivative of incidence**
+
+        For each face, define:
 
         .. math::
 
-            \frac{\partial}{\partial \mathbf{q}}
-            \max\!\big(0,\ \mathbf{n}_i^\top\mathbf{V}_b\big)
-            = H\!\big(\mathbf{n}_i^\top\mathbf{V}_b\big)\,
-              \mathbf{n}_i^\top\frac{\partial \mathbf{V}_b}{\partial \mathbf{q}}.
+            s_i(\mathbf{q}) = \max\!\bigl(0,\ \mathbf{n}_i^\top \mathbf{V}_b(\mathbf{q})\bigr).
 
-        The resulting Jacobian is consistent with the implemented expression
+        Using the Heaviside step function :math:`H(\cdot)`:
+
+        .. math::
+
+            \frac{\partial s_i}{\partial \mathbf{q}}
+            \;=\;
+            H\!\bigl(\mathbf{n}_i^\top \mathbf{V}_b\bigr)\,
+            \mathbf{n}_i^\top \frac{\partial \mathbf{V}_b}{\partial \mathbf{q}}.
+
+        Then:
+
+        .. math::
+
+            F_i(\mathbf{q}) = C_{D,i}A_i\,s_i(\mathbf{q}),
+            \qquad
+            \frac{\partial F_i}{\partial \mathbf{q}}
+            = C_{D,i}A_i\,\frac{\partial s_i}{\partial \mathbf{q}}.
+
+        **Jacobian of torque**
+
+        With:
+
+        .. math::
+
+            \mathbf{C}(\mathbf{q}) = \sum_{i=1}^N F_i(\mathbf{q})\,\mathbf{c}_i,
+
+        the torque is:
+
+        .. math::
+
+            \mathbf{T}_{\mathrm{drag}}(\mathbf{q})
+            = -\tfrac{1}{2}\rho\ \mathbf{C}(\mathbf{q}) \times \mathbf{V}_b(\mathbf{q}).
+
+        Applying the product rule:
 
         .. math::
 
             \frac{\partial \mathbf{T}_{\mathrm{drag}}}{\partial \mathbf{q}}
-            = -\tfrac{1}{2}\rho\Big[
-                \big(\tfrac{\partial F}{\partial \mathbf{q}}\cdot\mathbf{r}\big)\times\mathbf{V}_b
-                + \big(F\cdot\mathbf{r}\big)\times
-                  \frac{\partial \mathbf{V}_b}{\partial \mathbf{q}}
-            \Big],
+            =
+            -\tfrac{1}{2}\rho\left[
+              \left(\frac{\partial \mathbf{C}}{\partial \mathbf{q}}\right)\times\mathbf{V}_b
+              +
+              \mathbf{C}\times\left(\frac{\partial \mathbf{V}_b}{\partial \mathbf{q}}\right)
+            \right].
 
-        where :math:`F_i = C_{D,i}A_i\max(0,\mathbf{n}_i^\top\mathbf{V}_b)` and
-        :math:`\mathbf{r}` stacks the lever arms :math:`(\mathbf{r}_i-\mathbf{r}_{\mathrm{COM}})`.
+        The returned Jacobian has shape ``(3,4)`` corresponding to derivatives of the 3 torque
+        components with respect to the 4 quaternion components.
 
-        Parameters
-        ----------
-        sat : :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`
-            Satellite instance providing the COM.
-        x : :class:`numpy.ndarray`
-            Full spacecraft state containing the attitude quaternion :math:`\mathbf{q}`.
-        os : :class:`~ADCS.orbits.orbital_state.Orbital_State`
-            Provides :math:`\mathbf{V}_b`, density :math:`\rho`,
-            and the quaternion derivative :math:`\partial \mathbf{V}_b / \partial \mathbf{q}`.
-
-        Returns
-        -------
-        :class:`numpy.ndarray`
-            Quaternion Jacobian ``∂T_drag/∂q``, shape ``(3, 4)``.
+        :param sat: Satellite instance providing the center of mass via ``sat.COM``.
+        :type sat: :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`
+        :param x: Full spacecraft state containing the attitude quaternion.
+        :type x: :class:`numpy.ndarray`
+        :param os: Orbital state provider supplying ``"v"``, ``"rho"``, and ``"dv"`` through
+                   :meth:`~ADCS.orbits.orbital_state.Orbital_State.get_state_vector`.
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
+        :return: Quaternion Jacobian :math:`\partial \mathbf{T}_{\mathrm{drag}}/\partial \mathbf{q}`,
+                 shape ``(3, 4)``.
+        :rtype: :class:`numpy.ndarray`
         """
         vecs = os.get_state_vector(x=x)
 
@@ -217,40 +339,101 @@ class Drag_Disturbance(Disturbance):
         r"""
         Compute the **Hessian of drag torque with respect to the attitude quaternion**.
 
-        With :math:`\mathbf{q}` the attitude quaternion, define
-        :math:`F_i(\mathbf{q}) = C_{D,i}A_i\max(0,\mathbf{n}_i^\top\mathbf{V}_b(\mathbf{q}))`.
-        Then
+        This method returns the second derivative tensor of the drag torque with respect to the
+        quaternion components, with shape ``(3, 4, 4)``. The orbital state provider is expected
+        to return, via
+        :meth:`~ADCS.orbits.orbital_state.Orbital_State.get_state_vector`:
+
+        - :math:`\mathbf{V}_b` via ``"v"``
+        - :math:`\rho` via ``"rho"``
+        - :math:`\dfrac{\partial \mathbf{V}_b}{\partial \mathbf{q}}` via ``"dv"``
+        - :math:`\dfrac{\partial^2 \mathbf{V}_b}{\partial \mathbf{q}^2}` via ``"ddv"``
+
+        **Face factors and their derivatives**
+
+        For each face:
+
+        .. math::
+
+            s_i(\mathbf{q}) = \max\!\bigl(0,\ \mathbf{n}_i^\top \mathbf{V}_b(\mathbf{q})\bigr),
+            \qquad
+            F_i(\mathbf{q}) = C_{D,i}A_i\,s_i(\mathbf{q}).
+
+        Using the Heaviside gate for the first derivative:
+
+        .. math::
+
+            \frac{\partial s_i}{\partial \mathbf{q}}
+            =
+            H\!\bigl(\mathbf{n}_i^\top \mathbf{V}_b\bigr)\,
+            \mathbf{n}_i^\top \frac{\partial \mathbf{V}_b}{\partial \mathbf{q}}.
+
+        Likewise, the second derivative is taken piecewise (gated) as implemented:
+
+        .. math::
+
+            \frac{\partial^2 s_i}{\partial \mathbf{q}^2}
+            \approx
+            H\!\bigl(\mathbf{n}_i^\top \mathbf{V}_b\bigr)\,
+            \mathbf{n}_i^\top \frac{\partial^2 \mathbf{V}_b}{\partial \mathbf{q}^2},
+
+        noting that distributional terms at the kink are neglected by this piecewise model.
+
+        Therefore:
+
+        .. math::
+
+            \frac{\partial F_i}{\partial \mathbf{q}} = C_{D,i}A_i\,\frac{\partial s_i}{\partial \mathbf{q}},
+            \qquad
+            \frac{\partial^2 F_i}{\partial \mathbf{q}^2} = C_{D,i}A_i\,\frac{\partial^2 s_i}{\partial \mathbf{q}^2}.
+
+        **Hessian of torque**
+
+        Define:
+
+        .. math::
+
+            \mathbf{C}(\mathbf{q}) = \sum_{i=1}^N F_i(\mathbf{q})\,\mathbf{c}_i.
+
+        The torque is:
+
+        .. math::
+
+            \mathbf{T}_{\mathrm{drag}}(\mathbf{q})
+            = -\tfrac{1}{2}\rho\ \mathbf{C}(\mathbf{q})\times \mathbf{V}_b(\mathbf{q}).
+
+        The second derivative (arranged as a tensor over quaternion components) follows from
+        differentiating the Jacobian and grouping the mixed terms:
 
         .. math::
 
             \frac{\partial^2 \mathbf{T}_{\mathrm{drag}}}{\partial \mathbf{q}^2}
-            = -\tfrac{1}{2}\rho\Big[
-                \frac{\partial^2 (F\cdot\mathbf{r})}{\partial \mathbf{q}^2}\times\mathbf{V}_b
-                + \frac{\partial (F\cdot\mathbf{r})}{\partial \mathbf{q}}\times
-                  \frac{\partial \mathbf{V}_b}{\partial \mathbf{q}}
-                + \big(\cdot\big)^\top
-                + (F\cdot\mathbf{r})\times
-                  \frac{\partial^2 \mathbf{V}_b}{\partial \mathbf{q}^2}
+            =
+            -\tfrac{1}{2}\rho\Big[
+              \left(\frac{\partial^2 \mathbf{C}}{\partial \mathbf{q}^2}\right)\times\mathbf{V}_b
+              +
+              \left(\frac{\partial \mathbf{C}}{\partial \mathbf{q}}\right)\times
+              \left(\frac{\partial \mathbf{V}_b}{\partial \mathbf{q}}\right)
+              +
+              \left(\left(\frac{\partial \mathbf{C}}{\partial \mathbf{q}}\right)\times
+              \left(\frac{\partial \mathbf{V}_b}{\partial \mathbf{q}}\right)\right)^{\!\top}
+              +
+              \mathbf{C}\times\left(\frac{\partial^2 \mathbf{V}_b}{\partial \mathbf{q}^2}\right)
             \Big],
 
-        where :math:`(\cdot)^\top` denotes the term with the cross-product factors swapped,
-        matching the implemented symmetric pairing.
+        where :math:`(\cdot)^{\top}` denotes the symmetric pairing term obtained by swapping the
+        quaternion-derivative indices (as implemented via an explicit transpose of the mixed term).
 
-        Parameters
-        ----------
-        sat : :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`
-            Satellite instance providing the COM.
-        x : :class:`numpy.ndarray`
-            Full spacecraft state containing the attitude quaternion :math:`\mathbf{q}`.
-        os : :class:`~ADCS.orbits.orbital_state.Orbital_State`
-            Provides :math:`\mathbf{V}_b`, :math:`\rho`,
-            and derivatives :math:`\partial \mathbf{V}_b / \partial \mathbf{q}`,
-            :math:`\partial^2 \mathbf{V}_b / \partial \mathbf{q}^2`.
-
-        Returns
-        -------
-        :class:`numpy.ndarray`
-            Quaternion Hessian tensor ``∂²T_drag/∂q²``, shape ``(3, 4, 4)``.
+        :param sat: Satellite instance providing the center of mass via ``sat.COM``.
+        :type sat: :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`
+        :param x: Full spacecraft state containing the attitude quaternion.
+        :type x: :class:`numpy.ndarray`
+        :param os: Orbital state provider supplying ``"v"``, ``"rho"``, ``"dv"``, and ``"ddv"`` through
+                   :meth:`~ADCS.orbits.orbital_state.Orbital_State.get_state_vector`.
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
+        :return: Quaternion Hessian tensor :math:`\partial^2 \mathbf{T}_{\mathrm{drag}}/\partial \mathbf{q}^2`,
+                 shape ``(3, 4, 4)``.
+        :rtype: :class:`numpy.ndarray`
         """
         vecs = os.get_state_vector(x=x)
 

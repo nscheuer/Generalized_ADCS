@@ -11,19 +11,48 @@ from ADCS.estimators.orbit_estimators import Orbit_Estimator
 
 class Orbit_GPS(Orbit_Estimator):
     r"""
-    A 'Pass-Through' Estimator that directly converts GPS measurements into an Inertial State.
+    Pass-through GPS-based orbit estimator.
 
-    This estimator does not perform filtering (such as an Extended Kalman Filter) or propagate state dynamics
-    over time. Instead, it accepts the current GPS measurement vector (typically in the Earth-Centered,
-    Earth-Fixed frame) and transforms it into the Earth-Centered Inertial (ECI) frame to form the estimate.
+    This estimator directly converts raw GPS measurements into an inertial
+    orbital state without performing any temporal propagation or filtering.
+    No dynamic model, prediction step, or recursive estimation is applied.
+    Instead, the most recent GPS measurement is assumed to be the best
+    available estimate of the satellite state.
+
+    Given a GPS measurement expressed in the Earth-Centered Earth-Fixed (ECEF)
+    frame, the estimator constructs the inertial estimate via a deterministic
+    coordinate transformation:
 
     .. math::
-        \hat{\mathbf{x}}_{ECI} = T_{ECEF \to ECI}(t) \cdot \mathbf{m}_{meas}
 
-    This class is primarily utilized for:
-        * System initialization (providing an initial seed for other propagators).
-        * Scenarios where GPS data is trusted implicitly without dynamic modeling.
-        * Debugging coordinate frame transformations.
+        \hat{\mathbf{x}}_{ECI}(t)
+        =
+        \begin{bmatrix}
+        \mathbf{r}_{ECI} \\
+        \mathbf{v}_{ECI}
+        \end{bmatrix}
+        =
+        T_{ECEF \rightarrow ECI}(t)
+        \begin{bmatrix}
+        \mathbf{r}_{ECEF} \\
+        \mathbf{v}_{ECEF}
+        \end{bmatrix}
+
+    where :math:`T_{ECEF \rightarrow ECI}(t)` is the time-dependent rotation
+    defined by the Earth orientation and ephemeris models.
+
+    This estimator is primarily intended for:
+
+    * Initializing more advanced orbit estimators
+    * Scenarios where GPS data is trusted without filtering
+    * Debugging and validation of coordinate-frame transformations
+
+    The estimated covariance matrix is constructed directly from the GPS
+    sensor noise parameters provided by the satellite hardware model.
+
+    :inherits:
+        :class:`~ADCS.estimators.orbit_estimators.Orbit_Estimator`
+
     """
     def __init__(
         self, 
@@ -32,15 +61,40 @@ class Orbit_GPS(Orbit_Estimator):
         os_template: Orbital_State
     ) -> None:
         r"""
-        Initializes the Orbit GPS estimator.
+        Initialize the GPS pass-through orbit estimator.
 
-        :param est_sat: The satellite model containing hardware specifications and sensor noise parameters.
-        :type est_sat: ~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite
-        :param J2000: The current J2000 time epoch [s]. (Unused in initialization logic, but kept for interface consistency).
-        :type J2000: float
-        :param os_template: A template orbital state used to access environment models (Ephemeris, Density)
-                            required for coordinate frame conversions.
-        :type os_template: ~ADCS.orbits.orbital_state.Orbital_State
+        This constructor configures the estimator with a satellite hardware
+        model and a template orbital state. The template state is used solely
+        to access shared environment models (e.g., ephemeris and density)
+        required for coordinate frame conversions.
+
+        No state estimate is produced during initialization; instead, the
+        estimator is configured via :meth:`reset`.
+
+        :param est_sat:
+            Satellite hardware model containing GPS sensor definitions and
+            noise characteristics.
+        :type est_sat:
+            :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+
+        :param J2000:
+            Current epoch expressed in seconds since J2000. This parameter is
+            not used internally during initialization but is retained for
+            interface consistency.
+        :type J2000:
+            float
+
+        :param os_template:
+            Template orbital state used to access ephemeris and environmental
+            models required for ECEF–ECI transformations.
+        :type os_template:
+            :class:`~ADCS.orbits.orbital_state.Orbital_State`
+
+        :return:
+            None
+        :rtype:
+            None
+
         """
         super().__init__(est_sat=est_sat, dt=0.0)
         self.reset(est_sat=est_sat, os_template=os_template)
@@ -51,16 +105,35 @@ class Orbit_GPS(Orbit_Estimator):
         os_template: Orbital_State
     ) -> None:
         r"""
-        Resets the estimator configuration and noise parameters.
+        Reset the estimator configuration and noise parameters.
 
-        This method extracts the standard deviation of the noise from the first available GPS sensor
-        in the provided satellite model to populate the internal covariance settings.
+        This method reinitializes the estimator by extracting GPS sensor noise
+        characteristics from the provided satellite hardware model. The
+        standard deviation of the first available GPS sensor is stored and
+        later used to construct the state covariance matrix.
 
-        :param est_sat: The satellite model containing hardware specifications.
-        :type est_sat: ~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite
-        :param os_template: A template orbital state for environment models.
-        :type os_template: ~ADCS.orbits.orbital_state.Orbital_State
-        :raises ValueError: If ``est_sat`` does not contain any GPS sensors.
+        No state estimate is created during reset; the estimator will produce
+        an estimate upon the next call to :meth:`update`.
+
+        :param est_sat:
+            Satellite hardware model containing GPS sensor definitions.
+        :type est_sat:
+            :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+
+        :param os_template:
+            Template orbital state providing access to ephemeris and
+            environmental models.
+        :type os_template:
+            :class:`~ADCS.orbits.orbital_state.Orbital_State`
+
+        :raises ValueError:
+            If the satellite hardware model does not contain any GPS sensors.
+
+        :return:
+            None
+        :rtype:
+            None
+
         """
         self.est_sat = est_sat
         self.os_template = os_template
@@ -81,26 +154,59 @@ class Orbit_GPS(Orbit_Estimator):
         J2000: float
     ) -> EstimatedOrbital_State:
         r"""
-        Updates the state estimate using the latest GPS measurements.
+        Update the orbital state estimate using GPS measurements.
 
-        The update process involves:
-        
-        1. Creating a temporary :class:`~ADCS.orbits.orbital_state.Orbital_State` at the current time ``J2000``.
-        2. Converting the input ECEF measurement (Position :math:`\mathbf{r}` or Position+Velocity :math:`\mathbf{r}, \mathbf{v}`) 
-           into the ECI frame.
-        3. Constructing the covariance matrix :math:`P` based on sensor noise specifications.
+        This method converts the most recent GPS measurement into an inertial
+        orbital state and constructs a corresponding covariance matrix based
+        on sensor noise specifications.
 
-        .. math::
-            P = \text{diag}(\sigma_{pos}^2, \dots, \sigma_{vel}^2)
+        The update procedure is as follows:
 
-        :param GPS_measurements: A list of raw GPS measurements.
-                                 Shape is typically ``(1, 3)`` for position only or ``(1, 6)`` for pos+vel.
-        :type GPS_measurements: list[np.ndarray]
-        :param J2000: The current J2000 time epoch [s].
-        :type J2000: float
-        :return: The estimated orbital state containing the state vector :math:`\hat{\mathbf{x}}` and covariance :math:`P`.
-        :rtype: ~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedOrbital_State
-        :raises ValueError: If the measurement vector size is neither 3 nor 6.
+        1. A temporary
+           :class:`~ADCS.orbits.orbital_state.Orbital_State` is created at the
+           current epoch to enable frame transformations.
+        2. The GPS measurement is transformed from ECEF to ECI coordinates.
+        3. A covariance matrix :math:`\mathbf{P}` is constructed assuming
+           independent measurement noise:
+
+           .. math::
+
+               \mathbf{P}
+               =
+               \mathrm{diag}
+               \left(
+               \sigma_{r}^2,
+               \sigma_{r}^2,
+               \sigma_{r}^2,
+               \sigma_{v}^2,
+               \sigma_{v}^2,
+               \sigma_{v}^2
+               \right)
+
+        If only position is measured, the velocity is either inherited from the
+        previous estimate or set to zero, with a deliberately large velocity
+        uncertainty to reflect the lack of direct measurement.
+
+        :param GPS_measurements:
+            List of GPS measurement vectors. Each measurement must have length
+            3 (position only) or 6 (position and velocity).
+        :type GPS_measurements:
+            list[numpy.ndarray]
+
+        :param J2000:
+            Current epoch expressed in seconds since J2000.
+        :type J2000:
+            float
+
+        :return:
+            Estimated orbital state containing the inertial state vector
+            :math:`\hat{\mathbf{x}}` and covariance matrix :math:`\mathbf{P}`.
+        :rtype:
+            :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedOrbital_State`
+
+        :raises ValueError:
+            If the GPS measurement vector does not have length 3 or 6.
+
         """
         
         if not GPS_measurements:

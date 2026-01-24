@@ -84,7 +84,6 @@ void Satellite::add_prop_torq_py(py::array_t<double> prop_torq_in_py){
   vec3 prop_torq_in = numpyToArmaVector(prop_torq_in_py);
   plan_for_prop = 1;
   prop_torq = prop_torq_in;
-  // cout<<"PROP TORQ"<<prop_torq<<endl;
 }
 void Satellite::remove_prop_torq(){
   plan_for_prop = 0;
@@ -294,7 +293,54 @@ void Satellite::clear_sunpoint_constraints(){
   sunpoint_useACOSs.clear();
 }
 
+void Satellite::auto_scale_control_costs(double base_weight){
+  // Scale control costs inversely proportional to max^2 (since cost is quadratic)
+  // Preserves relative priority from existing input weights:
+  //   new_cost = base_weight * input_weight / max^2
+  // base_weight is an optional multiplier (default 1.0)
 
+  // Validate inputs
+  if(base_weight <= 0){
+    std::cerr << "WARNING: auto_scale_control_costs called with non-positive base_weight="
+              << base_weight << ", using 1.0" << std::endl;
+    base_weight = 1.0;
+  }
+
+  if(number_MTQ == 0 && number_RW == 0 && number_magic == 0){
+    std::cerr << "WARNING: auto_scale_control_costs called with no actuators defined" << std::endl;
+    return;
+  }
+
+  // Scale MTQ costs: preserve input weight, divide by max^2
+  for(int i = 0; i < number_MTQ; i++){
+    double max_val = MTQ_max.at(i);
+    if(max_val > 0){
+      MTQ_cost.at(i) = base_weight * MTQ_cost.at(i) / (max_val * max_val);
+    } else {
+      std::cerr << "WARNING: MTQ " << i << " has non-positive max value, skipping scaling" << std::endl;
+    }
+  }
+
+  // Scale RW costs
+  for(int i = 0; i < number_RW; i++){
+    double max_val = RW_max_torq.at(i);
+    if(max_val > 0){
+      RW_cost.at(i) = base_weight * RW_cost.at(i) / (max_val * max_val);
+    } else {
+      std::cerr << "WARNING: RW " << i << " has non-positive max torque, skipping scaling" << std::endl;
+    }
+  }
+
+  // Scale magic actuator costs
+  for(int i = 0; i < number_magic; i++){
+    double max_val = magic_max_torq.at(i);
+    if(max_val > 0){
+      magic_cost.at(i) = base_weight * magic_cost.at(i) / (max_val * max_val);
+    } else {
+      std::cerr << "WARNING: Magic actuator " << i << " has non-positive max torque, skipping scaling" << std::endl;
+    }
+  }
+}
 
 vec Satellite::state_norm(vec x) const
 {
@@ -338,6 +384,15 @@ mat Satellite::state_norm_jacobian(vec x) const
   // }else if(q(3)!=0){
   //   sq *= sign(q(3));
   // }
+
+  // Protect against division by zero/very small quaternion norms
+  // This can happen with unstable trajectories during optimization
+  const double qn_min = 1e-10;
+  if(qn < qn_min) {
+    // Return identity jacobian for degenerate case - the optimizer will reject this trajectory anyway
+    return nj;
+  }
+
   nj(span(quat0index(),quat0index()+3),span(quat0index(),quat0index()+3)) = (mat44().eye()*(1.0/qn) - q*trans(q)/(qn*qn*qn))*sq;
 
   return nj;
@@ -349,6 +404,13 @@ cube Satellite::state_norm_hessian(vec x) const
   vec4 q = x(span(quat0index(),quat0index()+3));
   double qn = norm(q);
   cube out = cube(x.n_elem,x.n_elem,x.n_elem).zeros();
+
+  // Protect against division by zero/very small quaternion norms
+  const double qn_min = 1e-10;
+  if(qn < qn_min) {
+    return out;  // Return zero hessian for degenerate case
+  }
+
   mat44 unitvecs4 = mat44().eye();
   for(int i = 0;i<4;i++){
     out.slice(quat0index()+i)(span(quat0index(),quat0index()+3),span(quat0index(),quat0index()+3)) = -(unitvecs4.col(i)*q.t() + q*unitvecs4.col(i).t() + q(i)*mat44().eye())/(qn*qn*qn) + 3.0*q(i)*q*q.t()/(qn*qn*qn*qn*qn);
@@ -439,7 +501,7 @@ vec Satellite::getConstraints(int k, int N, vec u, vec x, arma::vec3 sunECIvec) 
   {
     int ind = 0;
     if(useAVconstraint){
-      ck.row(ind) = (dot(x.rows(avindex0(),avindex0()+2),x.rows(avindex0(),avindex0()+2))-AVmax*AVmax)*(180.0/datum::pi)*(180.0/datum::pi);//put in degrees to make the magnitude bigger so more compatible with other costs/etc in alg and more readable.
+      ck.row(ind) = (dot(x.rows(avindex0(),avindex0()+2),x.rows(avindex0(),avindex0()+2))-AVmax*AVmax)*(180.0/datum::pi)*(180.0/datum::pi)/pow(norm(AVmax),2.0);//put in degrees to make the magnitude bigger so more compatible with other costs/etc in alg and more readable.
       ind++;
     }
 
@@ -457,23 +519,23 @@ vec Satellite::getConstraints(int k, int N, vec u, vec x, arma::vec3 sunECIvec) 
     if(k<N-1){ //no control in last time step
       int ctrl_base = 0;
       for(int j=0;j<number_MTQ;j++){
-        ck.row(ind) = u.row(ctrl_base+j) - MTQ_max.at(j);
+        ck.row(ind) = (u.row(ctrl_base+j) - MTQ_max.at(j))/MTQ_max.at(j);
         ind++;
-        ck.row(ind) = -u.row(ctrl_base+j) - MTQ_max.at(j);
+        ck.row(ind) = (-u.row(ctrl_base+j) - MTQ_max.at(j))/MTQ_max.at(j);
         ind++;
       }
 
       ctrl_base = number_MTQ;
       int state_base = 7;
       for(int j=0;j<number_RW;j++){
-        ck.row(ind) = (MAGRW_TORQ_MULT*u.row(ctrl_base+j) - MAGRW_TORQ_MULT*RW_max_torq.at(j));
+        ck.row(ind) = (u.row(ctrl_base+j)*MAGRW_TORQ_MULT - RW_max_torq.at(j))/RW_max_torq.at(j);
         ind++;
-        ck.row(ind) = (-MAGRW_TORQ_MULT*u.row(ctrl_base+j) - MAGRW_TORQ_MULT*RW_max_torq.at(j));
+        ck.row(ind) = (-u.row(ctrl_base+j)*MAGRW_TORQ_MULT - RW_max_torq.at(j))/RW_max_torq.at(j);
         ind++;
 
-        ck.row(ind) = (x.row(state_base+j) - RW_max_ang_mom.at(j))*1e3;
+        ck.row(ind) = (x.row(state_base+j) - RW_max_ang_mom.at(j))/RW_max_ang_mom.at(j);
         ind++;
-        ck.row(ind) = (-x.row(state_base+j) - RW_max_ang_mom.at(j))*1e3;
+        ck.row(ind) = (-x.row(state_base+j) - RW_max_ang_mom.at(j))/RW_max_ang_mom.at(j);
         ind++;
 
         ck.row(ind) = -pow(MAGRW_TORQ_MULT*u.row(ctrl_base+j)*x.row(state_base+j),2.0); //momentum and torq cannot both be zero! stiction. can pass through zero though.
@@ -482,15 +544,13 @@ vec Satellite::getConstraints(int k, int N, vec u, vec x, arma::vec3 sunECIvec) 
 
       ctrl_base = number_MTQ+number_RW;
       for(int j=0;j<number_magic;j++){
-        ck.row(ind) = MAGRW_TORQ_MULT*u.row(ctrl_base+j) - magic_max_torq.at(j);
+        ck.row(ind) = (u.row(ctrl_base+j)*MAGRW_TORQ_MULT - magic_max_torq.at(j))/magic_max_torq.at(j);
         ind++;
-        ck.row(ind) = -MAGRW_TORQ_MULT*u.row(ctrl_base+j) - magic_max_torq.at(j);
+        ck.row(ind) = (-u.row(ctrl_base+j)*MAGRW_TORQ_MULT - magic_max_torq.at(j))/magic_max_torq.at(j);
         ind++;
       }
 
     }
-    // cout << "CK" << ck << "\n";
-    // cout << "k" << k << "\n";
     return ck;
   }
   else
@@ -524,7 +584,7 @@ tuple<mat,mat> Satellite::constraintJacobians(int k, int N, vec uk,vec xk,vec3 s
   int ind = 0;
   if(useAVconstraint){
     // c.row(ind) = (dot(x.rows(avindex0(),avindex0()+2),x.rows(avindex0(),avindex0()+2))-pow(AVmax,2))*(180.0/datum::pi)*(180.0/datum::pi);//put in degrees to make the magnitude bigger so more compatible with other costs/etc in alg.
-    ckx(span(ind,ind),span(avindex0(),avindex0()+2)) = 2.0*trans(xk.rows(avindex0(),avindex0()+2))*(180.0/datum::pi)*(180.0/datum::pi);
+    ckx(span(ind,ind),span(avindex0(),avindex0()+2)) = 2.0*trans(xk.rows(avindex0(),avindex0()+2))*(180.0/datum::pi)*(180.0/datum::pi)/(pow(norm(AVmax),2.0));
     ind++;
   }
   vec4 qk = xk.rows(quat0index(), quat0index()+3);
@@ -547,10 +607,10 @@ tuple<mat,mat> Satellite::constraintJacobians(int k, int N, vec uk,vec xk,vec3 s
     if(number_MTQ>0){
       for(int j=0;j<number_MTQ;j++){
         // ck.row(ind) = u.row(ctrl_base+j) - MTQ_max.at(j);
-        cku(ind,ctrl_base+j) = 1.0;
+        cku(ind,ctrl_base+j) = 1.0/MTQ_max.at(j);
         ind++;
         // ck.row(ind) = -u.row(ctrl_base+j) - MTQ_max.at(j);
-        cku(ind,ctrl_base+j) = -1.0;
+        cku(ind,ctrl_base+j) = -1.0/MTQ_max.at(j);
         ind++;
       }
     }
@@ -560,17 +620,17 @@ tuple<mat,mat> Satellite::constraintJacobians(int k, int N, vec uk,vec xk,vec3 s
       int state_base = 7;
       for(int j=0;j<number_RW;j++){
         // ck.row(ind) = u.row(ctrl_base+j) - RW_max_torq.at(j);
-        cku(ind,ctrl_base+j) = MAGRW_TORQ_MULT*1.0;
+        cku(ind,ctrl_base+j) = 1.0*MAGRW_TORQ_MULT/RW_max_torq.at(j);
         ind++;
         // ck.row(ind) = -u.row(ctrl_base+j) - RW_max_torq.at(j);
-        cku(ind,ctrl_base+j) = MAGRW_TORQ_MULT*-1.0;
+        cku(ind,ctrl_base+j) = -1.0*MAGRW_TORQ_MULT/RW_max_torq.at(j);
         ind++;
 
         // ck.row(ind) = x.row(state_base+j) - RW_max_ang_mom.at(j);
-        ckx(ind,state_base-1+j) = 1.0*1e3;
+        ckx(ind,state_base-1+j) = 1.0/RW_max_ang_mom.at(j);
         ind++;
         // ck.row(ind) = -x.row(state_base+j) - RW_max_ang_mom.at(j);
-        ckx(ind,state_base-1+j) = -1.0*1e3;
+        ckx(ind,state_base-1+j) = -1.0/RW_max_ang_mom.at(j);
         ind++;
 
         // ck.row(ind) = -pow(u.row(ctrl_base+j)*x.row(state_base+j),2); //momentum and torq cannot both be zero! stiction. can pass through zero though.
@@ -584,10 +644,10 @@ tuple<mat,mat> Satellite::constraintJacobians(int k, int N, vec uk,vec xk,vec3 s
     if(number_magic>0){
       for(int j=0;j<number_magic;j++){
         // ck.row(ind) = u.row(ctrl_base+j) - magic_max_torq.at(j);
-        cku(ind,ctrl_base+j) = MAGRW_TORQ_MULT*1.0;
+        cku(ind,ctrl_base+j) = 1.0*MAGRW_TORQ_MULT/magic_max_torq.at(j);
         ind++;
         // ck.row(ind) = -u.row(ctrl_base+j) - magic_max_torq.at(j);
-        cku(ind,ctrl_base+j) = MAGRW_TORQ_MULT*-1.0;
+        cku(ind,ctrl_base+j) = -1.0*MAGRW_TORQ_MULT/magic_max_torq.at(j);
         ind++;
       }
     }
@@ -613,7 +673,7 @@ tuple<cube,cube,cube> Satellite::constraintHessians(int k, int N, vec uk,vec xk,
   int ind = 0;
   if(useAVconstraint){
     // c.row(ind) = (dot(x.rows(avindex0(),avindex0()+2),x.rows(avindex0(),avindex0()+2))-pow(AVmax,2))*(180.0/datum::pi)*(180.0/datum::pi);//put in degrees to make the magnitude bigger so more compatible with other costs/etc in alg.
-    ckxx(span(avindex0(),avindex0()+2),span(avindex0(),avindex0()+2),span(ind,ind)) = 2*mat33().eye()*(180.0/datum::pi)*(180.0/datum::pi);
+    ckxx(span(avindex0(),avindex0()+2),span(avindex0(),avindex0()+2),span(ind,ind)) = 2*mat33().eye()*(180.0/datum::pi)*(180.0/datum::pi)/(pow(norm(AVmax),2.0));
     ind++;
   }
   vec4 qk = xk.rows(quat0index(), quat0index()+3);
@@ -678,13 +738,12 @@ double Satellite::stepcost_vec(int k, int N, vec xk, vec uk,vec ukprev, vec3 sat
   COST_SETTINGS_FORM costSettings_tmp = *costSettings_ptr;
   double w_ang = get<0>(costSettings_tmp);
   double w_av = get<1>(costSettings_tmp);
-  double w_umag = get<3>(costSettings_tmp);
-  double w_avmag = get<4>(costSettings_tmp);
-  double w_avang = get<5>(costSettings_tmp);
   double w_u_mult = get<2>(costSettings_tmp);
+  double w_avmag = get<3>(costSettings_tmp);
+  double w_avang = get<4>(costSettings_tmp);
 
-  int whichAngCostFunc = get<10>(costSettings_tmp);
-  int useRawControlCost = get<11>(costSettings_tmp);
+  int whichAngCostFunc = get<9>(costSettings_tmp);
+  int useRawControlCost = get<10>(costSettings_tmp);
 
   mat act_cost_mat = mat(control_N(),control_N()).zeros();
 
@@ -704,12 +763,11 @@ double Satellite::stepcost_vec(int k, int N, vec xk, vec uk,vec ukprev, vec3 sat
       act_cost_mat(number_MTQ+number_RW,number_MTQ+number_RW,size(number_magic,number_magic)) = diagmat(vec(magic_cost));
     }
   }else{
-    w_umag = 0;
     w_u_mult = 0;
-    w_ang = get<6>(costSettings_tmp);
-    w_av = get<7>(costSettings_tmp);
-    w_avmag = get<8>(costSettings_tmp);
-    w_avang = get<9>(costSettings_tmp);
+    w_ang = get<5>(costSettings_tmp);
+    w_av = get<6>(costSettings_tmp);
+    w_avmag = get<7>(costSettings_tmp);
+    w_avang = get<8>(costSettings_tmp);
   }
   xk = state_norm(xk);
   // vec4 qk = normalise(xk.rows(quat0index(), quat0index()+3));
@@ -768,6 +826,7 @@ double Satellite::stepcost_vec(int k, int N, vec xk, vec uk,vec ukprev, vec3 sat
       ang_mom_cost += 0.5*RW_AM_cost.at(j)*pow(shifted_softplus(z*sz,RW_AM_cost_threshold.at(j)),2);
       stiction_cost += 0.5*RW_stiction_cost.at(j)*pow(smoothstep((RW_stiction_threshold.at(j)-z*sz)/RW_stiction_threshold.at(j))*RW_stiction_threshold.at(j),2);
     }
+
   }
   return state_cost + cross_cost + actuation_cost + state_mag_cost + act_mag_cost + ang_mom_cost + stiction_cost;
 }
@@ -778,13 +837,12 @@ double Satellite::stepcost_quat(int k, int N, vec xk, vec uk,vec ukprev, vec3 sa
   COST_SETTINGS_FORM costSettings_tmp = *costSettings_ptr;
   double w_ang = get<0>(costSettings_tmp);
   double w_av = get<1>(costSettings_tmp);
-  double w_umag = get<3>(costSettings_tmp);
-  double w_avmag = get<4>(costSettings_tmp);
-  double w_avang = get<5>(costSettings_tmp);
   double w_u_mult = get<2>(costSettings_tmp);
+  double w_avmag = get<3>(costSettings_tmp);
+  double w_avang = get<4>(costSettings_tmp);
 
-  int whichAngCostFunc = get<10>(costSettings_tmp);
-  int useRawControlCost = get<11>(costSettings_tmp);
+  int whichAngCostFunc = get<9>(costSettings_tmp);
+  int useRawControlCost = get<10>(costSettings_tmp);
 
   mat act_cost_mat = mat(control_N(),control_N()).zeros();
 
@@ -804,12 +862,11 @@ double Satellite::stepcost_quat(int k, int N, vec xk, vec uk,vec ukprev, vec3 sa
       act_cost_mat(number_MTQ+number_RW,number_MTQ+number_RW,size(number_magic,number_magic)) = diagmat(vec(magic_cost));
     }
   }else{
-    w_umag = 0;
     w_u_mult = 0;
-    w_ang = get<6>(costSettings_tmp);
-    w_av = get<7>(costSettings_tmp);
-    w_avmag = get<8>(costSettings_tmp);
-    w_avang = get<9>(costSettings_tmp);
+    w_ang = get<5>(costSettings_tmp);
+    w_av = get<6>(costSettings_tmp);
+    w_avmag = get<7>(costSettings_tmp);
+    w_avang = get<8>(costSettings_tmp);
   }
   xk = state_norm(xk);
   // vec4 qk = normalise(xk.rows(quat0index(), quat0index()+3));
@@ -892,45 +949,125 @@ double Satellite::stepcost_quat(int k, int N, vec xk, vec uk,vec ukprev, vec3 sa
   return state_cost + cross_cost + actuation_cost + state_mag_cost + act_mag_cost + ang_mom_cost + stiction_cost;
 }
 
+// ============================================================================
+// Helper functions for cost Jacobian computation
+// ============================================================================
+
+ExtractedCostSettings ExtractedCostSettings::fromTuple(const COST_SETTINGS_FORM& settings) {
+    ExtractedCostSettings s;
+    s.w_ang = std::get<0>(settings);
+    s.w_av = std::get<1>(settings);
+    s.w_u_mult = std::get<2>(settings);
+    s.w_avmag = std::get<3>(settings);
+    s.w_avang = std::get<4>(settings);
+    s.w_ang_N = std::get<5>(settings);
+    s.w_av_N = std::get<6>(settings);
+    s.w_avmag_N = std::get<7>(settings);
+    s.w_avang_N = std::get<8>(settings);
+    s.whichAngCostFunc = std::get<9>(settings);
+    s.useRawControlCost = std::get<10>(settings);
+    s.useFullCostHess = std::get<11>(settings);
+    return s;
+}
+
+void ExtractedCostSettings::applyTerminalWeights() {
+    w_u_mult = 0.0;
+    w_ang = w_ang_N;
+    w_av = w_av_N;
+    w_avmag = w_avmag_N;
+    w_avang = w_avang_N;
+}
+
+mat Satellite::setupActuationCostMatrix(int k, int N, ExtractedCostSettings& settings) const {
+    mat act_cost_mat = mat(control_N(), control_N()).zeros();
+
+    if (k < N-1) {
+        if (number_MTQ > 0) {
+            act_cost_mat(0, 0, size(number_MTQ, number_MTQ)) = diagmat(vec(MTQ_cost));
+        }
+        if (number_RW > 0) {
+            act_cost_mat(number_MTQ, number_MTQ, size(number_RW, number_RW)) = diagmat(vec(RW_cost));
+        }
+        if (number_magic > 0) {
+            act_cost_mat(number_MTQ + number_RW, number_MTQ + number_RW, size(number_magic, number_magic)) = diagmat(vec(magic_cost));
+        }
+    } else {
+        settings.applyTerminalWeights();
+    }
+
+    return act_cost_mat;
+}
+
+RWCostResults Satellite::computeRWCostsAndJacobians(
+    const vec& xk,
+    vec& lkx,
+    mat& lkxx
+) const {
+    RWCostResults result = {0.0, 0.0};
+
+    if (number_RW <= 0) return result;
+
+    for (int j = 0; j < number_RW; j++) {
+        // CRITICAL: Read from FULL state at index 7+j
+        double z = xk(7 + j);
+        double sz = sign(z);
+
+        // Angular momentum cost (shifted softplus)
+        double sp = shifted_softplus(z * sz, RW_AM_cost_threshold.at(j));
+        double spd = shifted_softplus_deriv(z * sz, RW_AM_cost_threshold.at(j));
+        double spdd = shifted_softplus_deriv2(z * sz, RW_AM_cost_threshold.at(j));
+
+        // CRITICAL: Write to REDUCED gradient at index 6+j
+        if (isinf(sp)) {
+            result.ang_mom_cost += 0.5 * RW_AM_cost.at(j) * sp * sp;
+            lkx(6 + j) += sz * RW_AM_cost.at(j) * 1 * sp;
+            lkxx(6 + j, 6 + j) += RW_AM_cost.at(j) * 1;
+        } else {
+            result.ang_mom_cost += 0.5 * RW_AM_cost.at(j) * pow(sp, 2);
+            lkx(6 + j) += sz * RW_AM_cost.at(j) * sp * spd;
+            lkxx(6 + j, 6 + j) += RW_AM_cost.at(j) * (spd * spd + sp * spdd);
+        }
+
+        // Stiction cost (smoothstep)
+        double threshold = RW_stiction_threshold.at(j);
+        double stic_arg = (threshold - z * sz) / threshold;
+        double ss = smoothstep(stic_arg);
+        double ssd = smoothstep_deriv(stic_arg);
+
+        result.stiction_cost += 0.5 * RW_stiction_cost.at(j) * pow(ss * threshold, 2.0);
+
+        // CRITICAL: Write to REDUCED gradient at index 6+j
+        lkx(6 + j) += RW_stiction_cost.at(j) * (ss * threshold * ssd * threshold * (-sz / threshold));
+
+        lkxx(6 + j, 6 + j) += RW_stiction_cost.at(j) * pow(ssd, 2.0);
+    }
+
+    return result;
+}
+
+// ============================================================================
+// Cost Jacobian Functions
+// ============================================================================
+
 cost_jacs  Satellite::veccostJacobians(int k, int N, vec xk, vec uk,vec ukprev, vec3 satvec_k, vec3 ECIvec_k,vec3 BECI_k, COST_SETTINGS_FORM *costSettings_ptr) const
 {
-  COST_SETTINGS_FORM costSettings_tmp = *costSettings_ptr;
-  double w_ang = get<0>(costSettings_tmp);
-  double w_av = get<1>(costSettings_tmp);
-  double w_umag = get<3>(costSettings_tmp);
-  double w_avmag = get<4>(costSettings_tmp);
-  double w_avang = get<5>(costSettings_tmp);
-  double w_u_mult = get<2>(costSettings_tmp);
+  ExtractedCostSettings settings = ExtractedCostSettings::fromTuple(*costSettings_ptr);
 
-  int whichAngCostFunc = get<10>(costSettings_tmp);
-  int useRawControlCost = get<11>(costSettings_tmp);
-
-
-  mat act_cost_mat = mat(control_N(),control_N()).zeros();
+  // Setup actuation cost matrix (handles terminal step weight update)
+  mat act_cost_mat = setupActuationCostMatrix(k, N, settings);
   vec3 magvec = vec(3).zeros();
-
-  if(k<N-1){
-    if(number_MTQ>0)
-    {
-      magvec = mtq_ax_mat*uk.head(number_MTQ);
-      act_cost_mat(0,0,size(number_MTQ,number_MTQ)) = diagmat(vec(MTQ_cost));
-    }
-    if(number_RW>0)
-    {
-      act_cost_mat(number_MTQ,number_MTQ,size(number_RW,number_RW)) = diagmat(vec(RW_cost));
-    }
-    if(number_magic>0)
-    {
-      act_cost_mat(number_MTQ+number_RW,number_MTQ+number_RW,size(number_magic,number_magic)) = diagmat(vec(magic_cost));
-    }
-  }else{
-    w_umag = 0.0;
-    w_u_mult = 0.0;
-    w_ang = get<6>(costSettings_tmp);
-    w_av = get<7>(costSettings_tmp);
-    w_avmag = get<8>(costSettings_tmp);
-    w_avang = get<9>(costSettings_tmp);
+  if (k < N-1 && number_MTQ > 0) {
+    magvec = mtq_ax_mat*uk.head(number_MTQ);
   }
+
+  // Extract local copies of weights (may have been updated by setupActuationCostMatrix for terminal step)
+  double w_ang = settings.w_ang;
+  double w_av = settings.w_av;
+  double w_u_mult = settings.w_u_mult;
+  double w_avmag = settings.w_avmag;
+  double w_avang = settings.w_avang;
+  int whichAngCostFunc = settings.whichAngCostFunc;
+  int useRawControlCost = settings.useRawControlCost;
 
   if(ECIvec_k.is_zero())
   {
@@ -971,6 +1108,7 @@ cost_jacs  Satellite::veccostJacobians(int k, int N, vec xk, vec uk,vec ukprev, 
   vec3 dphi = get<1>(angres);
   mat33 ddphi = get<2>(angres);
 
+  // vec case3_eigs;
   switch (whichAngCostFunc) {
       case 0:
         sc_ang = (1.0-ddot);
@@ -986,19 +1124,33 @@ cost_jacs  Satellite::veccostJacobians(int k, int N, vec xk, vec uk,vec ukprev, 
         // sc_ang = w_ang*acos(ddot);
         sc_ang = phi;
         d_sc_ang = dphi;
+        // {
+        //   vec eigs;
+        //   mat vecs;
+        //   ddphi = 0.5*(ddphi + ddphi.t()); // symmetrize
+        //   eig_sym(eigs, vecs, ddphi);
+        //   eigs = clamp(eigs, 0.0, datum::inf);
+        //   dd_sc_ang = vecs * diagmat(eigs) * vecs.t();
+        // }
         dd_sc_ang = ddphi;
         break;
       case 3:
         // angcost = 0.5*w_ang*pow(acos(ddot),2.0);
         sc_ang =  0.5*phi*phi;
         d_sc_ang = dphi*phi;
-        dd_sc_ang = (dphi*dphi.t() + ddphi*phi);
+        dd_sc_ang = dphi*dphi.t();//(dphi*dphi.t() + ddphi*phi);
         // vec3 dphi = get<1>(angres);
         // mat33 ddphi = get<2>(angres);
+        // eig_sym(case3_eigs, dphi*dphi.t());
         break;
       default:
         throw("incorrect ang cost function specifier");
     }
+    switch (whichAngCostFunc) {
+    // ... cases ...
+}
+
+// // ADD THIS RIGHT HERE:
 
   vec3 nb = rotMat(qk).t()*normalise(BECI_k);
   mat::fixed<3,3> dBdq = dRTBdqQ(qk,normalise(BECI_k));
@@ -1018,6 +1170,8 @@ cost_jacs  Satellite::veccostJacobians(int k, int N, vec xk, vec uk,vec ukprev, 
   lkxx(redang0index(),redang0index(),size(3,3)) += w_avang*ddvTRTudqQ(qk,cross(sk,wk),ek);
   lkxx(redang0index(),0,size(3,3)) += -w_avang*(skewSymmetric(sk)*dRTBdqQ(qk,ek)).t();
 
+
+  
 
   double actuation_cost = 0.0;
   double ang_mom_cost = 0.0;
@@ -1044,38 +1198,31 @@ cost_jacs  Satellite::veccostJacobians(int k, int N, vec xk, vec uk,vec ukprev, 
   lkxx(redang0index(),redang0index(),size(3,3)) += w_avmag*savang*ddBwdq;
   lkxx(redang0index(),0,size(3,3)) += w_avmag*savang*dBdq.t();
 
+  
+
+
+  // mat33 cross_hess = w_avang*ddvTRTudqQ(qk,cross(sk,wk),ek);
+
+  // mat33 avmag_hess = w_avmag*savang*ddBwdq;
+
+  // vec eigs_ddphi;
+  // eig_sym(eigs_ddphi, ddphi);
+
+  // // Check eigenvalues of each
+  // vec eigs_ang, eigs_cross, eigs_avmag;
+  // eig_sym(eigs_ang, w_ang*dd_sc_ang);
+  // eig_sym(eigs_cross, cross_hess);
+  // eig_sym(eigs_avmag, avmag_hess);
+
+
 
   double act_mag_cost = 0.0;
 
+  // RW costs using helper function
+  RWCostResults rwCosts = computeRWCostsAndJacobians(xk, lkx, lkxx);
+  ang_mom_cost += rwCosts.ang_mom_cost;
+  stiction_cost += rwCosts.stiction_cost;
 
-  if(number_RW>0){
-    for(int j = 0;j<number_RW;j++)
-    {
-      double z = xk(7+j);
-      double sz = sign(z);
-      double sp = shifted_softplus(z*sz,RW_AM_cost_threshold.at(j));
-      double spd = shifted_softplus_deriv(z*sz,RW_AM_cost_threshold.at(j));
-      double spdd = shifted_softplus_deriv2(z*sz,RW_AM_cost_threshold.at(j));
-      if(isinf(sp)){
-        ang_mom_cost += 0.5*RW_AM_cost.at(j)*sp*sp;
-        lkx(6+j) += sz*RW_AM_cost.at(j)*1*sp;
-        lkxx(6+j,6+j) += RW_AM_cost.at(j)*1;
-      }else{
-        ang_mom_cost += 0.5*RW_AM_cost.at(j)*pow(sp,2);
-        lkx(6+j) += sz*RW_AM_cost.at(j)*sp*spd;
-        lkxx(6+j,6+j) += RW_AM_cost.at(j)*(spd*spd + sp*spdd);
-      }
-
-      stiction_cost += 0.5*RW_stiction_cost.at(j)*pow(smoothstep((RW_stiction_threshold.at(j)-z*sz)/RW_stiction_threshold.at(j))*RW_stiction_threshold.at(j),2.0);
-      lkx(6+j) += RW_stiction_cost.at(j)*(smoothstep((RW_stiction_threshold.at(j)-z*sz)/RW_stiction_threshold.at(j))*RW_stiction_threshold.at(j)*(smoothstep_deriv((RW_stiction_threshold.at(j)-z*sz)/RW_stiction_threshold.at(j))*RW_stiction_threshold.at(j))*(-sz/RW_stiction_threshold.at(j)));
-      lkxx(6+j,6+j) += RW_stiction_cost.at(j)*(
-                            pow(smoothstep_deriv((RW_stiction_threshold.at(j)-z*sz)/RW_stiction_threshold.at(j)),2.0)
-                            +
-                            smoothstep((RW_stiction_threshold.at(j)-z*sz)/RW_stiction_threshold.at(j))*(smoothstep_deriv2((RW_stiction_threshold.at(j)-z*sz)/RW_stiction_threshold.at(j)))
-                        );
-
-    }
-  }
   cost_jacs out;
   out.lx = nj.t()*lkx;
   out.lxx = nj.t()*lkxx*nj;
@@ -1088,42 +1235,23 @@ cost_jacs  Satellite::veccostJacobians(int k, int N, vec xk, vec uk,vec ukprev, 
 
 cost_jacs  Satellite::quatcostJacobians(int k, int N, vec xk, vec uk,vec ukprev, vec3 satvec_k, vec4 ECIvec_k,vec3 BECI_k, COST_SETTINGS_FORM *costSettings_ptr) const
 {
-  COST_SETTINGS_FORM costSettings_tmp = *costSettings_ptr;
-  double w_ang = get<0>(costSettings_tmp);
-  double w_av = get<1>(costSettings_tmp);
-  double w_umag = get<3>(costSettings_tmp);
-  double w_avmag = get<4>(costSettings_tmp);
-  double w_avang = get<5>(costSettings_tmp);
-  double w_u_mult = get<2>(costSettings_tmp);
+  ExtractedCostSettings settings = ExtractedCostSettings::fromTuple(*costSettings_ptr);
 
-  int whichAngCostFunc = get<10>(costSettings_tmp);
-  int useRawControlCost = get<11>(costSettings_tmp);
-
-  mat act_cost_mat = mat(control_N(),control_N()).zeros();
+  // Setup actuation cost matrix (handles terminal step weight update)
+  mat act_cost_mat = setupActuationCostMatrix(k, N, settings);
   vec3 magvec = vec(3).zeros();
-
-  if(k<N-1){
-    if(number_MTQ>0)
-    {
-      magvec = mtq_ax_mat*uk.head(number_MTQ);
-      act_cost_mat(0,0,size(number_MTQ,number_MTQ)) = diagmat(vec(MTQ_cost));
-    }
-    if(number_RW>0)
-    {
-      act_cost_mat(number_MTQ,number_MTQ,size(number_RW,number_RW)) = diagmat(vec(RW_cost));
-    }
-    if(number_magic>0)
-    {
-      act_cost_mat(number_MTQ+number_RW,number_MTQ+number_RW,size(number_magic,number_magic)) = diagmat(vec(magic_cost));
-    }
-  }else{
-    w_umag = 0.0;
-    w_u_mult = 0.0;
-    w_ang = get<6>(costSettings_tmp);
-    w_av = get<7>(costSettings_tmp);
-    w_avmag = get<8>(costSettings_tmp);
-    w_avang = get<9>(costSettings_tmp);
+  if (k < N-1 && number_MTQ > 0) {
+    magvec = mtq_ax_mat*uk.head(number_MTQ);
   }
+
+  // Extract local copies of weights (may have been updated by setupActuationCostMatrix for terminal step)
+  double w_ang = settings.w_ang;
+  double w_av = settings.w_av;
+  double w_u_mult = settings.w_u_mult;
+  double w_avmag = settings.w_avmag;
+  double w_avang = settings.w_avang;
+  int whichAngCostFunc = settings.whichAngCostFunc;
+  int useRawControlCost = settings.useRawControlCost;
 
   if(ECIvec_k.is_zero())
   {
@@ -1269,84 +1397,40 @@ cost_jacs  Satellite::quatcostJacobians(int k, int N, vec xk, vec uk,vec ukprev,
 
   double act_mag_cost = 0.0;
 
-  if(number_RW>0){
-    for(int j = 0;j<number_RW;j++)
-    {
-      double z = xk(7+j);
-      double sz = sign(z);
-      double sp = shifted_softplus(z*sz,RW_AM_cost_threshold.at(j));
-      double spd = shifted_softplus_deriv(z*sz,RW_AM_cost_threshold.at(j));
-      double spdd = shifted_softplus_deriv2(z*sz,RW_AM_cost_threshold.at(j));
-      if(isinf(sp)){
-        ang_mom_cost += 0.5*RW_AM_cost.at(j)*sp*sp;
-        lkx(6+j) += sz*RW_AM_cost.at(j)*1*sp;
-        lkxx(6+j,6+j) += RW_AM_cost.at(j)*1;
-      }else{
-        ang_mom_cost += 0.5*RW_AM_cost.at(j)*pow(sp,2);
-        lkx(6+j) += sz*RW_AM_cost.at(j)*sp*spd;
-        lkxx(6+j,6+j) += RW_AM_cost.at(j)*(spd*spd + sp*spdd);
-      }
+  // RW costs using helper function
+  RWCostResults rwCosts = computeRWCostsAndJacobians(xk, lkx, lkxx);
+  ang_mom_cost += rwCosts.ang_mom_cost;
+  stiction_cost += rwCosts.stiction_cost;
 
-      stiction_cost += 0.5*RW_stiction_cost.at(j)*pow(smoothstep((RW_stiction_threshold.at(j)-z*sz)/RW_stiction_threshold.at(j))*RW_stiction_threshold.at(j),2.0);
-      lkx(6+j) += RW_stiction_cost.at(j)*(smoothstep((RW_stiction_threshold.at(j)-z*sz)/RW_stiction_threshold.at(j))*RW_stiction_threshold.at(j)*(smoothstep_deriv((RW_stiction_threshold.at(j)-z*sz)/RW_stiction_threshold.at(j))*RW_stiction_threshold.at(j))*(-sz/RW_stiction_threshold.at(j)));
-      lkxx(6+j,6+j) += RW_stiction_cost.at(j)*(
-                            pow(smoothstep_deriv((RW_stiction_threshold.at(j)-z*sz)/RW_stiction_threshold.at(j)),2.0)
-                            +
-                            smoothstep((RW_stiction_threshold.at(j)-z*sz)/RW_stiction_threshold.at(j))*(smoothstep_deriv2((RW_stiction_threshold.at(j)-z*sz)/RW_stiction_threshold.at(j)))
-                        );
-
-    }
-  }
   cost_jacs out;
   out.lx = nj.t()*lkx;
   out.lxx = nj.t()*lkxx*nj;
   out.lux = lkux*nj;
   out.lu = lku;
   out.luu = lkuu;
-  // cout<<lkxx<<"\n";
   return out;
 }
 
 cost_jacs  Satellite::costJacobians(int k, int N, vec xk, vec uk,vec ukprev, vec3 satvec_k, vec ECIvec_k,vec3 BECI_k, COST_SETTINGS_FORM *costSettings_ptr) const
 {
-  COST_SETTINGS_FORM costSettings_tmp = *costSettings_ptr;
-  double w_ang = get<0>(costSettings_tmp);
-  double w_av = get<1>(costSettings_tmp);
-  double w_umag = get<3>(costSettings_tmp);
-  double w_avmag = get<4>(costSettings_tmp);
-  double w_avang = get<5>(costSettings_tmp);
-  double w_u_mult = get<2>(costSettings_tmp);
+  ExtractedCostSettings settings = ExtractedCostSettings::fromTuple(*costSettings_ptr);
 
-  // cout<<"0\n";
-  int considerVectorInTVLQR = get<10>(costSettings_tmp);
-  int useRawControlCost = get<11>(costSettings_tmp);
-
-  mat act_cost_mat = mat(control_N(),control_N()).zeros();
+  // Setup actuation cost matrix (handles terminal step weight update)
+  mat act_cost_mat = setupActuationCostMatrix(k, N, settings);
   vec3 magvec = vec(3).zeros();
-  if(k<N-1){
-    if(number_MTQ>0)
-    {
-      magvec = mtq_ax_mat*uk.head(number_MTQ);
-      act_cost_mat(0,0,size(number_MTQ,number_MTQ)) = diagmat(vec(MTQ_cost));
-    }
-    if(number_RW>0)
-    {
-      act_cost_mat(number_MTQ,number_MTQ,size(number_RW,number_RW)) = diagmat(vec(RW_cost));
-    }
-    if(number_magic>0)
-    {
-      act_cost_mat(number_MTQ+number_RW,number_MTQ+number_RW,size(number_magic,number_magic)) = diagmat(vec(magic_cost));
-    }
-  }else{
-    w_umag = 0.0;
-    w_u_mult = 0.0;
-    w_ang = get<6>(costSettings_tmp);
-    w_av = get<7>(costSettings_tmp);
-    w_avmag = get<8>(costSettings_tmp);
-    w_avang = get<9>(costSettings_tmp);
+  if (k < N-1 && number_MTQ > 0) {
+    magvec = mtq_ax_mat*uk.head(number_MTQ);
   }
 
-    // cout<<"1\n";
+  // Extract local copies of weights (may have been updated by setupActuationCostMatrix for terminal step)
+  double w_ang = settings.w_ang;
+  double w_av = settings.w_av;
+  double w_u_mult = settings.w_u_mult;
+  double w_avmag = settings.w_avmag;
+  double w_avang = settings.w_avang;
+  int considerVectorInTVLQR = settings.whichAngCostFunc;
+  int useRawControlCost = settings.useRawControlCost;
+
   vec lkx = vec(reduced_state_N()).zeros();
   mat lkxx = mat(reduced_state_N(),reduced_state_N()).zeros();
   mat lkux = mat(control_N(),reduced_state_N()).zeros();
@@ -1355,7 +1439,6 @@ cost_jacs  Satellite::costJacobians(int k, int N, vec xk, vec uk,vec ukprev, vec
 
   // xk = state_norm(xk);
 
-    // cout<<"2\n";
   // vec4 qk = normalise(xk.rows(quat0index(), quat0index()+3));
   vec4 qk = xk.rows(quat0index(), quat0index()+3);
   vec3 wk = xk.rows(avindex0(),avindex0()+2);
@@ -1365,7 +1448,6 @@ cost_jacs  Satellite::costJacobians(int k, int N, vec xk, vec uk,vec ukprev, vec
 
 
   mat::fixed<4,3> Wq = findWMat(qk);
-    // cout<<"21\n";
   // double ddot = norm_dot(sk,rotMat(qk).t()*ek);
   // tuple<vec4,vec4> xy = quatSetBasis(sk,ek);
   // vec4 x = get<0>(xy);
@@ -1392,16 +1474,12 @@ cost_jacs  Satellite::costJacobians(int k, int N, vec xk, vec uk,vec ukprev, vec
     w_ang = 0.0;
   }
 
-      // cout<<"22\n";
   vec3 nb = rotMat(qk).t()*normalise(BECI_k);
   mat::fixed<3,3> dBdq = dRTBdqQ(qk,normalise(BECI_k));
-      // cout<<"23\n";
   mat::fixed<3,3> ddBwdq = ddvTRTudqQ(qk,wk,normalise(BECI_k));
   // mat::fixed<3,3> ddBmdq = ddvTRTudqQ(qk,magvec,normalise(BECI_k));
-      // cout<<"24\n";
   cube::fixed<3,3,3> ddBdq = ddRTudqQ(qk,normalise(BECI_k));
 
-    // cout<<"3\n";
 
   mat33 lkxx_quat_add = mat33().eye();//
   vec3 lkx_quat_add = vec(3).zeros();//
@@ -1429,7 +1507,6 @@ cost_jacs  Satellite::costJacobians(int k, int N, vec xk, vec uk,vec ukprev, vec
   lkxx(0,redang0index(),size(3,3)) += w_avang*mat33().eye();
   lkxx(redang0index(),0,size(3,3)) += w_avang*mat33().eye();
 
-    // cout<<"4\n";
 
   // lkx.head(3) += -sign(ddot)*(ek.t()*Wq).t()*w_avang;
   // lkx(span(redang0index(),redang0index()+2)) +=  -sign(ddot)*(ek.t()*join_rows(join_cols(vec({0.0}),wk),join_cols(-wk.t(),-skewSymmetric(wk)))*Wq).t()*w_avang;
@@ -1465,35 +1542,11 @@ cost_jacs  Satellite::costJacobians(int k, int N, vec xk, vec uk,vec ukprev, vec
 
   double act_mag_cost = 0.0;
 
+  // RW costs using helper function (also fixes bug: stiction was using number_MTQ+j instead of 6+j)
+  RWCostResults rwCosts = computeRWCostsAndJacobians(xk, lkx, lkxx);
+  ang_mom_cost += rwCosts.ang_mom_cost;
+  stiction_cost += rwCosts.stiction_cost;
 
-    // cout<<"5\n";
-  if(number_RW>0){
-    for(int j = 0;j<number_RW;j++)
-    {
-      double z = xk(7+j);
-      double sz = sign(z);
-      double sp = shifted_softplus(z*sz,RW_AM_cost_threshold.at(j));
-      double spd = shifted_softplus_deriv(z*sz,RW_AM_cost_threshold.at(j));
-      double spdd = shifted_softplus_deriv2(z*sz,RW_AM_cost_threshold.at(j));
-      if(isinf(sp)){
-        ang_mom_cost += 0.5*RW_AM_cost.at(j)*sp*sp;
-        lkx(6+j) += sz*RW_AM_cost.at(j)*1*sp;
-        lkxx(6+j,6+j) += RW_AM_cost.at(j)*1;
-      }else{
-        ang_mom_cost += 0.5*RW_AM_cost.at(j)*pow(sp,2);
-        lkx(6+j) += sz*RW_AM_cost.at(j)*sp*spd;
-        lkxx(6+j,6+j) += RW_AM_cost.at(j)*(spd*spd + sp*spdd);
-      }
-      stiction_cost += 0.5*RW_stiction_cost.at(j)*pow(smoothstep((RW_stiction_threshold.at(j)-z*sz)/RW_stiction_threshold.at(j))*RW_stiction_threshold.at(j),2.0);
-      lkx(number_MTQ+j) += RW_stiction_cost.at(j)*(smoothstep((RW_stiction_threshold.at(j)-z*sz)/RW_stiction_threshold.at(j))*RW_stiction_threshold.at(j)*(smoothstep_deriv((RW_stiction_threshold.at(j)-z*sz)/RW_stiction_threshold.at(j))*RW_stiction_threshold.at(j))*(-sz/RW_stiction_threshold.at(j)));
-      lkxx(number_MTQ+j,number_MTQ+j) += RW_stiction_cost.at(j)*(
-                            pow(smoothstep_deriv((RW_stiction_threshold.at(j)-z*sz)/RW_stiction_threshold.at(j)),2.0)
-                            +
-                            smoothstep((RW_stiction_threshold.at(j)-z*sz)/RW_stiction_threshold.at(j))*(smoothstep_deriv2((RW_stiction_threshold.at(j)-z*sz)/RW_stiction_threshold.at(j)))
-                        );
-
-    }
-  }
   cost_jacs out;
   out.lx = lkx;
   out.lxx = lkxx;
@@ -1575,7 +1628,6 @@ vec3 Satellite::dist_torque(vec x, DYNAMICS_INFO_FORM dynamics_info) const{
   mat33 RmatT = rotMat(q).t();
   vec3 nadir = -RmatT*Rk/rad;
   vec3 gg_torq = const_term*cross(nadir,Jcom*nadir);
-  // cout<<"RW TORQUE "<<(invJcom_noRW*rw_torq).t()<<"\n";
   vec3 variable_dist_torq = prop_torq_on*prop_torq*plan_for_prop+gen_dist_torq*plan_for_gendist;
   vec3 dist_torq = gg_torq + variable_dist_torq;
 
@@ -1603,11 +1655,8 @@ tuple<vec,vec3> Satellite::dynamics(vec x, vec u, DYNAMICS_INFO_FORM dynamics_in
   vec h = vec(number_RW).zeros();
   vec3 rw_torq = vec3().zeros();
   if(number_RW>0){
-    // cout<<number_RW<<endl;
     h = x.tail(number_RW);
-    // cout<<h<<endl;
     rw_torq = rw_ax_mat*u(span(number_MTQ,number_MTQ+number_RW-1));
-    // cout<<rw_torq<<endl;
   }
   vec3 magic_torq = vec3().zeros();
   if(number_magic>0){
@@ -1619,27 +1668,12 @@ tuple<vec,vec3> Satellite::dynamics(vec x, vec u, DYNAMICS_INFO_FORM dynamics_in
   {
     magvec += mtq_ax_mat*u.head(number_MTQ);
   }
-  // cout<<"X "<<(x).t()<<"\n";
   vec3 torq = MAGRW_TORQ_MULT*(magic_torq + rw_torq);
-  // cout<<"in dynamics"<<endl;
   vec3 dist_torq = dist_torque(x,dynamics_info);
-  // cout<<dist_torq.t()<<endl;
-  // cout<<prop_torq.t()<<endl;
-  // cout<<plan_for_prop<<endl;
-  // cout<<prop_torq_on<<endl;
-  // cout<<dist_on<<endl;
 
 
-  // cout<<"MTQ TORQUE "<<(invJcom_noRW*cross(magvec,RmatT*Bk)).t()<<"\n";
-  // cout<<"ANG MOMS "<<(Jcom*w).t()<<(rw_ax_mat*h).t()<<"\n";
-  // cout<<"ANG MOMS MID "<<(-cross(w, Jcom*w)).t()<<(-cross(w,rw_ax_mat*h)).t()<<"\n";
   //
-  // cout<<"ANG MOMS EFFECT "<<(-invJcom_noRW*cross(w, Jcom*w)).t()<<(-invJcom_noRW*cross(w,rw_ax_mat*h)).t()<<"\n";
-  // cout<<"ANG MOMS SUM EFFECT "<<(-invJcom_noRW*cross(w, Jcom*w + rw_ax_mat*h)).t()<<"\n";
-  // cout<<(invJcom_noRW*dist_torq).t()<<"\n";
-  // cout<<(invJcom_noRW*torq).t()<<"\n";
   vec3 wdot = invJcom_noRW*(torq - cross(w, Jcom*w + rw_ax_mat*h) + cross(magvec,RmatT*Bk)  + dist_torq);
-  // cout<<"WDOT "<<wdot.t()<<"\n";
   vec res = join_cols(wdot,0.5*findWMat(q)*w);
   if(number_RW>0){
     res = join_cols(res,-MAGRW_TORQ_MULT*u(span(number_MTQ,number_MTQ+number_RW-1)) - diagmat(vec(RW_J))*rw_ax_mat.t()*wdot);
@@ -1962,6 +1996,7 @@ PYBIND11_MODULE(pysat, m) {
         .def("clear_magics", &Satellite::clear_magics)
         .def("add_RW", &Satellite::add_RW_py)
         .def("clear_RWs", &Satellite::clear_RWs)
+        .def("auto_scale_control_costs", &Satellite::auto_scale_control_costs, py::arg("base_weight") = 1.0)
         .def("set_AV_constraint", &Satellite::set_AV_constraint)
         .def("clear_AV_constraint", &Satellite::clear_AV_constraint)
         .def("add_sunpoint_constraint", &Satellite::add_sunpoint_constraint_py)
