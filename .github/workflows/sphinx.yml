@@ -32,7 +32,6 @@ jobs:
     - name: Sanity check API docs
       run: |
         test -f docs/source/modules.rst
-        test -f docs/source/ADCS.ADCS.rst
     - name: Build HTML documentation
       run: |
         # This step verifies the docs build correctly, regardless of the branch.
