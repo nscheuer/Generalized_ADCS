@@ -19,10 +19,11 @@ from tqdm import tqdm
 sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))
 from ADCS.satellite_hardware.satellite.satellite import Satellite
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
-from ADCS.satellite_hardware.actuators import Actuator, RW, MTQ, Noise, Bias
+from ADCS.satellite_hardware.actuators import Actuator, RW, MTQ
+from ADCS.satellite_hardware.errors import Bias, Noise, ErrorMode
 from ADCS.satellite_hardware.sensors import MTM, Gyro, SunPair
 from ADCS.satellite_hardware.sensors import GPS
-from ADCS.satellite_hardware.disturbances import SRP_Disturbance, Drag_Disturbance, Prop_Disturbance, Dipole_Disturbance, GG_Disturbance, GeometryConfig, GeometryFace, DisturbanceMode
+from ADCS.satellite_hardware.disturbances import SRP_Disturbance, Drag_Disturbance, Prop_Disturbance, Dipole_Disturbance, GG_Disturbance, GeometryConfig, GeometryFace
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.orbit import Orbit
 from ADCS.orbits.universal_constants import EarthConstants
@@ -437,38 +438,6 @@ def test_ukf_sun_bias_convergence(ukf_bias_results):
         f"Sun Sensor Bias error too large. Errors: {bias_error}"
     )
 
-import sys
-import os
-import numpy as np
-import numdifftools as nd
-import pytest
-import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation
-from mpl_toolkits.mplot3d import Axes3D
-from typing import List, Union
-from scipy.stats import kstest, ks_2samp
-from scipy.integrate import solve_ivp
-from scipy.linalg import block_diag
-from asciichartpy import plot
-import time
-from tqdm import tqdm
-
-# === Import project modules ===
-sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))
-from ADCS.satellite_hardware.satellite.satellite import Satellite
-from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
-from ADCS.satellite_hardware.actuators import Actuator, RW, MTQ, Noise, Bias
-from ADCS.satellite_hardware.sensors import MTM, Gyro, SunPair
-from ADCS.satellite_hardware.sensors import GPS
-from ADCS.satellite_hardware.disturbances import SRP_Disturbance, Drag_Disturbance, Prop_Disturbance, Dipole_Disturbance, GG_Disturbance, GeometryConfig, GeometryFace, DisturbanceMode
-from ADCS.orbits.orbital_state import Orbital_State
-from ADCS.orbits.orbit import Orbit
-from ADCS.orbits.universal_constants import EarthConstants
-from ADCS.orbits.ephemeris import Ephemeris
-from ADCS.orbits.universal_constants import TimeConstants
-from ADCS.helpers.math_helpers import random_n_unit_vec, rot_mat, norm, normalize, limit
-from ADCS.helpers.math_constants import MathConstants
-from ADCS.estimators.attitude_estimators import UAKF
 
 def run_ukf(verbose: bool = False, tf: float = 1000, dt: float = 10, real_orbit: bool = False) -> Union[np.ndarray, np.ndarray, np.ndarray, List[Orbital_State], List[np.ndarray], List[np.ndarray], np.ndarray, List[np.ndarray]]:
     np.random.seed(67)

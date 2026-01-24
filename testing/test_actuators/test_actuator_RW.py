@@ -12,7 +12,8 @@ sys.path.append(
     os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 )
 from ADCS.satellite_hardware.satellite.satellite import Satellite
-from ADCS.satellite_hardware.actuators import Actuator, RW, MTQ, Noise, Bias
+from ADCS.satellite_hardware.actuators import Actuator, RW, MTQ
+from ADCS.satellite_hardware.errors import Bias, Noise
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.orbits.ephemeris import Ephemeris

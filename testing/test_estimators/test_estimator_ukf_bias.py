@@ -19,10 +19,11 @@ from tqdm import tqdm
 sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))
 from ADCS.satellite_hardware.satellite.satellite import Satellite
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
-from ADCS.satellite_hardware.actuators import Actuator, RW, MTQ, Noise, Bias
+from ADCS.satellite_hardware.actuators import Actuator, RW, MTQ
+from ADCS.satellite_hardware.errors import Bias, Noise, ErrorMode
 from ADCS.satellite_hardware.sensors import MTM, Gyro, SunPair
 from ADCS.satellite_hardware.sensors import GPS
-from ADCS.satellite_hardware.disturbances import SRP_Disturbance, Drag_Disturbance, Prop_Disturbance, Dipole_Disturbance, GG_Disturbance, GeometryConfig, GeometryFace, DisturbanceMode
+from ADCS.satellite_hardware.disturbances import SRP_Disturbance, Drag_Disturbance, Prop_Disturbance, Dipole_Disturbance, GG_Disturbance, GeometryConfig, GeometryFace
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.orbit import Orbit
 from ADCS.orbits.universal_constants import EarthConstants

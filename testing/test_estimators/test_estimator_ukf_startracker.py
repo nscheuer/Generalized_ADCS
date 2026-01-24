@@ -9,7 +9,8 @@ from tqdm import tqdm
 sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))
 from ADCS.satellite_hardware.satellite.satellite import Satellite
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
-from ADCS.satellite_hardware.actuators import MTQ, Noise, AnisotropicNoise
+from ADCS.satellite_hardware.actuators import MTQ
+from ADCS.satellite_hardware.errors import Bias, Noise, AnisotropicNoise
 from ADCS.satellite_hardware.sensors import Gyro, MTM, StarTracker
 from ADCS.satellite_hardware.disturbances import GG_Disturbance
 from ADCS.orbits.orbital_state import Orbital_State
