@@ -1,9 +1,6 @@
-from .angularvelocityplot import AngularVelocityPlot
-from .angularvelocityplotsingle import AngularVelocityPlotSingle
-from .angularvelocityplotcombined import AngularVelocityPlotCombined
+from .angularvelocityplot import AngularVelocityPlot, AngularVelocityPlotSingle, AngularVelocityPlotCombined
 
-from .quaternionplot import QuaternionPlot
-from .quaternionplotsingle import QuaternionPlotSingle
-from .quaternionplotcombined import QuaternionPlotCombined
+from .quaternionplot import QuaternionPlot, QuaternionPlotSingle, QuaternionPlotCombined
 
-__all__ = ["AngularVelocityPlot", "AngularVelocityPlotSingle", "AngularVelocityPlotCombined", "QuaternionPlot", "QuaternionPlotSingle", "QuaternionPlotCombined"]
+__all__ = ["AngularVelocityPlot", "AngularVelocityPlotSingle", "AngularVelocityPlotCombined",
+           "QuaternionPlot", "QuaternionPlotSingle", "QuaternionPlotCombined"]

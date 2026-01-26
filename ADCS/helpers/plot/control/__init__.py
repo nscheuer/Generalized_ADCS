@@ -1,5 +1,4 @@
-from .controlplot import ControlPlot
-from .controlplotsingle import ControlPlotSingle
-from .controlplotcombined import ControlPlotCombined
+from .controlplot import ControlPlot, ControlPlotSingle, ControlPlotCombined
+from .targetplot import TargetPlot
 
-__all__ = ["ControlPlot", "ControlPlotSingle", "ControlPlotCombined"]
+__all__ = ["ControlPlot", "ControlPlotSingle", "ControlPlotCombined", "TargetPlot"]

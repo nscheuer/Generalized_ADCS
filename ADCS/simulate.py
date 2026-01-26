@@ -57,7 +57,7 @@ def simulate(
 
     os_hat = None
 
-    sim_results = SimulationResults()
+    sim_results = SimulationResults(satellite=satellite, est_satellite=est_satellite)
 
     for k in tqdm(range(N), desc="Simulating ADCS", unit="step"):
         J2000_k = start_time + k * dt * TimeConstants.sec2cent
@@ -106,6 +106,8 @@ def simulate(
         x = out.y[:, -1]
         x[3:7] = normalize(x[3:7])
 
+        eci_target, w_target = goal.to_ref(os_for_gnc)
+
         sim_results.record(
             k=k,
             time_J2000=J2000_k,
@@ -126,6 +128,8 @@ def simulate(
                 np.array([np.atleast_1d(sens.bias.bias) for sens in satellite.sensors], dtype=object)
                 if getattr(satellite, "sensors", None) else None
             ),
+            eci_target=eci_target,
+            w_target=w_target,
             clean_sensor=y_clean,
             sensor=y,
             control=u,

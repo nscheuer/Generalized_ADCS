@@ -1,6 +1,7 @@
 from .satellite_hardware.satellite import Satellite, EstimatedSatellite
 from .satellite_hardware.actuators import Actuator, RW, MTQ
 from .satellite_hardware.sensors import MTM, Gyro, SunSensor, SunPair, StarTracker, GPS
+from .satellite_hardware.errors import Bias, Noise
 
 from .controller.controller import Controller
 # Pure MTQ-only controllers
