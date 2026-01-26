@@ -50,47 +50,83 @@ class SimulationResults:
         sensor=None,
         control=None,
     ):
-        if self.time_J2000 is not None and time_J2000 is not None:
-            self.time_J2000[k] = time_J2000
+        # --- time ---
+        if time_J2000 is not None:
+            if self.time_J2000 is None:
+                self.time_J2000 = []
+            self.time_J2000.append(time_J2000)
 
-        if self.time_s is not None and time_s is not None:
-            self.time_s[k] = time_s
+        if time_s is not None:
+            if self.time_s is None:
+                self.time_s = []
+            self.time_s.append(time_s)
 
-        if self.os_hist is not None and os is not None:
+        # --- orbital states ---
+        if os is not None:
+            if self.os_hist is None:
+                self.os_hist = []
             self.os_hist.append(os)
 
-        if self.est_os_hist is not None and est_os is not None:
+        if est_os is not None:
+            if self.est_os_hist is None:
+                self.est_os_hist = []
             self.est_os_hist.append(est_os)
 
-        if self.os_cov_hist is not None and os_cov is not None:
+        if os_cov is not None:
+            if self.os_cov_hist is None:
+                self.os_cov_hist = []
             self.os_cov_hist.append(os_cov)
 
-        if self.state_hist is not None and state is not None:
-            self.state_hist[k] = state
+        # --- states ---
+        if state is not None:
+            if self.state_hist is None:
+                self.state_hist = []
+            self.state_hist.append(np.asarray(state))
 
-        if self.est_state_hist is not None and est_state is not None:
-            self.est_state_hist[k] = est_state
+        if est_state is not None:
+            if self.est_state_hist is None:
+                self.est_state_hist = []
+            self.est_state_hist.append(np.asarray(est_state))
 
-        if self.state_cov_hist is not None and state_cov is not None:
+        if state_cov is not None:
+            if self.state_cov_hist is None:
+                self.state_cov_hist = []
             self.state_cov_hist.append(state_cov)
 
-        if self.sensor_bias is not None and sensor_bias is not None:
-            self.sensor_bias[k] = sensor_bias
+        # --- biases ---
+        if sensor_bias is not None:
+            if self.sensor_bias is None:
+                self.sensor_bias = []
+            self.sensor_bias.append(sensor_bias)
 
-        if self.est_sensor_bias is not None and est_sensor_bias is not None:
-            self.est_sensor_bias[k] = est_sensor_bias
+        if est_sensor_bias is not None:
+            if self.est_sensor_bias is None:
+                self.est_sensor_bias = []
+            self.est_sensor_bias.append(est_sensor_bias)
 
-        if self.actuator_bias is not None and actuator_bias is not None:
-            self.actuator_bias[k] = actuator_bias
+        if actuator_bias is not None:
+            if self.actuator_bias is None:
+                self.actuator_bias = []
+            self.actuator_bias.append(actuator_bias)
 
-        if self.est_actuator_bias is not None and est_actuator_bias is not None:
-            self.est_actuator_bias[k] = est_actuator_bias
+        if est_actuator_bias is not None:
+            if self.est_actuator_bias is None:
+                self.est_actuator_bias = []
+            self.est_actuator_bias.append(est_actuator_bias)
 
-        if self.clean_sensor_hist is not None and clean_sensor is not None:
-            self.clean_sensor_hist[k] = clean_sensor
+        # --- sensors ---
+        if clean_sensor is not None:
+            if self.clean_sensor_hist is None:
+                self.clean_sensor_hist = []
+            self.clean_sensor_hist.append(np.asarray(clean_sensor))
 
-        if self.sensor_hist is not None and sensor is not None:
-            self.sensor_hist[k] = sensor
+        if sensor is not None:
+            if self.sensor_hist is None:
+                self.sensor_hist = []
+            self.sensor_hist.append(np.asarray(sensor))
 
-        if self.control_hist is not None and control is not None:
-            self.control_hist[k] = control
+        # --- control ---
+        if control is not None:
+            if self.control_hist is None:
+                self.control_hist = []
+            self.control_hist.append(np.asarray(control))
