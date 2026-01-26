@@ -19,83 +19,116 @@ from ADCS.helpers.math_helpers import normalize
 from ADCS.helpers.simresults import SimulationResults
 
 def simulate(
-    x: np.ndarray, 
+    x: np.ndarray,
     satellite: Satellite,
-    est_satellite: Optional[Satellite], 
-    controller: Optional[Controller], 
-    estimator: Optional[Attitude_Estimator],
-    orbit_estimator: Optional[Orbit_Estimator],
-    goal: Optional[Goal],
-    os0: Orbital_State,
+    est_satellite: Optional[Satellite] = None,
+    controller: Optional[Controller] = None,
+    estimator: Optional[Attitude_Estimator] = None,
+    orbit_estimator: Optional[Orbit_Estimator] = None,
+    goal: Optional[Goal] = None,
+    os0: Orbital_State = None,
     dt: float = 1.0,
-    tf: float = 500.0
+    tf: float = 500.0,
 ) -> SimulationResults:
     if len(x) != satellite.state_len:
-        raise ValueError(f"Initial state length {len(x)} does not match satellite state length {satellite.state_len}. It must be 7 + N_rw.")
-    
-    N = int(tf/dt)
-    
-    start_time = os0.J2000
-    end_time = start_time + tf * TimeConstants.sec2cent
-    orb = Orbit(os0=os0, end_time=end_time, dt=dt, use_J2=True)
+        raise ValueError(
+            f"Initial state length {len(x)} does not match satellite state length "
+            f"{satellite.state_len}. It must be 7 + N_rw."
+        )
 
-    u = np.zeros(satellite.control_len)
+    N = int(tf / dt)
 
     if goal is None:
         goal = No_Goal()
 
-    if est_satellite is not None and estimator is None:
-        raise ValueError("Estimator must be provided if an estimated satellite is given.")
-    
+    start_time = os0.J2000
+    end_time = start_time + tf * TimeConstants.sec2cent
+    orb = Orbit(os0=os0, end_time=end_time, dt=dt, use_J2=True, fast=False)
+
+    u = np.zeros(satellite.control_len)
+
+    need_est_sat = (estimator is not None) or (controller is not None)
+    if need_est_sat and est_satellite is None:
+        est_satellite = EstimatedSatellite.from_satellite(satellite)
+
+    x_hat = None
     if estimator is not None:
-        if est_satellite is None:
-            est_satellite = EstimatedSatellite.from_satellite(satellite)
         x_hat = np.empty(est_satellite.state_len)
+
+    os_hat = None
 
     sim_results = SimulationResults()
 
     for k in tqdm(range(N), desc="Simulating ADCS", unit="step"):
-        J2000 = start_time + k * dt * TimeConstants.sec2cent
-        os = orb.get_os(J2000=J2000)
+        J2000_k = start_time + k * dt * TimeConstants.sec2cent
+        os_k = orb.get_os(J2000=J2000_k)
 
-        noisy_sensor_readings = satellite.sensor_readings(x=x, os=os)
-        clean_sensor_readings = satellite.noiseless_sensor_readings(x=x, os=os)
+        J2000_kp1 = start_time + (k + 1) * dt * TimeConstants.sec2cent
+        os_kp1 = orb.get_os(J2000=J2000_kp1)
+
+        y = satellite.sensor_readings(x=x, os=os_k)
+        y_clean = satellite.noiseless_sensor_readings(x=x, os=os_k)
 
         if orbit_estimator is not None:
-            gps_readings = satellite.GPS_readings(x=x, os=os)
-            os_hat: EstimatedOrbital_State = orbit_estimator.update(GPS_measurements=gps_readings, J2000=J2000)
+            gps = satellite.GPS_readings(x=x, os=os_k)
+            os_hat = orbit_estimator.update(GPS_measurements=gps, J2000=J2000_k)
+            os_for_gnc = os_hat if os_hat is not None else os_k
+        else:
+            os_hat = None
+            os_for_gnc = os_k
 
         if estimator is not None:
-            input_os = os_hat if os_hat is not None else os
-            x_hat = estimator.update(u=u, sensors=noisy_sensor_readings, os=input_os)
+            x_hat = estimator.update(u=u, sensors=y, os=os_for_gnc)
+            x_for_ctrl = x_hat
+        else:
+            x_for_ctrl = x
 
         if controller is not None:
-            input_os = os_hat if os_hat is not None else os
-            input_x = x_hat if estimator is not None else x
-            u = controller.find_u(x_hat=input_x, sens=noisy_sensor_readings, est_sat=est_satellite, os_hat=input_os, goal=goal)
+            u = controller.find_u(
+                x_hat=x_for_ctrl,
+                sens=y,
+                est_sat=est_satellite,
+                os_hat=os_for_gnc,
+                goal=goal,
+            )
+        else:
+            u[:] = 0.0
 
-        prev_os = os.copy()
-        os = orb.get_os(J2000=start_time + (k+1) * dt * TimeConstants.sec2cent)
-        out = solve_ivp(fun=satellite.dynamics_for_solver, t_span=(0, dt), y0=x, method="RK45", args=(u, prev_os, os), rtol=1e-7, atol=1e-7)
-
+        out = solve_ivp(
+            fun=satellite.dynamics_for_solver,
+            t_span=(0, dt),
+            y0=x,
+            method="RK45",
+            args=(u, os_k, os_kp1),
+            rtol=1e-7,
+            atol=1e-7,
+        )
         x = out.y[:, -1]
         x[3:7] = normalize(x[3:7])
 
         sim_results.record(
             k=k,
-            time_J2000=J2000,
-            time_s=k*dt,
-            os=os,
-            est_os=os_hat if orbit_estimator is not None else None,
-            os_cov=orbit_estimator.os_hat.P if orbit_estimator is not None else None,
+            time_J2000=J2000_k,
+            time_s=k * dt,
+            os=os_k,
+            est_os=os_hat,
+            os_cov=(getattr(getattr(orbit_estimator, "os_hat", None), "P", None)
+                    if orbit_estimator is not None else None),
             state=x,
-            est_state=x_hat if estimator is not None else None,
-            state_cov=estimator.x_hat.cov if estimator is not None else None,
-            actuator_bias=np.array([act.bias.bias for act in satellite.actuators]) if len(satellite.actuators) > 0 else None,
-            est_actuator_bias=x_hat[7:7+len(satellite.actuators)] if estimator is not None and len(satellite.actuators) > 0 else None,
-            sensor_bias=np.array([sens.bias.bias for sens in satellite.sensors]) if len(satellite.sensors) > 0 else None,
-            est_sensor_bias=x_hat[7+len(satellite.actuators):7+len(satellite.actuators)+len(satellite.sensors)] if estimator is not None and len(satellite.sensors) > 0 else None,
-            clean_sensor_hist=clean_sensor_readings,
-            sensor_hist=noisy_sensor_readings,
-            control_hist=u
+            est_state=x_hat,
+            state_cov=(getattr(getattr(estimator, "x_hat", None), "cov", None)
+                       if estimator is not None else None),
+            actuator_bias=(
+                np.array([np.atleast_1d(act.bias.bias) for act in satellite.actuators], dtype=object)
+                if getattr(satellite, "actuators", None) else None
+            ),
+            sensor_bias=(
+                np.array([np.atleast_1d(sens.bias.bias) for sens in satellite.sensors], dtype=object)
+                if getattr(satellite, "sensors", None) else None
+            ),
+            clean_sensor=y_clean,
+            sensor=y,
+            control=u,
         )
+
+    return sim_results
