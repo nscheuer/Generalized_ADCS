@@ -28,7 +28,7 @@ jobs:
     # 2. Build HTML documentation (Runs on ALL branches)
     - name: Generate Sphinx API docs
       run: |
-        sphinx-apidoc -f -e -o docs/source ADCS
+        sphinx-apidoc -f -e --maxdepth 1 -o docs/source ADCS
     - name: Sanity check API docs
       run: |
         test -f docs/source/modules.rst
