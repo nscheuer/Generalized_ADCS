@@ -107,8 +107,10 @@ class MTQ_w_RW_QP(MTQ_w_RW_LP):
     - **If** :math:`\alpha \approx 1`: The requested torque was fully feasible.
     - **If** :math:`\alpha < 1`: The system is saturated or geometrically constrained (e.g., trying to torque parallel to B-field). The controller provides the closest physical approximation.
     """
-    def __init__(self, est_sat: EstimatedSatellite, p_gain: float, d_gain: float, c_gain: float, h_target: np.ndarray | list = np.zeros(3)) -> None:
-        super().__init__(est_sat=est_sat, p_gain=p_gain, d_gain=d_gain, c_gain=c_gain, h_target=h_target)
+    def __init__(self, est_sat: EstimatedSatellite, p_gain: float, d_gain: float, c_gain: float, 
+                 h_target: np.ndarray | list = np.zeros(3), include_disturbances: bool = False) -> None:
+        super().__init__(est_sat=est_sat, p_gain=p_gain, d_gain=d_gain, c_gain=c_gain, 
+                         h_target=h_target, include_disturbances=include_disturbances)
 
     def allocate_max_torque_in_direction(self, tau_des: np.ndarray, b_body: np.ndarray, est_sat: EstimatedSatellite) -> tuple[np.ndarray, np.ndarray, float]:
         tau_des = np.asarray(tau_des, float).reshape(3,)

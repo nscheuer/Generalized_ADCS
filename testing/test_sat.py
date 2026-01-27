@@ -620,7 +620,7 @@ def test_resdipole():
     dist = [Dipole_Disturbance(nominal_dipole, noise)]
     sat = Satellite(disturbances=dist)
 
-    assert np.all(sat.disturbances[0].torque_nominal == np.array([0.1,-0.1,0.5]))
+    assert np.all(sat.disturbances[0].dipole_nominal == np.array([0.1,-0.1,0.5]))
     assert np.all(sat.disturbances[0].noise.std_noise == 0.0)
 
 if __name__ == "__main__":

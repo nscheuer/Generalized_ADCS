@@ -8,7 +8,8 @@ from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatel
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.satellite_hardware.actuators import MTQ, RW
 from ADCS.satellite_hardware.sensors import MTM
-from ADCS.helpers.math_helpers import rot_mat, Wmat
+from ADCS.helpers.math_helpers import rot_mat, Wmat, quat_mult, quat_inv
+from ADCS.CONOPS.goals import Attitude_Goal
 
 class MTQ_Wisniewski(Controller):
     r"""
@@ -75,7 +76,9 @@ class MTQ_Wisniewski(Controller):
         \boldsymbol{m} = \frac{\boldsymbol{B} \times \boldsymbol{\tau}_{\mathrm{des}}}{\|\boldsymbol{B}\|^2}
 
     """
-    def __init__(self, est_sat: EstimatedSatellite, lambda_s: np.ndarray, lambda_q: np.ndarray) -> None:
+    def __init__(self, est_sat: EstimatedSatellite, lambda_s: np.ndarray, lambda_q: np.ndarray,
+                 include_disturbances: bool = False) -> None:
+        super().__init__(est_sat=est_sat, include_disturbances=include_disturbances)
         self.lambda_s = lambda_s
         self.lambda_q = lambda_q
 
@@ -96,11 +99,34 @@ class MTQ_Wisniewski(Controller):
         else:
             h_rw_states = np.array([rw.h for rw in est_sat.actuators if isinstance(rw, RW)])
 
-        goal_vec_eci, w_ref_eci = goal.to_ref(os0=os_hat)
-        R_b2i = rot_mat(q)
-        w_ref_body = R_b2i.T @ w_ref_eci
-
-        q_err = goal.error(q=q, body_boresight=est_sat.boresight, os0=os_hat)
+        # Get reference from goal
+        ref_or_quat, w_ref = goal.to_ref(os0=os_hat)
+        
+        # Determine if this is an Attitude_Goal (returns quaternion) or Vector_Goal (returns direction)
+        if isinstance(goal, Attitude_Goal):
+            # Attitude_Goal: to_ref returns (q_ref, w_ref)
+            q_ref = ref_or_quat
+        else:
+            # Vector_Goal: to_ref returns (direction, w_ref)
+            # For full attitude control, assume identity quaternion as goal
+            q_ref = np.array([0.0, 0.0, 0.0, 1.0])
+        
+        # Quaternion error per thesis convention: qerr = q_desired^{-1} * q
+        # This gives rotation FROM desired frame TO current frame
+        q_err_full = quat_mult(quat_inv(q_ref), q)
+        
+        # Ensure shortest rotation (positive scalar part)
+        if q_err_full[0] < 0.0:
+            q_err_full = -q_err_full
+        
+        # Vector part of error quaternion (for sliding surface)
+        q_err = q_err_full[1:4]
+        
+        # Angular velocity error: w_err = w - w_desired @ rot_mat(qerr)
+        # w_ref is in the goal/ECI frame, transform to current body frame via error rotation
+        R_err = rot_mat(q_err_full)
+        w_ref_body = R_err @ w_ref
+        
         w_err = w - w_ref_body
 
         # Calculate sliding surface
@@ -115,15 +141,39 @@ class MTQ_Wisniewski(Controller):
                 h_rw_body += np.asarray(actuator.axis).flatten() * h_rw_states[rw_counter]
                 rw_counter += 1
 
-        q_err_full = np.hstack(([np.sqrt(max(0.0, 1.0 - np.dot(q_err, q_err)))], q_err))
-        q_err_dot = 0.5*w_err@Wmat(q_err_full).T
+        # Compute quaternion rate error term (vector part only)
+        # Thesis uses: -0.5*(qerr[0]*werr + cross(qerr[1:], werr)) @ Lambda_q
+        # This is the NEGATIVE of the standard quaternion derivative vector part
+        q0_err = q_err_full[0]
+        qv_err = q_err_full[1:4]
+        q_err_dot_vec = -0.5 * (q0_err * w_err + np.cross(qv_err, w_err))
 
+        # Compute desired torque per Wisniewski sliding mode law
+        # Base torque = gyroscopic + frame rotation - q_err_dot term - sliding term
+        #
+        # tau_gyro: ω×(Jω + h_rw) - gyroscopic coupling 
+        # tau_frame: J(ω × ω_err) - accounts for rotating reference frame
+        # tau_q_err_dot: Lambda_q @ q_err_dot_vec - quaternion rate term
+        # tau_sliding: Lambda_s @ s - drives s toward zero
+        
         tau_gyro = np.cross(w, J @ w + h_rw_body)
         tau_frame = J @ np.cross(w, w_err)
-        tau_q_err_dot = self.lambda_q @ q_err_dot[1:4]
+        tau_q_err_dot = self.lambda_q @ q_err_dot_vec
         tau_sliding = self.lambda_s @ s
 
-        tau_des = tau_gyro + tau_frame - tau_q_err_dot - tau_sliding
+        # Base torque before projection
+        base_torq = tau_q_err_dot + tau_gyro + tau_frame - tau_sliding
+        
+        # Add disturbance feedforward compensation (if enabled)
+        base_torq = self.compensate_disturbance(base_torq, x_hat, est_sat, os_hat)
+        
+        # Project base torque onto sliding surface direction
+        # This is the key step from Wisniewski paper: udes = s * (s · base_torq) / |s|²
+        s_norm_sq = np.dot(s, s)
+        if s_norm_sq > 1e-12:
+            tau_des = s * np.dot(s, base_torq) / s_norm_sq
+        else:
+            tau_des = base_torq
 
         sens = np.asarray(sens).reshape(-1)
         sens_clean = sens.copy()

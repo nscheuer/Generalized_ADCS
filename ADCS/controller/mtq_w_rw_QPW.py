@@ -86,8 +86,10 @@ class MTQ_w_RW_QPW(MTQ_w_RW_LP):
 
     This configuration ensures the ADCS fights hard to point the torque correctly, even if it means producing slightly less (or more) torque than requested, which is often preferable for stability in underactuated systems.
     """
-    def __init__(self, est_sat: EstimatedSatellite, p_gain: float, d_gain: float, c_gain: float, h_target: np.ndarray | list = np.zeros(3)) -> None:
-        super().__init__(est_sat=est_sat, p_gain=p_gain, d_gain=d_gain, c_gain=c_gain, h_target=h_target)
+    def __init__(self, est_sat: EstimatedSatellite, p_gain: float, d_gain: float, c_gain: float, 
+                 h_target: np.ndarray | list = np.zeros(3), include_disturbances: bool = False) -> None:
+        super().__init__(est_sat=est_sat, p_gain=p_gain, d_gain=d_gain, c_gain=c_gain, 
+                         h_target=h_target, include_disturbances=include_disturbances)
 
     def allocate_max_torque_in_direction(self, tau_des: np.ndarray, b_body: np.ndarray, est_sat: EstimatedSatellite) -> tuple[np.ndarray, np.ndarray, float]:
         tau_des = np.asarray(tau_des, float).reshape(3,)

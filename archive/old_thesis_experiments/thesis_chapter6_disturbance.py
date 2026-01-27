@@ -76,53 +76,55 @@ class ControllerConfig:
 
 
 CONTROLLER_CONFIGS = {
-    # Wie (3RW, large satellite)
+    # Wie (3RW, large satellite) - Thesis: Kp=5, Kd=200
     'wie': ControllerConfig(
         name='Wie 3RW',
         controller_type='wie',
-        p_gain=0.5,
-        d_gain=2.0,
+        p_gain=5.0,      # Kp from thesis
+        d_gain=200.0,    # Kd from thesis  
         dt=1.0,
     ),
-    # Lovera MTQ-only
+    # Lovera MTQ-only - Thesis: eps=0.01, kp=50, kv=50
     'lovera': ControllerConfig(
         name='Lovera MTQ',
         controller_type='lovera',
-        p_gain=0.001,
-        d_gain=0.005,
-        eps=1.0,
+        p_gain=50.0,     # kp from thesis
+        d_gain=50.0,     # kv from thesis
+        eps=0.01,        # epsilon from thesis
         dt=1.0,
     ),
+    # Lovera for CubeSat - Thesis: eps=0.001, kp=0.01, kv=0.015
     'lovera_cubesat': ControllerConfig(
         name='Lovera CubeSat',
         controller_type='lovera',
-        p_gain=0.0005,
-        d_gain=0.002,
-        eps=1.0,
+        p_gain=0.01,     # kp scaled for CubeSat
+        d_gain=0.015,    # kv scaled for CubeSat
+        eps=0.001,       # eps scaled for CubeSat
         dt=1.0,
     ),
-    # Wisniewski MTQ sliding mode
+    # Wisniewski MTQ sliding mode - Thesis: Λ_q=0.002, Λ_s=0.003
     'wisniewski': ControllerConfig(
         name='Wisniewski MTQ',
         controller_type='wisniewski',
-        p_gain=0.001,
-        d_gain=0.005,
+        p_gain=0.002,    # lambda_q scalar from thesis
+        d_gain=0.003,    # lambda_s scalar from thesis
         eps=0.1,
         dt=1.0,
     ),
     'wisniewski10': ControllerConfig(
         name='Wisniewski 10s',
         controller_type='wisniewski',
-        p_gain=0.001,
-        d_gain=0.005,
+        p_gain=0.002,
+        d_gain=0.003,
         eps=0.1,
         dt=10.0,
     ),
+    # Wisniewski CubeSat - Thesis: Λ_q=0.0001, Λ_s=0.0003
     'wisniewski_cubesat': ControllerConfig(
         name='Wisniewski CubeSat',
         controller_type='wisniewski',
-        p_gain=0.0005,
-        d_gain=0.002,
+        p_gain=0.0001,   # lambda_q scaled for CubeSat
+        d_gain=0.0003,   # lambda_s scaled for CubeSat
         eps=0.1,
         dt=1.0,
     ),
@@ -159,14 +161,32 @@ class SatelliteType:
 
 
 SATELLITE_TYPES = {
-    'large_3rw': SatelliteType(
-        name='Large 3RW Satellite',
-        J=np.diag([100.0, 80.0, 60.0]),  # Large satellite
-        mass=500.0,
-        has_rw=True,
-        rw_max_torque=0.5,
-        geometry_scale=5.0,
+    # Wie: Space Shuttle-like large satellite with thrusters
+    'wie_shuttle': SatelliteType(
+        name='Space Shuttle-like (Wie)',
+        J=np.diag([10000.0, 9000.0, 12000.0]),  # Thesis Table 5.1
+        mass=10000.0,
+        has_rw=True,  # Actually uses "magic" thrusters
+        rw_max_torque=20.0,  # 20 Nm thruster capability
+        geometry_scale=10.0,
     ),
+    # Lovera: Medium satellite with MTQ only - Thesis Table 5.2
+    'lovera_sat': SatelliteType(
+        name='Lovera Satellite',
+        J=np.diag([27.0, 17.0, 25.0]),  # kg·m² from thesis
+        mass=100.0,
+        mtq_max=50.0,  # 50 Am² from thesis
+        has_rw=False,
+    ),
+    # Wisniewski: Ørsted-based satellite - from thesis Section 5.2.3
+    'wisniewski_sat': SatelliteType(
+        name='Wisniewski Satellite (Ørsted)',
+        J=np.diag([30.0, 20.0, 25.0]),  # Approximate Ørsted values
+        mass=60.0,
+        mtq_max=10.0,  # 10 Am² MTQ
+        has_rw=False,
+    ),
+    # CubeSat variants for comparison
     'cubesat_mtq': SatelliteType(
         name='3U CubeSat MTQ-only',
         J=np.diag([0.03, 0.03, 0.01]),
@@ -205,46 +225,50 @@ class ExperimentConfig:
 # Define all experiments
 EXPERIMENTS = {
     # ==========================================================================
-    # Wie Controller (Section 6.3)
+    # Wie Controller (Section 6.3) - Space Shuttle-like with thrusters
     # ==========================================================================
     'wie_clean': ExperimentConfig(
         name='Wie - Clean',
-        description='Wie 3RW controller without disturbances',
-        satellite='large_3rw',
+        description='Wie PD controller without disturbances (Table 5.1)',
+        satellite='wie_shuttle',
         controller='wie',
         disturbances=DisturbanceConfig(gravity_gradient=False),
-        duration_s=1000,
+        duration_s=7200,  # 2 hours from thesis
+        omega_init=np.array([0.01, 0.01, 0.001]),  # Thesis initial omega
         output_prefix='wie',
     ),
     'wie_disturbed': ExperimentConfig(
         name='Wie - Disturbed',
-        description='Wie 3RW controller with gravity gradient',
-        satellite='large_3rw',
+        description='Wie PD controller with gravity gradient',
+        satellite='wie_shuttle',
         controller='wie',
-        disturbances=DisturbanceConfig(gravity_gradient=True),
-        duration_s=1000,
+        disturbances=DisturbanceConfig(gravity_gradient=True, drag=True, srp=True),
+        duration_s=7200,
+        omega_init=np.array([0.01, 0.01, 0.001]),
         output_prefix='wie',
     ),
     
     # ==========================================================================
-    # Lovera Controller (Section 6.4)
+    # Lovera Controller (Section 6.4) - Medium satellite with MTQ
     # ==========================================================================
     'lovera_clean': ExperimentConfig(
         name='Lovera - Clean',
-        description='Lovera MTQ controller without disturbances',
-        satellite='cubesat_mtq',
+        description='Lovera MTQ-PD controller without disturbances (Table 5.2)',
+        satellite='lovera_sat',  # J=diag([27,17,25]), MTQ max=50 Am²
         controller='lovera',
         disturbances=DisturbanceConfig(gravity_gradient=False),
-        duration_s=3600,
+        duration_s=36000,  # 10 hours from thesis
+        omega_init=np.array([1, 1, -1]) * np.pi/180,  # 1 deg/s from thesis
         output_prefix='lovera',
     ),
     'lovera_disturbed': ExperimentConfig(
         name='Lovera - Disturbed',
         description='Lovera MTQ controller with disturbances',
-        satellite='cubesat_mtq',
+        satellite='lovera_sat',
         controller='lovera',
-        disturbances=DisturbanceConfig(gravity_gradient=True, residual_dipole=np.array([0.01, 0.01, 0.01])),
-        duration_s=3600,
+        disturbances=DisturbanceConfig(gravity_gradient=True, drag=True, srp=True),
+        duration_s=36000,
+        omega_init=np.array([1, 1, -1]) * np.pi/180,
         output_prefix='lovera',
     ),
     'lovera_cubesat': ExperimentConfig(
@@ -382,25 +406,44 @@ class DisturbanceExperimentRunner:
         elif self.config.satellite == 'cubesat_3mtq_1rw':
             return create_beavercube2_cubesat(estimated=False)
         else:
-            # Large satellite - need custom creation
+            # Custom satellite creation for thesis test cases
             from ADCS.satellite_hardware.satellite.satellite import Satellite
-            from ADCS.satellite_hardware.actuators import RW
+            from ADCS.satellite_hardware.actuators import RW, MTQ
             from ADCS.satellite_hardware.sensors import MTM, Gyro
             from ADCS.helpers.math_constants import MathConstants
             
-            # 3 RWs along principal axes
-            rws = [
-                RW(axis=np.array([1, 0, 0]), max_torque=sat_type.rw_max_torque, J=0.01, h=0.0, h_max=1.0),
-                RW(axis=np.array([0, 1, 0]), max_torque=sat_type.rw_max_torque, J=0.01, h=0.0, h_max=1.0),
-                RW(axis=np.array([0, 0, 1]), max_torque=sat_type.rw_max_torque, J=0.01, h=0.0, h_max=1.0),
-            ]
+            # Sensors (common to all)
             mtms = [MTM(axis=j) for j in MathConstants.unitvecs]
-            gyros = [Gyro(axis=j, bias=0, noise=0.0001, drift=0) for j in MathConstants.unitvecs]
+            gyros = [Gyro(axis=j) for j in MathConstants.unitvecs]
+            
+            # Actuators depend on satellite type
+            if sat_type.has_rw and not sat_type.mtq_max > 1.0:
+                # RW-only satellite (Wie case with "magic"/thruster actuators)
+                actuators = [
+                    RW(axis=np.array([1, 0, 0]), max_torque=sat_type.rw_max_torque, J=0.01, h=0.0, h_max=100.0),
+                    RW(axis=np.array([0, 1, 0]), max_torque=sat_type.rw_max_torque, J=0.01, h=0.0, h_max=100.0),
+                    RW(axis=np.array([0, 0, 1]), max_torque=sat_type.rw_max_torque, J=0.01, h=0.0, h_max=100.0),
+                ]
+            elif sat_type.mtq_max > 0 and not sat_type.has_rw:
+                # MTQ-only satellite (Lovera/Wisniewski cases)
+                actuators = [
+                    MTQ(axis=np.array([1, 0, 0]), max_torque=sat_type.mtq_max),
+                    MTQ(axis=np.array([0, 1, 0]), max_torque=sat_type.mtq_max),
+                    MTQ(axis=np.array([0, 0, 1]), max_torque=sat_type.mtq_max),
+                ]
+            else:
+                # Both MTQ and RW
+                actuators = [
+                    MTQ(axis=np.array([1, 0, 0]), max_torque=sat_type.mtq_max),
+                    MTQ(axis=np.array([0, 1, 0]), max_torque=sat_type.mtq_max),
+                    MTQ(axis=np.array([0, 0, 1]), max_torque=sat_type.mtq_max),
+                    RW(axis=np.array([0, 1, 0]), max_torque=sat_type.rw_max_torque, J=0.001, h=0.0, h_max=0.1),
+                ]
             
             sat = Satellite(
                 mass=sat_type.mass,
                 J_0=sat_type.J,
-                actuators=rws,
+                actuators=actuators,
                 sensors=mtms + gyros,
                 boresight=np.array([0, 0, 1]),
             )
@@ -420,12 +463,14 @@ class DisturbanceExperimentRunner:
                 eps=ctrl_config.eps,
             )
         elif ctrl_config.controller_type in ['wisniewski', 'wisniewski_twist']:
-            # Note: Wisniewski_twist would need separate implementation
+            # Wisniewski uses lambda_s and lambda_q gain matrices
+            # Map p_gain -> lambda_q scalar, d_gain -> lambda_s scalar
+            lambda_s = np.eye(3) * ctrl_config.d_gain  # Sliding surface gain
+            lambda_q = np.eye(3) * ctrl_config.p_gain  # Quaternion error gain
             return MTQ_Wisniewski(
                 est_sat=sat,
-                p_gain=ctrl_config.p_gain,
-                d_gain=ctrl_config.d_gain,
-                eps=ctrl_config.eps,
+                lambda_s=lambda_s,
+                lambda_q=lambda_q,
             )
         elif ctrl_config.controller_type == 'wie':
             # Wie controller for 3RW - use LP controller
@@ -441,7 +486,7 @@ class DisturbanceExperimentRunner:
             raise ValueError(f"Unknown controller type: {ctrl_config.controller_type}")
     
     def create_orbit(self, start_time: float):
-        """Create orbit for simulation."""
+        """Create orbit for simulation using fast propagation with batch B/S."""
         from ADCS.orbits.ephemeris import Ephemeris
         from ADCS.orbits.orbit import Orbit
         from ADCS.orbits.orbital_state import Orbital_State
@@ -450,10 +495,12 @@ class DisturbanceExperimentRunner:
         ephem = Ephemeris()
         R = 7000 * np.array([0, np.sqrt(2)/2, np.sqrt(2)/2])
         V = np.array([8, 0, 0])
-        os0 = Orbital_State(ephem=ephem, J2000=start_time, R=R, V=V)
+        os0 = Orbital_State(ephem=ephem, J2000=start_time, R=R, V=V, fast=True)
         
         end_time = start_time + (self.duration_s + 100) * TimeConstants.sec2cent
-        orb = Orbit(os0=os0, end_time=end_time, dt=self.dt, use_J2=True, fast=False)
+        # Use fast=True to skip per-step B/S computation, then batch populate
+        orb = Orbit(os0=os0, end_time=end_time, dt=self.dt, use_J2=True, fast=True, verbose=False)
+        orb.populate_environment(compute_B=True, compute_S=True, verbose=False)
         
         return orb, os0
     

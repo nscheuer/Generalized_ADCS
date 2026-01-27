@@ -62,7 +62,7 @@ def test_torque_mag_dist():
     torq_ECI = -np.cross(B_ECI, dip_ECI)
     exp_wd = Rm.T@np.linalg.inv(J_ECI)@(-np.cross(w_ECI,H_ECI)+torq_ECI)
     exp_qd = 0.5*np.concatenate([[-np.dot(q0[1:],w0)],q0[0]*w0 + np.cross(q0[1:],w0)])
-    res_dipole = Dipole_Disturbance(dipole_torque=dip)
+    res_dipole = Dipole_Disturbance(dipole_moment=dip)
     os = Orbital_State(ephem=ephem, J2000=0.22, R=np.array([7000, 0, 0]), V=np.array([0, 8, 0]), B=B_ECI)
     sat = Satellite(J_0=J_body, disturbances=[res_dipole])
     x = np.concatenate([w0, q0])

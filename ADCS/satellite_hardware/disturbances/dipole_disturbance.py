@@ -33,29 +33,29 @@ class Dipole_Disturbance(Disturbance):
 
     Parameters
     ----------
-    dipole_torque : :class:`numpy.ndarray`
-        Nominal magnetic dipole vector in body coordinates [A·m²], shape ``(3,)``.
+    dipole_moment : :class:`numpy.ndarray`
+        Nominal magnetic dipole moment vector in body coordinates [A·m²], shape ``(3,)``.
     noise : :class:`~ADCS.satellite_hardware.actuators.noise.Noise`
-        Noise model instance used to perturb the nominal dipole vector.
+        Noise model instance used to perturb the nominal dipole moment.
     """
 
-    def __init__(self, dipole_torque: np.ndarray, noise: Noise = None, estimate_dist: bool = False):
+    def __init__(self, dipole_moment: np.ndarray, noise: Noise = None, estimate_dist: bool = False):
         r"""
         Initialize the dipole disturbance model.
 
         Parameters
         ----------
-        dipole_torque : :class:`numpy.ndarray`
-            Nominal magnetic dipole vector [A·m²], shape ``(3,)``.
+        dipole_moment : :class:`numpy.ndarray`
+            Nominal magnetic dipole moment vector [A·m²], shape ``(3,)``.
         noise : :class:`~ADCS.satellite_hardware.actuators.noise.Noise`
-            Noise generator to inject random variations into the dipole.
+            Noise generator to inject random variations into the dipole moment.
         """
-        self.torque_nominal = dipole_torque
+        self.dipole_nominal = dipole_moment
         if noise:
             self.noise = noise
         else:
             self.noise = Noise()
-        self.current_torque = self.torque_nominal.copy()
+        self.current_dipole = self.dipole_nominal.copy()
 
         super().__init__(estimate_dist=estimate_dist, estimated_vector_length=3)
 
@@ -72,7 +72,7 @@ class Dipole_Disturbance(Disturbance):
         with :math:`\mathbf{m}_{d,0}` the nominal dipole and :math:`\mathbf{n}(t)` a
         noise realization. Call once per step before torque evaluation.
         """
-        self.current_torque = self.torque_nominal + self.noise.get_noise()
+        self.current_dipole = self.dipole_nominal + self.noise.get_noise()
 
     def torque(self, x: np.ndarray, os: Orbital_State) -> np.ndarray:
         r"""
@@ -100,7 +100,7 @@ class Dipole_Disturbance(Disturbance):
         """
         vecs = os.get_state_vector(x=x)
         B_B = vecs["b"]
-        return np.cross(self.current_torque, B_B)
+        return np.cross(self.current_dipole, B_B)
 
     def torque_qjac(self, x: np.ndarray, os: Orbital_State) -> np.ndarray:
         r"""
@@ -130,7 +130,7 @@ class Dipole_Disturbance(Disturbance):
         """
         vecs = os.get_state_vector(x=x)
         db_body__dq = vecs["db"]
-        return np.cross(self.current_torque, db_body__dq)
+        return np.cross(self.current_dipole, db_body__dq)
 
     def torque_qqhess(self, x: np.ndarray, os: Orbital_State) -> np.ndarray:
         r"""
@@ -159,7 +159,7 @@ class Dipole_Disturbance(Disturbance):
         """
         vecs = os.get_state_vector(x=x)
         ddb_body__dqdq = vecs["ddb"]
-        return np.cross(self.current_torque, ddb_body__dqdq)
+        return np.cross(self.current_dipole, ddb_body__dqdq)
 
     def torque_valjac(self, x: np.ndarray, os: Orbital_State) -> np.ndarray:
         r"""

@@ -76,9 +76,11 @@ class MTQ_w_RW_QPG(MTQ_w_RW_LP):
     - **If** :math:`\gamma < 0`: The controller prioritizes transverse torque authority (e.g., for nutation damping).
 
     """
-    def __init__(self, est_sat: EstimatedSatellite, p_gain: float, d_gain: float, gamma: float, c_gain: float, h_target: np.ndarray | list = np.zeros(3)) -> None:
+    def __init__(self, est_sat: EstimatedSatellite, p_gain: float, d_gain: float, gamma: float, c_gain: float, 
+                 h_target: np.ndarray | list = np.zeros(3), include_disturbances: bool = False) -> None:
         self.gamma = gamma
-        super().__init__(est_sat=est_sat, p_gain=p_gain, d_gain=d_gain, c_gain=c_gain, h_target=h_target)
+        super().__init__(est_sat=est_sat, p_gain=p_gain, d_gain=d_gain, c_gain=c_gain, 
+                         h_target=h_target, include_disturbances=include_disturbances)
 
     def find_u(
         self,

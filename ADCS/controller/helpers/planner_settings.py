@@ -246,7 +246,7 @@ class PlannerSettings:
         self.srp_coeff = np.zeros((3,))
         self.drag_coeff = np.zeros((3,))
         self.coeff_N = 0
-        self.res_dipole = sum([j.current_torque if isinstance(j, Dipole_Disturbance) else np.zeros(3) for j in est_sat.disturbances], start=np.zeros(3)).reshape((3,))
+        self.res_dipole = sum([j.current_dipole if isinstance(j, Dipole_Disturbance) else np.zeros(3) for j in est_sat.disturbances], start=np.zeros(3)).reshape((3,))
         self.prop_torque = sum([j.current_torque if isinstance(j, Prop_Disturbance) else np.zeros(3) for j in est_sat.disturbances], start=np.zeros(3)).reshape((3,))
         self.gendist_torq = np.array([0, 0, 0])
         self.J_est = est_sat.J_0

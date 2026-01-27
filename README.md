@@ -47,3 +47,26 @@ For full installation instructions for your system, including compiling the <u>t
 
 ⚙️ **Testing Guide:**
 ['documentation/PYTEST.md'](/documentation/PYTEST.md)
+
+## 📊 Paper Experiments
+
+Generate figures for academic papers using the experiment infrastructure:
+
+```bash
+# Quick test (10 trials, 200s) - ~5 min per paper
+python testing/paper_todo_tests/experiments/generate_all_paper_figures.py --paper 3p1 --quick
+
+# Full experiments (100 trials, 1000s) - ~2-4 hours per paper
+python testing/paper_todo_tests/experiments/generate_all_paper_figures.py --paper 3p1 --full
+
+# All papers (~8-12 hours for full)
+python testing/paper_todo_tests/experiments/generate_all_paper_figures.py --all --full
+```
+
+Papers covered:
+- **3+1 Paper**: Architecture comparison (3+0, 3+1, 3+3), momentum management
+- **Generalized Control Paper**: LP vs QP allocation, direction preservation
+- **Planner Paper**: ALTRO trajectory planning vs PD baseline
+- **Package Paper**: Controller comparison, quickstart demo
+
+See [testing/paper_todo_tests/experiments/README.md](testing/paper_todo_tests/experiments/README.md) for details.

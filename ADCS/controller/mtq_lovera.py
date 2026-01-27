@@ -87,10 +87,12 @@ class MTQ_Lovera(Controller):
         -\varepsilon^2 k_p e_q
         -\varepsilon k_d e_\omega
         + \omega \times (J\omega + h_{rw})
+        - \tau_{dist}
 
     where
     - :math:`k_p`, :math:`k_d` are positive scalar gains,
-    - :math:`\varepsilon > 0` is a small tuning parameter separating time scales.
+    - :math:`\varepsilon > 0` is a small tuning parameter separating time scales,
+    - :math:`\tau_{dist}` is the estimated disturbance torque (if `include_disturbances=True`).
 
     This structure ensures that the closed-loop dynamics can be cast in a
     singular perturbation framework, as shown in the cited paper.
@@ -154,7 +156,9 @@ class MTQ_Lovera(Controller):
         Journal of Guidance, Control, and Dynamics,
         Vol. 28, No. 5, 2005, pp. 1065–1072.
     """
-    def __init__(self, est_sat: EstimatedSatellite, p_gain: float, d_gain: float, eps: float) -> None:
+    def __init__(self, est_sat: EstimatedSatellite, p_gain: float, d_gain: float, eps: float, 
+                 include_disturbances: bool = False) -> None:
+        super().__init__(est_sat=est_sat, include_disturbances=include_disturbances)
         self.p_gain = p_gain
         self.d_gain = d_gain
         self.eps = eps
@@ -196,6 +200,9 @@ class MTQ_Lovera(Controller):
         tau_gyro = np.cross(w, J @ w + h_rw_body)
 
         tau_des = tau_pd + tau_gyro
+        
+        # Add disturbance feedforward compensation (if enabled)
+        tau_des = self.compensate_disturbance(tau_des, x_hat, est_sat, os_hat)
 
         sens = np.asarray(sens).reshape(-1)
         sens_clean = sens.copy()

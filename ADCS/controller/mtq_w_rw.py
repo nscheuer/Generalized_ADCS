@@ -117,7 +117,9 @@ class MTQ_w_RW(Controller):
        with Continuous Momentum Dumping*,
        Journal of Guidance, Control, and Dynamics, Vol. 44, No. 3, 2021.
     """
-    def __init__(self, est_sat: EstimatedSatellite, p_gain: float, d_gain: float, c_gain: float, h_target: np.ndarray) -> None:
+    def __init__(self, est_sat: EstimatedSatellite, p_gain: float, d_gain: float, c_gain: float, 
+                 h_target: np.ndarray, include_disturbances: bool = False) -> None:
+        super().__init__(est_sat=est_sat, include_disturbances=include_disturbances)
         self.p_gain = p_gain
         self.d_gain = d_gain
         self.c_gain = c_gain
@@ -270,9 +272,13 @@ class MTQ_w_RW(Controller):
         w_err = w - w_ref_body
 
         # PD Control Law
-        tau_att = -self.p_gain*q_err_vec - self.d_gain*w_err
+        tau_pd = -self.p_gain*q_err_vec - self.d_gain*w_err
 
-        # Momentum Management
+        # Apply feedforward compensation (gyroscopic + disturbance if enabled)
+        tau_att = self.apply_feedforward_compensation(tau_pd, x_hat, est_sat, os_hat, 
+                                                       include_gyroscopic=True)
+        
+        # Momentum Management (still need h_rw_body for momentum dumping)
         h_vals = x_hat[7:]
         rw_axes   = np.vstack([
             np.asarray(rw.axis, float).reshape(3,)
@@ -281,11 +287,6 @@ class MTQ_w_RW(Controller):
         ])
         h_vals    = x_hat[7:]
         h_rw_body = h_vals @ rw_axes
-
-        # Gyroscopic Compensation
-        J = est_sat.J_0
-        tau_gyro = np.cross(w, J @ w + h_rw_body)
-        tau_att += tau_gyro
         
         # Momentum dumping
         delta_h = h_rw_body - self.h_target

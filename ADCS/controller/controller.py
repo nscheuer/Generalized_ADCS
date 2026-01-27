@@ -22,6 +22,9 @@ class Controller():
     est_sat : :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
         Estimated satellite model containing inertia, actuator layout,
         and sensor configuration.
+    include_disturbances : bool, optional
+        If True, the controller will query the estimated satellite's disturbance
+        model and add feedforward compensation to the control torque. Default False.
     **kwargs : dict
         Optional keyword parameters forwarded to derived controllers.
 
@@ -31,7 +34,7 @@ class Controller():
     :meth:`~ADCS.controller.Controller.find_u`.
 
     """
-    def __init__(self, est_sat: EstimatedSatellite, **kwargs) -> None:
+    def __init__(self, est_sat: EstimatedSatellite, include_disturbances: bool = False, **kwargs) -> None:
         r"""
         Initializes the base controller class.
 
@@ -39,11 +42,14 @@ class Controller():
         ----------
         est_sat : :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
             Estimated satellite model.
+        include_disturbances : bool, optional
+            Enable disturbance feedforward compensation. Default False.
         **kwargs : dict
             Additional optional arguments needed by subclasses.
 
         """
-        pass
+        self.include_disturbances = include_disturbances
+        self._last_dist_torque = np.zeros(3)  # Store for debugging/logging
 
 
     def find_u(self, x_hat: np.ndarray, sens: np.ndarray, est_sat: EstimatedSatellite, os_hat: Orbital_State, goal: Goal | None, **kwargs) -> np.ndarray:
@@ -87,6 +93,194 @@ class Controller():
         raise NotImplementedError(
             "find_u() must be implemented in child controller classes."
         )
+
+    def get_disturbance_torque(self, x_hat: np.ndarray, est_sat: EstimatedSatellite, os_hat: Orbital_State) -> np.ndarray:
+        r"""
+        Computes the estimated disturbance torque from the satellite's disturbance models.
+
+        This is used for feedforward compensation when `include_disturbances=True`.
+
+        Parameters
+        ----------
+        x_hat : :class:`numpy.ndarray`
+            Estimated spacecraft state vector.
+        est_sat : :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+            Estimated satellite with disturbance models.
+        os_hat : :class:`~ADCS.orbits.orbital_state.Orbital_State`
+            Estimated orbital state.
+
+        Returns
+        -------
+        :class:`numpy.ndarray`
+            Estimated disturbance torque in body frame [N·m], shape (3,).
+        """
+        if not self.include_disturbances:
+            return np.zeros(3)
+        
+        try:
+            # Use the satellite's dist_torques method
+            dist_torque = est_sat.dist_torques(x=x_hat, os=os_hat)
+            self._last_dist_torque = dist_torque.copy()
+            return dist_torque
+        except Exception:
+            # If satellite doesn't have disturbance models or method fails
+            return np.zeros(3)
+
+    def compensate_disturbance(self, tau_des: np.ndarray, x_hat: np.ndarray, 
+                                est_sat: EstimatedSatellite, os_hat: Orbital_State) -> np.ndarray:
+        r"""
+        Adds disturbance feedforward compensation to a desired torque.
+
+        If `include_disturbances=True`, subtracts the estimated disturbance torque
+        from the desired control torque so the controller counteracts it.
+
+        .. math::
+
+            \tau_{compensated} = \tau_{des} - \tau_{dist}
+
+        Parameters
+        ----------
+        tau_des : :class:`numpy.ndarray`
+            Desired control torque before disturbance compensation [N·m].
+        x_hat : :class:`numpy.ndarray`
+            Estimated spacecraft state vector.
+        est_sat : :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+            Estimated satellite with disturbance models.
+        os_hat : :class:`~ADCS.orbits.orbital_state.Orbital_State`
+            Estimated orbital state.
+
+        Returns
+        -------
+        :class:`numpy.ndarray`
+            Compensated control torque [N·m], shape (3,).
+
+        Notes
+        -----
+        Subclasses should call this method after computing their baseline
+        desired torque to add disturbance feedforward:
+
+        .. code-block:: python
+
+            tau_des = self.compute_pd_torque(...)  # Controller-specific
+            tau_des = self.compensate_disturbance(tau_des, x_hat, est_sat, os_hat)
+
+        """
+        dist_torque = self.get_disturbance_torque(x_hat, est_sat, os_hat)
+        return tau_des - dist_torque
+
+    def compute_gyroscopic_torque(self, x_hat: np.ndarray, est_sat: EstimatedSatellite) -> np.ndarray:
+        r"""
+        Computes the gyroscopic/coupling torque for feedforward compensation.
+
+        The gyroscopic torque arises from the cross-coupling of angular velocity
+        with the total angular momentum (body + reaction wheels):
+
+        .. math::
+
+            \tau_{gyro} = \omega \times (J\omega + h_{rw})
+
+        This term appears on the RHS of Euler's equation and must be counteracted
+        for precise attitude control.
+
+        Parameters
+        ----------
+        x_hat : :class:`numpy.ndarray`
+            Estimated spacecraft state vector [ω, q, ...].
+        est_sat : :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+            Estimated satellite with inertia and RW states.
+
+        Returns
+        -------
+        :class:`numpy.ndarray`
+            Gyroscopic torque in body frame [N·m], shape (3,).
+        """
+        from ADCS.satellite_hardware.actuators import RW
+        
+        w = x_hat[0:3]
+        J = est_sat.J_0
+        
+        # Get RW angular momentum
+        rws = [a for a in est_sat.actuators if isinstance(a, RW)]
+        n_rw = len(rws)
+        
+        if n_rw > 0 and len(x_hat) >= 7 + n_rw:
+            h_rw_states = x_hat[7:7 + n_rw]
+        else:
+            h_rw_states = np.array([rw.h for rw in rws]) if rws else np.array([])
+        
+        # Sum RW momentum in body frame
+        h_rw_body = np.zeros(3)
+        for i, rw in enumerate(rws):
+            if i < len(h_rw_states):
+                h_rw_body += np.asarray(rw.axis).flatten() * h_rw_states[i]
+        
+        # Gyroscopic coupling: ω × (Jω + h_rw)
+        tau_gyro = np.cross(w, J @ w + h_rw_body)
+        
+        return tau_gyro
+
+    def apply_feedforward_compensation(self, tau_baseline: np.ndarray, x_hat: np.ndarray,
+                                        est_sat: EstimatedSatellite, os_hat: Orbital_State,
+                                        include_gyroscopic: bool = True) -> np.ndarray:
+        r"""
+        Applies both gyroscopic and disturbance feedforward compensation to a baseline torque.
+
+        This is a convenience method that combines:
+        1. Gyroscopic compensation (always applied if `include_gyroscopic=True`)
+        2. Disturbance compensation (applied if `self.include_disturbances=True`)
+
+        .. math::
+
+            \tau_{des} = \tau_{baseline} + \tau_{gyro} - \tau_{dist}
+
+        Parameters
+        ----------
+        tau_baseline : :class:`numpy.ndarray`
+            Baseline control torque (e.g., PD feedback) [N·m].
+        x_hat : :class:`numpy.ndarray`
+            Estimated spacecraft state vector.
+        est_sat : :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+            Estimated satellite model.
+        os_hat : :class:`~ADCS.orbits.orbital_state.Orbital_State`
+            Estimated orbital state.
+        include_gyroscopic : bool, optional
+            Whether to add gyroscopic compensation. Default True.
+
+        Returns
+        -------
+        :class:`numpy.ndarray`
+            Fully compensated desired torque [N·m], shape (3,).
+
+        Notes
+        -----
+        This method is intended for use in LP/QP controllers where the feedforward
+        terms should be added BEFORE the allocation/optimization step.
+
+        Example usage in a controller:
+
+        .. code-block:: python
+
+            # Compute baseline PD torque
+            tau_pd = -self.p_gain * q_err - self.d_gain * w_err
+            
+            # Add feedforward compensation
+            tau_des = self.apply_feedforward_compensation(tau_pd, x_hat, est_sat, os_hat)
+            
+            # Now pass tau_des to LP/QP allocator
+            u = self.allocate(tau_des, ...)
+
+        """
+        tau_des = tau_baseline.copy()
+        
+        # Add gyroscopic compensation
+        if include_gyroscopic:
+            tau_gyro = self.compute_gyroscopic_torque(x_hat, est_sat)
+            tau_des = tau_des + tau_gyro
+        
+        # Add disturbance compensation
+        tau_des = self.compensate_disturbance(tau_des, x_hat, est_sat, os_hat)
+        
+        return tau_des
 
 
     def build_sensor_matrix_pinv(self, sensors: List[Sensor], sensor_type: Type[Sensor]) -> Tuple[np.ndarray, List[int]]:

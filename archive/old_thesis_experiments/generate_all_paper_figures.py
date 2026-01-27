@@ -45,7 +45,6 @@ from tqdm import tqdm
 
 # Path setup
 sys.path.insert(0, os.path.abspath(os.path.join(__file__, "../../../..")))
-sys.path.insert(0, os.path.abspath(os.path.join(__file__, "../../../../trajectory_planner/build")))
 
 # ADCS imports
 from ADCS.CONOPS.goals import ECI_Goal, Fixed_Attitude_Goal, No_Goal, Nadir_Goal
@@ -130,27 +129,41 @@ class Config:
 # UTILITY FUNCTIONS
 # =============================================================================
 
-def create_orbit(altitude_km: float, inclination_deg: float, dt: float, duration_s: float, 
-                 seed: int = 0) -> Tuple[Orbit, float]:
-    """Create orbit with random starting position."""
+def create_orbit(altitude_km: float, inclination_deg: float, dt: float, duration_s: float,
+                 seed: int = 0, precompute_env: bool = True) -> Tuple[Orbit, float]:
+    """Create orbit with random starting position.
+
+    Args:
+        altitude_km: Orbit altitude
+        inclination_deg: Orbit inclination
+        dt: Time step
+        duration_s: Duration
+        seed: Random seed for reproducibility
+        precompute_env: If True, batch-compute B and S vectors (~100x faster)
+    """
     np.random.seed(seed)
     ephem = Ephemeris()
-    
+
     R_mag = 6378.137 + altitude_km
     inc = np.deg2rad(inclination_deg)
     theta = np.random.uniform(0, 2 * np.pi)
-    
+
     R = R_mag * np.array([np.cos(theta), np.sin(theta) * np.cos(inc), np.sin(theta) * np.sin(inc)])
     V_mag = np.sqrt(398600.4418 / R_mag)
     V = V_mag * np.array([-np.sin(theta), np.cos(theta) * np.cos(inc), np.cos(theta) * np.sin(inc)])
-    
+
     # Use fixed start time in 2024 (within ephemeris range) with small offset for variety
     # J2000 = 0.24 corresponds to ~2024
     start_time = 0.24 + (seed % 1000) * 0.00001  # Keep within valid ephemeris range
-    os0 = Orbital_State(ephem=ephem, J2000=start_time, R=R, V=V)
+    os0 = Orbital_State(ephem=ephem, J2000=start_time, R=R, V=V, fast=True)
     end_time = start_time + (duration_s + 100) * TimeConstants.sec2cent
-    
+
     orb = Orbit(os0=os0, end_time=end_time, dt=dt, use_J2=True, fast=True, verbose=False)
+
+    # Batch-compute environment vectors (~100x faster than per-step computation)
+    if precompute_env:
+        orb.populate_environment(compute_B=True, compute_S=True, verbose=False)
+
     return orb, start_time
 
 
@@ -192,41 +205,92 @@ def compute_direction_error(tau_des: np.ndarray, tau_ach: np.ndarray) -> float:
 # SATELLITE FACTORIES
 # =============================================================================
 
+# Use THESIS parameters by default for paper figures
+# BeaverCube parameters differ from thesis (different J, MTQ limits, RW torque)
+USE_THESIS_PARAMS = True  # Set False to use BeaverCube hardware params
+
 def create_sat_3p0():
+    """Create MTQ-only satellite (3+0 configuration)."""
+    if USE_THESIS_PARAMS:
+        return create_sat_thesis_mtq()
     return create_beavercube1_cubesat(estimated=False)
 
 def create_sat_3p1():
+    """Create hybrid satellite (3MTQ + 1RW configuration)."""
+    if USE_THESIS_PARAMS:
+        return create_sat_thesis_3p1()
     return create_beavercube2_cubesat(estimated=False)
 
 def create_sat_3p3():
+    """Create fully-actuated satellite (3MTQ + 3RW configuration)."""
+    if USE_THESIS_PARAMS:
+        return create_sat_thesis_3p3()
     return create_3_3_beavercube2_cubesat(estimated=False)
 
 def create_sat_thesis_mtq():
-    """Create MTQ-only satellite matching thesis Table 7.2."""
+    """Create MTQ-only satellite matching thesis Table 7.2.
+
+    Thesis parameters:
+    - J = diag([0.005256, 0.04939, 0.04939]) kg·m²
+    - MTQ max dipole: 0.19 Am² (x), 0.57 Am² (y,z)
+    - Boresight: x-axis (payload camera)
+    """
     from ADCS.satellite_hardware.sensors import MTM, Gyro
     J = np.diag([0.005256, 0.04939, 0.04939])
+    # NOTE: MTQ class uses 'max_torque' but stores max magnetic dipole [Am²]
     mtqs = [
-        MTQ(axis=np.array([1, 0, 0]), max_m=0.19),
-        MTQ(axis=np.array([0, 1, 0]), max_m=0.57),
-        MTQ(axis=np.array([0, 0, 1]), max_m=0.57),
+        MTQ(axis=np.array([1, 0, 0]), max_torque=0.19),
+        MTQ(axis=np.array([0, 1, 0]), max_torque=0.57),
+        MTQ(axis=np.array([0, 0, 1]), max_torque=0.57),
     ]
     mtms = [MTM(axis=j) for j in MathConstants.unitvecs]
     gyros = [Gyro(axis=j) for j in MathConstants.unitvecs]
     return Satellite(mass=4.0, J_0=J, actuators=mtqs, sensors=mtms+gyros, boresight=np.array([1,0,0]))
 
 def create_sat_thesis_3p1():
-    """Create 3+1 satellite matching thesis Table 7.2."""
+    """Create 3+1 satellite matching thesis Table 7.2.
+
+    Thesis parameters:
+    - J = diag([0.005256, 0.04939, 0.04939]) kg·m²
+    - MTQ max dipole: 0.19 Am² (x), 0.57 Am² (y,z)
+    - RW: y-axis, max_torque=0.0002 Nm, h_max=0.002 Nms
+    """
     from ADCS.satellite_hardware.sensors import MTM, Gyro
     J = np.diag([0.005256, 0.04939, 0.04939])
     mtqs = [
-        MTQ(axis=np.array([1, 0, 0]), max_m=0.19),
-        MTQ(axis=np.array([0, 1, 0]), max_m=0.57),
-        MTQ(axis=np.array([0, 0, 1]), max_m=0.57),
+        MTQ(axis=np.array([1, 0, 0]), max_torque=0.19),
+        MTQ(axis=np.array([0, 1, 0]), max_torque=0.57),
+        MTQ(axis=np.array([0, 0, 1]), max_torque=0.57),
     ]
     rw = RW(axis=np.array([0, 1, 0]), max_torque=0.0002, J=2e-6, h=0.0, h_max=0.002)
     mtms = [MTM(axis=j) for j in MathConstants.unitvecs]
     gyros = [Gyro(axis=j) for j in MathConstants.unitvecs]
     return Satellite(mass=4.0, J_0=J, actuators=mtqs+[rw], sensors=mtms+gyros, boresight=np.array([1,0,0]))
+
+def create_sat_thesis_3p3():
+    """Create 3+3 satellite (fully actuated) matching thesis parameters.
+
+    Thesis parameters:
+    - J = diag([0.005256, 0.04939, 0.04939]) kg·m²
+    - MTQ max dipole: 0.19 Am² (x), 0.57 Am² (y,z)
+    - RWs: 3 orthogonal, max_torque=0.0002 Nm each, h_max=0.002 Nms
+    """
+    from ADCS.satellite_hardware.sensors import MTM, Gyro
+    J = np.diag([0.005256, 0.04939, 0.04939])
+    mtqs = [
+        MTQ(axis=np.array([1, 0, 0]), max_torque=0.19),
+        MTQ(axis=np.array([0, 1, 0]), max_torque=0.57),
+        MTQ(axis=np.array([0, 0, 1]), max_torque=0.57),
+    ]
+    # 3 orthogonal RWs for full 3-axis control
+    rws = [
+        RW(axis=np.array([1, 0, 0]), max_torque=0.0002, J=2e-6, h=0.0, h_max=0.002),
+        RW(axis=np.array([0, 1, 0]), max_torque=0.0002, J=2e-6, h=0.0, h_max=0.002),
+        RW(axis=np.array([0, 0, 1]), max_torque=0.0002, J=2e-6, h=0.0, h_max=0.002),
+    ]
+    mtms = [MTM(axis=j) for j in MathConstants.unitvecs]
+    gyros = [Gyro(axis=j) for j in MathConstants.unitvecs]
+    return Satellite(mass=4.0, J_0=J, actuators=mtqs+rws, sensors=mtms+gyros, boresight=np.array([1,0,0]))
 
 
 # =============================================================================
@@ -952,20 +1016,20 @@ def gen_framework_versatility(cfg: Config, output_dir: Path):
 def gen_controllability_analysis(cfg: Config, output_dir: Path):
     """Generate controllability vs inclination figure."""
     print("\n  [Generalized] Controllability Analysis...")
-    
+
     inclinations = [0, 15, 30, 45, 60, 75, 90]
     configs = {
         '3+0': create_sat_3p0,
         '3+1': create_sat_3p1,
         '3+3': create_sat_3p3,
     }
-    
+
     # For each config and inclination, compute "effective controllability"
     # by running short simulation and measuring convergence
     results = {name: [] for name in configs}
-    
+
     cfg_short = Config(n_trials=5, duration_s=300, dt=2.0)
-    
+
     for inc in tqdm(inclinations, desc="  Inclinations"):
         cfg_short.inclination_deg = inc
         for name, sat_f in configs.items():
@@ -973,14 +1037,14 @@ def gen_controllability_analysis(cfg: Config, output_dir: Path):
                 ctrl_f = create_ctrl_lovera
             else:
                 ctrl_f = create_ctrl_lp
-            
+
             res = run_monte_carlo(sat_f, ctrl_f, cfg_short, f"{name}@{inc}°")
             results[name].append(res['pct_10deg'] / 100)  # Normalize to 0-1
-    
+
     fig, ax = plt.subplots(figsize=(5, 4))
     for i, (name, ctrl_vals) in enumerate(results.items()):
         ax.plot(inclinations, ctrl_vals, 'o-', color=COLORS[i], label=name, markersize=6)
-    
+
     ax.set_xlabel('Orbit Inclination (deg)')
     ax.set_ylabel('Controllability Index\n(fraction < 10°)')
     ax.set_xlim(0, 90)
@@ -989,6 +1053,338 @@ def gen_controllability_analysis(cfg: Config, output_dir: Path):
     ax.grid(True, alpha=0.3)
     ax.set_title('Effective Controllability vs Orbit Inclination')
     save_fig(fig, output_dir, 'fig_controllability_vs_inclination')
+
+
+def gen_torque_polytope_evolution(cfg: Config, output_dir: Path):
+    """Generate 3D torque polytope evolution over one orbit for Generalized Control paper."""
+    print("\n  [Generalized] Torque Polytope Evolution...")
+
+    # Parameters
+    sat = create_sat_3p1()  # BC2: 3MTQ + 1RW
+    orbit_period_s = 5400   # ~90 min ISS orbit
+    n_samples = 1500        # Points to sample polytope
+
+    # Create orbit
+    orb, start_time = create_orbit(400, 51.6, 1.0, orbit_period_s + 100, seed=42)
+
+    # Time points: 0, 15, 30, 45, 60, 75 minutes
+    t_snapshots = [0, 900, 1800, 2700, 3600, 4500]
+
+    fig = plt.figure(figsize=(14, 9))
+
+    for idx, t in enumerate(t_snapshots):
+        ax = fig.add_subplot(2, 3, idx+1, projection='3d')
+
+        # Get B-field at this time
+        J2000 = start_time + t * TimeConstants.sec2cent
+        os = orb.get_os(J2000)
+        B_eci = os.B  # Tesla
+
+        # Use a fixed body attitude for visualization
+        B_body = B_eci  # Simplified (assume identity attitude)
+
+        # Sample achievable torques
+        torques = []
+        for _ in range(n_samples):
+            # Random MTQ dipole within limits
+            m = np.zeros(3)
+            for mtq in sat.mtq_actuators:
+                max_m = mtq.u_max if hasattr(mtq, 'u_max') else getattr(mtq, 'max_m', 0.5)
+                m += mtq.axis * np.random.uniform(-max_m, max_m)
+            tau_mtq = np.cross(m, B_body)
+
+            # Random RW torque within limits
+            tau_rw = np.zeros(3)
+            for rw in sat.rw_actuators:
+                max_t = rw.u_max if hasattr(rw, 'u_max') else getattr(rw, 'max_torque', 0.0002)
+                tau_rw += rw.axis * np.random.uniform(-max_t, max_t)
+
+            torques.append(tau_mtq + tau_rw)
+
+        torques = np.array(torques) * 1e6  # Convert to μNm
+
+        # Plot scatter (convex hull can be tricky in 3D)
+        ax.scatter(torques[:, 0], torques[:, 1], torques[:, 2],
+                   s=1, alpha=0.4, c=COLORS[idx % len(COLORS)])
+
+        # Try to show convex hull faces
+        try:
+            hull = ConvexHull(torques)
+            for simplex in hull.simplices:
+                pts = torques[simplex]
+                tri = Poly3DCollection([pts], alpha=0.15,
+                                        facecolor=COLORS[idx % len(COLORS)],
+                                        edgecolor='gray', linewidth=0.2)
+                ax.add_collection3d(tri)
+        except Exception:
+            pass  # Hull may fail for degenerate cases
+
+        ax.set_xlabel(r'$\tau_x$ ($\mu$Nm)', fontsize=8)
+        ax.set_ylabel(r'$\tau_y$ ($\mu$Nm)', fontsize=8)
+        ax.set_zlabel(r'$\tau_z$ ($\mu$Nm)', fontsize=8)
+        ax.set_title(f't = {t//60} min\n|B| = {np.linalg.norm(B_body)*1e6:.1f} μT', fontsize=9)
+        ax.tick_params(labelsize=7)
+
+    fig.suptitle('Achievable Torque Polytope Evolution Over One Orbit (3MTQ+1RW)', fontsize=12)
+    fig.tight_layout()
+    save_fig(fig, output_dir, 'fig_torque_polytope_evolution')
+
+
+def gen_desaturation_scheduling(cfg: Config, output_dir: Path):
+    """Show momentum evolution with different desaturation strategies."""
+    print("\n  [Generalized] Desaturation Scheduling...")
+
+    # Parameters - 3 orbits
+    duration_s = 16200  # 3 orbits = 3 * 90 min
+    dt = 2.0
+
+    sat = create_sat_3p1()
+    orb, start_time = create_orbit(400, 51.6, dt, duration_s + 100, seed=42)
+
+    # Initial state with some momentum buildup
+    q0 = normalize(np.array([0.1, 0.2, 0.3, np.sqrt(1-0.14)]))
+    w0 = np.array([0.001, -0.001, 0.002])
+    h0 = np.array([0.0008])  # Start with 0.8 mNms (40% of capacity)
+    x0 = np.concatenate([w0, q0, h0])
+
+    goal = ECI_Goal(np.array([0, 0, 1]))  # Nadir pointing
+
+    # Run TWO simulations with different c_gain
+    results = {}
+    for name, c_gain in [('Continuous Desat\n(c=0.001)', 0.001),
+                         ('Pointing Priority\n(c=0.0001)', 0.0001)]:
+        cfg_run = Config(n_trials=1, duration_s=duration_s, dt=dt)
+        cfg_run.rw_c_gain = c_gain
+
+        # Create fresh satellite and controller
+        sat_run = create_sat_3p1()
+        ctrl = create_ctrl_lp(sat_run, cfg_run)
+
+        result = run_simulation(sat_run, ctrl, goal, orb, start_time, cfg_run, x0.copy())
+        results[name] = result
+
+    # Compute B-field magnitude over time
+    B_mag = []
+    for t in results[list(results.keys())[0]]['time']:
+        J2000 = start_time + t * TimeConstants.sec2cent
+        os = orb.get_os(J2000)
+        B_mag.append(np.linalg.norm(os.B) * 1e6)  # μT
+    B_mag = np.array(B_mag)
+
+    # Plot
+    fig, axes = plt.subplots(3, 1, figsize=(10, 8), sharex=True)
+    t_min = results[list(results.keys())[0]]['time'] / 60
+
+    # Panel 1: Wheel momentum
+    ax = axes[0]
+    for i, (name, res) in enumerate(results.items()):
+        if res['state'].shape[1] > 7:
+            h = res['state'][:, 7] * 1000  # mNms
+            ax.plot(t_min, h, label=name, linewidth=1.5, color=COLORS[i])
+    ax.axhline(2, color='red', linestyle='--', alpha=0.5, label='h_max')
+    ax.axhline(-2, color='red', linestyle='--', alpha=0.5)
+    ax.set_ylabel('Wheel Momentum\n(mNms)')
+    ax.legend(loc='upper right', fontsize=8)
+    ax.grid(True, alpha=0.3)
+
+    # Panel 2: Pointing error
+    ax = axes[1]
+    for i, (name, res) in enumerate(results.items()):
+        ax.plot(t_min, res['error_deg'], label=name, linewidth=1.5, color=COLORS[i], alpha=0.8)
+    ax.set_ylabel('Pointing Error\n(deg)')
+    ax.set_yscale('log')
+    ax.set_ylim(0.1, 200)
+    ax.legend(loc='upper right', fontsize=8)
+    ax.grid(True, alpha=0.3, which='both')
+
+    # Panel 3: B-field magnitude (shows orbital variation)
+    ax = axes[2]
+    ax.plot(t_min, B_mag, color='purple', linewidth=1.5)
+    ax.set_ylabel('|B| (μT)')
+    ax.set_xlabel('Time (min)')
+    ax.grid(True, alpha=0.3)
+
+    # Mark high B-field regions (good for desaturation)
+    B_thresh = np.percentile(B_mag, 70)
+    in_window = B_mag > B_thresh
+    for axi in axes:
+        start_idx = None
+        for i, is_high in enumerate(in_window):
+            if is_high and start_idx is None:
+                start_idx = i
+            elif not is_high and start_idx is not None:
+                axi.axvspan(t_min[start_idx], t_min[i-1], alpha=0.1, color='green')
+                start_idx = None
+        if start_idx is not None:
+            axi.axvspan(t_min[start_idx], t_min[-1], alpha=0.1, color='green')
+
+    # Add orbit markers
+    for orbit_num in range(1, 4):
+        t_orbit = orbit_num * 90
+        for axi in axes:
+            axi.axvline(t_orbit, color='gray', linestyle=':', alpha=0.5)
+
+    fig.suptitle('Desaturation Scheduling: Trade-off Between Pointing and Momentum Management', fontsize=11)
+    fig.tight_layout()
+    save_fig(fig, output_dir, 'fig_desaturation_scheduling')
+
+
+def gen_wcdta_sphere(cfg: Config, output_dir: Path):
+    """Visualize Worst-Case Directional Torque Authority for different configs."""
+    print("\n  [Generalized] WCDTA Sphere Visualization...")
+
+    configs = {
+        '3+0 (MTQ only)': create_sat_3p0(),
+        '3+1 (Hybrid)': create_sat_3p1(),
+        '3+3 (Full RW)': create_sat_3p3(),
+    }
+
+    # Sample B-field (typical ISS value)
+    B_body = np.array([20e-6, 15e-6, 25e-6])  # Tesla
+
+    # Sample directions on unit sphere using Fibonacci lattice for uniform coverage
+    n_dirs = 200
+    indices = np.arange(0, n_dirs, dtype=float) + 0.5
+    phi = np.arccos(1 - 2 * indices / n_dirs)
+    theta = np.pi * (1 + 5**0.5) * indices
+    directions = np.array([
+        np.sin(phi) * np.cos(theta),
+        np.sin(phi) * np.sin(theta),
+        np.cos(phi)
+    ]).T
+
+    fig = plt.figure(figsize=(14, 5))
+
+    for ax_idx, (name, sat) in enumerate(configs.items()):
+        ax = fig.add_subplot(1, 3, ax_idx+1, projection='3d')
+
+        # For each direction, find max achievable torque magnitude
+        max_torques = []
+        for d in directions:
+            # Sample random actuator commands, project onto d
+            samples = []
+            for _ in range(300):
+                m = np.zeros(3)
+                for mtq in sat.mtq_actuators:
+                    max_m = mtq.u_max if hasattr(mtq, 'u_max') else getattr(mtq, 'max_m', 0.5)
+                    m += mtq.axis * np.random.uniform(-max_m, max_m)
+                tau_mtq = np.cross(m, B_body)
+
+                tau_rw = np.zeros(3)
+                for rw in sat.rw_actuators:
+                    max_t = rw.u_max if hasattr(rw, 'u_max') else getattr(rw, 'max_torque', 0.0002)
+                    tau_rw += rw.axis * np.random.uniform(-max_t, max_t)
+
+                tau = tau_mtq + tau_rw
+                samples.append(np.dot(tau, d))
+            max_torques.append(max(samples))
+
+        max_torques = np.array(max_torques) * 1e6  # μNm
+
+        # Normalize for visualization
+        max_val = max_torques.max()
+        min_val = max_torques.min()
+
+        # Plot WCDTA "sphere" (distorted by actuation limits)
+        colors = plt.cm.viridis((max_torques - min_val) / (max_val - min_val + 1e-10))
+
+        for i, d in enumerate(directions):
+            r = max_torques[i] / max_val  # Normalize radius
+            ax.scatter(d[0]*r, d[1]*r, d[2]*r, c=[colors[i]], s=20, alpha=0.8)
+
+        # Add unit sphere wireframe for reference
+        u = np.linspace(0, 2 * np.pi, 20)
+        v = np.linspace(0, np.pi, 10)
+        x = np.outer(np.cos(u), np.sin(v))
+        y = np.outer(np.sin(u), np.sin(v))
+        z = np.outer(np.ones(np.size(u)), np.cos(v))
+        ax.plot_wireframe(x, y, z, color='gray', alpha=0.1, linewidth=0.3)
+
+        ax.set_xlabel('X')
+        ax.set_ylabel('Y')
+        ax.set_zlabel('Z')
+        ax.set_title(f'{name}\nMin: {min_val:.1f} μNm, Max: {max_val:.1f} μNm', fontsize=10)
+        ax.set_xlim(-1.1, 1.1)
+        ax.set_ylim(-1.1, 1.1)
+        ax.set_zlim(-1.1, 1.1)
+
+    fig.suptitle('Worst-Case Directional Torque Authority (WCDTA)\nRadius = max torque in that direction', fontsize=11)
+    fig.tight_layout()
+    save_fig(fig, output_dir, 'fig_wcdta_sphere')
+
+
+def gen_actuator_failure_generalized(cfg: Config, output_dir: Path):
+    """Show system response before/during/after actuator failure (for Generalized paper)."""
+    print("\n  [Generalized] Actuator Failure Response...")
+
+    duration_s = 2000
+    failure_time_s = 700
+
+    sat = create_sat_3p1()
+    orb, start_time = create_orbit(400, 51.6, 2.0, duration_s + 100, seed=42)
+
+    q0 = normalize(np.array([0.5, 0.3, 0.1, np.sqrt(1-0.35)]))
+    w0 = np.array([0.005, -0.003, 0.004])
+    h0 = np.array([0.0])
+    x0 = np.concatenate([w0, q0, h0])
+
+    goal = ECI_Goal(np.array([0, 0, 1]))
+
+    cfg_run = Config(n_trials=1, duration_s=duration_s, dt=2.0)
+    ctrl = create_ctrl_lp(sat, cfg_run)
+
+    # Find RW index
+    rw_idx = None
+    for i, act in enumerate(sat.actuators):
+        if isinstance(act, RW):
+            rw_idx = i
+            break
+
+    # Run with failure
+    result = run_simulation(sat, ctrl, goal, orb, start_time, cfg_run, x0,
+                           disable_actuator_at=(failure_time_s, rw_idx) if rw_idx else None)
+
+    # Plot
+    fig, axes = plt.subplots(3, 1, figsize=(8, 7), sharex=True)
+    t = result['time']
+
+    # Panel 1: Pointing Error
+    ax = axes[0]
+    ax.plot(t, result['error_deg'], 'b-', linewidth=1.5)
+    ax.axvline(failure_time_s, color='red', linestyle='--', linewidth=2, label='RW Failure')
+    ax.set_ylabel('Pointing Error (deg)')
+    ax.legend(loc='upper right')
+    ax.grid(True, alpha=0.3)
+
+    # Annotate phases
+    ax.annotate('3+1 Mode\n(Full capability)', (200, 20), fontsize=9,
+                bbox=dict(boxstyle='round', facecolor='lightgreen', alpha=0.5))
+    ax.annotate('3+0 Mode\n(Graceful degradation)', (1300, 40), fontsize=9,
+                bbox=dict(boxstyle='round', facecolor='lightyellow', alpha=0.5))
+
+    # Panel 2: RW torque command
+    ax = axes[1]
+    if rw_idx is not None:
+        ax.plot(t, result['u'][:, rw_idx] * 1e6, 'g-', linewidth=1.5)
+    ax.axvline(failure_time_s, color='red', linestyle='--', linewidth=2)
+    ax.set_ylabel('RW Command\n(μNm)')
+    ax.grid(True, alpha=0.3)
+    ax.annotate('RW active', (300, 50), fontsize=9)
+    ax.annotate('RW disabled', (1200, 0), fontsize=9)
+
+    # Panel 3: MTQ activity (sum of absolute dipole moments)
+    ax = axes[2]
+    n_mtq = len([a for a in sat.actuators if not isinstance(a, RW)])
+    mtq_sum = np.sum(np.abs(result['u'][:, :n_mtq]), axis=1)
+    ax.plot(t, mtq_sum, 'm-', linewidth=1.5)
+    ax.axvline(failure_time_s, color='red', linestyle='--', linewidth=2)
+    ax.set_ylabel('MTQ Activity\n(Am²)')
+    ax.set_xlabel('Time (s)')
+    ax.grid(True, alpha=0.3)
+
+    fig.suptitle('Graceful Degradation: Automatic Fallback After RW Failure', fontsize=11)
+    fig.tight_layout()
+    save_fig(fig, output_dir, 'fig_actuator_failure_response')
 
 
 # -----------------------------------------------------------------------------
@@ -1037,14 +1433,17 @@ def gen_planner_altro_comparison(cfg: Config, output_dir: Path):
     """Generate ALTRO vs PD comparison using real planner."""
     print("\n  [Planner] ALTRO vs PD Comparison...")
     
+    ALTRO_AVAILABLE = False
     try:
-        import tplaunch
+        # Use same import path as debug_planner.py to avoid pybind11 conflict
+        import trajectory_planner.build.tplaunch as tplaunch
         from ADCS.controller.plan_and_track_lqr import Plan_and_Track_LQR
         from ADCS.controller.helpers import PlannerSettings
         ALTRO_AVAILABLE = True
-    except ImportError:
-        print("    WARNING: ALTRO planner not available, generating placeholder")
-        ALTRO_AVAILABLE = False
+    except ImportError as e:
+        print(f"    WARNING: ALTRO planner not available ({e}), generating placeholder")
+    except Exception as e:
+        print(f"    WARNING: ALTRO error ({type(e).__name__}: {e}), generating placeholder")
     
     if not ALTRO_AVAILABLE:
         # Generate placeholder with expected results from thesis
@@ -1291,6 +1690,266 @@ def gen_multi_target_sequence(cfg: Config, output_dir: Path):
     save_fig(fig, output_dir, 'fig_multi_target_sequence')
 
 
+def gen_altro_timing_benchmark(cfg: Config, output_dir: Path):
+    """Generate ALTRO solve time benchmark figure."""
+    print("\n  [Planner] ALTRO Timing Benchmark...")
+
+    try:
+        import tplaunch
+        from ADCS.controller.plan_and_track_lqr import Plan_and_Track_LQR
+        from ADCS.controller.helpers import PlannerSettings
+        ALTRO_AVAILABLE = True
+    except ImportError:
+        print("    WARNING: ALTRO planner not available, generating placeholder")
+        ALTRO_AVAILABLE = False
+
+    if not ALTRO_AVAILABLE:
+        # Generate placeholder with expected results
+        fig, axes = plt.subplots(1, 2, figsize=(10, 4))
+
+        # Panel 1: Solve time histogram (placeholder)
+        ax = axes[0]
+        np.random.seed(42)
+        # Simulated solve times based on thesis expectations
+        solve_times = np.random.lognormal(mean=2.5, sigma=0.5, size=100)  # ~10-30s typical
+        ax.hist(solve_times, bins=20, color=COLORS[0], edgecolor='white', alpha=0.8)
+        ax.axvline(np.mean(solve_times), color='red', linestyle='--', label=f'Mean: {np.mean(solve_times):.1f}s')
+        ax.axvline(np.percentile(solve_times, 95), color='orange', linestyle=':', label=f'95th pct: {np.percentile(solve_times, 95):.1f}s')
+        ax.set_xlabel('Solve Time (s)')
+        ax.set_ylabel('Count')
+        ax.set_title('ALTRO Solve Time Distribution\n(PLACEHOLDER - run with ALTRO built)')
+        ax.legend()
+        ax.grid(True, alpha=0.3)
+
+        # Panel 2: Horizon scaling (placeholder)
+        ax = axes[1]
+        horizons = np.array([100, 250, 500, 750, 1000])
+        # Simulated scaling: roughly quadratic in horizon length
+        times_mean = 2 + (horizons / 100) ** 1.5 * 3
+        times_std = times_mean * 0.2
+        ax.errorbar(horizons, times_mean, yerr=times_std, marker='o', capsize=5,
+                    color=COLORS[0], linewidth=1.5, markersize=8)
+        ax.set_xlabel('Trajectory Horizon (s)')
+        ax.set_ylabel('Solve Time (s)')
+        ax.set_title('Solve Time vs Horizon\n(PLACEHOLDER)')
+        ax.grid(True, alpha=0.3)
+
+        fig.suptitle('ALTRO Timing Benchmarks (Placeholder - ALTRO not built)', y=1.02)
+        fig.tight_layout()
+        save_fig(fig, output_dir, 'fig_altro_timing')
+
+        # Save placeholder data
+        placeholder_data = {
+            'note': 'PLACEHOLDER - ALTRO not available',
+            'expected_mean_solve_time_s': 15.0,
+            'expected_95pct_solve_time_s': 40.0,
+        }
+        with open(output_dir / 'data_altro_timing_placeholder.json', 'w') as f:
+            json.dump(placeholder_data, f, indent=2)
+        return
+
+    # Real ALTRO timing benchmark
+    n_trials = min(cfg.n_trials, 20)  # Limit for timing tests
+    horizons = [100, 250, 500]
+    dt_tp = 10  # Planning timestep
+
+    solve_times_by_horizon = {h: [] for h in horizons}
+
+    for horizon in tqdm(horizons, desc="  Horizons"):
+        for trial in range(n_trials):
+            seed = trial * 1000
+            np.random.seed(seed)
+
+            try:
+                sat = create_sat_thesis_3p1()
+                orb, start_time = create_orbit(400, 51.6, 1.0, horizon + 100, seed)
+
+                planner_settings = PlannerSettings(est_sat=sat, bdot_on=0, dt_tp=dt_tp, dt_tvlqr=1)
+                controller = Plan_and_Track_LQR(est_sat=sat, planner_settings=planner_settings)
+
+                w0 = normalize(np.random.randn(3)) * 0.005
+                q0 = normalize(np.random.randn(4))
+                h0 = np.zeros(len(sat.rw_actuators))
+                x0 = np.concatenate([w0, q0, h0])
+
+                goal = ECI_Goal(normalize(np.random.randn(3)))
+                os0 = orb.get_os(start_time)
+                goals = GoalList({start_time: goal})
+
+                import time as time_module
+                t_start_solve = time_module.time()
+
+                trajectory = controller.calculate_trajectory(
+                    t_start=start_time,
+                    duration=horizon,
+                    x_0=x0,
+                    os_0=os0,
+                    goals=goals,
+                    verbose=False,
+                )
+
+                solve_time = time_module.time() - t_start_solve
+
+                if trajectory is not None and not np.any(np.isnan(trajectory.states)):
+                    solve_times_by_horizon[horizon].append(solve_time)
+
+            except Exception as e:
+                print(f"    Horizon {horizon}, trial {trial} failed: {e}")
+                continue
+
+    # Plot results
+    fig, axes = plt.subplots(1, 2, figsize=(10, 4))
+
+    # Panel 1: Histogram for longest horizon
+    ax = axes[0]
+    if solve_times_by_horizon[500]:
+        times = solve_times_by_horizon[500]
+        ax.hist(times, bins=15, color=COLORS[0], edgecolor='white', alpha=0.8)
+        ax.axvline(np.mean(times), color='red', linestyle='--',
+                   label=f'Mean: {np.mean(times):.1f}s')
+        ax.axvline(np.percentile(times, 95), color='orange', linestyle=':',
+                   label=f'95th pct: {np.percentile(times, 95):.1f}s')
+        ax.legend()
+    ax.set_xlabel('Solve Time (s)')
+    ax.set_ylabel('Count')
+    ax.set_title('ALTRO Solve Time Distribution (500s horizon)')
+    ax.grid(True, alpha=0.3)
+
+    # Panel 2: Horizon scaling
+    ax = axes[1]
+    means = [np.mean(solve_times_by_horizon[h]) if solve_times_by_horizon[h] else 0 for h in horizons]
+    stds = [np.std(solve_times_by_horizon[h]) if solve_times_by_horizon[h] else 0 for h in horizons]
+    ax.errorbar(horizons, means, yerr=stds, marker='o', capsize=5,
+                color=COLORS[0], linewidth=1.5, markersize=8)
+    ax.set_xlabel('Trajectory Horizon (s)')
+    ax.set_ylabel('Solve Time (s)')
+    ax.set_title('Solve Time vs Horizon')
+    ax.grid(True, alpha=0.3)
+
+    fig.suptitle('ALTRO Timing Benchmarks', y=1.02)
+    fig.tight_layout()
+    save_fig(fig, output_dir, 'fig_altro_timing')
+
+    # Save data
+    timing_data = {
+        'horizons': horizons,
+        'solve_times': {str(h): solve_times_by_horizon[h] for h in horizons},
+        'means': {str(h): np.mean(solve_times_by_horizon[h]) if solve_times_by_horizon[h] else None for h in horizons},
+        'stds': {str(h): np.std(solve_times_by_horizon[h]) if solve_times_by_horizon[h] else None for h in horizons},
+    }
+    with open(output_dir / 'data_altro_timing.json', 'w') as f:
+        json.dump(timing_data, f, indent=2)
+
+
+def gen_tvlqr_tracking(cfg: Config, output_dir: Path):
+    """Generate TVLQR tracking visualization showing planned vs actual trajectory."""
+    print("\n  [Planner] TVLQR Tracking Visualization...")
+
+    try:
+        import tplaunch
+        from ADCS.controller.plan_and_track_lqr import Plan_and_Track_LQR
+        from ADCS.controller.helpers import PlannerSettings
+        ALTRO_AVAILABLE = True
+    except ImportError:
+        print("    WARNING: ALTRO not available, generating placeholder")
+        ALTRO_AVAILABLE = False
+
+    if not ALTRO_AVAILABLE:
+        # Placeholder showing expected behavior
+        fig, axes = plt.subplots(2, 1, figsize=(8, 6), sharex=True)
+        t = np.linspace(0, 500, 500)
+
+        # Panel 1: Planned vs actual quaternion component
+        ax = axes[0]
+        np.random.seed(42)
+        q_planned = 0.7 + 0.3 * np.exp(-t / 100)
+        q_actual = q_planned + 0.02 * np.random.randn(len(t)) * np.exp(-t / 200)
+        ax.plot(t, q_planned, 'b--', linewidth=1.5, label='Planned')
+        ax.plot(t, q_actual, 'r-', linewidth=1, alpha=0.8, label='Actual (TVLQR)')
+        ax.set_ylabel('Quaternion q₀')
+        ax.legend()
+        ax.set_title('TVLQR Tracking: Planned vs Actual Trajectory\n(PLACEHOLDER)')
+        ax.grid(True, alpha=0.3)
+
+        # Panel 2: Tracking error
+        ax = axes[1]
+        tracking_error = np.abs(q_actual - q_planned) * 180 / np.pi
+        ax.plot(t, tracking_error, 'g-', linewidth=1.5)
+        ax.set_xlabel('Time (s)')
+        ax.set_ylabel('Tracking Error (deg)')
+        ax.grid(True, alpha=0.3)
+
+        fig.tight_layout()
+        save_fig(fig, output_dir, 'fig_tvlqr_tracking')
+        return
+
+    # Real TVLQR tracking visualization
+    sat = create_sat_thesis_3p1()
+    orb, start_time = create_orbit(400, 51.6, 1.0, 600, seed=42)
+
+    planner_settings = PlannerSettings(est_sat=sat, bdot_on=0, dt_tp=10, dt_tvlqr=1)
+    controller = Plan_and_Track_LQR(est_sat=sat, planner_settings=planner_settings)
+
+    q0 = normalize(np.array([0.5, 0.3, 0.1, np.sqrt(1-0.35)]))
+    w0 = np.array([0.005, -0.003, 0.004])
+    h0 = np.zeros(len(sat.rw_actuators))
+    x0 = np.concatenate([w0, q0, h0])
+
+    goal = ECI_Goal(np.array([0, 0, 1]))
+    os0 = orb.get_os(start_time)
+    goals = GoalList({start_time: goal})
+
+    # Calculate trajectory
+    trajectory = controller.calculate_trajectory(
+        t_start=start_time,
+        duration=500,
+        x_0=x0,
+        os_0=os0,
+        goals=goals,
+        verbose=False,
+    )
+
+    if trajectory is None:
+        print("    ALTRO trajectory planning failed")
+        return
+
+    # Now simulate with TVLQR tracking
+    cfg_sim = Config(n_trials=1, duration_s=500, dt=1.0)
+    result = run_simulation(sat, controller, goal, orb, start_time, cfg_sim, x0)
+
+    fig, axes = plt.subplots(2, 1, figsize=(8, 6), sharex=True)
+
+    # Panel 1: Planned vs actual pointing error
+    ax = axes[0]
+    t_plan = np.arange(trajectory.states.shape[1])
+    plan_errors = []
+    for i in range(trajectory.states.shape[1]):
+        q = trajectory.states[3:7, i]
+        err = compute_pointing_error(q, goal, cfg_sim.body_boresight, os0)
+        plan_errors.append(err)
+
+    ax.plot(t_plan, plan_errors, 'b--', linewidth=1.5, label='Planned')
+    ax.plot(result['time'], result['error_deg'], 'r-', linewidth=1, alpha=0.8, label='Actual (TVLQR)')
+    ax.set_ylabel('Pointing Error (deg)')
+    ax.set_yscale('log')
+    ax.legend()
+    ax.set_title('TVLQR Tracking: Planned vs Actual')
+    ax.grid(True, alpha=0.3, which='both')
+
+    # Panel 2: Tracking error
+    ax = axes[1]
+    # Interpolate planned to match actual times
+    plan_interp = np.interp(result['time'], t_plan, plan_errors)
+    tracking_error = np.abs(result['error_deg'] - plan_interp)
+    ax.plot(result['time'], tracking_error, 'g-', linewidth=1.5)
+    ax.set_xlabel('Time (s)')
+    ax.set_ylabel('Tracking Error (deg)')
+    ax.grid(True, alpha=0.3)
+
+    fig.tight_layout()
+    save_fig(fig, output_dir, 'fig_tvlqr_tracking')
+
+
 # -----------------------------------------------------------------------------
 # PACKAGE PAPER FIGURES
 # -----------------------------------------------------------------------------
@@ -1395,11 +2054,17 @@ FIGURES = {
         'direction': ('Direction Preservation', gen_direction_preservation),
         'versatility': ('Framework Versatility', gen_framework_versatility),
         'controllability': ('Controllability Analysis', gen_controllability_analysis),
+        'polytope': ('Torque Polytope Evolution', gen_torque_polytope_evolution),
+        'desaturation': ('Desaturation Scheduling', gen_desaturation_scheduling),
+        'wcdta': ('WCDTA Sphere', gen_wcdta_sphere),
+        'failure': ('Actuator Failure Response', gen_actuator_failure_generalized),
     },
     'planner': {
         'pd_baseline': ('PD Baseline', gen_planner_pd_baseline),
         'altro': ('ALTRO vs PD', gen_planner_altro_comparison),
         'multi_target': ('Multi-Target Sequence', gen_multi_target_sequence),
+        'timing': ('ALTRO Timing Benchmark', gen_altro_timing_benchmark),
+        'tvlqr': ('TVLQR Tracking', gen_tvlqr_tracking),
     },
     'package': {
         'controllers': ('Controller Comparison', gen_controller_comparison),
