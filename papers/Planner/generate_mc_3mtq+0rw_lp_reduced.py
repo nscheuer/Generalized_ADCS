@@ -1,13 +1,8 @@
 """
-Monte Carlo for 3MTQ + 0RW with LP (PD) Controller - Reduced Attitude 180° Slew.
+Monte Carlo: 3MTQ+0RW Lovera Controller - Reduced Attitude (180° Boresight Slew).
 
-This script generates Monte Carlo simulations for:
-- MTQ-only configuration (3 MTQs, no reaction wheels)
-- LP-based PD controller (Lovera-style allocation)
-- Reduced attitude goal (ECI vector pointing)
-- 180° slew from initial boresight direction
-
-Uses fast orbit propagation with batch B/S computation for efficiency.
+Uses BC2 satellite configuration with Lovera (MTQ-only) controller.
+Same setup as 3+1 reduced for fair comparison - goal is 180° boresight slew.
 """
 import sys
 import os
@@ -15,146 +10,93 @@ import numpy as np
 from scipy.integrate import solve_ivp
 from typing import Dict, Any, Tuple, Optional
 
-# --- Path Setup ---
 sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))
 
-# --- ADCS Imports ---
 from ADCS.CONOPS.goals import ECI_Goal
-from ADCS.controller import MTQ_w_RW_LP
-from ADCS.orbits.ephemeris import Ephemeris
-from ADCS.orbits.orbit import Orbit
-from ADCS.orbits.orbital_state import Orbital_State
+from ADCS.controller import MTQ_Lovera
 from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.orbits.helpers.orbit_factory import create_random_circular_orbit
-from ADCS.satellite_hardware.satellite.satellite import Satellite
-from ADCS.satellite_hardware.sensors import MTM
-from ADCS.satellite_hardware.actuators import MTQ
-from ADCS.helpers.math_constants import MathConstants
+from ADCS.satellite_factory.satellites.create_cubesats import create_beavercube2_cubesat
 from ADCS.helpers.math_helpers import normalize, rot_mat
 from ADCS.helpers.save_and_load.save_and_load import save_data, load_data
 from ADCS.helpers.plotting_mc.plot_controller_mc import plot_target_tracking_mc, plot_convergence_histogram_mc
 from ADCS.helpers.plotting.close_all_plots import create_close_all_button_window
-
-# --- MC Runner Imports ---
 from ADCS.helpers.mc.monte_carlo_runner import (
-    MonteCarloRunner, 
-    claim_worker_slot, 
-    release_worker_slot, 
-    update_worker_progress
+    MonteCarloRunner, claim_worker_slot, release_worker_slot, update_worker_progress
 )
 
-# --- GLOBAL WORKER CACHE ---
-_CACHED_ORBIT: Optional[Orbit] = None
-_CACHED_ORBIT_KEY: Optional[Tuple] = None
+BODY_BORESIGHT = np.array([0, 1, 0])
+
+_CACHED_ORBIT = None
+_CACHED_ORBIT_KEY = None
 
 
 def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
-    """Worker function for single MC simulation."""
     global _CACHED_ORBIT, _CACHED_ORBIT_KEY
 
     slot_id = claim_worker_slot()
     run_id = config["run_id"]
 
     try:
-        tf = config.get("tf", 2000)
+        tf = config.get("tf", 1000)
         dt = config.get("dt", 2)
-        t0 = 0
-        N = int((tf - t0) / dt)
+        N = int(tf / dt)
 
-        # --- Orbit Retrieval (Cached with fast propagation + batch B/S) ---
         radius_km = config.get("radius_km", 7000.0)
         orbit_key = (slot_id, radius_km, tf, dt)
-        
+
         if _CACHED_ORBIT is None or _CACHED_ORBIT_KEY != orbit_key:
             rng_state = np.random.get_state()
             try:
                 np.random.seed(100_000 + int(slot_id))
                 _CACHED_ORBIT = create_random_circular_orbit(
-                    radius_km=radius_km,
-                    dt=dt,
-                    tf=tf,
-                    use_J2=True,
-                    fast=True,  # Fast propagation
+                    radius_km=radius_km, dt=dt, tf=tf, use_J2=True, fast=True
                 )
-                # Batch compute B and S vectors
                 _CACHED_ORBIT.populate_environment(compute_B=True, compute_S=True)
                 _CACHED_ORBIT_KEY = orbit_key
             finally:
                 np.random.set_state(rng_state)
-        
-        orb = _CACHED_ORBIT
 
-        # Setup Randomness (per run)
+        orb = _CACHED_ORBIT
         np.random.seed(config["seed"])
 
-        # Hardware Setup - MTQ only
-        mtq_max = 0.4
-        acts = [MTQ(axis=j, max_torque=mtq_max) for j in MathConstants.unitvecs]
-        mtms = [MTM(axis=j) for j in MathConstants.unitvecs]
+        real_sat = create_beavercube2_cubesat(estimated=False)
         
-        real_sat = Satellite(
-            mass=1.2, 
-            J_0=np.diagflat([0.022, 0.022, 0.004]), 
-            actuators=acts, 
-            sensors=mtms, 
-            boresight=np.array([0, 0, 1])
-        )
+        x = np.concatenate([config["w0"], config["q0"], config["h0"]])
+        for i, rw in enumerate(real_sat.rw_actuators):
+            rw.h = config["h0"][i]
 
-        # Initial Conditions
-        x = np.concatenate([config["w0"], config["q0"]])
+        # Lovera controller (MTQ-only)
+        controller = MTQ_Lovera(est_sat=real_sat, p_gain=0.001, d_gain=0.005, eps=1.0)
+        goal = ECI_Goal(config["goal_eci_vec"])
 
-        # Controller - LP (PD-based)
-        controller = MTQ_w_RW_LP(
-            est_sat=real_sat, 
-            p_gain=0.00005, 
-            d_gain=0.001, 
-            c_gain=0.001, 
-            h_target=np.array([0.0, 0.0, 0.0])
-        )
-        
-        # Reduced attitude goal: ECI vector for 180° slew
-        R_b2i = rot_mat(config["q0"])
-        initial_boresight_eci = R_b2i @ np.array([0, 0, 1])
-        goal_eci_vec = -initial_boresight_eci  # Opposite direction = 180° slew
-        goal = ECI_Goal(goal_eci_vec)
-
-        # Arrays
         time_hist = np.zeros(N)
         state_hist = np.zeros((N, len(x)))
-        u_hist = np.zeros((N, len(acts)))
+        u_hist = np.zeros((N, len(real_sat.actuators)))
         boresight_hist = np.zeros((N, 3))
 
-        # Simulation loop
-        t = t0
-        orb_get_os = orb.get_os
-        sat_sensor_readings = real_sat.sensor_readings
-        ctrl_find_u = controller.find_u
-        goal_to_ref = goal.to_ref
-        sat_dynamics = real_sat.dynamics_for_solver
+        t = 0
         sec2cent = TimeConstants.sec2cent
-
         for i in range(N):
             if i % 10 == 0:
                 update_worker_progress(slot_id, run_id, i, N)
 
             J2000 = 0.22 + t * sec2cent
-            os_state = orb_get_os(J2000=J2000)
-            sens = sat_sensor_readings(x=x, os=os_state)
-            u = ctrl_find_u(x_hat=x, sens=sens, est_sat=real_sat, os_hat=os_state, goal=goal)
+            os_state = orb.get_os(J2000=J2000)
+            sens = real_sat.sensor_readings(x=x, os=os_state)
+            u = controller.find_u(x_hat=x, sens=sens, est_sat=real_sat, os_hat=os_state, goal=goal)
 
             time_hist[i] = t
             state_hist[i, :] = x
             u_hist[i, :] = u
-            eci_goal_ref, _ = goal_to_ref(os0=os_state)
+            eci_goal_ref, _ = goal.to_ref(os0=os_state)
             boresight_hist[i, :] = eci_goal_ref
 
             t += dt
-            prev_os = os_state
-            os_next = orb_get_os(0.22 + t * sec2cent)
-            
+            os_next = orb.get_os(0.22 + t * sec2cent)
             out = solve_ivp(
-                fun=sat_dynamics, t_span=(0, dt), y0=x, method="RK45", 
-                args=(u, prev_os, os_next), rtol=1e-6, atol=1e-6
+                real_sat.dynamics_for_solver, (0, dt), x, method="RK45",
+                args=(u, os_state, os_next), rtol=1e-6, atol=1e-6
             )
             x = out.y[:, -1]
             x[3:7] = normalize(x[3:7])
@@ -162,37 +104,42 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
         update_worker_progress(slot_id, run_id, N, N)
 
         return {
-            "run_id": config["run_id"],
-            "config": config,
-            "time": time_hist,
-            "state": state_hist,
-            "u": u_hist,
+            "run_id": run_id, "config": config,
+            "time": time_hist, "state": state_hist, "u": u_hist,
             "boresight_goal": boresight_hist
         }
-
     finally:
         release_worker_slot(slot_id)
 
 
 def generate_mc_config(run_id: int) -> Dict[str, Any]:
-    """Generate config for 180° slew MC run."""
-    rng = np.random.default_rng(seed=run_id)
+    rng = np.random.default_rng(seed=run_id + 1000)
     
+    # Random initial quaternion
     q0 = normalize(rng.standard_normal(4))
+    
+    # Compute initial boresight direction in ECI
+    R0 = rot_mat(q0)
+    initial_boresight_eci = R0 @ BODY_BORESIGHT
+    
+    # Goal is opposite direction (true 180° boresight slew)
+    goal_eci_vec = -initial_boresight_eci
     
     return {
         "run_id": run_id,
         "seed": run_id,
-        "tf": 2000,  # Longer time for 180° slew with MTQ-only
+        "tf": 1000,
         "dt": 2,
         "radius_km": 7000.0,
         "w0": normalize(rng.standard_normal(3)) * (rng.uniform(0.1, 1.0) * np.pi / 180.0),
         "q0": q0,
+        "h0": rng.uniform(-0.0001, 0.0001, size=1),
+        "goal_eci_vec": goal_eci_vec,
     }
 
 
 if __name__ == "__main__":
-    RUN_MC: bool = True
+    RUN_MC = True
     OUTPUT_DIR = "papers/Planner/output_data"
     NUM_RUNS = 100
 
@@ -200,19 +147,18 @@ if __name__ == "__main__":
         runner = MonteCarloRunner(
             sim_func=run_single_sim,
             config_generator=generate_mc_config,
-            num_runs=NUM_RUNS
+            num_runs=NUM_RUNS,
+            max_workers=12
         )
         full_results = runner.run()
-        
         print(f"\n--- Monte Carlo Complete: {len(full_results)} runs ---")
-        save_data(f"3MTQ+0RW_LP_reduced_180slew_mc_{NUM_RUNS}", full_results, out_dir=OUTPUT_DIR)
-        
-        plot_target_tracking_mc(full_results=full_results, title=f"3MTQ+0RW LP Reduced 180° Slew N={NUM_RUNS}")
-        plot_convergence_histogram_mc(full_results=full_results, title=f"3MTQ+0RW LP Reduced 180° Slew N={NUM_RUNS}")
+        save_data(f"3MTQ+0RW_Lovera_reduced_mc_{NUM_RUNS}", full_results, out_dir=OUTPUT_DIR)
+        plot_target_tracking_mc(full_results, body_boresight=BODY_BORESIGHT, title=f"3MTQ+0RW Lovera Reduced N={NUM_RUNS}")
+        plot_convergence_histogram_mc(full_results, body_boresight=BODY_BORESIGHT, title=f"3MTQ+0RW Lovera Reduced")
         create_close_all_button_window()
     else:
-        results = load_data(f"{OUTPUT_DIR}/3MTQ+0RW_LP_reduced_180slew_mc_{NUM_RUNS}")
+        results = load_data(f"{OUTPUT_DIR}/3MTQ+0RW_Lovera_reduced_mc_{NUM_RUNS}")
         full_results = results[0] if isinstance(results, tuple) else results
-        plot_target_tracking_mc(full_results=full_results, title=f"3MTQ+0RW LP Reduced 180° Slew")
-        plot_convergence_histogram_mc(full_results=full_results, title=f"3MTQ+0RW LP Reduced 180° Slew")
+        plot_target_tracking_mc(full_results, body_boresight=BODY_BORESIGHT, title=f"3MTQ+0RW Lovera Reduced")
+        plot_convergence_histogram_mc(full_results, body_boresight=BODY_BORESIGHT, title=f"3MTQ+0RW Lovera Reduced")
         create_close_all_button_window()

@@ -164,14 +164,15 @@ class Vector_Goal(Goal):
 
         if dot < -0.9999:
             # 180° case: pick any orthogonal axis
+            # For 180° rotation, q = [0, axis] and error vector = axis (magnitude 1)
             axis = np.cross(v_bore, [1.0, 0.0, 0.0])
             if norm(axis) < 1e-3:
                 axis = np.cross(v_bore, [0.0, 1.0, 0.0])
-            q_err_full = np.concatenate([[0.0], normalize(axis)])
+            return normalize(axis)
         else:
             # NOTE: goal × bore, not bore × goal
             cross = np.cross(v_goal_body, v_bore)
             q_err_full = normalize(np.concatenate([[1.0 + dot], cross]))
 
-        q_err_vec = q_err_full[1:4] * np.sign(q_err_full[0])
-        return q_err_vec
+            q_err_vec = q_err_full[1:4] * np.sign(q_err_full[0])
+            return q_err_vec

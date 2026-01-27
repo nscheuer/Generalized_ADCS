@@ -1,7 +1,8 @@
 import numpy as np
 from typing import Optional, List
 
-from ADCS.satellite_hardware.actuators import RW, Noise, Bias
+from ADCS.satellite_hardware.actuators import RW
+from ADCS.satellite_hardware.errors import Noise, Bias
 
 def create_cubewheel_smallplus_rw(axis: np.ndarray = np.array([1, 0, 0]), bias: Bias | None = None, noise: Noise | None = None, h_meas_noise: Noise | None = None, estimate_bias: bool = False) -> RW:
     # As used on BeaverCube 2
