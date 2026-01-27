@@ -2,9 +2,10 @@
 Plot all Monte Carlo results for Planner paper.
 
 Generates figures for each test configuration showing:
-1. Time series with mean and 10/90 percentiles
-2. Final error histogram
-3. Summary statistics
+1. Time series with all trajectories (clean version)
+2. Time series with mean and 10/90 percentiles (stats version)
+3. Final error histogram
+4. Summary statistics
 
 Saves all figures to papers/Planner/figures/
 """
@@ -115,8 +116,9 @@ def plot_error_timeseries(time: np.ndarray, errors: np.ndarray,
                           title: str, ylabel: str = "Pointing Error [deg]",
                           save_path: Optional[Path] = None) -> None:
     """
-    Plot error time series with mean and 10/90 percentiles.
-    Generates two figures: one with all runs, one clean with just statistics.
+    Plot error time series - generates two figures:
+    1. Clean: just trajectories
+    2. Stats: mean/median with percentiles
     """
     if len(errors) == 0:
         print(f"No data for {title}")
@@ -129,22 +131,39 @@ def plot_error_timeseries(time: np.ndarray, errors: np.ndarray,
         p90 = np.nanpercentile(errors, 90, axis=0)
         median = np.nanmedian(errors, axis=0)
     
-    # Figure 1: All runs with statistics overlay
+    # Figure 1: Clean - just trajectories
     fig, ax = plt.subplots(figsize=(10, 5))
     
-    # Plot individual runs with low opacity
-    for i in range(min(len(errors), 100)):  # Limit to 100 runs for visibility
-        ax.plot(time, errors[i], 'b-', alpha=0.1, linewidth=0.5)
+    for i in range(min(len(errors), 100)):
+        ax.plot(time, errors[i], 'b-', alpha=0.15, linewidth=0.5)
     
-    # Plot statistics
+    ax.set_xlabel("Time [s]", fontsize=11)
+    ax.set_ylabel(ylabel, fontsize=11)
+    ax.set_title(f"{title} (N={len(errors)})", fontsize=12)
+    ax.grid(True, alpha=0.3)
+    ax.set_xlim([time[0], time[-1]])
+    ax.set_ylim([0, min(200, np.nanmax(errors) * 1.05)])
+    
+    plt.tight_layout()
+    
+    if save_path:
+        clean_path = save_path.parent / save_path.name.replace("_timeseries", "_trajectories")
+        plt.savefig(clean_path, dpi=150, bbox_inches='tight')
+        print(f"Saved: {clean_path}")
+    
+    plt.close()
+    
+    # Figure 2: Stats version with mean/median/percentiles
+    fig, ax = plt.subplots(figsize=(10, 5))
+    
     ax.fill_between(time, p10, p90, alpha=0.3, color='blue', label='10-90 percentile')
-    ax.plot(time, mean, 'b-', linewidth=2, label=f'Mean (final: {mean[-1]:.2f}°)')
-    ax.plot(time, median, 'r--', linewidth=1.5, label=f'Median (final: {median[-1]:.2f}°)')
+    ax.plot(time, mean, 'b-', linewidth=2, label=f'Mean (final: {np.nanmean(errors[:,-1]):.2f}°)')
+    ax.plot(time, median, 'r--', linewidth=1.5, label=f'Median (final: {np.nanmedian(errors[:,-1]):.2f}°)')
     
-    ax.set_xlabel("Time [s]")
-    ax.set_ylabel(ylabel)
-    ax.set_title(f"{title} (N={len(errors)})")
-    ax.legend(loc='upper right')
+    ax.set_xlabel("Time [s]", fontsize=11)
+    ax.set_ylabel(ylabel, fontsize=11)
+    ax.set_title(f"{title} (N={len(errors)})", fontsize=12)
+    ax.legend(loc='upper right', fontsize=10)
     ax.grid(True, alpha=0.3)
     ax.set_xlim([time[0], time[-1]])
     ax.set_ylim([0, min(200, np.nanmax(p90) * 1.1)])
@@ -154,30 +173,6 @@ def plot_error_timeseries(time: np.ndarray, errors: np.ndarray,
     if save_path:
         plt.savefig(save_path, dpi=150, bbox_inches='tight')
         print(f"Saved: {save_path}")
-    
-    plt.close()
-    
-    # Figure 2: Clean version with just statistics (no individual runs)
-    fig, ax = plt.subplots(figsize=(10, 5))
-    
-    ax.fill_between(time, p10, p90, alpha=0.3, color='blue', label='10-90 percentile')
-    ax.plot(time, mean, 'b-', linewidth=2, label=f'Mean (final: {mean[-1]:.2f}°)')
-    ax.plot(time, median, 'r--', linewidth=1.5, label=f'Median (final: {median[-1]:.2f}°)')
-    
-    ax.set_xlabel("Time [s]")
-    ax.set_ylabel(ylabel)
-    ax.set_title(f"{title} (N={len(errors)})")
-    ax.legend(loc='upper right')
-    ax.grid(True, alpha=0.3)
-    ax.set_xlim([time[0], time[-1]])
-    ax.set_ylim([0, min(200, np.nanmax(p90) * 1.1)])
-    
-    plt.tight_layout()
-    
-    if save_path:
-        clean_path = save_path.parent / save_path.name.replace("_timeseries", "_timeseries_clean")
-        plt.savefig(clean_path, dpi=150, bbox_inches='tight')
-        print(f"Saved: {clean_path}")
     
     plt.close()
 
@@ -216,7 +211,7 @@ def plot_histogram(errors: np.ndarray, title: str,
         ax.axvline(thresh, color=color, linestyle='--', linewidth=2, 
                    label=f'<{thresh}°: {pct:.1f}%')
     
-    # Statistics text
+    # Statistics
     stats = {
         'mean': np.mean(final_errors),
         'median': np.median(final_errors),
@@ -228,15 +223,17 @@ def plot_histogram(errors: np.ndarray, title: str,
         'pct_10deg': 100 * np.sum(final_errors < 10) / len(final_errors),
     }
     
+    # Stats text box - position in upper right, away from histogram
     stats_text = f"Mean: {stats['mean']:.2f}°\nMedian: {stats['median']:.2f}°\nStd: {stats['std']:.2f}°"
-    ax.text(0.95, 0.95, stats_text, transform=ax.transAxes, ha='right', va='top',
-            bbox=dict(boxstyle='round', facecolor='white', alpha=0.8), fontsize=10)
+    ax.text(0.98, 0.98, stats_text, transform=ax.transAxes, ha='right', va='top',
+            bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.9, edgecolor='gray'),
+            fontsize=10, family='monospace')
     
-    ax.set_xlabel("Final Pointing Error [deg]")
-    ax.set_ylabel("Count")
-    ax.set_title(f"{title} (N={len(final_errors)})")
-    ax.legend(loc='upper left' if stats['mean'] > 10 else 'upper right')
-    ax.grid(True, alpha=0.3)
+    ax.set_xlabel("Final Pointing Error [deg]", fontsize=11)
+    ax.set_ylabel("Count", fontsize=11)
+    ax.set_title(f"{title} (N={len(final_errors)})", fontsize=12)
+    ax.legend(loc='center right', fontsize=9)
+    ax.grid(True, alpha=0.3, axis='y')
     
     plt.tight_layout()
     
@@ -250,7 +247,7 @@ def plot_histogram(errors: np.ndarray, title: str,
 
 
 def plot_multi_goal_breakdown(results: List[Dict], title: str,
-                               save_path: Optional[Path] = None) -> None:
+                               save_path: Optional[Path] = None) -> Dict[str, Dict[str, float]]:
     """
     Plot error at end of each goal period for multi-goal tests.
     
@@ -258,13 +255,13 @@ def plot_multi_goal_breakdown(results: List[Dict], title: str,
     """
     valid = [r for r in results if r is not None and "state" in r]
     if not valid:
-        return
+        return {}
     
     dt = 2  # timestep
     # Goal end indices (just before No_Goal)
     goal1_idx = 149  # t=298s
     goal2_idx = 324  # t=648s  
-    goal3_idx = 499  # t=998s
+    goal3_idx = 499  # t=998s (end)
     
     errs = {1: [], 2: [], 3: []}
     
@@ -283,7 +280,10 @@ def plot_multi_goal_breakdown(results: List[Dict], title: str,
                 dot = np.clip(np.dot(bore, goal_vec), -1, 1)
                 errs[goal_num].append(np.arccos(dot) * 180 / np.pi)
     
-    fig, axes = plt.subplots(1, 3, figsize=(12, 4))
+    fig, axes = plt.subplots(1, 3, figsize=(14, 4))
+    
+    all_stats = {}
+    goal_times = {1: "t=298s", 2: "t=648s", 3: "t=998s"}
     
     for i, (goal_num, goal_errs) in enumerate(errs.items()):
         if not goal_errs:
@@ -291,22 +291,35 @@ def plot_multi_goal_breakdown(results: List[Dict], title: str,
         goal_errs = np.array(goal_errs)
         
         ax = axes[i]
-        max_err = min(180, np.percentile(goal_errs, 99))
-        bins = np.arange(0, max_err + 2, max(1, max_err/20))
+        max_err = min(180, np.percentile(goal_errs, 99) if len(goal_errs) > 0 else 180)
+        bin_width = max(0.5, max_err / 25)
+        bins = np.arange(0, max_err + bin_width, bin_width)
         
         ax.hist(goal_errs, bins=bins, edgecolor='black', alpha=0.7, color='steelblue')
         
         mean = np.mean(goal_errs)
+        med = np.median(goal_errs)
         pct_1 = 100 * np.sum(goal_errs < 1) / len(goal_errs)
         pct_5 = 100 * np.sum(goal_errs < 5) / len(goal_errs)
         pct_10 = 100 * np.sum(goal_errs < 10) / len(goal_errs)
         
-        ax.set_title(f"Goal {goal_num}\nMean: {mean:.1f}°, <5°: {pct_5:.0f}%")
-        ax.set_xlabel("Error [deg]")
-        ax.set_ylabel("Count")
-        ax.grid(True, alpha=0.3)
+        all_stats[f"goal{goal_num}"] = {
+            'mean': mean, 'median': med,
+            'pct_1deg': pct_1, 'pct_5deg': pct_5, 'pct_10deg': pct_10
+        }
+        
+        # Stats text
+        stats_text = f"Mean: {mean:.1f}°\nMed: {med:.1f}°\n<5°: {pct_5:.0f}%"
+        ax.text(0.97, 0.97, stats_text, transform=ax.transAxes, ha='right', va='top',
+                bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.9),
+                fontsize=9, family='monospace')
+        
+        ax.set_title(f"Goal {goal_num} ({goal_times[goal_num]})", fontsize=11)
+        ax.set_xlabel("Error [deg]", fontsize=10)
+        ax.set_ylabel("Count", fontsize=10)
+        ax.grid(True, alpha=0.3, axis='y')
     
-    plt.suptitle(f"{title} - Multi-Goal Breakdown", fontsize=12)
+    plt.suptitle(f"{title}", fontsize=12)
     plt.tight_layout()
     
     if save_path:
@@ -314,6 +327,8 @@ def plot_multi_goal_breakdown(results: List[Dict], title: str,
         print(f"Saved: {save_path}")
     
     plt.close()
+    
+    return all_stats
 
 
 def process_test(name: str, pattern: str, goal_type: str = "reduced") -> Optional[Dict]:
@@ -345,7 +360,7 @@ def process_test(name: str, pattern: str, goal_type: str = "reduced") -> Optiona
         return None
     
     # Sanitize name for filename
-    safe_name = name.replace(" ", "_").replace("+", "p").replace("/", "_")
+    safe_name = name.replace(" ", "_").replace("+", "p").replace("/", "_").replace("°", "deg")
     
     # Compute errors based on goal type
     if goal_type == "full":
@@ -359,7 +374,7 @@ def process_test(name: str, pattern: str, goal_type: str = "reduced") -> Optiona
         print("  No valid error data")
         return None
     
-    # Plot time series
+    # Plot time series (generates both trajectories and stats versions)
     plot_error_timeseries(
         time, errors, name, ylabel=ylabel,
         save_path=FIG_DIR / f"{safe_name}_timeseries.png"
@@ -373,12 +388,35 @@ def process_test(name: str, pattern: str, goal_type: str = "reduced") -> Optiona
     
     # Multi-goal breakdown
     if goal_type == "multi":
-        plot_multi_goal_breakdown(
+        multi_stats = plot_multi_goal_breakdown(
             valid, name,
             save_path=FIG_DIR / f"{safe_name}_multigoal.png"
         )
+        stats['multi_goal'] = multi_stats
     
     return stats
+
+
+def make_nice_title(config: str, goal_type: str) -> str:
+    """Generate a nice title from config and goal type."""
+    if "1RW" in config:
+        hw = "3MTQ+1RW"
+    else:
+        hw = "3MTQ+0RW"
+    
+    if "LP" in config or "Lovera" in config:
+        ctrl = "LP" if "LP" in config else "Lovera"
+    else:
+        ctrl = "Planner"
+    
+    if goal_type == "reduced":
+        goal_str = "Reduced Attitude 180° Slew"
+    elif goal_type == "full":
+        goal_str = "Full Attitude 180° Slew"
+    else:
+        goal_str = "Multi-Goal Sequence"
+    
+    return f"{hw} {ctrl}: {goal_str}"
 
 
 def main():
@@ -389,22 +427,22 @@ def main():
     # Define all tests to process
     tests = [
         # LP tests
-        ("3MTQ+1RW LP Reduced 180°", "3MTQ+1RW_LP_reduced_mc_*", "reduced"),
-        ("3MTQ+1RW LP Full 180°", "3MTQ+1RW_LP_full180_mc_*", "full"),
-        ("3MTQ+1RW LP Multi-Goal", "3MTQ+1RW_LP_multi_mc_*", "multi"),
+        ("3MTQ+1RW LP: Reduced Attitude 180° Slew", "3MTQ+1RW_LP_reduced_mc_*", "reduced"),
+        ("3MTQ+1RW LP: Full Attitude 180° Slew", "3MTQ+1RW_LP_full180_mc_*", "full"),
+        ("3MTQ+1RW LP: Multi-Goal Sequence", "3MTQ+1RW_LP_multi_mc_*", "multi"),
         
-        ("3MTQ+0RW Lovera Reduced 180°", "3MTQ+0RW_Lovera_reduced_mc_*", "reduced"),
-        ("3MTQ+0RW Lovera Full 180°", "3MTQ+0RW_Lovera_full180_mc_*", "full"),
-        ("3MTQ+0RW Lovera Multi-Goal", "3MTQ+0RW_Lovera_multi_mc_*", "multi"),
+        ("3MTQ+0RW Lovera: Reduced Attitude 180° Slew", "3MTQ+0RW_Lovera_reduced_mc_*", "reduced"),
+        ("3MTQ+0RW Lovera: Full Attitude 180° Slew", "3MTQ+0RW_Lovera_full180_mc_*", "full"),
+        ("3MTQ+0RW Lovera: Multi-Goal Sequence", "3MTQ+0RW_Lovera_multi_mc_*", "multi"),
         
         # Planner tests (if available)
-        ("3MTQ+1RW Planner Reduced 180°", "3MTQ+1RW_plan_reduced_mc_*", "reduced"),
-        ("3MTQ+1RW Planner Full 180°", "3MTQ+1RW_plan_full180_mc_*", "full"),
-        ("3MTQ+1RW Planner Multi-Goal", "3MTQ+1RW_plan_multi_mc_*", "multi"),
+        ("3MTQ+1RW Planner: Reduced Attitude 180° Slew", "3MTQ+1RW_plan_reduced_mc_*", "reduced"),
+        ("3MTQ+1RW Planner: Full Attitude 180° Slew", "3MTQ+1RW_plan_full180_mc_*", "full"),
+        ("3MTQ+1RW Planner: Multi-Goal Sequence", "3MTQ+1RW_plan_multi_mc_*", "multi"),
         
-        ("3MTQ+0RW Planner Reduced 180°", "3MTQ+0RW_plan_reduced_mc_*", "reduced"),
-        ("3MTQ+0RW Planner Full 180°", "3MTQ+0RW_plan_full180_mc_*", "full"),
-        ("3MTQ+0RW Planner Multi-Goal", "3MTQ+0RW_plan_multi_mc_*", "multi"),
+        ("3MTQ+0RW Planner: Reduced Attitude 180° Slew", "3MTQ+0RW_plan_reduced_mc_*", "reduced"),
+        ("3MTQ+0RW Planner: Full Attitude 180° Slew", "3MTQ+0RW_plan_full180_mc_*", "full"),
+        ("3MTQ+0RW Planner: Multi-Goal Sequence", "3MTQ+0RW_plan_multi_mc_*", "multi"),
     ]
     
     all_stats = {}
@@ -415,17 +453,24 @@ def main():
             all_stats[name] = stats
     
     # Print summary table
-    print("\n" + "=" * 100)
+    print("\n" + "=" * 110)
     print("SUMMARY")
-    print("=" * 100)
-    print(f"{'Test':<40} {'Mean':>8} {'Median':>8} {'<1°':>8} {'<5°':>8} {'<10°':>8}")
-    print("-" * 100)
+    print("=" * 110)
+    print(f"{'Test':<50} {'Mean':>8} {'Median':>8} {'<1°':>8} {'<5°':>8} {'<10°':>8}")
+    print("-" * 110)
     
     for name, stats in all_stats.items():
-        print(f"{name:<40} {stats['mean']:>8.2f} {stats['median']:>8.2f} "
-              f"{stats['pct_1deg']:>7.1f}% {stats['pct_5deg']:>7.1f}% {stats['pct_10deg']:>7.1f}%")
+        if 'mean' in stats:
+            print(f"{name:<50} {stats['mean']:>8.2f} {stats['median']:>8.2f} "
+                  f"{stats['pct_1deg']:>7.1f}% {stats['pct_5deg']:>7.1f}% {stats['pct_10deg']:>7.1f}%")
+        
+        # Print multi-goal breakdown if present
+        if 'multi_goal' in stats:
+            for goal_key, goal_stats in stats['multi_goal'].items():
+                print(f"  └─ {goal_key:<46} {goal_stats['mean']:>8.2f} {goal_stats['median']:>8.2f} "
+                      f"{goal_stats['pct_1deg']:>7.1f}% {goal_stats['pct_5deg']:>7.1f}% {goal_stats['pct_10deg']:>7.1f}%")
     
-    print("=" * 100)
+    print("=" * 110)
     print(f"\nFigures saved to: {FIG_DIR.absolute()}")
 
 
