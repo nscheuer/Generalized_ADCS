@@ -8,42 +8,67 @@ Generalized Attitude Determination and Control System
 .. code-block:: python
 
    import ADCS as ADCS
-   
-   acts = [RW(axis, max_torque=0.2, J=0.01, h_max=0.1) for axis in np.eye(3)]
-   satellite = Satellite(mass=10, J_0=np.diag([1, 1.2, 0.8]), actuators=acts, boresight=np.array([0, 0, 1]))
-   # Initial rates (3), quaternion (4), and momentum of reaction wheels
-   x_0 = np.array([0.1, 0.1, 0.1] + [1, 0, 0, 0] + [0, 0, 0]) 
+   import numpy as np
+   import matplotlib.pyplot as plt
 
-   controller = MTQ_w_RW_LP(p_gain=0.001, d_gain=0.01, c_gain=0.01)
+   acts = [ADCS.RW(axis=np.array([1, 0, 0]), max_torque=0.0023, J=5.7e-6, h=0.0, h_max=0.0036)]
+   acts += [ADCS.MTQ(axis, max_torque=0.2) for axis in np.eye(3)]
+   sens = [ADCS.MTM(axis) for axis in np.eye(3)]
 
-   goal = Coordinate_Goal(lat=9, lon=-70, alt=0)
-   os0 = Orbital_State(J2000=0.22, R=np.array([7000, 0, 0]), V=np.array([0, 7.5, 1]))
+   satellite = ADCS.Satellite(mass=10, J_0=np.diag([0.03, 0.03, 0.01]), actuators=acts, sensors=sens, boresight=np.array([0, 0, 1]))
+   x_0 = np.array([0.01, -0.02, 0.01] + [1, 0, 0, 0] + [0.0])  # w, q, h
 
-   results = simulate(
-         x_0=x_0,
-         satellite=satellite,
-         controller=controller,
-         goal=goal,
-         os0=os0,
-         dt=1.0,
-         tf=3600,
+   controller = ADCS.controller.MTQ_w_RW_LP(est_sat=satellite, p_gain=0.00005, d_gain=0.002, c_gain=0.001, h_target=np.array([0, 0, 0]))
+
+   goal = ADCS.goals.Coordinate_Goal(lat=42.36, lon=-71.06, alt=0)
+   os0 = ADCS.Orbital_State(ephem=ADCS.Ephemeris(),J2000=0.22, R=np.array([5000, 0, 5000]), V=np.array([0, 7.5, 0]))
+
+   results = ADCS.simulate(
+      x=x_0,
+      satellite=satellite,
+      controller=controller,
+      goal=goal,
+      os0=os0,
+      dt=1.0,
+      tf=500.0
    )
 
-   plot_pyvista(results)
+   ADCS.plot(
+      results,
+      ADCS.plots.AnimationPlot(goal=goal),
+      layout=(1,1),
+      title="Underactuated Control Animation",
+   )
+
+   ADCS.plot(
+      results,
+      ADCS.plots.TargetPlot(),
+      ADCS.plots.AngularVelocityPlotCombined(sources=["real"]),
+      ADCS.plots.ControlPlotCombined(),
+      ADCS.plots.ControlPlotSingle(index=0, title="RW Control Torque"),
+      layout=(2,2),
+      title="Underactuated Control with MTQ and RW",
+   )
+   plt.show()
    
 
-.. image:: ../../documentation/images/ground_tracking.png
+.. image:: _static/boston_tracking.png
    :alt: Simulation of a satellite in orbit with a ground pointing target.
    :width: 400px
    :align: center
 
-We try to make estimators and controllers as general as possible, allowing you to use any sensor or actuator configuration. You can also easily swap different estimation and control algorithms to see how they perform.
+.. toctree::
+   :maxdepth: 1
+   :caption: Getting Started
+
+   installation/index
+   tutorials/index
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+   :maxdepth: 1
+   :caption: Function Documentation
 
-   modules
+   ADCS
 
 Indices and tables
 ==================

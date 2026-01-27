@@ -4,7 +4,7 @@ In order to regenerate the Sphinx documentation, enter the `docs` folder and reb
 source venv/bin/activate
 cd docs/
 make clean
-make html
+sphinx-build -W -b html source build
 ```
 
 In order to register new Python modules (generate new .rst files):

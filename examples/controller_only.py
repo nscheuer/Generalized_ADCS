@@ -126,4 +126,13 @@ plot(
     title="Satellite Illumination",
 )
 
+from ADCS.helpers.plot import AnimationPlot
+
+plot(
+    results,
+    AnimationPlot(),
+    layout=(1,1),
+    title="Satellite Attitude Animation",
+)
+
 plt.show()

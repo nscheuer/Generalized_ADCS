@@ -4,10 +4,12 @@ from .orbitmagneticplot import OrbitMagneticPlot, OrbitMagneticPlotSingle, Orbit
 from .orbitdensityplot import OrbitDensityPlot, OrbitDensityModelPlot
 from .illuminationplot import IlluminationPlot
 from .orbitplot import OrbitPlot
+from .animationplot import AnimationPlot
 
 __all__ = ["OrbitVelocityPlot", "OrbitVelocityPlotSingle", "OrbitVelocityPlotCombined",
            "OrbitPositionPlot", "OrbitPositionPlotSingle", "OrbitPositionPlotCombined",
            "OrbitMagneticPlot", "OrbitMagneticPlotSingle", "OrbitMagneticPlotCombined",
            "OrbitDensityPlot", "OrbitDensityModelPlot",
            "IlluminationPlot",
-           "OrbitPlot"]
+           "OrbitPlot",
+           "AnimationPlot"]

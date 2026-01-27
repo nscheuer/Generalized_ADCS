@@ -46,6 +46,7 @@ html_theme_options = {
     "light_logo": "starlab_logo.svg",
     "dark_logo": "starlab_logo.svg",
     "top_of_page_button": "edit",
+    "navigation_with_keys": True,
 }
 
 html_sidebars = {
