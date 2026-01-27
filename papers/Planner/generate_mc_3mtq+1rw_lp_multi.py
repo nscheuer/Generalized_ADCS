@@ -112,7 +112,7 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
             p_gain=0.00005, 
             d_gain=0.001, 
             c_gain=0.001, 
-            h_target=np.array([0.0])
+            h_target=np.array([0.0, 0.0, 0.0])
         )
         
         # Multi-goal scenario: 3 sequential ECI pointing goals
