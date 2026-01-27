@@ -76,6 +76,7 @@ goal = ADCS.ECI_Goal(np.array([0, 0, 1]))
 results = ADCS.simulate(
     x=x,
     satellite=real_sat,
+    est_satellite=est_sat,
     estimator=att_estimator,
     os0=os0,
     goal=goal,
@@ -123,6 +124,26 @@ plot(
     SensorsPlotCombined(sources=["clean", "real"]),
     layout=(3,1),
     title="Sensor Measurements",
+)
+
+from ADCS.helpers.plot import BiasPlot, BiasPlotSingle, BiasPlotCombined
+
+plot(
+    results,
+    BiasPlot(kind="sensor", sources=["real", "estimated"]),
+    BiasPlotSingle(index=0, kind="sensor", sources=["real", "estimated"]),
+    BiasPlotCombined(kind="sensor", sources=["real", "estimated"]),
+    layout=(3,1),
+    title="Sensor Biases",
+)
+
+from ADCS.helpers.plot import IlluminationPlot
+
+plot(
+    results,
+    IlluminationPlot(),
+    layout=(1,1),
+    title="Satellite Illumination",
 )
 
 plt.show()

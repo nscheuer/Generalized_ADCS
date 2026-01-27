@@ -4,7 +4,7 @@ from .states import AngularVelocityPlot, AngularVelocityPlotSingle, AngularVeloc
 from .control import ControlPlot, ControlPlotSingle, ControlPlotCombined, TargetPlot
 from .orbit import OrbitVelocityPlot, OrbitVelocityPlotSingle, OrbitVelocityPlotCombined, OrbitPositionPlot, OrbitPositionPlotSingle, OrbitPositionPlotCombined, OrbitMagneticPlot, OrbitMagneticPlotSingle, OrbitMagneticPlotCombined, OrbitDensityPlot, OrbitDensityModelPlot, IlluminationPlot, OrbitPlot
 from .est_states import EstimatorAlignmentPlot
-from .sensors import SensorsPlot, SensorsPlotSingle, SensorsPlotCombined
+from .sensors import SensorsPlot, SensorsPlotSingle, SensorsPlotCombined, BiasPlot, BiasPlotSingle, BiasPlotCombined
 
 __all__ = ["plot", 
         "AngularVelocityPlot", "AngularVelocityPlotSingle", "AngularVelocityPlotCombined",
@@ -17,4 +17,5 @@ __all__ = ["plot",
         "IlluminationPlot",
         "OrbitPlot",
         "EstimatorAlignmentPlot",
-        "SensorsPlot", "SensorsPlotSingle", "SensorsPlotCombined"]
+        "SensorsPlot", "SensorsPlotSingle", "SensorsPlotCombined",
+        "BiasPlot", "BiasPlotSingle", "BiasPlotCombined"]

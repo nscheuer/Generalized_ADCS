@@ -23,13 +23,13 @@ def _get_q_series(sim, source: str) -> np.ndarray | None:
         if sim.state_hist is None or len(sim.state_hist) == 0:
             return None
         X = np.vstack(sim.state_hist)
-        return X[:, 3:7]
+        return _canonicalize_quaternion(X[:, 3:7])
 
     if source == "estimated":
         if getattr(sim, "est_state_hist", None) is None or len(sim.est_state_hist) == 0:
             return None
         Xh = np.vstack(sim.est_state_hist)
-        return Xh[:, 3:7]
+        return _canonicalize_quaternion(Xh[:, 3:7])
 
     raise ValueError(f"Unknown source: {source}")
 
@@ -40,6 +40,18 @@ def _source_style_q(source: str) -> dict:
 
 def _source_suffix_q(source: str) -> str:
     return " (real)" if source == "real" else " (est)"
+
+
+def _canonicalize_quaternion(q: np.ndarray) -> np.ndarray:
+    """
+    Enforce a unique quaternion sign convention:
+    q0 >= 0 for every timestep.
+    """
+    q = np.asarray(q, dtype=float).copy()
+    mask = q[:, 0] < 0
+    q[mask] *= -1.0
+    return q
+
 
 
 class QuaternionPlot(Subplot):

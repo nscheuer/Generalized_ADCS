@@ -121,24 +121,24 @@ class SimulationResults:
         if eci_target is not None:
             if self.eci_target_hist is None:
                 self.eci_target_hist = []
-            self.eci_target_hist.append(np.asarray(eci_target))
+            self.eci_target_hist.append(np.asarray(eci_target).copy())
 
         if w_target is not None:
             if self.w_target_hist is None:
                 self.w_target_hist = []
-            self.w_target_hist.append(np.asarray(w_target))
+            self.w_target_hist.append(np.asarray(w_target).copy())
 
         if clean_sensor is not None:
             if self.clean_sensor_hist is None:
                 self.clean_sensor_hist = []
-            self.clean_sensor_hist.append(np.asarray(clean_sensor))
+            self.clean_sensor_hist.append(np.asarray(clean_sensor).copy())
 
         if sensor is not None:
             if self.sensor_hist is None:
                 self.sensor_hist = []
-            self.sensor_hist.append(np.asarray(sensor))
+            self.sensor_hist.append(np.asarray(sensor).copy())
 
         if control is not None:
             if self.control_hist is None:
                 self.control_hist = []
-            self.control_hist.append(np.asarray(control))
+            self.control_hist.append(np.asarray(control).copy())

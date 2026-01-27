@@ -21,7 +21,7 @@ from ADCS.helpers.simresults import SimulationResults
 def simulate(
     x: np.ndarray,
     satellite: Satellite,
-    est_satellite: Optional[Satellite] = None,
+    est_satellite: Optional[EstimatedSatellite] = None,
     controller: Optional[Controller] = None,
     estimator: Optional[Attitude_Estimator] = None,
     orbit_estimator: Optional[Orbit_Estimator] = None,
@@ -106,7 +106,72 @@ def simulate(
         x = out.y[:, -1]
         x[3:7] = normalize(x[3:7])
 
-        eci_target, w_target = goal.to_ref(os_for_gnc)
+        eci_target, w_target = goal.to_ref(os_for_gnc) 
+
+        est_act_bias_snapshot = None
+        est_sens_bias_snapshot = None
+
+        if estimator is not None and x_hat is not None and est_satellite is not None:
+            # State layout per Attitude_Estimator doc:
+            # [w(3), q(4), h_rw(n_rw), b_act(n_ab), b_sens(n_sb), theta_dist(n_dp)]
+            n_rw = getattr(est_satellite, "number_RW", 0)
+            n_ab = getattr(est_satellite, "act_bias_len", 0)
+            n_sb = getattr(est_satellite, "att_sens_bias_len", 0)
+
+            base = 7 + int(n_rw)
+            ab0, ab1 = base, base + int(n_ab)
+            sb0, sb1 = ab1, ab1 + int(n_sb)
+
+            # Guard against unexpected shapes
+            if len(x_hat) >= sb1:
+                b_act_hat = np.asarray(x_hat[ab0:ab1], dtype=float).reshape(-1)
+                b_sens_hat = np.asarray(x_hat[sb0:sb1], dtype=float).reshape(-1)
+
+                # Actuator biases: slice b_act_hat according to per-actuator bias dimension
+                act_parts = []
+                ai = 0
+                if getattr(satellite, "actuators", None):
+                    for act in satellite.actuators:
+                        # only include if bias exists (act.bias has __bool__)
+                        if hasattr(act, "bias") and bool(act.bias):
+                            # determine this actuator bias dimension from the true bias object
+                            dim = int(np.atleast_1d(act.bias.bias).size)
+                            act_parts.append(b_act_hat[ai:ai + dim].reshape(dim, 1) if dim == 1 else b_act_hat[ai:ai + dim])
+                            ai += dim
+                        else:
+                            # keep placeholder for consistency with "real" formatting
+                            act_parts.append(None)
+
+                # If the estimator’s actuator-bias length doesn't match the sum of per-actuator dims,
+                # fall back to storing the raw vector as a single entry.
+                if len(act_parts) == 0:
+                    est_act_bias_snapshot = None
+                else:
+                    # If our slicing didn't consume exactly the block, it's safer to store raw.
+                    if ai != b_act_hat.size:
+                        est_act_bias_snapshot = np.array([b_act_hat.copy()], dtype=object)
+                    else:
+                        est_act_bias_snapshot = np.array(act_parts, dtype=object)
+
+                # Sensor biases: slice b_sens_hat according to per-sensor bias dimension
+                sens_parts = []
+                si = 0
+                if getattr(satellite, "sensors", None):
+                    for sens in satellite.sensors:
+                        if hasattr(sens, "bias") and bool(sens.bias):
+                            dim = int(np.atleast_1d(sens.bias.bias).size)
+                            sens_parts.append(b_sens_hat[si:si + dim].reshape(dim, 1) if dim == 1 else b_sens_hat[si:si + dim])
+                            si += dim
+                        else:
+                            sens_parts.append(None)
+
+                if len(sens_parts) == 0:
+                    est_sens_bias_snapshot = None
+                else:
+                    if si != b_sens_hat.size:
+                        est_sens_bias_snapshot = np.array([b_sens_hat.copy()], dtype=object)
+                    else:
+                        est_sens_bias_snapshot = np.array(sens_parts, dtype=object)
 
         sim_results.record(
             k=k,
@@ -120,6 +185,8 @@ def simulate(
             est_state=x_hat,
             state_cov=(getattr(getattr(estimator, "x_hat", None), "cov", None)
                        if estimator is not None else None),
+
+            # --- real biases (existing) ---
             actuator_bias=(
                 np.array([np.atleast_1d(act.bias.bias) for act in satellite.actuators], dtype=object)
                 if getattr(satellite, "actuators", None) else None
@@ -128,6 +195,11 @@ def simulate(
                 np.array([np.atleast_1d(sens.bias.bias) for sens in satellite.sensors], dtype=object)
                 if getattr(satellite, "sensors", None) else None
             ),
+
+            # --- estimated biases (NEW) ---
+            est_actuator_bias=est_act_bias_snapshot,
+            est_sensor_bias=est_sens_bias_snapshot,
+
             eci_target=eci_target,
             w_target=w_target,
             clean_sensor=y_clean,
