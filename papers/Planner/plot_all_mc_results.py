@@ -153,11 +153,15 @@ def plot_error_timeseries(time: np.ndarray, errors: np.ndarray,
     
     plt.close()
     
-    # Figure 2: Stats version with mean/median/percentiles
+    # Figure 2: Stats version with trajectories + mean/median/percentiles
     fig, ax = plt.subplots(figsize=(10, 5))
     
-    ax.fill_between(time, p10, p90, alpha=0.3, color='blue', label='10-90 percentile')
-    ax.plot(time, mean, 'b-', linewidth=2, label=f'Mean (final: {np.nanmean(errors[:,-1]):.2f}°)')
+    # Plot individual runs with low opacity first
+    for i in range(min(len(errors), 100)):
+        ax.plot(time, errors[i], 'b-', alpha=0.1, linewidth=0.5)
+    
+    ax.fill_between(time, p10, p90, alpha=0.3, color='orange', label='10-90 percentile')
+    ax.plot(time, mean, 'k-', linewidth=2, label=f'Mean (final: {np.nanmean(errors[:,-1]):.2f}°)')
     ax.plot(time, median, 'r--', linewidth=1.5, label=f'Median (final: {np.nanmedian(errors[:,-1]):.2f}°)')
     
     ax.set_xlabel("Time [s]", fontsize=11)

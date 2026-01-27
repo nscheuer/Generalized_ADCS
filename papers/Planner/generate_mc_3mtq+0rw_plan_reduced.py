@@ -167,7 +167,7 @@ if __name__ == "__main__":
             sim_func=run_single_sim,
             config_generator=generate_mc_config,
             num_runs=NUM_RUNS,
-            max_workers=4
+            max_workers=2
         )
         full_results = runner.run()
         
