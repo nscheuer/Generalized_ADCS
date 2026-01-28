@@ -226,7 +226,9 @@ class PlanAndTrackBase(Controller):
         The returned arrays satisfy:
 
         - ``t`` has shape ``(N,)`` and is C-contiguous.
-        - ``R, V, B, S, A, E`` have shape ``(3, N)`` and are Fortran-contiguous.
+        - ``R, V, B, S, A`` have shape ``(3, N)`` and are Fortran-contiguous.
+        - ``E`` has shape ``(3, N)`` for vector goals or ``(4, N)`` for attitude
+          (quaternion) goals, and is Fortran-contiguous.
         - ``p`` and ``rho`` have shape ``(N,)`` and are C-contiguous.
 
         Each vector matrix uses the convention that column :math:`k` corresponds to
@@ -239,13 +241,28 @@ class PlanAndTrackBase(Controller):
         B[:,k] = \mathbf{b}(t_k), \quad
         S[:,k] = \mathbf{s}(t_k).
 
-        The attitude and goal vectors are:
+        Goal types and E array format
+        -----------------------------
+        The planner supports two goal formulations, detected automatically:
+
+        1. **Vector goals** (e.g., Nadir_Goal, Sun_Goal): ``E`` is ``(3, N)``.
+           The cost function penalizes misalignment between the body reference
+           vector ``A[:,k]`` and the ECI goal vector ``E[:,k]``.
+
+        2. **Attitude goals** (e.g., Fixed_Attitude_Goal): ``E`` is ``(4, N)``.
+           The cost function penalizes quaternion error between the current
+           attitude and the goal quaternion ``E[:,k]``.
+
+        The C++ planner detects the mode based on ``E.n_rows`` and uses the
+        appropriate cost function (``stepcost_vec`` vs ``stepcost_quat``).
+
+        The attitude and body reference vectors are:
 
         - ``A[:,k]`` is the satellite body-frame reference vector (e.g. boresight)
-        duplicated across the horizon.
-        - ``E[:,k]`` is the inertial reference vector returned by the goal system
-        for time :math:`t_k`, computed via
-        :meth:`~ADCS.CONOPS.goallist.GoalList.to_ref`.
+          duplicated across the horizon. Used primarily for vector goals.
+        - ``E[:,k]`` is the inertial reference (3D vector or 4D quaternion) returned
+          by the goal system for time :math:`t_k`, computed via
+          :meth:`~ADCS.CONOPS.goallist.GoalList.to_ref`.
 
         Clipping and padding
         --------------------
@@ -285,7 +302,15 @@ class PlanAndTrackBase(Controller):
         buffer_centuries = 10 * dt_seconds * TimeConstants.sec2cent
         t_end_buffered = t_end + buffer_centuries
 
-        sim_orbit = Orbit(os0=os_0, end_time=t_end_buffered, dt=dt_seconds, use_J2=True, fast=False)
+        # Use fast orbit propagation for ~100x speedup in planner applications
+        # The fast mode uses simplified J2 propagation suitable for short horizons
+        sim_orbit = Orbit(os0=os_0, end_time=t_end_buffered, dt=dt_seconds, use_J2=True, fast=True)
+        
+        # Populate magnetic field (B) and sun vector (S) using batch computation
+        # This is critical for MTQ-based control which depends on the B-field direction
+        # and for sun-avoidance constraints
+        sim_orbit.populate_environment(compute_B=True, compute_S=True)
+        
         tp_orbit = sim_orbit.get_range(t_start, t_end, dt_seconds)
 
         orbit_data_lists = tp_orbit.get_vecs()
@@ -360,19 +385,70 @@ class PlanAndTrackBase(Controller):
         # -------------------------
         # Goals / attitude vectors
         # -------------------------
-        goal_vecs_eci = np.zeros((3, N), dtype=np.float64, order="F")
+        # The C++ planner supports two goal formulations:
+        #
+        # 1. Vector goals (3D): The goal is a direction vector in ECI frame that
+        #    the satellite's body vector should align with. E is (3, N).
+        #    Used by: Nadir_Goal, Sun_Goal, Velocity_Goal, etc.
+        #
+        # 2. Attitude goals (4D quaternion): The goal is a full attitude quaternion
+        #    specifying the desired orientation. E is (4, N).
+        #    Used by: Fixed_Attitude_Goal and other full-attitude goals.
+        #
+        # The C++ code (Satellite::costJacobians) detects which mode based on E.n_rows:
+        #   - If E has 3 rows: uses vector alignment cost (stepcost_vec)
+        #   - If E has 4 rows: uses quaternion error cost (stepcost_quat)
+        #
+        # We detect the goal type by checking the first goal's output dimension.
+        
+        # Sample first goal to determine dimensionality
+        t0 = float(times_arr[0])
+        os_at_t0 = sim_orbit.get_os(t0)
+        g_sample, _ = goals.to_ref(t0, os_at_t0)
+        g_sample = np.asarray(g_sample, dtype=np.float64).flatten()
+        goal_dim = g_sample.shape[0]
+        
+        if goal_dim not in (3, 4):
+            raise ValueError(
+                f"Goal output must be 3D (vector) or 4D (quaternion), got {goal_dim}D. "
+                f"Check that your goal class returns the correct format from to_ref()."
+            )
+        
+        is_quaternion_goal = (goal_dim == 4)
+        
+        # Allocate goal array with correct dimensions
+        # E: (goal_dim, N) - either (3, N) for vector goals or (4, N) for quaternion goals
+        goal_vecs_eci = np.zeros((goal_dim, N), dtype=np.float64, order="F")
+        
+        # A: Body-frame reference vector (always 3D)
+        # For vector goals: the body axis to align with ECI goal vector
+        # For quaternion goals: still used but less critical (body boresight)
         sat_body_vecs = np.zeros((3, N), dtype=np.float64, order="F")
-        prop_vals     = np.zeros(N, dtype=np.float64)
+        
+        # Propulsion values (for prop disturbance modeling)
+        prop_vals = np.zeros(N, dtype=np.float64)
 
+        # Populate goal arrays for each timestep
         for i in range(N):
             t = float(times_arr[i])
             os_at_t = sim_orbit.get_os(t)
             g_vec_eci, _w_ref = goals.to_ref(t, os_at_t)
-            goal_vecs_eci[:, i] = np.asarray(g_vec_eci, dtype=np.float64).reshape(3)
+            g_vec_eci = np.asarray(g_vec_eci, dtype=np.float64).flatten()
+            
+            # Validate consistent goal dimensionality across timesteps
+            if g_vec_eci.shape[0] != goal_dim:
+                raise ValueError(
+                    f"Inconsistent goal dimensions: expected {goal_dim}D at all times, "
+                    f"but got {g_vec_eci.shape[0]}D at t={t}. "
+                    f"Goal types may not be mixed within a single trajectory."
+                )
+            
+            goal_vecs_eci[:, i] = g_vec_eci
             sat_body_vecs[:, i] = np.asarray(self.est_sat.boresight, dtype=np.float64).reshape(3)
 
-        A = np.asfortranarray(sat_body_vecs, dtype=np.float64)      # a in C++
-        E = np.asfortranarray(goal_vecs_eci, dtype=np.float64)      # e in C++
+        # Convert to Fortran-contiguous for Armadillo (column-major)
+        A = np.asfortranarray(sat_body_vecs, dtype=np.float64)  # Body reference vec (3, N)
+        E = np.asfortranarray(goal_vecs_eci, dtype=np.float64)  # ECI goal (3, N) or (4, N)
         p = np.ascontiguousarray(prop_vals.reshape(-1), dtype=np.float64)
 
         t_c = np.ascontiguousarray(times_arr.reshape(-1), dtype=np.float64)
