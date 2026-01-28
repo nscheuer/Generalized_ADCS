@@ -128,6 +128,25 @@ class EstimatedSatellite(Satellite):
         self.dist_param_inds = [j for j in range(len(self.disturbances)) if self.disturbances[j].estimate_dist] # Indices with sensor disturbaces
         self.dist_param_len = sum([self.disturbances[j].estimated_vector_length for j in self.dist_param_inds]) # Number of sensors with bias
 
+
+    @classmethod
+    def from_satellite(cls, sat: Satellite) -> "EstimatedSatellite":
+        """
+        Create an EstimatedSatellite by cloning a Satellite.
+        """
+        est = cls(
+            mass=sat.mass,
+            COM=sat.COM.copy(),
+            J_0=sat.J_0.copy(),
+            disturbances=sat.disturbances,
+            sensors=sat.sensors,
+            actuators=sat.actuators,
+            boresight=sat.boresight.copy(),
+        )
+
+        return est
+
+
     def match_estimate(self, est_state: EstimatedArray, dt: float) -> None:
         r"""
         Synchronize the satellite instance with the estimator output.
