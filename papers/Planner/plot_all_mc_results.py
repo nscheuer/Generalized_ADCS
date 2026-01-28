@@ -454,6 +454,8 @@ def main():
         # Colleague's ALTRO tests (different naming convention)
         ("3MTQ+1RW ALTRO: Reduced Attitude 180° Slew", "3MTQ+1RW_ALTRO_*_reduced_*", "reduced"),
         ("3MTQ+1RW ALTRO: Full Attitude 180° Slew", "3MTQ+1RW_ALTRO_*_full_*", "full"),
+        ("3MTQ+0RW ALTRO: Reduced Attitude 180° Slew", "3MTQ+0RW_ALTRO_*_reduced_*", "reduced"),
+        ("3MTQ+0RW ALTRO: Full Attitude 180° Slew", "3MTQ+0RW_ALTRO_*_full_*", "full"),
         ("3MTQ+1RW LP (Colleague): Reduced Attitude 180° Slew", "3MTQ+1RW_LP_mc_*_reduced_*", "reduced"),
     ]
     
