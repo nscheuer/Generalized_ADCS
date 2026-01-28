@@ -360,7 +360,14 @@ class PlanAndTrackBase(Controller):
         # -------------------------
         # Goals / attitude vectors
         # -------------------------
-        goal_vecs_eci = np.zeros((3, N), dtype=np.float64, order="F")
+        # Determine goal dimension from first sample (3D vector or 4D quaternion)
+        t_first = float(times_arr[0])
+        os_first = sim_orbit.get_os(t_first)
+        g_first, _ = goals.to_ref(t_first, os_first)
+        g_first = np.asarray(g_first, dtype=np.float64).flatten()
+        goal_dim = len(g_first)  # 3 for vector goals, 4 for quaternion goals
+
+        goal_vecs_eci = np.zeros((goal_dim, N), dtype=np.float64, order="F")
         sat_body_vecs = np.zeros((3, N), dtype=np.float64, order="F")
         prop_vals     = np.zeros(N, dtype=np.float64)
 
@@ -368,11 +375,11 @@ class PlanAndTrackBase(Controller):
             t = float(times_arr[i])
             os_at_t = sim_orbit.get_os(t)
             g_vec_eci, _w_ref = goals.to_ref(t, os_at_t)
-            goal_vecs_eci[:, i] = np.asarray(g_vec_eci, dtype=np.float64).reshape(3)
+            goal_vecs_eci[:, i] = np.asarray(g_vec_eci, dtype=np.float64).reshape(goal_dim)
             sat_body_vecs[:, i] = np.asarray(self.est_sat.boresight, dtype=np.float64).reshape(3)
 
         A = np.asfortranarray(sat_body_vecs, dtype=np.float64)      # a in C++
-        E = np.asfortranarray(goal_vecs_eci, dtype=np.float64)      # e in C++
+        E = np.asfortranarray(goal_vecs_eci, dtype=np.float64)      # e in C++ (3xN for vector, 4xN for quat)
         p = np.ascontiguousarray(prop_vals.reshape(-1), dtype=np.float64)
 
         t_c = np.ascontiguousarray(times_arr.reshape(-1), dtype=np.float64)

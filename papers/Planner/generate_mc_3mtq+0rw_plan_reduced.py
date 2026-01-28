@@ -67,6 +67,9 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
         # Remove RWs for 3+0 configuration
         real_sat.actuators = [a for a in real_sat.actuators if not hasattr(a, 'h')]
         real_sat.rw_actuators = []
+        real_sat.momentum_inds = np.array([], dtype=int)
+        real_sat.number_RW = 0
+        real_sat.state_len = 7
 
         x0 = np.concatenate([config["w0"], config["q0"]])  # No RW momentum state
 
