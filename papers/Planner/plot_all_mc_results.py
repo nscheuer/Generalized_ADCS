@@ -183,7 +183,8 @@ def plot_error_timeseries(time: np.ndarray, errors: np.ndarray,
 
 def plot_histogram(errors: np.ndarray, title: str, 
                    save_path: Optional[Path] = None,
-                   threshold_lines: List[float] = [1, 5, 10]) -> Dict[str, float]:
+                   threshold_lines: List[float] = [1, 5, 10],
+                   xlabel: str = "Final Pointing Error [deg]") -> Dict[str, float]:
     """
     Plot histogram of final errors with statistics.
     """
@@ -233,7 +234,7 @@ def plot_histogram(errors: np.ndarray, title: str,
             bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.9, edgecolor='gray'),
             fontsize=10, family='monospace')
     
-    ax.set_xlabel("Final Pointing Error [deg]", fontsize=11)
+    ax.set_xlabel(xlabel, fontsize=11)
     ax.set_ylabel("Count", fontsize=11)
     ax.set_title(f"{title} (N={len(final_errors)})", fontsize=12)
     ax.legend(loc='center right', fontsize=9)
@@ -385,9 +386,11 @@ def process_test(name: str, pattern: str, goal_type: str = "reduced") -> Optiona
     )
     
     # Plot histogram
+    xlabel = "Final Quaternion Error [deg]" if goal_type == "full" else "Final Boresight Error [deg]"
     stats = plot_histogram(
         errors, name,
-        save_path=FIG_DIR / f"{safe_name}_histogram.png"
+        save_path=FIG_DIR / f"{safe_name}_histogram.png",
+        xlabel=xlabel
     )
     
     # Multi-goal breakdown
@@ -447,6 +450,11 @@ def main():
         ("3MTQ+0RW Planner: Reduced Attitude 180° Slew", "3MTQ+0RW_plan_reduced_mc_*", "reduced"),
         ("3MTQ+0RW Planner: Full Attitude 180° Slew", "3MTQ+0RW_plan_full180_mc_*", "full"),
         ("3MTQ+0RW Planner: Multi-Goal Sequence", "3MTQ+0RW_plan_multi_mc_*", "multi"),
+        
+        # Colleague's ALTRO tests (different naming convention)
+        ("3MTQ+1RW ALTRO: Reduced Attitude 180° Slew", "3MTQ+1RW_ALTRO_*_reduced_*", "reduced"),
+        ("3MTQ+1RW ALTRO: Full Attitude 180° Slew", "3MTQ+1RW_ALTRO_*_full_*", "full"),
+        ("3MTQ+1RW LP (Colleague): Reduced Attitude 180° Slew", "3MTQ+1RW_LP_mc_*_reduced_*", "reduced"),
     ]
     
     all_stats = {}
