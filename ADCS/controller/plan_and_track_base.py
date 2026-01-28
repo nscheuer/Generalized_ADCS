@@ -357,9 +357,6 @@ class PlanAndTrackBase(Controller):
         S = to_mat3xN("S", clip_pad_mat(S_raw))
         rho = to_vecN("Rho", Rho_raw)
 
-        # -------------------------
-        # Goals / attitude vectors
-        # -------------------------
         goal_vecs_eci = np.zeros((3, N), dtype=np.float64, order="F")
         sat_body_vecs = np.zeros((3, N), dtype=np.float64, order="F")
         prop_vals     = np.zeros(N, dtype=np.float64)

@@ -161,14 +161,14 @@ def generate_mc_config(run_id: int) -> Dict[str, Any]:
 if __name__ == "__main__":
     RUN_MC = True
     OUTPUT_DIR = "papers/Planner/output_data"
-    NUM_RUNS = 100
+    NUM_RUNS = 1
 
     if RUN_MC:
         runner = MonteCarloRunner(
             sim_func=run_single_sim,
             config_generator=generate_mc_config,
             num_runs=NUM_RUNS,
-            max_workers=2
+            max_workers=1
         )
         full_results = runner.run()
         

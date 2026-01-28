@@ -82,14 +82,10 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
         goals = GoalList({0.22: Fixed_Attitude_Goal(config["q_goal"])})
         os0 = orb.get_os(0.22)
 
-        try:
-            traj = controller.calculate_trajectory(
-                t_start=0.22, duration=tf, x_0=x0, os_0=os0, goals=goals, verbose=False
-            )
-            controller.set_active_trajectory(traj)
-            traj_valid = True
-        except Exception as e:
-            return {"run_id": run_id, "config": config, "error": str(e), "traj_valid": False}
+        traj = controller.calculate_trajectory(
+            t_start=0.22, duration=tf, x_0=x0, os_0=os0, goals=goals, verbose=False
+        )
+        controller.set_active_trajectory(traj)
 
         time_hist = np.zeros(N)
         state_hist = np.zeros((N, len(x0)))
@@ -161,14 +157,14 @@ def generate_mc_config(run_id: int) -> Dict[str, Any]:
 if __name__ == "__main__":
     RUN_MC = True
     OUTPUT_DIR = "papers/Planner/output_data"
-    NUM_RUNS = 100
+    NUM_RUNS = 1
 
     if RUN_MC:
         runner = MonteCarloRunner(
             sim_func=run_single_sim,
             config_generator=generate_mc_config,
             num_runs=NUM_RUNS,
-            max_workers=2
+            max_workers=20
         )
         full_results = runner.run()
         
