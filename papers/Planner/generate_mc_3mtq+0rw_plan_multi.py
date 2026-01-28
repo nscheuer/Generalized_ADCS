@@ -18,7 +18,7 @@ from ADCS.controller.plan_and_track_lqr import Plan_and_Track_LQR
 from ADCS.controller.helpers import PlannerSettings
 from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.orbits.helpers.orbit_factory import create_random_circular_orbit
-from ADCS.satellite_factory.satellites.create_cubesats import create_beavercube2_cubesat
+from ADCS.satellite_factory.satellites.create_cubesats import create_beavercube1_cubesat
 from ADCS.helpers.math_helpers import normalize
 from ADCS.helpers.save_and_load.save_and_load import save_data, load_data
 from ADCS.helpers.plotting.close_all_plots import create_close_all_button_window
@@ -62,23 +62,50 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
         orb = _CACHED_ORBIT
         np.random.seed(config["seed"])
 
-        real_sat = create_beavercube2_cubesat(estimated=False)
-        real_sat.actuators = [a for a in real_sat.actuators if not hasattr(a, 'h')]
-        real_sat.rw_actuators = []
-        real_sat.momentum_inds = np.array([], dtype=int)
-        real_sat.number_RW = 0
-        real_sat.state_len = 7
+        # Create MTQ-only satellite (BeaverCube 1 has no RWs)
+        real_sat = create_beavercube1_cubesat(estimated=False)
 
         x0 = np.concatenate([config["w0"], config["q0"]])
 
         planner_settings = PlannerSettings(
-            est_sat=real_sat, bdot_on=0, dt_tp=10, dt_tvlqr=dt_planning
+            est_sat=real_sat, bdot_on=0, dt_tp=50, dt_tvlqr=dt_planning
         )
         planner_settings.verbosity = False
-        planner_settings.pass1.convergence.max_outer_iter = 8
-        planner_settings.pass1.convergence.max_inner_iter = 30
-        planner_settings.pass2.convergence.max_outer_iter = 4
-        planner_settings.pass2.convergence.max_inner_iter = 15
+        planner_settings.cost_main.use_full_cost_hessian = True
+        planner_settings.pass1.regularization.use_dynamics_hess = 1
+        planner_settings.init_traj.bdot_gain = 500
+        planner_settings.pass1.aug_lag.penalty_init = 1e-3
+        planner_settings.pass1.aug_lag.penalty_scale = 10
+        planner_settings.pass1.convergence.max_outer_iter = 15
+        planner_settings.pass1.convergence.max_inner_iter = 40
+        planner_settings.pass2.aug_lag.penalty_init = 1e5
+        planner_settings.pass2.aug_lag.penalty_scale = 10
+        planner_settings.pass2.convergence.max_outer_iter = 8
+        planner_settings.pass2.convergence.max_inner_iter = 20
+
+        planner_settings.cost_main = CostWeights(
+            angle=1e1,
+            angle_N=1e1,
+            ang_vel=1e5,
+            ang_vel_N=1e5,
+            ang_vel_err_dir=1e2,
+            ang_vel_err_dir_N=0.0,
+            ang_vel_mag=0.0,
+            ang_vel_mag_N=0.0,
+            control_mult=1.0,
+            ang_cost_func_type=2,
+        )
+        planner_settings.cost_second = planner_settings.cost_main
+        planner_settings.cost_tvlqr = CostWeights(
+            angle=1e5,
+            angle_N=1e6,
+            ang_vel=1e6,
+            ang_vel_N=1e8,
+            ang_vel_mag=0.0,
+            ang_vel_mag_N=0.0,
+            control_mult=1.0,
+            ang_cost_func_type=2,
+        )
 
         controller = Plan_and_Track_LQR(est_sat=real_sat, planner_settings=planner_settings)
 
@@ -129,7 +156,7 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
             os_next = orb.get_os(t0_j2000 + t * sec2cent)
             out = solve_ivp(
                 real_sat.dynamics_for_solver, (0, dt), x, method="RK45",
-                args=(u, os_state, os_next), rtol=1e-6, atol=1e-6
+                args=(u, os_state, os_next), rtol=1e-7, atol=1e-7
             )
             x = out.y[:, -1]
             x[3:7] = normalize(x[3:7])
