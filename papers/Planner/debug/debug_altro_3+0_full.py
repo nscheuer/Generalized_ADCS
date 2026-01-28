@@ -7,8 +7,8 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 import time
 
-sys.path.append(os_pack.path.abspath(os_pack.path.join(__file__, "../../..")))
-from ADCS.CONOPS.goals import Goal, ECI_Goal, Coordinate_Goal, No_Goal
+sys.path.append(os_pack.path.abspath(os_pack.path.join(__file__, "../../../..")))
+from ADCS.CONOPS.goals import Fixed_Attitude_Goal
 from ADCS.CONOPS.goallist import GoalList
 from ADCS.controller.plan_and_track_lqr import Plan_and_Track_LQR
 from ADCS.controller.helpers import PlannerSettings, Trajectory, planner_settings
@@ -24,7 +24,7 @@ from ADCS.helpers.math_constants import MathConstants
 from ADCS.helpers.math_helpers import random_n_unit_vec, normalize
 from ADCS.orbits.helpers.orbit_factory import create_random_circular_orbit
 
-from ADCS.satellite_factory.satellites.create_cubesats import create_beavercube2_cubesat
+from ADCS.satellite_factory.satellites.create_cubesats import create_beavercube1_cubesat
 
 from ADCS.helpers.plotting.animate_estimator import animate_attitude
 from ADCS.helpers.plotting.plot_estimator import plot_state_comparison
@@ -38,14 +38,12 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
     t0 = 0
     N = int((tf-t0)/dt)
 
-    real_sat = create_beavercube2_cubesat(estimated=False)
-    rw_h0 = 0.0001
+    real_sat = create_beavercube1_cubesat(estimated=False)
 
     rng = np.random.default_rng(seed=2333)
     w0 = normalize(rng.standard_normal(3)) * (rng.uniform(0.1, 1.0) * np.pi / 180.0)
     q0 = normalize(rng.standard_normal(4))
-    h0 = np.array([rw_h0])
-    x = np.concatenate([w0, q0, h0])
+    x = np.concatenate([w0, q0])
 
     start_time = 0.22 - 1*TimeConstants.sec2cent
     orb = create_random_circular_orbit(7000, dt=1, tf=1000, use_J2=True, fast=False)
@@ -105,14 +103,13 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
     os_hist: List[Orbital_State] = list()
     sensor_hist: np.ndarray = np.nan*np.zeros((N, len(real_sat.sensors + real_sat.rw_actuators)))
     u_hist = np.nan*np.zeros((N, len(real_sat.actuators)))
-    boresight_hist = np.nan*np.zeros((N, 3))
+    q_goal_hist = np.nan*np.zeros((N, 4))
 
     t = t0
     ind = 0
     steps = int((tf - t0)/dt)
 
-    # Simplified goal - just ECI_Goal from start, no transition
-    goals = GoalList({0.22: ECI_Goal(np.array([0, 0, -1]))})
+    goals = GoalList({0.22: Fixed_Attitude_Goal(np.array([0, 0, -1, 0]))})
 
     traj_duration = tf - t0  # [s]
 
@@ -149,8 +146,8 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
     plot_state_comparison(time=time_hist_traj, state_hist=state_hist_traj)
     plot_control(time=time_hist_traj, u_hist=u_hist_traj)
 
-    boresight_traj_hist = np.vstack([goals.to_ref(t=J2000, os0=orb.get_os(J2000))[0] for J2000 in traj.times])
-    plot_target_tracking(state_hist=state_hist_traj, boresight_hist=boresight_traj_hist, body_boresight=np.array([0, 1, 0]))
+    q_goal_traj_hist = np.vstack([goals.to_ref(t=J2000, os0=orb.get_os(J2000))[0] for J2000 in traj.times])
+    plot_target_tracking(state_hist=state_hist_traj, boresight_hist=q_goal_traj_hist, body_boresight=np.array([0, 1, 0]))
     plot_rw_momentum(time=time_hist_traj, state_hist=state_hist_traj)
     create_close_all_button_window()
     
@@ -173,8 +170,8 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
         
         # Updated reference logging: Query GoalList for the reference at this time
         # Note: to_ref now returns (eci, omega), we take [0] for the ECI vector
-        eci_goal, w_goal = goals.to_ref(t=J2000, os0=os)
-        boresight_hist[ind, :] = eci_goal
+        q_goal, w_goal = goals.to_ref(t=J2000, os0=os)
+        q_goal_hist[ind, :] = q_goal
 
         ind += 1
         t += dt
@@ -185,19 +182,18 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
         x = out.y[:, -1]
         x[3:7] = normalize(x[3:7])
 
-    return time_hist, state_hist, os_hist, sensor_hist, u_hist, boresight_hist
+    return time_hist, state_hist, os_hist, sensor_hist, u_hist, q_goal_hist
 
 
 def plot_mtq_w_rw_align_to_eci(verbose: bool = False, tf: float = 1000, dt: float = 10, real_orbit: bool = False) -> None:
-    (time_hist, state_hist, os_hist, sensor_hist, u_hist, boresight_hist) = debug_altro(verbose=verbose, tf=tf, dt=dt, real_orbit=real_orbit)
+    (time_hist, state_hist, os_hist, sensor_hist, u_hist, q_goal_hist) = debug_altro(verbose=verbose, tf=tf, dt=dt, real_orbit=real_orbit)
 
-    animate_attitude(time=time_hist, state_hist=state_hist, os_hist=os_hist, boresight_goal_hist=boresight_hist)
+    animate_attitude(time=time_hist, state_hist=state_hist, os_hist=os_hist, boresight_goal_hist=q_goal_hist)
     plot_state_comparison(time=time_hist, state_hist=state_hist)
     plot_control(time=time_hist, u_hist=u_hist)
     plot_rw_momentum(time=time_hist, state_hist=state_hist)
-    goal = Coordinate_Goal(lat=38.7223, lon=-10, alt=0)
     # animate_orbit_pyvista(time_hist=time_hist, state_hist=state_hist, os_hist=os_hist, boresight_goal_hist=boresight_hist, coord_goal=goal)
-    plot_target_tracking(state_hist=state_hist, boresight_hist=boresight_hist, body_boresight=np.array([0, 1, 0]))
+    plot_target_tracking(state_hist=state_hist, boresight_hist=q_goal_hist, body_boresight=np.array([0, 1, 0]))
     #animate_orbit(time_hist=time_hist, state_hist=state_hist, os_hist=os_hist, boresight_goal_hist=boresight_hist, coord_goal=goal)
     create_close_all_button_window()
     print("Yay!")

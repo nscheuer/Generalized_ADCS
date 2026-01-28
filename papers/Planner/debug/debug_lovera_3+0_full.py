@@ -6,9 +6,9 @@ from typing import List, Union
 from tqdm import tqdm
 import pytest
 
-sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))
+sys.path.append(os.path.abspath(os.path.join(__file__, "../../../..")))
 from ADCS.CONOPS.goals import Fixed_Attitude_Goal
-from ADCS.controller import MTQ_w_RW_LP
+from ADCS.controller import MTQ_Lovera
 from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.orbit import Orbit
 from ADCS.orbits.orbital_state import Orbital_State
@@ -16,7 +16,7 @@ from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.satellite_hardware.satellite.satellite import Satellite
 from ADCS.satellite_hardware.sensors import MTM
 from ADCS.satellite_hardware.actuators import MTQ, RW
-from ADCS.satellite_factory.satellites.create_cubesats import create_beavercube2_cubesat
+from ADCS.satellite_factory.satellites.create_cubesats import create_beavercube1_cubesat
 from ADCS.helpers.math_constants import MathConstants
 from ADCS.helpers.math_helpers import random_n_unit_vec, normalize
 
@@ -32,13 +32,13 @@ def test_MTQ_w_RW_LP_align(verbose: bool = False, tf: float = 1000, dt: float = 
     t0 = 0
     N = int((tf-t0)/dt)
 
-    rw_h0 = 0.0
-    real_sat = create_beavercube2_cubesat(estimated=False)
+    rw_h0 = -9.76622366e-05
+    real_sat = create_beavercube1_cubesat(estimated=False)
     real_sat.rw_actuators[0].h = rw_h0
 
     w0 = random_n_unit_vec(3)*np.random.uniform(1, 2)*np.pi/180.0
-    w0 = np.array([0.0, 0.0, 0.0])
-    q0 = np.array([1.0, 0.0, 0.0, 0.0])
+    w0 = np.array([-0.00874868,  0.00209214,  0.00593677])
+    q0 = np.array([0.86698928, 0.29417644, 0.34385383, 0.20869681])
     h0 = np.array([rw_h0])
     x = np.concatenate([w0, q0, h0])
 
@@ -61,20 +61,20 @@ def test_MTQ_w_RW_LP_align(verbose: bool = False, tf: float = 1000, dt: float = 
         orb = Orbit(orbs)
 
     # Controller
-    controller = MTQ_w_RW_LP(est_sat=real_sat, p_gain=0.00005, d_gain=0.002, c_gain=0.001, h_target=np.array([0.0, 0.0, 0.0]))
+    controller = MTQ_Lovera(est_sat=real_sat, p_gain=0.001, d_gain=0.005, eps=1.0)
 
     time_hist = np.nan*np.zeros(N)
     state_hist = np.nan*np.zeros((N, len(x)))
     os_hist: List[Orbital_State] = list()
     sensor_hist: np.ndarray = np.nan*np.zeros((N, len(real_sat.sensors + real_sat.rw_actuators)))
     u_hist = np.nan*np.zeros((N, len(real_sat.actuators)))
-    q_goal_hist = np.nan*np.zeros((N, 4))
+    q0_goal_hist = np.nan*np.zeros((N, 4))
 
     t = t0
     ind = 0
     steps = int((tf - t0)/dt)
 
-    goal = Fixed_Attitude_Goal(np.array([0, 1, 0, 0]))
+    goal = Fixed_Attitude_Goal(np.array([1, 0, 0, 0]))
 
     for step in tqdm(range(steps), desc="Simulating MTQ_w_RW"):
         J2000 = 0.22 + t*TimeConstants.sec2cent
@@ -91,8 +91,8 @@ def test_MTQ_w_RW_LP_align(verbose: bool = False, tf: float = 1000, dt: float = 
         os_hist += [os]
         sensor_hist[ind,:] = sens
         u_hist[ind,:] = u
-        q_ref, w_goal = goal.to_ref(os0=os)
-        q_goal_hist[ind, :] = q_ref
+        q0_goal, w_goal = goal.to_ref(os0=os)
+        q0_goal_hist[ind, :] = q0_goal
 
         ind += 1
         t += dt
@@ -103,19 +103,19 @@ def test_MTQ_w_RW_LP_align(verbose: bool = False, tf: float = 1000, dt: float = 
         x = out.y[:, -1]
         x[3:7] = normalize(x[3:7])
 
-    return time_hist, state_hist, os_hist, sensor_hist, u_hist
+    return time_hist, state_hist, os_hist, sensor_hist, u_hist, q0_goal_hist
 
 
 def plot_MTQ_w_RW_LP_align(verbose: bool = False, tf: float = 1000, dt: float = 10, real_orbit: bool = False) -> None:
-    (time_hist, state_hist, os_hist, sensor_hist, u_hist) = test_MTQ_w_RW_LP_align(verbose=verbose, tf=tf, dt=dt, real_orbit=real_orbit)
+    (time_hist, state_hist, os_hist, sensor_hist, u_hist, q0_goal_hist) = test_MTQ_w_RW_LP_align(verbose=verbose, tf=tf, dt=dt, real_orbit=real_orbit)
 
     animate_attitude(time=time_hist, state_hist=state_hist, os_hist=os_hist)
     plot_control(time=time_hist, u_hist=u_hist)
     plot_state_comparison(time=time_hist, state_hist=state_hist)
     # plot_rw_momentum(time=time_hist, state_hist=state_hist)
-    # animate_orbit_pyvista(time_hist=time_hist, state_hist=state_hist, os_hist=os_hist, coord_goal=goal)
+    #animate_orbit_pyvista(time_hist=time_hist, state_hist=state_hist, os_hist=os_hist, boresight_goal_hist=boresight_hist, coord_goal=goal)
     #animate_orbit(time_hist=time_hist, state_hist=state_hist, os_hist=os_hist, boresight_goal_hist=boresight_hist, coord_goal=goal)
     create_close_all_button_window()
 
 if __name__ == "__main__":
-    plot_MTQ_w_RW_LP_align(verbose=False, tf = 1000, dt = 2, real_orbit=True)
+    plot_MTQ_w_RW_LP_align(verbose=False, tf = 1000, dt = 1, real_orbit=True)
