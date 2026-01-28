@@ -5,7 +5,7 @@ Subpackages
 -----------
 
 .. toctree::
-   :maxdepth: 4
+   :maxdepth: 1
 
    ADCS.CONOPS.goals.attitude_goals
    ADCS.CONOPS.goals.vector_goals
@@ -14,7 +14,7 @@ Submodules
 ----------
 
 .. toctree::
-   :maxdepth: 4
+   :maxdepth: 1
 
    ADCS.CONOPS.goals.attitude_goal
    ADCS.CONOPS.goals.goal

@@ -1,0 +1,7 @@
+ADCS.simulate module
+====================
+
+.. automodule:: ADCS.simulate
+   :members:
+   :show-inheritance:
+   :undoc-members:

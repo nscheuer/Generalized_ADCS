@@ -5,7 +5,7 @@ Subpackages
 -----------
 
 .. toctree::
-   :maxdepth: 4
+   :maxdepth: 1
 
    ADCS.CONOPS
    ADCS.controller
@@ -15,6 +15,14 @@ Subpackages
    ADCS.helpers
    ADCS.orbits
    ADCS.satellite_hardware
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   ADCS.simulate
 
 Module contents
 ---------------

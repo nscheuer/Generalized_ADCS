@@ -1,0 +1,7 @@
+ADCS.helpers.plot.control.controlplot module
+============================================
+
+.. automodule:: ADCS.helpers.plot.control.controlplot
+   :members:
+   :show-inheritance:
+   :undoc-members:

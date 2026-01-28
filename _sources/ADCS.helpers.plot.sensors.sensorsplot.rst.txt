@@ -1,0 +1,7 @@
+ADCS.helpers.plot.sensors.sensorsplot module
+============================================
+
+.. automodule:: ADCS.helpers.plot.sensors.sensorsplot
+   :members:
+   :show-inheritance:
+   :undoc-members:

@@ -1,0 +1,20 @@
+ADCS.helpers.plot.control package
+=================================
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   ADCS.helpers.plot.control.attitudeplot
+   ADCS.helpers.plot.control.controlplot
+   ADCS.helpers.plot.control.targetplot
+
+Module contents
+---------------
+
+.. automodule:: ADCS.helpers.plot.control
+   :members:
+   :show-inheritance:
+   :undoc-members:

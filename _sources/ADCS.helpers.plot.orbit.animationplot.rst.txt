@@ -1,0 +1,7 @@
+ADCS.helpers.plot.orbit.animationplot module
+============================================
+
+.. automodule:: ADCS.helpers.plot.orbit.animationplot
+   :members:
+   :show-inheritance:
+   :undoc-members:

@@ -1,0 +1,7 @@
+ADCS.helpers.plot.control.targetplot module
+===========================================
+
+.. automodule:: ADCS.helpers.plot.control.targetplot
+   :members:
+   :show-inheritance:
+   :undoc-members:

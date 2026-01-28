@@ -1,0 +1,7 @@
+ADCS.helpers.plot.sensors.biasplot module
+=========================================
+
+.. automodule:: ADCS.helpers.plot.sensors.biasplot
+   :members:
+   :show-inheritance:
+   :undoc-members:

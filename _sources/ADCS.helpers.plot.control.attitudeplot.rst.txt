@@ -1,0 +1,7 @@
+ADCS.helpers.plot.control.attitudeplot module
+=============================================
+
+.. automodule:: ADCS.helpers.plot.control.attitudeplot
+   :members:
+   :show-inheritance:
+   :undoc-members:

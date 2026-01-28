@@ -1,0 +1,7 @@
+ADCS.helpers.plot.states.angularvelocityplot module
+===================================================
+
+.. automodule:: ADCS.helpers.plot.states.angularvelocityplot
+   :members:
+   :show-inheritance:
+   :undoc-members:

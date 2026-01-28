@@ -1,0 +1,7 @@
+ADCS.helpers.plot.orbit.illuminationplot module
+===============================================
+
+.. automodule:: ADCS.helpers.plot.orbit.illuminationplot
+   :members:
+   :show-inheritance:
+   :undoc-members:

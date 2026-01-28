@@ -1,0 +1,7 @@
+ADCS.helpers.plot.close\_all module
+===================================
+
+.. automodule:: ADCS.helpers.plot.close_all
+   :members:
+   :show-inheritance:
+   :undoc-members:

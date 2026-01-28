@@ -1,0 +1,19 @@
+ADCS.helpers.plot.sensors package
+=================================
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   ADCS.helpers.plot.sensors.biasplot
+   ADCS.helpers.plot.sensors.sensorsplot
+
+Module contents
+---------------
+
+.. automodule:: ADCS.helpers.plot.sensors
+   :members:
+   :show-inheritance:
+   :undoc-members:

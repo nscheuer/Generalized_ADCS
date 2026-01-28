@@ -5,7 +5,7 @@ Submodules
 ----------
 
 .. toctree::
-   :maxdepth: 4
+   :maxdepth: 1
 
    ADCS.controller.helpers.build_csat
    ADCS.controller.helpers.debug_planner
