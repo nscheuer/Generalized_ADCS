@@ -1,3 +1,5 @@
+__all__ = ["IlluminationPlot"]
+
 import numpy as np
 
 from ..subplot import Subplot

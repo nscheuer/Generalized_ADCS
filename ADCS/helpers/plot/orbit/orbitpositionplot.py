@@ -1,3 +1,5 @@
+__all__ = ["OrbitPositionPlot"]
+
 import numpy as np
 import matplotlib.gridspec as gridspec
 
@@ -5,7 +7,7 @@ from ..subplot import Subplot
 
 
 def _normalize_orbit_sources(sources: list[str] | None) -> list[str]:
-    if not sources:  # None or []
+    if not sources:  # None or []a
         return ["real"]
     allowed = {"real", "estimated"}
     out: list[str] = []

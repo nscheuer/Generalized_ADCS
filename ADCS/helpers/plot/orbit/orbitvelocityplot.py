@@ -1,3 +1,5 @@
+__all__ = ["OrbitVelocityPlot", "OrbitVelocityPlotSingle", "OrbitVelocityPlotCombined"]
+
 import numpy as np
 import matplotlib.gridspec as gridspec
 

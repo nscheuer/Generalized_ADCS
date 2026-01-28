@@ -17,7 +17,8 @@ pytest ./test_controllers/test_controller_mtq_w_rw.py
 ## Test based on flags
 The following flags are available:
 - `slow`
+- `vslow`
 ```bash
 cd testing/
-pytest -k "not slow"
+pytest -k "not vslow"
 ```

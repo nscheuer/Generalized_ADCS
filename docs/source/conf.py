@@ -17,7 +17,7 @@ extensions = [
     'myst_parser',
 ]
 
-autodoc_mock_imports = ["matplotlib", "mpl_toolkits", "pyvista", "vtk", "rich", "choldate", "trajectory_planner.build"]
+autodoc_mock_imports = ["matplotlib", "mpl_toolkits", "pyvista", "vtk", "rich", "choldate", "trajectory_planner.build", "abc"]
 
 autosummary_generate = False
 autosummary_imported_members = False
@@ -70,7 +70,7 @@ latex_elements = {
 ''',
 }
 
-suppress_warnings = ['ref.python']
+suppress_warnings = ['ref.python', 'toc.not_included']
 
 
 def autodoc_skip_reexports_on_package_pages(app, what, name, obj, skip, options):

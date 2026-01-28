@@ -1,3 +1,5 @@
+__all__ = ["OrbitDensityPlot", "OrbitDensityModelPlot"]
+
 import numpy as np
 
 from ..subplot import Subplot

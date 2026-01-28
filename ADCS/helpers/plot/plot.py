@@ -1,3 +1,5 @@
+__all__ = ["plot"]
+
 import matplotlib.pyplot as plt
 
 from ADCS.helpers.simresults import SimulationResults

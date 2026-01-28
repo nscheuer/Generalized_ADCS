@@ -3,7 +3,20 @@
 Generalized Attitude Determination and Control System
 =====================================================
 
-**Generalized ADCS** is a Python library for simulating control and estimation of spacecraft. It is designed to be Python-first, allowing you to interact and modify any component easily with Numpy arrays. 
+A Python-first framework for simulating spacecraft attitude dynamics,
+estimation, and control in orbit.
+
+**Generalized ADCS** is designed for aerospace students, researchers,
+and engineers who want a flexible, transparent ADCS simulation
+environment without black-box solvers.
+
+What you can do with Generalized ADCS
+-------------------------------------
+- Simulate rigid-body spacecraft attitude dynamics
+- Combine reaction wheels, magnetorquers, and sensors
+- Implement and test custom controllers and estimators
+- Run closed-loop simulations using orbital states
+- Visualize pointing performance and control effort
 
 .. code-block:: python
 
@@ -40,15 +53,6 @@ Generalized Attitude Determination and Control System
       title="Underactuated Control Animation",
    )
 
-   ADCS.plot(
-      results,
-      ADCS.plots.TargetPlot(),
-      ADCS.plots.AngularVelocityPlotCombined(sources=["real"]),
-      ADCS.plots.ControlPlotCombined(),
-      ADCS.plots.ControlPlotSingle(index=0, title="RW Control Torque"),
-      layout=(2,2),
-      title="Underactuated Control with MTQ and RW",
-   )
    plt.show()
    
 
@@ -63,12 +67,21 @@ Generalized Attitude Determination and Control System
 
    installation/index
    tutorials/index
+   features/index
 
 .. toctree::
    :maxdepth: 1
    :caption: Function Documentation
 
    ADCS
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Contributing
+
+   contributing/index
+   contributing/testing
+   contributing/documentation
 
 Indices and tables
 ==================

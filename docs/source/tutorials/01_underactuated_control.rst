@@ -3,7 +3,7 @@
 
 We consider the BeaverCube 2 CubeSat being built by the `MIT STAR Lab <https://aeroastro.mit.edu/starlab/>`_.
 
-.. image:: ../_static/beavercube2.png
+.. image:: ../_static/tutorial_01_beavercube2.png
    :alt: Render of BeaverCube 2 CubeSat with deployed solar panels.
    :width: 400px
    :align: center
@@ -20,9 +20,9 @@ We will simulate the CubeSat tracking a ground target using an underactuated con
    * - **Actuators**
      - Heterogeneous set of 3 Magnetorquers (MTQ) and 1 Reaction Wheel (RW), with parameters matching flight hardware.
    * - **Sensors**
-     - Standard attitude determination sensors (Magnetometers, Sun Sensors, etc.).
+     - Set of 3 Magnetometers (MTM).
    * - **Satellite**
-     - Physical properties including the Mass and Moment of Inertia tensor (:math:`J`).
+     - Mass of 4 kg, Inertia Matrix :math:`J_0 = diag([0.03, 0.03, 0.01]) kg \cdot m^{2}`.
    * - **Initial State**
      - The starting attitude state vector consisting of angular velocity, quaternion orientation, and RW momentum: :math:`[\boldsymbol{\omega}, \mathbf{q}, \mathbf{h}]`.
    * - **Controller**
@@ -44,7 +44,7 @@ Following this definition, we simulate the environment and analyze the performan
    acts += [ADCS.MTQ(axis, max_torque=0.2) for axis in np.eye(3)]
    sens = [ADCS.MTM(axis) for axis in np.eye(3)]
 
-   satellite = ADCS.Satellite(mass=10, J_0=np.diag([0.03, 0.03, 0.01]), actuators=acts, sensors=sens, boresight=np.array([0, 0, 1]))
+   satellite = ADCS.Satellite(mass=4, J_0=np.diag([0.03, 0.03, 0.01]), actuators=acts, sensors=sens, boresight=np.array([0, 0, 1]))
    x_0 = np.array([0.01, -0.02, 0.01] + [1, 0, 0, 0] + [0.0])  # w, q, h
 
    controller = ADCS.controller.MTQ_w_RW_LP(est_sat=satellite, p_gain=0.00005, d_gain=0.002, c_gain=0.001, h_target=np.array([0, 0, 0]))
@@ -89,3 +89,5 @@ Following this definition, we simulate the environment and analyze the performan
           :width: 100%
      - .. image:: ../_static/tutorial_01_plots.png
           :width: 100%
+
+The results show that the satellite is able to perform a slew despite the underactuated configuration. For most control laws and estimators, we try to make them satellite-agnostic, meaning they should work for most configurations.

@@ -1,5 +1,5 @@
 Linux / WSL Installation
-=======================
+========================
 
 Prerequisites
 -------------
@@ -23,7 +23,7 @@ A working shell looks like:
    user@machine:~$
 
 Connect WSL to VS Code
----------------------
+----------------------
 Install the `Remote - WSL <https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-wsl>`_
 extension in VS Code.
 

@@ -12,7 +12,7 @@ Prerequisites
 - Windows CMake (not MSYS)
 
 Ensure Correct CMake
--------------------
+--------------------
 Verify which CMake executable is being used:
 
 .. code-block:: powershell

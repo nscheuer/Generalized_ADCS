@@ -1,3 +1,5 @@
+__all__ = ["OrbitMagneticPlot", "OrbitMagneticPlotSingle"]
+
 import numpy as np
 import matplotlib.gridspec as gridspec
 
