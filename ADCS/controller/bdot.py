@@ -131,7 +131,7 @@ class BDot(Controller):
         self.n_actuators = len(est_sat.actuators)
 
 
-    def find_u(self, x_hat: np.ndarray, sens: np.ndarray, est_sat: EstimatedSatellite, os_hat: Orbital_State, goal: Goal) -> np.ndarray:
+    def find_u(self, x_hat: np.ndarray, sens: np.ndarray, est_sat: EstimatedSatellite, os_hat: Orbital_State, goal: Goal = None) -> np.ndarray:
         r"""
         Computes the B-Dot control command.
 
