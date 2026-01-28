@@ -285,7 +285,9 @@ class PlanAndTrackBase(Controller):
         buffer_centuries = 10 * dt_seconds * TimeConstants.sec2cent
         t_end_buffered = t_end + buffer_centuries
 
-        sim_orbit = Orbit(os0=os_0, end_time=t_end_buffered, dt=dt_seconds, use_J2=True, fast=False)
+        # Use fast=True with batch populate_environment for ~100x speedup
+        sim_orbit = Orbit(os0=os_0, end_time=t_end_buffered, dt=dt_seconds, use_J2=True, fast=True)
+        sim_orbit.populate_environment(compute_B=True, compute_S=True)
         tp_orbit = sim_orbit.get_range(t_start, t_end, dt_seconds)
 
         orbit_data_lists = tp_orbit.get_vecs()
