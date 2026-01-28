@@ -1,8 +1,8 @@
 # 🚀 Generalized ADCS
 
 <p>
-  <img src="documentation/images/starlab_logo.svg" alt="STARLab Logo" height="100">
-  <img src="documentation/images/ssc_logo.png" alt="Small Satellite Collaborative Logo" height="100">
+  <img src="docs/source/_static/starlab_logo.svg" alt="STARLab Logo" height="100">
+  <img src="docs/source/_static/ssc_logo.png" alt="Small Satellite Collaborative Logo" height="100">
 </p>
 
 <strong>Generalized ADCS</strong> is a Python framework for satellite attitude determination
@@ -21,7 +21,7 @@ control and estimation workflows.
 ## ✨ Key Features
 
 <p align="center">
-  <img src="documentation/images/ground_tracking.png"
+  <img src="docs/source/_static/ground_tracking.png"
        alt="Tracking a ground target"
        height="300">
 </p>

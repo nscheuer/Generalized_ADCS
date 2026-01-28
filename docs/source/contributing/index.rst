@@ -32,8 +32,8 @@ Instructions for setting up the development environment are provided here:
 Please follow these instructions to ensure your environment matches the
 project requirements before contributing.
 
-✅ Testing & Documentation Requirements
-----------------------------------------
+✅ Testing & Documentation
+--------------------------
 
 When submitting new features or making significant changes, please ensure
 that the following requirements are met:
