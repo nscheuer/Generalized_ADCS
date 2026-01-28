@@ -16,7 +16,7 @@ from ADCS.controller.helpers.planner_subsettings import CostWeights
 from ADCS.orbits.orbit import Orbit
 from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.orbits.helpers.orbit_factory import create_random_circular_orbit
-from ADCS.satellite_factory.satellites.create_cubesats import create_beavercube2_cubesat
+from ADCS.satellite_factory.satellites.create_cubesats import create_beavercube1_cubesat
 from ADCS.helpers.math_helpers import normalize
 from ADCS.helpers.save_and_load.save_and_load import save_data, load_data
 from ADCS.helpers.plotting_mc.plot_controller_mc import plot_target_tracking_mc, plot_convergence_histogram_mc
@@ -78,12 +78,10 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
         np.random.seed(config["seed"])
 
         # Create Satellite (using exact factory from debug)
-        real_sat = create_beavercube2_cubesat(estimated=False)
+        real_sat = create_beavercube1_cubesat(estimated=False)
 
         # 4. Initial Conditions
-        x = np.concatenate([config["w0"], config["q0"], config["h0"]])
-        for i, rw in enumerate(real_sat.rw_actuators):
-            rw.h = config["h0"][i]
+        x = np.concatenate([config["w0"], config["q0"]])
 
         # 5. Controller Setup (Exact settings from debug_altro)
         planner_settings = PlannerSettings(
@@ -241,14 +239,13 @@ def generate_mc_config(run_id: int) -> Dict[str, Any]:
         "radius_km": 7000.0,
         "w0": normalize(rng.standard_normal(3)) * (rng.uniform(0.1, 1.0) * np.pi / 180.0),
         "q0": normalize(rng.standard_normal(4)),
-        "h0": rng.uniform(-0.0001, 0.0001, size=1), # Small initial momentum like debug
         "goal_eci_vec": normalize(rng.standard_normal(3)),
     }
 
 
 if __name__ == "__main__":
     RUN_MC: bool = True
-    OUTPUT_DIR = "papers/3MTQ+1RW/output_data" # Adjusted folder name
+    OUTPUT_DIR = "papers/Planner/output_data"
 
     if RUN_MC:
         runner = MonteCarloRunner(
@@ -260,7 +257,7 @@ if __name__ == "__main__":
         full_results = runner.run()
 
         print(f"\n--- Monte Carlo Complete: Generated {len(full_results)} histories ---")
-        save_data("3MTQ+1RW_MC_24_1000s", full_results, out_dir=OUTPUT_DIR)
+        save_data("3MTQ+0RW_MC_100_1000s_reduced", full_results, out_dir=OUTPUT_DIR)
 
         plot_target_tracking_mc(full_results=full_results, body_boresight=np.array([0, 1, 0]), title="ALTRO Trajectory Tracking MC:100")
         plot_convergence_histogram_mc(full_results=full_results, body_boresight=np.array([0, 1, 0]), title="ALTRO Convergence")
@@ -268,7 +265,7 @@ if __name__ == "__main__":
         create_close_all_button_window()
     else:
         # Example loading block
-        results = load_data("papers/ALTRO_Compare/output_data/ALTRO_MC_100_500s_TIMESTAMP")
+        results = load_data("papers/Planner/output_data/3MTQ+0RW_MC_100_1000s_reduced_TIMESTAMP")
         full_results = results[0]
         plot_target_tracking_mc(full_results=full_results, body_boresight=np.array([0, 1, 0]))
         create_close_all_button_window()

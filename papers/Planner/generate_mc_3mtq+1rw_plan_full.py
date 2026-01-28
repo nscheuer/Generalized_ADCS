@@ -8,7 +8,7 @@ from typing import Dict, Any, Tuple, Optional
 sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))
 
 # --- ADCS Imports ---
-from ADCS.CONOPS.goals import ECI_Goal
+from ADCS.CONOPS.goals import Fixed_Attitude_Goal
 from ADCS.CONOPS.goallist import GoalList
 from ADCS.controller.plan_and_track_lqr import Plan_and_Track_LQR
 from ADCS.controller.helpers import PlannerSettings
@@ -137,7 +137,7 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
 
         # 6. Goals and Trajectory Planning
         start_time_j2000 = 0.22  # Matching debug file start time
-        goals = GoalList({start_time_j2000: ECI_Goal(config["goal_eci_vec"])})
+        goals = GoalList({start_time_j2000: Fixed_Attitude_Goal(config["q0_goal"])})
         
         # Get initial orbital state for planning
         os0 = orb.get_os(J2000=start_time_j2000)
@@ -158,7 +158,7 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
         time_hist = np.zeros(steps)
         state_hist = np.zeros((steps, len(x)))
         u_hist = np.zeros((steps, len(real_sat.actuators)))
-        boresight_hist = np.zeros((steps, 3))
+        q_goal_hist = np.zeros((steps, 4))
         
         t = t0
         ind = 0
@@ -190,8 +190,8 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
             u_hist[ind, :] = u
             
             # Log the goal (reference) at this timestep
-            eci_goal_ref, _ = goals.to_ref(t=current_j2000, os0=os_state)
-            boresight_hist[ind, :] = eci_goal_ref
+            q_goal_ref, _ = goals.to_ref(t=current_j2000, os0=os_state)
+            q_goal_hist[ind, :] = q_goal_ref
 
             ind += 1
             t += dt
@@ -221,7 +221,7 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
             "time": time_hist,
             "state": state_hist,
             "u": u_hist,
-            "boresight_goal": boresight_hist,
+            "q_goal": q_goal_hist,
         }
 
     finally:
@@ -242,13 +242,13 @@ def generate_mc_config(run_id: int) -> Dict[str, Any]:
         "w0": normalize(rng.standard_normal(3)) * (rng.uniform(0.1, 1.0) * np.pi / 180.0),
         "q0": normalize(rng.standard_normal(4)),
         "h0": rng.uniform(-0.0001, 0.0001, size=1), # Small initial momentum like debug
-        "goal_eci_vec": normalize(rng.standard_normal(3)),
+        "q0_goal": normalize(rng.standard_normal(4)),
     }
 
 
 if __name__ == "__main__":
     RUN_MC: bool = True
-    OUTPUT_DIR = "papers/3MTQ+1RW/output_data" # Adjusted folder name
+    OUTPUT_DIR = "papers/Planner/output_data" # Adjusted folder name
 
     if RUN_MC:
         runner = MonteCarloRunner(
@@ -260,7 +260,7 @@ if __name__ == "__main__":
         full_results = runner.run()
 
         print(f"\n--- Monte Carlo Complete: Generated {len(full_results)} histories ---")
-        save_data("3MTQ+1RW_MC_24_1000s", full_results, out_dir=OUTPUT_DIR)
+        save_data("3MTQ+1RW_MC_24_1000s_full", full_results, out_dir=OUTPUT_DIR)
 
         plot_target_tracking_mc(full_results=full_results, body_boresight=np.array([0, 1, 0]), title="ALTRO Trajectory Tracking MC:100")
         plot_convergence_histogram_mc(full_results=full_results, body_boresight=np.array([0, 1, 0]), title="ALTRO Convergence")
@@ -268,7 +268,7 @@ if __name__ == "__main__":
         create_close_all_button_window()
     else:
         # Example loading block
-        results = load_data("papers/ALTRO_Compare/output_data/ALTRO_MC_100_500s_TIMESTAMP")
+        results = load_data("papers/Planner/output_data/3MTQ+1RW_MC_24_1000s_TIMESTAMP")
         full_results = results[0]
         plot_target_tracking_mc(full_results=full_results, body_boresight=np.array([0, 1, 0]))
         create_close_all_button_window()

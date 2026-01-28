@@ -7,7 +7,7 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 import time
 
-sys.path.append(os_pack.path.abspath(os_pack.path.join(__file__, "../../../..")))
+sys.path.append(os_pack.path.abspath(os_pack.path.join(__file__, "../../..")))
 from ADCS.CONOPS.goals import Goal, ECI_Goal, Coordinate_Goal, No_Goal
 from ADCS.CONOPS.goallist import GoalList
 from ADCS.controller.plan_and_track_lqr import Plan_and_Track_LQR
@@ -24,7 +24,7 @@ from ADCS.helpers.math_constants import MathConstants
 from ADCS.helpers.math_helpers import random_n_unit_vec, normalize
 from ADCS.orbits.helpers.orbit_factory import create_random_circular_orbit
 
-from ADCS.satellite_factory.satellites.create_cubesats import create_beavercube2_cubesat
+from ADCS.satellite_factory.satellites.create_cubesats import create_beavercube1_cubesat
 
 from ADCS.helpers.plotting.animate_estimator import animate_attitude
 from ADCS.helpers.plotting.plot_estimator import plot_state_comparison
@@ -38,17 +38,16 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
     t0 = 0
     N = int((tf-t0)/dt)
 
-    real_sat = create_beavercube2_cubesat()
+    real_sat = create_beavercube1_cubesat(estimated=False)
     rw_h0 = 0.0001
 
     rng = np.random.default_rng(seed=2333)
     w0 = normalize(rng.standard_normal(3)) * (rng.uniform(0.1, 1.0) * np.pi / 180.0)
     q0 = normalize(rng.standard_normal(4))
-    h0 = np.array([rw_h0])
-    x = np.concatenate([w0, q0, h0])
+    x = np.concatenate([w0, q0])
 
     start_time = 0.22 - 1*TimeConstants.sec2cent
-    orb = create_random_circular_orbit(7000, dt=1, tf=500, use_J2=True, fast=False)
+    orb = create_random_circular_orbit(7000, dt=1, tf=1000, use_J2=True, fast=False)
     os0 = orb.get_os(J2000=start_time)
 
     # Build Planner
@@ -58,25 +57,52 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
         dt_tp=50,
         dt_tvlqr=1,
     )
-    planner_settings.verbosity = verbose
-    
+
+    planner_settings.verbosity = False
+    planner_settings.cost_main.use_full_cost_hessian = True
+    planner_settings.pass1.regularization.use_dynamics_hess = 1
+    planner_settings.init_traj.bdot_gain = 500
+    planner_settings.pass1.aug_lag.penalty_init = 1e-3
+    planner_settings.pass1.aug_lag.penalty_scale = 10
+    planner_settings.pass1.convergence.max_outer_iter = 15
+    planner_settings.pass1.convergence.max_inner_iter = 40
+    planner_settings.pass2.aug_lag.penalty_init = 1e5
+    planner_settings.pass2.aug_lag.penalty_scale = 10
+    planner_settings.pass2.convergence.max_outer_iter = 8
+    planner_settings.pass2.convergence.max_inner_iter = 20
+
+    planner_settings.cost_main = CostWeights(
+        angle=1e1,
+        angle_N=1e1,   # 10x running cost
+        ang_vel=1e5,
+        ang_vel_N=1e5, # 10x running cost
+        ang_vel_err_dir=1e2,
+        ang_vel_err_dir_N=0.0,
+        ang_vel_mag=0.0,
+        ang_vel_mag_N=0.0,
+        control_mult=1.0,
+        ang_cost_func_type=2,
+    )
+        
+    planner_settings.cost_second = planner_settings.cost_main
+        
     planner_settings.cost_tvlqr = CostWeights(
-            angle=1e2,
-            angle_N=1e3,
-            ang_vel=1e6,
-            ang_vel_N=1e8,
-            ang_vel_mag=0.0,
-            ang_vel_mag_N=0.0,
-            control_mult=1.0,
-            ang_cost_func_type=2,
-        )
+        angle=1e5,
+        angle_N=1e6,
+        ang_vel=1e6,
+        ang_vel_N=1e8,
+        ang_vel_mag=0.0,
+        ang_vel_mag_N=0.0,
+        control_mult=1.0,
+        ang_cost_func_type=2,
+    )
 
     controller = Plan_and_Track_LQR(est_sat=real_sat, planner_settings=planner_settings)
 
     time_hist = np.nan*np.zeros(N)
     state_hist = np.nan*np.zeros((N, len(x)))
     os_hist: List[Orbital_State] = list()
-    sensor_hist: np.ndarray = np.nan*np.zeros((N, len(real_sat.sensors + real_sat.rw_actuators)))
+    sensor_hist: np.ndarray = np.nan*np.zeros((N, len(real_sat.sensors)))
     u_hist = np.nan*np.zeros((N, len(real_sat.actuators)))
     boresight_hist = np.nan*np.zeros((N, 3))
 
@@ -124,7 +150,6 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
 
     boresight_traj_hist = np.vstack([goals.to_ref(t=J2000, os0=orb.get_os(J2000))[0] for J2000 in traj.times])
     plot_target_tracking(state_hist=state_hist_traj, boresight_hist=boresight_traj_hist, body_boresight=np.array([0, 1, 0]))
-    plot_rw_momentum(time=time_hist_traj, state_hist=state_hist_traj)
     create_close_all_button_window()
     
     for step in tqdm(range(steps), desc="Simulating ALTRO"):
@@ -176,4 +201,4 @@ def plot_mtq_w_rw_align_to_eci(verbose: bool = False, tf: float = 1000, dt: floa
     print("Yay!")
 
 if __name__ == "__main__":
-    plot_mtq_w_rw_align_to_eci(verbose=True, tf = 500, dt = 1, real_orbit=True)
+    plot_mtq_w_rw_align_to_eci(verbose=True, tf = 1000, dt = 1, real_orbit=True)

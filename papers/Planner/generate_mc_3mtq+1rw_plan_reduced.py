@@ -248,7 +248,7 @@ def generate_mc_config(run_id: int) -> Dict[str, Any]:
 
 if __name__ == "__main__":
     RUN_MC: bool = True
-    OUTPUT_DIR = "papers/3MTQ+1RW/output_data" # Adjusted folder name
+    OUTPUT_DIR = "papers/Planner/output_data" # Adjusted folder name
 
     if RUN_MC:
         runner = MonteCarloRunner(
@@ -260,7 +260,7 @@ if __name__ == "__main__":
         full_results = runner.run()
 
         print(f"\n--- Monte Carlo Complete: Generated {len(full_results)} histories ---")
-        save_data("3MTQ+1RW_MC_24_1000s", full_results, out_dir=OUTPUT_DIR)
+        save_data("3MTQ+1RW_MC_24_1000s_reduced", full_results, out_dir=OUTPUT_DIR)
 
         plot_target_tracking_mc(full_results=full_results, body_boresight=np.array([0, 1, 0]), title="ALTRO Trajectory Tracking MC:100")
         plot_convergence_histogram_mc(full_results=full_results, body_boresight=np.array([0, 1, 0]), title="ALTRO Convergence")
@@ -268,7 +268,7 @@ if __name__ == "__main__":
         create_close_all_button_window()
     else:
         # Example loading block
-        results = load_data("papers/ALTRO_Compare/output_data/ALTRO_MC_100_500s_TIMESTAMP")
+        results = load_data("papers/Planner/output_data/3MTQ+1RW_MC_24_1000s_TIMESTAMP")
         full_results = results[0]
         plot_target_tracking_mc(full_results=full_results, body_boresight=np.array([0, 1, 0]))
         create_close_all_button_window()
