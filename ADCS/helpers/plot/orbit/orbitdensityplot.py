@@ -7,6 +7,38 @@ from ADCS.orbits.universal_constants import EarthConstants
 
 
 class OrbitDensityPlot(Subplot):
+    r"""
+    Time-history plot of atmospheric density along the spacecraft orbit.
+
+    This class visualizes the atmospheric density experienced by the spacecraft
+    as a function of time, using orbital state history provided by the simulation.
+    It is intended for quick inspection of drag-related environmental conditions
+    during the mission timeline.
+
+    The user can configure axis scaling, units, and plot title without needing
+    to understand the underlying density model or orbital propagation.
+
+    :param time:
+        Name of the simulation attribute containing the time vector in seconds.
+    :type time:
+        str
+
+    :param title:
+        Title displayed at the top of the plot.
+    :type title:
+        str
+
+    :param units:
+        Physical units used for atmospheric density.
+    :type units:
+        str
+
+    :param log_y:
+        If True, the density axis is displayed on a logarithmic scale.
+    :type log_y:
+        bool
+
+    """
     def __init__(
         self,
         *,
@@ -42,6 +74,42 @@ class OrbitDensityPlot(Subplot):
 
 
 class OrbitDensityModelPlot(Subplot):
+    r"""
+    Altitude-dependent visualization of the atmospheric density model.
+
+    This class plots the atmospheric density model as a function of altitude,
+    independent of time history. It evaluates the density model associated with
+    the first available orbital state and displays the resulting profile.
+
+    The plot is useful for understanding the structure and range of the selected
+    density model, with configurable altitude limits and axis scaling.
+
+    :param title:
+        Title displayed at the top of the plot.
+    :type title:
+        str
+
+    :param units:
+        Physical units used for atmospheric density.
+    :type units:
+        str
+
+    :param h_max_km:
+        Maximum altitude in kilometers shown on the plot.
+    :type h_max_km:
+        float
+
+    :param n_points:
+        Number of altitude samples used to evaluate the density model.
+    :type n_points:
+        int
+
+    :param log_x:
+        If True, the density axis is displayed on a logarithmic scale.
+    :type log_x:
+        bool
+
+    """
     def __init__(
         self,
         *,

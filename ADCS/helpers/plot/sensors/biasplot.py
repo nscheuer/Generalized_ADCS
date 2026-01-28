@@ -119,6 +119,52 @@ def _get_time_axis(sim, time_attr: str, N: int) -> np.ndarray:
 
 
 class BiasPlot(Subplot):
+    r"""
+    Multi-panel visualization of sensor or actuator bias histories.
+
+    This class displays each bias component as a separate subplot, arranged
+    automatically in a grid. Real and estimated bias histories can be shown
+    simultaneously for comparison, depending on the selected sources.
+
+    The primary user controls are the bias type, displayed sources, labeling,
+    units, and axis scaling.
+
+    :param kind:
+        Type of bias to plot. Must be either sensor or actuator.
+    :type kind:
+        str
+
+    :param time:
+        Name of the simulation attribute containing the time vector in seconds.
+    :type time:
+        str
+
+    :param title:
+        Title displayed at the top of the plot group.
+    :type title:
+        str or None
+
+    :param units:
+        Physical units of the bias values.
+    :type units:
+        str
+
+    :param labels:
+        Optional list of labels for each bias component.
+    :type labels:
+        list[str] or None
+
+    :param log_y:
+        If True, the y-axes use logarithmic scaling.
+    :type log_y:
+        bool
+
+    :param sources:
+        List of bias sources to display. Supported values are real and estimated.
+    :type sources:
+        list[str] or None
+
+    """
     def __init__(
         self,
         *,
@@ -211,6 +257,61 @@ class BiasPlot(Subplot):
 
 
 class BiasPlotSingle(Subplot):
+    r"""
+    Visualization of a single bias component over time.
+
+    This class plots one selected bias component for sensor or actuator biases.
+    Real and estimated sources may be overlaid for direct comparison. It is
+    intended for focused inspection of a specific bias term.
+
+    User settings determine which bias component is shown and how it is styled.
+
+    :param index:
+        Index of the bias component to plot.
+    :type index:
+        int
+
+    :param kind:
+        Type of bias to plot. Must be either sensor or actuator.
+    :type kind:
+        str
+
+    :param time:
+        Name of the simulation attribute containing the time vector in seconds.
+    :type time:
+        str
+
+    :param title:
+        Title of the plot. If None, a default title is used.
+    :type title:
+        str or None
+
+    :param units:
+        Physical units of the bias values.
+    :type units:
+        str
+
+    :param label:
+        Label used for the bias component.
+    :type label:
+        str or None
+
+    :param color:
+        Color used for the plotted bias signal.
+    :type color:
+        str or None
+
+    :param log_y:
+        If True, the y-axis uses logarithmic scaling.
+    :type log_y:
+        bool
+
+    :param sources:
+        List of bias sources to display. Supported values are real and estimated.
+    :type sources:
+        list[str] or None
+
+    """
     def __init__(
         self,
         index: int,
@@ -287,6 +388,56 @@ class BiasPlotSingle(Subplot):
 
 
 class BiasPlotCombined(Subplot):
+    r"""
+    Combined plot of all bias components on a single axis.
+
+    This class overlays all bias components on one set of axes, optionally
+    including both real and estimated sources. It is useful for high-level
+    comparison of bias magnitudes and trends across components.
+
+    The plot emphasizes user-defined labeling, colors, and axis scaling.
+
+    :param kind:
+        Type of bias to plot. Must be either sensor or actuator.
+    :type kind:
+        str
+
+    :param time:
+        Name of the simulation attribute containing the time vector in seconds.
+    :type time:
+        str
+
+    :param title:
+        Title displayed at the top of the plot.
+    :type title:
+        str or None
+
+    :param units:
+        Physical units of the bias values.
+    :type units:
+        str
+
+    :param labels:
+        Optional list of labels for each bias component.
+    :type labels:
+        list[str] or None
+
+    :param log_y:
+        If True, the y-axis uses logarithmic scaling.
+    :type log_y:
+        bool
+
+    :param colors:
+        Optional list of colors used cyclically for bias components.
+    :type colors:
+        list[str] or None
+
+    :param sources:
+        List of bias sources to display. Supported values are real and estimated.
+    :type sources:
+        list[str] or None
+
+    """
     def __init__(
         self,
         *,

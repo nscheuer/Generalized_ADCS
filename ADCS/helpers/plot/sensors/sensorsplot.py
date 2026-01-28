@@ -36,6 +36,47 @@ def _get_sensor_matrix(sim, which: str):
 
 
 class SensorsPlot(Subplot):
+    r"""
+    Multi-panel visualization of sensor measurement histories.
+
+    This class displays each sensor channel in its own subplot, arranged
+    automatically in a grid. Multiple data sources, such as real and clean
+    sensor readings, may be overlaid for comparison.
+
+    The plot is configured primarily through user settings for sources,
+    labeling, units, and axis scaling.
+
+    :param time:
+        Name of the simulation attribute containing the time vector in seconds.
+    :type time:
+        str
+
+    :param title:
+        Title displayed at the top of the plot group.
+    :type title:
+        str
+
+    :param units:
+        Physical units of the sensor readings.
+    :type units:
+        str
+
+    :param labels:
+        Optional list of labels for each sensor channel.
+    :type labels:
+        list[str] or None
+
+    :param log_y:
+        If True, the y-axes use logarithmic scaling.
+    :type log_y:
+        bool
+
+    :param sources:
+        List of sensor data sources to display. Supported values are real and clean.
+    :type sources:
+        list[str] or None
+
+    """
     def __init__(
         self,
         *,
@@ -133,6 +174,56 @@ class SensorsPlot(Subplot):
 
 
 class SensorsPlotSingle(Subplot):
+    r"""
+    Visualization of a single sensor channel over time.
+
+    This class plots one selected sensor channel, optionally overlaying multiple
+    data sources such as real and clean measurements. It is intended for focused
+    inspection of a specific sensor output.
+
+    User settings control the selected channel, labeling, color, and axis scaling.
+
+    :param index:
+        Index of the sensor channel to plot.
+    :type index:
+        int
+
+    :param time:
+        Name of the simulation attribute containing the time vector in seconds.
+    :type time:
+        str
+
+    :param title:
+        Title of the plot. If None, a default title is used.
+    :type title:
+        str or None
+
+    :param units:
+        Physical units of the sensor readings.
+    :type units:
+        str
+
+    :param label:
+        Label used for the sensor channel.
+    :type label:
+        str or None
+
+    :param color:
+        Color used for the plotted sensor signal.
+    :type color:
+        str or None
+
+    :param log_y:
+        If True, the y-axis uses logarithmic scaling.
+    :type log_y:
+        bool
+
+    :param sources:
+        List of sensor data sources to display. Supported values are real and clean.
+    :type sources:
+        list[str] or None
+
+    """
     def __init__(
         self,
         index: int,
@@ -209,6 +300,52 @@ class SensorsPlotSingle(Subplot):
 
 
 class SensorsPlotCombined(Subplot):
+    r"""
+    Combined plot of all sensor channels on a single axis.
+
+    This class overlays all sensor channels on one set of axes, optionally
+    including multiple data sources. It provides a compact, high-level view
+    of sensor activity and relative magnitudes.
+
+    The plot emphasizes user-defined configuration of labels, colors, units,
+    and axis scaling.
+
+    :param time:
+        Name of the simulation attribute containing the time vector in seconds.
+    :type time:
+        str
+
+    :param title:
+        Title displayed at the top of the plot.
+    :type title:
+        str
+
+    :param units:
+        Physical units of the sensor readings.
+    :type units:
+        str
+
+    :param labels:
+        Optional list of labels for each sensor channel.
+    :type labels:
+        list[str] or None
+
+    :param log_y:
+        If True, the y-axis uses logarithmic scaling.
+    :type log_y:
+        bool
+
+    :param colors:
+        Optional list of colors used cyclically for sensor channels.
+    :type colors:
+        list[str] or None
+
+    :param sources:
+        List of sensor data sources to display. Supported values are real and clean.
+    :type sources:
+        list[str] or None
+
+    """
     def __init__(
         self,
         *,

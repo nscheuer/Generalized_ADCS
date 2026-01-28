@@ -54,6 +54,54 @@ def _source_suffix_orbit(source: str) -> str:
 
 
 class OrbitPositionPlot(Subplot):
+    r"""
+    Multi-panel visualization of spacecraft position components in ECI.
+
+    This class plots the Cartesian position components and the position magnitude
+    of the spacecraft as functions of time, using orbital state histories from the
+    simulation. Real and estimated positions can be shown together for comparison,
+    arranged automatically in a fixed grid layout.
+
+    The plot emphasizes user-controlled settings such as data sources, colors,
+    units, and axis scaling.
+
+    :param sources:
+        List of orbit position sources to display. Supported values are real and
+        estimated. If None, only the real position is shown.
+    :type sources:
+        list[str] or None
+
+    :param time:
+        Name of the simulation attribute containing the time vector in seconds.
+    :type time:
+        str
+
+    :param title:
+        Title displayed at the top of the plot group.
+    :type title:
+        str
+
+    :param units:
+        Physical units of the position components.
+    :type units:
+        str
+
+    :param colors:
+        Colors used for the x, y, and z position components.
+    :type colors:
+        tuple[str, str, str]
+
+    :param mag_color:
+        Color used for the position magnitude plot.
+    :type mag_color:
+        str
+
+    :param log_y:
+        If True, the y-axes use logarithmic scaling.
+    :type log_y:
+        bool
+
+    """
     def __init__(
         self,
         *,
@@ -136,6 +184,58 @@ class OrbitPositionPlot(Subplot):
 
 
 class OrbitPositionPlotSingle(Subplot):
+    r"""
+    Single-component visualization of spacecraft position in ECI.
+
+    This class plots one selected position component or the position magnitude
+    as a function of time. It supports displaying real and estimated data together,
+    making it suitable for focused analysis of a single spatial dimension.
+
+    The user controls which component is shown, along with labeling, color, and
+    axis scaling options.
+
+    :param component:
+        Position component to plot. Must be one of x, y, z, or m for magnitude.
+    :type component:
+        str
+
+    :param sources:
+        List of orbit position sources to display. Supported values are real and
+        estimated.
+    :type sources:
+        list[str] or None
+
+    :param time:
+        Name of the simulation attribute containing the time vector in seconds.
+    :type time:
+        str
+
+    :param title:
+        Title of the plot. If None, a default title is used.
+    :type title:
+        str or None
+
+    :param units:
+        Physical units of the position values.
+    :type units:
+        str
+
+    :param color:
+        Color used for the plotted position signal.
+    :type color:
+        str or None
+
+    :param log_y:
+        If True, the y-axis uses logarithmic scaling.
+    :type log_y:
+        bool
+
+    :param labels:
+        Optional mapping from component identifiers to display labels.
+    :type labels:
+        dict[str, str] or None
+
+    """
     def __init__(
         self,
         *,
@@ -222,6 +322,53 @@ class OrbitPositionPlotSingle(Subplot):
 
 
 class OrbitPositionPlotCombined(Subplot):
+    r"""
+    Combined plot of all spacecraft position components in ECI.
+
+    This class overlays the x, y, and z position components on a single set of
+    axes, allowing direct comparison of component magnitudes and trends over
+    time. Real and estimated sources can be displayed simultaneously.
+
+    The plot focuses on user-defined appearance options such as colors, labels,
+    and axis scaling.
+
+    :param sources:
+        List of orbit position sources to display. Supported values are real and
+        estimated.
+    :type sources:
+        list[str] or None
+
+    :param time:
+        Name of the simulation attribute containing the time vector in seconds.
+    :type time:
+        str
+
+    :param title:
+        Title displayed at the top of the plot.
+    :type title:
+        str
+
+    :param units:
+        Physical units of the position values.
+    :type units:
+        str
+
+    :param colors:
+        Colors used for the x, y, and z position components.
+    :type colors:
+        tuple[str, str, str]
+
+    :param log_y:
+        If True, the y-axis uses logarithmic scaling.
+    :type log_y:
+        bool
+
+    :param labels:
+        Labels used for the position components.
+    :type labels:
+        list[str] or None
+
+    """
     def __init__(
         self,
         *,

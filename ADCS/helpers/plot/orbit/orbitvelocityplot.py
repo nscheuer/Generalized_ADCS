@@ -58,11 +58,54 @@ def _source_suffix_orbit(source: str) -> str:
     return " (real)" if source == "real" else " (est)"
 
 
-# -----------------------------------------------------------------------------
-# plots
-# -----------------------------------------------------------------------------
-
 class OrbitVelocityPlot(Subplot):
+    r"""
+    Multi-panel visualization of spacecraft velocity components in ECI.
+
+    This class displays the Cartesian velocity components and the velocity
+    magnitude as functions of time, arranged in a fixed grid layout. Real and
+    estimated velocity histories can be shown together for comparison.
+
+    User configuration focuses on selecting data sources, visual styling,
+    units, and axis scaling.
+
+    :param sources:
+        List of orbit velocity sources to display. Supported values are real and
+        estimated. If None, only the real velocity is shown.
+    :type sources:
+        list[str] or None
+
+    :param time:
+        Name of the simulation attribute containing the time vector in seconds.
+    :type time:
+        str
+
+    :param title:
+        Title displayed at the top of the plot group.
+    :type title:
+        str
+
+    :param units:
+        Physical units of the velocity components.
+    :type units:
+        str
+
+    :param colors:
+        Colors used for the x, y, and z velocity components.
+    :type colors:
+        tuple[str, str, str]
+
+    :param mag_color:
+        Color used for the velocity magnitude plot.
+    :type mag_color:
+        str
+
+    :param log_y:
+        If True, the y-axes use logarithmic scaling.
+    :type log_y:
+        bool
+
+    """
     def __init__(
         self,
         *,
@@ -156,6 +199,57 @@ class OrbitVelocityPlot(Subplot):
 
 
 class OrbitVelocityPlotSingle(Subplot):
+    r"""
+    Single-component visualization of spacecraft velocity in ECI.
+
+    This class plots one selected velocity component or the velocity magnitude
+    as a function of time. It supports overlaying real and estimated data and is
+    suited for focused inspection of a single velocity dimension.
+
+    The user controls the component selection, labeling, color, and axis scaling.
+
+    :param component:
+        Velocity component to plot. Must be one of x, y, z, or m for magnitude.
+    :type component:
+        str
+
+    :param sources:
+        List of orbit velocity sources to display. Supported values are real and
+        estimated.
+    :type sources:
+        list[str] or None
+
+    :param time:
+        Name of the simulation attribute containing the time vector in seconds.
+    :type time:
+        str
+
+    :param title:
+        Title of the plot. If None, a default title is used.
+    :type title:
+        str or None
+
+    :param units:
+        Physical units of the velocity values.
+    :type units:
+        str
+
+    :param color:
+        Color used for the plotted velocity signal.
+    :type color:
+        str or None
+
+    :param log_y:
+        If True, the y-axis uses logarithmic scaling.
+    :type log_y:
+        bool
+
+    :param labels:
+        Optional mapping from component identifiers to display labels.
+    :type labels:
+        dict[str, str] or None
+
+    """
     def __init__(
         self,
         *,
@@ -238,6 +332,53 @@ class OrbitVelocityPlotSingle(Subplot):
 
 
 class OrbitVelocityPlotCombined(Subplot):
+    r"""
+    Combined plot of all spacecraft velocity components in ECI.
+
+    This class overlays the x, y, and z velocity components on a single set of
+    axes, enabling direct comparison of component magnitudes and trends over
+    time. Real and estimated sources may be displayed simultaneously.
+
+    The plot emphasizes user-defined appearance options such as colors, labels,
+    and axis scaling.
+
+    :param sources:
+        List of orbit velocity sources to display. Supported values are real and
+        estimated.
+    :type sources:
+        list[str] or None
+
+    :param time:
+        Name of the simulation attribute containing the time vector in seconds.
+    :type time:
+        str
+
+    :param title:
+        Title displayed at the top of the plot.
+    :type title:
+        str
+
+    :param units:
+        Physical units of the velocity values.
+    :type units:
+        str
+
+    :param colors:
+        Colors used for the x, y, and z velocity components.
+    :type colors:
+        tuple[str, str, str]
+
+    :param log_y:
+        If True, the y-axis uses logarithmic scaling.
+    :type log_y:
+        bool
+
+    :param labels:
+        Labels used for the velocity components.
+    :type labels:
+        list[str] or None
+
+    """
     def __init__(
         self,
         *,

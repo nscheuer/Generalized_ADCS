@@ -22,6 +22,45 @@ def _extract_u_max(sim) -> list[float] | None:
 
 
 class ControlPlot(Subplot):
+    r"""
+    Multi-panel visualization of all control input channels.
+
+    This class provides a compact overview of each control channel stored in the
+    simulation control history, arranged automatically in a grid of subplots.
+    Each channel is plotted separately with optional actuator saturation limits.
+    The class is intended for quick inspection of control activity rather than
+    detailed tuning.
+
+    The plot reads control inputs from the simulation and displays them as functions
+    of time. If actuator limits are available from the simulation satellite model,
+    symmetric bounds are overlaid for reference.
+
+    :param time:
+        Name of the simulation attribute containing the time vector in seconds.
+    :type time:
+        str
+
+    :param title:
+        Title displayed at the top of the subplot group.
+    :type title:
+        str
+
+    :param units:
+        Physical units of the control inputs, displayed on the y-axis labels.
+    :type units:
+        str
+
+    :param labels:
+        Optional list of labels for each control channel.
+    :type labels:
+        list[str] or None
+
+    :param log_y:
+        If True, the y-axis of each subplot is displayed on a logarithmic scale.
+    :type log_y:
+        bool
+
+    """
     def __init__(
         self,
         *,
@@ -112,6 +151,52 @@ class ControlPlot(Subplot):
 
 
 class ControlPlotSingle(Subplot):
+    r"""
+    Visualization of a single control input channel.
+
+    This class plots one selected control channel versus time, allowing focused
+    inspection of a specific actuator or control dimension. Optional actuator
+    saturation limits are shown when available.
+
+    The plot is suitable for detailed analysis or comparison across multiple
+    figures when individual control channels are of interest.
+
+    :param index:
+        Index of the control channel to plot.
+    :type index:
+        int
+
+    :param time:
+        Name of the simulation attribute containing the time vector in seconds.
+    :type time:
+        str
+
+    :param title:
+        Title of the plot. If None, a default title is used.
+    :type title:
+        str or None
+
+    :param units:
+        Physical units of the control input.
+    :type units:
+        str
+
+    :param label:
+        Label for the plotted control signal.
+    :type label:
+        str or None
+
+    :param color:
+        Matplotlib color specification for the control signal.
+    :type color:
+        str or None
+
+    :param log_y:
+        If True, the y-axis is displayed on a logarithmic scale.
+    :type log_y:
+        bool
+
+    """
     def __init__(
         self,
         index: int,
@@ -187,6 +272,48 @@ class ControlPlotSingle(Subplot):
 
 
 class ControlPlotCombined(Subplot):
+    r"""
+    Combined visualization of all control input channels on a single axis.
+
+    This class plots all control channels together in one figure, enabling direct
+    comparison of magnitudes and temporal behavior. Each channel is assigned a
+    distinct label and optional color. Actuator saturation limits are shown when
+    available.
+
+    This representation is useful for high-level assessment of control effort and
+    relative channel usage.
+
+    :param time:
+        Name of the simulation attribute containing the time vector in seconds.
+    :type time:
+        str
+
+    :param title:
+        Title of the plot.
+    :type title:
+        str
+
+    :param units:
+        Physical units of the control inputs.
+    :type units:
+        str
+
+    :param labels:
+        Optional list of labels for each control channel.
+    :type labels:
+        list[str] or None
+
+    :param log_y:
+        If True, the y-axis is displayed on a logarithmic scale.
+    :type log_y:
+        bool
+
+    :param colors:
+        Optional list of colors used cyclically for control channels.
+    :type colors:
+        list[str] or None
+
+    """
     def __init__(
         self,
         *,

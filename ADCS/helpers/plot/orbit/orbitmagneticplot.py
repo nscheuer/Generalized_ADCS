@@ -7,6 +7,48 @@ from ..subplot import Subplot
 
 
 class OrbitMagneticPlot(Subplot):
+    r"""
+    Multi-panel visualization of the geomagnetic field along the orbit.
+
+    This class displays the three Cartesian components of the magnetic field in
+    the inertial frame, together with the field magnitude, arranged in a fixed
+    grid layout. It is intended for quick inspection of magnetic environment
+    variations during orbital motion.
+
+    Users mainly control appearance options such as colors, axis scaling, and
+    labeling.
+
+    :param time:
+        Name of the simulation attribute containing the time vector in seconds.
+    :type time:
+        str
+
+    :param title:
+        Title displayed at the top of the plot group.
+    :type title:
+        str
+
+    :param units:
+        Physical units of the magnetic field values.
+    :type units:
+        str
+
+    :param colors:
+        Colors used for the x, y, and z magnetic field components.
+    :type colors:
+        tuple[str, str, str]
+
+    :param mag_color:
+        Color used for the magnetic field magnitude plot.
+    :type mag_color:
+        str
+
+    :param log_y:
+        If True, all magnetic field axes use logarithmic scaling.
+    :type log_y:
+        bool
+
+    """
     def __init__(
         self,
         *,
@@ -71,6 +113,51 @@ class OrbitMagneticPlot(Subplot):
 
 
 class OrbitMagneticPlotSingle(Subplot):
+    r"""
+    Single-component visualization of the geomagnetic field.
+
+    This class plots one selected magnetic field component or the field magnitude
+    as a function of time. It is useful when focusing on a specific direction or
+    when embedding a single magnetic signal into a larger figure.
+
+    The component, labeling, and visual style are fully user-configurable.
+
+    :param component:
+        Magnetic field component to plot. Must be one of x, y, z, or m for magnitude.
+    :type component:
+        str
+
+    :param time:
+        Name of the simulation attribute containing the time vector in seconds.
+    :type time:
+        str
+
+    :param title:
+        Title of the plot. If None, a default title is used.
+    :type title:
+        str or None
+
+    :param units:
+        Physical units of the magnetic field values.
+    :type units:
+        str
+
+    :param color:
+        Color used for the plotted magnetic field signal.
+    :type color:
+        str or None
+
+    :param log_y:
+        If True, the y-axis uses logarithmic scaling.
+    :type log_y:
+        bool
+
+    :param labels:
+        Optional mapping from component identifiers to display labels.
+    :type labels:
+        dict[str, str] or None
+
+    """
     def __init__(
         self,
         *,
@@ -140,6 +227,47 @@ class OrbitMagneticPlotSingle(Subplot):
 
 
 class OrbitMagneticPlotCombined(Subplot):
+    r"""
+    Combined plot of all magnetic field components on a single axis.
+
+    This class overlays the x, y, and z components of the geomagnetic field in
+    the inertial frame onto one set of axes. It enables direct comparison of
+    component magnitudes and trends over time.
+
+    The plot focuses on user-controlled labeling, color selection, and axis
+    scaling.
+
+    :param time:
+        Name of the simulation attribute containing the time vector in seconds.
+    :type time:
+        str
+
+    :param title:
+        Title displayed at the top of the plot.
+    :type title:
+        str
+
+    :param units:
+        Physical units of the magnetic field values.
+    :type units:
+        str
+
+    :param colors:
+        Colors used for the x, y, and z magnetic field components.
+    :type colors:
+        tuple[str, str, str]
+
+    :param log_y:
+        If True, the y-axis uses logarithmic scaling.
+    :type log_y:
+        bool
+
+    :param labels:
+        Labels used for the magnetic field components.
+    :type labels:
+        list[str] or None
+
+    """
     def __init__(
         self,
         *,

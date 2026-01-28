@@ -63,6 +63,50 @@ def _source_suffix_orbit3d(source: str) -> str:
 
 
 class OrbitPlot(Subplot):
+    r"""
+    Three-dimensional visualization of spacecraft orbit trajectories in ECI.
+
+    This class renders one or more spacecraft orbits in a 3D Earth-centered
+    inertial frame, using position histories available in the simulation.
+    Real and estimated orbits can be displayed simultaneously for comparison.
+    A semi-transparent Earth sphere is included for spatial context.
+
+    The class is focused on user-configurable visual settings such as which
+    orbit sources to show, colors, and line styles, without requiring knowledge
+    of orbit propagation details.
+
+    :param sources:
+        List of orbit sources to display. Supported values are real and estimated.
+        If None, only the real orbit is shown.
+    :type sources:
+        list[str] or None
+
+    :param title:
+        Title displayed above the 3D orbit plot.
+    :type title:
+        str
+
+    :param orbit_colors:
+        Mapping from orbit source names to line colors.
+    :type orbit_colors:
+        dict[str, str] or None
+
+    :param earth_color:
+        Color used for rendering the Earth sphere.
+    :type earth_color:
+        str
+
+    :param earth_alpha:
+        Transparency level of the Earth sphere.
+    :type earth_alpha:
+        float
+
+    :param linewidth:
+        Line width used for plotting orbit trajectories.
+    :type linewidth:
+        float
+
+    """
     def __init__(
         self,
         *,

@@ -43,20 +43,45 @@ def _angle_deg(u, v):
 
 
 class TargetPlot(Subplot):
-    """
-    Three-way boresight / target / estimate comparison.
+    r"""
+    Comparison plot between spacecraft boresight, target direction, and estimates.
 
-    modes:
-      - "real_target": angle(real boresight, target)  [DEFAULT]
-      - "est_target":  angle(estimated boresight, target)
-      - "real_est":    angle(real boresight, estimated boresight)
-      - "directions3d": one-sample 3D visualization of directions (real bore, est bore, target)
+    This class provides configurable visual comparisons between the spacecraft
+    boresight direction and a target direction expressed in the inertial frame.
+    Depending on the selected modes, the plot can display angular errors over time
+    and an optional three-dimensional snapshot of directions at a chosen sample.
 
-    Notes:
-      - Uses sim.state_hist (real) quaternion at [3:7]
-      - Uses sim.est_state_hist (estimated) quaternion at [3:7]
-      - Uses sim.eci_target_hist (target direction in ECI)
-      - Uses sim.satellite.boresight (body-fixed boresight)
+    The plot is intended for performance assessment of pointing and estimation,
+    with minimal configuration required from the user.
+
+    :param time:
+        Name of the simulation attribute containing the time vector in seconds.
+    :type time:
+        str
+
+    :param title:
+        Title displayed at the top of the plot.
+    :type title:
+        str
+
+    :param units:
+        Units used for angular error display, typically degrees.
+    :type units:
+        str
+
+    :param modes:
+        List of comparison modes to display. Supported values are
+        real_target, est_target, real_est, and directions3d.
+        If None, the default mode real_target is used.
+    :type modes:
+        list[str] or None
+
+    :param sample_index:
+        Index of the sample used for the three-dimensional direction snapshot
+        when directions3d mode is enabled. A negative value selects from the end.
+    :type sample_index:
+        int
+
     """
 
     def __init__(

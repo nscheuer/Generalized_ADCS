@@ -34,19 +34,94 @@ def _get_time(sim, time_attr: str) -> Optional[np.ndarray]:
 
 
 class AttitudePlot(Subplot):
-    """
-    A Subplot wrapper that *launches* a Matplotlib 3D attitude animation window.
+    r"""
+    Interactive 3D attitude animation subplot wrapper.
 
-    sources:
-      - "real"      -> sim.state_hist quaternion (cols 3:7)
-      - "estimated" -> sim.est_state_hist quaternion (cols 3:7)
-      - "reference" -> reference vector in ECI, default sim.eci_target_hist (Nx3)
-                       (you can change via reference_attr)
+    This class represents a specialized :class:`~ADCS.subplot.Subplot` that launches
+    an external Matplotlib 3D animation window to visualize spacecraft attitude
+    evolution in an inertial reference frame. The animation depicts body-fixed axes,
+    optional estimated axes, reference directions, and environmental vectors such as
+    magnetic field and Sun direction.
 
-    Notes
-    -----
-    - This does not draw inside the provided subplot axis. Instead, it displays a
-      small note in that axis and opens an interactive animation figure.
+    The spacecraft attitude is assumed to be represented by unit quaternions
+    :math:`\mathbf{q} = [q_x, q_y, q_z, q_w]^\top`, stored in the simulation history.
+    For each quaternion, a direction cosine matrix is computed as
+
+    .. math::
+
+        \mathbf{R}(\mathbf{q}) =
+        \begin{bmatrix}
+        1 - 2(q_y^2 + q_z^2) & 2(q_x q_y - q_z q_w) & 2(q_x q_z + q_y q_w) \\
+        2(q_x q_y + q_z q_w) & 1 - 2(q_x^2 + q_z^2) & 2(q_y q_z - q_x q_w) \\
+        2(q_x q_z - q_y q_w) & 2(q_y q_z + q_x q_w) & 1 - 2(q_x^2 + q_y^2)
+        \end{bmatrix}
+
+    which maps body-frame vectors into the inertial frame. The inertial components
+    of the body axes are then given by
+
+    .. math::
+
+        \mathbf{a}_i^{\text{ECI}} = \mathbf{R}(\mathbf{q}) \, \mathbf{e}_i
+
+    where :math:`\mathbf{e}_i` denotes the canonical unit vectors of the body frame.
+
+    A reference vector :math:`\mathbf{g}(t) \in \mathbb{R}^3`, such as a target
+    direction expressed in the inertial frame, may be displayed after normalization
+
+    .. math::
+
+        \hat{\mathbf{g}}(t) = \frac{\mathbf{g}(t)}{\lVert \mathbf{g}(t) \rVert}
+
+    Environmental vectors, when enabled, are visualized in a similar normalized form.
+    Animation playback supports pause, resume, and variable playback speed.
+
+    The subplot axis itself is not used for drawing; instead, it displays a textual
+    notice while the animation is shown in a separate window.
+
+    :param sources:
+        List of attitude or vector sources to display. Valid entries are ``"real"``,
+        ``"estimated"``, and ``"reference"``.
+    :type sources:
+        list[str] or None
+
+    :param time:
+        Name of the simulation attribute containing the time history in seconds.
+    :type time:
+        str
+
+    :param title:
+        Title of the animation window.
+    :type title:
+        str
+
+    :param reference_attr:
+        Name of the simulation attribute containing the reference vector history
+        expressed in the inertial frame.
+    :type reference_attr:
+        str
+
+    :param body_axis:
+        Body-frame axis to compare against the reference direction. Must be ``"x"``,
+        ``"y"``, or ``"z"``.
+    :type body_axis:
+        str
+
+    :param axis_limits:
+        Symmetric plot limits for each inertial axis.
+    :type axis_limits:
+        float
+
+    :param interval_ms:
+        Animation update interval in milliseconds.
+    :type interval_ms:
+        int
+
+    :param show_env:
+        Flag indicating whether environmental vectors from the simulation state
+        should be displayed.
+    :type show_env:
+        bool
+
     """
 
     def __init__(

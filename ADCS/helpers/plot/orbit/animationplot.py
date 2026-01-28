@@ -58,12 +58,107 @@ def _pick_goal_history(sim):
 
 
 class AnimationPlot(Subplot):
-    """
-    Subplot-compatible wrapper that launches the PyVista orbit/attitude animation.
+    r"""
+    Interactive three-dimensional orbit and attitude animation using PyVista.
 
-    - Opens its own PyVista render window (cannot draw into matplotlib Axes).
-    - Always uses the goal history from `sim` (defaults to `sim.eci_target_hist`).
-    - Optional coordinate goal marker is plotted only if it is a Coordinate_Goal.
+    This class provides a high-level visualization of spacecraft motion and attitude
+    in a dedicated PyVista render window. It is designed to integrate with the
+    :class:`~ADCS.subplot.Subplot` interface while rendering outside of Matplotlib.
+    The animation shows the Earth, spacecraft orbit, attitude axes, environmental
+    vectors, and optional goal indicators.
+
+    The emphasis is on user-configurable display options rather than internal
+    animation mechanics. All data are sourced from the simulation object passed
+    to the plot method.
+
+    :param time:
+        Name of the simulation attribute containing the time vector in seconds.
+    :type time:
+        str
+
+    :param title:
+        Title displayed in the placeholder subplot and window title.
+    :type title:
+        str
+
+    :param texture_path:
+        Optional path to an Earth texture image file. If None, a default texture
+        is used.
+    :type texture_path:
+        str or pathlib.Path or None
+
+    :param texture_alignment_angle_deg:
+        Rotation angle applied to the Earth texture around the Z-axis, in degrees.
+    :type texture_alignment_angle_deg:
+        float
+
+    :param smooth_factor:
+        Factor by which the original simulation timeline is densified for smoother
+        animation playback.
+    :type smooth_factor:
+        int
+
+    :param min_smooth_N:
+        Minimum number of animation frames after smoothing.
+    :type min_smooth_N:
+        int
+
+    :param show_true_orbit:
+        If True, the true spacecraft orbit is displayed.
+    :type show_true_orbit:
+        bool
+
+    :param show_est_orbit:
+        If True, the estimated spacecraft orbit is displayed when available.
+    :type show_est_orbit:
+        bool
+
+    :param show_body_axes:
+        If True, the spacecraft body-fixed axes are rendered.
+    :type show_body_axes:
+        bool
+
+    :param show_env_vectors:
+        If True, environmental vectors such as Sun and magnetic field are rendered.
+    :type show_env_vectors:
+        bool
+
+    :param goal:
+        Optional goal object. If it is a coordinate-based goal, a corresponding
+        marker is displayed on the Earth.
+    :type goal:
+        object or None
+
+    :param window_size:
+        Size of the PyVista render window in pixels as (width, height).
+    :type window_size:
+        tuple[int, int]
+
+    :param axis_scale_body:
+        Scaling factor for spacecraft body axes.
+    :type axis_scale_body:
+        float
+
+    :param axis_scale_sun:
+        Scaling factor for the Sun direction vector.
+    :type axis_scale_sun:
+        float
+
+    :param axis_scale_mag:
+        Scaling factor for the magnetic field vector.
+    :type axis_scale_mag:
+        float
+
+    :param axis_scale_goal:
+        Scaling factor for the goal direction vector.
+    :type axis_scale_goal:
+        float
+
+    :param axis_scale_base_mult:
+        Base scaling multiplier applied relative to the Earth radius.
+    :type axis_scale_base_mult:
+        float
+
     """
 
     def __init__(

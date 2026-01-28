@@ -6,6 +6,38 @@ from ..subplot import Subplot
 
 
 class IlluminationPlot(Subplot):
+    r"""
+    Binary visualization of spacecraft Sun illumination state.
+
+    This class plots whether the spacecraft is sunlit or in eclipse as a function
+    of time, using a step-style representation. The plot is intended to give a
+    clear, high-level view of illumination periods based on orbital state data
+    available in the simulation object.
+
+    The subplot focuses on user-configurable appearance options such as colors
+    and title, without requiring knowledge of how illumination is computed.
+
+    :param time:
+        Name of the simulation attribute containing the time vector in seconds.
+    :type time:
+        str
+
+    :param title:
+        Title displayed at the top of the plot.
+    :type title:
+        str
+
+    :param color_sunlit:
+        Color used to indicate sunlit intervals.
+    :type color_sunlit:
+        str
+
+    :param color_eclipse:
+        Color used to indicate eclipse intervals.
+    :type color_eclipse:
+        str
+
+    """
     def __init__(
         self,
         *,

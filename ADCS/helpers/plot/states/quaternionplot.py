@@ -55,6 +55,44 @@ def _canonicalize_quaternion(q: np.ndarray) -> np.ndarray:
 
 
 class QuaternionPlot(Subplot):
+    r"""
+    Multi-panel visualization of quaternion components over time.
+
+    This class displays the four quaternion components in a fixed 2x2 layout,
+    allowing comparison between real and estimated attitude representations.
+    The plot is intended to give a clear overview of quaternion behavior without
+    requiring knowledge of the underlying attitude propagation.
+
+    User configuration focuses on selecting data sources, colors, units, and
+    the time reference used for the x-axis.
+
+    :param sources:
+        List of quaternion sources to display. Supported values are real and
+        estimated. If None, only the real quaternion is shown.
+    :type sources:
+        list[str] or None
+
+    :param time:
+        Name of the simulation attribute containing the time vector in seconds.
+    :type time:
+        str
+
+    :param title:
+        Title displayed at the top of the plot group.
+    :type title:
+        str
+
+    :param units:
+        Optional units string appended to quaternion component labels.
+    :type units:
+        str
+
+    :param colors:
+        Colors used for the quaternion components q0, q1, q2, and q3.
+    :type colors:
+        tuple[str, str, str, str]
+
+    """
     def __init__(
         self,
         *,
@@ -121,6 +159,53 @@ class QuaternionPlot(Subplot):
 
 
 class QuaternionPlotSingle(Subplot):
+    r"""
+    Visualization of a single quaternion component over time.
+
+    This class plots one selected quaternion component, optionally overlaying
+    real and estimated values. It is intended for focused inspection of a
+    specific quaternion element.
+
+    User settings control which component is displayed, visual styling,
+    labeling, and the time reference.
+
+    :param component:
+        Quaternion component index to plot. Must be one of 0, 1, 2, or 3.
+    :type component:
+        int
+
+    :param sources:
+        List of quaternion sources to display. Supported values are real and
+        estimated.
+    :type sources:
+        list[str] or None
+
+    :param time:
+        Name of the simulation attribute containing the time vector in seconds.
+    :type time:
+        str
+
+    :param title:
+        Title of the plot. If None, a default title is used.
+    :type title:
+        str or None
+
+    :param units:
+        Optional units string appended to the y-axis label.
+    :type units:
+        str
+
+    :param color:
+        Color used for the plotted quaternion component.
+    :type color:
+        str or None
+
+    :param colors:
+        Default colors for quaternion components q0, q1, q2, and q3.
+    :type colors:
+        tuple[str, str, str, str]
+
+    """
     def __init__(
         self,
         *,
@@ -183,6 +268,44 @@ class QuaternionPlotSingle(Subplot):
 
 
 class QuaternionPlotCombined(Subplot):
+    r"""
+    Combined plot of all quaternion components on a single axis.
+
+    This class overlays all four quaternion components on one set of axes,
+    optionally including both real and estimated data. It provides a compact
+    view suitable for quick comparison of relative component behavior.
+
+    The plot emphasizes user-defined configuration of sources, colors, units,
+    and the time reference.
+
+    :param sources:
+        List of quaternion sources to display. Supported values are real and
+        estimated.
+    :type sources:
+        list[str] or None
+
+    :param time:
+        Name of the simulation attribute containing the time vector in seconds.
+    :type time:
+        str
+
+    :param title:
+        Title displayed at the top of the plot.
+    :type title:
+        str
+
+    :param units:
+        Optional units string appended to the y-axis label.
+    :type units:
+        str
+
+    :param colors:
+        Colors used for the quaternion components q0, q1, q2, and q3.
+    :type colors:
+        tuple[str, str, str, str]
+
+    """
+
     def __init__(
         self,
         *,

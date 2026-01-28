@@ -59,6 +59,49 @@ def _source_suffix(source: str) -> str:
 
 
 class AngularVelocityPlot(Subplot):
+    r"""
+    Multi-panel visualization of spacecraft angular velocity components.
+
+    This class displays the body-frame angular velocity components and their
+    magnitude as functions of time, arranged in a fixed grid layout. Multiple
+    sources such as real, estimated, and reference angular rates can be overlaid
+    for comparison.
+
+    The plot is configured through user settings that control which sources are
+    shown, visual styling, units, and axis scaling.
+
+    :param sources:
+        List of angular velocity sources to display. Supported values are real,
+        estimated, and reference. If None, only the real angular velocity is shown.
+    :type sources:
+        list[str] or None
+
+    :param time:
+        Name of the simulation attribute containing the time vector in seconds.
+    :type time:
+        str
+
+    :param title:
+        Title displayed at the top of the plot group.
+    :type title:
+        str
+
+    :param units:
+        Physical units of the angular velocity values.
+    :type units:
+        str
+
+    :param colors:
+        Colors used for the x, y, and z angular velocity components.
+    :type colors:
+        tuple[str, str, str]
+
+    :param log_y:
+        If True, the y-axes use logarithmic scaling.
+    :type log_y:
+        bool
+
+    """
     def __init__(
         self,
         *,
@@ -151,6 +194,59 @@ class AngularVelocityPlot(Subplot):
 
 
 class AngularVelocityPlotSingle(Subplot):
+    r"""
+    Visualization of a single angular velocity component or magnitude.
+
+    This class plots one selected angular velocity component or the angular
+    velocity magnitude as a function of time. Multiple sources may be overlaid
+    to compare real, estimated, and reference rates.
+
+    User configuration focuses on component selection, displayed sources,
+    labeling, units, and axis scaling.
+
+    :param component:
+        Angular velocity component to plot. Must be one of x, y, z, or m for
+        magnitude.
+    :type component:
+        str
+
+    :param sources:
+        List of angular velocity sources to display. Supported values are real,
+        estimated, and reference.
+    :type sources:
+        list[str] or None
+
+    :param time:
+        Name of the simulation attribute containing the time vector in seconds.
+    :type time:
+        str
+
+    :param title:
+        Title of the plot. If None, a default title is used.
+    :type title:
+        str or None
+
+    :param units:
+        Physical units of the angular velocity values.
+    :type units:
+        str
+
+    :param colors:
+        Colors used for the x, y, and z angular velocity components.
+    :type colors:
+        tuple[str, str, str]
+
+    :param mag_color:
+        Color used for the angular velocity magnitude.
+    :type mag_color:
+        str
+
+    :param log_y:
+        If True, the y-axis uses logarithmic scaling.
+    :type log_y:
+        bool
+
+    """
     def __init__(
         self,
         *,
@@ -230,6 +326,49 @@ class AngularVelocityPlotSingle(Subplot):
 
 
 class AngularVelocityPlotCombined(Subplot):
+    r"""
+    Combined plot of all angular velocity components on a single axis.
+
+    This class overlays the x, y, and z body-frame angular velocity components
+    on one set of axes, optionally including multiple data sources. It provides
+    a compact, high-level view of rotational motion and relative component
+    magnitudes.
+
+    The plot emphasizes user-defined configuration of sources, colors, units,
+    and axis scaling.
+
+    :param sources:
+        List of angular velocity sources to display. Supported values are real,
+        estimated, and reference.
+    :type sources:
+        list[str] or None
+
+    :param time:
+        Name of the simulation attribute containing the time vector in seconds.
+    :type time:
+        str
+
+    :param title:
+        Title displayed at the top of the plot.
+    :type title:
+        str
+
+    :param units:
+        Physical units of the angular velocity values.
+    :type units:
+        str
+
+    :param colors:
+        Colors used for the x, y, and z angular velocity components.
+    :type colors:
+        tuple[str, str, str]
+
+    :param log_y:
+        If True, the y-axis uses logarithmic scaling.
+    :type log_y:
+        bool
+
+    """
     def __init__(
         self,
         *,
