@@ -151,7 +151,10 @@ class Orbital_State:
         :rtype: None
 
         """
-        self.ephem = ephem
+        if ephem is None:
+            self.ephem = Ephemeris()
+        else:
+            self.ephem = ephem
         self.ts = self.ephem.ts
 
         self.J2000 = J2000

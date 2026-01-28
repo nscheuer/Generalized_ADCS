@@ -1,9 +1,6 @@
 # Contributing to Generalized ADCS
 
-Thank you for your interest in contributing to **Generalized ADCS**!  
-This project is a research-grade simulation framework for satellite attitude determination and control (ADCS). We welcome contributions from students, researchers, and industry engineers interested in spacecraft dynamics, estimation, and control.
-
----
+Thank you for your interest in **Generalized ADCS**. This project is a research-grade framework for satellite attitude determination and control (ADCS), and contributions from students, researchers, and industry engineers are welcome.
 
 ## 🧭 Ways to Contribute
 
@@ -18,31 +15,22 @@ There are many ways you can help improve the project, including:
 - 🐛 Fixing bugs and optimizing performance
 - 🖼 Enhancing visualization and animation tools
 
----
-
 ## 🛠 Development Setup
 
 Development environment setup instructions are provided here:
 
-📘 **Installation Guide:**  
-[`documentation/installation_instructions/INSTALL.md`](/documentation/installation_instructions/INSTALL.md)
+Before contributing, please follow the installation instructions to ensure a compatible development environment:
 
-Please follow these instructions to ensure your environment matches the project requirements before contributing.
+- [Installation Guide](https://nscheuer.github.io/Generalized_ADCS/installation/index.html)
 
----
+## ✅ Testing & Documentation
 
-## ✅ Testing & Documentation Requirements
+For new features or significant changes, please ensure that:
 
-When submitting new features or making significant changes, please ensure that:
+- Relevant tests are added or updated and all existing tests pass
+- The Sphinx documentation builds without errors
 
-- ✅ Appropriate **test cases are added or updated** in the `testing/` directory  
-- ✅ All existing tests continue to pass  
-- ✅ The **Sphinx documentation builds successfully**
+Helpful guides:
 
-Instructions for building the Sphinx documentation can be found here:
-
-🛠 **Sphinx Build Guide:**  
-[`documentation/SPHINX.md`](/documentation/SPHINX.md)
-
-⚙️ **Testing Guide:**
-['documentation/PYTEST.md'](/documentation/PYTEST.md)
+- [Sphinx Documentation](https://nscheuer.github.io/Generalized_ADCS/contributing/documentation.html)
+- [Testing Documentation](https://nscheuer.github.io/Generalized_ADCS/contributing/testing.html)

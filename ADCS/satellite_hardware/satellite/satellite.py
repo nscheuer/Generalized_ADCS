@@ -1324,8 +1324,10 @@ class Satellite:
         """
         sensor_readings: List[np.ndarray] = [np.atleast_1d(self.attitude_sensors[j].reading(x=x, os=os, dmode=dmode)) for j in range(len(self.attitude_sensors))]
         rw_readings: List[np.ndarray] = [np.atleast_1d(self.rw_actuators[j].measure_momentum()) for j in range(len(self.rw_actuators))]
+        combined_readings = sensor_readings + rw_readings
+        if not combined_readings:
+            return np.array([])
         return np.concatenate(sensor_readings + rw_readings)
-        # return np.array(sensor_readings)
     
     def noiseless_sensor_readings(self, x: np.ndarray, os: Orbital_State) -> np.ndarray:
         r"""
