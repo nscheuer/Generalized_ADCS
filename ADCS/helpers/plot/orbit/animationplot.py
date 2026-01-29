@@ -3,13 +3,13 @@ __all__ = ["AnimationPlot"]
 import os
 import warnings
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Tuple
 
 import numpy as np
 
 from ..subplot import Subplot
 
-# Keep PyVista happy in headless / CI (safe even on desktop)
+# Keep PyVista happy in headless / CI
 os.environ.setdefault("MESA_LOADER_DRIVER_OVERRIDE", "llvmpipe")
 os.environ.setdefault("LIBGL_ALWAYS_SOFTWARE", "1")
 warnings.filterwarnings("ignore", category=UserWarning, module="matplotlib")
@@ -45,16 +45,128 @@ def _unwrap_os(os_obj):
 
 def _pick_goal_history(sim):
     """
-    Prefer sim.eci_target_hist (your sim_results.record uses eci_target=... each step),
-    but fall back to a few common names.
+    Prefer mixed-goal history in sim.target_hist (Nx4), but fall back to a few common names.
+    Legacy vector-only histories (Nx3) are also supported.
     """
-    for name in ("eci_target_hist", "eci_target", "boresight_goal_hist"):
+    for name in ("target_hist", "target", "eci_target_hist", "eci_target", "boresight_goal_hist"):
         v = getattr(sim, name, None)
         if v is None:
             continue
         if isinstance(v, (list, tuple, np.ndarray)) and len(v) > 0:
             return v, name
     return None, None
+
+
+def _nearest_indices(t_orig: np.ndarray, t_new: np.ndarray) -> np.ndarray:
+    """
+    For each t_new, return the index of the nearest sample in t_orig.
+    Assumes t_orig is sorted ascending.
+    """
+    t_orig = np.asarray(t_orig, dtype=float).reshape(-1)
+    t_new = np.asarray(t_new, dtype=float).reshape(-1)
+
+    idx = np.searchsorted(t_orig, t_new, side="left")
+    idx = np.clip(idx, 0, len(t_orig) - 1)
+    idx0 = np.clip(idx - 1, 0, len(t_orig) - 1)
+
+    d0 = np.abs(t_new - t_orig[idx0])
+    d1 = np.abs(t_orig[idx] - t_new)
+    use0 = d0 <= d1
+    return np.where(use0, idx0, idx).astype(int)
+
+
+def _as_2d(arr: np.ndarray) -> np.ndarray:
+    arr = np.asarray(arr, dtype=float)
+    if arr.ndim == 1:
+        return arr.reshape(1, -1)
+    return arr
+
+
+def _parse_goal_history(
+    G_hist,
+    t_orig: np.ndarray,
+    t_new: np.ndarray,
+    R_true_orig: np.ndarray,
+    interp_vec_fn,
+) -> Tuple[Optional[np.ndarray], Optional[np.ndarray], Optional[np.ndarray]]:
+    """
+    Parse and smooth goal history.
+
+    Returns (G_vec_smooth, G_quat_smooth, G_kind), where:
+      - G_vec_smooth: (N_new,3) direction/position vectors (only valid when kind == 0)
+      - G_quat_smooth: (N_new,4) quaternions (only valid when kind == 1)
+      - G_kind: (N_new,) int, 0 for vector-goal, 1 for quaternion-goal
+
+    If the history is legacy Nx3, G_kind is all zeros and G_quat_smooth is None.
+    If the history is mixed Nx4, nearest-neighbor sampling is used to preserve goal-type changes.
+    """
+    if G_hist is None:
+        return None, None, None
+
+    G_arr = np.asarray(G_hist, dtype=float)
+
+    # Allow a constant vector/quaternion to be repeated
+    if G_arr.ndim == 1 and G_arr.size in (3, 4):
+        G_arr = np.repeat(G_arr.reshape(1, -1), len(t_orig), axis=0)
+
+    G_arr = _as_2d(G_arr)
+
+    N = min(len(t_orig), G_arr.shape[0], R_true_orig.shape[0])
+    if N <= 0:
+        return None, None, None
+
+    G_arr = G_arr[:N]
+    t_orig = t_orig[:N]
+    R_true_orig = R_true_orig[:N]
+
+    # Legacy vector-only (Nx3)
+    if G_arr.shape[1] == 3:
+        G_vec = G_arr
+
+        # If magnitudes look like positions (km-scale), convert to direction from sat->target.
+        med_norm = float(np.nanmedian(np.linalg.norm(G_vec, axis=1)))
+        if med_norm > 10.0:
+            G_vec = G_vec - R_true_orig
+
+        G_vec_smooth = interp_vec_fn(G_vec)
+        G_kind = np.zeros(len(t_new), dtype=int)
+        return G_vec_smooth, None, G_kind
+
+    # Mixed (Nx4): [nan, vx,vy,vz] or [q0,q1,q2,q3]
+    if G_arr.shape[1] != 4:
+        return None, None, None
+
+    is_vec = np.isnan(G_arr[:, 0])
+    G_vec = np.full((N, 3), np.nan, dtype=float)
+    G_quat = np.full((N, 4), np.nan, dtype=float)
+
+    if np.any(is_vec):
+        G_vec[is_vec] = G_arr[is_vec, 1:4]
+
+        # Heuristic: if vector-goal entries look like positions, convert to direction
+        vec_norms = np.linalg.norm(G_vec[is_vec], axis=1)
+        med_norm = float(np.nanmedian(vec_norms)) if vec_norms.size else 0.0
+        if med_norm > 10.0:
+            G_vec[is_vec] = G_vec[is_vec] - R_true_orig[is_vec]
+
+    if np.any(~is_vec):
+        G_quat[~is_vec] = G_arr[~is_vec, :]
+
+        # Normalize valid quaternions
+        m = np.all(np.isfinite(G_quat), axis=1)
+        qn = np.linalg.norm(G_quat[m], axis=1)
+        good = qn > 1e-12
+        if np.any(good):
+            G_quat[m][good] = G_quat[m][good] / qn[good, None]
+        # Leave invalid as NaN
+
+    # Preserve piecewise/mixed typing by nearest-neighbor selection on the smooth timeline
+    idx_sel = _nearest_indices(t_orig, t_new)
+    kind_smooth = (~is_vec[idx_sel]).astype(int)  # 0 vector, 1 quat
+    vec_smooth = G_vec[idx_sel]
+    quat_smooth = G_quat[idx_sel]
+
+    return vec_smooth, quat_smooth, kind_smooth
 
 
 class AnimationPlot(Subplot):
@@ -67,9 +179,13 @@ class AnimationPlot(Subplot):
     The animation shows the Earth, spacecraft orbit, attitude axes, environmental
     vectors, and optional goal indicators.
 
-    The emphasis is on user-configurable display options rather than internal
-    animation mechanics. All data are sourced from the simulation object passed
-    to the plot method.
+    Goal visualization supports mixed goal types from the simulation history:
+
+    - **Vector goals** are rendered as a single goal direction arrow.
+    - **Quaternion goals** are rendered as a goal attitude triad (axes).
+
+    The goal history is preferred from ``sim.target_hist`` (Nx4) but legacy
+    vector-only histories (Nx3) such as ``sim.eci_target_hist`` are supported.
 
     :param time:
         Name of the simulation attribute containing the time vector in seconds.
@@ -150,7 +266,7 @@ class AnimationPlot(Subplot):
         float
 
     :param axis_scale_goal:
-        Scaling factor for the goal direction vector.
+        Scaling factor for the goal direction vector and goal triad axes.
     :type axis_scale_goal:
         float
 
@@ -174,13 +290,13 @@ class AnimationPlot(Subplot):
         show_est_orbit: bool = True,
         show_body_axes: bool = True,
         show_env_vectors: bool = True,
-        goal=None,  # Optional Goal object; if it's Coordinate_Goal, draw surface marker
+        goal=None,
         window_size=(1200, 900),
         axis_scale_body: float = 0.3,
         axis_scale_sun: float = 0.8,
         axis_scale_mag: float = 0.6,
         axis_scale_goal: float = 1.0,
-        axis_scale_base_mult: float = 0.5,  # multiplied by Earth radius
+        axis_scale_base_mult: float = 0.5,
     ):
         self.time = time
         self.title = title
@@ -217,7 +333,6 @@ class AnimationPlot(Subplot):
         self._run_pyvista(sim)
 
     def _run_pyvista(self, sim) -> None:
-        # Keep imports local so importing plotting package doesn't hard-require these deps.
         import pyvista as pv
         from pyvista import examples
         import matplotlib.pyplot as plt
@@ -225,21 +340,17 @@ class AnimationPlot(Subplot):
         from scipy.spatial.transform import Rotation as R_scipy
         from scipy.spatial.transform import Slerp
 
-        # Earth radius (try sim's constants if present; otherwise fall back)
         try:
             from ADCS.orbits.universal_constants import EarthConstants
-
             R_e = float(EarthConstants.R_e)
         except Exception:
-            R_e = 6378.137  # km fallback
+            R_e = 6378.137  # km
 
-        # Coordinate_Goal type check (optional dependency)
         try:
             from ADCS.CONOPS.goals import Coordinate_Goal
         except Exception:
             Coordinate_Goal = None
 
-        # ---- Pull required histories from sim ----
         t_orig = np.asarray(getattr(sim, self.time, None))
         if t_orig is None or t_orig.size == 0:
             raise ValueError(f"sim.{self.time} missing/empty")
@@ -256,13 +367,10 @@ class AnimationPlot(Subplot):
         if state_hist.ndim != 2 or state_hist.shape[1] < 7:
             raise ValueError("sim.state_hist must be (N, >=7) with quaternion in columns [3:7]")
 
-        # Optional estimated orbit for polyline display
         est_os_hist = getattr(sim, "est_os_hist", None)
 
-        # Always use goal history from sim
-        G_hist, G_name = _pick_goal_history(sim)
+        G_hist, _G_name = _pick_goal_history(sim)
 
-        # ---- Smooth time grid ----
         original_N = int(len(t_orig))
         target_N = max(original_N * self.smooth_factor, self.min_smooth_N)
         t_new = np.linspace(float(t_orig[0]), float(t_orig[-1]), target_N)
@@ -271,7 +379,6 @@ class AnimationPlot(Subplot):
             f = interp1d(t_orig, arr, axis=0, kind="linear", fill_value="extrapolate")
             return f(t_new)
 
-        # ---- Physics (true) ----
         R_true_orig = np.array([np.asarray(os.R, dtype=float).reshape(3) for os in os_hist])
         R_true_smooth = interp_arr(R_true_orig)
 
@@ -279,35 +386,19 @@ class AnimationPlot(Subplot):
         q_smooth = interp_arr(q_orig)
         q_smooth = q_smooth / np.linalg.norm(q_smooth, axis=1, keepdims=True)
 
-        # Environment vectors (if present on os)
-        S_orig = np.array(
-            [np.asarray(getattr(os, "S", [0, 0, 0]), dtype=float).reshape(3) for os in os_hist]
-        )
-        B_orig = np.array(
-            [np.asarray(getattr(os, "B", [0, 0, 0]), dtype=float).reshape(3) for os in os_hist]
-        )
+        S_orig = np.array([np.asarray(getattr(os, "S", [0, 0, 0]), dtype=float).reshape(3) for os in os_hist])
+        B_orig = np.array([np.asarray(getattr(os, "B", [0, 0, 0]), dtype=float).reshape(3) for os in os_hist])
         S_smooth = interp_arr(S_orig)
         B_smooth = interp_arr(B_orig)
 
-        # Goal direction: use sim.eci_target_hist by default.
-        # If it's a direction already, great. If it's a target *position*, convert to direction (target - sat_pos).
-        G_smooth = None
-        if G_hist is not None:
-            G_arr = np.asarray(G_hist, dtype=float)
-            if G_arr.ndim == 1 and G_arr.size == 3:
-                G_arr = np.repeat(G_arr.reshape(1, 3), len(t_orig), axis=0)
-            G_arr = G_arr.reshape(-1, 3)
+        G_vec_smooth, G_quat_smooth, G_kind = _parse_goal_history(
+            G_hist=G_hist,
+            t_orig=t_orig,
+            t_new=t_new,
+            R_true_orig=R_true_orig,
+            interp_vec_fn=interp_arr,
+        )
 
-            # Heuristic: if magnitudes look like "position" (km scale), convert to direction from sat to target.
-            med_norm = float(np.nanmedian(np.linalg.norm(G_arr, axis=1)))
-            if med_norm > 10.0:  # likely position in km (not a unit vector)
-                Nmin = min(len(G_arr), len(R_true_orig))
-                G_arr = G_arr[:Nmin] - R_true_orig[:Nmin]
-
-            # Interp to smooth timeline
-            G_smooth = interp_arr(G_arr)
-
-        # Estimated orbit for static polyline display
         R_est_static = None
         if est_os_hist is not None and len(est_os_hist) > 0:
             rows = []
@@ -319,7 +410,6 @@ class AnimationPlot(Subplot):
             if rows:
                 R_est_static = np.vstack(rows)
 
-        # ---- Earth rotation (ECEF->ECI) from Orbital_State.ecef_to_eci ----
         basis_x = np.array([1.0, 0.0, 0.0])
         basis_y = np.array([0.0, 1.0, 0.0])
         basis_z = np.array([0.0, 0.0, 1.0])
@@ -335,14 +425,12 @@ class AnimationPlot(Subplot):
         earth_slerp = Slerp(t_orig, rot_obj)
         earth_rot_smooth = earth_slerp(t_new)
 
-        # ---- PyVista scene ----
         pv.global_theme.multi_samples = 0
         pl = pv.Plotter(window_size=list(self.window_size), lighting="three lights")
         pl.set_background("black")
 
         earth_mesh = pv.Sphere(radius=R_e, theta_resolution=120, phi_resolution=120)
 
-        # Texture
         default_texture = Path(__file__).resolve().parent / "textures" / "2k_earth_daymap.jpg"
         texture_path = (
             Path(self.texture_path).expanduser().resolve()
@@ -364,16 +452,13 @@ class AnimationPlot(Subplot):
         earth_mesh.rotate_z(self.texture_alignment_angle_deg, inplace=True)
         earth_actor = pl.add_mesh(earth_mesh, texture=tex, smooth_shading=True, specular=0.2)
 
-        # Orbits
         if self.show_true_orbit:
             pl.add_mesh(pv.lines_from_points(R_true_orig), color="red", line_width=2, label="True")
         if self.show_est_orbit and R_est_static is not None:
             pl.add_mesh(pv.lines_from_points(R_est_static), color="orange", line_width=1, label="Est")
 
-        # Satellite marker
         sat_actor = pl.add_mesh(pv.Sphere(radius=R_e * 0.005), color="cyan")
 
-        # Coordinate goal marker (only if goal is Coordinate_Goal)
         goal_actor = None
         goal_ecef_pos = None
         if Coordinate_Goal is not None and isinstance(self.goal, Coordinate_Goal):
@@ -382,7 +467,6 @@ class AnimationPlot(Subplot):
                 goal_mesh = pv.Sphere(radius=0.1 * R_e, theta_resolution=30)
                 goal_actor = pl.add_mesh(goal_mesh, color="cyan", opacity=0.6)
 
-        # Arrows
         base_arrow = pv.Arrow(start=(0, 0, 0), direction=(1, 0, 0), scale=1.0)
 
         def create_arrow_actor(color, opacity=0.5):
@@ -394,7 +478,10 @@ class AnimationPlot(Subplot):
             "body_z": create_arrow_actor("blue", opacity=0.5),
             "sun": create_arrow_actor("yellow", opacity=0.5),
             "mag": create_arrow_actor("magenta", opacity=0.5),
-            "goal": create_arrow_actor("cyan", opacity=0.5),
+            "goal": create_arrow_actor("cyan", opacity=0.5),      # vector goal
+            "goal_x": create_arrow_actor("cyan", opacity=0.25),   # quat goal axes
+            "goal_y": create_arrow_actor("cyan", opacity=0.25),
+            "goal_z": create_arrow_actor("cyan", opacity=0.25),
         }
 
         pl.camera_position = "iso"
@@ -404,11 +491,16 @@ class AnimationPlot(Subplot):
 
         def update_arrow(actor_key: str, pos: np.ndarray, direction: Optional[np.ndarray], scale_mult: float):
             actor = actors[actor_key]
-            if direction is None or np.linalg.norm(direction) < 1e-9:
+            if direction is None:
                 actor.SetVisibility(False)
                 return
+            d = np.asarray(direction, dtype=float).reshape(3)
+            if not np.all(np.isfinite(d)) or np.linalg.norm(d) < 1e-9:
+                actor.SetVisibility(False)
+                return
+
             actor.SetVisibility(True)
-            d = direction / np.linalg.norm(direction)
+            d = d / np.linalg.norm(d)
             R_align = _get_rotation_from_vectors(np.array([1.0, 0.0, 0.0]), d)
 
             S_mat = np.diag([scale_base * scale_mult] * 3 + [1.0])
@@ -419,32 +511,35 @@ class AnimationPlot(Subplot):
 
             actor.user_matrix = T_mat @ R_mat @ S_mat
 
+        def hide_goal():
+            actors["goal"].SetVisibility(False)
+            actors["goal_x"].SetVisibility(False)
+            actors["goal_y"].SetVisibility(False)
+            actors["goal_z"].SetVisibility(False)
+
         idx = 0
+        body_axes = np.eye(3, dtype=float)
+
         while not pl.render_window.GetInteractor().GetDone():
             pos = R_true_smooth[idx]
             q_curr = q_smooth[idx]
 
-            # SciPy expects [x, y, z, w]. If your q is [q0,q1,q2,q3] with q0 scalar, roll.
             q_scipy = np.roll(q_curr, -1)
 
-            # Earth transform (ECEF -> ECI)
             R_mat_3x3 = earth_rot_smooth[idx].as_matrix()
             phys_transform = np.eye(4)
             phys_transform[:3, :3] = R_mat_3x3
             earth_actor.user_matrix = phys_transform
 
-            # Coordinate goal marker update (fixed on Earth)
             if goal_actor is not None and goal_ecef_pos is not None:
                 T_local = np.eye(4)
                 T_local[:3, 3] = goal_ecef_pos
                 goal_actor.user_matrix = phys_transform @ T_local
 
-            # Satellite marker transform
             sat_mat = np.eye(4)
             sat_mat[:3, 3] = pos
             sat_actor.user_matrix = sat_mat
 
-            # Body axes
             if self.show_body_axes:
                 R_body = R_scipy.from_quat(q_scipy).as_matrix()
                 update_arrow("body_x", pos, R_body[:, 0], self.axis_scale_body)
@@ -455,7 +550,6 @@ class AnimationPlot(Subplot):
                 actors["body_y"].SetVisibility(False)
                 actors["body_z"].SetVisibility(False)
 
-            # Environment
             if self.show_env_vectors:
                 update_arrow("sun", pos, S_smooth[idx], self.axis_scale_sun)
                 update_arrow("mag", pos, B_smooth[idx], self.axis_scale_mag)
@@ -463,11 +557,31 @@ class AnimationPlot(Subplot):
                 actors["sun"].SetVisibility(False)
                 actors["mag"].SetVisibility(False)
 
-            # Goal direction arrow (always from sim if available)
-            if G_smooth is not None:
-                update_arrow("goal", pos, G_smooth[idx], self.axis_scale_goal)
+            # Goal rendering: vector arrow OR quaternion axes
+            if G_kind is None or (G_vec_smooth is None and G_quat_smooth is None):
+                hide_goal()
             else:
-                actors["goal"].SetVisibility(False)
+                if int(G_kind[idx]) == 0:
+                    update_arrow("goal", pos, G_vec_smooth[idx] if G_vec_smooth is not None else None, self.axis_scale_goal)
+                    actors["goal_x"].SetVisibility(False)
+                    actors["goal_y"].SetVisibility(False)
+                    actors["goal_z"].SetVisibility(False)
+                else:
+                    actors["goal"].SetVisibility(False)
+
+                    qg = None if G_quat_smooth is None else np.asarray(G_quat_smooth[idx], dtype=float).reshape(4)
+                    if qg is None or not np.all(np.isfinite(qg)) or np.linalg.norm(qg) < 1e-12:
+                        actors["goal_x"].SetVisibility(False)
+                        actors["goal_y"].SetVisibility(False)
+                        actors["goal_z"].SetVisibility(False)
+                    else:
+                        # Same convention handling as state quaternion: roll to [x,y,z,w] for SciPy.
+                        qg_scipy = np.roll(qg / np.linalg.norm(qg), -1)
+                        R_goal = R_scipy.from_quat(qg_scipy).as_matrix()
+                        goal_ax = R_goal @ body_axes
+                        update_arrow("goal_x", pos, goal_ax[:, 0], self.axis_scale_goal)
+                        update_arrow("goal_y", pos, goal_ax[:, 1], self.axis_scale_goal)
+                        update_arrow("goal_z", pos, goal_ax[:, 2], self.axis_scale_goal)
 
             pl.update()
             idx = (idx + 1) % target_N

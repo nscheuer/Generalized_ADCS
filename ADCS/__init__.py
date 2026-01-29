@@ -4,6 +4,8 @@ from .satellite_hardware.sensors import MTM, Gyro, SunSensor, SunPair, StarTrack
 from .satellite_hardware.errors import Bias, Noise
 from .satellite_hardware import disturbances
 
+from .satellite_factory import *
+
 from . import controller
 
 from .estimators.attitude_estimators import Attitude_Estimator, UAKF, SRUAKF
@@ -13,6 +15,7 @@ from .orbits.orbital_state import Orbital_State
 from .orbits.ephemeris import Ephemeris
 
 from .CONOPS import goals
+from .CONOPS.goallist import GoalList
 
 from .simulate import simulate
 from .helpers.simresults import SimulationResults
@@ -49,7 +52,8 @@ __all__ = [
     "Orbit_EKF",
     "Orbit_GPS",
 
-    "goals"
+    "goals",
+    "GoalList",
 
     "plot",
     "plots",

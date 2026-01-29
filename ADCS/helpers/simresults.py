@@ -28,7 +28,7 @@ class SimulationResults:
 
     actuator_bias: Optional[np.ndarray] = None
     est_actuator_bias: Optional[np.ndarray] = None
-    eci_target_hist: Optional[np.ndarray] = None
+    target_hist: Optional[np.ndarray] = None
     w_target_hist: Optional[np.ndarray] = None
 
     clean_sensor_hist: Optional[np.ndarray] = None
@@ -52,7 +52,7 @@ class SimulationResults:
         est_sensor_bias=None,
         actuator_bias=None,
         est_actuator_bias=None,
-        eci_target=None,
+        target=None,
         w_target=None,
         clean_sensor=None,
         sensor=None,
@@ -118,10 +118,10 @@ class SimulationResults:
                 self.est_actuator_bias = []
             self.est_actuator_bias.append(est_actuator_bias)
 
-        if eci_target is not None:
-            if self.eci_target_hist is None:
-                self.eci_target_hist = []
-            self.eci_target_hist.append(np.asarray(eci_target).copy())
+        if target is not None:
+            if self.target_hist is None:
+                self.target_hist = []
+            self.target_hist.append(np.asarray(target).copy())
 
         if w_target is not None:
             if self.w_target_hist is None:

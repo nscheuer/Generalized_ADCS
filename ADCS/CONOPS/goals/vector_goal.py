@@ -158,7 +158,7 @@ class Vector_Goal(Goal):
 
         v_bore = normalize(body_boresight)
         R_b2i = rot_mat(q)                    # q: body -> ECI (Hamilton)
-        v_goal_body = normalize(R_b2i.T @ eci_goal)
+        v_goal_body = normalize(R_b2i.T @ eci_goal[1:4])
 
         dot = np.dot(v_bore, v_goal_body)
 
