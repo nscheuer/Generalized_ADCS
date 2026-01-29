@@ -34,4 +34,8 @@ class AntiVelocity_Goal(Vector_Goal):
         v_hat = normalize(v)
         w_ref = np.cross(r, v) / np.dot(r, r)
 
-        return -v_hat, w_ref
+        r_ref = np.empty((4,))
+        r_ref[0] = np.nan
+        r_ref[1:] = -v_hat
+
+        return r_ref, w_ref

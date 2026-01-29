@@ -337,11 +337,6 @@ class MTQ_w_RW_QPG(MTQ_w_RW_LP):
             w_ref_body = R_b2i.T @ w_ref_eci
 
             q_err = goal.error(q=q, body_boresight=est_sat.boresight, os0=os_hat)
-            q_err = vector_alignment_error(
-                q=q,
-                eci_goal=goal_vec_eci,
-                body_boresight=est_sat.boresight,
-            )
             w_err = w - w_ref_body
             tau_pd = -self.p_gain * q_err - self.d_gain * w_err
 
