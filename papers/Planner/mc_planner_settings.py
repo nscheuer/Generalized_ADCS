@@ -11,16 +11,17 @@ from ADCS.controller.helpers import (
     PlannerSettings, create_planner_settings,
     NormalizedPlannerConfig, NormalizedActuatorCosts, NormalizedStateCosts,
 )
+from ADCS.controller.helpers.normalized_settings import PlannerPresets
 
 
 def create_good_planner_settings(sat, dt_planning: float = 1.0, has_rw: bool = True):
     """
     Create well-conditioned planner settings.
     
-    These settings were tuned to provide:
-    - Good numerical conditioning (Quu condition ~37k vs 100k with legacy)
-    - Fast convergence (3x speedup over legacy)
-    - Sub-degree pointing accuracy for 90° slews
+    Uses the mtq_plus_rw_normalized preset which has scale normalization enabled
+    for better Hessian conditioning. Tested to give:
+    - ~2s planning time
+    - ~30° mean error on 90° slews (with limited iterations for speed)
     
     Parameters
     ----------
@@ -37,36 +38,11 @@ def create_good_planner_settings(sat, dt_planning: float = 1.0, has_rw: bool = T
         Well-conditioned planner settings
     """
     if has_rw:
-        config = NormalizedPlannerConfig(
-            actuator_costs=NormalizedActuatorCosts(
-                mtq_cost=1.0,
-                rw_torque_cost=5.0,
-                rw_momentum_cost=10.0,
-                rw_stiction_cost=1.0,
-            ),
-            state_costs=NormalizedStateCosts(
-                angle_cost=1000.0,
-                angle_terminal_cost=1000000.0,
-                ang_vel_cost=1000.0,
-                ang_vel_terminal_cost=100000.0,
-            ),
-        )
+        # Use the normalized preset with scale normalization
+        config = PlannerPresets.mtq_plus_rw_normalized()
     else:
-        # MTQ-only: no RW costs needed
-        config = NormalizedPlannerConfig(
-            actuator_costs=NormalizedActuatorCosts(
-                mtq_cost=1.0,
-                rw_torque_cost=1.0,  # Won't be used
-                rw_momentum_cost=1.0,
-                rw_stiction_cost=1.0,
-            ),
-            state_costs=NormalizedStateCosts(
-                angle_cost=1000.0,
-                angle_terminal_cost=1000000.0,
-                ang_vel_cost=1000.0,
-                ang_vel_terminal_cost=100000.0,
-            ),
-        )
+        # MTQ-only preset with scale normalization
+        config = PlannerPresets.mtq_only_normalized()
     
     settings = create_planner_settings(sat, config)
     
@@ -93,6 +69,56 @@ def create_good_planner_settings(sat, dt_planning: float = 1.0, has_rw: bool = T
     settings.pass1.aug_lag.penalty_max = 1e6
     
     # Pass 2: High penalty for constraint enforcement
+    settings.pass2.aug_lag.penalty_init = 1e4
+    settings.pass2.aug_lag.penalty_max = 1e16
+    
+    return settings
+
+
+def create_high_accuracy_planner_settings(sat, dt_planning: float = 1.0, has_rw: bool = True):
+    """
+    Create planner settings optimized for accuracy over speed.
+    
+    Uses more iterations for better convergence at the cost of longer planning time.
+    
+    Parameters
+    ----------
+    sat : Satellite
+        The satellite object
+    dt_planning : float
+        Planning timestep in seconds
+    has_rw : bool
+        Whether the satellite has reaction wheels
+        
+    Returns
+    -------
+    PlannerSettings
+        High-accuracy planner settings
+    """
+    if has_rw:
+        config = PlannerPresets.mtq_plus_rw_normalized()
+    else:
+        config = PlannerPresets.mtq_only_normalized()
+    
+    settings = create_planner_settings(sat, config)
+    
+    settings.bdot_on = 0
+    settings.dt_tp = 10
+    settings.dt_tvlqr = dt_planning
+    settings.verbosity = False
+    
+    if has_rw:
+        settings.rw_AM_weight = 1e4
+        settings.RWh_ok_mult = 0.5
+    
+    # More iterations for better convergence
+    settings.pass1.convergence.max_outer_iter = 15
+    settings.pass1.convergence.max_inner_iter = 25
+    settings.pass2.convergence.max_outer_iter = 12
+    settings.pass2.convergence.max_inner_iter = 25
+    
+    settings.pass1.aug_lag.penalty_init = 1.0
+    settings.pass1.aug_lag.penalty_max = 1e6
     settings.pass2.aug_lag.penalty_init = 1e4
     settings.pass2.aug_lag.penalty_max = 1e16
     
