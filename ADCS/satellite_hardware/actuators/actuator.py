@@ -127,7 +127,8 @@ class Actuator:
         self, 
         orbital_states: list = None,
         n_samples: int = 100,
-        expected_field_uT: float = 30.0
+        expected_field_uT: float = 30.0,
+        use_sampling: bool = False
     ) -> float:
         r"""
         Estimate the maximum torque this actuator can produce.
@@ -136,18 +137,23 @@ class Actuator:
         this returns ``u_max`` directly since torque = u_max * axis.
         
         For environment-dependent actuators (e.g., magnetorquers), subclasses
-        should override this method to account for environmental factors.
+        can override this method, OR set use_sampling=True to automatically
+        estimate via Monte Carlo sampling of the torque() method.
         
         Parameters
         ----------
         orbital_states : list of Orbital_State, optional
             Sample orbital states for environment-dependent estimation.
-            If None, uses expected_field_uT for a typical estimate.
+            If provided with use_sampling=True, samples from these states.
         n_samples : int, optional
-            Number of random samples if no orbital_states provided. Default 100.
+            Number of random samples for Monte Carlo estimation. Default 100.
         expected_field_uT : float, optional
-            Expected magnetic field magnitude in μT for default estimation.
+            Expected magnetic field magnitude in μT for analytical estimation.
             Only used by environment-dependent actuators. Default 30.0.
+        use_sampling : bool, optional
+            If True, use Monte Carlo sampling of the torque() method to estimate
+            capability. This works for ANY actuator but requires orbital_states.
+            Default False (returns u_max for base class).
             
         Returns
         -------
@@ -161,8 +167,76 @@ class Actuator:
         to encourage the optimizer to use them at full capacity.
         
         The base implementation assumes torque = u * axis, so max torque = u_max.
+        Subclasses with environment-dependent torque should either:
+        1. Override this method with an analytical estimate, OR
+        2. Call with use_sampling=True and provide orbital_states
         """
+        if use_sampling and orbital_states is not None and len(orbital_states) > 0:
+            return self._estimate_torque_by_sampling(orbital_states, n_samples)
         return self.u_max
+    
+    def _estimate_torque_by_sampling(
+        self,
+        orbital_states: list,
+        n_samples: int = 100
+    ) -> float:
+        r"""
+        Estimate torque capability by Monte Carlo sampling.
+        
+        Samples random spacecraft states and orbital conditions, computes
+        the torque at maximum command, and returns the RMS torque magnitude.
+        
+        This method works for ANY actuator type by directly calling torque().
+        
+        Parameters
+        ----------
+        orbital_states : list of Orbital_State
+            Orbital states to sample from (provides environment context).
+        n_samples : int, optional
+            Number of samples. Default 100.
+            
+        Returns
+        -------
+        float
+            RMS torque magnitude in N·m.
+        """
+        from ADCS.satellite_hardware.errors import ErrorMode
+        
+        torque_magnitudes = []
+        n_states = len(orbital_states)
+        no_error = ErrorMode(add_bias=False, add_noise=False, update_bias=False, update_noise=False)
+        
+        for i in range(min(n_samples, n_states)):
+            # Sample orbital state (cycle through if fewer states than samples)
+            os = orbital_states[i % n_states]
+            
+            # Random spacecraft state: [ω, q]
+            # Random angular velocity (small, ~1 deg/s)
+            omega = np.random.randn(3) * 0.02
+            # Random unit quaternion
+            q = np.random.randn(4)
+            q = q / np.linalg.norm(q)
+            x = np.concatenate([omega, q])
+            
+            try:
+                # Compute torque at max positive command
+                tau_pos = self.torque(u=self.u_max, x=x, os=os, dmode=no_error)
+                # Compute torque at max negative command
+                tau_neg = self.torque(u=-self.u_max, x=x, os=os, dmode=no_error)
+                
+                # Take the larger magnitude
+                mag = max(np.linalg.norm(tau_pos), np.linalg.norm(tau_neg))
+                torque_magnitudes.append(mag)
+            except Exception:
+                # Skip failed samples
+                continue
+        
+        if not torque_magnitudes:
+            # Fallback to u_max if sampling failed
+            return self.u_max
+        
+        # Return RMS torque magnitude
+        return np.sqrt(np.mean(np.array(torque_magnitudes) ** 2))
 
     def torque(self, u: float, x: np.ndarray, os: Orbital_State, dmode: ErrorMode = None) -> float:
         r"""

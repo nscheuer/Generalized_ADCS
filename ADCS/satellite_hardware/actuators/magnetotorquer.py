@@ -142,7 +142,8 @@ class MTQ(Actuator):
         self, 
         orbital_states: list = None,
         n_samples: int = 100,
-        expected_field_uT: float = 30.0
+        expected_field_uT: float = 30.0,
+        use_sampling: bool = False
     ) -> float:
         r"""
         Estimate the maximum torque this magnetorquer can produce.
@@ -158,12 +159,16 @@ class MTQ(Actuator):
         ----------
         orbital_states : list of Orbital_State, optional
             Sample orbital states for empirical estimation. If provided,
-            computes RMS torque capability over these samples.
+            computes RMS torque capability over these samples using the
+            actual torque() method.
         n_samples : int, optional
             Number of random samples if computing empirically. Default 100.
         expected_field_uT : float, optional
             Expected magnetic field magnitude in μT for analytical estimate.
             Default 30.0 (typical LEO).
+        use_sampling : bool, optional
+            If True, use Monte Carlo sampling via base class method.
+            If False (default), use MTQ-specific analytical/empirical estimate.
             
         Returns
         -------
@@ -172,17 +177,21 @@ class MTQ(Actuator):
             
         Notes
         -----
-        If orbital_states are provided, this computes the torque at max dipole
-        for each sample and returns the RMS value. Otherwise, it uses an
-        analytical estimate based on expected field strength.
+        Three estimation modes:
+        1. Analytical (default): τ = m_max × B_expected × (2/π)
+        2. Empirical (orbital_states provided): Sample B-field from orbit
+        3. Monte Carlo (use_sampling=True): Full torque() sampling via base class
         
-        The analytical estimate assumes average alignment:
-            τ_typical = m_max × B_expected × (2/π)
+        The analytical estimate assumes average alignment over random orientations.
         """
+        # Option 1: Use base class Monte Carlo sampling
+        if use_sampling and orbital_states is not None:
+            return self._estimate_torque_by_sampling(orbital_states, n_samples)
+        
         m_max = self.u_max  # Maximum dipole moment
         
+        # Option 2: Empirical estimate from orbital states (faster than full sampling)
         if orbital_states is not None and len(orbital_states) > 0:
-            # Empirical: compute RMS torque over samples
             torque_magnitudes = []
             x_dummy = np.array([0, 0, 0, 1, 0, 0, 0])  # Identity quaternion
             
@@ -199,7 +208,8 @@ class MTQ(Actuator):
             if torque_magnitudes:
                 return np.sqrt(np.mean(np.array(torque_magnitudes)**2))
         
-        # Analytical estimate: τ = m × B, average |sin(θ)| = 2/π
+        # Option 3: Analytical estimate (default fallback)
+        # τ = m × B, average |sin(θ)| = 2/π over random orientations
         B_typical = expected_field_uT * 1e-6  # Convert μT to Tesla
         avg_sin_theta = 2.0 / np.pi  # Average |sin| over sphere
         
