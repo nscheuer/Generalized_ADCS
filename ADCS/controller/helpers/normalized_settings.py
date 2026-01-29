@@ -54,14 +54,17 @@ class NormalizedActuatorCosts:
     magic_cost : float
         Cost of magic actuator at max torque. Default 1.0.
     use_torque_effective_mtq_scaling : bool
-        If True, scale MTQ cost by torque authority (τ = m × B) rather than
-        dipole moment. This puts MTQ and RW costs in the same units (torque),
-        making their relative costs directly comparable.
+        If True, scale MTQ cost to encourage full utilization despite low torque
+        authority. Since MTQs produce much less torque than RWs (τ = m × B is
+        typically 100-1000x smaller than RW torque), this scaling makes MTQs
+        "cheap" to use at full capacity.
         
-        WARNING: Since MTQs produce much less torque than RWs (typically
-        100-1000x less), enabling this will make MTQs appear very expensive
-        relative to RWs. Use this if you want the optimizer to strongly
-        prefer RWs when available. Default False.
+        The scaling ensures that if MTQ and RW have the same normalized cost,
+        using MTQ at full capacity costs the same as using RW at full capacity,
+        even though MTQ produces much less torque. This encourages the optimizer
+        to readily use MTQs for what little torque they can provide.
+        
+        Default False (dipole-based cost that penalizes power draw uniformly).
         
     expected_B_field_uT : float
         Expected magnetic field magnitude in μT for torque-effective scaling.
@@ -346,11 +349,29 @@ class NormalizedSettingsConverter:
             m_max = mtq_actuators[0].u_max * (1.0 - self.config.constraints.control_margin)
             
             if act_costs.use_torque_effective_mtq_scaling:
-                # Scale by torque authority: τ_max = m_max × |B|
-                # This makes MTQ cost comparable to RW torque cost
+                # Scale MTQ cost DOWN to account for its weak torque authority.
+                # Since τ_mtq = m × B is tiny compared to RW torque, we make MTQ
+                # "cheap" so the optimizer uses it freely at full capacity.
+                #
+                # Standard cost: w_std = normalized_cost / m_max²
+                # Scaled cost: w_scaled = w_std * (τ_mtq_max / τ_ref)²
+                #
+                # We use RW torque as reference if available, otherwise use a
+                # typical small RW torque (4 mN·m).
                 B_typical = act_costs.expected_B_field_uT * 1e-6  # Convert to Tesla
-                tau_max = m_max * B_typical
-                raw['mtq_control_weight'] = act_costs.mtq_cost * g_ctrl / (tau_max ** 2)
+                tau_mtq_max = m_max * B_typical
+                
+                # Get reference torque from RW if available
+                rw_actuators = [a for a in self.satellite.actuators 
+                               if type(a).__name__ == 'RW']
+                if rw_actuators:
+                    tau_ref = rw_actuators[0].u_max * (1.0 - self.config.constraints.control_margin)
+                else:
+                    tau_ref = 0.004  # 4 mN·m typical small RW
+                
+                # Scale factor: (τ_mtq/τ_ref)² makes MTQ cheaper when it's weaker
+                weakness_ratio = (tau_mtq_max / tau_ref) ** 2
+                raw['mtq_control_weight'] = act_costs.mtq_cost * g_ctrl * weakness_ratio / (m_max ** 2)
             else:
                 # Default: cost on magnetic dipole moment (penalizes power draw)
                 raw['mtq_control_weight'] = act_costs.mtq_cost * g_ctrl / (m_max ** 2)
