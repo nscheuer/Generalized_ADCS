@@ -7,7 +7,7 @@ from scipy.integrate import solve_ivp
 
 from ADCS.CONOPS.goals import Goal, No_Goal
 from ADCS.CONOPS.goallist import GoalList
-from ADCS.controller.controller import Controller
+from ADCS.controller import Controller, PlanAndTrackBase
 from ADCS.estimators.attitude_estimators import Attitude_Estimator
 from ADCS.estimators.orbit_estimators import Orbit_Estimator
 from ADCS.estimators.estimator_helpers import EstimatedOrbital_State
@@ -39,13 +39,12 @@ def simulate(
 
     N = int(tf / dt)
 
-    goal_input = goal
-    if goal_input is None:
-        goal_mode = "None"
-    elif isinstance(goal_input, GoalList):
-        goal_mode = "GoalList"
-    elif isinstance(goal_input, Goal):
-        goal_mode = "SingleGoal"
+    if goal is None:
+        goal_list = GoalList({os0.J2000: No_Goal()})
+    elif isinstance(goal, Goal):
+        goal_list = GoalList({os0.J2000: goal})
+    elif isinstance(goal, GoalList):
+        goal_list = goal
     else:
         raise ValueError("goal must be None, a Goal, or a GoalList.")
 
@@ -64,6 +63,18 @@ def simulate(
         x_hat = np.empty(est_satellite.state_len)
 
     os_hat = None
+
+    if controller is not None and isinstance(controller, PlanAndTrackBase):
+        print("Calculating initial trajectory for Plan-and-Track controller...")
+        trajectory = controller.calculate_trajectory(
+            t_start=start_time,
+            duration=tf,
+            x_0=x,
+            os_0=os0,
+            goals=goal_list,
+            verbose=False
+        )
+        controller.set_active_trajectory(trajectory)
 
     sim_results = SimulationResults(satellite=satellite, est_satellite=est_satellite)
 
@@ -91,12 +102,8 @@ def simulate(
         else:
             x_for_ctrl = x
 
-        if goal_mode == "None":
-            active_goal = No_Goal()
-        elif goal_mode == "SingleGoal":
-            active_goal = goal_input
-        else:
-            active_goal = goal_input.get_active_goal(J2000_k, time_units="centuries")
+
+        active_goal = goal_list.get_active_goal(J2000_k, time_units="centuries")
 
         if controller is not None:
             u = controller.find_u(

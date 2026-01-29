@@ -367,15 +367,8 @@ class PlanAndTrackBase(Controller):
         for i in range(N):
             t = float(times_arr[i])
             os_at_t = sim_orbit.get_os(t)
-            g_vec_eci, _w_ref = goals.to_ref(t, os_at_t)
-            
-            g = np.asarray(g_vec_eci, dtype=np.float64).reshape(-1)
-            if g.shape[0] == 3:
-                goal_vecs_eci[:, i] = np.concatenate(([np.nan], g))
-            elif g.shape[0] == 4:
-                goal_vecs_eci[:, i] = g
-            else:
-                raise ValueError(f"g_vec_eci must have length 3 or 4, got {g.shape[0]}")
+            target, _w_ref = goals.to_ref(t, os_at_t)
+            goal_vecs_eci[:, i] = target
             
             sat_body_vecs[:, i] = np.asarray(self.est_sat.boresight, dtype=np.float64).reshape(3)
 

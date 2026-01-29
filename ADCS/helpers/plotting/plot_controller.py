@@ -325,6 +325,7 @@ def plot_target_tracking(
         None
 
     """
+    boresight_hist = boresight_hist[:, 1:4]
 
     N = min(len(state_hist), len(boresight_hist))
 
