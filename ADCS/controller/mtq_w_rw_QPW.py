@@ -172,11 +172,12 @@ class MTQ_w_RW_QPW(MTQ_w_RW_LP):
     :type d_gain: float
     :param c_gain: Additional control gain used by the parent controller law.
     :type c_gain: float
-    :param h_target: Target wheel momentum vector used by the parent mixed-actuation controller.
+    :param h_target: Per-wheel target momentum vector with shape ``(N_rw,)`` where ``N_rw`` is
+        the number of reaction wheels.
     :type h_target: numpy.ndarray | list
 
     """
-    def __init__(self, est_sat: EstimatedSatellite, p_gain: float, d_gain: float, c_gain: float, h_target: np.ndarray | list = np.zeros(3)) -> None:
+    def __init__(self, est_sat: EstimatedSatellite, p_gain: float, d_gain: float, c_gain: float, h_target: np.ndarray | list = None) -> None:
         r"""
         Initialize the direction-weighted QP torque allocator.
 
@@ -192,7 +193,7 @@ class MTQ_w_RW_QPW(MTQ_w_RW_LP):
         :type d_gain: float
         :param c_gain: Additional gain used by the parent control law.
         :type c_gain: float
-        :param h_target: Target wheel momentum vector used for momentum management.
+        :param h_target: Per-wheel target momentum vector with shape ``(N_rw,)``.
         :type h_target: numpy.ndarray | list
         :return: None.
         :rtype: NoneType

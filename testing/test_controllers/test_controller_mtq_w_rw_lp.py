@@ -38,14 +38,14 @@ POINTING_CFG: Dict[str, float] = dict(
     p_gain=0.00005,
     d_gain=0.001,
     c_gain=0.0,
-    h_target=np.array([0.004, 0.0, 0.0]),
+    h_target=np.array([0.004]),  # One per RW (test uses 1 RW)
 )
 
 DESAT_CFG: Dict[str, float] = dict(
     p_gain=0.00005,
     d_gain=0.00005,
     c_gain=0.02,
-    h_target=np.array([0.002, 0.0, 0.0]),
+    h_target=np.array([0.002]),  # One per RW (test uses 1 RW)
 )
 
 CTRL_EFFORT_TOL = 0.01  # magnitude threshold at end (except ground tracking)
