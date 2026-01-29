@@ -57,7 +57,7 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
         # 3. Hardware Setup
         mtq_max = 0.4
         
-        acts = [MTQ(axis=j, max_torque=mtq_max) for j in MathConstants.unitvecs]
+        acts = [MTQ(axis=j, max_moment=mtq_max) for j in MathConstants.unitvecs]
 
         mtms = [MTM(axis=j) for j in MathConstants.unitvecs]
         

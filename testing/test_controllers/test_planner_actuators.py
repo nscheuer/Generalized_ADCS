@@ -31,8 +31,8 @@ from ADCS.helpers.math_helpers import normalize
 
 def create_mtq_only_satellite():
     """Create a satellite with only magnetotorquers."""
-    mtq_max_torque = 0.1
-    mtqs = [MTQ(axis=j, max_torque=mtq_max_torque) for j in MathConstants.unitvecs]
+    mtq_max_moment = 0.1
+    mtqs = [MTQ(axis=j, max_moment=mtq_max_moment) for j in MathConstants.unitvecs]
     mtms = [MTM(axis=j) for j in MathConstants.unitvecs]
     return Satellite(
         mass=4.0,
@@ -63,8 +63,8 @@ def create_rw_only_satellite():
 
 def create_mixed_satellite():
     """Create a satellite with both MTQs and RWs."""
-    mtq_max_torque = 0.1
-    mtqs = [MTQ(axis=j, max_torque=mtq_max_torque) for j in MathConstants.unitvecs]
+    mtq_max_moment = 0.1
+    mtqs = [MTQ(axis=j, max_moment=mtq_max_moment) for j in MathConstants.unitvecs]
 
     rw_max_torque = 0.005
     rw_J = 0.0014

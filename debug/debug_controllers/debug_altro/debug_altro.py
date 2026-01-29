@@ -33,8 +33,8 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
     t0 = 0
     N = int((tf-t0)/dt)
 
-    mtm_max_torque = 0.1
-    mtqs = [MTQ(axis=j, max_torque=mtm_max_torque) for j in MathConstants.unitvecs]
+    mtq_max_moment = 0.1
+    mtqs = [MTQ(axis=j, max_moment=mtq_max_moment) for j in MathConstants.unitvecs]
 
     rw_max_torque = 7*0.001
     rw_J = 0.001

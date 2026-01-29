@@ -117,7 +117,7 @@ def orbit():
 def mtq_only_satellite():
     """Create satellite with 3 MTQs only (no reaction wheels)."""
     mtq_max = 0.2  # A·m²
-    mtqs = [MTQ(axis=j, max_torque=mtq_max) for j in MathConstants.unitvecs]
+    mtqs = [MTQ(axis=j, max_moment=mtq_max) for j in MathConstants.unitvecs]
     mtms = [MTM(axis=j) for j in MathConstants.unitvecs]
     
     sat = Satellite(
@@ -139,7 +139,7 @@ def mtq_1rw_satellite():
 def mtq_3rw_satellite():
     """Create satellite with 3 MTQs + 3 RWs."""
     mtq_max = 0.2  # A·m²
-    mtqs = [MTQ(axis=j, max_torque=mtq_max) for j in MathConstants.unitvecs]
+    mtqs = [MTQ(axis=j, max_moment=mtq_max) for j in MathConstants.unitvecs]
     
     rw_max_torque = 0.005
     rw_J = 0.0014

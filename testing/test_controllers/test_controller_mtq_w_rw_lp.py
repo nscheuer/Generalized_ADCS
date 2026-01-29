@@ -55,8 +55,8 @@ CTRL_EFFORT_TOL = 0.01  # magnitude threshold at end (except ground tracking)
 # Shared setup + utilities
 # ----------------------------
 def _make_satellite() -> Tuple[Satellite, np.ndarray, List]:
-    mtq_max_torque = 0.4
-    mtqs = [MTQ(axis=j, max_torque=mtq_max_torque) for j in MathConstants.unitvecs]
+    mtq_max_moment = 0.4
+    mtqs = [MTQ(axis=j, max_moment=mtq_max_moment) for j in MathConstants.unitvecs]
 
     rw_max_torque = 7 * 0.001
     rw_J = 0.001

@@ -59,7 +59,7 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
         rw_max = 7e-3
         rw_hmax = 16.2e-3
         
-        acts = [MTQ(axis=j, max_torque=mtq_max) for j in MathConstants.unitvecs]
+        acts = [MTQ(axis=j, max_moment=mtq_max) for j in MathConstants.unitvecs]
         rws = [RW(axis=j, max_torque=rw_max, J=1e-3, h=0, h_max=rw_hmax) for j in MathConstants.unitvecs]
         rws.pop()
         rws.pop()

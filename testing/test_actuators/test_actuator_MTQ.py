@@ -174,7 +174,7 @@ def test_MTQ_torque():
     (b) the coupling of magnetic torque into rigid-body dynamics, and
     (c) consistency between body/ECI transformations and the MTQ's torque API.
     """
-    mtqs = [MTQ(axis=j, max_torque=1, bias=Bias()) for j in MathConstants.unitvecs]
+    mtqs = [MTQ(axis=j, max_moment=1, bias=Bias()) for j in MathConstants.unitvecs]
     ephem = Ephemeris()
     os = Orbital_State(ephem=ephem, J2000=0.22, R=np.array([7000, 0, 0]), V=np.array([0, 8, 0]), B=1e-5*np.array([1, 0, 0]))
 
@@ -295,7 +295,7 @@ def test_MTQ_setup():
 
        .. code-block:: python
 
-          assert mtq.u_max == max_torque
+          assert mtq.u_max == max_moment
 
     5) **Estimator flag**
 
@@ -308,7 +308,7 @@ def test_MTQ_setup():
     and (iii) preserves scalar configuration like ``u_max`` (maximum torque).
     """
     ax = random_n_unit_vec(3)*3
-    max_torque = 4.51
+    max_moment = 4.51
 
     std_noise = 0.243
     noise = Noise(noise=0, std_noise=std_noise)
@@ -317,10 +317,10 @@ def test_MTQ_setup():
     bsr = 0.03
     bias = Bias(bias=e_bias, std_bias=bsr)
 
-    mtq = MTQ(axis=ax, max_torque=max_torque, bias=bias, noise=noise, estimate_bias=False)
+    mtq = MTQ(axis=ax, max_moment=max_moment, bias=bias, noise=noise, estimate_bias=False)
 
     assert np.all(np.isclose(ax/3, mtq.axis))
-    assert mtq.u_max == max_torque
+    assert mtq.u_max == max_moment
     assert mtq.noise.noise == 0
     assert mtq.noise.std_noise == std_noise
     assert mtq.bias.bias == e_bias
@@ -490,7 +490,7 @@ def test_MTQ_torque_clean():
     - ``rot_mat(q)`` maps body :math:`\rightarrow` ECI, hence ``rot_mat(q).T`` maps
       ECI :math:`\rightarrow` body.
     - The quaternion :math:`\mathbf{q}` is treated as unit length at evaluation.
-    - The MTQ is ideal (no saturation or rate limits); ``max_torque`` does not enter the
+    - The MTQ is ideal (no saturation or rate limits); ``max_moment`` does not enter the
       torque expression in this test.
     - ``drotmatTvecdq`` and ``ddrotmatTvecdqdq`` return derivatives of
       :math:`\mathbf{C}(\mathbf{q})^\top \mathbf{v}` w.r.t. the quaternion components.
@@ -499,8 +499,8 @@ def test_MTQ_torque_clean():
     """
     ax = random_n_unit_vec(3)*3
     ax = ax.copy()
-    max_torque = 4.51
-    mtq = MTQ(axis=ax, max_torque=max_torque)
+    max_moment = 4.51
+    mtq = MTQ(axis=ax, max_moment=max_moment)
     mtqs = [mtq]
 
     m0 = random_n_unit_vec(3)[0]
@@ -540,7 +540,7 @@ def test_MTQ_torque_clean():
     ufun = lambda c: mtq.torque(u=c, x=x0, os=os)
     xfun = lambda c: mtq.torque(u=m0, x=np.array([c[0],c[1],c[2],c[3],c[4],c[5],c[6]]), os=os)
     hfun = lambda c: mtq.torque(u=m0, x=x0, os=os)
-    bfun = lambda c: MTQ(axis=ax, max_torque=max_torque).torque(u=m0, x=x0, os=os)
+    bfun = lambda c: MTQ(axis=ax, max_moment=max_moment).torque(u=m0, x=x0, os=os)
 
     Jxfun = np.array(nd.Jacobian(xfun)(x0.flatten().tolist())).T
     expected_Jxfun = mtq.dtorq__dbasestate(u=m0, x=x0, os=os)
@@ -558,7 +558,7 @@ def test_MTQ_torque_clean():
 
 
     for j in MathConstants.unitvecs:
-        fun_hj = lambda c: np.dot(MTQ(axis=ax, max_torque=max_torque).torque(u=c[0], x=np.array([c[1],c[2],c[3],c[4],c[5],c[6],c[7]]), os=os), j)
+        fun_hj = lambda c: np.dot(MTQ(axis=ax, max_moment=max_moment).torque(u=c[0], x=np.array([c[1],c[2],c[3],c[4],c[5],c[6],c[7]]), os=os), j)
 
         ufunjju = lambda c: np.dot(mtq.dtorq__du(u=c, x=x0, os=os), j).item()
         ufunjjb = lambda c: np.dot(mtq.dtorq__dbias(u=c, x=x0, os=os),j)
@@ -575,8 +575,8 @@ def test_MTQ_torque_clean():
         hfunjjx = lambda c: np.dot(mtq.dtorq__dbasestate(u=m0, x=x0, os=os),j)
         hfunjjh = lambda c: np.dot(mtq.dtorq__dh(u=m0, x=x0, os=os),j)
 
-        bfunjju = lambda c: np.dot(MTQ(axis=ax, max_torque=max_torque).dtorq__du(u=m0, x=x0, os=os), j).item()
-        bfunjjx = lambda c: np.dot(MTQ(axis=ax, max_torque=max_torque).dtorq__dbasestate(u=m0, x=x0, os=os), j)
+        bfunjju = lambda c: np.dot(MTQ(axis=ax, max_moment=max_moment).dtorq__du(u=m0, x=x0, os=os), j).item()
+        bfunjjx = lambda c: np.dot(MTQ(axis=ax, max_moment=max_moment).dtorq__dbasestate(u=m0, x=x0, os=os), j)
 
         Jxfunjju = np.array(nd.Jacobian(xfunjju)(x0.flatten().tolist()))
         Jxfunjjx = np.array(nd.Jacobian(xfunjjx)(x0.flatten().tolist()))
@@ -740,14 +740,14 @@ def test_MTQ_torque_clean():
 def test_MTQ_torque_bias():
    ax = random_n_unit_vec(3)*3
    ax = ax.copy()
-   max_torque = 4.51
+   max_moment = 4.51
 
    biasv = random_n_unit_vec(3)[1]*0.1
    biast = biasv.copy()
    std_bias=0.03
 
    bias = Bias(bias=biasv, std_bias=std_bias)
-   mtq = MTQ(axis=ax, max_torque=max_torque, bias=bias)
+   mtq = MTQ(axis=ax, max_moment=max_moment, bias=bias)
    mtqs = [mtq]
 
    m0 = random_n_unit_vec(3)[0]
@@ -787,7 +787,7 @@ def test_MTQ_torque_bias():
    ufun = lambda c: mtq.torque(u=c, x=x0, os=os)
    xfun = lambda c: mtq.torque(u=m0, x=np.array([c[0],c[1],c[2],c[3],c[4],c[5],c[6]]), os=os)
    hfun = lambda c: mtq.torque(u=m0, x=x0, os=os)
-   bfun = lambda c: MTQ(axis=ax, max_torque=max_torque, bias=Bias(bias=c, std_bias=std_bias)).torque(u=m0, x=x0, os=os)
+   bfun = lambda c: MTQ(axis=ax, max_moment=max_moment, bias=Bias(bias=c, std_bias=std_bias)).torque(u=m0, x=x0, os=os)
 
    Jxfun = np.array(nd.Jacobian(xfun)(x0.flatten().tolist())).T
    expected_Jxfun = mtq.dtorq__dbasestate(u=m0, x=x0, os=os)
@@ -804,7 +804,7 @@ def test_MTQ_torque_bias():
    assert np.allclose(Jhfun, expected_Jhfun)
 
    for j in MathConstants.unitvecs:
-        fun_hj = lambda c: np.dot(MTQ(axis=ax, max_torque=max_torque, bias=Bias(bias=c[1], std_bias=std_bias)).torque(u=c[0], x=np.array([c[2],c[3],c[4],c[5],c[6],c[7],c[8]]), os=os), j)
+        fun_hj = lambda c: np.dot(MTQ(axis=ax, max_moment=max_moment, bias=Bias(bias=c[1], std_bias=std_bias)).torque(u=c[0], x=np.array([c[2],c[3],c[4],c[5],c[6],c[7],c[8]]), os=os), j)
 
         ufunjju = lambda c: np.dot(mtq.dtorq__du(u=c, x=x0, os=os), j).item()
         ufunjjb = lambda c: np.dot(mtq.dtorq__dbias(u=c, x=x0, os=os),j)
@@ -821,10 +821,10 @@ def test_MTQ_torque_bias():
         hfunjjx = lambda c: np.dot(mtq.dtorq__dbasestate(u=m0, x=x0, os=os),j)
         hfunjjh = lambda c: np.dot(mtq.dtorq__dh(u=m0, x=x0, os=os),j)
 
-        bfunjju = lambda c: np.dot(MTQ(axis=ax, max_torque=max_torque, bias=Bias(bias=c, std_bias=std_bias)).dtorq__du(u=m0, x=x0, os=os), j).item()
-        bfunjjb = lambda c: np.dot(MTQ(axis=ax, max_torque=max_torque, bias=Bias(bias=c, std_bias=std_bias)).dtorq__dbias(u=m0, x=x0, os=os), j).item()
-        bfunjjx = lambda c: np.dot(MTQ(axis=ax, max_torque=max_torque, bias=Bias(bias=c, std_bias=std_bias)).dtorq__dbasestate(u=m0, x=x0, os=os), j)
-        bfunjjh = lambda c: np.dot(MTQ(axis=ax, max_torque=max_torque, bias=Bias(bias=c, std_bias=std_bias)).dtorq__dh(u=m0, x=x0, os=os), j)
+        bfunjju = lambda c: np.dot(MTQ(axis=ax, max_moment=max_moment, bias=Bias(bias=c, std_bias=std_bias)).dtorq__du(u=m0, x=x0, os=os), j).item()
+        bfunjjb = lambda c: np.dot(MTQ(axis=ax, max_moment=max_moment, bias=Bias(bias=c, std_bias=std_bias)).dtorq__dbias(u=m0, x=x0, os=os), j).item()
+        bfunjjx = lambda c: np.dot(MTQ(axis=ax, max_moment=max_moment, bias=Bias(bias=c, std_bias=std_bias)).dtorq__dbasestate(u=m0, x=x0, os=os), j)
+        bfunjjh = lambda c: np.dot(MTQ(axis=ax, max_moment=max_moment, bias=Bias(bias=c, std_bias=std_bias)).dtorq__dh(u=m0, x=x0, os=os), j)
 
         Jxfunjju = np.array(nd.Jacobian(xfunjju)(x0.flatten().tolist()))
         Jxfunjjb = np.array(nd.Jacobian(xfunjjb)(x0.flatten().tolist()))
@@ -963,14 +963,14 @@ def test_MTQ_torque_bias():
 
 def test_MTQ_torque_bias_KS():
    ax = random_n_unit_vec(3)
-   max_torque = 4.51
+   max_moment = 4.51
 
    biasv = random_n_unit_vec(3)[1]*0.1
    biast = biasv.copy()
    std_bias = 0.03
 
    bias = Bias(bias=biasv, std_bias=std_bias)
-   mtq = MTQ(axis=ax, max_torque=max_torque, bias=bias)
+   mtq = MTQ(axis=ax, max_moment=max_moment, bias=bias)
    mtqs = [mtq]
 
    m0 = random_n_unit_vec(3)[0]
@@ -1061,13 +1061,13 @@ def test_MTQ_torque_bias_KS():
 def test_MTQ_noise_KS():
    ax = random_n_unit_vec(3)
    ax = ax.copy()
-   max_torque = 4.51
+   max_moment = 4.51
 
    noisev = 0.0
    std_noise = 0.243
    noise = Noise(noise=noisev, std_noise=std_noise)
 
-   mtq = MTQ(axis=ax, max_torque=max_torque, noise=noise)
+   mtq = MTQ(axis=ax, max_moment=max_moment, noise=noise)
    mtqs = [mtq]
 
    m0 = random_n_unit_vec(3)[0]*3
@@ -1128,7 +1128,7 @@ def test_MTQ_noise_KS():
 
 def test_MTQ_bias_noise_KS():
     ax = random_n_unit_vec(3)
-    max_torque = 4.51
+    max_moment = 4.51
 
     # --- Bias and noise parameters ---
     std_bias = 0.03
@@ -1136,7 +1136,7 @@ def test_MTQ_bias_noise_KS():
     bias = Bias(bias=0.0, std_bias=std_bias)
     noise = Noise(noise=0.0, std_noise=std_noise)
 
-    mtq = MTQ(axis=ax, max_torque=max_torque, bias=bias, noise=noise)
+    mtq = MTQ(axis=ax, max_moment=max_moment, bias=bias, noise=noise)
     mtqs = [mtq]
 
     m0 = random_n_unit_vec(3)[0]*3

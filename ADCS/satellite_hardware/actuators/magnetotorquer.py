@@ -88,9 +88,9 @@ class MTQ(Actuator):
     :param axis: Unit vector defining the magnetorquer alignment in the body frame.
     :type axis: numpy.ndarray
 
-    :param max_torque: Maximum allowable commanded dipole magnitude (used as the actuator
-        saturation limit).
-    :type max_torque: float
+    :param max_moment: Maximum allowable commanded dipole magnitude (used as the actuator
+        saturation limit) [A·m²].
+    :type max_moment: float
 
     :param bias: Bias model representing constant or slowly varying dipole offset.
     :type bias: :class:`~ADCS.satellite_hardware.errors.bias.Bias` | None
@@ -105,10 +105,11 @@ class MTQ(Actuator):
     def __init__(
         self,
         axis: np.ndarray,
-        max_torque: float,
+        max_moment: float = None,
         bias: Bias = None,
         noise: Noise = None,
         estimate_bias: bool = False,
+        max_torque: float = None,  # Deprecated: use max_moment instead
     ) -> None:
         r"""
         Initialize a magnetorquer actuator model.
@@ -121,8 +122,8 @@ class MTQ(Actuator):
             in the spacecraft body frame.
         :type axis: numpy.ndarray, shape ``(3,)``
 
-        :param max_torque: Maximum allowable magnetic dipole magnitude.
-        :type max_torque: float
+        :param max_moment: Maximum allowable magnetic dipole magnitude [A·m²].
+        :type max_moment: float
 
         :param bias: Optional bias model applied additively to the commanded dipole.
         :type bias: :class:`~ADCS.satellite_hardware.errors.bias.Bias` | None
@@ -133,10 +134,24 @@ class MTQ(Actuator):
         :param estimate_bias: If ``True``, the bias is appended to the estimator state.
         :type estimate_bias: bool
 
+        :param max_torque: Deprecated. Use ``max_moment`` instead.
+        :type max_torque: float | None
+
         :return: None
         :rtype: None
         """
-        super().__init__(axis=axis, u_max=max_torque, bias=bias, noise=noise, estimate_bias=estimate_bias)
+        # Handle backward compatibility: accept max_torque but prefer max_moment
+        if max_moment is None and max_torque is not None:
+            warnings.warn(
+                "max_torque is deprecated for MTQ, use max_moment instead",
+                DeprecationWarning,
+                stacklevel=2
+            )
+            max_moment = max_torque
+        elif max_moment is None and max_torque is None:
+            raise ValueError("max_moment is required")
+        
+        super().__init__(axis=axis, u_max=max_moment, bias=bias, noise=noise, estimate_bias=estimate_bias)
 
     def estimate_torque_capability(
         self, 
@@ -256,7 +271,7 @@ class MTQ(Actuator):
         :rtype: numpy.ndarray, shape ``(3,)``
         """
         if abs(u) > self.u_max:
-            warnings.warn("requested torque exceeds actuation limit")
+            warnings.warn("requested magnetic moment exceeds actuation limit")
 
         vecs = os.get_state_vector(x=x)
         b_body = vecs["b"]

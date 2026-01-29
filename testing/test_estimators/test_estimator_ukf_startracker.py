@@ -64,7 +64,7 @@ def run_ukf_with_startracker(
     # === REAL SATELLITE ===
     # Actuators
     mtq_noise = Noise(noise=0.0, std_noise=0.0001)
-    acts = [MTQ(axis=j, max_torque=1.0, noise=mtq_noise) for j in MathConstants.unitvecs]
+    acts = [MTQ(axis=j, max_moment=1.0, noise=mtq_noise) for j in MathConstants.unitvecs]
 
     # Sensors: Magnetometers (for attitude observability even without star tracker)
     mtm_noise = Noise(noise=0.0, std_noise=1e-8)
@@ -126,7 +126,7 @@ def run_ukf_with_startracker(
         orb = Orbit(orbs)
 
     # === ESTIMATED SATELLITE ===
-    est_acts = [MTQ(axis=j, max_torque=1.0, noise=mtq_noise) for j in MathConstants.unitvecs]
+    est_acts = [MTQ(axis=j, max_moment=1.0, noise=mtq_noise) for j in MathConstants.unitvecs]
     est_mtms = [MTM(axis=j, noise=mtm_noise) for j in MathConstants.unitvecs]
     est_gyros = [Gyro(axis=j, noise=gyro_noise) for j in MathConstants.unitvecs]
     est_star_noise = AnisotropicNoise(std_cross=10.0 * ARCSEC2RAD, std_roll=50.0 * ARCSEC2RAD)

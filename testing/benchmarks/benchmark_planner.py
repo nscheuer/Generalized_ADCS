@@ -81,7 +81,7 @@ def create_rw_satellite() -> Satellite:
 def create_mtq_satellite() -> Satellite:
     """Create a MTQ-only satellite for benchmarking."""
     mtq_max = 0.5
-    mtqs = [MTQ(axis=j, max_torque=mtq_max) for j in MathConstants.unitvecs]
+    mtqs = [MTQ(axis=j, max_moment=mtq_max) for j in MathConstants.unitvecs]
     mtms = [MTM(axis=j) for j in MathConstants.unitvecs]
     return Satellite(
         mass=4.0,
@@ -101,7 +101,7 @@ def create_mixed_satellite() -> Satellite:
 
     rws = [RW(axis=j, max_torque=rw_max_torque, J=rw_J, h=0.0, h_max=rw_hmax)
            for j in MathConstants.unitvecs]
-    mtqs = [MTQ(axis=j, max_dipole=mtq_max) for j in MathConstants.unitvecs]
+    mtqs = [MTQ(axis=j, max_moment=mtq_max) for j in MathConstants.unitvecs]
     mtms = [MTM(axis=j) for j in MathConstants.unitvecs]
 
     return Satellite(

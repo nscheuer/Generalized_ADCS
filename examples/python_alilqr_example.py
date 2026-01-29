@@ -53,9 +53,9 @@ def setup_simple_example():
     J = np.diag([0.1, 0.1, 0.1])  # 10 kg, 0.1m cube inertia
     
     # 3 magnetorquers along body axes
-    mtq_x = MTQ(axis=np.array([1, 0, 0]), max_torque=0.5, bias=Bias())  # 0.5 A*m^2 max dipole
-    mtq_y = MTQ(axis=np.array([0, 1, 0]), max_torque=0.5, bias=Bias())
-    mtq_z = MTQ(axis=np.array([0, 0, 1]), max_torque=0.5, bias=Bias())
+    mtq_x = MTQ(axis=np.array([1, 0, 0]), max_moment=0.5, bias=Bias())  # 0.5 A*m^2 max dipole
+    mtq_y = MTQ(axis=np.array([0, 1, 0]), max_moment=0.5, bias=Bias())
+    mtq_z = MTQ(axis=np.array([0, 0, 1]), max_moment=0.5, bias=Bias())
     
     # 3 reaction wheels along body axes
     rw_x = RW(

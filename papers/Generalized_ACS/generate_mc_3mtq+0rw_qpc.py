@@ -59,7 +59,7 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
         rw_max = 7e-3
         rw_hmax = 16.2e-3
         
-        acts = [MTQ(axis=j, max_torque=mtq_max) for j in MathConstants.unitvecs]
+        acts = [MTQ(axis=j, max_moment=mtq_max) for j in MathConstants.unitvecs]
         mtms = [MTM(axis=j) for j in MathConstants.unitvecs]
         
         real_sat = Satellite(

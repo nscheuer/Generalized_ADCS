@@ -34,8 +34,8 @@ from ADCS.helpers.plotting.close_all_plots import create_close_all_button_window
 
 def create_satellite() -> Satellite:
     mtq_noise = Noise(noise=0.0, std_noise=0.0001)
-    mtq_max_torque = 1.0
-    mtqs = [MTQ(axis=j, max_torque=mtq_max_torque, noise=mtq_noise) for j in MathConstants.unitvecs]
+    mtq_max_moment = 1.0
+    mtqs = [MTQ(axis=j, max_moment=mtq_max_moment, noise=mtq_noise) for j in MathConstants.unitvecs]
 
     rw_max_torque = 4.51
     rw_J = 0.22
@@ -78,7 +78,7 @@ def create_satellite() -> Satellite:
 def create_estimated_satellite() -> EstimatedSatellite:
     # Similar setup but for the estimator model
     mtq_noise = Noise(noise=0.0, std_noise=0.0001)
-    est_mtqs = [MTQ(axis=j, max_torque=1.0, noise=mtq_noise) for j in MathConstants.unitvecs]
+    est_mtqs = [MTQ(axis=j, max_moment=1.0, noise=mtq_noise) for j in MathConstants.unitvecs]
 
     rw_noise = Noise(noise=0.0, std_noise=0.0001)
     rw_h_noise = Noise(noise=0.0, std_noise=0.0001)
