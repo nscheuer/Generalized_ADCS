@@ -77,6 +77,7 @@ class ControlPlot(Subplot):
         self.log_y = log_y
 
     def plot(self, ax, sim) -> None:
+        runs = sim.runs if hasattr(sim, "runs") else [sim]
         ax.set_frame_on(False)
         ax.tick_params(left=False, labelleft=False, bottom=False, labelbottom=False)
 
@@ -90,8 +91,8 @@ class ControlPlot(Subplot):
             )
             return
 
-        t = getattr(sim, self.time)
-        U = np.vstack(sim.control_hist)
+        t = getattr(runs[0], self.time)
+        U = np.vstack(runs[0].control_hist)
         n_ctrl = U.shape[1]
 
         u_max_list = _extract_u_max(sim)
@@ -121,6 +122,13 @@ class ControlPlot(Subplot):
                 )
             labels = self.labels
 
+        for run in runs:
+            t = getattr(run, self.time)
+            U = np.vstack(run.control_hist)
+
+            for i, ax_i in enumerate(axes):
+                ax_i.plot(t, U[:, i], alpha=0.25)
+
         for i, ax_i in enumerate(axes):
             (ln,) = ax_i.plot(t, U[:, i], label=labels[i])
             color = ln.get_color()
@@ -136,7 +144,6 @@ class ControlPlot(Subplot):
             )
             if self.log_y:
                 ax_i.set_yscale("log")
-            ax_i.legend()
             ax_i.grid(True, which="both")
 
         for j in range(n_ctrl, nrows * ncols):

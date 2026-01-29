@@ -3,11 +3,12 @@ __all__ = ["plot"]
 import matplotlib.pyplot as plt
 
 from ADCS.helpers.simresults import SimulationResults
+from ADCS.helpers.simresults_mc import MCSimulationResults
 from ADCS.helpers.plot.subplot import Subplot
 from .close_all import ensure_close_all_button
 
 def plot(
-    sim: SimulationResults,
+    sim: SimulationResults | MCSimulationResults,
     *subplots: Subplot,
     layout=None,
     figsize=(10, 8),
@@ -25,7 +26,7 @@ def plot(
     :param sim:
         Simulation results object supplying the data to all subplots.
     :type sim:
-        :class:~ADCS.helpers.simresults.SimulationResults
+        :class:~ADCS.helpers.simresults.SimulationResults or :class:~ADCS.helpers.simresults_mc.MCSimulationResults
 
     :param subplots:
         One or more subplot objects to be rendered in the figure.
