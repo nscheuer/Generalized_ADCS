@@ -81,6 +81,78 @@ class NormalizedActuatorCosts:
     expected_B_field_uT: float = 30.0  # Typical LEO value
 
 
+def _compute_angle_cost_scale(
+    ang_cost_func_type: int, 
+    reference_angle_rad: float,
+    is_quaternion_goal: bool
+) -> float:
+    """
+    Compute the raw cost function value at a reference angle.
+    
+    This is used to normalize angle costs so that users can specify
+    "cost at reference angle" regardless of the cost function type.
+    
+    Parameters
+    ----------
+    ang_cost_func_type : int
+        Cost function type (0-4 for quaternion, 0-3 for vector).
+    reference_angle_rad : float
+        Reference angle in radians.
+    is_quaternion_goal : bool
+        True for quaternion (3-DOF) goals, False for vector (2-DOF) goals.
+        
+    Returns
+    -------
+    float
+        The raw cost value at the reference angle.
+    """
+    theta = reference_angle_rad
+    
+    if is_quaternion_goal:
+        # Quaternion goal: half-angle representation
+        # For rotation θ, quaternion is [cos(θ/2), sin(θ/2)*axis]
+        half_theta = theta / 2.0
+        q_dot = np.cos(half_theta)  # q · q_goal = cos(θ/2)
+        q_err_scalar = q_dot
+        q_err_vec_norm = np.sin(half_theta)
+        
+        if ang_cost_func_type == 0:
+            # 1 - |q·q_goal|
+            return 1.0 - abs(q_dot)
+        elif ang_cost_func_type == 1 or ang_cost_func_type == 3:
+            # 0.5 * |q_err_vec|² (simplified quaternion error)
+            return 0.5 * q_err_vec_norm ** 2
+        elif ang_cost_func_type == 2:
+            # 0.5 * |q_err_vec|² / q_err_scalar² ≈ 0.5 * tan²(θ/2)
+            if abs(q_err_scalar) > 1e-10:
+                return 0.5 * (q_err_vec_norm / q_err_scalar) ** 2
+            else:
+                return 1e6  # Very large for 180° rotation
+        elif ang_cost_func_type == 4:
+            # 1 - (q·q_goal)²
+            return 1.0 - q_dot ** 2
+        else:
+            raise ValueError(f"Unknown quaternion cost function type: {ang_cost_func_type}")
+    else:
+        # Vector goal: uses dot product of aligned vectors
+        cos_theta = np.cos(theta)
+        
+        if ang_cost_func_type == 0:
+            # 1 - cos(θ)
+            return 1.0 - cos_theta
+        elif ang_cost_func_type == 1:
+            # 0.5 * (1 - cos(θ))²
+            return 0.5 * (1.0 - cos_theta) ** 2
+        elif ang_cost_func_type == 2:
+            # acos(cos(θ)) = θ (geodesic)
+            return theta
+        elif ang_cost_func_type == 3:
+            # 0.5 * θ²
+            return 0.5 * theta ** 2
+        else:
+            raise ValueError(f"Unknown vector cost function type: {ang_cost_func_type}")
+
+
 @dataclass
 class NormalizedStateCosts:
     """
@@ -111,13 +183,27 @@ class NormalizedStateCosts:
         Terminal angular velocity weight or multiplier.
     ang_cost_func_type : int
         Attitude cost function type:
-        0: 1-cos(θ) - smooth near zero
-        1: 0.5*(1-cos(θ))² - smoother
-        2: acos(cos(θ)) = θ - true geodesic (recommended)
-        3: 0.5*θ² - quadratic geodesic
+        
+        **Vector goals (2-DOF pointing):**
+        - 0: 1-cos(θ) - smooth near zero, range [0, 2]
+        - 1: 0.5*(1-cos(θ))² - smoother, range [0, 2]
+        - 2: θ (geodesic) - linear in angle, range [0, π]
+        - 3: 0.5*θ² - quadratic geodesic, range [0, π²/2]
+        
+        **Quaternion goals (3-DOF attitude):**
+        - 0: 1-|q·q_goal| - range [0, 1]
+        - 1: 0.5*|q_err_vec|² - quaternion error, range [0, 0.5]
+        - 2: 0.5*tan²(θ/2) - scaled by half-angle, range [0, ∞)
+        - 3: same as 1
+        - 4: 1-(q·q_goal)² - range [0, 1]
+        
     use_scale_normalization : bool
         If True, use scale-normalized costs for better conditioning.
         If False (default), use legacy raw weights.
+    auto_scale_angle_cost : bool
+        If True, automatically scale angle costs based on the cost function type
+        and goal type so that the specified cost is achieved at the reference angle.
+        This ensures consistent behavior across different cost functions.
     angle_scale_deg : float
         Reference angle in degrees for normalization (only used if use_scale_normalization=True).
     ang_vel_scale_deg_s : float
@@ -134,6 +220,7 @@ class NormalizedStateCosts:
     
     # Scale normalization (optional, off by default)
     use_scale_normalization: bool = False
+    auto_scale_angle_cost: bool = False  # Auto-scale based on cost function type
     angle_scale_deg: float = 90.0  # Reference angle in degrees
     ang_vel_scale_deg_s: float = 10.0  # Reference angular velocity in deg/s
     
@@ -147,31 +234,97 @@ class NormalizedStateCosts:
         """Angular velocity scale in rad/s."""
         return self.ang_vel_scale_deg_s * np.pi / 180.0
     
-    def to_raw_weights(self, global_scale: float = 1.0) -> dict:
+    def get_cost_scaling_info(self) -> dict:
+        """
+        Get information about how angle costs scale for different goal types.
+        
+        Returns a dictionary with the raw cost values at the reference angle
+        for both vector and quaternion goals, and the scaling factors that
+        would be applied when auto_scale_angle_cost=True.
+        
+        Returns
+        -------
+        dict
+            Dictionary containing:
+            - 'ref_angle_deg': Reference angle in degrees
+            - 'cost_func_type': The cost function type
+            - 'vector_raw_cost': Raw cost at ref angle for vector goals
+            - 'vector_scale_factor': Scaling factor for vector goals
+            - 'quat_raw_cost': Raw cost at ref angle for quaternion goals
+            - 'quat_scale_factor': Scaling factor for quaternion goals
+        """
+        ref_angle_rad = self.angle_scale_rad
+        
+        vec_cost = _compute_angle_cost_scale(self.ang_cost_func_type, ref_angle_rad, False)
+        quat_cost = _compute_angle_cost_scale(self.ang_cost_func_type, ref_angle_rad, True)
+        
+        return {
+            'ref_angle_deg': self.angle_scale_deg,
+            'cost_func_type': self.ang_cost_func_type,
+            'vector_raw_cost': vec_cost,
+            'vector_scale_factor': 1.0 / vec_cost if vec_cost > 1e-10 else 1.0,
+            'quat_raw_cost': quat_cost,
+            'quat_scale_factor': 1.0 / quat_cost if quat_cost > 1e-10 else 1.0,
+        }
+    
+    def to_raw_weights(
+        self, 
+        global_scale: float = 1.0,
+        is_quaternion_goal: bool = None
+    ) -> dict:
         """
         Convert to raw weights for C++ optimizer.
         
         In legacy mode: returns weights directly (scaled by global_scale).
         In normalized mode: returns weights divided by scale² so that
             cost = w_raw * state² = w_normalized * (state/scale)²
+            
+        Parameters
+        ----------
+        global_scale : float
+            Global scaling factor applied to all weights.
+        is_quaternion_goal : bool, optional
+            If provided and auto_scale_angle_cost=True, scales angle costs
+            so the specified cost is achieved at the reference angle regardless
+            of the cost function type. True for 4D quaternion goals, False for
+            3D vector goals.
         """
+        # Compute angle cost scaling factor if auto-scaling enabled
+        angle_scale_factor = 1.0
+        if self.auto_scale_angle_cost and is_quaternion_goal is not None:
+            # Get the raw cost value at the reference angle
+            ref_angle_rad = self.angle_scale_rad
+            raw_cost_at_ref = _compute_angle_cost_scale(
+                self.ang_cost_func_type,
+                ref_angle_rad,
+                is_quaternion_goal
+            )
+            # Scale so that: w_raw * raw_cost_at_ref = user_specified_cost
+            # Therefore: w_raw = user_specified_cost / raw_cost_at_ref
+            if raw_cost_at_ref > 1e-10:
+                angle_scale_factor = 1.0 / raw_cost_at_ref
+            else:
+                angle_scale_factor = 1.0
+        
         if self.use_scale_normalization:
             # Scale-normalized mode
             angle_scale = self.angle_scale_rad
             ang_vel_scale = self.ang_vel_scale_rad_s
             
+            # When using scale normalization, we divide by angle_scale²
+            # When also using auto_scale, we additionally scale by the cost function
             return {
-                'angle_weight': self.angle_cost * global_scale / (angle_scale ** 2),
-                'angle_weight_N': self.angle_terminal_cost * global_scale / (angle_scale ** 2),
+                'angle_weight': self.angle_cost * global_scale * angle_scale_factor / (angle_scale ** 2),
+                'angle_weight_N': self.angle_terminal_cost * global_scale * angle_scale_factor / (angle_scale ** 2),
                 'angvel_weight': self.ang_vel_cost * global_scale / (ang_vel_scale ** 2),
                 'angvel_weight_N': self.ang_vel_terminal_cost * global_scale / (ang_vel_scale ** 2),
                 'ang_cost_func_type': self.ang_cost_func_type,
             }
         else:
-            # Legacy mode - direct weights
+            # Legacy mode - direct weights (but still apply auto-scaling if enabled)
             return {
-                'angle_weight': self.angle_cost * global_scale,
-                'angle_weight_N': self.angle_terminal_cost * global_scale,
+                'angle_weight': self.angle_cost * global_scale * angle_scale_factor,
+                'angle_weight_N': self.angle_terminal_cost * global_scale * angle_scale_factor,
                 'angvel_weight': self.ang_vel_cost * global_scale,
                 'angvel_weight_N': self.ang_vel_terminal_cost * global_scale,
                 'ang_cost_func_type': self.ang_cost_func_type,
