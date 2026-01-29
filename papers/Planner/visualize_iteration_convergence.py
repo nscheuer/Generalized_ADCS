@@ -28,7 +28,7 @@ from ADCS.controller.plan_and_track_python_alilqr import Plan_and_Track_PythonAL
 from ADCS.controller.helpers import (
     PlannerSettings, create_planner_settings,
     NormalizedPlannerConfig, NormalizedActuatorCosts, NormalizedStateCosts,
-    IterationData,
+    IterationData, LivePlannerViz,
 )
 from ADCS.orbits.helpers.orbit_factory import create_random_circular_orbit
 from ADCS.satellite_factory.satellites.create_cubesats import create_beavercube2_cubesat
@@ -201,23 +201,44 @@ def main():
     settings.rw_AM_weight = 1e4
     settings.RWh_ok_mult = 0.5
     settings.bdot_on = 0  # IMPORTANT: Use random init, not B-dot for slew maneuvers
-    settings.pass1.convergence.max_outer_iter = 5
-    settings.pass1.convergence.max_inner_iter = 20
-    settings.pass2.convergence.max_outer_iter = 3
+    # Pass1: Exploration - find good trajectory shape, looser constraints
+    # Use higher starting penalty to converge faster
+    settings.pass1.aug_lag.penalty_init = 1.0  # Start higher than 0.001
+    settings.pass1.aug_lag.penalty_max = 1e6   # Don't need to go super high for Pass1
+    settings.pass1.convergence.max_outer_iter = 10
+    settings.pass1.convergence.max_inner_iter = 10
+    # Pass2: Refinement - enforce constraints with high penalty
+    settings.pass2.aug_lag.penalty_init = 1e4  # High penalty for strict constraint enforcement
+    settings.pass2.convergence.max_outer_iter = 6
     settings.pass2.convergence.max_inner_iter = 10
     
     # Collect iteration data
     all_iterations: List[IterationData] = []
     
+    # Create live visualization
+    live_viz = LivePlannerViz(
+        goal_vector_eci=q_goal,
+        body_vector=np.array([0, 1, 0]),  # BC2 boresight
+        dt=settings.dt_tp,
+        update_interval=1,
+        figsize=(14, 10),
+        actuator_names=['MTQ_x', 'MTQ_y', 'MTQ_z', 'RW']
+    )
+    live_viz.start()
+    
     def iteration_callback(iter_data: IterationData):
         all_iterations.append(iter_data)
+        
+        # Update live viz
+        live_viz.update(iter_data)
         
         # Print progress
         q_final = iter_data.Xset[3:7, -1]
         q_final = q_final / np.linalg.norm(q_final)
         err = quat_error_angle(q_final, q_goal)
         
-        print(f"  Outer {iter_data.outer_iter}, Inner {iter_data.inner_iter:2d}: "
+        pass_str = f"[{iter_data.pass_label}] " if iter_data.pass_label else ""
+        print(f"  {pass_str}Outer {iter_data.outer_iter}, Inner {iter_data.inner_iter:2d}: "
               f"cost={iter_data.LA:.2e}, cmax={iter_data.cmax:.2e}, "
               f"grad={iter_data.grad:.2e}, error={err:.2f}°")
     
@@ -257,10 +278,18 @@ def main():
     print(f"Final pointing error: {final_error:.4f}°")
     print(f"Improvement: {initial_error:.1f}° → {final_error:.4f}°")
     
+    # Save live viz
+    live_viz.save("/home/pmckeen/Generalized_ADCS/papers/Planner/figures/live_viz_final.png")
+    print("\nLive visualization saved.")
+    
     # Generate convergence plot
     print("\nGenerating convergence plot...")
     save_path = "/home/pmckeen/Generalized_ADCS/papers/Planner/figures/iteration_convergence.png"
     plot_convergence(all_iterations, q_goal, save_path)
+    
+    # Keep live viz open
+    print("\nClose the plot window to exit...")
+    live_viz.finish(block=True)
     
     return all_iterations
 

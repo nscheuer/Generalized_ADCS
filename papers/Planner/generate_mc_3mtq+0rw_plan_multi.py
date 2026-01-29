@@ -16,6 +16,9 @@ from ADCS.CONOPS.goals import ECI_Goal, No_Goal
 from ADCS.CONOPS.goallist import GoalList
 from ADCS.controller.plan_and_track_lqr import Plan_and_Track_LQR
 from ADCS.controller.helpers import PlannerSettings
+
+# Import good settings
+from mc_planner_settings import create_good_planner_settings
 from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.orbits.helpers.orbit_factory import create_random_circular_orbit
 from ADCS.satellite_factory.satellites.create_cubesats import create_beavercube2_cubesat
@@ -67,14 +70,8 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
 
         x0 = np.concatenate([config["w0"], config["q0"]])
 
-        planner_settings = PlannerSettings(
-            est_sat=real_sat, bdot_on=0, dt_tp=10, dt_tvlqr=dt_planning
-        )
-        planner_settings.verbosity = False
-        planner_settings.pass1.convergence.max_outer_iter = 8
-        planner_settings.pass1.convergence.max_inner_iter = 30
-        planner_settings.pass2.convergence.max_outer_iter = 4
-        planner_settings.pass2.convergence.max_inner_iter = 15
+        # Use well-conditioned normalized settings (MTQ-only)
+        planner_settings = create_good_planner_settings(real_sat, dt_planning=dt_planning, has_rw=False)
 
         controller = Plan_and_Track_LQR(est_sat=real_sat, planner_settings=planner_settings)
 

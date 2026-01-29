@@ -18,6 +18,10 @@ from .planner_factory import create_planner_settings, estimate_conditioning
 
 # Python ALILQR for debugging and analysis
 from .python_alilqr import PythonALILQR, IterationData, OptimizationResult
+from .python_alilqr_v2 import PythonALILQRv2
+
+# Live visualization
+from .live_planner_viz import LivePlannerViz, ConvergenceMonitor
 
 __all__ = [
     # Legacy API
@@ -48,4 +52,7 @@ __all__ = [
     "PythonALILQR",
     "IterationData", 
     "OptimizationResult",
+    # Live visualization
+    "LivePlannerViz",
+    "ConvergenceMonitor",
 ]

@@ -77,6 +77,9 @@ class IterationData:
     # Flags
     ls_converged: bool = True
     break_reason: str = ""
+    
+    # Pass identification
+    pass_label: str = ""  # "Pass1" or "Pass2"
 
 
 @dataclass
@@ -148,7 +151,8 @@ class PythonALILQR:
         cost_settings: Tuple,
         alilqr_settings: Tuple,
         is_first_search: bool = True,
-        collect_all: bool = True
+        collect_all: bool = True,
+        pass_label: str = ""
     ) -> OptimizationResult:
         """
         Run the full ALILQR optimization.
@@ -204,9 +208,9 @@ class PythonALILQR:
         
         auglag_vals = (lambdaSet, mu, muSet)
         
-        # Regenerate initial trajectory to ensure consistency
-        traj = self.planner.generateInitialTrajectory(dt, Xset[:, 0].copy(), Uset.copy(), vecs)
-        Xset, Uset, times, TQset = traj
+        # Use the initial trajectory directly (prepareForAlilqr already generated it properly)
+        # Don't regenerate - this can cause NaN with large timesteps
+        traj = initial_traj
         
         # Get initial constraint violations and increment auglag
         clist, cmax = self.planner.maxViol(traj, vecs, auglag_vals)
@@ -234,7 +238,8 @@ class PythonALILQR:
         
         if self.verbose:
             print(f"\n{'='*70}")
-            print(f"Python ALILQR: N={N}, dt={dt:.3f}")
+            label_str = f" [{pass_label}]" if pass_label else ""
+            print(f"Python ALILQR{label_str}: N={N}, dt={dt:.3f}")
             print(f"Initial cost: LA={LA:.6e}, LA_nc={LA_nc:.6e}, cmax={cmax:.6e}")
             print(f"{'='*70}")
         
@@ -304,7 +309,8 @@ class PythonALILQR:
                 # Compute cost change
                 dLA = abs(newLA - LA)
                 dla_z_count += 1
-                if dLA != 0:
+                # Use tolerance for effectively zero cost change (machine precision)
+                if dLA > 1e-10:
                     dla_z_count = 0
                 
                 # Update trajectory and cost
@@ -338,7 +344,8 @@ class PythonALILQR:
                     dset=dset.copy(),
                     delV=delV.copy() if delV is not None else None,
                     ls_converged=(LA <= LA_old),
-                    break_reason=""
+                    break_reason="",
+                    pass_label=pass_label
                 )
                 
                 if collect_all:
@@ -542,7 +549,8 @@ class PythonALILQR:
                 
                 dLA = abs(newLA - LA)
                 dla_z_count += 1
-                if dLA != 0:
+                # Use tolerance for effectively zero cost change (machine precision)
+                if dLA > 1e-10:
                     dla_z_count = 0
                 
                 LA_old = LA
@@ -574,7 +582,8 @@ class PythonALILQR:
                     dset=dset.copy(),
                     delV=delV.copy() if delV is not None else None,
                     ls_converged=(LA <= LA_old),
-                    break_reason=""
+                    break_reason="",
+                    pass_label=""  # Step-by-step doesn't have pass info yet
                 )
                 
                 yield iter_data

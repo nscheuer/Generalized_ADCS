@@ -22,7 +22,8 @@ from ADCS.CONOPS.goallist import GoalList
 from ADCS.controller.plan_and_track_base import PlanAndTrackBase
 from ADCS.controller.helpers import (
     PlannerSettings, Trajectory, reorder_controls_cpp_to_python, 
-    reorder_gains_cpp_to_python, PythonALILQR, IterationData, OptimizationResult
+    reorder_gains_cpp_to_python, PythonALILQR, PythonALILQRv2, 
+    IterationData, OptimizationResult
 )
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.universal_constants import TimeConstants
@@ -104,13 +105,17 @@ class Plan_and_Track_PythonALILQR(PlanAndTrackBase):
         self,
         est_sat: EstimatedSatellite,
         planner_settings: PlannerSettings,
-        verbose: bool = False
+        verbose: bool = False,
+        use_v2: bool = True  # Use v2 implementation by default
     ) -> None:
         # Initialize base planner (creates self.planner)
         self._init_planner(est_sat, planner_settings, tracking_lqr_formulation=0, quat_to_3vec_mode=2)
         
-        # Create Python ALILQR wrapper
-        self.py_alilqr = PythonALILQR(self.planner, verbose=verbose)
+        # Create Python ALILQR wrapper (v2 matches C++ exactly)
+        if use_v2:
+            self.py_alilqr = PythonALILQRv2(self.planner, verbose=verbose)
+        else:
+            self.py_alilqr = PythonALILQR(self.planner, verbose=verbose)
         
         # Storage for results and callbacks
         self.last_optimization_result: Optional[OptimizationResult] = None
@@ -128,7 +133,11 @@ class Plan_and_Track_PythonALILQR(PlanAndTrackBase):
             Called after each inner iteration with full iteration state
         """
         self.iteration_callback = callback
-        self.py_alilqr.debug_callback = callback
+        # Works with both v1 and v2
+        if hasattr(self.py_alilqr, 'set_callback'):
+            self.py_alilqr.set_callback(callback)
+        else:
+            self.py_alilqr.debug_callback = callback
         
     def find_u(
         self,
@@ -193,52 +202,150 @@ class Plan_and_Track_PythonALILQR(PlanAndTrackBase):
         
         self.planner.setVerbosity(verbose or self._verbose)
         
-        dt_seconds = self.planner_settings.dt_tvlqr
-        N = int(np.ceil(duration / dt_seconds)) + 1
+        # Get timesteps (like C++ trajOpt)
+        dt_coarse = self.planner_settings.dt_tp      # Pass 1: coarse planning
+        dt_fine = self.planner_settings.dt_tvlqr    # Pass 2: fine refinement
+        
         t_end = t_start + (duration * TimeConstants.sec2cent)
-        
-        # Propagate environment
-        vecsPy = self._propagate_environment(os_0, t_start, t_end, dt_seconds, N, goals)
-        
-        # Get settings
-        cost_settings = self.planner_settings.optMainCostSettings()
-        alilqr_settings = self.planner_settings.mainAlilqrSettings()
-        
-        # Clean initial state
         x_0_clean = np.copy(x_0.astype(np.float64).flatten(), order='C')
         
-        # Create initial trajectory using prepareForAlilqr
+        # =====================================================================
+        # PASS 1: Coarse trajectory optimization (exploration)
+        # =====================================================================
+        if verbose:
+            print(f"=== PASS 1: Exploration (dt={dt_coarse}s) ===")
+        
+        # Propagate environment at coarse timestep
+        N_coarse = int(np.ceil(duration / dt_coarse)) + 1
+        vecsPy_coarse = self._propagate_environment(os_0, t_start, t_end, dt_coarse, N_coarse, goals)
+        
+        # Get pass1 settings
+        cost_settings_1 = self.planner_settings.optMainCostSettings()
+        alilqr_settings_1 = self.planner_settings.mainAlilqrSettings()
+        
+        # Create initial trajectory at coarse timestep
         bdotOn = self.planner_settings.bdot_on
         initial_result = self.planner.prepareForAlilqr(
-            vecsPy, dt_seconds, t_start, t_end, x_0_clean, int(bdotOn)
+            vecsPy_coarse, dt_coarse, t_start, t_end, x_0_clean, int(bdotOn)
         )
-        initial_traj, vecs_dt, _ = initial_result
+        initial_traj_1, vecs_dt_coarse, _ = initial_result
         
-        # Run Python ALILQR
-        result = self.py_alilqr.optimize(
-            dt=dt_seconds,
-            initial_traj=initial_traj,
-            vecs=vecs_dt,
-            cost_settings=cost_settings,
-            alilqr_settings=alilqr_settings,
+        result1 = self.py_alilqr.optimize(
+            dt=dt_coarse,
+            initial_traj=initial_traj_1,
+            vecs=vecs_dt_coarse,
+            cost_settings=cost_settings_1,
+            alilqr_settings=alilqr_settings_1,
             is_first_search=True,
-            collect_all=collect_all_iterations
+            collect_all=collect_all_iterations,
+            pass_label="Pass1"
         )
-        
-        # Store result for analysis
-        self.last_optimization_result = result
         
         if verbose:
-            print(f"Optimization complete: {result.total_inner_iters} iterations")
-            print(f"  Final cost: {result.final_cost:.6e}")
-            print(f"  Final cmax: {result.final_cmax:.6e}")
+            print(f"Pass 1 complete: {result1.total_inner_iters} iterations")
+            print(f"  Final cost: {result1.final_cost:.6e}")
+            print(f"  Final cmax: {result1.final_cmax:.6e}")
+        
+        # Store pass1 result
+        self.pass1_result = result1
+        
+        # =====================================================================
+        # PASS 2: Fine trajectory refinement (strict constraint enforcement)
+        # Interpolate to fine timestep and run with high penalty
+        # =====================================================================
+        if verbose:
+            print(f"\n=== PASS 2: Refinement (dt={dt_fine}s, penalty_init={self.planner_settings.pass2.aug_lag.penalty_init}) ===")
+        
+        # Propagate environment at fine timestep
+        N_fine = int(np.ceil(duration / dt_fine)) + 1
+        vecsPy_fine = self._propagate_environment(os_0, t_start, t_end, dt_fine, N_fine, goals)
+        
+        # Get pass2 settings (higher penalty for strict constraints)
+        cost_settings_2 = self.planner_settings.optSecondCostSettings()
+        alilqr_settings_2 = self.planner_settings.secondAlilqrSettings()
+        
+        # Interpolate coarse trajectory to fine timestep (like C++ trajOptAfter)
+        interp_ratio = int(dt_coarse / dt_fine)
+        if interp_ratio > 1:
+            Xset_coarse = result1.Xset
+            Uset_coarse = result1.Uset
+            
+            # Replicate controls (zero-order hold) like C++ repelem
+            # UsetLong = join_rows(repelem(Uset.cols(0,Uset.n_cols-3), 1, ratio), ...)
+            if Uset_coarse.shape[1] >= 3:
+                Uset_main = np.repeat(Uset_coarse[:, :-2], interp_ratio, axis=1)
+            else:
+                Uset_main = np.repeat(Uset_coarse[:, :-1], interp_ratio, axis=1)
+            
+            # Handle end padding to reach N_fine
+            cols_needed = N_fine - Uset_main.shape[1] - 1
+            if cols_needed > 0:
+                Uset_pad = np.tile(Uset_coarse[:, -2:-1], (1, cols_needed))
+                Uset_fine = np.hstack([Uset_main, Uset_pad, Uset_coarse[:, -1:]])
+            else:
+                Uset_fine = np.hstack([Uset_main[:, :N_fine-1], Uset_coarse[:, -1:]])
+            
+            if verbose:
+                print(f"  Interpolated controls: {Uset_coarse.shape[1]} -> {Uset_fine.shape[1]}")
+        else:
+            Uset_fine = result1.Uset
+        
+        # Prepare vecs at fine timestep
+        initial_result_2 = self.planner.prepareForAlilqr(
+            vecsPy_fine, dt_fine, t_start, t_end, x_0_clean, 0  # bdot=0
+        )
+        _, vecs_dt_fine, _ = initial_result_2
+        
+        # Generate warm-started trajectory from interpolated Pass1 controls
+        # This matches C++ trajOptAfter: generateInitialTrajectory(dt_tvlqr, Xset.col(0), UsetLong, vecs_tvlqr)
+        # dt_fine=1s is small enough that this should be stable
+        try:
+            traj_fine = self.planner.generateInitialTrajectory(
+                dt_fine, result1.Xset[:, 0].copy(), Uset_fine, vecs_dt_fine
+            )
+            # Check for NaN
+            Xset_check, _, _, _ = traj_fine
+            if np.any(np.isnan(Xset_check)) or np.any(np.isinf(Xset_check)):
+                if verbose:
+                    print("  WARNING: Warm start produced NaN, using fresh init")
+                traj_fine, _, _ = initial_result_2
+        except Exception as e:
+            if verbose:
+                print(f"  WARNING: generateInitialTrajectory failed ({e}), using fresh init")
+            traj_fine, _, _ = initial_result_2
+        
+        result2 = self.py_alilqr.optimize(
+            dt=dt_fine,
+            initial_traj=traj_fine,
+            vecs=vecs_dt_fine,
+            cost_settings=cost_settings_2,
+            alilqr_settings=alilqr_settings_2,
+            is_first_search=False,
+            collect_all=collect_all_iterations,
+            pass_label="Pass2"
+        )
+        
+        # Combine results
+        result = result2
+        result.iterations = result1.iterations + result2.iterations
+        
+        # Store results for analysis
+        self.last_optimization_result = result
+        self.pass2_result = result2
+        
+        if verbose:
+            print(f"Pass 2 complete: {result2.total_inner_iters} iterations")
+            print(f"  Final cost: {result2.final_cost:.6e}")
+            print(f"  Final cmax: {result2.final_cmax:.6e}")
+            print(f"\nTotal iterations: {result1.total_inner_iters + result2.total_inner_iters}")
         
         # Reorder controls and create trajectory
         Uset = reorder_controls_cpp_to_python(result.Uset, self.est_sat.actuators)
         Kset = reorder_gains_cpp_to_python(result.Kset, self.est_sat.actuators)
         
         # Create dummy Sset (not computed by Python ALILQR directly)
-        Sset = np.zeros((1, N))
+        N_result = result.Xset.shape[1]
+        Sset = np.zeros((1, N_result))
         
         return Trajectory(result.times, result.Xset, Uset, Kset, Sset)
     
