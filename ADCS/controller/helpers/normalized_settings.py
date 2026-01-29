@@ -53,6 +53,14 @@ class NormalizedActuatorCosts:
         Cost of thruster at max force. Default 1000.0 (fuel is expensive).
     magic_cost : float
         Cost of magic actuator at max torque. Default 1.0.
+    use_torque_effective_mtq_scaling : bool
+        If True, scale MTQ cost by torque authority (τ = m × B) rather than
+        dipole moment. This makes MTQ and RW costs comparable in terms of
+        achievable torque. Default False.
+    expected_B_field_uT : float
+        Expected magnetic field magnitude in μT for torque-effective scaling.
+        Only used when use_torque_effective_mtq_scaling=True.
+        Typical LEO values: 20-50 μT. Default 30.0 μT.
     """
     mtq_cost: float = 1.0
     rw_torque_cost: float = 10.0
@@ -60,6 +68,8 @@ class NormalizedActuatorCosts:
     rw_stiction_cost: float = 0.1
     thruster_cost: float = 1000.0
     magic_cost: float = 1.0
+    use_torque_effective_mtq_scaling: bool = False
+    expected_B_field_uT: float = 30.0  # Typical LEO value
 
 
 @dataclass
@@ -328,8 +338,16 @@ class NormalizedSettingsConverter:
         if mtq_actuators:
             # Use first MTQ's limit (assume all same)
             m_max = mtq_actuators[0].u_max * (1.0 - self.config.constraints.control_margin)
-            # Cost on magnetic dipole moment (not torque) - penalizes power draw
-            raw['mtq_control_weight'] = act_costs.mtq_cost * g_ctrl / (m_max ** 2)
+            
+            if act_costs.use_torque_effective_mtq_scaling:
+                # Scale by torque authority: τ_max = m_max × |B|
+                # This makes MTQ cost comparable to RW torque cost
+                B_typical = act_costs.expected_B_field_uT * 1e-6  # Convert to Tesla
+                tau_max = m_max * B_typical
+                raw['mtq_control_weight'] = act_costs.mtq_cost * g_ctrl / (tau_max ** 2)
+            else:
+                # Default: cost on magnetic dipole moment (penalizes power draw)
+                raw['mtq_control_weight'] = act_costs.mtq_cost * g_ctrl / (m_max ** 2)
         
         # RW control weights
         rw_actuators = [a for a in self.satellite.actuators 

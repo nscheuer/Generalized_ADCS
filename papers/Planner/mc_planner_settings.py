@@ -82,13 +82,19 @@ def create_good_planner_settings(sat, dt_planning: float = 1.0, has_rw: bool = T
         settings.RWh_ok_mult = 0.5
     
     # Convergence settings - balanced for speed and accuracy
-    settings.pass1.convergence.max_outer_iter = 8
-    settings.pass1.convergence.max_inner_iter = 30
-    settings.pass2.convergence.max_outer_iter = 4
+    settings.pass1.convergence.max_outer_iter = 10
+    settings.pass1.convergence.max_inner_iter = 15
+    settings.pass2.convergence.max_outer_iter = 8
     settings.pass2.convergence.max_inner_iter = 15
     
-    # Use default augmented Lagrangian settings
-    # Note: Soft constraint violations in the plan are handled by actuator saturation at runtime
+    # Augmented Lagrangian settings - key for convergence
+    # Pass 1: Low penalty for exploration
+    settings.pass1.aug_lag.penalty_init = 1.0
+    settings.pass1.aug_lag.penalty_max = 1e6
+    
+    # Pass 2: High penalty for constraint enforcement
+    settings.pass2.aug_lag.penalty_init = 1e4
+    settings.pass2.aug_lag.penalty_max = 1e16
     
     return settings
 
