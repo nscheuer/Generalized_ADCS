@@ -85,30 +85,34 @@ def create_planner_settings(
         _print_diagnostics(converter)
     
     # Build cost weights
+    # Note: Terminal costs (angle_N, ang_vel_N) are typically much higher
+    # to ensure convergence to the goal attitude at the end of the horizon
     cost_main = CostWeights(
         angle=raw_weights.get('angle_weight', 1e3),
-        angle_N=raw_weights.get('angle_weight', 1e3),
+        angle_N=raw_weights.get('angle_weight_N', 1e6),  # Terminal angle cost
         ang_vel=raw_weights.get('angvel_weight', 1e3),
-        ang_vel_N=raw_weights.get('angvel_weight', 1e3),
+        ang_vel_N=raw_weights.get('angvel_weight_N', 1e5),  # Terminal angular velocity cost
         control_mult=1.0,  # Already scaled in actuator weights
         ang_cost_func_type=raw_weights.get('ang_cost_func_type', 2),
     )
     
+    # cost_second and cost_tvlqr use the same weights as cost_main by default
+    # This matches the legacy PlannerSettings behavior
     cost_second = CostWeights(
-        angle=raw_weights.get('angle_weight', 1e3) * 10,  # Higher for refinement
+        angle=raw_weights.get('angle_weight', 1e3),
         angle_N=raw_weights.get('angle_weight_N', 1e6),
-        ang_vel=raw_weights.get('angvel_weight', 1e3) * 0.1,  # Lower rate cost
+        ang_vel=raw_weights.get('angvel_weight', 1e3),
         ang_vel_N=raw_weights.get('angvel_weight_N', 1e5),
-        control_mult=10.0,  # Higher control cost in refinement
+        control_mult=1.0,
         ang_cost_func_type=raw_weights.get('ang_cost_func_type', 2),
     )
     
     cost_tvlqr = CostWeights(
-        angle=raw_weights.get('angle_weight', 1e3) * 10,
-        angle_N=raw_weights.get('angle_weight_N', 1e6) * 10,
-        ang_vel=raw_weights.get('angvel_weight', 1e3) * 100,
-        ang_vel_N=raw_weights.get('angvel_weight_N', 1e5) * 100,
-        control_mult=10.0,
+        angle=raw_weights.get('angle_weight', 1e3),
+        angle_N=raw_weights.get('angle_weight_N', 1e6),
+        ang_vel=raw_weights.get('angvel_weight', 1e3),
+        ang_vel_N=raw_weights.get('angvel_weight_N', 1e5),
+        control_mult=1.0,
         ang_cost_func_type=raw_weights.get('ang_cost_func_type', 2),
     )
     
