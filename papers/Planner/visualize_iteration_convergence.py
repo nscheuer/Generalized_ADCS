@@ -44,6 +44,8 @@ def quat_error_angle(q1, q2):
 def plot_convergence(iterations: List[IterationData], q_goal: np.ndarray, save_path: str = None):
     """
     Create a comprehensive convergence plot.
+    
+    Automatically detects Pass 1/Pass 2 from pass_label field and colors them differently.
     """
     if not iterations:
         print("No iteration data to plot!")
@@ -62,6 +64,15 @@ def plot_convergence(iterations: List[IterationData], q_goal: np.ndarray, save_p
     cmaxs = [it.cmax for it in iterations]
     grads = [it.grad for it in iterations]
     
+    # Detect Pass 1/Pass 2 boundary from pass_label
+    pass_labels = [getattr(it, 'pass_label', '') for it in iterations]
+    pass1_mask = [('Pass1' in pl or 'pass1' in pl.lower() if pl else True) for pl in pass_labels]
+    pass2_start = None
+    for i, pl in enumerate(pass_labels):
+        if pl and ('Pass2' in pl or 'pass2' in pl.lower()):
+            pass2_start = i
+            break
+    
     # Compute angle errors
     angle_errors = []
     for it in iterations:
@@ -69,54 +80,50 @@ def plot_convergence(iterations: List[IterationData], q_goal: np.ndarray, save_p
         q_final = q_final / np.linalg.norm(q_final)
         angle_errors.append(quat_error_angle(q_final, q_goal))
     
+    # Helper to plot with Pass1/Pass2 coloring
+    def plot_with_passes(ax, y_data, ylabel, title, use_semilogy=True, add_offset=0):
+        y = [v + add_offset for v in y_data]
+        if pass2_start is not None:
+            # Two-pass case
+            x1, y1 = total_iters[:pass2_start], y[:pass2_start]
+            x2, y2 = total_iters[pass2_start:], y[pass2_start:]
+            if use_semilogy:
+                ax.semilogy(x1, y1, 'b-', linewidth=1.5, label='Pass 1 (coarse)')
+                ax.semilogy(x2, y2, 'r-', linewidth=1.5, label='Pass 2 (fine)')
+            else:
+                ax.plot(x1, y1, 'b-', linewidth=1.5, label='Pass 1 (coarse)')
+                ax.plot(x2, y2, 'r-', linewidth=1.5, label='Pass 2 (fine)')
+            ax.axvline(pass2_start, color='gray', linestyle='--', linewidth=2, alpha=0.7)
+            ax.legend(loc='upper right', fontsize=8)
+        else:
+            # Single pass
+            if use_semilogy:
+                ax.semilogy(total_iters, y, 'b-', linewidth=1.5)
+            else:
+                ax.plot(total_iters, y, 'b-', linewidth=1.5)
+        ax.set_xlabel('Iteration')
+        ax.set_ylabel(ylabel)
+        ax.set_title(title)
+        ax.grid(True, alpha=0.3)
+    
     # Plot 1: Cost vs iteration
     ax1 = axes[0, 0]
-    ax1.semilogy(total_iters, costs, 'b-', linewidth=1.5, label='Augmented Lagrangian')
-    ax1.semilogy(total_iters, costs_nc, 'g--', linewidth=1.5, label='Cost (no constraints)')
-    ax1.set_xlabel('Iteration')
-    ax1.set_ylabel('Cost')
-    ax1.set_title('Cost Convergence')
-    ax1.legend()
-    ax1.grid(True, alpha=0.3)
-    
-    # Mark outer iteration boundaries
-    outer_starts = [0]
-    for i in range(1, len(outer_iters)):
-        if outer_iters[i] != outer_iters[i-1]:
-            outer_starts.append(i)
-            ax1.axvline(i, color='red', linestyle=':', alpha=0.5)
+    plot_with_passes(ax1, costs, 'Cost', 'Cost Convergence')
     
     # Plot 2: Constraint violation
     ax2 = axes[0, 1]
-    ax2.semilogy(total_iters, [c + 1e-10 for c in cmaxs], 'r-', linewidth=1.5)
-    ax2.set_xlabel('Iteration')
-    ax2.set_ylabel('Max Constraint Violation')
-    ax2.set_title('Constraint Satisfaction')
-    ax2.grid(True, alpha=0.3)
-    for s in outer_starts[1:]:
-        ax2.axvline(s, color='red', linestyle=':', alpha=0.5)
+    plot_with_passes(ax2, cmaxs, 'Max Constraint Violation', 'Constraint Satisfaction', add_offset=1e-10)
+    ax2.axhline(0.002, color='green', linestyle=':', alpha=0.7, label='cmax target')
     
     # Plot 3: Gradient (convergence indicator)
     ax3 = axes[1, 0]
-    ax3.semilogy(total_iters, [g + 1e-10 for g in grads], 'm-', linewidth=1.5)
-    ax3.set_xlabel('Iteration')
-    ax3.set_ylabel('Gradient Norm')
-    ax3.set_title('Gradient Convergence')
-    ax3.grid(True, alpha=0.3)
-    for s in outer_starts[1:]:
-        ax3.axvline(s, color='red', linestyle=':', alpha=0.5)
+    plot_with_passes(ax3, grads, 'Gradient Norm', 'Gradient Convergence', add_offset=1e-10)
     
     # Plot 4: Angle error
     ax4 = axes[1, 1]
-    ax4.semilogy(total_iters, [e + 1e-3 for e in angle_errors], 'c-', linewidth=1.5)
-    ax4.set_xlabel('Iteration')
-    ax4.set_ylabel('Angle Error (deg)')
-    ax4.set_title('Pointing Error Evolution')
+    plot_with_passes(ax4, angle_errors, 'Angle Error (deg)', 'Pointing Error Evolution', add_offset=1e-3)
     ax4.axhline(1.0, color='green', linestyle='--', alpha=0.5, label='1° target')
-    ax4.legend()
-    ax4.grid(True, alpha=0.3)
-    for s in outer_starts[1:]:
-        ax4.axvline(s, color='red', linestyle=':', alpha=0.5)
+    ax4.legend(loc='upper right', fontsize=8)
     
     # Plot 5: Final trajectory states
     ax5 = axes[2, 0]
