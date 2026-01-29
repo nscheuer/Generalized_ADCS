@@ -259,89 +259,15 @@ def main():
     print("\nLive visualization saved.")
     
     # =========================================================================
-    # CONVERGENCE HISTORY PLOT (separate window)
+    # CONVERGENCE ANALYSIS PLOT (separate window)
     # =========================================================================
-    print("\nGenerating convergence history plot...")
+    print("\nGenerating convergence analysis plot...")
     
-    fig2, axes = plt.subplots(2, 2, figsize=(14, 10))
-    fig2.suptitle('Two-Pass Optimization Convergence History', fontsize=14, fontweight='bold')
+    # Use the comprehensive plot_convergence function
+    from papers.Planner.visualize_iteration_convergence import plot_convergence
     
-    # Combine all iterations
-    all_iters = all_iterations
-    total_iters = list(range(len(all_iters)))
-    
-    # Find Pass1/Pass2 boundary
-    pass1_end = result1.total_inner_iters
-    
-    # Extract data
-    costs = [it.LA for it in all_iters]
-    cmaxs = [max(it.cmax, 1e-16) for it in all_iters]
-    grads = [max(it.grad, 1e-16) for it in all_iters]
-    mus = [it.mu for it in all_iters]
-    
-    # Compute angle errors
-    angle_errors = []
-    for it in all_iters:
-        q_f = it.Xset[3:7, -1]
-        q_f = q_f / np.linalg.norm(q_f)
-        angle_errors.append(quat_error_angle(q_f, q_goal))
-    
-    # Plot 1: Cost
-    ax = axes[0, 0]
-    ax.semilogy(total_iters[:pass1_end], costs[:pass1_end], 'b-', linewidth=1.5, label='Pass 1')
-    ax.semilogy(total_iters[pass1_end:], costs[pass1_end:], 'r-', linewidth=1.5, label='Pass 2')
-    ax.axvline(x=pass1_end, color='gray', linestyle='--', alpha=0.5, label='Pass boundary')
-    ax.set_xlabel('Iteration')
-    ax.set_ylabel('Cost (Augmented Lagrangian)')
-    ax.set_title('Cost Convergence')
-    ax.legend(loc='upper right')
-    ax.grid(True, alpha=0.3)
-    
-    # Plot 2: Constraint violation
-    ax = axes[0, 1]
-    ax.semilogy(total_iters[:pass1_end], cmaxs[:pass1_end], 'b-', linewidth=1.5, label='Pass 1')
-    ax.semilogy(total_iters[pass1_end:], cmaxs[pass1_end:], 'r-', linewidth=1.5, label='Pass 2')
-    ax.axvline(x=pass1_end, color='gray', linestyle='--', alpha=0.5)
-    ax.axhline(y=0.002, color='green', linestyle=':', alpha=0.7, label='cmax target')
-    ax.set_xlabel('Iteration')
-    ax.set_ylabel('Max Constraint Violation')
-    ax.set_title('Constraint Satisfaction')
-    ax.legend(loc='upper right')
-    ax.grid(True, alpha=0.3)
-    
-    # Plot 3: Pointing error
-    ax = axes[1, 0]
-    ax.semilogy(total_iters[:pass1_end], angle_errors[:pass1_end], 'b-', linewidth=1.5, label='Pass 1')
-    ax.semilogy(total_iters[pass1_end:], angle_errors[pass1_end:], 'r-', linewidth=1.5, label='Pass 2')
-    ax.axvline(x=pass1_end, color='gray', linestyle='--', alpha=0.5)
-    ax.axhline(y=1.0, color='green', linestyle=':', alpha=0.7, label='1° target')
-    ax.set_xlabel('Iteration')
-    ax.set_ylabel('Pointing Error (deg)')
-    ax.set_title('Pointing Error Convergence')
-    ax.legend(loc='upper right')
-    ax.grid(True, alpha=0.3)
-    
-    # Plot 4: Penalty (mu)
-    ax = axes[1, 1]
-    ax.semilogy(total_iters[:pass1_end], mus[:pass1_end], 'b-', linewidth=1.5, label='Pass 1')
-    ax.semilogy(total_iters[pass1_end:], mus[pass1_end:], 'r-', linewidth=1.5, label='Pass 2')
-    ax.axvline(x=pass1_end, color='gray', linestyle='--', alpha=0.5)
-    ax.set_xlabel('Iteration')
-    ax.set_ylabel('Penalty (μ)')
-    ax.set_title('Augmented Lagrangian Penalty')
-    ax.legend(loc='upper right')
-    ax.grid(True, alpha=0.3)
-    
-    plt.tight_layout()
-    
-    # Save convergence plot
     conv_path = "/home/pmckeen/Generalized_ADCS/papers/Planner/figures/two_pass_convergence.png"
-    fig2.savefig(conv_path, dpi=150, bbox_inches='tight')
-    print(f"Convergence plot saved to {conv_path}")
-    
-    # Show both figures
-    print("\nClose the figures to exit.")
-    plt.show()
+    plot_convergence(all_iterations, q_goal, save_path=conv_path)
 
 
 if __name__ == "__main__":
