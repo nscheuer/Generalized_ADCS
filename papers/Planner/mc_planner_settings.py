@@ -16,7 +16,7 @@ from ADCS.controller.helpers.normalized_settings import (
 )
 
 
-def create_good_planner_settings(sat, dt_planning: float = 1.0, has_rw: bool = True):
+def create_good_planner_settings(sat, dt_planning: float = 1.0, has_rw: bool = None):
     """
     Create well-conditioned planner settings.
     
@@ -33,14 +33,18 @@ def create_good_planner_settings(sat, dt_planning: float = 1.0, has_rw: bool = T
         The satellite object
     dt_planning : float
         Planning timestep in seconds
-    has_rw : bool
-        Whether the satellite has reaction wheels
+    has_rw : bool, optional
+        Whether the satellite has reaction wheels. If None, auto-detected.
         
     Returns
     -------
     PlannerSettings
         Well-conditioned planner settings
     """
+    # Auto-detect RWs if not specified
+    if has_rw is None:
+        has_rw = len(sat.rw_actuators) > 0
+    
     if has_rw:
         # Use torque-effective MTQ scaling + scale normalization
         config = NormalizedPlannerConfig(
@@ -99,7 +103,7 @@ def create_good_planner_settings(sat, dt_planning: float = 1.0, has_rw: bool = T
     return settings
 
 
-def create_fast_planner_settings(sat, dt_planning: float = 1.0, has_rw: bool = True):
+def create_fast_planner_settings(sat, dt_planning: float = 1.0, has_rw: bool = None):
     """
     Create faster planner settings (fewer iterations, lower accuracy).
     
@@ -109,8 +113,8 @@ def create_fast_planner_settings(sat, dt_planning: float = 1.0, has_rw: bool = T
         The satellite object
     dt_planning : float
         Planning timestep in seconds
-    has_rw : bool
-        Whether the satellite has reaction wheels
+    has_rw : bool, optional
+        Whether the satellite has reaction wheels. If None, auto-detected.
         
     Returns
     -------
