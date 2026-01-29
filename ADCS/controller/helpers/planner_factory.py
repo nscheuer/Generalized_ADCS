@@ -131,6 +131,12 @@ def create_planner_settings(
         ]}
     )
     
+    # Default to bdot_on=0 for slew maneuvers (unless explicitly overridden)
+    # bdot_on=1 uses B-dot damping initialization which is meant for detumbling,
+    # not for controlled slew maneuvers from a stable initial state
+    if 'bdot_on' not in kwargs:
+        planner_settings.bdot_on = 0
+    
     # Apply raw weights
     planner_settings.mtq_control_weight = raw_weights.get('mtq_control_weight', 1e3)
     planner_settings.rw_control_weight = raw_weights.get('rw_control_weight', 1e8)

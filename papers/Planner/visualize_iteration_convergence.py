@@ -200,6 +200,7 @@ def main():
     settings = create_planner_settings(sat, config)
     settings.rw_AM_weight = 1e4
     settings.RWh_ok_mult = 0.5
+    settings.bdot_on = 0  # IMPORTANT: Use random init, not B-dot for slew maneuvers
     settings.pass1.convergence.max_outer_iter = 5
     settings.pass1.convergence.max_inner_iter = 20
     settings.pass2.convergence.max_outer_iter = 3
