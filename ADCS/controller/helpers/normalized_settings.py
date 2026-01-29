@@ -40,6 +40,9 @@ class NormalizedActuatorCosts:
     ----------
     mtq_cost : float
         Cost of MTQ at full dipole moment (per axis). Default 1.0 (baseline).
+        Note: This penalizes the magnetic dipole moment, not the produced torque.
+        This is intentional because MTQs draw power proportional to dipole,
+        regardless of whether that dipole produces useful torque.
     rw_torque_cost : float
         Cost of RW at max torque. Default 10.0 (prefer MTQ for momentum exchange).
     rw_momentum_cost : float
@@ -64,30 +67,96 @@ class NormalizedStateCosts:
     """
     State costs in normalized space.
     
-    Costs are specified per unit of normalized error:
-    - Angle errors normalized by angle_scale (default π radians)
-    - Angular velocity errors normalized by ang_vel_scale (default wmax)
+    Two modes are available:
+    
+    1. **Legacy mode** (use_scale_normalization=False, default):
+       Costs are raw weights applied directly to states in radians/rad/s.
+       - angle_cost: weight on attitude error (radians)
+       - ang_vel_cost: weight on angular velocity (rad/s)
+    
+    2. **Scale-normalized mode** (use_scale_normalization=True):
+       Costs are specified per reference scale for better conditioning.
+       States are internally normalized: J = weight * (state / scale)²
+       This improves Hessian conditioning when states have different magnitudes.
     
     Parameters
     ----------
     angle_cost : float
-        Cost of 1 radian attitude error (or angle_scale if specified).
+        Running attitude error weight. In legacy mode, this is the raw weight.
+        In normalized mode, this is the cost when error equals angle_scale_deg.
     angle_terminal_cost : float
-        Terminal cost multiplier for attitude error.
+        Terminal attitude error weight or multiplier (see use_scale_normalization).
     ang_vel_cost : float
-        Cost of 1 rad/s angular velocity error (or ang_vel_scale if specified).
+        Running angular velocity weight.
     ang_vel_terminal_cost : float
-        Terminal cost multiplier for angular velocity error.
+        Terminal angular velocity weight or multiplier.
     ang_cost_func_type : int
-        0: 1-cos(angle) - smooth near zero
-        2: acos geodesic - true geodesic distance
-        4: squared MRP - fast computation
+        Attitude cost function type:
+        0: 1-cos(θ) - smooth near zero
+        1: 0.5*(1-cos(θ))² - smoother
+        2: acos(cos(θ)) = θ - true geodesic (recommended)
+        3: 0.5*θ² - quadratic geodesic
+    use_scale_normalization : bool
+        If True, use scale-normalized costs for better conditioning.
+        If False (default), use legacy raw weights.
+    angle_scale_deg : float
+        Reference angle in degrees for normalization (only used if use_scale_normalization=True).
+    ang_vel_scale_deg_s : float
+        Reference angular velocity in deg/s for normalization.
     """
+    # Cost weights (interpretation depends on use_scale_normalization)
     angle_cost: float = 100.0
     angle_terminal_cost: float = 1000.0
     ang_vel_cost: float = 100.0
     ang_vel_terminal_cost: float = 1000.0
+    
+    # Cost function type
     ang_cost_func_type: int = 2  # acos geodesic (dissertation default)
+    
+    # Scale normalization (optional, off by default)
+    use_scale_normalization: bool = False
+    angle_scale_deg: float = 90.0  # Reference angle in degrees
+    ang_vel_scale_deg_s: float = 10.0  # Reference angular velocity in deg/s
+    
+    @property
+    def angle_scale_rad(self) -> float:
+        """Angle scale in radians."""
+        return self.angle_scale_deg * np.pi / 180.0
+    
+    @property
+    def ang_vel_scale_rad_s(self) -> float:
+        """Angular velocity scale in rad/s."""
+        return self.ang_vel_scale_deg_s * np.pi / 180.0
+    
+    def to_raw_weights(self, global_scale: float = 1.0) -> dict:
+        """
+        Convert to raw weights for C++ optimizer.
+        
+        In legacy mode: returns weights directly (scaled by global_scale).
+        In normalized mode: returns weights divided by scale² so that
+            cost = w_raw * state² = w_normalized * (state/scale)²
+        """
+        if self.use_scale_normalization:
+            # Scale-normalized mode
+            angle_scale = self.angle_scale_rad
+            ang_vel_scale = self.ang_vel_scale_rad_s
+            
+            return {
+                'angle_weight': self.angle_cost * global_scale / (angle_scale ** 2),
+                'angle_weight_N': self.angle_terminal_cost * global_scale / (angle_scale ** 2),
+                'angvel_weight': self.ang_vel_cost * global_scale / (ang_vel_scale ** 2),
+                'angvel_weight_N': self.ang_vel_terminal_cost * global_scale / (ang_vel_scale ** 2),
+                'ang_cost_func_type': self.ang_cost_func_type,
+            }
+        else:
+            # Legacy mode - direct weights
+            return {
+                'angle_weight': self.angle_cost * global_scale,
+                'angle_weight_N': self.angle_terminal_cost * global_scale,
+                'angvel_weight': self.ang_vel_cost * global_scale,
+                'angvel_weight_N': self.ang_vel_terminal_cost * global_scale,
+                'ang_cost_func_type': self.ang_cost_func_type,
+            }
 
 
 @dataclass 
@@ -258,8 +327,9 @@ class NormalizedSettingsConverter:
                         if type(a).__name__ == 'MTQ']
         if mtq_actuators:
             # Use first MTQ's limit (assume all same)
-            u_max = mtq_actuators[0].u_max * (1.0 - self.config.constraints.control_margin)
-            raw['mtq_control_weight'] = act_costs.mtq_cost * g_ctrl / (u_max ** 2)
+            m_max = mtq_actuators[0].u_max * (1.0 - self.config.constraints.control_margin)
+            # Cost on magnetic dipole moment (not torque) - penalizes power draw
+            raw['mtq_control_weight'] = act_costs.mtq_cost * g_ctrl / (m_max ** 2)
         
         # RW control weights
         rw_actuators = [a for a in self.satellite.actuators 
@@ -275,12 +345,13 @@ class NormalizedSettingsConverter:
             # Stiction weight
             raw['rw_stic_weight'] = act_costs.rw_stiction_cost * g_ctrl
         
-        # State weights
-        raw['angle_weight'] = state_costs.angle_cost * g_state
-        raw['angle_weight_N'] = state_costs.angle_terminal_cost * g_state
-        raw['angvel_weight'] = state_costs.ang_vel_cost * g_state
-        raw['angvel_weight_N'] = state_costs.ang_vel_terminal_cost * g_state
-        raw['ang_cost_func_type'] = state_costs.ang_cost_func_type
+        # State weights - use the new normalized interface
+        state_raw = state_costs.to_raw_weights(global_scale=g_state)
+        raw['angle_weight'] = state_raw['angle_weight']
+        raw['angle_weight_N'] = state_raw['angle_weight_N']
+        raw['angvel_weight'] = state_raw['angvel_weight']
+        raw['angvel_weight_N'] = state_raw['angvel_weight_N']
+        raw['ang_cost_func_type'] = state_raw['ang_cost_func_type']
         
         # Constraints in radians
         raw['wmax'] = self.config.constraints.max_angular_velocity_deg_s * np.pi / 180.0
@@ -329,6 +400,41 @@ class NormalizedSettingsConverter:
         
         return max(costs) / max(min(costs), 1e-10)
     
+    def estimate_state_hessian_condition(self) -> float:
+        """
+        Estimate the condition number of the state cost Hessian.
+        
+        With proper normalization, this should be close to 1.
+        
+        Returns
+        -------
+        float
+            Estimated condition number of Qxx.
+        """
+        state_costs = self.config.state_costs
+        raw = state_costs.to_raw_weights(global_scale=self.config.global_state_scale)
+        
+        # The raw weights are already scaled by 1/scale²
+        # So the diagonal of Qxx is approximately [w_ang, w_ang, w_ang, w_av, w_av, w_av, ...]
+        weights = [
+            raw['angle_weight'],
+            raw['angvel_weight'],
+        ]
+        
+        # Add RW momentum weights if present
+        rw_actuators = [a for a in self.satellite.actuators 
+                       if type(a).__name__ == 'RW']
+        if rw_actuators:
+            act_costs = self.config.actuator_costs
+            h_max = rw_actuators[0].h_max * self.config.constraints.rw_momentum_margin
+            rw_h_weight = act_costs.rw_momentum_cost * self.config.global_control_scale / (h_max ** 2)
+            weights.append(rw_h_weight)
+        
+        if len(weights) == 0:
+            return 1.0
+        
+        return max(weights) / max(min(weights), 1e-10)
+    
     def get_diagnostic_info(self) -> Dict[str, any]:
         """
         Get diagnostic information about the scaling and conditioning.
@@ -341,16 +447,24 @@ class NormalizedSettingsConverter:
         scaling = self.compute_scaling_factors()
         raw = self.compute_raw_weights()
         
-        return {
+        state_costs = self.config.state_costs
+        
+        info = {
             'scaling': {
                 'control_scales': scaling.control_scales,
-                'angle_scale': scaling.angle_scale,
-                'ang_vel_scale': scaling.ang_vel_scale,
             },
             'raw_weights': raw,
             'estimated_Quu_condition': self.estimate_control_hessian_condition(),
+            'estimated_Qxx_condition': self.estimate_state_hessian_condition(),
             'num_actuators': len(self.satellite.actuators),
+            'use_scale_normalization': state_costs.use_scale_normalization,
         }
+        
+        if state_costs.use_scale_normalization:
+            info['scaling']['angle_scale_deg'] = state_costs.angle_scale_deg
+            info['scaling']['ang_vel_scale_deg_s'] = state_costs.ang_vel_scale_deg_s
+        
+        return info
 
 
 # =============================================================================
@@ -366,6 +480,7 @@ class PlannerPresets:
         Configuration for MTQ-only satellites.
         
         Emphasizes smooth control since MTQs are the only actuators.
+        Uses conservative angular velocity limits.
         """
         return NormalizedPlannerConfig(
             actuator_costs=NormalizedActuatorCosts(
@@ -463,6 +578,64 @@ class PlannerPresets:
                 rw_momentum_margin=0.8,
             ),
             global_state_scale=1.0,
+        )
+    
+    @staticmethod
+    def mtq_only_normalized() -> NormalizedPlannerConfig:
+        """
+        MTQ-only configuration with scale normalization for better conditioning.
+        
+        This is an experimental option that normalizes states by reference scales
+        to improve Hessian conditioning.
+        """
+        return NormalizedPlannerConfig(
+            actuator_costs=NormalizedActuatorCosts(
+                mtq_cost=1.0,
+            ),
+            state_costs=NormalizedStateCosts(
+                angle_cost=100.0,
+                angle_terminal_cost=1000.0,  # 10x running
+                ang_vel_cost=100.0,
+                ang_vel_terminal_cost=1000.0,
+                use_scale_normalization=True,
+                angle_scale_deg=90.0,
+                ang_vel_scale_deg_s=10.0,
+            ),
+            constraints=NormalizedConstraints(
+                max_angular_velocity_deg_s=10.0,
+                control_margin=0.25,
+            ),
+        )
+    
+    @staticmethod
+    def mtq_plus_rw_normalized() -> NormalizedPlannerConfig:
+        """
+        MTQ+RW configuration with scale normalization for better conditioning.
+        
+        This is an experimental option that normalizes states by reference scales
+        to improve Hessian conditioning.
+        """
+        return NormalizedPlannerConfig(
+            actuator_costs=NormalizedActuatorCosts(
+                mtq_cost=1.0,
+                rw_torque_cost=5.0,
+                rw_momentum_cost=10.0,
+                rw_stiction_cost=0.1,
+            ),
+            state_costs=NormalizedStateCosts(
+                angle_cost=100.0,
+                angle_terminal_cost=1000.0,
+                ang_vel_cost=100.0,
+                ang_vel_terminal_cost=1000.0,
+                use_scale_normalization=True,
+                angle_scale_deg=90.0,
+                ang_vel_scale_deg_s=20.0,
+            ),
+            constraints=NormalizedConstraints(
+                max_angular_velocity_deg_s=20.0,
+                control_margin=0.25,
+                rw_momentum_margin=0.5,
+            ),
         )
     
     @staticmethod

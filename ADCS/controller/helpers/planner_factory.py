@@ -168,6 +168,9 @@ def _get_preset(name: str) -> NormalizedPlannerConfig:
         'rw_primary': PlannerPresets.rw_primary,
         'agile_imaging': PlannerPresets.agile_imaging,
         'dissertation': PlannerPresets.dissertation_equivalent,
+        # Experimental normalized versions (better conditioning)
+        'mtq_only_normalized': PlannerPresets.mtq_only_normalized,
+        'mtq_plus_rw_normalized': PlannerPresets.mtq_plus_rw_normalized,
     }
     
     if name not in presets:
@@ -199,11 +202,16 @@ def _print_diagnostics(converter: NormalizedSettingsConverter):
     print("=" * 60)
     print(f"Number of actuators: {info['num_actuators']}")
     print(f"Estimated Quu condition number: {info['estimated_Quu_condition']:.1f}")
+    print(f"Estimated Qxx condition number: {info['estimated_Qxx_condition']:.1f}")
     print()
     print("Scaling factors:")
     print(f"  Control scales: {info['scaling']['control_scales']}")
-    print(f"  Angle scale: {info['scaling']['angle_scale']:.4f} rad")
-    print(f"  Ang vel scale: {info['scaling']['ang_vel_scale']:.4f} rad/s")
+    if info.get('use_scale_normalization', False):
+        print(f"  State normalization: ENABLED")
+        print(f"  Angle scale: {info['scaling']['angle_scale_deg']:.1f} deg")
+        print(f"  Ang vel scale: {info['scaling']['ang_vel_scale_deg_s']:.1f} deg/s")
+    else:
+        print(f"  State normalization: disabled (legacy mode)")
     print()
     print("Computed raw weights:")
     for key, value in info['raw_weights'].items():
