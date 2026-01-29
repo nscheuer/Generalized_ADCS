@@ -949,7 +949,7 @@ tuple<cube, cube> OldPlanner::findK(double dt_tvlqr0, TRAJECTORY_FORM traj, VECT
     //Get Aqk and Bqk
     Aqk = Gkp1*A*trans(Gk);
     Bqk = Gkp1*B;
-    Kk = solve((lkuu + trans(Bqk)*Skp1*Bqk), (trans(Bqk)*Skp1*Aqk),solve_opts::likely_sympd+solve_opts::no_approx);//+solve_opts::refine);//inv(R + trans(Bqk)*Skp1*Bqk)*(trans(Bqk)*Skp1*Aqk);//
+    Kk = solve((lkuu + trans(Bqk)*Skp1*Bqk), (trans(Bqk)*Skp1*Aqk),solve_opts::likely_sympd+solve_opts::fast);//inv(R + trans(Bqk)*Skp1*Bqk)*(trans(Bqk)*Skp1*Aqk);//
 
     Kset_lqr.slice(k) = Kk;
     // Sk = lkxx + trans(Aqk)*Skp1*Aqk - trans(Aqk)*Skp1*Bqk*Kk;
@@ -1070,7 +1070,7 @@ tuple<cube, cube> OldPlanner::findKwDist(double dt_tvlqr0, TRAJECTORY_FORM traj,
     //mat tmpVal = lkuu + trans(Bqk)*Skp1*Bqk;
     //eig_gen(eigvals,eigvecs,tmpVal);
     //Kk = eigvecs*diagmat(1/clamp(abs(eigvals),1e-8,datum::inf))*eigvecs.t()*trans(Bqk)*Skp1*Aqk;
-    Kk = solve((lkuu + trans(Bqk)*Skp1*Bqk), (trans(Bqk)*Skp1*Aqk),solve_opts::likely_sympd+solve_opts::no_approx);//+solve_opts::refine);//inv(R + trans(Bqk)*Skp1*Bqk)*(trans(Bqk)*Skp1*Aqk);//
+    Kk = solve((lkuu + trans(Bqk)*Skp1*Bqk), (trans(Bqk)*Skp1*Aqk),solve_opts::likely_sympd+solve_opts::fast);//inv(R + trans(Bqk)*Skp1*Bqk)*(trans(Bqk)*Skp1*Aqk);//
 
     Kset_lqr.slice(k) = Kk;
     // Sk = lkxx + trans(Aqk)*Skp1*Aqk - trans(Aqk)*Skp1*Bqk*Kk;
@@ -2163,11 +2163,11 @@ tuple<BACKWARD_PASS_RESULTS_FORM, REG_PAIR> OldPlanner::backwardPass(double dt0,
           }
           throw("somehow regularized Qkuu has nan/inf but nonregularized does not");
         }
-        reset |= !solve(Kk,Qkuureg, Qkux,solve_opts::no_approx);//+solve_opts::likely_sympd);//+solve_opts::fast);//+solve_opts::refine);%+solve_opts::no_approx);//+solve_opts::no_approx);//+solve_opts::equilibrate+solve_opts::refine+solve_opts::no_approx);
+        reset |= !solve(Kk,Qkuureg, Qkux,solve_opts::likely_sympd+solve_opts::fast);//17% faster than no_approx, same accuracy
         if(verbose&&reset){
           cout<<"Solving Kk failed \n";
         }
-        reset |= !solve(dk,Qkuureg, Qku,solve_opts::no_approx);//+solve_opts::likely_sympd);//solve_opts::fast);//+solve_opts::refine+solve_opts::no_approx);//+solve_opts::no_approx);//+solve_opts::equilibrate+solve_opts::refine+solve_opts::no_approx);
+        reset |= !solve(dk,Qkuureg, Qku,solve_opts::likely_sympd+solve_opts::fast);//17% faster than no_approx, same accuracy
         // dk = Qkuureg_chol*Qku;
         if(verbose&&reset){
           cout<<"Solving dk failed \n";
