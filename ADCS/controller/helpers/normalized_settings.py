@@ -55,8 +55,14 @@ class NormalizedActuatorCosts:
         Cost of magic actuator at max torque. Default 1.0.
     use_torque_effective_mtq_scaling : bool
         If True, scale MTQ cost by torque authority (τ = m × B) rather than
-        dipole moment. This makes MTQ and RW costs comparable in terms of
-        achievable torque. Default False.
+        dipole moment. This puts MTQ and RW costs in the same units (torque),
+        making their relative costs directly comparable.
+        
+        WARNING: Since MTQs produce much less torque than RWs (typically
+        100-1000x less), enabling this will make MTQs appear very expensive
+        relative to RWs. Use this if you want the optimizer to strongly
+        prefer RWs when available. Default False.
+        
     expected_B_field_uT : float
         Expected magnetic field magnitude in μT for torque-effective scaling.
         Only used when use_torque_effective_mtq_scaling=True.
