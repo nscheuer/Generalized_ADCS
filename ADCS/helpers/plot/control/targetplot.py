@@ -1,146 +1,111 @@
+from __future__ import annotations
+
 __all__ = ["TargetPlot"]
 
 import numpy as np
 import matplotlib.gridspec as gridspec
 
 from ..subplot import Subplot
-from ADCS.helpers.math_helpers import rot_mat
+from ADCS.helpers.math_helpers import rot_mat, normalize, quat_diff
 
 
-def _normalize_modes(modes):
+def _normalize_modes(modes: list[str] | None) -> list[str]:
     if modes is None or len(modes) == 0:
         return ["real_target"]
     allowed = {"real_target", "est_target", "real_est", "directions3d"}
     bad = [m for m in modes if m not in allowed]
     if bad:
         raise ValueError(f"Invalid modes {bad}. Allowed: {sorted(allowed)}")
-    # de-dup keep order
-    out = []
+    out: list[str] = []
     for m in modes:
         if m not in out:
             out.append(m)
     return out
 
 
-def _safe_unit(v: np.ndarray) -> np.ndarray:
-    v = np.asarray(v, dtype=float)
-    n = np.linalg.norm(v)
-    return v / n if n > 0 else v
-
-
-def _quat_boresight_eci(q, bore_body):
-    """
-    Convert a (Body->ECI) attitude quaternion into the boresight direction in ECI.
-    """
-    R_b2i = rot_mat(q)  # Body -> ECI
-    v = R_b2i @ bore_body
-    return _safe_unit(v)
-
-
-def _angle_deg(u, v):
-    u = np.asarray(u, dtype=float)
-    v = np.asarray(v, dtype=float)
-    nu = np.linalg.norm(u)
-    nv = np.linalg.norm(v)
-    if nu == 0 or nv == 0:
-        return np.nan
+def _angle_deg(u: np.ndarray, v: np.ndarray) -> float:
+    u = np.asarray(u, dtype=float).reshape(-1)
+    v = np.asarray(v, dtype=float).reshape(-1)
+    if u.size != 3 or v.size != 3:
+        return float("nan")
+    nu = float(np.linalg.norm(u))
+    nv = float(np.linalg.norm(v))
+    if nu == 0.0 or nv == 0.0:
+        return float("nan")
     u = u / nu
     v = v / nv
-    dot = np.clip(float(np.dot(u, v)), -1.0, 1.0)
+    dot = float(np.clip(np.dot(u, v), -1.0, 1.0))
     return float(np.rad2deg(np.arccos(dot)))
 
 
-def _target_direction_eci_from_row(row4: np.ndarray, bore_body: np.ndarray) -> np.ndarray | None:
+def _boresight_eci(q_b2i: np.ndarray, bore_body_unit: np.ndarray) -> np.ndarray:
     """
-    Interpret a single target_hist row and return the desired target direction in ECI as a unit vector.
-
-    target_hist row format (len=4):
-      - Vector goal: [nan, tx, ty, tz]  -> direction = [tx, ty, tz]
-      - Quaternion goal: [q0, q1, q2, q3] -> direction = (rot_mat(q_target) @ bore_body)
-
-    Returns:
-      - unit 3-vector (np.ndarray shape (3,))
-      - None if the row cannot be interpreted or is invalid
+    Convert a (Body->ECI) attitude quaternion into the boresight direction in ECI.
     """
-    row4 = np.asarray(row4, dtype=float).reshape(-1)
-    if row4.size != 4:
-        return None
+    q_b2i = normalize(np.asarray(q_b2i, dtype=float).reshape(4))
+    return normalize(rot_mat(q_b2i) @ bore_body_unit)
 
-    # Vector goal if first entry is NaN
-    if np.isnan(row4[0]):
-        v = row4[1:4]
-        if np.linalg.norm(v) == 0:
-            return None
-        return _safe_unit(v)
 
-    # Quaternion goal otherwise
-    q = row4
-    if np.linalg.norm(q) == 0:
-        return None
-    q = q / np.linalg.norm(q)
-    v = _quat_boresight_eci(q, bore_body)
-    if np.linalg.norm(v) == 0:
-        return None
-    return v
+def _attitude_error_deg(q_b2i: np.ndarray, qref_b2i: np.ndarray) -> float:
+    """
+    Hamilton, scalar-first.
+    Returns the minimal rotation angle between q and q_ref in degrees.
+    """
+    q_b2i = normalize(np.asarray(q_b2i, dtype=float).reshape(4))
+    qref_b2i = normalize(np.asarray(qref_b2i, dtype=float).reshape(4))
+
+    # quat_diff(q0, q1) returns q0^{-1} ⊗ q1 (forced to positive scalar part)
+    q_err = quat_diff(q_b2i, qref_b2i)
+    w = float(np.clip(q_err[0], -1.0, 1.0))
+    return float(np.rad2deg(2.0 * np.arccos(w)))
 
 
 class TargetPlot(Subplot):
     r"""
-    Comparison plot between spacecraft boresight, target direction, and estimates.
+    Comparison plot between spacecraft boresight / attitude targets and estimates.
 
-    This plot compares boresight direction (in ECI) against a target "goal" that can be:
+    This plot uses sim.target_hist rows of length 4 and supports two encodings:
 
-      1) A vector goal stored in sim.target_hist as [nan, tx, ty, tz]
-         where [tx,ty,tz] is the target direction in ECI.
+      1) Vector goal: [nan, tx, ty, tz]
+         - Interpreted as a *direction in ECI* (tx,ty,tz).
+         - Error (real_target / est_target) is the angle between the spacecraft
+           boresight (rotated into ECI) and the target direction.
 
-      2) A quaternion goal stored in sim.target_hist as [q0, q1, q2, q3]
-         interpreted as a desired attitude quaternion (Body->ECI). In this case,
-         the target direction is taken as the desired boresight direction in ECI:
-             bore_target_eci = rot_mat(q_target) @ bore_body
+      2) Quaternion goal: [q0, q1, q2, q3]
+         - Interpreted as a *full desired attitude* quaternion (Body->ECI).
+         - Error (real_target / est_target) is the *attitude error angle* between
+           the current quaternion and q_ref via the relative quaternion.
 
     Supported modes:
-      - real_target: angle(real boresight, target)
-      - est_target: angle(estimated boresight, target)
-      - real_est: angle(real boresight, estimated boresight)
+      - real_target: (vector target → boresight error) OR (quat target → attitude error)
+      - est_target:  same as above but using est_state_hist
+      - real_est:    angle(real boresight, estimated boresight) (requires boresight)
       - directions3d: 3D snapshot of directions at a chosen sample
+                      (requires boresight; for quaternion targets, shows boresight
+                       implied by q_ref for visualization only)
 
-    :param time:
+    Parameters
+    ----------
+    time : str
         Name of the simulation attribute containing the time vector in seconds.
-    :type time:
-        str
-
-    :param title:
+    title : str
         Title displayed at the top of the plot.
-    :type title:
-        str
-
-    :param units:
+    units : str
         Units used for angular error display, typically degrees.
-    :type units:
-        str
-
-    :param modes:
-        List of comparison modes to display. Supported values are
-        real_target, est_target, real_est, and directions3d.
-        If None, the default mode real_target is used.
-    :type modes:
-        list[str] or None
-
-    :param sample_index:
-        Index of the sample used for the three-dimensional direction snapshot
-        when directions3d mode is enabled. A negative value selects from the end.
-    :type sample_index:
-        int
+    modes : list[str] | None
+        Which comparisons to display.
+    sample_index : int
+        Index for the directions3d snapshot (negative selects from end).
     """
 
     def __init__(
         self,
         *,
         time: str = "time_s",
-        title: str = "Target / Boresight Comparison",
+        title: str = "Target Tracking",
         units: str = "deg",
         modes: list[str] | None = None,
-        sample_index: int = -1,  # -1 means last sample
+        sample_index: int = -1,
     ):
         self.time = time
         self.title = title
@@ -149,13 +114,11 @@ class TargetPlot(Subplot):
         self.sample_index = sample_index
 
     def plot(self, ax, sim) -> None:
-        if (
-            sim.state_hist is None
-            or getattr(sim, "target_hist", None) is None
-            or sim.satellite is None
-            or not hasattr(sim.satellite, "boresight")
-        ):
+        if sim.state_hist is None or getattr(sim, "target_hist", None) is None:
             self._plot_no_data(ax)
+            return
+        if getattr(sim, "satellite", None) is None:
+            self._plot_no_data(ax, msg="No satellite attached to sim_results")
             return
 
         X_real = np.asarray(sim.state_hist)
@@ -176,87 +139,117 @@ class TargetPlot(Subplot):
         if t is not None:
             t = np.asarray(t)[:N]
 
-        # boresight in body
-        bore_body = np.asarray(sim.satellite.boresight, dtype=float).reshape(-1)
-        if bore_body.size != 3:
-            self._plot_no_data(ax, msg="Satellite boresight must be a 3-vector")
-            return
-        nb = np.linalg.norm(bore_body)
-        if nb == 0:
-            self._plot_no_data(ax, msg="Satellite boresight has zero norm")
-            return
-        bore_body = bore_body / nb
+        # boresight in body (optional; only needed for vector targets / boresight comparisons)
+        bore_body_unit = None
+        bore_body = getattr(sim.satellite, "boresight", None)
+        if bore_body is not None:
+            bb = np.asarray(bore_body, dtype=float).reshape(-1)
+            if bb.size == 3 and np.linalg.norm(bb) > 0:
+                bore_body_unit = bb / np.linalg.norm(bb)
 
-        # Precompute target directions in ECI for all samples (unit vectors)
-        target_dirs = np.empty((N, 3), dtype=float)
-        target_valid = np.ones(N, dtype=bool)
+        # Interpret target_hist rows
+        is_quat = np.zeros(N, dtype=bool)
+        target_ok = np.ones(N, dtype=bool)
+
+        target_vec_eci = np.full((N, 3), np.nan, dtype=float)  # for vector targets (unit)
+        target_qref = np.full((N, 4), np.nan, dtype=float)     # for quaternion targets (unit)
+
         for i in range(N):
-            v = _target_direction_eci_from_row(Th[i], bore_body)
-            if v is None or np.linalg.norm(v) == 0:
-                target_dirs[i] = np.array([np.nan, np.nan, np.nan], dtype=float)
-                target_valid[i] = False
-            else:
-                target_dirs[i] = v
+            row = np.asarray(Th[i], dtype=float).reshape(-1)
+            if row.size != 4:
+                target_ok[i] = False
+                continue
 
-        # compute requested series
+            if np.isnan(row[0]):
+                # Vector target: [nan, tx, ty, tz]
+                v = row[1:4]
+                if not np.all(np.isfinite(v)) or np.linalg.norm(v) == 0:
+                    target_ok[i] = False
+                    continue
+                if bore_body_unit is None:
+                    # Can't evaluate boresight error without boresight
+                    target_ok[i] = False
+                    continue
+                target_vec_eci[i] = v / np.linalg.norm(v)
+            else:
+                # Quaternion target: [q0,q1,q2,q3]
+                qref = row
+                if not np.all(np.isfinite(qref)) or np.linalg.norm(qref) == 0:
+                    target_ok[i] = False
+                    continue
+                is_quat[i] = True
+                target_qref[i] = qref / np.linalg.norm(qref)
+
+        # Build series
         series: dict[str, np.ndarray | None] = {}
 
+        # --- real_target ---
         if "real_target" in self.modes:
             y = np.full(N, np.nan, dtype=float)
             for i in range(N):
-                if not target_valid[i]:
+                if not target_ok[i]:
                     continue
                 q = X_real[i, 3:7]
-                bore_eci = _quat_boresight_eci(q, bore_body)
-                y[i] = _angle_deg(bore_eci, target_dirs[i])
+                if is_quat[i]:
+                    y[i] = _attitude_error_deg(q, target_qref[i])
+                else:
+                    # vector target → boresight error
+                    bore_eci = _boresight_eci(q, bore_body_unit)  # type: ignore[arg-type]
+                    y[i] = _angle_deg(bore_eci, target_vec_eci[i])
             series["Real vs Target"] = y
 
+        # --- est_target ---
         if "est_target" in self.modes:
             if X_est is None:
                 series["Estimated vs Target (missing est_state_hist)"] = None
             else:
                 y = np.full(N, np.nan, dtype=float)
                 for i in range(N):
-                    if not target_valid[i]:
+                    if not target_ok[i]:
                         continue
                     qh = X_est[i, 3:7]
-                    bore_eci_hat = _quat_boresight_eci(qh, bore_body)
-                    y[i] = _angle_deg(bore_eci_hat, target_dirs[i])
+                    if is_quat[i]:
+                        y[i] = _attitude_error_deg(qh, target_qref[i])
+                    else:
+                        bore_eci_hat = _boresight_eci(qh, bore_body_unit)  # type: ignore[arg-type]
+                        y[i] = _angle_deg(bore_eci_hat, target_vec_eci[i])
                 series["Estimated vs Target"] = y
 
+        # --- real_est (boresight comparison) ---
         if "real_est" in self.modes:
             if X_est is None:
                 series["Real vs Estimated (missing est_state_hist)"] = None
+            elif bore_body_unit is None:
+                series["Real vs Estimated (missing satellite.boresight)"] = None
             else:
                 y = np.full(N, np.nan, dtype=float)
                 for i in range(N):
                     q = X_real[i, 3:7]
                     qh = X_est[i, 3:7]
-                    bore_eci = _quat_boresight_eci(q, bore_body)
-                    bore_eci_hat = _quat_boresight_eci(qh, bore_body)
+                    bore_eci = _boresight_eci(q, bore_body_unit)
+                    bore_eci_hat = _boresight_eci(qh, bore_body_unit)
                     y[i] = _angle_deg(bore_eci, bore_eci_hat)
                 series["Real vs Estimated"] = y
 
         want_3d = "directions3d" in self.modes
 
-        # ---- layout ----
+        # Layout / availability checks
         n_series = sum(1 for v in series.values() if v is not None)
         if n_series == 0 and not want_3d:
             self._plot_no_data(ax, msg="No valid comparison modes available")
             return
+        if want_3d and bore_body_unit is None:
+            # directions3d is inherently a boresight-direction visualization
+            want_3d = False
 
-        # remove the container axis and build sub-axes
+        # remove container axis and build sub-axes
         ax.set_frame_on(False)
         ax.tick_params(left=False, labelleft=False, bottom=False, labelbottom=False)
 
-        # rows: all time-series + optional 3D directions
         rows = n_series + (1 if want_3d else 0)
-        gs = gridspec.GridSpecFromSubplotSpec(
-            rows, 1, subplot_spec=ax.get_subplotspec(), hspace=0.35
-        )
+        gs = gridspec.GridSpecFromSubplotSpec(rows, 1, subplot_spec=ax.get_subplotspec(), hspace=0.35)
 
         r = 0
-        # time-series axes
         for name, y in series.items():
             if y is None:
                 continue
@@ -274,43 +267,50 @@ class TargetPlot(Subplot):
                 ax_i.set_title(self.title, loc="left", pad=10)
             r += 1
 
-        # optional 3D “direction snapshot”
+        # Optional 3D snapshot
         if want_3d:
             ax3 = ax.figure.add_subplot(gs[r, 0], projection="3d")
 
             idx = self.sample_index
             if idx < 0:
-                idx = N + idx  # python-style from end
+                idx = N + idx
             idx = int(np.clip(idx, 0, N - 1))
 
             q = X_real[idx, 3:7]
-            bore_eci = _quat_boresight_eci(q, bore_body)
+            bore_eci = _boresight_eci(q, bore_body_unit)  # type: ignore[arg-type]
 
-            target = target_dirs[idx]
-            if not np.all(np.isfinite(target)) or np.linalg.norm(target) == 0:
-                target = np.array([np.nan, np.nan, np.nan], dtype=float)
+            # Target direction for visualization:
+            # - vector target: plot the target vector
+            # - quaternion target: plot the boresight implied by q_ref (visual aid only)
+            target_dir = None
+            if target_ok[idx]:
+                if is_quat[idx]:
+                    qref = target_qref[idx]
+                    target_dir = _boresight_eci(qref, bore_body_unit)  # type: ignore[arg-type]
+                    target_label = "Target (q_ref boresight)"
+                else:
+                    target_dir = target_vec_eci[idx]
+                    target_label = "Target"
+            else:
+                target_label = "Target"
 
             bore_hat = None
             if X_est is not None:
                 qh = X_est[idx, 3:7]
-                bore_hat = _quat_boresight_eci(qh, bore_body)
+                bore_hat = _boresight_eci(qh, bore_body_unit)  # type: ignore[arg-type]
 
-            # draw unit vectors from origin
-            def _vec(v):
-                return np.array([0, v[0]]), np.array([0, v[1]]), np.array([0, v[2]])
+            def _seg(v: np.ndarray):
+                return np.array([0.0, v[0]]), np.array([0.0, v[1]]), np.array([0.0, v[2]])
 
-            xs, ys, zs = _vec(bore_eci)
+            xs, ys, zs = _seg(bore_eci)
             ax3.plot(xs, ys, zs, label="Real boresight")
 
-            if np.all(np.isfinite(target)):
-                xs, ys, zs = _vec(target)
-                ax3.plot(xs, ys, zs, label="Target")
-            else:
-                # still show legend entry if desired; keep it simple and skip plotting invalid target
-                pass
+            if target_dir is not None and np.all(np.isfinite(target_dir)) and np.linalg.norm(target_dir) > 0:
+                xs, ys, zs = _seg(target_dir)
+                ax3.plot(xs, ys, zs, label=target_label)
 
             if bore_hat is not None:
-                xs, ys, zs = _vec(bore_hat)
+                xs, ys, zs = _seg(bore_hat)
                 ax3.plot(xs, ys, zs, label="Estimated boresight")
 
             ax3.set_xlim(-1, 1)
@@ -320,7 +320,7 @@ class TargetPlot(Subplot):
             ax3.set_title(f"Direction snapshot (k={idx})")
             ax3.legend()
 
-    def _plot_no_data(self, ax, msg="No target / state data available"):
+    def _plot_no_data(self, ax, msg: str = "No target / state data available") -> None:
         ax.axis("off")
         ax.set_title(self.title, loc="left", pad=10)
         ax.text(0.5, 0.5, msg, ha="center", va="center", transform=ax.transAxes)
