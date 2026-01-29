@@ -315,6 +315,53 @@ class NormalizedSettingsConverter:
         self._scaling = scaling
         return scaling
     
+    def _get_reference_torque(
+        self, 
+        exclude_types: list = None,
+        default: float = 0.004
+    ) -> float:
+        """
+        Get the reference torque for cost scaling.
+        
+        Finds the maximum torque capability among all actuators (excluding
+        specified types) to use as a reference for relative cost scaling.
+        
+        Parameters
+        ----------
+        exclude_types : list of str, optional
+            Actuator type names to exclude (e.g., ['MTQ'] to exclude weak actuators).
+        default : float, optional
+            Default reference torque if no suitable actuators found. Default 4 mN·m.
+            
+        Returns
+        -------
+        float
+            Reference torque in N·m.
+        """
+        if exclude_types is None:
+            exclude_types = []
+            
+        margin = 1.0 - self.config.constraints.control_margin
+        max_torque = default
+        
+        for actuator in self.satellite.actuators:
+            type_name = type(actuator).__name__
+            if type_name in exclude_types:
+                continue
+                
+            # Use the actuator's estimate_torque_capability method
+            try:
+                tau = actuator.estimate_torque_capability(
+                    expected_field_uT=self.config.actuator_costs.expected_B_field_uT
+                ) * margin
+                max_torque = max(max_torque, tau)
+            except AttributeError:
+                # Fallback for actuators without the method
+                tau = actuator.u_max * margin
+                max_torque = max(max_torque, tau)
+        
+        return max_torque
+    
     def compute_raw_weights(self) -> Dict[str, float]:
         """
         Convert normalized costs to raw weights for C++ optimizer.
@@ -353,21 +400,17 @@ class NormalizedSettingsConverter:
                 # Since τ_mtq = m × B is tiny compared to RW torque, we make MTQ
                 # "cheap" so the optimizer uses it freely at full capacity.
                 #
-                # Standard cost: w_std = normalized_cost / m_max²
-                # Scaled cost: w_scaled = w_std * (τ_mtq_max / τ_ref)²
-                #
-                # We use RW torque as reference if available, otherwise use a
-                # typical small RW torque (4 mN·m).
-                B_typical = act_costs.expected_B_field_uT * 1e-6  # Convert to Tesla
-                tau_mtq_max = m_max * B_typical
+                # Use the actuator's estimate_torque_capability() method for
+                # generic handling of environment-dependent actuators.
+                tau_mtq_max = mtq_actuators[0].estimate_torque_capability(
+                    expected_field_uT=act_costs.expected_B_field_uT
+                )
                 
-                # Get reference torque from RW if available
-                rw_actuators = [a for a in self.satellite.actuators 
-                               if type(a).__name__ == 'RW']
-                if rw_actuators:
-                    tau_ref = rw_actuators[0].u_max * (1.0 - self.config.constraints.control_margin)
-                else:
-                    tau_ref = 0.004  # 4 mN·m typical small RW
+                # Get reference torque: max torque among all actuators
+                tau_ref = self._get_reference_torque(
+                    exclude_types=['MTQ'],  # Don't include MTQs in reference
+                    default=0.004  # 4 mN·m fallback
+                )
                 
                 # Scale factor: (τ_mtq/τ_ref)² makes MTQ cheaper when it's weaker
                 weakness_ratio = (tau_mtq_max / tau_ref) ** 2

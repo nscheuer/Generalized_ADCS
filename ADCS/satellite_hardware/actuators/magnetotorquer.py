@@ -138,6 +138,73 @@ class MTQ(Actuator):
         """
         super().__init__(axis=axis, u_max=max_torque, bias=bias, noise=noise, estimate_bias=estimate_bias)
 
+    def estimate_torque_capability(
+        self, 
+        orbital_states: list = None,
+        n_samples: int = 100,
+        expected_field_uT: float = 30.0
+    ) -> float:
+        r"""
+        Estimate the maximum torque this magnetorquer can produce.
+        
+        MTQ torque depends on the magnetic field: τ = m × B.
+        The maximum torque magnitude is |τ| = |m| × |B| × sin(θ), where θ is
+        the angle between the dipole axis and the magnetic field.
+        
+        For a typical LEO orbit, the magnetic field magnitude is ~25-65 μT.
+        The average sin(θ) over random orientations is 2/π ≈ 0.637.
+        
+        Parameters
+        ----------
+        orbital_states : list of Orbital_State, optional
+            Sample orbital states for empirical estimation. If provided,
+            computes RMS torque capability over these samples.
+        n_samples : int, optional
+            Number of random samples if computing empirically. Default 100.
+        expected_field_uT : float, optional
+            Expected magnetic field magnitude in μT for analytical estimate.
+            Default 30.0 (typical LEO).
+            
+        Returns
+        -------
+        float
+            Estimated maximum torque magnitude in N·m.
+            
+        Notes
+        -----
+        If orbital_states are provided, this computes the torque at max dipole
+        for each sample and returns the RMS value. Otherwise, it uses an
+        analytical estimate based on expected field strength.
+        
+        The analytical estimate assumes average alignment:
+            τ_typical = m_max × B_expected × (2/π)
+        """
+        m_max = self.u_max  # Maximum dipole moment
+        
+        if orbital_states is not None and len(orbital_states) > 0:
+            # Empirical: compute RMS torque over samples
+            torque_magnitudes = []
+            x_dummy = np.array([0, 0, 0, 1, 0, 0, 0])  # Identity quaternion
+            
+            for os in orbital_states[:n_samples]:
+                try:
+                    vecs = os.get_state_vector(x=x_dummy)
+                    b_body = vecs["b"]
+                    # τ = -B × (m_max * axis) = m_max * (axis × B)
+                    tau = m_max * np.cross(self.axis, b_body)
+                    torque_magnitudes.append(np.linalg.norm(tau))
+                except Exception:
+                    continue
+            
+            if torque_magnitudes:
+                return np.sqrt(np.mean(np.array(torque_magnitudes)**2))
+        
+        # Analytical estimate: τ = m × B, average |sin(θ)| = 2/π
+        B_typical = expected_field_uT * 1e-6  # Convert μT to Tesla
+        avg_sin_theta = 2.0 / np.pi  # Average |sin| over sphere
+        
+        return m_max * B_typical * avg_sin_theta
+
     def torque(
         self,
         u: float,

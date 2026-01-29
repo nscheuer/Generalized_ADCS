@@ -123,6 +123,47 @@ class Actuator:
         self.input_len: int = 1
         self.last_bias_time: float = float('nan')
 
+    def estimate_torque_capability(
+        self, 
+        orbital_states: list = None,
+        n_samples: int = 100,
+        expected_field_uT: float = 30.0
+    ) -> float:
+        r"""
+        Estimate the maximum torque this actuator can produce.
+        
+        For environment-independent actuators (e.g., reaction wheels, thrusters),
+        this returns ``u_max`` directly since torque = u_max * axis.
+        
+        For environment-dependent actuators (e.g., magnetorquers), subclasses
+        should override this method to account for environmental factors.
+        
+        Parameters
+        ----------
+        orbital_states : list of Orbital_State, optional
+            Sample orbital states for environment-dependent estimation.
+            If None, uses expected_field_uT for a typical estimate.
+        n_samples : int, optional
+            Number of random samples if no orbital_states provided. Default 100.
+        expected_field_uT : float, optional
+            Expected magnetic field magnitude in μT for default estimation.
+            Only used by environment-dependent actuators. Default 30.0.
+            
+        Returns
+        -------
+        float
+            Estimated maximum torque magnitude in N·m.
+            
+        Notes
+        -----
+        This method is used by the planner's auto-scaling feature to normalize
+        actuator costs. Weak actuators (low torque capability) get lower costs
+        to encourage the optimizer to use them at full capacity.
+        
+        The base implementation assumes torque = u * axis, so max torque = u_max.
+        """
+        return self.u_max
+
     def torque(self, u: float, x: np.ndarray, os: Orbital_State, dmode: ErrorMode = None) -> float:
         r"""
         Compute the body-frame torque produced by the actuator.
