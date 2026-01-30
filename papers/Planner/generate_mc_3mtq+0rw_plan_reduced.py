@@ -21,7 +21,7 @@ from ADCS.controller.helpers import PlannerSettings
 from mc_planner_settings import create_adaptive_planner_settings
 from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.orbits.helpers.orbit_factory import create_random_circular_orbit
-from ADCS.satellite_factory.satellites.create_cubesats import create_beavercube2_cubesat
+from ADCS.satellite_factory.satellites.create_cubesats import create_beavercube1_cubesat
 from ADCS.helpers.math_helpers import normalize, rot_mat
 from ADCS.helpers.save_and_load.save_and_load import save_data, load_data
 from ADCS.helpers.plotting.close_all_plots import create_close_all_button_window
@@ -66,10 +66,8 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
         np.random.seed(config["seed"])
 
         # Create MTQ-only satellite (no RWs)
-        real_sat = create_beavercube2_cubesat(estimated=False)
+        real_sat = create_beavercube1_cubesat(estimated=False)
         # Remove RWs for 3+0 configuration
-        real_sat.actuators = [a for a in real_sat.actuators if not hasattr(a, 'h')]
-        real_sat.rw_actuators = []
 
         x0 = np.concatenate([config["w0"], config["q0"]])  # No RW momentum state
 
@@ -158,7 +156,7 @@ def generate_mc_config(run_id: int) -> Dict[str, Any]:
 if __name__ == "__main__":
     RUN_MC = True
     OUTPUT_DIR = "papers/Planner/output_data"
-    NUM_RUNS = 100
+    NUM_RUNS = 100  # Production run
 
     if RUN_MC:
         runner = MonteCarloRunner(

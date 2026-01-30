@@ -167,7 +167,7 @@ def generate_mc_config(run_id: int) -> Dict[str, Any]:
 if __name__ == "__main__":
     RUN_MC = True
     OUTPUT_DIR = "papers/Planner/output_data"
-    NUM_RUNS = 100
+    NUM_RUNS = 100  # Production run
 
     if RUN_MC:
         runner = MonteCarloRunner(
