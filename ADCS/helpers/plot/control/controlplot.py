@@ -78,66 +78,51 @@ class ControlPlot(Subplot):
 
     def plot(self, ax, sim) -> None:
         runs = sim.runs if hasattr(sim, "runs") else [sim]
+
         ax.set_frame_on(False)
         ax.tick_params(left=False, labelleft=False, bottom=False, labelbottom=False)
 
-        if sim.control_hist is None or len(sim.control_hist) == 0:
+        if runs[0].control_hist is None or len(runs[0].control_hist) == 0:
             fig = ax.figure
             ax_text = fig.add_subplot(ax.get_subplotspec())
             ax_text.axis("off")
             ax_text.set_title(self.title, loc="left", pad=10)
-            ax_text.text(
-                0.5, 0.5, "No control history available", ha="center", va="center"
-            )
+            ax_text.text(0.5, 0.5, "No control history available", ha="center", va="center")
             return
 
-        t = getattr(runs[0], self.time)
-        U = np.vstack(runs[0].control_hist)
-        n_ctrl = U.shape[1]
+        t0 = getattr(runs[0], self.time)
+        U0 = np.vstack(runs[0].control_hist)
+        n_ctrl = U0.shape[1]
 
-        u_max_list = _extract_u_max(sim)
-        if u_max_list is not None and len(u_max_list) < n_ctrl:
-            u_max_list = u_max_list + [np.nan] * (n_ctrl - len(u_max_list))
-        if u_max_list is not None and len(u_max_list) > n_ctrl:
-            u_max_list = u_max_list[:n_ctrl]
+        u_max_list = _extract_u_max(runs[0])
+        if u_max_list is not None:
+            u_max_list = (u_max_list + [np.nan] * n_ctrl)[:n_ctrl]
 
         ncols = int(math.ceil(math.sqrt(n_ctrl)))
         nrows = int(math.ceil(n_ctrl / ncols))
 
-        gs = gridspec.GridSpecFromSubplotSpec(
-            nrows, ncols, subplot_spec=ax.get_subplotspec()
-        )
-
+        gs = gridspec.GridSpecFromSubplotSpec(nrows, ncols, subplot_spec=ax.get_subplotspec())
         axes = []
         for i in range(n_ctrl):
             r, c = divmod(i, ncols)
             axes.append(ax.figure.add_subplot(gs[r, c]))
 
-        if self.labels is None:
-            labels = [rf"$u_{{{i}}}$" for i in range(n_ctrl)]
-        else:
-            if len(self.labels) != n_ctrl:
-                raise ValueError(
-                    f"labels length ({len(self.labels)}) must match number of controls ({n_ctrl})"
-                )
-            labels = self.labels
+        labels = (
+            [rf"$u_{{{i}}}$" for i in range(n_ctrl)]
+            if self.labels is None
+            else self.labels
+        )
 
         for run in runs:
             t = getattr(run, self.time)
             U = np.vstack(run.control_hist)
-
             for i, ax_i in enumerate(axes):
                 ax_i.plot(t, U[:, i], alpha=0.25)
 
         for i, ax_i in enumerate(axes):
-            (ln,) = ax_i.plot(t, U[:, i], label=labels[i])
-            color = ln.get_color()
-
-            if u_max_list is not None:
-                umax = u_max_list[i]
-                if np.isfinite(umax):
-                    ax_i.axhline(umax, linestyle="--", linewidth=1.2, color=color)
-                    ax_i.axhline(-umax, linestyle="--", linewidth=1.2, color=color)
+            if u_max_list is not None and np.isfinite(u_max_list[i]):
+                ax_i.axhline(u_max_list[i], linestyle="--", linewidth=1.2)
+                ax_i.axhline(-u_max_list[i], linestyle="--", linewidth=1.2)
 
             ax_i.set_ylabel(
                 f"{labels[i]} {f'[{self.units}]' if self.units else ''}".strip()
@@ -155,6 +140,7 @@ class ControlPlot(Subplot):
             ax_i.set_xlabel("Time [s]")
 
         axes[0].set_title(self.title, loc="left", pad=10)
+
 
 
 class ControlPlotSingle(Subplot):
@@ -224,12 +210,14 @@ class ControlPlotSingle(Subplot):
         self.log_y = log_y
 
     def plot(self, ax, sim) -> None:
-        if sim.control_hist is None or len(sim.control_hist) == 0:
+        run = sim.runs[0] if hasattr(sim, "runs") else sim
+
+        if run.control_hist is None or len(run.control_hist) == 0:
             self._plot_no_data(ax)
             return
 
-        t = getattr(sim, self.time)
-        U = np.vstack(sim.control_hist)
+        t = getattr(run, self.time)
+        U = np.vstack(run.control_hist)
         n_ctrl = U.shape[1]
 
         if self.index < 0 or self.index >= n_ctrl:
@@ -237,10 +225,8 @@ class ControlPlotSingle(Subplot):
                 f"Control index {self.index} out of bounds for {n_ctrl} channels."
             )
 
-        u_max_list = _extract_u_max(sim)
-        umax = None
-        if u_max_list is not None and self.index < len(u_max_list):
-            umax = u_max_list[self.index]
+        u_max_list = _extract_u_max(run)
+        umax = u_max_list[self.index] if u_max_list and self.index < len(u_max_list) else None
 
         y = U[:, self.index]
 
@@ -255,8 +241,7 @@ class ControlPlotSingle(Subplot):
             ax.axhline(umax, linestyle="--", linewidth=1.2, color=color)
             ax.axhline(-umax, linestyle="--", linewidth=1.2, color=color)
 
-        ylabel = f"{lbl} [{self.units}]" if self.units else lbl
-        ax.set_ylabel(ylabel)
+        ax.set_ylabel(f"{lbl} [{self.units}]" if self.units else lbl)
         ax.set_xlabel("Time [s]")
         ax.set_title(tit)
         ax.legend()
@@ -264,6 +249,7 @@ class ControlPlotSingle(Subplot):
 
         if self.log_y:
             ax.set_yscale("log")
+
 
     def _plot_no_data(self, ax):
         ax.axis("off")
@@ -339,55 +325,46 @@ class ControlPlotCombined(Subplot):
         self.colors = colors
 
     def plot(self, ax, sim) -> None:
-        if sim.control_hist is None or len(sim.control_hist) == 0:
+        runs = sim.runs if hasattr(sim, "runs") else [sim]
+
+        if runs[0].control_hist is None or len(runs[0].control_hist) == 0:
             self._plot_no_data(ax)
             return
 
-        t = getattr(sim, self.time)
-        U = np.vstack(sim.control_hist)
-        n_ctrl = U.shape[1]
+        U0 = np.vstack(runs[0].control_hist)
+        n_ctrl = U0.shape[1]
 
-        u_max_list = _extract_u_max(sim)
-        if u_max_list is not None and len(u_max_list) < n_ctrl:
-            u_max_list = u_max_list + [np.nan] * (n_ctrl - len(u_max_list))
-        if u_max_list is not None and len(u_max_list) > n_ctrl:
-            u_max_list = u_max_list[:n_ctrl]
+        u_max_list = _extract_u_max(runs[0])
+        if u_max_list is not None:
+            u_max_list = (u_max_list + [np.nan] * n_ctrl)[:n_ctrl]
 
-        if self.labels is None:
-            labels = [rf"$u_{{{i}}}$" for i in range(n_ctrl)]
-        else:
-            if len(self.labels) != n_ctrl:
-                raise ValueError(
-                    f"Label count ({len(self.labels)}) does not match control channels ({n_ctrl})"
-                )
-            labels = self.labels
+        labels = (
+            [rf"$u_{{{i}}}$" for i in range(n_ctrl)]
+            if self.labels is None
+            else self.labels
+        )
+
+        for run in runs:
+            t = getattr(run, self.time)
+            U = np.vstack(run.control_hist)
+
+            for i in range(n_ctrl):
+                color_arg = {}
+                if self.colors:
+                    color_arg["color"] = self.colors[i % len(self.colors)]
+                ax.plot(t, U[:, i], alpha=0.25, **color_arg)
 
         for i in range(n_ctrl):
-            color_arg = {}
-            if self.colors:
-                color_arg["color"] = self.colors[i % len(self.colors)]
+            if u_max_list is not None and np.isfinite(u_max_list[i]):
+                ax.axhline(u_max_list[i], linestyle="--", linewidth=1.2)
+                ax.axhline(-u_max_list[i], linestyle="--", linewidth=1.2)
 
-            (ln,) = ax.plot(t, U[:, i], label=labels[i], **color_arg)
-            color = ln.get_color()
-
-            if u_max_list is not None:
-                umax = u_max_list[i]
-                if np.isfinite(umax):
-                    ax.axhline(umax, linestyle="--", linewidth=1.2, color=color)
-                    ax.axhline(-umax, linestyle="--", linewidth=1.2, color=color)
-
-        ylabel = f"Control Input [{self.units}]" if self.units else "Control Input"
-        ax.set_ylabel(ylabel)
+        ax.set_ylabel(f"Control Input [{self.units}]" if self.units else "Control Input")
         ax.set_xlabel("Time [s]")
         ax.set_title(self.title)
 
         if self.log_y:
             ax.set_yscale("log")
-
-        if n_ctrl > 5:
-            ax.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
-        else:
-            ax.legend()
 
         ax.grid(True, which="both")
 

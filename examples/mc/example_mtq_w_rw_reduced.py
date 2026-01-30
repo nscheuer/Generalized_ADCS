@@ -27,9 +27,14 @@ controller = ADCS.controller.MTQ_w_RW(est_sat=real_sat, p_gain=0.1, d_gain=0.7, 
 os0 = ADCS.Orbital_State(ephem=ADCS.Ephemeris(),J2000=0.22, R=np.array([5000, 0, 5000]), V=np.array([0, 7.5, 0]))
 goal = ADCS.goals.ECI_Goal(eci_vector=np.array([0, 1, 0]))
 
+def make_random_orbit():
+    return ADCS.orbits.create_random_circular_orbit(radius_km=7000.0, dt=2.0, tf=100.0)
+
+rng = np.random.default_rng(seed=1000)
 mc_config = ADCS.MCConfig(
-    w = np.random.uniform(-0.1, 0.1, size=3),
-    orbit = ADCS.orbits.create_random_circular_orbit(radius_km=7000.0, dt=2.0, tf=100.0)
+    q = lambda: ADCS.helpers.normalize(rng.standard_normal(4)),
+    w = lambda: rng.uniform(-0.1, 0.1, size=3),
+    orbit = make_random_orbit
 )
 
 mc_results = ADCS.simulate_mc(
@@ -41,23 +46,15 @@ mc_results = ADCS.simulate_mc(
     dt=2.0,
     tf=100.0,
     mc_config=mc_config,
+    num_runs=10,
 )
 
 ADCS.plot(
-    results,
-    ADCS.plots.AttitudePlot(sources=["real", "reference"]),
-    layout=(1,1),
-    title="MTQ with Reaction Wheels Reduced Pointing Control",
-)
-
-ADCS.plot(
-    results,
-    ADCS.plots.AngularVelocityPlotCombined(sources=["real"]),
-    ADCS.plots.ControlPlotCombined(title="Magnetorquer Commands", units="Am²"),
-    ADCS.plots.SensorsPlot(title="MTM & RW Readings", sources=["clean"], units="T"),
-    ADCS.plots.TargetPlot(modes=["real_target"], title="Target Tracking"),
-    layout=(2,2),
-    title="MTQ with Reaction Wheels Reduced Pointing Control",
+    mc_results,
+    ADCS.plots.ControlPlot(),
+    ADCS.plots.TargetPlot(modes=["real_target"]),
+    layout=(2,1),
+    title="Control Plot",
 )
 
 plt.show()

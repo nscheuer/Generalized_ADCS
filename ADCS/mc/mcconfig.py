@@ -8,11 +8,13 @@ from ADCS.CONOPS.goals import Goal
 
 @dataclass
 class MCConfig:
-    w: Optional[np.ndarray] = None
-    q: Optional[np.ndarray] = None
-    h: Optional[np.ndarray] = None
+    w: Optional[np.ndarray] = None         
+    q: Optional[np.ndarray] = None          
+    h: Optional[np.ndarray] = None          
 
-    orbit: Optional[Orbit] = None
+    orbit: Optional[Orbit] = None          
 
-    # --- Goal override ---
     goal: Optional[Goal] = None
+
+    dt: Optional[float] = None
+    tf: Optional[float] = None
