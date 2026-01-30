@@ -903,7 +903,8 @@ double Satellite::stepcost_quat(int k, int N, vec xk, vec uk,vec ukprev, vec3 sa
       angcost = 0.5*as_scalar(qk.t()*We*We.t()*qk);
       break;
     case 2:
-      angcost = 0.5*w_ang*dot(angerrvec,angerrvec);
+      // FIX: Removed w_ang here - it's multiplied later (angcost *= w_ang)
+      angcost = 0.5*dot(angerrvec,angerrvec);
       if(abs(qerr(0))>EPSVAR){
           angcost *= 1.0/(qerr(0)*qerr(0));
         }else if(qerr(0)==0){
@@ -1312,7 +1313,8 @@ cost_jacs  Satellite::quatcostJacobians(int k, int N, vec xk, vec uk,vec ukprev,
       dd_sc_ang = Wq.t()*We*We.t()*Wq - mat33().eye()*dot(qk,We*We.t()*qk);;// - mat33().eye()*dot(qk,We*We.t()*qk);;//mat33().eye();//Wq.t()*We*We.t()*Wq;//mat33().eye();// Wq.t()*We*We.t()*Wq;// - mat33().eye()*dot(qk,We*We.t()*qk);
       break;
     case 2:
-      sc_ang = 0.5*w_ang*dot(angerrvec,angerrvec);
+      // FIX: Removed w_ang here - it's multiplied later in state_cost calculation
+      sc_ang = 0.5*dot(angerrvec,angerrvec);
       if(abs(qerr(0))>EPSVAR){
         sc_ang *= 1.0/(qerr(0)*qerr(0));
         d_sc_ang = angerrvec/qerr(0);

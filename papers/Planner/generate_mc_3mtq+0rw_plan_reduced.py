@@ -18,7 +18,7 @@ from ADCS.controller.plan_and_track_lqr import Plan_and_Track_LQR
 from ADCS.controller.helpers import PlannerSettings
 
 # Import good settings
-from mc_planner_settings import create_good_planner_settings
+from mc_planner_settings import create_adaptive_planner_settings
 from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.orbits.helpers.orbit_factory import create_random_circular_orbit
 from ADCS.satellite_factory.satellites.create_cubesats import create_beavercube2_cubesat
@@ -73,7 +73,7 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
         x0 = np.concatenate([config["w0"], config["q0"]])  # No RW momentum state
 
         # Use well-conditioned normalized settings (MTQ-only)
-        planner_settings = create_good_planner_settings(real_sat, dt_planning=dt_planning, has_rw=False)
+        planner_settings = create_adaptive_planner_settings(real_sat, duration=tf, dt_planning=dt_planning)
 
         controller = Plan_and_Track_LQR(est_sat=real_sat, planner_settings=planner_settings)
 

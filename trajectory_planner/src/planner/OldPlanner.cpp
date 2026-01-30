@@ -480,9 +480,11 @@ AFTER_OUTPUT_FORM OldPlanner::trajOptAfter(VECTOR_INFO_FORM vecs_w_time,double d
 
       mat K_lqr_tmp = packageK(get<0>(KS));
       mat S_lqr_tmp = packageS(get<1>(KS));
-      double Klen = ((K_lqr.n_cols-tvlqr_overlap_tmp) < 0) ? 0 : K_lqr.n_cols-tvlqr_overlap_tmp;
+      // FIX: tvlqr_overlap_tmp is in seconds, divide by dt_tvlqr to get column count
+      double overlap_cols = tvlqr_overlap_tmp / dt_tvlqr;
+      double Klen = ((K_lqr.n_cols-overlap_cols) < 0) ? 0 : K_lqr.n_cols-overlap_cols;
       K_lqr = join_rows(K_lqr.head_cols(Klen),K_lqr_tmp);
-      double Slen = ((S_lqr.n_cols-tvlqr_overlap_tmp-1) < 0) ? 0 : S_lqr.n_cols-tvlqr_overlap_tmp-1;
+      double Slen = ((S_lqr.n_cols-overlap_cols-1) < 0) ? 0 : S_lqr.n_cols-overlap_cols-1;
       S_lqr = join_rows(S_lqr.head_cols(Slen),S_lqr_tmp);
 
       if(verbose){cout<<size(K_lqr)<<"\n";}
