@@ -57,6 +57,7 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
                 _CACHED_ORBIT = create_random_circular_orbit(
                     radius_km=radius_km, dt=dt_planning, tf=tf, use_J2=True, fast=True
                 )
+                _CACHED_ORBIT.populate_environment(compute_B=True, compute_S=True)
                 _CACHED_ORBIT_KEY = orbit_key
             finally:
                 np.random.set_state(rng_state)
