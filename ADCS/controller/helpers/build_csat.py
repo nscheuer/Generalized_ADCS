@@ -326,7 +326,9 @@ def add_actuator(act: Actuator, csat: pysat.Satellite, planner_settings: Planner
 
     """
     if isinstance(act, MTQ):
-        csat.add_MTQ(act.axis, act.u_max, planner_settings.mtq_control_weight)
+        # Apply control_limit_scale to leave margin for feedback corrections
+        scaled_limit = act.u_max * planner_settings.control_limit_scale
+        csat.add_MTQ(act.axis, scaled_limit, planner_settings.mtq_control_weight)
     elif isinstance(act, RW):
         mult = getattr(planner_settings, 'RWh_max_mult', 0.8)
         cost_threshold = act.h_max * mult
