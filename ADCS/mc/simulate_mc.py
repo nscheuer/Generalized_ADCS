@@ -1,10 +1,14 @@
+from __future__ import annotations
+
 __all__ = ["simulate_mc"]
 
 import os
 import sys
 import pickle
+import hashlib
+import inspect
 import numpy as np
-from typing import Optional, Any, Dict, List, Union, Iterable
+from typing import Optional, Any, Dict, List, Union
 from contextlib import contextmanager
 from scipy.integrate import solve_ivp
 
@@ -21,13 +25,7 @@ from ADCS.satellite_hardware.satellite import Satellite, EstimatedSatellite
 from ADCS.helpers.math_helpers import normalize
 from ADCS.helpers.simresults import SimulationResults
 from ADCS.helpers.simresults_mc import MCSimulationResults
-
-from ADCS.mc.monte_carlo_runner import (
-    MonteCarloRunner,
-    claim_worker_slot,
-    release_worker_slot,
-    update_worker_progress,
-)
+from ADCS.mc.monte_carlo_runner import MonteCarloRunner, claim_worker_slot, release_worker_slot, update_worker_progress
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -48,12 +46,30 @@ def suppress_output():
             sys.stderr = old_stderr
 
 
+def _picklable(name: str, obj: Any) -> None:
+    try:
+        pickle.dumps(obj)
+    except Exception as e:
+        raise TypeError(f"{name} is not picklable: {e}") from e
+
+
 def _is_sampler(v: Any) -> bool:
     return callable(v)
 
 
 def _sample(v: Any, rng: np.random.Generator) -> Any:
-    return v() if _is_sampler(v) else v
+    if not _is_sampler(v):
+        return v
+    try:
+        sig = inspect.signature(v)
+        if len(sig.parameters) == 0:
+            return v()
+        return v(rng)
+    except Exception:
+        try:
+            return v(rng)
+        except TypeError:
+            return v()
 
 
 def _as_1d_float(x: Any, n: Optional[int], name: str) -> np.ndarray:
@@ -63,22 +79,8 @@ def _as_1d_float(x: Any, n: Optional[int], name: str) -> np.ndarray:
     return a
 
 
-def _picklable(name: str, obj: Any) -> None:
-    try:
-        pickle.dumps(obj)
-    except Exception as e:
-        raise TypeError(f"{name} is not picklable: {e}") from e
-
-
 def _freeze_os0(os0: Orbital_State) -> Dict[str, Any]:
-    return {
-        "J2000": float(os0.J2000),
-        "R": np.asarray(os0.R, dtype=float).reshape(3).copy(),
-        "V": np.asarray(os0.V, dtype=float).reshape(3).copy(),
-        "S": np.asarray(os0.S, dtype=float).reshape(3).copy() if getattr(os0, "S", None) is not None else None,
-        "B": np.asarray(os0.B, dtype=float).reshape(3).copy() if getattr(os0, "B", None) is not None else None,
-        "rho": float(os0.rho) if getattr(os0, "rho", None) is not None else None,
-    }
+    return os0.to_dict()
 
 
 def _thaw_os0(payload: Dict[str, Any], ephem: Ephemeris) -> Orbital_State:
@@ -88,77 +90,36 @@ def _thaw_os0(payload: Dict[str, Any], ephem: Ephemeris) -> Orbital_State:
 def _freeze_os_hist(hist: Any) -> Any:
     if hist is None:
         return None
-    out = []
-    for os0 in hist:
-        out.append(os0.to_dict() if os0 is not None else None)
-    return out
+    return [os_i.to_dict() if os_i is not None else None for os_i in hist]
 
 
 def _thaw_os_hist(hist: Any, ephem: Ephemeris) -> Any:
     if hist is None:
         return None
-    out = []
-    for d in hist:
-        out.append(Orbital_State.from_dict(d, ephem=ephem, density_model=None, fast=True) if d is not None else None)
+    return [
+        Orbital_State.from_dict(d, ephem=ephem, density_model=None, fast=True) if d is not None else None
+        for d in hist
+    ]
+
+
+def _orbit_seq_from_orbit_obj(orb: Orbit, start_J2000: float, dt: float, tf: float) -> List[Dict[str, Any]]:
+    sec2cent = TimeConstants.sec2cent
+    N = int(tf / dt)
+    out: List[Dict[str, Any]] = []
+    for k in range(N + 1):
+        out.append(orb.get_os(J2000=start_J2000 + k * dt * sec2cent).to_dict())
     return out
 
 
-def _resolve_os0_from_override(os0_base: Orbital_State, override: Any) -> Orbital_State:
-    if override is None:
-        return os0_base
-    if isinstance(override, Orbital_State):
-        return override
-    if isinstance(override, Orbit):
-        return override.get_os(J2000=os0_base.J2000)
-    if isinstance(override, dict) and "J2000" in override and "R" in override and "V" in override:
-        return Orbital_State.from_dict(override, ephem=Ephemeris(), density_model=None, fast=True)
-    raise TypeError("orbit/os0 override must be an Orbit, Orbital_State, or Orbital_State dict")
-
-
-def _orbit_to_dict_list(
-    orbit_obj: Any,
-    *,
-    os0_base: Orbital_State,
-    dt: float,
-    tf: float,
-    use_J2: bool = True,
-    fast: bool = False,
-) -> List[Dict[str, Any]]:
+def _orbit_seq_from_os0(os0: Orbital_State, dt: float, tf: float, use_J2: bool, fast: bool) -> List[Orbital_State]:
     sec2cent = TimeConstants.sec2cent
     N = int(tf / dt)
-
-    if isinstance(orbit_obj, list):
-        if len(orbit_obj) == 0:
-            raise ValueError("orbit list is empty")
-        if isinstance(orbit_obj[0], Orbital_State):
-            return [os_i.to_dict() for os_i in orbit_obj]
-        if isinstance(orbit_obj[0], dict):
-            return orbit_obj
-        raise TypeError("orbit list must contain Orbital_State or dict entries")
-
-    if isinstance(orbit_obj, Orbit):
-        start_time = os0_base.J2000
-        out: List[Dict[str, Any]] = []
-        for k in range(N + 1):
-            J2000_k = start_time + k * dt * sec2cent
-            out.append(orbit_obj.get_os(J2000=J2000_k).to_dict())
-        return out
-
-    if isinstance(orbit_obj, Orbital_State):
-        start_time = orbit_obj.J2000
-        end_time = start_time + tf * sec2cent
-        orb = Orbit(os0=orbit_obj, end_time=end_time, dt=dt, use_J2=use_J2, fast=fast)
-        out: List[Dict[str, Any]] = []
-        for k in range(N + 1):
-            J2000_k = start_time + k * dt * sec2cent
-            out.append(orb.get_os(J2000=J2000_k).to_dict())
-        return out
-
-    if isinstance(orbit_obj, dict) and "J2000" in orbit_obj and "R" in orbit_obj and "V" in orbit_obj:
-        os0 = Orbital_State.from_dict(orbit_obj, ephem=Ephemeris(), density_model=None, fast=True)
-        return _orbit_to_dict_list(os0, os0_base=os0, dt=dt, tf=tf, use_J2=use_J2, fast=fast)
-
-    raise TypeError("orbit override must be Orbit, Orbital_State, list, or Orbital_State dict")
+    end_time = os0.J2000 + tf * sec2cent
+    orb = Orbit(os0=os0, end_time=end_time, dt=dt, use_J2=use_J2, fast=fast, verbose=False)
+    out: List[Orbital_State] = []
+    for k in range(N + 1):
+        out.append(orb.get_os(J2000=os0.J2000 + k * dt * sec2cent))
+    return out
 
 
 def _simulate_with_precomputed_orbit(
@@ -173,11 +134,13 @@ def _simulate_with_precomputed_orbit(
     os_seq: List[Orbital_State],
     dt: float,
     tf: float,
+    slot_id: int = -1,  # Added for UI tracking
+    run_id: int = -1,   # Added for UI tracking
 ) -> SimulationResults:
     if len(x) != satellite.state_len:
         raise ValueError(
-            f"Initial state length {len(x)} does not match satellite state length "
-            f"{satellite.state_len}. It must be 7 + N_rw."
+            f"Initial state length {len(x)} does not match satellite state length {satellite.state_len}. "
+            f"It must be 7 + N_rw."
         )
 
     N = int(tf / dt)
@@ -201,7 +164,7 @@ def _simulate_with_precomputed_orbit(
         est_satellite = EstimatedSatellite.from_satellite(satellite)
 
     x_hat = None
-    if estimator is not None:
+    if estimator is not None and est_satellite is not None:
         x_hat = np.empty(est_satellite.state_len)
 
     os_hat = None
@@ -220,6 +183,10 @@ def _simulate_with_precomputed_orbit(
     sim_results = SimulationResults(satellite=satellite, est_satellite=est_satellite)
 
     for k in range(N):
+        # --- UI UPDATE ---
+        if k % 10 == 0 and slot_id != -1:
+            update_worker_progress(slot_id, run_id, k, N)
+
         os_k = os_seq[k]
         os_kp1 = os_seq[k + 1]
         J2000_k = os_k.J2000
@@ -246,6 +213,8 @@ def _simulate_with_precomputed_orbit(
         if controller is not None:
             u = controller.find_u(
                 x_hat=x_for_ctrl,
+                # Use noiseless sensors for control if required by logic, 
+                # but standard practice is 'sens' (y)
                 sens=y,
                 est_sat=est_satellite,
                 os_hat=os_for_gnc,
@@ -272,13 +241,13 @@ def _simulate_with_precomputed_orbit(
         est_sens_bias_snapshot = None
 
         if estimator is not None and x_hat is not None and est_satellite is not None:
-            n_rw = getattr(est_satellite, "number_RW", 0)
-            n_ab = getattr(est_satellite, "act_bias_len", 0)
-            n_sb = getattr(est_satellite, "att_sens_bias_len", 0)
+            n_rw = int(getattr(est_satellite, "number_RW", 0))
+            n_ab = int(getattr(est_satellite, "act_bias_len", 0))
+            n_sb = int(getattr(est_satellite, "att_sens_bias_len", 0))
 
-            base = 7 + int(n_rw)
-            ab0, ab1 = base, base + int(n_ab)
-            sb0, sb1 = ab1, ab1 + int(n_sb)
+            base = 7 + n_rw
+            ab0, ab1 = base, base + n_ab
+            sb0, sb1 = ab1, ab1 + n_sb
 
             if len(x_hat) >= sb1:
                 b_act_hat = np.asarray(x_hat[ab0:ab1], dtype=float).reshape(-1)
@@ -286,45 +255,29 @@ def _simulate_with_precomputed_orbit(
 
                 act_parts = []
                 ai = 0
-                if getattr(satellite, "actuators", None):
-                    for act in satellite.actuators:
-                        if hasattr(act, "bias") and bool(act.bias):
-                            dim = int(np.atleast_1d(act.bias.bias).size)
-                            act_parts.append(
-                                b_act_hat[ai:ai + dim].reshape(dim, 1) if dim == 1 else b_act_hat[ai:ai + dim]
-                            )
-                            ai += dim
-                        else:
-                            act_parts.append(None)
-
-                if len(act_parts) == 0:
-                    est_act_bias_snapshot = None
-                else:
-                    if ai != b_act_hat.size:
-                        est_act_bias_snapshot = np.array([b_act_hat.copy()], dtype=object)
+                for act in getattr(satellite, "actuators", []) or []:
+                    if hasattr(act, "bias") and bool(act.bias):
+                        dim = int(np.atleast_1d(act.bias.bias).size)
+                        act_parts.append(b_act_hat[ai:ai + dim].copy())
+                        ai += dim
                     else:
-                        est_act_bias_snapshot = np.array(act_parts, dtype=object)
+                        act_parts.append(None)
+
+                if act_parts:
+                    est_act_bias_snapshot = np.array(act_parts, dtype=object)
 
                 sens_parts = []
                 si = 0
-                if getattr(satellite, "sensors", None):
-                    for sens in satellite.sensors:
-                        if hasattr(sens, "bias") and bool(sens.bias):
-                            dim = int(np.atleast_1d(sens.bias.bias).size)
-                            sens_parts.append(
-                                b_sens_hat[si:si + dim].reshape(dim, 1) if dim == 1 else b_sens_hat[si:si + dim]
-                            )
-                            si += dim
-                        else:
-                            sens_parts.append(None)
-
-                if len(sens_parts) == 0:
-                    est_sens_bias_snapshot = None
-                else:
-                    if si != b_sens_hat.size:
-                        est_sens_bias_snapshot = np.array([b_sens_hat.copy()], dtype=object)
+                for sens in getattr(satellite, "sensors", []) or []:
+                    if hasattr(sens, "bias") and bool(sens.bias):
+                        dim = int(np.atleast_1d(sens.bias.bias).size)
+                        sens_parts.append(b_sens_hat[si:si + dim].copy())
+                        si += dim
                     else:
-                        est_sens_bias_snapshot = np.array(sens_parts, dtype=object)
+                        sens_parts.append(None)
+
+                if sens_parts:
+                    est_sens_bias_snapshot = np.array(sens_parts, dtype=object)
 
         sim_results.record(
             k=k,
@@ -356,14 +309,33 @@ def _simulate_with_precomputed_orbit(
     return sim_results
 
 
+_EPHEM: Optional[Ephemeris] = None
+_ORBIT_CACHE: Dict[str, List[Orbital_State]] = {}
+
+
+def _get_ephem() -> Ephemeris:
+    global _EPHEM
+    if _EPHEM is None:
+        _EPHEM = Ephemeris()
+    return _EPHEM
+
+
+def _cache_key(*, os0_payload: Dict[str, Any], dt: float, tf: float, use_J2: bool, fast: bool, slot_id: int) -> str:
+    b = pickle.dumps((slot_id, os0_payload, float(dt), float(tf), bool(use_J2), bool(fast)))
+    return hashlib.blake2b(b, digest_size=16).hexdigest()
+
+
 def _simulate_mc_worker(cfg: Dict[str, Any]) -> Dict[str, Any]:
     slot_id = claim_worker_slot()
     run_id = int(cfg["run_id"])
+    seed = int(cfg["seed"])
 
     try:
+        np.random.seed(seed)
+        # Initial progress signal
         update_worker_progress(slot_id, run_id, 0, 1)
 
-        ephem = Ephemeris()
+        ephem = _get_ephem()
 
         x0 = np.asarray(cfg["x0"], dtype=float).copy()
         satellite: Satellite = cfg["satellite"]
@@ -375,13 +347,23 @@ def _simulate_mc_worker(cfg: Dict[str, Any]) -> Dict[str, Any]:
         dt = float(cfg["dt"])
         tf = float(cfg["tf"])
 
-        os_seq_payload = cfg.get("orbit_os_seq", None)
-        if os_seq_payload is None:
-            os0 = _thaw_os0(cfg["os0_payload"], ephem=ephem)
-            os_seq = _orbit_to_dict_list(os0, os0_base=os0, dt=dt, tf=tf, use_J2=True, fast=False)
-            os_seq_payload = os_seq
+        orbit_mode = cfg.get("orbit_mode", "os0")
+        use_J2 = bool(cfg.get("orbit_use_J2", True))
+        fast = bool(cfg.get("orbit_fast", False))
 
-        os_seq = _thaw_os_hist(os_seq_payload, ephem=ephem)
+        if orbit_mode == "seq":
+            os_seq_payload = cfg.get("orbit_os_seq")
+            if os_seq_payload is None:
+                raise ValueError("orbit_mode='seq' requires orbit_os_seq")
+            os_seq = _thaw_os_hist(os_seq_payload, ephem=ephem)
+        else:
+            os0_payload = cfg["os0_payload"]
+            key = _cache_key(os0_payload=os0_payload, dt=dt, tf=tf, use_J2=use_J2, fast=fast, slot_id=slot_id)
+            os_seq = _ORBIT_CACHE.get(key)
+            if os_seq is None:
+                os0 = _thaw_os0(os0_payload, ephem=ephem)
+                os_seq = _orbit_seq_from_os0(os0=os0, dt=dt, tf=tf, use_J2=use_J2, fast=fast)
+                _ORBIT_CACHE[key] = os_seq
 
         with suppress_output():
             sim_results = _simulate_with_precomputed_orbit(
@@ -395,11 +377,14 @@ def _simulate_mc_worker(cfg: Dict[str, Any]) -> Dict[str, Any]:
                 os_seq=os_seq,
                 dt=dt,
                 tf=tf,
+                slot_id=slot_id, # Passed for tracking
+                run_id=run_id,   # Passed for tracking
             )
 
         sim_results.os_hist = _freeze_os_hist(sim_results.os_hist)
         sim_results.est_os_hist = _freeze_os_hist(sim_results.est_os_hist)
 
+        # Final progress signal
         update_worker_progress(slot_id, run_id, 1, 1)
 
         return {
@@ -433,8 +418,8 @@ def simulate_mc(
         raise ValueError("os0 must be provided to simulate_mc().")
     if len(x) != satellite.state_len:
         raise ValueError(
-            f"Initial state length {len(x)} does not match satellite state length "
-            f"{satellite.state_len}. It must be 7 + N_rw."
+            f"Initial state length {len(x)} does not match satellite state length {satellite.state_len}. "
+            f"It must be 7 + N_rw."
         )
 
     _picklable("satellite", satellite)
@@ -450,7 +435,7 @@ def simulate_mc(
         _picklable("goal", goal)
 
     x_base = np.asarray(x, dtype=float).copy()
-    os0_base = os0
+    os0_base_payload = _freeze_os0(os0)
 
     def _build_run_cfg(run_id: int) -> Dict[str, Any]:
         seed = int(base_seed) + int(run_id)
@@ -496,6 +481,13 @@ def simulate_mc(
                 goal_i = _sample(v, rng)
                 applied["goal"] = type(goal_i).__name__ if goal_i is not None else None
 
+        if goal_i is not None:
+            _picklable("goal(run)", goal_i)
+
+        orbit_mode = "os0"
+        os0_payload = os0_base_payload
+        orbit_os_seq: Optional[List[Dict[str, Any]]] = None
+
         orbit_override = None
         if mc_config is not None:
             orbit_override = getattr(mc_config, "orbit", None)
@@ -504,23 +496,30 @@ def simulate_mc(
 
         if orbit_override is not None:
             ov = _sample(orbit_override, rng)
-            os0_for_orbit = _resolve_os0_from_override(os0_base, ov)
-        else:
-            os0_for_orbit = os0_base
+            if isinstance(ov, Orbit):
+                with suppress_output():
+                    orbit_os_seq = _orbit_seq_from_orbit_obj(ov, start_J2000=float(os0_payload["J2000"]), dt=dt_i, tf=tf_i)
+                orbit_mode = "seq"
+            elif isinstance(ov, list):
+                if len(ov) == 0:
+                    raise ValueError("orbit override list is empty")
+                if isinstance(ov[0], dict):
+                    orbit_os_seq = ov
+                elif isinstance(ov[0], Orbital_State):
+                    orbit_os_seq = [os_i.to_dict() for os_i in ov]
+                else:
+                    raise TypeError("orbit override list must contain dict or Orbital_State")
+                orbit_mode = "seq"
+            elif isinstance(ov, Orbital_State):
+                os0_payload = ov.to_dict()
+                orbit_mode = "os0"
+            elif isinstance(ov, dict) and "J2000" in ov and "R" in ov and "V" in ov:
+                os0_payload = ov
+                orbit_mode = "os0"
+            else:
+                raise TypeError("orbit/os0 override must be Orbit, Orbital_State, list, or Orbital_State dict")
 
-        with suppress_output():
-            orbit_os_seq = _orbit_to_dict_list(
-                os0_for_orbit,
-                os0_base=os0_for_orbit,
-                dt=dt_i,
-                tf=tf_i,
-                use_J2=True,
-                fast=False,
-            )
-
-        _picklable("goal(run)", goal_i)
-
-        return {
+        cfg: Dict[str, Any] = {
             "run_id": int(run_id),
             "seed": seed,
             "applied": applied,
@@ -528,14 +527,21 @@ def simulate_mc(
             "dt": dt_i,
             "tf": tf_i,
             "goal": goal_i,
-            "orbit_os_seq": orbit_os_seq,
-            "os0_payload": _freeze_os0(os0_for_orbit),
+            "orbit_mode": orbit_mode,
+            "os0_payload": os0_payload,
+            "orbit_use_J2": True,
+            "orbit_fast": False,
             "satellite": satellite,
             "est_satellite": est_satellite,
             "controller": controller,
             "estimator": estimator,
             "orbit_estimator": orbit_estimator,
         }
+
+        if orbit_mode == "seq":
+            cfg["orbit_os_seq"] = orbit_os_seq
+
+        return cfg
 
     runner = MonteCarloRunner(
         sim_func=_simulate_mc_worker,
@@ -545,10 +551,12 @@ def simulate_mc(
     )
 
     raw = runner.run()
+    cleaned: List[Dict[str, Any]] = [
+        r for r in raw
+        if r is not None and isinstance(r, dict) and r.get("results") is not None
+    ]
 
     ephem = Ephemeris()
-    cleaned: List[Dict[str, Any]] = [r for r in raw if r is not None and isinstance(r, dict) and r.get("results") is not None]
-
     for item in cleaned:
         res = item["results"]
         res.os_hist = _thaw_os_hist(res.os_hist, ephem=ephem)
@@ -558,8 +566,4 @@ def simulate_mc(
     configs = [entry.get("applied", {}) for entry in cleaned]
     run_ids = [entry.get("run_id") for entry in cleaned]
 
-    return MCSimulationResults(
-        runs=runs,
-        configs=configs,
-        run_ids=run_ids,
-    )
+    return MCSimulationResults(runs=runs, configs=configs, run_ids=run_ids)

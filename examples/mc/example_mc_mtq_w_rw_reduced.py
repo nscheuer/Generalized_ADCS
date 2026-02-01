@@ -27,14 +27,14 @@ controller = ADCS.controller.MTQ_w_RW(est_sat=real_sat, p_gain=0.1, d_gain=0.7, 
 os0 = ADCS.Orbital_State(ephem=ADCS.Ephemeris(),J2000=0.22, R=np.array([5000, 0, 5000]), V=np.array([0, 7.5, 0]))
 goal = ADCS.goals.ECI_Goal(eci_vector=np.array([0, 1, 0]))
 
-def make_random_orbit():
-    return ADCS.orbits.create_random_circular_orbit(radius_km=7000.0, dt=2.0, tf=100.0)
+def make_random_os():
+    return ADCS.orbits.create_random_circular_os(radius_km=7000.0, J2000=0.22)
 
 rng = np.random.default_rng(seed=1000)
 mc_config = ADCS.MCConfig(
     q = lambda: ADCS.helpers.normalize(rng.standard_normal(4)),
     w = lambda: rng.uniform(-0.1, 0.1, size=3),
-    orbit = make_random_orbit
+    orbit = make_random_os
 )
 
 mc_results = ADCS.simulate_mc(
@@ -44,7 +44,7 @@ mc_results = ADCS.simulate_mc(
     goal=goal,
     os0=os0,
     dt=2.0,
-    tf=100.0,
+    tf=500.0,
     mc_config=mc_config,
     num_runs=10,
 )
