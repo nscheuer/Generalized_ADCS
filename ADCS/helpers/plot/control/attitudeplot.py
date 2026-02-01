@@ -78,6 +78,11 @@ class AttitudePlot(Subplot):
         self.show_env = bool(show_env)
 
     def plot(self, ax, sim) -> None:
+        runs = getattr(sim, "runs", None)
+        if runs is not None and isinstance(runs, (list, tuple)) and len(runs) > 0:
+            print(f"[AttitudePlot] MCSimulationResults detected: showing run 0 of {len(runs)}")
+            sim = runs[0]
+
         ax.axis("off")
         ax.set_title(self.title, loc="left", pad=10)
         ax.text(
@@ -89,8 +94,6 @@ class AttitudePlot(Subplot):
             transform=ax.transAxes,
         )
         self._run_animation(sim)
-
-    # ---------------- Internals ----------------
 
     def _get_q_series(self, sim, which: str) -> Optional[np.ndarray]:
         if which == "real":

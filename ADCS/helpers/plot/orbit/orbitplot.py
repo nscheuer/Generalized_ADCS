@@ -128,34 +128,42 @@ class OrbitPlot(Subplot):
         self.linewidth = linewidth
 
     def plot(self, ax, sim) -> None:
+        # Accept SimulationResults or MCSimulationResults
+        runs = getattr(sim, "runs", None)
+        if runs is None:
+            runs = [sim]
+
         fig = ax.figure
         fig.delaxes(ax)
-
         ax3d = fig.add_subplot(ax.get_subplotspec(), projection="3d")
 
         plotted_any = False
         all_R = []
 
-        for source in self.sources:
-            R = _get_R_series(sim, source)
-            if R is None:
-                continue
+        alpha = max(0.15, 1.0 / len(runs))
 
-            style = _source_style_orbit3d(source)
-            suf = _source_suffix_orbit3d(source)
+        for run in runs:
+            for source in self.sources:
+                R = _get_R_series(run, source)
+                if R is None:
+                    continue
 
-            ax3d.plot(
-                R[:, 0],
-                R[:, 1],
-                R[:, 2],
-                color=self.orbit_colors.get(source, "k"),
-                linewidth=self.linewidth,
-                label="Orbit" + suf,
-                **style,
-            )
+                style = _source_style_orbit3d(source)
+                suf = _source_suffix_orbit3d(source)
 
-            all_R.append(R)
-            plotted_any = True
+                ax3d.plot(
+                    R[:, 0],
+                    R[:, 1],
+                    R[:, 2],
+                    color=self.orbit_colors.get(source, "k"),
+                    linewidth=self.linewidth,
+                    alpha=alpha,
+                    label=None,  # avoid legend spam
+                    **style,
+                )
+
+                all_R.append(R)
+                plotted_any = True
 
         if not plotted_any:
             ax3d.set_title(self.title)
@@ -169,8 +177,8 @@ class OrbitPlot(Subplot):
             )
             return
 
+        # --- Earth ---
         Re = EarthConstants.R_e
-
         u = np.linspace(0, 2 * np.pi, 50)
         v = np.linspace(-np.pi / 2, np.pi / 2, 25)
         u, v = np.meshgrid(u, v)
@@ -189,6 +197,7 @@ class OrbitPlot(Subplot):
             antialiased=True,
         )
 
+        # --- Limits ---
         R_all = np.vstack(all_R)
         max_range = np.max(np.linalg.norm(R_all, axis=1))
         lim = max_range * 1.1
@@ -196,7 +205,6 @@ class OrbitPlot(Subplot):
         ax3d.set_xlim(-lim, lim)
         ax3d.set_ylim(-lim, lim)
         ax3d.set_zlim(-lim, lim)
-
         ax3d.set_box_aspect([1, 1, 1])
 
         ax3d.set_xlabel("X [km]")
@@ -204,4 +212,19 @@ class OrbitPlot(Subplot):
         ax3d.set_zlabel("Z [km]")
         ax3d.set_title(self.title)
 
-        ax3d.legend()
+        # --- Clean legend (one entry per source) ---
+        handles = []
+        labels = []
+        for source in self.sources:
+            handles.append(
+                plt.Line2D(
+                    [0], [0],
+                    color=self.orbit_colors.get(source, "k"),
+                    linestyle=_source_style_orbit3d(source)["linestyle"],
+                    linewidth=self.linewidth,
+                )
+            )
+            labels.append("Orbit" + _source_suffix_orbit3d(source))
+
+        ax3d.legend(handles, labels)
+

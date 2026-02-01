@@ -53,6 +53,11 @@ class OrbitDensityPlot(Subplot):
         self.log_y = log_y
 
     def plot(self, ax, sim) -> None:
+        runs = getattr(sim, "runs", None)
+        if runs is not None and isinstance(runs, (list, tuple)) and len(runs) > 0:
+            print(f"[OrbitDensityPlot] MCSimulationResults detected: showing run 0 of {len(runs)}")
+            sim = runs[0]
+
         t = getattr(sim, self.time)
 
         if sim.os_hist is None or len(sim.os_hist) == 0:
@@ -126,6 +131,11 @@ class OrbitDensityModelPlot(Subplot):
         self.log_x = log_x
 
     def plot(self, ax, sim) -> None:
+        runs = getattr(sim, "runs", None)
+        if runs is not None and isinstance(runs, (list, tuple)) and len(runs) > 0:
+            print(f"[OrbitDensityModelPlot] MCSimulationResults detected: showing run 0 of {len(runs)}")
+            sim = runs[0]
+
         if sim.os_hist is None or len(sim.os_hist) == 0:
             ax.axis("off")
             ax.set_title(self.title, loc="left", pad=10)

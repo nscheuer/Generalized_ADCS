@@ -332,6 +332,7 @@ class AnimationPlot(Subplot):
         )
         self._run_pyvista(sim)
 
+
     def _run_pyvista(self, sim) -> None:
         import pyvista as pv
         from pyvista import examples
@@ -340,89 +341,178 @@ class AnimationPlot(Subplot):
         from scipy.spatial.transform import Rotation as R_scipy
         from scipy.spatial.transform import Slerp
 
+        sims = getattr(sim, "runs", None)
+        if sims is None:
+            sims = [sim]
+        sims = [s for s in sims if s is not None]
+        if len(sims) == 0:
+            raise ValueError("No simulations provided")
+
         try:
             from ADCS.orbits.universal_constants import EarthConstants
             R_e = float(EarthConstants.R_e)
         except Exception:
-            R_e = 6378.137  # km
+            R_e = 6378.137
 
         try:
             from ADCS.CONOPS.goals import Coordinate_Goal
         except Exception:
             Coordinate_Goal = None
 
-        t_orig = np.asarray(getattr(sim, self.time, None))
-        if t_orig is None or t_orig.size == 0:
+        def _get_time_vec(s):
+            t = getattr(s, self.time, None)
+            if t is None:
+                return None
+            t = np.asarray(t, dtype=float).reshape(-1)
+            return t if t.size > 0 else None
+
+        t_list = []
+        for s in sims:
+            t = _get_time_vec(s)
+            if t is None:
+                raise ValueError(f"sim.{self.time} missing/empty")
+            t_list.append(t)
+
+        t0 = max(float(t[0]) for t in t_list)
+        t1 = min(float(t[-1]) for t in t_list)
+        if not np.isfinite(t0) or not np.isfinite(t1) or t1 <= t0:
+            t0 = float(t_list[0][0])
+            t1 = float(t_list[0][-1])
+
+        orig_Ns = [int(len(t)) for t in t_list]
+        target_N = max(int(max(orig_Ns) * self.smooth_factor), self.min_smooth_N)
+        t_new = np.linspace(t0, t1, int(target_N))
+
+        per = []
+        for s, t_orig_full in zip(sims, t_list):
+            os_hist = getattr(s, "os_hist", None)
+            if os_hist is None or len(os_hist) == 0:
+                raise ValueError("sim.os_hist missing/empty (required for animation)")
+
+            state_hist = getattr(s, "state_hist", None)
+            if state_hist is None or len(state_hist) == 0:
+                raise ValueError("sim.state_hist missing/empty (required for animation)")
+
+            state_hist = np.asarray(state_hist, dtype=float)
+            if state_hist.ndim != 2 or state_hist.shape[1] < 7:
+                raise ValueError("sim.state_hist must be (N, >=7) with quaternion in columns [3:7]")
+
+            N = min(int(len(t_orig_full)), int(len(os_hist)), int(state_hist.shape[0]))
+            if N <= 0:
+                raise ValueError("Simulation has no usable samples")
+
+            t_orig = np.asarray(t_orig_full[:N], dtype=float)
+
+            def _clip_to_overlap(arr):
+                arr = arr[:N]
+                i0 = int(np.searchsorted(t_orig, t0, side="left"))
+                i1 = int(np.searchsorted(t_orig, t1, side="right"))
+                i0 = int(np.clip(i0, 0, N - 1))
+                i1 = int(np.clip(i1, i0 + 1, N))
+                return t_orig[i0:i1], arr[i0:i1]
+
+            R_true_orig_all = np.array(
+                [np.asarray(_unwrap_os(o).R, dtype=float).reshape(3) for o in os_hist[:N]],
+                dtype=float,
+            )
+            t_clip, R_true_orig = _clip_to_overlap(R_true_orig_all)
+
+            q_orig_all = np.asarray(state_hist[:N, 3:7], dtype=float)
+            _, q_orig = _clip_to_overlap(q_orig_all)
+
+            S_orig_all = np.array(
+                [np.asarray(getattr(_unwrap_os(o), "S", [0, 0, 0]), dtype=float).reshape(3) for o in os_hist[:N]],
+                dtype=float,
+            )
+            _, S_orig = _clip_to_overlap(S_orig_all)
+
+            B_orig_all = np.array(
+                [np.asarray(getattr(_unwrap_os(o), "B", [0, 0, 0]), dtype=float).reshape(3) for o in os_hist[:N]],
+                dtype=float,
+            )
+            _, B_orig = _clip_to_overlap(B_orig_all)
+
+            if t_clip.size < 2:
+                raise ValueError("Not enough overlapping samples for animation")
+
+            def interp_arr(arr: np.ndarray) -> np.ndarray:
+                f = interp1d(t_clip, arr, axis=0, kind="linear", bounds_error=False, fill_value="extrapolate")
+                return f(t_new)
+
+            R_true_smooth = interp_arr(R_true_orig)
+
+            q_smooth = interp_arr(q_orig)
+            qn = np.linalg.norm(q_smooth, axis=1, keepdims=True)
+            qn[qn < 1e-12] = 1.0
+            q_smooth = q_smooth / qn
+
+            S_smooth = interp_arr(S_orig)
+            B_smooth = interp_arr(B_orig)
+
+            est_os_hist = getattr(s, "est_os_hist", None)
+            R_est_static = None
+            if est_os_hist is not None and len(est_os_hist) > 0:
+                rows = []
+                for o in est_os_hist:
+                    if o is None:
+                        continue
+                    base = _unwrap_os(o)
+                    if hasattr(base, "R"):
+                        rows.append(np.asarray(base.R, dtype=float).reshape(3))
+                if rows:
+                    R_est_static = np.vstack(rows)
+
+            G_hist, _ = _pick_goal_history(s)
+            G_vec_smooth, G_quat_smooth, G_kind = _parse_goal_history(
+                G_hist=G_hist,
+                t_orig=t_clip,
+                t_new=t_new,
+                R_true_orig=R_true_orig,
+                interp_vec_fn=interp_arr,
+            )
+
+            per.append(
+                dict(
+                    sim=s,
+                    t_clip=t_clip,
+                    R_true_orig=R_true_orig,
+                    R_true_smooth=R_true_smooth,
+                    q_smooth=q_smooth,
+                    S_smooth=S_smooth,
+                    B_smooth=B_smooth,
+                    R_est_static=R_est_static,
+                    G_vec_smooth=G_vec_smooth,
+                    G_quat_smooth=G_quat_smooth,
+                    G_kind=G_kind,
+                )
+            )
+
+        os_hist0 = getattr(per[0]["sim"], "os_hist", None)
+        if os_hist0 is None or len(os_hist0) == 0:
+            raise ValueError("sim.os_hist missing/empty (required for Earth rotation)")
+
+        t_orig0 = _get_time_vec(per[0]["sim"])
+        if t_orig0 is None or t_orig0.size == 0:
             raise ValueError(f"sim.{self.time} missing/empty")
 
-        os_hist = getattr(sim, "os_hist", None)
-        if os_hist is None or len(os_hist) == 0:
-            raise ValueError("sim.os_hist missing/empty (required for animation)")
-
-        state_hist = getattr(sim, "state_hist", None)
-        if state_hist is None or len(state_hist) == 0:
-            raise ValueError("sim.state_hist missing/empty (required for animation)")
-
-        state_hist = np.asarray(state_hist)
-        if state_hist.ndim != 2 or state_hist.shape[1] < 7:
-            raise ValueError("sim.state_hist must be (N, >=7) with quaternion in columns [3:7]")
-
-        est_os_hist = getattr(sim, "est_os_hist", None)
-
-        G_hist, _G_name = _pick_goal_history(sim)
-
-        original_N = int(len(t_orig))
-        target_N = max(original_N * self.smooth_factor, self.min_smooth_N)
-        t_new = np.linspace(float(t_orig[0]), float(t_orig[-1]), target_N)
-
-        def interp_arr(arr: np.ndarray) -> np.ndarray:
-            f = interp1d(t_orig, arr, axis=0, kind="linear", fill_value="extrapolate")
-            return f(t_new)
-
-        R_true_orig = np.array([np.asarray(os.R, dtype=float).reshape(3) for os in os_hist])
-        R_true_smooth = interp_arr(R_true_orig)
-
-        q_orig = np.asarray(state_hist[:, 3:7], dtype=float)
-        q_smooth = interp_arr(q_orig)
-        q_smooth = q_smooth / np.linalg.norm(q_smooth, axis=1, keepdims=True)
-
-        S_orig = np.array([np.asarray(getattr(os, "S", [0, 0, 0]), dtype=float).reshape(3) for os in os_hist])
-        B_orig = np.array([np.asarray(getattr(os, "B", [0, 0, 0]), dtype=float).reshape(3) for os in os_hist])
-        S_smooth = interp_arr(S_orig)
-        B_smooth = interp_arr(B_orig)
-
-        G_vec_smooth, G_quat_smooth, G_kind = _parse_goal_history(
-            G_hist=G_hist,
-            t_orig=t_orig,
-            t_new=t_new,
-            R_true_orig=R_true_orig,
-            interp_vec_fn=interp_arr,
-        )
-
-        R_est_static = None
-        if est_os_hist is not None and len(est_os_hist) > 0:
-            rows = []
-            for os in est_os_hist:
-                if os is None:
-                    continue
-                base = _unwrap_os(os)
-                rows.append(np.asarray(base.R, dtype=float).reshape(3))
-            if rows:
-                R_est_static = np.vstack(rows)
+        N0 = min(int(len(t_orig0)), int(len(os_hist0)))
+        t_orig0 = np.asarray(t_orig0[:N0], dtype=float)
+        os_hist0 = os_hist0[:N0]
 
         basis_x = np.array([1.0, 0.0, 0.0])
         basis_y = np.array([0.0, 1.0, 0.0])
         basis_z = np.array([0.0, 0.0, 1.0])
 
         earth_rot_mats = []
-        for os_item in os_hist:
-            col0 = np.asarray(os_item.ecef_to_eci(basis_x), dtype=float).reshape(3)
-            col1 = np.asarray(os_item.ecef_to_eci(basis_y), dtype=float).reshape(3)
-            col2 = np.asarray(os_item.ecef_to_eci(basis_z), dtype=float).reshape(3)
+        for o in os_hist0:
+            base = _unwrap_os(o)
+            col0 = np.asarray(base.ecef_to_eci(basis_x), dtype=float).reshape(3)
+            col1 = np.asarray(base.ecef_to_eci(basis_y), dtype=float).reshape(3)
+            col2 = np.asarray(base.ecef_to_eci(basis_z), dtype=float).reshape(3)
             earth_rot_mats.append(np.column_stack((col0, col1, col2)))
 
         rot_obj = R_scipy.from_matrix(np.asarray(earth_rot_mats))
-        earth_slerp = Slerp(t_orig, rot_obj)
+        earth_slerp = Slerp(t_orig0, rot_obj)
         earth_rot_smooth = earth_slerp(t_new)
 
         pv.global_theme.multi_samples = 0
@@ -452,12 +542,33 @@ class AnimationPlot(Subplot):
         earth_mesh.rotate_z(self.texture_alignment_angle_deg, inplace=True)
         earth_actor = pl.add_mesh(earth_mesh, texture=tex, smooth_shading=True, specular=0.2)
 
-        if self.show_true_orbit:
-            pl.add_mesh(pv.lines_from_points(R_true_orig), color="red", line_width=2, label="True")
-        if self.show_est_orbit and R_est_static is not None:
-            pl.add_mesh(pv.lines_from_points(R_est_static), color="orange", line_width=1, label="Est")
+        n_runs = len(per)
+        cmap = plt.cm.get_cmap("tab10", max(10, n_runs))
+        run_colors = [tuple(cmap(i)[:3]) for i in range(n_runs)]
 
-        sat_actor = pl.add_mesh(pv.Sphere(radius=R_e * 0.005), color="cyan")
+        if self.show_true_orbit:
+            for i, d in enumerate(per):
+                pl.add_mesh(
+                    pv.lines_from_points(d["R_true_orig"]),
+                    color=run_colors[i],
+                    line_width=2,
+                    label=f"True {i}",
+                )
+
+        if self.show_est_orbit:
+            for i, d in enumerate(per):
+                if d["R_est_static"] is None:
+                    continue
+                pl.add_mesh(
+                    pv.lines_from_points(d["R_est_static"]),
+                    color=run_colors[i],
+                    line_width=1,
+                    label=f"Est {i}",
+                )
+
+        sat_actors = []
+        for i in range(n_runs):
+            sat_actors.append(pl.add_mesh(pv.Sphere(radius=R_e * 0.005), color=run_colors[i]))
 
         goal_actor = None
         goal_ecef_pos = None
@@ -472,25 +583,28 @@ class AnimationPlot(Subplot):
         def create_arrow_actor(color, opacity=0.5):
             return pl.add_mesh(base_arrow.copy(), color=color, opacity=opacity)
 
-        actors = {
-            "body_x": create_arrow_actor("red", opacity=0.5),
-            "body_y": create_arrow_actor("green", opacity=0.5),
-            "body_z": create_arrow_actor("blue", opacity=0.5),
-            "sun": create_arrow_actor("yellow", opacity=0.5),
-            "mag": create_arrow_actor("magenta", opacity=0.5),
-            "goal": create_arrow_actor("cyan", opacity=0.5),      # vector goal
-            "goal_x": create_arrow_actor("cyan", opacity=0.25),   # quat goal axes
-            "goal_y": create_arrow_actor("cyan", opacity=0.25),
-            "goal_z": create_arrow_actor("cyan", opacity=0.25),
-        }
+        def make_run_actors(i: int):
+            op = max(0.15, 0.55 - 0.03 * i)
+            return {
+                "body_x": create_arrow_actor("red", opacity=op),
+                "body_y": create_arrow_actor("green", opacity=op),
+                "body_z": create_arrow_actor("blue", opacity=op),
+                "sun": create_arrow_actor("yellow", opacity=op),
+                "mag": create_arrow_actor("magenta", opacity=op),
+                "goal": create_arrow_actor("cyan", opacity=op),
+                "goal_x": create_arrow_actor("cyan", opacity=op * 0.6),
+                "goal_y": create_arrow_actor("cyan", opacity=op * 0.6),
+                "goal_z": create_arrow_actor("cyan", opacity=op * 0.6),
+            }
+
+        run_actors = [make_run_actors(i) for i in range(n_runs)]
 
         pl.camera_position = "iso"
         pl.show(interactive_update=True)
 
         scale_base = R_e * self.axis_scale_base_mult
 
-        def update_arrow(actor_key: str, pos: np.ndarray, direction: Optional[np.ndarray], scale_mult: float):
-            actor = actors[actor_key]
+        def update_arrow(actor, pos: np.ndarray, direction: Optional[np.ndarray], scale_mult: float):
             if direction is None:
                 actor.SetVisibility(False)
                 return
@@ -511,21 +625,16 @@ class AnimationPlot(Subplot):
 
             actor.user_matrix = T_mat @ R_mat @ S_mat
 
-        def hide_goal():
-            actors["goal"].SetVisibility(False)
-            actors["goal_x"].SetVisibility(False)
-            actors["goal_y"].SetVisibility(False)
-            actors["goal_z"].SetVisibility(False)
+        def hide_goal(A):
+            A["goal"].SetVisibility(False)
+            A["goal_x"].SetVisibility(False)
+            A["goal_y"].SetVisibility(False)
+            A["goal_z"].SetVisibility(False)
 
         idx = 0
         body_axes = np.eye(3, dtype=float)
 
         while not pl.render_window.GetInteractor().GetDone():
-            pos = R_true_smooth[idx]
-            q_curr = q_smooth[idx]
-
-            q_scipy = np.roll(q_curr, -1)
-
             R_mat_3x3 = earth_rot_smooth[idx].as_matrix()
             phys_transform = np.eye(4)
             phys_transform[:3, :3] = R_mat_3x3
@@ -536,52 +645,61 @@ class AnimationPlot(Subplot):
                 T_local[:3, 3] = goal_ecef_pos
                 goal_actor.user_matrix = phys_transform @ T_local
 
-            sat_mat = np.eye(4)
-            sat_mat[:3, 3] = pos
-            sat_actor.user_matrix = sat_mat
+            for i, d in enumerate(per):
+                pos = d["R_true_smooth"][idx]
+                q_curr = d["q_smooth"][idx]
+                q_scipy = np.roll(q_curr, -1)
 
-            if self.show_body_axes:
-                R_body = R_scipy.from_quat(q_scipy).as_matrix()
-                update_arrow("body_x", pos, R_body[:, 0], self.axis_scale_body)
-                update_arrow("body_y", pos, R_body[:, 1], self.axis_scale_body)
-                update_arrow("body_z", pos, R_body[:, 2], self.axis_scale_body)
-            else:
-                actors["body_x"].SetVisibility(False)
-                actors["body_y"].SetVisibility(False)
-                actors["body_z"].SetVisibility(False)
+                sat_mat = np.eye(4)
+                sat_mat[:3, 3] = pos
+                sat_actors[i].user_matrix = sat_mat
 
-            if self.show_env_vectors:
-                update_arrow("sun", pos, S_smooth[idx], self.axis_scale_sun)
-                update_arrow("mag", pos, B_smooth[idx], self.axis_scale_mag)
-            else:
-                actors["sun"].SetVisibility(False)
-                actors["mag"].SetVisibility(False)
+                A = run_actors[i]
 
-            # Goal rendering: vector arrow OR quaternion axes
-            if G_kind is None or (G_vec_smooth is None and G_quat_smooth is None):
-                hide_goal()
-            else:
-                if int(G_kind[idx]) == 0:
-                    update_arrow("goal", pos, G_vec_smooth[idx] if G_vec_smooth is not None else None, self.axis_scale_goal)
-                    actors["goal_x"].SetVisibility(False)
-                    actors["goal_y"].SetVisibility(False)
-                    actors["goal_z"].SetVisibility(False)
+                if self.show_body_axes:
+                    R_body = R_scipy.from_quat(q_scipy).as_matrix()
+                    update_arrow(A["body_x"], pos, R_body[:, 0], self.axis_scale_body)
+                    update_arrow(A["body_y"], pos, R_body[:, 1], self.axis_scale_body)
+                    update_arrow(A["body_z"], pos, R_body[:, 2], self.axis_scale_body)
                 else:
-                    actors["goal"].SetVisibility(False)
+                    A["body_x"].SetVisibility(False)
+                    A["body_y"].SetVisibility(False)
+                    A["body_z"].SetVisibility(False)
 
-                    qg = None if G_quat_smooth is None else np.asarray(G_quat_smooth[idx], dtype=float).reshape(4)
-                    if qg is None or not np.all(np.isfinite(qg)) or np.linalg.norm(qg) < 1e-12:
-                        actors["goal_x"].SetVisibility(False)
-                        actors["goal_y"].SetVisibility(False)
-                        actors["goal_z"].SetVisibility(False)
+                if self.show_env_vectors:
+                    update_arrow(A["sun"], pos, d["S_smooth"][idx], self.axis_scale_sun)
+                    update_arrow(A["mag"], pos, d["B_smooth"][idx], self.axis_scale_mag)
+                else:
+                    A["sun"].SetVisibility(False)
+                    A["mag"].SetVisibility(False)
+
+                G_kind = d["G_kind"]
+                G_vec = d["G_vec_smooth"]
+                G_quat = d["G_quat_smooth"]
+
+                if G_kind is None or (G_vec is None and G_quat is None):
+                    hide_goal(A)
+                else:
+                    if int(G_kind[idx]) == 0:
+                        update_arrow(A["goal"], pos, (None if G_vec is None else G_vec[idx]), self.axis_scale_goal)
+                        A["goal_x"].SetVisibility(False)
+                        A["goal_y"].SetVisibility(False)
+                        A["goal_z"].SetVisibility(False)
                     else:
-                        # Same convention handling as state quaternion: roll to [x,y,z,w] for SciPy.
-                        qg_scipy = np.roll(qg / np.linalg.norm(qg), -1)
-                        R_goal = R_scipy.from_quat(qg_scipy).as_matrix()
-                        goal_ax = R_goal @ body_axes
-                        update_arrow("goal_x", pos, goal_ax[:, 0], self.axis_scale_goal)
-                        update_arrow("goal_y", pos, goal_ax[:, 1], self.axis_scale_goal)
-                        update_arrow("goal_z", pos, goal_ax[:, 2], self.axis_scale_goal)
+                        A["goal"].SetVisibility(False)
+                        qg = None if G_quat is None else np.asarray(G_quat[idx], dtype=float).reshape(4)
+                        if qg is None or not np.all(np.isfinite(qg)) or np.linalg.norm(qg) < 1e-12:
+                            A["goal_x"].SetVisibility(False)
+                            A["goal_y"].SetVisibility(False)
+                            A["goal_z"].SetVisibility(False)
+                        else:
+                            qg = qg / np.linalg.norm(qg)
+                            qg_scipy = np.roll(qg, -1)
+                            R_goal = R_scipy.from_quat(qg_scipy).as_matrix()
+                            goal_ax = R_goal @ body_axes
+                            update_arrow(A["goal_x"], pos, goal_ax[:, 0], self.axis_scale_goal)
+                            update_arrow(A["goal_y"], pos, goal_ax[:, 1], self.axis_scale_goal)
+                            update_arrow(A["goal_z"], pos, goal_ax[:, 2], self.axis_scale_goal)
 
             pl.update()
             idx = (idx + 1) % target_N

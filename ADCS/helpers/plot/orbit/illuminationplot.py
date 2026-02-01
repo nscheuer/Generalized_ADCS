@@ -52,24 +52,81 @@ class IlluminationPlot(Subplot):
         self.color_eclipse = color_eclipse
 
     def plot(self, ax, sim) -> None:
-        t = getattr(sim, self.time)
+        sims = getattr(sim, "runs", None)
+        if sims is None:
+            sims = [sim]
 
-        if sim.os_hist is None or len(sim.os_hist) == 0:
+        sims = [s for s in sims if s is not None]
+        if len(sims) == 0:
             ax.axis("off")
             ax.set_title(self.title, loc="left", pad=10)
-            ax.text(0.5, 0.5, "No os_hist available", ha="center", va="center")
+            ax.text(0.5, 0.5, "No simulation data available", ha="center", va="center")
             return
 
-        illum = np.array([os.is_sunlit() for os in sim.os_hist], dtype=int)
+        ax.set_title(self.title, loc="left", pad=10)
 
-        ax.step(t, illum, where="post", color=self.color_sunlit)
-        ax.fill_between(t, 0, illum, step="post", color=self.color_sunlit, alpha=0.3)
-        ax.fill_between(t, illum, 1, step="post", color=self.color_eclipse, alpha=0.15)
+        any_plotted = False
+
+        for k, s in enumerate(sims):
+            t = getattr(s, self.time, None)
+            os_hist = getattr(s, "os_hist", None)
+
+            if t is None or os_hist is None or len(os_hist) == 0:
+                continue
+
+            t = np.asarray(t)
+            illum = np.array(
+                [bool(os.is_sunlit()) if os is not None else False for os in os_hist],
+                dtype=int,
+            )
+
+            N = min(len(t), len(illum))
+            if N <= 0:
+                continue
+
+            t = t[:N]
+            illum = illum[:N]
+
+            # Monte Carlo → fade runs
+            alpha_line = 0.8 if len(sims) == 1 else 0.15
+            alpha_fill = 0.3 if len(sims) == 1 else 0.08
+
+            ax.step(
+                t,
+                illum,
+                where="post",
+                color=self.color_sunlit,
+                alpha=alpha_line,
+            )
+
+            ax.fill_between(
+                t,
+                0,
+                illum,
+                step="post",
+                color=self.color_sunlit,
+                alpha=alpha_fill,
+            )
+
+            ax.fill_between(
+                t,
+                illum,
+                1,
+                step="post",
+                color=self.color_eclipse,
+                alpha=alpha_fill * 0.7,
+            )
+
+            any_plotted = True
+
+        if not any_plotted:
+            ax.axis("off")
+            ax.text(0.5, 0.5, "No valid os_hist data", ha="center", va="center")
+            return
 
         ax.set_ylim(-0.1, 1.1)
         ax.set_yticks([0, 1])
         ax.set_yticklabels(["Eclipse", "Sunlit"])
-
         ax.set_xlabel("Time [s]")
-        ax.set_title(self.title, loc="left", pad=10)
         ax.grid(True, which="both")
+
