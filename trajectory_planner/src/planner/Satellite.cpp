@@ -756,11 +756,14 @@ double Satellite::stepcost_vec(int k, int N, vec xk, vec uk,vec ukprev, vec3 sat
     }
     if(number_RW>0)
     {
-      act_cost_mat(number_MTQ,number_MTQ,size(number_RW,number_RW)) = diagmat(vec(RW_cost));
+      // RW/magic use scaled controls: u_scaled = u_physical / NONMTQ_TORQ_SCALE
+      // Cost = w * u_scaled² = w * (u_physical/SCALE)²
+      // To make cost proportional to physical torque², multiply by SCALE²
+      act_cost_mat(number_MTQ,number_MTQ,size(number_RW,number_RW)) = diagmat(vec(RW_cost) * NONMTQ_TORQ_SCALE * NONMTQ_TORQ_SCALE);
     }
     if(number_magic>0)
     {
-      act_cost_mat(number_MTQ+number_RW,number_MTQ+number_RW,size(number_magic,number_magic)) = diagmat(vec(magic_cost));
+      act_cost_mat(number_MTQ+number_RW,number_MTQ+number_RW,size(number_magic,number_magic)) = diagmat(vec(magic_cost) * NONMTQ_TORQ_SCALE * NONMTQ_TORQ_SCALE);
     }
   }else{
     w_u_mult = 0;
@@ -855,11 +858,11 @@ double Satellite::stepcost_quat(int k, int N, vec xk, vec uk,vec ukprev, vec3 sa
     }
     if(number_RW>0)
     {
-      act_cost_mat(number_MTQ,number_MTQ,size(number_RW,number_RW)) = diagmat(vec(RW_cost));
+      act_cost_mat(number_MTQ,number_MTQ,size(number_RW,number_RW)) = diagmat(vec(RW_cost) * NONMTQ_TORQ_SCALE * NONMTQ_TORQ_SCALE);
     }
     if(number_magic>0)
     {
-      act_cost_mat(number_MTQ+number_RW,number_MTQ+number_RW,size(number_magic,number_magic)) = diagmat(vec(magic_cost));
+      act_cost_mat(number_MTQ+number_RW,number_MTQ+number_RW,size(number_magic,number_magic)) = diagmat(vec(magic_cost) * NONMTQ_TORQ_SCALE * NONMTQ_TORQ_SCALE);
     }
   }else{
     w_u_mult = 0;
@@ -987,10 +990,10 @@ mat Satellite::setupActuationCostMatrix(int k, int N, ExtractedCostSettings& set
             act_cost_mat(0, 0, size(number_MTQ, number_MTQ)) = diagmat(vec(MTQ_cost));
         }
         if (number_RW > 0) {
-            act_cost_mat(number_MTQ, number_MTQ, size(number_RW, number_RW)) = diagmat(vec(RW_cost));
+            act_cost_mat(number_MTQ, number_MTQ, size(number_RW, number_RW)) = diagmat(vec(RW_cost) * NONMTQ_TORQ_SCALE * NONMTQ_TORQ_SCALE);
         }
         if (number_magic > 0) {
-            act_cost_mat(number_MTQ + number_RW, number_MTQ + number_RW, size(number_magic, number_magic)) = diagmat(vec(magic_cost));
+            act_cost_mat(number_MTQ + number_RW, number_MTQ + number_RW, size(number_magic, number_magic)) = diagmat(vec(magic_cost) * NONMTQ_TORQ_SCALE * NONMTQ_TORQ_SCALE);
         }
     } else {
         settings.applyTerminalWeights();

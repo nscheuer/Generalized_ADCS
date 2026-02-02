@@ -245,7 +245,9 @@ def main():
     settings.wmax = np.radians(60)
     
     # Make RW MUCH cheaper - try 0.0001x MTQ cost
-    settings.rw_control_weight = settings.mtq_control_weight * 0.0001
+    # RW cost is now properly scaled in C++ by NONMTQ_TORQ_SCALE²
+    # Use same weight ratio as MTQ for equal cost-per-torque
+    settings.rw_control_weight = settings.mtq_control_weight * 0.1  # Favor RW slightly
     
     # Disable momentum cost and allow more momentum capacity
     settings.rw_AM_weight = 0.0
