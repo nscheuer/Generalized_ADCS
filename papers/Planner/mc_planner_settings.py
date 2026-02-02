@@ -862,6 +862,8 @@ def create_optimized_planner_settings(
     elif tuning == "none":
         if verbose:
             print("No additional tuning applied (using base auto-scaled settings)")
+    else:
+        raise ValueError(f"Unknown tuning preset: {tuning}. Use 'smooth', 'balanced', 'anti_spin', 'aggressive', 'fast_slew', or 'none'")
     
     # TVLQR gain tuning: Use high control multiplier for sensible feedback gains
     # Without this, LQR gains are ~1000x larger than actuator limits allow.
@@ -871,8 +873,6 @@ def create_optimized_planner_settings(
     settings.cost_tvlqr.control_mult = 1e6
     if verbose:
         print(f"TVLQR control multiplier: {settings.cost_tvlqr.control_mult:.0e}")
-    else:
-        raise ValueError(f"Unknown tuning preset: {tuning}. Use 'smooth', 'balanced', 'anti_spin', 'aggressive', 'fast_slew', or 'none'")
     
     # Enable multi-start if requested
     if use_multistart:
