@@ -160,7 +160,8 @@ class PythonALILQRv2:
         alilqr_settings: Tuple,
         is_first_search: bool = True,
         collect_all: bool = True,
-        pass_label: str = ""
+        pass_label: str = "",
+        tvlqr_cost_settings: Tuple = None
     ) -> OptimizationResult:
         """
         Run ALILQR optimization - follows C++ alilqr() EXACTLY.
@@ -174,7 +175,7 @@ class PythonALILQRv2:
         vecs : tuple
             Environment vectors from prepareForAlilqr
         cost_settings : tuple
-            Cost function settings
+            Cost function settings for trajectory optimization
         alilqr_settings : tuple
             (line_search_settings, auglag_settings, break_settings, reg_settings)
         is_first_search : bool
@@ -183,6 +184,10 @@ class PythonALILQRv2:
             If True, store all iteration data
         pass_label : str
             Label for this optimization pass (e.g., "Pass1", "Pass2")
+        tvlqr_cost_settings : tuple, optional
+            Cost function settings specifically for TVLQR gain computation.
+            If None, uses cost_settings. Use higher control costs here for
+            smaller, more practical feedback gains.
             
         Returns
         -------
@@ -408,11 +413,13 @@ class PythonALILQRv2:
         
         # Get final Kset by running one backward pass on the final trajectory
         # This matches C++ behavior: mat Kmat = packageK(get<0>(BPresults));
+        # Use TVLQR-specific costs if provided (typically higher control costs for smaller gains)
+        kset_cost_settings = tvlqr_cost_settings if tvlqr_cost_settings is not None else cost_settings
         try:
             use_dist = not is_first_search
             bp_results, _ = self.planner.backwardPass(
                 dt, traj, vecs, auglag_vals, regs,
-                cost_settings, reg_settings, use_dist
+                kset_cost_settings, reg_settings, use_dist
             )
             Kset_bp, _, _ = bp_results
             

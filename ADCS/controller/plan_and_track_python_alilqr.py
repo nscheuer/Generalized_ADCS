@@ -264,6 +264,10 @@ class Plan_and_Track_PythonALILQR(PlanAndTrackBase):
         cost_settings_2 = self.planner_settings.optSecondCostSettings()
         alilqr_settings_2 = self.planner_settings.secondAlilqrSettings()
         
+        # Get TVLQR-specific cost settings for gain computation
+        # These typically have higher control costs to produce smaller, more practical gains
+        tvlqr_cost_settings = self.planner_settings.optTVLQRCostSettings(tracking_LQR_formulation=0)
+        
         # Interpolate coarse trajectory to fine timestep (like C++ trajOptAfter)
         interp_ratio = int(dt_coarse / dt_fine)
         if interp_ratio > 1:
@@ -322,7 +326,8 @@ class Plan_and_Track_PythonALILQR(PlanAndTrackBase):
             alilqr_settings=alilqr_settings_2,
             is_first_search=False,
             collect_all=collect_all_iterations,
-            pass_label="Pass2"
+            pass_label="Pass2",
+            tvlqr_cost_settings=tvlqr_cost_settings
         )
         
         # Combine results
