@@ -101,26 +101,28 @@ class Orbit_EKF(Orbit_Estimator):
         r"""
         Perform the EKF Time Update and Measurement Update steps.
 
-        **1. Time Update (Prediction):**
+        1. Time Update (Prediction):
+        ----------------------------
         Propagates the state using RK4 integration and the covariance using the 
         state transition matrix approximation:
 
         .. math::
-            \hat{\mathbf{x}}_k^- &= f(\hat{\mathbf{x}}_{k-1}, u_{k-1}) \
+            \hat{\mathbf{x}}_k^- &= f(\hat{\mathbf{x}}_{k-1}, u_{k-1}) \\
             \mathbf{P}_k^- &= \mathbf{F}_k \mathbf{P}_{k-1} \mathbf{F}_k^T + \mathbf{Q}
 
-        **2. Measurement Update (Correction):**
+        2. Measurement Update (Correction):
+        -----------------------------------
         Updates the estimate using the Kalman Gain :math:`\mathbf{K}` derived from 
         the measurement residual (innovation) :math:`\mathbf{y}`:
 
         .. math::
-            \mathbf{K}_k &= \mathbf{P}_k^- \mathbf{H}^T (\mathbf{H} \mathbf{P}_k^- \mathbf{H}^T + \mathbf{R})^{-1} \
-            \hat{\mathbf{x}}_k &= \hat{\mathbf{x}}_k^- + \mathbf{K}_k (\mathbf{z}_k - \mathbf{H}\hat{\mathbf{x}}_k^-) \
+            \mathbf{K}_k &= \mathbf{P}_k^- \mathbf{H}^T (\mathbf{H} \mathbf{P}_k^- \mathbf{H}^T + \mathbf{R})^{-1} \\
+            \hat{\mathbf{x}}_k &= \hat{\mathbf{x}}_k^- + \mathbf{K}_k (\mathbf{z}_k - \mathbf{H}\hat{\mathbf{x}}_k^-) \\
             \mathbf{P}_k &= (\mathbf{I} - \mathbf{K}_k \mathbf{H}) \mathbf{P}_k^-
 
         :param GPS_measurements: List of sensor measurements (Position or PV) in ECEF frame.
         :param J2000: Current epoch time [s].
-        :return: The updated :class:`EstimatedOrbital_State`.
+        :return: The updated :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedOrbital_State`.
         """
 
         # --- 1. Propagate the orbital state ---

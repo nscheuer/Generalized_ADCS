@@ -20,6 +20,7 @@ import numpy as np
 from typing import Optional
 from numpy.typing import NDArray
 
+from ADCS.CONOPS.goals import Goal
 from ADCS.CONOPS.goallist import GoalList
 from ADCS.controller.plan_and_track_base import PlanAndTrackBase
 from ADCS.controller.helpers import PlannerSettings, Trajectory
@@ -28,39 +29,189 @@ from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatel
 
 
 class Plan_and_Track_LQR_Disturbed(PlanAndTrackBase):
+    r"""
+    Plan-and-Track TVLQR controller with integrated disturbance estimation.
+
+    This controller extends the standard Plan-and-Track framework by augmenting
+    the tracking controller with an explicit disturbance estimate. Trajectories
+    are planned using the ALTRO planner with the ``findKwDist`` formulation,
+    which produces time-varying LQR gains compatible with an augmented-state
+    system that includes a constant disturbance model.
+
+    The controller then executes the trajectory in closed loop using TVLQR
+    feedback while continuously updating an internal estimate of the unknown
+    disturbance torque.
+
+    Relationship to the base framework
+    ----------------------------------
+    This class derives from
+    :class:`~ADCS.controller.plan_and_track_base.PlanAndTrackBase` and therefore
+    reuses:
+
+    - Planner construction via
+      :meth:`~ADCS.controller.plan_and_track_base.PlanAndTrackBase._init_planner`.
+    - Environment propagation via
+      :meth:`~ADCS.controller.plan_and_track_base.PlanAndTrackBase._propagate_environment`.
+    - Common trajectory optimization via
+      :meth:`~ADCS.controller.plan_and_track_base.PlanAndTrackBase._calculate_trajectory_common`.
+
+    Disturbance-augmented dynamics
+    ------------------------------
+    Let the nominal discrete-time attitude dynamics (after linearization about
+    the planned trajectory) be
+
+    .. math::
+
+       \mathbf{x}_{k+1} = A_k \mathbf{x}_k + B_k \mathbf{u}_k,
+
+    where :math:`\mathbf{x}` is the attitude state and :math:`\mathbf{u}` is the
+    control input. A constant disturbance torque
+    :math:`\mathbf{d} \in \mathbb{R}^3` enters additively through a disturbance
+    matrix :math:`C_k`:
+
+    .. math::
+
+       \mathbf{x}_{k+1} = A_k \mathbf{x}_k + B_k \mathbf{u}_k + C_k \mathbf{d}.
+
+    The disturbance is modeled as constant:
+
+    .. math::
+
+       \dot{\mathbf{d}} = \mathbf{0}.
+
+    Defining the augmented state
+
+    .. math::
+
+       \tilde{\mathbf{x}}_k =
+       \begin{bmatrix}
+           \mathbf{x}_k \\
+           \mathbf{d}_k
+       \end{bmatrix},
+
+    the augmented dynamics become
+
+    .. math::
+
+       \tilde{\mathbf{x}}_{k+1} =
+       \begin{bmatrix}
+           A_k & C_k \\
+           0   & I
+       \end{bmatrix}
+       \tilde{\mathbf{x}}_k +
+       \begin{bmatrix}
+           B_k \\
+           0
+       \end{bmatrix}
+       \mathbf{u}_k.
+
+    The ``findKwDist`` formulation used by the planner computes TVLQR gains
+    :math:`K_k` for this augmented system, enabling feedback laws of the form
+
+    .. math::
+
+       \mathbf{u}_k =
+       \mathbf{u}_k^\ast -
+       K_k
+       \left(
+           \tilde{\mathbf{x}}_k -
+           \tilde{\mathbf{x}}_k^\ast
+       \right),
+
+    where :math:`(\cdot)^\ast` denotes the planned nominal trajectory.
+
+    Online disturbance adaptation
+    ------------------------------
+    In addition to the planner-provided augmented gains, this controller
+    maintains a simple integrator-based disturbance estimate
+    :math:`\hat{\mathbf{d}}`. At each control step, the estimate is updated using
+    the angular velocity tracking error:
+
+    .. math::
+
+       \hat{\mathbf{d}}_{k+1} =
+       \hat{\mathbf{d}}_k +
+       \gamma
+       \left(
+           \boldsymbol{\omega}_k -
+           \boldsymbol{\omega}_k^\ast
+       \right)
+       \Delta t,
+
+    where:
+
+    - :math:`\boldsymbol{\omega}_k` is the measured angular velocity,
+    - :math:`\boldsymbol{\omega}_k^\ast` is the nominal angular velocity from
+      the trajectory,
+    - :math:`\gamma` is a user-selected disturbance adaptation gain,
+    - :math:`\Delta t` is the TVLQR discretization step.
+
+    This estimate is injected into the active trajectory prior to computing
+    the tracking control.
+
+    Intended use
+    ------------
+    This controller is suited for scenarios with approximately constant or
+    slowly varying external torques, such as:
+
+    - Residual magnetic dipole moments.
+    - Solar radiation pressure biases.
+    - Unmodeled reaction wheel friction.
+
+    :param est_sat: Estimated satellite model with actuators and sensors.
+    :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+    :param planner_settings: ALTRO trajectory planner configuration bundle.
+    :type planner_settings: :class:`~ADCS.controller.helpers.PlannerSettings`
+    :param dist_gain: Scalar gain controlling the disturbance adaptation rate.
+    :type dist_gain: float
+    :return: None.
+    :rtype: None
+
     """
-    Trajectory-following controller using ALTRO planning and TVLQR with disturbance compensation.
 
-    This controller uses findKwDist (tracking_LQR_formulation=2) to compute
-    gains that include disturbance compensation. The disturbance torque is
-    obtained from the EstimatedSatellite's disturbance models (e.g., SRP,
-    drag, gravity gradient, residual dipole).
-
-    The disturbance dynamics model assumes constant disturbance:
-        d_dot = 0
-    which is integrated into the LQR formulation via the C matrix.
-
-    Attributes:
-        est_sat: Estimated satellite model with disturbance models
-        planner_settings: Configuration for the trajectory planner
-        csat: C++ satellite model for the planner
-        planner: C++ ALTRO planner instance
-        active_trajectory: Currently active trajectory for tracking
-    """
+    dist_estimate: NDArray[np.float64]
+    dist_gain: float
 
     def __init__(
         self,
         est_sat: EstimatedSatellite,
         planner_settings: PlannerSettings
     ) -> None:
-        """
-        Initialize the Plan and Track LQR controller with disturbance compensation.
+        r"""
+        Construct the Plan-and-Track LQR controller with disturbance estimation.
 
-        Args:
-            est_sat: Estimated satellite model with actuators, sensors, and
-                disturbance models. The disturbance torque will be computed
-                from est_sat.dist_torques() at each control step.
-            planner_settings: Configuration for the ALTRO trajectory planner
+        This initializes the underlying C++ planner using the ``findKwDist``
+        tracking formulation and sets the initial disturbance estimate to zero.
+
+        Planner configuration
+        ---------------------
+        The planner is initialized with:
+
+        - ``tracking_lqr_formulation = 2`` to enable disturbance-augmented TVLQR.
+        - Default quaternion-to-vector settings inherited from the base class.
+
+        Disturbance adaptation
+        ----------------------
+        The internal disturbance estimate :math:`\hat{\mathbf{d}}` is initialized
+        as
+
+        .. math::
+
+        \hat{\mathbf{d}}_0 = \mathbf{0},
+
+        and subsequently updated during calls to
+        :meth:`~Plan_and_Track_LQR_Disturbed.find_u`.
+
+        :param est_sat: Estimated satellite model with actuator and sensor models.
+        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+        :param planner_settings: ALTRO planner configuration settings.
+        :type planner_settings: :class:`~ADCS.controller.helpers.PlannerSettings`
+        :param dist_gain: Gain for updating the disturbance estimate from tracking
+            error.
+        :type dist_gain: float
+        :return: None.
+        :rtype: None
+
         """
         # tracking_lqr_formulation=2 is KwDist formulation with disturbance estimation
         self._init_planner(est_sat, planner_settings, tracking_lqr_formulation=2)
@@ -123,34 +274,47 @@ class Plan_and_Track_LQR_Disturbed(PlanAndTrackBase):
         x_0: np.ndarray,
         os_0: Orbital_State,
         goals: GoalList,
-        verbose: bool = False,
-        vecsPy_precomputed: tuple = None,
-        N_precomputed: int = None,
-        t_end_precomputed: float = None
+        verbose: bool = False
     ) -> Trajectory:
-        """
-        Calculate an optimal trajectory using ALTRO with KwDist gains.
+        r"""
+        Plan an optimal trajectory using ALTRO with disturbance-aware TVLQR gains.
 
-        Args:
-            t_start: Start time in J2000 centuries
-            duration: Trajectory duration in seconds
-            x_0: Initial state vector
-            os_0: Initial orbital state
-            goals: Goal list defining the pointing objectives
-            verbose: If True, print debug information
-            vecsPy_precomputed: Optional pre-computed environment vectors to skip slow orbit propagation
-            N_precomputed: Number of timesteps (required with vecsPy_precomputed)
-            t_end_precomputed: End time in J2000 centuries (required with vecsPy_precomputed)
+        This method invokes the shared planning pipeline provided by
+        :meth:`~ADCS.controller.plan_and_track_base.PlanAndTrackBase._calculate_trajectory_common`
+        and returns a trajectory configured for disturbance estimation.
 
-        Returns:
-            Trajectory object with KwDist gains (use_disturbance_estimation=True)
+        Trajectory contents
+        -------------------
+        The resulting :class:`~ADCS.controller.helpers.Trajectory` object contains:
+
+        - Nominal state and control sequences.
+        - Time-varying LQR gains compatible with the augmented disturbance model.
+        - Auxiliary planner data needed for tracking.
+
+        The trajectory is marked with ``use_disturbance_estimation = True``, which
+        enables disturbance-related logic inside the trajectory during tracking.
+
+        :param t_start: Planning start time in J2000 centuries.
+        :type t_start: float
+        :param duration: Planning horizon length in seconds.
+        :type duration: float
+        :param x_0: Initial state vector used to seed the optimizer.
+        :type x_0: numpy.ndarray
+        :param os_0: Initial orbital state used to seed environment propagation.
+        :type os_0: :class:`~ADCS.orbits.orbital_state.Orbital_State`
+        :param goals: Goal list defining the pointing objectives.
+        :type goals: :class:`~ADCS.CONOPS.goallist.GoalList`
+        :param verbose: If true, enable planner verbosity and diagnostic output.
+        :type verbose: bool
+        :return: Planned trajectory with disturbance-aware TVLQR gains.
+        :rtype: :class:`~ADCS.controller.helpers.Trajectory`
+
         """
         if verbose:
             print(f"Planning trajectory with KwDist: Start={t_start:.5f}, Dur={duration}s")
 
         lqr_times, Xset, Uset, Kset, Sset = self._calculate_trajectory_common(
-            t_start, duration, x_0, os_0, goals, verbose,
-            vecsPy_precomputed, N_precomputed, t_end_precomputed
+            t_start, duration, x_0, os_0, goals, verbose
         )
 
         # Create trajectory with disturbance estimation enabled

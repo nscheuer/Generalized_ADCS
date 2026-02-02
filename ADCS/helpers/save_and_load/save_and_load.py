@@ -1,4 +1,5 @@
 from __future__ import annotations
+__all__ = ["save_data", "load_data", "load_orbital_states"]
 
 import json
 import pickle
@@ -110,14 +111,97 @@ def save_data(
     add_timestamp: bool = True,
     compress: bool = True,
 ) -> str:
-    """
-    Save arbitrary objects.
+    r"""
+    Persist heterogeneous simulation data to disk with automatic type handling.
 
-    - Numeric ndarrays → arrays.npz
-    - list[Orbital_State] → orbital_states.pkl (via to_dict)
-    - everything else → objects.pkl
+    This function saves an arbitrary collection of Python objects into a
+    structured output directory. Objects are grouped and serialized based on
+    their detected type to support efficient storage, inspection, and later
+    reconstruction.
 
-    Returns absolute path to the save directory.
+    ======================
+    Storage Strategy
+    ======================
+
+    Each input object is categorized into one of the following classes:
+
+    +------------------------+---------------------------------------------+
+    | Category               | Storage Method                              |
+    +========================+=============================================+
+    | Numeric ``ndarray``    | ``arrays.npz`` (NumPy compressed archive)   |
+    +------------------------+---------------------------------------------+
+    | ``list[Orbital_State]``| ``orbital_states.pkl`` (dict representation)|
+    +------------------------+---------------------------------------------+
+    | Other Python objects   | ``objects.pkl`` (pickle)                    |
+    +------------------------+---------------------------------------------+
+
+    A machine-readable ``manifest.json`` file is always generated. It records
+    metadata for each saved object, including:
+
+    * Original variable name (best-effort inference)
+    * Storage file and key
+    * Object shape, type, and basic structural information
+
+    ======================
+    Directory Naming
+    ======================
+
+    The output directory is determined as follows:
+
+    * If ``path`` is provided, it is used directly
+    * Otherwise, a directory named ``<name>[_YYYYMMDD_HHMMSS]`` is created
+      inside ``out_dir``
+
+    ======================
+    Design Notes
+    ======================
+
+    * Orbital states are stored via ``to_dict()`` to avoid import-time coupling
+    * Compression is applied only to NumPy archives
+    * The function fails fast if directory collisions occur
+
+    :param name:
+        Base name of the output directory (ignored if ``path`` is provided).
+    :type name:
+        str or None
+
+    :param objs:
+        Arbitrary Python objects to be saved.
+    :type objs:
+        Any
+
+    :param labels:
+        Optional iterable of string labels corresponding one-to-one with
+        ``objs``.
+    :type labels:
+        iterable of str or None
+
+    :param out_dir:
+        Parent directory under which the output directory is created.
+    :type out_dir:
+        str or pathlib.Path
+
+    :param path:
+        Explicit path to the output directory. Overrides ``name`` and
+        ``out_dir``.
+    :type path:
+        str or pathlib.Path or None
+
+    :param add_timestamp:
+        If True, append a timestamp suffix to the directory name.
+    :type add_timestamp:
+        bool
+
+    :param compress:
+        If True, use compressed NumPy archives for arrays.
+    :type compress:
+        bool
+
+    :return:
+        Absolute path to the created output directory.
+    :rtype:
+        str
+
     """
     out_dir = Path(out_dir)
 
@@ -202,9 +286,43 @@ def save_data(
     return str(run_dir)
 
 def load_data(run_dir: str | Path) -> Tuple[Any, ...]:
-    """
-    Load data exactly as saved.
-    Orbital states are returned as list[dict].
+    r"""
+    Load previously saved data exactly as written by :func:`save_data`.
+
+    This function reconstructs objects from a saved run directory by reading
+    the ``manifest.json`` file and loading each item from its corresponding
+    storage file. Objects are returned in the same order in which they were
+    originally saved.
+
+    ======================
+    Reconstruction Rules
+    ======================
+
+    * NumPy arrays are loaded from ``arrays.npz``
+    * Pickled Python objects are loaded from ``objects.pkl``
+    * Orbital state lists are returned as ``list[dict]`` without reconstruction
+
+    This function performs no type inference or object reconstruction beyond
+    basic deserialization.
+
+    ======================
+    Ordering Guarantee
+    ======================
+
+    The return order strictly follows the item order recorded in the manifest.
+    This ensures positional consistency even when multiple objects share the
+    same storage file.
+
+    :param run_dir:
+        Path to the directory created by :func:`save_data`.
+    :type run_dir:
+        str or pathlib.Path
+
+    :return:
+        Tuple of loaded objects in the original save order.
+    :rtype:
+        tuple
+
     """
     run_dir = Path(run_dir).resolve()
     print(f"[load_data] Loading from: {run_dir}")
@@ -251,11 +369,76 @@ def load_orbital_states(
     density_model=None,
     fast: bool = True,
 ):
-    """
-    Load orbital states.
+    r"""
+    Load and optionally reconstruct orbital state histories.
 
-    - If ephem is provided → returns List[Orbital_State]
-    - Else → returns raw List[dict]
+    This function loads orbital state data stored by :func:`save_data` and
+    provides two modes of operation:
+
+    * **Raw mode**: return ``list[dict]`` representations
+    * **Reconstruction mode**: return fully instantiated
+      :class:`~ADCS.orbits.orbital_state.Orbital_State` objects
+
+    ======================
+    Reconstruction Logic
+    ======================
+
+    If an ephemeris object is provided, each dictionary entry is reconstructed
+    using:
+
+    .. code-block:: python
+
+        Orbital_State.from_dict(...)
+
+    This allows deferred coupling to orbital dynamics models and accelerates
+    I/O when reconstruction is not required.
+
+    ======================
+    Label Resolution
+    ======================
+
+    * If ``label`` is provided, only that orbital state list is returned
+    * If exactly one orbital state list exists, it is returned directly
+    * Otherwise, a dictionary mapping labels to lists is returned
+
+    ======================
+    Performance Notes
+    ======================
+
+    The ``fast`` flag is passed directly to the orbital state constructor and
+    may disable expensive precomputations.
+
+    :param run_dir:
+        Path to the directory created by :func:`save_data`.
+    :type run_dir:
+        str or pathlib.Path
+
+    :param label:
+        Optional label identifying a specific orbital state list.
+    :type label:
+        str or None
+
+    :param ephem:
+        Ephemeris object required to reconstruct
+        :class:`~ADCS.orbits.orbital_state.Orbital_State` instances.
+    :type ephem:
+        Any or None
+
+    :param density_model:
+        Optional atmospheric density model passed during reconstruction.
+    :type density_model:
+        Any or None
+
+    :param fast:
+        If True, enable fast reconstruction mode.
+    :type fast:
+        bool
+
+    :return:
+        Orbital state history in raw or reconstructed form.
+    :rtype:
+        list or dict
+
     """
     run_dir = Path(run_dir).resolve()
     print(f"[load_orbital_states] Loading from: {run_dir}")

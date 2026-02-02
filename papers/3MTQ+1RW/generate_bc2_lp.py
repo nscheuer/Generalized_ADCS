@@ -31,7 +31,7 @@ from ADCS.helpers.plotting_mc.plot_controller_compare_mc import (
 from ADCS.helpers.plotting.close_all_plots import create_close_all_button_window
 
 # --- MC Runner Imports ---
-from ADCS.helpers.mc.monte_carlo_runner import (
+from ADCS.mc.monte_carlo_runner import (
     MonteCarloRunner,
     claim_worker_slot,
     release_worker_slot,
@@ -53,7 +53,7 @@ _CACHED_ORBIT_KEY: Optional[Tuple] = None
 def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
     global _CACHED_ORBIT, _CACHED_ORBIT_KEY
 
-    # 1. UI Setup: Clafim a slot
+    # 1. UI Setup: Claim a slot
     slot_id = claim_worker_slot()
     run_id = config["run_id"]
 

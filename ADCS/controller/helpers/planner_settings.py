@@ -128,7 +128,170 @@ from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatel
 from ADCS.satellite_hardware.disturbances import Dipole_Disturbance, Prop_Disturbance, General_Disturbance, SRP_Disturbance, Drag_Disturbance
 
 
+
 class PlannerSettings:
+    r"""
+    Container class for all configuration parameters required by the trajectory planner.
+
+    This class aggregates physical parameters, solver configurations, actuator limits,
+    cost weights, timing parameters, and disturbance models into a single interface
+    consumed by the C++ trajectory planner.
+
+    Mathematically, the planner solves a constrained optimal control problem of the form
+
+    .. math::
+
+        \min_{\mathbf{u}(t)} \;
+        \int_{0}^{T}
+        \ell\bigl(\mathbf{x}(t), \mathbf{u}(t)\bigr)\, dt
+        + \ell_N\bigl(\mathbf{x}(T)\bigr)
+
+    subject to nonlinear rigid-body dynamics
+
+    .. math::
+
+        \dot{\mathbf{x}} = f(\mathbf{x}, \mathbf{u}, \mathbf{d})
+
+    actuator saturation limits, and optional environmental disturbance torques
+    :math:`\mathbf{d}`.
+
+    The settings in this class parameterize both the dynamics and the optimization
+    algorithm, including multi-pass augmented Lagrangian iLQR configurations.
+
+    :param est_sat:
+        Estimated satellite model providing inertia, actuator definitions,
+        state dimension, and disturbances.
+
+    :type est_sat:
+        :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+
+    :param dt_control:
+        Control update period in seconds.
+
+    :type dt_control:
+        float
+
+    :param pass1_config:
+        Solver configuration for the first (exploration) optimization pass.
+
+    :type pass1_config:
+        :class:`~ADCS.controller.helpers.planner_subsettings.SolverPassConfig`
+
+    :param pass2_config:
+        Solver configuration for the second (refinement) optimization pass.
+
+    :type pass2_config:
+        :class:`~ADCS.controller.helpers.planner_subsettings.SolverPassConfig`
+
+    :param cost_main:
+        Cost weights for the main optimization pass.
+
+    :type cost_main:
+        :class:`~ADCS.controller.helpers.planner_subsettings.CostWeights`
+
+    :param cost_second:
+        Cost weights for the second optimization pass.
+
+    :type cost_second:
+        :class:`~ADCS.controller.helpers.planner_subsettings.CostWeights`
+
+    :param cost_tvlqr:
+        Cost weights for time-varying LQR tracking.
+
+    :type cost_tvlqr:
+        :class:`~ADCS.controller.helpers.planner_subsettings.CostWeights`
+
+    :param init_traj:
+        Initial trajectory generation configuration.
+
+    :type init_traj:
+        :class:`~ADCS.controller.helpers.planner_subsettings.InitTrajConfig`
+
+    :param dt_tvlqr:
+        Time step for TVLQR controller discretization.
+
+    :type dt_tvlqr:
+        float
+
+    :param tvlqr_len:
+        Duration of each TVLQR segment in seconds.
+
+    :type tvlqr_len:
+        float
+
+    :param tvlqr_overlap:
+        Overlap duration between consecutive TVLQR segments in seconds.
+
+    :type tvlqr_overlap:
+        float
+
+    :param dt_tp:
+        Time step used by the trajectory planner.
+
+    :type dt_tp:
+        float
+
+    :param precalculation_time:
+        Planning horizon precomputation time in seconds.
+
+    :type precalculation_time:
+        float
+
+    :param traj_overlap:
+        Overlap duration between planned trajectories.
+
+    :type traj_overlap:
+        float
+
+    :param bdot_on:
+        Flag enabling B-dot detumbling logic.
+
+    :type bdot_on:
+        int
+
+    :param debug_plot_on:
+        Flag enabling debug plotting.
+
+    :type debug_plot_on:
+        bool
+
+    :param include_gg:
+        Flag enabling gravity-gradient disturbance modeling.
+
+    :type include_gg:
+        bool
+
+    :param include_resdipole:
+        Flag enabling residual dipole disturbance modeling.
+
+    :type include_resdipole:
+        bool
+
+    :param include_prop:
+        Flag enabling propulsion disturbance modeling.
+
+    :type include_prop:
+        bool
+
+    :param include_drag:
+        Flag enabling aerodynamic drag disturbance modeling.
+
+    :type include_drag:
+        bool
+
+    :param include_srp:
+        Flag enabling solar radiation pressure disturbance modeling.
+
+    :type include_srp:
+        bool
+
+    :param include_gendist:
+        Flag enabling generic disturbance torque modeling.
+
+    :type include_gendist:
+        bool
+
+    """
     def __init__(
             self, 
             est_sat: EstimatedSatellite, 
@@ -194,7 +357,7 @@ class PlannerSettings:
 
         # Actuator Weights for the C++ model construction
         self.mtq_control_weight = 1e3
-        self.rw_control_weight = 1e7
+        self.rw_control_weight = 1e8
         self.magic_control_weight = 0.0001
         self.rw_AM_weight = 1e4
         self.rw_stic_weight = 1e0
@@ -281,7 +444,21 @@ class PlannerSettings:
                 self.tvlqr_len, self.tvlqr_overlap)
 
     def mainAlilqrSettings(self) -> Tuple[Tuple, Tuple, Tuple, Tuple]:
-        """Return first pass solver settings for C++ planner."""
+        r"""
+        Return solver settings for the first augmented Lagrangian iLQR pass.
+
+        The first pass prioritizes global exploration with a low penalty parameter
+        and increased iteration limits, solving a relaxed constrained optimization
+        problem.
+
+        :return:
+            Tuple containing line search, augmented Lagrangian,
+            convergence, and regularization settings.
+
+        :rtype:
+            Tuple[Tuple, Tuple, Tuple, Tuple]
+
+        """
         return (
             self.pass1.line_search.to_tuple(),
             self.pass1.aug_lag.to_tuple(),
@@ -290,7 +467,20 @@ class PlannerSettings:
         )
 
     def secondAlilqrSettings(self) -> Tuple[Tuple, Tuple, Tuple, Tuple]:
-        """Return second pass solver settings for C++ planner."""
+        r"""
+        Return solver settings for the second augmented Lagrangian iLQR pass.
+
+        The second pass increases constraint penalties to enforce feasibility
+        and refine the solution obtained from the first pass.
+
+        :return:
+            Tuple containing line search, augmented Lagrangian,
+            convergence, and regularization settings.
+
+        :rtype:
+            Tuple[Tuple, Tuple, Tuple, Tuple]
+
+        """
         return (
             self.pass2.line_search.to_tuple(),
             self.pass2.aug_lag.to_tuple(),
@@ -299,22 +489,115 @@ class PlannerSettings:
         )
 
     def initTrajSettings(self) -> Tuple[float, float, Tuple, Tuple]:
-        """Return initial trajectory generation settings."""
+        r"""
+        Return initial trajectory generation parameters.
+
+        These settings define how the initial guess trajectory is constructed
+        prior to optimization, which can significantly affect convergence.
+
+        :return:
+            Tuple containing initial trajectory configuration parameters.
+
+        :rtype:
+            Tuple[float, float, Tuple, Tuple]
+
+        """
         return self.init_traj.to_tuple()
 
     def optMainCostSettings(self) -> Tuple:
-        """Return main pass cost weights for C++ planner."""
+        r"""
+        Return cost weights for the main optimization pass.
+
+        The running and terminal costs are defined as
+
+        .. math::
+
+            \ell = \mathbf{x}^\top \mathbf{Q} \mathbf{x}
+            + \mathbf{u}^\top \mathbf{R} \mathbf{u}
+
+        with increased terminal penalties to emphasize goal convergence.
+
+        :return:
+            Tuple encoding main-pass cost weights.
+
+        :rtype:
+            Tuple
+
+        """
         return self.cost_main.to_tuple()
 
     def optSecondCostSettings(self) -> Tuple:
-        """Return second pass cost weights for C++ planner."""
+        r"""
+        Return cost weights for the second optimization pass.
+
+        These weights may differ from the main pass to emphasize constraint
+        satisfaction or control smoothing.
+
+        :return:
+            Tuple encoding second-pass cost weights.
+
+        :rtype:
+            Tuple
+
+        """
         return self.cost_second.to_tuple()
 
     def optTVLQRCostSettings(self, tracking_LQR_formulation: int) -> Tuple:
-        """Return TVLQR cost weights with tracking formulation flag."""
+        r"""
+        Return cost weights for the time-varying LQR controller.
+
+        The TVLQR controller minimizes a quadratic tracking cost
+
+        .. math::
+
+            J = \int
+            (\mathbf{x} - \mathbf{x}_r)^\top \mathbf{Q}
+            (\mathbf{x} - \mathbf{x}_r)
+            + \mathbf{u}^\top \mathbf{R} \mathbf{u} \, dt
+
+        where the formulation can be adjusted via the tracking flag.
+
+        :param tracking_LQR_formulation:
+            Integer flag selecting the tracking LQR formulation.
+
+        :type tracking_LQR_formulation:
+            int
+
+        :return:
+            Tuple encoding TVLQR cost weights.
+
+        :rtype:
+            Tuple
+
+        """
         return self.cost_tvlqr.to_tuple(tracking_LQR_formulation)
 
     def planner_disturbance_settings(self) -> Tuple[Tuple[bool, ...], NDArray, NDArray, int, NDArray, NDArray, NDArray]:
+        r"""
+        Return disturbance configuration parameters for the C++ planner.
+
+        Disturbance torques are modeled as additive inputs
+
+        .. math::
+
+            \boldsymbol{\tau}_{\text{total}} =
+            \boldsymbol{\tau}_{\text{control}} +
+            \boldsymbol{\tau}_{\text{dist}}
+
+        where the disturbance torque may include aerodynamic drag, solar radiation
+        pressure, gravity-gradient effects, propulsion torques, residual dipole
+        effects, or generic disturbances.
+
+        :return:
+            Tuple containing disturbance enable flags, SRP coefficients,
+            drag coefficients, normalization factor, propulsion torque,
+            generic disturbance torque, and residual dipole torque.
+
+        :rtype:
+            Tuple[Tuple[bool, ...], numpy.ndarray, numpy.ndarray, int,
+                numpy.ndarray, numpy.ndarray, numpy.ndarray]
+
+        """
         return (
             (self.plan_for_aero, self.plan_for_prop, self.plan_for_srp, 
              self.plan_for_gg, self.plan_for_resdipole, self.plan_for_gendist),

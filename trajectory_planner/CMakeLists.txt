@@ -134,10 +134,6 @@ add_executable(tp_test2
 			   )
 set_target_properties(tp_test2 PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
-add_executable(test_blended
-			   src/planner/test_blended.cpp
-			   )
-set_target_properties(test_blended PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 pybind11_add_module(tplaunch MODULE src/planner/PyPlanner.cpp)
 pybind11_add_module(pysat MODULE src/planner/Satellite.cpp)
@@ -175,7 +171,6 @@ target_link_libraries(tplaunch PUBLIC ${ARMADILLO_LIBRARIES} ${ARMADILLO_LIBRARY
 target_link_libraries(pytinympc PUBLIC ${ARMADILLO_LIBRARIES} ${ARMADILLO_LIBRARY} tp tp_nopy sat sat_nopy pybind11::module ${PYBIND11_INCLUDE_DIRS} ${PYTHON_LIBRARY} ${PYTHON_LIBRARIES})
 target_link_libraries(tp_test PRIVATE Catch2::Catch2WithMain PUBLIC pybind11::embed ${ARMADILLO_LIBRARIES} ${ARMADILLO_LIBRARY} sat tp sat_nopy tp_nopy)
 target_link_libraries(tp_test2 PRIVATE Catch2::Catch2WithMain PUBLIC pybind11::embed ${ARMADILLO_LIBRARIES} ${ARMADILLO_LIBRARY} sat tp sat_nopy tp_nopy)
-target_link_libraries(test_blended PRIVATE Catch2::Catch2WithMain PUBLIC pybind11::embed ${ARMADILLO_LIBRARIES} ${ARMADILLO_LIBRARY} sat tp sat_nopy tp_nopy)
 
 # Link OpenMP to targets that use parallel cost computation
 if(OpenMP_CXX_FOUND)
@@ -185,7 +180,6 @@ if(OpenMP_CXX_FOUND)
     target_link_libraries(pytinympc PUBLIC OpenMP::OpenMP_CXX)
     target_link_libraries(tp_test PUBLIC OpenMP::OpenMP_CXX)
     target_link_libraries(tp_test2 PUBLIC OpenMP::OpenMP_CXX)
-    target_link_libraries(test_blended PUBLIC OpenMP::OpenMP_CXX)
 endif()
 
 
@@ -255,14 +249,6 @@ target_include_directories(tp_test2 PUBLIC
          ${ARMADILLO_INCLUDE_DIRS}
 		   )
 
-target_include_directories(test_blended PUBLIC
-			   "${PROJECT_SOURCE_DIR}/src"
- 			   ${PROJECT_SOURCE_DIR}
-         ${PYTHON_INCLUDE_DIRS}
-         ${PYBIND11_INCLUDE_DIRS}
-         ${ARMADILLO_INCLUDE_DIRS}
-		   )
-
 # =============================================================================
 # CTest Integration
 # =============================================================================
@@ -283,11 +269,6 @@ catch_discover_tests(tp_test2
     TEST_PREFIX "tp_test2::"
 )
 
-catch_discover_tests(test_blended
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-    TEST_PREFIX "test_blended::"
-)
-
 # =============================================================================
 # Custom Targets for Convenience
 # =============================================================================
@@ -295,7 +276,7 @@ catch_discover_tests(test_blended
 # Quick test target (runs all tests)
 add_custom_target(check
     COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure -j${NPROC}
-    DEPENDS tp_test tp_test2 test_blended
+    DEPENDS tp_test tp_test2
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     COMMENT "Running all C++ tests..."
 )

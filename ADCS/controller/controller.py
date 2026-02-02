@@ -11,41 +11,39 @@ from ADCS.satellite_hardware.actuators import Actuator
 
 class Controller():
     r"""
-    Base abstract controller for all ADCS control law implementations.
+    Base abstract controller class for all ADCS control law implementations.
 
-    This class defines the core interface required in every ADCS controller.
-    Controllers are expected to compute actuator input commands that achieve
-    a desired torque or attitude regulation objective.
+    This class defines the common interface and shared utility methods required
+    by all attitude determination and control system controllers. A controller
+    is responsible for computing actuator command inputs that achieve a desired
+    attitude, angular rate, or torque objective.
 
-    Parameters
-    ----------
-    est_sat : :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
-        Estimated satellite model containing inertia, actuator layout,
-        and sensor configuration.
-    include_disturbances : bool, optional
-        If True, the controller will query the estimated satellite's disturbance
-        model and add feedforward compensation to the control torque. Default False.
-    **kwargs : dict
-        Optional keyword parameters forwarded to derived controllers.
+    Controllers derived from this base class typically implement a specific
+    control law, such as magnetic detumbling, reaction-wheel stabilization, or
+    pointing control. The base class additionally provides helper methods for
+    sensor reconstruction and actuator allocation using Moore–Penrose
+    pseudoinverses.
 
-    Notes
-    -----
-    Controllers that inherit from this base must override
-    :meth:`~ADCS.controller.Controller.find_u`.
+    Any concrete controller must override
+    :meth:`~ADCS.controller.controller.Controller.find_u`.
 
     """
     def __init__(self, est_sat: EstimatedSatellite, include_disturbances: bool = False, **kwargs) -> None:
         r"""
-        Initializes the base controller class.
+        Initializes the base controller.
 
-        Parameters
-        ----------
-        est_sat : :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
-            Estimated satellite model.
-        include_disturbances : bool, optional
-            Enable disturbance feedforward compensation. Default False.
-        **kwargs : dict
-            Additional optional arguments needed by subclasses.
+        This constructor provides a common initialization entry point for all
+        controller implementations. Derived controllers may extract and store
+        satellite parameters, actuator layouts, or sensor configurations from
+        the estimated satellite model.
+
+        :param est_sat: Estimated satellite model containing inertia, actuators,
+                        and sensors
+        :type est_sat: ~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite
+        :param kwargs: Optional keyword arguments passed to derived controllers
+        :type kwargs: dict
+        :return: None
+        :rtype: None
 
         """
         self.include_disturbances = include_disturbances
@@ -54,40 +52,42 @@ class Controller():
 
     def find_u(self, x_hat: np.ndarray, sens: np.ndarray, est_sat: EstimatedSatellite, os_hat: Orbital_State, goal: Goal | None, **kwargs) -> np.ndarray:
         r"""
-        Computes actuator inputs required to satisfy the control objective.
+        Computes actuator command inputs that satisfy the control objective.
 
-        This function must be overridden by subclasses. Implementations
-        typically compute a torque objective in the body frame and then
-        allocate actuator commands accordingly.
+        This method defines the primary controller interface and must be
+        implemented by all derived controller classes. Implementations typically
+        compute a desired control torque in the body frame and then allocate
+        actuator commands accordingly.
 
-        Parameters
-        ----------
-        x_hat : :class:`numpy.ndarray`
-            Estimated spacecraft state vector. Conventionally includes angular
-            velocity and quaternion attitude estimates.
-        sens : :class:`numpy.ndarray`
-            Flattened sensor measurement vector from onboard hardware such as
-            magnetometers, sun sensors, star trackers, etc.
-        est_sat : :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
-            Estimated satellite object providing inertia, actuator geometries,
-            and possible reaction wheel momentum estimates.
-        os_hat : :class:`~ADCS.orbits.orbital_state.Orbital_State`
-            Estimated orbital state (e.g. ECI position, velocity).
-        goal_vector_eci : :class:`numpy.ndarray` or None
-            Desired pointing direction expressed in the ECI frame.
-        w_ref : :class:`numpy.ndarray` or None
-            Desired angular rate reference in the body frame.
+        In abstract form, the control problem can be written as
 
-        Returns
-        -------
-        :class:`numpy.ndarray`
-            Actuator command vector. The internal indexing convention must
-            match that of the satellite model.
+        .. math::
 
-        Raises
-        ------
-        NotImplementedError
-            If the method is not implemented in the derived controller.
+            \boldsymbol{\tau}_{\mathrm{des}} = f(x, y, g)
+
+        where the desired torque is a function of the estimated state, sensor
+        measurements, and mission goal. Actuator commands are then computed as
+
+        .. math::
+
+            \mathbf{u} = A^{\dagger} \boldsymbol{\tau}_{\mathrm{des}}
+
+        where :math:`A^{\dagger}` denotes an actuator allocation pseudoinverse.
+
+        :param x_hat: Estimated spacecraft state vector
+        :type x_hat: numpy.ndarray
+        :param sens: Flattened sensor measurement vector
+        :type sens: numpy.ndarray
+        :param est_sat: Estimated satellite model providing hardware properties
+        :type est_sat: ~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite
+        :param os_hat: Estimated orbital state
+        :type os_hat: ~ADCS.orbits.orbital_state.Orbital_State
+        :param goal: Optional mission goal definition
+        :type goal: ~ADCS.CONOPS.goals.Goal or None
+        :param kwargs: Optional controller-specific parameters
+        :type kwargs: dict
+        :return: Actuator command vector
+        :rtype: numpy.ndarray
 
         """
         raise NotImplementedError(
@@ -285,40 +285,29 @@ class Controller():
 
     def build_sensor_matrix_pinv(self, sensors: List[Sensor], sensor_type: Type[Sensor]) -> Tuple[np.ndarray, List[int]]:
         r"""
-        Constructs a measurement reconstruction matrix for a specific
-        class of sensors by computing a Moore–Penrose pseudoinverse
-        based on their sensing axes.
+        Constructs a sensor reconstruction matrix using a Moore–Penrose
+        pseudoinverse.
 
-        Given a stacked sensor measurement vector :math:`y`, this matrix
-        maps sensor outputs to a physical 3-vector (e.g. the estimated
-        magnetic field in body coordinates).
+        This method builds a linear mapping that reconstructs a three-dimensional
+        physical vector from a stacked sensor measurement vector. Only sensors of
+        the specified type are used in the reconstruction.
+
+        Let :math:`y` denote the flattened measurement vector and
+        :math:`A \in \mathbb{R}^{3 \times N}` the stacked sensing axis matrix of
+        the selected sensors. The reconstructed vector is
 
         .. math::
 
-            \mathbf{v}_{body} \approx M_{\mathrm{sens}} \, y
+            \mathbf{v}_{\mathrm{body}} = A^{\dagger} \, y
 
-        Parameters
-        ----------
-        sensors : list[:class:`~ADCS.satellite_hardware.sensors.Sensor`]
-            List of all satellite sensors.
-        sensor_type : type
-            Sensor type to extract. Must inherit from
-            :class:`~ADCS.satellite_hardware.sensors.Sensor`.
+        where :math:`A^{\dagger}` is the Moore–Penrose pseudoinverse.
 
-        Returns
-        -------
-        M_sens : :class:`numpy.ndarray`
-            Pseudoinverse reconstruction matrix of shape (3, N), mapping
-            measurements to a 3-vector physical estimate.
-        indices : list[int]
-            Flattened measurement indices belonging to the selected sensor type.
-
-        Raises
-        ------
-        TypeError
-            If `sensor_type` does not subclass Sensor.
-        ValueError
-            If no sensors of the given type are found.
+        :param sensors: List of all satellite sensors
+        :type sensors: list[~ADCS.satellite_hardware.sensors.Sensor]
+        :param sensor_type: Sensor type to include in the reconstruction
+        :type sensor_type: type
+        :return: Reconstruction matrix and corresponding measurement indices
+        :rtype: tuple[numpy.ndarray, list[int]]
 
         """
         if not issubclass(sensor_type, Sensor):
@@ -369,38 +358,26 @@ class Controller():
 
     def build_torque_to_u_matrix_pinv(self, actuators: List[Actuator], actuator_type: Type[Actuator]) -> Tuple[np.ndarray, List[int]]:
         r"""
-        Builds the actuator allocation matrix that maps desired body torques
-        into actuator command space via the pseudoinverse of the actuator
-        direction matrix.
+        Builds an actuator allocation matrix mapping desired body torque to
+        actuator command space.
 
-        The columns of the internal matrix correspond to the unit axis
-        directions along which the selected actuators can impart torque.
-        Its Moore–Penrose pseudoinverse yields the minimum-norm command
-        vector that best matches a desired torque.
+        This method constructs the pseudoinverse of the actuator direction
+        matrix formed from the torque axes of the selected actuators.
+
+        Let :math:`A \in \mathbb{R}^{3 \times N}` be the stacked actuator axis
+        matrix. The minimum-norm actuator command vector satisfying a desired
+        torque :math:`\boldsymbol{\tau}` is
 
         .. math::
 
-            \mathbf{u} \approx A^{\dagger} \, \boldsymbol{\tau}
+            \mathbf{u} = A^{\dagger} \boldsymbol{\tau}
 
-        Parameters
-        ----------
-        actuators : list[:class:`~ADCS.satellite_hardware.actuators.Actuator`]
-            List of all satellite actuators.
-        actuator_type : type
-            Target actuator type (e.g. :class:`~ADCS.satellite_hardware.actuators.RW`
-            or :class:`~ADCS.satellite_hardware.actuators.MTQ`).
-
-        Returns
-        -------
-        M_act : :class:`numpy.ndarray`
-            Allocation pseudoinverse of size (N, 3), mapping desired torque to commands.
-        indices : list[int]
-            Indices of the actuator channels belonging to the selected type.
-
-        Raises
-        ------
-        TypeError
-            If `actuator_type` does not subclass Actuator.
+        :param actuators: List of all satellite actuators
+        :type actuators: list[~ADCS.satellite_hardware.actuators.Actuator]
+        :param actuator_type: Target actuator type
+        :type actuator_type: type
+        :return: Allocation matrix and actuator command indices
+        :rtype: tuple[numpy.ndarray, list[int]]
 
         """
         if not issubclass(actuator_type, Actuator):
@@ -443,41 +420,33 @@ class Controller():
 
     def build_u_to_torque_matrix_pinv(self, actuators: List[Actuator], actuator_type: Type[Actuator]) -> np.ndarray:
         r"""
-        Builds the forward mapping matrix that converts actuator inputs directly
-        into the physical torque contribution direction in the body frame.
+        Builds the forward mapping matrix from actuator commands to body-frame
+        torque directions.
 
-        Unlike :meth:`~ADCS.controller.Controller.build_torque_to_u_matrix_pinv`,
-        which gives the inverse allocation mapping from torque to commands,
-        this matrix is used in the forward physical model:
+        This matrix represents the physical contribution of each actuator input
+        to the generated body torque:
 
         .. math::
 
             \boldsymbol{\tau} = A \, \mathbf{u}
 
-        Examples
-        --------
-        - For reaction wheels:
-          each column of :math:`A` is the torque axis direction.
-        - For magnetorquers:
-          each column represents the direction of the magnetic dipole.
-          Body torque is then computed by
+        where each column of :math:`A` corresponds to an actuator torque axis.
+
+        For magnetorquers, the resulting torque is computed as
 
         .. math::
 
-            \boldsymbol{\tau} = \left[\mathbf{B}\right]_{\times} A \mathbf{u}
+            \boldsymbol{\tau} = [\mathbf{B}]_{\times} A \mathbf{u}
 
-        Parameters
-        ----------
-        actuators : list[:class:`~ADCS.satellite_hardware.actuators.Actuator`]
-            List of all satellite actuators.
-        actuator_type : type
-            Target actuator type.
+        where :math:`[\mathbf{B}]_{\times}` denotes the skew-symmetric matrix of
+        the geomagnetic field.
 
-        Returns
-        -------
-        :class:`numpy.ndarray`
-            Matrix of stacked axis vectors, shape (3, N). If no actuators
-            of the requested type are found, returns an empty (3, 0) matrix.
+        :param actuators: List of all satellite actuators
+        :type actuators: list[~ADCS.satellite_hardware.actuators.Actuator]
+        :param actuator_type: Target actuator type
+        :type actuator_type: type
+        :return: Forward torque mapping matrix
+        :rtype: numpy.ndarray
 
         """
         if not issubclass(actuator_type, Actuator):
@@ -505,28 +474,21 @@ class Controller():
 
     def find_max_torque(self, actuators: List[Actuator], actuator_type: Optional[Type[Actuator]] = None) -> np.ndarray:
         r"""
-        Extracts the maximum actuator command magnitude for the given actuator type.
+        Extracts maximum allowable actuator command magnitudes.
 
-        The returned vector matches the number of command channels for that type.
-        This value is typically used to clip, saturate, or normalize actuator
-        control inputs.
+        This method returns a vector of actuator saturation limits. These values
+        are typically used to clip or normalize control inputs prior to command
+        execution.
 
-        Parameters
-        ----------
-        actuators : list[:class:`~ADCS.satellite_hardware.actuators.Actuator`]
-            List of all actuators.
-        actuator_type : type
-            Target actuator type.
+        If no actuator type is specified, limits for all actuators are returned
+        in command vector order.
 
-        Returns
-        -------
-        :class:`numpy.ndarray`
-            Vector of maximum allowable actuator input values.
-
-        Raises
-        ------
-        ValueError
-            If no actuators of the requested type are present.
+        :param actuators: List of all satellite actuators
+        :type actuators: list[~ADCS.satellite_hardware.actuators.Actuator]
+        :param actuator_type: Optional actuator type filter
+        :type actuator_type: type or None
+        :return: Vector of maximum actuator command values
+        :rtype: numpy.ndarray
 
         """
         if actuator_type is None:

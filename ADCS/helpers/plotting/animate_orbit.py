@@ -1,3 +1,5 @@
+__all__ = ["animate_orbit"]
+
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
@@ -19,44 +21,232 @@ def animate_orbit(
     boresight_goal_hist: Optional[np.ndarray] = None,
     coord_goal: Optional[Coordinate_Goal]=None,  # Expected: Coordinate_Goal instance (has .target_ecef)
 ) -> None:
-    """
-    3D interactive orbit visualization.
+    r"""
+    Animate a spacecraft orbit, attitude, environment vectors, and mission goals in 3D.
 
-    Shows:
-      - True orbit trajectory (os_hist.R)
-      - Optional estimated orbit trajectory (est_os_hist.R, dashed)
-      - True spacecraft position marker
-      - Optional estimated spacecraft position marker
-      - True body axes at spacecraft position (from state_hist quaternions)
-      - Optional estimated body axes (from est_state_hist)
-      - Magnetic field vector at current position (os_hist[i].B, in ECI)
-      - Sun vector at current position (os_hist[i].S, in ECI)
-      - Optional boresight goal LOS vector from spacecraft (boresight_goal_hist[i])
-      - Optional coordinate goal rendered as a large light blue sphere on Earth
-        (coord_goal.target_ecef, rotated with Earth using os.ecef_to_eci())
+    This function produces an interactive 3D Matplotlib animation in the
+    Earth-Centered Inertial (ECI) frame, visualizing orbital motion, spacecraft
+    attitude, environmental vectors, and optional mission goals. It is intended
+    for post-simulation analysis and debugging of Guidance, Navigation, and
+    Control (GNC) and Attitude Determination and Control System (ADCS) behavior.
 
-    Parameters
-    ----------
-    time_hist : np.ndarray
-        1D array of time stamps [s], length N.
-    state_hist : np.ndarray
-        True state history, shape (N, >= 7). Columns 3:7 must be quaternion [q0..q3].
-    os_hist : List[Orbital_State]
-        List of true Orbital_State objects (length N).
-    est_state_hist : np.ndarray or None
-        Estimated state history (same shape/layout as state_hist), or None.
-    est_os_hist : List[Orbital_State] or None
-        List of estimated Orbital_State objects, or None.
-    boresight_goal_hist : np.ndarray or None
-        Desired boresight/LOS direction history in ECI, shape (N, 3), or None.
-        Each row is a (possibly unnormalized) vector from spacecraft toward target.
-    coord_goal : Coordinate_Goal or None
-        Coordinate_Goal instance. Its target location is rendered as a large
-        light blue sphere on Earth's surface, rotated with os.ecef_to_eci().
+    The animation integrates information from orbital dynamics, spacecraft
+    attitude quaternions, and mission goal definitions, all synchronized over a
+    common discrete time history.
+
+    ======================
+    Reference Frames
+    ======================
+
+    The following frames are used throughout the visualization:
+
+    +------------------+--------------------------------------------------+
+    | Frame            | Description                                      |
+    +==================+==================================================+
+    | ECI              | Earth-Centered Inertial reference frame          |
+    +------------------+--------------------------------------------------+
+    | ECEF             | Earth-Centered Earth-Fixed rotating frame        |
+    +------------------+--------------------------------------------------+
+    | Body             | Spacecraft body-fixed frame                      |
+    +------------------+--------------------------------------------------+
+
+    All vectors and trajectories are ultimately rendered in the ECI frame.
+    Earth-fixed quantities are transformed to ECI using orbital state methods.
+
+    ======================
+    Orbit Visualization
+    ======================
+
+    The spacecraft position in ECI is extracted from each
+    :class:`~ADCS.orbits.orbital_state.Orbital_State` object:
+
+    .. math::
+
+        \mathbf{r}_{\text{ECI}}(t_i) \in \mathbb{R}^3
+
+    The true orbit trajectory is drawn as a solid line, while the estimated
+    orbit (if provided) is drawn as a dashed line for comparison.
+
+    ======================
+    Earth Rendering
+    ======================
+
+    The Earth is modeled as a sphere of radius
+
+    .. math::
+
+        R_e = \text{EarthConstants.R\_e}
+
+    defined in the Earth-Centered Earth-Fixed (ECEF) frame. A longitude–latitude
+    grid is constructed as
+
+    .. math::
+
+        \begin{aligned}
+        x &= R_e \cos\phi \cos\lambda \\
+        y &= R_e \cos\phi \sin\lambda \\
+        z &= R_e \sin\phi
+        \end{aligned}
+
+    where :math:`\lambda` is longitude and :math:`\phi` is latitude.
+
+    At each time step, the Earth grid is rotated into the ECI frame using
+
+    .. math::
+
+        \mathbf{r}_{\text{ECI}} =
+        \mathcal{T}_{\text{ECEF}\rightarrow\text{ECI}}(\mathbf{r}_{\text{ECEF}})
+
+    via :meth:`~ADCS.orbits.orbital_state.Orbital_State.ecef_to_eci`.
+
+    =========================
+    Attitude Representation
+    =========================
+
+    Spacecraft attitude is represented by a unit quaternion
+
+    .. math::
+
+        \mathbf{q} =
+        \begin{bmatrix}
+        q_0 & q_1 & q_2 & q_3
+        \end{bmatrix}^T
+
+    stored in columns ``[3:7]`` of the state history. The quaternion is converted
+    to a direction cosine matrix using
+    :func:`~ADCS.helpers.math_helpers.rot_mat`:
+
+    .. math::
+
+        \mathbf{R}_{\mathcal{B}\rightarrow\mathcal{I}}(\mathbf{q})
+
+    The body-frame basis vectors
+
+    .. math::
+
+        \mathbf{I}_3 =
+        \begin{bmatrix}
+        1 & 0 & 0 \\
+        0 & 1 & 0 \\
+        0 & 0 & 1
+        \end{bmatrix}
+
+    are mapped into ECI as
+
+    .. math::
+
+        \mathbf{A}_i =
+        \mathbf{R}_{\mathcal{B}\rightarrow\mathcal{I}}(\mathbf{q}_i)\,\mathbf{I}_3
+
+    yielding the inertial directions of the body X, Y, and Z axes. These axes are
+    rendered as colored line segments originating at the spacecraft position.
+
+    ======================
+    Environmental Vectors
+    ======================
+
+    If present in the orbital state, the following inertial vectors are shown:
+
+    * Magnetic field vector :math:`\mathbf{B}`
+    * Sun direction vector :math:`\mathbf{S}`
+
+    Each vector is normalized and rendered as an arrow:
+
+    .. math::
+
+        \hat{\mathbf{v}} =
+        \frac{\mathbf{v}}{\|\mathbf{v}\|}
+
+    ==================================
+    Boresight and Coordinate Goals
+    ==================================
+
+    **Boresight Goal**
+
+    A time history of desired line-of-sight vectors
+    :math:`\mathbf{g}_i^{\text{ECI}}` may be provided. Each vector is normalized
+    and drawn from the spacecraft position:
+
+    .. math::
+
+        \hat{\mathbf{g}}_i =
+        \frac{\mathbf{g}_i}{\|\mathbf{g}_i\|}
+
+    **Coordinate Goal**
+
+    A fixed Earth-surface target defined by
+    :class:`~ADCS.CONOPS.goals.vector_goals.coordinate_goal.Coordinate_Goal`
+    is rendered as a large sphere attached to the Earth. Its ECEF position
+
+    .. math::
+
+        \mathbf{r}_{\text{goal}}^{\text{ECEF}}
+
+    is rotated into ECI each frame using
+
+    .. math::
+
+        \mathbf{r}_{\text{goal}}^{\text{ECI}}(t) =
+        \mathcal{T}_{\text{ECEF}\rightarrow\text{ECI}}
+        \left(\mathbf{r}_{\text{goal}}^{\text{ECEF}}\right)
+
+    ======================
+    User Interaction
+    ======================
+
+    The animation includes interactive controls:
+
+    * Pause / play toggle
+    * Playback speed selection:
+      :math:`\{0.25\times, 0.5\times, 1\times, 2\times, 4\times\}`
+
+    These controls affect visualization timing only and do not alter the data.
+
+    :param time_hist:
+        One-dimensional array of simulation time stamps in seconds.
+    :type time_hist:
+        numpy.ndarray
+
+    :param state_hist:
+        True spacecraft state history. Quaternion attitude must be stored in
+        columns ``[3:7]``.
+    :type state_hist:
+        numpy.ndarray
+
+    :param os_hist:
+        List of true orbital state objects providing position, Earth rotation,
+        and environmental vectors.
+    :type os_hist:
+        list of :class:`~ADCS.orbits.orbital_state.Orbital_State`
+
+    :param est_state_hist:
+        Optional estimated spacecraft state history with the same layout as
+        ``state_hist``.
+    :type est_state_hist:
+        numpy.ndarray or None
+
+    :param est_os_hist:
+        Optional estimated orbital state history.
+    :type est_os_hist:
+        list of :class:`~ADCS.orbits.orbital_state.Orbital_State` or None
+
+    :param boresight_goal_hist:
+        Optional time history of desired boresight direction vectors in ECI.
+    :type boresight_goal_hist:
+        numpy.ndarray or None
+
+    :param coord_goal:
+        Optional Earth-fixed coordinate goal defining a surface target.
+    :type coord_goal:
+        :class:`~ADCS.CONOPS.goals.vector_goals.coordinate_goal.Coordinate_Goal`
+        or None
+
+    :return:
+        None. The function creates and displays an interactive animation.
+    :rtype:
+        None
+
     """
-    # -----------------------------
-    # Basic checks and setup
-    # -----------------------------
     time_hist = np.asarray(time_hist)
     N = len(time_hist)
 

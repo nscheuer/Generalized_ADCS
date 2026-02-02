@@ -167,13 +167,6 @@ public:
     std::tuple<arma::mat, arma::mat,arma::mat> dynamicsJacobians( arma::vec x,  arma::vec u,  DYNAMICS_INFO_FORM dynamics_info) const;
     std::tuple<arma::cube, arma::cube,arma::cube> dynamicsHessians( arma::vec x,  arma::vec u,  DYNAMICS_INFO_FORM dynamics_info) const;
 
-    // Blended dynamics for constraint tightening warm-start
-    // alpha=0: linear approximation (torque = |B| * P_perp * m, where P_perp projects onto plane perp to B)
-    // alpha=1: true physics (torque = m x B)
-    // Interpolates between formulations to aid optimization convergence
-    std::tuple<arma::vec,arma::vec3> dynamicsBlended(arma::vec x, arma::vec u, DYNAMICS_INFO_FORM dynamics_info, double alpha) const;
-    std::tuple<arma::mat, arma::mat, arma::mat> dynamicsJacobiansBlended(arma::vec x, arma::vec u, DYNAMICS_INFO_FORM dynamics_info, double alpha) const;
-
     py::tuple py_tuple_out() const;
 
     //NEXT TO DOS:

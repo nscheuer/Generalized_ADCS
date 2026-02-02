@@ -12,9 +12,9 @@ from choldate import cholupdate, choldowndate
 from ADCS.estimators.estimator_helpers.estimator_helpers import EstimatedArray
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
 from ADCS.satellite_hardware.sensors import SunSensor, SunPair
-from ADCS.satellite_hardware.disturbances import DisturbanceMode
+from ADCS.satellite_hardware.errors import ErrorMode
 from ADCS.orbits.orbital_state import Orbital_State
-from ADCS.orbits.universal_constants import CG5Coefficients
+from ADCS.orbits.universal_constants import CG5
 from ADCS.helpers.math_helpers import (
     vec3_to_quat,
     quat_mult,
@@ -27,44 +27,47 @@ from ADCS.estimators.attitude_estimators import UAKF
 
 class SRUAKF(UAKF):
     r"""
-    Square Root Unscented Kalman Filter (SRUKF) using ``choldate``.
+    Square Root Unscented Kalman Filter (SR-UKF) using ``choldate`` rank-1 updates.
 
-    This class implements a Square Root formulation of the UKF for improved numerical
-    stability, ensuring the covariance matrix remains positive semi-definite.
-    It inherits dynamics and sigma-point logic from :class:`~ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF`.
+    This class implements a numerically stable Square Root UKF (SR-UKF) for
+    spacecraft attitude estimation with an augmented state and reduced attitude
+    error representation inherited from :class:`~ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF`.
 
-    Unlike the standard UKF which propagates the full covariance matrix :math:`P`,
-    this estimator propagates the **Upper Triangular** Cholesky factor :math:`S`,
-    defined such that:
+    Instead of propagating the covariance matrix :math:`P`, this filter
+    propagates an **upper-triangular** Cholesky factor :math:`S` such that
 
     .. math::
 
-        P = S^\top S
+        P = S^\top S,
 
-    Crucially, this implementation utilizes the ``choldate`` C-extension for fast
-    rank-1 updates and downdates, which is essential for handling the negative
-    weight associated with the central sigma point (:math:`W_0^{(c)} < 0`).
+    which improves numerical stability and helps keep :math:`P` symmetric
+    positive semi-definite under finite precision arithmetic.
 
-    Parameters
-    ----------
-    est_sat : :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
-        Estimated satellite model defining state structure and dynamics.
-    J2000 : float
-        Initial time [s].
-    x_hat : numpy.ndarray
-        Initial full augmented state.
-    P_hat : numpy.ndarray
-        Initial reduced error-state covariance. The square root :math:`S`
-        is computed from this upon initialization.
-    Q_hat : numpy.ndarray
-        Process noise covariance (reduced state). The square root :math:`S_Q`
-        is computed from this.
-    dt : float, optional
-        Time step [s]. Default 1.0.
-    cross_term : bool, optional
-        Whether to maintain cross-covariance terms between bias blocks. Default False.
-    quat_as_vec : bool, optional
-        If True, treats quaternion as a 4-vector in covariance. Default False.
+    This implementation uses the external C-extension ``choldate`` for fast
+    rank-1 Cholesky updates and downdates, which is particularly important
+    for the SR-UKF because the 0th sigma point can carry a negative covariance
+    weight :math:`W_0^{(c)} < 0`, requiring a Cholesky **downdate**.
+
+    State and reduced error representation
+    --------------------------------------
+    Let the (possibly augmented) estimator state be :math:`\mathbf{x}`. In the
+    common reduced-attitude-error formulation, the quaternion is not directly
+    included as 4 DOF in the covariance; instead, a 3-parameter error vector
+    :math:`\delta\boldsymbol{\theta}\in\mathbb{R}^3` is used, so the reduced
+    covariance dimension is :math:`L_x = N-1` (unless ``quat_as_vec=True``).
+
+    Process noise is represented by a covariance :math:`Q` with square root
+    :math:`S_Q`:
+
+    .. math::
+
+        Q = S_Q^\top S_Q.
+
+    See also:
+    - :class:`~ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF`
+    - :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray`
+    - :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+
     """
     def __init__(
         self,
@@ -77,6 +80,58 @@ class SRUAKF(UAKF):
         cross_term: bool = False,
         quat_as_vec: bool = False,
     ) -> None:
+        r"""
+        Initialize the SR-UKF and compute initial square-root factors.
+
+        This constructor delegates base initialization to
+        :class:`~ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF` and then
+        computes:
+
+        - the upper-triangular Cholesky factor :math:`S` of the current state
+          covariance :math:`P` stored in :attr:`x_hat.cov`,
+        - the upper-triangular Cholesky factor :math:`S_Q` of the process noise
+          covariance :math:`Q` stored in :attr:`x_hat.int_cov`.
+
+        Cholesky factorization attempts
+        --------------------------------
+        For each covariance matrix :math:`M\in\{P, Q\}`, the algorithm attempts
+        a Cholesky factorization first:
+
+        .. math::
+
+            M = L L^\top,\quad S = L^\top.
+
+        If Cholesky fails (e.g., :math:`M` not strictly positive definite), a
+        fallback eigen-decomposition is used to form a symmetric square root:
+
+        .. math::
+
+            M = V \Lambda V^\top,\quad
+            \sqrt{M} = V \sqrt{|\Lambda|}\, V^\top,\quad
+            S = (\sqrt{M})^\top,
+
+        where :math:`\sqrt{|\Lambda|}` is formed elementwise on the diagonal.
+
+        :param est_sat: Estimated satellite model defining state structure and dynamics.
+        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+        :param J2000: Initial time in seconds since J2000.
+        :type J2000: float
+        :param x_hat: Initial full augmented state estimate.
+        :type x_hat: numpy.ndarray
+        :param P_hat: Initial reduced error-state covariance matrix.
+        :type P_hat: numpy.ndarray
+        :param Q_hat: Initial reduced process-noise covariance matrix.
+        :type Q_hat: numpy.ndarray
+        :param dt: Propagation time step :math:`\Delta t` in seconds.
+        :type dt: float
+        :param cross_term: Whether cross-covariances between bias/parameter blocks are preserved.
+        :type cross_term: bool
+        :param quat_as_vec: If ``True``, treat quaternion as a 4-vector in the covariance.
+        :type quat_as_vec: bool
+        :return: ``None``.
+        :rtype: None
+
+        """
         super().__init__(
             est_sat=est_sat,
             J2000=J2000,
@@ -88,8 +143,6 @@ class SRUAKF(UAKF):
             quat_as_vec=quat_as_vec,
         )
 
-        # Initialize State Covariance Square Root (Upper Triangular)
-        # Try Cholesky first (requires P > 0)
         try:
             # numpy cholesky returns Lower, so we transpose to get Upper
             self.S = np.linalg.cholesky(self.x_hat.cov).T
@@ -114,34 +167,64 @@ class SRUAKF(UAKF):
 
     def weighted_cholupdate(self, mat: np.ndarray, vec: np.ndarray, wt: float) -> np.ndarray:
         r"""
-        Wrapper for ``choldate`` handling weighted updates and matrix-row operations.
+        Perform a weighted rank-1 Cholesky update/downdate using ``choldate``.
 
-        Performs a rank-1 update or downdate on the Cholesky factor ``mat`` based on
-        the sign of the weight ``wt``.
+        This method updates an **upper-triangular** Cholesky factor :math:`S`
+        (named ``mat``) to reflect adding or subtracting a weighted outer product
+        of a vector :math:`\mathbf{v}`:
+
+        - For :math:`wt \ge 0` (update):
+
+          .. math::
+
+              S_{\text{new}}^\top S_{\text{new}}
+              =
+              S^\top S + wt\, \mathbf{v}\mathbf{v}^\top.
+
+        - For :math:`wt < 0` (downdate):
+
+          .. math::
+
+              S_{\text{new}}^\top S_{\text{new}}
+              =
+              S^\top S - |wt|\, \mathbf{v}\mathbf{v}^\top.
+
+        Implementation detail
+        ---------------------
+        The ``choldate`` routines operate in-place on the Cholesky factor and
+        accept the scaled vector :math:`\sqrt{|wt|}\,\mathbf{v}`.
+
+        This wrapper provides:
+
+        - sign logic: :func:`choldate.cholupdate` if :math:`wt\ge 0`,
+          :func:`choldate.choldowndate` if :math:`wt < 0`,
+        - handling of matrix inputs ``vec`` (multiple vectors) by applying
+          sequential rank-1 operations.
+
+        Matrix input semantics
+        ----------------------
+        If ``vec`` is a 2D array with multiple vectors, the method applies
 
         .. math::
 
-            S_{new}^\top S_{new} = S^\top S \pm \sqrt{|wt|} \mathbf{v} \mathbf{v}^\top
+            S \leftarrow \operatorname{cholop}(S, \mathbf{v}_1, wt),\;
+            S \leftarrow \operatorname{cholop}(S, \mathbf{v}_2, wt),\;\ldots
 
-        This method handles:
-        1.  **Sign Logic:** Calls :func:`choldate.cholupdate` if :math:`wt \ge 0` and
-            :func:`choldate.choldowndate` if :math:`wt < 0`.
-        2.  **Matrix Inputs:** If ``vec`` is a matrix, it recursively applies updates
-            for each row/column vector.
+        where :math:`\operatorname{cholop}` is an update or downdate depending on
+        the sign of :math:`wt`.
 
-        Parameters
-        ----------
-        mat : numpy.ndarray
-            The Upper Triangular Cholesky factor :math:`S`.
-        vec : numpy.ndarray
-            The vector (or matrix of vectors) to update with.
-        wt : float
-            The weight of the update. Negative weights trigger a downdate.
+        :param mat: Upper-triangular Cholesky factor :math:`S` to be modified.
+        :type mat: numpy.ndarray
+        :param vec: Update vector :math:`\mathbf{v}` (shape ``(n,)``) or a matrix
+            of vectors (shape ``(k,n)`` or ``(n,k)``) to be applied sequentially.
+        :type vec: numpy.ndarray
+        :param wt: Scalar weight controlling update (nonnegative) or downdate (negative).
+        :type wt: float
+        :raises ValueError: If ``vec`` has more than 2 dimensions.
+        :raises numpy.linalg.LinAlgError: If NaN/Inf appears in the updated factor.
+        :return: Updated upper-triangular Cholesky factor :math:`S_{\text{new}}`.
+        :rtype: numpy.ndarray
 
-        Returns
-        -------
-        numpy.ndarray
-            The updated Upper Triangular matrix.
         """
         mat = mat.copy()
         vec = vec.copy()
@@ -181,30 +264,102 @@ class SRUAKF(UAKF):
 
     def make_pts_and_wts(self, pt0: np.ndarray, which_sensors: List[bool]):
         r"""
-        Generate augmented sigma points using the stored Square Root S for efficiency.
+        Generate augmented sigma points using the stored square root covariance.
 
-        Replicates the standard UKF output format (L, pts, wts_m, wts_c, sig0) 
-        but uses the persistently tracked self.S for the state block.
+        This method generates sigma points for a UKF-style estimator, while
+        exploiting the persistently tracked square-root factor :math:`S` of the
+        reduced covariance for efficiency.
 
-        Parameters
-        ----------
-        pt0 : numpy.ndarray
-            Current mean state vector.
-        which_sensors : list of bool
-            Mask indicating active sensors.
+        It produces the standard UKF outputs:
 
-        Returns
-        -------
-        L : int
-            Dimension of the augmented error state.
-        pts : list
-            List of length 2L+1. Each entry is a list: [full_state, sens_noise, control_noise, int_noise].
-        wts_m : numpy.ndarray
-            Weights for mean reconstruction.
-        wts_c : numpy.ndarray
-            Weights for covariance reconstruction.
-        sig0 : numpy.ndarray
-            The first block of sigma points (state part only), padded.
+        - augmented dimension :math:`L`,
+        - sigma point container list ``pts`` of length :math:`2L+1`,
+        - mean weights :math:`W_i^{(m)}`,
+        - covariance weights :math:`W_i^{(c)}`,
+        - state-only sigma points array ``sig0`` aligned with ``pts``.
+
+        Unscented transform weights
+        ---------------------------
+        Let :math:`L` be the augmented dimension. With standard UKF parameters
+        :math:`\alpha`, :math:`\beta`, :math:`\kappa` (stored in the base class),
+        define
+
+        .. math::
+
+            \lambda = \alpha^2 (L + \kappa) - L,\qquad
+            \gamma = \sqrt{L + \lambda}.
+
+        The weights are
+
+        .. math::
+
+            W_0^{(m)} = \frac{\lambda}{L+\lambda},\qquad
+            W_0^{(c)} = \frac{\lambda}{L+\lambda} + (1-\alpha^2+\beta),
+
+        .. math::
+
+            W_i^{(m)} = W_i^{(c)} = \frac{1}{2(L+\lambda)},\quad i=1,\ldots,2L.
+
+        Sigma point construction with square root factor
+        ------------------------------------------------
+        For the (reduced) state block of size :math:`L_x`, the covariance is
+
+        .. math::
+
+            P_x = S^\top S,
+
+        where :math:`S` is **upper-triangular**. If :math:`L_x = \dim(\mathbf{x})`
+        in the reduced space, sigma-point offsets are formed from the rows of
+        :math:`S` scaled by :math:`\gamma`:
+
+        .. math::
+
+            \Delta X = \gamma S.
+
+        These offsets are applied to the mean state :math:`\bar{\mathbf{x}}`
+        using the estimator-specific state addition (which must respect quaternion
+        error composition), via the inherited method
+        :meth:`~ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF.add_to_state`.
+
+        Augmentation blocks
+        -------------------
+        The method supports an augmented space including:
+
+        - state error block (from :math:`S`),
+        - control/process noise block (from :meth:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.control_cov`),
+        - sensor noise block (shape tracked but treated as zero contribution in this architecture),
+        - integration noise block (shape tracked but treated as zero contribution here).
+
+        For the control/process noise block with covariance :math:`Q_u`, sigma
+        offsets are formed from a Cholesky factor :math:`L_u` such that
+        :math:`Q_u = L_u L_u^\top`.
+
+        Output alignment
+        ----------------
+        The returned ``pts`` list stores each sigma point as a 4-list:
+
+        .. math::
+
+            [\text{full\_state},\; \text{sens\_noise},\; \text{control\_noise},\; \text{int\_noise}].
+
+        The array ``sig0`` is a stacked view of the state component only, aligned
+        in order with ``pts``; sigma points whose perturbation is purely in noise
+        blocks are padded with the mean state.
+
+        :param pt0: Current mean full state vector (augmented state representation).
+        :type pt0: numpy.ndarray
+        :param which_sensors: Boolean mask indicating which sensors are active.
+        :type which_sensors: list[bool]
+        :return: Tuple ``(L, pts, wts_m, wts_c, sig0)`` where:
+
+            - ``L`` is the augmented dimension,
+            - ``pts`` is the sigma point list,
+            - ``wts_m`` are mean weights,
+            - ``wts_c`` are covariance weights,
+            - ``sig0`` is the stacked state-only sigma point array.
+
+        :rtype: tuple[int, list, numpy.ndarray, numpy.ndarray, numpy.ndarray]
+
         """
         # 1. Setup Covariances & Dimensions
         # ---------------------------------
@@ -337,49 +492,221 @@ class SRUAKF(UAKF):
         os: Orbital_State,
     ) -> EstimatedArray:
         r"""
-        Perform one SRUKF predict/update cycle using QR decomposition.
+        Perform one SR-UKF predict/update cycle using QR factorization and Cholesky downdates.
 
-        This method implements the Square Root UKF algorithm:
+        This method executes a full SR-UKF cycle in square-root form:
 
-        1.  **Prediction**:
-            
-            * Propagates sigma points via :meth:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.noiseless_rk4`.
-            * Computes the *a priori* Cholesky factor :math:`S^-` using QR decomposition 
-                of the weighted sigma-point deviations and process noise root :math:`S_Q`.
-            * Applies a rank-1 downdate for the 0-th sigma point (negative weight).
+        1. **Time update (prediction)**: propagate sigma points through dynamics and
+           compute the predicted mean and predicted square-root covariance :math:`S^-`.
+        2. **Measurement update**: predict measurements, compute innovation covariance
+           square root :math:`S_{yy}`, compute the Kalman gain, update the mean.
+        3. **Square-root covariance update**: apply sequential Cholesky downdates using
+           :func:`choldate.choldowndate` via :meth:`weighted_cholupdate`.
 
-        2.  **Measurement**:
-            
-            * Predicts measurements and computes :math:`S_{yy}` (innovation covariance root)
-                using QR decomposition of measurement deviations and sensor noise root :math:`S_R`.
-            * Computes Kalman Gain :math:`K` using forward/backward substitution.
+        The method returns an :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray`
+        containing the updated full state and a reconstructed covariance :math:`P^+`.
 
-        3.  **Update**:
-            
-            * Updates state mean.
-            * Updates Cholesky factor :math:`S` via sequential Cholesky downdates 
-                using the columns of :math:`U = S_{yy} K^\top`.
+        Notation
+        --------
+        Let sigma points be :math:`\chi_i` with weights :math:`W_i^{(m)}`, :math:`W_i^{(c)}`.
+        Let the propagated sigma points be :math:`\chi_i^-` and the predicted mean be
+        :math:`\bar{\mathbf{x}}^-`.
 
-        Parameters
-        ----------
-        u : numpy.ndarray
-            Control input vector.
-        sensors : numpy.ndarray
-            Stacked array of actual sensor measurements.
-        os : :class:`~ADCS.orbits.orbital_state.Orbital_State`
-            Current orbital environment state.
+        Let measurement sigma points be :math:`\gamma_i^- = h(\chi_i^-)` with predicted
+        mean :math:`\bar{\mathbf{y}}^-`.
 
-        Returns
-        -------
-        :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray`
-            The updated state estimate and reduced covariance matrix (reconstructed from :math:`S`).
+        Sigma point propagation
+        -----------------------
+        Dynamics propagation is performed using the satellite model RK4 integrator:
+
+        - :meth:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.noiseless_rk4`
+
+        for each sigma point, with control perturbations applied where relevant.
+
+        Predicted mean
+        --------------
+        The predicted reduced mean is formed by the unscented transform:
+
+        .. math::
+
+            \bar{\mathbf{x}}^- = \sum_{i=0}^{2L} W_i^{(m)} \chi_i^-.
+
+        Quaternion handling
+        -------------------
+        In reduced attitude-error mode (``quat_as_vec=False``), sigma points encode
+        a 3-vector attitude error :math:`\delta\boldsymbol{\theta}` (stored in the
+        reduced state) which is mapped to a quaternion increment via
+        :func:`~ADCS.helpers.math_helpers.vec3_to_quat` and composed with the
+        propagated reference quaternion using :func:`~ADCS.helpers.math_helpers.quat_mult`:
+
+        .. math::
+
+            \delta\mathbf{q} = \operatorname{vec3\_to\_quat}(\delta\boldsymbol{\theta}),\qquad
+            \mathbf{q} = \mathbf{q}_{ref} \otimes \delta\mathbf{q}.
+
+        Predicted square-root covariance via QR
+        ---------------------------------------
+        Let deviations be
+
+        .. math::
+
+            \mathbf{X}_i = \chi_i^- - \bar{\mathbf{x}}^-.
+
+        Form the weighted deviation matrix excluding the 0th point:
+
+        .. math::
+
+            A = \begin{bmatrix}
+                \sqrt{W_1^{(c)}}\,\mathbf{X}_1 & \cdots & \sqrt{W_{2L}^{(c)}}\,\mathbf{X}_{2L}
+            \end{bmatrix}^\top.
+
+        Augment with the process-noise square root (transposed to align shapes)
+        and compute an upper-triangular factor via QR:
+
+        .. math::
+
+            \begin{bmatrix} A & S_Q^\top \end{bmatrix}
+            = QR,\qquad S^- \leftarrow R.
+
+        Because :math:`W_0^{(c)}` may be negative, the 0th point is incorporated
+        via a rank-1 update/downdate:
+
+        .. math::
+
+            S^- \leftarrow \operatorname{cholop}\!\left(S^-, \mathbf{X}_0, W_0^{(c)}\right),
+
+        where :math:`\operatorname{cholop}` is implemented by
+        :meth:`~ADCS.estimators.attitude_estimators.attitude_SRUAKF.SRUAKF.weighted_cholupdate`.
+
+        Measurement square-root covariance
+        ----------------------------------
+        Similarly, with measurement deviations
+
+        .. math::
+
+            \mathbf{Y}_i = \gamma_i^- - \bar{\mathbf{y}}^-,
+
+        and sensor noise covariance :math:`R = S_R^\top S_R`, compute
+
+        .. math::
+
+            \begin{bmatrix}
+                \sqrt{W_1^{(c)}}\,\mathbf{Y}_1 & \cdots & \sqrt{W_{2L}^{(c)}}\,\mathbf{Y}_{2L} & S_R^\top
+            \end{bmatrix}
+            = QR,\qquad S_{yy} \leftarrow R,
+
+        then incorporate :math:`\mathbf{Y}_0` with the weighted rank-1 operation.
+
+        Cross-covariance and Kalman gain
+        --------------------------------
+        The cross-covariance is computed as
+
+        .. math::
+
+            P_{y x} = \sum_{i=0}^{2L} W_i^{(c)}\, \mathbf{Y}_i\,\mathbf{X}_i^\top.
+
+        The Kalman gain is obtained by solving
+
+        .. math::
+
+            K = P_{x y}\, P_{y y}^{-1},
+
+        without explicitly forming :math:`P_{yy}` by using triangular solves with
+        :math:`S_{yy}` (upper-triangular):
+
+        .. math::
+
+            P_{yy} = S_{yy}^\top S_{yy},
+
+        and for each right-hand side using forward/backward substitution. In code,
+        this corresponds to calls equivalent to
+        :func:`scipy.linalg.solve_triangular`.
+
+        Innovation and mean update
+        --------------------------
+        With measurement :math:`\mathbf{y}`, innovation
+
+        .. math::
+
+            \boldsymbol{\nu} = \mathbf{y} - \bar{\mathbf{y}}^-,
+
+        and mean update
+
+        .. math::
+
+            \bar{\mathbf{x}}^+ = \bar{\mathbf{x}}^- + K\,\boldsymbol{\nu}.
+
+        Square-root covariance update (downdate form)
+        ---------------------------------------------
+        The SR-UKF covariance update can be expressed in square-root downdate form.
+        Let
+
+        .. math::
+
+            U = S_{yy}\,K^\top.
+
+        Then
+
+        .. math::
+
+            P^+ = P^- - K P_{yy} K^\top
+                = S^{-\top} S^- - U^\top U.
+
+        In square-root form, this is implemented by sequential Cholesky downdates:
+
+        .. math::
+
+            S^+ \leftarrow \operatorname{choldowndate}(S^-, U).
+
+        This method performs that operation via
+        :meth:`~ADCS.estimators.attitude_estimators.attitude_SRUAKF.SRUAKF.weighted_cholupdate`
+        with a negative weight.
+
+        Reconstruction and compatibility
+        --------------------------------
+        For compatibility with other estimator infrastructure, the method
+        reconstructs a covariance matrix
+
+        .. math::
+
+            P^+ = S^{+\top} S^+,
+
+        symmetrizes it, and returns it in the resulting
+        :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray`.
+
+        If ``quat_as_vec=True``, the quaternion is renormalized using
+        :func:`~ADCS.helpers.math_helpers.normalize` and covariance is transformed
+        with the normalization Jacobian from :func:`~ADCS.helpers.math_helpers.state_norm_jac`.
+
+        Sensor activation logic
+        -----------------------
+        Active attitude sensors are inferred from the *actual* measurement vector
+        by checking each sensor output slice for NaNs. The sensor-output mask is
+        expanded using the inherited helper method
+        :meth:`~ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF._expand_sensor_mask`.
+
+        :param u: Control input vector.
+        :type u: numpy.ndarray
+        :param sensors: Stacked array of actual sensor measurements.
+        :type sensors: numpy.ndarray
+        :param os: Current orbital environment state.
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
+        :raises numpy.linalg.LinAlgError: If the innovation covariance square root is singular
+            during triangular solves.
+        :return: Updated estimate container with fields:
+
+            - ``val``: updated full augmented state,
+            - ``cov``: reconstructed reduced covariance :math:`P^+`,
+            - ``int_cov``: unchanged (inherited from internal state).
+
+        :rtype: :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray`
+
         """
         u = np.asarray(u, dtype=float).copy()
         os = os.copy()
         state0 = self.x_hat.val.copy()
 
         # --- 1. Determine Active Sensors (Eclipse Check) ---
-        CG5 = CG5Coefficients()
         mid_os = [self.prev_os.average(os, CG5.c[j]) for j in range(5)]
         
         # Nominal propagation
@@ -456,7 +783,7 @@ class SRUAKF(UAKF):
             post_pts[j, :] = post_statej.copy()
 
             self.sat_match(satj, post_full_statej)
-            dmode = DisturbanceMode(add_bias=True, add_noise=False, update_bias=False, update_noise=False)
+            dmode = ErrorMode(add_bias=True, add_noise=False, update_bias=False, update_noise=False)
             sensj = satj.sensor_readings(x=post_full_statej[:state_len],os=os, dmode=dmode)
             post_sens[j, :] = sensj[which_outputs] + sens_noise_j
 

@@ -2,7 +2,7 @@ import numpy as np
 from typing import Optional, List
 
 from ADCS.satellite_hardware.sensors import MTM 
-from ADCS.satellite_hardware.actuators import Noise, Bias
+from ADCS.satellite_hardware.errors import Noise, Bias
 from ADCS.helpers.math_helpers import random_n_unit_vec
 
 def create_isis_magnetometer(axes: np.ndarray = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]]), bias: Bias | None = None, noise: Noise | None = None, estimate_bias: bool = False) -> List[MTM]:

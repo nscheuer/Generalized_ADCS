@@ -10,28 +10,64 @@ from ADCS.flight_software.tasks.task import Task
 @dataclass
 class FrameEvent:
     r"""
-    Record of one task execution within a scheduler frame (WCET-accounted).
+    Record of a single task execution attempt within one scheduler base frame.
 
-    Attributes
-    ----------
-    t_fsw : float
-        Frame start logical time [s].
-    task : str
-        Task name.
-    released : bool
-        Whether the task was eligible for execution (release time met).
-    ran : bool
-        Whether the callback was executed.
-    charged_time : float
-        CPU time charged to the task in this model [s] (equal to WCET).
-    wcet : float
-        Task WCET [s].
-    cpu_budget_before : float
-        Remaining budget before executing the task [s].
-    cpu_budget_after : float
-        Remaining budget after executing the task [s].
-    note : str
-        Human-readable note ("OK", "MISS_NO_BUDGET").
+    This data structure represents **one accounting event** in the
+    time-triggered scheduler. Each instance corresponds to a task that was
+    *considered* during a specific frame, whether or not it actually ran.
+
+    The record is **WCET-accounted**: if a task runs, it is charged exactly its
+    configured WCET, independent of its internal execution behavior. This makes
+    the scheduler deterministic and suitable for schedulability analysis.
+
+    Conceptually, for a base frame of duration :math:`\Delta t`, the scheduler
+    enforces the constraint:
+
+    .. math::
+
+        \sum_{i \in \text{ran}} C_i \le \Delta t
+
+    where :math:`C_i` is the WCET of task *i*.
+
+    :param t_fsw:
+        Logical flight software time at the **start** of the frame, in seconds.
+    :type t_fsw: float
+
+    :param task:
+        Name of the task associated with this event.
+    :type task: str
+
+    :param released:
+        Indicates whether the task was eligible for execution
+        (i.e. its release time had elapsed).
+    :type released: bool
+
+    :param ran:
+        Indicates whether the task callback was actually executed.
+    :type ran: bool
+
+    :param charged_time:
+        CPU time charged to the task during this frame, in seconds.
+        For WCET accounting, this is either ``0`` or exactly ``wcet``.
+    :type charged_time: float
+
+    :param wcet:
+        Worst-case execution time of the task, in seconds.
+    :type wcet: float
+
+    :param cpu_budget_before:
+        Remaining CPU budget at the start of the task decision, in seconds.
+    :type cpu_budget_before: float
+
+    :param cpu_budget_after:
+        Remaining CPU budget after the task decision, in seconds.
+    :type cpu_budget_after: float
+
+    :param note:
+        Human-readable annotation describing the outcome
+        (e.g. ``"OK"``, ``"MISS_NO_BUDGET"``).
+    :type note: str
+
     """
     t_fsw: float
     task: str
@@ -46,52 +82,77 @@ class FrameEvent:
 
 class TTC_Single_Core:
     r"""
-    Single-core time-triggered scheduler (WCET-accounted, deterministic).
+    Single-core time-triggered cooperative scheduler with WCET-based accounting.
 
-    This class implements a **cooperative, non-preemptive, fixed-priority**
-    scheduler intended to model a single-core spacecraft flight computer.
-    Tasks are released periodically and executed within a fixed base frame.
+    This class models a **deterministic, non-preemptive, fixed-priority**
+    scheduler intended to represent a spacecraft flight computer executing a
+    static set of periodic tasks on a single CPU core.
 
-    This variant uses **WCET-based accounting**:
-    each executed task consumes exactly its configured WCET from the frame budget.
-    This makes simulations deterministic and suitable for unit tests and
-    schedulability analysis.
-
-    The scheduler advances in discrete frames of duration:
+    The scheduler operates on a fixed **base frame** of duration:
 
     .. math::
 
-       \Delta t = \frac{1}{f_{\text{base}}}
+        \Delta t = \frac{1}{f_{\text{base}}}
 
-    At each frame, tasks are executed in ascending priority order
-    (lower value means higher priority), subject to CPU budget.
+    where :math:`f_{\text{base}}` is the base scheduler frequency.
 
-    The CPU usage within a frame satisfies:
+    At the start of each frame:
+
+    * The available CPU budget is reset to :math:`\Delta t`
+    * Tasks are evaluated in **ascending priority order**
+      (lower numerical value means higher priority)
+    * A task may execute **at most once per release**
+    * If a task executes, it consumes exactly its WCET from the frame budget
+
+    The scheduler enforces the per-frame constraint:
 
     .. math::
 
-       \sum_i C_i \le \Delta t
+        \sum_{i \in \text{executed in frame}} C_i \le \Delta t
 
-    where \( C_i \) are the WCETs of tasks executed in that frame.
+    This model is especially suitable for:
+
+    * Offline schedulability analysis
+    * Deterministic unit testing
+    * Worst-case execution modeling
+    * TTC (Time-Triggered Cooperative) flight software architectures
+
+    Tasks are instances of :class:`~ADCS.flight_software.tasks.task.Task` and
+    communicate via a shared memory dictionary.
+
     """
 
     def __init__(self, base_rate_hz: float, tasks: List[Task], memory: dict, debug: bool = False):
         r"""
-        Initialize the WCET-accounted scheduler.
+        Initialize the time-triggered single-core scheduler.
 
-        Parameters
-        ----------
-        base_rate_hz : float
+        This constructor configures the base frame rate, task set, and shared
+        memory used for inter-task communication. Tasks are sorted internally
+        by priority and executed deterministically.
+
+        The base frame duration is computed as:
+
+        .. math::
+
+            \Delta t = \frac{1}{f_{\text{base}}}
+
+        :param base_rate_hz:
             Base scheduler frequency in Hertz.
+        :type base_rate_hz: float
 
-        tasks : List[Task]
-            List of tasks managed by the scheduler (sorted by priority).
+        :param tasks:
+            List of periodic tasks managed by the scheduler.
+            Tasks are sorted by ``priority`` on initialization.
+        :type tasks: list[:class:`~ADCS.flight_software.tasks.task.Task`]
 
-        memory : dict
-            Shared memory dictionary used as an inter-task data bus.
+        :param memory:
+            Shared mutable dictionary acting as an inter-task data bus.
+        :type memory: dict
 
-        debug : bool, optional
-            Enable verbose debug logging.
+        :param debug:
+            If ``True``, enables verbose runtime logging.
+        :type debug: bool
+
         """
         self.base_rate_hz = base_rate_hz
         self.base_dt = 1.0 / base_rate_hz
@@ -107,15 +168,35 @@ class TTC_Single_Core:
         self._trace: List[FrameEvent] = []
         self._frame_slack: List[Tuple[float, float]] = []  # (t_fsw, slack)
 
-    # ---------------------------
-    # Runtime scheduler step
-    # ---------------------------
+
     def step(self):
         r"""
-        Advance the scheduler by one base frame.
+        Advance the scheduler by exactly one base frame.
 
-        Budgeting is WCET-based and deterministic: when a task runs, it consumes
-        exactly ``task.wcet`` from the remaining frame budget.
+        This method performs one **deterministic scheduling cycle**:
+
+        #. Reset CPU budget to the base frame duration
+        #. Iterate through enabled tasks in priority order
+        #. Check task release conditions
+        #. Execute tasks while sufficient CPU budget remains
+        #. Record WCET-based execution events
+        #. Advance logical time by one base frame
+
+        If a task is released but insufficient CPU budget remains, the task is
+        skipped for this frame **without consuming its release**. This behavior
+        mirrors common TTC implementations.
+
+        Logical time is advanced as:
+
+        .. math::
+
+            t_{\text{fsw}} \leftarrow t_{\text{fsw}} + \Delta t
+
+        :return:
+            None
+        :rtype:
+            None
+
         """
         cpu_budget = self.base_dt
         frame_start = self.t_fsw
@@ -180,53 +261,86 @@ class TTC_Single_Core:
         self._frame_slack.append((frame_start, cpu_budget))
         self.t_fsw += self.base_dt
 
-    # ---------------------------
-    # Schedulability analysis tools
-    # ---------------------------
+
     @staticmethod
     def _lcm_int(a: int, b: int) -> int:
         return abs(a * b) // math.gcd(a, b)
 
     def base_utilization_wcet(self) -> float:
         r"""
-        Compute total utilization using WCET.
+        Compute total system utilization using WCET-based analysis.
+
+        Utilization is defined as the sum of each enabled task's WCET divided by
+        its period:
 
         .. math::
 
-            U = \sum_i \frac{C_i}{T_i}
+            U = \sum_{i} \frac{C_i}{T_i}
 
-        Returns
-        -------
-        float
-            Total utilization.
+        where:
+
+        * :math:`C_i` is the WCET of task *i*
+        * :math:`T_i` is the period of task *i*
+
+        This metric provides a **necessary but not sufficient** condition for
+        schedulability in TTC systems.
+
+        :return:
+            Total WCET-based utilization.
+        :rtype:
+            float
+
         """
         return sum((t.wcet / t.period) for t in self.tasks if t.enabled)
 
+
     def frame_budget_feasible_wcet(self) -> bool:
         r"""
-        Conservative check: if all tasks released simultaneously, would their WCET sum fit in one frame?
+        Perform a conservative per-frame feasibility check.
 
-        Returns
-        -------
-        bool
-            True if \(\sum C_i \le \Delta t\) under the "all released" assumption.
+        This method assumes **all enabled tasks are released simultaneously** and
+        checks whether their combined WCET fits within a single base frame:
+
+        .. math::
+
+            \sum_i C_i \le \Delta t
+
+        While pessimistic, this condition is useful as a fast sanity check during
+        system design.
+
+        :return:
+            ``True`` if the sum of WCETs fits within one base frame.
+        :rtype:
+            bool
+
         """
         sum_wcet = sum(t.wcet for t in self.tasks if t.enabled)
         return sum_wcet <= self.base_dt + 1e-12
 
+
     def hyperperiod_s(self, max_den: int = 10_000) -> float:
         r"""
-        Compute the hyperperiod (least common multiple) of task periods.
+        Compute the approximate hyperperiod of all enabled tasks.
 
-        Parameters
-        ----------
-        max_den : int, optional
-            Maximum denominator for rational approximation.
+        The hyperperiod is the least common multiple (LCM) of all task periods.
+        For real-valued periods, a rational approximation is used:
 
-        Returns
-        -------
-        float
+        .. math::
+
+            H = \operatorname{lcm}(T_1, T_2, \dots, T_n)
+
+        This value represents the time after which the task release pattern
+        repeats exactly.
+
+        :param max_den:
+            Maximum denominator used when approximating periods as rational numbers.
+        :type max_den: int
+
+        :return:
             Hyperperiod in seconds.
+        :rtype:
+            float
+
         """
         from fractions import Fraction
 
@@ -246,20 +360,53 @@ class TTC_Single_Core:
         return float(Fraction(k_lcm, den_lcm))
 
     def reset_trace(self) -> None:
-        r"""Clear collected instrumentation trace and slack history."""
+        r"""
+        Clear all recorded instrumentation data.
+
+        This method removes:
+
+        * All per-frame :class:`~ADCS.flight_software.schedulers.ttc_single_core.FrameEvent` records
+        * All stored per-frame slack measurements
+
+        It does **not** reset task state, logical time, or scheduler configuration.
+        This is typically called prior to a new simulation run.
+
+        :return:
+            None
+        :rtype:
+            None
+
+        """
         self._trace.clear()
         self._frame_slack.clear()
 
+
     def simulate(self, duration_s: float, reset_trace: bool = True) -> None:
         r"""
-        Run the scheduler for a specified logical duration.
+        Simulate scheduler execution for a given logical duration.
 
-        Parameters
-        ----------
-        duration_s : float
-            Logical duration to simulate [s].
-        reset_trace : bool, optional
-            If True, clears previous trace before running.
+        The scheduler is stepped repeatedly until the specified duration is
+        reached or exceeded. Instrumentation data is collected for analysis.
+
+        The number of frames executed is:
+
+        .. math::
+
+            N = \left\lceil \frac{\text{duration}_s}{\Delta t} \right\rceil
+
+        :param duration_s:
+            Logical simulation duration in seconds.
+        :type duration_s: float
+
+        :param reset_trace:
+            If ``True``, clears previously recorded trace data before simulation.
+        :type reset_trace: bool
+
+        :return:
+            None
+        :rtype:
+            None
+
         """
         if reset_trace:
             self.reset_trace()
@@ -270,12 +417,32 @@ class TTC_Single_Core:
 
     def stats(self) -> Dict[str, Dict[str, float]]:
         r"""
-        Compute per-task statistics from the recorded trace.
+        Compute per-task execution statistics from the recorded trace.
 
-        Returns
-        -------
-        Dict[str, Dict[str, float]]
-            Per-task counts for runs and misses.
+        Statistics are derived from all recorded
+        :class:`~ADCS.flight_software.schedulers.ttc_single_core.FrameEvent` entries
+        and include both successful executions and missed executions due to
+        insufficient CPU budget.
+
+        For each task, the following metrics are computed:
+
+        +-----------+--------------------------------------------------+
+        | Key       | Description                                      |
+        +===========+==================================================+
+        | attempts  | Number of frames in which the task was released  |
+        +-----------+--------------------------------------------------+
+        | runs      | Number of frames in which the task executed      |
+        +-----------+--------------------------------------------------+
+        | misses    | Number of released frames where it did not run   |
+        +-----------+--------------------------------------------------+
+        | run_rate  | Fraction of attempts that resulted in execution  |
+        +-----------+--------------------------------------------------+
+
+        :return:
+            Dictionary keyed by task name containing execution statistics.
+        :rtype:
+            dict[str, dict[str, float]]
+
         """
         by_task: Dict[str, List[FrameEvent]] = {}
         for e in self._trace:
@@ -294,14 +461,24 @@ class TTC_Single_Core:
             }
         return out
 
+
     def slack_stats(self) -> Dict[str, float]:
         r"""
-        Compute slack statistics per base frame.
+        Compute slack statistics over all recorded base frames.
 
-        Returns
-        -------
-        Dict[str, float]
-            Contains mean/min slack over recorded frames.
+        Slack is defined as the unused CPU budget at the end of a base frame:
+
+        .. math::
+
+            S_k = \Delta t - \sum_{i \in \text{executed in frame } k} C_i
+
+        This method reports aggregate statistics over all simulated frames.
+
+        :return:
+            Dictionary containing mean and minimum slack values in seconds.
+        :rtype:
+            dict[str, float]
+
         """
         if not self._frame_slack:
             return {"mean_slack_s": 0.0, "min_slack_s": 0.0}
@@ -311,30 +488,58 @@ class TTC_Single_Core:
             "min_slack_s": min(slacks),
         }
 
-    # ---------------------------
-    # Diagram / visualization helpers
-    # ---------------------------
     def _frame_slack_lookup(self, frame_t: float) -> float:
+        r"""
+        Retrieve the recorded slack value for a specific frame start time.
+
+        This helper is primarily used by visualization utilities to annotate
+        per-frame diagrams with remaining CPU budget information.
+
+        :param frame_t:
+            Logical flight software time corresponding to the frame start.
+        :type frame_t: float
+
+        :return:
+            Remaining CPU budget (slack) for the specified frame, in seconds.
+            Returns ``0.0`` if the frame is not found.
+        :rtype:
+            float
+
+        """
         for t, s in self._frame_slack:
             if abs(t - frame_t) < 1e-12:
                 return s
         return 0.0
 
+
     def gantt_ascii(self, t0: float, t1: float, width: int = 80) -> str:
         r"""
-        Generate an ASCII Gantt-like view for frames between t0 and t1.
+        Generate an ASCII Gantt-style timeline of task execution.
 
-        Parameters
-        ----------
-        t0, t1 : float
-            Logical time window [s].
-        width : int, optional
-            Characters across one frame line.
+        Each line in the output corresponds to one base frame and shows how
+        the frame's CPU budget was consumed by tasks, in execution order.
+        Tasks are represented by the first letter of their name.
 
-        Returns
-        -------
-        str
-            Multi-line ASCII diagram.
+        The horizontal axis is normalized to the base frame duration
+        :math:`\Delta t`.
+
+        :param t0:
+            Start of the logical time window to display, in seconds.
+        :type t0: float
+
+        :param t1:
+            End of the logical time window to display, in seconds.
+        :type t1: float
+
+        :param width:
+            Number of characters used to represent one base frame.
+        :type width: int
+
+        :return:
+            Multi-line ASCII Gantt diagram.
+        :rtype:
+            str
+
         """
         frames: Dict[float, List[FrameEvent]] = {}
         for e in self._trace:
@@ -360,17 +565,30 @@ class TTC_Single_Core:
 
     def timeline_dot(self, t0: float, t1: float) -> str:
         r"""
-        Generate a Graphviz DOT timeline diagram for a time window.
+        Generate a Graphviz DOT representation of the execution timeline.
 
-        Parameters
-        ----------
-        t0, t1 : float
-            Logical time window [s].
+        Each base frame is represented as a node containing:
 
-        Returns
-        -------
-        str
-            Graphviz DOT source encoding a frame-by-frame execution timeline.
+        * Frame start time
+        * Executed tasks and their WCETs
+        * Remaining slack for the frame
+
+        Frames are connected sequentially to form a left-to-right timeline.
+        The resulting DOT source can be rendered using Graphviz tools.
+
+        :param t0:
+            Start of the logical time window to include, in seconds.
+        :type t0: float
+
+        :param t1:
+            End of the logical time window to include, in seconds.
+        :type t1: float
+
+        :return:
+            Graphviz DOT source encoding the execution timeline.
+        :rtype:
+            str
+
         """
         frames: Dict[float, List[FrameEvent]] = {}
         for e in self._trace:
@@ -403,12 +621,24 @@ class TTC_Single_Core:
     # ---------------------------
     def report(self) -> str:
         r"""
-        Create a human-readable schedulability report.
+        Generate a human-readable schedulability and execution report.
 
-        Returns
-        -------
-        str
-            Multi-line report with utilization and trace-based stats.
+        The report summarizes:
+
+        * Base frame parameters
+        * WCET-based utilization
+        * Approximate hyperperiod
+        * Mean and minimum slack
+        * Per-task execution and miss statistics
+
+        This method relies on trace data generated by
+        :meth:`~ADCS.flight_software.schedulers.ttc_single_core.TTC_Single_Core.simulate`.
+
+        :return:
+            Multi-line formatted report string.
+        :rtype:
+            str
+
         """
         U = self.base_utilization_wcet()
         slack = self.slack_stats()
