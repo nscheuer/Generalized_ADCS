@@ -1,7 +1,0 @@
-{
-  "mc_180deg_mtq": {
-    "name": "MC 180\u00b0 Slew - MTQ Only",
-    "n_trials": 100,
-    "n_successful": 100
-  }
-}
