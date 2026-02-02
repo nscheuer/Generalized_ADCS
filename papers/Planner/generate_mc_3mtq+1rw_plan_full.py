@@ -1,8 +1,12 @@
 """
-Monte Carlo: 3MTQ+1RW ALTRO+TVLQR Planner - Full Attitude (180° Quaternion Slew).
+Monte Carlo: 3MTQ+1RW ALTRO Planner - Full Attitude (180° Quaternion Slew).
 
 Uses BC2 satellite configuration with trajectory planner.
 Same ICs as LP full test for fair comparison - 180° rotation about axis perpendicular to boresight.
+
+Supports different tracking modes:
+- TVLQR: Standard time-varying LQR feedback (default)
+- MPC: MPC-TVLQR hybrid tracking (better for MTQ-only, also improves RW systems)
 """
 import sys
 import os
@@ -15,10 +19,19 @@ sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))
 from ADCS.CONOPS.goals import Fixed_Attitude_Goal
 from ADCS.CONOPS.goallist import GoalList
 from ADCS.controller.plan_and_track_lqr import Plan_and_Track_LQR
+from ADCS.controller.plan_and_track_mpc import Plan_and_Track_MPC
 from ADCS.controller.helpers import PlannerSettings
 
 # Import good settings
 from mc_planner_settings import create_optimized_planner_settings
+
+# ============================================================================
+# CONFIGURATION: Choose tracking mode
+# ============================================================================
+# Options:
+#   "tvlqr" - Standard TVLQR feedback (original)
+#   "mpc"   - MPC-TVLQR hybrid (better tracking, especially for MTQ-only)
+TRACKING_MODE = "tvlqr"
 from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.orbits.helpers.orbit_factory import create_random_circular_orbit
 from ADCS.satellite_factory.satellites.create_cubesats import create_beavercube2_cubesat
@@ -77,7 +90,12 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
         # Use well-conditioned normalized settings
         planner_settings = create_optimized_planner_settings(real_sat, duration=tf, dt_planning=dt_planning)
 
-        controller = Plan_and_Track_LQR(est_sat=real_sat, planner_settings=planner_settings)
+        # Choose controller based on tracking mode
+        tracking_mode = config.get("tracking_mode", TRACKING_MODE)
+        if tracking_mode == "mpc":
+            controller = Plan_and_Track_MPC(est_sat=real_sat, planner_settings=planner_settings)
+        else:
+            controller = Plan_and_Track_LQR(est_sat=real_sat, planner_settings=planner_settings)
 
         goals = GoalList({0.22: Fixed_Attitude_Goal(config["q_goal"])})
         os0 = orb.get_os(0.22)
@@ -110,7 +128,16 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
             J2000 = 0.22 + t * sec2cent
             os_state = orb.get_os(J2000=J2000)
             sens = real_sat.sensor_readings(x=x, os=os_state)
-            u = controller.find_u(x_hat=x, sens=sens, est_sat=real_sat, os_hat=os_state)
+            
+            # MPC needs B_body; TVLQR computes it internally
+            if tracking_mode == "mpc":
+                from scipy.spatial.transform import Rotation
+                q = x[3:7]
+                R_mat = Rotation.from_quat([q[1], q[2], q[3], q[0]]).as_matrix()
+                B_body = R_mat.T @ os_state.B
+                u = controller.find_u(x_hat=x, sens=sens, est_sat=real_sat, os_hat=os_state, B_body=B_body)
+            else:
+                u = controller.find_u(x_hat=x, sens=sens, est_sat=real_sat, os_hat=os_state)
 
             time_hist[i] = t
             state_hist[i, :] = x
@@ -160,6 +187,7 @@ def generate_mc_config(run_id: int) -> Dict[str, Any]:
         "q0": q0,
         "q_goal": q_goal,
         "h0": rng.uniform(-0.0001, 0.0001, size=1),
+        "tracking_mode": TRACKING_MODE,  # Include tracking mode in config
     }
 
 
@@ -167,8 +195,13 @@ if __name__ == "__main__":
     RUN_MC = True
     OUTPUT_DIR = "papers/Planner/output_data"
     NUM_RUNS = 100  # Production run
+    
+    # Include tracking mode in filename for differentiation
+    tracking_suffix = f"_{TRACKING_MODE}" if TRACKING_MODE != "tvlqr" else ""
+    output_name = f"3MTQ+1RW_plan_full180{tracking_suffix}_mc_{NUM_RUNS}"
 
     if RUN_MC:
+        print(f"Running with tracking_mode={TRACKING_MODE}")
         runner = MonteCarloRunner(
             sim_func=run_single_sim,
             config_generator=generate_mc_config,
@@ -179,9 +212,10 @@ if __name__ == "__main__":
         
         valid = [r for r in full_results if r and r.get("traj_valid", False)]
         print(f"\n--- Monte Carlo Complete: {len(valid)}/{len(full_results)} valid ---")
-        save_data(f"3MTQ+1RW_plan_full180_mc_{NUM_RUNS}", full_results, out_dir=OUTPUT_DIR)
+        print(f"Tracking mode: {TRACKING_MODE}")
+        save_data(output_name, full_results, out_dir=OUTPUT_DIR)
         #create_close_all_button_window()  # Disabled for batch runs
     else:
-        results = load_data(f"{OUTPUT_DIR}/3MTQ+1RW_plan_full180_mc_{NUM_RUNS}")
+        results = load_data(f"{OUTPUT_DIR}/{output_name}")
         full_results = results[0] if isinstance(results, tuple) else results
         #create_close_all_button_window()  # Disabled for batch runs
