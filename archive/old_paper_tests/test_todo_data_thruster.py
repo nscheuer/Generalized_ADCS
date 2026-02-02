@@ -31,9 +31,9 @@ import warnings
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
 from ADCS.satellite_hardware.actuators import Thruster, MIBBehavior, reset_thruster_warnings
-from ADCS.satellite_hardware.actuators import Bias, Noise
+from ADCS.satellite_hardware.errors import Bias, Noise
 from ADCS.satellite_hardware.satellite.satellite import Satellite
-from ADCS.satellite_hardware.disturbances.disturbance_mode import DisturbanceMode
+from ADCS.satellite_hardware.errors.helpers.error_mode import ErrorMode
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.helpers.math_helpers import normalize
@@ -130,7 +130,7 @@ class TestThrusterBasicModel:
 
     def test_torque_direction(self, cold_gas_thruster, orbital_state, spacecraft_state):
         """Torque should be perpendicular to position and thrust direction."""
-        dmode = DisturbanceMode(add_bias=False, add_noise=False, 
+        dmode = ErrorMode(add_bias=False, add_noise=False, 
                                 update_bias=False, update_noise=False)
         
         tau = cold_gas_thruster.torque(u=1.0, x=spacecraft_state, os=orbital_state, dmode=dmode)
@@ -146,7 +146,7 @@ class TestThrusterBasicModel:
 
     def test_torque_magnitude(self, cold_gas_thruster, orbital_state, spacecraft_state):
         """Torque magnitude should equal |r × F|."""
-        dmode = DisturbanceMode(add_bias=False, add_noise=False,
+        dmode = ErrorMode(add_bias=False, add_noise=False,
                                 update_bias=False, update_noise=False)
         
         tau = cold_gas_thruster.torque(u=1.0, x=spacecraft_state, os=orbital_state, dmode=dmode)
@@ -207,7 +207,7 @@ class TestMIBQuantization:
             control_dt=0.1
         )
         
-        dmode = DisturbanceMode(add_bias=False, add_noise=False,
+        dmode = ErrorMode(add_bias=False, add_noise=False,
                                 update_bias=False, update_noise=False)
         
         # u_min = 0.02 / 0.1 = 0.2, so u=0.1 is below threshold
@@ -232,7 +232,7 @@ class TestMIBQuantization:
             control_dt=0.1
         )
         
-        dmode = DisturbanceMode(add_bias=False, add_noise=False,
+        dmode = ErrorMode(add_bias=False, add_noise=False,
                                 update_bias=False, update_noise=False)
         
         # u_min = 0.2, u=0.1 → fire at u=0.2
@@ -259,7 +259,7 @@ class TestMIBQuantization:
             control_dt=0.1
         )
         
-        dmode = DisturbanceMode(add_bias=False, add_noise=False,
+        dmode = ErrorMode(add_bias=False, add_noise=False,
                                 update_bias=False, update_noise=False)
         
         # u_min = 0.2, u=0.5 → fire normally
@@ -283,7 +283,7 @@ class TestMIBQuantization:
             control_dt=0.1
         )
         
-        dmode = DisturbanceMode(add_bias=False, add_noise=False,
+        dmode = ErrorMode(add_bias=False, add_noise=False,
                                 update_bias=False, update_noise=False)
         
         # u_min = 0.2, send u=0.1 three times
@@ -339,7 +339,7 @@ class TestPropellantTracking:
         """Test firing count is tracked."""
         cold_gas_thruster.reset_propellant_tracking()
         
-        dmode = DisturbanceMode(add_bias=False, add_noise=False,
+        dmode = ErrorMode(add_bias=False, add_noise=False,
                                 update_bias=False, update_noise=False)
         
         # Fire above MIB several times
@@ -355,7 +355,7 @@ class TestPropellantTracking:
         """Test status dict for telemetry."""
         cold_gas_thruster.reset_propellant_tracking()
         
-        dmode = DisturbanceMode(add_bias=False, add_noise=False,
+        dmode = ErrorMode(add_bias=False, add_noise=False,
                                 update_bias=False, update_noise=False)
         
         cold_gas_thruster.torque(u=0.5, x=spacecraft_state, os=orbital_state, dmode=dmode)
@@ -384,7 +384,7 @@ class TestIntegrationWarnings:
         """Integration warning should appear once per session."""
         reset_thruster_warnings()
         
-        dmode = DisturbanceMode(add_bias=False, add_noise=False,
+        dmode = ErrorMode(add_bias=False, add_noise=False,
                                 update_bias=False, update_noise=False)
         
         # First call should warn

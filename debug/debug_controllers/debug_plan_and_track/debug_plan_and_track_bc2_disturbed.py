@@ -211,7 +211,7 @@ def test_plan_and_track_lqr_disturbed(
     os_hist: List[Orbital_State] = []
     sensor_hist = np.nan * np.zeros((N, len(real_sat.sensors + real_sat.rw_actuators)))
     u_hist = np.nan * np.zeros((N, len(real_sat.actuators)))
-    boresight_hist = np.nan * np.zeros((N, 3))
+    boresight_hist = np.nan * np.zeros((N, 4))
     dist_torque_hist = np.nan * np.zeros((N, 3))  # Track disturbance torques from satellite model
 
     # Simulation loop

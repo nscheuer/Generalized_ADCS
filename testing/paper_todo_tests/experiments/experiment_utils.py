@@ -29,7 +29,7 @@ from ADCS.satellite_hardware.satellite.satellite import Satellite
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
 from ADCS.satellite_hardware.actuators import MTQ, RW
 from ADCS.satellite_hardware.sensors import MTM
-from ADCS.satellite_hardware.disturbances import GG_Disturbance, DisturbanceMode
+from ADCS.satellite_hardware.disturbances import GG_Disturbance
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.orbit import Orbit
 from ADCS.orbits.ephemeris import Ephemeris

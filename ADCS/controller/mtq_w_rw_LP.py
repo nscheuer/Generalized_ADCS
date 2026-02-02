@@ -493,6 +493,13 @@ class MTQ_w_RW_LP(Controller):
         w_err = w - w_ref_body
         tau_pd = -self.p_gain * q_err - self.d_gain * w_err
 
+        if n_rw > 0:
+            A_rw = np.column_stack([np.asarray(rw.axis, float).reshape(3,) for rw in rws])  # (3, n_rw)
+            h_rw_body = A_rw @ h_rw_states
+        else:
+            A_rw = np.zeros((3, 0))
+            h_rw_body = np.zeros(3)
+
         # Apply feedforward compensation (gyroscopic + disturbance if enabled)
         # This is done BEFORE allocation so bounds are respected
         tau_des = self.apply_feedforward_compensation(tau_pd, x_hat, est_sat, os_hat, 

@@ -130,8 +130,4 @@ def create_random_circular_orbit(
         use_J2=use_J2,
         fast=fast,
         verbose=False,
-<<<<<<< HEAD
     )
-=======
-    )
->>>>>>> NSSR_planner_abstract

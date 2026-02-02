@@ -3,7 +3,7 @@ __all__ = ["General_Disturbance"]
 import numpy as np
 from typing import Dict, Optional
 from ADCS.satellite_hardware.disturbances.disturbance import Disturbance
-from ADCS.satellite_hardware.actuators.noise import Noise
+from ADCS.satellite_hardware.errors.noise import Noise
 from ADCS.orbits.orbital_state import Orbital_State
 
 

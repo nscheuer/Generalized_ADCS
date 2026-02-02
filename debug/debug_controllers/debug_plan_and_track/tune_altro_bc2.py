@@ -235,7 +235,7 @@ def run_altro_tuning(
     
     state_hist_sim = np.zeros((N, len(x0)))
     u_hist_sim = np.zeros((N, len(real_sat.actuators)))
-    boresight_hist = np.zeros((N, 3))
+    boresight_hist = np.zeros((N, 4))
     
     # Simulate with TVLQR tracking
     x = x0.copy()

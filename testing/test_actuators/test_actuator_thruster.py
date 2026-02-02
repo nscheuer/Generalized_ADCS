@@ -22,7 +22,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".
 
 from ADCS.satellite_hardware.satellite.satellite import Satellite
 from ADCS.satellite_hardware.actuators import Actuator, RW, MTQ, Thruster, Noise, Bias
-from ADCS.satellite_hardware.disturbances.disturbance_mode import DisturbanceMode
+from ADCS.satellite_hardware.errors.helpers.error_mode import ErrorMode
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.helpers.math_helpers import normalize, rot_mat, random_n_unit_vec
@@ -194,7 +194,7 @@ class TestThrusterTorque:
 
     def test_torque_clean(self, simple_thruster, orbital_state, spacecraft_state):
         """Test torque computation without bias/noise."""
-        dmode = DisturbanceMode(add_bias=False, add_noise=False, 
+        dmode = ErrorMode(add_bias=False, add_noise=False, 
                                 update_bias=False, update_noise=False)
         
         # Full thrust
@@ -212,7 +212,7 @@ class TestThrusterTorque:
 
     def test_torque_linearity(self, simple_thruster, orbital_state, spacecraft_state):
         """Test that torque is linear in command."""
-        dmode = DisturbanceMode(add_bias=False, add_noise=False,
+        dmode = ErrorMode(add_bias=False, add_noise=False,
                                 update_bias=False, update_noise=False)
         
         u_values = [0.0, 0.25, 0.5, 0.75, 1.0]
@@ -226,7 +226,7 @@ class TestThrusterTorque:
 
     def test_torque_bidirectional(self, biprop_thruster, orbital_state, spacecraft_state):
         """Test bidirectional thruster with negative commands."""
-        dmode = DisturbanceMode(add_bias=False, add_noise=False,
+        dmode = ErrorMode(add_bias=False, add_noise=False,
                                 update_bias=False, update_noise=False)
         
         tau_pos = biprop_thruster.torque(u=1.0, x=spacecraft_state, os=orbital_state, dmode=dmode)
@@ -237,7 +237,7 @@ class TestThrusterTorque:
 
     def test_torque_unidirectional_clamp(self, simple_thruster, orbital_state, spacecraft_state):
         """Test that unidirectional thruster clamps negative commands."""
-        dmode = DisturbanceMode(add_bias=False, add_noise=False,
+        dmode = ErrorMode(add_bias=False, add_noise=False,
                                 update_bias=False, update_noise=False)
         
         with pytest.warns(UserWarning, match="negative command"):
@@ -248,7 +248,7 @@ class TestThrusterTorque:
 
     def test_torque_exceeds_limit_warning(self, simple_thruster, orbital_state, spacecraft_state):
         """Test warning when command exceeds 1.0."""
-        dmode = DisturbanceMode(add_bias=False, add_noise=False,
+        dmode = ErrorMode(add_bias=False, add_noise=False,
                                 update_bias=False, update_noise=False)
         
         with pytest.warns(UserWarning, match="exceeds normalized limit"):
@@ -256,7 +256,7 @@ class TestThrusterTorque:
 
     def test_torque_state_independence(self, simple_thruster, orbital_state):
         """Test that torque doesn't depend on spacecraft state."""
-        dmode = DisturbanceMode(add_bias=False, add_noise=False,
+        dmode = ErrorMode(add_bias=False, add_noise=False,
                                 update_bias=False, update_noise=False)
         
         # Different states
@@ -270,9 +270,9 @@ class TestThrusterTorque:
 
     def test_torque_with_bias(self, thruster_with_noise, orbital_state, spacecraft_state):
         """Test torque computation with bias."""
-        dmode_bias = DisturbanceMode(add_bias=True, add_noise=False,
+        dmode_bias = ErrorMode(add_bias=True, add_noise=False,
                                      update_bias=False, update_noise=False)
-        dmode_clean = DisturbanceMode(add_bias=False, add_noise=False,
+        dmode_clean = ErrorMode(add_bias=False, add_noise=False,
                                       update_bias=False, update_noise=False)
         
         tau_bias = thruster_with_noise.torque(u=0.5, x=spacecraft_state, os=orbital_state, dmode=dmode_bias)
@@ -294,7 +294,7 @@ class TestThrusterForce:
 
     def test_force_basic(self, simple_thruster, orbital_state, spacecraft_state):
         """Test basic force computation."""
-        dmode = DisturbanceMode(add_bias=False, add_noise=False,
+        dmode = ErrorMode(add_bias=False, add_noise=False,
                                 update_bias=False, update_noise=False)
         
         force = simple_thruster.force(u=1.0, x=spacecraft_state, os=orbital_state, dmode=dmode)
@@ -304,7 +304,7 @@ class TestThrusterForce:
 
     def test_force_direction(self, biprop_thruster, orbital_state, spacecraft_state):
         """Test that force is along thrust direction."""
-        dmode = DisturbanceMode(add_bias=False, add_noise=False,
+        dmode = ErrorMode(add_bias=False, add_noise=False,
                                 update_bias=False, update_noise=False)
         
         force = biprop_thruster.force(u=0.5, x=spacecraft_state, os=orbital_state, dmode=dmode)
@@ -315,7 +315,7 @@ class TestThrusterForce:
 
     def test_force_magnitude(self, simple_thruster, orbital_state, spacecraft_state):
         """Test force magnitude scales with command."""
-        dmode = DisturbanceMode(add_bias=False, add_noise=False,
+        dmode = ErrorMode(add_bias=False, add_noise=False,
                                 update_bias=False, update_noise=False)
         
         for u in [0.2, 0.5, 0.8, 1.0]:
@@ -386,7 +386,7 @@ class TestThrusterJacobians:
 
     def test_dtorq_du_numerical(self, simple_thruster, orbital_state, spacecraft_state):
         """Verify dτ/du against numerical differentiation."""
-        dmode = DisturbanceMode(add_bias=False, add_noise=False,
+        dmode = ErrorMode(add_bias=False, add_noise=False,
                                 update_bias=False, update_noise=False)
         
         u0 = 0.5
@@ -403,7 +403,7 @@ class TestThrusterJacobians:
 
     def test_dtorq_dbasestate_numerical(self, simple_thruster, orbital_state, spacecraft_state):
         """Verify dτ/dx against numerical differentiation."""
-        dmode = DisturbanceMode(add_bias=False, add_noise=False,
+        dmode = ErrorMode(add_bias=False, add_noise=False,
                                 update_bias=False, update_noise=False)
         
         u0 = 0.5
@@ -544,7 +544,7 @@ class TestEdgeCases:
             isp=100
         )
         
-        dmode = DisturbanceMode(add_bias=False, add_noise=False,
+        dmode = ErrorMode(add_bias=False, add_noise=False,
                                 update_bias=False, update_noise=False)
         tau = t.torque(u=1.0, x=spacecraft_state, os=orbital_state, dmode=dmode)
         
@@ -559,7 +559,7 @@ class TestEdgeCases:
             isp=3000  # High Isp ion thruster
         )
         
-        dmode = DisturbanceMode(add_bias=False, add_noise=False,
+        dmode = ErrorMode(add_bias=False, add_noise=False,
                                 update_bias=False, update_noise=False)
         tau = t.torque(u=1.0, x=spacecraft_state, os=orbital_state, dmode=dmode)
         
@@ -660,7 +660,7 @@ class TestRealisticScenarios:
             bidirectional=False
         )
         
-        dmode = DisturbanceMode(add_bias=False, add_noise=False,
+        dmode = ErrorMode(add_bias=False, add_noise=False,
                                 update_bias=False, update_noise=False)
         
         # Firing both should create pure roll torque

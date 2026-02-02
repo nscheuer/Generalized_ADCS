@@ -290,7 +290,7 @@ def plot_target_tracking_mc_compare(
             q_hist = state[:N, 3:7]
 
             # Rotate boresight using _rot_mat_vec
-            v_bore_eci = np.zeros((N, 3))
+            v_bore_eci = np.zeros((N, 4))
             for k in range(N):
                 R_b2i = _rot_mat_vec(q_hist[k])
                 v_bore_eci[k] = R_b2i @ v_bore_body

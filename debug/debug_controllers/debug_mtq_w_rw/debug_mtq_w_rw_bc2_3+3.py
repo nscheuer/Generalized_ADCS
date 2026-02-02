@@ -74,7 +74,7 @@ def test_MTQ_w_RW_LP_align(verbose: bool = False, tf: float = 1000, dt: float = 
     os_hist: List[Orbital_State] = list()
     sensor_hist: np.ndarray = np.nan*np.zeros((N, len(real_sat.sensors + real_sat.rw_actuators)))
     u_hist = np.nan*np.zeros((N, len(real_sat.actuators)))
-    boresight_hist = np.nan*np.zeros((N, 3))
+    boresight_hist = np.nan*np.zeros((N, 4))
 
     t = t0
     ind = 0
@@ -127,4 +127,4 @@ def plot_MTQ_w_RW_LP_align(verbose: bool = False, tf: float = 1000, dt: float = 
     create_close_all_button_window()
 
 if __name__ == "__main__":
-    plot_MTQ_w_RW_LP_align(verbose=False, tf = "1000", dt = 2, real_orbit=True)
+    plot_MTQ_w_RW_LP_align(verbose=False, tf = 1000, dt = 2, real_orbit=True)

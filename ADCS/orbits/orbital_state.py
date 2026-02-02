@@ -818,7 +818,7 @@ class Orbital_State:
         :rtype: numpy.ndarray
 
         """
-        r = self.geocentric[0]
+        r_km = self.geocentric[0]
         theta_rad = self.geocentric[1]
         phi_rad = self.geocentric[2]
 

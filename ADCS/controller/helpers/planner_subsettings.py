@@ -463,11 +463,7 @@ class CostWeights:
     #   True (1):  Full Newton - includes second derivative terms (dphi*ddphi for angle,
     #              smoothstep*smoothstep'' for stiction), may be indefinite but can
     #              converge faster when the problem is well-behaved
-<<<<<<< HEAD
-    use_full_cost_hessian: bool = True
-=======
     use_full_cost_hessian: bool = False
->>>>>>> NSSR_planner_abstract
 
     def to_tuple(self, tracking_formulation: int | None = None) -> Tuple[float, ...]:
         """Convert to tuple for C++ interface.

@@ -49,7 +49,7 @@ def test_goal_coordinate_fixed_os(dt, tf, t0):
     time_hist = np.nan*np.zeros(N)
     state_hist = np.nan*np.zeros((N, 7))
     os_hist: List[Orbital_State] = list()
-    boresight_goal_hist = np.nan*np.zeros((N, 3))
+    boresight_goal_hist = np.nan*np.zeros((N, 4))
 
     t = t0
     ind = 0
@@ -102,7 +102,7 @@ def test_goal_coordinate_real_os(dt, tf, t0):
     time_hist = np.nan*np.zeros(N)
     state_hist = np.nan*np.zeros((N, 7))
     os_hist: List[Orbital_State] = list()
-    boresight_goal_hist = np.nan*np.zeros((N, 3))
+    boresight_goal_hist = np.nan*np.zeros((N, 4))
 
     t = t0
     ind = 0
