@@ -595,7 +595,14 @@ class PlanAndTrackBase(Controller):
                     print(f"{i}: {lbl:<12} type={type(x)}")
             print("==============================================")
 
-        (_, _, _, lqr_opt, _) = self.planner.trajOpt(vecsPy, N, t_start, t_end, x_0_clean, int(bdotOn))
+        # Use multi-start if multistart_modes is specified
+        multistart_modes = getattr(self.planner_settings, 'multistart_modes', None)
+        if multistart_modes is not None and len(multistart_modes) > 1:
+            if verbose:
+                print(f"Using multi-start with modes: {multistart_modes}")
+            (_, _, _, lqr_opt, _) = self.planner.trajOptMultiStart(vecsPy, N, t_start, t_end, x_0_clean, multistart_modes)
+        else:
+            (_, _, _, lqr_opt, _) = self.planner.trajOpt(vecsPy, N, t_start, t_end, x_0_clean, int(bdotOn))
         (Xset, Uset_cpp, Tset, Kset_cpp, Sset, lqr_times) = lqr_opt
 
         # Reorder controls and gains from C++ ordering (MTQ, RW) to Python actuator ordering

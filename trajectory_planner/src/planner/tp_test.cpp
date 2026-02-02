@@ -4429,9 +4429,9 @@ TEST_CASE("Test dynamics", "[armadillo]") {
 	arma::vec xd =std::get<0>(out);
 	arma::vec tqd = std::get<1>(out);
 
-	arma::vec3 wd_exp = (invJ)*(MAGRW_TORQ_MULT*rwk + -1.0*cross(wk, (Jcom)*wk + hk)  + prop_torq+gd_torq );
+	arma::vec3 wd_exp = (invJ)*(NONMTQ_TORQ_SCALE*rwk + -1.0*cross(wk, (Jcom)*wk + hk)  + prop_torq+gd_torq );
 	arma::vec4 qd_exp = 0.5*findWMat(qk)*wk;
-	arma::vec3 hd_exp = -MAGRW_TORQ_MULT*rwk - diagmat(js)*wd_exp;
+	arma::vec3 hd_exp = -NONMTQ_TORQ_SCALE*rwk - diagmat(js)*wd_exp;
 
 	arma::vec xd_exp =  arma::join_cols(wd_exp,qd_exp,hd_exp);
 
@@ -4514,7 +4514,7 @@ TEST_CASE("Test RK4z simple", "[armadillo]") {
 
 	arma::vec3 wd_exp = invJ*(rwk + -1.0*cross(wk, Jcom*wk + hk)  + prop_torq+gd_torq );
 	arma::vec4 qd_exp = 0.5*findWMat(qk)*wk;
-	arma::vec3 hd_exp = -MAGRW_TORQ_MULT*rwk - diagmat(js)*wd_exp;
+	arma::vec3 hd_exp = -NONMTQ_TORQ_SCALE*rwk - diagmat(js)*wd_exp;
 
 	arma::vec dx = arma::join_cols(wd_exp,qd_exp,hd_exp);
 

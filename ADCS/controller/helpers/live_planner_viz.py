@@ -182,7 +182,8 @@ class LivePlannerViz:
         figsize: Tuple[float, float] = (14, 10),
         dark_mode: bool = False,
         n_controls: Optional[int] = None,
-        actuator_names: Optional[List[str]] = None
+        actuator_names: Optional[List[str]] = None,
+        umax: Optional[NDArray] = None
     ):
         self.goal_vector_eci = goal_vector_eci
         self.body_vector = body_vector if body_vector is not None else np.array([0, 0, 1])
@@ -192,6 +193,7 @@ class LivePlannerViz:
         self.dark_mode = dark_mode
         self.n_controls = n_controls
         self.actuator_names = actuator_names
+        self.umax = umax  # Control limits for scaling plot
         
         self.fig = None
         self.axes = {}
@@ -205,6 +207,19 @@ class LivePlannerViz:
         
         self._is_started = False
         self._controls_initialized = False
+    
+    def set_goal_vectors(self, goal_vector_eci: NDArray) -> None:
+        """
+        Update the goal vectors for time-varying goals.
+        
+        Call this when switching between passes with different N.
+        
+        Parameters
+        ----------
+        goal_vector_eci : (3,) or (3, N) array
+            New goal vector(s) in ECI frame
+        """
+        self.goal_vector_eci = goal_vector_eci
         
     def start(self) -> None:
         """Initialize and show the figure."""
@@ -260,8 +275,8 @@ class LivePlannerViz:
         ax = self.axes['control']
         ax.axhline(y=0, color='gray', linestyle='--', alpha=0.5, linewidth=0.5)
         ax.set_xlabel('Time (s)')
-        ax.set_ylabel('Control')
-        ax.set_title('Control Inputs')
+        ax.set_ylabel('Control (normalized)')
+        ax.set_title('Control Inputs (±1 = limit)')
         ax.grid(True, alpha=0.3)
         
         # Angle error
@@ -350,7 +365,8 @@ class LivePlannerViz:
         try:
             self._update_plots(iter_data)
         except Exception as e:
-            warnings.warn(f"Visualization update failed: {e}")
+            import traceback
+            warnings.warn(f"Visualization update failed: {e}\n{traceback.format_exc()}")
     
     def _update_plots(self, iter_data) -> None:
         """Internal method to update all plots."""
@@ -358,7 +374,17 @@ class LivePlannerViz:
         Uset = iter_data.Uset
         N = Xset.shape[1]
         n_ctrl = Uset.shape[0]
-        times = np.arange(N) * self.dt
+        
+        # Compute dt based on trajectory - assume total duration is N_base * dt_base
+        # where N_base is the original Pass1 size
+        if self.goal_vector_eci is not None and self.goal_vector_eci.ndim == 2:
+            # We have time-varying goals - use their length to infer total duration
+            N_goals = self.goal_vector_eci.shape[1]
+            total_duration = (N_goals - 1) * self.dt
+            dt_actual = total_duration / (N - 1) if N > 1 else self.dt
+        else:
+            dt_actual = self.dt
+        times = np.arange(N) * dt_actual
         
         # Initialize control lines if needed
         if not self._controls_initialized:
@@ -391,18 +417,40 @@ class LivePlannerViz:
         for i in range(n_ctrl):
             key = f'u{i}'
             if key in self.lines:
-                self.lines[key].set_data(ctrl_times, Uset[i, :])
+                # Normalize control by umax if available
+                if self.umax is not None and i < len(self.umax):
+                    ctrl_normalized = Uset[i, :] / self.umax[i]
+                else:
+                    ctrl_normalized = Uset[i, :]
+                self.lines[key].set_data(ctrl_times, ctrl_normalized)
         
         ax = self.axes['control']
-        ax.relim()
-        ax.autoscale_view()
+        # Set x-limits to match time
+        ax.set_xlim(0, times[-1])
+        # Fixed y-limits: +/- 5x the normalized max (which is 1.0)
+        if self.umax is not None:
+            ax.set_ylim(-5, 5)
+        else:
+            ax.relim()
+            ax.autoscale_view()
         
         # Angle error
         if self.goal_vector_eci is not None:
-            angles = compute_angle_error(Xset, self.goal_vector_eci, self.body_vector)
+            goal_vec = self.goal_vector_eci
+            # Resample time-varying goals if size doesn't match trajectory
+            if goal_vec.ndim == 2 and goal_vec.shape[1] != N:
+                # Interpolate goal vectors to match trajectory length
+                old_N = goal_vec.shape[1]
+                old_times = np.linspace(0, 1, old_N)
+                new_times = np.linspace(0, 1, N)
+                goal_vec = np.zeros((3, N))
+                for i in range(3):
+                    goal_vec[i, :] = np.interp(new_times, old_times, self.goal_vector_eci[i, :])
+            angles = compute_angle_error(Xset, goal_vec, self.body_vector)
             self.lines['angle'].set_data(times, angles)
             ax = self.axes['angle_error']
-            ax.set_ylim(0, max(np.max(angles) * 1.1, 10))
+            max_angle = np.nanmax(angles) if not np.all(np.isnan(angles)) else 180
+            ax.set_ylim(0, max(max_angle * 1.1, 10))
             ax.set_xlim(0, times[-1])
         else:
             # Show quaternion deviation from identity if no goal specified

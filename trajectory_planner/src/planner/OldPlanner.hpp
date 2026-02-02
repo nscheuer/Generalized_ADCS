@@ -28,6 +28,7 @@ public:
     BEFORE_OUTPUT_FORM trajOptBefore(VECTOR_INFO_FORM vecs_w_time,double dt_use, TIME_FORM time_start, TIME_FORM time_end, arma::vec x0, int bdotOn);
     AFTER_OUTPUT_FORM trajOptAfter(VECTOR_INFO_FORM vecs_w_time,double dt_prev, TIME_FORM time_start, TIME_FORM time_end, ALILQR_OUTPUT_FORM alilqrOut);
     AFTER_OUTPUT_FORM trajOpt(VECTOR_INFO_FORM &vecs,int N, TIME_FORM time_start, TIME_FORM time_end, arma::vec x0, int bdotOn);
+    AFTER_OUTPUT_FORM trajOptMultiStart(VECTOR_INFO_FORM &vecs, int N, TIME_FORM time_start, TIME_FORM time_end, arma::vec x0, std::vector<int> bdotModes);
     std::tuple<TRAJECTORY_FORM,double> bdot(arma::vec x0,double dt, int N,VECTOR_INFO_FORM vecs,  COST_SETTINGS_FORM costSettings_tmp,double mu);
     std::tuple<TRAJECTORY_FORM,double> smartbdot(arma::vec x0,double dt,int N,VECTOR_INFO_FORM vecs,COST_SETTINGS_FORM costSettings_tmp,double mu,bool invert);
     arma::vec smartbdot_rawmtq_finder(double dt0,arma::vec wk, double nB2, arma::vec ECIvk, arma::vec ECIvkp1, arma::vec3 satvk, arma::vec3 Bbody,SMARTBDOT_SETTINGS_FORM sbSettings,arma::vec3 dist_torq);

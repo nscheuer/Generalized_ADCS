@@ -30,6 +30,7 @@ public:
 //     BEFORE_OUTPUT_FORM trajOptBefore(VECTOR_INFO_FORM vecs_w_time,int N, TIME_FORM time_start, TIME_FORM time_end, arma::mat x0, int bdotOn);
 //     py::tuple trajOptAfter(VECTOR_INFO_FORM vecs_w_time,int N, TIME_FORM time_start, TIME_FORM time_end, ALILQR_OUTPUT_FORM alilqrOut);
     py::tuple trajOpt(VECTOR_INFO_PY_FORM vecsPy,int N, TIME_FORM time_start, TIME_FORM time_end, py::array_t<double> x0Numpy, int bdotOn);
+    py::tuple trajOptMultiStart(VECTOR_INFO_PY_FORM vecsPy, int N, TIME_FORM time_start, TIME_FORM time_end, py::array_t<double> x0Numpy, std::vector<int> bdotModes);
     py::tuple trajOptBeforePython(VECTOR_INFO_PY_FORM vecs_w_timePy,double dt_use, TIME_FORM time_start,TIME_FORM time_end, py::array_t<double> x0Numpy, int bdotOn);
     py::tuple trajOptAfterPython(VECTOR_INFO_PY_FORM vecs_w_timePy,double dt_prev, TIME_FORM time_start, TIME_FORM time_end, ALILQR_OUTPUT_PY_FORM alilqrOut);
     py::array_t<double> rk4zPython(double dt, py::array_t<double> x, py::array_t<double> u,  DYNAMICS_INFO_PY_FORM dynamics_info_k_py, DYNAMICS_INFO_PY_FORM dynamics_info_kp1_py);
@@ -50,6 +51,12 @@ public:
     void setquaternionTo3VecMode(int val);
     py::tuple addRandNoisePython(double dt0, TRAJECTORY_PY_FORM trajPy, double dlaZcount, double stepsSinceRand, BREAK_SETTINGS_PY_FORM breakSettings_tmp,REG_SETTINGS_FORM regSettings_tmp,COST_SETTINGS_FORM costSettings_tmp, AUGLAG_INFO_PY_FORM auglag_vals,VECTOR_INFO_PY_FORM vecs);
     void setPlannerVerbosity(bool verbosity);
+    
+    // Accessors for control scaling info
+    double getNonMtqTorqScale();
+    int getNumberMTQ();
+    int getNumberRW();
+    int getNumberMagic();
 
   mat current_Xset;
   mat current_Uset;

@@ -1,31 +1,30 @@
 """
-Monte Carlo: 3MTQ+1RW ALTRO+TVLQR Planner - Reduced Attitude (180° Boresight Slew).
+Monte Carlo: 3MTQ+0RW ALTRO+TVLQR Planner - Full Attitude (180° Quaternion Slew).
+Multi-start version: Runs multiple Pass 1 attempts with different initializations.
 
-Uses BC2 satellite configuration with trajectory planner.
-Runs both open-loop (raw trajectory) and closed-loop (TVLQR tracking).
-Same ICs as LP test for fair comparison.
+Uses BC2 satellite configuration with MTQ-only trajectory planner.
+Same ICs as Lovera full test for fair comparison.
 """
 import sys
 import os
 import numpy as np
 from scipy.integrate import solve_ivp
-from typing import Dict, Any, Tuple, Optional, List
+from typing import Dict, Any
 
 sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))
 
-from ADCS.CONOPS.goals import ECI_Goal
+from ADCS.CONOPS.goals import Fixed_Attitude_Goal
 from ADCS.CONOPS.goallist import GoalList
 from ADCS.controller.plan_and_track_lqr import Plan_and_Track_LQR
-from ADCS.controller.helpers import PlannerSettings, Trajectory
+from ADCS.controller.helpers import PlannerSettings
 
 # Import good settings
 from mc_planner_settings import create_optimized_planner_settings
 from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.orbits.helpers.orbit_factory import create_random_circular_orbit
-from ADCS.satellite_factory.satellites.create_cubesats import create_beavercube2_cubesat
-from ADCS.helpers.math_helpers import normalize, rot_mat
+from ADCS.satellite_factory.satellites.create_cubesats import create_beavercube1_cubesat
+from ADCS.helpers.math_helpers import normalize, quat_mult
 from ADCS.helpers.save_and_load.save_and_load import save_data, load_data
-from ADCS.helpers.plotting_mc.plot_controller_mc import plot_target_tracking_mc, plot_convergence_histogram_mc
 from ADCS.helpers.plotting.close_all_plots import create_close_all_button_window
 from ADCS.helpers.mc.monte_carlo_runner import (
     MonteCarloRunner, claim_worker_slot, release_worker_slot, update_worker_progress
@@ -67,23 +66,25 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
         orb = _CACHED_ORBIT
         np.random.seed(config["seed"])
 
-        real_sat = create_beavercube2_cubesat(estimated=False)
-        rws = real_sat.rw_actuators
+        real_sat = create_beavercube1_cubesat(estimated=False)
 
-        x0 = np.concatenate([config["w0"], config["q0"], config["h0"]])
-        for i, rw in enumerate(rws):
-            rw.h = config["h0"][i]
+        x0 = np.concatenate([config["w0"], config["q0"]])
 
-        # Use well-conditioned normalized settings
-        planner_settings = create_optimized_planner_settings(real_sat, duration=tf, dt_planning=dt_planning)
-        planner_settings.pass2.convergence.max_inner_iter = 15
+        # Use optimized settings with multi-start enabled
+        planner_settings = create_optimized_planner_settings(
+            real_sat, 
+            duration=tf, 
+            dt_planning=dt_planning,
+            use_multistart=True,  # Enable multi-start
+            multistart_modes=[0, 1, 4, 5],  # random, bdot, PD, PD+noise
+            verbose=False
+        )
 
         controller = Plan_and_Track_LQR(est_sat=real_sat, planner_settings=planner_settings)
 
-        goals = GoalList({0.22: ECI_Goal(config["goal_eci_vec"])})
+        goals = GoalList({0.22: Fixed_Attitude_Goal(config["q_goal"])})
         os0 = orb.get_os(0.22)
 
-        # Generate trajectory
         try:
             traj = controller.calculate_trajectory(
                 t_start=0.22, duration=tf, x_0=x0, os_0=os0, goals=goals, verbose=False
@@ -93,15 +94,10 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
         except Exception as e:
             return {"run_id": run_id, "config": config, "error": str(e), "traj_valid": False}
 
-        # Arrays for LQR tracking
         time_hist = np.zeros(N)
         state_hist = np.zeros((N, len(x0)))
         u_hist = np.zeros((N, len(real_sat.actuators)))
-        boresight_hist = np.zeros((N, 3))
-
-        # Reset RW state
-        for i, rw in enumerate(rws):
-            rw.h = config["h0"][i]
+        q_goal_hist = np.zeros((N, 4))
 
         x = x0.copy()
         t = 0
@@ -119,8 +115,7 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
             time_hist[i] = t
             state_hist[i, :] = x
             u_hist[i, :] = u
-            eci_goal_ref, _ = goals.to_ref(t=J2000, os0=os_state)
-            boresight_hist[i, :] = eci_goal_ref
+            q_goal_hist[i, :] = config["q_goal"]
 
             t += dt
             os_next = orb.get_os(0.22 + t * sec2cent)
@@ -136,7 +131,7 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
         return {
             "run_id": run_id, "config": config, "traj_valid": True,
             "time": time_hist, "state": state_hist, "u": u_hist,
-            "boresight_goal": boresight_hist
+            "q_goal": q_goal_hist, "goal_type": "full_attitude"
         }
     finally:
         release_worker_slot(slot_id)
@@ -146,9 +141,12 @@ def generate_mc_config(run_id: int) -> Dict[str, Any]:
     rng = np.random.default_rng(seed=run_id + 1000)
     
     q0 = normalize(rng.standard_normal(4))
-    R0 = rot_mat(q0)
-    initial_boresight_eci = R0 @ BODY_BORESIGHT
-    goal_eci_vec = -initial_boresight_eci  # 180° boresight slew
+    
+    rand_angle = rng.uniform(0, 2 * np.pi)
+    axis_body = np.array([np.cos(rand_angle), 0, np.sin(rand_angle)])
+    q_180_body = np.array([0, axis_body[0], axis_body[1], axis_body[2]])
+    q_goal = quat_mult(q0, q_180_body)
+    q_goal = normalize(q_goal)
     
     return {
         "run_id": run_id,
@@ -159,36 +157,54 @@ def generate_mc_config(run_id: int) -> Dict[str, Any]:
         "radius_km": 7000.0,
         "w0": normalize(rng.standard_normal(3)) * (rng.uniform(0.1, 1.0) * np.pi / 180.0),
         "q0": q0,
-        "h0": rng.uniform(-0.0001, 0.0001, size=1),
-        "goal_eci_vec": goal_eci_vec,
+        "q_goal": q_goal,
     }
 
 
 if __name__ == "__main__":
     RUN_MC = True
     OUTPUT_DIR = "papers/Planner/output_data"
-    NUM_RUNS = 100  # Production run
+    NUM_RUNS = 20  # Smaller test first
+
+    print("=" * 60)
+    print("Monte Carlo: 3MTQ+0RW ALTRO+TVLQR with MULTI-START")
+    print("=" * 60)
+    print(f"Runs: {NUM_RUNS}")
+    print("Multi-start modes: [0, 1, 4, 5] (random, bdot, PD, PD+noise)")
+    print("=" * 60)
 
     if RUN_MC:
         runner = MonteCarloRunner(
             sim_func=run_single_sim,
             config_generator=generate_mc_config,
             num_runs=NUM_RUNS,
-            max_workers=4  # Planner is memory-intensive
+            max_workers=4
         )
         full_results = runner.run()
         
         valid = [r for r in full_results if r and r.get("traj_valid", False)]
         print(f"\n--- Monte Carlo Complete: {len(valid)}/{len(full_results)} valid ---")
-        save_data(f"3MTQ+1RW_plan_reduced_mc_{NUM_RUNS}", full_results, out_dir=OUTPUT_DIR)
         
-        plot_target_tracking_mc(valid, body_boresight=BODY_BORESIGHT, title=f"3MTQ+1RW Planner Reduced N={len(valid)}")
-        plot_convergence_histogram_mc(valid, body_boresight=BODY_BORESIGHT, title=f"3MTQ+1RW Planner Reduced")
+        # Compute statistics
+        if valid:
+            final_errors = []
+            for r in valid:
+                q_f = r["state"][-1, 3:7] / np.linalg.norm(r["state"][-1, 3:7])
+                q_goal = r["q_goal"][-1]
+                err = np.degrees(2 * np.arccos(min(abs(np.dot(q_f, q_goal)), 1)))
+                final_errors.append(err)
+            
+            final_errors = np.array(final_errors)
+            print(f"\nFinal errors:")
+            print(f"  Mean: {np.mean(final_errors):.2f}°")
+            print(f"  Std:  {np.std(final_errors):.2f}°")
+            print(f"  <1°:  {100*np.sum(final_errors < 1)/len(final_errors):.1f}%")
+            print(f"  <5°:  {100*np.sum(final_errors < 5)/len(final_errors):.1f}%")
+            print(f"  <10°: {100*np.sum(final_errors < 10)/len(final_errors):.1f}%")
+        
+        save_data(f"3MTQ+0RW_plan_full180_multistart_mc_{NUM_RUNS}", full_results, out_dir=OUTPUT_DIR)
         #create_close_all_button_window()  # Disabled for batch runs
     else:
-        results = load_data(f"{OUTPUT_DIR}/3MTQ+1RW_plan_reduced_mc_{NUM_RUNS}")
+        results = load_data(f"{OUTPUT_DIR}/3MTQ+0RW_plan_full180_multistart_mc_{NUM_RUNS}")
         full_results = results[0] if isinstance(results, tuple) else results
-        valid = [r for r in full_results if r and r.get("traj_valid", False)]
-        plot_target_tracking_mc(valid, body_boresight=BODY_BORESIGHT, title=f"3MTQ+1RW Planner Reduced")
-        plot_convergence_histogram_mc(valid, body_boresight=BODY_BORESIGHT, title=f"3MTQ+1RW Planner Reduced")
         #create_close_all_button_window()  # Disabled for batch runs

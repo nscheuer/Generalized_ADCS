@@ -191,6 +191,7 @@ class PlannerSettings:
             precalculation_time: float = 100,
             traj_overlap: float = 150,
             bdot_on: int = 1,
+            multistart_modes: list = None,
             debug_plot_on: bool = False,
             include_gg: bool = False,
             include_resdipole: bool = False,
@@ -212,6 +213,7 @@ class PlannerSettings:
         self.traj_overlap = traj_overlap
         self.debug_plot_on = debug_plot_on
         self.bdot_on = bdot_on
+        self.multistart_modes = multistart_modes  # List of bdot modes for multi-start, e.g., [0, 1, 4, 5]
         self.verbosity = False
         self.eps = 2.22044604925031e-16
 

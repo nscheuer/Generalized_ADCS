@@ -142,6 +142,36 @@ class PythonALILQR:
         self.planner = planner
         self.debug_callback = debug_callback
         self.verbose = verbose
+    
+    def _scale_rw_controls(self, Uset: NDArray) -> NDArray:
+        """
+        Scale RW/magic controls from optimizer units to physical units.
+        
+        The optimizer uses scaled controls for better conditioning:
+            u_scaled = u_physical / NONMTQ_TORQ_SCALE
+        
+        This converts back to physical units:
+            u_physical = u_scaled * NONMTQ_TORQ_SCALE
+        """
+        # Get scaling factor and actuator counts from C++ planner
+        scale = self.planner.get_nonmtq_torq_scale()
+        if scale == 1.0:
+            return Uset  # No scaling needed
+        
+        n_mtq = self.planner.get_number_MTQ()
+        n_rw = self.planner.get_number_RW()
+        n_magic = self.planner.get_number_magic()
+        
+        if n_rw + n_magic == 0:
+            return Uset  # No RW or magic actuators
+        
+        # Scale RW and magic rows (indices n_mtq onwards)
+        Uset_scaled = Uset.copy()
+        rw_magic_start = n_mtq
+        rw_magic_end = n_mtq + n_rw + n_magic
+        Uset_scaled[rw_magic_start:rw_magic_end, :] *= scale
+        
+        return Uset_scaled
         
     def optimize(
         self,
@@ -323,11 +353,14 @@ class PythonALILQR:
                 rho, drho = regs
                 
                 # Collect iteration data
+                # Scale RW/magic controls to physical units for visualization
+                Uset_physical = self._scale_rw_controls(Uset)
+                
                 iter_data = IterationData(
                     outer_iter=j,
                     inner_iter=ii,
                     Xset=Xset.copy(),
-                    Uset=Uset.copy(),
+                    Uset=Uset_physical,
                     TQset=TQset.copy() if TQset is not None else None,
                     LA=LA,
                     LA_nc=LA_nc,
@@ -407,10 +440,13 @@ class PythonALILQR:
         else:
             Kset_final = np.zeros((1, N-1))
         
+        # Scale RW/magic controls to physical units (matches C++ trajOptAfter)
+        Uset_physical = self._scale_rw_controls(Uset)
+        
         result = OptimizationResult(
             success=(cmax < cmax_target) or (mu >= mu_max),
             Xset=Xset,
-            Uset=Uset,
+            Uset=Uset_physical,
             TQset=TQset if TQset is not None else np.zeros((3, N)),
             Kset=Kset_final,
             times=times,
@@ -561,11 +597,14 @@ class PythonALILQR:
                 
                 rho, drho = regs
                 
+                # Scale RW/magic controls to physical units for visualization
+                Uset_physical = self._scale_rw_controls(Uset)
+                
                 iter_data = IterationData(
                     outer_iter=j,
                     inner_iter=ii,
                     Xset=Xset.copy(),
-                    Uset=Uset.copy(),
+                    Uset=Uset_physical,
                     TQset=TQset.copy() if TQset is not None else None,
                     LA=LA,
                     LA_nc=LA_nc,

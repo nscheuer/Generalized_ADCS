@@ -22,8 +22,11 @@ warnings.filterwarnings('ignore')
 
 sys.path.insert(0, '/home/pmckeen/Generalized_ADCS')
 
-from ADCS.CONOPS.goals import Fixed_Attitude_Goal
+from ADCS.CONOPS.goals import Fixed_Attitude_Goal, ECI_Goal, No_Goal
 from ADCS.CONOPS.goallist import GoalList
+from ADCS.controller.plan_and_track_base import PlanAndTrackBase
+from ADCS.orbits.universal_constants import TimeConstants
+from ADCS.helpers.math_helpers import rot_mat
 from ADCS.controller.plan_and_track_python_alilqr import Plan_and_Track_PythonALILQR
 from ADCS.controller.helpers import (
     PlannerSettings, create_planner_settings,
@@ -162,103 +165,173 @@ def plot_convergence(iterations: List[IterationData], q_goal: np.ndarray, save_p
     plt.show()
 
 
+def boresight_error(q, goal_eci):
+    """Compute boresight pointing error in degrees."""
+    if np.linalg.norm(goal_eci) < 0.1:
+        return np.nan
+    q = q / np.linalg.norm(q)
+    R = rot_mat(q)
+    bore = R @ np.array([0, 1, 0])
+    g = goal_eci / np.linalg.norm(goal_eci)
+    return np.degrees(np.arccos(np.clip(np.dot(bore, g), -1, 1)))
+
+
+class EnvHelper(PlanAndTrackBase):
+    """Helper to access _propagate_environment."""
+    def __init__(self, est_sat, planner_settings):
+        self.est_sat = est_sat
+        self.planner_settings = planner_settings
+        self.planner = None
+    def find_u(self, *a, **kw): pass
+    def calculate_trajectory(self, *a, **kw): pass
+
+
 def main():
     print("="*70)
-    print("ITERATION-BY-ITERATION CONVERGENCE VISUALIZATION")
+    print("3MTQ+1RW MULTI-GOAL CONVERGENCE VISUALIZATION")
     print("="*70)
     
-    # Setup
-    np.random.seed(42)
+    # Import optimized settings
+    sys.path.insert(0, '/home/pmckeen/Generalized_ADCS/papers/Planner')
+    from mc_planner_settings import create_optimized_planner_settings
+    
+    # Setup - seed 4 has 70.8% yaw fraction, good for showing RW usage
+    run_id = 4
+    rng = np.random.default_rng(seed=run_id)  # Use seed directly for reproducibility
     sat = create_beavercube2_cubesat(estimated=False)
     
+    tf = 1000
+    t_start = 0.22
+    sec2cent = TimeConstants.sec2cent
+    
     print("\nCreating orbit...")
-    orb = create_random_circular_orbit(radius_km=7000.0, dt=1, tf=150, use_J2=True, fast=True)
+    np.random.seed(4)  # Seed 4 has 70.8% yaw fraction - good for RW usage
+    orb = create_random_circular_orbit(radius_km=7000.0, dt=1, tf=tf+100, use_J2=True, fast=True)
     orb.populate_environment(compute_B=True, compute_S=True)
-    os0 = orb.get_os(0.22)
+    os0 = orb.get_os(t_start)
     
-    # Initial conditions (fixed seed for reproducibility)
-    rng = np.random.default_rng(seed=1000)
-    q0 = normalize(rng.standard_normal(4))
-    w0 = normalize(rng.standard_normal(3)) * (0.5 * np.pi / 180.0)  # 0.5 deg/s
-    h0 = rng.uniform(-0.0001, 0.0001, size=1)
+    # Initial conditions - start from near-identity to make geometry clear
+    # Identity quaternion: boresight (body-Y) points at ECI-Y
+    q0 = normalize(np.array([1.0, 0.0, 0.0, 0.0]) + 0.01 * rng.standard_normal(4))
+    w0 = np.array([0.001, 0.001, 0.001])  # Small initial rates
+    h0 = np.array([0.0])
     
-    # 90 degree slew
-    half_angle = 45 * np.pi / 180
-    q_rot = np.array([np.cos(half_angle), np.sin(half_angle), 0, 0])
-    q_goal = normalize(quat_mult(q0, q_rot))
+    # Multi-goal: Goal1(0-250s) → No_Goal(250-350s) → Goal2(350-600s) → No_Goal(600-700s) → Goal3(700-1000s)
+    # Set goals that require z-axis rotation (yaw) since RW is on z-axis
+    # Boresight is body-Y [0,1,0]. For z-axis rotation to help:
+    # - Goal in ECI should differ from current boresight mainly in the x-y plane
+    # Start with identity quaternion: boresight_eci = [0,1,0]
+    # Goal1 = [1,0,0] requires 90° yaw (z-axis rotation)
+    # Goal2 = [-1,0,0] requires another 90° yaw
+    # Goal3 = [0,-1,0] requires another 90° yaw
+    goal1 = np.array([1.0, 0.0, 0.0])  # +X in ECI
+    goal2 = np.array([-1.0, 0.0, 0.0])  # -X in ECI (180° from goal1)
+    goal3 = np.array([0.0, -1.0, 0.0])  # -Y in ECI
     
     x0 = np.concatenate([w0, q0, h0])
     for i, rw in enumerate(sat.rw_actuators):
         rw.h = h0[i]
     
-    initial_error = quat_error_angle(q0, q_goal)
-    print(f"\nInitial pointing error: {initial_error:.1f}°")
-    print(f"Goal: 90° slew in {120}s")
+    initial_error = boresight_error(q0, goal1)
+    print(f"\nInitial boresight error to Goal1: {initial_error:.1f}°")
+    print(f"Goal1: {goal1}")
+    print(f"Goal2: {goal2}")
+    print(f"Goal3: {goal3}")
     
-    # Create planner settings
-    print("\nUsing well-conditioned normalized settings...")
-    config = NormalizedPlannerConfig(
-        actuator_costs=NormalizedActuatorCosts(mtq_cost=1.0, rw_torque_cost=5.0),
-        state_costs=NormalizedStateCosts(
-            angle_cost=1000.0, angle_terminal_cost=1000000.0,
-            ang_vel_cost=1000.0, ang_vel_terminal_cost=100000.0,
-        ),
-    )
-    settings = create_planner_settings(sat, config)
-    settings.rw_AM_weight = 1e4
-    settings.RWh_ok_mult = 0.5
-    settings.bdot_on = 0  # IMPORTANT: Use random init, not B-dot for slew maneuvers
-    # Pass1: Exploration - find good trajectory shape, looser constraints
-    # Use higher starting penalty to converge faster
-    settings.pass1.aug_lag.penalty_init = 1.0  # Start higher than 0.001
-    settings.pass1.aug_lag.penalty_max = 1e6   # Don't need to go super high for Pass1
-    settings.pass1.convergence.max_outer_iter = 10
-    settings.pass1.convergence.max_inner_iter = 10
-    # Pass2: Refinement - enforce constraints with high penalty
-    settings.pass2.aug_lag.penalty_init = 1e4  # High penalty for strict constraint enforcement
-    settings.pass2.convergence.max_outer_iter = 6
-    settings.pass2.convergence.max_inner_iter = 10
+    # Create settings
+    settings = create_optimized_planner_settings(sat, duration=tf, tuning="balanced")
+    
+    # Increase wmax to allow faster slews (60 deg/s)
+    settings.wmax = np.radians(60)
+    
+    # Make RW MUCH cheaper - try 0.0001x MTQ cost
+    settings.rw_control_weight = settings.mtq_control_weight * 0.0001
+    
+    # Disable momentum cost and allow more momentum capacity
+    settings.rw_AM_weight = 0.0
+    settings.rw_stic_weight = 0.0
+    settings.RWh_max_mult = 0.9  # Allow 90% of physical momentum capacity
+    
+    print(f"RW control weight: {settings.rw_control_weight}")
+    print(f"MTQ control weight: {settings.mtq_control_weight}")
+    print(f"Ratio MTQ/RW: {settings.mtq_control_weight / settings.rw_control_weight:.0f}x")
+    
+    # Try bdot_on=4 (PD control with RW) 
+    settings.bdot_on = 4
+    print(f"Using bdot_on={settings.bdot_on} (PD control init with RW)")
+    
+    # Reduce Pass1 iterations for quick testing
+    settings.pass1.convergence.max_iters = 10  # was 20
+    settings.pass1.aug_lag.outer_loop_max = 3  # was 10
+    
+    # Create multi-goal GoalList (100s No_Goal gaps instead of 50s)
+    goals = GoalList({
+        t_start: ECI_Goal(goal1),
+        t_start + 250*sec2cent: No_Goal(),      # Goal1 ends at 250s
+        t_start + 350*sec2cent: ECI_Goal(goal2), # Goal2 starts at 350s (100s gap)
+        t_start + 600*sec2cent: No_Goal(),      # Goal2 ends at 600s
+        t_start + 700*sec2cent: ECI_Goal(goal3), # Goal3 starts at 700s (100s gap)
+    })
+    
+    # Get time-varying goal vectors (E) for visualization
+    env = EnvHelper(sat, settings)
+    dt_tp = settings.dt_tp
+    N_pass1 = int(tf / dt_tp) + 1
+    t_end = t_start + tf * sec2cent
+    vecsPy = env._propagate_environment(os0, t_start, t_end, dt_tp, N_pass1, goals)
+    goal_vectors = vecsPy[6]  # E vectors shape (3, N)
+    
+    print(f"\nGoal vectors shape: {goal_vectors.shape}")
     
     # Collect iteration data
     all_iterations: List[IterationData] = []
     
-    # Create live visualization
+    # Create live visualization with time-varying goal vectors
     live_viz = LivePlannerViz(
-        goal_vector_eci=q_goal,
-        body_vector=np.array([0, 1, 0]),  # BC2 boresight
-        dt=settings.dt_tp,
+        goal_vector_eci=goal_vectors,  # (3, N) time-varying!
+        body_vector=np.array([0, 1, 0]),
+        dt=dt_tp,
         update_interval=1,
         figsize=(14, 10),
-        actuator_names=['MTQ_x', 'MTQ_y', 'MTQ_z', 'RW']
+        actuator_names=['MTQ_x', 'MTQ_y', 'MTQ_z', 'RW'],
+        umax=settings.umax  # For normalizing control plot
     )
     live_viz.start()
     
     def iteration_callback(iter_data: IterationData):
         all_iterations.append(iter_data)
-        
-        # Update live viz
         live_viz.update(iter_data)
         
-        # Print progress
+        # Save screenshot every 20 iterations so we can see what's happening
+        if len(all_iterations) % 20 == 1:
+            live_viz.save(f"/tmp/live_viz_iter_{len(all_iterations):04d}.png")
+        
         q_final = iter_data.Xset[3:7, -1]
-        q_final = q_final / np.linalg.norm(q_final)
-        err = quat_error_angle(q_final, q_goal)
+        err = boresight_error(q_final, goal3)
+        
+        # Debug: Check RW control values (normalized by limit)
+        if iter_data.Uset.shape[0] > 3:
+            rw_ctrl = iter_data.Uset[3, :]
+            rw_max_physical = np.abs(rw_ctrl).max()
+            # Normalize by RW limit for display (same as MTQ normalization)
+            rw_limit = sat.rw_actuators[0].u_max * settings.control_limit_scale
+            rw_normalized = rw_max_physical / rw_limit if rw_limit > 0 else 0
+            rw_info = f" RW={rw_normalized:.1%}"
+        else:
+            rw_info = ""
         
         pass_str = f"[{iter_data.pass_label}] " if iter_data.pass_label else ""
         print(f"  {pass_str}Outer {iter_data.outer_iter}, Inner {iter_data.inner_iter:2d}: "
               f"cost={iter_data.LA:.2e}, cmax={iter_data.cmax:.2e}, "
-              f"grad={iter_data.grad:.2e}, error={err:.2f}°")
+              f"grad={iter_data.grad:.2e}, error={err:.2f}°{rw_info}")
     
     # Create controller with Python ALILQR
     controller = Plan_and_Track_PythonALILQR(
         est_sat=sat, 
         planner_settings=settings,
-        verbose=False  # We'll print our own progress
+        verbose=False
     )
     controller.set_iteration_callback(iteration_callback)
-    
-    # Create goal
-    goals = GoalList({0.22: Fixed_Attitude_Goal(q_goal)})
     
     # Run optimization
     print("\nRunning optimization...")
@@ -266,7 +339,7 @@ def main():
     
     t0 = time.perf_counter()
     traj = controller.calculate_trajectory(
-        t_start=0.22, duration=120, x_0=x0, os_0=os0, 
+        t_start=t_start, duration=tf, x_0=x0, os_0=os0, 
         goals=goals, verbose=False
     )
     elapsed = time.perf_counter() - t0
@@ -275,24 +348,19 @@ def main():
     
     # Results
     q_final = traj.states[3:7, -1]
-    final_error = quat_error_angle(q_final, q_goal)
+    final_error = boresight_error(q_final, goal3)
     
     print(f"\n{'='*70}")
     print("RESULTS")
     print("="*70)
     print(f"Total time: {elapsed:.2f}s")
     print(f"Total iterations: {len(all_iterations)}")
-    print(f"Final pointing error: {final_error:.4f}°")
+    print(f"Final boresight error to Goal3: {final_error:.4f}°")
     print(f"Improvement: {initial_error:.1f}° → {final_error:.4f}°")
     
     # Save live viz
-    live_viz.save("/home/pmckeen/Generalized_ADCS/papers/Planner/figures/live_viz_final.png")
+    live_viz.save("/home/pmckeen/Generalized_ADCS/papers/Planner/figures/live_viz_multigoal.png")
     print("\nLive visualization saved.")
-    
-    # Generate convergence plot
-    print("\nGenerating convergence plot...")
-    save_path = "/home/pmckeen/Generalized_ADCS/papers/Planner/figures/iteration_convergence.png"
-    plot_convergence(all_iterations, q_goal, save_path)
     
     # Keep live viz open
     print("\nClose the plot window to exit...")

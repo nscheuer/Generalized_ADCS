@@ -18,7 +18,7 @@ from ADCS.controller.plan_and_track_lqr import Plan_and_Track_LQR
 from ADCS.controller.helpers import PlannerSettings
 
 # Import good settings
-from mc_planner_settings import create_adaptive_planner_settings
+from mc_planner_settings import create_optimized_planner_settings
 from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.orbits.helpers.orbit_factory import create_random_circular_orbit
 from ADCS.satellite_factory.satellites.create_cubesats import create_beavercube1_cubesat
@@ -70,7 +70,7 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
         x0 = np.concatenate([config["w0"], config["q0"]])
 
         # Use well-conditioned normalized settings (MTQ-only)
-        planner_settings = create_adaptive_planner_settings(real_sat, duration=tf, dt_planning=dt_planning)
+        planner_settings = create_optimized_planner_settings(real_sat, duration=tf, dt_planning=dt_planning)
 
         controller = Plan_and_Track_LQR(est_sat=real_sat, planner_settings=planner_settings)
 
@@ -170,8 +170,8 @@ if __name__ == "__main__":
         valid = [r for r in full_results if r and r.get("traj_valid", False)]
         print(f"\n--- Monte Carlo Complete: {len(valid)}/{len(full_results)} valid ---")
         save_data(f"3MTQ+0RW_plan_full180_mc_{NUM_RUNS}", full_results, out_dir=OUTPUT_DIR)
-        create_close_all_button_window()
+        #create_close_all_button_window()  # Disabled for batch runs
     else:
         results = load_data(f"{OUTPUT_DIR}/3MTQ+0RW_plan_full180_mc_{NUM_RUNS}")
         full_results = results[0] if isinstance(results, tuple) else results
-        create_close_all_button_window()
+        #create_close_all_button_window()  # Disabled for batch runs

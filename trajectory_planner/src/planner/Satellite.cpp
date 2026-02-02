@@ -528,9 +528,9 @@ vec Satellite::getConstraints(int k, int N, vec u, vec x, arma::vec3 sunECIvec) 
       ctrl_base = number_MTQ;
       int state_base = 7;
       for(int j=0;j<number_RW;j++){
-        ck.row(ind) = (u.row(ctrl_base+j)*MAGRW_TORQ_MULT - RW_max_torq.at(j))/RW_max_torq.at(j);
+        ck.row(ind) = (u.row(ctrl_base+j)*NONMTQ_TORQ_SCALE - RW_max_torq.at(j))/RW_max_torq.at(j);
         ind++;
-        ck.row(ind) = (-u.row(ctrl_base+j)*MAGRW_TORQ_MULT - RW_max_torq.at(j))/RW_max_torq.at(j);
+        ck.row(ind) = (-u.row(ctrl_base+j)*NONMTQ_TORQ_SCALE - RW_max_torq.at(j))/RW_max_torq.at(j);
         ind++;
 
         ck.row(ind) = (x.row(state_base+j) - RW_max_ang_mom.at(j))/RW_max_ang_mom.at(j);
@@ -538,15 +538,15 @@ vec Satellite::getConstraints(int k, int N, vec u, vec x, arma::vec3 sunECIvec) 
         ck.row(ind) = (-x.row(state_base+j) - RW_max_ang_mom.at(j))/RW_max_ang_mom.at(j);
         ind++;
 
-        ck.row(ind) = -pow(MAGRW_TORQ_MULT*u.row(ctrl_base+j)*x.row(state_base+j),2.0); //momentum and torq cannot both be zero! stiction. can pass through zero though.
+        ck.row(ind) = -pow(NONMTQ_TORQ_SCALE*u.row(ctrl_base+j)*x.row(state_base+j),2.0); //momentum and torq cannot both be zero! stiction. can pass through zero though.
         ind++;
       }
 
       ctrl_base = number_MTQ+number_RW;
       for(int j=0;j<number_magic;j++){
-        ck.row(ind) = (u.row(ctrl_base+j)*MAGRW_TORQ_MULT - magic_max_torq.at(j))/magic_max_torq.at(j);
+        ck.row(ind) = (u.row(ctrl_base+j)*NONMTQ_TORQ_SCALE - magic_max_torq.at(j))/magic_max_torq.at(j);
         ind++;
-        ck.row(ind) = (-u.row(ctrl_base+j)*MAGRW_TORQ_MULT - magic_max_torq.at(j))/magic_max_torq.at(j);
+        ck.row(ind) = (-u.row(ctrl_base+j)*NONMTQ_TORQ_SCALE - magic_max_torq.at(j))/magic_max_torq.at(j);
         ind++;
       }
 
@@ -620,10 +620,10 @@ tuple<mat,mat> Satellite::constraintJacobians(int k, int N, vec uk,vec xk,vec3 s
       int state_base = 7;
       for(int j=0;j<number_RW;j++){
         // ck.row(ind) = u.row(ctrl_base+j) - RW_max_torq.at(j);
-        cku(ind,ctrl_base+j) = 1.0*MAGRW_TORQ_MULT/RW_max_torq.at(j);
+        cku(ind,ctrl_base+j) = 1.0*NONMTQ_TORQ_SCALE/RW_max_torq.at(j);
         ind++;
         // ck.row(ind) = -u.row(ctrl_base+j) - RW_max_torq.at(j);
-        cku(ind,ctrl_base+j) = -1.0*MAGRW_TORQ_MULT/RW_max_torq.at(j);
+        cku(ind,ctrl_base+j) = -1.0*NONMTQ_TORQ_SCALE/RW_max_torq.at(j);
         ind++;
 
         // ck.row(ind) = x.row(state_base+j) - RW_max_ang_mom.at(j);
@@ -634,8 +634,8 @@ tuple<mat,mat> Satellite::constraintJacobians(int k, int N, vec uk,vec xk,vec3 s
         ind++;
 
         // ck.row(ind) = -pow(u.row(ctrl_base+j)*x.row(state_base+j),2); //momentum and torq cannot both be zero! stiction. can pass through zero though.
-        ckx(ind,state_base-1+j) = -2.0*MAGRW_TORQ_MULT*MAGRW_TORQ_MULT*uk(ctrl_base+j)*xk(state_base+j)*uk(ctrl_base+j);
-        cku(ind,ctrl_base+j) = -2.0*MAGRW_TORQ_MULT*MAGRW_TORQ_MULT*uk(ctrl_base+j)*xk(state_base+j)*xk(state_base+j);
+        ckx(ind,state_base-1+j) = -2.0*NONMTQ_TORQ_SCALE*NONMTQ_TORQ_SCALE*uk(ctrl_base+j)*xk(state_base+j)*uk(ctrl_base+j);
+        cku(ind,ctrl_base+j) = -2.0*NONMTQ_TORQ_SCALE*NONMTQ_TORQ_SCALE*uk(ctrl_base+j)*xk(state_base+j)*xk(state_base+j);
         ind++;
       }
     }
@@ -644,10 +644,10 @@ tuple<mat,mat> Satellite::constraintJacobians(int k, int N, vec uk,vec xk,vec3 s
     if(number_magic>0){
       for(int j=0;j<number_magic;j++){
         // ck.row(ind) = u.row(ctrl_base+j) - magic_max_torq.at(j);
-        cku(ind,ctrl_base+j) = 1.0*MAGRW_TORQ_MULT/magic_max_torq.at(j);
+        cku(ind,ctrl_base+j) = 1.0*NONMTQ_TORQ_SCALE/magic_max_torq.at(j);
         ind++;
         // ck.row(ind) = -u.row(ctrl_base+j) - magic_max_torq.at(j);
-        cku(ind,ctrl_base+j) = -1.0*MAGRW_TORQ_MULT/magic_max_torq.at(j);
+        cku(ind,ctrl_base+j) = -1.0*NONMTQ_TORQ_SCALE/magic_max_torq.at(j);
         ind++;
       }
     }
@@ -719,9 +719,9 @@ tuple<cube,cube,cube> Satellite::constraintHessians(int k, int N, vec uk,vec xk,
         ind++;
 
         // ck.row(ind) = -pow(u.row(ctrl_base+j)*x.row(state_base+j),2); //momentum and torq cannot both be zero! stiction. can pass through zero though.
-        ckxx(state_base+j-1,state_base+j-1,ind) = MAGRW_TORQ_MULT*MAGRW_TORQ_MULT*-2.0*uk(ctrl_base+j)*uk(ctrl_base+j);
-        ckuu(ctrl_base+j,ctrl_base+j,ind) = MAGRW_TORQ_MULT*MAGRW_TORQ_MULT*-2.0*xk(state_base+j)*xk(state_base+j);
-        ckux(ctrl_base+j,state_base+j-1,ind) = MAGRW_TORQ_MULT*MAGRW_TORQ_MULT*-4.0*xk(state_base+j)*uk(ctrl_base+j);
+        ckxx(state_base+j-1,state_base+j-1,ind) = NONMTQ_TORQ_SCALE*NONMTQ_TORQ_SCALE*-2.0*uk(ctrl_base+j)*uk(ctrl_base+j);
+        ckuu(ctrl_base+j,ctrl_base+j,ind) = NONMTQ_TORQ_SCALE*NONMTQ_TORQ_SCALE*-2.0*xk(state_base+j)*xk(state_base+j);
+        ckux(ctrl_base+j,state_base+j-1,ind) = NONMTQ_TORQ_SCALE*NONMTQ_TORQ_SCALE*-4.0*xk(state_base+j)*uk(ctrl_base+j);
         ind++;
       }
     }
@@ -1559,8 +1559,8 @@ cost_jacs  Satellite::costJacobians(int k, int N, vec xk, vec uk,vec ukprev, vec
 }
 
 
-double Satellite::read_magrw_torq_mult(){
-  return MAGRW_TORQ_MULT;
+double Satellite::get_nonmtq_torq_scale(){
+  return NONMTQ_TORQ_SCALE;
 }
 
 
@@ -1670,7 +1670,7 @@ tuple<vec,vec3> Satellite::dynamics(vec x, vec u, DYNAMICS_INFO_FORM dynamics_in
   {
     magvec += mtq_ax_mat*u.head(number_MTQ);
   }
-  vec3 torq = MAGRW_TORQ_MULT*(magic_torq + rw_torq);
+  vec3 torq = NONMTQ_TORQ_SCALE*(magic_torq + rw_torq);
   vec3 dist_torq = dist_torque(x,dynamics_info);
 
 
@@ -1678,7 +1678,7 @@ tuple<vec,vec3> Satellite::dynamics(vec x, vec u, DYNAMICS_INFO_FORM dynamics_in
   vec3 wdot = invJcom_noRW*(torq - cross(w, Jcom*w + rw_ax_mat*h) + cross(magvec,RmatT*Bk)  + dist_torq);
   vec res = join_cols(wdot,0.5*findWMat(q)*w);
   if(number_RW>0){
-    res = join_cols(res,-MAGRW_TORQ_MULT*u(span(number_MTQ,number_MTQ+number_RW-1)) - diagmat(vec(RW_J))*rw_ax_mat.t()*wdot);
+    res = join_cols(res,-NONMTQ_TORQ_SCALE*u(span(number_MTQ,number_MTQ+number_RW-1)) - diagmat(vec(RW_J))*rw_ax_mat.t()*wdot);
   }
   return std::make_tuple(res,dist_torq);
 }
@@ -1729,7 +1729,7 @@ tuple<mat, mat,mat>  Satellite::dynamicsJacobians( vec x,  vec u,  DYNAMICS_INFO
   {
     magvec += mtq_ax_mat*u.head(number_MTQ);
   }
-  vec3 torq = MAGRW_TORQ_MULT*(magic_torq + rw_torq);
+  vec3 torq = NONMTQ_TORQ_SCALE*(magic_torq + rw_torq);
   vec3 dist_torq =  dist_on*(gg_torq+prop_torq_on*prop_torq*plan_for_prop+gen_dist_torq*plan_for_gendist);
 
   vec3 wdot = invJcom_noRW*(torq - cross(w, Jcom*w + rw_ax_mat*h) + cross(magvec,RmatT*Bk) + dist_torq);
@@ -1737,13 +1737,13 @@ tuple<mat, mat,mat>  Satellite::dynamicsJacobians( vec x,  vec u,  DYNAMICS_INFO
   vec hdot = vec(number_RW).zeros();
   if(number_RW>0)
   {
-    hdot = -MAGRW_TORQ_MULT*u(span(number_MTQ,number_MTQ+number_RW-1)) - diagmat(vec(RW_J))*rw_ax_mat.t()*wdot;
+    hdot = -NONMTQ_TORQ_SCALE*u(span(number_MTQ,number_MTQ+number_RW-1)) - diagmat(vec(RW_J))*rw_ax_mat.t()*wdot;
   }
 
   mat33 dwdw = invJcom_noRW*( skewSymmetric(Jcom*w + rw_ax_mat*h)-skewSymmetric(w)*Jcom);
   mat::fixed<3,4> dwdq = invJcom_noRW*(skewSymmetric(magvec)*dRTBdq(q, Bk) + const_term*(skewSymmetric(nadir)*Jcom-skewSymmetric(Jcom*nadir))*dRTBdq(q, -nRk));
   mat dwdh = invJcom_noRW*( -skewSymmetric(w)*rw_ax_mat);
-  mat dwdu = invJcom_noRW*join_rows(-skewSymmetric(RmatT*Bk)*mtq_ax_mat,MAGRW_TORQ_MULT*rw_ax_mat, MAGRW_TORQ_MULT*magic_ax_mat);
+  mat dwdu = invJcom_noRW*join_rows(-skewSymmetric(RmatT*Bk)*mtq_ax_mat,NONMTQ_TORQ_SCALE*rw_ax_mat, NONMTQ_TORQ_SCALE*magic_ax_mat);
   mat33 dwdt = invJcom_noRW;
 
 
@@ -1757,7 +1757,7 @@ tuple<mat, mat,mat>  Satellite::dynamicsJacobians( vec x,  vec u,  DYNAMICS_INFO
   mat dhdw = -diagmat(vec(RW_J))*rw_ax_mat.t()*dwdw;
   mat dhdq =  -diagmat(vec(RW_J))*rw_ax_mat.t()*dwdq;
   mat dhdh = -diagmat(vec(RW_J))*rw_ax_mat.t()*dwdh;
-  mat dhdu = join_rows(mat(number_RW,number_MTQ).zeros(),-MAGRW_TORQ_MULT*mat(number_RW,number_RW).eye(),mat(number_RW,number_magic).zeros()) - diagmat(vec(RW_J))*rw_ax_mat.t()*dwdu;
+  mat dhdu = join_rows(mat(number_RW,number_MTQ).zeros(),-NONMTQ_TORQ_SCALE*mat(number_RW,number_RW).eye(),mat(number_RW,number_magic).zeros()) - diagmat(vec(RW_J))*rw_ax_mat.t()*dwdu;
   mat dhdt = -diagmat(vec(RW_J))*rw_ax_mat.t()*dwdt;
 
 
@@ -1818,7 +1818,7 @@ tuple<cube, cube,cube>  Satellite::dynamicsHessians( vec x,  vec u,  DYNAMICS_IN
   {
     magvec += mtq_ax_mat*u.head(number_MTQ);
   }
-  vec3 torq = MAGRW_TORQ_MULT*(magic_torq + rw_torq);
+  vec3 torq = NONMTQ_TORQ_SCALE*(magic_torq + rw_torq);
   vec3 dist_torq =  dist_on*(gg_torq+prop_torq_on*prop_torq*plan_for_prop+gen_dist_torq*plan_for_gendist);
 
   vec3 wdot = invJcom_noRW*(torq - cross(w, Jcom*w + rw_ax_mat*h) + cross(magvec,RmatT*Bk) + dist_torq);
@@ -1826,13 +1826,13 @@ tuple<cube, cube,cube>  Satellite::dynamicsHessians( vec x,  vec u,  DYNAMICS_IN
   vec hdot = vec(number_RW).zeros();
   if(number_RW>0)
   {
-    hdot = -MAGRW_TORQ_MULT*u(span(number_MTQ,number_MTQ+number_RW-1)) - diagmat(vec(RW_J))*rw_ax_mat.t()*wdot;
+    hdot = -NONMTQ_TORQ_SCALE*u(span(number_MTQ,number_MTQ+number_RW-1)) - diagmat(vec(RW_J))*rw_ax_mat.t()*wdot;
   }
 
   // mat33 dwdw = invJcom_noRW*( skewSymmetric(Jcom*w + rw_ax_mat*h)-skewSymmetric(w)*Jcom);
   // mat::fixed<3,4> dwdq = invJcom_noRW*(skewSymmetric(magvec)*dRTBdq(q, Bk) + const_term*(skewSymmetric(nadir)*Jcom-skewSymmetric(Jcom*nadir))*dRTBdq(q, -nRk));
   // mat dwdh = invJcom_noRW*( -skewSymmetric(w)*rw_ax_mat);
-  // mat dwdu = invJcom_noRW*join_rows(-skewSymmetric(RmatT*Bk)*mtq_ax_mat,MAGRW_TORQ_MULT*rw_ax_mat, MAGRW_TORQ_MULT*magic_ax_mat);
+  // mat dwdu = invJcom_noRW*join_rows(-skewSymmetric(RmatT*Bk)*mtq_ax_mat,NONMTQ_TORQ_SCALE*rw_ax_mat, NONMTQ_TORQ_SCALE*magic_ax_mat);
   // mat33 dwdt = invJcom_noRW;
 
   vec3 xh = mat33().eye().col(0);
@@ -1979,7 +1979,7 @@ PYBIND11_MODULE(pysat, m) {
         //.def(py::init<ALL_SETTINGS_PY_FORM>())
         .def("change_Jcom", &Satellite::change_Jcom_py)
         .def("readJcom", &Satellite::readJcom)
-        .def("read_magrw_torq_mult", &Satellite::read_magrw_torq_mult)
+        .def("get_nonmtq_torq_scale", &Satellite::get_nonmtq_torq_scale)
         .def("add_gg_torq", &Satellite::add_gg_torq)
         .def("remove_gg_torq", &Satellite::remove_gg_torq)
         .def("add_prop_torq", &Satellite::add_prop_torq_py)
