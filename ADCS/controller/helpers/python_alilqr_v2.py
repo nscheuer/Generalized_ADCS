@@ -406,10 +406,45 @@ class PythonALILQRv2:
         # Scale RW/magic controls to physical units (matches C++ trajOptAfter)
         Uset_physical = self._scale_rw_controls(Uset)
         
-        # Get final Kset from last backward pass if available
-        # In C++: mat Kmat = packageK(get<0>(BPresults));
-        # We don't have direct access to BPresults, so we'll use zeros or last computed
-        Kset = np.zeros((Uset.shape[0] * (Xset.shape[0] - 1), N))
+        # Get final Kset by running one backward pass on the final trajectory
+        # This matches C++ behavior: mat Kmat = packageK(get<0>(BPresults));
+        try:
+            use_dist = not is_first_search
+            bp_results, _ = self.planner.backwardPass(
+                dt, traj, vecs, auglag_vals, regs,
+                cost_settings, reg_settings, use_dist
+            )
+            Kset_bp, _, _ = bp_results
+            
+            # Package Kset: C++ cube is (ctrl_dim, state_dim, N) but numpy receives as (N, ctrl_dim, state_dim)
+            # We need to reshape to (ctrl_dim*state_dim, N) for storage and later use
+            if isinstance(Kset_bp, np.ndarray) and Kset_bp.size > 0:
+                if Kset_bp.ndim == 3:
+                    # Numpy receives shape as (N, ctrl_dim, state_dim) due to how armadillo cubes are converted
+                    T, ctrl_dim, state_dim = Kset_bp.shape
+                    # Transpose to (ctrl_dim, state_dim, N) then reshape to (ctrl_dim * state_dim, N)
+                    Kset_transposed = np.transpose(Kset_bp, (1, 2, 0))  # (ctrl_dim, state_dim, N)
+                    Kset = Kset_transposed.reshape((ctrl_dim * state_dim, T), order='C')
+                    if self.verbose:
+                        print(f"Kset from backwardPass: {Kset_bp.shape} (N,ctrl,state) -> {Kset.shape}")
+                elif Kset_bp.ndim == 2:
+                    Kset = Kset_bp
+                    if self.verbose:
+                        print(f"Kset from backwardPass (2D): {Kset.shape}")
+                else:
+                    if self.verbose:
+                        print(f"Warning: Unexpected Kset ndim={Kset_bp.ndim}")
+                    Kset = np.zeros((Uset.shape[0] * (Xset.shape[0] - 1), N))
+            else:
+                if self.verbose:
+                    print(f"Warning: Empty Kset from backwardPass")
+                Kset = np.zeros((Uset.shape[0] * (Xset.shape[0] - 1), N))
+        except Exception as e:
+            if self.verbose:
+                print(f"Warning: Could not compute Kset: {e}")
+                import traceback
+                traceback.print_exc()
+            Kset = np.zeros((Uset.shape[0] * (Xset.shape[0] - 1), N))
         
         result = OptimizationResult(
             Xset=Xset,
