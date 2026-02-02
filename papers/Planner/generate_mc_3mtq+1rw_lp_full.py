@@ -189,8 +189,8 @@ if __name__ == "__main__":
         full_results = runner.run()
         print(f"\n--- Monte Carlo Complete: {len(full_results)} runs ---")
         save_data(f"3MTQ+1RW_LP_full180_mc_{NUM_RUNS}", full_results, out_dir=OUTPUT_DIR)
-        create_close_all_button_window()
+        #create_close_all_button_window()  # Disabled for batch runs
     else:
         results = load_data(f"{OUTPUT_DIR}/3MTQ+1RW_LP_full180_mc_{NUM_RUNS}")
         full_results = results[0] if isinstance(results, tuple) else results
-        create_close_all_button_window()
+        #create_close_all_button_window()  # Disabled for batch runs

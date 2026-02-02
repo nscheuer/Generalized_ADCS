@@ -89,13 +89,15 @@ class MTQ_w_RW(Controller):
     c_gain : float
         Momentum dumping gain :math:`K_c`.
     h_target : numpy.ndarray
-        Desired body-frame reaction wheel momentum target vector.
+        Desired per-wheel momentum target vector with one scalar value per
+        reaction wheel. Shape ``(N_rw,)`` where ``N_rw`` is the number of
+        reaction wheels.
 
     Raises
     ------
     ValueError
         If any component of ``h_target`` exceeds the maximum allowable
-        reaction wheel momentum defined by
+        reaction wheel momentum defined by the corresponding
         :class:`~ADCS.satellite_hardware.actuators.RW`.
 
     Notes
@@ -134,7 +136,7 @@ class MTQ_w_RW(Controller):
         c_gain : float
             Reaction wheel momentum unloading gain.
         h_target : numpy.ndarray
-            Desired reaction wheel momentum target vector in body frame.
+            Desired per-wheel momentum target vector with shape ``(N_rw,)``.
 
         Returns
         -------
@@ -153,10 +155,17 @@ class MTQ_w_RW(Controller):
         self.M_mtq_act, self.mtq_indices = self.build_torque_to_u_matrix_pinv(actuators=est_sat.actuators, actuator_type=MTQ)
         self.A_mtq = self.build_u_to_torque_matrix_pinv(actuators=est_sat.actuators, actuator_type=MTQ)
 
-        self.rw_max_h = np.asarray([rw.h_max for rw in est_sat.actuators if isinstance(rw, RW)])
+        self.rws = [a for a in est_sat.actuators if isinstance(a, RW)]
+        self.n_rw = len(self.rws)
+        self.rw_max_h = np.asarray([rw.h_max for rw in self.rws])
         self.max_torque = self.find_max_torque(actuators=est_sat.actuators)
 
-        if np.any(self.rw_max_h < h_target):
+        h_target = np.asarray(h_target, dtype=float).flatten()
+        if h_target.size == 0:
+            h_target = np.zeros(self.n_rw)
+        if h_target.size != self.n_rw:
+            raise ValueError(f"h_target must have length {self.n_rw} (one per RW), got {h_target.size}")
+        if np.any(np.abs(h_target) > self.rw_max_h):
             raise ValueError("Target momentum cannot be higher than reaction wheel maximum momentum!")
         self.h_target = h_target
 
@@ -251,7 +260,7 @@ class MTQ_w_RW(Controller):
                                                        include_gyroscopic=True)
         
         # Momentum Management (still need h_rw_body for momentum dumping)
-        h_vals = x_hat[7:]
+        h_vals = x_hat[7:7 + self.n_rw] if len(x_hat) >= 7 + self.n_rw else np.zeros(self.n_rw)
         rw_axes   = np.vstack([
             np.asarray(rw.axis, float).reshape(3,)
             for rw in est_sat.actuators
@@ -260,9 +269,10 @@ class MTQ_w_RW(Controller):
         h_vals    = x_hat[7:]
         h_rw_body = h_vals @ rw_axes
         
-        # Momentum dumping
-        delta_h = h_rw_body - self.h_target
-        tau_dump = -self.c_gain * delta_h
+        # Momentum dumping: compute per-wheel error, then map to body-frame torque
+        delta_h_per_wheel = h_vals - self.h_target  # (n_rw,)
+        delta_h_body = rw_axes @ delta_h_per_wheel  # (3,)
+        tau_dump = -self.c_gain * delta_h_body
 
         # Allocation
         B_skew = skewsym(b_body)

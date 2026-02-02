@@ -81,6 +81,16 @@ py::tuple PyPlanner::trajOpt(VECTOR_INFO_PY_FORM vecs_w_timePy,int N, TIME_FORM 
   return resultsPy;
 }
 
+py::tuple PyPlanner::trajOptMultiStart(VECTOR_INFO_PY_FORM vecs_w_timePy, int N, TIME_FORM time_start, TIME_FORM time_end, py::array_t<double> x0Numpy, std::vector<int> bdotModes){
+  vec x0 = numpyToArmaVector(x0Numpy);
+  VECTOR_INFO_FORM vecs_w_time = vecsPy2Cpp(vecs_w_timePy);
+
+  AFTER_OUTPUT_FORM results = op.trajOptMultiStart(vecs_w_time, N, time_start, time_end, x0, bdotModes);
+
+  py::tuple resultsPy = afterOutputCpp2Py(results);
+  return resultsPy;
+}
+
 
 
 py::tuple PyPlanner::trajOptAfterPython(VECTOR_INFO_PY_FORM vecs_w_timePy,double dt_prev, TIME_FORM time_start, TIME_FORM time_end, ALILQR_OUTPUT_PY_FORM alilqrOutPy)
@@ -295,6 +305,23 @@ void PyPlanner::setPlannerVerbosity(int verbosity_level){
   op.setVerbosity(verbosity_level);
 }
 
+// Accessors for control scaling info
+double PyPlanner::getNonMtqTorqScale(){
+  return op.sat.get_nonmtq_torq_scale();
+}
+
+int PyPlanner::getNumberMTQ(){
+  return op.sat.number_MTQ;
+}
+
+int PyPlanner::getNumberRW(){
+  return op.sat.number_RW;
+}
+
+int PyPlanner::getNumberMagic(){
+  return op.sat.number_magic;
+}
+
 
 PYBIND11_MODULE(tplaunch, m) {
     // Import pysat first to ensure the Satellite type binding is registered
@@ -308,6 +335,7 @@ PYBIND11_MODULE(tplaunch, m) {
         .def("readDebug", &PyPlanner::readForDebugPlotting)
         .def("updateParameters", &PyPlanner::updateParameters)
         .def("trajOpt", &PyPlanner::trajOpt)
+        .def("trajOptMultiStart", &PyPlanner::trajOptMultiStart)
         .def("prepareForAlilqr", &PyPlanner::trajOptBeforePython)
         .def("cleanUpAfterAlilqr", &PyPlanner::trajOptAfterPython)
         .def("alilqr", &PyPlanner::alilqrPython)
@@ -328,6 +356,10 @@ PYBIND11_MODULE(tplaunch, m) {
         .def("setVerbosity", &PyPlanner::setPlannerVerbosity)
         .def("setquaternionTo3VecMode", &PyPlanner::setquaternionTo3VecMode)
         .def("echo_int", &PyPlanner::echo_int)
+        .def("get_nonmtq_torq_scale", &PyPlanner::getNonMtqTorqScale)
+        .def("get_number_MTQ", &PyPlanner::getNumberMTQ)
+        .def("get_number_RW", &PyPlanner::getNumberRW)
+        .def("get_number_magic", &PyPlanner::getNumberMagic)
         .def(py::pickle(
           []( PyPlanner &p) { // __getstate__
               /* Return a tuple that fully encodes the state of the object */

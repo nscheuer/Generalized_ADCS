@@ -18,9 +18,24 @@
 #define COST_SETTINGS_FORM std::tuple<double, double, double, double, double, double, double, double, double, int, int, int>
 // Dynamics info tuple: (B, R, prop_torq_on, V, S, dist_on, rho)
 // B = magnetic field (ECI), R = position (ECI, km), prop_torq_on = propellant torque flag,
-// V = velocity (ECI, km/s), S = sun vector (ECI), dist_on = disturbances on flag, rho = atmospheric density (kg/m^3)
+// V = velocity (ECI, km/s), S = sun vector (ECI), dist_on = disturbances on flag, rho = atmospheric density (kg/m^3)+
 #define DYNAMICS_INFO_FORM std::tuple<arma::vec3,arma::vec3,int,arma::vec3,arma::vec3,int,double>
-static const double MAGRW_TORQ_MULT = 1.0;//1e-3;//1e-4;//1.0;//1e-3;
+// NONMTQ_TORQ_SCALE: Scales RW/magic torque commands for better optimization conditioning
+// 
+// Physical interpretation: RW commands u_rw are in Nm (direct torque), while MTQ
+// commands u_mtq are in Am² and produce torque τ = m × B ≈ u_mtq * |B|.
+// With |B| ≈ 30μT, MTQ torque per unit ≈ 3e-5 Nm/Am².
+// RW torque per unit = 1 Nm/Nm, so RW is ~33,000x more effective per unit control.
+//
+// Setting NONMTQ_TORQ_SCALE ≈ |B| makes RW and MTQ have similar effectiveness
+// in the optimizer's B matrix, improving conditioning.
+//
+// The optimizer works with scaled controls: u_scaled = u_physical / NONMTQ_TORQ_SCALE
+// After optimization, scale back: u_physical = u_scaled * NONMTQ_TORQ_SCALE
+//
+// Value = 3e-5: Matches typical B-field, RW/MTQ have similar B matrix entries
+// Value = 1.0:  No scaling (original behavior, ill-conditioned)
+static const double NONMTQ_TORQ_SCALE = 3e-5;  // ≈ typical |B| in Tesla
 
 // Physical constants for disturbance calculations
 static const double SOLAR_CONSTANT = 1367.0;  // W/m^2 - solar irradiance at 1 AU
@@ -138,7 +153,7 @@ public:
 
     void auto_scale_control_costs(double base_weight = 1.0);
 
-    double read_magrw_torq_mult();
+    double get_nonmtq_torq_scale();
 
     arma::vec state_norm(arma::vec x) const;
     arma::mat state_norm_jacobian(arma::vec x) const;

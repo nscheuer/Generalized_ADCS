@@ -309,6 +309,7 @@ class PlannerSettings:
             precalculation_time: float = 100,
             traj_overlap: float = 150,
             bdot_on: int = 1,
+            multistart_modes: list = None,
             debug_plot_on: bool = False,
             include_gg: bool = False,
             include_resdipole: bool = False,
@@ -330,6 +331,7 @@ class PlannerSettings:
         self.traj_overlap = traj_overlap
         self.debug_plot_on = debug_plot_on
         self.bdot_on = bdot_on
+        self.multistart_modes = multistart_modes  # List of bdot modes for multi-start, e.g., [0, 1, 4, 5]
         self.verbosity = False
         self.eps = 2.22044604925031e-16
 
@@ -351,7 +353,7 @@ class PlannerSettings:
         # Hardware Constraints
         self.control_limit_scale = 0.75
         self.umax = self.control_limit_scale * np.array([act.u_max for act in self.est_sat.actuators])
-        self.wmax = 20*np.pi/180.0
+        self.wmax = 50*np.pi/180.0  # 50°/s - allows aggressive RW usage
         self.sun_limit_angle = 1*np.pi/180.0
         self.camera_axis = np.array([[0, 1, 0]]).T
 

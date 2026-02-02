@@ -53,8 +53,8 @@ def run_simulation(
     N = int((tf-t0)/dt)
 
     # Hardware Setup
-    mtm_max_torque = 0.1
-    mtqs = [MTQ(axis=j, max_torque=mtm_max_torque) for j in MathConstants.unitvecs]
+    mtq_max_moment = 0.1
+    mtqs = [MTQ(axis=j, max_moment=mtq_max_moment) for j in MathConstants.unitvecs]
 
     # Handle Momentum Initialization (Scalar or Vector)
     if isinstance(initial_rw_h, (float, int)):

@@ -448,8 +448,8 @@ def run_ukf(verbose: bool = False, tf: float = 1000, dt: float = 10, real_orbit:
     ## REAL SATELLITE
     # Actuators: Magnetorquers
     mtq_noise = Noise(noise=0.0, std_noise=0.0001)
-    mtq_max_torque = 1.0
-    acts = [MTQ(axis=j, max_torque=mtq_max_torque, noise=mtq_noise.copy()) for j in MathConstants.unitvecs]
+    mtq_max_moment = 1.0
+    acts = [MTQ(axis=j, max_moment=mtq_max_moment, noise=mtq_noise.copy()) for j in MathConstants.unitvecs]
 
     # Sensors: Magnetometers
     mtm_noise = Noise(noise=0.0, std_noise=1e-8)
@@ -521,7 +521,7 @@ def run_ukf(verbose: bool = False, tf: float = 1000, dt: float = 10, real_orbit:
 
     ## ESTIMATED SATELLITE
     # Actuators
-    est_acts = [MTQ(axis=j, max_torque=mtq_max_torque, noise=mtq_noise.copy()) for j in MathConstants.unitvecs]
+    est_acts = [MTQ(axis=j, max_moment=mtq_max_moment, noise=mtq_noise.copy()) for j in MathConstants.unitvecs]
     # Sensors
     est_mtm_bias = [Bias(bias=0.0, std_bias=mtm_bsr) for j in range(3)]
     est_mtms = [MTM(axis=MathConstants.unitvecs[j], bias=est_mtm_bias[j], noise=mtm_noise.copy(), estimate_bias=True) for j in range(3)]

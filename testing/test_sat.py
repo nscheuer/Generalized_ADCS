@@ -434,7 +434,7 @@ def test_dynamics_MTQ():
     :math:`\boldsymbol{\omega}=[0.01,0,0]^\top`, the quaternion derivative satisfies
     :math:`\dot{q}=[0,\,0.005,\,0,\,0]^\top` in all MTQ configurations above.
     """
-    mtqs = [MTQ(axis=j, max_torque=1, bias=Bias()) for j in MathConstants.unitvecs]
+    mtqs = [MTQ(axis=j, max_moment=1, bias=Bias()) for j in MathConstants.unitvecs]
     ephem = Ephemeris()
     os = Orbital_State(ephem=ephem, J2000=0.22, R=np.array([7000, 0, 0]), V=np.array([0, 8, 0]), B=1e-5*np.array([1, 0, 0]))
 

@@ -31,8 +31,8 @@ def test_MTQ_w_RW_QP_align(verbose: bool = False, tf: float = 1000, dt: float = 
     t0 = 0
     N = int((tf-t0)/dt)
 
-    mtq_max_torque = 0.4
-    mtqs = [MTQ(axis=j, max_torque=mtq_max_torque) for j in MathConstants.unitvecs]
+    mtq_max_moment = 0.4
+    mtqs = [MTQ(axis=j, max_moment=mtq_max_moment) for j in MathConstants.unitvecs]
 
     rw_max_torque = 7*0.001
     rw_J = 0.001

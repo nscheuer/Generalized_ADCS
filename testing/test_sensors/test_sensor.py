@@ -30,7 +30,7 @@ def test_sat_sensors_bias():
     bias_gps = np.concatenate([random_n_unit_vec(3)*60, random_n_unit_vec(3)*1])
     sun_eff = 0.3
 
-    mtqs = [MTQ(axis=j, max_torque=1, bias=Bias(bias=bias_mtq, std_bias=0)) for j in MathConstants.unitvecs]
+    mtqs = [MTQ(axis=j, max_moment=1, bias=Bias(bias=bias_mtq, std_bias=0)) for j in MathConstants.unitvecs]
     rws = [RW(axis=j, max_torque=1, J=0.1, h=np.dot(h_rw, j), h_max=2.0, bias=Bias(bias=np.dot(bias_rw, j), std_bias=0)) for j in MathConstants.unitvecs]
 
     mtms = [MTM(axis=j, bias=Bias(bias=np.dot(bias_mtm, j), std_bias=0)) for j in MathConstants.unitvecs]

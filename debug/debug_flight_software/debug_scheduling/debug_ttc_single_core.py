@@ -30,8 +30,8 @@ from ADCS.helpers.plotting.animate_orbit_pyvista import animate_orbit_pyvista
 
 def create_satellite() -> Satellite:
     mtq_noise = Noise(noise=0.0, std_noise=0.0001)
-    mtq_max_torque = 1.0
-    mtqs = [MTQ(axis=j, max_torque=mtq_max_torque, noise=mtq_noise.copy()) for j in MathConstants.unitvecs]
+    mtq_max_moment = 1.0
+    mtqs = [MTQ(axis=j, max_moment=mtq_max_moment, noise=mtq_noise.copy()) for j in MathConstants.unitvecs]
 
     rw_max_torque = 4.51
     rw_J = 0.22
@@ -77,8 +77,8 @@ def create_satellite() -> Satellite:
     
 def create_estimated_satellite() -> EstimatedSatellite:
     mtq_noise = Noise(noise=0.0, std_noise=0.0001)
-    mtq_max_torque = 1.0
-    est_mtqs = [MTQ(axis=j, max_torque=mtq_max_torque, noise=mtq_noise.copy()) for j in MathConstants.unitvecs]
+    mtq_max_moment = 1.0
+    est_mtqs = [MTQ(axis=j, max_moment=mtq_max_moment, noise=mtq_noise.copy()) for j in MathConstants.unitvecs]
 
     rw_max_torque = 4.51
     rw_J = 0.22

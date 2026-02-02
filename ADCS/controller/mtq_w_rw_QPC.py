@@ -144,7 +144,8 @@ class MTQ_w_RW_QPC(MTQ_w_RW_LP):
     :type d_gain: float
     :param c_gain: Additional control gain used by the parent controller law.
     :type c_gain: float
-    :param h_target: Target wheel momentum vector used by the parent mixed-actuation controller.
+    :param h_target: Per-wheel target momentum vector with shape ``(N_rw,)`` where ``N_rw`` is
+        the number of reaction wheels.
     :type h_target: numpy.ndarray | list
 
     """
@@ -167,7 +168,7 @@ class MTQ_w_RW_QPC(MTQ_w_RW_LP):
         :type d_gain: float
         :param c_gain: Additional gain used by the parent control law.
         :type c_gain: float
-        :param h_target: Target wheel momentum vector used for momentum management.
+        :param h_target: Per-wheel target momentum vector with shape ``(N_rw,)``.
         :type h_target: numpy.ndarray | list
         :return: None.
         :rtype: NoneType
@@ -241,6 +242,7 @@ class MTQ_w_RW_QPC(MTQ_w_RW_LP):
             h_rw_scalars = x_hat[7 : 7 + self.n_rw]
             h_sys = self.rw_axes @ h_rw_scalars # Matrix (3, N) @ Vec (N,) -> (3,)
         else:
+            h_rw_scalars = np.zeros(self.n_rw)
             h_sys = np.zeros(3)
 
         if isinstance(goal, No_Goal):
@@ -262,9 +264,10 @@ class MTQ_w_RW_QPC(MTQ_w_RW_LP):
             tau_bdot_perp = -k_w * w_perp
 
             # --- 4. Momentum Dumping Torque (3D Vector) ---
-            # Desired torque on body to reduce system momentum error
-            h_err = h_sys - self.h_target  # Vector subtraction
-            tau_dump_des = k_h * h_err     # Gain * Vector error
+            # Compute per-wheel error, then map to body-frame torque
+            h_err_per_wheel = h_rw_scalars - self.h_target  # (n_rw,)
+            h_err_body = self.rw_axes @ h_err_per_wheel if self.n_rw > 0 else np.zeros(3)  # (3,)
+            tau_dump_des = k_h * h_err_body     # Gain * Vector error
 
             # Saturation: Limit the dumping torque magnitude to avoid transient spikes
             mag = np.linalg.norm(tau_dump_des)
@@ -328,11 +331,10 @@ class MTQ_w_RW_QPC(MTQ_w_RW_LP):
             tau_pd = -self.p_gain * q_err - self.d_gain * w_err
 
             h_rw_body = np.zeros(3)
-            if self.n_rw>0:
-                rws = [a for a in est_sat.actuators if isinstance(a, RW)]
-                h_err = h_rw_scalars - np.column_stack([np.asarray(rw.axis, float).reshape(3,) for rw in rws]).T@self.h_target  # Vector subtraction
+            if self.n_rw > 0:
+                h_err = h_rw_states - self.h_target  # Per-wheel error (n_rw,)
             else:
-                h_err = np.zeros((0,0))
+                h_err = np.zeros(0)
             rw_counter = 0
             for actuator in est_sat.actuators:
                 if isinstance(actuator, RW):

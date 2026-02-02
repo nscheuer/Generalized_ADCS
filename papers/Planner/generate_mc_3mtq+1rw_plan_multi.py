@@ -3,7 +3,7 @@ Monte Carlo: 3MTQ+1RW ALTRO+TVLQR Planner - Multi-Goal Test.
 
 Uses BC2 satellite configuration with trajectory planner.
 Same multi-goal structure as LP test:
-  Goal1 (0-300s) → No_Goal (300-350s) → Goal2 (350-650s) → No_Goal (650-700s) → Goal3 (700-1000s)
+  Goal1 (0-250s) → No_Goal (250-350s) → Goal2 (350-600s) → No_Goal (600-700s) → Goal3 (700-1000s)
 """
 import sys
 import os
@@ -17,6 +17,9 @@ from ADCS.CONOPS.goals import ECI_Goal, No_Goal
 from ADCS.CONOPS.goallist import GoalList
 from ADCS.controller.plan_and_track_lqr import Plan_and_Track_LQR
 from ADCS.controller.helpers import PlannerSettings
+
+# Import good settings
+from mc_planner_settings import create_optimized_planner_settings
 from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.orbits.helpers.orbit_factory import create_random_circular_orbit
 from ADCS.satellite_factory.satellites.create_cubesats import create_beavercube2_cubesat
@@ -70,14 +73,8 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
         for i, rw in enumerate(rws):
             rw.h = config["h0"][i]
 
-        planner_settings = PlannerSettings(
-            est_sat=real_sat, bdot_on=0, dt_tp=10, dt_tvlqr=dt_planning
-        )
-        planner_settings.verbosity = False
-        planner_settings.pass1.convergence.max_outer_iter = 8
-        planner_settings.pass1.convergence.max_inner_iter = 30
-        planner_settings.pass2.convergence.max_outer_iter = 4
-        planner_settings.pass2.convergence.max_inner_iter = 15
+        # Use well-conditioned normalized settings
+        planner_settings = create_optimized_planner_settings(real_sat, duration=tf, dt_planning=dt_planning)
 
         controller = Plan_and_Track_LQR(est_sat=real_sat, planner_settings=planner_settings)
 
@@ -86,10 +83,10 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
         t0_j2000 = 0.22
         goals = GoalList({
             t0_j2000: ECI_Goal(config["goal1"]),
-            t0_j2000 + 300 * sec2cent: No_Goal(),
-            t0_j2000 + 350 * sec2cent: ECI_Goal(config["goal2"]),
-            t0_j2000 + 650 * sec2cent: No_Goal(),
-            t0_j2000 + 700 * sec2cent: ECI_Goal(config["goal3"]),
+            t0_j2000 + 250 * sec2cent: No_Goal(),      # Goal1 ends at 250s
+            t0_j2000 + 350 * sec2cent: ECI_Goal(config["goal2"]), # 100s gap
+            t0_j2000 + 600 * sec2cent: No_Goal(),      # Goal2 ends at 600s
+            t0_j2000 + 700 * sec2cent: ECI_Goal(config["goal3"]), # 100s gap
         })
         os0 = orb.get_os(t0_j2000)
 
@@ -175,7 +172,7 @@ def generate_mc_config(run_id: int) -> Dict[str, Any]:
 if __name__ == "__main__":
     RUN_MC = True
     OUTPUT_DIR = "papers/Planner/output_data"
-    NUM_RUNS = 100
+    NUM_RUNS = 100  # Production run
 
     if RUN_MC:
         runner = MonteCarloRunner(
@@ -189,8 +186,8 @@ if __name__ == "__main__":
         valid = [r for r in full_results if r and r.get("traj_valid", False)]
         print(f"\n--- Monte Carlo Complete: {len(valid)}/{len(full_results)} valid ---")
         save_data(f"3MTQ+1RW_plan_multi_mc_{NUM_RUNS}", full_results, out_dir=OUTPUT_DIR)
-        create_close_all_button_window()
+        #create_close_all_button_window()  # Disabled for batch runs
     else:
         results = load_data(f"{OUTPUT_DIR}/3MTQ+1RW_plan_multi_mc_{NUM_RUNS}")
         full_results = results[0] if isinstance(results, tuple) else results
-        create_close_all_button_window()
+        #create_close_all_button_window()  # Disabled for batch runs

@@ -47,7 +47,7 @@ except AttributeError as e:
 def basic_satellite():
     """Create a basic satellite with MTQs and RWs for testing."""
     mtq_max = 5.0
-    mtqs = [MTQ(axis=j, max_torque=mtq_max) for j in MathConstants.unitvecs]
+    mtqs = [MTQ(axis=j, max_moment=mtq_max) for j in MathConstants.unitvecs]
 
     rw_max_torque = 0.005
     rw_J = 0.0014
@@ -592,7 +592,7 @@ class TestBuildCppSatellite:
     @pytest.fixture
     def mtq_only_satellite(self):
         """Satellite with only MTQs (no RWs)."""
-        mtqs = [MTQ(axis=j, max_torque=5.0) for j in MathConstants.unitvecs]
+        mtqs = [MTQ(axis=j, max_moment=5.0) for j in MathConstants.unitvecs]
         mtms = [MTM(axis=j) for j in MathConstants.unitvecs]
         return Satellite(mass=10.0, J_0=np.diagflat([0.1, 0.12, 0.19]),
                          actuators=mtqs, sensors=mtms)

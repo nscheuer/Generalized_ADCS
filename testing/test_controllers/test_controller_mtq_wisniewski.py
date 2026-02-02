@@ -49,8 +49,8 @@ TF = 10000   # Alignment takes time with weak magnetorquers
 # ----------------------------
 
 def _make_satellite(initial_rw_h: float = 0.0) -> Tuple[Satellite, np.ndarray, List]:
-    mtq_max_torque = 1.0
-    mtqs = [MTQ(axis=j, max_torque=mtq_max_torque) for j in MathConstants.unitvecs]
+    mtq_max_moment = 1.0
+    mtqs = [MTQ(axis=j, max_moment=mtq_max_moment) for j in MathConstants.unitvecs]
 
     if isinstance(initial_rw_h, (float, int)):
         h0_vec = np.array([float(initial_rw_h)] * 3)

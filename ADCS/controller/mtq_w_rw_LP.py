@@ -166,7 +166,9 @@ class MTQ_w_RW_LP(Controller):
         :type d_gain: float
         :param c_gain: Momentum management gain used to drive wheel momentum toward ``h_target``.
         :type c_gain: float
-        :param h_target: Body-frame target momentum vector (3,) to be stored in wheels when possible.
+        :param h_target: Per-wheel target momentum vector with shape ``(N_rw,)`` where ``N_rw`` is
+            the number of reaction wheels. Each element specifies the desired scalar momentum
+            for the corresponding wheel.
         :type h_target: numpy.ndarray | list
         :return: None
         :rtype: None
@@ -183,7 +185,9 @@ class MTQ_w_RW_LP(Controller):
         self.p_gain = float(p_gain)
         self.d_gain = float(d_gain)
         self.c_gain = float(c_gain)
-        self.h_target = np.asarray(h_target, dtype=float).reshape(3,)
+        
+        # Store h_target temporarily; will validate after counting RWs
+        self._h_target_input = h_target
 
         self.M_mtm_read, _ = self.build_sensor_matrix_pinv(
             sensors=est_sat.sensors + est_sat.rw_actuators, sensor_type=MTM
@@ -209,24 +213,33 @@ class MTQ_w_RW_LP(Controller):
         self.n_actuators = len(est_sat.actuators)
         self.mtq_umax = np.array([a.u_max for a in est_sat.actuators if isinstance(a, MTQ)], dtype=float)
         self.rw_umax  = np.array([a.u_max for a in est_sat.actuators if isinstance(a, RW)], dtype=float)
+        self.rw_hmax  = np.array([rw.h_max for rw in self.rws], dtype=float)
+
+        # Validate and set h_target (per-wheel momentum target)
+        if self._h_target_input is None:
+            h_target = np.zeros(self.n_rw)
+        else:
+            h_target = np.asarray(self._h_target_input, dtype=float).flatten()
+            if h_target.size == 0:
+                h_target = np.zeros(self.n_rw)
+        if h_target.size != self.n_rw:
+            raise ValueError(f"h_target must have length {self.n_rw} (one per RW), got {h_target.size}")
+        self.h_target = h_target
+        del self._h_target_input
 
         self._warnings()
 
     def _warnings(self):
         r"""
-        Emit configuration warnings and normalize the momentum target.
+        Emit configuration warnings and validate the per-wheel momentum target.
 
         This method evaluates:
         - Presence of RWs without MTQs (no momentum desaturation capability).
         - Rank of MTQ axes combined with limited RW rank (inability to desaturate while pointing).
-        - Consistency of ``h_target`` with the RW achievable momentum subspace.
+        - Per-wheel ``h_target`` values against individual wheel saturation limits.
 
-        If ``h_target`` contains an unachievable component, it is projected into the RW
-        subspace using:
-
-        .. math::
-
-            \boldsymbol{h}_{\mathrm{ach}} = A_{\mathrm{rw}} A_{\mathrm{rw}}^{+}\boldsymbol{h}_{\mathrm{target}}.
+        If any ``h_target`` element exceeds the corresponding wheel's ``h_max``, a warning is
+        emitted and the target is clamped to the allowable range.
 
         :return: None
         :rtype: None
@@ -264,28 +277,26 @@ class MTQ_w_RW_LP(Controller):
                 "  -> The 'MTQ_w_RW' controller logic is optimal for this configuration."
             )
 
+        # Check per-wheel h_target against h_max limits
         if self.n_rw > 0:
-            P_rw = self.rw_axes @ np.linalg.pinv(self.rw_axes)
-            h_achievable = P_rw @ self.h_target
-            
-            diff = self.h_target - h_achievable
-            if np.linalg.norm(diff) > 1e-6:
+            violations = np.abs(self.h_target) > self.rw_hmax
+            if np.any(violations):
                 warnings.warn(
-                    f"\n[Controller Config] Requested h_target {self.h_target} is not fully achievable "
-                    f"with the current RW configuration (Rank {rank_rw}).\n"
-                    f"  -> Projected target to achievable subspace: {h_achievable}\n"
-                    f"  -> IGNORING unachievable component: {diff}",
+                    f"\n[Controller Config] Some h_target values exceed wheel h_max limits.\n"
+                    f"  -> h_target: {self.h_target}\n"
+                    f"  -> h_max:    {self.rw_hmax}\n"
+                    f"  -> Clamping to allowable range.",
                     UserWarning
                 )
-                self.h_target = h_achievable
+                self.h_target = np.clip(self.h_target, -self.rw_hmax, self.rw_hmax)
 
         elif np.linalg.norm(self.h_target) > 1e-6:
             warnings.warn(
                 f"\n[Controller Config] Non-zero h_target {self.h_target} requested with 0 RWs.\n"
-                "  -> Target cannot be stored. Resetting h_target to [0, 0, 0].",
+                "  -> Target cannot be stored. Resetting h_target to zeros.",
                 UserWarning
             )
-            self.h_target = np.zeros(3)
+            self.h_target = np.zeros(0)
 
 
     def find_u(
@@ -521,9 +532,9 @@ class MTQ_w_RW_LP(Controller):
         b_hat = b_body / b_norm
 
         # ---- 4a) Compute desired momentum reduction torque (body-frame) ----
-        # Current stored wheel momentum vector (3,) is h_rw_body already
-        # self.h_target is BODY (3,)
-        h_err_body = h_rw_body - np.asarray(self.h_target, float).reshape(3,)
+        # self.h_target is per-wheel (n_rw,)
+        h_err_per_wheel = h_rw_states - self.h_target  # (n_rw,)
+        h_err_body = A_rw @ h_err_per_wheel  # (3,)
         # Desired torque to reduce this momentum error (Hogan & Schaub "dump" direction)
         tau_dump_des = -self.c_gain * h_err_body
 
@@ -721,6 +732,7 @@ class MTQ_w_RW_LP(Controller):
             h_rw_scalars = x_hat[7 : 7 + self.n_rw]
             h_sys = self.rw_axes @ h_rw_scalars # Matrix (3, N) @ Vec (N,) -> (3,)
         else:
+            h_rw_scalars = np.zeros(self.n_rw)
             h_sys = np.zeros(3)
 
         # --- 3. Rate Damping (Perpendicular to B) ---
@@ -729,9 +741,10 @@ class MTQ_w_RW_LP(Controller):
         tau_bdot_perp = -k_w * w_perp
 
         # --- 4. Momentum Dumping Torque (3D Vector) ---
-        # Desired torque on body to reduce system momentum error
-        h_err = h_sys - self.h_target  # Vector subtraction
-        tau_dump_des = k_h * h_err     # Gain * Vector error
+        # Compute per-wheel error, then map to body-frame torque
+        h_err_per_wheel = h_rw_scalars - self.h_target  # (n_rw,)
+        h_err_body = self.rw_axes @ h_err_per_wheel if self.n_rw > 0 else np.zeros(3)  # (3,)
+        tau_dump_des = k_h * h_err_body     # Gain * Vector error
 
         # Saturation: Limit the dumping torque magnitude to avoid transient spikes
         mag = np.linalg.norm(tau_dump_des)

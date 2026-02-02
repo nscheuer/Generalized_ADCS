@@ -41,11 +41,11 @@ def run_bdot_simulation(
 
     # --- Hardware Setup ---
     # Magnetorquers (always present for B-Dot)
-    mtm_max_torque = 0.1 
+    mtq_max_moment = 0.1 
     if include_rw:
-        mtm_max_torque = 0.01 
+        mtq_max_moment = 0.01 
         
-    mtqs = [MTQ(axis=j, max_torque=mtm_max_torque) for j in MathConstants.unitvecs]
+    mtqs = [MTQ(axis=j, max_moment=mtq_max_moment) for j in MathConstants.unitvecs]
     acts = list(mtqs)
     
     # Reaction Wheels (Optional)

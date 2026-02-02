@@ -88,9 +88,9 @@ class MTQ(Actuator):
     :param axis: Unit vector defining the magnetorquer alignment in the body frame.
     :type axis: numpy.ndarray
 
-    :param max_torque: Maximum allowable commanded dipole magnitude (used as the actuator
-        saturation limit).
-    :type max_torque: float
+    :param max_moment: Maximum allowable commanded dipole magnitude (used as the actuator
+        saturation limit) [A·m²].
+    :type max_moment: float
 
     :param bias: Bias model representing constant or slowly varying dipole offset.
     :type bias: :class:`~ADCS.satellite_hardware.errors.bias.Bias` | None
@@ -105,10 +105,11 @@ class MTQ(Actuator):
     def __init__(
         self,
         axis: np.ndarray,
-        max_torque: float,
+        max_moment: float = None,
         bias: Bias = None,
         noise: Noise = None,
         estimate_bias: bool = False,
+        max_torque: float = None,  # Deprecated: use max_moment instead
     ) -> None:
         r"""
         Initialize a magnetorquer actuator model.
@@ -121,8 +122,8 @@ class MTQ(Actuator):
             in the spacecraft body frame.
         :type axis: numpy.ndarray, shape ``(3,)``
 
-        :param max_torque: Maximum allowable magnetic dipole magnitude.
-        :type max_torque: float
+        :param max_moment: Maximum allowable magnetic dipole magnitude [A·m²].
+        :type max_moment: float
 
         :param bias: Optional bias model applied additively to the commanded dipole.
         :type bias: :class:`~ADCS.satellite_hardware.errors.bias.Bias` | None
@@ -133,10 +134,101 @@ class MTQ(Actuator):
         :param estimate_bias: If ``True``, the bias is appended to the estimator state.
         :type estimate_bias: bool
 
+        :param max_torque: Deprecated. Use ``max_moment`` instead.
+        :type max_torque: float | None
+
         :return: None
         :rtype: None
         """
-        super().__init__(axis=axis, u_max=max_torque, bias=bias, noise=noise, estimate_bias=estimate_bias)
+        # Handle backward compatibility: accept max_torque but prefer max_moment
+        if max_moment is None and max_torque is not None:
+            warnings.warn(
+                "max_torque is deprecated for MTQ, use max_moment instead",
+                DeprecationWarning,
+                stacklevel=2
+            )
+            max_moment = max_torque
+        elif max_moment is None and max_torque is None:
+            raise ValueError("max_moment is required")
+        
+        super().__init__(axis=axis, u_max=max_moment, bias=bias, noise=noise, estimate_bias=estimate_bias)
+
+    def estimate_torque_capability(
+        self, 
+        orbital_states: list = None,
+        n_samples: int = 100,
+        expected_field_uT: float = 30.0,
+        use_sampling: bool = False
+    ) -> float:
+        r"""
+        Estimate the maximum torque this magnetorquer can produce.
+        
+        MTQ torque depends on the magnetic field: τ = m × B.
+        The maximum torque magnitude is |τ| = |m| × |B| × sin(θ), where θ is
+        the angle between the dipole axis and the magnetic field.
+        
+        For a typical LEO orbit, the magnetic field magnitude is ~25-65 μT.
+        The average sin(θ) over random orientations is 2/π ≈ 0.637.
+        
+        Parameters
+        ----------
+        orbital_states : list of Orbital_State, optional
+            Sample orbital states for empirical estimation. If provided,
+            computes RMS torque capability over these samples using the
+            actual torque() method.
+        n_samples : int, optional
+            Number of random samples if computing empirically. Default 100.
+        expected_field_uT : float, optional
+            Expected magnetic field magnitude in μT for analytical estimate.
+            Default 30.0 (typical LEO).
+        use_sampling : bool, optional
+            If True, use Monte Carlo sampling via base class method.
+            If False (default), use MTQ-specific analytical/empirical estimate.
+            
+        Returns
+        -------
+        float
+            Estimated maximum torque magnitude in N·m.
+            
+        Notes
+        -----
+        Three estimation modes:
+        1. Analytical (default): τ = m_max × B_expected × (2/π)
+        2. Empirical (orbital_states provided): Sample B-field from orbit
+        3. Monte Carlo (use_sampling=True): Full torque() sampling via base class
+        
+        The analytical estimate assumes average alignment over random orientations.
+        """
+        # Option 1: Use base class Monte Carlo sampling
+        if use_sampling and orbital_states is not None:
+            return self._estimate_torque_by_sampling(orbital_states, n_samples)
+        
+        m_max = self.u_max  # Maximum dipole moment
+        
+        # Option 2: Empirical estimate from orbital states (faster than full sampling)
+        if orbital_states is not None and len(orbital_states) > 0:
+            torque_magnitudes = []
+            x_dummy = np.array([0, 0, 0, 1, 0, 0, 0])  # Identity quaternion
+            
+            for os in orbital_states[:n_samples]:
+                try:
+                    vecs = os.get_state_vector(x=x_dummy)
+                    b_body = vecs["b"]
+                    # τ = -B × (m_max * axis) = m_max * (axis × B)
+                    tau = m_max * np.cross(self.axis, b_body)
+                    torque_magnitudes.append(np.linalg.norm(tau))
+                except Exception:
+                    continue
+            
+            if torque_magnitudes:
+                return np.sqrt(np.mean(np.array(torque_magnitudes)**2))
+        
+        # Option 3: Analytical estimate (default fallback)
+        # τ = m × B, average |sin(θ)| = 2/π over random orientations
+        B_typical = expected_field_uT * 1e-6  # Convert μT to Tesla
+        avg_sin_theta = 2.0 / np.pi  # Average |sin| over sphere
+        
+        return m_max * B_typical * avg_sin_theta
 
     def torque(
         self,
@@ -179,7 +271,7 @@ class MTQ(Actuator):
         :rtype: numpy.ndarray, shape ``(3,)``
         """
         if abs(u) > self.u_max:
-            warnings.warn("requested torque exceeds actuation limit")
+            warnings.warn("requested magnetic moment exceeds actuation limit")
 
         vecs = os.get_state_vector(x=x)
         b_body = vecs["b"]

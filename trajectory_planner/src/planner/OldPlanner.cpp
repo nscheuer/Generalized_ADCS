@@ -290,6 +290,240 @@ BEFORE_OUTPUT_FORM OldPlanner::trajOptBefore(VECTOR_INFO_FORM vecs_w_time,double
      assert(approx_equal(get<1>(traj),U,"abstol",1e-10));
      X = get<0>(traj);
   }
+  else if(bdotOn==4)
+  {
+    // Mode 4: PD control for initial trajectory
+    // Works well for fixed quaternion goals where smartbdot fails
+    if(verbose){cout<<"PD control initialization\n";}
+    
+    mat Bset = get<3>(vecs);
+    mat Rset = get<1>(vecs);
+    mat Vset = get<2>(vecs);
+    mat Sset = get<4>(vecs);
+    mat ECIvec = get<6>(vecs);
+    vec pset = get<7>(vecs);
+    vec t = get<0>(vecs);
+    
+    mat Xset = mat(sat.state_N(), traj_length);
+    mat Uset = mat(sat.control_N(), traj_length).zeros();
+    mat TQset = mat(3, traj_length).zeros();
+    
+    vec xk = sat.state_norm(x0);
+    Xset.col(0) = xk;
+    
+    // umax in optimizer units: MTQ physical, RW/magic scaled by 1/NONMTQ_TORQ_SCALE
+    vec umax = join_cols(vec(sat.MTQ_max), 
+                         vec(sat.RW_max_torq) / NONMTQ_TORQ_SCALE, 
+                         vec(sat.magic_max_torq) / NONMTQ_TORQ_SCALE);
+    
+    // PD gains - scaled to MTQ torque capability
+    // Max MTQ torque ≈ m_max * B ≈ 0.15 * 30e-6 = 4.5e-6 N*m
+    // For 180° slew (qerr_vec norm ~1), we want tau ≈ Kp * J * 1
+    // To get tau ≈ 30% of max: Kp ≈ 0.3 * tau_max / J_avg
+    double J_trace = trace(sat.Jcom);
+    double B_typical = 30e-6;  // 30 uT typical field
+    double tau_max_approx = norm(vec(sat.MTQ_max)) * B_typical;
+    double Kp = 0.3 * tau_max_approx / (J_trace / 3.0);  // ~30% saturation at 180°
+    double Kd = 10.0 * Kp;  // Derivative gain for damping
+    
+    for(int k = 0; k < traj_length - 1; k++) {
+      vec4 qk = normalise(xk.rows(3, 6));
+      vec3 wk = xk.head(3);
+      mat33 RmatT = rotMat(qk).t();
+      vec3 Bk = Bset.col(k);
+      vec3 Bbody = RmatT * Bk;
+      double nB2 = dot(Bk, Bk);
+      
+      // Get goal quaternion
+      vec ek = ECIvec.col(k);
+      vec4 qgoal;
+      if((ek.n_elem == 3) || ((ek.n_elem == 4) && (isnan(ek(0))))) {
+        // Vector goal - skip PD, use small random
+        Uset.col(k) = 0.01 * umax % (2*randu(sat.control_N()) - 1);
+      } else {
+        // Quaternion goal
+        qgoal = normalise(ek);
+        
+        // Compute quaternion error: qerr = qgoal * qk^-1
+        vec4 qerr = normquaterr(qgoal, qk);
+        
+        // Ensure shortest path rotation
+        if(qerr(0) < 0) {
+          qerr = -qerr;
+        }
+        
+        // Desired torque: tau = Kp * J * qerr_vec - Kd * J * omega
+        vec3 qerr_vec = qerr.rows(1, 3);
+        vec3 tau_des = Kp * sat.Jcom * qerr_vec - Kd * sat.Jcom * wk;
+        
+        // Convert desired torque to MTQ dipole: m = (B x tau) / |B|^2
+        vec3 m_des = cross(Bbody, tau_des) / nB2;
+        
+        // Map to MTQ axes and saturate
+        vec uk = vec(sat.control_N()).zeros();
+        uk.head(sat.number_MTQ) = sat.mtq_ax_mat.t() * m_des;
+        
+        // ========================================
+        // ADD RW CONTROL: Use RW for direct torque on RW axis
+        // This enables the optimizer to see RW benefits from initial traj
+        // ========================================
+        if(sat.number_RW > 0) {
+          // Project desired torque onto each RW axis
+          for(int j = 0; j < sat.number_RW; j++) {
+            vec3 rw_axis = sat.RW_axes.at(j);
+            double tau_rw_des = dot(rw_axis, tau_des);
+            // Use a fraction of what RW can provide (leave room for optimization)
+            double rw_torq = 0.5 * std::max(-sat.RW_max_torq.at(j), std::min(tau_rw_des, sat.RW_max_torq.at(j)));
+            // Store in optimizer units (scaled by NONMTQ_TORQ_SCALE)
+            uk(sat.number_MTQ + j) = rw_torq / NONMTQ_TORQ_SCALE;
+          }
+        }
+        
+        // Saturate (recompute with RW included)
+        double ur = max(abs(uk / umax));
+        if(ur > 1.0) {
+          uk = uk / ur;
+        }
+        
+        Uset.col(k) = uk;
+      }
+      
+      // Propagate dynamics
+      DYNAMICS_INFO_FORM dyn_kn1 = make_tuple(Bset.col(k), Rset.col(k), pset(k), Vset.col(k), Sset.col(k), 0);
+      DYNAMICS_INFO_FORM dyn_k = make_tuple(Bset.col(k+1), Rset.col(k+1), pset(k+1), Vset.col(k+1), Sset.col(k+1), 0);
+      
+      tuple<vec, vec> dynout = rk4z(dt_use, xk, Uset.col(k), sat, dyn_kn1, dyn_k);
+      xk = sat.state_norm(get<0>(dynout));
+      Xset.col(k+1) = xk;
+    }
+    
+    traj = make_tuple(Xset, Uset, t, TQset);
+    U.cols(0, traj_length-1) = Uset;
+    X = Xset;
+    TQ = TQset;
+    
+    if(verbose){
+      cout<<"PD init complete, |U| = "<<norm(Uset, "fro")<<"\n";
+    }
+  }
+  else if(bdotOn==5)
+  {
+    // Mode 5: PD control + small random noise for exploration
+    // Noise is scaled by actuator strength, inertia, and timestep
+    if(verbose){cout<<"PD + noise control initialization\n";}
+    
+    mat Bset = get<3>(vecs);
+    mat Rset = get<1>(vecs);
+    mat Vset = get<2>(vecs);
+    mat Sset = get<4>(vecs);
+    mat ECIvec = get<6>(vecs);
+    vec pset = get<7>(vecs);
+    vec t = get<0>(vecs);
+    
+    mat Xset = mat(sat.state_N(), traj_length);
+    mat Uset = mat(sat.control_N(), traj_length).zeros();
+    mat TQset = mat(3, traj_length).zeros();
+    
+    vec xk = sat.state_norm(x0);
+    Xset.col(0) = xk;
+    
+    // umax in optimizer units: MTQ physical, RW/magic scaled by 1/NONMTQ_TORQ_SCALE
+    vec umax = join_cols(vec(sat.MTQ_max), 
+                         vec(sat.RW_max_torq) / NONMTQ_TORQ_SCALE, 
+                         vec(sat.magic_max_torq) / NONMTQ_TORQ_SCALE);
+    
+    // PD gains - scaled to MTQ torque capability
+    double J_trace = trace(sat.Jcom);
+    double B_typical = 30e-6;
+    double tau_max_approx = norm(vec(sat.MTQ_max)) * B_typical;
+    double Kp = 0.3 * tau_max_approx / (J_trace / 3.0);
+    double Kd = 10.0 * Kp;
+    
+    // Noise scaling:
+    // - Base: 5% of actuator max
+    // - Scale by sqrt(min_J / trace(J)) to account for inertia
+    // - Scale by sqrt(10 / dt) to prevent crazy spins with large timesteps
+    double J_min = min(eig_sym(sat.Jcom));
+    double inertia_scale = sqrt(J_min / (J_trace / 3.0));
+    double dt_scale = sqrt(std::min(10.0, 10.0 / dt_use));
+    double noise_frac = 0.05 * inertia_scale * dt_scale;
+    
+    if(verbose){
+      cout<<"Noise scaling: inertia="<<inertia_scale<<", dt="<<dt_scale<<", frac="<<noise_frac<<"\n";
+    }
+    
+    for(int k = 0; k < traj_length - 1; k++) {
+      vec4 qk = normalise(xk.rows(3, 6));
+      vec3 wk = xk.head(3);
+      mat33 RmatT = rotMat(qk).t();
+      vec3 Bk = Bset.col(k);
+      vec3 Bbody = RmatT * Bk;
+      double nB2 = dot(Bk, Bk);
+      
+      vec ek = ECIvec.col(k);
+      vec4 qgoal;
+      vec uk = vec(sat.control_N()).zeros();
+      
+      if((ek.n_elem == 3) || ((ek.n_elem == 4) && (isnan(ek(0))))) {
+        // Vector goal - use small random
+        uk = noise_frac * umax % (2*randu(sat.control_N()) - 1);
+      } else {
+        // Quaternion goal - PD control
+        qgoal = normalise(ek);
+        vec4 qerr = normquaterr(qgoal, qk);
+        if(qerr(0) < 0) {
+          qerr = -qerr;
+        }
+        
+        vec3 qerr_vec = qerr.rows(1, 3);
+        vec3 tau_des = Kp * sat.Jcom * qerr_vec - Kd * sat.Jcom * wk;
+        vec3 m_des = cross(Bbody, tau_des) / nB2;
+        
+        uk.head(sat.number_MTQ) = sat.mtq_ax_mat.t() * m_des;
+        
+        // Add RW control for direct axis torque
+        if(sat.number_RW > 0) {
+          for(int j = 0; j < sat.number_RW; j++) {
+            vec3 rw_axis = sat.RW_axes.at(j);
+            double tau_rw_des = dot(rw_axis, tau_des);
+            double rw_torq = 0.5 * std::max(-sat.RW_max_torq.at(j), std::min(tau_rw_des, sat.RW_max_torq.at(j)));
+            // Store in optimizer units (scaled by NONMTQ_TORQ_SCALE)
+            uk(sat.number_MTQ + j) = rw_torq / NONMTQ_TORQ_SCALE;
+          }
+        }
+        
+        // Add noise scaled to not overwhelm PD signal
+        double pd_strength = norm(uk);
+        double noise_scale = std::max(noise_frac, 0.1 * pd_strength / norm(umax));
+        uk += noise_scale * umax % (2*randu(sat.control_N()) - 1);
+      }
+      
+      // Saturate
+      double ur = max(abs(uk / umax));
+      if(ur > 1.0) {
+        uk = uk / ur;
+      }
+      
+      Uset.col(k) = uk;
+      
+      // Propagate dynamics
+      DYNAMICS_INFO_FORM dyn_kn1 = make_tuple(Bset.col(k), Rset.col(k), pset(k), Vset.col(k), Sset.col(k), 0);
+      DYNAMICS_INFO_FORM dyn_k = make_tuple(Bset.col(k+1), Rset.col(k+1), pset(k+1), Vset.col(k+1), Sset.col(k+1), 0);
+      
+      tuple<vec, vec> dynout = rk4z(dt_use, xk, Uset.col(k), sat, dyn_kn1, dyn_k);
+      xk = sat.state_norm(get<0>(dynout));
+      Xset.col(k+1) = xk;
+    }
+    
+    traj = make_tuple(Xset, Uset, t, TQset);
+    U.cols(0, traj_length-1) = Uset;
+    X = Xset;
+    TQ = TQset;
+    
+    if(verbose){
+      cout<<"PD+noise init complete, |U| = "<<norm(Uset, "fro")<<"\n";
+    }
+  }
   else
   {
     std::tuple<TRAJECTORY_FORM,double> bdotout = OldPlanner::bdot(x0,dt_use,traj_length,vecs,costSettings_tmp,mu0);
@@ -304,16 +538,57 @@ BEFORE_OUTPUT_FORM OldPlanner::trajOptBefore(VECTOR_INFO_FORM vecs_w_time,double
       if(verbose_level >= 1){cout<<"smart bdot complete\n";}
       traj = std::get<0>(sbdotout);
       mat u0 = get<1>(traj);
-      if(verbose_level >= 3){cout<<size(get<0>(traj))<<" "<<size(get<1>(traj))<<"\n";}
+      mat u_bdot = get<1>(std::get<0>(bdotout));
+      
+      // Debug: show raw smartbdot output before fallback
+      if(verbose){
+        cout<<"smartbdot raw |U| = "<<norm(u0, "fro")<<"\n";
+        cout<<"smartbdot raw U col norms: ";
+        for(int k = 0; k < std::min(5, (int)u0.n_cols); k++) {
+          cout<<norm(u0.col(k))<<" ";
+        }
+        cout<<"\n";
+      }
+      
+      // Per-timestep fallback: use bdot controls where smartbdot produces near-zero
+      int fallback_count = 0;
+      for(int k = 0; k < (int)u0.n_cols; k++) {
+        double col_norm = norm(u0.col(k));
+        if(col_norm < 1e-10) {
+          u0.col(k) = u_bdot.col(k);
+          fallback_count++;
+        }
+      }
+      if(verbose && fallback_count > 0){
+        cout<<"smartbdot: "<<fallback_count<<" of "<<u0.n_cols<<" timesteps fell back to bdot\n";
+      }
+      
+      if(verbose){cout<<size(get<0>(traj))<<" "<<size(get<1>(traj))<<"\n";}
       TRAJECTORY_FORM traj2 = OldPlanner::generateInitialTrajectory(dt_use,x0, u0,vecs);//+diagmat(mean(abs(u0),1)*randval)*(randu(size(u0))-0.5), vecs);
-      if(verbose_level >= 3){cout<<size(get<0>(traj2))<<" "<<size(get<1>(traj2))<<"\n";}
-      if(verbose_level >= 1){cout<<"smartbdot traj generated\n";}
+      traj = traj2;  // Use the regenerated trajectory with blended controls
+      if(verbose){cout<<size(get<0>(traj2))<<" "<<size(get<1>(traj2))<<"\n";}
+      if(verbose){cout<<"smartbdot traj generated\n";}
     }
     else if (bdotOn == 3)
     {
       std::tuple<TRAJECTORY_FORM,double> sbdotout = OldPlanner::smartbdot(x0,dt_use,traj_length,vecs,costSettings_tmp,mu0,false);
       traj = std::get<0>(sbdotout);
       mat u0 = get<1>(traj);
+      mat u_bdot = get<1>(std::get<0>(bdotout));
+      
+      // Per-timestep fallback: use bdot controls where smartbdot produces near-zero
+      int fallback_count = 0;
+      for(int k = 0; k < (int)u0.n_cols; k++) {
+        double col_norm = norm(u0.col(k));
+        if(col_norm < 1e-10) {
+          u0.col(k) = u_bdot.col(k);
+          fallback_count++;
+        }
+      }
+      if(verbose && fallback_count > 0){
+        cout<<"smartbdot: "<<fallback_count<<" of "<<u0.n_cols<<" timesteps fell back to bdot\n";
+      }
+      
       SMARTBDOT_SETTINGS_FORM sbSettings = this->highSettings;
       mat ECIvec = get<6>(vecs);
       mat satvec = get<5>(vecs);
@@ -415,7 +690,11 @@ AFTER_OUTPUT_FORM OldPlanner::trajOptAfter(VECTOR_INFO_FORM vecs_w_time,double d
     // mat xtmp = get<0>(trajLong);
     // TRAJECTORY_FORM traj_tvlqr = trajLong;
     // TRAJECTORY_FORM opt2 = trajLong;
+    auto t_start_pass2 = std::chrono::high_resolution_clock::now();
     ALILQR_OUTPUT_FORM alilqrOut2 = OldPlanner::alilqr(dt_tvlqr,trajLong, vecs_tvlqr, costSettings2,alilqrSettings2,false);
+    auto t_end_pass2 = std::chrono::high_resolution_clock::now();
+    auto pass2_ms = std::chrono::duration_cast<std::chrono::milliseconds>(t_end_pass2 - t_start_pass2).count();
+    cout << "TIMING: Pass 2 (dt=" << dt_tvlqr << "s, N=" << get<0>(trajLong).n_cols << "): " << pass2_ms << " ms\n";
 
      opt2 = get<0>(alilqrOut2);
     // double muOut2 = std::get<1>(alilqrOut2);
@@ -507,9 +786,11 @@ AFTER_OUTPUT_FORM OldPlanner::trajOptAfter(VECTOR_INFO_FORM vecs_w_time,double d
 
       mat K_lqr_tmp = packageK(get<0>(KS));
       mat S_lqr_tmp = packageS(get<1>(KS));
-      double Klen = ((K_lqr.n_cols-tvlqr_overlap_tmp) < 0) ? 0 : K_lqr.n_cols-tvlqr_overlap_tmp;
+      // FIX: tvlqr_overlap_tmp is in seconds, divide by dt_tvlqr to get column count
+      double overlap_cols = tvlqr_overlap_tmp / dt_tvlqr;
+      double Klen = ((K_lqr.n_cols-overlap_cols) < 0) ? 0 : K_lqr.n_cols-overlap_cols;
       K_lqr = join_rows(K_lqr.head_cols(Klen),K_lqr_tmp);
-      double Slen = ((S_lqr.n_cols-tvlqr_overlap_tmp-1) < 0) ? 0 : S_lqr.n_cols-tvlqr_overlap_tmp-1;
+      double Slen = ((S_lqr.n_cols-overlap_cols-1) < 0) ? 0 : S_lqr.n_cols-overlap_cols-1;
       S_lqr = join_rows(S_lqr.head_cols(Slen),S_lqr_tmp);
 
       if(verbose_level >= 4){cout<<size(K_lqr)<<"\n";}
@@ -522,6 +803,42 @@ AFTER_OUTPUT_FORM OldPlanner::trajOptAfter(VECTOR_INFO_FORM vecs_w_time,double d
 
   // OPT_TIMES_FORM main_opt_times = (addOptTimes(opt));
   OPT_FORM lqr_opt = make_tuple(get<0>(opt2),get<1>(opt2),get<2>(opt2),K_lqr,S_lqr,tvlqr_times.head(get<0>(opt2).n_cols));
+  
+  // Scale RW/magic controls back to physical units
+  // Optimizer uses scaled controls: u_scaled = u_physical / NONMTQ_TORQ_SCALE
+  // Convert back: u_physical = u_scaled * NONMTQ_TORQ_SCALE
+  if(NONMTQ_TORQ_SCALE != 1.0 && (sat.number_RW > 0 || sat.number_magic > 0)) {
+    int rw_magic_start = sat.number_MTQ;
+    int rw_magic_end = sat.number_MTQ + sat.number_RW + sat.number_magic - 1;
+    
+    // Scale Uset in opt2
+    mat Uset_opt2 = get<1>(opt2);
+    Uset_opt2.rows(rw_magic_start, rw_magic_end) *= NONMTQ_TORQ_SCALE;
+    get<1>(opt2) = Uset_opt2;
+    
+    // Scale Uset in lqr_opt
+    mat Uset_lqr = get<1>(lqr_opt);
+    Uset_lqr.rows(rw_magic_start, rw_magic_end) *= NONMTQ_TORQ_SCALE;
+    get<1>(lqr_opt) = Uset_lqr;
+    
+    // Scale Uset in trajLong
+    mat Uset_traj = get<1>(trajLong);
+    Uset_traj.rows(rw_magic_start, rw_magic_end) *= NONMTQ_TORQ_SCALE;
+    get<1>(trajLong) = Uset_traj;
+    
+    // Scale K gains (rows correspond to controls)
+    // K_lqr has shape (n_ctrl, n_state_reduced, N) or (n_ctrl * n_state_reduced, N)
+    if(K_lqr.n_rows == sat.control_N()) {
+      // K is (n_ctrl, n_state * N) - scale rows for RW/magic
+      K_lqr.rows(rw_magic_start, rw_magic_end) *= NONMTQ_TORQ_SCALE;
+      get<3>(lqr_opt) = K_lqr;
+    }
+    
+    if(verbose) {
+      cout << "Scaled RW/magic controls by NONMTQ_TORQ_SCALE=" << NONMTQ_TORQ_SCALE << "\n";
+    }
+  }
+  
   //return success
   return std::make_tuple(1, gradOut2, opt2, lqr_opt, trajLong);
 }
@@ -553,13 +870,17 @@ AFTER_OUTPUT_FORM OldPlanner::trajOpt(VECTOR_INFO_FORM &vecs,int N, TIME_FORM ti
     cout<<"x0:\n"<<x0<<"\n";
   }
 
+  auto t_start_pass1 = std::chrono::high_resolution_clock::now();
   BEFORE_OUTPUT_FORM results = OldPlanner::trajOptBefore(vecs, dt, time_start, time_end, x0, bdotOn);
   if(verbose_level >= 1){cout<<"starting ALTRO optimization\n";}
   TRAJECTORY_FORM traj_init = get<0>(results);
   VECTOR_INFO_FORM vecs_dt = get<1>(results);
   COST_SETTINGS_FORM costSettings_tmp = get<2>(results);
   ALILQR_OUTPUT_FORM alilqrOut = OldPlanner::alilqr(dt,traj_init, vecs_dt, costSettings_tmp,alilqrSettings,false);
-  if(verbose_level >= 3){cout<<"out of alilqr\n";}
+  auto t_end_pass1 = std::chrono::high_resolution_clock::now();
+  auto pass1_ms = std::chrono::duration_cast<std::chrono::milliseconds>(t_end_pass1 - t_start_pass1).count();
+  cout << "TIMING: Pass 1 (dt=" << dt << "s, N=" << get<0>(traj_init).n_cols << "): " << pass1_ms << " ms\n";
+  if(verbose){cout<<"out of alilqr\n";}
 
   //any disturbances?
 
@@ -581,6 +902,90 @@ AFTER_OUTPUT_FORM OldPlanner::trajOpt(VECTOR_INFO_FORM &vecs,int N, TIME_FORM ti
   if(verbose_level >= 3){cout<<"dist done\n";}
   AFTER_OUTPUT_FORM results2 = OldPlanner::trajOptAfter(vecs, dt, time_start, time_end, alilqrOut);
   if(verbose_level >= 1){cout<<"trajOptAfter done\n";}
+  return results2;
+}
+
+// Multi-start trajectory optimization: runs multiple Pass 1s with different initializations
+// and picks the best one before running Pass 2
+AFTER_OUTPUT_FORM OldPlanner::trajOptMultiStart(VECTOR_INFO_FORM &vecs, int N, TIME_FORM time_start, TIME_FORM time_end, vec x0, std::vector<int> bdotModes)
+{
+  if(bdotModes.empty()) {
+    bdotModes = {0, 1, 4, 5};  // Default: random, bdot, PD, PD+noise
+  }
+  
+  cout << "MULTI-START: Running " << bdotModes.size() << " Pass 1 attempts\n";
+  
+  // Run Pass 1 for each bdot mode and track results
+  std::vector<ALILQR_OUTPUT_FORM> pass1Results;
+  std::vector<double> pass1Costs;
+  std::vector<double> pass1Violations;
+  std::vector<VECTOR_INFO_FORM> pass1Vecs;
+  std::vector<COST_SETTINGS_FORM> pass1CostSettings;
+  
+  for(size_t i = 0; i < bdotModes.size(); i++) {
+    int bdotOn = bdotModes[i];
+    auto t_start_p1 = std::chrono::high_resolution_clock::now();
+    
+    BEFORE_OUTPUT_FORM results = OldPlanner::trajOptBefore(vecs, dt, time_start, time_end, x0, bdotOn);
+    TRAJECTORY_FORM traj_init = get<0>(results);
+    VECTOR_INFO_FORM vecs_dt = get<1>(results);
+    COST_SETTINGS_FORM costSettings_tmp = get<2>(results);
+    
+    ALILQR_OUTPUT_FORM alilqrOut = OldPlanner::alilqr(dt, traj_init, vecs_dt, costSettings_tmp, alilqrSettings, false);
+    
+    auto t_end_p1 = std::chrono::high_resolution_clock::now();
+    auto p1_ms = std::chrono::duration_cast<std::chrono::milliseconds>(t_end_p1 - t_start_p1).count();
+    
+    // Get cost and constraint violation for this result
+    OPT_FORM opt = get<0>(alilqrOut);
+    double cost = get<1>(alilqrOut);  // mu (penalty)
+    double grad = get<2>(alilqrOut);
+    
+    // Compute max constraint violation
+    mat lambdaSet = mat(sat.constraint_N(), get<0>(opt).n_cols).zeros();
+    mat muSet0 = mat(sat.constraint_N(), get<0>(opt).n_cols).ones() * cost;
+    AUGLAG_INFO_FORM auglag = make_tuple(lambdaSet, cost, muSet0);
+    TRAJECTORY_FORM traj_tmp = make_tuple(get<0>(opt), get<1>(opt), get<5>(opt), get<2>(opt));
+    auto maxViolResult = OldPlanner::maxViol(traj_tmp, vecs_dt, auglag);
+    double cmax = get<1>(maxViolResult);
+    
+    // Compute actual cost
+    double totalCost = cost2Func(traj_tmp, vecs_dt, auglag, &costSettings_tmp, true);
+    
+    pass1Results.push_back(alilqrOut);
+    pass1Costs.push_back(totalCost);
+    pass1Violations.push_back(cmax);
+    pass1Vecs.push_back(vecs_dt);
+    pass1CostSettings.push_back(costSettings_tmp);
+    
+    cout << "  Pass1[" << i << "] bdot=" << bdotOn << ": cost=" << totalCost 
+         << ", cmax=" << cmax << ", time=" << p1_ms << "ms\n";
+  }
+  
+  // Pick the best result (lowest cost with acceptable constraint violation)
+  size_t bestIdx = 0;
+  double bestScore = std::numeric_limits<double>::max();
+  double cmaxThreshold = 1e-3;  // Acceptable constraint violation
+  
+  for(size_t i = 0; i < pass1Results.size(); i++) {
+    // Score = cost + penalty for constraint violation
+    double score = pass1Costs[i];
+    if(pass1Violations[i] > cmaxThreshold) {
+      score += 1e6 * pass1Violations[i];  // Heavy penalty for violations
+    }
+    if(score < bestScore) {
+      bestScore = score;
+      bestIdx = i;
+    }
+  }
+  
+  cout << "MULTI-START: Selected Pass1[" << bestIdx << "] with bdot=" << bdotModes[bestIdx] 
+       << " (cost=" << pass1Costs[bestIdx] << ", cmax=" << pass1Violations[bestIdx] << ")\n";
+  
+  // Run Pass 2 on the best result
+  cout << "TIMING: Pass 1 total (all " << bdotModes.size() << " attempts): combined\n";
+  AFTER_OUTPUT_FORM results2 = OldPlanner::trajOptAfter(vecs, dt, time_start, time_end, pass1Results[bestIdx]);
+  
   return results2;
 }
 
@@ -978,7 +1383,7 @@ tuple<cube, cube> OldPlanner::findK(double dt_tvlqr0, TRAJECTORY_FORM traj, VECT
     //Get Aqk and Bqk
     Aqk = Gkp1*A*trans(Gk);
     Bqk = Gkp1*B;
-    Kk = solve((lkuu + trans(Bqk)*Skp1*Bqk), (trans(Bqk)*Skp1*Aqk),solve_opts::likely_sympd+solve_opts::no_approx);//+solve_opts::refine);//inv(R + trans(Bqk)*Skp1*Bqk)*(trans(Bqk)*Skp1*Aqk);//
+    Kk = solve((lkuu + trans(Bqk)*Skp1*Bqk), (trans(Bqk)*Skp1*Aqk),solve_opts::likely_sympd+solve_opts::fast);//inv(R + trans(Bqk)*Skp1*Bqk)*(trans(Bqk)*Skp1*Aqk);//
 
     Kset_lqr.slice(k) = Kk;
     // Sk = lkxx + trans(Aqk)*Skp1*Aqk - trans(Aqk)*Skp1*Bqk*Kk;
@@ -1100,7 +1505,7 @@ tuple<cube, cube> OldPlanner::findKwDist(double dt_tvlqr0, TRAJECTORY_FORM traj,
     //mat tmpVal = lkuu + trans(Bqk)*Skp1*Bqk;
     //eig_gen(eigvals,eigvecs,tmpVal);
     //Kk = eigvecs*diagmat(1/clamp(abs(eigvals),1e-8,datum::inf))*eigvecs.t()*trans(Bqk)*Skp1*Aqk;
-    Kk = solve((lkuu + trans(Bqk)*Skp1*Bqk), (trans(Bqk)*Skp1*Aqk),solve_opts::likely_sympd+solve_opts::no_approx);//+solve_opts::refine);//inv(R + trans(Bqk)*Skp1*Bqk)*(trans(Bqk)*Skp1*Aqk);//
+    Kk = solve((lkuu + trans(Bqk)*Skp1*Bqk), (trans(Bqk)*Skp1*Aqk),solve_opts::likely_sympd+solve_opts::fast);//inv(R + trans(Bqk)*Skp1*Bqk)*(trans(Bqk)*Skp1*Aqk);//
 
     Kset_lqr.slice(k) = Kk;
     // Sk = lkxx + trans(Aqk)*Skp1*Aqk - trans(Aqk)*Skp1*Bqk*Kk;
@@ -1467,7 +1872,8 @@ ALILQR_OUTPUT_FORM OldPlanner::alilqr(double dt0,TRAJECTORY_FORM traj, VECTOR_IN
       dLA = abs(newLA-LA);
       // if(stepsSinceRand != 0){
         dlaZcount++;
-        if(dLA != 0)
+        // Use tolerance for effectively zero cost change (machine precision)
+        if(dLA > 1e-10)
         {
           dlaZcount = 0;
         }
@@ -2240,27 +2646,13 @@ tuple<BACKWARD_PASS_RESULTS_FORM, REG_PAIR> OldPlanner::backwardPass(double dt0,
           }
           throw("somehow regularized Qkuu has nan/inf but nonregularized does not");
         }
-        // Use the pre-computed Cholesky factorization for faster solve
-        // Qkuureg = R^T * R (upper triangular Cholesky), so solve R^T * R * x = b via:
-        //   1. R^T * y = b (forward substitution with lower triangular R^T)
-        //   2. R * x = y (backward substitution with upper triangular R)
-        // Armadillo's chol() returns upper triangular by default
-        mat Kk_temp;
-        reset |= !solve(Kk_temp, trimatu(Qkuureg_chol).t(), Qkux, solve_opts::fast);
-        if(!reset) {
-          reset |= !solve(Kk, trimatu(Qkuureg_chol), Kk_temp, solve_opts::fast);
-        }
-        if((verbose_level >= 3)&&reset){
+        reset |= !solve(Kk,Qkuureg, Qkux,solve_opts::likely_sympd+solve_opts::fast);//17% faster than no_approx, same accuracy
+        if(verbose&&reset){
           cout<<"Solving Kk failed \n";
         }
-        vec dk_temp;
-        if(!reset) {
-          reset |= !solve(dk_temp, trimatu(Qkuureg_chol).t(), Qku, solve_opts::fast);
-          if(!reset) {
-            reset |= !solve(dk, trimatu(Qkuureg_chol), dk_temp, solve_opts::fast);
-          }
-        }
-        if((verbose_level >= 3)&&reset){
+        reset |= !solve(dk,Qkuureg, Qku,solve_opts::likely_sympd+solve_opts::fast);//17% faster than no_approx, same accuracy
+        // dk = Qkuureg_chol*Qku;
+        if(verbose&&reset){
           cout<<"Solving dk failed \n";
         }
         reset |= (dk.has_nan()||dk.has_inf());

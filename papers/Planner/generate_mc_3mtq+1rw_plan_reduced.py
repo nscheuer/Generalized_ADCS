@@ -11,9 +11,10 @@ sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))
 from ADCS.CONOPS.goals import ECI_Goal
 from ADCS.CONOPS.goallist import GoalList
 from ADCS.controller.plan_and_track_lqr import Plan_and_Track_LQR
-from ADCS.controller.helpers import PlannerSettings
-from ADCS.controller.helpers.planner_subsettings import CostWeights
-from ADCS.orbits.orbit import Orbit
+from ADCS.controller.helpers import PlannerSettings, Trajectory
+
+# Import good settings
+from mc_planner_settings import create_optimized_planner_settings
 from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.orbits.helpers.orbit_factory import create_random_circular_orbit
 from ADCS.satellite_factory.satellites.create_cubesats import create_beavercube2_cubesat
@@ -67,6 +68,7 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
                     use_J2=True,
                     fast=False,
                 )
+                _CACHED_ORBIT.populate_environment(compute_B=True, compute_S=True)
                 _CACHED_ORBIT_KEY = orbit_key
             finally:
                 np.random.set_state(rng_state)
@@ -81,14 +83,8 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
         for i, rw in enumerate(rws):
             rw.h = config["h0"][i]
 
-        # Planner setup
-        planner_settings = PlannerSettings(
-            est_sat=real_sat, bdot_on=0, dt_tp=10, dt_tvlqr=dt_planning
-        )
-        planner_settings.verbosity = False
-        planner_settings.pass1.convergence.max_outer_iter = 8
-        planner_settings.pass1.convergence.max_inner_iter = 30
-        planner_settings.pass2.convergence.max_outer_iter = 4
+        # Use well-conditioned normalized settings
+        planner_settings = create_optimized_planner_settings(real_sat, duration=tf, dt_planning=dt_planning)
         planner_settings.pass2.convergence.max_inner_iter = 15
 
         controller = Plan_and_Track_LQR(est_sat=real_sat, planner_settings=planner_settings)
@@ -180,7 +176,7 @@ def generate_mc_config(run_id: int) -> Dict[str, Any]:
 if __name__ == "__main__":
     RUN_MC = True
     OUTPUT_DIR = "papers/Planner/output_data"
-    NUM_RUNS = 100
+    NUM_RUNS = 100  # Production run
 
     if RUN_MC:
         runner = MonteCarloRunner(
@@ -197,11 +193,11 @@ if __name__ == "__main__":
         
         plot_target_tracking_mc(valid, body_boresight=BODY_BORESIGHT, title=f"3MTQ+1RW Planner Reduced N={len(valid)}")
         plot_convergence_histogram_mc(valid, body_boresight=BODY_BORESIGHT, title=f"3MTQ+1RW Planner Reduced")
-        create_close_all_button_window()
+        #create_close_all_button_window()  # Disabled for batch runs
     else:
         results = load_data(f"{OUTPUT_DIR}/3MTQ+1RW_plan_reduced_mc_{NUM_RUNS}")
         full_results = results[0] if isinstance(results, tuple) else results
         valid = [r for r in full_results if r and r.get("traj_valid", False)]
         plot_target_tracking_mc(valid, body_boresight=BODY_BORESIGHT, title=f"3MTQ+1RW Planner Reduced")
         plot_convergence_histogram_mc(valid, body_boresight=BODY_BORESIGHT, title=f"3MTQ+1RW Planner Reduced")
-        create_close_all_button_window()
+        #create_close_all_button_window()  # Disabled for batch runs

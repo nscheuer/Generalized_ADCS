@@ -180,10 +180,10 @@ if __name__ == "__main__":
         save_data(f"3MTQ+1RW_LP_reduced_mc_{NUM_RUNS}", full_results, out_dir=OUTPUT_DIR)
         plot_target_tracking_mc(full_results, body_boresight=BODY_BORESIGHT, title=f"3MTQ+1RW LP Reduced N={NUM_RUNS}")
         plot_convergence_histogram_mc(full_results, body_boresight=BODY_BORESIGHT, title=f"3MTQ+1RW LP Reduced")
-        create_close_all_button_window()
+        #create_close_all_button_window()  # Disabled for batch runs
     else:
         results = load_data(f"{OUTPUT_DIR}/3MTQ+1RW_LP_reduced_mc_{NUM_RUNS}")
         full_results = results[0] if isinstance(results, tuple) else results
         plot_target_tracking_mc(full_results, body_boresight=BODY_BORESIGHT, title=f"3MTQ+1RW LP Reduced")
         plot_convergence_histogram_mc(full_results, body_boresight=BODY_BORESIGHT, title=f"3MTQ+1RW LP Reduced")
-        create_close_all_button_window()
+        #create_close_all_button_window()  # Disabled for batch runs
