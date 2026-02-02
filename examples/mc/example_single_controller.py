@@ -26,85 +26,93 @@ results = ADCS.simulate(
 
 ADCS.plot(
     results,
-    ADCS.plots.ControlPlot(),
-    ADCS.plots.TargetPlot(modes=["real_target"]),
-    ADCS.plots.IlluminationPlot(),
-    layout=(3,1),
-    title="Control Plot",
-)
-
-ADCS.plot(
-    results,
-    ADCS.plots.AttitudePlot(sources=["real", "reference"]),
+    ADCS.plots.TargetHistogram(),
     layout=(1,1),
-    title="Attitude Plot",
+    title="Target Histogram Plot",
 )
 
-ADCS.plot(
-    results,
-    ADCS.plots.AnimationPlot(),
-    layout=(1,1),
-    title="Animation Plot",
-)
+# ADCS.plot(
+#     results,
+#     ADCS.plots.ControlPlot(),
+#     ADCS.plots.TargetPlot(modes=["real_target"]),
+#     ADCS.plots.TargetHistogram(),
+#     ADCS.plots.IlluminationPlot(),
+#     layout=(2,2),
+#     title="Control Plot",
+# )
 
-ADCS.plot(
-    results,
-    ADCS.plots.OrbitDensityPlot(),
-    ADCS.plots.OrbitDensityModelPlot(),
-    layout=(1,2),
-    title="Orbit Density Plot",
-)
+# ADCS.plot(
+#     results,
+#     ADCS.plots.AttitudePlot(sources=["real", "reference"]),
+#     layout=(1,1),
+#     title="Attitude Plot",
+# )
 
-ADCS.plot(
-    results,
-    ADCS.plots.OrbitMagneticPlot(),
-    ADCS.plots.OrbitMagneticPlotSingle(component="m"),
-    ADCS.plots.OrbitMagneticPlotCombined(),
-    layout=(3,1),
-    title="Orbit Magnetic Field Plot",
-)
+# ADCS.plot(
+#     results,
+#     ADCS.plots.AnimationPlot(),
+#     layout=(1,1),
+#     title="Animation Plot",
+# )
 
-ADCS.plot(
-    results,
-    ADCS.plots.OrbitPlot(),
-    layout=(1,1),
-    title="Orbit Plot",
-)
+# ADCS.plot(
+#     results,
+#     ADCS.plots.OrbitDensityPlot(),
+#     ADCS.plots.OrbitDensityModelPlot(),
+#     layout=(1,2),
+#     title="Orbit Density Plot",
+# )
 
-ADCS.plot(
-    results,
-    ADCS.plots.OrbitPositionPlot(),
-    ADCS.plots.OrbitPositionPlotSingle(component="m"),
-    ADCS.plots.OrbitPositionPlotCombined(),
-    ADCS.plots.OrbitVelocityPlot(),
-    ADCS.plots.OrbitVelocityPlotSingle(component="m"),
-    ADCS.plots.OrbitVelocityPlotCombined(),
-    layout=(3,2),
-    title="Orbit Position and Velocity Plot",
-)
+# ADCS.plot(
+#     results,
+#     ADCS.plots.OrbitMagneticPlot(),
+#     ADCS.plots.OrbitMagneticPlotSingle(component="m"),
+#     ADCS.plots.OrbitMagneticPlotCombined(),
+#     layout=(3,1),
+#     title="Orbit Magnetic Field Plot",
+# )
 
-ADCS.plot(
-    results,
-    ADCS.plots.BiasPlot(),
-    ADCS.plots.BiasPlotSingle(index=0),
-    ADCS.plots.BiasPlotCombined(),
-    ADCS.plots.SensorsPlot(),
-    ADCS.plots.SensorsPlotSingle(index=0),
-    ADCS.plots.SensorsPlotCombined(),
-    layout=(3,2),
-    title="Bias and Sensors Plot",
-)
+# ADCS.plot(
+#     results,
+#     ADCS.plots.OrbitPlot(),
+#     layout=(1,1),
+#     title="Orbit Plot",
+# )
 
-ADCS.plot(
-    results,
-    ADCS.plots.QuaternionPlot(),
-    ADCS.plots.QuaternionPlotSingle(component=0),
-    ADCS.plots.QuaternionPlotCombined(),
-    ADCS.plots.AngularVelocityPlot(),
-    ADCS.plots.AngularVelocityPlotSingle(component="m"),
-    ADCS.plots.AngularVelocityPlotCombined(),
-    layout=(3,2),
-    title="Quaternion and Angular Velocity Plot",
-)
+# ADCS.plot(
+#     results,
+#     ADCS.plots.OrbitPositionPlot(),
+#     ADCS.plots.OrbitPositionPlotSingle(component="m"),
+#     ADCS.plots.OrbitPositionPlotCombined(),
+#     ADCS.plots.OrbitVelocityPlot(),
+#     ADCS.plots.OrbitVelocityPlotSingle(component="m"),
+#     ADCS.plots.OrbitVelocityPlotCombined(),
+#     layout=(3,2),
+#     title="Orbit Position and Velocity Plot",
+# )
+
+# ADCS.plot(
+#     results,
+#     ADCS.plots.BiasPlot(),
+#     ADCS.plots.BiasPlotSingle(index=0),
+#     ADCS.plots.BiasPlotCombined(),
+#     ADCS.plots.SensorsPlot(),
+#     ADCS.plots.SensorsPlotSingle(index=0),
+#     ADCS.plots.SensorsPlotCombined(),
+#     layout=(3,2),
+#     title="Bias and Sensors Plot",
+# )
+
+# ADCS.plot(
+#     results,
+#     ADCS.plots.QuaternionPlot(),
+#     ADCS.plots.QuaternionPlotSingle(component=0),
+#     ADCS.plots.QuaternionPlotCombined(),
+#     ADCS.plots.AngularVelocityPlot(),
+#     ADCS.plots.AngularVelocityPlotSingle(component="m"),
+#     ADCS.plots.AngularVelocityPlotCombined(),
+#     layout=(3,2),
+#     title="Quaternion and Angular Velocity Plot",
+# )
 
 plt.show()

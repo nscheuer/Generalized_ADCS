@@ -226,144 +226,122 @@ from typing import Optional
 from ADCS.helpers.math_helpers import rot_mat
 
 
+def _normalize_quat(q: np.ndarray) -> Optional[np.ndarray]:
+    q = np.asarray(q, dtype=float).reshape(4)
+    if not np.all(np.isfinite(q)):
+        return None
+    n = np.linalg.norm(q)
+    if n < 1e-12:
+        return None
+    return q / n
+
+
+def _quat_attitude_error_deg(q: np.ndarray, q_ref: np.ndarray) -> float:
+    """
+    Minimal rotation angle between q and q_ref (scalar-first, Hamilton).
+    """
+    q = _normalize_quat(q)
+    q_ref = _normalize_quat(q_ref)
+    if q is None or q_ref is None:
+        return np.nan
+
+    # q_err = q^{-1} ⊗ q_ref
+    q_inv = np.array([q[0], -q[1], -q[2], -q[3]])
+    w0, x0, y0, z0 = q_inv
+    w1, x1, y1, z1 = q_ref
+
+    q_err = np.array([
+        w0*w1 - x0*x1 - y0*y1 - z0*z1,
+        w0*x1 + x0*w1 + y0*z1 - z0*y1,
+        w0*y1 - x0*z1 + y0*w1 + z0*x1,
+        w0*z1 + x0*y1 - y0*x1 + z0*w1,
+    ])
+
+    w = float(np.clip(q_err[0], -1.0, 1.0))
+    return float(np.rad2deg(2.0 * np.arccos(w)))
+
+
 def plot_target_tracking(
     state_hist: np.ndarray,
     boresight_hist: np.ndarray,
     body_boresight: np.ndarray,
-    time: Optional[np.ndarray] = None
+    time: Optional[np.ndarray] = None,
 ) -> None:
-    r"""
-    Plot angular tracking error between a body-fixed boresight and an inertial target.
-
-    This function computes and visualizes the angular separation between a
-    spacecraft-fixed boresight vector and a desired target direction expressed
-    in the Earth-Centered Inertial (ECI) frame. It is commonly used to assess
-    pointing performance for payloads, antennas, or sensors.
-
-    ======================
-    Attitude and Geometry
-    ======================
-
-    Let the spacecraft attitude be represented by a unit quaternion
-
-    .. math::
-
-        \mathbf{q} =
-        \begin{bmatrix}
-        q_0 & q_1 & q_2 & q_3
-        \end{bmatrix}^T
-
-    mapping vectors from the body frame to the ECI frame via the rotation matrix
-
-    .. math::
-
-        \mathbf{R}_{\mathcal{B}\rightarrow\mathcal{I}}(\mathbf{q})
-
-    computed using :func:`~ADCS.helpers.math_helpers.rot_mat`.
-
-    ============================
-    Tracking Error Computation
-    ============================
-
-    Let:
-
-    * :math:`\hat{\mathbf{b}} \in \mathbb{R}^3` be the normalized boresight
-      direction expressed in the body frame
-    * :math:`\hat{\mathbf{g}}_i \in \mathbb{R}^3` be the normalized target
-      direction in ECI at time step :math:`i`
-
-    The boresight direction in ECI is
-
-    .. math::
-
-        \hat{\mathbf{b}}_i^{\text{ECI}} =
-        \mathbf{R}_{\mathcal{B}\rightarrow\mathcal{I}}(\mathbf{q}_i)\,
-        \hat{\mathbf{b}}
-
-    The instantaneous pointing error angle is computed using the dot product:
-
-    .. math::
-
-        \theta_i =
-        \cos^{-1}\!\left(
-        \hat{\mathbf{b}}_i^{\text{ECI}} \cdot \hat{\mathbf{g}}_i
-        \right)
-
-    The resulting angle is converted to degrees for visualization.
-
-    ========================
-    Visualization Options
-    ========================
-
-    * If a time vector is provided, the error is plotted versus time
-    * Otherwise, the error is plotted versus sample index
-
-    :param state_hist:
-        True spacecraft state history containing attitude quaternions in
-        columns ``[3:7]``.
-    :type state_hist:
-        numpy.ndarray
-
-    :param boresight_hist:
-        Desired target boresight vectors expressed in the ECI frame.
-    :type boresight_hist:
-        numpy.ndarray
-
-    :param body_boresight:
-        Fixed boresight direction expressed in the spacecraft body frame.
-    :type body_boresight:
-        numpy.ndarray
-
-    :param time:
-        Optional time array for the x-axis.
-    :type time:
-        numpy.ndarray or None
-
-    :return:
-        None. The function creates a Matplotlib figure.
-    :rtype:
-        None
-
-    """
-    boresight_hist = boresight_hist[:, 1:4]
-
-    N = min(len(state_hist), len(boresight_hist))
+    Th = np.asarray(boresight_hist, dtype=float)
+    X = np.asarray(state_hist, dtype=float)
 
     # Normalize fixed body boresight
-    v_bore_body = body_boresight / np.linalg.norm(body_boresight)
+    v_bore_body = np.asarray(body_boresight, dtype=float).reshape(3)
+    nb = np.linalg.norm(v_bore_body)
+    if nb < 1e-12:
+        raise ValueError("body_boresight must be a non-zero 3-vector")
+    v_bore_body /= nb
 
-    error_angle = np.zeros(N)
+    N = min(len(X), len(Th))
+    if N <= 0:
+        plt.figure(figsize=(10, 5))
+        plt.title("Target Tracking Error (no data)")
+        plt.show()
+        return
+
+    error_angle_deg = np.full(N, np.nan, dtype=float)
 
     for i in range(N):
-        q = state_hist[i, 3:7]
-        R_b2i = rot_mat(q)  # Body -> ECI
+        q = X[i, 3:7]
+        row = np.asarray(Th[i], dtype=float).reshape(-1)
 
-        # Rotate body boresight into ECI
-        v_bore_eci = R_b2i @ v_bore_body
-        v_bore_eci /= np.linalg.norm(v_bore_eci)
+        # ---- Legacy vector-only target ----
+        if row.size == 3:
+            R_b2i = rot_mat(q)
+            v_bore_eci = R_b2i @ v_bore_body
+            if np.linalg.norm(v_bore_eci) < 1e-12:
+                continue
+            v_bore_eci /= np.linalg.norm(v_bore_eci)
 
-        # Normalize ECI goal vector
-        v_goal = boresight_hist[i]
-        v_goal /= np.linalg.norm(v_goal)
+            v_goal = row
+            if not np.all(np.isfinite(v_goal)) or np.linalg.norm(v_goal) < 1e-12:
+                continue
+            v_goal /= np.linalg.norm(v_goal)
 
-        # Angle error via dot product
-        dot = np.clip(np.dot(v_bore_eci, v_goal), -1.0, 1.0)
-        error_angle[i] = np.arccos(dot)  # radians
+            dot = np.clip(np.dot(v_bore_eci, v_goal), -1.0, 1.0)
+            error_angle_deg[i] = np.rad2deg(np.arccos(dot))
 
-    # Convert to degrees
-    error_angle_deg = np.rad2deg(error_angle)
+        # ---- Mixed Nx4 target ----
+        elif row.size == 4:
+            if np.isnan(row[0]):
+                # Vector goal: [nan, gx, gy, gz]
+                R_b2i = rot_mat(q)
+                v_bore_eci = R_b2i @ v_bore_body
+                if np.linalg.norm(v_bore_eci) < 1e-12:
+                    continue
+                v_bore_eci /= np.linalg.norm(v_bore_eci)
+
+                v_goal = row[1:4]
+                if not np.all(np.isfinite(v_goal)) or np.linalg.norm(v_goal) < 1e-12:
+                    continue
+                v_goal /= np.linalg.norm(v_goal)
+
+                dot = np.clip(np.dot(v_bore_eci, v_goal), -1.0, 1.0)
+                error_angle_deg[i] = np.rad2deg(np.arccos(dot))
+
+            else:
+                # Quaternion goal: [q0,q1,q2,q3]
+                error_angle_deg[i] = _quat_attitude_error_deg(q, row)
+
+        # ---- Anything else: skip ----
+        else:
+            continue
 
     # ---- Plot ----
     plt.figure(figsize=(10, 5))
-
     if time is not None:
-        plt.plot(time[:N], error_angle_deg)
+        plt.plot(np.asarray(time)[:N], error_angle_deg)
         plt.xlabel("Time [s]")
     else:
         plt.plot(error_angle_deg)
         plt.xlabel("Sample")
 
     plt.ylabel("Tracking Error [deg]")
-    plt.title("Target Tracking Error (Boresight vs ECI Target)")
+    plt.title("Target Tracking Error")
     plt.grid(True)
     plt.tight_layout()
