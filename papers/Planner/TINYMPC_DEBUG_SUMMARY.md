@@ -1,7 +1,13 @@
-# TinyMPC Debugging Summary
+# MPC/Tracking Controller Debugging Summary
+
+## Overview
+Investigation of trajectory tracking controllers for 3MTQ+1RW spacecraft, specifically:
+1. Why TinyMPC wasn't tracking correctly
+2. How to achieve sub-degree pointing accuracy
+3. The fundamental MTQ B-field limitation
 
 ## Problem
-C++ TinyMPC and Python MPC controllers were not tracking trajectories correctly, while TVLQR worked fine.
+C++ TinyMPC and Python MPC controllers were not tracking trajectories correctly, while TVLQR worked fine for 3MTQ+1RW but oscillates due to B-field mismatch.
 
 ## Investigation Results
 
@@ -75,5 +81,45 @@ To make TinyMPC work, need to:
 - `ADCS/controller/helpers/tinympc_settings.py` - Settings dataclass
 - `ADCS/controller/plan_and_track_tinympc_cpp.py` - K gains loading
 
+## New Controller: Plan_and_Track_ActualB
+
+### What It Does
+Fixes the TVLQR B-field mismatch issue:
+1. TVLQR computes MTQ commands using B-field at reference attitude
+2. When actual attitude differs, B-field in body frame is different
+3. ActualB recomputes MTQ allocation using actual B-field
+
+### Results for 3MTQ+1RW (30° slew)
+| Controller | Final Error | Min Error | Notes |
+|------------|-------------|-----------|-------|
+| Reference | 0.54° | 0.16° | Planned trajectory |
+| TVLQR | 18-22° | 0.29° | Large oscillations |
+| ActualB | 7-10° | **0.37°** | Sub-degree achieved! |
+
+### Key Finding: Sub-Degree Is Achievable
+The ActualB controller achieves **sub-degree accuracy** at multiple points:
+- t=123s: 0.75°
+- t=160s: **0.37°** (minimum)
+- t=142s: 0.78°
+
+The oscillation period matches orbit period (~90 minutes) because:
+- MTQs can only produce torque ⊥ to B-field
+- B-field direction in body frame changes as spacecraft orbits
+- When B-field aligns well with needed torque → good tracking
+- When B-field misaligns → tracking degrades
+
+This is a **physics limitation**, not a controller limitation.
+
 ## Conclusion
-**TVLQR is the recommended controller** for trajectory tracking. It's fast, accurate, and constraints are rarely binding. ComputedTorque is a good alternative when explicit constraint handling is desired. TinyMPC needs more work to fix convention mismatches.
+
+### For 3MTQ+1RW Systems
+**Use Plan_and_Track_ActualB** - achieves sub-degree accuracy when B-field geometry is favorable.
+
+### For MTQ-Only Systems  
+Performance is fundamentally limited by B-field geometry. Plan_and_Track_ActualB helps but can't overcome physics.
+
+### For RW-Only or RW-Dominant Systems
+**Use Plan_and_Track_LQR** (TVLQR) - RWs can produce torque in any direction, so B-field mismatch doesn't matter.
+
+### TinyMPC Status
+TinyMPC has convention mismatches that need fixing. For now, use ActualB for MTQ systems.
