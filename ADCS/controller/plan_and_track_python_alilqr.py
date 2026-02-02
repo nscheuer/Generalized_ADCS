@@ -23,7 +23,7 @@ from ADCS.controller.plan_and_track_base import PlanAndTrackBase
 from ADCS.controller.helpers import (
     PlannerSettings, Trajectory, reorder_controls_cpp_to_python, 
     reorder_gains_cpp_to_python, PythonALILQR, PythonALILQRv2, 
-    IterationData, OptimizationResult
+    IterationData, OptimizationResult, LivePlannerViz
 )
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.universal_constants import TimeConstants
@@ -167,7 +167,9 @@ class Plan_and_Track_PythonALILQR(PlanAndTrackBase):
         os_0: Orbital_State,
         goals: GoalList,
         verbose: bool = False,
-        collect_all_iterations: bool = True
+        collect_all_iterations: bool = True,
+        visualize: bool = False,
+        viz_save_path: Optional[str] = None
     ) -> Trajectory:
         """
         Plan a trajectory using Python-driven ALILQR.
@@ -191,6 +193,10 @@ class Plan_and_Track_PythonALILQR(PlanAndTrackBase):
             Override verbosity for this call
         collect_all_iterations : bool
             If True, store all iteration data (uses more memory)
+        visualize : bool
+            If True, show live visualization of optimization convergence
+        viz_save_path : str, optional
+            If provided, save final visualization to this path
             
         Returns
         -------
@@ -208,6 +214,45 @@ class Plan_and_Track_PythonALILQR(PlanAndTrackBase):
         
         t_end = t_start + (duration * TimeConstants.sec2cent)
         x_0_clean = np.copy(x_0.astype(np.float64).flatten(), order='C')
+        
+        # =====================================================================
+        # Setup visualization if requested
+        # =====================================================================
+        live_viz = None
+        original_callback = self.iteration_callback
+        
+        if visualize:
+            # Propagate environment to get goal vectors for visualization
+            N_viz = int(np.ceil(duration / dt_coarse)) + 1
+            vecsPy_viz = self._propagate_environment(os_0, t_start, t_end, dt_coarse, N_viz, goals)
+            goal_vectors = vecsPy_viz[5]  # E vectors shape (3, N)
+            
+            # Generate actuator names for plot labels
+            actuator_names = []
+            for act in self.est_sat.mtq_actuators:
+                actuator_names.append(f'MTQ_{["x","y","z"][np.argmax(np.abs(act.axis))]}')
+            for i, act in enumerate(self.est_sat.rw_actuators):
+                actuator_names.append(f'RW{i+1}')
+            
+            # Create live visualization
+            live_viz = LivePlannerViz(
+                goal_vector_eci=goal_vectors,
+                body_vector=np.array([0, 1, 0]),  # Boresight
+                dt=dt_coarse,
+                update_interval=1,
+                figsize=(14, 10),
+                actuator_names=actuator_names,
+                umax=self.planner_settings.umax
+            )
+            live_viz.start()
+            
+            # Create callback that updates visualization
+            def viz_callback(iter_data: IterationData):
+                if original_callback is not None:
+                    original_callback(iter_data)
+                live_viz.update(iter_data)
+            
+            self.set_iteration_callback(viz_callback)
         
         # =====================================================================
         # PASS 1: Coarse trajectory optimization (exploration)
@@ -351,6 +396,18 @@ class Plan_and_Track_PythonALILQR(PlanAndTrackBase):
         # Create dummy Sset (not computed by Python ALILQR directly)
         N_result = result.Xset.shape[1]
         Sset = np.zeros((1, N_result))
+        
+        # =====================================================================
+        # Cleanup visualization
+        # =====================================================================
+        if live_viz is not None:
+            if viz_save_path:
+                live_viz.save(viz_save_path)
+                if verbose:
+                    print(f"Saved visualization to: {viz_save_path}")
+            live_viz.finish(block=False)
+            # Restore original callback
+            self.set_iteration_callback(original_callback)
         
         return Trajectory(result.times, result.Xset, Uset, Kset, Sset)
     

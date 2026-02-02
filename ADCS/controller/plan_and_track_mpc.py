@@ -21,11 +21,13 @@ from ADCS.CONOPS.goallist import GoalList
 from ADCS.controller.plan_and_track_base import PlanAndTrackBase
 from ADCS.controller.helpers import (
     PlannerSettings, Trajectory, reorder_controls_cpp_to_python,
-    reorder_gains_cpp_to_python, PythonALILQRv2, OptimizationResult
+    reorder_gains_cpp_to_python, PythonALILQRv2, OptimizationResult,
+    IterationData, LivePlannerViz
 )
 from ADCS.controller.helpers.mpc_tracker import (
     MPCTracker, MPCParams, mpc_tvlqr_hybrid, quat_error_vec, solve_mtq_for_torque
 )
+from typing import Callable
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
@@ -318,9 +320,25 @@ class Plan_and_Track_MPC_Python(PlanAndTrackBase):
         # MPC parameters
         self.mpc_params = mpc_params if mpc_params is not None else MPCParams.balanced()
         
-        # Storage for optimization results
+        # Storage for optimization results and callbacks
         self.last_optimization_result: Optional[OptimizationResult] = None
+        self.iteration_callback: Optional[Callable[[IterationData], None]] = None
         self._verbose = verbose
+    
+    def set_iteration_callback(self, callback: Optional[Callable[[IterationData], None]]) -> None:
+        """
+        Set a callback function to be invoked after each optimization iteration.
+        
+        Parameters
+        ----------
+        callback : callable
+            Function with signature callback(iter_data: IterationData) -> None
+        """
+        self.iteration_callback = callback
+        if hasattr(self.py_alilqr, 'set_callback'):
+            self.py_alilqr.set_callback(callback)
+        else:
+            self.py_alilqr.debug_callback = callback
 
     def find_u(
         self,
@@ -400,7 +418,9 @@ class Plan_and_Track_MPC_Python(PlanAndTrackBase):
         os_0: Orbital_State,
         goals: GoalList,
         verbose: bool = False,
-        collect_all_iterations: bool = False
+        collect_all_iterations: bool = False,
+        visualize: bool = False,
+        viz_save_path: Optional[str] = None
     ) -> Trajectory:
         """
         Plan trajectory using Python ALILQR with two-pass optimization.
@@ -421,6 +441,10 @@ class Plan_and_Track_MPC_Python(PlanAndTrackBase):
             Enable verbose output
         collect_all_iterations : bool
             Store all iteration data for analysis
+        visualize : bool
+            If True, show live visualization of optimization convergence
+        viz_save_path : str, optional
+            If provided, save final visualization to this path
 
         Returns
         -------
@@ -435,6 +459,45 @@ class Plan_and_Track_MPC_Python(PlanAndTrackBase):
         dt_fine = self.planner_settings.dt_tvlqr
 
         x_0_clean = np.copy(x_0.astype(np.float64).flatten(), order='C')
+
+        # =====================================================================
+        # Setup visualization if requested
+        # =====================================================================
+        live_viz = None
+        original_callback = self.iteration_callback
+        
+        if visualize:
+            # Propagate environment to get goal vectors for visualization
+            N_viz = int(np.ceil(duration / dt_coarse)) + 1
+            vecsPy_viz = self._propagate_environment(os_0, t_start, t_end, dt_coarse, N_viz, goals)
+            goal_vectors = vecsPy_viz[5]  # E vectors shape (3, N)
+            
+            # Generate actuator names for plot labels
+            actuator_names = []
+            for act in self.est_sat.mtq_actuators:
+                actuator_names.append(f'MTQ_{["x","y","z"][np.argmax(np.abs(act.axis))]}')
+            for i, act in enumerate(self.est_sat.rw_actuators):
+                actuator_names.append(f'RW{i+1}')
+            
+            # Create live visualization
+            live_viz = LivePlannerViz(
+                goal_vector_eci=goal_vectors,
+                body_vector=np.array([0, 1, 0]),  # Boresight
+                dt=dt_coarse,
+                update_interval=1,
+                figsize=(14, 10),
+                actuator_names=actuator_names,
+                umax=self.planner_settings.umax
+            )
+            live_viz.start()
+            
+            # Create callback that updates visualization
+            def viz_callback(iter_data: IterationData):
+                if original_callback is not None:
+                    original_callback(iter_data)
+                live_viz.update(iter_data)
+            
+            self.set_iteration_callback(viz_callback)
 
         # === PASS 1: Coarse exploration ===
         if verbose:
@@ -540,6 +603,18 @@ class Plan_and_Track_MPC_Python(PlanAndTrackBase):
             Kset = Kset.reshape(ctrl_dim, state_dim, -1)
 
         Sset = np.zeros((Xset.shape[0] - 1, N_fine))
+
+        # =====================================================================
+        # Cleanup visualization
+        # =====================================================================
+        if live_viz is not None:
+            if viz_save_path:
+                live_viz.save(viz_save_path)
+                if verbose:
+                    print(f"Saved visualization to: {viz_save_path}")
+            live_viz.finish(block=False)
+            # Restore original callback
+            self.set_iteration_callback(original_callback)
 
         return Trajectory(lqr_times, Xset, Uset, Kset, Sset)
 
