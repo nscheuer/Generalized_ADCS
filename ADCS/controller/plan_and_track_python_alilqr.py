@@ -381,7 +381,10 @@ class Plan_and_Track_PythonALILQR(PlanAndTrackBase):
         use_slerp_interpolation = True  # Re-enable with debugging
         
         if use_slerp_interpolation and interp_ratio > 1:
-            from ADCS.controller.helpers.mtq_warm_start import interpolate_trajectory_to_finer_grid
+            from ADCS.controller.helpers.mtq_warm_start import (
+                interpolate_trajectory_to_finer_grid, 
+                solve_controls_from_trajectory
+            )
             
             # SLERP interpolate states from Pass1
             Xset_coarse = result1.Xset
@@ -411,18 +414,65 @@ class Plan_and_Track_PythonALILQR(PlanAndTrackBase):
                     if np.any(np.abs(q_norms - 1.0) > 0.01):
                         print(f"  WARNING: SLERP quaternions not normalized (range: {q_norms.min():.3f}-{q_norms.max():.3f})")
                     
-                    # Create times array
-                    times_fine = np.linspace(0, duration, N_fine)
+                    # Recompute controls to match SLERP-interpolated states
+                    # Extract B-field from vecs (vecs[4] is B_ECI)
+                    B_eci = vecs_dt_fine[4]  # shape (3, N_fine)
                     
-                    # For TQset, initialize to zeros (same as optimizer does when TQset is None)
-                    TQset_fine = np.zeros((3, N_fine))
+                    # Get satellite parameters
+                    J = self.est_sat.Jcom
                     
-                    traj_fine = (Xset_fine, Uset_fine, times_fine, TQset_fine)
+                    # Get RW axes and limits
+                    rw_axes = []
+                    rw_torq_max = None
+                    for act in self.est_sat.actuators:
+                        if hasattr(act, 'J_rw'):  # It's a RW
+                            rw_axes.append(act.axis)
+                            if rw_torq_max is None:
+                                rw_torq_max = act.u_max
+                    rw_axes = np.array(rw_axes) if rw_axes else None
+                    
+                    # Get MTQ limit
+                    m_max = None
+                    for act in self.est_sat.actuators:
+                        if hasattr(act, 'm_max'):  # It's an MTQ
+                            m_max = act.m_max
+                            break
+                    
+                    # Solve for controls that approximate the SLERP trajectory
+                    # Note: MTQ can only produce torque perpendicular to B, so we can't
+                    # exactly match arbitrary trajectories. We compute best-effort controls
+                    # then forward-simulate to get consistent states.
+                    Uset_slerp = solve_controls_from_trajectory(
+                        Xset_fine, B_eci, dt_fine, J, rw_axes,
+                        m_max=m_max, rw_torq_max=rw_torq_max
+                    )
+                    
+                    print(f"  SLERP: Computed controls from interpolated states")
+                    print(f"    MTQ range: [{Uset_slerp[0:3,:].min():.4f}, {Uset_slerp[0:3,:].max():.4f}]")
+                    if rw_axes is not None and len(rw_axes) > 0:
+                        print(f"    RW range: [{Uset_slerp[3:,:].min():.6f}, {Uset_slerp[3:,:].max():.6f}]")
+                    
+                    # Forward simulate with these controls to get consistent states
+                    # This gives a trajectory that's close to SLERP but dynamically feasible
+                    print(f"  SLERP: Forward simulating for consistency...")
+                    traj_fwd = self.planner.generateInitialTrajectory(
+                        dt_fine, Xset_fine[:, 0].copy(), Uset_slerp, vecs_dt_fine
+                    )
+                    Xset_fwd, _, times_fwd, TQset_fwd = traj_fwd
+                    
+                    # Check how close we got to SLERP
+                    diff_q = np.abs(Xset_fine[3:7, :] - Xset_fwd[3:7, :])
+                    print(f"    Max q diff from SLERP: {diff_q.max():.4f}")
+                    
+                    # Use the forward-simulated trajectory (consistent dynamics)
+                    traj_fine = (Xset_fwd, Uset_slerp, times_fwd, TQset_fwd)
                     
                     if verbose:
                         print(f"  Used SLERP interpolation for states: {Xset_coarse.shape[1]} -> {Xset_fine.shape[1]}")
             except Exception as e:
-                print(f"  WARNING: SLERP interpolation failed ({e}), falling back to forward simulation")
+                import traceback
+                print(f"  WARNING: SLERP interpolation failed ({e})")
+                traceback.print_exc()
                 use_slerp_interpolation = False
         
         if not use_slerp_interpolation or interp_ratio <= 1:
@@ -440,31 +490,6 @@ class Plan_and_Track_PythonALILQR(PlanAndTrackBase):
                 if verbose:
                     print(f"  WARNING: generateInitialTrajectory failed ({e}), using fresh init")
                 traj_fine, _, _ = initial_result_2
-        
-        # Debug: Check trajectory before Pass2
-        # DEBUG: Compare SLERP vs non-SLERP trajectories
-        if use_slerp_interpolation:
-            print(f"  SLERP trajectory - checking dynamics consistency...")
-            # The SLERP states may not be consistent with the controls
-            # Let's regenerate states from controls and compare
-            try:
-                traj_fwd = self.planner.generateInitialTrajectory(
-                    dt_fine, traj_fine[0][:, 0].copy(), traj_fine[1], vecs_dt_fine
-                )
-                Xset_slerp = traj_fine[0]
-                Xset_fwd, _, _, _ = traj_fwd
-                
-                # Compare
-                diff = np.abs(Xset_slerp - Xset_fwd)
-                print(f"    Max state diff: {diff.max():.4f}")
-                print(f"    Max ω diff: {diff[0:3,:].max():.4f}")
-                print(f"    Max q diff: {diff[3:7,:].max():.4f}")
-                
-                # Use forward-simulated trajectory instead of SLERP
-                print(f"    Using forward-simulated trajectory instead of SLERP")
-                traj_fine = traj_fwd
-            except Exception as e:
-                print(f"    Forward sim failed: {e}")
         
         result2 = self.py_alilqr.optimize(
             dt=dt_fine,

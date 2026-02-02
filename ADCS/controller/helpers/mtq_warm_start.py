@@ -83,6 +83,96 @@ def solve_mtq_controls_body_frame(Xset_interp, B_eci, dt, J, m_max=None):
     return Uset, mtq_pct
 
 
+def solve_controls_from_trajectory(Xset_interp, B_eci, dt, J, rw_axes, 
+                                    m_max=None, rw_torq_max=None):
+    """
+    Solve for MTQ + RW controls given interpolated states and B-field.
+    
+    For the desired angular acceleration, we split torque between MTQ and RW:
+    - RW provides torque along its axis: τ_rw = -h_dot (reaction)
+    - MTQ provides remaining torque perpendicular to B
+    
+    Parameters
+    ----------
+    Xset_interp : ndarray, shape (n_states, N)
+        Interpolated states. [0:3]=ω, [3:7]=q, [7:7+n_rw]=RW momentum
+    B_eci : ndarray, shape (3, N)
+        B-field in ECI frame at each timestep
+    dt : float
+        Timestep (seconds)
+    J : ndarray, shape (3, 3)
+        Spacecraft inertia tensor (without RW)
+    rw_axes : ndarray, shape (n_rw, 3)
+        RW spin axes in body frame (unit vectors)
+    m_max : float, optional
+        Maximum MTQ dipole moment per axis
+    rw_torq_max : float, optional
+        Maximum RW torque
+        
+    Returns
+    -------
+    Uset : ndarray, shape (n_mtq + n_rw, N)
+        Control inputs [MTQ moments (3), RW torques (n_rw)]
+    """
+    N = Xset_interp.shape[1]
+    n_rw = rw_axes.shape[0] if rw_axes is not None and len(rw_axes) > 0 else 0
+    n_mtq = 3
+    n_u = n_mtq + n_rw
+    
+    Uset = np.zeros((n_u, N))
+    
+    for k in range(N-1):
+        # Angular velocities
+        w_curr = Xset_interp[0:3, k]
+        w_next = Xset_interp[0:3, k+1]
+        
+        # Quaternion to rotation matrix (body -> ECI)
+        q = Xset_interp[3:7, k]
+        R = rot_mat(q)
+        
+        # Required angular acceleration
+        w_dot = (w_next - w_curr) / dt
+        
+        # Required torque from Euler equation: J @ w_dot = τ_ext - w × (J @ w)
+        # τ_ext = τ_mtq + τ_rw
+        tau_needed = J @ w_dot + np.cross(w_curr, J @ w_curr)
+        
+        # RW contribution: τ_rw = -h_dot (along RW axes)
+        tau_rw = np.zeros(3)
+        if n_rw > 0:
+            for i in range(n_rw):
+                h_curr = Xset_interp[7+i, k]
+                h_next = Xset_interp[7+i, k+1]
+                h_dot = (h_next - h_curr) / dt
+                
+                # RW torque on spacecraft is -h_dot along axis
+                rw_torque = -h_dot
+                if rw_torq_max is not None:
+                    rw_torque = np.clip(rw_torque, -rw_torq_max, rw_torq_max)
+                
+                Uset[n_mtq + i, k] = rw_torque
+                tau_rw += rw_torque * rw_axes[i]
+        
+        # Remaining torque for MTQ
+        tau_mtq_needed = tau_needed - tau_rw
+        
+        # Transform B to body frame
+        B_body = R.T @ B_eci[:, k]
+        B_sq = np.dot(B_body, B_body)
+        
+        if B_sq > 1e-20:
+            # Solve for m: τ = m × B → m = (B × τ) / |B|²
+            m = np.cross(B_body, tau_mtq_needed) / B_sq
+            if m_max is not None:
+                m = np.clip(m, -m_max, m_max)
+            Uset[0:3, k] = m
+    
+    # Copy last control to final column
+    Uset[:, -1] = Uset[:, -2] if N > 1 else 0
+    
+    return Uset
+
+
 def interpolate_trajectory_to_finer_grid(Xset_coarse, dt_coarse, dt_fine, tf, use_slerp=True):
     """
     Interpolate trajectory states from coarse to fine grid.

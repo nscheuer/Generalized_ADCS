@@ -108,6 +108,9 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
         # tracking_lqr_formulation=0 is standard TVLQR
         self._init_planner(est_sat, planner_settings, tracking_lqr_formulation=0)
         self._gain_scale = 1.0  # Default: use full K gains
+        self._max_K_norm = None  # No clamping by default
+        self._warmup_time = 0.0  # No warmup by default
+        self._trajectory_start_time = None  # Set when trajectory is assigned
     
     def set_gain_scale(self, scale: float) -> None:
         """
@@ -124,6 +127,33 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
         :type scale: float
         """
         self._gain_scale = scale
+    
+    def set_gain_clamp(self, max_K_norm: float) -> None:
+        """
+        Set maximum allowed K gain Frobenius norm.
+        
+        The TVLQR gains can be very large at the start of the trajectory
+        (e.g., |K| > 5000), causing oscillations. Clamping to a reasonable
+        value (e.g., 100-500) often improves tracking.
+        
+        :param max_K_norm: Maximum allowed Frobenius norm of K. Set to None to disable.
+        :type max_K_norm: float
+        """
+        self._max_K_norm = max_K_norm
+    
+    def set_warmup_time(self, warmup_seconds: float) -> None:
+        """
+        Set feedback warmup period.
+        
+        During the warmup period, the gain scale ramps from 0 to 1.
+        This prevents aggressive initial feedback that can cause oscillations.
+        
+        A warmup of 5-10 seconds often works well for MTQ-based systems.
+        
+        :param warmup_seconds: Duration of warmup period in seconds.
+        :type warmup_seconds: float
+        """
+        self._warmup_time = warmup_seconds
 
     def find_u(
         self,
@@ -203,17 +233,44 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
         u_ref = self.active_trajectory.get_control_at(current_time)
         K = self.active_trajectory.get_gain_at(current_time)
         
+        # Apply gain clamping if configured
+        if self._max_K_norm is not None:
+            K_norm = np.linalg.norm(K)
+            if K_norm > self._max_K_norm:
+                K = K * (self._max_K_norm / K_norm)
+        
+        # Compute effective gain scale (including warmup)
+        effective_scale = self._gain_scale
+        if self._warmup_time > 0 and self._trajectory_start_time is not None:
+            from ADCS.orbits.universal_constants import TimeConstants
+            elapsed = (current_time - self._trajectory_start_time) / TimeConstants.sec2cent
+            if elapsed < self._warmup_time:
+                warmup_scale = elapsed / self._warmup_time
+                effective_scale = effective_scale * warmup_scale
+        
         # Compute state error
         dx = self.active_trajectory._state_diff(x_hat, x_ref)
         
         # Apply scaled feedback: u = u_ref - scale * K @ dx
-        u = u_ref - self._gain_scale * K @ dx
+        u = u_ref - effective_scale * K @ dx
         
         # Saturate control to actuator limits
         u_max = np.array([act.u_max for act in est_sat.actuators])
         u = np.clip(u, -u_max, u_max)
         
         return u
+
+    def set_active_trajectory(self, traj) -> None:
+        """
+        Set the active trajectory and record its start time for warmup.
+        
+        Overrides base class to track trajectory start time for warmup period.
+        """
+        super().set_active_trajectory(traj)
+        if traj is not None:
+            self._trajectory_start_time = traj.start_time
+        else:
+            self._trajectory_start_time = None
 
     def calculate_trajectory(
         self,
