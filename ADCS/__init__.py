@@ -19,8 +19,7 @@ from .CONOPS import goals
 from .CONOPS.goallist import GoalList
 
 from .simulate import simulate
-from .helpers.simresults import SimulationResults
-from .helpers.simresults_mc import MCSimulationResults
+from .helpers.simresults import SimulationResults, RunResults
 
 # Plotting
 from .helpers.plot import plot
@@ -33,7 +32,7 @@ __all__ = [
     "EstimatedSatellite",
     "simulate",
     "SimulationResults",
-    "MCSimulationResults",
+    "RunResults",
     "disturbances",
 
     "Actuator",

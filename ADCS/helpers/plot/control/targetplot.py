@@ -370,15 +370,7 @@ class TargetPlot(Subplot):
         ax.text(0.5, 0.5, msg, ha="center", va="center", transform=ax.transAxes)
 
 
-
 class TargetHistogram(Subplot):
-    r"""
-    Histogram analysis of final-timestep tracking errors across Monte Carlo runs.
-    
-    This plot calculates the error (angular distance or attitude error) at the 
-    last recorded sample of every run in sim.runs and displays the distribution.
-    """
-
     def __init__(
         self,
         *,
@@ -395,15 +387,9 @@ class TargetHistogram(Subplot):
         self.show_stats = show_stats
 
     def plot(self, ax, sim) -> None:
-        runs = getattr(sim, "runs", None)
-        if not runs or not isinstance(runs, (list, tuple)):
-            # If only a single sim is passed, wrap it in a list
-            runs = [sim] if hasattr(sim, "state_hist") else []
-
         errors = []
-        
-        for r in runs:
-            err = self._get_final_error(r)
+        for run in sim:
+            err = self._get_final_error(run)
             if err is not None:
                 errors.append(err)
 
@@ -412,82 +398,71 @@ class TargetHistogram(Subplot):
             return
 
         err_array = np.array(errors)
-        
-        # --- Statistics Calculation ---
-        stats = {
-            "n": len(err_array),
-            "min": np.min(err_array),
-            "max": np.max(err_array),
-            "mean": np.mean(err_array),
-            "median": np.median(err_array),
-            "pct_under": 100.0 * np.mean(err_array < self.threshold)
-        }
+        stats = self._calc_stats(err_array)
 
-        # --- Plotting ---
-        max_val = np.ceil(stats["max"] / self.bin_width) * self.bin_width
-        bins = np.arange(0, max_val + self.bin_width, self.bin_width)
+        bins = np.arange(0, 180 + self.bin_width, self.bin_width)
         
-        ax.hist(err_array, bins=bins, edgecolor="black", alpha=0.7, color="skyblue")
+        ax.hist(err_array, bins=bins, edgecolor="black", alpha=0.7, color="#3498db")
         ax.set_xlabel(f"Final Error [{self.units}]")
-        ax.set_ylabel("Frequency (Runs)")
+        ax.set_ylabel("Count")
         ax.set_title(self.title, loc="left")
-        ax.grid(True, linestyle="--", alpha=0.6)
+        ax.grid(True, linestyle="--", alpha=0.5)
+        
+        ax.set_xlim(0, 180)
 
         if self.show_stats:
-            stats_text = (
-                f"N: {stats['n']}\n"
-                f"% < {self.threshold}{self.units}: {stats['pct_under']:.2f}%\n"
-                f"Min: {stats['min']:.3f}\n"
-                f"Max: {stats['max']:.3f}\n"
-                f"Mean: {stats['mean']:.3f}\n"
-                f"Median: {stats['median']:.3f}"
-            )
-            ax.text(
-                0.95, 0.95, stats_text,
-                transform=ax.transAxes,
-                verticalalignment="top",
-                horizontalalignment="right",
-                bbox=dict(boxstyle="round", facecolor="white", alpha=0.8)
-            )
+            self._add_stats_box(ax, stats)
 
-    def _get_final_error(self, r) -> float | None:
-        """Calculates error for the final timestep of a single run."""
-        state_hist = getattr(r, "state_hist", None)
-        target_hist = getattr(r, "target_hist", None)
-        sat = getattr(r, "satellite", None)
-
+    def _get_final_error(self, run) -> float | None:
+        state_hist = getattr(run, "state_hist", None)
+        target_hist = getattr(run, "target_hist", None)
+        
         if state_hist is None or target_hist is None or len(state_hist) == 0:
             return None
 
-        # Determine boresight
-        bore_body_unit = None
-        if sat and hasattr(sat, "boresight"):
-            bb = np.asarray(sat.boresight, dtype=float).flatten()
-            if bb.size == 3 and np.linalg.norm(bb) > 0:
-                bore_body_unit = bb / np.linalg.norm(bb)
+        last_state = np.asarray(state_hist[-1])
+        last_target = np.asarray(target_hist[-1]).flatten()
 
-        # Get final samples
-        idx = -1
-        q_real = np.asarray(state_hist[idx])[3:7]
-        target_row = np.asarray(target_hist[idx]).flatten()
-
-        if target_row.size != 4 or not np.all(np.isfinite(target_row)):
+        if last_state.size < 7 or last_target.size != 4:
             return None
+            
+        q_real = last_state[3:7]
 
-        # Case 1: Quaternion Target [q0, q1, q2, q3]
-        if not np.isnan(target_row[0]):
-            return _attitude_error_deg(q_real, target_row)
+        if not np.isnan(last_target[0]):
+            return _attitude_error_deg(q_real, last_target)
 
-        # Case 2: Vector Target [nan, tx, ty, tz]
-        elif bore_body_unit is not None:
-            target_vec = target_row[1:4]
-            if np.linalg.norm(target_vec) == 0:
-                return None
-            target_vec_unit = target_vec / np.linalg.norm(target_vec)
-            bore_eci = _boresight_eci(q_real, bore_body_unit)
-            return _angle_deg(bore_eci, target_vec_unit)
+        bore_attr = getattr(run.satellite, "boresight", None)
+        if bore_attr is not None:
+            bore_body = np.asarray(bore_attr, dtype=float).flatten()
+            if bore_body.size == 3 and np.linalg.norm(bore_body) > 0:
+                bore_unit = bore_body / np.linalg.norm(bore_body)
+                target_vec = last_target[1:4]
+                if np.linalg.norm(target_vec) > 0:
+                    target_unit = target_vec / np.linalg.norm(target_vec)
+                    bore_eci = _boresight_eci(q_real, bore_unit)
+                    return _angle_deg(bore_eci, target_unit)
 
         return None
+
+    def _calc_stats(self, data: np.ndarray) -> dict:
+        return {
+            "n": len(data),
+            "min": np.min(data),
+            "max": np.max(data),
+            "mean": np.mean(data),
+            "med": np.median(data),
+            "pct": 100.0 * np.mean(data < self.threshold)
+        }
+
+    def _add_stats_box(self, ax, s: dict):
+        txt = (f"N: {int(s['n'])}\n"
+               f"% < {self.threshold}°: {s['pct']:.2f}%\n"
+               f"Min: {s['min']:.3f}°\n"
+               f"Max: {s['max']:.3f}°\n"
+               f"Mean: {s['mean']:.3f}°\n"
+               f"Median: {s['med']:.3f}°")
+        ax.text(0.95, 0.95, txt, transform=ax.transAxes, va='top', ha='right',
+                bbox=dict(boxstyle="round", facecolor="white", alpha=0.8))
 
     def _plot_no_data(self, ax, msg: str) -> None:
         ax.text(0.5, 0.5, msg, ha="center", va="center", transform=ax.transAxes)

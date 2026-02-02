@@ -3,12 +3,11 @@ __all__ = ["plot"]
 import matplotlib.pyplot as plt
 
 from ADCS.helpers.simresults import SimulationResults
-from ADCS.helpers.simresults_mc import MCSimulationResults
 from ADCS.helpers.plot.subplot import Subplot
 from .close_all import ensure_close_all_button
 
 def plot(
-    sim: SimulationResults | MCSimulationResults,
+    sim: SimulationResults,
     *subplots: Subplot,
     layout=None,
     figsize=(10, 8),

@@ -42,8 +42,9 @@ ADCS.plot(
     mc_results,
     ADCS.plots.ControlPlot(),
     ADCS.plots.TargetPlot(modes=["real_target"]),
+    ADCS.plots.TargetHistogram(),
     ADCS.plots.IlluminationPlot(),
-    layout=(3,1),
+    layout=(2,2),
     title="Control Plot",
 )
 

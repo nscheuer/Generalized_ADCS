@@ -17,7 +17,7 @@ from ADCS.satellite_hardware.satellite import Satellite, EstimatedSatellite
 from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.helpers.math_helpers import normalize
 
-from ADCS.helpers.simresults import SimulationResults
+from ADCS.helpers.simresults import SimulationResults, RunResults
 
 def simulate(
     x: np.ndarray,
@@ -76,7 +76,7 @@ def simulate(
         )
         controller.set_active_trajectory(trajectory)
 
-    sim_results = SimulationResults(satellite=satellite, est_satellite=est_satellite)
+    run_capsule = RunResults(satellite=satellite, est_satellite=est_satellite)
 
     for k in tqdm(range(N), desc="Simulating ADCS", unit="step"):
         J2000_k = start_time + k * dt * TimeConstants.sec2cent
@@ -101,7 +101,6 @@ def simulate(
             x_for_ctrl = x_hat
         else:
             x_for_ctrl = x
-
 
         active_goal = goal_list.get_active_goal(J2000_k, time_units="centuries")
 
@@ -195,7 +194,7 @@ def simulate(
                     else:
                         est_sens_bias_snapshot = np.array(sens_parts, dtype=object)
 
-        sim_results.record(
+        run_capsule.record(
             k=k,
             time_J2000=J2000_k,
             time_s=k * dt,
@@ -229,4 +228,4 @@ def simulate(
             control=u,
         )
 
-    return sim_results
+    return SimulationResults(runs=[run_capsule])

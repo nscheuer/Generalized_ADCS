@@ -23,8 +23,7 @@ from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.satellite_hardware.satellite import Satellite, EstimatedSatellite
 from ADCS.helpers.math_helpers import normalize
-from ADCS.helpers.simresults import SimulationResults
-from ADCS.helpers.simresults_mc import MCSimulationResults
+from ADCS.helpers.simresults import SimulationResults, RunResults
 from ADCS.mc.monte_carlo_runner import MonteCarloRunner, claim_worker_slot, release_worker_slot, update_worker_progress
 
 from typing import TYPE_CHECKING
@@ -136,7 +135,7 @@ def _simulate_with_precomputed_orbit(
     tf: float,
     slot_id: int = -1,  # Added for UI tracking
     run_id: int = -1,   # Added for UI tracking
-) -> SimulationResults:
+) -> RunResults:
     if len(x) != satellite.state_len:
         raise ValueError(
             f"Initial state length {len(x)} does not match satellite state length {satellite.state_len}. "
@@ -180,7 +179,7 @@ def _simulate_with_precomputed_orbit(
         )
         controller.set_active_trajectory(trajectory)
 
-    sim_results = SimulationResults(satellite=satellite, est_satellite=est_satellite)
+    run_results = RunResults(satellite=satellite, est_satellite=est_satellite)
 
     for k in range(N):
         # --- UI UPDATE ---
@@ -279,7 +278,7 @@ def _simulate_with_precomputed_orbit(
                 if sens_parts:
                     est_sens_bias_snapshot = np.array(sens_parts, dtype=object)
 
-        sim_results.record(
+        run_results.record(
             k=k,
             time_J2000=J2000_k,
             time_s=k * dt,
@@ -306,7 +305,7 @@ def _simulate_with_precomputed_orbit(
             control=u,
         )
 
-    return sim_results
+    return run_results
 
 
 _EPHEM: Optional[Ephemeris] = None
@@ -413,7 +412,7 @@ def simulate_mc(
     num_runs: int = 100,
     max_workers: Optional[int] = None,
     base_seed: int = 0,
-) -> MCSimulationResults:
+) -> SimulationResults:
     if os0 is None:
         raise ValueError("os0 must be provided to simulate_mc().")
     if len(x) != satellite.state_len:
@@ -566,4 +565,4 @@ def simulate_mc(
     configs = [entry.get("applied", {}) for entry in cleaned]
     run_ids = [entry.get("run_id") for entry in cleaned]
 
-    return MCSimulationResults(runs=runs, configs=configs, run_ids=run_ids)
+    return SimulationResults(runs=runs, configs=configs, run_ids=run_ids)

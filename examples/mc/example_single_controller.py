@@ -24,13 +24,6 @@ results = ADCS.simulate(
     tf=500.0,
 )
 
-ADCS.plot(
-    results,
-    ADCS.plots.TargetHistogram(),
-    layout=(1,1),
-    title="Target Histogram Plot",
-)
-
 # ADCS.plot(
 #     results,
 #     ADCS.plots.ControlPlot(),
@@ -115,4 +108,6 @@ ADCS.plot(
 #     title="Quaternion and Angular Velocity Plot",
 # )
 
-plt.show()
+# plt.show()
+
+results.save("single_controller_example", out_dir="output")
