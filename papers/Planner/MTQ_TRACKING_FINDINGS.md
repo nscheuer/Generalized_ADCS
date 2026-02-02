@@ -104,26 +104,53 @@ This would adapt to B-field changes but requires faster optimization.
 - Test scripts: `/tmp/test_smooth_pass2.py`, `/tmp/test_openloop_vs_tvlqr.py`
 - Plots: `/tmp/smooth_pass2.png`, `/tmp/openloop_vs_tvlqr.png`
 
-## Update: TVLQR Gains Bug Fixed (Feb 2, 2026)
+## Update: TVLQR Gains Bug Fixed + Tuning (Feb 2, 2026)
 
+### Bug Fix
 A bug was found where `PythonALILQRv2.optimize()` was returning **all-zero gains** because `ilqrStep` doesn't expose the backward pass results. 
 
 **Fix applied:** Call `backwardPass` at the end of optimization to compute actual gains.
 
-**New findings with actual gains:**
-- Gains are computed correctly now (Kset shape: (18, N) for MTQ-only)
-- **However, gains are very large** (mean~166, max~9200 vs actuator limit 0.2)
-- TVLQR with these gains **hurts performance** - causes actuator saturation
-- Open-loop: 10.86° final error
-- TVLQR: 44.55° final error (worse!)
+### Gain Tuning for Practical TVLQR
+Added `tvlqr_cost_settings` parameter to use **separate cost weights for gain computation**:
+- Default: `control_mult = 1e6` (much higher control cost)
+- This produces smaller, actuator-appropriate gains (K_max ~1000 vs ~9000)
 
-**Root cause:** The LQR gains are computed with state costs ~1e3-1e4 and control costs ~1, making K very large. For MTQ systems where actuator authority is limited and torque direction depends on B-field, large LQR gains cause saturation and instability.
+### Final Results with Tuned Gains
 
-**Remaining work:**
-1. Scale gains appropriately for MTQ authority
-2. Or use smaller state weights in LQR cost
-3. Or implement gain clamping / anti-windup
-4. Or use different tracking approach (e.g., model predictive control)
+**3MTQ+1RW (with Reaction Wheel): TVLQR HELPS ✓**
+| Metric | Open-loop | TVLQR |
+|--------|-----------|-------|
+| Final error | 9.8° | **6.0°** |
+| Improvement | — | **+3.8°** |
+| K_max | — | 1166 |
+
+**MTQ-only: TVLQR STILL HURTS ✗**
+| Metric | Open-loop | TVLQR |
+|--------|-----------|-------|
+| Final error | 35.9° | **116.6°** |
+| Degradation | — | **-80.7°** |
+| K_max | — | 1430 |
+
+### Root Cause: Physics Limitation
+For MTQ-only systems, TVLQR cannot help because:
+1. MTQ torque = m × B (cross product with B-field)
+2. B-field in body frame depends on current attitude
+3. As attitude diverges from plan, B-field differs from planned value
+4. Feedback corrections assume planned B-field → commands wrong torque direction
+
+**This is a fundamental physics limitation, not a tuning problem.**
+
+### Recommendations
+| System | Recommended Tracking |
+|--------|---------------------|
+| 3MTQ+1RW or more RWs | Use TVLQR (helps ~4°) |
+| MTQ-only | Use **open-loop only** |
+
+For MTQ-only systems requiring feedback, consider:
+1. MPC with real-time B-field measurement
+2. Sliding mode control
+3. Adaptive control with B-field estimation
 
 ## Date
 
