@@ -1,0 +1,20 @@
+{
+  "created": "2026-01-28T12:51:03",
+  "python": "3.12.3 (main, Jan  8 2026, 11:30:50) [GCC 13.3.0]",
+  "numpy": "2.2.6",
+  "directory": "/home/nic2703/Generalized_ADCS/papers/Planner/output_data/3MTQ+0RW_plan_reduced_mc_1_20260128_125103",
+  "items": [
+    {
+      "label": "obj0",
+      "var_name": "full_results",
+      "kind": "pickle",
+      "file": "objects.pkl",
+      "key": "obj0",
+      "info": {
+        "type": "list",
+        "len": 1,
+        "elem_type": "NoneType"
+      }
+    }
+  ]
+}

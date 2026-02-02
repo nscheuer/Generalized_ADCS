@@ -1,3 +1,10 @@
+"""
+Monte Carlo: 3MTQ+0RW Lovera Controller - Full Attitude 180° Slew.
+
+Uses BC2 satellite configuration with Lovera (MTQ-only) controller.
+Same setup as 3+1 full for fair comparison - 180° rotation about axis
+perpendicular to boresight.
+"""
 import sys
 import os
 import numpy as np
@@ -53,21 +60,16 @@ _CACHED_ORBIT_KEY: Optional[Tuple] = None
 def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
     global _CACHED_ORBIT, _CACHED_ORBIT_KEY
 
-    # 1. UI Setup: Claim a slot
     slot_id = claim_worker_slot()
     run_id = config["run_id"]
 
     try:
-        tf = config.get("tf", 500)
-        dt = config.get("dt", 2)
-        t0 = 0
-        N = int((tf - t0) / dt)
+        tf = config.get("tf", 1000)
+        dt = config.get("dt", 1)
+        N = int(tf / dt)
 
-        # 2. Orbit Retrieval (Cached)  -> ONE RANDOM CIRCULAR ORBIT PER WORKER SLOT
-        #    We create it before per-run seeding, and we isolate its RNG so it doesn't
-        #    affect per-run randomness.
-        radius_km = float(config.get("radius_km", 7000.0))
-        orbit_key = (slot_id, radius_km, tf, dt, True, False)
+        radius_km = config.get("radius_km", 7000.0)
+        orbit_key = (slot_id, radius_km, tf, dt)
 
         if _CACHED_ORBIT is None or _CACHED_ORBIT_KEY != orbit_key:
             rng_state = np.random.get_state()
@@ -103,112 +105,90 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
         state_hist = np.zeros((N, len(x)))
         u_hist = np.zeros((N, len(real_sat.actuators)))
         q_goal_hist = np.zeros((N, 4))
-        t = t0
-        ind = 0
-        steps = int((tf - t0) / dt)
 
-        # 7. Loop
-        orb_get_os = orb.get_os
-        sat_sensor_readings = real_sat.sensor_readings
-        ctrl_find_u = controller.find_u
-        goal_to_ref = goal.to_ref
-        sat_dynamics = real_sat.dynamics_for_solver
+        t = 0
         sec2cent = TimeConstants.sec2cent
+        for i in range(N):
+            if i % 10 == 0:
+                update_worker_progress(slot_id, run_id, i, N)
 
-        for i in range(steps):
-            # --- UI UPDATE ---
-            if i % 10 == 0:  # Update every 10 steps to keep IPC light
-                update_worker_progress(slot_id, run_id, i, steps)
-
-            # Physics
             J2000 = 0.22 + t * sec2cent
-            os_state = orb_get_os(J2000=J2000)
-            sens = sat_sensor_readings(x=x, os=os_state)
-            u = ctrl_find_u(x_hat=x, sens=sens, est_sat=real_sat, os_hat=os_state, goal=goal)
+            os_state = orb.get_os(J2000=J2000)
+            sens = real_sat.sensor_readings(x=x, os=os_state)
+            u = controller.find_u(x_hat=x, sens=sens, est_sat=real_sat, os_hat=os_state, goal=goal)
 
-            time_hist[ind] = t
-            state_hist[ind, :] = x
-            u_hist[ind, :] = u
-            q_goal_ref, _ = goal_to_ref(os0=os_state)
-            q_goal_hist[ind, :] = q_goal_ref
+            time_hist[i] = t
+            state_hist[i, :] = x
+            u_hist[i, :] = u
+            q_goal_hist[i, :] = config["q_goal"]
 
-            ind += 1
             t += dt
-            prev_os = os_state
-            os_next = orb_get_os(0.22 + (t - t0) * sec2cent)
-
+            os_next = orb.get_os(0.22 + t * sec2cent)
             out = solve_ivp(
-                fun=sat_dynamics,
-                t_span=(0, dt),
-                y0=x,
-                method="RK45",
-                args=(u, prev_os, os_next),
-                rtol=1e-6,
-                atol=1e-6,
+                real_sat.dynamics_for_solver, (0, dt), x, method="RK45",
+                args=(u, os_state, os_next), rtol=1e-6, atol=1e-6
             )
             x = out.y[:, -1]
             x[3:7] = normalize(x[3:7])
 
-        # Final UI update
-        update_worker_progress(slot_id, run_id, steps, steps)
+        update_worker_progress(slot_id, run_id, N, N)
 
         return {
-            "run_id": config["run_id"],
-            "config": config,
-            "time": time_hist,
-            "state": state_hist,
-            "u": u_hist,
-            "q_goal": q_goal_hist,
+            "run_id": run_id, "config": config,
+            "time": time_hist, "state": state_hist, "u": u_hist,
+            "q_goal": q_goal_hist, "goal_type": "full_attitude"
         }
-
     finally:
-        # Important: Release the slot even if an error occurs
         release_worker_slot(slot_id)
 
 
-# --- Config Generator ---
 def generate_mc_config(run_id: int) -> Dict[str, Any]:
     rng = np.random.default_rng(seed=run_id + 1000)
+    
+    # Random initial quaternion
+    q0 = normalize(rng.standard_normal(4))
+    
+    # 180° rotation about axis perpendicular to boresight (in XZ plane)
+    rand_angle = rng.uniform(0, 2 * np.pi)
+    axis_body = np.array([np.cos(rand_angle), 0, np.sin(rand_angle)])
+    
+    # 180° rotation quaternion
+    q_180_body = np.array([0, axis_body[0], axis_body[1], axis_body[2]])
+    
+    # Apply in body frame
+    q_goal = quat_mult(q0, q_180_body)
+    q_goal = normalize(q_goal)
+    
     return {
         "run_id": run_id,
         "seed": run_id,
         "tf": 1000,
         "dt": 2,
-        "radius_km": 7000.0,  # circular orbit radius; each core gets a different random position/plane
+        "radius_km": 7000.0,
         "w0": normalize(rng.standard_normal(3)) * (rng.uniform(0.1, 1.0) * np.pi / 180.0),
-        "q0": normalize(rng.standard_normal(4)),
-        "goal_q0": normalize(rng.standard_normal(4)),
+        "q0": q0,
+        "q_goal": q_goal,
+        "h0": rng.uniform(-0.0001, 0.0001, size=1),
     }
 
 
 if __name__ == "__main__":
-    RUN_MC: bool = True
+    RUN_MC = True
     OUTPUT_DIR = "papers/Planner/output_data"
+    NUM_RUNS = 100
 
     if RUN_MC:
         runner = MonteCarloRunner(
             sim_func=run_single_sim,
             config_generator=generate_mc_config,
-            num_runs=100,
-            max_workers=24
+            num_runs=NUM_RUNS,
+            max_workers=12
         )
         full_results = runner.run()
-
-        print(f"\n--- Monte Carlo Complete: Generated {len(full_results)} histories ---")
-        save_data("3MTQ+0RW_LP_mc_100_1000s_full", full_results, out_dir=OUTPUT_DIR)
-
-        plot_target_tracking_mc(full_results=full_results, body_boresight=np.array([0, 1, 0]), title="3 MTQ + 0 RW LP MC:100")
-        plot_convergence_histogram_mc(full_results=full_results, body_boresight=np.array([0, 1, 0]), title="3 MTQ + 0 RW LP")
-
+        print(f"\n--- Monte Carlo Complete: {len(full_results)} runs ---")
+        save_data(f"3MTQ+0RW_Lovera_full180_mc_{NUM_RUNS}", full_results, out_dir=OUTPUT_DIR)
         create_close_all_button_window()
     else:
-        results = load_data("papers/3MTQ+1RW/output_data/3MTQ+1RW_LP_mc_100_20260118_013735")
-        full_results = results[0]
-        plot_target_tracking_mc(full_results=full_results, body_boresight=np.array([0, 1, 0]))
-        plot_convergence_histogram_mc(full_results=full_results, body_boresight=np.array([0, 1, 0]), title="P = 40")
-        # results = load_data("papers/3MTQ+1RW/output_data/3MTQ+1RW_LP_mc_36_20260118_013308")
-        # full_results = results[0]
-        # plot_target_tracking_mc(full_results=full_results)
-        # plot_convergence_histogram_mc(full_results=full_results, title="P = 45")
+        results = load_data(f"{OUTPUT_DIR}/3MTQ+0RW_Lovera_full180_mc_{NUM_RUNS}")
+        full_results = results[0] if isinstance(results, tuple) else results
         create_close_all_button_window()
-        print("Done plotting loaded data.")

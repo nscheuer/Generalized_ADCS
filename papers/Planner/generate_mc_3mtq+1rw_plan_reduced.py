@@ -35,6 +35,7 @@ Monte Carlo Simulation for ALTRO (Plan_and_Track_LQR) Controller.
 - Configuration matches debug_altro settings (tf=500, dt=1).
 - Uses specific cost weights and planner settings defined in the debug file.
 """
+BODY_BORESIGHT = np.array([0, 1, 0])
 
 # --- GLOBAL WORKER CACHE ---
 _CACHED_ORBIT: Optional[Orbit] = None
@@ -43,19 +44,17 @@ _CACHED_ORBIT_KEY: Optional[Tuple] = None
 def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
     global _CACHED_ORBIT, _CACHED_ORBIT_KEY
 
-    # 1. UI Setup: Claim a slot
     slot_id = claim_worker_slot()
     run_id = config["run_id"]
 
     try:
-        tf = config.get("tf", 500)
+        tf = config.get("tf", 1000)
         dt = config.get("dt", 1)
-        t0 = 0
-        steps = int((tf - t0) / dt)
+        dt_planning = config.get("dt_planning", 1)
+        N = int(tf / dt)
 
-        # 2. Orbit Retrieval (Cached)
-        radius_km = float(config.get("radius_km", 7000.0))
-        orbit_key = (slot_id, radius_km, tf, dt, True, False)
+        radius_km = config.get("radius_km", 7000.0)
+        orbit_key = (slot_id, radius_km, tf, dt_planning)
 
         if _CACHED_ORBIT is None or _CACHED_ORBIT_KEY != orbit_key:
             rng_state = np.random.get_state()
@@ -73,203 +72,136 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
                 np.random.set_state(rng_state)
 
         orb = _CACHED_ORBIT
-
-        # 3. Setup Randomness (per run)
         np.random.seed(config["seed"])
 
-        # Create Satellite (using exact factory from debug)
         real_sat = create_beavercube2_cubesat(estimated=False)
+        rws = real_sat.rw_actuators
 
-        # 4. Initial Conditions
-        x = np.concatenate([config["w0"], config["q0"], config["h0"]])
-        for i, rw in enumerate(real_sat.rw_actuators):
+        x0 = np.concatenate([config["w0"], config["q0"], config["h0"]])
+        for i, rw in enumerate(rws):
             rw.h = config["h0"][i]
 
-        # 5. Controller Setup (Exact settings from debug_altro)
+        # Planner setup
         planner_settings = PlannerSettings(
-            est_sat=real_sat,
-            bdot_on=0,  # Skip bdot initial guess
-            dt_tp=50,
-            dt_tvlqr=1,
+            est_sat=real_sat, bdot_on=0, dt_tp=10, dt_tvlqr=dt_planning
         )
-        
-        # --- Apply Debug Gains and Costs ---
         planner_settings.verbosity = False
-        planner_settings.cost_main.use_full_cost_hessian = True
-        planner_settings.pass1.regularization.use_dynamics_hess = 1
-        planner_settings.init_traj.bdot_gain = 500
-        planner_settings.pass1.aug_lag.penalty_init = 1e-3
-        planner_settings.pass1.aug_lag.penalty_scale = 10
-        planner_settings.pass1.convergence.max_outer_iter = 15
-        planner_settings.pass1.convergence.max_inner_iter = 40
-        planner_settings.pass2.aug_lag.penalty_init = 1e5
-        planner_settings.pass2.aug_lag.penalty_scale = 10
-        planner_settings.pass2.convergence.max_outer_iter = 8
-        planner_settings.pass2.convergence.max_inner_iter = 20
-
-        planner_settings.cost_main = CostWeights(
-                angle=1e1,
-                angle_N=1e1,   # 10x running cost
-                ang_vel=1e5,
-                ang_vel_N=1e5, # 10x running cost
-                ang_vel_err_dir=1e2,
-                ang_vel_err_dir_N=0.0,
-                ang_vel_mag=0.0,
-                ang_vel_mag_N=0.0,
-                control_mult=1.0,
-                ang_cost_func_type=2,
-            )
-        
-        planner_settings.cost_second = planner_settings.cost_main
-        
-        planner_settings.cost_tvlqr = CostWeights(
-                angle=1e5,
-                angle_N=1e6,
-                ang_vel=1e6,
-                ang_vel_N=1e8,
-                ang_vel_mag=0.0,
-                ang_vel_mag_N=0.0,
-                control_mult=1.0,
-                ang_cost_func_type=2,
-            )
+        planner_settings.pass1.convergence.max_outer_iter = 8
+        planner_settings.pass1.convergence.max_inner_iter = 30
+        planner_settings.pass2.convergence.max_outer_iter = 4
+        planner_settings.pass2.convergence.max_inner_iter = 15
 
         controller = Plan_and_Track_LQR(est_sat=real_sat, planner_settings=planner_settings)
 
-        # 6. Goals and Trajectory Planning
-        start_time_j2000 = 0.22  # Matching debug file start time
-        goals = GoalList({start_time_j2000: ECI_Goal(config["goal_eci_vec"])})
-        
-        # Get initial orbital state for planning
-        os0 = orb.get_os(J2000=start_time_j2000)
+        goals = GoalList({0.22: ECI_Goal(config["goal_eci_vec"])})
+        os0 = orb.get_os(0.22)
 
-        # Calculate Trajectory (The "Plan" part)
-        traj = controller.calculate_trajectory(
-            t_start=start_time_j2000,
-            duration=(tf - t0),
-            x_0=x,
-            os_0=os0,
-            goals=goals,
-            verbose=False
-        )
-        
-        controller.set_active_trajectory(traj)
+        # Generate trajectory
+        try:
+            traj = controller.calculate_trajectory(
+                t_start=0.22, duration=tf, x_0=x0, os_0=os0, goals=goals, verbose=False
+            )
+            controller.set_active_trajectory(traj)
+            traj_valid = True
+        except Exception as e:
+            return {"run_id": run_id, "config": config, "error": str(e), "traj_valid": False}
 
-        # 7. Simulation Arrays
-        time_hist = np.zeros(steps)
-        state_hist = np.zeros((steps, len(x)))
-        u_hist = np.zeros((steps, len(real_sat.actuators)))
-        boresight_hist = np.zeros((steps, 3))
-        
-        t = t0
-        ind = 0
-        
-        # Optimization vars
-        orb_get_os = orb.get_os
-        sat_sensor_readings = real_sat.sensor_readings
-        ctrl_find_u = controller.find_u
-        sat_dynamics = real_sat.dynamics_for_solver
+        # Arrays for LQR tracking
+        time_hist = np.zeros(N)
+        state_hist = np.zeros((N, len(x0)))
+        u_hist = np.zeros((N, len(real_sat.actuators)))
+        boresight_hist = np.zeros((N, 3))
+
+        # Reset RW state
+        for i, rw in enumerate(rws):
+            rw.h = config["h0"][i]
+
+        x = x0.copy()
+        t = 0
         sec2cent = TimeConstants.sec2cent
 
-        # 8. Loop (The "Track" part)
-        for i in range(steps):
-            # --- UI UPDATE ---
+        for i in range(N):
             if i % 10 == 0:
-                update_worker_progress(slot_id, run_id, i, steps)
+                update_worker_progress(slot_id, run_id, i, N)
 
-            # Physics
-            current_j2000 = start_time_j2000 + t * sec2cent
-            os_state = orb_get_os(J2000=current_j2000)
-            
-            sens = sat_sensor_readings(x=x, os=os_state)
-            
-            # Find U (Tracking the active trajectory)
-            u = ctrl_find_u(x_hat=x, sens=sens, est_sat=real_sat, os_hat=os_state)
+            J2000 = 0.22 + t * sec2cent
+            os_state = orb.get_os(J2000=J2000)
+            sens = real_sat.sensor_readings(x=x, os=os_state)
+            u = controller.find_u(x_hat=x, sens=sens, est_sat=real_sat, os_hat=os_state)
 
-            time_hist[ind] = t
-            state_hist[ind, :] = x
-            u_hist[ind, :] = u
-            
-            # Log the goal (reference) at this timestep
-            eci_goal_ref, _ = goals.to_ref(t=current_j2000, os0=os_state)
-            boresight_hist[ind, :] = eci_goal_ref
+            time_hist[i] = t
+            state_hist[i, :] = x
+            u_hist[i, :] = u
+            eci_goal_ref, _ = goals.to_ref(t=J2000, os0=os_state)
+            boresight_hist[i, :] = eci_goal_ref
 
-            ind += 1
             t += dt
-            
-            prev_os = os_state
-            os_next = orb_get_os(start_time_j2000 + (t - t0) * sec2cent)
-
-            # Integration (using rtol=1e-7 per debug file)
+            os_next = orb.get_os(0.22 + t * sec2cent)
             out = solve_ivp(
-                fun=sat_dynamics,
-                t_span=(0, dt),
-                y0=x,
-                method="RK45",
-                args=(u, prev_os, os_next),
-                rtol=1e-7,
-                atol=1e-7,
+                real_sat.dynamics_for_solver, (0, dt), x, method="RK45",
+                args=(u, os_state, os_next), rtol=1e-6, atol=1e-6
             )
             x = out.y[:, -1]
             x[3:7] = normalize(x[3:7])
 
-        # Final UI update
-        update_worker_progress(slot_id, run_id, steps, steps)
+        update_worker_progress(slot_id, run_id, N, N)
 
         return {
-            "run_id": config["run_id"],
-            "config": config,
-            "time": time_hist,
-            "state": state_hist,
-            "u": u_hist,
-            "boresight_goal": boresight_hist,
+            "run_id": run_id, "config": config, "traj_valid": True,
+            "time": time_hist, "state": state_hist, "u": u_hist,
+            "boresight_goal": boresight_hist
         }
-
     finally:
         release_worker_slot(slot_id)
 
 
-# --- Config Generator ---
 def generate_mc_config(run_id: int) -> Dict[str, Any]:
-    rng = np.random.default_rng(seed=run_id + 238)
+    rng = np.random.default_rng(seed=run_id + 1000)
     
-    # Matching initial condition randomization from debug/template
+    q0 = normalize(rng.standard_normal(4))
+    R0 = rot_mat(q0)
+    initial_boresight_eci = R0 @ BODY_BORESIGHT
+    goal_eci_vec = -initial_boresight_eci  # 180° boresight slew
+    
     return {
         "run_id": run_id,
         "seed": run_id,
-        "tf": 1000,  # Explicitly requested 500s
-        "dt": 1,    # Explicitly requested 1s
+        "tf": 1000,
+        "dt": 2,
+        "dt_planning": 1,
         "radius_km": 7000.0,
         "w0": normalize(rng.standard_normal(3)) * (rng.uniform(0.1, 1.0) * np.pi / 180.0),
-        "q0": normalize(rng.standard_normal(4)),
-        "h0": rng.uniform(-0.0001, 0.0001, size=1), # Small initial momentum like debug
-        "goal_eci_vec": normalize(rng.standard_normal(3)),
+        "q0": q0,
+        "h0": rng.uniform(-0.0001, 0.0001, size=1),
+        "goal_eci_vec": goal_eci_vec,
     }
 
 
 if __name__ == "__main__":
-    RUN_MC: bool = True
-    OUTPUT_DIR = "papers/Planner/output_data" # Adjusted folder name
+    RUN_MC = True
+    OUTPUT_DIR = "papers/Planner/output_data"
+    NUM_RUNS = 100
 
     if RUN_MC:
         runner = MonteCarloRunner(
             sim_func=run_single_sim,
             config_generator=generate_mc_config,
-            num_runs=100,
-            max_workers=24
+            num_runs=NUM_RUNS,
+            max_workers=2  # Planner is memory-intensive
         )
         full_results = runner.run()
-
-        print(f"\n--- Monte Carlo Complete: Generated {len(full_results)} histories ---")
-        save_data("3MTQ+1RW_MC_24_1000s_reduced", full_results, out_dir=OUTPUT_DIR)
-
-        plot_target_tracking_mc(full_results=full_results, body_boresight=np.array([0, 1, 0]), title="ALTRO Trajectory Tracking MC:100")
-        plot_convergence_histogram_mc(full_results=full_results, body_boresight=np.array([0, 1, 0]), title="ALTRO Convergence")
-
+        
+        valid = [r for r in full_results if r and r.get("traj_valid", False)]
+        print(f"\n--- Monte Carlo Complete: {len(valid)}/{len(full_results)} valid ---")
+        save_data(f"3MTQ+1RW_plan_reduced_mc_{NUM_RUNS}", full_results, out_dir=OUTPUT_DIR)
+        
+        plot_target_tracking_mc(valid, body_boresight=BODY_BORESIGHT, title=f"3MTQ+1RW Planner Reduced N={len(valid)}")
+        plot_convergence_histogram_mc(valid, body_boresight=BODY_BORESIGHT, title=f"3MTQ+1RW Planner Reduced")
         create_close_all_button_window()
     else:
-        # Example loading block
-        results = load_data("papers/Planner/output_data/3MTQ+1RW_MC_24_1000s_TIMESTAMP")
-        full_results = results[0]
-        plot_target_tracking_mc(full_results=full_results, body_boresight=np.array([0, 1, 0]))
+        results = load_data(f"{OUTPUT_DIR}/3MTQ+1RW_plan_reduced_mc_{NUM_RUNS}")
+        full_results = results[0] if isinstance(results, tuple) else results
+        valid = [r for r in full_results if r and r.get("traj_valid", False)]
+        plot_target_tracking_mc(valid, body_boresight=BODY_BORESIGHT, title=f"3MTQ+1RW Planner Reduced")
+        plot_convergence_histogram_mc(valid, body_boresight=BODY_BORESIGHT, title=f"3MTQ+1RW Planner Reduced")
         create_close_all_button_window()
-        print("Done plotting loaded data.")
