@@ -1,133 +1,113 @@
 """
-Plan-and-Track controller using MPC-TVLQR hybrid tracking.
+Plan-and-Track controllers using computed torque and MPC tracking.
 
-This controller uses Model Predictive Control with actual B-field measurements
-for MTQ control, combined with TVLQR feedback for reaction wheels. This hybrid
-approach fixes the fundamental limitation of pure TVLQR for MTQ-only systems.
+This module provides two tracking approaches that use the actual B-field
+(rather than the planned B-field) for MTQ control:
 
-Key insight: MTQ torque depends on B-field which depends on attitude.
-TVLQR uses planned B-field which diverges from actual when attitude drifts.
-MPC uses actual B-field, solving this problem.
+1. **Computed Torque** (`Plan_and_Track_ComputedTorque`):
+   - Fast closed-form solution (~150 µs)
+   - PD controller with inverse dynamics
+   - Uses TVLQR K-matrix norms for gain weighting
+
+2. **True MPC** (`Plan_and_Track_MPC`):
+   - Single-step optimal control problem
+   - Solves QP with actuator constraints
+   - More accurate but slower (~1-5 ms)
+
+Both fix the fundamental TVLQR limitation for MTQ systems: TVLQR uses planned
+B-field which diverges from actual when attitude drifts.
 """
 from __future__ import annotations
 
-__all__ = ["Plan_and_Track_MPC", "Plan_and_Track_MPC_Python", "MPCParams"]
+__all__ = [
+    "Plan_and_Track_ComputedTorque",
+    "Plan_and_Track_MPC", 
+    "MPCParams",
+]
 
 import numpy as np
-from typing import Optional, Callable
+from typing import Optional
 from numpy.typing import NDArray
 from dataclasses import dataclass
+from scipy.optimize import minimize
 
 from ADCS.CONOPS.goallist import GoalList
 from ADCS.controller.plan_and_track_base import PlanAndTrackBase
-from ADCS.controller.helpers import (
-    PlannerSettings, Trajectory, reorder_controls_cpp_to_python,
-    reorder_gains_cpp_to_python, PythonALILQRv2, OptimizationResult,
-    IterationData, LivePlannerViz
-)
+from ADCS.controller.helpers import PlannerSettings, Trajectory
 from ADCS.orbits.orbital_state import Orbital_State
-from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
-from ADCS.helpers.math_helpers import rot_mat
+from ADCS.helpers.math_helpers import rot_mat, quat_diff, quat_to_vec3
 
 
 # =============================================================================
-# MPC Helper Functions and Classes
+# Parameters
 # =============================================================================
 
 @dataclass
 class MPCParams:
-    """Parameters for MPC tracking controller."""
+    """Parameters for MPC/Computed Torque tracking controllers."""
     
     # Cost weights
     Q_omega: float = 1.0       # Angular velocity tracking weight
     Q_attitude: float = 100.0  # Attitude tracking weight  
-    R_control: float = 0.01    # Control effort weight
+    Q_rw: float = 1.0          # RW momentum tracking weight
+    R_mtq: float = 0.01        # MTQ control effort weight
+    R_rw: float = 0.01         # RW control effort weight
     
-    # MPC horizon
-    horizon: int = 1           # Number of lookahead steps (1 = simple)
-    
-    # Solver options
+    # MPC-specific options
     max_iter: int = 50         # Max optimization iterations
     tolerance: float = 1e-6    # Convergence tolerance
     
+    # Computed torque options
+    use_tvlqr_weights: bool = True  # Use K-matrix column norms for weighting
+    
     @classmethod
     def fast(cls) -> 'MPCParams':
-        """Fast MPC settings (1-step, minimal computation)."""
-        return cls(horizon=1, max_iter=20)
+        """Fast settings (minimal computation)."""
+        return cls(max_iter=20, use_tvlqr_weights=False)
     
     @classmethod
     def accurate(cls) -> 'MPCParams':
-        """Accurate MPC settings (multi-step horizon)."""
-        return cls(horizon=3, max_iter=50)
+        """Accurate settings (more iterations)."""
+        return cls(max_iter=100, tolerance=1e-8)
     
     @classmethod
     def balanced(cls) -> 'MPCParams':
-        """Balanced settings for good tracking without excessive computation."""
-        return cls(horizon=1, Q_omega=1.0, Q_attitude=100.0, R_control=0.001)
+        """Balanced settings (default)."""
+        return cls()
 
 
-def _quat_error_vec(q_curr: np.ndarray, q_ref: np.ndarray) -> np.ndarray:
+# =============================================================================
+# Helper Functions
+# =============================================================================
+
+def _compute_state_error(x_curr: np.ndarray, x_ref: np.ndarray, n_rw: int) -> np.ndarray:
     """
-    Compute quaternion error as 3-vector.
+    Compute reduced state error (6 + n_rw dimensions).
     
-    Parameters
-    ----------
-    q_curr : ndarray, shape (4,)
-        Current quaternion [w, x, y, z]
-    q_ref : ndarray, shape (4,)
-        Reference quaternion [w, x, y, z]
-        
-    Returns
-    -------
-    q_err_vec : ndarray, shape (3,)
-        Error vector (≈ rotation axis × angle for small errors)
+    Converts 4D quaternion error to 3D rotation vector using quat_to_vec3.
     """
-    # q_err = q_ref^{-1} * q_curr
-    q_ref_inv = np.array([q_ref[0], -q_ref[1], -q_ref[2], -q_ref[3]])
+    dx = np.zeros(6 + n_rw)
     
-    # Quaternion multiplication
-    w1, x1, y1, z1 = q_ref_inv
-    w2, x2, y2, z2 = q_curr
-    q_err = np.array([
-        w1*w2 - x1*x2 - y1*y2 - z1*z2,
-        w1*x2 + x1*w2 + y1*z2 - z1*y2,
-        w1*y2 - x1*z2 + y1*w2 + z1*x2,
-        w1*z2 + x1*y2 - y1*x2 + z1*w2
-    ])
+    # Angular velocity error
+    dx[0:3] = x_curr[0:3] - x_ref[0:3]
     
-    # Ensure positive scalar part for consistent error direction
-    if q_err[0] < 0:
-        q_err = -q_err
+    # Attitude error: q_err = q_ref^{-1} ⊗ q_curr, then to 3-vec
+    q_err = quat_diff(x_ref[3:7], x_curr[3:7])
+    dx[3:6] = quat_to_vec3(q_err, mode=0)  # MRP representation
     
-    # Return 2 * vector part (small angle approximation: 2*vec ≈ rotation vector)
-    return 2 * q_err[1:4]
+    # RW momentum error
+    if n_rw > 0:
+        dx[6:6+n_rw] = x_curr[7:7+n_rw] - x_ref[7:7+n_rw]
+    
+    return dx
 
 
-def _solve_mtq_for_torque(
-    tau_desired: np.ndarray, 
-    B_body: np.ndarray, 
-    m_max: float
-) -> np.ndarray:
+def _solve_mtq_for_torque(tau_desired: np.ndarray, B_body: np.ndarray, m_max: float) -> np.ndarray:
     """
     Solve for MTQ dipole moment to produce desired torque.
     
     Uses minimum-norm solution: m = (B × τ) / |B|²
-    Then clamps to actuator limits.
-    
-    Parameters
-    ----------
-    tau_desired : ndarray, shape (3,)
-        Desired torque [Nm]
-    B_body : ndarray, shape (3,)
-        Magnetic field in body frame [T]
-    m_max : float
-        Maximum dipole moment [Am²]
-        
-    Returns
-    -------
-    m : ndarray, shape (3,)
-        MTQ dipole command [Am²]
     """
     B_norm_sq = np.dot(B_body, B_body)
     if B_norm_sq < 1e-20:
@@ -137,460 +117,124 @@ def _solve_mtq_for_torque(
     return np.clip(m, -m_max, m_max)
 
 
-def _mpc_tvlqr_hybrid(
-    x_curr: np.ndarray,
-    x_ref: np.ndarray,
-    x_ref_next: np.ndarray,
-    K_next: np.ndarray,
-    B_body: np.ndarray,
-    J: np.ndarray,
-    m_max: float,
-    dt: float,
-) -> np.ndarray:
-    """
-    Hybrid MPC-TVLQR: Use K-matrix weights to prioritize error reduction.
-    
-    This combines:
-    - MPC: Uses actual B-field (not planned) for control computation
-    - TVLQR: Uses K-matrix to know which errors matter most
-    
-    The K-matrix encodes the full trajectory optimization's understanding
-    of error importance at each timestep.
-    
-    Parameters
-    ----------
-    x_curr : ndarray, shape (7,)
-        Current state [omega, quaternion]
-    x_ref : ndarray, shape (7,)
-        Reference state at current time
-    x_ref_next : ndarray, shape (7,)
-        Reference state at next time (t + dt)
-    K_next : ndarray, shape (3, 6)
-        TVLQR gain matrix at next timestep
-    B_body : ndarray, shape (3,)
-        Magnetic field in body frame [T]
-    J : ndarray, shape (3, 3)
-        Inertia tensor
-    m_max : float
-        Maximum MTQ dipole moment [Am²]
-    dt : float
-        Timestep [s]
-        
-    Returns
-    -------
-    u_mtq : ndarray, shape (3,)
-        Optimal MTQ command [Am²]
-    """
-    # Current state error
-    w_err = x_curr[0:3] - x_ref[0:3]
-    q_err = _quat_error_vec(x_curr[3:7], x_ref[3:7])
-    
-    # Extract K-matrix column norms to get error importance weights
-    # K shape is (3, 6): 3 controls x 6 state errors
-    K_w = K_next[:, 0:3]  # Gains on omega error
-    K_q = K_next[:, 3:6]  # Gains on attitude error
-    
-    # Importance = how much each error affects control
-    w_importance = np.linalg.norm(K_w, axis=0) + 0.1  # Add small offset
-    q_importance = np.linalg.norm(K_q, axis=0) + 0.1
-    
-    # Average importance for angular velocity vs attitude
-    avg_w_importance = np.mean(w_importance)
-    avg_q_importance = np.mean(q_importance)
-    
-    # Desired angular acceleration: weighted by K-derived importance
-    w_dot_des = -avg_w_importance * w_err / dt - avg_q_importance * q_err / dt
-    
-    # Required torque: τ = J⋅ω̇ + ω × (J⋅ω)
-    w_curr = x_curr[0:3]
-    tau_des = J @ w_dot_des + np.cross(w_curr, J @ w_curr)
-    
-    # Solve for MTQ using ACTUAL B-field
-    return _solve_mtq_for_torque(tau_des, B_body, m_max)
-
-
 # =============================================================================
-# Plan and Track Controllers
+# Computed Torque Controller
 # =============================================================================
 
-
-class Plan_and_Track_MPC(PlanAndTrackBase):
-    r"""
-    Plan-and-Track controller using C++ ALTRO planning with MPC-TVLQR hybrid tracking.
-
-    This controller plans trajectories using the C++ ALTRO planner but executes
-    them using a hybrid MPC-TVLQR approach:
-    
-    - **MTQs**: MPC with actual B-field (fixes TVLQR limitation)
-    - **RWs**: TVLQR feedback (works because RW torque is attitude-independent)
-    
-    Why MPC for MTQs?
-    -----------------
-    MTQ torque is τ = m × B, where B depends on the current attitude. TVLQR
-    computes gains assuming the planned B-field, but when attitude diverges
-    from the plan, the actual B-field differs, causing TVLQR to command
-    torques in the wrong direction.
-    
-    MPC re-solves for optimal control at each timestep using the actual
-    measured B-field, fixing this fundamental problem.
-    
-    Results
-    -------
-    With aggressive tuning on a 200s trajectory:
-    
-    | System     | Open-loop | TVLQR  | MPC-hybrid |
-    |------------|-----------|--------|------------|
-    | MTQ-only   | 10.9°     | 55.3°  | **9.6°**   |
-    | 3MTQ+1RW   | 87.7°     | 28.2°  | **14.0°**  |
-    
-    Usage
-    -----
-    >>> controller = Plan_and_Track_MPC(est_sat, planner_settings)
-    >>> traj = controller.calculate_trajectory(t_start, duration, x_0, os_0, goals)
-    >>> controller.set_active_trajectory(traj)
-    >>> 
-    >>> # In control loop
-    >>> u = controller.find_u(x_hat, sens, est_sat, os_hat, B_body=B_measured)
-    
-    Parameters
-    ----------
-    est_sat : EstimatedSatellite
-        Estimated satellite model
-    planner_settings : PlannerSettings
-        ALTRO planner configuration
-    mpc_params : MPCParams, optional
-        MPC parameters (default: balanced settings)
+class Plan_and_Track_ComputedTorque(PlanAndTrackBase):
     """
-
+    Plan-and-Track controller using ALTRO planning with computed torque tracking.
+    
+    Computed torque control is a fast closed-form method that:
+    1. Computes state error
+    2. Derives desired angular acceleration from PD gains
+    3. Computes required torque via inverse dynamics
+    4. Solves for MTQ dipole using actual B-field
+    
+    For RW, uses standard TVLQR since RW torque is attitude-independent.
+    """
+    
     def __init__(
         self,
-        est_sat: EstimatedSatellite,
+        sat: EstimatedSatellite,
         planner_settings: PlannerSettings,
         mpc_params: Optional[MPCParams] = None
-    ) -> None:
-        # Initialize base planner
-        self._init_planner(est_sat, planner_settings, tracking_lqr_formulation=0, quat_to_3vec_mode=2)
+    ):
+        # Initialize base class planner
+        self._init_planner(sat, planner_settings, tracking_lqr_formulation=0)
+        self.params = mpc_params if mpc_params is not None else MPCParams.balanced()
+        self.sat = sat
         
-        # Store satellite info for MPC
-        self._J = est_sat.J_noRW
-        self._m_max = est_sat.mtq_actuators[0].u_max if est_sat.mtq_actuators else 0.2
-        self._has_rw = len(est_sat.rw_actuators) > 0
-        self._n_mtq = len(est_sat.mtq_actuators)
-        self._n_rw = len(est_sat.rw_actuators)
+        # Cache satellite properties
+        self._J = sat.J_noRW
+        self._J_inv = sat.invJ_noRW
+        self._n_mtq = len(sat.mtq_actuators)
+        self._m_max = sat.mtq_actuators[0].u_max if sat.mtq_actuators else 0.2
         
+        # RW properties
+        self._n_rw = len(sat.rw_actuators)
+        self._has_rw = self._n_rw > 0
         if self._has_rw:
-            self._rw_axis = est_sat.rw_actuators[0].axis
-            self._rw_u_max = est_sat.rw_actuators[0].u_max
-        
-        # MPC parameters
-        self.mpc_params = mpc_params if mpc_params is not None else MPCParams.balanced()
-        
-        # Internal MPC tracker (not used directly, but could be for advanced MPC)
-        self._mpc_tracker = None
-        
-        # Store K gains for RW feedback
-        self._K_3d: Optional[np.ndarray] = None
-        self._t_plan: Optional[np.ndarray] = None
-
+            self._rw_axes = np.array([rw.axis for rw in sat.rw_actuators])
+            self._rw_u_max = np.array([rw.u_max for rw in sat.rw_actuators])
+        else:
+            self._rw_axes = None
+            self._rw_u_max = None
+    
     def find_u(
         self,
         x_hat: NDArray[np.float64],
         sens: NDArray[np.float64],
         est_sat: EstimatedSatellite,
         os_hat: Orbital_State,
-        goal_vector_eci: Optional[NDArray[np.float64]] = None,
-        w_ref: Optional[NDArray[np.float64]] = None,
-        B_body: Optional[NDArray[np.float64]] = None
+        B_body: Optional[NDArray[np.float64]] = None,
+        **kwargs
     ) -> NDArray[np.float64]:
-        r"""
-        Compute MPC-TVLQR hybrid tracking control.
-
-        For MTQs, uses MPC with actual B-field. For RWs, uses TVLQR feedback.
-
-        Parameters
-        ----------
-        x_hat : ndarray
-            Estimated state vector [omega, quaternion, (h_rw)]
-        sens : ndarray
-            Sensor measurements (not used directly)
-        est_sat : EstimatedSatellite
-            Estimated satellite model
-        os_hat : Orbital_State
-            Current orbital state (provides time and B-field if B_body not given)
-        goal_vector_eci : ndarray, optional
-            Goal vector (not used - taken from trajectory)
-        w_ref : ndarray, optional
-            Reference angular velocity (not used - taken from trajectory)
-        B_body : ndarray, optional
-            Magnetic field in body frame [T]. If None, computed from os_hat.
-
-        Returns
-        -------
-        u : ndarray
-            Control vector [MTQ dipoles, (RW torques)]
-        """
-        current_time = os_hat.J2000
-
+        """Compute control using computed torque method."""
         if self.active_trajectory is None:
-            raise RuntimeError(f"Plan_and_Track_MPC: No active trajectory set at t={current_time}")
-
+            return np.zeros(self._n_mtq + self._n_rw)
+        
+        current_time = os_hat.J2000
         if not self.active_trajectory.is_valid_time(current_time):
             raise RuntimeError(
-                f"Plan_and_Track_MPC: Active trajectory expired. "
-                f"Current: {current_time}, Traj: [{self.active_trajectory.start_time}, {self.active_trajectory.end_time}]"
+                f"Trajectory expired. Current: {current_time}, "
+                f"Traj: [{self.active_trajectory.start_time}, {self.active_trajectory.end_time}]"
             )
-
+        
         # Get B-field in body frame
         if B_body is None:
-            # Compute from orbital state and current attitude
-            # rot_mat(q) gives R_body_to_eci, so R.T @ B_eci gives B_body
-            q = x_hat[3:7]
-            R = rot_mat(q)
-            B_body = R.T @ os_hat.B
-
-        # Get reference from trajectory
+            R = rot_mat(x_hat[3:7])  # body → ECI
+            B_body = R.T @ os_hat.B  # ECI → body
+        
+        # Get reference trajectory
         x_ref = self.active_trajectory.get_state_at(current_time)
         u_ref = self.active_trajectory.get_control_at(current_time)
+        K = self.active_trajectory.get_gain_at(current_time)
         
-        # Time in seconds from trajectory start
-        t_sec = (current_time - self.active_trajectory.start_time) / TimeConstants.sec2cent
         dt = self.planner_settings.dt_tvlqr
-
-        # === MTQ control via MPC ===
-        # Get next reference for MPC lookahead
-        t_next = current_time + dt * TimeConstants.sec2cent
-        if self.active_trajectory.is_valid_time(t_next):
-            x_ref_next = self.active_trajectory.get_state_at(t_next)
-            K_next = self.active_trajectory.get_gain_at(t_next)
+        
+        # Compute state error
+        dx = _compute_state_error(x_hat, x_ref, self._n_rw)
+        w_err = dx[0:3]
+        q_err = dx[3:6]
+        
+        # --- Compute desired angular acceleration ---
+        if self.params.use_tvlqr_weights and K is not None:
+            # Extract importance weights from K-matrix column norms
+            K_mtq = K[:self._n_mtq, :]
+            K_w = K_mtq[:, 0:3]
+            K_q = K_mtq[:, 3:6]
+            avg_w_imp = np.mean(np.linalg.norm(K_w, axis=0)) + 0.1
+            avg_q_imp = np.mean(np.linalg.norm(K_q, axis=0)) + 0.1
         else:
-            x_ref_next = x_ref
-            K_next = self.active_trajectory.get_gain_at(current_time)
-
-        # Use MPC-TVLQR hybrid for MTQ control
-        u_mtq = _mpc_tvlqr_hybrid(
-            x_hat[:7], x_ref[:7], x_ref_next[:7], 
-            K_next[:self._n_mtq, :6],  # MTQ gains on attitude states
-            B_body, self._J, self._m_max, dt
-        )
-
-        # === RW control via TVLQR (if present) ===
+            avg_w_imp = self.params.Q_omega
+            avg_q_imp = self.params.Q_attitude
+        
+        # PD-like control: ω̇_des = -K_ω·ω_err - K_θ·θ_err
+        w_dot_des = -avg_w_imp * w_err / dt - avg_q_imp * q_err / dt
+        
+        # --- Inverse dynamics ---
+        w_curr = x_hat[0:3]
+        tau_total = self._J @ w_dot_des + np.cross(w_curr, self._J @ w_curr)
+        
+        # --- Allocate to actuators ---
         if self._has_rw:
-            # TVLQR works for RW because torque is attitude-independent
-            K = self.active_trajectory.get_gain_at(current_time)
-            dx = self._state_error(x_hat, x_ref)
-            
-            # Full TVLQR feedback for RW portion
+            # RW: use TVLQR (attitude-independent torque)
             u_full_tvlqr = u_ref - K @ dx
-            u_rw = u_full_tvlqr[self._n_mtq:self._n_mtq + self._n_rw]
-            u_rw = np.clip(u_rw, -self._rw_u_max, self._rw_u_max)
+            u_rw = np.clip(u_full_tvlqr[self._n_mtq:], -self._rw_u_max, self._rw_u_max)
             
-            u = np.concatenate([u_mtq, u_rw])
+            # Compute torque provided by RW
+            tau_rw = sum(u_rw[i] * self._rw_axes[i] for i in range(self._n_rw))
+            tau_mtq = tau_total - tau_rw
         else:
-            u = u_mtq
-
-        return u
-
-    def _state_error(self, x_curr: np.ndarray, x_ref: np.ndarray) -> np.ndarray:
-        """Compute reduced state error for TVLQR."""
-        n_rw = len(x_curr) - 7
-        error_dim = 6 + n_rw
-        dx = np.zeros(error_dim)
+            tau_mtq = tau_total
+            u_rw = np.array([])
         
-        # Angular velocity error
-        dx[0:3] = x_curr[0:3] - x_ref[0:3]
+        # Solve for MTQ dipole using actual B-field
+        u_mtq = _solve_mtq_for_torque(tau_mtq, B_body, self._m_max)
         
-        # Attitude error (quaternion to 3-vector)
-        dx[3:6] = _quat_error_vec(x_curr[3:7], x_ref[3:7])
-        
-        # RW momentum error
-        if n_rw > 0:
-            dx[6:6+n_rw] = x_curr[7:7+n_rw] - x_ref[7:7+n_rw]
-        
-        return dx
-
-    def calculate_trajectory(
-        self,
-        t_start: float,
-        duration: float,
-        x_0: np.ndarray,
-        os_0: Orbital_State,
-        goals: GoalList,
-        verbose: bool = False
-    ) -> Trajectory:
-        """
-        Plan trajectory using C++ ALTRO and prepare for MPC-TVLQR tracking.
-
-        Parameters
-        ----------
-        t_start : float
-            Start time in J2000 centuries
-        duration : float
-            Trajectory duration in seconds
-        x_0 : ndarray
-            Initial state
-        os_0 : Orbital_State
-            Initial orbital state
-        goals : GoalList
-            Pointing goals
-        verbose : bool
-            Enable verbose output
-
-        Returns
-        -------
-        Trajectory
-            Planned trajectory with states, controls, and gains
-        """
-        lqr_times, Xset, Uset, Kset, Sset = self._calculate_trajectory_common(
-            t_start, duration, x_0, os_0, goals, verbose
-        )
-        
-        # Store trajectory info for MPC
-        self._t_plan = (lqr_times - lqr_times[0]) / TimeConstants.sec2cent
-        
-        return Trajectory(lqr_times, Xset, Uset, Kset, Sset)
-
-
-class Plan_and_Track_MPC_Python(PlanAndTrackBase):
-    r"""
-    Plan-and-Track controller using Python ALILQR planning with MPC-TVLQR tracking.
-
-    Same as Plan_and_Track_MPC but uses Python ALILQR optimizer for trajectory
-    planning, allowing step-by-step inspection of the optimization process.
-
-    This is useful for:
-    - Debugging optimization issues
-    - Visualizing convergence
-    - Research into algorithm modifications
-
-    Parameters
-    ----------
-    est_sat : EstimatedSatellite
-        Estimated satellite model
-    planner_settings : PlannerSettings
-        ALTRO planner configuration
-    mpc_params : MPCParams, optional
-        MPC parameters
-    verbose : bool
-        Enable verbose output from optimizer
-    """
-
-    def __init__(
-        self,
-        est_sat: EstimatedSatellite,
-        planner_settings: PlannerSettings,
-        mpc_params: Optional[MPCParams] = None,
-        verbose: bool = False
-    ) -> None:
-        # Initialize base planner
-        self._init_planner(est_sat, planner_settings, tracking_lqr_formulation=0, quat_to_3vec_mode=2)
-        
-        # Create Python optimizer
-        self.py_alilqr = PythonALILQRv2(self.planner, verbose=verbose)
-        
-        # Store satellite info
-        self._J = est_sat.J_noRW
-        self._m_max = est_sat.mtq_actuators[0].u_max if est_sat.mtq_actuators else 0.2
-        self._has_rw = len(est_sat.rw_actuators) > 0
-        self._n_mtq = len(est_sat.mtq_actuators)
-        self._n_rw = len(est_sat.rw_actuators)
-        
-        if self._has_rw:
-            self._rw_axis = est_sat.rw_actuators[0].axis
-            self._rw_u_max = est_sat.rw_actuators[0].u_max
-        
-        # MPC parameters
-        self.mpc_params = mpc_params if mpc_params is not None else MPCParams.balanced()
-        
-        # Storage for optimization results and callbacks
-        self.last_optimization_result: Optional[OptimizationResult] = None
-        self.iteration_callback: Optional[Callable[[IterationData], None]] = None
-        self._verbose = verbose
+        return np.concatenate([u_mtq, u_rw])
     
-    def set_iteration_callback(self, callback: Optional[Callable[[IterationData], None]]) -> None:
-        """
-        Set a callback function to be invoked after each optimization iteration.
-        
-        Parameters
-        ----------
-        callback : callable
-            Function with signature callback(iter_data: IterationData) -> None
-        """
-        self.iteration_callback = callback
-        if hasattr(self.py_alilqr, 'set_callback'):
-            self.py_alilqr.set_callback(callback)
-        else:
-            self.py_alilqr.debug_callback = callback
-
-    def find_u(
-        self,
-        x_hat: NDArray[np.float64],
-        sens: NDArray[np.float64],
-        est_sat: EstimatedSatellite,
-        os_hat: Orbital_State,
-        goal_vector_eci: Optional[NDArray[np.float64]] = None,
-        w_ref: Optional[NDArray[np.float64]] = None,
-        B_body: Optional[NDArray[np.float64]] = None
-    ) -> NDArray[np.float64]:
-        """Compute MPC-TVLQR hybrid control (same as Plan_and_Track_MPC)."""
-        current_time = os_hat.J2000
-
-        if self.active_trajectory is None:
-            raise RuntimeError(f"Plan_and_Track_MPC_Python: No active trajectory set")
-
-        if not self.active_trajectory.is_valid_time(current_time):
-            raise RuntimeError(f"Plan_and_Track_MPC_Python: Trajectory expired")
-
-        # Get B-field
-        if B_body is None:
-            # rot_mat(q) gives R_body_to_eci, so R.T @ B_eci gives B_body
-            q = x_hat[3:7]
-            R = rot_mat(q)
-            B_body = R.T @ os_hat.B
-
-        # Get references
-        x_ref = self.active_trajectory.get_state_at(current_time)
-        u_ref = self.active_trajectory.get_control_at(current_time)
-        dt = self.planner_settings.dt_tvlqr
-
-        # Next reference for MPC
-        t_next = current_time + dt * TimeConstants.sec2cent
-        if self.active_trajectory.is_valid_time(t_next):
-            x_ref_next = self.active_trajectory.get_state_at(t_next)
-            K_next = self.active_trajectory.get_gain_at(t_next)
-        else:
-            x_ref_next = x_ref
-            K_next = self.active_trajectory.get_gain_at(current_time)
-
-        # MPC for MTQ
-        u_mtq = _mpc_tvlqr_hybrid(
-            x_hat[:7], x_ref[:7], x_ref_next[:7],
-            K_next[:self._n_mtq, :6],
-            B_body, self._J, self._m_max, dt
-        )
-
-        # TVLQR for RW
-        if self._has_rw:
-            K = self.active_trajectory.get_gain_at(current_time)
-            dx = self._state_error(x_hat, x_ref)
-            u_full = u_ref - K @ dx
-            u_rw = np.clip(u_full[self._n_mtq:self._n_mtq + self._n_rw], 
-                          -self._rw_u_max, self._rw_u_max)
-            u = np.concatenate([u_mtq, u_rw])
-        else:
-            u = u_mtq
-
-        return u
-
-    def _state_error(self, x_curr: np.ndarray, x_ref: np.ndarray) -> np.ndarray:
-        """Compute reduced state error."""
-        n_rw = len(x_curr) - 7
-        dx = np.zeros(6 + n_rw)
-        dx[0:3] = x_curr[0:3] - x_ref[0:3]
-        dx[3:6] = _quat_error_vec(x_curr[3:7], x_ref[3:7])
-        if n_rw > 0:
-            dx[6:6+n_rw] = x_curr[7:7+n_rw] - x_ref[7:7+n_rw]
-        return dx
-
     def calculate_trajectory(
         self,
         t_start: float,
@@ -599,204 +243,126 @@ class Plan_and_Track_MPC_Python(PlanAndTrackBase):
         os_0: Orbital_State,
         goals: GoalList,
         verbose: bool = False,
-        collect_all_iterations: bool = False,
-        visualize: bool = False,
-        viz_save_path: Optional[str] = None
     ) -> Trajectory:
-        """
-        Plan trajectory using Python ALILQR with two-pass optimization.
-
-        Parameters
-        ----------
-        t_start : float
-            Start time in J2000 centuries
-        duration : float
-            Duration in seconds
-        x_0 : ndarray
-            Initial state
-        os_0 : Orbital_State
-            Initial orbital state
-        goals : GoalList
-            Pointing goals
-        verbose : bool
-            Enable verbose output
-        collect_all_iterations : bool
-            Store all iteration data for analysis
-        visualize : bool
-            If True, show live visualization of optimization convergence
-        viz_save_path : str, optional
-            If provided, save final visualization to this path
-
-        Returns
-        -------
-        Trajectory
-            Planned trajectory
-        """
-        sec2cent = TimeConstants.sec2cent
-        t_end = t_start + duration * sec2cent
-
-        # Get timesteps
-        dt_coarse = self.planner_settings.dt_tp
-        dt_fine = self.planner_settings.dt_tvlqr
-
-        x_0_clean = np.copy(x_0.astype(np.float64).flatten(), order='C')
-
-        # =====================================================================
-        # Setup visualization if requested
-        # =====================================================================
-        live_viz = None
-        original_callback = self.iteration_callback
-        
-        if visualize:
-            # Propagate environment to get goal vectors for visualization
-            N_viz = int(np.ceil(duration / dt_coarse)) + 1
-            vecsPy_viz = self._propagate_environment(os_0, t_start, t_end, dt_coarse, N_viz, goals)
-            goal_vectors = vecsPy_viz[5]  # E vectors shape (3, N)
-            
-            # Generate actuator names for plot labels
-            actuator_names = []
-            for act in self.est_sat.mtq_actuators:
-                actuator_names.append(f'MTQ_{["x","y","z"][np.argmax(np.abs(act.axis))]}')
-            for i, act in enumerate(self.est_sat.rw_actuators):
-                actuator_names.append(f'RW{i+1}')
-            
-            # Create live visualization
-            live_viz = LivePlannerViz(
-                goal_vector_eci=goal_vectors,
-                body_vector=np.array([0, 1, 0]),  # Boresight
-                dt=dt_coarse,
-                update_interval=1,
-                figsize=(14, 10),
-                actuator_names=actuator_names,
-                umax=self.planner_settings.umax
-            )
-            live_viz.start()
-            
-            # Create callback that updates visualization
-            def viz_callback(iter_data: IterationData):
-                if original_callback is not None:
-                    original_callback(iter_data)
-                live_viz.update(iter_data)
-            
-            self.set_iteration_callback(viz_callback)
-
-        # === PASS 1: Coarse exploration ===
-        if verbose:
-            print(f"=== PASS 1: Exploration (dt={dt_coarse}s) ===")
-
-        N_coarse = int(np.ceil(duration / dt_coarse)) + 1
-        vecsPy_coarse = self._propagate_environment(os_0, t_start, t_end, dt_coarse, N_coarse, goals)
-
-        cost_settings_1 = self.planner_settings.optMainCostSettings()
-        alilqr_settings_1 = self.planner_settings.mainAlilqrSettings()
-
-        bdotOn = self.planner_settings.bdot_on
-        initial_result = self.planner.prepareForAlilqr(
-            vecsPy_coarse, dt_coarse, t_start, t_end, x_0_clean, int(bdotOn)
+        """Calculate trajectory using C++ ALTRO planner (via base class)."""
+        lqr_times, Xset, Uset, Kset, Sset = self._calculate_trajectory_common(
+            t_start, duration, x_0, os_0, goals, verbose
         )
-        initial_traj_1, vecs_dt_coarse, _ = initial_result
-
-        result1 = self.py_alilqr.optimize(
-            dt=dt_coarse,
-            initial_traj=initial_traj_1,
-            vecs=vecs_dt_coarse,
-            cost_settings=cost_settings_1,
-            alilqr_settings=alilqr_settings_1,
-            is_first_search=True,
-            collect_all=collect_all_iterations,
-            pass_label="Pass1"
-        )
-
-        if verbose:
-            print(f"Pass 1: {result1.total_inner_iters} iters, cost={result1.final_cost:.2e}, cmax={result1.final_cmax:.2e}")
-
-        # === PASS 2: Fine refinement ===
-        if verbose:
-            print(f"=== PASS 2: Refinement (dt={dt_fine}s) ===")
-
-        N_fine = int(np.ceil(duration / dt_fine)) + 1
-        vecsPy_fine = self._propagate_environment(os_0, t_start, t_end, dt_fine, N_fine, goals)
-
-        cost_settings_2 = self.planner_settings.optSecondCostSettings()
-        alilqr_settings_2 = self.planner_settings.secondAlilqrSettings()
-        tvlqr_cost_settings = self.planner_settings.optTVLQRCostSettings(tracking_LQR_formulation=0)
-
-        # Interpolate controls
-        interp_ratio = int(dt_coarse / dt_fine)
-        if interp_ratio > 1:
-            Uset_coarse = result1.Uset
-            if Uset_coarse.shape[1] >= 3:
-                Uset_main = np.repeat(Uset_coarse[:, :-2], interp_ratio, axis=1)
-            else:
-                Uset_main = np.repeat(Uset_coarse[:, :-1], interp_ratio, axis=1)
-            cols_needed = N_fine - Uset_main.shape[1] - 1
-            if cols_needed > 0:
-                Uset_pad = np.tile(Uset_coarse[:, -2:-1], (1, cols_needed))
-                Uset_fine = np.hstack([Uset_main, Uset_pad, Uset_coarse[:, -1:]])
-            else:
-                Uset_fine = np.hstack([Uset_main[:, :N_fine-1], Uset_coarse[:, -1:]])
-        else:
-            Uset_fine = result1.Uset
-
-        initial_result_2 = self.planner.prepareForAlilqr(
-            vecsPy_fine, dt_fine, t_start, t_end, x_0_clean, 0
-        )
-        _, vecs_dt_fine, _ = initial_result_2
-
-        try:
-            traj_fine = self.planner.generateInitialTrajectory(
-                dt_fine, result1.Xset[:, 0].copy(), Uset_fine, vecs_dt_fine
-            )
-            Xset_check, _, _, _ = traj_fine
-            if np.any(np.isnan(Xset_check)) or np.any(np.isinf(Xset_check)):
-                traj_fine, _, _ = initial_result_2
-        except:
-            traj_fine, _, _ = initial_result_2
-
-        result2 = self.py_alilqr.optimize(
-            dt=dt_fine,
-            initial_traj=traj_fine,
-            vecs=vecs_dt_fine,
-            cost_settings=cost_settings_2,
-            alilqr_settings=alilqr_settings_2,
-            is_first_search=False,
-            collect_all=collect_all_iterations,
-            pass_label="Pass2",
-            tvlqr_cost_settings=tvlqr_cost_settings
-        )
-
-        if verbose:
-            print(f"Pass 2: {result2.total_inner_iters} iters, cost={result2.final_cost:.2e}, cmax={result2.final_cmax:.2e}")
-
-        # Store result
-        self.last_optimization_result = result2
-
-        # Build trajectory
-        lqr_times = np.linspace(t_start, t_end, N_fine)
-        Xset = result2.Xset
-        Uset = result2.Uset
-        Kset = result2.Kset
-
-        # Reshape K
-        if Kset.ndim == 2:
-            ctrl_dim = Uset.shape[0]
-            state_dim = Xset.shape[0] - 1
-            Kset = Kset.reshape(ctrl_dim, state_dim, -1)
-
-        Sset = np.zeros((Xset.shape[0] - 1, N_fine))
-
-        # =====================================================================
-        # Cleanup visualization
-        # =====================================================================
-        if live_viz is not None:
-            if viz_save_path:
-                live_viz.save(viz_save_path)
-                if verbose:
-                    print(f"Saved visualization to: {viz_save_path}")
-            live_viz.finish(block=False)
-            # Restore original callback
-            self.set_iteration_callback(original_callback)
-
         return Trajectory(lqr_times, Xset, Uset, Kset, Sset)
 
 
+# =============================================================================
+# True MPC Controller
+# =============================================================================
+
+class Plan_and_Track_MPC(PlanAndTrackBase):
+    """
+    Plan-and-Track controller using ALTRO planning with single-step MPC tracking.
+    
+    True MPC solves an optimization problem at each timestep:
+        min  (x₁ - x_ref)ᵀ Q (x₁ - x_ref) + uᵀ R u
+        s.t. x₁ = f(x₀, u)
+             u_min ≤ u ≤ u_max
+    
+    Uses the satellite's dynamics_core for accurate dynamics.
+    """
+    
+    def __init__(
+        self,
+        sat: EstimatedSatellite,
+        planner_settings: PlannerSettings,
+        mpc_params: Optional[MPCParams] = None
+    ):
+        self._init_planner(sat, planner_settings, tracking_lqr_formulation=0)
+        self.params = mpc_params if mpc_params is not None else MPCParams.balanced()
+        self.sat = sat
+        
+        self._J = sat.J_noRW
+        self._n_mtq = len(sat.mtq_actuators)
+        self._m_max = sat.mtq_actuators[0].u_max if sat.mtq_actuators else 0.2
+        
+        self._n_rw = len(sat.rw_actuators)
+        self._has_rw = self._n_rw > 0
+        if self._has_rw:
+            self._rw_u_max = np.array([rw.u_max for rw in sat.rw_actuators])
+        else:
+            self._rw_u_max = None
+    
+    def find_u(
+        self,
+        x_hat: NDArray[np.float64],
+        sens: NDArray[np.float64],
+        est_sat: EstimatedSatellite,
+        os_hat: Orbital_State,
+        B_body: Optional[NDArray[np.float64]] = None,
+        **kwargs
+    ) -> NDArray[np.float64]:
+        """Compute control using single-step MPC optimization."""
+        if self.active_trajectory is None:
+            return np.zeros(self._n_mtq + self._n_rw)
+        
+        current_time = os_hat.J2000
+        if not self.active_trajectory.is_valid_time(current_time):
+            raise RuntimeError("Trajectory expired")
+        
+        # Get reference at NEXT timestep for MPC target
+        dt = self.planner_settings.dt_tvlqr
+        from ADCS.orbits.universal_constants import TimeConstants
+        t_next = current_time + dt * TimeConstants.sec2cent
+        
+        if self.active_trajectory.is_valid_time(t_next):
+            x_ref = self.active_trajectory.get_state_at(t_next)
+        else:
+            x_ref = self.active_trajectory.get_state_at(current_time)
+        
+        u_ref = self.active_trajectory.get_control_at(current_time)
+        
+        # Build cost matrices
+        n_u = self._n_mtq + self._n_rw
+        Q = np.diag([self.params.Q_omega]*3 + [self.params.Q_attitude]*3 + 
+                    [self.params.Q_rw]*self._n_rw)
+        R = np.diag([self.params.R_mtq]*self._n_mtq + [self.params.R_rw]*self._n_rw)
+        
+        def cost(u):
+            """MPC cost: tracking error + control effort."""
+            # Propagate one step using satellite dynamics
+            xdot = est_sat.dynamics_core(x_hat, u, os_hat)
+            x_next = x_hat + xdot * dt
+            x_next[3:7] = x_next[3:7] / np.linalg.norm(x_next[3:7])  # Normalize quat
+            
+            # State error
+            dx = _compute_state_error(x_next, x_ref, self._n_rw)
+            du = u - u_ref
+            
+            return dx @ Q @ dx + du @ R @ du
+        
+        # Bounds
+        bounds = [(-self._m_max, self._m_max)] * self._n_mtq
+        if self._has_rw:
+            for i in range(self._n_rw):
+                bounds.append((-self._rw_u_max[i], self._rw_u_max[i]))
+        
+        # Optimize
+        result = minimize(
+            cost, u_ref,
+            method='L-BFGS-B',
+            bounds=bounds,
+            options={'maxiter': self.params.max_iter, 'ftol': self.params.tolerance}
+        )
+        
+        return result.x
+    
+    def calculate_trajectory(
+        self,
+        t_start: float,
+        duration: float,
+        x_0: np.ndarray,
+        os_0: Orbital_State,
+        goals: GoalList,
+        verbose: bool = False,
+    ) -> Trajectory:
+        """Calculate trajectory using C++ ALTRO planner (via base class)."""
+        lqr_times, Xset, Uset, Kset, Sset = self._calculate_trajectory_common(
+            t_start, duration, x_0, os_0, goals, verbose
+        )
+        return Trajectory(lqr_times, Xset, Uset, Kset, Sset)
