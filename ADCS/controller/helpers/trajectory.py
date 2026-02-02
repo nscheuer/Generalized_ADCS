@@ -293,7 +293,10 @@ class Trajectory:
         #
         # For KwDist mode (disturbance estimation), gains will be
         # (n_ctrl, n_err + 3) but this is handled by checking actual shape.
-        k_flat = self.gains[:, idx]
+        #
+        # Note: Gains have N-1 entries (transitions), so clamp index
+        safe_idx = min(idx, self.gains.shape[1] - 1)
+        k_flat = self.gains[:, safe_idx]
         if self.use_disturbance_estimation:
             # KwDist gains: (ctrl_dim, state_dim - 1 + 3)
             error_dim_with_dist = self.state_dim - 1 + 3
