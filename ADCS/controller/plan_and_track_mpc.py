@@ -559,11 +559,15 @@ class Plan_and_Track_ComputedTorque_Python(PlanAndTrackBase):
 
 class Plan_and_Track_MPC(PlanAndTrackBase):
     """
-    Plan-and-Track with C++ ALTRO planning and constrained TVLQR tracking.
+    Plan-and-Track with C++ ALTRO planning and adaptive B-field correction.
     
-    Uses TVLQR feedback with:
-    1. Actual B-field for MTQ allocation (fixes B-field mismatch)
-    2. Saturation for constraint handling
+    Uses TVLQR feedback with adaptive blending between:
+    - Standard TVLQR (works well when attitude error is large)
+    - Actual B-field correction (works well when attitude error is small)
+    
+    The blending is based on B-field difference between actual and reference
+    attitudes. When B-field difference is small (<10%), use actual B-field
+    correction. When large, use standard TVLQR.
     
     This achieves sub-degree tracking accuracy for 3MTQ+1RW systems.
     """
@@ -572,11 +576,13 @@ class Plan_and_Track_MPC(PlanAndTrackBase):
         self,
         sat: EstimatedSatellite,
         planner_settings: PlannerSettings,
-        mpc_params: Optional[MPCParams] = None
+        mpc_params: Optional[MPCParams] = None,
+        bfield_blend_threshold: float = 0.1,  # 10% B-field difference threshold
     ):
         self._init_planner(sat, planner_settings, tracking_lqr_formulation=0)
         self.params = mpc_params if mpc_params is not None else MPCParams.balanced()
         self.sat = sat
+        self._bfield_blend_threshold = bfield_blend_threshold
         
         self._J = sat.J_noRW
         self._n_mtq = len(sat.mtq_actuators)
@@ -599,13 +605,12 @@ class Plan_and_Track_MPC(PlanAndTrackBase):
         **kwargs
     ) -> NDArray[np.float64]:
         """
-        Compute control using TVLQR with actual B-field and saturation.
+        Compute control using adaptive B-field blending.
         
-        Steps:
-        1. Compute TVLQR feedback: du = -K @ dx
-        2. Convert MTQ feedback to desired torque
-        3. Re-solve for MTQ using actual B-field
-        4. Saturate all controls to actuator limits
+        When B-field difference is small: use actual B-field correction
+        When B-field difference is large: use standard TVLQR
+        
+        This blending ensures good tracking in both regimes.
         """
         if self.active_trajectory is None:
             return np.zeros(self._n_mtq + self._n_rw)
@@ -623,6 +628,10 @@ class Plan_and_Track_MPC(PlanAndTrackBase):
         dx = self.active_trajectory._state_diff(x_hat, x_ref)
         du = -K @ dx
         
+        # Standard TVLQR MTQ control (saturated)
+        u_tvlqr_mtq = np.clip(u_ref[:self._n_mtq] + du[:self._n_mtq], 
+                              -self._m_max, self._m_max)
+        
         # Get B-field in body frame (actual and reference)
         R_actual = rot_mat(x_hat[3:7])
         B_body_actual = R_actual.T @ os_hat.B
@@ -630,23 +639,30 @@ class Plan_and_Track_MPC(PlanAndTrackBase):
         R_ref = rot_mat(x_ref[3:7])
         B_body_ref = R_ref.T @ os_hat.B
         
-        # Compute desired torque
-        # Reference torque: what u_ref would produce at reference attitude
+        # Compute B-field difference (normalized)
+        B_norm = np.linalg.norm(os_hat.B)
+        B_diff = np.linalg.norm(B_body_actual - B_body_ref) / (B_norm + 1e-12)
+        
+        # Compute actual B-field corrected MTQ control
         tau_ref = np.cross(u_ref[:self._n_mtq], B_body_ref)
-        # Feedback torque: what du would produce at reference attitude  
         tau_fb = np.cross(du[:self._n_mtq], B_body_ref)
         tau_des = tau_ref + tau_fb
+        m_actualb = _solve_mtq_for_torque(tau_des, B_body_actual, self._m_max)
         
-        # Solve for MTQ with actual B-field
-        m_actual = _solve_mtq_for_torque(tau_des, B_body_actual, self._m_max)
+        # Blend based on B-field difference
+        # alpha = 0 → use ActualB (B-fields similar)
+        # alpha = 1 → use TVLQR (B-fields different)
+        alpha = min(1.0, B_diff / self._bfield_blend_threshold)
+        m_blend = alpha * u_tvlqr_mtq + (1 - alpha) * m_actualb
+        m_blend = np.clip(m_blend, -self._m_max, self._m_max)
         
         # RW control: TVLQR feedback with saturation
         if self._has_rw:
             u_rw = np.clip(u_ref[self._n_mtq:] + du[self._n_mtq:], 
                           -self._rw_u_max, self._rw_u_max)
-            return np.concatenate([m_actual, u_rw])
+            return np.concatenate([m_blend, u_rw])
         else:
-            return m_actual
+            return m_blend
     
     def calculate_trajectory(
         self,
@@ -670,7 +686,7 @@ class Plan_and_Track_MPC(PlanAndTrackBase):
 
 class Plan_and_Track_MPC_Python(PlanAndTrackBase):
     """
-    Plan-and-Track with Python ALILQR planning and constrained TVLQR tracking.
+    Plan-and-Track with Python ALILQR planning and adaptive B-field correction.
     
     Same tracking as Plan_and_Track_MPC but uses Python planner
     for live visualization of trajectory optimization.
@@ -680,11 +696,13 @@ class Plan_and_Track_MPC_Python(PlanAndTrackBase):
         self,
         sat: EstimatedSatellite,
         planner_settings: PlannerSettings,
-        mpc_params: Optional[MPCParams] = None
+        mpc_params: Optional[MPCParams] = None,
+        bfield_blend_threshold: float = 0.1,
     ):
         self._init_planner(sat, planner_settings, tracking_lqr_formulation=0)
         self.params = mpc_params if mpc_params is not None else MPCParams.balanced()
         self.sat = sat
+        self._bfield_blend_threshold = bfield_blend_threshold
         
         self._J = sat.J_noRW
         self._n_mtq = len(sat.mtq_actuators)
@@ -706,7 +724,7 @@ class Plan_and_Track_MPC_Python(PlanAndTrackBase):
         B_body: Optional[NDArray[np.float64]] = None,
         **kwargs
     ) -> NDArray[np.float64]:
-        """Compute control using TVLQR with actual B-field and saturation (same as C++ version)."""
+        """Compute control using adaptive B-field blending (same as C++ version)."""
         if self.active_trajectory is None:
             return np.zeros(self._n_mtq + self._n_rw)
         
@@ -723,6 +741,10 @@ class Plan_and_Track_MPC_Python(PlanAndTrackBase):
         dx = self.active_trajectory._state_diff(x_hat, x_ref)
         du = -K @ dx
         
+        # Standard TVLQR MTQ control (saturated)
+        u_tvlqr_mtq = np.clip(u_ref[:self._n_mtq] + du[:self._n_mtq], 
+                              -self._m_max, self._m_max)
+        
         # Get B-field in body frame (actual and reference)
         R_actual = rot_mat(x_hat[3:7])
         B_body_actual = R_actual.T @ os_hat.B
@@ -730,21 +752,28 @@ class Plan_and_Track_MPC_Python(PlanAndTrackBase):
         R_ref = rot_mat(x_ref[3:7])
         B_body_ref = R_ref.T @ os_hat.B
         
-        # Compute desired torque
+        # Compute B-field difference (normalized)
+        B_norm = np.linalg.norm(os_hat.B)
+        B_diff = np.linalg.norm(B_body_actual - B_body_ref) / (B_norm + 1e-12)
+        
+        # Compute actual B-field corrected MTQ control
         tau_ref = np.cross(u_ref[:self._n_mtq], B_body_ref)
         tau_fb = np.cross(du[:self._n_mtq], B_body_ref)
         tau_des = tau_ref + tau_fb
+        m_actualb = _solve_mtq_for_torque(tau_des, B_body_actual, self._m_max)
         
-        # Solve for MTQ with actual B-field
-        m_actual = _solve_mtq_for_torque(tau_des, B_body_actual, self._m_max)
+        # Blend based on B-field difference
+        alpha = min(1.0, B_diff / self._bfield_blend_threshold)
+        m_blend = alpha * u_tvlqr_mtq + (1 - alpha) * m_actualb
+        m_blend = np.clip(m_blend, -self._m_max, self._m_max)
         
         # RW control: TVLQR feedback with saturation
         if self._has_rw:
             u_rw = np.clip(u_ref[self._n_mtq:] + du[self._n_mtq:], 
                           -self._rw_u_max, self._rw_u_max)
-            return np.concatenate([m_actual, u_rw])
+            return np.concatenate([m_blend, u_rw])
         else:
-            return m_actual
+            return m_blend
     
     def calculate_trajectory(
         self,

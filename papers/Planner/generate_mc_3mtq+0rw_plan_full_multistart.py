@@ -11,7 +11,12 @@ import numpy as np
 from scipy.integrate import solve_ivp
 from typing import Dict, Any
 
-sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))
+# --- Path Setup (works from Generalized_ADCS root directory) ---
+_this_file = os.path.abspath(__file__)
+_this_dir = os.path.dirname(_this_file)
+_root_dir = os.path.abspath(os.path.join(_this_dir, "../../.."))
+sys.path.insert(0, _root_dir)  # Add root for ADCS imports
+sys.path.insert(0, _this_dir)  # Add local dir for local imports (e.g., mc_planner_settings)
 
 from ADCS.CONOPS.goals import Fixed_Attitude_Goal
 from ADCS.CONOPS.goallist import GoalList
@@ -29,6 +34,7 @@ from ADCS.helpers.plotting.close_all_plots import create_close_all_button_window
 from ADCS.helpers.mc.monte_carlo_runner import (
     MonteCarloRunner, claim_worker_slot, release_worker_slot, update_worker_progress
 )
+import argparse
 
 BODY_BORESIGHT = np.array([0, 1, 0])
 
@@ -173,7 +179,37 @@ if __name__ == "__main__":
     print("Multi-start modes: [0, 1, 4, 5] (random, bdot, PD, PD+noise)")
     print("=" * 60)
 
-    if RUN_MC:
+    # --- Command-line argument parsing ---
+    parser = argparse.ArgumentParser(description="Run Monte Carlo simulations")
+    parser.add_argument("-t", "--test", action="store_true", 
+                        help="Run single test simulation (no multiprocessing, with visualization)")
+    parser.add_argument("-n", "--num-runs", type=int, default=None,
+                        help="Override number of runs")
+    args = parser.parse_args()
+    
+    TEST_MODE = args.test
+    if args.num_runs is not None:
+        NUM_RUNS = args.num_runs
+    
+    if TEST_MODE:
+        # Single run test mode - no multiprocessing, with visualization
+        print("=== TEST MODE: Single run, no multiprocessing ===")
+        config = generate_mc_config(0)
+        result = run_single_sim(config)
+        full_results = [result]
+        valid = [r for r in full_results if r and r.get("traj_valid", False)]
+        if valid:
+            print(f"Test run completed successfully")
+            # Plot results
+            plot_target_tracking_mc(full_results=valid, title="Test Run")
+            plot_convergence_histogram_mc(full_results=valid, title="Test Run")
+            create_close_all_button_window()
+            import matplotlib.pyplot as plt
+            plt.show()
+        else:
+            print(f"Test run failed: {result.get('error', 'Unknown error')}")
+
+    elif RUN_MC:
         runner = MonteCarloRunner(
             sim_func=run_single_sim,
             config_generator=generate_mc_config,

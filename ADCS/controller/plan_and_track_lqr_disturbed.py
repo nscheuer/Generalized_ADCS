@@ -295,7 +295,9 @@ class Plan_and_Track_LQR_Disturbed(PlanAndTrackBase):
         w_error = x_hat[0:3] - x_ref[0:3]
         self.dist_estimate += self.dist_gain * w_error * self.planner_settings.dt_tvlqr
 
-        return np.clip(u, -self.planner_settings.umax, self.planner_settings.umax)
+        # Saturate control to actual actuator limits (not planner's reduced limits)
+        u_max = np.array([act.u_max for act in est_sat.actuators])
+        return np.clip(u, -u_max, u_max)
 
     def reset_disturbance_estimate(self) -> None:
         r"""

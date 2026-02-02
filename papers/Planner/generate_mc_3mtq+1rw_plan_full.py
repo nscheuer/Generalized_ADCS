@@ -14,12 +14,18 @@ import numpy as np
 from scipy.integrate import solve_ivp
 from typing import Dict, Any
 
-sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))
+# --- Path Setup (works from Generalized_ADCS root directory) ---
+_this_file = os.path.abspath(__file__)
+_this_dir = os.path.dirname(_this_file)
+_root_dir = os.path.abspath(os.path.join(_this_dir, "../../.."))
+sys.path.insert(0, _root_dir)  # Add root for ADCS imports
+sys.path.insert(0, _this_dir)  # Add local dir for local imports (e.g., mc_planner_settings)
 
 from ADCS.CONOPS.goals import Fixed_Attitude_Goal
 from ADCS.CONOPS.goallist import GoalList
 from ADCS.controller.plan_and_track_lqr import Plan_and_Track_LQR
 from ADCS.controller.plan_and_track_mpc import Plan_and_Track_MPC
+from ADCS.controller.plan_and_track_python_alilqr import Plan_and_Track_PythonALILQR
 from ADCS.controller.helpers import PlannerSettings
 
 # Import good settings
@@ -42,6 +48,7 @@ from ADCS.helpers.plotting.close_all_plots import create_close_all_button_window
 from ADCS.helpers.mc.monte_carlo_runner import (
     MonteCarloRunner, claim_worker_slot, release_worker_slot, update_worker_progress
 )
+import argparse
 
 BODY_BORESIGHT = np.array([0, 1, 0])
 
@@ -88,11 +95,21 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
             rw.h = config["h0"][i]
 
         # Use well-conditioned normalized settings
-        planner_settings = create_optimized_planner_settings(real_sat, duration=tf, dt_planning=dt_planning)
+        # Use "fast_slew" tuning for better RW usage (~72%) with good accuracy (<1° error)
+        planner_settings = create_optimized_planner_settings(
+            real_sat, duration=tf, dt_planning=dt_planning, tuning="fast_slew"
+        )
+        planner_settings.verbosity = False  # Disable C++ planner verbose output
 
-        # Choose controller based on tracking mode
+        # Choose controller based on tracking mode and verbosity
         tracking_mode = config.get("tracking_mode", TRACKING_MODE)
-        if tracking_mode == "mpc":
+        verbose = config.get("verbose", False)
+        visualize = config.get("visualize", False)
+        
+        if visualize:
+            # Use Python planner with live visualization for test mode
+            controller = Plan_and_Track_PythonALILQR(est_sat=real_sat, planner_settings=planner_settings)
+        elif tracking_mode == "mpc":
             controller = Plan_and_Track_MPC(est_sat=real_sat, planner_settings=planner_settings)
         else:
             controller = Plan_and_Track_LQR(est_sat=real_sat, planner_settings=planner_settings)
@@ -101,9 +118,168 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
         os0 = orb.get_os(0.22)
 
         try:
-            traj = controller.calculate_trajectory(
-                t_start=0.22, duration=tf, x_0=x0, os_0=os0, goals=goals, verbose=False
-            )
+            if visualize:
+                # Python planner supports visualize parameter
+                save_viz = config.get("save_viz", False)
+                viz_save_path = "/tmp/planner_viz_final.png"  # Always save
+                
+                # Track iteration count for periodic saving
+                iter_count = [0]  # Use list to allow modification in nested function
+                
+                # Add a custom callback to print angle error and save figures periodically
+                def diagnostic_callback(iter_data):
+                    # Compute angle error across entire trajectory
+                    Xset = iter_data.Xset
+                    q_goal = config["q_goal"]
+                    q_goal_inv = np.array([q_goal[0], -q_goal[1], -q_goal[2], -q_goal[3]])
+                    
+                    N = Xset.shape[1]
+                    angles = np.zeros(N)
+                    for k in range(N):
+                        qk = Xset[3:7, k]
+                        qerr_w = q_goal_inv[0]*qk[0] - np.dot(q_goal_inv[1:], qk[1:])
+                        angles[k] = np.degrees(2 * np.arccos(np.clip(np.abs(qerr_w), 0, 1)))
+                    
+                    # Find max angle (spike detection)
+                    max_angle = np.max(angles)
+                    max_idx = np.argmax(angles)
+                    
+                    print(f"  [{iter_data.pass_label}] O:{iter_data.outer_iter} I:{iter_data.inner_iter} "
+                          f"Cost:{iter_data.LA:.2e} Cmax:{iter_data.cmax:.2e} "
+                          f"Angle[start:{angles[0]:.0f}° max:{max_angle:.0f}°@{max_idx} mean:{np.mean(angles):.0f}° end:{angles[-1]:.0f}°]")
+                    
+                    # Save figure at key iterations: 0, 5, 10, 20, 33 of each outer loop
+                    iter_count[0] += 1
+                    save_iters = [1, 5, 10, 20, 34, 50, 70, 100, 150, 200, 250, 300]
+                    if iter_count[0] in save_iters:
+                        import matplotlib
+                        matplotlib.use('Agg')
+                        import matplotlib.pyplot as plt
+                        
+                        fig, axes = plt.subplots(2, 2, figsize=(12, 8))
+                        times = np.arange(N) * (1000.0 / N)  # Approximate times
+                        
+                        # Angle error over trajectory
+                        axes[0, 0].plot(times, angles, 'b-', linewidth=1.5)
+                        axes[0, 0].axhline(90, color='r', linestyle='--', alpha=0.5, label='90°')
+                        axes[0, 0].set_xlabel('Time (s)')
+                        axes[0, 0].set_ylabel('Angle Error (deg)')
+                        axes[0, 0].set_title(f'Angle Error - Iter {iter_count[0]} [{iter_data.pass_label}]')
+                        axes[0, 0].set_ylim(0, 200)
+                        axes[0, 0].grid(True)
+                        axes[0, 0].legend()
+                        
+                        # Quaternion components
+                        axes[0, 1].plot(times, Xset[3, :], label='q0')
+                        axes[0, 1].plot(times, Xset[4, :], label='q1')
+                        axes[0, 1].plot(times, Xset[5, :], label='q2')
+                        axes[0, 1].plot(times, Xset[6, :], label='q3')
+                        axes[0, 1].set_xlabel('Time (s)')
+                        axes[0, 1].set_ylabel('Quaternion')
+                        axes[0, 1].set_title('Quaternion Components')
+                        axes[0, 1].legend()
+                        axes[0, 1].grid(True)
+                        
+                        # Angular velocity
+                        axes[1, 0].plot(times, np.degrees(Xset[0, :]), label='ωx')
+                        axes[1, 0].plot(times, np.degrees(Xset[1, :]), label='ωy')
+                        axes[1, 0].plot(times, np.degrees(Xset[2, :]), label='ωz')
+                        axes[1, 0].set_xlabel('Time (s)')
+                        axes[1, 0].set_ylabel('Angular Velocity (deg/s)')
+                        axes[1, 0].set_title('Angular Velocity')
+                        axes[1, 0].legend()
+                        axes[1, 0].grid(True)
+                        
+                        # Controls
+                        Uset = iter_data.Uset
+                        ctrl_times = times[:Uset.shape[1]]
+                        for i in range(Uset.shape[0]):
+                            axes[1, 1].plot(ctrl_times, Uset[i, :], label=f'u{i}')
+                        axes[1, 1].set_xlabel('Time (s)')
+                        axes[1, 1].set_ylabel('Control')
+                        axes[1, 1].set_title('Control Inputs')
+                        axes[1, 1].legend()
+                        axes[1, 1].grid(True)
+                        
+                        plt.tight_layout()
+                        plt.savefig(f'/tmp/planner_iter_{iter_count[0]:03d}.png', dpi=100)
+                        plt.close(fig)
+                        print(f"    -> Saved /tmp/planner_iter_{iter_count[0]:03d}.png")
+                
+                controller.set_iteration_callback(diagnostic_callback)
+                
+                traj = controller.calculate_trajectory(
+                    t_start=0.22, duration=tf, x_0=x0, os_0=os0, goals=goals, 
+                    verbose=False, visualize=True, viz_save_path=viz_save_path,
+                    skip_pass2=False  # TEST: Re-enable Pass2 with SLERP interpolation
+                )
+                
+                # Save an additional diagnostic figure
+                if save_viz and hasattr(controller, 'pass1_result'):
+                    import matplotlib.pyplot as plt
+                    fig, axes = plt.subplots(2, 2, figsize=(12, 8))
+                    
+                    # Plot final trajectory angle error over time
+                    Xset = traj.states if hasattr(traj, 'states') else controller.pass1_result.Xset
+                    N = Xset.shape[1]
+                    times = np.linspace(0, tf, N)
+                    
+                    # Compute angle error at each timestep
+                    angle_errors = []
+                    for k in range(N):
+                        qk = Xset[3:7, k]
+                        qerr_w = q_goal_inv[0]*qk[0] - np.dot(q_goal_inv[1:], qk[1:])
+                        angle_rad = 2 * np.arccos(np.clip(np.abs(qerr_w), 0, 1))
+                        angle_errors.append(np.degrees(angle_rad))
+                    
+                    axes[0, 0].plot(times, angle_errors)
+                    axes[0, 0].set_xlabel('Time (s)')
+                    axes[0, 0].set_ylabel('Angle Error (deg)')
+                    axes[0, 0].set_title('Trajectory Angle Error')
+                    axes[0, 0].grid(True)
+                    
+                    # Plot quaternion
+                    axes[0, 1].plot(times, Xset[3, :], label='q0')
+                    axes[0, 1].plot(times, Xset[4, :], label='q1')
+                    axes[0, 1].plot(times, Xset[5, :], label='q2')
+                    axes[0, 1].plot(times, Xset[6, :], label='q3')
+                    axes[0, 1].axhline(q_goal[0], color='k', linestyle='--', alpha=0.5)
+                    axes[0, 1].set_xlabel('Time (s)')
+                    axes[0, 1].set_ylabel('Quaternion')
+                    axes[0, 1].set_title(f'Quaternion (goal: [{q_goal[0]:.2f}, {q_goal[1]:.2f}, {q_goal[2]:.2f}, {q_goal[3]:.2f}])')
+                    axes[0, 1].legend()
+                    axes[0, 1].grid(True)
+                    
+                    # Plot angular velocity
+                    axes[1, 0].plot(times, np.degrees(Xset[0, :]), label='ωx')
+                    axes[1, 0].plot(times, np.degrees(Xset[1, :]), label='ωy')
+                    axes[1, 0].plot(times, np.degrees(Xset[2, :]), label='ωz')
+                    axes[1, 0].set_xlabel('Time (s)')
+                    axes[1, 0].set_ylabel('Angular Velocity (deg/s)')
+                    axes[1, 0].set_title('Angular Velocity')
+                    axes[1, 0].legend()
+                    axes[1, 0].grid(True)
+                    
+                    # Plot controls
+                    Uset = traj.controls if hasattr(traj, 'controls') else controller.pass1_result.Uset
+                    ctrl_times = times[:Uset.shape[1]]
+                    for i in range(Uset.shape[0]):
+                        axes[1, 1].plot(ctrl_times, Uset[i, :], label=f'u{i}')
+                    axes[1, 1].set_xlabel('Time (s)')
+                    axes[1, 1].set_ylabel('Control')
+                    axes[1, 1].set_title('Control Inputs')
+                    axes[1, 1].legend()
+                    axes[1, 1].grid(True)
+                    
+                    plt.tight_layout()
+                    plt.savefig('/tmp/planner_diagnostic.png', dpi=150)
+                    print(f"Saved diagnostic plot to /tmp/planner_diagnostic.png")
+                    plt.close(fig)
+            else:
+                # C++ planner only supports verbose
+                traj = controller.calculate_trajectory(
+                    t_start=0.22, duration=tf, x_0=x0, os_0=os0, goals=goals, verbose=verbose
+                )
             controller.set_active_trajectory(traj)
             traj_valid = True
         except Exception as e:
@@ -124,6 +300,8 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
         for i in range(N):
             if i % 10 == 0:
                 update_worker_progress(slot_id, run_id, i, N)
+            if verbose and i % 50 == 0:
+                print(f"  Sim step {i}/{N} (t={t:.1f}s)")
 
             J2000 = 0.22 + t * sec2cent
             os_state = orb.get_os(J2000=J2000)
@@ -200,7 +378,40 @@ if __name__ == "__main__":
     tracking_suffix = f"_{TRACKING_MODE}" if TRACKING_MODE != "tvlqr" else ""
     output_name = f"3MTQ+1RW_plan_full180{tracking_suffix}_mc_{NUM_RUNS}"
 
-    if RUN_MC:
+    # --- Command-line argument parsing ---
+    parser = argparse.ArgumentParser(description="Run Monte Carlo simulations")
+    parser.add_argument("-t", "--test", action="store_true", 
+                        help="Run single test simulation (no multiprocessing, with visualization)")
+    parser.add_argument("-n", "--num-runs", type=int, default=None,
+                        help="Override number of runs")
+    args = parser.parse_args()
+    
+    TEST_MODE = args.test
+    if args.num_runs is not None:
+        NUM_RUNS = args.num_runs
+    
+    if TEST_MODE:
+        # Single run test mode - no multiprocessing, with visualization
+        print("=== TEST MODE: Single run, no multiprocessing, with planner visualization ===")
+        config = generate_mc_config(0)
+        config["verbose"] = False  # Disable verbose text output
+        config["visualize"] = True  # Enable live planner visualization
+        config["save_viz"] = True  # Save visualization figures
+        result = run_single_sim(config)
+        full_results = [result]
+        valid = [r for r in full_results if r and r.get("traj_valid", False)]
+        if valid:
+            print(f"Test run completed successfully")
+            # Plot results
+            plot_target_tracking_mc(full_results=valid, title="Test Run")
+            plot_convergence_histogram_mc(full_results=valid, title="Test Run")
+            create_close_all_button_window()
+            import matplotlib.pyplot as plt
+            plt.show()
+        else:
+            print(f"Test run failed: {result.get('error', 'Unknown error')}")
+
+    elif RUN_MC:
         print(f"Running with tracking_mode={TRACKING_MODE}")
         runner = MonteCarloRunner(
             sim_func=run_single_sim,

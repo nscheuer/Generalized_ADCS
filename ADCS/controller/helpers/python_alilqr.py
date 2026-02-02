@@ -143,6 +143,41 @@ class PythonALILQR:
         self.debug_callback = debug_callback
         self.verbose = verbose
     
+    def _clamp_quaternions_positive_scalar(self, Xset: NDArray) -> NDArray:
+        """
+        Clamp quaternions to have positive scalar component (q0 > 0).
+        
+        This keeps the trajectory in the "short path" hemisphere of quaternion
+        space, preventing the optimizer from finding solutions that spin the
+        long way around (through θ > 180°).
+        
+        For a unit quaternion q = [q0, q1, q2, q3], q and -q represent the same
+        rotation. By convention, we keep q0 >= 0. This eliminates the ambiguity
+        and keeps the optimizer in a single homotopy class.
+        
+        Parameters
+        ----------
+        Xset : (n_states, N) array
+            State trajectory with quaternion at indices 3:7 (q0, q1, q2, q3)
+            
+        Returns
+        -------
+        Xset_clamped : (n_states, N) array
+            Trajectory with all quaternions having q0 >= 0
+        """
+        Xset_clamped = Xset.copy()
+        N = Xset.shape[1]
+        
+        # Quaternion indices: q0=3, q1=4, q2=5, q3=6
+        q0_idx = 3
+        
+        for k in range(N):
+            if Xset_clamped[q0_idx, k] < 0:
+                # Flip the entire quaternion to get equivalent rotation with q0 > 0
+                Xset_clamped[3:7, k] *= -1
+        
+        return Xset_clamped
+    
     def _scale_rw_controls(self, Uset: NDArray) -> NDArray:
         """
         Scale RW/magic controls from optimizer units to physical units.
@@ -323,6 +358,14 @@ class PythonALILQR:
                 )
                 
                 Xset_new, Uset_new, times_new, TQset_new = traj_new
+                
+                # -------------------------------------------------------------
+                # QUATERNION CLAMPING: Keep q0 >= 0 to stay in short-path hemisphere
+                # This prevents the optimizer from finding spinning trajectories
+                # that go "the long way" around the rotation sphere.
+                # -------------------------------------------------------------
+                Xset_new = self._clamp_quaternions_positive_scalar(Xset_new)
+                traj_new = (Xset_new, Uset_new, times_new, TQset_new)
                 
                 # Compute gradient proxy
                 if dset.shape[1] > 0 and Uset_new.shape[1] > 0:

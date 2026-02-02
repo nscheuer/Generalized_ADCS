@@ -169,7 +169,8 @@ class Plan_and_Track_PythonALILQR(PlanAndTrackBase):
         verbose: bool = False,
         collect_all_iterations: bool = True,
         visualize: bool = False,
-        viz_save_path: Optional[str] = None
+        viz_save_path: Optional[str] = None,
+        skip_pass2: bool = False
     ) -> Trajectory:
         """
         Plan a trajectory using Python-driven ALILQR.
@@ -225,7 +226,9 @@ class Plan_and_Track_PythonALILQR(PlanAndTrackBase):
             # Propagate environment to get goal vectors for visualization
             N_viz = int(np.ceil(duration / dt_coarse)) + 1
             vecsPy_viz = self._propagate_environment(os_0, t_start, t_end, dt_coarse, N_viz, goals)
-            goal_vectors = vecsPy_viz[5]  # E vectors shape (3, N)
+            # vecsPy returns: (t, R, V, B, S, A, E, p, rho)
+            #                  0  1  2  3  4  5  6  7  8
+            goal_vectors = vecsPy_viz[6]  # E vectors shape (3, N) or (4, N) for quaternion
             
             # Generate actuator names for plot labels
             actuator_names = []
@@ -235,9 +238,10 @@ class Plan_and_Track_PythonALILQR(PlanAndTrackBase):
                 actuator_names.append(f'RW{i+1}')
             
             # Create live visualization
+            # goal_vectors is (3,N) for pointing or (4,N) for quaternion goal
             live_viz = LivePlannerViz(
-                goal_vector_eci=goal_vectors,
-                body_vector=np.array([0, 1, 0]),  # Boresight
+                goal_vector_eci=goal_vectors,  # Works for both 3D vectors and 4D quaternions
+                body_vector=np.array([0, 1, 0]),  # Boresight (used only for vector goals)
                 dt=dt_coarse,
                 update_interval=1,
                 figsize=(14, 10),
@@ -298,6 +302,29 @@ class Plan_and_Track_PythonALILQR(PlanAndTrackBase):
         # PASS 2: Fine trajectory refinement (strict constraint enforcement)
         # Interpolate to fine timestep and run with high penalty
         # =====================================================================
+        if skip_pass2:
+            if verbose:
+                print(f"\n=== SKIPPING PASS 2 (using Pass1 result directly) ===")
+            # Use Pass1 result directly - just compute gains
+            result = result1
+            self.pass2_result = None
+            self.last_optimization_result = result
+            
+            # Reorder controls and create trajectory
+            Uset = reorder_controls_cpp_to_python(result.Uset, self.est_sat.actuators)
+            Kset = reorder_gains_cpp_to_python(result.Kset, self.est_sat.actuators)
+            
+            N_result = result.Xset.shape[1]
+            Sset = np.zeros((1, N_result))
+            
+            if live_viz is not None:
+                if viz_save_path:
+                    live_viz.save(viz_save_path)
+                live_viz.finish(block=False)
+                self.set_iteration_callback(original_callback)
+            
+            return Trajectory(result.times, result.Xset, Uset, Kset, Sset)
+        
         if verbose:
             print(f"\n=== PASS 2: Refinement (dt={dt_fine}s, penalty_init={self.planner_settings.pass2.aug_lag.penalty_init}) ===")
         
@@ -348,20 +375,96 @@ class Plan_and_Track_PythonALILQR(PlanAndTrackBase):
         # Generate warm-started trajectory from interpolated Pass1 controls
         # This matches C++ trajOptAfter: generateInitialTrajectory(dt_tvlqr, Xset.col(0), UsetLong, vecs_tvlqr)
         # dt_fine=1s is small enough that this should be stable
-        try:
-            traj_fine = self.planner.generateInitialTrajectory(
-                dt_fine, result1.Xset[:, 0].copy(), Uset_fine, vecs_dt_fine
-            )
-            # Check for NaN
-            Xset_check, _, _, _ = traj_fine
-            if np.any(np.isnan(Xset_check)) or np.any(np.isinf(Xset_check)):
+        #
+        # NEW: Option to use SLERP interpolation of states instead of forward simulation.
+        # This preserves the Pass1 trajectory shape better, especially for quaternions.
+        use_slerp_interpolation = True  # Re-enable with debugging
+        
+        if use_slerp_interpolation and interp_ratio > 1:
+            from ADCS.controller.helpers.mtq_warm_start import interpolate_trajectory_to_finer_grid
+            
+            # SLERP interpolate states from Pass1
+            Xset_coarse = result1.Xset
+            tf = duration
+            
+            try:
+                Xset_fine = interpolate_trajectory_to_finer_grid(
+                    Xset_coarse, dt_coarse, dt_fine, tf, use_slerp=True
+                )
+                
+                # Validate interpolated states
+                if np.any(np.isnan(Xset_fine)) or np.any(np.isinf(Xset_fine)):
+                    print("  WARNING: SLERP produced NaN/Inf, falling back to forward simulation")
+                    use_slerp_interpolation = False
+                else:
+                    # Ensure Xset_fine has correct number of columns
+                    if Xset_fine.shape[1] != N_fine:
+                        # Pad or trim
+                        if Xset_fine.shape[1] < N_fine:
+                            pad = np.tile(Xset_fine[:, -1:], (1, N_fine - Xset_fine.shape[1]))
+                            Xset_fine = np.hstack([Xset_fine, pad])
+                        else:
+                            Xset_fine = Xset_fine[:, :N_fine]
+                    
+                    # Verify quaternion norms
+                    q_norms = np.linalg.norm(Xset_fine[3:7, :], axis=0)
+                    if np.any(np.abs(q_norms - 1.0) > 0.01):
+                        print(f"  WARNING: SLERP quaternions not normalized (range: {q_norms.min():.3f}-{q_norms.max():.3f})")
+                    
+                    # Create times array
+                    times_fine = np.linspace(0, duration, N_fine)
+                    
+                    # For TQset, initialize to zeros (same as optimizer does when TQset is None)
+                    TQset_fine = np.zeros((3, N_fine))
+                    
+                    traj_fine = (Xset_fine, Uset_fine, times_fine, TQset_fine)
+                    
+                    if verbose:
+                        print(f"  Used SLERP interpolation for states: {Xset_coarse.shape[1]} -> {Xset_fine.shape[1]}")
+            except Exception as e:
+                print(f"  WARNING: SLERP interpolation failed ({e}), falling back to forward simulation")
+                use_slerp_interpolation = False
+        
+        if not use_slerp_interpolation or interp_ratio <= 1:
+            try:
+                traj_fine = self.planner.generateInitialTrajectory(
+                    dt_fine, result1.Xset[:, 0].copy(), Uset_fine, vecs_dt_fine
+                )
+                # Check for NaN
+                Xset_check, _, _, _ = traj_fine
+                if np.any(np.isnan(Xset_check)) or np.any(np.isinf(Xset_check)):
+                    if verbose:
+                        print("  WARNING: Warm start produced NaN, using fresh init")
+                    traj_fine, _, _ = initial_result_2
+            except Exception as e:
                 if verbose:
-                    print("  WARNING: Warm start produced NaN, using fresh init")
+                    print(f"  WARNING: generateInitialTrajectory failed ({e}), using fresh init")
                 traj_fine, _, _ = initial_result_2
-        except Exception as e:
-            if verbose:
-                print(f"  WARNING: generateInitialTrajectory failed ({e}), using fresh init")
-            traj_fine, _, _ = initial_result_2
+        
+        # Debug: Check trajectory before Pass2
+        # DEBUG: Compare SLERP vs non-SLERP trajectories
+        if use_slerp_interpolation:
+            print(f"  SLERP trajectory - checking dynamics consistency...")
+            # The SLERP states may not be consistent with the controls
+            # Let's regenerate states from controls and compare
+            try:
+                traj_fwd = self.planner.generateInitialTrajectory(
+                    dt_fine, traj_fine[0][:, 0].copy(), traj_fine[1], vecs_dt_fine
+                )
+                Xset_slerp = traj_fine[0]
+                Xset_fwd, _, _, _ = traj_fwd
+                
+                # Compare
+                diff = np.abs(Xset_slerp - Xset_fwd)
+                print(f"    Max state diff: {diff.max():.4f}")
+                print(f"    Max ω diff: {diff[0:3,:].max():.4f}")
+                print(f"    Max q diff: {diff[3:7,:].max():.4f}")
+                
+                # Use forward-simulated trajectory instead of SLERP
+                print(f"    Using forward-simulated trajectory instead of SLERP")
+                traj_fine = traj_fwd
+            except Exception as e:
+                print(f"    Forward sim failed: {e}")
         
         result2 = self.py_alilqr.optimize(
             dt=dt_fine,

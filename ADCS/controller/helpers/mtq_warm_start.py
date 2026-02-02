@@ -16,6 +16,7 @@ See papers/Planner/MTQ_DISCRETIZATION_FINDINGS.md for full analysis.
 
 import numpy as np
 from scipy.interpolate import interp1d
+from scipy.spatial.transform import Rotation, Slerp
 from ADCS.helpers.math_helpers import rot_mat
 
 
@@ -82,7 +83,7 @@ def solve_mtq_controls_body_frame(Xset_interp, B_eci, dt, J, m_max=None):
     return Uset, mtq_pct
 
 
-def interpolate_trajectory_to_finer_grid(Xset_coarse, dt_coarse, dt_fine, tf):
+def interpolate_trajectory_to_finer_grid(Xset_coarse, dt_coarse, dt_fine, tf, use_slerp=True):
     """
     Interpolate trajectory states from coarse to fine grid.
     
@@ -96,6 +97,10 @@ def interpolate_trajectory_to_finer_grid(Xset_coarse, dt_coarse, dt_fine, tf):
         Fine timestep (seconds)
     tf : float
         Total time (seconds)
+    use_slerp : bool, optional
+        If True, use SLERP for quaternion interpolation (preserves shortest path).
+        If False, use cubic interpolation with normalization (legacy behavior).
+        Default True.
         
     Returns
     -------
@@ -108,17 +113,60 @@ def interpolate_trajectory_to_finer_grid(Xset_coarse, dt_coarse, dt_fine, tf):
     t_coarse = np.linspace(0, tf, N_coarse)
     t_fine = np.linspace(0, tf, N_fine)
     
-    # Cubic interpolation for each state
-    Xset_fine = np.array([
-        interp1d(t_coarse, Xset_coarse[i, :], kind='cubic', fill_value='extrapolate')(t_fine)
-        for i in range(Xset_coarse.shape[0])
-    ])
+    n_states = Xset_coarse.shape[0]
+    Xset_fine = np.zeros((n_states, N_fine))
     
-    # Normalize quaternions (indices 3:7)
-    for k in range(N_fine):
-        q_norm = np.linalg.norm(Xset_fine[3:7, k])
-        if q_norm > 1e-10:
-            Xset_fine[3:7, k] /= q_norm
+    if use_slerp:
+        # SLERP for quaternions, cubic for other states
+        
+        # First, ensure quaternion continuity (no sign flips)
+        # This is critical for SLERP to take the short path
+        quats_coarse = Xset_coarse[3:7, :].T.copy()  # (N_coarse, 4)
+        for k in range(1, N_coarse):
+            if np.dot(quats_coarse[k], quats_coarse[k-1]) < 0:
+                quats_coarse[k] *= -1
+        
+        # Convert to scipy Rotation objects
+        # scipy expects [x, y, z, w] but we use [w, x, y, z], so reorder
+        quats_scipy = quats_coarse[:, [1, 2, 3, 0]]  # [w,x,y,z] -> [x,y,z,w]
+        
+        try:
+            rotations = Rotation.from_quat(quats_scipy)
+            slerp_interp = Slerp(t_coarse, rotations)
+            rotations_fine = slerp_interp(t_fine)
+            quats_fine_scipy = rotations_fine.as_quat()  # (N_fine, 4) in [x,y,z,w]
+            # Convert back to [w, x, y, z]
+            Xset_fine[3, :] = quats_fine_scipy[:, 3]  # w
+            Xset_fine[4, :] = quats_fine_scipy[:, 0]  # x
+            Xset_fine[5, :] = quats_fine_scipy[:, 1]  # y
+            Xset_fine[6, :] = quats_fine_scipy[:, 2]  # z
+        except Exception as e:
+            # Fallback to cubic if SLERP fails
+            print(f"SLERP failed ({e}), falling back to cubic interpolation")
+            for i in range(3, 7):
+                Xset_fine[i, :] = interp1d(t_coarse, Xset_coarse[i, :], 
+                                           kind='cubic', fill_value='extrapolate')(t_fine)
+            # Normalize
+            for k in range(N_fine):
+                q_norm = np.linalg.norm(Xset_fine[3:7, k])
+                if q_norm > 1e-10:
+                    Xset_fine[3:7, k] /= q_norm
+        
+        # Cubic interpolation for non-quaternion states (angular velocity, RW momentum, etc.)
+        for i in list(range(0, 3)) + list(range(7, n_states)):
+            Xset_fine[i, :] = interp1d(t_coarse, Xset_coarse[i, :], 
+                                       kind='cubic', fill_value='extrapolate')(t_fine)
+    else:
+        # Legacy: cubic interpolation for all states
+        for i in range(n_states):
+            Xset_fine[i, :] = interp1d(t_coarse, Xset_coarse[i, :], 
+                                       kind='cubic', fill_value='extrapolate')(t_fine)
+        
+        # Normalize quaternions (indices 3:7)
+        for k in range(N_fine):
+            q_norm = np.linalg.norm(Xset_fine[3:7, k])
+            if q_norm > 1e-10:
+                Xset_fine[3:7, k] /= q_norm
     
     return Xset_fine
 

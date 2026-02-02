@@ -319,7 +319,7 @@ def create_adaptive_planner_settings(
                 # high enough to drive the optimizer to the goal
                 angle_terminal_cost=100000.0,
                 ang_vel_terminal_cost=10000.0,
-                ang_cost_func_type=3,  # Quadratic geodesic
+                ang_cost_func_type=3,  # sin²(θ/2) - stable at 180°
                 # All auto-tuning enabled
                 use_scale_normalization=True,
                 auto_scale_angle_cost=True,
@@ -345,7 +345,7 @@ def create_adaptive_planner_settings(
                 ang_vel_cost=500.0,
                 angle_terminal_cost=100000.0,
                 ang_vel_terminal_cost=10000.0,
-                ang_cost_func_type=3,
+                ang_cost_func_type=3,  # sin²(θ/2) - stable at 180°
                 use_scale_normalization=True,
                 auto_scale_angle_cost=True,
                 angle_scale_deg=90.0,
@@ -759,15 +759,33 @@ def apply_fast_slew_tuning(settings, verbose: bool = False):
     settings.cost_second.angle_N *= 10
     settings.cost_second.ang_vel_N *= 10
     
-    settings.bdot_on = 1
+    # Use B-dot initialization (mode 1) - TEST: checking if PD causes spins
+    # Mode 1 (B-dot) is meant for detumbling
+    # Mode 4 (PD) drives toward goal but might cause spins
+    settings.bdot_on = 1  # TESTING
     settings.cost_main.use_full_cost_hessian = False
     settings.cost_second.use_full_cost_hessian = False
+    
+    # TEST C: Penalize angular velocity in the "wrong" direction (increasing error)
+    # This should discourage spinning backwards through 180°
+    settings.cost_main.ang_vel_err_dir = 1000.0  # TEST
+    settings.cost_main.ang_vel_err_dir_N = 1000.0
+    settings.cost_second.ang_vel_err_dir = 1000.0
+    settings.cost_second.ang_vel_err_dir_N = 1000.0
+    
+    # TEST: Finer timestep in Pass1 to capture dynamics better
+    settings.dt_tp = 5  # Was 10, try 5 to see if it helps with spikes
+    
+    # Very low initial penalty for better exploration in Pass 1
+    settings.pass1.aug_lag.penalty_init = 1e-6
+    settings.pass1.aug_lag.penalty_max = 1e4
     
     if verbose:
         ratio = settings.cost_main.ang_vel / settings.cost_main.angle
         print("Applied fast_slew tuning (balance RW and accuracy):")
         print(f"  ang_vel/angle ratio: {ratio:.1f} (target: ~100)")
         print(f"  terminal costs: 10x")
+        print(f"  bdot_on: 4 (PD control init)")
         print(f"  Expected: ~72% RW, <1° final error")
     
     return settings

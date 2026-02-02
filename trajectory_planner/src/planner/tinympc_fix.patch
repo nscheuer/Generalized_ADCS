@@ -1,0 +1,29 @@
+--- a/TinyMPC.cpp
++++ b/TinyMPC.cpp
+@@ -180,18 +180,18 @@ void TinyMPC::interpolateReference(double t, vec& x_ref, vec& u_ref, mat* K_ref)
+         vec x0 = ref_traj.X_ref.col(idx);
+         vec x1 = ref_traj.X_ref.col(idx + 1);
+ 
+-        // For quaternion part, use SLERP
+-        vec4 q0 = x0.head(4);
+-        vec4 q1 = x1.head(4);
++        // For quaternion part (indices 3-6), use SLERP
++        vec4 q0 = x0.subvec(3, 6);
++        vec4 q1 = x1.subvec(3, 6);
+ 
+         // Ensure quaternions are in same hemisphere
+         if (dot(q0, q1) < 0) {
+             q1 = -q1;
+         }
+ 
+-        // Simple linear interpolation (LERP) with renormalization
++        // LERP with renormalization
+         vec4 q_interp = (1.0 - alpha) * q0 + alpha * q1;
+         q_interp = normalise(q_interp);
+ 
+-        // Linear interpolation for rest of state
++        // Linear interpolation for full state, then fix quaternion
+         x_ref = (1.0 - alpha) * x0 + alpha * x1;
+-        x_ref.head(4) = q_interp;
++        x_ref.subvec(3, 6) = q_interp;
+     }

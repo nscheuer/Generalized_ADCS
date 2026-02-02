@@ -107,6 +107,23 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
         """
         # tracking_lqr_formulation=0 is standard TVLQR
         self._init_planner(est_sat, planner_settings, tracking_lqr_formulation=0)
+        self._gain_scale = 1.0  # Default: use full K gains
+    
+    def set_gain_scale(self, scale: float) -> None:
+        """
+        Set the feedback gain scaling factor.
+        
+        The TVLQR gains computed by the planner may be too aggressive for
+        closed-loop tracking. This scaling factor allows tuning:
+        
+        - scale=1.0: Full TVLQR gains (default)
+        - scale=0.0: Open-loop (just feedforward u_ref)
+        - scale=0.01-0.1: Often works better for MTQ-based systems
+        
+        :param scale: Gain scaling factor (0.0 to 1.0 recommended).
+        :type scale: float
+        """
+        self._gain_scale = scale
 
     def find_u(
         self,
@@ -181,7 +198,22 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
             raise RuntimeError(f"Plan_and_Track_LQR: Active trajectory expired or not started. "
                                 f"Current: {current_time}, Traj: [{self.active_trajectory.start_time}, {self.active_trajectory.end_time}]")
 
-        return self.active_trajectory.compute_tracking_control(current_time, x_hat)
+        # Get trajectory data
+        x_ref = self.active_trajectory.get_state_at(current_time)
+        u_ref = self.active_trajectory.get_control_at(current_time)
+        K = self.active_trajectory.get_gain_at(current_time)
+        
+        # Compute state error
+        dx = self.active_trajectory._state_diff(x_hat, x_ref)
+        
+        # Apply scaled feedback: u = u_ref - scale * K @ dx
+        u = u_ref - self._gain_scale * K @ dx
+        
+        # Saturate control to actuator limits
+        u_max = np.array([act.u_max for act in est_sat.actuators])
+        u = np.clip(u, -u_max, u_max)
+        
+        return u
 
     def calculate_trajectory(
         self,

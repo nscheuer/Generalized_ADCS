@@ -172,7 +172,13 @@ class Plan_and_Track_Exact(PlanAndTrackBase):
             raise RuntimeError(f"Plan_and_Track_LQR: Active trajectory expired or not started. "
                                 f"Current: {current_time}, Traj: [{self.active_trajectory.start_time}, {self.active_trajectory.end_time}]")
 
-        return self.active_trajectory.get_control_at(current_time)
+        u = self.active_trajectory.get_control_at(current_time)
+        
+        # Saturate control to actuator limits (safety check)
+        u_max = np.array([act.u_max for act in est_sat.actuators])
+        u = np.clip(u, -u_max, u_max)
+        
+        return u
 
     def calculate_trajectory(
         self,
