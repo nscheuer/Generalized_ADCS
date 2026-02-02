@@ -29,6 +29,9 @@ from .mtq_warm_start import (
     get_mtq_only_pass2_cost_mods,
 )
 
+# TinyMPC settings
+from .tinympc_settings import TinyMPCSettings
+
 __all__ = [
     # Legacy API
     "vector_alignment_error", 
@@ -61,4 +64,6 @@ __all__ = [
     # Live visualization
     "LivePlannerViz",
     "ConvergenceMonitor",
+    # TinyMPC settings
+    "TinyMPCSettings",
 ]

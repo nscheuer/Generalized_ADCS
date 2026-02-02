@@ -10,7 +10,7 @@ if("${PROJECT_SOURCE_DIR}" STREQUAL "${PROJECT_BINARY_DIR}")
     message(FATAL_ERROR "In-source builds are not allowed. Please use a 'build' folder.")
 endif()
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(BUILD_SHARED_LIBS ON)
@@ -117,6 +117,19 @@ set_target_properties(tp_test2 PROPERTIES POSITION_INDEPENDENT_CODE ON)
 pybind11_add_module(tplaunch MODULE src/planner/PyPlanner.cpp)
 pybind11_add_module(pysat MODULE src/planner/Satellite.cpp)
 
+# TinyMPC module
+add_library(tinympc_core STATIC
+      src/planner/TinyMPC.cpp
+      )
+set_target_properties(tinympc_core PROPERTIES POSITION_INDEPENDENT_CODE ON)
+target_include_directories(tinympc_core PUBLIC
+        "${PROJECT_SOURCE_DIR}/src"
+        "${ARMADILLO_INCLUDE_DIRS}"
+        )
+target_link_libraries(tinympc_core PUBLIC ${ARMADILLO_LIBRARIES} sat_nopy)
+
+pybind11_add_module(pytinympc MODULE src/planner/PyTinyMPC.cpp)
+
 
 target_link_libraries(tp_nopy PUBLIC ${ARMADILLO_LIBRARIES} ${ARMADILLO_LIBRARY} pybind11::module ${PYBIND11_INCLUDE_DIRS} ${PYTHON_LIBRARY} ${PYTHON_LIBRARIES}  )
 target_link_libraries(sat PUBLIC ${ARMADILLO_LIBRARIES} ${ARMADILLO_LIBRARY} pybind11::module ${PYBIND11_INCLUDE_DIRS} ${PYTHON_LIBRARY} ${PYTHON_LIBRARIES}  )
@@ -124,6 +137,7 @@ target_link_libraries(sat_nopy PUBLIC ${ARMADILLO_LIBRARIES} ${ARMADILLO_LIBRARY
 target_link_libraries(pysat PUBLIC ${ARMADILLO_LIBRARIES} ${ARMADILLO_LIBRARY} sat ${PYTHON_LIBRARY} ${PYTHON_LIBRARIES}  )
 target_link_libraries(tp PUBLIC ${ARMADILLO_LIBRARIES} ${ARMADILLO_LIBRARY} pybind11::module sat ${PYBIND11_INCLUDE_DIRS} ${PYTHON_LIBRARY} ${PYTHON_LIBRARIES}   )
 target_link_libraries(tplaunch PUBLIC ${ARMADILLO_LIBRARIES} ${ARMADILLO_LIBRARY} tp tp_nopy sat sat_nopy  pybind11::module ${PYBIND11_INCLUDE_DIRS} ${PYTHON_LIBRARY} ${PYTHON_LIBRARIES}  )
+target_link_libraries(pytinympc PUBLIC ${ARMADILLO_LIBRARIES} ${ARMADILLO_LIBRARY} tinympc_core sat sat_nopy pybind11::module ${PYBIND11_INCLUDE_DIRS} ${PYTHON_LIBRARY} ${PYTHON_LIBRARIES})
 target_link_libraries(tp_test PRIVATE Catch2::Catch2WithMain PUBLIC pybind11::embed ${ARMADILLO_LIBRARIES} ${ARMADILLO_LIBRARY} sat tp sat_nopy tp_nopy)
 target_link_libraries(tp_test2 PRIVATE Catch2::Catch2WithMain PUBLIC pybind11::embed ${ARMADILLO_LIBRARIES} ${ARMADILLO_LIBRARY} sat tp sat_nopy tp_nopy)
 
@@ -150,6 +164,13 @@ target_include_directories(tp PUBLIC
  			   )
 
  target_include_directories(pysat PRIVATE
+         "${PROJECT_SOURCE_DIR}/src"
+         "${PYTHON_INCLUDE_DIRS}"
+         "${PYBIND11_INCLUDE_DIRS}"
+         "${ARMADILLO_INCLUDE_DIRS}"
+ 			   )
+
+ target_include_directories(pytinympc PUBLIC
          "${PROJECT_SOURCE_DIR}/src"
          "${PYTHON_INCLUDE_DIRS}"
          "${PYBIND11_INCLUDE_DIRS}"
