@@ -19,6 +19,10 @@ from .plan_and_track_mpc import (
     Plan_and_Track_MPC_Python,
     MPCParams
 )
+from .plan_and_track_actualb import (
+    Plan_and_Track_ActualB,
+    Plan_and_Track_ActualB_Python
+)
 from .plan_and_track_python_alilqr import Plan_and_Track_PythonALILQR
 
 # C++ TinyMPC controllers (optional - may not be built)
@@ -38,6 +42,7 @@ __all__ = [
     "Plan_and_Track_LQR_Disturbed", 
     "Plan_and_Track_ComputedTorque", "Plan_and_Track_ComputedTorque_Python",
     "Plan_and_Track_MPC", "Plan_and_Track_MPC_Python",
+    "Plan_and_Track_ActualB", "Plan_and_Track_ActualB_Python",
     "Plan_and_Track_PythonALILQR", "MPCParams"
 ]
 
