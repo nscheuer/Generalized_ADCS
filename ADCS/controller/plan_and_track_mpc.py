@@ -31,6 +31,7 @@ from typing import Callable
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
+from ADCS.helpers.math_helpers import rot_mat
 
 
 class Plan_and_Track_MPC(PlanAndTrackBase):
@@ -162,9 +163,9 @@ class Plan_and_Track_MPC(PlanAndTrackBase):
         # Get B-field in body frame
         if B_body is None:
             # Compute from orbital state and current attitude
-            from scipy.spatial.transform import Rotation
+            # rot_mat(q) gives R_body_to_eci, so R.T @ B_eci gives B_body
             q = x_hat[3:7]
-            R = Rotation.from_quat([q[1], q[2], q[3], q[0]]).as_matrix()
+            R = rot_mat(q)
             B_body = R.T @ os_hat.B
 
         # Get reference from trajectory
@@ -361,9 +362,9 @@ class Plan_and_Track_MPC_Python(PlanAndTrackBase):
 
         # Get B-field
         if B_body is None:
-            from scipy.spatial.transform import Rotation
+            # rot_mat(q) gives R_body_to_eci, so R.T @ B_eci gives B_body
             q = x_hat[3:7]
-            R = Rotation.from_quat([q[1], q[2], q[3], q[0]]).as_matrix()
+            R = rot_mat(q)
             B_body = R.T @ os_hat.B
 
         # Get references

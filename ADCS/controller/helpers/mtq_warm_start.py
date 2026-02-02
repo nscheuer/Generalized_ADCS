@@ -16,7 +16,7 @@ See papers/Planner/MTQ_DISCRETIZATION_FINDINGS.md for full analysis.
 
 import numpy as np
 from scipy.interpolate import interp1d
-from scipy.spatial.transform import Rotation
+from ADCS.helpers.math_helpers import rot_mat
 
 
 def solve_mtq_controls_body_frame(Xset_interp, B_eci, dt, J, m_max=None):
@@ -57,7 +57,7 @@ def solve_mtq_controls_body_frame(Xset_interp, B_eci, dt, J, m_max=None):
         
         # Quaternion to rotation matrix (body -> ECI)
         q = Xset_interp[3:7, k]
-        R = Rotation.from_quat([q[1], q[2], q[3], q[0]]).as_matrix()
+        R = rot_mat(q)
         
         # Transform B to body frame
         B_body = R.T @ B_eci[:, k]
