@@ -104,6 +104,27 @@ This would adapt to B-field changes but requires faster optimization.
 - Test scripts: `/tmp/test_smooth_pass2.py`, `/tmp/test_openloop_vs_tvlqr.py`
 - Plots: `/tmp/smooth_pass2.png`, `/tmp/openloop_vs_tvlqr.png`
 
+## Update: TVLQR Gains Bug Fixed (Feb 2, 2026)
+
+A bug was found where `PythonALILQRv2.optimize()` was returning **all-zero gains** because `ilqrStep` doesn't expose the backward pass results. 
+
+**Fix applied:** Call `backwardPass` at the end of optimization to compute actual gains.
+
+**New findings with actual gains:**
+- Gains are computed correctly now (Kset shape: (18, N) for MTQ-only)
+- **However, gains are very large** (mean~166, max~9200 vs actuator limit 0.2)
+- TVLQR with these gains **hurts performance** - causes actuator saturation
+- Open-loop: 10.86° final error
+- TVLQR: 44.55° final error (worse!)
+
+**Root cause:** The LQR gains are computed with state costs ~1e3-1e4 and control costs ~1, making K very large. For MTQ systems where actuator authority is limited and torque direction depends on B-field, large LQR gains cause saturation and instability.
+
+**Remaining work:**
+1. Scale gains appropriately for MTQ authority
+2. Or use smaller state weights in LQR cost
+3. Or implement gain clamping / anti-windup
+4. Or use different tracking approach (e.g., model predictive control)
+
 ## Date
 
 February 2, 2026
