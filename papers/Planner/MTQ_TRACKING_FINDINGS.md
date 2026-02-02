@@ -185,20 +185,29 @@ tracker.set_tvlqr_gains(Kset)
 u = tracker.compute_control_hybrid(x_curr, B_body, t_curr)
 ```
 
+### Results with Aggressive Tuning
+
+| System | Plan | Open-loop | TVLQR | MPC-hybrid |
+|--------|------|-----------|-------|------------|
+| **MTQ-only** | 9.0° | 10.9° | 55.3° ✗ | **9.6°** ✓ |
+| **3MTQ+1RW** | 0.1° | 87.7° | 28.2° | **14.0°** ✓ |
+
 ### Key Findings
 
-1. **Open-loop is often sufficient** for well-planned trajectories (< 5° plan error)
-2. **MPC-TVLQR hybrid has best tracking** (follows trajectory shape)
-3. **TVLQR always fails** for MTQ-only - don't use it!
-4. **MPC overhead is minimal** - only ~20% slower than open-loop
+1. **MPC-hybrid is best for both systems** - uses actual B-field for MTQ + TVLQR for RW
+2. **TVLQR fails for MTQ-only** - uses planned B-field which diverges from actual
+3. **TVLQR helps for RW** - RW torque is attitude-independent
+4. **Open-loop can fail badly** for aggressive trajectories relying on RW
 
 ### Recommendation
 
-| Trajectory Quality | Recommended Approach |
-|-------------------|---------------------|
-| Plan error < 5° | Open-loop |
-| Plan error > 5° | MPC-TVLQR hybrid |
-| Any | NEVER use TVLQR for MTQ-only |
+| System | Tuning | Recommended Approach |
+|--------|--------|---------------------|
+| MTQ-only | Any | **MPC-hybrid** |
+| 3MTQ+RW | Conservative | Open-loop or TVLQR |
+| 3MTQ+RW | Aggressive | **MPC-hybrid** (MPC for MTQ + TVLQR for RW) |
+
+**Never use pure TVLQR for MTQ-only systems!**
 
 ## Date
 
