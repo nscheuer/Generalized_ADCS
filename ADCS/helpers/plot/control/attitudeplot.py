@@ -43,15 +43,77 @@ def _safe_unit(v: np.ndarray) -> Optional[np.ndarray]:
 
 class AttitudePlot(Subplot):
     r"""
-    Interactive 3D attitude animation subplot wrapper.
+    Interactive 3D attitude animation subplot.
 
-    Updated to support mixed goal types in sim.target_hist:
+    This class provides an interactive Matplotlib-based 3D animation for
+    visualizing spacecraft attitude in the Earth-Centered Inertial frame. It
+    supports visualization of true attitude, estimated attitude, and reference
+    goals, as well as optional environmental vectors such as magnetic field and
+    Sun direction.
 
-      - Vector goal rows: [nan, tx, ty, tz]  -> draw a reference vector (ECI)
-      - Quaternion goal rows: [q0, q1, q2, q3] (Body->ECI) -> draw goal body axes in ECI
+    The class integrates with the ADCS plotting framework via
+    :class:`~ADCS.plotting.subplot.Subplot`.
 
-    If reference_attr points to an Nx3 array, it is treated as a pure vector-goal history
-    (backward-compatible with the old eci_target_hist).
+    Reference goals are read from the simulation attribute specified by
+    ``reference_attr`` and may be provided in mixed formats:
+
+    +----------------------+-------------------------------------------+
+    | Goal row format      | Interpretation                            |
+    +======================+===========================================+
+    | [nan, tx, ty, tz]    | Reference vector in ECI                   |
+    +----------------------+-------------------------------------------+
+    | [q0, q1, q2, q3]     | Quaternion goal, body to ECI              |
+    +----------------------+-------------------------------------------+
+
+    Legacy ``Nx3`` arrays are interpreted as vector-only reference histories.
+
+    :param sources:
+        List of attitude sources to visualize. Supported values are
+        ``real``, ``estimated``, and ``reference``. Defaults to ``["real"]``.
+    :type sources:
+        list[str] or None
+
+    :param time:
+        Name of the time attribute on the simulation object.
+    :type time:
+        str
+
+    :param title:
+        Title displayed on the animation window.
+    :type title:
+        str
+
+    :param reference_attr:
+        Name of the simulation attribute containing reference goal history.
+    :type reference_attr:
+        str
+
+    :param body_axis:
+        Body axis identifier used for reference alignment. Must be ``x``, ``y``,
+        or ``z``.
+    :type body_axis:
+        str
+
+    :param axis_limits:
+        Symmetric axis limits applied to all ECI axes.
+    :type axis_limits:
+        float
+
+    :param interval_ms:
+        Animation update interval in milliseconds.
+    :type interval_ms:
+        int
+
+    :param show_env:
+        Enable visualization of environmental vectors when available.
+    :type show_env:
+        bool
+
+    :return:
+        None
+    :rtype:
+        None
+
     """
 
     def __init__(

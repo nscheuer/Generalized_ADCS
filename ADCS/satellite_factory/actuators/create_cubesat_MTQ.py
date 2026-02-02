@@ -1,3 +1,5 @@
+__all__ = ['create_isis_magnetorquer_board']
+
 import numpy as np
 from typing import Optional, List
 

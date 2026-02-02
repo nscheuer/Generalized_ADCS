@@ -3,7 +3,7 @@
 
 We consider the SwissCube CubeSat launched by the `EPFL Space Center <https://espace.epfl.ch/research/past-projects/swisscube-project/>`_ in 2009 and still in operation.
 
-.. image:: ../_static/tutorial_02_swisscube.jpeg
+.. image:: ../_static/tutorials/tutorial_02_swisscube.jpeg
    :alt: Render of BeaverCube 2 CubeSat with deployed solar panels.
    :width: 400px
    :align: center
@@ -79,7 +79,7 @@ SwissCube is a small 1U CubeSat with a simple actuator layout of 3 magnetorquers
    :header-rows: 0
    :class: borderless
 
-   * - .. image:: ../_static/tutorial_02_attitudeplot.png
+   * - .. image:: ../_static/tutorials/tutorial_02_attitudeplot.png
           :width: 100%
-     - .. image:: ../_static/tutorial_02_plots.png
+     - .. image:: ../_static/tutorials/tutorial_02_plots.png
           :width: 100%

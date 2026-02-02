@@ -14,18 +14,32 @@ goal = ADCS.goals.ECI_Goal(eci_vector=np.array([1, 0, 0]))
 
 os0 = ADCS.Orbital_State(ephem=ADCS.Ephemeris(),J2000=0.22, R=np.array([7000, 0, 0]), V=np.array([0, 7.5, 0]))
 
-results = ADCS.simulate(
+def make_random_os(rng: np.random.Generator) -> ADCS.Orbital_State:
+    return ADCS.orbits.create_random_circular_os(radius_km=7000.0, J2000=0.22, rng=rng)
+
+mc_config = ADCS.MCConfig(
+    w = lambda rng: ADCS.helpers.normalize(rng.standard_normal(3)) * (rng.uniform(0.1, 1.0) * np.pi / 180.0),
+    q = lambda rng: ADCS.helpers.normalize(rng.standard_normal(4)),
+    h = lambda rng: rng.uniform(-0.0001, 0.0001, size=1),
+    goal = lambda rng: ADCS.goals.ECI_Goal(eci_vector=ADCS.helpers.normalize(rng.standard_normal(3))),
+    orbit = make_random_os
+)
+
+mc_results = ADCS.simulate_mc(
     x=x_0,
     satellite=real_sat,
     controller=controller,
     goal=goal,
     os0=os0,
     dt=2.0,
-    tf=500.0,
+    tf=1000.0,
+    mc_config=mc_config,
+    num_runs=12,
+    base_seed=42,
 )
 
 ADCS.plot(
-    results,
+    mc_results,
     ADCS.plots.ControlPlot(),
     ADCS.plots.TargetPlot(modes=["real_target"]),
     ADCS.plots.TargetHistogram(),
@@ -35,45 +49,21 @@ ADCS.plot(
 )
 
 ADCS.plot(
-    results,
-    ADCS.plots.AttitudePlot(sources=["real", "reference"]),
-    layout=(1,1),
-    title="Attitude Plot",
-)
-
-ADCS.plot(
-    results,
+    mc_results,
     ADCS.plots.AnimationPlot(),
     layout=(1,1),
     title="Animation Plot",
 )
 
 ADCS.plot(
-    results,
-    ADCS.plots.OrbitDensityPlot(),
-    ADCS.plots.OrbitDensityModelPlot(),
-    layout=(1,2),
-    title="Orbit Density Plot",
-)
-
-ADCS.plot(
-    results,
-    ADCS.plots.OrbitMagneticPlot(),
-    ADCS.plots.OrbitMagneticPlotSingle(component="m"),
-    ADCS.plots.OrbitMagneticPlotCombined(),
-    layout=(3,1),
-    title="Orbit Magnetic Field Plot",
-)
-
-ADCS.plot(
-    results,
+    mc_results,
     ADCS.plots.OrbitPlot(),
     layout=(1,1),
     title="Orbit Plot",
 )
 
 ADCS.plot(
-    results,
+    mc_results,
     ADCS.plots.OrbitPositionPlot(),
     ADCS.plots.OrbitPositionPlotSingle(component="m"),
     ADCS.plots.OrbitPositionPlotCombined(),
@@ -85,19 +75,7 @@ ADCS.plot(
 )
 
 ADCS.plot(
-    results,
-    ADCS.plots.BiasPlot(),
-    ADCS.plots.BiasPlotSingle(index=0),
-    ADCS.plots.BiasPlotCombined(),
-    ADCS.plots.SensorsPlot(),
-    ADCS.plots.SensorsPlotSingle(index=0),
-    ADCS.plots.SensorsPlotCombined(),
-    layout=(3,2),
-    title="Bias and Sensors Plot",
-)
-
-ADCS.plot(
-    results,
+    mc_results,
     ADCS.plots.QuaternionPlot(),
     ADCS.plots.QuaternionPlotSingle(component=0),
     ADCS.plots.QuaternionPlotCombined(),
@@ -107,5 +85,7 @@ ADCS.plot(
     layout=(3,2),
     title="Quaternion and Angular Velocity Plot",
 )
+
+
 
 plt.show()

@@ -62,40 +62,65 @@ def _attitude_error_deg(q_b2i: np.ndarray, qref_b2i: np.ndarray) -> float:
 
 class TargetPlot(Subplot):
     r"""
-    Comparison plot between spacecraft boresight / attitude targets and estimates.
+    Comparison plot for spacecraft target tracking performance.
 
-    This plot uses sim.target_hist rows of length 4 and supports two encodings:
+    This subplot visualizes angular errors between spacecraft attitude or
+    boresight directions and commanded targets over time. Targets are read
+    from ``sim.target_hist`` and may encode either desired directions or
+    full attitude quaternions.
 
-      1) Vector goal: [nan, tx, ty, tz]
-         - Interpreted as a *direction in ECI* (tx,ty,tz).
-         - Error (real_target / est_target) is the angle between the spacecraft
-           boresight (rotated into ECI) and the target direction.
+    Two target encodings are supported:
 
-      2) Quaternion goal: [q0, q1, q2, q3]
-         - Interpreted as a *full desired attitude* quaternion (Body->ECI).
-         - Error (real_target / est_target) is the *attitude error angle* between
-           the current quaternion and q_ref via the relative quaternion.
+    +----------------------+---------------------------------------------+
+    | Target row format    | Interpretation                              |
+    +======================+=============================================+
+    | [nan, tx, ty, tz]    | Direction target expressed in ECI           |
+    +----------------------+---------------------------------------------+
+    | [q0, q1, q2, q3]     | Desired attitude quaternion (Body to ECI)   |
+    +----------------------+---------------------------------------------+
 
-    Supported modes:
-      - real_target: (vector target → boresight error) OR (quat target → attitude error)
-      - est_target:  same as above but using est_state_hist
-      - real_est:    angle(real boresight, estimated boresight) (requires boresight)
-      - directions3d: 3D snapshot of directions at a chosen sample
-                      (requires boresight; for quaternion targets, shows boresight
-                       implied by q_ref for visualization only)
+    Depending on the selected modes, the plot computes one or more angular
+    error time series:
 
-    Parameters
-    ----------
-    time : str
-        Name of the simulation attribute containing the time vector in seconds.
-    title : str
+    - real_target compares the true spacecraft state against the target.
+    - est_target compares the estimated spacecraft state against the target.
+    - real_est compares true and estimated spacecraft boresight directions.
+    - directions3d renders a 3D snapshot of directions at a selected sample.
+
+    This class integrates with the ADCS plotting framework via
+    :class:`~ADCS.plotting.subplot.Subplot` and supports multi-run Monte Carlo
+    simulations by overlaying individual runs with reduced opacity.
+
+    :param time:
+        Name of the simulation attribute containing the time vector.
+    :type time:
+        str
+
+    :param title:
         Title displayed at the top of the plot.
-    units : str
-        Units used for angular error display, typically degrees.
-    modes : list[str] | None
-        Which comparisons to display.
-    sample_index : int
-        Index for the directions3d snapshot (negative selects from end).
+    :type title:
+        str
+
+    :param units:
+        Units used for angular error display.
+    :type units:
+        str
+
+    :param modes:
+        List of comparison modes to display.
+    :type modes:
+        list[str] or None
+
+    :param sample_index:
+        Sample index used for the 3D direction snapshot.
+    :type sample_index:
+        int
+
+    :return:
+        None
+    :rtype:
+        None
+
     """
 
     def __init__(
@@ -371,6 +396,57 @@ class TargetPlot(Subplot):
 
 
 class TargetHistogram(Subplot):
+    r"""
+    Histogram of final target tracking errors across simulation runs.
+
+    This subplot aggregates the final angular tracking error from each run
+    in a simulation ensemble and displays their distribution as a histogram.
+    Errors are computed using the final entry of ``state_hist`` and
+    ``target_hist`` for each run.
+
+    Both quaternion targets and vector direction targets are supported. For
+    quaternion targets, the attitude error angle is computed. For vector
+    targets, the angular separation between the spacecraft boresight and the
+    target direction in ECI is used.
+
+    Optional summary statistics may be displayed directly on the plot,
+    including minimum, maximum, mean, median, and the percentage of runs
+    below a specified error threshold.
+
+    This class integrates with the ADCS plotting framework via
+    :class:`~ADCS.plotting.subplot.Subplot`.
+
+    :param title:
+        Title displayed at the top of the histogram.
+    :type title:
+        str
+
+    :param units:
+        Units used for angular error display.
+    :type units:
+        str
+
+    :param threshold:
+        Error threshold used for percentage statistics.
+    :type threshold:
+        float
+
+    :param bin_width:
+        Width of histogram bins.
+    :type bin_width:
+        float
+
+    :param show_stats:
+        If True, display summary statistics on the plot.
+    :type show_stats:
+        bool
+
+    :return:
+        None
+    :rtype:
+        None
+
+    """
     def __init__(
         self,
         *,

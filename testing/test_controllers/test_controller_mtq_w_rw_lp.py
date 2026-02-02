@@ -167,7 +167,7 @@ def _final_pointing_error_deg(
     k = valid[-1]
 
     q = state_hist[k, 3:7]
-    goal_eci = boresight_goal_hist[k, :]
+    goal_eci = boresight_goal_hist[k, 1:4]
 
     R_b2i = _quat_to_dcm_body_to_eci(q)
     boresight_eci = R_b2i @ body_boresight
@@ -211,7 +211,7 @@ def simulate_MTQ_w_RW_LP(
     os_hist: List[Orbital_State] = []
     sensor_hist: np.ndarray = np.nan * np.zeros((N, len(sat.sensors + sat.rw_actuators)))
     u_hist = np.nan * np.zeros((N, len(acts)))
-    boresight_hist = np.nan * np.zeros((N, 3))
+    boresight_hist = np.nan * np.zeros((N, 4))
 
     t = t0
     ind = 0
