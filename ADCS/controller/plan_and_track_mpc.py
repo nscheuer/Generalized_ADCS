@@ -559,10 +559,13 @@ class Plan_and_Track_ComputedTorque_Python(PlanAndTrackBase):
 
 class Plan_and_Track_MPC(PlanAndTrackBase):
     """
-    Plan-and-Track with C++ ALTRO planning and ADMM-based MPC tracking.
+    Plan-and-Track with C++ ALTRO planning and constrained TVLQR tracking.
     
-    Uses TVLQR K-matrices to derive cost weights, then solves constrained
-    optimization via ADMM for proper actuator limit handling.
+    Uses TVLQR feedback with:
+    1. Actual B-field for MTQ allocation (fixes B-field mismatch)
+    2. Saturation for constraint handling
+    
+    This achieves sub-degree tracking accuracy for 3MTQ+1RW systems.
     """
     
     def __init__(
@@ -585,11 +588,6 @@ class Plan_and_Track_MPC(PlanAndTrackBase):
         
         self._u_min = np.concatenate([[-self._m_max]*self._n_mtq, -self._rw_u_max])
         self._u_max = np.concatenate([[self._m_max]*self._n_mtq, self._rw_u_max])
-        
-        # Cache for linearized dynamics
-        self._A_cache = None
-        self._B_cache = None
-        self._cache_time = None
     
     def find_u(
         self,
@@ -600,7 +598,15 @@ class Plan_and_Track_MPC(PlanAndTrackBase):
         B_body: Optional[NDArray[np.float64]] = None,
         **kwargs
     ) -> NDArray[np.float64]:
-        """Compute control using ADMM-based MPC."""
+        """
+        Compute control using TVLQR with actual B-field and saturation.
+        
+        Steps:
+        1. Compute TVLQR feedback: du = -K @ dx
+        2. Convert MTQ feedback to desired torque
+        3. Re-solve for MTQ using actual B-field
+        4. Saturate all controls to actuator limits
+        """
         if self.active_trajectory is None:
             return np.zeros(self._n_mtq + self._n_rw)
         
@@ -608,32 +614,39 @@ class Plan_and_Track_MPC(PlanAndTrackBase):
         if not self.active_trajectory.is_valid_time(current_time):
             raise RuntimeError("Trajectory expired")
         
-        dt = self.planner_settings.dt_tvlqr
-        t_next = current_time + dt * TimeConstants.sec2cent
-        
-        x_ref_next = (self.active_trajectory.get_state_at(t_next) 
-                      if self.active_trajectory.is_valid_time(t_next)
-                      else self.active_trajectory.get_state_at(current_time))
-        x_ref_curr = self.active_trajectory.get_state_at(current_time)
+        # Get reference and gains
+        x_ref = self.active_trajectory.get_state_at(current_time)
         u_ref = self.active_trajectory.get_control_at(current_time)
         K = self.active_trajectory.get_gain_at(current_time)
         
-        # State error (use trajectory's method)
-        dx0 = self.active_trajectory._state_diff(x_hat, x_ref_curr)
+        # Compute state error and TVLQR feedback
+        dx = self.active_trajectory._state_diff(x_hat, x_ref)
+        du = -K @ dx
         
-        # Cost matrices from K
-        Q, R = _extract_cost_matrices_from_K(K, self._n_mtq, self._n_rw, self.params)
+        # Get B-field in body frame (actual and reference)
+        R_actual = rot_mat(x_hat[3:7])
+        B_body_actual = R_actual.T @ os_hat.B
         
-        # Linearize dynamics (with caching)
-        if self._cache_time != current_time or self._A_cache is None:
-            A, B = _linearize_error_dynamics(est_sat, x_ref_curr, u_ref, os_hat, dt)
-            self._A_cache, self._B_cache = A, B
-            self._cache_time = current_time
+        R_ref = rot_mat(x_ref[3:7])
+        B_body_ref = R_ref.T @ os_hat.B
+        
+        # Compute desired torque
+        # Reference torque: what u_ref would produce at reference attitude
+        tau_ref = np.cross(u_ref[:self._n_mtq], B_body_ref)
+        # Feedback torque: what du would produce at reference attitude  
+        tau_fb = np.cross(du[:self._n_mtq], B_body_ref)
+        tau_des = tau_ref + tau_fb
+        
+        # Solve for MTQ with actual B-field
+        m_actual = _solve_mtq_for_torque(tau_des, B_body_actual, self._m_max)
+        
+        # RW control: TVLQR feedback with saturation
+        if self._has_rw:
+            u_rw = np.clip(u_ref[self._n_mtq:] + du[self._n_mtq:], 
+                          -self._rw_u_max, self._rw_u_max)
+            return np.concatenate([m_actual, u_rw])
         else:
-            A, B = self._A_cache, self._B_cache
-        
-        # Solve via ADMM
-        return _admm_solve(dx0, u_ref, A, B, Q, R, self._u_min, self._u_max, self.params)
+            return m_actual
     
     def calculate_trajectory(
         self,
@@ -657,7 +670,7 @@ class Plan_and_Track_MPC(PlanAndTrackBase):
 
 class Plan_and_Track_MPC_Python(PlanAndTrackBase):
     """
-    Plan-and-Track with Python ALILQR planning and ADMM-based MPC tracking.
+    Plan-and-Track with Python ALILQR planning and constrained TVLQR tracking.
     
     Same tracking as Plan_and_Track_MPC but uses Python planner
     for live visualization of trajectory optimization.
@@ -683,10 +696,6 @@ class Plan_and_Track_MPC_Python(PlanAndTrackBase):
         
         self._u_min = np.concatenate([[-self._m_max]*self._n_mtq, -self._rw_u_max])
         self._u_max = np.concatenate([[self._m_max]*self._n_mtq, self._rw_u_max])
-        
-        self._A_cache = None
-        self._B_cache = None
-        self._cache_time = None
     
     def find_u(
         self,
@@ -697,7 +706,7 @@ class Plan_and_Track_MPC_Python(PlanAndTrackBase):
         B_body: Optional[NDArray[np.float64]] = None,
         **kwargs
     ) -> NDArray[np.float64]:
-        """Compute control using ADMM-based MPC (same as C++ version)."""
+        """Compute control using TVLQR with actual B-field and saturation (same as C++ version)."""
         if self.active_trajectory is None:
             return np.zeros(self._n_mtq + self._n_rw)
         
@@ -705,27 +714,37 @@ class Plan_and_Track_MPC_Python(PlanAndTrackBase):
         if not self.active_trajectory.is_valid_time(current_time):
             raise RuntimeError("Trajectory expired")
         
-        dt = self.planner_settings.dt_tvlqr
-        t_next = current_time + dt * TimeConstants.sec2cent
-        
-        x_ref_next = (self.active_trajectory.get_state_at(t_next)
-                      if self.active_trajectory.is_valid_time(t_next)
-                      else self.active_trajectory.get_state_at(current_time))
-        x_ref_curr = self.active_trajectory.get_state_at(current_time)
+        # Get reference and gains
+        x_ref = self.active_trajectory.get_state_at(current_time)
         u_ref = self.active_trajectory.get_control_at(current_time)
         K = self.active_trajectory.get_gain_at(current_time)
         
-        dx0 = self.active_trajectory._state_diff(x_hat, x_ref_curr)
-        Q, R = _extract_cost_matrices_from_K(K, self._n_mtq, self._n_rw, self.params)
+        # Compute state error and TVLQR feedback
+        dx = self.active_trajectory._state_diff(x_hat, x_ref)
+        du = -K @ dx
         
-        if self._cache_time != current_time or self._A_cache is None:
-            A, B = _linearize_error_dynamics(est_sat, x_ref_curr, u_ref, os_hat, dt)
-            self._A_cache, self._B_cache = A, B
-            self._cache_time = current_time
+        # Get B-field in body frame (actual and reference)
+        R_actual = rot_mat(x_hat[3:7])
+        B_body_actual = R_actual.T @ os_hat.B
+        
+        R_ref = rot_mat(x_ref[3:7])
+        B_body_ref = R_ref.T @ os_hat.B
+        
+        # Compute desired torque
+        tau_ref = np.cross(u_ref[:self._n_mtq], B_body_ref)
+        tau_fb = np.cross(du[:self._n_mtq], B_body_ref)
+        tau_des = tau_ref + tau_fb
+        
+        # Solve for MTQ with actual B-field
+        m_actual = _solve_mtq_for_torque(tau_des, B_body_actual, self._m_max)
+        
+        # RW control: TVLQR feedback with saturation
+        if self._has_rw:
+            u_rw = np.clip(u_ref[self._n_mtq:] + du[self._n_mtq:], 
+                          -self._rw_u_max, self._rw_u_max)
+            return np.concatenate([m_actual, u_rw])
         else:
-            A, B = self._A_cache, self._B_cache
-        
-        return _admm_solve(dx0, u_ref, A, B, Q, R, self._u_min, self._u_max, self.params)
+            return m_actual
     
     def calculate_trajectory(
         self,
