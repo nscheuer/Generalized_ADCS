@@ -152,6 +152,54 @@ For MTQ-only systems requiring feedback, consider:
 2. Sliding mode control
 3. Adaptive control with B-field estimation
 
+---
+
+## MPC Implementation (Feb 2, 2026)
+
+Implemented MPC tracker in `ADCS/controller/helpers/mpc_tracker.py`.
+
+### Approaches Tested
+
+| Controller | Final Error | Track RMS | Speed | Notes |
+|------------|-------------|-----------|-------|-------|
+| Open-loop | 1.4° | 1.0° | Fast | Best for well-planned trajectories |
+| TVLQR | 107.8° | 39.1° | Fast | **FAILS** (uses wrong B-field) |
+| MPC simple | 4.1° | 2.0° | Medium | Uses actual B-field |
+| MPC-TVLQR hybrid | 1.8° | **0.7°** | Fast | Best tracking RMS |
+
+### MPC-TVLQR Hybrid
+
+The hybrid approach combines:
+- **MPC**: Uses actual B-field for control computation
+- **TVLQR K-matrices**: Weights which errors matter most
+
+```python
+from ADCS.controller.helpers.mpc_tracker import MPCTracker, MPCParams
+
+# Create tracker
+tracker = MPCTracker(J, m_max, dt=0.5, params=MPCParams.balanced())
+tracker.set_trajectory(t_ref, X_ref, U_ref)
+tracker.set_tvlqr_gains(Kset)
+
+# At each timestep
+u = tracker.compute_control_hybrid(x_curr, B_body, t_curr)
+```
+
+### Key Findings
+
+1. **Open-loop is often sufficient** for well-planned trajectories (< 5° plan error)
+2. **MPC-TVLQR hybrid has best tracking** (follows trajectory shape)
+3. **TVLQR always fails** for MTQ-only - don't use it!
+4. **MPC overhead is minimal** - only ~20% slower than open-loop
+
+### Recommendation
+
+| Trajectory Quality | Recommended Approach |
+|-------------------|---------------------|
+| Plan error < 5° | Open-loop |
+| Plan error > 5° | MPC-TVLQR hybrid |
+| Any | NEVER use TVLQR for MTQ-only |
+
 ## Date
 
 February 2, 2026
