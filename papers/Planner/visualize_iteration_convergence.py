@@ -238,16 +238,11 @@ def main():
     print(f"Goal2: {goal2}")
     print(f"Goal3: {goal3}")
     
-    # Create settings
-    settings = create_optimized_planner_settings(sat, duration=tf, tuning="balanced")
+    # Create settings - use AGGRESSIVE tuning for max RW usage
+    settings = create_optimized_planner_settings(sat, duration=tf, tuning="aggressive")
     
     # Increase wmax to allow faster slews (60 deg/s)
     settings.wmax = np.radians(60)
-    
-    # Make RW MUCH cheaper - try 0.0001x MTQ cost
-    # RW cost is now properly scaled in C++ by NONMTQ_TORQ_SCALE²
-    # Use same weight ratio as MTQ for equal cost-per-torque
-    settings.rw_control_weight = settings.mtq_control_weight * 0.1  # Favor RW slightly
     
     # Disable momentum cost and allow more momentum capacity
     settings.rw_AM_weight = 0.0
@@ -256,15 +251,9 @@ def main():
     
     print(f"RW control weight: {settings.rw_control_weight}")
     print(f"MTQ control weight: {settings.mtq_control_weight}")
-    print(f"Ratio MTQ/RW: {settings.mtq_control_weight / settings.rw_control_weight:.0f}x")
+    print(f"ang_vel/angle ratio: {settings.cost_main.ang_vel / settings.cost_main.angle:.1f}")
     
-    # Try bdot_on=4 (PD control with RW) 
-    settings.bdot_on = 4
-    print(f"Using bdot_on={settings.bdot_on} (PD control init with RW)")
-    
-    # Reduce Pass1 iterations for quick testing
-    settings.pass1.convergence.max_iters = 10  # was 20
-    settings.pass1.aug_lag.outer_loop_max = 3  # was 10
+    print(f"Using bdot_on={settings.bdot_on}")
     
     # Create multi-goal GoalList (100s No_Goal gaps instead of 50s)
     goals = GoalList({
