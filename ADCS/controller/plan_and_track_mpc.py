@@ -11,11 +11,12 @@ MPC uses actual B-field, solving this problem.
 """
 from __future__ import annotations
 
-__all__ = ["Plan_and_Track_MPC", "Plan_and_Track_MPC_Python"]
+__all__ = ["Plan_and_Track_MPC", "Plan_and_Track_MPC_Python", "MPCParams"]
 
 import numpy as np
-from typing import Optional
+from typing import Optional, Callable
 from numpy.typing import NDArray
+from dataclasses import dataclass
 
 from ADCS.CONOPS.goallist import GoalList
 from ADCS.controller.plan_and_track_base import PlanAndTrackBase
@@ -24,14 +25,193 @@ from ADCS.controller.helpers import (
     reorder_gains_cpp_to_python, PythonALILQRv2, OptimizationResult,
     IterationData, LivePlannerViz
 )
-from ADCS.controller.helpers.mpc_tracker import (
-    MPCTracker, MPCParams, mpc_tvlqr_hybrid, quat_error_vec, solve_mtq_for_torque
-)
-from typing import Callable
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
 from ADCS.helpers.math_helpers import rot_mat
+
+
+# =============================================================================
+# MPC Helper Functions and Classes
+# =============================================================================
+
+@dataclass
+class MPCParams:
+    """Parameters for MPC tracking controller."""
+    
+    # Cost weights
+    Q_omega: float = 1.0       # Angular velocity tracking weight
+    Q_attitude: float = 100.0  # Attitude tracking weight  
+    R_control: float = 0.01    # Control effort weight
+    
+    # MPC horizon
+    horizon: int = 1           # Number of lookahead steps (1 = simple)
+    
+    # Solver options
+    max_iter: int = 50         # Max optimization iterations
+    tolerance: float = 1e-6    # Convergence tolerance
+    
+    @classmethod
+    def fast(cls) -> 'MPCParams':
+        """Fast MPC settings (1-step, minimal computation)."""
+        return cls(horizon=1, max_iter=20)
+    
+    @classmethod
+    def accurate(cls) -> 'MPCParams':
+        """Accurate MPC settings (multi-step horizon)."""
+        return cls(horizon=3, max_iter=50)
+    
+    @classmethod
+    def balanced(cls) -> 'MPCParams':
+        """Balanced settings for good tracking without excessive computation."""
+        return cls(horizon=1, Q_omega=1.0, Q_attitude=100.0, R_control=0.001)
+
+
+def _quat_error_vec(q_curr: np.ndarray, q_ref: np.ndarray) -> np.ndarray:
+    """
+    Compute quaternion error as 3-vector.
+    
+    Parameters
+    ----------
+    q_curr : ndarray, shape (4,)
+        Current quaternion [w, x, y, z]
+    q_ref : ndarray, shape (4,)
+        Reference quaternion [w, x, y, z]
+        
+    Returns
+    -------
+    q_err_vec : ndarray, shape (3,)
+        Error vector (≈ rotation axis × angle for small errors)
+    """
+    # q_err = q_ref^{-1} * q_curr
+    q_ref_inv = np.array([q_ref[0], -q_ref[1], -q_ref[2], -q_ref[3]])
+    
+    # Quaternion multiplication
+    w1, x1, y1, z1 = q_ref_inv
+    w2, x2, y2, z2 = q_curr
+    q_err = np.array([
+        w1*w2 - x1*x2 - y1*y2 - z1*z2,
+        w1*x2 + x1*w2 + y1*z2 - z1*y2,
+        w1*y2 - x1*z2 + y1*w2 + z1*x2,
+        w1*z2 + x1*y2 - y1*x2 + z1*w2
+    ])
+    
+    # Ensure positive scalar part for consistent error direction
+    if q_err[0] < 0:
+        q_err = -q_err
+    
+    # Return 2 * vector part (small angle approximation: 2*vec ≈ rotation vector)
+    return 2 * q_err[1:4]
+
+
+def _solve_mtq_for_torque(
+    tau_desired: np.ndarray, 
+    B_body: np.ndarray, 
+    m_max: float
+) -> np.ndarray:
+    """
+    Solve for MTQ dipole moment to produce desired torque.
+    
+    Uses minimum-norm solution: m = (B × τ) / |B|²
+    Then clamps to actuator limits.
+    
+    Parameters
+    ----------
+    tau_desired : ndarray, shape (3,)
+        Desired torque [Nm]
+    B_body : ndarray, shape (3,)
+        Magnetic field in body frame [T]
+    m_max : float
+        Maximum dipole moment [Am²]
+        
+    Returns
+    -------
+    m : ndarray, shape (3,)
+        MTQ dipole command [Am²]
+    """
+    B_norm_sq = np.dot(B_body, B_body)
+    if B_norm_sq < 1e-20:
+        return np.zeros(3)
+    
+    m = np.cross(B_body, tau_desired) / B_norm_sq
+    return np.clip(m, -m_max, m_max)
+
+
+def _mpc_tvlqr_hybrid(
+    x_curr: np.ndarray,
+    x_ref: np.ndarray,
+    x_ref_next: np.ndarray,
+    K_next: np.ndarray,
+    B_body: np.ndarray,
+    J: np.ndarray,
+    m_max: float,
+    dt: float,
+) -> np.ndarray:
+    """
+    Hybrid MPC-TVLQR: Use K-matrix weights to prioritize error reduction.
+    
+    This combines:
+    - MPC: Uses actual B-field (not planned) for control computation
+    - TVLQR: Uses K-matrix to know which errors matter most
+    
+    The K-matrix encodes the full trajectory optimization's understanding
+    of error importance at each timestep.
+    
+    Parameters
+    ----------
+    x_curr : ndarray, shape (7,)
+        Current state [omega, quaternion]
+    x_ref : ndarray, shape (7,)
+        Reference state at current time
+    x_ref_next : ndarray, shape (7,)
+        Reference state at next time (t + dt)
+    K_next : ndarray, shape (3, 6)
+        TVLQR gain matrix at next timestep
+    B_body : ndarray, shape (3,)
+        Magnetic field in body frame [T]
+    J : ndarray, shape (3, 3)
+        Inertia tensor
+    m_max : float
+        Maximum MTQ dipole moment [Am²]
+    dt : float
+        Timestep [s]
+        
+    Returns
+    -------
+    u_mtq : ndarray, shape (3,)
+        Optimal MTQ command [Am²]
+    """
+    # Current state error
+    w_err = x_curr[0:3] - x_ref[0:3]
+    q_err = _quat_error_vec(x_curr[3:7], x_ref[3:7])
+    
+    # Extract K-matrix column norms to get error importance weights
+    # K shape is (3, 6): 3 controls x 6 state errors
+    K_w = K_next[:, 0:3]  # Gains on omega error
+    K_q = K_next[:, 3:6]  # Gains on attitude error
+    
+    # Importance = how much each error affects control
+    w_importance = np.linalg.norm(K_w, axis=0) + 0.1  # Add small offset
+    q_importance = np.linalg.norm(K_q, axis=0) + 0.1
+    
+    # Average importance for angular velocity vs attitude
+    avg_w_importance = np.mean(w_importance)
+    avg_q_importance = np.mean(q_importance)
+    
+    # Desired angular acceleration: weighted by K-derived importance
+    w_dot_des = -avg_w_importance * w_err / dt - avg_q_importance * q_err / dt
+    
+    # Required torque: τ = J⋅ω̇ + ω × (J⋅ω)
+    w_curr = x_curr[0:3]
+    tau_des = J @ w_dot_des + np.cross(w_curr, J @ w_curr)
+    
+    # Solve for MTQ using ACTUAL B-field
+    return _solve_mtq_for_torque(tau_des, B_body, m_max)
+
+
+# =============================================================================
+# Plan and Track Controllers
+# =============================================================================
 
 
 class Plan_and_Track_MPC(PlanAndTrackBase):
@@ -105,8 +285,8 @@ class Plan_and_Track_MPC(PlanAndTrackBase):
         # MPC parameters
         self.mpc_params = mpc_params if mpc_params is not None else MPCParams.balanced()
         
-        # Internal MPC tracker (created when trajectory is set)
-        self._mpc_tracker: Optional[MPCTracker] = None
+        # Internal MPC tracker (not used directly, but could be for advanced MPC)
+        self._mpc_tracker = None
         
         # Store K gains for RW feedback
         self._K_3d: Optional[np.ndarray] = None
@@ -187,7 +367,7 @@ class Plan_and_Track_MPC(PlanAndTrackBase):
             K_next = self.active_trajectory.get_gain_at(current_time)
 
         # Use MPC-TVLQR hybrid for MTQ control
-        u_mtq = mpc_tvlqr_hybrid(
+        u_mtq = _mpc_tvlqr_hybrid(
             x_hat[:7], x_ref[:7], x_ref_next[:7], 
             K_next[:self._n_mtq, :6],  # MTQ gains on attitude states
             B_body, self._J, self._m_max, dt
@@ -220,7 +400,7 @@ class Plan_and_Track_MPC(PlanAndTrackBase):
         dx[0:3] = x_curr[0:3] - x_ref[0:3]
         
         # Attitude error (quaternion to 3-vector)
-        dx[3:6] = quat_error_vec(x_curr[3:7], x_ref[3:7])
+        dx[3:6] = _quat_error_vec(x_curr[3:7], x_ref[3:7])
         
         # RW momentum error
         if n_rw > 0:
@@ -382,7 +562,7 @@ class Plan_and_Track_MPC_Python(PlanAndTrackBase):
             K_next = self.active_trajectory.get_gain_at(current_time)
 
         # MPC for MTQ
-        u_mtq = mpc_tvlqr_hybrid(
+        u_mtq = _mpc_tvlqr_hybrid(
             x_hat[:7], x_ref[:7], x_ref_next[:7],
             K_next[:self._n_mtq, :6],
             B_body, self._J, self._m_max, dt
@@ -406,7 +586,7 @@ class Plan_and_Track_MPC_Python(PlanAndTrackBase):
         n_rw = len(x_curr) - 7
         dx = np.zeros(6 + n_rw)
         dx[0:3] = x_curr[0:3] - x_ref[0:3]
-        dx[3:6] = quat_error_vec(x_curr[3:7], x_ref[3:7])
+        dx[3:6] = _quat_error_vec(x_curr[3:7], x_ref[3:7])
         if n_rw > 0:
             dx[6:6+n_rw] = x_curr[7:7+n_rw] - x_ref[7:7+n_rw]
         return dx
