@@ -22,6 +22,12 @@ from .python_alilqr_v2 import PythonALILQRv2
 
 # Live visualization
 from .live_planner_viz import LivePlannerViz, ConvergenceMonitor
+from .mtq_warm_start import (
+    solve_mtq_controls_body_frame,
+    interpolate_trajectory_to_finer_grid,
+    mtq_only_warm_start_transition,
+    get_mtq_only_pass2_cost_mods,
+)
 
 __all__ = [
     # Legacy API
