@@ -654,6 +654,125 @@ def apply_anti_spin_tuning(settings, verbose: bool = False):
     return settings
 
 
+def apply_aggressive_tuning(settings, verbose: bool = False):
+    """
+    Apply "aggressive" tuning for maximum RW usage.
+    
+    Experimental results show ang_vel/angle ratio is THE key factor:
+    - ratio=1: ~100% RW, 11° error
+    - ratio=10: ~100% RW, 4° error ★ BEST FOR RW
+    - ratio=100: ~72% RW, 4° error 
+    - ratio=1000: ~25% RW, 2° error (balanced default)
+    
+    This tuning uses ratio≈10 for maximum RW usage while keeping
+    reasonable convergence (~4° error).
+    
+    Parameters
+    ----------
+    settings : PlannerSettings
+        Base settings to modify (modified in place)
+    verbose : bool, optional
+        Print the applied multipliers
+        
+    Returns
+    -------
+    PlannerSettings
+        The modified settings
+        
+    Notes
+    -----
+    Key finding: RW control cost has NO effect - the optimizer uses the same
+    RW amount regardless of 0.001x to 10x cost ratio. Only ang_vel cost matters.
+    
+    Multipliers (relative to base ang_vel/angle ratio ≈ 100):
+    - ang_vel: 0.1x → final ratio ≈ 10
+    - Terminal costs: 10x (helps convergence)
+    - Control costs: 0.01x (cheap, though it doesn't affect RW usage)
+    """
+    orig_angle_N = settings.cost_main.angle_N
+    orig_ang_vel_N = settings.cost_main.ang_vel_N
+    orig_angle = settings.cost_main.angle
+    orig_ang_vel = settings.cost_main.ang_vel
+    orig_mtq = settings.mtq_control_weight
+    orig_rw = settings.rw_control_weight
+    
+    # KEY: Low ang_vel multiplier for high RW usage (ratio ≈ 10)
+    settings.cost_main.ang_vel *= 0.1      # Results in ratio ≈ 10
+    settings.cost_main.angle_N *= 10       # Higher terminal for convergence
+    settings.cost_main.ang_vel_N *= 10
+    settings.mtq_control_weight *= 0.01    # Very cheap (though doesn't affect RW)
+    settings.rw_control_weight *= 0.01
+    
+    settings.cost_second.ang_vel *= 0.1
+    settings.cost_second.angle_N *= 10
+    settings.cost_second.ang_vel_N *= 10
+    
+    settings.bdot_on = 1
+    settings.cost_main.use_full_cost_hessian = False
+    settings.cost_second.use_full_cost_hessian = False
+    
+    if verbose:
+        ratio = settings.cost_main.ang_vel / settings.cost_main.angle
+        print("Applied aggressive tuning (max RW usage):")
+        print(f"  ang_vel: {orig_ang_vel:.1f} -> {settings.cost_main.ang_vel:.1f} (0.1x)")
+        print(f"  angle_N: {orig_angle_N:.1f} -> {settings.cost_main.angle_N:.1f} (10x)")
+        print(f"  ang_vel/angle ratio: {ratio:.1f} (target: ~10 for ~100% RW)")
+        print(f"  Expected: ~100% RW, ~4° final error")
+    
+    return settings
+
+
+def apply_fast_slew_tuning(settings, verbose: bool = False):
+    """
+    Apply "fast_slew" tuning: balance between RW usage and accuracy.
+    
+    Experimental results:
+    - ratio=100: ~72% RW, ~4° error with terminal=1x
+    - ratio=100: ~72% RW, ~0.3° error with terminal=10x ★ BEST BALANCE
+    
+    This gives high RW usage (~72%) with excellent convergence (<1°).
+    
+    Parameters
+    ----------
+    settings : PlannerSettings
+        Base settings to modify (modified in place)
+    verbose : bool, optional
+        Print the applied multipliers
+        
+    Returns
+    -------
+    PlannerSettings
+        The modified settings
+    """
+    orig_angle_N = settings.cost_main.angle_N
+    orig_ang_vel_N = settings.cost_main.ang_vel_N
+    orig_angle = settings.cost_main.angle
+    orig_ang_vel = settings.cost_main.ang_vel
+    
+    # Ratio ≈ 100 (no multiplier on ang_vel, which starts at ~100x angle)
+    # Terminal 10x for good convergence
+    settings.cost_main.angle_N *= 10
+    settings.cost_main.ang_vel_N *= 10
+    settings.mtq_control_weight *= 0.1
+    settings.rw_control_weight *= 0.1
+    
+    settings.cost_second.angle_N *= 10
+    settings.cost_second.ang_vel_N *= 10
+    
+    settings.bdot_on = 1
+    settings.cost_main.use_full_cost_hessian = False
+    settings.cost_second.use_full_cost_hessian = False
+    
+    if verbose:
+        ratio = settings.cost_main.ang_vel / settings.cost_main.angle
+        print("Applied fast_slew tuning (balance RW and accuracy):")
+        print(f"  ang_vel/angle ratio: {ratio:.1f} (target: ~100)")
+        print(f"  terminal costs: 10x")
+        print(f"  Expected: ~72% RW, <1° final error")
+    
+    return settings
+
+
 def create_optimized_planner_settings(
     sat,
     duration: float,
@@ -671,12 +790,14 @@ def create_optimized_planner_settings(
     This is the recommended function for production Monte Carlo tests.
     Combines auto-scaling with empirically-optimized cost weight tuning.
     
-    Tuning options (5 seeds, 180° slews, 1000s):
-    | Tuning    | Mean500s | Final    | MaxRate |
-    |-----------|----------|----------|---------|
-    | smooth    | 54.8°    | 18.6°    | 3.0°/s  |
-    | balanced  | 14.6°    | 0.5°     | 1.3°/s  | <-- RECOMMENDED
-    | anti_spin | 23.3°    | 0.3°     | 1.1°/s  |
+    Tuning options:
+    | Tuning     | RW Usage | Final Err | Notes                        |
+    |------------|----------|-----------|------------------------------|
+    | balanced   | ~25%     | ~2°       | <-- RECOMMENDED (default)    |
+    | fast_slew  | ~72%     | <1°       | Best balance of RW & accuracy|
+    | aggressive | ~100%    | ~4°       | Maximum RW usage             |
+    | smooth     | ~15%     | ~7°       | Original tuning              |
+    | anti_spin  | ~15%     | ~7°       | Minimum rotation rate        |
     
     Parameters
     ----------
@@ -734,11 +855,15 @@ def create_optimized_planner_settings(
         apply_balanced_tuning(settings, verbose)
     elif tuning == "anti_spin":
         apply_anti_spin_tuning(settings, verbose)
+    elif tuning == "aggressive":
+        apply_aggressive_tuning(settings, verbose)
+    elif tuning == "fast_slew":
+        apply_fast_slew_tuning(settings, verbose)
     elif tuning == "none":
         if verbose:
             print("No additional tuning applied (using base auto-scaled settings)")
     else:
-        raise ValueError(f"Unknown tuning preset: {tuning}. Use 'smooth', 'balanced', 'anti_spin', or 'none'")
+        raise ValueError(f"Unknown tuning preset: {tuning}. Use 'smooth', 'balanced', 'anti_spin', 'aggressive', 'fast_slew', or 'none'")
     
     # Enable multi-start if requested
     if use_multistart:
