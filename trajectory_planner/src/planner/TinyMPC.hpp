@@ -32,6 +32,11 @@ struct TinyMPCSettings {
     // Tracking-specific settings
     int track_horizon = 10;       // MPC horizon for tracking (shorter than ALTRO)
     double track_dt = 0.1;        // Tracking timestep (can be faster than ALTRO dt)
+    
+    // Use trajectory K gains instead of computing Riccati internally
+    // When true, uses K_ref from trajectory (if available)
+    // When false, computes K using internal Riccati with MPC cost matrices
+    bool use_trajectory_gains = true;
 };
 
 // Result from TinyMPC solve
@@ -170,7 +175,8 @@ private:
     // ADMM solver core
     void admm_x_update(arma::mat& X, arma::mat& U,
                        const arma::vec& x0,
-                       const arma::mat& X_ref, const arma::mat& U_ref);
+                       const arma::mat& X_ref, const arma::mat& U_ref,
+                       double t_start);
     void admm_z_update(const arma::mat& U);
     void admm_y_update(const arma::mat& U);
 

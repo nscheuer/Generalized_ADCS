@@ -274,12 +274,16 @@ void TinyMPC::linearizeDynamics(const vec& x_op, const vec& u_op,
 
     // Now reduce to error state: map 8D full state to 7D error state
     // Full state: [omega(3), q(4), h_rw(n_rw)]
-    // Error state: [omega_err(3), theta_err(3), h_rw_err(n_rw)]
+    // Error state: [omega_err(3), sigma_err(3), h_rw_err(n_rw)]
     //
-    // The linearization uses E = [I_3  0_3x4  0; 0_3x1 2*I_3 0; 0 0 I] to map
-    // from quaternion-based state to error state (taking 2 * vector part of q).
+    // Using scaled MRP (Modified Rodrigues Parameters) for attitude error:
+    //   sigma = 2 * q_vec / (1 + q_scalar)
     // 
-    // For small errors: dtheta ≈ 2 * q_vec (for unit quaternion near identity)
+    // For small errors near identity (q_scalar ≈ 1):
+    //   sigma ≈ 2 * q_vec / 2 = q_vec
+    //
+    // So E maps: sigma_err ≈ q_vec (approximately, linearized)
+    // And E^+ maps: q_vec ≈ sigma_err
 
     A_lin = zeros(n_err, n_err);
     B_lin = zeros(n_err, m);
@@ -287,11 +291,11 @@ void TinyMPC::linearizeDynamics(const vec& x_op, const vec& u_op,
 
     // Build reduction matrix E (n_err x n) that maps full state to error state
     // E = [I_3    0_3x4        0_3xn_rw ]
-    //     [0_3x3  [0|2*I_3]    0_3xn_rw ]  <- takes 2*vector part of quaternion
+    //     [0_3x3  [0|I_3]      0_3xn_rw ]  <- scaled MRP: sigma ≈ q_vec near identity
     //     [0      0            I_n_rw   ]
     mat E = zeros(n_err, n);
     E.submat(0, 0, 2, 2) = eye(3, 3);              // omega -> omega_err
-    E.submat(3, 4, 5, 6) = 2.0 * eye(3, 3);        // q_vec -> theta_err (2x)
+    E.submat(3, 4, 5, 6) = eye(3, 3);              // q_vec -> sigma_err (1x for scaled MRP)
     if (n_rw > 0) {
         E.submat(6, 7, n_err-1, n-1) = eye(n_rw, n_rw);  // h_rw -> h_rw_err
     }
@@ -300,11 +304,11 @@ void TinyMPC::linearizeDynamics(const vec& x_op, const vec& u_op,
     // For our structure, E^+ (pseudoinverse) maps error back to full state
     // E^+ = [I_3    0_3x3        0     ]
     //       [0_1x3  0_1x3        0     ]  <- scalar part of quaternion (ignored)
-    //       [0_3x3  0.5*I_3      0     ]  <- theta_err -> q_vec (0.5x)
+    //       [0_3x3  I_3          0     ]  <- sigma_err -> q_vec (1x for scaled MRP)
     //       [0      0            I_n_rw]
     mat Eplus = zeros(n, n_err);
     Eplus.submat(0, 0, 2, 2) = eye(3, 3);           // omega_err -> omega
-    Eplus.submat(4, 3, 6, 5) = 0.5 * eye(3, 3);    // theta_err -> q_vec (0.5x)
+    Eplus.submat(4, 3, 6, 5) = eye(3, 3);          // sigma_err -> q_vec (1x for scaled MRP)
     if (n_rw > 0) {
         Eplus.submat(7, 6, n-1, n_err-1) = eye(n_rw, n_rw);  // h_rw_err -> h_rw
     }
@@ -358,14 +362,17 @@ void TinyMPC::solveRiccati() {
 
 vec TinyMPC::computeStateError(const vec& x, const vec& x_ref) const {
     // Full state: [omega(3), q(4), h_rw(n_rw)]
-    // Returns reduced error: [omega_err(3), theta_err(3), h_rw_err(n_rw)]
+    // Returns reduced error: [omega_err(3), sigma_err(3), h_rw_err(n_rw)]
+    // 
+    // Uses Modified Rodrigues Parameters (MRP) for attitude error to match
+    // the Python trajectory's convention: sigma = q_vec / (1 + q_scalar)
 
     vec error = zeros(n_err);
 
     // Angular velocity error (indices 0-2)
     error.subvec(0, 2) = x.subvec(0, 2) - x_ref.subvec(0, 2);
 
-    // Quaternion error -> 3D attitude error (indices 3-5)
+    // Quaternion error -> MRP attitude error (indices 3-5)
     vec4 q = x.subvec(3, 6);
     vec4 q_ref = x_ref.subvec(3, 6);
 
@@ -386,11 +393,18 @@ vec TinyMPC::computeStateError(const vec& x, const vec& x_ref) const {
 
     // Ensure q_err is in positive hemisphere (s > 0)
     if (s_err < 0) {
+        s_err = -s_err;
         v_err = -v_err;
     }
 
-    // Convert to 3D attitude error: theta_err = 2 * vec(q_err)
-    error.subvec(3, 5) = 2.0 * v_err;
+    // Convert to scaled MRP: sigma = 2 * q_vec / (1 + q_scalar)
+    // This matches Python's quat_to_mrp() function which uses the 2x scaling
+    double denom = 1.0 + s_err;
+    if (denom < 1e-10) {
+        // Near shadow set, use alternative formula
+        denom = 1e-10;
+    }
+    error.subvec(3, 5) = 2.0 * v_err / denom;
 
     // RW momentum error (indices 6+)
     int n_rw = n - 7;
@@ -407,9 +421,11 @@ vec TinyMPC::computeStateError(const vec& x, const vec& x_ref) const {
 
 void TinyMPC::admm_x_update(mat& X, mat& U,
                             const vec& x0,
-                            const mat& X_ref, const mat& U_ref) {
+                            const mat& X_ref, const mat& U_ref,
+                            double t_start) {
     // Solve unconstrained LQR with ADMM terms
-    // X is full state (8D), but K_riccati operates on reduced error (7D)
+    // X is full state (8D), but K operates on reduced error (7D)
+    // Error state uses MRP: sigma = 2*q_vec / (1 + q_scalar)
 
     int N = settings.track_horizon;
     double rho = settings.rho;
@@ -418,7 +434,20 @@ void TinyMPC::admm_x_update(mat& X, mat& U,
     X.col(0) = x0;
     for (int k = 0; k < N; k++) {
         vec x_err = computeStateError(X.col(k), X_ref.col(k));
-        vec u_riccati = U_ref.col(k) - K_riccati[k] * x_err;
+        
+        // Get feedback gain K - either from trajectory or from Riccati
+        mat K_fb;
+        if (settings.use_trajectory_gains && ref_traj.K_ref.n_slices > 0) {
+            // Use K from ALTRO trajectory (interpolated)
+            double t_k = t_start + k * settings.track_dt;
+            vec x_ref_tmp, u_ref_tmp;
+            interpolateReference(t_k, x_ref_tmp, u_ref_tmp, &K_fb);
+        } else {
+            // Use K from internal Riccati computation
+            K_fb = K_riccati[k];
+        }
+        
+        vec u_riccati = U_ref.col(k) - K_fb * x_err;
         vec u_admm = u_riccati + rho / (rho + R(0,0)) * (Z.col(k) - Y.col(k) - u_riccati);
         U.col(k) = u_admm;
         
@@ -428,10 +457,13 @@ void TinyMPC::admm_x_update(mat& X, mat& U,
         // Map reduced error back to full state
         X.col(k + 1) = X_ref.col(k + 1);
         X.col(k + 1).subvec(0, 2) += dx_next.subvec(0, 2);  // omega
-        // For quaternion, use small angle: q ≈ q_ref * [1; 0.5*dtheta]
-        vec3 dtheta = 0.5 * dx_next.subvec(3, 5);
+        
+        // For quaternion with scaled MRP error: q_vec ≈ sigma * (1 + q_scalar_ref) / 2
+        // For small angles near q_scalar_ref ≈ 1: q_vec ≈ sigma
+        // Using small angle approximation: dq ≈ [1, sigma] for small sigma
+        vec3 d_sigma = dx_next.subvec(3, 5);
         vec4 q_ref = X_ref.col(k + 1).subvec(3, 6);
-        vec4 dq = {1.0, dtheta(0), dtheta(1), dtheta(2)};
+        vec4 dq = {1.0, d_sigma(0), d_sigma(1), d_sigma(2)};
         // q_new = q_ref * dq (quaternion multiplication)
         double s1 = q_ref(0), s2 = dq(0);
         vec3 v1 = {q_ref(1), q_ref(2), q_ref(3)};
@@ -559,7 +591,7 @@ TinyMPCResult TinyMPC::solve(const vec& x_current, double t_current,
     double primal_res = 0.0, dual_res = 0.0;
     for (int iter = 0; iter < settings.max_iter; iter++) {
         // x-update
-        admm_x_update(X, U, x_current, X_ref_local, U_ref_local);
+        admm_x_update(X, U, x_current, X_ref_local, U_ref_local, t_current);
 
         // z-update
         admm_z_update(U);

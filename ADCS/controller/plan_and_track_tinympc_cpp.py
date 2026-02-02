@@ -240,13 +240,19 @@ class Plan_and_Track_TinyMPC_Cpp(PlanAndTrackBase):
         trajectory = Trajectory(lqr_times, Xset, Uset, Kset, Sset)
 
         # Load into C++ TinyMPC for tracking
-        # Note: K_ref is optional and complex to format correctly, so we pass empty
-        # TinyMPC will compute its own Riccati gains
         dt = self.planner_settings.dt_tvlqr
+        
+        # If use_trajectory_gains is enabled, pass the K gains from ALTRO
+        # K format: (m * n_err, N) where n_err = state_dim - 1 (7 for 1 RW)
+        if self.tinympc_settings.use_altro_gains and Kset is not None and Kset.size > 0:
+            K_flat = np.asfortranarray(Kset, dtype=np.float64)
+        else:
+            K_flat = np.array([])  # TinyMPC will compute its own Riccati gains
+            
         self._mpc.loadReferenceFromALTRO(
             np.asfortranarray(Xset, dtype=np.float64),
             np.asfortranarray(Uset, dtype=np.float64),
-            np.array([]),  # Skip K gains - TinyMPC computes its own
+            K_flat,
             np.asfortranarray(lqr_times, dtype=np.float64),
             dt
         )

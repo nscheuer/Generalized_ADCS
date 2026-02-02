@@ -92,17 +92,21 @@ class TinyMPCSettings:
     use_altro_gains: bool = False  # Default: use actual TinyMPC algorithm
     use_true_mpc: bool = False     # Default: linearize at reference state
 
-    # Verbosity
+    # Verbosity (0=silent, 1=summary, 2=detailed with matrices)
     verbose: int = 0
+    
+    # Debug: print first few K gains
+    debug_print_gains: bool = False
 
-    def to_cpp_tuple(self) -> Tuple[int, float, float, float, float, float, bool, int, int, float, int]:
+    def to_cpp_tuple(self) -> Tuple[int, float, float, float, float, float, bool, int, int, float, int, bool]:
         """
         Convert to tuple for C++ TinyMPCSettings struct.
 
         Returns:
             Tuple matching C++ TinyMPCSettings field order:
             (max_iter, abs_tol, rel_tol, rho, rho_min, rho_max,
-             adaptive_rho, check_interval, track_horizon, track_dt, verbose)
+             adaptive_rho, check_interval, track_horizon, track_dt, verbose,
+             use_trajectory_gains)
         """
         return (
             self.max_iter,
@@ -115,7 +119,8 @@ class TinyMPCSettings:
             self.check_interval,
             self.track_horizon,
             self.track_dt,
-            self.verbose
+            self.verbose,
+            self.use_altro_gains  # Maps to use_trajectory_gains in C++
         )
 
     def to_dict(self) -> dict:

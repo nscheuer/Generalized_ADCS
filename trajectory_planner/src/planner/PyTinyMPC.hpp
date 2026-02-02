@@ -25,8 +25,8 @@ namespace py = pybind11;
 
 // Python-friendly settings tuple:
 // (max_iter, abs_tol, rel_tol, rho, rho_min, rho_max, adaptive_rho, check_interval,
-//  track_horizon, track_dt, verbose)
-#define TINYMPC_SETTINGS_PY_FORM std::tuple<int, double, double, double, double, double, bool, int, int, double, int>
+//  track_horizon, track_dt, verbose, use_trajectory_gains)
+#define TINYMPC_SETTINGS_PY_FORM std::tuple<int, double, double, double, double, double, bool, int, int, double, int, bool>
 
 // Python-friendly dynamics info tuple (same as ALTRO):
 // (B_field, R_eci, prop_torq_on, V_eci, sun_vec, dist_on)
@@ -53,6 +53,7 @@ inline TinyMPCSettings settingsPy2Cpp(TINYMPC_SETTINGS_PY_FORM py_settings) {
     settings.track_horizon = std::get<8>(py_settings);
     settings.track_dt = std::get<9>(py_settings);
     settings.verbose = std::get<10>(py_settings);
+    settings.use_trajectory_gains = std::get<11>(py_settings);
     return settings;
 }
 
@@ -71,7 +72,8 @@ inline TINYMPC_SETTINGS_PY_FORM settingsCpp2Py(const TinyMPCSettings& settings) 
         settings.check_interval,
         settings.track_horizon,
         settings.track_dt,
-        settings.verbose
+        settings.verbose,
+        settings.use_trajectory_gains
     );
 }
 

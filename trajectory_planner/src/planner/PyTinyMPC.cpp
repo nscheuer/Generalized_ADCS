@@ -81,14 +81,14 @@ void PyTinyMPC::loadReferenceFromALTRO(
     py::buffer_info K_buf = K_ref_py.request();
     if (K_buf.size > 0) {
         mat K_flat = numpyToArmaMatrix(K_ref_py);
-        // K gains are stored flattened as (m*n_err, N) where n_err = n-1
-        // We'll pass them as-is and let TinyMPC handle reshaping if needed
-        int N = U_ref.n_cols;
+        // K gains are stored flattened as (m*n_err, N_K) where n_err = n-1
+        // N_K is typically N-1 or N (depending on whether terminal gain exists)
         int n_err = n - 1;  // Reduced quaternion representation
         if (K_flat.n_rows == (uword)(m * n_err)) {
-            // Reshape into cube (m, n_err, N)
-            traj_seg.K_ref = cube(m, n_err, N);
-            for (int k = 0; k < N; k++) {
+            int N_K = K_flat.n_cols;  // Use actual K columns, not U columns
+            // Reshape into cube (m, n_err, N_K)
+            traj_seg.K_ref = cube(m, n_err, N_K);
+            for (int k = 0; k < N_K; k++) {
                 traj_seg.K_ref.slice(k) = reshape(K_flat.col(k), m, n_err);
             }
         }
