@@ -903,7 +903,7 @@ double Satellite::stepcost_quat(int k, int N, vec xk, vec uk,vec ukprev, vec3 sa
       angcost = 0.5*as_scalar(qk.t()*We*We.t()*qk);
       break;
     case 2:
-      angcost = 0.5*w_ang*dot(angerrvec,angerrvec);
+      angcost = 0.5*dot(angerrvec,angerrvec);
       if(abs(qerr(0))>EPSVAR){
           angcost *= 1.0/(qerr(0)*qerr(0));
         }else if(qerr(0)==0){
@@ -1469,7 +1469,7 @@ cost_jacs  Satellite::costJacobians(int k, int N, vec xk, vec uk,vec ukprev, vec
   // mat33 ddsc = -sg*Wq.t()*ddzdq*Wq + mat33().eye()*zz;
   // ddsc = ddsc*cost_hess_mult;
 
-  if(ECIvec_k.has_nan())
+  if(ECIvec_k.is_zero() || (ECIvec_k.tail(3).is_zero() && isnan(ECIvec_k(0))))
   {
     w_ang = 0.0;
   }
@@ -1486,11 +1486,11 @@ cost_jacs  Satellite::costJacobians(int k, int N, vec xk, vec uk,vec ukprev, vec
   vec3 angerrvec = vec(3).zeros();
 
   if(considerVectorInTVLQR==1){
-      vec ek = normalise(ECIvec_k);
-      if((ek.n_elem==3)||((ek.n_elem==4)&&(isnan(ek(0))))){
+      if((ECIvec_k.n_elem==3)||((ECIvec_k.n_elem==4)&&(isnan(ECIvec_k(0))))){
 
+        vec ek = ECIvec_k.tail(3);
+        ek = normalise(ek);
         vec3 angerrvec = (cross(rotMat(qk).t()*ek,sk));
-        ek = ek.tail(3);
 
         lkxx_quat_add = 0.5*(lkxx_quat_add - ddvTRTudqQ(qk,sk,ek));//
         lkx_quat_add = 0.5*(lkx_quat_add - (sk.t()*dRTBdqQ(qk,ek)).t() );

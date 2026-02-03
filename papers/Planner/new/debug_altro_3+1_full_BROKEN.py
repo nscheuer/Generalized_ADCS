@@ -26,14 +26,14 @@ planner_settings.pass2.convergence.max_inner_iter = 20
 planner_settings.cost_main = ADCS.controller.helpers.CostWeights(
         angle=1e1,
         angle_N=1e1,
-        ang_vel=1e5,
+        ang_vel=1e4,
         ang_vel_N=1e5,
         ang_vel_err_dir=0.0,
         ang_vel_err_dir_N=0.0,
         ang_vel_mag=0.0,
         ang_vel_mag_N=0.0,
         control_mult=1.0,
-        ang_cost_func_type=2,
+        ang_cost_func_type=4,
     )
 
 planner_settings.cost_second = planner_settings.cost_main
@@ -46,13 +46,13 @@ planner_settings.cost_tvlqr = ADCS.controller.helpers.CostWeights(
         ang_vel_mag=0.0,
         ang_vel_mag_N=0.0,
         control_mult=1.0,
-        ang_cost_func_type=2,
+        ang_cost_func_type=4,
     )
 
 controller = ADCS.controller.Plan_and_Track_LQR(est_sat=real_sat, planner_settings=planner_settings)
 
 os0 = ADCS.Orbital_State(ephem=ADCS.Ephemeris(),J2000=0.22, R=7000*np.array([0, np.sqrt(2)/2, np.sqrt(2)/2]), V=np.array([8, 0, 0]))
-goal = ADCS.goals.Fixed_Attitude_Goal(q_ref=np.array([0, 1, 0, 0]))
+goal = ADCS.goals.Fixed_Attitude_Goal(q_ref=ADCS.helpers.normalize(np.array([1, 1, 1, 1])))
 
 results = ADCS.simulate(
     x=x_0,

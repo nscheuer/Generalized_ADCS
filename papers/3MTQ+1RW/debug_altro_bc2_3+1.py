@@ -54,14 +54,14 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
     # Build Planner
     planner_settings = PlannerSettings(
         est_sat=real_sat,
-        bdot_on=0,  # Skip bdot initial guess (faster, more reliable)
+        bdot_on=1,  # Skip bdot initial guess (faster, more reliable)
         dt_tp=50,
         dt_tvlqr=1,
     )
 
     planner_settings.verbosity = False
-    planner_settings.cost_main.use_full_cost_hessian = True
-    planner_settings.pass1.regularization.use_dynamics_hess = 1
+    planner_settings.cost_main.use_full_cost_hessian = False
+    planner_settings.pass1.regularization.use_dynamics_hess = 0
     planner_settings.init_traj.bdot_gain = 500
     planner_settings.pass1.aug_lag.penalty_init = 1e-3
     planner_settings.pass1.aug_lag.penalty_scale = 10
