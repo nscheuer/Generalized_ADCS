@@ -52,7 +52,7 @@ planner_settings.cost_tvlqr = ADCS.controller.helpers.CostWeights(
 controller = ADCS.controller.Plan_and_Track_LQR(est_sat=real_sat, planner_settings=planner_settings)
 
 os0 = ADCS.Orbital_State(ephem=ADCS.Ephemeris(),J2000=0.22, R=7000*np.array([0, np.sqrt(2)/2, np.sqrt(2)/2]), V=np.array([8, 0, 0]))
-goal = ADCS.goals.Fixed_Attitude_Goal(q_ref=np.array([1, 0, 0, 0]))
+goal = ADCS.goals.Fixed_Attitude_Goal(q_ref=np.array([0, 1, 0, 0]))
 
 results = ADCS.simulate(
     x=x_0,

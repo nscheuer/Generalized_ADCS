@@ -14,7 +14,8 @@ from typing import Dict, Optional, Tuple, Callable
 from numpy.typing import NDArray
 
 from ADCS.helpers.math_helpers import quat_diff, quat_to_vec3
-
+from ADCS.helpers.simresults import SimulationResults, RunResults
+from ADCS.satellite_hardware.satellite import Satellite
 
 class Trajectory:
     r"""
@@ -624,3 +625,52 @@ class Trajectory:
         ax.set_xlim3d([x_middle - plot_radius, x_middle + plot_radius])
         ax.set_ylim3d([y_middle - plot_radius, y_middle + plot_radius])
         ax.set_zlim3d([z_middle - plot_radius, z_middle + plot_radius])
+
+    
+    def to_simulation_results(
+        self,
+        satellite: Satellite,
+        target: Optional[np.ndarray] = None,
+        w_target: Optional[np.ndarray] = None,
+        *,
+        include_cost: bool = False,
+    ) -> SimulationResults:
+
+        time_J2000 = np.asarray(self.times)
+        time_s = (time_J2000 - time_J2000[0]) * 36525.0 * 86400.0
+        N = len(time_J2000)
+
+        if self._is_row_major:
+            state_hist = np.asarray(self.states)
+            control_hist = np.asarray(self.controls)
+        else:
+            state_hist = np.asarray(self.states.T)
+            control_hist = np.asarray(self.controls.T)
+
+        run = RunResults(
+            satellite=satellite,
+            time_J2000=time_J2000,
+            time_s=time_s,
+            state_hist=state_hist,
+            control_hist=control_hist,
+        )
+
+        if target is not None:
+            target = np.asarray(target)
+            if target.ndim == 1:
+                run.target_hist = [target.copy() for _ in range(N)]
+            else:
+                run.target_hist = [target[k].copy() for k in range(N)]
+
+        if w_target is not None:
+            w_target = np.asarray(w_target)
+            if w_target.ndim == 1:
+                run.w_target_hist = [w_target.copy() for _ in range(N)]
+            else:
+                run.w_target_hist = [w_target[k].copy() for k in range(N)]
+
+        if include_cost and self.costs is not None:
+            costs = np.asarray(self.costs)
+            run.target_hist = [np.array([costs[k]]) for k in range(N)]
+
+        return SimulationResults(runs=[run])

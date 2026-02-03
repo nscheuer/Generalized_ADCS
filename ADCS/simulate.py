@@ -4,6 +4,9 @@ import numpy as np
 from typing import Optional
 from tqdm import tqdm
 from scipy.integrate import solve_ivp
+import matplotlib.pyplot as plt
+
+import ADCS as ADCS
 
 from ADCS.CONOPS.goals import Goal, No_Goal
 from ADCS.CONOPS.goallist import GoalList
@@ -156,6 +159,22 @@ def simulate(
             goals=goal_list,
             verbose=False
         )
+        
+        if True:
+            active_goal = goal_list.get_active_goal(start_time, time_units="centuries")
+            target, w_target = active_goal.to_ref(os0) 
+            simresults = trajectory.to_simulation_results(satellite, target=target, w_target=w_target)
+            ADCS.plot(
+                simresults,
+                ADCS.plots.AngularVelocityPlotCombined(sources=["real"]),
+                ADCS.plots.ControlPlotCombined(title="Magnetorquer Commands", units="Am²"),
+                ADCS.plots.TargetHistogram(bin_width=5.0),
+                ADCS.plots.TargetPlot(modes=["real_target"], title="Target Tracking"),
+                layout=(2,2),
+                title="TRAJECTORY",
+            )
+            plt.show()
+
         controller.set_active_trajectory(trajectory)
 
     run_capsule = RunResults(satellite=satellite, est_satellite=est_satellite)
