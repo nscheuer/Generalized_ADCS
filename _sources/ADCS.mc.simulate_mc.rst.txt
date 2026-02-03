@@ -1,0 +1,7 @@
+ADCS.mc.simulate\_mc module
+===========================
+
+.. automodule:: ADCS.mc.simulate_mc
+   :members:
+   :show-inheritance:
+   :undoc-members:

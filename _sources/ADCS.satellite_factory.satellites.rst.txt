@@ -1,0 +1,18 @@
+ADCS.satellite\_factory.satellites package
+==========================================
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   ADCS.satellite_factory.satellites.create_cubesats
+
+Module contents
+---------------
+
+.. automodule:: ADCS.satellite_factory.satellites
+   :members:
+   :show-inheritance:
+   :undoc-members:

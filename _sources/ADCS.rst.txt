@@ -13,7 +13,9 @@ Subpackages
    ADCS.estimators
    ADCS.flight_software
    ADCS.helpers
+   ADCS.mc
    ADCS.orbits
+   ADCS.satellite_factory
    ADCS.satellite_hardware
 
 Submodules

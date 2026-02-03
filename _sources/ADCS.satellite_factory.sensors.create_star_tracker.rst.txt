@@ -1,0 +1,7 @@
+ADCS.satellite\_factory.sensors.create\_star\_tracker module
+============================================================
+
+.. automodule:: ADCS.satellite_factory.sensors.create_star_tracker
+   :members:
+   :show-inheritance:
+   :undoc-members:

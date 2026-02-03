@@ -1,0 +1,20 @@
+ADCS.satellite\_factory package
+===============================
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 1
+
+   ADCS.satellite_factory.actuators
+   ADCS.satellite_factory.satellites
+   ADCS.satellite_factory.sensors
+
+Module contents
+---------------
+
+.. automodule:: ADCS.satellite_factory
+   :members:
+   :show-inheritance:
+   :undoc-members:

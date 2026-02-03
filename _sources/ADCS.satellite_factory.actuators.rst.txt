@@ -1,0 +1,19 @@
+ADCS.satellite\_factory.actuators package
+=========================================
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   ADCS.satellite_factory.actuators.create_cubesat_MTQ
+   ADCS.satellite_factory.actuators.create_cubesat_RW
+
+Module contents
+---------------
+
+.. automodule:: ADCS.satellite_factory.actuators
+   :members:
+   :show-inheritance:
+   :undoc-members:

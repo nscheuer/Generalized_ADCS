@@ -1,0 +1,7 @@
+ADCS.satellite\_factory.actuators.create\_cubesat\_MTQ module
+=============================================================
+
+.. automodule:: ADCS.satellite_factory.actuators.create_cubesat_MTQ
+   :members:
+   :show-inheritance:
+   :undoc-members:

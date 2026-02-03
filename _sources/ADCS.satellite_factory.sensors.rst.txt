@@ -1,0 +1,22 @@
+ADCS.satellite\_factory.sensors package
+=======================================
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   ADCS.satellite_factory.sensors.create_cubesat_GPS
+   ADCS.satellite_factory.sensors.create_cubesat_MTM
+   ADCS.satellite_factory.sensors.create_cubesat_gyro
+   ADCS.satellite_factory.sensors.create_cubesat_sunpair
+   ADCS.satellite_factory.sensors.create_star_tracker
+
+Module contents
+---------------
+
+.. automodule:: ADCS.satellite_factory.sensors
+   :members:
+   :show-inheritance:
+   :undoc-members:

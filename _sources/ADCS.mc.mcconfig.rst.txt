@@ -1,0 +1,7 @@
+ADCS.mc.mcconfig module
+=======================
+
+.. automodule:: ADCS.mc.mcconfig
+   :members:
+   :show-inheritance:
+   :undoc-members:

@@ -1,0 +1,7 @@
+ADCS.satellite\_factory.sensors.create\_cubesat\_MTM module
+===========================================================
+
+.. automodule:: ADCS.satellite_factory.sensors.create_cubesat_MTM
+   :members:
+   :show-inheritance:
+   :undoc-members:

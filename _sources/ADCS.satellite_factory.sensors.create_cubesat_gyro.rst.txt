@@ -1,0 +1,7 @@
+ADCS.satellite\_factory.sensors.create\_cubesat\_gyro module
+============================================================
+
+.. automodule:: ADCS.satellite_factory.sensors.create_cubesat_gyro
+   :members:
+   :show-inheritance:
+   :undoc-members:

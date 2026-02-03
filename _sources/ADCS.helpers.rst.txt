@@ -7,7 +7,6 @@ Subpackages
 .. toctree::
    :maxdepth: 1
 
-   ADCS.helpers.mc
    ADCS.helpers.plot
    ADCS.helpers.plotting
    ADCS.helpers.plotting_mc
@@ -22,7 +21,6 @@ Submodules
    ADCS.helpers.math_constants
    ADCS.helpers.math_helpers
    ADCS.helpers.simresults
-   ADCS.helpers.size_helpers
 
 Module contents
 ---------------

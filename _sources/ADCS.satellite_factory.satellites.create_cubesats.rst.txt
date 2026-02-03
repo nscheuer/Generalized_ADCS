@@ -1,0 +1,7 @@
+ADCS.satellite\_factory.satellites.create\_cubesats module
+==========================================================
+
+.. automodule:: ADCS.satellite_factory.satellites.create_cubesats
+   :members:
+   :show-inheritance:
+   :undoc-members:

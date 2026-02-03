@@ -1,0 +1,20 @@
+ADCS.mc package
+===============
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   ADCS.mc.mcconfig
+   ADCS.mc.monte_carlo_runner
+   ADCS.mc.simulate_mc
+
+Module contents
+---------------
+
+.. automodule:: ADCS.mc
+   :members:
+   :show-inheritance:
+   :undoc-members:
