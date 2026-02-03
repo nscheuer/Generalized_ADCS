@@ -14,7 +14,7 @@ Five tutorials are provided to help you get started with Generalized ADCS. It is
    05_orbit_estimation
    advanced_features
 
-.. image:: ../_static/tutorial_05_cygnss.jpeg
+.. image:: ../_static/tutorials/tutorial_05_cygnss.jpeg
    :alt: Render of the CYGNSS satellite. (Credit University of Michigan)
    :width: 400px
    :align: center

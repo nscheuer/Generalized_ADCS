@@ -224,4 +224,8 @@ class Coordinate_Goal(Vector_Goal):
         v_rel = v_target_eci - v_sat_eci
         w_ref_eci = np.cross(r_rel, v_rel) / r_dist_sq
 
-        return r_goal_eci, w_ref_eci
+        r_ref = np.empty((4,))
+        r_ref[0] = np.nan
+        r_ref[1:] = r_goal_eci
+
+        return r_ref, w_ref_eci

@@ -5,7 +5,7 @@ CubeSat missions often require precise orbit determination. In this tutorial, we
 
 For this example, we use the CYGNSS (Cyclone Global Navigation Satellite System) launched by the University of Michigan and the Southwest Research Institute in 2016.
 
-.. image:: ../_static/tutorial_05_cygnss.jpeg
+.. image:: ../_static/tutorials/tutorial_05_cygnss.jpeg
    :alt: Render of the CYGNSS satellite. (Credit University of Michigan)
    :width: 400px
    :align: center
@@ -100,11 +100,11 @@ The EKF is able to very accurately estimate the orbit of the satellite using noi
    :header-rows: 0
    :class: borderless
 
-   * - .. image:: ../_static/tutorial_05_positionplot.png
+   * - .. image:: ../_static/tutorials/tutorial_05_positionplot.png
           :width: 100%
-     - .. image:: ../_static/tutorial_05_velocityplot.png
+     - .. image:: ../_static/tutorials/tutorial_05_velocityplot.png
           :width: 100%
 
-.. image:: ../_static/tutorial_05_orbitplot.png
+.. image:: ../_static/tutorials/tutorial_05_orbitplot.png
    :width: 400px
    :align: center

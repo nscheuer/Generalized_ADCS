@@ -28,8 +28,13 @@ class Sun_Goal(Vector_Goal):
     """
     def to_ref(self, os0: Orbital_State) -> Tuple[np.ndarray, np.ndarray]:
         sun_vec = os0.get_sun_eci()
+        sun_vec = normalize(sun_vec)
 
         w_ref = np.zeros(3)
 
-        return normalize(sun_vec), w_ref
+        r_ref = np.empty((4,))
+        r_ref[0] = np.nan
+        r_ref[1:] = sun_vec
+
+        return r_ref, w_ref
     

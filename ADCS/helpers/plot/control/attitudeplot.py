@@ -1,6 +1,6 @@
 __all__ = ["AttitudePlot"]
 
-from typing import Optional, List
+from typing import Optional
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -33,81 +33,69 @@ def _get_time(sim, time_attr: str) -> Optional[np.ndarray]:
     return t if t.size > 0 else None
 
 
+def _safe_unit(v: np.ndarray) -> Optional[np.ndarray]:
+    v = np.asarray(v, dtype=float).reshape(-1)
+    n = np.linalg.norm(v)
+    if n <= 1e-12:
+        return None
+    return v / n
+
+
 class AttitudePlot(Subplot):
     r"""
-    Interactive 3D attitude animation subplot wrapper.
+    Interactive 3D attitude animation subplot.
 
-    This class represents a specialized :class:`~ADCS.subplot.Subplot` that launches
-    an external Matplotlib 3D animation window to visualize spacecraft attitude
-    evolution in an inertial reference frame. The animation depicts body-fixed axes,
-    optional estimated axes, reference directions, and environmental vectors such as
-    magnetic field and Sun direction.
+    This class provides an interactive Matplotlib-based 3D animation for
+    visualizing spacecraft attitude in the Earth-Centered Inertial frame. It
+    supports visualization of true attitude, estimated attitude, and reference
+    goals, as well as optional environmental vectors such as magnetic field and
+    Sun direction.
 
-    The spacecraft attitude is assumed to be represented by unit quaternions
-    :math:`\mathbf{q} = [q_x, q_y, q_z, q_w]^\top`, stored in the simulation history.
-    For each quaternion, a direction cosine matrix is computed as
+    The class integrates with the ADCS plotting framework via
+    :class:`~ADCS.plotting.subplot.Subplot`.
 
-    .. math::
+    Reference goals are read from the simulation attribute specified by
+    ``reference_attr`` and may be provided in mixed formats:
 
-        \mathbf{R}(\mathbf{q}) =
-        \begin{bmatrix}
-        1 - 2(q_y^2 + q_z^2) & 2(q_x q_y - q_z q_w) & 2(q_x q_z + q_y q_w) \\
-        2(q_x q_y + q_z q_w) & 1 - 2(q_x^2 + q_z^2) & 2(q_y q_z - q_x q_w) \\
-        2(q_x q_z - q_y q_w) & 2(q_y q_z + q_x q_w) & 1 - 2(q_x^2 + q_y^2)
-        \end{bmatrix}
+    +----------------------+-------------------------------------------+
+    | Goal row format      | Interpretation                            |
+    +======================+===========================================+
+    | [nan, tx, ty, tz]    | Reference vector in ECI                   |
+    +----------------------+-------------------------------------------+
+    | [q0, q1, q2, q3]     | Quaternion goal, body to ECI              |
+    +----------------------+-------------------------------------------+
 
-    which maps body-frame vectors into the inertial frame. The inertial components
-    of the body axes are then given by
-
-    .. math::
-
-        \mathbf{a}_i^{\text{ECI}} = \mathbf{R}(\mathbf{q}) \, \mathbf{e}_i
-
-    where :math:`\mathbf{e}_i` denotes the canonical unit vectors of the body frame.
-
-    A reference vector :math:`\mathbf{g}(t) \in \mathbb{R}^3`, such as a target
-    direction expressed in the inertial frame, may be displayed after normalization
-
-    .. math::
-
-        \hat{\mathbf{g}}(t) = \frac{\mathbf{g}(t)}{\lVert \mathbf{g}(t) \rVert}
-
-    Environmental vectors, when enabled, are visualized in a similar normalized form.
-    Animation playback supports pause, resume, and variable playback speed.
-
-    The subplot axis itself is not used for drawing; instead, it displays a textual
-    notice while the animation is shown in a separate window.
+    Legacy ``Nx3`` arrays are interpreted as vector-only reference histories.
 
     :param sources:
-        List of attitude or vector sources to display. Valid entries are ``"real"``,
-        ``"estimated"``, and ``"reference"``.
+        List of attitude sources to visualize. Supported values are
+        ``real``, ``estimated``, and ``reference``. Defaults to ``["real"]``.
     :type sources:
         list[str] or None
 
     :param time:
-        Name of the simulation attribute containing the time history in seconds.
+        Name of the time attribute on the simulation object.
     :type time:
         str
 
     :param title:
-        Title of the animation window.
+        Title displayed on the animation window.
     :type title:
         str
 
     :param reference_attr:
-        Name of the simulation attribute containing the reference vector history
-        expressed in the inertial frame.
+        Name of the simulation attribute containing reference goal history.
     :type reference_attr:
         str
 
     :param body_axis:
-        Body-frame axis to compare against the reference direction. Must be ``"x"``,
-        ``"y"``, or ``"z"``.
+        Body axis identifier used for reference alignment. Must be ``x``, ``y``,
+        or ``z``.
     :type body_axis:
         str
 
     :param axis_limits:
-        Symmetric plot limits for each inertial axis.
+        Symmetric axis limits applied to all ECI axes.
     :type axis_limits:
         float
 
@@ -117,10 +105,14 @@ class AttitudePlot(Subplot):
         int
 
     :param show_env:
-        Flag indicating whether environmental vectors from the simulation state
-        should be displayed.
+        Enable visualization of environmental vectors when available.
     :type show_env:
         bool
+
+    :return:
+        None
+    :rtype:
+        None
 
     """
 
@@ -130,11 +122,11 @@ class AttitudePlot(Subplot):
         sources: Optional[list[str]] = None,  # ["real","estimated","reference"]
         time: str = "time_s",
         title: str = "Attitude Animation (ECI)",
-        reference_attr: str = "eci_target_hist",  # Nx3 ECI direction (or None)
-        body_axis: str = "z",  # which body axis to compare to reference: "x","y","z"
+        reference_attr: str = "target_hist",  # NEW default (Nx4 mixed goals), Nx3 also supported
+        body_axis: str = "z",
         axis_limits: float = 1.0,
         interval_ms: int = 50,
-        show_env: bool = True,  # uses sim.os_hist B/S if available
+        show_env: bool = True,
     ):
         self.sources = _normalize_attitude_sources(sources)
         self.time = time
@@ -148,7 +140,11 @@ class AttitudePlot(Subplot):
         self.show_env = bool(show_env)
 
     def plot(self, ax, sim) -> None:
-        # Keep the subplot clean and indicate that a separate window is created.
+        runs = getattr(sim, "runs", None)
+        if runs is not None and isinstance(runs, (list, tuple)) and len(runs) > 0:
+            print(f"[AttitudePlot] MCSimulationResults detected: showing run 0 of {len(runs)}")
+            sim = runs[0]
+
         ax.axis("off")
         ax.set_title(self.title, loc="left", pad=10)
         ax.text(
@@ -159,10 +155,7 @@ class AttitudePlot(Subplot):
             va="center",
             transform=ax.transAxes,
         )
-
         self._run_animation(sim)
-
-    # ---------------- Internals ----------------
 
     def _get_q_series(self, sim, which: str) -> Optional[np.ndarray]:
         if which == "real":
@@ -181,23 +174,31 @@ class AttitudePlot(Subplot):
 
         return np.asarray(X[:, 3:7], dtype=float)
 
-    def _get_reference_series(self, sim) -> Optional[np.ndarray]:
+    def _get_reference_goal_series(self, sim) -> Optional[np.ndarray]:
+        """
+        Returns:
+          - Nx4 (mixed vector/quaternion goals) OR Nx3 (vector-only, legacy) OR None
+        """
         if self.reference_attr is None:
             return None
         G = getattr(sim, self.reference_attr, None)
         if G is None or len(G) == 0:
             return None
         G = np.asarray(G, dtype=float)
-        if G.ndim != 2 or G.shape[1] != 3:
+        if G.ndim != 2:
             return None
-        return G
+        if G.shape[1] == 4:
+            return G
+        if G.shape[1] == 3:
+            return G  # legacy vector-only
+        return None
 
     def _run_animation(self, sim) -> None:
         t = _get_time(sim, self.time)
 
         q_real = self._get_q_series(sim, "real") if "real" in self.sources else None
         q_est = self._get_q_series(sim, "estimated") if "estimated" in self.sources else None
-        ref = self._get_reference_series(sim) if "reference" in self.sources else None
+        goal = self._get_reference_goal_series(sim) if "reference" in self.sources else None
 
         os_hist = getattr(sim, "os_hist", None) if self.show_env else None
 
@@ -207,13 +208,12 @@ class AttitudePlot(Subplot):
             lengths.append(q_real.shape[0])
         if q_est is not None:
             lengths.append(q_est.shape[0])
-        if ref is not None:
-            lengths.append(ref.shape[0])
+        if goal is not None:
+            lengths.append(goal.shape[0])
         if os_hist is not None:
             lengths.append(len(os_hist))
 
         if not lengths:
-            # nothing to animate
             fig = plt.figure(figsize=(7, 7))
             ax = fig.add_subplot(111)
             ax.axis("off")
@@ -251,15 +251,14 @@ class AttitudePlot(Subplot):
             title_parts.append("True Att")
         if q_est is not None:
             title_parts.append("Est Att")
-        if ref is not None:
-            title_parts.append("Ref")
+        if goal is not None:
+            title_parts.append("Goal (vec/quat)")
         if os_hist is not None:
             title_parts.append("Env")
 
         ax3.set_title(self.title + ("  |  " + " + ".join(title_parts) if title_parts else ""))
 
         body_axes = np.eye(3, dtype=float)
-        axis_index = {"x": 0, "y": 1, "z": 2}[self.body_axis]
 
         # --- Artists ---
         true_lines = []
@@ -273,17 +272,24 @@ class AttitudePlot(Subplot):
         est_lines = []
         if q_est is not None:
             colors = ["salmon", "lightgreen", "lightblue"]
-            est_lines = [ax3.plot([], [], [], lw=1, linestyle="--", color=colors[k])[0] for k in range(3)]
+            est_lines = [
+                ax3.plot([], [], [], lw=1, linestyle="--", color=colors[k])[0] for k in range(3)
+            ]
 
-        ref_line = None
-        if ref is not None:
-            ref_line = ax3.plot([], [], [], lw=2, linestyle=":", color="cyan", label="Reference")[0]
+        # Goal: vector line OR goal axes
+        goal_vec_line = None
+        goal_axes_lines = []
+        if goal is not None:
+            goal_vec_line = ax3.plot([], [], [], lw=2, linestyle=":", color="cyan")[0]
+            goal_axes_lines = [
+                ax3.plot([], [], [], lw=2, linestyle=":", color="cyan")[0] for _ in range(3)
+            ]
 
-        # Environment quivers (recreated each frame, like your original)
+        # Environment quivers (recreated each frame)
         B_arrow = None
         S_arrow = None
 
-        # Legend proxies (keeps legend short & stable)
+        # Legend proxies (stable legend)
         proxies, labels = [], []
         if q_real is not None:
             proxies.append(plt.Line2D([0], [0], color="r", lw=2))
@@ -291,9 +297,9 @@ class AttitudePlot(Subplot):
         if q_est is not None:
             proxies.append(plt.Line2D([0], [0], color="salmon", lw=1, linestyle="--"))
             labels.append("Estimated body axes")
-        if ref is not None:
+        if goal is not None:
             proxies.append(plt.Line2D([0], [0], color="cyan", lw=2, linestyle=":"))
-            labels.append("Reference vector")
+            labels.append("Goal (vector or axes)")
         if os_hist is not None:
             proxies.append(plt.Line2D([0], [0], color="magenta", lw=2))
             labels.append("B-field")
@@ -308,12 +314,17 @@ class AttitudePlot(Subplot):
         play = [True]
         speed = [1.0]
 
+        def _clear_line(line):
+            line.set_data([], [])
+            line.set_3d_properties([])
+
         def init_anim():
             artists = []
             artists.extend(true_lines)
             artists.extend(est_lines)
-            if ref_line is not None:
-                artists.append(ref_line)
+            if goal_vec_line is not None:
+                artists.append(goal_vec_line)
+            artists.extend(goal_axes_lines)
             return artists
 
         def update(_):
@@ -341,17 +352,52 @@ class AttitudePlot(Subplot):
                     est_lines[k].set_data([0, est_ax[0, k]], [0, est_ax[1, k]])
                     est_lines[k].set_3d_properties([0, est_ax[2, k]])
 
-            # Reference vector
-            if ref_line is not None:
-                g = ref[i].astype(float)
-                ng = np.linalg.norm(g)
-                if ng > 1e-9:
-                    g = g / ng
-                    ref_line.set_data([0, g[0]], [0, g[1]])
-                    ref_line.set_3d_properties([0, g[2]])
+            # Goal (mixed): vector OR axes per-frame
+            if goal is not None:
+                row = goal[i]
+
+                # Backward-compat Nx3: always vector
+                if row.shape[0] == 3:
+                    g = _safe_unit(row)
+                    if g is not None and goal_vec_line is not None:
+                        goal_vec_line.set_data([0, g[0]], [0, g[1]])
+                        goal_vec_line.set_3d_properties([0, g[2]])
+                    if goal_axes_lines:
+                        for ln in goal_axes_lines:
+                            _clear_line(ln)
+
                 else:
-                    ref_line.set_data([], [])
-                    ref_line.set_3d_properties([])
+                    # Nx4 mixed mode
+                    if np.isnan(row[0]):
+                        # Vector goal: [nan, tx, ty, tz]
+                        g = _safe_unit(row[1:4])
+                        if g is not None and goal_vec_line is not None:
+                            goal_vec_line.set_data([0, g[0]], [0, g[1]])
+                            goal_vec_line.set_3d_properties([0, g[2]])
+                        elif goal_vec_line is not None:
+                            _clear_line(goal_vec_line)
+
+                        # Hide goal axes
+                        if goal_axes_lines:
+                            for ln in goal_axes_lines:
+                                _clear_line(ln)
+
+                    else:
+                        # Quaternion goal: [q0,q1,q2,q3] (Body->ECI)
+                        qg = _safe_unit(row)
+                        # Hide goal vector
+                        if goal_vec_line is not None:
+                            _clear_line(goal_vec_line)
+
+                        if qg is None or not goal_axes_lines:
+                            for ln in goal_axes_lines:
+                                _clear_line(ln)
+                        else:
+                            Rg = rot_mat(qg)
+                            goal_ax = Rg @ body_axes
+                            for k in range(3):
+                                goal_axes_lines[k].set_data([0, goal_ax[0, k]], [0, goal_ax[1, k]])
+                                goal_axes_lines[k].set_3d_properties([0, goal_ax[2, k]])
 
             # Environment (recreate quivers each frame)
             if os_hist is not None and i < len(os_hist) and os_hist[i] is not None:
@@ -366,9 +412,8 @@ class AttitudePlot(Subplot):
                 B = getattr(os_i, "B", None)
                 if B is not None:
                     B = np.asarray(B, dtype=float).reshape(3)
-                    nB = np.linalg.norm(B)
-                    if nB > 1e-9:
-                        b = B / nB
+                    b = _safe_unit(B)
+                    if b is not None:
                         B_arrow = ax3.quiver(0, 0, 0, b[0], b[1], b[2], color="magenta")
                     else:
                         B_arrow = ax3.quiver(0, 0, 0, 0, 0, 0, color="magenta", alpha=0)
@@ -385,16 +430,15 @@ class AttitudePlot(Subplot):
 
                     if is_lit:
                         S = np.asarray(S, dtype=float).reshape(3)
-                        nS = np.linalg.norm(S)
-                        if nS > 1e-9:
-                            s = S / nS
+                        s = _safe_unit(S)
+                        if s is not None:
                             S_arrow = ax3.quiver(0, 0, 0, s[0], s[1], s[2], color="orange")
                         else:
                             S_arrow = ax3.quiver(0, 0, 0, 0, 0, 0, color="orange", alpha=0)
                     else:
                         S_arrow = ax3.quiver(0, 0, 0, 0, 0, 0, color="grey", alpha=0)
 
-            # Show a tiny time readout in window title (optional, cheap)
+            # Small time readout in window title
             try:
                 fig.canvas.manager.set_window_title(f"{self.title} — {xlab}: {t_use[i]:.3f}")
             except Exception:
@@ -403,8 +447,9 @@ class AttitudePlot(Subplot):
             artists = []
             artists.extend(true_lines)
             artists.extend(est_lines)
-            if ref_line is not None:
-                artists.append(ref_line)
+            if goal_vec_line is not None:
+                artists.append(goal_vec_line)
+            artists.extend(goal_axes_lines)
             if B_arrow is not None:
                 artists.append(B_arrow)
             if S_arrow is not None:

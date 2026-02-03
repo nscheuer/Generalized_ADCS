@@ -6,6 +6,7 @@ import numpy as np
 from typing import Optional
 from numpy.typing import NDArray
 
+from ADCS.CONOPS.goals import Goal
 from ADCS.CONOPS.goallist import GoalList
 from ADCS.controller.plan_and_track_base import PlanAndTrackBase
 from ADCS.controller.helpers import PlannerSettings, Trajectory
@@ -114,8 +115,7 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
         sens: NDArray[np.float64],
         est_sat: EstimatedSatellite,
         os_hat: Orbital_State,
-        goal_vector_eci: Optional[NDArray[np.float64]] = None,
-        w_ref: Optional[NDArray[np.float64]] = None
+        goal: Optional[Goal] = None,
     ) -> NDArray[np.float64]:
         r"""
         Compute the TVLQR tracking control input at the current time.

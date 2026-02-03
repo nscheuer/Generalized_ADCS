@@ -6,6 +6,7 @@ import numpy as np
 from typing import Optional
 from numpy.typing import NDArray
 
+from ADCS.CONOPS.goals import Goal
 from ADCS.CONOPS.goallist import GoalList
 from ADCS.controller.plan_and_track_base import PlanAndTrackBase
 from ADCS.controller.helpers import PlannerSettings, Trajectory
@@ -111,8 +112,7 @@ class Plan_and_Track_Exact(PlanAndTrackBase):
         sens: NDArray[np.float64],
         est_sat: EstimatedSatellite,
         os_hat: Orbital_State,
-        goal_vector_eci: Optional[NDArray[np.float64]] = None,
-        w_ref: Optional[NDArray[np.float64]] = None
+        goal: Optional[Goal] = None,
     ) -> NDArray[np.float64]:
         r"""
         Return the planned open-loop control input at the current time.

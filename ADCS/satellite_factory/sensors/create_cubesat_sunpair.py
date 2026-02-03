@@ -1,3 +1,5 @@
+__all__ = ['create_Clydespace_3U_array']
+
 import numpy as np
 from typing import Optional, List
 

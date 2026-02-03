@@ -25,7 +25,7 @@ def plot(
     :param sim:
         Simulation results object supplying the data to all subplots.
     :type sim:
-        :class:~ADCS.helpers.simresults.SimulationResults
+        :class:~ADCS.helpers.simresults.SimulationResults or :class:~ADCS.helpers.simresults_mc.MCSimulationResults
 
     :param subplots:
         One or more subplot objects to be rendered in the figure.

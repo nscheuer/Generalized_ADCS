@@ -360,15 +360,16 @@ class PlanAndTrackBase(Controller):
         # -------------------------
         # Goals / attitude vectors
         # -------------------------
-        goal_vecs_eci = np.zeros((3, N), dtype=np.float64, order="F")
+        goal_vecs_eci = np.zeros((4, N), dtype=np.float64, order="F")
         sat_body_vecs = np.zeros((3, N), dtype=np.float64, order="F")
         prop_vals     = np.zeros(N, dtype=np.float64)
 
         for i in range(N):
             t = float(times_arr[i])
             os_at_t = sim_orbit.get_os(t)
-            g_vec_eci, _w_ref = goals.to_ref(t, os_at_t)
-            goal_vecs_eci[:, i] = np.asarray(g_vec_eci, dtype=np.float64).reshape(3)
+            target, _w_ref = goals.to_ref(t, os_at_t)
+            goal_vecs_eci[:, i] = target
+            
             sat_body_vecs[:, i] = np.asarray(self.est_sat.boresight, dtype=np.float64).reshape(3)
 
         A = np.asfortranarray(sat_body_vecs, dtype=np.float64)      # a in C++

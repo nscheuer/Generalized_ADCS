@@ -33,8 +33,13 @@ class AntiBField_Goal(Vector_Goal):
     """
     def to_ref(self, os0: Orbital_State) -> Tuple[np.ndarray, np.ndarray]:
         b_vec = os0.get_b_eci()
+        anti_b = -normalize(b_vec)
+
+        r_ref = np.empty((4,))
+        r_ref[0] = np.nan
+        r_ref[1:] = anti_b
 
         w_ref = np.zeros(3)
 
-        return -normalize(b_vec), w_ref
+        return r_ref, w_ref
     

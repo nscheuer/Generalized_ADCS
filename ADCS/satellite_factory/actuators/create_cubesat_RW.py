@@ -1,3 +1,5 @@
+__all__ = ['create_cubewheel_smallplus_rw']
+
 import numpy as np
 from typing import Optional, List
 

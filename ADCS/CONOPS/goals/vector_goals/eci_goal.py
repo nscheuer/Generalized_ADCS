@@ -86,4 +86,9 @@ class ECI_Goal(Vector_Goal):
         """
         eci_vector = self.eci_vector
         w_ref = np.array([0, 0, 0])
-        return (eci_vector, w_ref)
+
+        r_ref = np.empty((4,))
+        r_ref[0] = np.nan
+        r_ref[1:] = eci_vector
+
+        return r_ref, w_ref

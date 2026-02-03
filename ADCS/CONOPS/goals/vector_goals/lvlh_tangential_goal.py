@@ -47,4 +47,8 @@ class LVLH_Tangential_Goal(Vector_Goal):
         # Same orbital angular rate
         w_ref = np.cross(r, v) / np.dot(r, r)
 
-        return t_hat, w_ref
+        r_ref = np.empty((4,))
+        r_ref[0] = np.nan
+        r_ref[1:] = t_hat
+
+        return r_ref, w_ref

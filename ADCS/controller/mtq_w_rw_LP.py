@@ -712,7 +712,9 @@ class MTQ_w_RW_LP(Controller):
         k_h = self.c_gain
 
         # --- 1. Magnetic Field (Body Frame) ---
-        b_body = np.asarray(self.M_mtm_read @ sens, float).reshape(3,)
+        sens_clean = np.asarray(sens, float).copy()
+        sens_clean[np.isnan(sens_clean)] = 0.0
+        b_body = np.asarray(self.M_mtm_read @ sens_clean, float).reshape(3,)
         b_norm = np.linalg.norm(b_body)
         if b_norm < 1e-9:
             return np.zeros(self.n_actuators)

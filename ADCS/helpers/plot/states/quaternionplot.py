@@ -109,6 +109,10 @@ class QuaternionPlot(Subplot):
         self.colors = colors
 
     def plot(self, ax, sim) -> None:
+        runs = getattr(sim, "runs", None)
+        if runs is None:
+            runs = [sim]
+
         ax.set_frame_on(False)
         ax.tick_params(left=False, labelleft=False, bottom=False, labelbottom=False)
 
@@ -120,28 +124,37 @@ class QuaternionPlot(Subplot):
             ax.figure.add_subplot(gs[1, 1]),  # q3
         ]
 
-        t = getattr(sim, self.time, None)
         labels = [r"$q_0$", r"$q_1$", r"$q_2$", r"$q_3$"]
 
+        alpha = max(0.15, 1.0 / len(runs))
         plotted_any = False
 
-        for source in self.sources:
-            q = _get_q_series(sim, source)
-            if q is None:
-                continue
+        for run in runs:
+            t0 = getattr(run, self.time, None)
 
-            N = q.shape[0]
-            tt = np.asarray(t)[:N] if t is not None else np.arange(N)
+            for source in self.sources:
+                q = _get_q_series(run, source)
+                if q is None:
+                    continue
 
-            style = _source_style_q(source)
-            suf = _source_suffix_q(source)
+                N = q.shape[0]
+                tt = np.asarray(t0)[:N] if t0 is not None else np.arange(N)
 
-            for i, ax_i in enumerate(axes):
-                ax_i.plot(tt, q[:, i], color=self.colors[i], label=labels[i] + suf, **style)
-                ax_i.set_ylabel(f"{labels[i]} {self.units}".strip())
-                ax_i.grid(True, which="both")
+                style = _source_style_q(source)
 
-            plotted_any = True
+                for i, ax_i in enumerate(axes):
+                    ax_i.plot(
+                        tt,
+                        q[:, i],
+                        color=self.colors[i],
+                        alpha=alpha,
+                        label=None,
+                        **style,
+                    )
+                    ax_i.set_ylabel(f"{labels[i]} {self.units}".strip())
+                    ax_i.grid(True, which="both")
+
+                plotted_any = True
 
         if not plotted_any:
             ax_text = ax.figure.add_subplot(ax.get_subplotspec())
@@ -150,12 +163,27 @@ class QuaternionPlot(Subplot):
             ax_text.text(0.5, 0.5, "No quaternion history available", ha="center", va="center")
             return
 
-        for ax_i in axes:
-            ax_i.legend()
+        # Clean legends: sources only (linestyle proxies)
+        if len(self.sources) > 1:
+            for ax_i in axes:
+                handles, labs = [], []
+                for src in self.sources:
+                    handles.append(ax_i.plot([], [], color="k", **_source_style_q(src))[0])
+                    labs.append(src)
+                ax_i.legend(handles, labs)
+        else:
+            for ax_i in axes:
+                leg = ax_i.legend()
+                if leg is not None:
+                    leg.set_visible(False)
 
-        axes[2].set_xlabel("Time [s]" if t is not None else "Sample")
-        axes[3].set_xlabel("Time [s]" if t is not None else "Sample")
+        any_t = any(getattr(r, self.time, None) is not None for r in runs)
+        xlabel = "Time [s]" if any_t else "Sample"
+        axes[2].set_xlabel(xlabel)
+        axes[3].set_xlabel(xlabel)
+
         axes[0].set_title(self.title, loc="left", pad=10)
+
 
 
 class QuaternionPlotSingle(Subplot):
@@ -229,42 +257,74 @@ class QuaternionPlotSingle(Subplot):
         self.title = title
 
     def plot(self, ax, sim) -> None:
-        t = getattr(sim, self.time, None)
+        runs = getattr(sim, "runs", None)
+        if runs is None:
+            runs = [sim]
 
         labels = [r"$q_0$", r"$q_1$", r"$q_2$", r"$q_3$"]
         label = labels[self.component]
         base_color = self.color or self.colors[self.component]
         default_title = self.title or f"{label} vs Time"
 
+        alpha = max(0.15, 1.0 / len(runs))
         plotted_any = False
 
-        for source in self.sources:
-            q = _get_q_series(sim, source)
-            if q is None:
-                continue
+        for run in runs:
+            t0 = getattr(run, self.time, None)
 
-            N = q.shape[0]
-            tt = np.asarray(t)[:N] if t is not None else np.arange(N)
+            for source in self.sources:
+                q = _get_q_series(run, source)
+                if q is None:
+                    continue
 
-            y = q[:, self.component]
-            style = _source_style_q(source)
-            suf = _source_suffix_q(source)
+                N = q.shape[0]
+                tt = np.asarray(t0)[:N] if t0 is not None else np.arange(N)
 
-            ax.plot(tt, y, color=base_color, label=label + suf, **style)
-            plotted_any = True
+                y = q[:, self.component]
+                style = _source_style_q(source)
+
+                ax.plot(
+                    tt,
+                    y,
+                    color=base_color,
+                    alpha=alpha,
+                    label=None,
+                    **style,
+                )
+                plotted_any = True
 
         if not plotted_any:
             ax.axis("off")
             ax.set_title(default_title, loc="left", pad=10)
-            ax.text(0.5, 0.5, "No quaternion history available", ha="center", va="center", transform=ax.transAxes)
+            ax.text(
+                0.5,
+                0.5,
+                "No quaternion history available",
+                ha="center",
+                va="center",
+                transform=ax.transAxes,
+            )
             return
 
         ylabel = f"{label} [{self.units}]" if self.units else label
         ax.set_ylabel(ylabel)
-        ax.set_xlabel("Time [s]" if t is not None else "Sample")
+        ax.set_xlabel("Time [s]" if any(getattr(r, self.time, None) is not None for r in runs) else "Sample")
         ax.set_title(default_title)
-        ax.legend()
+
+        # Clean legend: sources only
+        if len(self.sources) > 1:
+            handles, labs = [], []
+            for src in self.sources:
+                handles.append(ax.plot([], [], color="k", **_source_style_q(src))[0])
+                labs.append(src)
+            ax.legend(handles, labs)
+        else:
+            leg = ax.legend()
+            if leg is not None:
+                leg.set_visible(False)
+
         ax.grid(True, which="both")
+
 
 
 class QuaternionPlotCombined(Subplot):
@@ -322,35 +382,71 @@ class QuaternionPlotCombined(Subplot):
         self.colors = colors
 
     def plot(self, ax, sim) -> None:
-        t = getattr(sim, self.time, None)
+        runs = getattr(sim, "runs", None)
+        if runs is None:
+            runs = [sim]
+
         labels = [r"$q_0$", r"$q_1$", r"$q_2$", r"$q_3$"]
+        alpha = max(0.15, 1.0 / len(runs))
 
         plotted_any = False
 
-        for source in self.sources:
-            q = _get_q_series(sim, source)
-            if q is None:
-                continue
+        for run in runs:
+            t0 = getattr(run, self.time, None)
 
-            N = q.shape[0]
-            tt = np.asarray(t)[:N] if t is not None else np.arange(N)
+            for source in self.sources:
+                q = _get_q_series(run, source)
+                if q is None:
+                    continue
 
-            style = _source_style_q(source)
-            suf = _source_suffix_q(source)
+                N = q.shape[0]
+                tt = np.asarray(t0)[:N] if t0 is not None else np.arange(N)
 
-            for i in range(4):
-                ax.plot(tt, q[:, i], color=self.colors[i], label=labels[i] + suf, **style)
+                style = _source_style_q(source)
 
-            plotted_any = True
+                for i in range(4):
+                    ax.plot(
+                        tt,
+                        q[:, i],
+                        color=self.colors[i],
+                        alpha=alpha,
+                        label=None,
+                        **style,
+                    )
+
+                plotted_any = True
 
         if not plotted_any:
             ax.axis("off")
             ax.set_title(self.title, loc="left", pad=10)
-            ax.text(0.5, 0.5, "No quaternion history available", ha="center", va="center", transform=ax.transAxes)
+            ax.text(
+                0.5,
+                0.5,
+                "No quaternion history available",
+                ha="center",
+                va="center",
+                transform=ax.transAxes,
+            )
             return
 
-        ax.set_xlabel("Time [s]" if t is not None else "Sample")
+        ax.set_xlabel("Time [s]" if any(getattr(r, self.time, None) is not None for r in runs) else "Sample")
         ax.set_ylabel(f"Quaternion {self.units}".strip())
         ax.set_title(self.title)
-        ax.legend()
+
+        # Clean legend: component color proxies + (optional) source linestyle proxies
+        handles, labs = [], []
+
+        # Component proxies (colors)
+        for i in range(4):
+            handles.append(ax.plot([], [], color=self.colors[i], linestyle="-")[0])
+            labs.append(labels[i])
+
+        # Source proxies (linestyle)
+        if len(self.sources) > 1:
+            for src in self.sources:
+                handles.append(ax.plot([], [], color="k", **_source_style_q(src))[0])
+                labs.append(src)
+
+        ax.legend(handles, labs)
         ax.grid(True, which="both")
+
