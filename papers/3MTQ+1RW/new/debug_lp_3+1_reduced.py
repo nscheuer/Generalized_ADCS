@@ -11,7 +11,7 @@ x_0 = np.array([0.0, 0.0, 0.0] + [1, 0, 0, 0] + [0.0]) # w, q, h
 controller = ADCS.controller.MTQ_w_RW_LP(est_sat=real_sat, p_gain=0.00005, d_gain=0.002, c_gain=0.001, h_target=np.array([0.0, 0.0, 0.0]))
 
 os0 = ADCS.Orbital_State(ephem=ADCS.Ephemeris(),J2000=0.22, R=7000*np.array([0, np.sqrt(2)/2, np.sqrt(2)/2]), V=np.array([8, 0, 0]))
-goal = ADCS.goals.Coordinate_Goal(lat=25, lon=-70, alt=0)
+goal = ADCS.goals.ECI_Goal(np.array([1, 0, 0]))
 
 results = ADCS.simulate(
     x=x_0,
@@ -23,12 +23,12 @@ results = ADCS.simulate(
     tf=1000.0
 )
 
-ADCS.plot(
-    results,
-    ADCS.plots.AnimationPlot(goal=goal),
-    layout=(1,1),
-    title="3+1 LP Reduced",
-)
+# ADCS.plot(
+#     results,
+#     ADCS.plots.AnimationPlot(goal=goal),
+#     layout=(1,1),
+#     title="3+1 LP Reduced",
+# )
 
 ADCS.plot(
     results,

@@ -39,8 +39,8 @@ planner_settings.cost_main = ADCS.controller.helpers.CostWeights(
 planner_settings.cost_second = planner_settings.cost_main
 
 planner_settings.cost_tvlqr = ADCS.controller.helpers.CostWeights(
-        angle=1e5,
-        angle_N=1e6,
+        angle=1e8,
+        angle_N=1e8,
         ang_vel=1e6,
         ang_vel_N=1e8,
         ang_vel_mag=0.0,

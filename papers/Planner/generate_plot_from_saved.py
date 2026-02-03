@@ -9,7 +9,7 @@ from ADCS.helpers.plotting_mc.plot_controller_compare_mc import plot_target_trac
 from ADCS.helpers.plotting.close_all_plots import create_close_all_button_window
 
 if __name__ == "__main__":
-    results_planner = load_data("papers/3MTQ+1RW/output_data/3MTQ+1RW_MC_100_1000s_reduced_20260128_165403")[0]
+    results_planner = load_data("papers/Planner/output_data/3MTQ+1RW_ALTRO_100_1000s_reduced_20260128_165403")[0]
 
     plot_target_tracking_mc(results_planner, body_boresight=np.array([0, 1, 0]), title="3MTQ+1RW ALTRO Planner Target Tracking MC")
     plot_convergence_histogram_mc(results_planner, body_boresight=np.array([0, 1, 0]), title="3MTQ+1RW ALTRO Planner Convergence Histogram MC")

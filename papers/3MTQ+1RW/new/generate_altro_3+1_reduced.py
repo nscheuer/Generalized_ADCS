@@ -77,12 +77,12 @@ results = ADCS.simulate_mc(
     base_seed=42
 )
 
-ADCS.plot(
-    results,
-    ADCS.plots.AnimationPlot(),
-    layout=(1,1),
-    title="3+1 ALTRO Reduced",
-)
+# ADCS.plot(
+#     results,
+#     ADCS.plots.AnimationPlot(),
+#     layout=(1,1),
+#     title="3+1 ALTRO Reduced",
+# )
 
 ADCS.plot(
     results,
