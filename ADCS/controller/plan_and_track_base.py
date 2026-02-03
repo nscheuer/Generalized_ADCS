@@ -367,7 +367,7 @@ class PlanAndTrackBase(Controller):
         for i in range(N):
             t = float(times_arr[i])
             os_at_t = sim_orbit.get_os(t)
-            target, _w_ref = goals.to_ref(t, os_at_t)
+            target, _w_ref = goals.to_ref(t, os_at_t, time_units="centuries")
             goal_vecs_eci[:, i] = target
             
             sat_body_vecs[:, i] = np.asarray(self.est_sat.boresight, dtype=np.float64).reshape(3)

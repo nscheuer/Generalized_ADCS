@@ -34,7 +34,7 @@ results = ADCS.simulate(
     controller=controller,
     goal=goallist,
     os0=os0,
-    dt=2.0,
+    dt=1.0,
     tf=500.0
 )
 
