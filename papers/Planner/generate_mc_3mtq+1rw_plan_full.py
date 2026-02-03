@@ -290,6 +290,70 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
                 )
             controller.set_active_trajectory(traj)
             traj_valid = True
+            
+            # Plot planned trajectory (pre-tracking) for verification
+            if config.get("plot_planned_traj", False):
+                import matplotlib.pyplot as plt
+                fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+                
+                # Get trajectory data
+                Xset = traj.states
+                Uset = traj.controls
+                times = traj.times
+                N_traj = Xset.shape[1]
+                traj_times = (times - times[0]) * 36525 * 24 * 3600  # Convert to seconds
+                
+                # 1. Angular velocity
+                omega_deg = np.degrees(Xset[0:3, :])
+                for i in range(3):
+                    axes[0, 0].plot(traj_times, omega_deg[i, :], label=f'ω{["x","y","z"][i]}')
+                axes[0, 0].set_xlabel('Time (s)')
+                axes[0, 0].set_ylabel('Angular Velocity (°/s)')
+                axes[0, 0].set_title('Planned Angular Velocity')
+                axes[0, 0].legend()
+                axes[0, 0].grid(True)
+                
+                # 2. Angle from goal
+                q_goal = config["q_goal"]
+                angles_deg = np.zeros(N_traj)
+                for k in range(N_traj):
+                    q_traj = Xset[3:7, k]
+                    # Compute angle between quaternions
+                    dot = np.abs(np.dot(q_traj, q_goal))
+                    dot = np.clip(dot, -1.0, 1.0)
+                    angles_deg[k] = np.degrees(2 * np.arccos(dot))
+                axes[0, 1].plot(traj_times, angles_deg)
+                axes[0, 1].set_xlabel('Time (s)')
+                axes[0, 1].set_ylabel('Angle from Goal (°)')
+                axes[0, 1].set_title('Planned Attitude Error')
+                axes[0, 1].grid(True)
+                axes[0, 1].axhline(y=0, color='g', linestyle='--', alpha=0.5)
+                
+                # 3. Controls
+                ctrl_times = traj_times[:Uset.shape[1]]
+                ctrl_labels = ['MTQ_x', 'MTQ_y', 'MTQ_z', 'RW']
+                for i in range(min(Uset.shape[0], 4)):
+                    axes[1, 0].plot(ctrl_times, Uset[i, :], label=ctrl_labels[i] if i < len(ctrl_labels) else f'u{i}')
+                axes[1, 0].set_xlabel('Time (s)')
+                axes[1, 0].set_ylabel('Control')
+                axes[1, 0].set_title('Planned Controls')
+                axes[1, 0].legend()
+                axes[1, 0].grid(True)
+                
+                # 4. Angular velocity magnitude
+                omega_mag = np.linalg.norm(omega_deg, axis=0)
+                axes[1, 1].plot(traj_times, omega_mag)
+                axes[1, 1].set_xlabel('Time (s)')
+                axes[1, 1].set_ylabel('|ω| (°/s)')
+                axes[1, 1].set_title('Planned Angular Velocity Magnitude')
+                axes[1, 1].grid(True)
+                
+                plt.suptitle(f'Planned Trajectory (Pre-Tracking)\nStart: {angles_deg[0]:.1f}°, End: {angles_deg[-1]:.1f}°, ω_end: {omega_mag[-1]:.3f}°/s')
+                plt.tight_layout()
+                plt.savefig('/tmp/planned_trajectory.png', dpi=150)
+                print(f"Saved planned trajectory plot to /tmp/planned_trajectory.png")
+                # Don't call plt.show() here - it blocks! Show at end after simulation.
+                
         except Exception as e:
             return {"run_id": run_id, "config": config, "error": str(e), "traj_valid": False}
 
@@ -396,7 +460,7 @@ def generate_mc_config(run_id: int) -> Dict[str, Any]:
 if __name__ == "__main__":
     RUN_MC = True
     OUTPUT_DIR = "papers/Planner/output_data"
-    NUM_RUNS = 12  # Production run
+    NUM_RUNS = 2  # Production run
     
     # Include tracking mode in filename for differentiation
     tracking_suffix = f"_{TRACKING_MODE}" if TRACKING_MODE != "tvlqr" else ""
@@ -424,6 +488,7 @@ if __name__ == "__main__":
         config["verbose"] = False  # Disable verbose text output
         config["visualize"] = False  # Use C++ planner (Plan_and_Track_LQR)
         config["save_viz"] = False
+        config["plot_planned_traj"] = True  # Plot planned trajectory before tracking
         result = run_single_sim(config)
         full_results = [result]
         valid = [r for r in full_results if r and r.get("traj_valid", False)]

@@ -312,12 +312,12 @@ def create_adaptive_planner_settings(
                 # Increase mtq_cost to get better MTQ:RW ratio after torque scaling
                 # With mtq_cost=1, torque-effective scaling gives ratio ~1e12 (too extreme)
                 # Target ratio ~1e-5 (RW 1e5x more expensive than MTQ)
-                # Need mtq_cost ~ 1e8 to counteract torque scaling
-                mtq_cost=1e8,
+                # MTQ cost relative to RW - no torque scaling (caused tracking instability)
+                mtq_cost=1.0,
                 rw_torque_cost=5.0,
                 rw_momentum_cost=10.0,
                 rw_stiction_cost=0.1,
-                use_torque_effective_mtq_scaling=True,
+                use_torque_effective_mtq_scaling=False,
                 expected_B_field_uT=30.0,
             ),
             state_costs=NormalizedStateCosts(
@@ -347,7 +347,7 @@ def create_adaptive_planner_settings(
         config = NormalizedPlannerConfig(
             actuator_costs=NormalizedActuatorCosts(
                 mtq_cost=1.0,  # No RW comparison needed
-                use_torque_effective_mtq_scaling=True,
+                use_torque_effective_mtq_scaling=False,
                 expected_B_field_uT=30.0,
             ),
             state_costs=NormalizedStateCosts(
@@ -378,6 +378,12 @@ def create_adaptive_planner_settings(
     settings.dt_tvlqr = dt_tvlqr
     settings.bdot_on = 0
     settings.verbosity = False
+    
+    # Use full backward pass for K-gains (single segment)
+    # For long trajectories, this ensures consistent K-gains without boundary issues
+    # Full backward pass (non-segmented) for now
+    settings.tvlqr_len = duration + 100
+    settings.tvlqr_overlap = 0
     
     # === Auto-scale iterations based on problem size ===
     # More steps = need more iterations, but cap to avoid excessive runtime
@@ -922,12 +928,14 @@ def create_optimized_planner_settings(
     else:
         raise ValueError(f"Unknown tuning preset: {tuning}. Use 'smooth', 'balanced', 'anti_spin', 'aggressive', 'fast_slew', or 'none'")
     
-    # TVLQR gain tuning: Use high control multiplier for sensible feedback gains
-    # Without this, LQR gains are ~1000x larger than actuator limits allow.
-    # With ctrl_mult=1e6, gains are sized appropriately for the actuators.
-    # This only affects the backward pass used to compute feedback gains (K),
-    # not the trajectory optimization itself.
-    settings.cost_tvlqr.control_mult = 1e6
+    # TVLQR gain tuning: Control multiplier affects feedback gain magnitude
+    # Higher control_mult -> smaller K-gains (more conservative feedback)
+    # Lower control_mult -> larger K-gains (more aggressive feedback)
+    # With auto_scale_control_costs:
+    #   1.0 = too aggressive (unstable)
+    #   1000 = too conservative (drift)
+    #   100 = moderate gains
+    settings.cost_tvlqr.control_mult = 500.0  # Conservative feedback
     if verbose:
         print(f"TVLQR control multiplier: {settings.cost_tvlqr.control_mult:.0e}")
     
