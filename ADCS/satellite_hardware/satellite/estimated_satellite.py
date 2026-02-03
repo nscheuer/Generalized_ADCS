@@ -535,7 +535,7 @@ class EstimatedSatellite(Satellite):
         rho = orbital_state.rho # Atmospheric density [kg/m^3]
 
         w = x[0:3]
-        q = x[4:7]
+        q = x[3:7]
         RWhs = x[7:]
         J = self.J_0
         invJ_noRW = self.invJ_noRW

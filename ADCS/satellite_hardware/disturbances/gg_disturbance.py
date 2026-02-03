@@ -130,7 +130,7 @@ class GG_Disturbance(Disturbance):
         const_term = 3.0*EarthConstants.mu_e/(norm(R_B)**3.0)
         return const_term * np.cross(nadir_vec, sat.J_0 @ nadir_vec)
     
-    def torque_qvac(self, sat: Satellite, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+    def torque_qjac(self, sat: Satellite, x: np.ndarray, os: Orbital_State) -> np.ndarray:
         r"""
         Compute the **Jacobian of the gravity-gradient torque with respect to the
         attitude quaternion**.

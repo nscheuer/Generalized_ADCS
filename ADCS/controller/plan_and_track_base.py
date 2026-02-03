@@ -606,6 +606,15 @@ class PlanAndTrackBase(Controller):
             (_, _, _, lqr_opt, _) = self.planner.trajOpt(vecsPy, N, t_start, t_end, x_0_clean, int(bdotOn))
         (Xset, Uset_cpp, Tset, Kset_cpp, Sset, lqr_times) = lqr_opt
 
+        # Debug: Print trajectory summary
+        if verbose:
+            print(f"[C++ trajOpt] Trajectory shape: Xset={Xset.shape}, Uset={Uset_cpp.shape}, Kset={Kset_cpp.shape}")
+            q_start = Xset[3:7, 0]
+            q_end = Xset[3:7, -1]
+            omega_end = Xset[0:3, -1] * 180/np.pi
+            print(f"[C++ trajOpt] Start q={q_start}")
+            print(f"[C++ trajOpt] End q={q_end}, ω={omega_end}°/s")
+
         # Reorder controls and gains from C++ ordering (MTQ, RW) to Python actuator ordering
         Uset = reorder_controls_cpp_to_python(Uset_cpp, self.est_sat.actuators)
         Kset = reorder_gains_cpp_to_python(Kset_cpp, self.est_sat.actuators)

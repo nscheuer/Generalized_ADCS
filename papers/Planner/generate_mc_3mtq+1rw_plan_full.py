@@ -417,13 +417,13 @@ if __name__ == "__main__":
         NUM_RUNS = args.num_runs
     
     if TEST_MODE:
-        # Single run test mode - no multiprocessing, with visualization
+        # Single run test mode - no multiprocessing
         test_seed = args.seed
-        print(f"=== TEST MODE: Single run (seed={test_seed}), no multiprocessing, with planner visualization ===")
+        print(f"=== TEST MODE: Single run (seed={test_seed}), no multiprocessing ===")
         config = generate_mc_config(test_seed)
         config["verbose"] = False  # Disable verbose text output
-        config["visualize"] = True  # Enable live planner visualization
-        config["save_viz"] = True  # Save visualization figures
+        config["visualize"] = False  # Use C++ planner (Plan_and_Track_LQR)
+        config["save_viz"] = False
         result = run_single_sim(config)
         full_results = [result]
         valid = [r for r in full_results if r and r.get("traj_valid", False)]

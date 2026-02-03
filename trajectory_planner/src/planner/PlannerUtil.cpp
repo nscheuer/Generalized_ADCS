@@ -2277,7 +2277,82 @@ mat slerpInterpolateTrajectory(const mat& Xset_coarse, double dt_coarse, double 
         }
     }
 
-    // Interpolate each fine timestep
+    // Compute cubic spline coefficients for non-quaternion states
+    // For each row, compute spline coefficients using natural spline boundary conditions
+    vec t_coarse = linspace(0, tf, N_coarse);
+    vec t_fine_vec = linspace(0, tf, N_fine);
+    
+    // Helper lambda for cubic spline interpolation
+    // Uses natural spline (second derivative = 0 at endpoints)
+    auto cubicSplineInterpolate = [&](const rowvec& y_coarse) -> rowvec {
+        int n = N_coarse;
+        rowvec y_fine(N_fine);
+        
+        // Compute spline coefficients using tridiagonal system
+        vec h(n-1);  // intervals
+        for (int i = 0; i < n-1; i++) {
+            h(i) = t_coarse(i+1) - t_coarse(i);
+        }
+        
+        // Set up tridiagonal system for second derivatives (natural spline)
+        vec alpha(n-1);
+        for (int i = 1; i < n-1; i++) {
+            alpha(i) = 3.0/h(i) * (y_coarse(i+1) - y_coarse(i)) - 
+                       3.0/h(i-1) * (y_coarse(i) - y_coarse(i-1));
+        }
+        
+        vec l(n), mu(n), z(n);
+        l(0) = 1.0; mu(0) = 0.0; z(0) = 0.0;
+        
+        for (int i = 1; i < n-1; i++) {
+            l(i) = 2.0 * (t_coarse(i+1) - t_coarse(i-1)) - h(i-1) * mu(i-1);
+            mu(i) = h(i) / l(i);
+            z(i) = (alpha(i) - h(i-1) * z(i-1)) / l(i);
+        }
+        
+        l(n-1) = 1.0; z(n-1) = 0.0;
+        
+        vec c(n), b(n-1), d(n-1);
+        c(n-1) = 0.0;
+        
+        for (int j = n-2; j >= 0; j--) {
+            c(j) = z(j) - mu(j) * c(j+1);
+            b(j) = (y_coarse(j+1) - y_coarse(j)) / h(j) - h(j) * (c(j+1) + 2.0*c(j)) / 3.0;
+            d(j) = (c(j+1) - c(j)) / (3.0 * h(j));
+        }
+        
+        // Evaluate spline at fine grid points
+        for (int k = 0; k < N_fine; k++) {
+            double t = t_fine_vec(k);
+            
+            // Find interval
+            int i = 0;
+            for (int j = 0; j < n-1; j++) {
+                if (t >= t_coarse(j) && t <= t_coarse(j+1)) {
+                    i = j;
+                    break;
+                }
+                if (j == n-2) i = n-2;  // clamp to last interval
+            }
+            
+            double dt_local = t - t_coarse(i);
+            y_fine(k) = y_coarse(i) + b(i)*dt_local + c(i)*dt_local*dt_local + d(i)*dt_local*dt_local*dt_local;
+        }
+        
+        return y_fine;
+    };
+
+    // Cubic interpolation for angular velocity (rows 0-2)
+    for (int row = 0; row < 3; row++) {
+        Xset_fine.row(row) = cubicSplineInterpolate(Xset_coarse.row(row));
+    }
+
+    // Cubic interpolation for RW momentum (rows 7+)
+    for (int row = 7; row < n_state; row++) {
+        Xset_fine.row(row) = cubicSplineInterpolate(Xset_coarse.row(row));
+    }
+
+    // SLERP for quaternions (keep existing approach but use fine grid times)
     for (int k = 0; k < N_fine; k++) {
         double t = k * dt_fine;
 
@@ -2299,17 +2374,6 @@ mat slerpInterpolateTrajectory(const mat& Xset_coarse, double dt_coarse, double 
         // LERP + normalize (good approximation for small intervals)
         vec4 q_interp = normalise((1.0 - alpha) * q0 + alpha * q1);
         Xset_fine.submat(3, k, 6, k) = q_interp;
-
-        // Linear interpolation for angular velocity (rows 0-2)
-        Xset_fine.head_rows(3).col(k) = (1.0 - alpha) * Xset_coarse.head_rows(3).col(i0) +
-                                         alpha * Xset_coarse.head_rows(3).col(i1);
-
-        // Linear interpolation for RW momentum (rows 7+)
-        if (n_state > 7) {
-            Xset_fine.tail_rows(n_state - 7).col(k) =
-                (1.0 - alpha) * Xset_coarse.tail_rows(n_state - 7).col(i0) +
-                alpha * Xset_coarse.tail_rows(n_state - 7).col(i1);
-        }
     }
 
     return Xset_fine;
@@ -2365,15 +2429,16 @@ TRAJECTORY_FORM kgainWarmStart(
         Kset = join_slices(Kset, pad);
     }
 
-    // 3. Scale RW controls and K-gains from optimizer units to physical units
-    // C++ optimizer uses scaled controls: u_opt = u_physical / NONMTQ_TORQ_SCALE
+    // 3. Scale RW controls to physical units for feedback computation
+    // Pass1 returns Uset in optimizer units for RW, Kset in optimizer units
+    // K-gains map physical state errors (rad/s, rad) to optimizer-unit control corrections
+    // We compute: u_phys = u_nom_phys + du_phys, where du_phys = du_opt * NONMTQ_TORQ_SCALE
     mat Uset_phys = Uset_coarse;
     if (n_rw > 0) {
+        // Scale RW controls to physical: u_phys = u_opt * NONMTQ_TORQ_SCALE
         Uset_phys.rows(n_mtq, n_ctrl - 1) *= NONMTQ_TORQ_SCALE;
-        for (int k = 0; k < (int)Kset.n_slices; k++) {
-            Kset.slice(k).rows(n_mtq, n_ctrl - 1) *= NONMTQ_TORQ_SCALE;
-        }
     }
+    // K-gains stay in optimizer units - they output optimizer-unit corrections
 
     // 4. Initialize output arrays
     mat Xset_fine(n_state, N_fine, fill::zeros);
@@ -2426,9 +2491,15 @@ TRAJECTORY_FORM kgainWarmStart(
         }
 
         // Apply K-gain correction with timestep ratio scaling
+        // K-gains from alilqr backward pass are in OPTIMIZER units
+        // du = K @ dx gives optimizer-unit corrections, need to scale RW rows to physical
         double dt_ratio = dt_fine / dt_coarse;
         vec du = K * dx * dt_ratio;
-        vec u = u_nom + du;
+        if (n_rw > 0) {
+            // Scale RW correction from optimizer to physical units
+            du.rows(n_mtq, n_ctrl - 1) *= NONMTQ_TORQ_SCALE;
+        }
+        vec u = u_nom + du;  // Both in physical units now
 
         // Store control (no clamping - let optimizer handle constraints)
         Uset_fine.col(k) = u;
@@ -2442,8 +2513,15 @@ TRAJECTORY_FORM kgainWarmStart(
             vec3(Bset.col(k_next)), vec3(Rset.col(k_next)), (int)pset(k_next),
             vec3(Vset.col(k_next)), vec3(Sset.col(k_next)), 0);
 
-        // Propagate dynamics using rk4z
-        tuple<vec, vec> dynout = rk4z(dt_fine, x_sim, u, sat, dyn_k, dyn_kp1);
+        // Convert control back to optimizer units for C++ dynamics
+        // C++ dynamics internally scales RW by NONMTQ_TORQ_SCALE
+        vec u_opt = u;
+        if (n_rw > 0) {
+            u_opt.rows(n_mtq, n_ctrl - 1) /= NONMTQ_TORQ_SCALE;
+        }
+        
+        // Propagate dynamics using rk4z (expects optimizer units)
+        tuple<vec, vec> dynout = rk4z(dt_fine, x_sim, u_opt, sat, dyn_k, dyn_kp1);
         x_sim = sat.state_norm(get<0>(dynout));
         Xset_fine.col(k + 1) = x_sim;
         TQset_fine.col(k) = get<1>(dynout);

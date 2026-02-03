@@ -252,6 +252,7 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
         dx = self.active_trajectory._state_diff(x_hat, x_ref)
         
         # Apply scaled feedback: u = u_ref - scale * K @ dx
+        # Standard LQR/TVLQR uses negative feedback for stability
         u = u_ref - effective_scale * K @ dx
         
         # Saturate control to actuator limits

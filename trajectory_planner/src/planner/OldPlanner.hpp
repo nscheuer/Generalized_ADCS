@@ -34,6 +34,7 @@ public:
     arma::vec smartbdot_rawmtq_finder(double dt0,arma::vec wk, double nB2, arma::vec ECIvk, arma::vec ECIvkp1, arma::vec3 satvk, arma::vec3 Bbody,SMARTBDOT_SETTINGS_FORM sbSettings,arma::vec3 dist_torq);
 
     std::tuple<arma::cube, arma::cube> findK(double dt_tvlqr, TRAJECTORY_FORM traj, VECTOR_INFO_FORM vecs, COST_SETTINGS_FORM costSettings_tmp);
+    std::tuple<arma::cube, arma::cube> findKwithTerminalS(double dt_tvlqr, TRAJECTORY_FORM traj, VECTOR_INFO_FORM vecs, COST_SETTINGS_FORM costSettings_tmp, arma::mat terminal_S);
     std::tuple<arma::cube, arma::cube> findKwDist(double dt_tvlqr, TRAJECTORY_FORM traj, VECTOR_INFO_FORM vecs, COST_SETTINGS_FORM costSettings_tmp);
 
     TRAJECTORY_FORM generateTrajectory( double dt,  double alpha,  TRAJECTORY_FORM traj,  VECTOR_INFO_FORM vecs,  arma::cube Kset,  arma::mat dset,  bool useDist);

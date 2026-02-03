@@ -627,8 +627,9 @@ def kgain_warm_start_controls(
     # Expected: (N-1, n_controls, n_err) but may come in as (n_controls * n_err, N)
     if Kset_coarse.ndim == 2 and Kset_coarse.shape[0] == n_controls * n_err:
         # Flattened format: (n_controls * n_err, N) -> (N, n_controls, n_err)
+        # Make a copy to avoid modifying the original array (reshape creates a view)
         N_K = Kset_coarse.shape[1]
-        Kset_3d = Kset_coarse.T.reshape(N_K, n_controls, n_err)
+        Kset_3d = Kset_coarse.T.reshape(N_K, n_controls, n_err).copy()
         if Kset_3d.shape[0] > N_coarse - 1:
             Kset_3d = Kset_3d[:N_coarse - 1]
     elif Kset_coarse.ndim == 2 and Kset_coarse.shape == (n_controls, n_err):
