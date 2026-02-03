@@ -47,7 +47,7 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
     h0 = np.array([rw_h0])
     x = np.concatenate([w0, q0, h0])
 
-    start_time = 0.22 - 1*TimeConstants.sec2cent
+    start_time = 0.22
     orb = create_random_circular_orbit(7000, dt=1, tf=1000, use_J2=True, fast=False)
     os0 = orb.get_os(J2000=start_time)
 
@@ -160,9 +160,6 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
 
         sens = real_sat.sensor_readings(x=x, os=os)
         u = controller.find_u(x_hat=x, sens=sens, est_sat=real_sat, os_hat=os)
-
-        if verbose:
-            print("u: ", u)
 
         time_hist[ind] = t
         state_hist[ind,:] = x

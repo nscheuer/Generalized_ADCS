@@ -358,7 +358,7 @@ class MTQ_w_RW_QPC(MTQ_w_RW_LP):
 
             # self.plot_torques(tau_des, b_body, est_sat)
 
-        return u_out, tau_des
+        return u_out
 
     def allocate_max_torque_in_direction(self, tau_des: np.ndarray, b_body: np.ndarray, est_sat: EstimatedSatellite, omega: np.ndarray, h: np.ndarray) -> tuple[np.ndarray, np.ndarray, float]:
         r"""
