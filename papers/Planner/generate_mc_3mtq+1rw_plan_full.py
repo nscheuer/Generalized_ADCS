@@ -216,7 +216,7 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
                 
                 traj = controller.calculate_trajectory(
                     t_start=0.22, duration=tf, x_0=x0, os_0=os0, goals=goals, 
-                    verbose=False, visualize=True, viz_save_path=viz_save_path,
+                    verbose=True, visualize=True, viz_save_path=viz_save_path,
                     skip_pass2=False  # TEST: Re-enable Pass2 with SLERP interpolation
                 )
                 
@@ -380,7 +380,7 @@ def generate_mc_config(run_id: int) -> Dict[str, Any]:
 if __name__ == "__main__":
     RUN_MC = True
     OUTPUT_DIR = "papers/Planner/output_data"
-    NUM_RUNS = 100  # Production run
+    NUM_RUNS = 10  # Production run
     
     # Include tracking mode in filename for differentiation
     tracking_suffix = f"_{TRACKING_MODE}" if TRACKING_MODE != "tvlqr" else ""

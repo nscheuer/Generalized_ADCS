@@ -624,8 +624,10 @@ class NormalizedSettingsConverter:
         raw = {}
         
         # MTQ control weight
-        mtq_actuators = [a for a in self.satellite.actuators 
-                        if type(a).__name__ == 'MTQ']
+        # Check both sat.actuators and sat.mtq_actuators (different satellites use different conventions)
+        mtq_actuators = [a for a in self.satellite.actuators if type(a).__name__ == 'MTQ']
+        if not mtq_actuators and hasattr(self.satellite, 'mtq_actuators'):
+            mtq_actuators = self.satellite.mtq_actuators
         if mtq_actuators:
             # Use first MTQ's limit (assume all same)
             m_max = mtq_actuators[0].u_max * (1.0 - self.config.constraints.control_margin)
@@ -655,8 +657,10 @@ class NormalizedSettingsConverter:
                 raw['mtq_control_weight'] = act_costs.mtq_cost * g_ctrl / (m_max ** 2)
         
         # RW control weights
-        rw_actuators = [a for a in self.satellite.actuators 
-                       if type(a).__name__ == 'RW']
+        # Check both sat.actuators and sat.rw_actuators (different satellites use different conventions)
+        rw_actuators = [a for a in self.satellite.actuators if type(a).__name__ == 'RW']
+        if not rw_actuators and hasattr(self.satellite, 'rw_actuators'):
+            rw_actuators = self.satellite.rw_actuators
         if rw_actuators:
             u_max = rw_actuators[0].u_max * (1.0 - self.config.constraints.control_margin)
             raw['rw_control_weight'] = act_costs.rw_torque_cost * g_ctrl / (u_max ** 2)

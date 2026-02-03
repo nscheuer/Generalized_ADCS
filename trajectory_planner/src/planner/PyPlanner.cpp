@@ -297,6 +297,14 @@ void PyPlanner::setquaternionTo3VecMode(int val){
   op.quaternionTo3VecMode = val;
 }
 
+void PyPlanner::setPass2WarmStartMode(int mode){
+  op.pass2_warm_start_mode = mode;
+}
+
+int PyPlanner::getPass2WarmStartMode(){
+  return op.pass2_warm_start_mode;
+}
+
 void PyPlanner::setPlannerVerbosity(bool verbosity){
   op.setVerbosity(verbosity);
 }
@@ -351,6 +359,8 @@ PYBIND11_MODULE(tplaunch, m) {
         .def("getdt", &PyPlanner::getdt)
         .def("setVerbosity", &PyPlanner::setPlannerVerbosity)
         .def("setquaternionTo3VecMode", &PyPlanner::setquaternionTo3VecMode)
+        .def("setPass2WarmStartMode", &PyPlanner::setPass2WarmStartMode)
+        .def("getPass2WarmStartMode", &PyPlanner::getPass2WarmStartMode)
         .def("echo_int", &PyPlanner::echo_int)
         .def("get_nonmtq_torq_scale", &PyPlanner::getNonMtqTorqScale)
         .def("get_number_MTQ", &PyPlanner::getNumberMTQ)
@@ -393,4 +403,79 @@ PYBIND11_MODULE(tplaunch, m) {
               return p;
         }));
         // .def_readwrite("dt", &PyPlanner::dt);
+
+    // Standalone function for K-gain warm-start (for testing/comparison)
+    m.def("kgain_warm_start", [](
+        py::array_t<double> Xset_coarse_py,
+        py::array_t<double> Uset_coarse_py,
+        py::array_t<double> Kset_flat_py,
+        double dt_coarse,
+        double dt_fine,
+        double tf,
+        Satellite& sat,
+        py::array_t<double> t_fine_py,
+        py::array_t<double> Rset_py,
+        py::array_t<double> Vset_py,
+        py::array_t<double> Bset_py,
+        py::array_t<double> Sset_py,
+        py::array_t<double> satvec_py,
+        py::array_t<double> ECIvec_py,
+        py::array_t<double> pset_py,
+        py::array_t<double> rhovec_py,
+        int quat_to_3vec_mode
+    ) {
+        // Convert numpy arrays to arma
+        arma::mat Xset_coarse = numpyToArmaMatrix(Xset_coarse_py);
+        arma::mat Uset_coarse = numpyToArmaMatrix(Uset_coarse_py);
+        arma::mat Kset_flat = numpyToArmaMatrix(Kset_flat_py);
+
+        arma::vec t_fine = numpyToArmaVector(t_fine_py);
+        arma::mat Rset = numpyToArmaMatrix(Rset_py);
+        arma::mat Vset = numpyToArmaMatrix(Vset_py);
+        arma::mat Bset = numpyToArmaMatrix(Bset_py);
+        arma::mat Sset = numpyToArmaMatrix(Sset_py);
+        arma::mat satvec = numpyToArmaMatrix(satvec_py);
+        arma::mat ECIvec = numpyToArmaMatrix(ECIvec_py);
+        arma::vec pset = numpyToArmaVector(pset_py);
+        arma::vec rhovec = numpyToArmaVector(rhovec_py);
+
+        // Create VECTOR_INFO_FORM
+        VECTOR_INFO_FORM vecs_fine = std::make_tuple(
+            t_fine, Rset, Vset, Bset, Sset, satvec, ECIvec, pset, rhovec
+        );
+
+        // Call C++ function
+        TRAJECTORY_FORM result = kgainWarmStart(
+            Xset_coarse, Uset_coarse, Kset_flat,
+            dt_coarse, dt_fine, tf,
+            sat, vecs_fine, quat_to_3vec_mode
+        );
+
+        // Convert output to numpy
+        py::array_t<double> Xset_out = armaMatrixToNumpy(std::get<0>(result));
+        py::array_t<double> Uset_out = armaMatrixToNumpy(std::get<1>(result));
+        py::array_t<double> t_out = armaVectorToNumpy(std::get<2>(result));
+        py::array_t<double> TQset_out = armaMatrixToNumpy(std::get<3>(result));
+
+        return py::make_tuple(Xset_out, Uset_out, t_out, TQset_out);
+    },
+    py::arg("Xset_coarse"),
+    py::arg("Uset_coarse"),
+    py::arg("Kset_flat"),
+    py::arg("dt_coarse"),
+    py::arg("dt_fine"),
+    py::arg("tf"),
+    py::arg("sat"),
+    py::arg("t_fine"),
+    py::arg("Rset"),
+    py::arg("Vset"),
+    py::arg("Bset"),
+    py::arg("Sset"),
+    py::arg("satvec"),
+    py::arg("ECIvec"),
+    py::arg("pset"),
+    py::arg("rhovec"),
+    py::arg("quat_to_3vec_mode") = 2,
+    "K-gain warm-start: propagate trajectory with feedback gains from coarse optimization"
+    );
 }

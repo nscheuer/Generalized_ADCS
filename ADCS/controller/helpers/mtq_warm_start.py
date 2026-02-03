@@ -20,6 +20,91 @@ from scipy.spatial.transform import Rotation, Slerp
 from ADCS.helpers.math_helpers import rot_mat
 
 
+def create_slerp_initial_trajectory(x0, q_goal, N, dt, w_max=0.01):
+    """
+    Create initial trajectory using SLERP (spherical linear interpolation).
+    
+    This guarantees the shortest path on SO(3) and avoids 180° spikes.
+    
+    Parameters
+    ----------
+    x0 : array (7,)
+        Initial state [w0, q0] where w0 is angular velocity and q0 is quaternion
+    q_goal : array (4,)
+        Goal quaternion
+    N : int
+        Number of trajectory points
+    dt : float
+        Timestep in seconds
+    w_max : float
+        Maximum angular velocity magnitude (rad/s)
+        
+    Returns
+    -------
+    Xset : array (7, N)
+        State trajectory following SLERP path
+    Uset : array (3, N-1)
+        Zero controls (to be computed by optimizer)
+    """
+    w0 = x0[:3]
+    q0 = x0[3:7]
+    
+    # Ensure q_goal is in same hemisphere as q0 (shortest path)
+    if np.dot(q0, q_goal) < 0:
+        q_goal = -q_goal
+    
+    # Create SLERP interpolator
+    t_keyframes = np.array([0.0, (N-1) * dt])
+    r0 = Rotation.from_quat([q0[1], q0[2], q0[3], q0[0]])  # scipy uses [x,y,z,w]
+    r_goal = Rotation.from_quat([q_goal[1], q_goal[2], q_goal[3], q_goal[0]])
+    key_rotations = Rotation.concatenate([r0, r_goal])
+    slerp = Slerp(t_keyframes, key_rotations)
+    
+    # Sample along SLERP path
+    t_samples = np.linspace(0, (N-1) * dt, N)
+    rotations = slerp(t_samples)
+    
+    # Convert back to [w, x, y, z] quaternions
+    quats_scipy = rotations.as_quat()  # [x, y, z, w]
+    quats = np.zeros((N, 4))
+    quats[:, 0] = quats_scipy[:, 3]  # w
+    quats[:, 1:4] = quats_scipy[:, 0:3]  # x, y, z
+    
+    # Ensure quaternion continuity (no sign flips)
+    for k in range(1, N):
+        if np.dot(quats[k], quats[k-1]) < 0:
+            quats[k] = -quats[k]
+    
+    # Compute angular velocities from quaternion differences
+    # Simple finite difference: w = 2 * q_dot * q_conj
+    Xset = np.zeros((7, N))
+    Xset[3:7, :] = quats.T
+    
+    for k in range(N):
+        if k == 0:
+            Xset[0:3, k] = w0  # Use initial angular velocity
+        else:
+            # Approximate angular velocity from quaternion change
+            q_prev = quats[k-1]
+            q_curr = quats[k]
+            # dq = q_curr * conj(q_prev)
+            q_prev_conj = np.array([q_prev[0], -q_prev[1], -q_prev[2], -q_prev[3]])
+            dq_w = q_curr[0]*q_prev_conj[0] - np.dot(q_curr[1:], q_prev_conj[1:])
+            dq_v = q_curr[0]*q_prev_conj[1:] + q_prev_conj[0]*q_curr[1:] + np.cross(q_curr[1:], q_prev_conj[1:])
+            # w = 2 * dq_v / dt (for small angles)
+            w_approx = 2 * dq_v / dt
+            # Clamp to reasonable magnitude
+            w_mag = np.linalg.norm(w_approx)
+            if w_mag > w_max:
+                w_approx = w_approx * (w_max / w_mag)
+            Xset[0:3, k] = w_approx
+    
+    # Zero controls (optimizer will compute them)
+    Uset = np.zeros((3, N-1))
+    
+    return Xset, Uset
+
+
 def solve_mtq_controls_body_frame(Xset_interp, B_eci, dt, J, m_max=None):
     """
     Solve for MTQ controls given interpolated states and B-field in ECI.
@@ -450,3 +535,239 @@ def get_mtq_only_pass2_cost_mods(base_cost, angle_scale=0.1):
         0: base_cost[0] * angle_scale,  # angle_weight
         5: base_cost[5] * angle_scale,  # angle_weight_N (terminal)
     }
+
+
+def kgain_warm_start_controls(
+    Xset_coarse: np.ndarray,
+    Uset_coarse: np.ndarray,
+    Kset_coarse: np.ndarray,
+    dt_coarse: float,
+    dt_fine: float,
+    tf: float,
+    dynamics_func=None,
+    use_slerp: bool = True,
+    quat_to_3vec_mode: int = 2,
+    verbose: bool = True,
+) -> tuple:
+    """
+    Generate warm-start controls for fine grid using Pass1 K-gains with dynamics propagation.
+
+    This propagates the dynamics at the fine timestep while using the coarse K-gains
+    to provide feedback corrections:
+
+        u_fine[k] = u_coarse[i] + K[i] @ (x_sim[k] - x_ref[k])
+        x_sim[k+1] = dynamics(x_sim[k], u_fine[k])
+
+    where:
+        - i is the coarse index corresponding to fine index k
+        - K[i] is the K-gain at coarse timestep i (NOT interpolated)
+        - x_ref[k] is the SLERP-interpolated reference state from coarse trajectory
+        - x_sim[k] is the actual simulated state
+
+    This preserves the local optimality of Pass1 while adapting to the finer
+    discretization through closed-loop simulation.
+
+    Parameters
+    ----------
+    Xset_coarse : ndarray, shape (n_states, N_coarse)
+        States from Pass1 optimization. Format: [ω(3), q(4), h(n_rw)]
+    Uset_coarse : ndarray, shape (n_controls, N_coarse)
+        Controls from Pass1 optimization
+    Kset_coarse : ndarray, shape (N_coarse-1, n_controls, n_err) or (n_controls * n_err, N)
+        Feedback gains from Pass1. n_err = 6 + n_rw (reduced error state dimension).
+    dt_coarse : float
+        Coarse timestep (seconds)
+    dt_fine : float
+        Fine timestep (seconds)
+    tf : float
+        Total trajectory time (seconds)
+    dynamics_func : callable, optional
+        Function dynamics_func(x, u, dt) -> x_next. If None, uses simple Euler integration
+        with assumed rigid body + RW dynamics.
+    use_slerp : bool, default=True
+        Use SLERP for quaternion reference state interpolation
+    quat_to_3vec_mode : int, default=2
+        Quaternion to 3-vector conversion mode. Must match C++ planner setting.
+        - 0: MRP with positive scalar (2*qv/(1+q0))
+        - 1: MRP
+        - 2: Cayley parameters (qv/q0) - default, matches planner
+        - 3: Vector part with positive scalar
+        - 4: Vector part
+    verbose : bool, default=True
+        Print diagnostic information during propagation
+
+    Returns
+    -------
+    Xset_fine : ndarray, shape (n_states, N_fine)
+        Simulated states on fine grid
+    Uset_fine : ndarray, shape (n_controls, N_fine)
+        K-gain corrected controls on fine grid
+    """
+    from ADCS.helpers.math_helpers import quat_diff, quat_to_vec3, normalize
+    
+    N_coarse = Xset_coarse.shape[1]
+    N_fine = int(tf / dt_fine) + 1
+    n_full_state = Xset_coarse.shape[0]  # 7 + n_rw
+    n_controls = Uset_coarse.shape[0]
+    n_rw = n_full_state - 7
+    n_err = 6 + n_rw  # Reduced error state dimension
+    
+    # Get SLERP-interpolated reference trajectory
+    Xset_ref = interpolate_trajectory_to_finer_grid(
+        Xset_coarse, dt_coarse, dt_fine, tf, use_slerp=use_slerp
+    )
+    # Ensure correct length
+    if Xset_ref.shape[1] < N_fine:
+        pad = np.tile(Xset_ref[:, -1:], (1, N_fine - Xset_ref.shape[1]))
+        Xset_ref = np.hstack([Xset_ref, pad])
+    elif Xset_ref.shape[1] > N_fine:
+        Xset_ref = Xset_ref[:, :N_fine]
+    
+    # Handle Kset dimensions
+    # Expected: (N-1, n_controls, n_err) but may come in as (n_controls * n_err, N)
+    if Kset_coarse.ndim == 2 and Kset_coarse.shape[0] == n_controls * n_err:
+        # Flattened format: (n_controls * n_err, N) -> (N, n_controls, n_err)
+        N_K = Kset_coarse.shape[1]
+        Kset_3d = Kset_coarse.T.reshape(N_K, n_controls, n_err)
+        if Kset_3d.shape[0] > N_coarse - 1:
+            Kset_3d = Kset_3d[:N_coarse - 1]
+    elif Kset_coarse.ndim == 2 and Kset_coarse.shape == (n_controls, n_err):
+        # Single gain - tile
+        Kset_3d = np.tile(Kset_coarse[np.newaxis, :, :], (N_coarse - 1, 1, 1))
+    elif Kset_coarse.ndim == 3:
+        Kset_3d = Kset_coarse
+    else:
+        print(f"Warning: Unknown Kset format {Kset_coarse.shape}, using zero gains")
+        Kset_3d = np.zeros((N_coarse - 1, n_controls, n_err))
+    
+    # Pad Kset if needed
+    if Kset_3d.shape[0] < N_coarse - 1:
+        pad_count = (N_coarse - 1) - Kset_3d.shape[0]
+        Kset_3d = np.concatenate([Kset_3d, np.tile(Kset_3d[-1:], (pad_count, 1, 1))], axis=0)
+    
+    # Scale RW/non-MTQ controls and K-gains from optimizer units to physical units
+    # C++ optimizer uses scaled controls: u_opt = u_physical / NONMTQ_TORQ_SCALE
+    # The flattened K format bypasses C++ output scaling (condition K_lqr.n_rows == sat.control_N() fails)
+    # So both K and U from Pass1 are in optimizer units for RW - we scale to physical here
+    NONMTQ_TORQ_SCALE = 3e-5
+    n_mtq = n_controls - n_rw
+
+    # Scale Uset_coarse RW rows to physical units (make a copy to avoid modifying original)
+    Uset_coarse_phys = Uset_coarse.copy()
+    if n_rw > 0:
+        Uset_coarse_phys[n_mtq:, :] *= NONMTQ_TORQ_SCALE
+        Kset_3d[:, n_mtq:, :] *= NONMTQ_TORQ_SCALE
+    
+    # Initialize output arrays
+    Xset_fine = np.zeros((n_full_state, N_fine))
+    Uset_fine = np.zeros((n_controls, N_fine))
+    
+    # Start from initial state
+    x_sim = Xset_coarse[:, 0].copy()
+    Xset_fine[:, 0] = x_sim
+    
+    # Simple Euler dynamics if none provided
+    # Assumes state = [ω(3), q(4), h(n_rw)] and control = [m_mtq(3), τ_rw(n_rw)]
+    def default_dynamics(x, u, dt):
+        # Very simple integration - real dynamics would need J, B-field, etc.
+        # For warm-start purposes, we mainly want the quaternion kinematics right
+        w = x[0:3]
+        q = x[3:7]
+        h = x[7:7+n_rw] if n_rw > 0 else np.array([])
+        
+        # Quaternion kinematics: q_dot = 0.5 * q ⊗ [0, ω]
+        w_quat = np.array([0, w[0], w[1], w[2]])
+        q_dot = 0.5 * quat_mult_simple(q, w_quat)
+        
+        # Simple Euler integration
+        x_next = x.copy()
+        x_next[3:7] = normalize(q + q_dot * dt)
+        # Angular velocity and momentum stay roughly constant (no torque model)
+        
+        return x_next
+    
+    def quat_mult_simple(q1, q2):
+        """Simple quaternion multiplication [w, x, y, z]."""
+        w1, x1, y1, z1 = q1
+        w2, x2, y2, z2 = q2
+        return np.array([
+            w1*w2 - x1*x2 - y1*y2 - z1*z2,
+            w1*x2 + x1*w2 + y1*z2 - z1*y2,
+            w1*y2 - x1*z2 + y1*w2 + z1*x2,
+            w1*z2 + x1*y2 - y1*x2 + z1*w2
+        ])
+    
+    # Check if dynamics_func takes timestep index
+    import inspect
+    if dynamics_func is not None:
+        sig = inspect.signature(dynamics_func)
+        dyn_takes_k = len(sig.parameters) >= 4
+    else:
+        dyn_takes_k = False
+    
+    def dyn(x, u, dt, k=0):
+        if dynamics_func is not None:
+            if dyn_takes_k:
+                return dynamics_func(x, u, dt, k)
+            else:
+                return dynamics_func(x, u, dt)
+        else:
+            return default_dynamics(x, u, dt)
+    
+    # Propagate with K-gain feedback
+    for k in range(N_fine - 1):
+        # Find coarse index (ZOH - use the K at start of interval)
+        i = min(int(k * dt_fine / dt_coarse), N_coarse - 2)
+        
+        # Get coarse control (ZOH) - use physical units
+        u_nom = Uset_coarse_phys[:, i]
+        
+        # Get K-gain at this coarse index (no interpolation)
+        K = Kset_3d[i]
+        
+        # Compute reduced error state: dx = x_sim - x_ref
+        x_ref = Xset_ref[:, k]
+        dx = np.zeros(n_err)
+        
+        # 1. Angular velocity error
+        dx[0:3] = x_sim[0:3] - x_ref[0:3]
+        
+        # 2. Quaternion error (use same mode as C++ planner)
+        q_err = quat_diff(x_ref[3:7], x_sim[3:7])
+        dx[3:6] = quat_to_vec3(q_err, mode=quat_to_3vec_mode)
+        
+        # 3. RW momentum error
+        if n_rw > 0:
+            dx[6:6+n_rw] = x_sim[7:7+n_rw] - x_ref[7:7+n_rw]
+        
+        # Apply K-gain correction
+        du = K @ dx
+
+        # Scale K-gain correction by timestep ratio
+        # K-gains were computed for dt_coarse, applying at dt_fine needs scaling
+        dt_ratio = dt_fine / dt_coarse
+        du = du * dt_ratio  # Smaller correction for smaller timestep
+
+        u = u_nom + du
+
+        # No clamping - let optimizer handle constraint violations
+        Uset_fine[:, k] = u
+        
+        # Propagate dynamics
+        x_sim = dyn(x_sim, u, dt_fine, k)
+        x_sim[3:7] = normalize(x_sim[3:7])  # Ensure quaternion normalization
+        Xset_fine[:, k + 1] = x_sim
+        
+        # Early exit on NaN
+        if np.any(np.isnan(x_sim)):
+            print(f"  kgain: NaN at k={k}, u_norm={np.linalg.norm(u):.2e}, dx_norm={np.linalg.norm(dx):.2e}", flush=True)
+            break
+        
+
+    
+    # Final control
+    Uset_fine[:, -1] = Uset_fine[:, -2] if N_fine > 1 else Uset_coarse[:, -1]
+    
+
+
+    return Xset_fine, Uset_fine

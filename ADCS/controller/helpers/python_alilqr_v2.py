@@ -235,7 +235,11 @@ class PythonALILQRv2:
         # =====================================================================
         # GET INITIAL VIOLATIONS AND INCREMENT AUGLAG (matches C++ lines 1361-1363)
         # =====================================================================
+        # DEBUG: Check traj before maxViol
+        Xset_pre, Uset_pre, _, _ = traj
+        print(f"  [{pass_label}] Before maxViol: X[389]={Xset_pre[:, min(389, Xset_pre.shape[1]-1)]}", flush=True)
         clist, cmax_init = self.planner.maxViol(traj, vecs, auglag_vals)
+        print(f"  [{pass_label}] Initial cmax={cmax_init:.2e}", flush=True)
         auglag_vals = self.planner.incrementAugLag(auglag_vals, clist, auglag_settings)
         lambdaSet, mu, muSet = auglag_vals
         
@@ -304,6 +308,9 @@ class PythonALILQRv2:
                 # =============================================================
                 use_dist = not is_first_search
                 
+                if self.verbose or (total_iter <= 3 and pass_label == "Pass2"):
+                    print(f"  [{pass_label}] Before ilqrStep {total_iter}: cmax_prev={cmax:.2e}, LA={LA:.2e}", flush=True)
+                    
                 ilqr_result = self.planner.ilqrStep(
                     dt, traj, vecs, auglag_vals, regs,
                     cost_settings, reg_settings, line_search_settings,
@@ -311,6 +318,11 @@ class PythonALILQRv2:
                 )
                 
                 newLA, cmax, clist, grad, regs, traj = ilqr_result
+                
+                if self.verbose or (total_iter <= 3 and pass_label == "Pass2"):
+                    Xset_check, _, _, _ = traj
+                    omega_max = np.max(np.linalg.norm(Xset_check[0:3, :], axis=0)) * 180/np.pi
+                    print(f"  [{pass_label}] After ilqrStep {total_iter}: cmax={cmax:.2e}, newLA={newLA:.2e}, max|ω|={omega_max:.2f}°/s", flush=True)
                 rho, drho = regs
                 
                 # =============================================================

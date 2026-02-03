@@ -92,6 +92,8 @@ def create_planner_settings(
         angle_N=raw_weights.get('angle_weight_N', 1e6),  # Terminal angle cost
         ang_vel=raw_weights.get('angvel_weight', 1e3),
         ang_vel_N=raw_weights.get('angvel_weight_N', 1e5),  # Terminal angular velocity cost
+        ang_vel_err_dir=raw_weights.get('ang_vel_err_dir', 0.0),  # Cross-term for PSD cost matrix
+        ang_vel_err_dir_N=raw_weights.get('ang_vel_err_dir_N', 0.0),
         control_mult=1.0,  # Already scaled in actuator weights
         ang_cost_func_type=raw_weights.get('ang_cost_func_type', 2),
     )
@@ -103,6 +105,8 @@ def create_planner_settings(
         angle_N=raw_weights.get('angle_weight_N', 1e6),
         ang_vel=raw_weights.get('angvel_weight', 1e3),
         ang_vel_N=raw_weights.get('angvel_weight_N', 1e5),
+        ang_vel_err_dir=raw_weights.get('ang_vel_err_dir', 0.0),
+        ang_vel_err_dir_N=raw_weights.get('ang_vel_err_dir_N', 0.0),
         control_mult=1.0,
         ang_cost_func_type=raw_weights.get('ang_cost_func_type', 2),
     )
@@ -112,6 +116,8 @@ def create_planner_settings(
         angle_N=raw_weights.get('angle_weight_N', 1e6),
         ang_vel=raw_weights.get('angvel_weight', 1e3),
         ang_vel_N=raw_weights.get('angvel_weight_N', 1e5),
+        ang_vel_err_dir=raw_weights.get('ang_vel_err_dir', 0.0),
+        ang_vel_err_dir_N=raw_weights.get('ang_vel_err_dir_N', 0.0),
         control_mult=1.0,
         ang_cost_func_type=raw_weights.get('ang_cost_func_type', 2),
     )

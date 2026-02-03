@@ -518,6 +518,13 @@ class LivePlannerViz:
         if self.fig is not None:
             self.fig.savefig(filename, dpi=dpi, bbox_inches='tight')
             print(f"Figure saved to {filename}")
+    
+    def close(self) -> None:
+        """Close the visualization figure."""
+        if self.fig is not None:
+            plt.close(self.fig)
+            self.fig = None
+            self._is_started = False
             
     def reset(self) -> None:
         """Reset the visualization for a new optimization run."""

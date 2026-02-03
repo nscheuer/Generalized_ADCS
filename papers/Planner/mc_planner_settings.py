@@ -50,22 +50,22 @@ def create_good_planner_settings(sat, dt_planning: float = 1.0, has_rw: bool = N
         # Control costs increased 10x to reduce discretization sensitivity
         config = NormalizedPlannerConfig(
             actuator_costs=NormalizedActuatorCosts(
-                mtq_cost=10.0,           # 10x increase
-                rw_torque_cost=50.0,     # 10x increase
-                rw_momentum_cost=100.0,  # 10x increase
-                rw_stiction_cost=1.0,    # 10x increase
-                use_torque_effective_mtq_scaling=True,  # Makes MTQs cheap
+                mtq_cost=10.0,           # MTQ base cost
+                rw_torque_cost=0.001,    # RW much cheaper - compensate for small u_max
+                rw_momentum_cost=0.001,  # RW momentum cheap too
+                rw_stiction_cost=0.1,    # Small stiction penalty
+                use_torque_effective_mtq_scaling=False,  # Disabled - no B-field scaling
                 expected_B_field_uT=30.0,
             ),
             state_costs=NormalizedStateCosts(
-                angle_cost=100.0,
-                angle_terminal_cost=1000.0,
+                angle_cost=1000.0,          # 10x increase for better convergence
+                angle_terminal_cost=10000.0,
                 ang_vel_cost=100.0,
                 ang_vel_terminal_cost=1000.0,
                 use_scale_normalization=True,
                 angle_scale_deg=90.0,
                 ang_vel_scale_deg_s=20.0,
-            ),
+            ).set_cross_term_auto(0.75),  # Add cross-term at 75% of PSD limit
             constraints=NormalizedConstraints(
                 max_angular_velocity_deg_s=20.0,
                 control_margin=0.25,
@@ -89,17 +89,26 @@ def create_good_planner_settings(sat, dt_planning: float = 1.0, has_rw: bool = N
         settings.rw_AM_weight = 0.0  # Rely on hard constraint, not soft penalty
         settings.RWh_ok_mult = 0.5
     
-    # Convergence settings
+    # Convergence settings - higher inner iter for better convergence
     settings.pass1.convergence.max_outer_iter = 10
-    settings.pass1.convergence.max_inner_iter = 15
-    settings.pass2.convergence.max_outer_iter = 8
-    settings.pass2.convergence.max_inner_iter = 15
+    settings.pass1.convergence.max_inner_iter = 50
+    settings.pass2.convergence.max_outer_iter = 10
+    settings.pass2.convergence.max_inner_iter = 50
     
     # High penalty augmented Lagrangian settings - works best with torque-effective MTQ
     settings.pass1.aug_lag.penalty_init = 10.0
     settings.pass1.aug_lag.penalty_max = 1e8
     settings.pass2.aug_lag.penalty_init = 1e5
     settings.pass2.aug_lag.penalty_max = 1e18
+    
+    # State-space regularization (in addition to control-space)
+    # reg_mode: 0=control-space only, 1=state-space only, 2=both
+    settings.pass1.regularization.reg_mode = 2
+    settings.pass2.regularization.reg_mode = 2
+    
+    # reg_min_cond: 0=no minimum regularization enforcement
+    settings.pass1.regularization.reg_min_cond = 0
+    settings.pass2.regularization.reg_min_cond = 0
     
     return settings
 
@@ -791,8 +800,8 @@ def apply_fast_slew_tuning(settings, verbose: bool = False):
     settings.pass1.aug_lag.penalty_init = 1e-3
     settings.pass1.aug_lag.penalty_max = 1e6
     
-    # Pass2: same low initial penalty as Pass1 to allow exploration
-    settings.pass2.aug_lag.penalty_init = 1e-3
+    # Pass2: higher initial penalty for stricter constraint enforcement with warm start
+    settings.pass2.aug_lag.penalty_init = 1.0
     settings.pass2.aug_lag.penalty_max = 1e10
     
     # More inner iterations to allow convergence

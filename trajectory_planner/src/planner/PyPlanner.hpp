@@ -49,6 +49,8 @@ public:
     TRAJECTORY_PY_FORM generateInitialTrajectoryPython(double dt0, py::array_t<double> x0Py, py::array_t<double> UsetPy,VECTOR_INFO_PY_FORM vecsPy);
     double getdt();
     void setquaternionTo3VecMode(int val);
+    void setPass2WarmStartMode(int mode);
+    int getPass2WarmStartMode();
     py::tuple addRandNoisePython(double dt0, TRAJECTORY_PY_FORM trajPy, double dlaZcount, double stepsSinceRand, BREAK_SETTINGS_PY_FORM breakSettings_tmp,REG_SETTINGS_FORM regSettings_tmp,COST_SETTINGS_FORM costSettings_tmp, AUGLAG_INFO_PY_FORM auglag_vals,VECTOR_INFO_PY_FORM vecs);
     void setPlannerVerbosity(bool verbosity);
     

@@ -164,6 +164,7 @@ class PlanAndTrackBase(Controller):
             planner_settings.optTVLQRCostSettings(tracking_LQR_formulation=tracking_lqr_formulation)
         )
         self.planner.setquaternionTo3VecMode(quat_to_3vec_mode)
+        self.quat_to_3vec_mode = quat_to_3vec_mode  # Store for Python K-gain warm-start
 
         self.active_trajectory = None
 

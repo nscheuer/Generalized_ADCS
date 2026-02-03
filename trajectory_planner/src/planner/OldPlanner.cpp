@@ -73,7 +73,7 @@ void OldPlanner::setVerbosity(bool verbosity) {
   verbose = verbosity;
 }
 void OldPlanner::updateParameters_notsat(SYSTEM_SETTINGS_FORM systemSettings_tmp, ALILQR_SETTINGS_FORM alilqrSettings_tmp, ALILQR_SETTINGS_FORM alilqrSettings2_tmp, INITIAL_TRAJ_SETTINGS_FORM initialTrajSettings_tmp, COST_SETTINGS_FORM costSettings_tmp,COST_SETTINGS_FORM costSettings2_tmp,LQR_COST_SETTINGS_FORM costSettings_tvlqr_tmp) {
-    verbose = true;
+    // verbose flag is controlled by setVerbosity(), don't override here
 
     costSettings = costSettings_tmp;
     costSettings2 = costSettings2_tmp;
@@ -628,6 +628,9 @@ AFTER_OUTPUT_FORM OldPlanner::trajOptAfter(VECTOR_INFO_FORM vecs_w_time,double d
   mat TQset = std::get<2>(opt);
   mat Kset = std::get<3>(opt);
   mat lambdaSet = std::get<4>(opt);
+  if(verbose) {
+    cout << "trajOptAfter: Kset from opt: (" << Kset.n_rows << "," << Kset.n_cols << "), n_elem=" << Kset.n_elem << "\n";
+  }
   vec time_vec = std::get<5>(opt);
 
 
@@ -655,16 +658,37 @@ AFTER_OUTPUT_FORM OldPlanner::trajOptAfter(VECTOR_INFO_FORM vecs_w_time,double d
 
     if(verbose) {
       cout<<"colMiss: "<<colMissing<<"\n";
+      cout<<"pass2_warm_start_mode: "<<pass2_warm_start_mode<<", Kset.n_elem: "<<Kset.n_elem<<"\n";
     }
-    int interp_ratio = int(dt_prev / dt_tvlqr);
-    int K = Uset.n_cols;
-    mat UsetLong = repelem(Uset.cols(0, K - 2), 1, interp_ratio);
-    if(colMissing > 0){
-      UsetLong = join_rows(UsetLong, repelem(Uset.col(K - 2), 1, int(colMissing)));
-    }
-    UsetLong = join_rows(UsetLong, Uset.col(K - 1));
 
-    trajLong = OldPlanner::generateInitialTrajectory(dt_tvlqr,Xset.col(0), UsetLong, vecs_tvlqr);
+    // K-gain warm-start or legacy ZOH?
+    if (pass2_warm_start_mode == 1 && Kset.n_elem > 0) {
+      // K-gain warm-start: propagate with feedback from coarse K-gains
+      double tf = (time_end - time_start) * 36525.0 * 24.0 * 3600.0;
+      if(verbose) {
+        cout << "Using K-gain warm-start for Pass2 (dt_coarse=" << dt_prev
+             << ", dt_fine=" << dt_tvlqr << ", tf=" << tf << ")\n";
+      }
+      trajLong = kgainWarmStart(Xset, Uset, Kset, dt_prev, dt_tvlqr, tf,
+                                 sat, vecs_tvlqr, quaternionTo3VecMode);
+      if(verbose) {
+        mat X_kgain = get<0>(trajLong);
+        mat U_kgain = get<1>(trajLong);
+        cout << "  K-gain warm-start complete: X=(" << X_kgain.n_rows << "," << X_kgain.n_cols
+             << "), U=(" << U_kgain.n_rows << "," << U_kgain.n_cols << ")\n";
+      }
+    } else {
+      // Legacy ZOH interpolation
+      int interp_ratio = int(dt_prev / dt_tvlqr);
+      int K = Uset.n_cols;
+      mat UsetLong = repelem(Uset.cols(0, K - 2), 1, interp_ratio);
+      if(colMissing > 0){
+        UsetLong = join_rows(UsetLong, repelem(Uset.col(K - 2), 1, int(colMissing)));
+      }
+      UsetLong = join_rows(UsetLong, Uset.col(K - 1));
+
+      trajLong = OldPlanner::generateInitialTrajectory(dt_tvlqr,Xset.col(0), UsetLong, vecs_tvlqr);
+    }
 
     // mat xtmp = get<0>(trajLong);
     // TRAJECTORY_FORM traj_tvlqr = trajLong;
@@ -878,7 +902,11 @@ AFTER_OUTPUT_FORM OldPlanner::trajOpt(VECTOR_INFO_FORM &vecs,int N, TIME_FORM ti
   OPT_FORM opt_tmp = get<0>(alilqrOut);
   mat Xtmp = get<0>(opt_tmp);
   mat Utmp = get<1>(opt_tmp);
-  if(verbose){cout<<"dist done\n";}
+  mat Ktmp = get<3>(opt_tmp);
+  if(verbose){
+    cout<<"dist done\n";
+    cout<<"Before trajOptAfter: Ktmp=("<<Ktmp.n_rows<<","<<Ktmp.n_cols<<")\n";
+  }
   AFTER_OUTPUT_FORM results2 = OldPlanner::trajOptAfter(vecs, dt, time_start, time_end, alilqrOut);
   if(verbose){cout<<"trajOptAfter done\n";}
   return results2;
@@ -1871,8 +1899,17 @@ ALILQR_OUTPUT_FORM OldPlanner::alilqr(double dt0,TRAJECTORY_FORM traj, VECTOR_IN
     auglag_vals = OldPlanner::incrementAugLag(auglag_vals,clist,auglagSettings_tmp);
   }
   if(verbose){cout<<"out of loops\n";}
-  mat Kmat = packageK(get<0>(BPresults));
-  if(verbose){cout<<"Kmat done\n";}
+  
+  // Run final backward pass to get K-gains for warm-start
+  // (The K-gains computed during ilqrStep iterations aren't returned)
+  tuple<BACKWARD_PASS_RESULTS_FORM, REG_PAIR> finalBackwardPass = OldPlanner::backwardPass(
+      dt0, traj, vecs, auglag_vals, regs, &costSettings_tmp, regSettings_tmp, !isFirstSearch);
+  BPresults = get<0>(finalBackwardPass);
+  
+  cube Kcube = get<0>(BPresults);
+  if(verbose){cout<<"Kcube: ("<<Kcube.n_rows<<","<<Kcube.n_cols<<","<<Kcube.n_slices<<")\n";}
+  mat Kmat = packageK(Kcube);
+  if(verbose){cout<<"Kmat done: ("<<Kmat.n_rows<<","<<Kmat.n_cols<<")\n";}
   OPT_FORM opt = make_tuple(get<0>(traj),get<1>(traj),get<3>(traj),Kmat,lambdaSet,dt_timevec);
   if(verbose){cout<<"opt packaged\n";}
   return make_tuple(opt, mu, grad);

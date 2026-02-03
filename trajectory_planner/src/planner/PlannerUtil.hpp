@@ -91,4 +91,20 @@ std::tuple<arma::cube, arma::cube,arma::cube> rk4zxd2Hessians(double dt0,arma::v
 
 arma::vec4 qdes(arma::vec3 satvk, arma::vec3 ECIvk, arma::vec4 q, arma::vec3 w, arma::vec3 Bbody, arma::mat33 wt);
 
+// K-gain warm-start functions
+arma::cube unpackageK(const arma::mat& Kflat, int n_ctrl, int n_reduced);
+arma::vec3 quatTo3Vec(const arma::vec4& qerr, int mode);
+arma::mat slerpInterpolateTrajectory(const arma::mat& Xset_coarse, double dt_coarse, double dt_fine, double tf);
+TRAJECTORY_FORM kgainWarmStart(
+    const arma::mat& Xset_coarse,
+    const arma::mat& Uset_coarse,
+    const arma::mat& Kset_coarse,
+    double dt_coarse,
+    double dt_fine,
+    double tf,
+    Satellite& sat,
+    VECTOR_INFO_FORM& vecs_fine,
+    int quat_to_3vec_mode = 2
+);
+
 #endif

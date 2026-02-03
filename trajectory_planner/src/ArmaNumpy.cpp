@@ -34,11 +34,27 @@ mat numpyToArmaMatrix(py::array_t<double> npMat) {
   int nrows = buf1.shape[0];
   int ncols = buf1.shape[1];
 
-  // Use Armadillo constructor that expects column-major data
-  // (matches Python's Fortran order / np.asfortranarray)
-  // copy_aux_mem=true copies the data, strict=false allows non-aligned memory
-  mat armaMat(ptr1, nrows, ncols, /*copy_aux_mem=*/true, /*strict=*/false);
-  return armaMat;
+  // Check if array is Fortran-contiguous (column-major) or C-contiguous (row-major)
+  // Armadillo uses column-major storage
+  bool is_f_contiguous = (buf1.strides[0] == sizeof(double)) &&
+                          (buf1.strides[1] == nrows * sizeof(double));
+
+  if (is_f_contiguous) {
+    // Fortran-contiguous: can use direct copy (original approach)
+    mat armaMat(ptr1, nrows, ncols, /*copy_aux_mem=*/true, /*strict=*/false);
+    return armaMat;
+  } else {
+    // C-contiguous or other: must copy element-by-element
+    mat armaMat(nrows, ncols);
+    for (int i = 0; i < nrows; i++) {
+      for (int j = 0; j < ncols; j++) {
+        // Access via strides for generality
+        double* elem_ptr = (double*)((char*)ptr1 + i * buf1.strides[0] + j * buf1.strides[1]);
+        armaMat(i, j) = *elem_ptr;
+      }
+    }
+    return armaMat;
+  }
 }
 
 // vec numpyToArmaVector(py::array_t<double> npArr) {

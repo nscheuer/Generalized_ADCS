@@ -72,6 +72,7 @@ public:
     bool verbose;
 
     int quaternionTo3VecMode = 0;
+    int pass2_warm_start_mode = 1;  // 0=ZOH (legacy), 1=K-gain warm-start (default)
 
 private:
 

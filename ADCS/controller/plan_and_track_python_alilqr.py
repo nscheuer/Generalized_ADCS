@@ -274,11 +274,93 @@ class Plan_and_Track_PythonALILQR(PlanAndTrackBase):
         alilqr_settings_1 = self.planner_settings.mainAlilqrSettings()
         
         # Create initial trajectory at coarse timestep
-        bdotOn = self.planner_settings.bdot_on
-        initial_result = self.planner.prepareForAlilqr(
-            vecsPy_coarse, dt_coarse, t_start, t_end, x_0_clean, int(bdotOn)
-        )
-        initial_traj_1, vecs_dt_coarse, _ = initial_result
+        # Multi-start: try multiple bdot modes and pick best initial trajectory
+        import os
+        multistart_modes = [0, 1, 4, 5] if os.environ.get("PY_ALILQR_MULTISTART", "0") == "1" else [self.planner_settings.bdot_on]
+        
+        best_traj = None
+        best_vecs = None
+        best_max_spike = float('inf')
+        best_mode = None
+        
+        for bdotOn in multistart_modes:
+            initial_result = self.planner.prepareForAlilqr(
+                vecsPy_coarse, dt_coarse, t_start, t_end, x_0_clean, int(bdotOn)
+            )
+            traj_candidate, vecs_candidate, _ = initial_result
+            
+            # Evaluate spike for this candidate
+            E_goals_candidate = vecs_candidate[6]
+            if E_goals_candidate.shape[0] == 4:
+                Xset_cand, _, _, _ = traj_candidate
+                q_goal_cand = E_goals_candidate[:, -1]
+                q_goal_inv = np.array([q_goal_cand[0], -q_goal_cand[1], -q_goal_cand[2], -q_goal_cand[3]])
+                max_spike = 0.0
+                for k in range(Xset_cand.shape[1]):
+                    qk = Xset_cand[3:7, k]
+                    qerr_w = q_goal_inv[0]*qk[0] - np.dot(q_goal_inv[1:], qk[1:])
+                    angle = np.degrees(2 * np.arccos(np.clip(np.abs(qerr_w), 0, 1)))
+                    if angle > max_spike:
+                        max_spike = angle
+            else:
+                max_spike = 0.0  # Non-quaternion goal, can't evaluate spike
+            
+            if len(multistart_modes) > 1:
+                print(f"  [Multistart] bdot={bdotOn}: max_spike={max_spike:.0f}°")
+            
+            if max_spike < best_max_spike:
+                best_max_spike = max_spike
+                best_traj = traj_candidate
+                best_vecs = vecs_candidate
+                best_mode = bdotOn
+        
+        initial_traj_1 = best_traj
+        vecs_dt_coarse = best_vecs
+        
+        if len(multistart_modes) > 1:
+            print(f"  [Multistart] Selected bdot={best_mode} with spike={best_max_spike:.0f}°")
+        
+        # SLERP fallback: DISABLED - zero controls cause dynamics to diverge
+        # if best_max_spike > 170 and os.environ.get("PY_ALILQR_SLERP_FALLBACK", "1") == "1":
+        #     ...
+        
+        # Check for zero-control initialization (env var: PY_ALILQR_ZERO_INIT=1)
+        if os.environ.get("PY_ALILQR_ZERO_INIT", "0") == "1":
+            Xset, Uset, Tset, TQset = initial_traj_1
+            Uset = np.zeros_like(Uset)
+            initial_traj_1 = (Xset, Uset, Tset, TQset)
+            print("  [Zero-init] Zeroed out initial controls")
+        
+        # Quaternion hemisphere check: flip goal quaternion if on wrong side
+        # This prevents the optimizer from going "the long way" (>180°)
+        # vecs_dt_coarse[6] is E (goal quaternion), shape (4, N) for quat goals
+        E_goals = vecs_dt_coarse[6]
+        if E_goals.shape[0] == 4:  # Quaternion goal
+            q0 = x_0_clean[3:7]  # Initial quaternion from state
+            q_goal = E_goals[:, 0]  # Goal quaternion at t=0
+            
+            # Check dot product - if negative, they're on opposite hemispheres
+            dot = np.dot(q0, q_goal)
+            if dot < 0:
+                # Flip the goal quaternion for the entire trajectory
+                vecs_dt_coarse = list(vecs_dt_coarse)
+                vecs_dt_coarse[6] = -E_goals  # Flip sign
+                vecs_dt_coarse = tuple(vecs_dt_coarse)
+                print(f"  [Quat-flip] Flipped goal quaternion (dot={dot:.3f} < 0)")
+        
+        # Check initial trajectory for 180° spike and report
+        Xset_init, _, _, _ = initial_traj_1
+        if E_goals.shape[0] == 4:
+            q_goal_final = vecs_dt_coarse[6][:, -1]  # Use potentially flipped goal
+            q_goal_inv = np.array([q_goal_final[0], -q_goal_final[1], -q_goal_final[2], -q_goal_final[3]])
+            angles_init = np.zeros(Xset_init.shape[1])
+            for k in range(Xset_init.shape[1]):
+                qk = Xset_init[3:7, k]
+                qerr_w = q_goal_inv[0]*qk[0] - np.dot(q_goal_inv[1:], qk[1:])
+                angles_init[k] = np.degrees(2 * np.arccos(np.clip(np.abs(qerr_w), 0, 1)))
+            max_angle = np.max(angles_init)
+            max_idx = np.argmax(angles_init)
+            print(f"  [Init-traj] Angles: start={angles_init[0]:.0f}° max={max_angle:.0f}°@{max_idx} end={angles_init[-1]:.0f}°")
         
         result1 = self.py_alilqr.optimize(
             dt=dt_coarse,
@@ -327,7 +409,7 @@ class Plan_and_Track_PythonALILQR(PlanAndTrackBase):
             return Trajectory(result.times, result.Xset, Uset, Kset, Sset)
         
         if verbose:
-            print(f"\n=== PASS 2: Refinement (dt={dt_fine}s, penalty_init={self.planner_settings.pass2.aug_lag.penalty_init}) ===")
+            print(f"\n=== PASS 2: Refinement (dt={dt_fine}s, penalty_init={self.planner_settings.pass2.aug_lag.penalty_init}) ===", flush=True)
         
         # Propagate environment at fine timestep
         N_fine = int(np.ceil(duration / dt_fine)) + 1
@@ -368,103 +450,134 @@ class Plan_and_Track_PythonALILQR(PlanAndTrackBase):
         )
         _, vecs_dt_fine, _ = initial_result_2
         
-        # Generate warm-started trajectory from interpolated Pass1 controls
-        # This matches C++ trajOptAfter: generateInitialTrajectory(dt_tvlqr, Xset.col(0), UsetLong, vecs_tvlqr)
-        # dt_fine=1s is small enough that this should be stable
-        #
-        # Warm-start modes (env: PY_ALILQR_WARMSTART):
-        #   "foh"   -> FOH controls only (dynamics roll-out)
-        #   "slerp" -> SLERP states + FOH controls (no LSQ)
-        #   "lsq"   -> SLERP states + least-squares control reconstruction
-        env_warm_start = os.environ.get("PY_ALILQR_WARMSTART", "").strip().lower()
-        if env_warm_start in ("foh", "slerp", "lsq"):
-            warm_start_mode = env_warm_start
-        else:
-            warm_start_mode = "foh"
-        if verbose:
-            print(f"  Warm start mode: {warm_start_mode.upper()}")
-
-        def _fallback_to_foh(reason: str) -> None:
-            nonlocal traj_fine
-            if verbose:
-                print(f"  WARNING: {reason}, falling back to FOH warm start")
-            traj_fine = self.planner.generateInitialTrajectory(
-                dt_fine, result1.Xset[:, 0].copy(), Uset_fine, vecs_dt_fine
-            )
+        # K-gain warm-start: use Pass1 feedback gains to propagate trajectory to fine grid
+        # This preserves the Pass1 solution quality by using closed-loop dynamics
 
         traj_fine = None
-        if interp_ratio > 1 and warm_start_mode in ("slerp", "lsq"):
-            from ADCS.controller.helpers.mtq_warm_start import (
-                interpolate_trajectory_to_finer_grid,
-                solve_controls_from_trajectory_regularized
-            )
-
-            Xset_coarse = result1.Xset
-            tf = duration
+        if interp_ratio > 1:
+            from ADCS.controller.helpers.mtq_warm_start import kgain_warm_start_controls
 
             try:
-                # Interpolate states (SLERP for quaternions)
-                Xset_fine_ref = interpolate_trajectory_to_finer_grid(
-                    Xset_coarse, dt_coarse, dt_fine, tf, use_slerp=True
+                Kset_coarse = result1.Kset
+                
+
+                
+                # vecs_dt_fine indices: 0=t, 1=R, 2=V, 3=B, 4=S, 5=satvec, 6=ECIvec, 7=p, 8=rho
+                B_eci_fine = vecs_dt_fine[3]  # B-field in ECI: (3, N_fine)
+                R_eci_fine = vecs_dt_fine[1]  # Position in ECI: (3, N_fine)
+                V_eci_fine = vecs_dt_fine[2]  # Velocity in ECI: (3, N_fine)
+                S_eci_fine = vecs_dt_fine[4]  # Sun vector: (3, N_fine)
+                rho_fine = vecs_dt_fine[8]    # Density: (N_fine,)
+                
+                def sat_dynamics(x, u, dt, k):
+                    """RK4 integration of satellite dynamics for one timestep."""
+                    k_idx = min(k, B_eci_fine.shape[1] - 1)
+                    
+                    # Create minimal orbital state with required fields
+                    class MinimalOS:
+                        def __init__(self, B, R, V, S, rho=0.0):
+                            self.B = B
+                            self.R = R
+                            self.V = V
+                            self.sun_vec = S
+                            self.S = S  # alias
+                            self.rho = rho
+                        def get_state_vector(self, x):
+                            from ADCS.helpers.math_helpers import rot_mat
+                            q = x[3:7]
+                            R_mat_T = rot_mat(q).T
+                            r_body = R_mat_T @ self.R
+                            v_body = R_mat_T @ self.V
+                            b_body = R_mat_T @ self.B
+                            s_body = R_mat_T @ self.sun_vec
+                            return {
+                                "r": r_body, "v": v_body, 
+                                "b": b_body, "s": s_body,
+                                "rho": self.rho
+                            }
+                        def is_sunlit(self):
+                            return np.linalg.norm(self.sun_vec) > 0.1
+                    
+                    rho_k = rho_fine[k_idx] if k_idx < len(rho_fine) else rho_fine[-1]
+                    os_k = MinimalOS(
+                        B_eci_fine[:, k_idx],
+                        R_eci_fine[:, k_idx],
+                        V_eci_fine[:, k_idx],
+                        S_eci_fine[:, k_idx] if k_idx < S_eci_fine.shape[1] else S_eci_fine[:, -1],
+                        rho=rho_k
+                    )
+                    
+                    # RK4 integration (no bias/noise for planner)
+                    from ADCS.satellite_hardware.errors import ErrorMode
+                    dmode_clean = ErrorMode(add_bias=False, add_noise=False, 
+                                            update_bias=False, update_noise=False)
+                    
+                    def f(x_):
+                        return self.est_sat.dynamics_core(x_, u, os_k, dmode=dmode_clean)
+                    
+                    k1 = f(x)
+                    k2 = f(x + 0.5 * dt * k1)
+                    k3 = f(x + 0.5 * dt * k2)
+                    k4 = f(x + dt * k3)
+                    x_next = x + (dt / 6.0) * (k1 + 2*k2 + 2*k3 + k4)
+                    
+                    return x_next
+                
+                Xset_kgain, Uset_kgain = kgain_warm_start_controls(
+                    result1.Xset, result1.Uset, Kset_coarse,
+                    dt_coarse, dt_fine, duration,
+                    dynamics_func=sat_dynamics,
+                    use_slerp=True,
+                    quat_to_3vec_mode=self.quat_to_3vec_mode,
+                    verbose=verbose
+                )
+                
+                # Ensure correct length
+                if Uset_kgain.shape[1] != N_fine:
+                    if Uset_kgain.shape[1] < N_fine:
+                        pad = np.tile(Uset_kgain[:, -1:], (1, N_fine - Uset_kgain.shape[1]))
+                        Uset_kgain = np.hstack([Uset_kgain, pad])
+                    else:
+                        Uset_kgain = Uset_kgain[:, :N_fine]
+                if Xset_kgain.shape[1] != N_fine:
+                    if Xset_kgain.shape[1] < N_fine:
+                        pad = np.tile(Xset_kgain[:, -1:], (1, N_fine - Xset_kgain.shape[1]))
+                        Xset_kgain = np.hstack([Xset_kgain, pad])
+                    else:
+                        Xset_kgain = Xset_kgain[:, :N_fine]
+                
+
+                
+                # Scale RW controls BACK to optimizer units for C++
+                NONMTQ_TORQ_SCALE = 3e-5
+                n_rw_acts = len(self.est_sat.rw_actuators)
+                n_mtq_acts = len(self.est_sat.mtq_actuators)
+                Uset_kgain_opt = Uset_kgain.copy()
+                if n_rw_acts > 0:
+                    Uset_kgain_opt[n_mtq_acts:n_mtq_acts+n_rw_acts, :] /= NONMTQ_TORQ_SCALE
+                
+                # Build trajectory tuple for Pass2
+                times_fine = np.linspace(0, duration, N_fine)
+                TQset_fine = np.zeros((3, N_fine))
+                # CRITICAL: C++ expects Fortran-order arrays (column-major)
+                traj_fine = (
+                    np.asfortranarray(Xset_kgain, dtype=np.float64),
+                    np.asfortranarray(Uset_kgain_opt, dtype=np.float64),
+                    np.asfortranarray(times_fine, dtype=np.float64),
+                    np.asfortranarray(TQset_fine, dtype=np.float64)
                 )
 
-                # Ensure correct length
-                if Xset_fine_ref.shape[1] != N_fine:
-                    if Xset_fine_ref.shape[1] < N_fine:
-                        pad = np.tile(Xset_fine_ref[:, -1:], (1, N_fine - Xset_fine_ref.shape[1]))
-                        Xset_fine_ref = np.hstack([Xset_fine_ref, pad])
-                    else:
-                        Xset_fine_ref = Xset_fine_ref[:, :N_fine]
-
-                if warm_start_mode == "slerp":
-                    # Use SLERP states with FOH controls; keep TQset from FOH rollout
-                    traj_fwd = self.planner.generateInitialTrajectory(
-                        dt_fine, Xset_fine_ref[:, 0].copy(), Uset_fine, vecs_dt_fine
-                    )
-                    _, _, times_fwd, TQset_fwd = traj_fwd
-                    traj_fine = (Xset_fine_ref, Uset_fine, times_fwd, TQset_fwd)
-                    if verbose:
-                        print(f"  SLERP warm start used: X={Xset_fine_ref.shape}, U={Uset_fine.shape}")
-                else:
-                    # LSQ reconstruction toward FOH controls (no clamping)
-                    B_eci = vecs_dt_fine[4]  # shape (3, N_fine)
-                    J = self.est_sat.J_COM
-
-                    # Get RW axes (no torque limits)
-                    from ADCS.satellite_hardware.actuators.reaction_wheel import RW
-                    rw_axes = []
-                    for act in self.est_sat.actuators:
-                        if isinstance(act, RW):
-                            rw_axes.append(act.axis)
-                    rw_axes = np.array(rw_axes) if rw_axes else None
-
-                    reg_lambda_env = os.environ.get("PY_ALILQR_LSQ_LAMBDA", "0.0")
-                    try:
-                        reg_lambda = float(reg_lambda_env)
-                    except ValueError:
-                        reg_lambda = 0.0
-
-                    Uset_reg = solve_controls_from_trajectory_regularized(
-                        Xset_fine_ref, B_eci, dt_fine, J, rw_axes,
-                        u_prior=Uset_fine, reg_lambda=reg_lambda,
-                        m_max=None, rw_torq_max=None
-                    )
-
-                    traj_fwd = self.planner.generateInitialTrajectory(
-                        dt_fine, Xset_fine_ref[:, 0].copy(), Uset_reg, vecs_dt_fine
-                    )
-                    Xset_fwd, _, times_fwd, TQset_fwd = traj_fwd
-                    traj_fine = (Xset_fwd, Uset_reg, times_fwd, TQset_fwd)
-
-                    if verbose:
-                        print(
-                            f"  LSQ reconstruction used (lambda={reg_lambda:g}): "
-                            f"{Uset_fine.shape[1]} -> {Uset_reg.shape[1]}"
-                        )
             except Exception as e:
-                _fallback_to_foh(str(e))
+                import traceback
+                if verbose:
+                    print(f"  ERROR in K-gain warm start: {e}")
+                    traceback.print_exc()
+                traj_fine = None  # Fall back to ZOH below
 
+        # Fallback: ZOH interpolation (also used when interp_ratio==1)
         if traj_fine is None:
+            if verbose:
+                print(f"  Using ZOH warm start (fallback)")
             try:
                 traj_fine = self.planner.generateInitialTrajectory(
                     dt_fine, result1.Xset[:, 0].copy(), Uset_fine, vecs_dt_fine
@@ -523,6 +636,7 @@ class Plan_and_Track_PythonALILQR(PlanAndTrackBase):
                 if verbose:
                     print(f"Saved visualization to: {viz_save_path}")
             live_viz.finish(block=False)
+            live_viz.close()  # Close the figure window
             # Restore original callback
             self.set_iteration_callback(original_callback)
         

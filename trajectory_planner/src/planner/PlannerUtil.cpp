@@ -1,6 +1,5 @@
 #include "PlannerUtil.hpp"
-
-
+#include "GeneralUtil.hpp"  // for normquaterr
 
 using namespace arma;
 using namespace std;
@@ -2201,6 +2200,264 @@ REG_PAIR decreaseReg(REG_PAIR reg0, REG_SETTINGS_FORM regSettings_tmp){
       throw("rho should not be inf");
     }
     return make_tuple(rho,drho);
+}
+
+// ============================================================================
+// K-GAIN WARM-START FUNCTIONS
+// ============================================================================
+
+/**
+ * Unpackage flattened K-gains back to 3D cube
+ * Inverse of packageK()
+ */
+cube unpackageK(const mat& Kflat, int n_ctrl, int n_reduced) {
+    int N = Kflat.n_cols;
+    cube Kcube(n_ctrl, n_reduced, N, fill::zeros);
+
+    for (int k = 0; k < N; k++) {
+        for (int row = 0; row < n_ctrl; row++) {
+            for (int col = 0; col < n_reduced; col++) {
+                int flat_idx = row * n_reduced + col;
+                Kcube(row, col, k) = Kflat(flat_idx, k);
+            }
+        }
+    }
+    return Kcube;
+}
+
+/**
+ * Convert quaternion error to 3-vector representation
+ * @param qerr Normalized quaternion error (q_ref^{-1} * q_current)
+ * @param mode 0=MRP+, 1=MRP, 2=Cayley (default), 3=qv+, 4=qv
+ */
+vec3 quatTo3Vec(const vec4& qerr, int mode) {
+    vec4 q = qerr;
+
+    // Ensure positive scalar for modes 0, 3
+    if (mode == 0 || mode == 3) {
+        if (q(0) < 0) q = -q;
+    }
+
+    switch (mode) {
+        case 0:  // MRP with positive scalar
+        case 1:  // MRP
+            return 2.0 * q.rows(1, 3) / (1.0 + q(0));
+
+        case 2:  // Cayley parameters (default, matches planner)
+            if (abs(q(0)) < EPSVAR) {
+                q(0) = (q(0) >= 0) ? EPSVAR : -EPSVAR;
+            }
+            return q.rows(1, 3) / q(0);
+
+        case 3:  // Vector part with positive scalar
+        case 4:  // Vector part
+            return q.rows(1, 3);
+
+        default:
+            throw runtime_error("quatTo3Vec: unsupported mode");
+    }
+}
+
+/**
+ * SLERP-interpolate a trajectory to finer timestep
+ * Linear interpolation for omega and h_rw, SLERP for quaternion
+ */
+mat slerpInterpolateTrajectory(const mat& Xset_coarse, double dt_coarse, double dt_fine, double tf) {
+    int N_coarse = Xset_coarse.n_cols;
+    int N_fine = int(tf / dt_fine) + 1;
+    int n_state = Xset_coarse.n_rows;
+
+    mat Xset_fine(n_state, N_fine, fill::zeros);
+
+    // Extract quaternions and ensure continuity (no sign flips)
+    mat quats_coarse = Xset_coarse.rows(3, 6);  // 4 x N_coarse
+    for (int k = 1; k < N_coarse; k++) {
+        if (dot(quats_coarse.col(k), quats_coarse.col(k-1)) < 0) {
+            quats_coarse.col(k) *= -1;
+        }
+    }
+
+    // Interpolate each fine timestep
+    for (int k = 0; k < N_fine; k++) {
+        double t = k * dt_fine;
+
+        // Find bounding coarse indices
+        double idx_float = t / dt_coarse;
+        int i0 = min(int(floor(idx_float)), N_coarse - 2);
+        int i1 = i0 + 1;
+        double alpha = idx_float - i0;
+
+        // SLERP for quaternion (using LERP + normalize as approximation)
+        vec4 q0 = normalise(quats_coarse.col(i0));
+        vec4 q1 = normalise(quats_coarse.col(i1));
+
+        // Ensure same hemisphere
+        if (dot(q0, q1) < 0) {
+            q1 = -q1;
+        }
+
+        // LERP + normalize (good approximation for small intervals)
+        vec4 q_interp = normalise((1.0 - alpha) * q0 + alpha * q1);
+        Xset_fine.submat(3, k, 6, k) = q_interp;
+
+        // Linear interpolation for angular velocity (rows 0-2)
+        Xset_fine.head_rows(3).col(k) = (1.0 - alpha) * Xset_coarse.head_rows(3).col(i0) +
+                                         alpha * Xset_coarse.head_rows(3).col(i1);
+
+        // Linear interpolation for RW momentum (rows 7+)
+        if (n_state > 7) {
+            Xset_fine.tail_rows(n_state - 7).col(k) =
+                (1.0 - alpha) * Xset_coarse.tail_rows(n_state - 7).col(i0) +
+                alpha * Xset_coarse.tail_rows(n_state - 7).col(i1);
+        }
+    }
+
+    return Xset_fine;
+}
+
+/**
+ * Generate warm-start trajectory for fine grid using K-gain feedback
+ *
+ * Propagates dynamics at fine timestep while applying K-gain corrections from
+ * coarse optimization. This preserves local optimality while adapting to finer
+ * discretization through closed-loop simulation.
+ */
+TRAJECTORY_FORM kgainWarmStart(
+    const mat& Xset_coarse,
+    const mat& Uset_coarse,
+    const mat& Kset_flat,
+    double dt_coarse,
+    double dt_fine,
+    double tf,
+    Satellite& sat,
+    VECTOR_INFO_FORM& vecs_fine,
+    int quat_to_3vec_mode
+) {
+    int N_coarse = Xset_coarse.n_cols;
+    int N_fine = int(tf / dt_fine) + 1;
+    int n_state = sat.state_N();         // 7 + n_rw
+    int n_ctrl = sat.control_N();        // n_mtq + n_rw
+    int n_reduced = sat.reduced_state_N(); // 6 + n_rw
+    int n_rw = sat.number_RW;
+    int n_mtq = sat.number_MTQ;
+
+    // 1. SLERP-interpolate reference trajectory to fine grid
+    mat Xset_ref = slerpInterpolateTrajectory(Xset_coarse, dt_coarse, dt_fine, tf);
+
+    // Ensure correct length
+    if ((int)Xset_ref.n_cols < N_fine) {
+        mat pad = repmat(Xset_ref.col(Xset_ref.n_cols - 1), 1, N_fine - Xset_ref.n_cols);
+        Xset_ref = join_rows(Xset_ref, pad);
+    } else if ((int)Xset_ref.n_cols > N_fine) {
+        Xset_ref = Xset_ref.head_cols(N_fine);
+    }
+
+    // 2. Unpack K-gains from flattened format
+    int N_K = Kset_flat.n_cols;
+    cube Kset = unpackageK(Kset_flat, n_ctrl, n_reduced);
+
+    // Pad Kset if needed
+    if (N_K < N_coarse - 1) {
+        cube pad(n_ctrl, n_reduced, (N_coarse - 1) - N_K, fill::zeros);
+        for (int i = 0; i < (int)pad.n_slices; i++) {
+            pad.slice(i) = Kset.slice(N_K - 1);
+        }
+        Kset = join_slices(Kset, pad);
+    }
+
+    // 3. Scale RW controls and K-gains from optimizer units to physical units
+    // C++ optimizer uses scaled controls: u_opt = u_physical / NONMTQ_TORQ_SCALE
+    mat Uset_phys = Uset_coarse;
+    if (n_rw > 0) {
+        Uset_phys.rows(n_mtq, n_ctrl - 1) *= NONMTQ_TORQ_SCALE;
+        for (int k = 0; k < (int)Kset.n_slices; k++) {
+            Kset.slice(k).rows(n_mtq, n_ctrl - 1) *= NONMTQ_TORQ_SCALE;
+        }
+    }
+
+    // 4. Initialize output arrays
+    mat Xset_fine(n_state, N_fine, fill::zeros);
+    mat Uset_fine(n_ctrl, N_fine, fill::zeros);
+    mat TQset_fine(3, N_fine, fill::zeros);
+    vec t_fine = linspace(0, tf, N_fine);
+
+    // Extract dynamics info from vecs_fine
+    mat Bset = get<3>(vecs_fine);  // B-field (3, N_fine)
+    mat Rset = get<1>(vecs_fine);  // Position (3, N_fine)
+    mat Vset = get<2>(vecs_fine);  // Velocity (3, N_fine)
+    mat Sset = get<4>(vecs_fine);  // Sun vector (3, N_fine)
+    vec pset = get<7>(vecs_fine);  // Eclipse flag (N_fine)
+
+    // 5. Initialize from first state
+    vec x_sim = Xset_coarse.col(0);
+    x_sim = sat.state_norm(x_sim);
+    Xset_fine.col(0) = x_sim;
+
+    // 6. Propagate with K-gain feedback
+    for (int k = 0; k < N_fine - 1; k++) {
+        // Find coarse index (ZOH - use K at start of interval)
+        int i = min(int(k * dt_fine / dt_coarse), N_coarse - 2);
+        i = max(i, 0);
+        i = min(i, (int)Kset.n_slices - 1);
+
+        // Get nominal control (ZOH) in physical units
+        int u_idx = min(i, (int)Uset_phys.n_cols - 1);
+        vec u_nom = Uset_phys.col(u_idx);
+
+        // Get K-gain at this coarse index (no interpolation)
+        mat K = Kset.slice(i);
+
+        // Compute reduced error state: dx = x_sim - x_ref
+        vec x_ref = Xset_ref.col(k);
+        vec dx(n_reduced, fill::zeros);
+
+        // 6a. Angular velocity error
+        dx.head(3) = x_sim.head(3) - x_ref.head(3);
+
+        // 6b. Quaternion error -> 3-vector
+        vec4 q_ref = normalise(x_ref.rows(3, 6));
+        vec4 q_sim = normalise(x_sim.rows(3, 6));
+        vec4 q_err = normquaterr(q_ref, q_sim);
+        dx.rows(3, 5) = quatTo3Vec(q_err, quat_to_3vec_mode);
+
+        // 6c. RW momentum error (if applicable)
+        if (n_rw > 0) {
+            dx.rows(6, n_reduced - 1) = x_sim.tail(n_rw) - x_ref.tail(n_rw);
+        }
+
+        // Apply K-gain correction with timestep ratio scaling
+        double dt_ratio = dt_fine / dt_coarse;
+        vec du = K * dx * dt_ratio;
+        vec u = u_nom + du;
+
+        // Store control (no clamping - let optimizer handle constraints)
+        Uset_fine.col(k) = u;
+
+        // Create dynamics info for this timestep
+        int k_next = min(k + 1, N_fine - 1);
+        DYNAMICS_INFO_FORM dyn_k = make_tuple(
+            vec3(Bset.col(k)), vec3(Rset.col(k)), (int)pset(k),
+            vec3(Vset.col(k)), vec3(Sset.col(k)), 0);
+        DYNAMICS_INFO_FORM dyn_kp1 = make_tuple(
+            vec3(Bset.col(k_next)), vec3(Rset.col(k_next)), (int)pset(k_next),
+            vec3(Vset.col(k_next)), vec3(Sset.col(k_next)), 0);
+
+        // Propagate dynamics using rk4z
+        tuple<vec, vec> dynout = rk4z(dt_fine, x_sim, u, sat, dyn_k, dyn_kp1);
+        x_sim = sat.state_norm(get<0>(dynout));
+        Xset_fine.col(k + 1) = x_sim;
+        TQset_fine.col(k) = get<1>(dynout);
+
+        // Early exit on NaN
+        if (x_sim.has_nan()) {
+            break;
+        }
+    }
+
+    // Copy final control
+    Uset_fine.col(N_fine - 1) = Uset_fine.col(N_fine - 2);
+
+    return make_tuple(Xset_fine, Uset_fine, t_fine, TQset_fine);
 }
 
 // --- END HELPERS ---

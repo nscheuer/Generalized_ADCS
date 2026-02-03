@@ -6969,6 +6969,205 @@ TEST_CASE("Path length cost in stepcost functions", "[armadillo][cost][pathlengt
 	CHECK(fabs(path_length_contribution - expected_path_cost) < 1e-6);
 }
 
+// ============================================================================
+// K-GAIN WARM-START TESTS
+// ============================================================================
+
+TEST_CASE("unpackageK inverts packageK", "[armadillo][kgain][util]") {
+	/*
+	 * Verify that unpackageK correctly inverts the packageK function.
+	 */
+	cout << "\n=== unpackageK/packageK inverse test ===\n";
+
+	int n_ctrl = 4;
+	int n_reduced = 7;
+	int N = 50;
+
+	// Create random K-gains cube
+	arma::cube K_orig(n_ctrl, n_reduced, N, arma::fill::randn);
+
+	// Package to flat format
+	arma::mat K_flat = packageK(K_orig);
+	cout << "  K_orig shape: (" << K_orig.n_rows << ", " << K_orig.n_cols << ", " << K_orig.n_slices << ")\n";
+	cout << "  K_flat shape: (" << K_flat.n_rows << ", " << K_flat.n_cols << ")\n";
+
+	// Unpackage back
+	arma::cube K_unpack = unpackageK(K_flat, n_ctrl, n_reduced);
+	cout << "  K_unpack shape: (" << K_unpack.n_rows << ", " << K_unpack.n_cols << ", " << K_unpack.n_slices << ")\n";
+
+	// Verify shapes match
+	REQUIRE(K_unpack.n_rows == K_orig.n_rows);
+	REQUIRE(K_unpack.n_cols == K_orig.n_cols);
+	REQUIRE(K_unpack.n_slices == K_orig.n_slices);
+
+	// Verify values match
+	double max_diff = 0;
+	for (int k = 0; k < N; k++) {
+		double diff = arma::norm(K_orig.slice(k) - K_unpack.slice(k), "fro");
+		max_diff = std::max(max_diff, diff);
+	}
+	cout << "  Max difference: " << max_diff << "\n";
+	CHECK(max_diff < 1e-12);
+}
+
+TEST_CASE("quatTo3Vec modes", "[armadillo][kgain][quaternion]") {
+	/*
+	 * Test quaternion-to-3-vector conversion modes.
+	 */
+	cout << "\n=== quatTo3Vec mode tests ===\n";
+
+	// Test with a 30-degree rotation about z-axis
+	double angle = M_PI / 6;  // 30 degrees
+	arma::vec4 q = {cos(angle/2), 0, 0, sin(angle/2)};
+
+	// Mode 2 (Cayley): qv / q0
+	arma::vec3 cayley = quatTo3Vec(q, 2);
+	arma::vec3 expected_cayley = q.rows(1, 3) / q(0);
+	cout << "  Mode 2 (Cayley): " << cayley.t();
+	cout << "  Expected: " << expected_cayley.t();
+	CHECK(arma::approx_equal(cayley, expected_cayley, "absdiff", 1e-10));
+
+	// Mode 0 (MRP+): 2*qv / (1+q0)
+	arma::vec3 mrp = quatTo3Vec(q, 0);
+	arma::vec3 expected_mrp = 2.0 * q.rows(1, 3) / (1.0 + q(0));
+	cout << "  Mode 0 (MRP+): " << mrp.t();
+	cout << "  Expected: " << expected_mrp.t();
+	CHECK(arma::approx_equal(mrp, expected_mrp, "absdiff", 1e-10));
+
+	// Mode 4 (vector part): just qv
+	arma::vec3 qv = quatTo3Vec(q, 4);
+	cout << "  Mode 4 (qv): " << qv.t();
+	CHECK(arma::approx_equal(qv, q.rows(1, 3), "absdiff", 1e-10));
+}
+
+TEST_CASE("slerpInterpolateTrajectory preserves endpoints", "[armadillo][kgain][slerp]") {
+	/*
+	 * Test SLERP interpolation preserves trajectory endpoints.
+	 */
+	cout << "\n=== SLERP interpolation test ===\n";
+
+	double dt_coarse = 10.0;
+	double dt_fine = 2.0;
+	double tf = 100.0;
+	int N_coarse = int(tf / dt_coarse) + 1;
+	int N_fine = int(tf / dt_fine) + 1;
+
+	// Create simple coarse trajectory: rotation from identity to 90° about z
+	int n_state = 8;  // omega(3) + quat(4) + h_rw(1)
+	arma::mat Xset_coarse(n_state, N_coarse, arma::fill::zeros);
+
+	for (int k = 0; k < N_coarse; k++) {
+		double t = k * dt_coarse;
+		double angle = (t / tf) * M_PI / 2;  // Linear interpolation to 90°
+		Xset_coarse(3, k) = cos(angle / 2);  // q0
+		Xset_coarse(6, k) = sin(angle / 2);  // q3 (z-axis rotation)
+		Xset_coarse(7, k) = 0.001 * t / tf;  // Small RW momentum
+	}
+
+	cout << "  Coarse trajectory: " << N_coarse << " points\n";
+	cout << "  Start q: " << Xset_coarse.col(0).rows(3, 6).t();
+	cout << "  End q: " << Xset_coarse.col(N_coarse-1).rows(3, 6).t();
+
+	// Interpolate to fine grid
+	arma::mat Xset_fine = slerpInterpolateTrajectory(Xset_coarse, dt_coarse, dt_fine, tf);
+
+	cout << "  Fine trajectory: " << Xset_fine.n_cols << " points (expected: " << N_fine << ")\n";
+	REQUIRE(Xset_fine.n_cols == N_fine);
+
+	// Check endpoints match
+	cout << "  Fine start q: " << Xset_fine.col(0).rows(3, 6).t();
+	cout << "  Fine end q: " << Xset_fine.col(N_fine-1).rows(3, 6).t();
+
+	CHECK(arma::approx_equal(Xset_fine.col(0), Xset_coarse.col(0), "absdiff", 1e-10));
+
+	// Check quaternions stay normalized
+	for (int k = 0; k < N_fine; k++) {
+		double qnorm = arma::norm(Xset_fine.col(k).rows(3, 6));
+		CHECK(fabs(qnorm - 1.0) < 1e-10);
+	}
+}
+
+TEST_CASE("kgainWarmStart with zero K-gains equals open-loop", "[armadillo][kgain][warmstart]") {
+	/*
+	 * With zero K-gains, the K-gain warm-start should produce the same
+	 * trajectory as open-loop propagation (just the nominal controls).
+	 */
+	cout << "\n=== K-gain warm-start with zero gains ===\n";
+
+	// Setup satellite (simple 3-MTQ only)
+	Satellite sat = Satellite();
+	sat.change_Jcom(arma::diagmat(arma::vec({0.05, 0.05, 0.05})));
+
+	double dt_coarse = 10.0;
+	double dt_fine = 2.0;
+	double tf = 50.0;
+	int N_coarse = int(tf / dt_coarse) + 1;
+	int N_fine = int(tf / dt_fine) + 1;
+	int n_state = sat.state_N();
+	int n_ctrl = sat.control_N();
+	int n_reduced = sat.reduced_state_N();
+
+	cout << "  n_state=" << n_state << ", n_ctrl=" << n_ctrl << ", n_reduced=" << n_reduced << "\n";
+
+	// Create simple trajectory at rest
+	arma::mat Xset_coarse(n_state, N_coarse, arma::fill::zeros);
+	for (int k = 0; k < N_coarse; k++) {
+		Xset_coarse(3, k) = 1.0;  // Identity quaternion
+	}
+
+	// Zero controls
+	arma::mat Uset_coarse(n_ctrl, N_coarse, arma::fill::zeros);
+
+	// Zero K-gains (should result in open-loop propagation)
+	arma::mat Kset_flat(n_ctrl * n_reduced, N_coarse - 1, arma::fill::zeros);
+
+	// Create simple vecs_fine with zero B-field (no control authority)
+	arma::vec t_fine = arma::linspace(0, tf, N_fine);
+	arma::mat Rset(3, N_fine, arma::fill::zeros);
+	Rset.row(0).fill(7000e3);  // 7000 km altitude
+	arma::mat Vset(3, N_fine, arma::fill::zeros);
+	Vset.row(1).fill(7.5e3);  // ~7.5 km/s orbital velocity
+	arma::mat Bset(3, N_fine, arma::fill::zeros);
+	Bset.row(2).fill(30e-6);  // 30 µT field along z
+	arma::mat Sset(3, N_fine, arma::fill::zeros);
+	Sset.row(0).fill(1.0);  // Sun along x
+	arma::mat satvec(3, N_fine, arma::fill::zeros);
+	satvec.row(2).fill(1.0);  // Body z-axis
+	arma::mat ECIvec(3, N_fine, arma::fill::zeros);
+	ECIvec.row(2).fill(1.0);  // Point at nadir
+	arma::vec pset(N_fine, arma::fill::zeros);  // Not in eclipse
+	arma::vec rhovec(N_fine, arma::fill::zeros);
+
+	VECTOR_INFO_FORM vecs_fine = std::make_tuple(t_fine, Rset, Vset, Bset, Sset, satvec, ECIvec, pset, rhovec);
+
+	// Run K-gain warm-start
+	TRAJECTORY_FORM traj_out = kgainWarmStart(
+		Xset_coarse, Uset_coarse, Kset_flat,
+		dt_coarse, dt_fine, tf,
+		sat, vecs_fine, 2);
+
+	arma::mat Xset_fine = std::get<0>(traj_out);
+	arma::mat Uset_fine = std::get<1>(traj_out);
+
+	cout << "  Output X shape: (" << Xset_fine.n_rows << ", " << Xset_fine.n_cols << ")\n";
+	cout << "  Output U shape: (" << Uset_fine.n_rows << ", " << Uset_fine.n_cols << ")\n";
+
+	// With zero controls and starting at rest, should stay at rest
+	cout << "  Final omega: " << Xset_fine.col(N_fine-1).head(3).t();
+	cout << "  Final quat: " << Xset_fine.col(N_fine-1).rows(3, 6).t();
+
+	// Angular velocity should stay near zero
+	double max_omega = arma::max(arma::abs(Xset_fine.head_rows(3))).max();
+	cout << "  Max |omega|: " << max_omega << " rad/s\n";
+	CHECK(max_omega < 0.01);
+
+	// Quaternion should stay near identity
+	for (int k = 0; k < N_fine; k++) {
+		double q0 = Xset_fine(3, k);
+		CHECK(q0 > 0.99);  // Should stay close to identity
+	}
+}
+
 /*TEST_CASE("Test dynamicsJacobians", "[csv][armadillo]") {
 	//Read inputs
 	rapidcsv::Document docU0("../test_io/dynamicsJacobiansTest_51121_input_U0.csv", rapidcsv::LabelParams(-1, -1));

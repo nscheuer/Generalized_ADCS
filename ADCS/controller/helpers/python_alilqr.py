@@ -367,6 +367,8 @@ class PythonALILQR:
                 Xset_new = self._clamp_quaternions_positive_scalar(Xset_new)
                 traj_new = (Xset_new, Uset_new, times_new, TQset_new)
                 
+
+                
                 # Compute gradient proxy
                 if dset.shape[1] > 0 and Uset_new.shape[1] > 0:
                     cols = min(dset.shape[1], Uset_new.shape[1])
