@@ -227,14 +227,14 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
                     
                     # Plot final trajectory angle error over time
                     Xset = traj.states if hasattr(traj, 'states') else controller.pass1_result.Xset
-                    N = Xset.shape[1]
-                    times = np.linspace(0, tf, N)
+                    N_traj = Xset.shape[1]
+                    times = np.linspace(0, tf, N_traj)
                     
                     # Compute angle error at each timestep
                     q_goal = config["q_goal"]
                     q_goal_inv = np.array([q_goal[0], -q_goal[1], -q_goal[2], -q_goal[3]])
                     angle_errors = []
-                    for k in range(N):
+                    for k in range(N_traj):
                         qk = Xset[3:7, k]
                         qerr_w = q_goal_inv[0]*qk[0] - np.dot(q_goal_inv[1:], qk[1:])
                         angle_rad = 2 * np.arccos(np.clip(np.abs(qerr_w), 0, 1))
@@ -346,7 +346,10 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
             )
             x = out.y[:, -1]
             x[3:7] = normalize(x[3:7])
-            if i < 5 or i % 50 == 0:
+            if i < 10:
+                omega_deg = np.linalg.norm(x[0:3]) * 180/np.pi
+                print(f"    Step {i}: u={u}, |ω|={omega_deg:.2f}°/s, t={t:.1f}s", flush=True)
+            elif i % 50 == 0:
                 omega_deg = np.linalg.norm(x[0:3]) * 180/np.pi
                 print(f"    Step {i} took {time_module.time()-t0_step:.3f}s, nfev={out.nfev}, |u|={np.linalg.norm(u):.4f}, |ω|={omega_deg:.2f}°/s", flush=True)
 

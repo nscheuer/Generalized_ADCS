@@ -207,7 +207,7 @@ class Plan_and_Track_PythonALILQR(PlanAndTrackBase):
         dx = self.active_trajectory._state_diff(x_hat, x_ref)
         
         # Apply TVLQR feedback: u = u_ref + K @ dx
-        # Note: Python ALILQR K-gains have opposite sign convention from C++ trajOpt
+        # Note: Sign is + because Python ALILQR K-gains have opposite convention from standard LQR
         u = u_ref + K @ dx
         
         # Saturate control to actuator limits
@@ -613,7 +613,8 @@ class Plan_and_Track_PythonALILQR(PlanAndTrackBase):
                     Uset_kgain_opt[n_mtq_acts:n_mtq_acts+n_rw_acts, :] /= NONMTQ_TORQ_SCALE
                 
                 # Build trajectory tuple for Pass2
-                times_fine = np.linspace(0, duration, N_fine)
+                # CRITICAL: times must be in J2000 centuries to match trajectory.get_control_at() queries
+                times_fine = np.linspace(t_start, t_end, N_fine)
                 TQset_fine = np.zeros((3, N_fine))
                 # CRITICAL: C++ expects Fortran-order arrays (column-major)
                 traj_fine = (
