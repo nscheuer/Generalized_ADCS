@@ -193,13 +193,13 @@ class RegularizationConfig:
     reg_scale: float = 1.6
     reg_bump: float = 10.0
     reg_min_cond: int = 2
-    rand_add_ratio: float = 0.0
+    reg_mode: int = 0  # 0=control-space only (default), 1=state-space only, 2=both
     use_dynamics_hess: int = 0
     use_constraint_hess: int = 0
 
     def to_tuple(self) -> Tuple[float, float, float, float, float, int, float, int, int]:
         return (self.reg_init, self.reg_min, self.reg_max, self.reg_scale,
-                self.reg_bump, self.reg_min_cond, self.rand_add_ratio,
+                self.reg_bump, self.reg_min_cond, float(self.reg_mode),
                 self.use_dynamics_hess, self.use_constraint_hess)
     
 @dataclass
@@ -458,6 +458,55 @@ class CostWeights:
     #              smoothstep*smoothstep'' for stiction), may be indefinite but can
     #              converge faster when the problem is well-behaved
     use_full_cost_hessian: bool = False
+
+    def check_psd(self, warn: bool = True) -> bool:
+        """Check if the cost matrix with cross-terms is positive semi-definite.
+        
+        For PSD, we need: angle * ang_vel >= (ang_vel_err_dir/2)²
+        i.e., ang_vel_err_dir <= 2 * sqrt(angle * ang_vel)
+        
+        Returns True if PSD, False otherwise.
+        """
+        import numpy as np
+        max_cross = 2 * np.sqrt(self.angle * self.ang_vel)
+        max_cross_N = 2 * np.sqrt(self.angle_N * self.ang_vel_N)
+        
+        is_psd = (abs(self.ang_vel_err_dir) <= max_cross and 
+                  abs(self.ang_vel_err_dir_N) <= max_cross_N)
+        
+        if warn and not is_psd:
+            import warnings
+            warnings.warn(
+                f"Cost cross-terms may violate PSD: "
+                f"running={self.ang_vel_err_dir:.1f} (max={max_cross:.1f}), "
+                f"terminal={self.ang_vel_err_dir_N:.1f} (max={max_cross_N:.1f})"
+            )
+        return is_psd
+    
+    def set_cross_term_auto(self, fraction: float = 0.5, verbose: bool = False) -> 'CostWeights':
+        """Automatically set cross-term weights to a fraction of the PSD maximum.
+        
+        Args:
+            fraction: Fraction of max PSD-safe cross-term to use (0 to 1)
+            verbose: Print the computed values
+            
+        Returns:
+            self for chaining
+        """
+        import numpy as np
+        max_cross = 2 * np.sqrt(self.angle * self.ang_vel)
+        max_cross_N = 2 * np.sqrt(self.angle_N * self.ang_vel_N)
+        
+        self.ang_vel_err_dir = fraction * max_cross
+        self.ang_vel_err_dir_N = fraction * max_cross_N
+        
+        if verbose:
+            print(f"  Auto cross-term: ang_vel_err_dir = {self.ang_vel_err_dir:.1f} "
+                  f"({fraction*100:.0f}% of max {max_cross:.1f})")
+            print(f"  Auto cross-term: ang_vel_err_dir_N = {self.ang_vel_err_dir_N:.1f} "
+                  f"({fraction*100:.0f}% of max {max_cross_N:.1f})")
+        
+        return self
 
     def to_tuple(self, tracking_formulation: int | None = None) -> Tuple[float, ...]:
         """Convert to tuple for C++ interface.

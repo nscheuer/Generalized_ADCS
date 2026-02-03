@@ -14,6 +14,7 @@ from __future__ import annotations
 
 __all__ = ["Plan_and_Track_PythonALILQR"]
 
+import os
 import numpy as np
 from typing import Optional, Callable, List
 from numpy.typing import NDArray
@@ -340,29 +341,24 @@ class Plan_and_Track_PythonALILQR(PlanAndTrackBase):
         # These typically have higher control costs to produce smaller, more practical gains
         tvlqr_cost_settings = self.planner_settings.optTVLQRCostSettings(tracking_LQR_formulation=0)
         
-        # Interpolate coarse trajectory to fine timestep (like C++ trajOptAfter)
+        # Interpolate coarse trajectory to fine timestep using ZOH (zero-order hold)
+        # FOH caused discretization issues leading to divergence in Pass2
         interp_ratio = int(dt_coarse / dt_fine)
         if interp_ratio > 1:
-            Xset_coarse = result1.Xset
             Uset_coarse = result1.Uset
-            
-            # Replicate controls (zero-order hold) like C++ repelem
-            # UsetLong = join_rows(repelem(Uset.cols(0,Uset.n_cols-3), 1, ratio), ...)
+            # ZOH: repeat each control for interp_ratio timesteps
             if Uset_coarse.shape[1] >= 3:
                 Uset_main = np.repeat(Uset_coarse[:, :-2], interp_ratio, axis=1)
             else:
                 Uset_main = np.repeat(Uset_coarse[:, :-1], interp_ratio, axis=1)
-            
-            # Handle end padding to reach N_fine
             cols_needed = N_fine - Uset_main.shape[1] - 1
             if cols_needed > 0:
                 Uset_pad = np.tile(Uset_coarse[:, -2:-1], (1, cols_needed))
                 Uset_fine = np.hstack([Uset_main, Uset_pad, Uset_coarse[:, -1:]])
             else:
                 Uset_fine = np.hstack([Uset_main[:, :N_fine-1], Uset_coarse[:, -1:]])
-            
             if verbose:
-                print(f"  Interpolated controls: {Uset_coarse.shape[1]} -> {Uset_fine.shape[1]}")
+                print(f"  ZOH interpolated controls: {Uset_coarse.shape[1]} -> {Uset_fine.shape[1]}")
         else:
             Uset_fine = result1.Uset
         
@@ -376,106 +372,99 @@ class Plan_and_Track_PythonALILQR(PlanAndTrackBase):
         # This matches C++ trajOptAfter: generateInitialTrajectory(dt_tvlqr, Xset.col(0), UsetLong, vecs_tvlqr)
         # dt_fine=1s is small enough that this should be stable
         #
-        # NEW: Option to use SLERP interpolation of states instead of forward simulation.
-        # This preserves the Pass1 trajectory shape better, especially for quaternions.
-        use_slerp_interpolation = True  # Re-enable with debugging
-        
-        if use_slerp_interpolation and interp_ratio > 1:
-            from ADCS.controller.helpers.mtq_warm_start import (
-                interpolate_trajectory_to_finer_grid, 
-                solve_controls_from_trajectory
+        # Warm-start modes (env: PY_ALILQR_WARMSTART):
+        #   "foh"   -> FOH controls only (dynamics roll-out)
+        #   "slerp" -> SLERP states + FOH controls (no LSQ)
+        #   "lsq"   -> SLERP states + least-squares control reconstruction
+        env_warm_start = os.environ.get("PY_ALILQR_WARMSTART", "").strip().lower()
+        if env_warm_start in ("foh", "slerp", "lsq"):
+            warm_start_mode = env_warm_start
+        else:
+            warm_start_mode = "foh"
+        if verbose:
+            print(f"  Warm start mode: {warm_start_mode.upper()}")
+
+        def _fallback_to_foh(reason: str) -> None:
+            nonlocal traj_fine
+            if verbose:
+                print(f"  WARNING: {reason}, falling back to FOH warm start")
+            traj_fine = self.planner.generateInitialTrajectory(
+                dt_fine, result1.Xset[:, 0].copy(), Uset_fine, vecs_dt_fine
             )
-            
-            # SLERP interpolate states from Pass1
+
+        traj_fine = None
+        if interp_ratio > 1 and warm_start_mode in ("slerp", "lsq"):
+            from ADCS.controller.helpers.mtq_warm_start import (
+                interpolate_trajectory_to_finer_grid,
+                solve_controls_from_trajectory_regularized
+            )
+
             Xset_coarse = result1.Xset
             tf = duration
-            
+
             try:
-                Xset_fine = interpolate_trajectory_to_finer_grid(
+                # Interpolate states (SLERP for quaternions)
+                Xset_fine_ref = interpolate_trajectory_to_finer_grid(
                     Xset_coarse, dt_coarse, dt_fine, tf, use_slerp=True
                 )
-                
-                # Validate interpolated states
-                if np.any(np.isnan(Xset_fine)) or np.any(np.isinf(Xset_fine)):
-                    print("  WARNING: SLERP produced NaN/Inf, falling back to forward simulation")
-                    use_slerp_interpolation = False
-                else:
-                    # Ensure Xset_fine has correct number of columns
-                    if Xset_fine.shape[1] != N_fine:
-                        # Pad or trim
-                        if Xset_fine.shape[1] < N_fine:
-                            pad = np.tile(Xset_fine[:, -1:], (1, N_fine - Xset_fine.shape[1]))
-                            Xset_fine = np.hstack([Xset_fine, pad])
-                        else:
-                            Xset_fine = Xset_fine[:, :N_fine]
-                    
-                    # Verify quaternion norms
-                    q_norms = np.linalg.norm(Xset_fine[3:7, :], axis=0)
-                    if np.any(np.abs(q_norms - 1.0) > 0.01):
-                        print(f"  WARNING: SLERP quaternions not normalized (range: {q_norms.min():.3f}-{q_norms.max():.3f})")
-                    
-                    # Recompute controls to match SLERP-interpolated states
-                    # Extract B-field from vecs (vecs[4] is B_ECI)
-                    B_eci = vecs_dt_fine[4]  # shape (3, N_fine)
-                    
-                    # Get satellite parameters
-                    J = self.est_sat.Jcom
-                    
-                    # Get RW axes and limits
-                    rw_axes = []
-                    rw_torq_max = None
-                    for act in self.est_sat.actuators:
-                        if hasattr(act, 'J_rw'):  # It's a RW
-                            rw_axes.append(act.axis)
-                            if rw_torq_max is None:
-                                rw_torq_max = act.u_max
-                    rw_axes = np.array(rw_axes) if rw_axes else None
-                    
-                    # Get MTQ limit
-                    m_max = None
-                    for act in self.est_sat.actuators:
-                        if hasattr(act, 'm_max'):  # It's an MTQ
-                            m_max = act.m_max
-                            break
-                    
-                    # Solve for controls that approximate the SLERP trajectory
-                    # Note: MTQ can only produce torque perpendicular to B, so we can't
-                    # exactly match arbitrary trajectories. We compute best-effort controls
-                    # then forward-simulate to get consistent states.
-                    Uset_slerp = solve_controls_from_trajectory(
-                        Xset_fine, B_eci, dt_fine, J, rw_axes,
-                        m_max=m_max, rw_torq_max=rw_torq_max
-                    )
-                    
-                    print(f"  SLERP: Computed controls from interpolated states")
-                    print(f"    MTQ range: [{Uset_slerp[0:3,:].min():.4f}, {Uset_slerp[0:3,:].max():.4f}]")
-                    if rw_axes is not None and len(rw_axes) > 0:
-                        print(f"    RW range: [{Uset_slerp[3:,:].min():.6f}, {Uset_slerp[3:,:].max():.6f}]")
-                    
-                    # Forward simulate with these controls to get consistent states
-                    # This gives a trajectory that's close to SLERP but dynamically feasible
-                    print(f"  SLERP: Forward simulating for consistency...")
+
+                # Ensure correct length
+                if Xset_fine_ref.shape[1] != N_fine:
+                    if Xset_fine_ref.shape[1] < N_fine:
+                        pad = np.tile(Xset_fine_ref[:, -1:], (1, N_fine - Xset_fine_ref.shape[1]))
+                        Xset_fine_ref = np.hstack([Xset_fine_ref, pad])
+                    else:
+                        Xset_fine_ref = Xset_fine_ref[:, :N_fine]
+
+                if warm_start_mode == "slerp":
+                    # Use SLERP states with FOH controls; keep TQset from FOH rollout
                     traj_fwd = self.planner.generateInitialTrajectory(
-                        dt_fine, Xset_fine[:, 0].copy(), Uset_slerp, vecs_dt_fine
+                        dt_fine, Xset_fine_ref[:, 0].copy(), Uset_fine, vecs_dt_fine
+                    )
+                    _, _, times_fwd, TQset_fwd = traj_fwd
+                    traj_fine = (Xset_fine_ref, Uset_fine, times_fwd, TQset_fwd)
+                    if verbose:
+                        print(f"  SLERP warm start used: X={Xset_fine_ref.shape}, U={Uset_fine.shape}")
+                else:
+                    # LSQ reconstruction toward FOH controls (no clamping)
+                    B_eci = vecs_dt_fine[4]  # shape (3, N_fine)
+                    J = self.est_sat.J_COM
+
+                    # Get RW axes (no torque limits)
+                    from ADCS.satellite_hardware.actuators.reaction_wheel import RW
+                    rw_axes = []
+                    for act in self.est_sat.actuators:
+                        if isinstance(act, RW):
+                            rw_axes.append(act.axis)
+                    rw_axes = np.array(rw_axes) if rw_axes else None
+
+                    reg_lambda_env = os.environ.get("PY_ALILQR_LSQ_LAMBDA", "0.0")
+                    try:
+                        reg_lambda = float(reg_lambda_env)
+                    except ValueError:
+                        reg_lambda = 0.0
+
+                    Uset_reg = solve_controls_from_trajectory_regularized(
+                        Xset_fine_ref, B_eci, dt_fine, J, rw_axes,
+                        u_prior=Uset_fine, reg_lambda=reg_lambda,
+                        m_max=None, rw_torq_max=None
+                    )
+
+                    traj_fwd = self.planner.generateInitialTrajectory(
+                        dt_fine, Xset_fine_ref[:, 0].copy(), Uset_reg, vecs_dt_fine
                     )
                     Xset_fwd, _, times_fwd, TQset_fwd = traj_fwd
-                    
-                    # Check how close we got to SLERP
-                    diff_q = np.abs(Xset_fine[3:7, :] - Xset_fwd[3:7, :])
-                    print(f"    Max q diff from SLERP: {diff_q.max():.4f}")
-                    
-                    # Use the forward-simulated trajectory (consistent dynamics)
-                    traj_fine = (Xset_fwd, Uset_slerp, times_fwd, TQset_fwd)
-                    
+                    traj_fine = (Xset_fwd, Uset_reg, times_fwd, TQset_fwd)
+
                     if verbose:
-                        print(f"  Used SLERP interpolation for states: {Xset_coarse.shape[1]} -> {Xset_fine.shape[1]}")
+                        print(
+                            f"  LSQ reconstruction used (lambda={reg_lambda:g}): "
+                            f"{Uset_fine.shape[1]} -> {Uset_reg.shape[1]}"
+                        )
             except Exception as e:
-                import traceback
-                print(f"  WARNING: SLERP interpolation failed ({e})")
-                traceback.print_exc()
-                use_slerp_interpolation = False
-        
-        if not use_slerp_interpolation or interp_ratio <= 1:
+                _fallback_to_foh(str(e))
+
+        if traj_fine is None:
             try:
                 traj_fine = self.planner.generateInitialTrajectory(
                     dt_fine, result1.Xset[:, 0].copy(), Uset_fine, vecs_dt_fine

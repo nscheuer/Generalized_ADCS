@@ -98,7 +98,11 @@ def compute_angle_error(Xset: NDArray, goal_vec_eci: NDArray, body_vec: NDArray)
             if goal_is_time_varying:
                 q_goal = goal_vec_eci[:, k]
             else:
-                q_goal = goal_vec_eci
+                # Handle both 1D (4,) and 2D (4, N) with mismatched N
+                if goal_vec_eci.ndim == 2:
+                    q_goal = goal_vec_eci[:, 0]  # Use first column
+                else:
+                    q_goal = goal_vec_eci
             q_goal = q_goal / np.linalg.norm(q_goal)
             
             # Angle between quaternions: 2 * arccos(|q1 · q2|)
@@ -110,7 +114,11 @@ def compute_angle_error(Xset: NDArray, goal_vec_eci: NDArray, body_vec: NDArray)
             if goal_is_time_varying:
                 g = goal_vec_eci[:, k]
             else:
-                g = goal_vec_eci[:3] if len(goal_vec_eci) > 3 else goal_vec_eci
+                # Handle both 1D (3,) and 2D (3, N) with mismatched N
+                if goal_vec_eci.ndim == 2:
+                    g = goal_vec_eci[:, 0]  # Use first column
+                else:
+                    g = goal_vec_eci[:3] if len(goal_vec_eci) > 3 else goal_vec_eci
             
             g = g / np.linalg.norm(g)
             
@@ -443,8 +451,9 @@ class LivePlannerViz:
                 old_N = goal_vec.shape[1]
                 old_times = np.linspace(0, 1, old_N)
                 new_times = np.linspace(0, 1, N)
-                goal_vec = np.zeros((3, N))
-                for i in range(3):
+                n_rows = goal_vec.shape[0]  # Preserve dimension (3 for vector, 4 for quaternion)
+                goal_vec = np.zeros((n_rows, N))
+                for i in range(n_rows):
                     goal_vec[i, :] = np.interp(new_times, old_times, self.goal_vector_eci[i, :])
             angles = compute_angle_error(Xset, goal_vec, self.body_vector)
             self.lines['angle'].set_data(times, angles)

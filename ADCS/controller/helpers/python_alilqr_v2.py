@@ -318,7 +318,9 @@ class PythonALILQRv2:
                 # =============================================================
                 dLA = abs(newLA - LA)
                 dla_z_count += 1
-                if dLA > 1e-10:  # Use tolerance for effectively zero
+                # Use relative tolerance: reset if cost changed by more than 0.1%
+                relative_change = dLA / (abs(LA) + 1e-10)
+                if relative_change > 1e-3:
                     dla_z_count = 0
                 
                 # =============================================================

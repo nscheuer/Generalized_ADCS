@@ -23,6 +23,7 @@ from .plan_and_track_actualb import (
     Plan_and_Track_ActualB,
     Plan_and_Track_ActualB_Python
 )
+from .plan_and_track_computed_torque import Plan_and_Track_ComputedTorque2
 from .plan_and_track_python_alilqr import Plan_and_Track_PythonALILQR
 
 # C++ TinyMPC controllers (optional - may not be built)

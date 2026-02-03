@@ -379,11 +379,12 @@ class PythonALILQR:
                 # Get constraint violations
                 clist, cmax = self.planner.maxViol(traj_new, vecs, auglag_vals)
                 
-                # Compute cost change
+                # Compute cost change (use relative tolerance for z_count)
                 dLA = abs(newLA - LA)
                 dla_z_count += 1
-                # Use tolerance for effectively zero cost change (machine precision)
-                if dLA > 1e-10:
+                # Use relative tolerance: reset if cost changed by more than 1%
+                relative_change = dLA / (abs(LA) + 1e-10)
+                if relative_change > 1e-2:
                     dla_z_count = 0
                 
                 # Update trajectory and cost
@@ -440,7 +441,7 @@ class PythonALILQR:
                     grad, LA, dLA, dla_z_count, cmax, total_iter,
                     break_settings, j, ii, False
                 ):
-                    inner_break_reason = f"ilqrBreak at ii={ii}"
+                    inner_break_reason = f"ilqrBreak at ii={ii}, z_count={dla_z_count}"
                     if self.verbose:
                         print(f"    INNER BREAK: {inner_break_reason}")
                     break
@@ -628,8 +629,9 @@ class PythonALILQR:
                 
                 dLA = abs(newLA - LA)
                 dla_z_count += 1
-                # Use tolerance for effectively zero cost change (machine precision)
-                if dLA > 1e-10:
+                # Use relative tolerance: reset if cost changed by more than 1%
+                relative_change = dLA / (abs(LA) + 1e-10)
+                if relative_change > 1e-2:
                     dla_z_count = 0
                 
                 LA_old = LA

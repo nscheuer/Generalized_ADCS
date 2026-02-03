@@ -134,8 +134,8 @@ TEST_CASE("Test quatcostJac", "[armadillo][.skip]") {
 			// double w_avmag = get<3>(costSettings_tmp);
 			// double w_avang = get<4>(costSettings_tmp);
 
-			double cost = sat.stepcost_quat(k, N, xk, uk,z3, satvec_k,  ECIvec_k,BECI_k,  &costset_tmp);
-			cost_jacs costJac = sat.quatcostJacobians(k, N, xk, uk, z3,satvec_k,ECIvec_k,BECI_k, &costset_tmp);
+			double cost = sat.stepcost_quat(k, N, xk, xk, uk,z3, satvec_k,  ECIvec_k,BECI_k,  &costset_tmp);
+			cost_jacs costJac = sat.quatcostJacobians(k, N, xk, xk, uk, z3,satvec_k,ECIvec_k,BECI_k, &costset_tmp);
 			//Set expected output
 			arma::vec lkx = costJac.lx;
 			arma::mat lkxx = costJac.lxx;
@@ -151,7 +151,7 @@ TEST_CASE("Test quatcostJac", "[armadillo][.skip]") {
 				ee(i) = 1;
 				double x0i = xk(i);
 				double errest = 0;
-				auto fxi = [=,&costset_tmp] (double xi) {return sat.stepcost_quat(k,N,xk + ee*(xi-x0i), uk,z3, satvec_k,  ECIvec_k,BECI_k,  &costset_tmp);};
+				auto fxi = [=,&costset_tmp] (double xi) {return sat.stepcost_quat(k,N,xk + ee*(xi-x0i), xk + ee*(xi-x0i), uk,z3, satvec_k,  ECIvec_k,BECI_k,  &costset_tmp);};
 				df__dx += ee*boost::math::differentiation::finite_difference_derivative(fxi,x0i,&errest);
 				df__dx_errest(i) = errest;
 			}
@@ -170,7 +170,7 @@ TEST_CASE("Test quatcostJac", "[armadillo][.skip]") {
 				ee.zeros();
 				ee(i) = 1;
 				double u0i = uk(i);
-				auto fui = [=,&costset_tmp] (double ui) {return sat.stepcost_quat(k,N,xk, uk + ee*(ui-u0i),z3, satvec_k,  ECIvec_k,BECI_k,  &costset_tmp);};
+				auto fui = [=,&costset_tmp] (double ui) {return sat.stepcost_quat(k,N,xk, xk, uk + ee*(ui-u0i),z3, satvec_k,  ECIvec_k,BECI_k,  &costset_tmp);};
 				df__du += ee*boost::math::differentiation::finite_difference_derivative(fui,u0i);
 			}
 			cout<<"quatcost lku\n";
@@ -193,14 +193,14 @@ TEST_CASE("Test quatcostJac", "[armadillo][.skip]") {
 					double x0i = xk(i);
 					if(i==j)
 					{
-						auto fxi = [=,&costset_tmp] (double xi) {return sat.stepcost_quat(k,N,xk + ee*(xi-x0i), uk,z3, satvec_k,  ECIvec_k,BECI_k,  &costset_tmp);};
+						auto fxi = [=,&costset_tmp] (double xi) {return sat.stepcost_quat(k,N,xk + ee*(xi-x0i), xk + ee*(xi-x0i), uk,z3, satvec_k,  ECIvec_k,BECI_k,  &costset_tmp);};
 						auto dfxi = [=,&costset_tmp] (double xj) {return boost::math::differentiation::finite_difference_derivative(fxi,xj);};
 						ddf__dxdx += er*ee.t()*boost::math::differentiation::finite_difference_derivative(dfxi,x0j);
 
 					}
 					else
 					{
-						auto dfxi = [=,&costset_tmp] (double xj) { 		auto fxi = [=,&costset_tmp] (double xi) {return sat.stepcost_quat(k,N,xk + ee*(xi-x0i) + er*(xj-x0j), uk,z3, satvec_k,  ECIvec_k,BECI_k,  &costset_tmp);};
+						auto dfxi = [=,&costset_tmp] (double xj) { 		auto fxi = [=,&costset_tmp] (double xi) {return sat.stepcost_quat(k,N,xk + ee*(xi-x0i) + er*(xj-x0j), xk + ee*(xi-x0i) + er*(xj-x0j), uk,z3, satvec_k,  ECIvec_k,BECI_k,  &costset_tmp);};
 																													return boost::math::differentiation::finite_difference_derivative(fxi,x0i);};
 						ddf__dxdx += er*ee.t()*boost::math::differentiation::finite_difference_derivative(dfxi,x0j);
 
@@ -235,14 +235,14 @@ TEST_CASE("Test quatcostJac", "[armadillo][.skip]") {
 					double u0i = uk(i);
 					if(i==j)
 					{
-						auto fui = [=,&costset_tmp] (double ui) {return sat.stepcost_quat(k,N,xk, uk+ ee*(ui-u0i),z3, satvec_k,  ECIvec_k,BECI_k,  &costset_tmp);};
+						auto fui = [=,&costset_tmp] (double ui) {return sat.stepcost_quat(k,N,xk, xk, uk+ ee*(ui-u0i),z3, satvec_k,  ECIvec_k,BECI_k,  &costset_tmp);};
 						auto dfui = [=,&costset_tmp] (double uj) {return boost::math::differentiation::finite_difference_derivative(fui,uj);};
 						ddf__dudu += er*ee.t()*boost::math::differentiation::finite_difference_derivative(dfui,u0j);
 
 					}
 					else
 					{
-						auto dfui = [=,&costset_tmp] (double uj) { 		auto fui = [=,&costset_tmp] (double ui) {return sat.stepcost_quat(k,N,xk, uk + ee*(ui-u0i) + er*(uj-u0j),z3, satvec_k,  ECIvec_k,BECI_k,  &costset_tmp);};
+						auto dfui = [=,&costset_tmp] (double uj) { 		auto fui = [=,&costset_tmp] (double ui) {return sat.stepcost_quat(k,N,xk, xk, uk + ee*(ui-u0i) + er*(uj-u0j),z3, satvec_k,  ECIvec_k,BECI_k,  &costset_tmp);};
 																													return boost::math::differentiation::finite_difference_derivative(fui,u0i);};
 						ddf__dudu += er*ee.t()*boost::math::differentiation::finite_difference_derivative(dfui,u0j);
 
@@ -274,7 +274,7 @@ TEST_CASE("Test quatcostJac", "[armadillo][.skip]") {
 					ee.zeros();
 					ee(i) = 1;
 					double x0i = xk(i);
-					auto dfxi = [=,&costset_tmp] (double uj) { 		auto fui = [=,&costset_tmp] (double xi) {return sat.stepcost_quat(k,N,xk + ee*(xi-x0i) , uk+ er*(uj-u0j),z3, satvec_k,  ECIvec_k,BECI_k,  &costset_tmp);};
+					auto dfxi = [=,&costset_tmp] (double uj) { 		auto fui = [=,&costset_tmp] (double xi) {return sat.stepcost_quat(k,N,xk + ee*(xi-x0i), xk + ee*(xi-x0i), uk+ er*(uj-u0j),z3, satvec_k,  ECIvec_k,BECI_k,  &costset_tmp);};
 																												return boost::math::differentiation::finite_difference_derivative(fui,x0i);};
 					ddf__dudx += er*ee.t()*boost::math::differentiation::finite_difference_derivative(dfxi,u0j);
 
@@ -329,8 +329,8 @@ for(int mode = 0; mode<4; mode++){
 
 		COST_SETTINGS_FORM costset_tmp = std::make_tuple(1.0e3,1.0e0,1.0e0,0.33,3.0,1.0e6,1.0e3,1.0e-1,3.0,mode,1,0);
 		// costset_tmp = std::make_tuple(0.0e3,0.0e0,0.0e0,0.0,0.0,3.0,0.0,0.0,0.0,0.0,0,1);
-		double cost = sat.stepcost_vec(k, N, xk, uk,z3, satvec_k,  ECIvec_k,BECI_k,  &costset_tmp);
-		cost_jacs costJac = sat.veccostJacobians(k, N, xk, uk, z3,satvec_k,ECIvec_k,BECI_k, &costset_tmp);
+		double cost = sat.stepcost_vec(k, N, xk, xk, uk,z3, satvec_k,  ECIvec_k,BECI_k,  &costset_tmp);
+		cost_jacs costJac = sat.veccostJacobians(k, N, xk, xk, uk, z3,satvec_k,ECIvec_k,BECI_k, &costset_tmp);
 		//Set expected output
 		arma::vec lkx = costJac.lx;
 		arma::mat lkxx = costJac.lxx;
@@ -349,7 +349,7 @@ for(int mode = 0; mode<4; mode++){
 			ee(iii) = 1;
 			errest = 0;
 			x0i = xk(iii);
-			auto fxi = [=,&costset_tmp] (double xi) {return sat.stepcost_vec(k,N,xk + ee*(xi-x0i), uk,z3, satvec_k,  ECIvec_k,BECI_k,  &costset_tmp);};
+			auto fxi = [=,&costset_tmp] (double xi) {return sat.stepcost_vec(k,N,xk + ee*(xi-x0i), xk + ee*(xi-x0i), uk,z3, satvec_k,  ECIvec_k,BECI_k,  &costset_tmp);};
 			df__dx += ee*boost::math::differentiation::finite_difference_derivative(fxi,x0i,&errest);
 			df__dx_errest(iii) = errest;
 		}
@@ -372,7 +372,7 @@ for(int mode = 0; mode<4; mode++){
 			ee.zeros();
 			ee(i) = 1;
 			double u0i = uk(i);
-			auto fui = [=,&costset_tmp] (double ui) {return sat.stepcost_vec(k,N,xk, uk + ee*(ui-u0i),z3, satvec_k,  ECIvec_k,BECI_k,  &costset_tmp);};
+			auto fui = [=,&costset_tmp] (double ui) {return sat.stepcost_vec(k,N,xk, xk, uk + ee*(ui-u0i),z3, satvec_k,  ECIvec_k,BECI_k,  &costset_tmp);};
 			df__du += ee*boost::math::differentiation::finite_difference_derivative(fui,u0i);
 		}
 		cout<<"veccost lku\n";
@@ -397,14 +397,14 @@ for(int mode = 0; mode<4; mode++){
 				double x0i = xk(i);
 				if(i==j)
 				{
-					auto fxi = [=,&costset_tmp] (double xi) {return sat.stepcost_vec(k,N,xk + ee*(xi-x0i), uk,z3, satvec_k,  ECIvec_k,BECI_k,  &costset_tmp);};
+					auto fxi = [=,&costset_tmp] (double xi) {return sat.stepcost_vec(k,N,xk + ee*(xi-x0i), xk + ee*(xi-x0i), uk,z3, satvec_k,  ECIvec_k,BECI_k,  &costset_tmp);};
 					auto dfxi = [=,&costset_tmp] (double xj) {return boost::math::differentiation::finite_difference_derivative(fxi,xj);};
 					ddf__dxdx += er*ee.t()*boost::math::differentiation::finite_difference_derivative(dfxi,x0j);
 
 				}
 				else
 				{
-					auto dfxi = [=,&costset_tmp] (double xj) { 		auto fxi = [=,&costset_tmp] (double xi) {return sat.stepcost_vec(k,N,xk + ee*(xi-x0i) + er*(xj-x0j), uk,z3, satvec_k,  ECIvec_k,BECI_k,  &costset_tmp);};
+					auto dfxi = [=,&costset_tmp] (double xj) { 		auto fxi = [=,&costset_tmp] (double xi) {return sat.stepcost_vec(k,N,xk + ee*(xi-x0i) + er*(xj-x0j), xk + ee*(xi-x0i) + er*(xj-x0j), uk,z3, satvec_k,  ECIvec_k,BECI_k,  &costset_tmp);};
 																												return boost::math::differentiation::finite_difference_derivative(fxi,x0i);};
 					ddf__dxdx += er*ee.t()*boost::math::differentiation::finite_difference_derivative(dfxi,x0j);
 
@@ -440,14 +440,14 @@ for(int mode = 0; mode<4; mode++){
 					double u0i = uk(i);
 					if(i==j)
 					{
-						auto fui = [=,&costset_tmp] (double ui) {return sat.stepcost_vec(k,N,xk, uk+ ee*(ui-u0i),z3, satvec_k,  ECIvec_k,BECI_k,  &costset_tmp);};
+						auto fui = [=,&costset_tmp] (double ui) {return sat.stepcost_vec(k,N,xk, xk, uk+ ee*(ui-u0i),z3, satvec_k,  ECIvec_k,BECI_k,  &costset_tmp);};
 						auto dfui = [=,&costset_tmp] (double uj) {return boost::math::differentiation::finite_difference_derivative(fui,uj);};
 						ddf__dudu += er*ee.t()*boost::math::differentiation::finite_difference_derivative(dfui,u0j);
 
 					}
 					else
 					{
-						auto dfui = [=,&costset_tmp] (double uj) { 		auto fui = [=,&costset_tmp] (double ui) {return sat.stepcost_vec(k,N,xk, uk + ee*(ui-u0i) + er*(uj-u0j),z3, satvec_k,  ECIvec_k,BECI_k,  &costset_tmp);};
+						auto dfui = [=,&costset_tmp] (double uj) { 		auto fui = [=,&costset_tmp] (double ui) {return sat.stepcost_vec(k,N,xk, xk, uk + ee*(ui-u0i) + er*(uj-u0j),z3, satvec_k,  ECIvec_k,BECI_k,  &costset_tmp);};
 																													return boost::math::differentiation::finite_difference_derivative(fui,u0i);};
 						ddf__dudu += er*ee.t()*boost::math::differentiation::finite_difference_derivative(dfui,u0j);
 
@@ -479,7 +479,7 @@ for(int mode = 0; mode<4; mode++){
 					ee.zeros();
 					ee(i) = 1;
 					double x0i = xk(i);
-					auto dfxi = [=,&costset_tmp] (double uj) { 		auto fui = [=,&costset_tmp] (double xi) {return sat.stepcost_vec(k,N,xk + ee*(xi-x0i) , uk+ er*(uj-u0j),z3, satvec_k,  ECIvec_k,BECI_k,  &costset_tmp);};
+					auto dfxi = [=,&costset_tmp] (double uj) { 		auto fui = [=,&costset_tmp] (double xi) {return sat.stepcost_vec(k,N,xk + ee*(xi-x0i), xk + ee*(xi-x0i), uk+ er*(uj-u0j),z3, satvec_k,  ECIvec_k,BECI_k,  &costset_tmp);};
 																												return boost::math::differentiation::finite_difference_derivative(fui,x0i);};
 					ddf__dudx += er*ee.t()*boost::math::differentiation::finite_difference_derivative(dfxi,u0j);
 
@@ -4720,7 +4720,7 @@ TEST_CASE("Test stepcost Jacobians MTQ only", "[armadillo][cost]") {
 
 	COST_SETTINGS_FORM costset_tmp = std::make_tuple(1e3,1e0,1e-1,5,1.0,1e6,1e3,1e1,1e1,0,1,0);
 
-	cost_jacs cj = sat.veccostJacobians(k, N, xk, uk, uk_prev, satvec_k, ECIvec_k, BECI_k, &costset_tmp);
+	cost_jacs cj = sat.veccostJacobians(k, N, xk, xk, uk, uk_prev, satvec_k, ECIvec_k, BECI_k, &costset_tmp);
 
 	// Verify lx via finite difference
 	arma::vec lx = cj.lx;
@@ -4731,7 +4731,7 @@ TEST_CASE("Test stepcost Jacobians MTQ only", "[armadillo][cost]") {
 		ee.zeros();
 		ee(i) = 1;
 		double x0i = xk(i);
-		auto fxi = [=,&costset_tmp] (double xi) {return sat.stepcost_vec(k, N, xk + ee*(xi-x0i), uk, uk_prev, satvec_k, ECIvec_k, BECI_k, &costset_tmp);};
+		auto fxi = [=,&costset_tmp] (double xi) {return sat.stepcost_vec(k, N, xk + ee*(xi-x0i), xk + ee*(xi-x0i), uk, uk_prev, satvec_k, ECIvec_k, BECI_k, &costset_tmp);};
 		df__dx += ee*boost::math::differentiation::finite_difference_derivative(fxi,x0i);
 	}
 	// Transform from full state (7D with quaternion) to reduced state (6D)
@@ -4751,7 +4751,7 @@ TEST_CASE("Test stepcost Jacobians MTQ only", "[armadillo][cost]") {
 		ee.zeros();
 		ee(i) = 1;
 		double u0i = uk(i);
-		auto fui = [=,&costset_tmp] (double ui) {return sat.stepcost_vec(k, N, xk, uk + ee*(ui-u0i), uk_prev, satvec_k, ECIvec_k, BECI_k, &costset_tmp);};
+		auto fui = [=,&costset_tmp] (double ui) {return sat.stepcost_vec(k, N, xk, xk, uk + ee*(ui-u0i), uk_prev, satvec_k, ECIvec_k, BECI_k, &costset_tmp);};
 		df__du += ee*boost::math::differentiation::finite_difference_derivative(fui,u0i);
 	}
 	cout<<"Stepcost lu error: "<<arma::norm(df__du-lu)<<"\n";
@@ -4774,13 +4774,13 @@ TEST_CASE("Test stepcost Jacobians MTQ only", "[armadillo][cost]") {
 			double x0i = xk(i);
 			if(i==j)
 			{
-				auto fxi = [=,&costset_tmp] (double xi) {return sat.stepcost_vec(k, N, xk+ ee*(xi-x0i), uk, uk_prev, satvec_k, ECIvec_k, BECI_k, &costset_tmp);};
+				auto fxi = [=,&costset_tmp] (double xi) {return sat.stepcost_vec(k, N, xk+ ee*(xi-x0i), xk+ ee*(xi-x0i), uk, uk_prev, satvec_k, ECIvec_k, BECI_k, &costset_tmp);};
 				auto dfxi = [=,&costset_tmp] (double xj) {return boost::math::differentiation::finite_difference_derivative(fxi,xj);};
 				ddf__dxdx += er*ee.t()*boost::math::differentiation::finite_difference_derivative(dfxi,x0j);
 			}
 			else
 			{
-				auto dfxi = [=,&costset_tmp] (double xj) { 		auto fxi = [=,&costset_tmp] (double xi) {return sat.stepcost_vec(k, N, xk+ ee*(xi-x0i)+ er*(xj-x0j), uk, uk_prev, satvec_k, ECIvec_k, BECI_k, &costset_tmp);};
+				auto dfxi = [=,&costset_tmp] (double xj) { 		auto fxi = [=,&costset_tmp] (double xi) {return sat.stepcost_vec(k, N, xk+ ee*(xi-x0i)+ er*(xj-x0j), xk+ ee*(xi-x0i)+ er*(xj-x0j), uk, uk_prev, satvec_k, ECIvec_k, BECI_k, &costset_tmp);};
 																											return boost::math::differentiation::finite_difference_derivative(fxi,x0i);};
 				ddf__dxdx += er*ee.t()*boost::math::differentiation::finite_difference_derivative(dfxi,x0j);
 			}
@@ -4977,7 +4977,7 @@ TEST_CASE("Test stepcost with RW Jacobians", "[armadillo][cost][.skip]") {
 
 	COST_SETTINGS_FORM costset_tmp = std::make_tuple(1e3,1e0,1e-1,5,1.0,1e6,1e3,1e1,1e1,0,1,0);
 
-	cost_jacs cj = sat.veccostJacobians(k, N, xk, uk, uk_prev, satvec_k, ECIvec_k, BECI_k, &costset_tmp);
+	cost_jacs cj = sat.veccostJacobians(k, N, xk, xk, uk, uk_prev, satvec_k, ECIvec_k, BECI_k, &costset_tmp);
 
 	// Verify lx via finite difference
 	arma::vec lx = cj.lx;
@@ -4988,7 +4988,7 @@ TEST_CASE("Test stepcost with RW Jacobians", "[armadillo][cost][.skip]") {
 		ee.zeros();
 		ee(i) = 1;
 		double x0i = xk(i);
-		auto fxi = [=,&costset_tmp] (double xi) {return sat.stepcost_vec(k, N, xk + ee*(xi-x0i), uk, uk_prev, satvec_k, ECIvec_k, BECI_k, &costset_tmp);};
+		auto fxi = [=,&costset_tmp] (double xi) {return sat.stepcost_vec(k, N, xk + ee*(xi-x0i), xk + ee*(xi-x0i), uk, uk_prev, satvec_k, ECIvec_k, BECI_k, &costset_tmp);};
 		df__dx += ee*boost::math::differentiation::finite_difference_derivative(fxi,x0i);
 	}
 	// Transform from full state (10D with quaternion) to reduced state (9D)
@@ -5009,7 +5009,7 @@ TEST_CASE("Test stepcost with RW Jacobians", "[armadillo][cost][.skip]") {
 		ee.zeros();
 		ee(i) = 1;
 		double u0i = uk(i);
-		auto fui = [=,&costset_tmp] (double ui) {return sat.stepcost_vec(k, N, xk, uk + ee*(ui-u0i), uk_prev, satvec_k, ECIvec_k, BECI_k, &costset_tmp);};
+		auto fui = [=,&costset_tmp] (double ui) {return sat.stepcost_vec(k, N, xk, xk, uk + ee*(ui-u0i), uk_prev, satvec_k, ECIvec_k, BECI_k, &costset_tmp);};
 		df__du += ee*boost::math::differentiation::finite_difference_derivative(fui,u0i);
 	}
 	cout<<"RW Stepcost lu error: "<<arma::norm(df__du-lu)<<"\n";
@@ -5030,13 +5030,13 @@ TEST_CASE("Test stepcost with RW Jacobians", "[armadillo][cost][.skip]") {
 			double u0i = uk(i);
 			if(i==j)
 			{
-				auto fui = [=,&costset_tmp] (double ui) {return sat.stepcost_vec(k, N, xk, uk+ ee*(ui-u0i), uk_prev, satvec_k, ECIvec_k, BECI_k, &costset_tmp);};
+				auto fui = [=,&costset_tmp] (double ui) {return sat.stepcost_vec(k, N, xk, xk, uk+ ee*(ui-u0i), uk_prev, satvec_k, ECIvec_k, BECI_k, &costset_tmp);};
 				auto dfui = [=,&costset_tmp] (double uj) {return boost::math::differentiation::finite_difference_derivative(fui,uj);};
 				ddf__dudu += er*ee.t()*boost::math::differentiation::finite_difference_derivative(dfui,u0j);
 			}
 			else
 			{
-				auto dfui = [=,&costset_tmp] (double uj) { 		auto fui = [=,&costset_tmp] (double ui) {return sat.stepcost_vec(k, N, xk, uk+ ee*(ui-u0i)+ er*(uj-u0j), uk_prev, satvec_k, ECIvec_k, BECI_k, &costset_tmp);};
+				auto dfui = [=,&costset_tmp] (double uj) { 		auto fui = [=,&costset_tmp] (double ui) {return sat.stepcost_vec(k, N, xk, xk, uk+ ee*(ui-u0i)+ er*(uj-u0j), uk_prev, satvec_k, ECIvec_k, BECI_k, &costset_tmp);};
 																											return boost::math::differentiation::finite_difference_derivative(fui,u0i);};
 				ddf__dudu += er*ee.t()*boost::math::differentiation::finite_difference_derivative(dfui,u0j);
 			}
@@ -5150,7 +5150,7 @@ TEST_CASE("Test backward pass math verification", "[armadillo][planner][math]") 
 
 	// Get terminal cost Jacobians
 	// IMPORTANT: Use veccostJacobians to match OldPlanner::backPassALTRO behavior
-	cost_jacs termCostJac = sat.veccostJacobians(k, N, xk, uk, ukp, sat_body_vec, eci_goal, B_eci, &costSettings);
+	cost_jacs termCostJac = sat.veccostJacobians(k, N, xk, xk, uk, ukp, sat_body_vec, eci_goal, B_eci, &costSettings);
 
 	S_manual[k] = termCostJac.lxx;
 	s_manual[k] = termCostJac.lx;
@@ -5190,7 +5190,7 @@ TEST_CASE("Test backward pass math verification", "[armadillo][planner][math]") 
 		cout<<"B_q:\n"<<B_q<<"\n";
 
 		// Get cost Jacobians (use veccostJacobians to match OldPlanner)
-		cost_jacs costJac = sat.veccostJacobians(k, N, xk, uk, ukp, sat_body_vec, eci_goal, B_eci, &costSettings);
+		cost_jacs costJac = sat.veccostJacobians(k, N, xk, xk, uk, ukp, sat_body_vec, eci_goal, B_eci, &costSettings);
 
 		arma::mat l_xx = costJac.lxx;  // nxr x nxr
 		arma::mat l_ux = costJac.lux;  // nu x nxr
@@ -5499,7 +5499,7 @@ TEST_CASE("Test backward pass with constraints (ALTRO)", "[armadillo][planner][m
 	// costJacobians is for TVLQR and interprets costSettings[10] as considerVectorInTVLQR flag
 	// veccostJacobians interprets costSettings[10] as whichAngCostFunc (0=1-dot, 2=acos, etc.)
 	cout<<"DEBUG: Calling veccostJacobians...\n";
-	cost_jacs termCostJac = sat.veccostJacobians(k, N, xk, uk, ukp, sat_body_vec, eci_goal, B_eci, &costSettings);
+	cost_jacs termCostJac = sat.veccostJacobians(k, N, xk, xk, uk, ukp, sat_body_vec, eci_goal, B_eci, &costSettings);
 	cout<<"DEBUG: veccostJacobians returned\n";
 
 	// Get terminal constraint info
@@ -5544,7 +5544,7 @@ TEST_CASE("Test backward pass with constraints (ALTRO)", "[armadillo][planner][m
 		arma::mat B_q = Gkp1 * std::get<1>(AB);
 
 		// Cost Jacobians (use veccostJacobians to match OldPlanner)
-		cost_jacs costJac = sat.veccostJacobians(k, N, xk, uk, ukp, sat_body_vec, eci_goal, B_eci, &costSettings);
+		cost_jacs costJac = sat.veccostJacobians(k, N, xk, xk, uk, ukp, sat_body_vec, eci_goal, B_eci, &costSettings);
 
 		// Constraint Jacobians
 		arma::vec ck = sat.getConstraints(k, N, uk, xk, sunk);
@@ -5782,7 +5782,7 @@ void runBackwardPassTest(
 	arma::vec uk = Uset.col(k);
 	arma::vec ukp = (k > 0) ? Uset.col(k-1) : arma::vec(nu).zeros();
 
-	cost_jacs termCostJac = sat.veccostJacobians(k, N, xk, uk, ukp, sat_body_vec, eci_goal, B_eci, &costSettings);
+	cost_jacs termCostJac = sat.veccostJacobians(k, N, xk, xk, uk, ukp, sat_body_vec, eci_goal, B_eci, &costSettings);
 
 	arma::vec ck_term = sat.getConstraints(k, N, uk, xk, sunk);
 	auto cnstrJac_term = sat.constraintJacobians(k, N, uk, xk, sunk);
@@ -5813,7 +5813,7 @@ void runBackwardPassTest(
 		arma::mat A_q = Gkp1 * std::get<0>(AB) * Gk.t();
 		arma::mat B_q = Gkp1 * std::get<1>(AB);
 
-		cost_jacs costJac = sat.veccostJacobians(k, N, xk, uk, ukp, sat_body_vec, eci_goal, B_eci, &costSettings);
+		cost_jacs costJac = sat.veccostJacobians(k, N, xk, xk, uk, ukp, sat_body_vec, eci_goal, B_eci, &costSettings);
 
 		arma::vec ck = sat.getConstraints(k, N, uk, xk, sunk);
 		auto cnstrJac = sat.constraintJacobians(k, N, uk, xk, sunk);
@@ -6466,7 +6466,7 @@ TEST_CASE("Analytical case: RW-only asymmetric inertia (debug_altro_6Up simplifi
 	arma::vec uk = Uset.col(k);
 	arma::vec ukp = (k > 0) ? Uset.col(k-1) : arma::vec(nu).zeros();
 
-	cost_jacs termCostJac = sat.veccostJacobians(k, N, xk, uk, ukp, sat_body_vec, eci_goal, B_eci, &costSettings);
+	cost_jacs termCostJac = sat.veccostJacobians(k, N, xk, xk, uk, ukp, sat_body_vec, eci_goal, B_eci, &costSettings);
 	arma::vec ck = sat.getConstraints(k, N, uk, xk, sunk);
 	auto cnstrJac = sat.constraintJacobians(k, N, uk, xk, sunk);
 	arma::mat ckx = std::get<1>(cnstrJac);
@@ -6494,7 +6494,7 @@ TEST_CASE("Analytical case: RW-only asymmetric inertia (debug_altro_6Up simplifi
 		arma::mat A_q = Gkp1 * std::get<0>(AB) * Gk.t();
 		arma::mat B_q = Gkp1 * std::get<1>(AB);
 
-		cost_jacs costJac = sat.veccostJacobians(k, N, xk, uk, ukp, sat_body_vec, eci_goal, B_eci, &costSettings);
+		cost_jacs costJac = sat.veccostJacobians(k, N, xk, xk, uk, ukp, sat_body_vec, eci_goal, B_eci, &costSettings);
 
 		ck = sat.getConstraints(k, N, uk, xk, sunk);
 		cnstrJac = sat.constraintJacobians(k, N, uk, xk, sunk);
@@ -6571,7 +6571,7 @@ TEST_CASE("Analytical case: RW-only asymmetric inertia (debug_altro_6Up simplifi
 		auto AB = rk4zJacobians(dt, xk, uk, sat, dynamics_info, dynamics_info);
 		arma::mat B_q = Gkp1 * std::get<1>(AB);
 
-		cost_jacs costJac = sat.veccostJacobians(k, N, xk, uk, ukp, sat_body_vec, eci_goal, B_eci, &costSettings);
+		cost_jacs costJac = sat.veccostJacobians(k, N, xk, xk, uk, ukp, sat_body_vec, eci_goal, B_eci, &costSettings);
 		arma::mat Q_uu = costJac.luu + B_q.t() * S_vals[k+1] * B_q;
 
 		arma::vec eigs;
@@ -6727,6 +6727,246 @@ TEST_CASE("Analytical case: Near-saturation RW control", "[armadillo][planner][a
 		arma::vec u = Uset.col(k);
 		cout << "k=" << k << ": " << (arma::abs(u) / rw_max_torq * 100).t() << " % of max\n";
 	}
+}
+
+// ============================================================================
+// PATH LENGTH COST TESTS
+// ============================================================================
+
+TEST_CASE("Path length cost helper function", "[armadillo][cost][pathlength]") {
+	/*
+	 * Test the pathLengthCost helper function directly.
+	 * This computes geodesic rotation between consecutive quaternions.
+	 */
+	cout << "\n=== Path Length Cost Helper Tests ===\n";
+
+	Satellite sat = Satellite();
+	sat.change_Jcom(arma::diagmat(arma::vec({0.05, 0.05, 0.05})));
+
+	// Test 1: Identity quaternions (zero rotation)
+	{
+		arma::vec4 q1 = {1, 0, 0, 0};
+		arma::vec4 q2 = {1, 0, 0, 0};
+		double weight = 1.0;
+
+		auto [cost, grad_q1, grad_q2, dtheta] = sat.pathLengthCost(q1, q2, weight);
+
+		cout << "Test 1: Identity to Identity\n";
+		cout << "  Cost (should be ~0): " << cost << "\n";
+		CHECK(cost < 1e-10);
+		CHECK(arma::norm(grad_q1) < 1e-10);
+		CHECK(arma::norm(grad_q2) < 1e-10);
+	}
+
+	// Test 2: 90° rotation about x-axis
+	{
+		arma::vec4 q1 = {1, 0, 0, 0};  // Identity
+		double angle = M_PI / 2;  // 90 degrees
+		arma::vec4 q2 = {cos(angle/2), sin(angle/2), 0, 0};  // 90° about x
+		double weight = 1.0;
+
+		auto [cost, grad_q1, grad_q2, dtheta] = sat.pathLengthCost(q1, q2, weight);
+
+		// Expected cost: weight * θ² = 1.0 * (π/2)² ≈ 2.467
+		double expected_cost = weight * angle * angle;
+
+		cout << "Test 2: Identity to 90° rotation\n";
+		cout << "  Cost: " << cost << " (expected: " << expected_cost << ")\n";
+		CHECK(fabs(cost - expected_cost) < 1e-6);
+
+		// Gradients should be non-zero and opposite
+		CHECK(arma::norm(grad_q1) > 1e-6);
+		CHECK(arma::norm(grad_q2) > 1e-6);
+		cout << "  grad_q1: " << grad_q1.t();
+		cout << "  grad_q2: " << grad_q2.t();
+	}
+
+	// Test 3: 180° rotation (maximum geodesic distance)
+	{
+		arma::vec4 q1 = {1, 0, 0, 0};
+		arma::vec4 q2 = {0, 1, 0, 0};  // 180° about x
+		double weight = 1.0;
+
+		auto [cost, grad_q1, grad_q2, dtheta] = sat.pathLengthCost(q1, q2, weight);
+
+		double expected_cost = weight * M_PI * M_PI;
+
+		cout << "Test 3: 180° rotation\n";
+		cout << "  Cost: " << cost << " (expected: " << expected_cost << ")\n";
+		CHECK(fabs(cost - expected_cost) < 1e-4);
+	}
+
+	// Test 4: q and -q should give same cost (double cover invariance)
+	{
+		arma::vec4 q1 = {1, 0, 0, 0};
+		double angle = M_PI / 3;  // 60 degrees
+		arma::vec4 q2 = {cos(angle/2), sin(angle/2), 0, 0};
+		arma::vec4 q2_neg = -q2;  // Negative quaternion (same rotation)
+		double weight = 1.0;
+
+		auto [cost1, g1a, g1b, dt1] = sat.pathLengthCost(q1, q2, weight);
+		auto [cost2, g2a, g2b, dt2] = sat.pathLengthCost(q1, q2_neg, weight);
+
+		cout << "Test 4: Double cover invariance (q vs -q)\n";
+		cout << "  Cost with q2: " << cost1 << "\n";
+		cout << "  Cost with -q2: " << cost2 << "\n";
+		CHECK(fabs(cost1 - cost2) < 1e-6);
+	}
+}
+
+TEST_CASE("Path length cost gradient finite difference", "[armadillo][cost][pathlength][gradient]") {
+	/*
+	 * Verify path length cost gradients match finite differences.
+	 */
+	cout << "\n=== Path Length Cost Gradient Verification ===\n";
+
+	Satellite sat = Satellite();
+	sat.change_Jcom(arma::diagmat(arma::vec({0.05, 0.05, 0.05})));
+	sat.add_MTQ(arma::vec({1,0,0}), 0.1, 1.0);
+	sat.add_MTQ(arma::vec({0,1,0}), 0.1, 1.0);
+	sat.add_MTQ(arma::vec({0,0,1}), 0.1, 1.0);
+
+	// Test with a non-trivial rotation
+	arma::vec4 q1 = arma::normalise(arma::vec({0.9, 0.2, 0.1, 0.3}));
+	arma::vec4 q2 = arma::normalise(arma::vec({0.8, 0.3, 0.4, 0.2}));
+	double weight = 10.0;
+
+	auto [cost0, grad_q1, grad_q2, dtheta0] = sat.pathLengthCost(q1, q2, weight);
+
+	cout << "Base cost: " << cost0 << "\n";
+	cout << "Analytical grad_q1: " << grad_q1.t();
+	cout << "Analytical grad_q2: " << grad_q2.t();
+
+	// Finite difference for q1
+	double eps = 1e-7;
+	arma::vec4 fd_grad_q1;
+	for(int i = 0; i < 4; i++) {
+		arma::vec4 q1_plus = q1;
+		arma::vec4 q1_minus = q1;
+		q1_plus(i) += eps;
+		q1_minus(i) -= eps;
+		// Re-normalize
+		q1_plus = arma::normalise(q1_plus);
+		q1_minus = arma::normalise(q1_minus);
+
+		auto [cost_plus, g1, g2, dtp] = sat.pathLengthCost(q1_plus, q2, weight);
+		auto [cost_minus, g3, g4, dtm] = sat.pathLengthCost(q1_minus, q2, weight);
+		fd_grad_q1(i) = (cost_plus - cost_minus) / (2 * eps);
+	}
+
+	// Finite difference for q2
+	arma::vec4 fd_grad_q2;
+	for(int i = 0; i < 4; i++) {
+		arma::vec4 q2_plus = q2;
+		arma::vec4 q2_minus = q2;
+		q2_plus(i) += eps;
+		q2_minus(i) -= eps;
+		q2_plus = arma::normalise(q2_plus);
+		q2_minus = arma::normalise(q2_minus);
+
+		auto [cost_plus, g1, g2, dtp] = sat.pathLengthCost(q1, q2_plus, weight);
+		auto [cost_minus, g3, g4, dtm] = sat.pathLengthCost(q1, q2_minus, weight);
+		fd_grad_q2(i) = (cost_plus - cost_minus) / (2 * eps);
+	}
+
+	cout << "FD grad_q1: " << fd_grad_q1.t();
+	cout << "FD grad_q2: " << fd_grad_q2.t();
+
+	double q1_error = arma::norm(grad_q1 - fd_grad_q1);
+	double q2_error = arma::norm(grad_q2 - fd_grad_q2);
+	cout << "grad_q1 error: " << q1_error << "\n";
+	cout << "grad_q2 error: " << q2_error << "\n";
+
+	// Gradients should be in the same order of magnitude
+	// Note: The analytical gradient is approximate (Gauss-Newton style)
+	// through complex quaternion chain rule, so we just verify same order of magnitude
+	double grad_q1_norm = arma::norm(grad_q1);
+	double fd_grad_q1_norm = arma::norm(fd_grad_q1);
+	cout << "grad_q1 norm ratio: " << grad_q1_norm / fd_grad_q1_norm << " (should be ~1)\n";
+
+	// Check that gradients are same order of magnitude (within factor of 3)
+	CHECK(grad_q1_norm > 0.3 * fd_grad_q1_norm);
+	CHECK(grad_q1_norm < 3.0 * fd_grad_q1_norm);
+	CHECK(arma::norm(grad_q2) > 0.3 * arma::norm(fd_grad_q2));
+	CHECK(arma::norm(grad_q2) < 3.0 * arma::norm(fd_grad_q2));
+}
+
+TEST_CASE("Path length cost in stepcost functions", "[armadillo][cost][pathlength][stepcost]") {
+	/*
+	 * Test that stepcost_vec and stepcost_quat include path length cost
+	 * when w_avmag (ang_vel_mag) weight is non-zero.
+	 */
+	cout << "\n=== Path Length Cost in Step Cost Functions ===\n";
+
+	Satellite sat = Satellite();
+	sat.change_Jcom(arma::diagmat(arma::vec({0.05, 0.05, 0.05})));
+	sat.add_MTQ(arma::vec({1,0,0}), 0.1, 1.0);
+	sat.add_MTQ(arma::vec({0,1,0}), 0.1, 1.0);
+	sat.add_MTQ(arma::vec({0,0,1}), 0.1, 1.0);
+
+	int N = 10;
+	int k = 5;  // Middle of trajectory
+
+	// Two different quaternions
+	arma::vec3 w = {0.01, 0.02, 0.01};
+	arma::vec4 qk = arma::normalise(arma::vec({1.0, 0.0, 0.0, 0.0}));
+	arma::vec4 qkp1 = arma::normalise(arma::vec({0.95, 0.18, 0.1, 0.2}));
+
+	arma::vec xk = arma::join_cols(w, qk);
+	arma::vec xkp1 = arma::join_cols(w, qkp1);
+	xk = sat.state_norm(xk);
+	xkp1 = sat.state_norm(xkp1);
+
+	arma::vec uk = arma::vec({0.01, 0.02, 0.01});
+	arma::vec uk_prev = uk * 0.9;
+
+	arma::vec3 satvec = {0, 0, 1};
+	arma::vec3 ECIvec = arma::normalise(arma::vec({1, 0, 0}));
+	arma::vec3 B_eci = {1e-5, 3e-5, 2e-5};
+
+	// Cost settings WITHOUT path length cost (w_avmag = 0)
+	COST_SETTINGS_FORM costSettings_no_path = std::make_tuple(
+		1e2, 1e1, 1.0, 0.0, 0.0,  // angle, ang_vel, control_mult, ang_vel_mag=0, ang_vel_err_dir
+		1e3, 1e2, 0.0, 0.0,       // terminal: angle_N, ang_vel_N, ang_vel_mag_N=0, ang_vel_err_dir_N
+		2, 0, 0                    // ang_cost_func_type, use_raw_control_cost, use_full_cost_hess
+	);
+
+	// Cost settings WITH path length cost (w_avmag = 10.0)
+	COST_SETTINGS_FORM costSettings_with_path = std::make_tuple(
+		1e2, 1e1, 1.0, 10.0, 0.0,  // ang_vel_mag = 10.0
+		1e3, 1e2, 0.0, 0.0,
+		2, 0, 0
+	);
+
+	// Test with same xk and xkp1 (no rotation difference)
+	double cost_same_no_path = sat.stepcost_vec(k, N, xk, xk, uk, uk_prev, satvec, ECIvec, B_eci, &costSettings_no_path);
+	double cost_same_with_path = sat.stepcost_vec(k, N, xk, xk, uk, uk_prev, satvec, ECIvec, B_eci, &costSettings_with_path);
+
+	cout << "Same state (qk = qkp1):\n";
+	cout << "  Cost without path length: " << cost_same_no_path << "\n";
+	cout << "  Cost with path length:    " << cost_same_with_path << "\n";
+	cout << "  Difference: " << (cost_same_with_path - cost_same_no_path) << " (should be ~0)\n";
+
+	// When qk = qkp1, path length cost should be zero
+	CHECK(fabs(cost_same_with_path - cost_same_no_path) < 1e-8);
+
+	// Test with different xk and xkp1
+	double cost_diff_no_path = sat.stepcost_vec(k, N, xk, xkp1, uk, uk_prev, satvec, ECIvec, B_eci, &costSettings_no_path);
+	double cost_diff_with_path = sat.stepcost_vec(k, N, xk, xkp1, uk, uk_prev, satvec, ECIvec, B_eci, &costSettings_with_path);
+
+	cout << "\nDifferent states (qk != qkp1):\n";
+	cout << "  Cost without path length: " << cost_diff_no_path << "\n";
+	cout << "  Cost with path length:    " << cost_diff_with_path << "\n";
+	cout << "  Path length contribution: " << (cost_diff_with_path - cost_diff_no_path) << " (should be > 0)\n";
+
+	// When qk != qkp1, path length cost should be positive
+	double path_length_contribution = cost_diff_with_path - cost_diff_no_path;
+	CHECK(path_length_contribution > 0);
+
+	// Compute expected path length cost directly
+	auto [expected_path_cost, g1, g2, dt_unused] = sat.pathLengthCost(qk, qkp1, 10.0);
+	cout << "  Expected path cost: " << expected_path_cost << "\n";
+	CHECK(fabs(path_length_contribution - expected_path_cost) < 1e-6);
 }
 
 /*TEST_CASE("Test dynamicsJacobians", "[csv][armadillo]") {

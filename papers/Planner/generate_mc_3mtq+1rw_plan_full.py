@@ -144,9 +144,15 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
                     max_angle = np.max(angles)
                     max_idx = np.argmax(angles)
                     
+                    # Max in second half (where spikes typically happen after initial progress)
+                    half_N = N // 2
+                    second_half_angles = angles[half_N:]
+                    max_2nd_half = np.max(second_half_angles)
+                    max_2nd_idx = half_N + np.argmax(second_half_angles)  # Index in full array
+                    
                     print(f"  [{iter_data.pass_label}] O:{iter_data.outer_iter} I:{iter_data.inner_iter} "
-                          f"Cost:{iter_data.LA:.2e} Cmax:{iter_data.cmax:.2e} "
-                          f"Angle[start:{angles[0]:.0f}° max:{max_angle:.0f}°@{max_idx} mean:{np.mean(angles):.0f}° end:{angles[-1]:.0f}°]")
+                          f"Cost:{iter_data.LA:.2e} Cmax:{iter_data.cmax:.2e} rho:{iter_data.rho:.1e} "
+                          f"Angle[start:{angles[0]:.0f}° max:{max_angle:.0f}°@{max_idx} spike:{max_2nd_half:.0f}°@{max_2nd_idx} mean:{np.mean(angles):.0f}° end:{angles[-1]:.0f}°]")
                     
                     # Save figure at key iterations: 0, 5, 10, 20, 33 of each outer loop
                     iter_count[0] += 1
@@ -225,6 +231,8 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
                     times = np.linspace(0, tf, N)
                     
                     # Compute angle error at each timestep
+                    q_goal = config["q_goal"]
+                    q_goal_inv = np.array([q_goal[0], -q_goal[1], -q_goal[2], -q_goal[3]])
                     angle_errors = []
                     for k in range(N):
                         qk = Xset[3:7, k]
@@ -382,6 +390,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run Monte Carlo simulations")
     parser.add_argument("-t", "--test", action="store_true", 
                         help="Run single test simulation (no multiprocessing, with visualization)")
+    parser.add_argument("-s", "--seed", type=int, default=0,
+                        help="Seed for test mode (default: 0)")
     parser.add_argument("-n", "--num-runs", type=int, default=None,
                         help="Override number of runs")
     args = parser.parse_args()
@@ -392,8 +402,9 @@ if __name__ == "__main__":
     
     if TEST_MODE:
         # Single run test mode - no multiprocessing, with visualization
-        print("=== TEST MODE: Single run, no multiprocessing, with planner visualization ===")
-        config = generate_mc_config(0)
+        test_seed = args.seed
+        print(f"=== TEST MODE: Single run (seed={test_seed}), no multiprocessing, with planner visualization ===")
+        config = generate_mc_config(test_seed)
         config["verbose"] = False  # Disable verbose text output
         config["visualize"] = True  # Enable live planner visualization
         config["save_viz"] = True  # Save visualization figures

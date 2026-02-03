@@ -47,12 +47,13 @@ def create_good_planner_settings(sat, dt_planning: float = 1.0, has_rw: bool = N
     
     if has_rw:
         # Use torque-effective MTQ scaling + scale normalization
+        # Control costs increased 10x to reduce discretization sensitivity
         config = NormalizedPlannerConfig(
             actuator_costs=NormalizedActuatorCosts(
-                mtq_cost=1.0,
-                rw_torque_cost=5.0,
-                rw_momentum_cost=10.0,
-                rw_stiction_cost=0.1,
+                mtq_cost=10.0,           # 10x increase
+                rw_torque_cost=50.0,     # 10x increase
+                rw_momentum_cost=100.0,  # 10x increase
+                rw_stiction_cost=1.0,    # 10x increase
                 use_torque_effective_mtq_scaling=True,  # Makes MTQs cheap
                 expected_B_field_uT=30.0,
             ),
@@ -319,7 +320,7 @@ def create_adaptive_planner_settings(
                 # high enough to drive the optimizer to the goal
                 angle_terminal_cost=100000.0,
                 ang_vel_terminal_cost=10000.0,
-                ang_cost_func_type=3,  # sin²(θ/2) - stable at 180°
+                ang_cost_func_type=4,  # 1-cos²(θ/2) - max=1 at 180°, 2x stronger than type 3
                 # All auto-tuning enabled
                 use_scale_normalization=True,
                 auto_scale_angle_cost=True,
@@ -345,7 +346,7 @@ def create_adaptive_planner_settings(
                 ang_vel_cost=500.0,
                 angle_terminal_cost=100000.0,
                 ang_vel_terminal_cost=10000.0,
-                ang_cost_func_type=3,  # sin²(θ/2) - stable at 180°
+                ang_cost_func_type=4,  # 1-cos²(θ/2) - max=1 at 180°, 2x stronger than type 3
                 use_scale_normalization=True,
                 auto_scale_angle_cost=True,
                 angle_scale_deg=90.0,
@@ -749,36 +750,65 @@ def apply_fast_slew_tuning(settings, verbose: bool = False):
     orig_angle = settings.cost_main.angle
     orig_ang_vel = settings.cost_main.ang_vel
     
-    # Ratio ≈ 100 (no multiplier on ang_vel, which starts at ~100x angle)
-    # Terminal 10x for good convergence
-    settings.cost_main.angle_N *= 10
-    settings.cost_main.ang_vel_N *= 10
-    settings.mtq_control_weight *= 0.1
-    settings.rw_control_weight *= 0.1
+    # Make angle cost higher (10x) to penalize being far from goal
+    settings.cost_main.angle *= 10
+    settings.cost_main.angle_N = settings.cost_main.angle  # Keep terminal = running
+    settings.cost_main.ang_vel_N = settings.cost_main.ang_vel  # Keep terminal = running
     
-    settings.cost_second.angle_N *= 10
-    settings.cost_second.ang_vel_N *= 10
+    settings.cost_second.angle *= 10
+    settings.cost_second.angle_N = settings.cost_second.angle
+    settings.cost_second.ang_vel_N = settings.cost_second.ang_vel
     
-    # Use B-dot initialization (mode 1) - TEST: checking if PD causes spins
-    # Mode 1 (B-dot) is meant for detumbling
-    # Mode 4 (PD) drives toward goal but might cause spins
-    settings.bdot_on = 1  # TESTING
+    # Initialization mode
+    # Mode 0: Random initialization  
+    # Mode 1: B-dot damping
+    # Mode 4: PD control toward goal
+    # Mode 5: PD control + noise
+    settings.bdot_on = 0
     settings.cost_main.use_full_cost_hessian = False
     settings.cost_second.use_full_cost_hessian = False
     
-    # TEST C: Penalize angular velocity in the "wrong" direction (increasing error)
-    # This should discourage spinning backwards through 180°
-    settings.cost_main.ang_vel_err_dir = 1000.0  # TEST
-    settings.cost_main.ang_vel_err_dir_N = 1000.0
-    settings.cost_second.ang_vel_err_dir = 1000.0
-    settings.cost_second.ang_vel_err_dir_N = 1000.0
+    # Cross-term for discouraging wrong-direction ω (spinning backwards)
+    # Auto-set to 75% of max PSD-safe value based on angle/ang_vel weights
+    # NOTE: For PSD cost matrix, need: ang_vel_err_dir <= 2*sqrt(angle * ang_vel)
+    settings.cost_main.set_cross_term_auto(fraction=0.75, verbose=verbose)
+    settings.cost_second.set_cross_term_auto(fraction=0.75, verbose=verbose)
     
-    # TEST: Finer timestep in Pass1 to capture dynamics better
-    settings.dt_tp = 5  # Was 10, try 5 to see if it helps with spikes
+    # Path length cost: DISABLED - was causing issues with some seeds
+    settings.cost_main.ang_vel_mag = 0.0
+    settings.cost_main.ang_vel_mag_N = 0.0
+    settings.cost_second.ang_vel_mag = 0.0
+    settings.cost_second.ang_vel_mag_N = 0.0
     
-    # Very low initial penalty for better exploration in Pass 1
-    settings.pass1.aug_lag.penalty_init = 1e-6
-    settings.pass1.aug_lag.penalty_max = 1e4
+    # Check PSD and warn if violated
+    settings.cost_main.check_psd(warn=True)
+    settings.cost_second.check_psd(warn=True)
+    
+    # Timestep for planning
+    settings.dt_tp = 10
+    
+    # Penalty settings
+    settings.pass1.aug_lag.penalty_init = 1e-3
+    settings.pass1.aug_lag.penalty_max = 1e6
+    
+    # Pass2: same low initial penalty as Pass1 to allow exploration
+    settings.pass2.aug_lag.penalty_init = 1e-3
+    settings.pass2.aug_lag.penalty_max = 1e10
+    
+    # More inner iterations to allow convergence
+    settings.pass1.convergence.max_inner_iter = 100
+    settings.pass2.convergence.max_inner_iter = 100
+    
+    # Regularization settings - clamp to reg_min instead of going to 0
+    settings.pass1.regularization.reg_min_cond = 1
+    settings.pass2.regularization.reg_min_cond = 1
+    
+    # Pass2: use normalized control cost (not raw) for better conditioning
+    settings.cost_second.use_raw_control_cost = False
+    
+    # Convergence detection (break if cost hasn't improved for z_count_lim iterations)
+    settings.pass1.convergence.z_count_lim = 10
+    settings.pass2.convergence.z_count_lim = 10
     
     if verbose:
         ratio = settings.cost_main.ang_vel / settings.cost_main.angle

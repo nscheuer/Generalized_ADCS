@@ -141,13 +141,19 @@ public:
     std::tuple<arma::mat,arma::mat> constraintJacobians(int k, int N, arma::vec uk,arma::vec xk,arma::vec3 sunk) const;
     arma::vec getConstraints(int t, int tmax, arma::vec u, arma::vec x, arma::vec3 sunECIvec) const;
 
-    double stepcost_vec(int k, int N, arma::vec xk, arma::vec uk, arma::vec ukprev, arma::vec3 satvec_k, arma::vec3 ECIvec_k, arma::vec3 BECI_k,COST_SETTINGS_FORM *costSettings_ptr) const;
-    double stepcost_quat(int k, int N, arma::vec xk, arma::vec uk, arma::vec ukprev, arma::vec3 satvec_k, arma::vec4 ECIvec_k, arma::vec3 BECI_k,COST_SETTINGS_FORM *costSettings_ptr) const;
+    double stepcost_vec(int k, int N, arma::vec xk, arma::vec xkp1, arma::vec uk, arma::vec ukprev, arma::vec3 satvec_k, arma::vec3 ECIvec_k, arma::vec3 BECI_k,COST_SETTINGS_FORM *costSettings_ptr) const;
+    double stepcost_quat(int k, int N, arma::vec xk, arma::vec xkp1, arma::vec uk, arma::vec ukprev, arma::vec3 satvec_k, arma::vec4 ECIvec_k, arma::vec3 BECI_k,COST_SETTINGS_FORM *costSettings_ptr) const;
 
     //std::tuple<arma::vec6, arma::mat66> veccostJacobians(int k, int N, arma::vec xk, arma::vec uk, arma::vec vk, arma::mat QN, arma::mat satvec, arma::mat ECIvec, arma::vec vNslew, std::tuple<int, double, double, double, double> *costSettings_ptr);
-    cost_jacs veccostJacobians(int k, int N, arma::vec xk, arma::vec uk,arma::vec ukprev, arma::vec3 satvec_k, arma::vec3 ECIvec_k, arma::vec3 BECI_k, COST_SETTINGS_FORM *costSettings_ptr) const;
-    cost_jacs quatcostJacobians(int k, int N, arma::vec xk, arma::vec uk,arma::vec ukprev, arma::vec3 satvec_k, arma::vec4 ECIvec_k, arma::vec3 BECI_k, COST_SETTINGS_FORM *costSettings_ptr) const;
-    cost_jacs costJacobians(int k, int N, arma::vec xk, arma::vec uk,arma::vec ukprev,arma::vec3 satvec, arma::vec ECIvec, arma::vec3 BECI_k,COST_SETTINGS_FORM *costSettings_ptr) const;
+    cost_jacs veccostJacobians(int k, int N, arma::vec xk, arma::vec xkp1, arma::vec uk,arma::vec ukprev, arma::vec3 satvec_k, arma::vec3 ECIvec_k, arma::vec3 BECI_k, COST_SETTINGS_FORM *costSettings_ptr) const;
+    cost_jacs quatcostJacobians(int k, int N, arma::vec xk, arma::vec xkp1, arma::vec uk,arma::vec ukprev, arma::vec3 satvec_k, arma::vec4 ECIvec_k, arma::vec3 BECI_k, COST_SETTINGS_FORM *costSettings_ptr) const;
+    cost_jacs costJacobians(int k, int N, arma::vec xk, arma::vec xkp1, arma::vec uk,arma::vec ukprev,arma::vec3 satvec, arma::vec ECIvec, arma::vec3 BECI_k,COST_SETTINGS_FORM *costSettings_ptr) const;
+
+    // Path length cost helper - computes geodesic rotation cost between consecutive quaternions
+    // Returns (cost, grad_qk, grad_qkp1)
+    // Returns (cost, grad_qk, grad_qkp1, dtheta_dqd) for path length cost
+    // dtheta_dqd is needed for proper Gauss-Newton Hessian: H = 2*weight * dtheta * dtheta^T
+    std::tuple<double, arma::vec4, arma::vec4, arma::vec4> pathLengthCost(arma::vec4 qk, arma::vec4 qkp1, double weight) const;
 
     arma::mat getImu(double mu, arma::vec muk, arma::vec ck, arma::vec lamk);
     arma::mat getIlam(double mu, arma::vec muk, arma::vec ck, arma::vec lamk);

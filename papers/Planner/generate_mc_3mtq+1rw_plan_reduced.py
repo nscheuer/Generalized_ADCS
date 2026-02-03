@@ -21,6 +21,7 @@ sys.path.insert(0, _this_dir)  # Add local dir for local imports (e.g., mc_plann
 from ADCS.CONOPS.goals import ECI_Goal
 from ADCS.CONOPS.goallist import GoalList
 from ADCS.controller.plan_and_track_lqr import Plan_and_Track_LQR
+from ADCS.controller.plan_and_track_python_alilqr import Plan_and_Track_PythonALILQR
 from ADCS.controller.helpers import PlannerSettings, Trajectory
 
 # Import good settings
@@ -41,6 +42,86 @@ BODY_BORESIGHT = np.array([0, 1, 0])
 
 _CACHED_ORBIT = None
 _CACHED_ORBIT_KEY = None
+USE_PY_ALILQR = False
+TF_OVERRIDE = None
+DT_OVERRIDE = None
+DT_PLANNING_OVERRIDE = None
+
+
+def _rot_mat_vec(q: np.ndarray) -> np.ndarray:
+    """
+    Vectorized conversion of Scalar-First Quaternions (w, x, y, z)
+    to Rotation Matrices (Body -> Inertial).
+    """
+    w, x, y, z = q[:, 0], q[:, 1], q[:, 2], q[:, 3]
+    R = np.empty((q.shape[0], 3, 3))
+    R[:, 0, 0] = 1 - 2 * (y**2 + z**2)
+    R[:, 0, 1] = 2 * (x*y - z*w)
+    R[:, 0, 2] = 2 * (x*z + y*w)
+    R[:, 1, 0] = 2 * (x*y + z*w)
+    R[:, 1, 1] = 1 - 2 * (x**2 + z**2)
+    R[:, 1, 2] = 2 * (y*z - x*w)
+    R[:, 2, 0] = 2 * (x*z - y*w)
+    R[:, 2, 1] = 2 * (y*z + x*w)
+    R[:, 2, 2] = 1 - 2 * (x**2 + y**2)
+    return R
+
+
+def compute_tracking_metrics(result: Dict[str, Any], body_boresight: np.ndarray) -> Dict[str, float]:
+    state = result["state"]
+    goal = result["boresight_goal"]
+    u_hist = result["u"]
+    time_hist = result["time"]
+
+    v_bore_body = body_boresight / np.linalg.norm(body_boresight)
+    q_hist = state[:, 3:7]
+    R_b2i = _rot_mat_vec(q_hist)
+    v_bore_eci = np.einsum("nij,j->ni", R_b2i, v_bore_body)
+    v_bore_eci /= np.linalg.norm(v_bore_eci, axis=1, keepdims=True)
+    v_goal = goal / np.linalg.norm(goal, axis=1, keepdims=True)
+    dot_prod = np.sum(v_bore_eci * v_goal, axis=1)
+    dot_prod = np.clip(dot_prod, -1.0, 1.0)
+    error_deg = np.rad2deg(np.arccos(dot_prod))
+
+    u_norm = np.linalg.norm(u_hist, axis=1)
+
+    settle_1deg = np.nan
+    below = error_deg < 1.0
+    if np.any(below):
+        for i in range(len(error_deg)):
+            if np.all(error_deg[i:] < 1.0):
+                settle_1deg = float(time_hist[i])
+                break
+
+    return {
+        "err_deg_max": float(np.max(error_deg)),
+        "err_deg_mean": float(np.mean(error_deg)),
+        "err_deg_rms": float(np.sqrt(np.mean(error_deg**2))),
+        "err_deg_p95": float(np.percentile(error_deg, 95)),
+        "err_deg_final": float(error_deg[-1]),
+        "settle_1deg_s": float(settle_1deg),
+        "u_norm_max": float(np.max(u_norm)),
+        "u_norm_mean": float(np.mean(u_norm)),
+        "u_norm_rms": float(np.sqrt(np.mean(u_norm**2))),
+    }
+
+
+def print_tracking_metrics(metrics: Dict[str, float]) -> None:
+    print(
+        "METRICS: tracking_error_deg "
+        f"max={metrics['err_deg_max']:.4f} "
+        f"rms={metrics['err_deg_rms']:.4f} "
+        f"mean={metrics['err_deg_mean']:.4f} "
+        f"p95={metrics['err_deg_p95']:.4f} "
+        f"final={metrics['err_deg_final']:.4f} "
+        f"settle_1deg_s={metrics['settle_1deg_s']:.2f}"
+    )
+    print(
+        "METRICS: control_norm "
+        f"max={metrics['u_norm_max']:.4e} "
+        f"rms={metrics['u_norm_rms']:.4e} "
+        f"mean={metrics['u_norm_mean']:.4e}"
+    )
 
 
 def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
@@ -84,16 +165,27 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
         planner_settings = create_optimized_planner_settings(real_sat, duration=tf, dt_planning=dt_planning)
         planner_settings.pass2.convergence.max_inner_iter = 15
 
-        controller = Plan_and_Track_LQR(est_sat=real_sat, planner_settings=planner_settings)
+        if config.get("use_python_alilqr", False):
+            controller = Plan_and_Track_PythonALILQR(
+                est_sat=real_sat, planner_settings=planner_settings, use_v2=True, verbose=False
+            )
+        else:
+            controller = Plan_and_Track_LQR(est_sat=real_sat, planner_settings=planner_settings)
 
         goals = GoalList({0.22: ECI_Goal(config["goal_eci_vec"])})
         os0 = orb.get_os(0.22)
 
         # Generate trajectory
         try:
-            traj = controller.calculate_trajectory(
-                t_start=0.22, duration=tf, x_0=x0, os_0=os0, goals=goals, verbose=False
-            )
+            if isinstance(controller, Plan_and_Track_PythonALILQR):
+                traj = controller.calculate_trajectory(
+                    t_start=0.22, duration=tf, x_0=x0, os_0=os0, goals=goals,
+                    verbose=False, skip_pass2=config.get("skip_pass2", False)
+                )
+            else:
+                traj = controller.calculate_trajectory(
+                    t_start=0.22, duration=tf, x_0=x0, os_0=os0, goals=goals, verbose=False
+                )
             controller.set_active_trajectory(traj)
             traj_valid = True
         except Exception as e:
@@ -156,17 +248,23 @@ def generate_mc_config(run_id: int) -> Dict[str, Any]:
     initial_boresight_eci = R0 @ BODY_BORESIGHT
     goal_eci_vec = -initial_boresight_eci  # 180° boresight slew
     
+    tf = TF_OVERRIDE if TF_OVERRIDE is not None else 1000
+    dt = DT_OVERRIDE if DT_OVERRIDE is not None else 2
+    dt_planning = DT_PLANNING_OVERRIDE if DT_PLANNING_OVERRIDE is not None else 1
+
     return {
         "run_id": run_id,
         "seed": run_id,
-        "tf": 1000,
-        "dt": 2,
-        "dt_planning": 1,
+        "tf": tf,
+        "dt": dt,
+        "dt_planning": dt_planning,
         "radius_km": 7000.0,
         "w0": normalize(rng.standard_normal(3)) * (rng.uniform(0.1, 1.0) * np.pi / 180.0),
         "q0": q0,
         "h0": rng.uniform(-0.0001, 0.0001, size=1),
         "goal_eci_vec": goal_eci_vec,
+        "use_python_alilqr": USE_PY_ALILQR,
+        "skip_pass2": False,
     }
 
 
@@ -181,21 +279,35 @@ if __name__ == "__main__":
                         help="Run single test simulation (no multiprocessing, with visualization)")
     parser.add_argument("-n", "--num-runs", type=int, default=None,
                         help="Override number of runs")
+    parser.add_argument("--python-alilqr", action="store_true",
+                        help="Use Python ALILQR wrapper (C++ calls per step)")
+    parser.add_argument("--tf", type=float, default=None, help="Override planning duration [s]")
+    parser.add_argument("--dt", type=float, default=None, help="Override sim dt [s]")
+    parser.add_argument("--dt-planning", type=float, default=None, help="Override planning dt [s]")
+    parser.add_argument("--skip-pass2", action="store_true", help="Skip pass2 refinement (Python ALILQR only)")
     args = parser.parse_args()
     
     TEST_MODE = args.test
     if args.num_runs is not None:
         NUM_RUNS = args.num_runs
+    USE_PY_ALILQR = args.python_alilqr
+    TF_OVERRIDE = args.tf
+    DT_OVERRIDE = args.dt
+    DT_PLANNING_OVERRIDE = args.dt_planning
     
     if TEST_MODE:
         # Single run test mode - no multiprocessing, with visualization
         print("=== TEST MODE: Single run, no multiprocessing ===")
         config = generate_mc_config(0)
+        if args.skip_pass2:
+            config["skip_pass2"] = True
         result = run_single_sim(config)
         full_results = [result]
         valid = [r for r in full_results if r and r.get("traj_valid", False)]
         if valid:
             print(f"Test run completed successfully")
+            metrics = compute_tracking_metrics(valid[0], BODY_BORESIGHT)
+            print_tracking_metrics(metrics)
             # Plot results
             plot_target_tracking_mc(full_results=valid, title="Test Run")
             plot_convergence_histogram_mc(full_results=valid, title="Test Run")

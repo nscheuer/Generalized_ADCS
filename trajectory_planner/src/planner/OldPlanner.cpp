@@ -656,7 +656,13 @@ AFTER_OUTPUT_FORM OldPlanner::trajOptAfter(VECTOR_INFO_FORM vecs_w_time,double d
     if(verbose) {
       cout<<"colMiss: "<<colMissing<<"\n";
     }
-    mat UsetLong = join_rows(repelem(Uset.cols(0,Uset.n_cols-3),1,int(dt_prev/dt_tvlqr)),repelem(Uset.cols(Uset.n_cols-2,Uset.n_cols-2),1,colMissing),Uset.tail_cols(1));
+    int interp_ratio = int(dt_prev / dt_tvlqr);
+    int K = Uset.n_cols;
+    mat UsetLong = repelem(Uset.cols(0, K - 2), 1, interp_ratio);
+    if(colMissing > 0){
+      UsetLong = join_rows(UsetLong, repelem(Uset.col(K - 2), 1, int(colMissing)));
+    }
+    UsetLong = join_rows(UsetLong, Uset.col(K - 1));
 
     trajLong = OldPlanner::generateInitialTrajectory(dt_tvlqr,Xset.col(0), UsetLong, vecs_tvlqr);
 
@@ -1291,6 +1297,7 @@ tuple<cube, cube> OldPlanner::findK(double dt_tvlqr0, TRAJECTORY_FORM traj, VECT
   // int tk = dt_tvlqr0*(k-1)+1;
   //vec rk = Rset.col(tk);
   vec xk = Xset.col(k);
+  vec xkp1 = xk;  // Terminal step: no next state
   vec3 bk = Bset.col(k);
   vec3 sk = satvec.col(k);
   vec ek = ECIvec.col(k);
@@ -1298,7 +1305,7 @@ tuple<cube, cube> OldPlanner::findK(double dt_tvlqr0, TRAJECTORY_FORM traj, VECT
   vec ukp = vec(sat.control_N()).zeros();
   vec4 qk = xk.rows(sat.quat0index(),sat.quat0index()+3);
   //Find lkxx = LQR Q because it's the state cost matrix
-  cost_jacs costJac = sat.costJacobians(k, N, xk,uk,ukp, sk,ek,bk, &costSettings_tmp);
+  cost_jacs costJac = sat.costJacobians(k, N, xk, xkp1, uk,ukp, sk,ek,bk, &costSettings_tmp);
   mat lkxx = costJac.lxx;
   mat lkuu = costJac.luu;
   mat Sk = lkxx;//get<0>(weights);// mat66().zeros();
@@ -1331,6 +1338,7 @@ tuple<cube, cube> OldPlanner::findK(double dt_tvlqr0, TRAJECTORY_FORM traj, VECT
     // tk = dt_tvlqr0*(k-1)+1;
     //rk = Rset.col(tk);
     xk = Xset.col(k);
+    xkp1 = Xset.col(k+1);  // Next state for path length cost
     uk = Uset.col(k);
     ukp = ukp.zeros();
     if(k>0){ukp = Uset.col(k-1);}
@@ -1341,7 +1349,7 @@ tuple<cube, cube> OldPlanner::findK(double dt_tvlqr0, TRAJECTORY_FORM traj, VECT
     bk = Bset.col(k);
     Skp1 = Sk;
     //Get lkxx = LQR Q because it's the state cost matrix
-    costJac = sat.costJacobians(k, N, xk, uk,ukp,sk,ek, bk,&costSettings_tmp);
+    costJac = sat.costJacobians(k, N, xk, xkp1, uk,ukp,sk,ek, bk,&costSettings_tmp);
     lkxx = costJac.lxx;
     lkuu = costJac.luu;
     //Get Gk
@@ -1394,6 +1402,7 @@ tuple<cube, cube> OldPlanner::findKwDist(double dt_tvlqr0, TRAJECTORY_FORM traj,
   //Initialize various states & properties at time k
   int k = N-1;
   vec xk = Xset.col(k);
+  vec xkp1 = xk;  // Terminal step: no next state
   vec3 ek = ECIvec.col(k);
   vec3 sk = satvec.col(k);
   vec3 bk = Bset.col(k);
@@ -1403,7 +1412,7 @@ tuple<cube, cube> OldPlanner::findKwDist(double dt_tvlqr0, TRAJECTORY_FORM traj,
   vec4 qk = xk.rows(sat.quat0index(),sat.quat0index()+3);
 
   //Find lkxx = LQR Q because it's the state cost matrix
-  cost_jacs costJac = sat.costJacobians(k, N, xk,uk,ukp, sk,ek,bk, &costSettings_tmp);
+  cost_jacs costJac = sat.costJacobians(k, N, xk, xkp1, uk,ukp, sk,ek,bk, &costSettings_tmp);
   mat lkxx = costJac.lxx;
   mat lkuu = costJac.luu;
   mat Sk = mat(sat.reduced_state_N()+3,sat.reduced_state_N()+3).zeros();
@@ -1441,6 +1450,7 @@ tuple<cube, cube> OldPlanner::findKwDist(double dt_tvlqr0, TRAJECTORY_FORM traj,
     // tk = dt_tvlqr0*(k-1)+1;
     //rk = Rset.col(tk);
     xk = Xset.col(k);
+    xkp1 = Xset.col(k+1);  // Next state for path length cost
     uk = Uset.col(k);
     ukp = ukp.zeros();
     if(k>0){ukp = Uset.col(k-1);}
@@ -1451,8 +1461,8 @@ tuple<cube, cube> OldPlanner::findKwDist(double dt_tvlqr0, TRAJECTORY_FORM traj,
     bk = Bset.col(k);
     Skp1 = Sk;
     //Get lkxx = LQR Q because it's the state cost matrix
-    costJac = sat.costJacobians(k, N, xk, uk,ukp,sk,ek, bk,&costSettings_tmp);
-    
+    costJac = sat.costJacobians(k, N, xk, xkp1, uk,ukp,sk,ek, bk,&costSettings_tmp);
+
     lkxx = costJac.lxx;
     // lkxx = mat66().eye();//costJac.lxx;
     lkuu = costJac.luu;//#*1e5; //REMOVE BEFORE FLIGHT
@@ -1956,6 +1966,8 @@ bool OldPlanner::ilqrBreak(double grad,double LA, double dLA, double dlaZcount, 
   // if(((grad<gradTol_tmp)||(0<=dLA && dLA<useCostTol)&&((!ls_failed)))//&&((!ls_failed)||(!forOuter)))
   //     ||((dlaZcount > zCountLim_tmp))//||((!forOuter)&&(dlaZcount > zCountLim_tmp))
   //     ||(LA>max_cost))
+  // Break if (grad small AND cost change small) AND line search didn't fail
+  // OR if cost hasn't changed for too many iterations
   if(((grad<gradTol_tmp)&&(0<dLA && dLA<useCostTol)&&(!ls_failed))||
     (dlaZcount > zCountLim_tmp) )
   {
@@ -2274,6 +2286,7 @@ tuple<BACKWARD_PASS_RESULTS_FORM, REG_PAIR> OldPlanner::backwardPass(double dt0,
   double regMin_tmp = get<1>(regSettings_tmp);
   bool useDynamicsHess_tmp = bool(get<7>(regSettings_tmp));
   bool useConstraintsHess_tmp = bool(get<8>(regSettings_tmp));
+  int regMode_tmp = int(get<6>(regSettings_tmp));  // 0=control-space, 1=state-space, 2=both (index 6, was rand_add_ratio)
 
   //Initialize xk, uk, rk, etc
   mat lambdaSet = get<0>(auglag_vals);
@@ -2388,12 +2401,13 @@ tuple<BACKWARD_PASS_RESULTS_FORM, REG_PAIR> OldPlanner::backwardPass(double dt0,
     }
     //
     if (k>0){ukp = Uset.col(k-1);}else{ukp = Uset.col(0);}
+    vec xkp1 = (k < N-1) ? vec(Xset.col(k+1)) : xk;  // Next state for path length cost
     ek = ECIvec.col(k);
     if((ek.n_elem==3)||((ek.n_elem==4)&&(isnan(ek(0))))){
       ek = ek.tail(3);
-      costJac = sat.veccostJacobians(k, N, xk, Uset.col(k), ukp,satvec.col(k),ek,Bset.col(k), costSettings_tmp);
+      costJac = sat.veccostJacobians(k, N, xk, xkp1, Uset.col(k), ukp,satvec.col(k),ek,Bset.col(k), costSettings_tmp);
     }else{
-      costJac = sat.quatcostJacobians(k, N, xk, Uset.col(k), ukp,satvec.col(k),ek,Bset.col(k), costSettings_tmp);
+      costJac = sat.quatcostJacobians(k, N, xk, xkp1, Uset.col(k), ukp,satvec.col(k),ek,Bset.col(k), costSettings_tmp);
     }
 
     cnstrJac = sat.constraintJacobians(k, N,Uset.col(k), xk,sunk);
@@ -2418,7 +2432,15 @@ tuple<BACKWARD_PASS_RESULTS_FORM, REG_PAIR> OldPlanner::backwardPass(double dt0,
       // }
     }
 
-    Qkxx = costJac.lxx + trans(Aqk)*Pk*Aqk + trans(ckx)*Imuk*ckx ;
+    // State-space regularization: add rho*I to Pk before computing Q-functions
+    // This helps when B matrix is rank-deficient (e.g., MTQ-only satellites)
+    mat Pk_reg = Pk;
+    bool useStateReg = (regMode_tmp == 1 || regMode_tmp == 2);
+    if (useStateReg && rho > 0) {
+      Pk_reg = Pk + rho * mat(sat.reduced_state_N(), sat.reduced_state_N()).eye();
+    }
+
+    Qkxx = costJac.lxx + trans(Aqk)*Pk_reg*Aqk + trans(ckx)*Imuk*ckx ;
     Qkx = costJac.lx + trans(Aqk)*pk + trans(ckx)*viol;
     if(useDynamicsHess_tmp){
       Qkxx += vecOverCube(pk,ddxd__dxdxQ);
@@ -2466,11 +2488,11 @@ tuple<BACKWARD_PASS_RESULTS_FORM, REG_PAIR> OldPlanner::backwardPass(double dt0,
       k--;
       continue;
     }
-    Qkux = costJac.lux + trans(Bqk)*Pk*Aqk + trans(cku)*Imuk*ckx;
+    Qkux = costJac.lux + trans(Bqk)*Pk_reg*Aqk + trans(cku)*Imuk*ckx;
     Qku = costJac.lu + trans(Bqk)*pk + trans(cku)*viol;
 
     //find Qkuu and Qkuureg
-    Qkuu = costJac.luu + trans(Bqk)*Pk*Bqk + trans(cku)*Imuk*cku;
+    Qkuu = costJac.luu + trans(Bqk)*Pk_reg*Bqk + trans(cku)*Imuk*cku;
 
 
     if(useDynamicsHess_tmp){
@@ -2518,7 +2540,15 @@ tuple<BACKWARD_PASS_RESULTS_FORM, REG_PAIR> OldPlanner::backwardPass(double dt0,
       // eig_sym(eigs,eigvecs,Qkuu);
       // Qkuureg = eigvecs*diagmat(clamp(eigs,rho,datum::inf))*eigvecs.t();
       // Qkuureg = eigvecs*diagmat(clamp(abs(eigs),rho,datum::inf))*eigvecs.t();
-      Qkuureg = Qkuu + rho*mat(sat.control_N(),sat.control_N()).eye();
+
+      // Control-space regularization: conditional based on regMode_tmp
+      // 0=control-space only, 1=state-space only, 2=both
+      bool useControlReg = (regMode_tmp == 0 || regMode_tmp == 2);
+      if (useControlReg) {
+        Qkuureg = Qkuu + rho*mat(sat.control_N(),sat.control_N()).eye();
+      } else {
+        Qkuureg = Qkuu;
+      }
 
 
 
@@ -2761,7 +2791,7 @@ tuple<TRAJECTORY_FORM,double, REG_PAIR> OldPlanner::forwardPass(double dt0,TRAJE
       z = (LA-newLA)/exp;
     }
 
-    // if(verbose){cout<<"ls iter, LA-nLA, nLA, exp, z,alph,reg "<<lsiter<<" "<<LA-newLA<<" "<<newLA<<" "<<exp<<" "<<z<<" "<<alph<<" "<<get<0>(regs)<<"\n";}
+    // if(lsiter < 5 || lsiter % 10 == 0){cout<<"  [LS] iter:"<<lsiter<<" dLA:"<<LA-newLA<<" exp:"<<exp<<" z:"<<z<<" alph:"<<alph<<" rho:"<<get<0>(regs)<<"\n";}
     lsiter++;
     alph /= 2.0;
   }
@@ -2833,6 +2863,7 @@ tuple<TRAJECTORY_FORM,double, REG_PAIR> OldPlanner::forwardPass(double dt0,TRAJE
   for(int k = 0; k < N; k++)
   {
     xk = Xset.col(k);
+    vec xkp1 = (k < N-1) ? vec(Xset.col(k+1)) : xk;  // Next state for path length cost
     uk = Uset.col(k);
     bk = Bset.col(k);
     sunk = normalise(sunset.col(k));
@@ -2841,9 +2872,9 @@ tuple<TRAJECTORY_FORM,double, REG_PAIR> OldPlanner::forwardPass(double dt0,TRAJE
     //Update ck and Imuk
     if((ek.n_elem==3)||((ek.n_elem==4)&&(isnan(ek(0))))){
       ek = ek.tail(3);
-      dLA = sat.stepcost_vec(k, N, xk,uk, ukp,sk, ek,bk, costSettings_ptr);
+      dLA = sat.stepcost_vec(k, N, xk, xkp1, uk, ukp,sk, ek,bk, costSettings_ptr);
     }else{
-      dLA = sat.stepcost_quat(k, N, xk,uk, ukp,sk, ek,bk, costSettings_ptr);
+      dLA = sat.stepcost_quat(k, N, xk, xkp1, uk, ukp,sk, ek,bk, costSettings_ptr);
     }
     LA += dLA;
     if(isinf(dLA) || isnan(dLA)){

@@ -215,6 +215,11 @@ class NormalizedStateCosts:
     ang_vel_cost: float = 100.0
     ang_vel_terminal_cost: float = 1000.0
     
+    # Cross-term: penalizes angular velocity in direction that increases error
+    # This discourages "spinning backwards" through 180°
+    ang_vel_err_dir_cost: float = 0.0
+    ang_vel_err_dir_terminal_cost: float = 0.0
+    
     # Cost function type
     ang_cost_func_type: int = 2  # acos geodesic (dissertation default)
     
@@ -233,6 +238,79 @@ class NormalizedStateCosts:
     def ang_vel_scale_rad_s(self) -> float:
         """Angular velocity scale in rad/s."""
         return self.ang_vel_scale_deg_s * np.pi / 180.0
+    
+    def check_psd(self, warn: bool = True) -> bool:
+        """Check if the cost matrix with cross-terms is positive semi-definite.
+        
+        The cost has form: w_ang * angle² + w_av * |ω|² + w_cross * (ω · err_dir)
+        
+        For PSD, need: w_ang * w_av >= (w_cross/2)²
+        i.e., w_cross <= 2 * sqrt(w_ang * w_av)
+        
+        Parameters
+        ----------
+        warn : bool
+            If True, print a warning when PSD is violated.
+        
+        Returns:
+            True if PSD, False otherwise.
+        """
+        import warnings
+        
+        is_psd = True
+        
+        # Check running costs
+        max_cross = 2 * np.sqrt(self.angle_cost * self.ang_vel_cost)
+        if self.ang_vel_err_dir_cost > max_cross:
+            is_psd = False
+            if warn:
+                warnings.warn(
+                    f"Cost matrix is not PSD: ang_vel_err_dir_cost={self.ang_vel_err_dir_cost:.1f} > max={max_cross:.1f}. "
+                    f"This may cause optimization instability. Consider using set_cross_term_auto().",
+                    UserWarning
+                )
+        
+        # Check terminal costs
+        max_cross_N = 2 * np.sqrt(self.angle_terminal_cost * self.ang_vel_terminal_cost)
+        if self.ang_vel_err_dir_terminal_cost > max_cross_N:
+            is_psd = False
+            if warn:
+                warnings.warn(
+                    f"Terminal cost matrix is not PSD: ang_vel_err_dir_terminal_cost={self.ang_vel_err_dir_terminal_cost:.1f} > max={max_cross_N:.1f}. "
+                    f"This may cause optimization instability.",
+                    UserWarning
+                )
+        
+        return is_psd
+    
+    def set_cross_term_auto(self, fraction: float = 0.5, verbose: bool = False) -> 'NormalizedStateCosts':
+        """Automatically set ang_vel_err_dir_cost to a safe PSD value.
+        
+        Computes the maximum PSD-safe cross-term from the current angle 
+        and ang_vel costs, then sets ang_vel_err_dir_cost to `fraction` of that max.
+        
+        Parameters
+        ----------
+        fraction : float
+            Fraction of max PSD value (default 0.5 = half the limit).
+        verbose : bool
+            Print the computed values.
+            
+        Returns self for chaining.
+        """
+        # Running costs
+        max_cross = 2 * np.sqrt(self.angle_cost * self.ang_vel_cost)
+        self.ang_vel_err_dir_cost = max_cross * fraction
+        
+        # Terminal costs
+        max_cross_N = 2 * np.sqrt(self.angle_terminal_cost * self.ang_vel_terminal_cost)
+        self.ang_vel_err_dir_terminal_cost = max_cross_N * fraction
+        
+        if verbose:
+            print(f"  Auto cross-term: ang_vel_err_dir_cost = {self.ang_vel_err_dir_cost:.1f} ({fraction*100:.0f}% of max {max_cross:.1f})")
+            print(f"  Auto cross-term: ang_vel_err_dir_terminal_cost = {self.ang_vel_err_dir_terminal_cost:.1f} ({fraction*100:.0f}% of max {max_cross_N:.1f})")
+        
+        return self
     
     def get_cost_scaling_info(self) -> dict:
         """
@@ -318,6 +396,8 @@ class NormalizedStateCosts:
                 'angle_weight_N': self.angle_terminal_cost * global_scale * angle_scale_factor / (angle_scale ** 2),
                 'angvel_weight': self.ang_vel_cost * global_scale / (ang_vel_scale ** 2),
                 'angvel_weight_N': self.ang_vel_terminal_cost * global_scale / (ang_vel_scale ** 2),
+                'ang_vel_err_dir': self.ang_vel_err_dir_cost * global_scale / (angle_scale * ang_vel_scale),
+                'ang_vel_err_dir_N': self.ang_vel_err_dir_terminal_cost * global_scale / (angle_scale * ang_vel_scale),
                 'ang_cost_func_type': self.ang_cost_func_type,
             }
         else:
@@ -327,6 +407,8 @@ class NormalizedStateCosts:
                 'angle_weight_N': self.angle_terminal_cost * global_scale * angle_scale_factor,
                 'angvel_weight': self.ang_vel_cost * global_scale,
                 'angvel_weight_N': self.ang_vel_terminal_cost * global_scale,
+                'ang_vel_err_dir': self.ang_vel_err_dir_cost * global_scale,
+                'ang_vel_err_dir_N': self.ang_vel_err_dir_terminal_cost * global_scale,
                 'ang_cost_func_type': self.ang_cost_func_type,
             }
 
@@ -592,6 +674,8 @@ class NormalizedSettingsConverter:
         raw['angle_weight_N'] = state_raw['angle_weight_N']
         raw['angvel_weight'] = state_raw['angvel_weight']
         raw['angvel_weight_N'] = state_raw['angvel_weight_N']
+        raw['ang_vel_err_dir'] = state_raw.get('ang_vel_err_dir', 0.0)
+        raw['ang_vel_err_dir_N'] = state_raw.get('ang_vel_err_dir_N', 0.0)
         raw['ang_cost_func_type'] = state_raw['ang_cost_func_type']
         
         # Constraints in radians

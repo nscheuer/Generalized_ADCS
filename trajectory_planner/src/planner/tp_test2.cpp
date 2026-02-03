@@ -741,12 +741,15 @@ TEST_CASE("Step cost function gradients are correct", "[optimizer][gradient]") {
         2, true, 0
     );
 
+    // Create xkp1 for path length cost (use xk for simplicity in test)
+    arma::vec xkp1 = xk;
+
     // Get analytic gradient
-    cost_jacs costJac = sat.costJacobians(k, N, xk, uk, uk_prev, sat_body_vec, eci_goal, B_eci, &costSettings);
+    cost_jacs costJac = sat.costJacobians(k, N, xk, xkp1, uk, uk_prev, sat_body_vec, eci_goal, B_eci, &costSettings);
     arma::vec lu_analytic = costJac.lu;
 
     // Compute base step cost
-    double cost0 = sat.stepcost_vec(k, N, xk, uk, uk_prev, sat_body_vec, eci_goal, B_eci, &costSettings);
+    double cost0 = sat.stepcost_vec(k, N, xk, xkp1, uk, uk_prev, sat_body_vec, eci_goal, B_eci, &costSettings);
 
     // Finite difference for control gradient
     double eps = 1e-7;
@@ -754,7 +757,7 @@ TEST_CASE("Step cost function gradients are correct", "[optimizer][gradient]") {
     for(int i = 0; i < nu; i++) {
         arma::vec uk_pert = uk;
         uk_pert(i) += eps;
-        double cost_pert = sat.stepcost_vec(k, N, xk, uk_pert, uk_prev, sat_body_vec, eci_goal, B_eci, &costSettings);
+        double cost_pert = sat.stepcost_vec(k, N, xk, xkp1, uk_pert, uk_prev, sat_body_vec, eci_goal, B_eci, &costSettings);
         lu_fd(i) = (cost_pert - cost0) / eps;
     }
 
@@ -3065,11 +3068,14 @@ TEST_CASE("Satellite veccostJacobians matches finite differences", "[satellite][
         2, 0, 0  // useRawControlCost = 0, useFullCostHess = 0
     );
 
+    // Create xkp1 for path length cost (use x for simplicity in test)
+    arma::vec xkp1 = x;
+
     // Get analytical Jacobians
-    cost_jacs jacs = sat.veccostJacobians(k, N, x, u, u_prev, satvec, ECIvec, B_eci, &costSettings);
+    cost_jacs jacs = sat.veccostJacobians(k, N, x, xkp1, u, u_prev, satvec, ECIvec, B_eci, &costSettings);
 
     // Compute base cost
-    double c0 = sat.stepcost_vec(k, N, x, u, u_prev, satvec, ECIvec, B_eci, &costSettings);
+    double c0 = sat.stepcost_vec(k, N, x, xkp1, u, u_prev, satvec, ECIvec, B_eci, &costSettings);
 
     // Finite difference for lu (control gradient)
     double eps = 1e-7;
@@ -3077,7 +3083,7 @@ TEST_CASE("Satellite veccostJacobians matches finite differences", "[satellite][
     for(int i = 0; i < nu; i++) {
         arma::vec u_pert = u;
         u_pert(i) += eps;
-        double c_pert = sat.stepcost_vec(k, N, x, u_pert, u_prev, satvec, ECIvec, B_eci, &costSettings);
+        double c_pert = sat.stepcost_vec(k, N, x, xkp1, u_pert, u_prev, satvec, ECIvec, B_eci, &costSettings);
         lu_fd(i) = (c_pert - c0) / eps;
     }
 
@@ -3093,7 +3099,7 @@ TEST_CASE("Satellite veccostJacobians matches finite differences", "[satellite][
     for(int i = 0; i < nu; i++) {
         arma::vec u_pert = u;
         u_pert(i) += eps_hess;
-        cost_jacs jacs_pert = sat.veccostJacobians(k, N, x, u_pert, u_prev, satvec, ECIvec, B_eci, &costSettings);
+        cost_jacs jacs_pert = sat.veccostJacobians(k, N, x, xkp1, u_pert, u_prev, satvec, ECIvec, B_eci, &costSettings);
         luu_fd.col(i) = (jacs_pert.lu - jacs.lu) / eps_hess;
     }
 
@@ -3138,11 +3144,14 @@ TEST_CASE("Satellite quatcostJacobians matches finite differences", "[satellite]
         2, 0, 0
     );
 
+    // Create xkp1 for path length cost (use x for simplicity in test)
+    arma::vec xkp1 = x;
+
     // Get analytical Jacobians
-    cost_jacs jacs = sat.quatcostJacobians(k, N, x, u, u_prev, satvec, ECIquat, B_eci, &costSettings);
+    cost_jacs jacs = sat.quatcostJacobians(k, N, x, xkp1, u, u_prev, satvec, ECIquat, B_eci, &costSettings);
 
     // Compute base cost
-    double c0 = sat.stepcost_quat(k, N, x, u, u_prev, satvec, ECIquat, B_eci, &costSettings);
+    double c0 = sat.stepcost_quat(k, N, x, xkp1, u, u_prev, satvec, ECIquat, B_eci, &costSettings);
 
     // Finite difference for lu
     double eps = 1e-7;
@@ -3150,7 +3159,7 @@ TEST_CASE("Satellite quatcostJacobians matches finite differences", "[satellite]
     for(int i = 0; i < nu; i++) {
         arma::vec u_pert = u;
         u_pert(i) += eps;
-        double c_pert = sat.stepcost_quat(k, N, x, u_pert, u_prev, satvec, ECIquat, B_eci, &costSettings);
+        double c_pert = sat.stepcost_quat(k, N, x, xkp1, u_pert, u_prev, satvec, ECIquat, B_eci, &costSettings);
         lu_fd(i) = (c_pert - c0) / eps;
     }
 
@@ -3191,8 +3200,11 @@ TEST_CASE("Full cost Hessian vs Gauss-Newton comparison", "[satellite][hessian][
     COST_SETTINGS_FORM costSettings_FN = std::make_tuple(
         1e2, 1e1, 1.0, 0.0, 0.0, 1e3, 1e2, 0.0, 0.0, 2, 0, 1);
 
-    cost_jacs jacs_GN = sat.veccostJacobians(k, N, x, u, u_prev, satvec, ECIvec, B_eci, &costSettings_GN);
-    cost_jacs jacs_FN = sat.veccostJacobians(k, N, x, u, u_prev, satvec, ECIvec, B_eci, &costSettings_FN);
+    // Create xkp1 for path length cost (use x for simplicity in test)
+    arma::vec xkp1 = x;
+
+    cost_jacs jacs_GN = sat.veccostJacobians(k, N, x, xkp1, u, u_prev, satvec, ECIvec, B_eci, &costSettings_GN);
+    cost_jacs jacs_FN = sat.veccostJacobians(k, N, x, xkp1, u, u_prev, satvec, ECIvec, B_eci, &costSettings_FN);
 
     // Gradients should be identical (only Hessian differs)
     double lx_diff = arma::norm(jacs_GN.lx - jacs_FN.lx);

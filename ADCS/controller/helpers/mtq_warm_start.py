@@ -173,6 +173,92 @@ def solve_controls_from_trajectory(Xset_interp, B_eci, dt, J, rw_axes,
     return Uset
 
 
+def _skew(vec):
+    """Return skew-symmetric matrix such that skew(v) @ a = v x a."""
+    vx, vy, vz = vec
+    return np.array([
+        [0.0, -vz,  vy],
+        [vz,  0.0, -vx],
+        [-vy, vx,  0.0],
+    ])
+
+
+def solve_controls_from_trajectory_regularized(
+    Xset_interp,
+    B_eci,
+    dt,
+    J,
+    rw_axes,
+    u_prior=None,
+    reg_lambda: float = 1e-2,
+    m_max=None,
+    rw_torq_max=None
+):
+    """
+    Solve for MTQ + RW controls with Tikhonov regularization toward a prior control.
+
+    Minimizes: ||A u - tau_needed||^2 + reg_lambda * ||u - u_prior||^2
+
+    This provides a best-effort torque match while staying close to a warm-start
+    control (e.g., FOH-interpolated controls). Useful when direct inversion is
+    ill-posed due to MTQ null space.
+    """
+    N = Xset_interp.shape[1]
+    n_rw = rw_axes.shape[0] if rw_axes is not None and len(rw_axes) > 0 else 0
+    n_mtq = 3
+    n_u = n_mtq + n_rw
+
+    if u_prior is None:
+        u_prior = np.zeros((n_u, N))
+
+    Uset = np.zeros((n_u, N))
+    Iu = np.eye(n_u)
+
+    for k in range(N - 1):
+        # Angular velocities
+        w_curr = Xset_interp[0:3, k]
+        w_next = Xset_interp[0:3, k + 1]
+
+        # Quaternion to rotation matrix (body -> ECI)
+        q = Xset_interp[3:7, k]
+        R = rot_mat(q)
+
+        # Required angular acceleration and torque
+        w_dot = (w_next - w_curr) / dt
+        tau_needed = J @ w_dot + np.cross(w_curr, J @ w_curr)
+
+        # Build linear map tau = A u
+        B_body = R.T @ B_eci[:, k]
+        A_mtq = -_skew(B_body)  # m x B = -skew(B) m
+        if n_rw > 0:
+            A_rw = rw_axes.T  # columns are axes
+            A = np.hstack([A_mtq, A_rw])
+        else:
+            A = A_mtq
+
+        u0 = u_prior[:, k] if u_prior is not None else np.zeros(n_u)
+        lhs = A.T @ A + reg_lambda * Iu
+        rhs = A.T @ tau_needed + reg_lambda * u0
+
+        try:
+            u = np.linalg.solve(lhs, rhs)
+        except np.linalg.LinAlgError:
+            u = np.linalg.lstsq(lhs, rhs, rcond=None)[0]
+
+        # Clamp to actuator limits
+        if m_max is not None:
+            u[0:3] = np.clip(u[0:3], -m_max, m_max)
+        if n_rw > 0 and rw_torq_max is not None:
+            u[3:] = np.clip(u[3:], -rw_torq_max, rw_torq_max)
+
+        Uset[:, k] = u
+
+    # Copy last control to final column
+    Uset[:, -1] = Uset[:, -2] if N > 1 else 0
+
+    return Uset
+
+
 def interpolate_trajectory_to_finer_grid(Xset_coarse, dt_coarse, dt_fine, tf, use_slerp=True):
     """
     Interpolate trajectory states from coarse to fine grid.

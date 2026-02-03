@@ -34,7 +34,8 @@
 #define SYSTEM_SETTINGS_FORM std::tuple<arma::mat33,double,double,double,double,double>
 #define AUGLAG_SETTINGS_FORM std::tuple<double,double,double,double,double>
 #define LINE_SEARCH_SETTINGS_FORM std::tuple<int,double,double>
-// Regularization settings: (reg_init, reg_min, reg_max, reg_scale, reg_bump, reg_min_cond, rand_add_ratio, use_dynamics_hess, use_constraint_hess)
+// Regularization settings: (reg_init, reg_min, reg_max, reg_scale, reg_bump, reg_min_cond, reg_mode, use_dynamics_hess, use_constraint_hess)
+// reg_mode (index 6, was rand_add_ratio): 0=control-space only (default), 1=state-space only, 2=both
 #define REG_SETTINGS_FORM std::tuple<double,double,double,double,double,int,double,int,int>
 #define ALILQR_OUTPUT_FORM std::tuple<OPT_FORM, double, double>
 #define BREAK_SETTINGS_FORM std::tuple<int,int,int,double,double,double,int,double,double,arma::vec>

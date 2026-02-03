@@ -733,7 +733,7 @@ tuple<cube,cube,cube> Satellite::constraintHessians(int k, int N, vec uk,vec xk,
 
 
 
-double Satellite::stepcost_vec(int k, int N, vec xk, vec uk,vec ukprev, vec3 satvec_k, vec3 ECIvec_k,vec3 BECI_k, COST_SETTINGS_FORM *costSettings_ptr) const
+double Satellite::stepcost_vec(int k, int N, vec xk, vec xkp1, vec uk,vec ukprev, vec3 satvec_k, vec3 ECIvec_k,vec3 BECI_k, COST_SETTINGS_FORM *costSettings_ptr) const
 {
   COST_SETTINGS_FORM costSettings_tmp = *costSettings_ptr;
   double w_ang = get<0>(costSettings_tmp);
@@ -807,7 +807,6 @@ double Satellite::stepcost_vec(int k, int N, vec xk, vec uk,vec ukprev, vec3 sat
 
 
   angcost *= w_ang;
-  vec3 nb = rotMat(qk).t()*normalise(BECI_k);
   double state_cost = 0.5*as_scalar(wk.t()*wk)*w_av + angcost;//*(1.0-ddot));//0.5*as_scalar(wk.t()*wk*w_av + w_ang*phi*phi);//0.5*as_scalar(wk.t()*wk*w_av + w_ang*(1-ddot)*(1-ddot));//0.5*as_scalar(vsk.t()*Wxx*vsk);
   double actuation_cost = 0.0;
   double ang_mom_cost = 0.0;
@@ -818,8 +817,16 @@ double Satellite::stepcost_vec(int k, int N, vec xk, vec uk,vec ukprev, vec3 sat
   }else{
     actuation_cost = 0.5*as_scalar(uk.t()*act_cost_mat*uk)*w_u_mult;
   }
-  double state_mag_cost = w_avmag*abs(dot(wk,nb));
-  double act_mag_cost = 0.0;
+
+  // Path length cost: geodesic distance to next quaternion (replaces old w_avmag*|ω·B̂|)
+  double path_length_cost = 0.0;
+  if (k < N-1 && w_avmag > 0 && xkp1.n_elem > 0) {
+    vec xkp1_norm = state_norm(xkp1);
+    vec4 qkp1 = xkp1_norm.rows(quat0index(), quat0index()+3);
+    auto [cost, grad_qk, grad_qkp1, dtheta_dqd] = pathLengthCost(qk, qkp1, w_avmag);
+    (void)grad_qk; (void)grad_qkp1; (void)dtheta_dqd;  // Unused in cost-only function
+    path_length_cost = cost;
+  }
 
   if(number_RW>0){
     for(int j = 0;j<number_RW;j++)
@@ -831,11 +838,11 @@ double Satellite::stepcost_vec(int k, int N, vec xk, vec uk,vec ukprev, vec3 sat
     }
 
   }
-  return state_cost + cross_cost + actuation_cost + state_mag_cost + act_mag_cost + ang_mom_cost + stiction_cost;
+  return state_cost + cross_cost + actuation_cost + path_length_cost + ang_mom_cost + stiction_cost;
 }
 
 
-double Satellite::stepcost_quat(int k, int N, vec xk, vec uk,vec ukprev, vec3 satvec_k, vec4 ECIvec_k,vec3 BECI_k, COST_SETTINGS_FORM *costSettings_ptr) const
+double Satellite::stepcost_quat(int k, int N, vec xk, vec xkp1, vec uk,vec ukprev, vec3 satvec_k, vec4 ECIvec_k,vec3 BECI_k, COST_SETTINGS_FORM *costSettings_ptr) const
 {
   COST_SETTINGS_FORM costSettings_tmp = *costSettings_ptr;
   double w_ang = get<0>(costSettings_tmp);
@@ -928,7 +935,6 @@ double Satellite::stepcost_quat(int k, int N, vec xk, vec uk,vec ukprev, vec3 sa
   double cross_cost = -sign(ddot)*as_scalar(ek.t()*Wq*wk)*w_avang;//0.5*as_scalar();//uk.t()*Wux*vsk);
 
   angcost *= w_ang;
-  vec3 nb = rotMat(qk).t()*normalise(BECI_k);
   double state_cost = 0.5*as_scalar(wk.t()*wk)*w_av + angcost;//*(1.0-ddot));//0.5*as_scalar(wk.t()*wk*w_av + w_ang*phi*phi);//0.5*as_scalar(wk.t()*wk*w_av + w_ang*(1-ddot)*(1-ddot));//0.5*as_scalar(vsk.t()*Wxx*vsk);
   double actuation_cost = 0.0;
   double ang_mom_cost = 0.0;
@@ -939,8 +945,17 @@ double Satellite::stepcost_quat(int k, int N, vec xk, vec uk,vec ukprev, vec3 sa
   }else{
     actuation_cost = 0.5*as_scalar(uk.t()*act_cost_mat*uk)*w_u_mult;
   }
-  double state_mag_cost = w_avmag*abs(dot(wk,nb));
-  double act_mag_cost = 0.0;
+
+  // Path length cost: geodesic distance to next quaternion (replaces old w_avmag*|ω·B̂|)
+  double path_length_cost = 0.0;
+  if (k < N-1 && w_avmag > 0 && xkp1.n_elem > 0) {
+    vec xkp1_norm = state_norm(xkp1);
+    vec4 qkp1 = xkp1_norm.rows(quat0index(), quat0index()+3);
+    auto [cost, grad_qk, grad_qkp1, dtheta_dqd] = pathLengthCost(qk, qkp1, w_avmag);
+    (void)grad_qk; (void)grad_qkp1; (void)dtheta_dqd;  // Unused in cost-only function
+    path_length_cost = cost;
+  }
+
   if(number_RW>0){
     for(int j = 0;j<number_RW;j++)
     {
@@ -950,7 +965,7 @@ double Satellite::stepcost_quat(int k, int N, vec xk, vec uk,vec ukprev, vec3 sa
       stiction_cost += 0.5*RW_stiction_cost.at(j)*pow(smoothstep((RW_stiction_threshold.at(j)-z*sz)/RW_stiction_threshold.at(j))*RW_stiction_threshold.at(j),2);
     }
   }
-  return state_cost + cross_cost + actuation_cost + state_mag_cost + act_mag_cost + ang_mom_cost + stiction_cost;
+  return state_cost + cross_cost + actuation_cost + path_length_cost + ang_mom_cost + stiction_cost;
 }
 
 // ============================================================================
@@ -1049,11 +1064,54 @@ RWCostResults Satellite::computeRWCostsAndJacobians(
     return result;
 }
 
+std::tuple<double, vec4, vec4, vec4> Satellite::pathLengthCost(vec4 qk, vec4 qkp1, double weight) const {
+    // Compute relative quaternion: q_Δ = q_k⁻¹ ⊗ q_{k+1}
+    // Using existing quaterr function from GeneralUtil.hpp
+    vec4 q_delta = quaterr(qk, qkp1);  // = quatmult(quatinv(qk), qkp1)
+
+    // Extract scalar and vector parts
+    double w_d = q_delta(0);
+    vec3 v_d = q_delta.rows(1, 3);
+    double v_norm = norm(v_d) + 1e-16;  // Add eps for stability
+
+    // Rotation angle: θ = 2 * atan2(||v_Δ||, |w_Δ|)
+    // Using fabs(w_d) for q/-q invariance
+    double theta = 2.0 * atan2(v_norm, fabs(w_d));
+
+    // Cost: L = weight * θ²
+    double cost = weight * theta * theta;
+
+    // Gradients
+    vec4 grad_qk = vec4().zeros();
+    vec4 grad_qkp1 = vec4().zeros();
+    vec4 dtheta_dqd = vec4().zeros();  // For Gauss-Newton Hessian
+
+    if (theta > 1e-8 && weight > 0) {
+        double dL_dtheta = 2.0 * weight * theta;
+        double sign_w = (w_d >= 0) ? 1.0 : -1.0;
+        double denom = v_norm * v_norm + w_d * w_d;  // = 1 for unit quat
+
+        // ∂θ/∂q_Δ = [∂θ/∂w_Δ, ∂θ/∂v_Δ]
+        dtheta_dqd(0) = -2.0 * sign_w * v_norm / denom;
+        dtheta_dqd.rows(1, 3) = 2.0 * fabs(w_d) * v_d / (v_norm * denom);
+
+        // Chain rule approximation (Gauss-Newton style)
+        // ∂L/∂q_k ≈ -∂L/∂θ * ∂θ/∂q_Δ  (opposite sign since q_Δ = qk⁻¹ ⊗ qkp1)
+        // ∂L/∂q_{k+1} ≈ +∂L/∂θ * ∂θ/∂q_Δ
+        grad_qk = -dL_dtheta * dtheta_dqd;
+        grad_qkp1 = dL_dtheta * dtheta_dqd;
+    }
+
+    // Return cost, gradients, and dtheta_dqd for Hessian computation
+    // Gauss-Newton Hessian: H = 2*weight * (∂θ/∂q)*(∂θ/∂q)^T
+    return std::make_tuple(cost, grad_qk, grad_qkp1, dtheta_dqd);
+}
+
 // ============================================================================
 // Cost Jacobian Functions
 // ============================================================================
 
-cost_jacs  Satellite::veccostJacobians(int k, int N, vec xk, vec uk,vec ukprev, vec3 satvec_k, vec3 ECIvec_k,vec3 BECI_k, COST_SETTINGS_FORM *costSettings_ptr) const
+cost_jacs  Satellite::veccostJacobians(int k, int N, vec xk, vec xkp1, vec uk,vec ukprev, vec3 satvec_k, vec3 ECIvec_k,vec3 BECI_k, COST_SETTINGS_FORM *costSettings_ptr) const
 {
   ExtractedCostSettings settings = ExtractedCostSettings::fromTuple(*costSettings_ptr);
 
@@ -1171,7 +1229,11 @@ cost_jacs  Satellite::veccostJacobians(int k, int N, vec xk, vec uk,vec ukprev, 
   lkx.head(3) += w_avang*angerrvec;
   lkx(span(redang0index(),redang0index()+2)) += -w_avang*(skewSymmetric(sk)*dRTBdqQ(qk,ek)).t()*wk;
   lkxx(0,redang0index(),size(3,3)) += -w_avang*skewSymmetric(sk)*dRTBdqQ(qk,ek);
-  lkxx(redang0index(),redang0index(),size(3,3)) += w_avang*ddvTRTudqQ(qk,cross(sk,wk),ek);
+  // This second-order term can be non-PSD depending on wk and ek directions
+  // Only include when using full Newton (not Gauss-Newton approximation)
+  if (settings.useFullCostHess) {
+    lkxx(redang0index(),redang0index(),size(3,3)) += w_avang*ddvTRTudqQ(qk,cross(sk,wk),ek);
+  }
   lkxx(redang0index(),0,size(3,3)) += -w_avang*(skewSymmetric(sk)*dRTBdqQ(qk,ek)).t();
 
 
@@ -1194,16 +1256,19 @@ cost_jacs  Satellite::veccostJacobians(int k, int N, vec xk, vec uk,vec ukprev, 
       lkuu += act_cost_mat*w_u_mult;
     }
   }
-  double state_mag_cost = w_avmag*abs(dot(wk,nb));
-  double savang = sign(dot(wk,nb));
-  lkx.head(3) += w_avmag*savang*nb;
-  lkx(span(redang0index(),redang0index()+2)) += w_avmag*savang*(wk.t()*dBdq).t();
-  lkxx(0,redang0index(),size(3,3)) += w_avmag*savang*dBdq;
-  lkxx(redang0index(),redang0index(),size(3,3)) += w_avmag*savang*ddBwdq;
-  lkxx(redang0index(),0,size(3,3)) += w_avmag*savang*dBdq.t();
-
-  
-
+  // Path length cost: geodesic distance to next quaternion
+  // Standard Gauss-Newton: gradient 1x, Hessian = 2*w*(dtheta/dq)*(dtheta/dq)^T
+  if (k < N-1 && w_avmag > 0 && xkp1.n_elem > 0) {
+    vec xkp1_norm = state_norm(xkp1);
+    vec4 qkp1 = xkp1_norm.rows(quat0index(), quat0index()+3);
+    auto [cost, grad_qk, grad_qkp1, dtheta_dqd] = pathLengthCost(qk, qkp1, w_avmag);
+    (void)grad_qkp1;
+    // Add gradient w.r.t. reduced quaternion (3D representation)
+    lkx(span(redang0index(),redang0index()+2)) += Wq.t() * grad_qk;
+    // Gauss-Newton Hessian: H = 2*weight * (∂θ/∂q)*(∂θ/∂q)^T
+    vec3 dtheta_reduced = Wq.t() * (-dtheta_dqd);
+    lkxx(redang0index(),redang0index(),size(3,3)) += 2.0 * w_avmag * dtheta_reduced * dtheta_reduced.t();
+  }
 
   // mat33 cross_hess = w_avang*ddvTRTudqQ(qk,cross(sk,wk),ek);
 
@@ -1237,7 +1302,7 @@ cost_jacs  Satellite::veccostJacobians(int k, int N, vec xk, vec uk,vec ukprev, 
 }
 
 
-cost_jacs  Satellite::quatcostJacobians(int k, int N, vec xk, vec uk,vec ukprev, vec3 satvec_k, vec4 ECIvec_k,vec3 BECI_k, COST_SETTINGS_FORM *costSettings_ptr) const
+cost_jacs  Satellite::quatcostJacobians(int k, int N, vec xk, vec xkp1, vec uk,vec ukprev, vec3 satvec_k, vec4 ECIvec_k,vec3 BECI_k, COST_SETTINGS_FORM *costSettings_ptr) const
 {
   ExtractedCostSettings settings = ExtractedCostSettings::fromTuple(*costSettings_ptr);
 
@@ -1378,7 +1443,11 @@ cost_jacs  Satellite::quatcostJacobians(int k, int N, vec xk, vec uk,vec ukprev,
   lkx(span(redang0index(),redang0index()+2)) +=  -sign(ddot)*(ek.t()*join_rows(join_cols(vec({0.0}),wk),join_cols(-wk.t(),-skewSymmetric(wk)))*Wq).t()*w_avang;
   lkxx(0,redang0index(),size(3,3)) += sign(ddot)*We.t()*Wq*w_avang;
   lkxx(redang0index(),0,size(3,3)) += sign(ddot)*Wq.t()*We*w_avang;
-  lkxx(redang0index(),redang0index(),size(3,3)) += mat33().eye()*sign(ddot)*as_scalar(ek.t()*Wq*wk)*w_avang;
+  // This second-order term can be negative and make the Hessian non-PSD
+  // Only include when using full Newton (not Gauss-Newton approximation)
+  if (settings.useFullCostHess) {
+    lkxx(redang0index(),redang0index(),size(3,3)) += mat33().eye()*sign(ddot)*as_scalar(ek.t()*Wq*wk)*w_avang;
+  }
 
 
   double actuation_cost = 0.0;
@@ -1391,14 +1460,18 @@ cost_jacs  Satellite::quatcostJacobians(int k, int N, vec xk, vec uk,vec ukprev,
   }else{
     lku += act_cost_mat*(uk)*w_u_mult;
   }
-  double state_mag_cost = w_avmag*abs(dot(wk,nb));
-  double savang = sign(dot(wk,nb));
-  lkx.head(3) += w_avmag*savang*nb;
-  lkx(span(redang0index(),redang0index()+2)) += w_avmag*savang*(wk.t()*dBdq).t();
-  lkxx(0,redang0index(),size(3,3)) += w_avmag*savang*dBdq;
-  lkxx(redang0index(),redang0index(),size(3,3)) += w_avmag*savang*ddBwdq;
-  lkxx(redang0index(),0,size(3,3)) += w_avmag*savang*dBdq.t();
-
+  // Path length cost: geodesic distance to next quaternion
+  // Double gradient to account for grad_qkp1 ≈ -grad_qk
+  // Path length cost: standard Gauss-Newton (no doubling)
+  if (k < N-1 && w_avmag > 0 && xkp1.n_elem > 0) {
+    vec xkp1_norm = state_norm(xkp1);
+    vec4 qkp1 = xkp1_norm.rows(quat0index(), quat0index()+3);
+    auto [cost, grad_qk, grad_qkp1, dtheta_dqd] = pathLengthCost(qk, qkp1, w_avmag);
+    (void)grad_qkp1;
+    lkx(span(redang0index(),redang0index()+2)) += Wq.t() * grad_qk;
+    vec3 dtheta_reduced = Wq.t() * (-dtheta_dqd);
+    lkxx(redang0index(),redang0index(),size(3,3)) += 2.0 * w_avmag * dtheta_reduced * dtheta_reduced.t();
+  }
 
   double act_mag_cost = 0.0;
 
@@ -1416,7 +1489,7 @@ cost_jacs  Satellite::quatcostJacobians(int k, int N, vec xk, vec uk,vec ukprev,
   return out;
 }
 
-cost_jacs  Satellite::costJacobians(int k, int N, vec xk, vec uk,vec ukprev, vec3 satvec_k, vec ECIvec_k,vec3 BECI_k, COST_SETTINGS_FORM *costSettings_ptr) const
+cost_jacs  Satellite::costJacobians(int k, int N, vec xk, vec xkp1, vec uk,vec ukprev, vec3 satvec_k, vec ECIvec_k,vec3 BECI_k, COST_SETTINGS_FORM *costSettings_ptr) const
 {
   ExtractedCostSettings settings = ExtractedCostSettings::fromTuple(*costSettings_ptr);
 
@@ -1537,13 +1610,17 @@ cost_jacs  Satellite::costJacobians(int k, int N, vec xk, vec uk,vec ukprev, vec
       lkuu += act_cost_mat*w_u_mult;
     }
   }
-  double state_mag_cost = w_avmag*dot(wk,nb);
-  double savang = sign(dot(wk,nb));
-  lkx.head(3) += w_avmag*savang*nb;
-  lkx(span(redang0index(),redang0index()+2)) += w_avmag*savang*(wk.t()*dBdq).t();
-  lkxx(0,redang0index(),size(3,3)) += w_avmag*savang*dBdq;
-  lkxx(redang0index(),redang0index(),size(3,3)) += w_avmag*savang*ddBwdq;
-  lkxx(redang0index(),0,size(3,3)) += w_avmag*savang*dBdq.t();
+  // Path length cost: geodesic distance to next quaternion
+  // Path length cost: standard Gauss-Newton (no doubling)
+  if (k < N-1 && w_avmag > 0 && xkp1.n_elem > 0) {
+    vec xkp1_norm = state_norm(xkp1);
+    vec4 qkp1 = xkp1_norm.rows(quat0index(), quat0index()+3);
+    auto [cost, grad_qk, grad_qkp1, dtheta_dqd] = pathLengthCost(qk, qkp1, w_avmag);
+    (void)grad_qkp1;
+    lkx(span(redang0index(),redang0index()+2)) += Wq.t() * grad_qk;
+    vec3 dtheta_reduced = Wq.t() * (-dtheta_dqd);
+    lkxx(redang0index(),redang0index(),size(3,3)) += 2.0 * w_avmag * dtheta_reduced * dtheta_reduced.t();
+  }
 
   double act_mag_cost = 0.0;
 
