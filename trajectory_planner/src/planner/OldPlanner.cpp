@@ -1408,6 +1408,7 @@ tuple<cube, cube> OldPlanner::findK(double dt_tvlqr0, TRAJECTORY_FORM traj, VECT
   cost_jacs costJac = sat.costJacobians(k, N, xk, xkp1, uk,ukp, sk,ek,bk, &costSettings_tmp);
   mat lkxx = costJac.lxx;
   mat lkuu = costJac.luu;
+  
   mat Sk = lkxx;//get<0>(weights);// mat66().zeros();
   mat Kk = mat(sat.control_N(),sat.reduced_state_N()).zeros();
   Sset.slice(k) = Sk;//mat66().zeros();
@@ -1462,8 +1463,9 @@ tuple<cube, cube> OldPlanner::findK(double dt_tvlqr0, TRAJECTORY_FORM traj, VECT
     //Get Aqk and Bqk
     Aqk = Gkp1*A*trans(Gk);
     Bqk = Gkp1*B;
-    Kk = solve((lkuu + trans(Bqk)*Skp1*Bqk), (trans(Bqk)*Skp1*Aqk),solve_opts::likely_sympd+solve_opts::fast);//inv(R + trans(Bqk)*Skp1*Bqk)*(trans(Bqk)*Skp1*Aqk);//
-
+    mat Reff = lkuu + trans(Bqk)*Skp1*Bqk;
+    Kk = solve(Reff, (trans(Bqk)*Skp1*Aqk),solve_opts::likely_sympd+solve_opts::fast);//inv(R + trans(Bqk)*Skp1*Bqk)*(trans(Bqk)*Skp1*Aqk);//
+    
     Kset_lqr.slice(k) = Kk;
     // Sk = lkxx + trans(Aqk)*Skp1*Aqk - trans(Aqk)*Skp1*Bqk*Kk;
     // Sk = lkxx + trans(Kk)*lkuu*Kk + solve((Aqk-Bqk*Kk), Skp1*(Aqk-Bqk*Kk));

@@ -283,6 +283,10 @@ def build_cpp_satellite(est_sat: EstimatedSatellite, planner_settings: PlannerSe
     if planner_settings.plan_for_gendist:
         csat.add_gendist_torq(planner_settings.gendist_torq.reshape((3,1)))
 
+    # Scale control costs by 1/max^2 to normalize across different actuator types
+    # This ensures comparable cost scaling between MTQs and RWs
+    csat.auto_scale_control_costs(1.0)
+
     return csat
 
 
