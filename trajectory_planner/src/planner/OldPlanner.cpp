@@ -1868,8 +1868,10 @@ ALILQR_OUTPUT_FORM OldPlanner::alilqr(double dt0,TRAJECTORY_FORM traj, VECTOR_IN
       dLA = abs(newLA-LA);
       // if(stepsSinceRand != 0){
         dlaZcount++;
-        // Use tolerance for effectively zero cost change (machine precision)
-        if(dLA > 1e-10)
+        // Use relative tolerance: reset if cost changed by more than 0.1%
+        // (matches Python: dLA / (abs(LA) + 1e-10) > 1e-3)
+        double relative_change = dLA / (std::abs(LA) + 1e-10);
+        if(relative_change > 1e-3)
         {
           dlaZcount = 0;
         }

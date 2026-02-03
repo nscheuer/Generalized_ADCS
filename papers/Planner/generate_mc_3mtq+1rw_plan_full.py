@@ -216,7 +216,7 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
                 
                 traj = controller.calculate_trajectory(
                     t_start=0.22, duration=tf, x_0=x0, os_0=os0, goals=goals, 
-                    verbose=True, visualize=True, viz_save_path=viz_save_path,
+                    verbose=False, visualize=True, viz_save_path=viz_save_path,
                     skip_pass2=False  # TEST: Re-enable Pass2 with SLERP interpolation
                 )
                 
@@ -281,7 +281,7 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
                     
                     plt.tight_layout()
                     plt.savefig('/tmp/planner_diagnostic.png', dpi=150)
-                    print(f"Saved diagnostic plot to /tmp/planner_diagnostic.png")
+                    print(f"Saved diagnostic plot to /tmp/planner_diagnostic.png", flush=True)
                     plt.close(fig)
             else:
                 # C++ planner only supports verbose
@@ -305,12 +305,18 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
         t = 0
         sec2cent = TimeConstants.sec2cent
 
+        import time as time_module
+        sim_start_time = time_module.time()
+        print(f"Starting simulation: {N} steps, dt={dt}s, tf={tf}s", flush=True)
+        
         for i in range(N):
             if i % 10 == 0:
                 update_worker_progress(slot_id, run_id, i, N)
-            if verbose and i % 50 == 0:
-                print(f"  Sim step {i}/{N} (t={t:.1f}s)")
+            if i % 50 == 0:
+                elapsed = time_module.time() - sim_start_time
+                print(f"  Sim step {i}/{N} (t={t:.1f}s, elapsed={elapsed:.1f}s)", flush=True)
 
+            t0_step = time_module.time()
             J2000 = 0.22 + t * sec2cent
             os_state = orb.get_os(J2000=J2000)
             sens = real_sat.sensor_readings(x=x, os=os_state)
@@ -331,15 +337,22 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
             q_goal_hist[i, :] = config["q_goal"]
 
             t += dt
-            os_next = orb.get_os(0.22 + t * sec2cent)
+            # Clamp to avoid overshooting max orbit time on last step
+            t_next_clamped = min(t, tf - 0.01)
+            os_next = orb.get_os(0.22 + t_next_clamped * sec2cent)
             out = solve_ivp(
                 real_sat.dynamics_for_solver, (0, dt), x, method="RK45",
                 args=(u, os_state, os_next), rtol=1e-6, atol=1e-6
             )
             x = out.y[:, -1]
             x[3:7] = normalize(x[3:7])
+            if i < 5 or i % 50 == 0:
+                omega_deg = np.linalg.norm(x[0:3]) * 180/np.pi
+                print(f"    Step {i} took {time_module.time()-t0_step:.3f}s, nfev={out.nfev}, |u|={np.linalg.norm(u):.4f}, |ω|={omega_deg:.2f}°/s", flush=True)
 
         update_worker_progress(slot_id, run_id, N, N)
+        sim_elapsed = time_module.time() - sim_start_time
+        print(f"Simulation complete: {N} steps in {sim_elapsed:.1f}s ({sim_elapsed/N*1000:.1f}ms/step)", flush=True)
 
         return {
             "run_id": run_id, "config": config, "traj_valid": True,
@@ -380,7 +393,7 @@ def generate_mc_config(run_id: int) -> Dict[str, Any]:
 if __name__ == "__main__":
     RUN_MC = True
     OUTPUT_DIR = "papers/Planner/output_data"
-    NUM_RUNS = 10  # Production run
+    NUM_RUNS = 12  # Production run
     
     # Include tracking mode in filename for differentiation
     tracking_suffix = f"_{TRACKING_MODE}" if TRACKING_MODE != "tvlqr" else ""

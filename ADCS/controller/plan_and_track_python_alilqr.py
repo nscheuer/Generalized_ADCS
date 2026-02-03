@@ -139,6 +139,46 @@ class Plan_and_Track_PythonALILQR(PlanAndTrackBase):
             self.py_alilqr.set_callback(callback)
         else:
             self.py_alilqr.debug_callback = callback
+    
+    def _scale_rw_gains(self, Kset: np.ndarray) -> np.ndarray:
+        """
+        Scale RW/magic rows of K-gains from optimizer units to physical units.
+        
+        The optimizer uses scaled controls, so K-gains need the same scaling:
+            K_physical[rw_rows, :] = K_scaled[rw_rows, :] * NONMTQ_TORQ_SCALE
+        """
+        scale = self.planner.get_nonmtq_torq_scale()
+        if scale == 1.0:
+            return Kset
+        
+        n_mtq = self.planner.get_number_MTQ()
+        n_rw = self.planner.get_number_RW()
+        n_magic = self.planner.get_number_magic()
+        
+        if n_rw + n_magic == 0:
+            return Kset
+        
+        Kset_scaled = Kset.copy()
+        rw_magic_start = n_mtq
+        rw_magic_end = n_mtq + n_rw + n_magic
+        
+        if Kset.ndim == 2:
+            # Flattened format: (n_ctrl * n_err, N)
+            n_ctrl = n_mtq + n_rw + n_magic
+            n_err = Kset.shape[0] // n_ctrl
+            for ctrl_idx in range(rw_magic_start, rw_magic_end):
+                row_start = ctrl_idx * n_err
+                row_end = (ctrl_idx + 1) * n_err
+                Kset_scaled[row_start:row_end, :] *= scale
+        elif Kset.ndim == 3:
+            if Kset.shape[0] > Kset.shape[2]:
+                # (N, n_ctrl, n_err)
+                Kset_scaled[:, rw_magic_start:rw_magic_end, :] *= scale
+            else:
+                # (n_ctrl, n_err, N)
+                Kset_scaled[rw_magic_start:rw_magic_end, :, :] *= scale
+        
+        return Kset_scaled
         
     def find_u(
         self,
@@ -149,7 +189,7 @@ class Plan_and_Track_PythonALILQR(PlanAndTrackBase):
         goal_vector_eci: Optional[NDArray[np.float64]] = None,
         w_ref: Optional[NDArray[np.float64]] = None
     ) -> NDArray[np.float64]:
-        """Return open-loop control from active trajectory."""
+        """Compute TVLQR tracking control: u = u_ref - K @ dx."""
         current_time = os_hat.J2000
         
         if self.active_trajectory is None:
@@ -157,8 +197,24 @@ class Plan_and_Track_PythonALILQR(PlanAndTrackBase):
             
         if not self.active_trajectory.is_valid_time(current_time):
             raise RuntimeError(f"Active trajectory expired at t={current_time}")
-            
-        return self.active_trajectory.get_control_at(current_time)
+        
+        # Get trajectory data
+        x_ref = self.active_trajectory.get_state_at(current_time)
+        u_ref = self.active_trajectory.get_control_at(current_time)
+        K = self.active_trajectory.get_gain_at(current_time)
+        
+        # Compute state error using trajectory's state_diff (handles quaternion error)
+        dx = self.active_trajectory._state_diff(x_hat, x_ref)
+        
+        # Apply TVLQR feedback: u = u_ref + K @ dx
+        # Note: Python ALILQR K-gains have opposite sign convention from C++ trajOpt
+        u = u_ref + K @ dx
+        
+        # Saturate control to actuator limits
+        for i, act in enumerate(self.est_sat.actuators):
+            u[i] = np.clip(u[i], -act.u_max, act.u_max)
+        
+        return u
     
     def calculate_trajectory(
         self,
@@ -622,6 +678,10 @@ class Plan_and_Track_PythonALILQR(PlanAndTrackBase):
         # Reorder controls and create trajectory
         Uset = reorder_controls_cpp_to_python(result.Uset, self.est_sat.actuators)
         Kset = reorder_gains_cpp_to_python(result.Kset, self.est_sat.actuators)
+        
+        # Scale RW K-gains from optimizer units to physical units
+        # (same scaling as controls: K_physical = K_opt * NONMTQ_TORQ_SCALE)
+        Kset = self._scale_rw_gains(Kset)
         
         # Create dummy Sset (not computed by Python ALILQR directly)
         N_result = result.Xset.shape[1]

@@ -517,7 +517,7 @@ class LivePlannerViz:
         """Save the current figure to file."""
         if self.fig is not None:
             self.fig.savefig(filename, dpi=dpi, bbox_inches='tight')
-            print(f"Figure saved to {filename}")
+            print(f"Figure saved to {filename}", flush=True)
     
     def close(self) -> None:
         """Close the visualization figure."""
