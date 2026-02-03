@@ -3,7 +3,7 @@
 
 We consider the BeaverCube 2 CubeSat being built by the `MIT STAR Lab <https://aeroastro.mit.edu/starlab/>`_.
 
-.. image:: ../_static/tutorial_01_beavercube2.png
+.. image:: ../_static/tutorials/tutorial_01_beavercube2.png
    :alt: Render of BeaverCube 2 CubeSat with deployed solar panels.
    :width: 400px
    :align: center
@@ -87,7 +87,7 @@ Following this definition, we simulate the environment and analyze the performan
 
    * - .. image:: ../_static/boston_tracking.png
           :width: 100%
-     - .. image:: ../_static/tutorial_01_plots.png
+     - .. image:: ../_static/tutorials/tutorial_01_plots.png
           :width: 100%
 
 The results show that the satellite is able to perform a slew despite the underactuated configuration. For most control laws and estimators, we try to make them satellite-agnostic, meaning they should work for most configurations.

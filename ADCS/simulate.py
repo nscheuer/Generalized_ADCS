@@ -6,7 +6,8 @@ from tqdm import tqdm
 from scipy.integrate import solve_ivp
 
 from ADCS.CONOPS.goals import Goal, No_Goal
-from ADCS.controller.controller import Controller
+from ADCS.CONOPS.goallist import GoalList
+from ADCS.controller import Controller, PlanAndTrackBase
 from ADCS.estimators.attitude_estimators import Attitude_Estimator
 from ADCS.estimators.orbit_estimators import Orbit_Estimator
 from ADCS.estimators.estimator_helpers import EstimatedOrbital_State
@@ -16,7 +17,7 @@ from ADCS.satellite_hardware.satellite import Satellite, EstimatedSatellite
 from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.helpers.math_helpers import normalize
 
-from ADCS.helpers.simresults import SimulationResults
+from ADCS.helpers.simresults import SimulationResults, RunResults
 
 def simulate(
     x: np.ndarray,
@@ -25,7 +26,7 @@ def simulate(
     controller: Optional[Controller] = None,
     estimator: Optional[Attitude_Estimator] = None,
     orbit_estimator: Optional[Orbit_Estimator] = None,
-    goal: Optional[Goal] = None,
+    goal: Optional[Goal | GoalList] = None,
     os0: Orbital_State = None,
     dt: float = 1.0,
     tf: float = 500.0,
@@ -39,7 +40,13 @@ def simulate(
     N = int(tf / dt)
 
     if goal is None:
-        goal = No_Goal()
+        goal_list = GoalList({os0.J2000: No_Goal()})
+    elif isinstance(goal, Goal):
+        goal_list = GoalList({os0.J2000: goal})
+    elif isinstance(goal, GoalList):
+        goal_list = goal
+    else:
+        raise ValueError("goal must be None, a Goal, or a GoalList.")
 
     start_time = os0.J2000
     end_time = start_time + tf * TimeConstants.sec2cent
@@ -57,7 +64,19 @@ def simulate(
 
     os_hat = None
 
-    sim_results = SimulationResults(satellite=satellite, est_satellite=est_satellite)
+    if controller is not None and isinstance(controller, PlanAndTrackBase):
+        print("Calculating initial trajectory for Plan-and-Track controller...")
+        trajectory = controller.calculate_trajectory(
+            t_start=start_time,
+            duration=tf,
+            x_0=x,
+            os_0=os0,
+            goals=goal_list,
+            verbose=False
+        )
+        controller.set_active_trajectory(trajectory)
+
+    run_capsule = RunResults(satellite=satellite, est_satellite=est_satellite)
 
     for k in tqdm(range(N), desc="Simulating ADCS", unit="step"):
         J2000_k = start_time + k * dt * TimeConstants.sec2cent
@@ -83,13 +102,15 @@ def simulate(
         else:
             x_for_ctrl = x
 
+        active_goal = goal_list.get_active_goal(J2000_k, time_units="centuries")
+
         if controller is not None:
             u = controller.find_u(
                 x_hat=x_for_ctrl,
                 sens=y,
                 est_sat=est_satellite,
                 os_hat=os_for_gnc,
-                goal=goal,
+                goal=active_goal,
             )
         else:
             u[:] = 0.0
@@ -106,7 +127,7 @@ def simulate(
         x = out.y[:, -1]
         x[3:7] = normalize(x[3:7])
 
-        eci_target, w_target = goal.to_ref(os_for_gnc) 
+        target, w_target = active_goal.to_ref(os_for_gnc) 
 
         est_act_bias_snapshot = None
         est_sens_bias_snapshot = None
@@ -173,7 +194,7 @@ def simulate(
                     else:
                         est_sens_bias_snapshot = np.array(sens_parts, dtype=object)
 
-        sim_results.record(
+        run_capsule.record(
             k=k,
             time_J2000=J2000_k,
             time_s=k * dt,
@@ -200,11 +221,11 @@ def simulate(
             est_actuator_bias=est_act_bias_snapshot,
             est_sensor_bias=est_sens_bias_snapshot,
 
-            eci_target=eci_target,
+            target=target,
             w_target=w_target,
             clean_sensor=y_clean,
             sensor=y,
             control=u,
         )
 
-    return sim_results
+    return SimulationResults(runs=[run_capsule])

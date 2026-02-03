@@ -1,3 +1,5 @@
+__all__ = ['create_beavercube1_cubesat', 'create_beavercube2_cubesat', 'create_3_3_beavercube2_cubesat']
+
 import numpy as np
 from typing import List
 

@@ -185,24 +185,33 @@ class BiasPlot(Subplot):
         self.sources = _normalize_bias_sources(sources)
 
     def plot(self, ax, sim) -> None:
+        runs = getattr(sim, "runs", None)
+        if runs is None:
+            runs = [sim]
+
         ax.set_frame_on(False)
         ax.tick_params(left=False, labelleft=False, bottom=False, labelbottom=False)
 
-        mats = {src: _get_bias_matrix(sim, self.kind, src) for src in self.sources}
-        first = next((m for m in mats.values() if m is not None), None)
-        if first is None:
+        # Find first run with usable data (for layout)
+        mats0 = None
+        first_run = None
+        for run in runs:
+            mats = {src: _get_bias_matrix(run, self.kind, src) for src in self.sources}
+            first = next((m for m in mats.values() if m is not None), None)
+            if first is not None:
+                mats0 = mats
+                first_run = run
+                break
+
+        if mats0 is None or first_run is None:
             self._plot_no_data(ax)
             return
 
-        n_bias = first.shape[1]
-        N = min(m.shape[0] for m in mats.values() if m is not None)
-        t = _get_time_axis(sim, self.time, N)
+        n_bias = mats0[next(k for k, v in mats0.items() if v is not None)].shape[1]
 
         ncols = int(math.ceil(math.sqrt(n_bias)))
         nrows = int(math.ceil(n_bias / ncols))
-        gs = gridspec.GridSpecFromSubplotSpec(
-            nrows, ncols, subplot_spec=ax.get_subplotspec()
-        )
+        gs = gridspec.GridSpecFromSubplotSpec(nrows, ncols, subplot_spec=ax.get_subplotspec())
 
         axes = []
         for i in range(n_bias):
@@ -214,29 +223,48 @@ class BiasPlot(Subplot):
             raise ValueError("labels length must match bias dimension")
 
         style = {"real": "-", "estimated": "--"}
+        alpha = max(0.15, 1.0 / len(runs))
 
+        # Plot all runs
+        for run in runs:
+            mats = {src: _get_bias_matrix(run, self.kind, src) for src in self.sources}
+            first = next((m for m in mats.values() if m is not None), None)
+            if first is None:
+                continue
+
+            N = min(m.shape[0] for m in mats.values() if m is not None)
+            t = _get_time_axis(run, self.time, N)
+
+            for i, ax_i in enumerate(axes):
+                for src in self.sources:
+                    B = mats.get(src, None)
+                    if B is None:
+                        continue
+                    ax_i.plot(
+                        t,
+                        B[:N, i],
+                        linestyle=style[src],
+                        alpha=alpha,
+                        label=None,
+                    )
+
+        # Ax formatting + clean legends
         for i, ax_i in enumerate(axes):
-            for src in self.sources:
-                B = mats[src]
-                if B is None:
-                    continue
-                ax_i.plot(
-                    t,
-                    B[:N, i],
-                    linestyle=style[src],
-                    label=f"{labels[i]} ({src})" if len(self.sources) > 1 else labels[i],
-                )
-
             ylabel = f"{labels[i]} [{self.units}]" if self.units else labels[i]
             ax_i.set_ylabel(ylabel)
-
             if self.log_y:
                 ax_i.set_yscale("log")
-
-            ax_i.legend()
             ax_i.grid(True, which="both")
 
-        # Turn off unused slots in the grid
+            # One legend per subplot (sources only)
+            handles, labs = [], []
+            for src in self.sources:
+                handles.append(ax_i.plot([], [], linestyle=style[src], color="k")[0])
+                labs.append(src)
+            if len(self.sources) > 1:
+                ax_i.legend(handles, labs)
+
+        # Turn off unused slots
         for j in range(n_bias, nrows * ncols):
             r, c = divmod(j, ncols)
             ax_unused = ax.figure.add_subplot(gs[r, c])
@@ -246,6 +274,7 @@ class BiasPlot(Subplot):
             ax_i.set_xlabel("Time [s]")
 
         axes[0].set_title(self.title, loc="left", pad=10)
+
 
     def _plot_no_data(self, ax):
         ax_text = ax.figure.add_subplot(ax.get_subplotspec())
@@ -336,43 +365,89 @@ class BiasPlotSingle(Subplot):
         self.sources = _normalize_bias_sources(sources)
 
     def plot(self, ax, sim) -> None:
-        mats = {src: _get_bias_matrix(sim, self.kind, src) for src in self.sources}
-        first = next((m for m in mats.values() if m is not None), None)
-        if first is None:
+        runs = getattr(sim, "runs", None)
+        if runs is None:
+            runs = [sim]
+
+        # Find first run with data to validate index
+        first_mat = None
+        first_run = None
+        for run in runs:
+            mats = {src: _get_bias_matrix(run, self.kind, src) for src in self.sources}
+            first = next((m for m in mats.values() if m is not None), None)
+            if first is not None:
+                first_mat = first
+                first_run = run
+                break
+
+        if first_mat is None or first_run is None:
             self._plot_no_data(ax)
             return
 
-        n_bias = first.shape[1]
+        n_bias = first_mat.shape[1]
         if not (0 <= self.index < n_bias):
             raise ValueError(f"Bias index {self.index} out of bounds for {n_bias}")
 
-        N = min(m.shape[0] for m in mats.values() if m is not None)
-        t = _get_time_axis(sim, self.time, N)
-
         lbl = self.label or rf"$b_{{{self.index}}}$"
         title = self.title or f"{self.kind.capitalize()} Bias {self.index}"
-
         style = {"real": "-", "estimated": "--"}
+        alpha = max(0.15, 1.0 / len(runs))
 
-        for src_i, src in enumerate(self.sources):
-            B = mats[src]
-            if B is None:
+        t_label = "Time [s]"
+        plotted_any = False
+
+        for run in runs:
+            mats = {src: _get_bias_matrix(run, self.kind, src) for src in self.sources}
+            first = next((m for m in mats.values() if m is not None), None)
+            if first is None:
                 continue
-            kw = {}
-            if self.color is not None and src_i == 0:
-                kw["color"] = self.color
-            ax.plot(t, B[:N, self.index], linestyle=style[src], label=src, **kw)
+
+            N = min(m.shape[0] for m in mats.values() if m is not None)
+            t = _get_time_axis(run, self.time, N)
+
+            for src_i, src in enumerate(self.sources):
+                B = mats.get(src, None)
+                if B is None:
+                    continue
+
+                kw = {}
+                if self.color is not None and src_i == 0:
+                    kw["color"] = self.color
+
+                ax.plot(
+                    t,
+                    B[:N, self.index],
+                    linestyle=style[src],
+                    alpha=alpha,
+                    label=None,
+                    **kw,
+                )
+                plotted_any = True
+
+        if not plotted_any:
+            self._plot_no_data(ax)
+            return
 
         ylabel = f"{lbl} [{self.units}]" if self.units else lbl
         ax.set_ylabel(ylabel)
-        ax.set_xlabel("Time [s]")
+        ax.set_xlabel(t_label)
         ax.set_title(title)
 
         if self.log_y:
             ax.set_yscale("log")
 
-        ax.legend()
+        # Clean legend: sources only
+        handles, labs = [], []
+        for src in self.sources:
+            handles.append(ax.plot([], [], linestyle=style[src], color="k")[0])
+            labs.append(src)
+        if len(self.sources) > 1:
+            ax.legend(handles, labs)
+        else:
+            ax.legend(handles, labs)
+
         ax.grid(True, which="both")
+
 
     def _plot_no_data(self, ax):
         ax.axis("off")
@@ -460,53 +535,101 @@ class BiasPlotCombined(Subplot):
         self.sources = _normalize_bias_sources(sources)
 
     def plot(self, ax, sim) -> None:
-        mats = {src: _get_bias_matrix(sim, self.kind, src) for src in self.sources}
-        first = next((m for m in mats.values() if m is not None), None)
-        if first is None:
+        runs = getattr(sim, "runs", None)
+        if runs is None:
+            runs = [sim]
+
+        # Find first run with data for dimensions
+        first_mat = None
+        for run in runs:
+            mats = {src: _get_bias_matrix(run, self.kind, src) for src in self.sources}
+            first = next((m for m in mats.values() if m is not None), None)
+            if first is not None:
+                first_mat = first
+                first_run = run
+                break
+
+        if first_mat is None:
             self._plot_no_data(ax)
             return
 
-        n_bias = first.shape[1]
-        N = min(m.shape[0] for m in mats.values() if m is not None)
-        t = _get_time_axis(sim, self.time, N)
-
+        n_bias = first_mat.shape[1]
         labels = self.labels or [rf"$b_{{{i}}}$" for i in range(n_bias)]
         if len(labels) != n_bias:
             raise ValueError("labels length must match bias dimension")
 
         style = {"real": "-", "estimated": "--"}
+        alpha = max(0.15, 1.0 / len(runs))
+        t_label = "Time [s]"
+        plotted_any = False
 
-        for i in range(n_bias):
-            color_arg = {}
-            if self.colors:
-                color_arg["color"] = self.colors[i % len(self.colors)]
+        for run in runs:
+            mats = {src: _get_bias_matrix(run, self.kind, src) for src in self.sources}
+            first = next((m for m in mats.values() if m is not None), None)
+            if first is None:
+                continue
+
+            N = min(m.shape[0] for m in mats.values() if m is not None)
+            t = _get_time_axis(run, self.time, N)
 
             for src in self.sources:
-                B = mats[src]
+                B = mats.get(src, None)
                 if B is None:
                     continue
-                ax.plot(
-                    t,
-                    B[:N, i],
-                    linestyle=style[src],
-                    label=f"{labels[i]} ({src})" if len(self.sources) > 1 else labels[i],
-                    **color_arg,
-                )
+
+                for i in range(n_bias):
+                    color_arg = {}
+                    if self.colors:
+                        color_arg["color"] = self.colors[i % len(self.colors)]
+
+                    ax.plot(
+                        t,
+                        B[:N, i],
+                        linestyle=style[src],
+                        alpha=alpha,
+                        label=None,
+                        **color_arg,
+                    )
+
+                plotted_any = True
+
+        if not plotted_any:
+            self._plot_no_data(ax)
+            return
 
         ylabel = f"Bias [{self.units}]" if self.units else "Bias"
         ax.set_ylabel(ylabel)
-        ax.set_xlabel("Time [s]")
+        ax.set_xlabel(t_label)
         ax.set_title(self.title)
 
         if self.log_y:
             ax.set_yscale("log")
 
-        if n_bias > 5 or len(self.sources) > 1:
-            ax.legend(bbox_to_anchor=(1.02, 1), loc="upper left", borderaxespad=0.)
+        # Clean legend:
+        # - components: via color proxies (optional)
+        # - sources: via linestyle proxies
+        handles, labs = [], []
+
+        if self.colors:
+            for i in range(min(n_bias, len(self.colors))):
+                handles.append(ax.plot([], [], color=self.colors[i % len(self.colors)], linestyle="-")[0])
+                labs.append(labels[i])
+            if n_bias > len(self.colors):
+                handles.append(ax.plot([], [], color="k", linestyle="-")[0])
+                labs.append("...")
+
+        if len(self.sources) > 1:
+            for src in self.sources:
+                handles.append(ax.plot([], [], color="k", linestyle=style[src])[0])
+                labs.append(src)
+
+        if handles:
+            ax.legend(handles, labs, bbox_to_anchor=(1.02, 1), loc="upper left", borderaxespad=0.)
         else:
             ax.legend()
 
         ax.grid(True, which="both", linestyle="--", alpha=0.7)
+
 
     def _plot_no_data(self, ax):
         ax.axis("off")

@@ -95,31 +95,31 @@ class SensorsPlot(Subplot):
         self.sources = _normalize_sources(sources)
 
     def plot(self, ax, sim) -> None:
+        runs = getattr(sim, "runs", None)
+        if runs is None:
+            runs = [sim]
+
         ax.set_frame_on(False)
         ax.tick_params(left=False, labelleft=False, bottom=False, labelbottom=False)
 
-        t = getattr(sim, self.time, None)
+        # Find first run with usable data for layout
+        first_mat = None
+        first_run = None
+        for run in runs:
+            mats = {src: _get_sensor_matrix(run, src) for src in self.sources}
+            first = next((m for m in mats.values() if m is not None), None)
+            if first is not None:
+                first_mat = first
+                first_run = run
+                break
 
-        mats = {}
-        for src in self.sources:
-            mats[src] = _get_sensor_matrix(sim, src)
-
-        # decide N and n_sens from first available matrix
-        first = next((m for m in mats.values() if m is not None), None)
-        if first is None:
+        if first_mat is None or first_run is None:
             self._plot_no_data(ax)
             return
 
-        n_sens = first.shape[1]
-        N = first.shape[0]
-        for m in mats.values():
-            if m is not None:
-                N = min(N, m.shape[0])
+        n_sens = int(first_mat.shape[1])
 
-        if t is not None:
-            t = np.asarray(t)[:N]
-
-        # layout like ControlPlot: grid sized by n_sens
+        # layout grid
         ncols = int(math.ceil(math.sqrt(n_sens)))
         nrows = int(math.ceil(n_sens / ncols))
         gs = gridspec.GridSpecFromSubplotSpec(nrows, ncols, subplot_spec=ax.get_subplotspec())
@@ -129,6 +129,7 @@ class SensorsPlot(Subplot):
             r, c = divmod(i, ncols)
             axes.append(ax.figure.add_subplot(gs[r, c]))
 
+        # labels
         if self.labels is None:
             labels = [rf"$y_{{{i}}}$" for i in range(n_sens)]
         else:
@@ -136,24 +137,66 @@ class SensorsPlot(Subplot):
                 raise ValueError(f"labels length ({len(self.labels)}) must match sensor dimension ({n_sens})")
             labels = self.labels
 
-        # styles: real solid, clean dashed
         style = {"real": "-", "clean": "--"}
+        alpha = max(0.15, 1.0 / len(runs))
 
+        plotted_any = False
+
+        # Plot all runs
+        for run in runs:
+            t0 = getattr(run, self.time, None)
+
+            mats = {src: _get_sensor_matrix(run, src) for src in self.sources}
+            first = next((m for m in mats.values() if m is not None), None)
+            if first is None:
+                continue
+
+            N = first.shape[0]
+            for m in mats.values():
+                if m is not None:
+                    N = min(N, m.shape[0])
+
+            t = None
+            if t0 is not None:
+                t = np.asarray(t0)[:N]
+            else:
+                t = np.arange(N)
+
+            for i, ax_i in enumerate(axes):
+                for src in self.sources:
+                    Y = mats.get(src, None)
+                    if Y is None:
+                        continue
+                    ax_i.plot(
+                        t,
+                        Y[:N, i],
+                        linestyle=style[src],
+                        alpha=alpha,
+                        label=None,
+                    )
+                    plotted_any = True
+
+        if not plotted_any:
+            self._plot_no_data(ax)
+            return
+
+        # Format each subplot + clean legend (sources only)
         for i, ax_i in enumerate(axes):
-            for src in self.sources:
-                Y = mats[src]
-                if Y is None:
-                    continue
-                ax_i.plot(t, Y[:N, i], linestyle=style[src], label=f"{labels[i]} ({src})" if len(self.sources) > 1 else labels[i])
-
             ylabel = f"{labels[i]} [{self.units}]" if self.units else labels[i]
             ax_i.set_ylabel(ylabel)
 
             if self.log_y:
                 ax_i.set_yscale("log")
 
-            ax_i.legend()
             ax_i.grid(True, which="both")
+
+            # legend only shows sources
+            if len(self.sources) > 1:
+                handles, labs = [], []
+                for src in self.sources:
+                    handles.append(ax_i.plot([], [], linestyle=style[src], color="k")[0])
+                    labs.append(src)
+                ax_i.legend(handles, labs)
 
         # hide unused cells
         for j in range(n_sens, nrows * ncols):
@@ -165,6 +208,7 @@ class SensorsPlot(Subplot):
             ax_i.set_xlabel("Time [s]")
 
         axes[0].set_title(self.title, loc="left", pad=10)
+
 
     def _plot_no_data(self, ax):
         ax_text = ax.figure.add_subplot(ax.get_subplotspec())
@@ -246,41 +290,70 @@ class SensorsPlotSingle(Subplot):
         self.sources = _normalize_sources(sources)
 
     def plot(self, ax, sim) -> None:
-        t = getattr(sim, self.time, None)
+        runs = getattr(sim, "runs", None)
+        if runs is None:
+            runs = [sim]
 
-        mats = {}
-        for src in self.sources:
-            mats[src] = _get_sensor_matrix(sim, src)
+        # Find first run with data to validate index
+        first_mat = None
+        for run in runs:
+            mats = {src: _get_sensor_matrix(run, src) for src in self.sources}
+            first = next((m for m in mats.values() if m is not None), None)
+            if first is not None:
+                first_mat = first
+                break
 
-        first = next((m for m in mats.values() if m is not None), None)
-        if first is None:
+        if first_mat is None:
             self._plot_no_data(ax)
             return
 
-        n_sens = first.shape[1]
+        n_sens = int(first_mat.shape[1])
         if self.index < 0 or self.index >= n_sens:
             raise ValueError(f"Sensor index {self.index} out of bounds for {n_sens} channels.")
-
-        N = first.shape[0]
-        for m in mats.values():
-            if m is not None:
-                N = min(N, m.shape[0])
-
-        if t is not None:
-            t = np.asarray(t)[:N]
 
         lbl = self.label or rf"$y_{{{self.index}}}$"
         title = self.title or f"Sensor Channel {self.index}"
 
         style = {"real": "-", "clean": "--"}
-        for src in self.sources:
-            Y = mats[src]
-            if Y is None:
+        alpha = max(0.15, 1.0 / len(runs))
+
+        plotted_any = False
+
+        for run in runs:
+            t0 = getattr(run, self.time, None)
+
+            mats = {src: _get_sensor_matrix(run, src) for src in self.sources}
+            first = next((m for m in mats.values() if m is not None), None)
+            if first is None:
                 continue
-            kw = {}
-            if self.color and src == self.sources[0]:
-                kw["color"] = self.color
-            ax.plot(t, Y[:N, self.index], linestyle=style[src], label=f"{src}" if len(self.sources) > 1 else lbl, **kw)
+
+            N = first.shape[0]
+            for m in mats.values():
+                if m is not None:
+                    N = min(N, m.shape[0])
+
+            t = np.asarray(t0)[:N] if t0 is not None else np.arange(N)
+
+            for src_i, src in enumerate(self.sources):
+                Y = mats.get(src, None)
+                if Y is None:
+                    continue
+                kw = {}
+                if self.color and src_i == 0:
+                    kw["color"] = self.color
+                ax.plot(
+                    t,
+                    Y[:N, self.index],
+                    linestyle=style[src],
+                    alpha=alpha,
+                    label=None,
+                    **kw,
+                )
+                plotted_any = True
+
+        if not plotted_any:
+            self._plot_no_data(ax)
+            return
 
         ylabel = f"{lbl} [{self.units}]" if self.units else lbl
         ax.set_ylabel(ylabel)
@@ -290,8 +363,15 @@ class SensorsPlotSingle(Subplot):
         if self.log_y:
             ax.set_yscale("log")
 
-        ax.legend()
+        # Clean legend: sources only
+        handles, labs = [], []
+        for src in self.sources:
+            handles.append(ax.plot([], [], linestyle=style[src], color="k")[0])
+            labs.append(src if len(self.sources) > 1 else lbl)
+        ax.legend(handles, labs)
+
         ax.grid(True, which="both")
+
 
     def _plot_no_data(self, ax):
         ax.axis("off")
@@ -366,25 +446,24 @@ class SensorsPlotCombined(Subplot):
         self.sources = _normalize_sources(sources)
 
     def plot(self, ax, sim) -> None:
-        t = getattr(sim, self.time, None)
+        runs = getattr(sim, "runs", None)
+        if runs is None:
+            runs = [sim]
 
-        mats = {}
-        for src in self.sources:
-            mats[src] = _get_sensor_matrix(sim, src)
+        # Find first run with data for dimensioning
+        first_mat = None
+        for run in runs:
+            mats = {src: _get_sensor_matrix(run, src) for src in self.sources}
+            first = next((m for m in mats.values() if m is not None), None)
+            if first is not None:
+                first_mat = first
+                break
 
-        first = next((m for m in mats.values() if m is not None), None)
-        if first is None:
+        if first_mat is None:
             self._plot_no_data(ax)
             return
 
-        n_sens = first.shape[1]
-        N = first.shape[0]
-        for m in mats.values():
-            if m is not None:
-                N = min(N, m.shape[0])
-
-        if t is not None:
-            t = np.asarray(t)[:N]
+        n_sens = int(first_mat.shape[1])
 
         if self.labels is None:
             labels = [rf"$y_{{{i}}}$" for i in range(n_sens)]
@@ -394,23 +473,47 @@ class SensorsPlotCombined(Subplot):
             labels = self.labels
 
         style = {"real": "-", "clean": "--"}
+        alpha = max(0.15, 1.0 / len(runs))
 
-        for i in range(n_sens):
-            color_arg = {}
-            if self.colors:
-                color_arg["color"] = self.colors[i % len(self.colors)]
+        plotted_any = False
 
-            for src in self.sources:
-                Y = mats[src]
-                if Y is None:
-                    continue
-                ax.plot(
-                    t,
-                    Y[:N, i],
-                    linestyle=style[src],
-                    label=f"{labels[i]} ({src})" if len(self.sources) > 1 else labels[i],
-                    **color_arg,
-                )
+        for run in runs:
+            t0 = getattr(run, self.time, None)
+
+            mats = {src: _get_sensor_matrix(run, src) for src in self.sources}
+            first = next((m for m in mats.values() if m is not None), None)
+            if first is None:
+                continue
+
+            N = first.shape[0]
+            for m in mats.values():
+                if m is not None:
+                    N = min(N, m.shape[0])
+
+            t = np.asarray(t0)[:N] if t0 is not None else np.arange(N)
+
+            for i in range(n_sens):
+                color_arg = {}
+                if self.colors:
+                    color_arg["color"] = self.colors[i % len(self.colors)]
+
+                for src in self.sources:
+                    Y = mats.get(src, None)
+                    if Y is None:
+                        continue
+                    ax.plot(
+                        t,
+                        Y[:N, i],
+                        linestyle=style[src],
+                        alpha=alpha,
+                        label=None,
+                        **color_arg,
+                    )
+                    plotted_any = True
+
+        if not plotted_any:
+            self._plot_no_data(ax)
+            return
 
         ylabel = f"Sensor Reading [{self.units}]" if self.units else "Sensor Reading"
         ax.set_ylabel(ylabel)
@@ -420,13 +523,30 @@ class SensorsPlotCombined(Subplot):
         if self.log_y:
             ax.set_yscale("log")
 
-        # if many channels, push legend out
-        if n_sens > 5 or len(self.sources) > 1:
-            ax.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
+        # Legend (compact): colors proxy for channels (optional), linestyle proxy for sources
+        handles, labs = [], []
+
+        if self.colors:
+            kmax = min(n_sens, len(self.colors))
+            for i in range(kmax):
+                handles.append(ax.plot([], [], color=self.colors[i], linestyle="-")[0])
+                labs.append(labels[i])
+            if n_sens > kmax:
+                handles.append(ax.plot([], [], color="k", linestyle="-")[0])
+                labs.append("...")
+
+        if len(self.sources) > 1:
+            for src in self.sources:
+                handles.append(ax.plot([], [], color="k", linestyle=style[src])[0])
+                labs.append(src)
+
+        if handles:
+            ax.legend(handles, labs, bbox_to_anchor=(1.05, 1), loc="upper left")
         else:
             ax.legend()
 
         ax.grid(True, which="both", linestyle="--", alpha=0.7)
+
 
     def _plot_no_data(self, ax):
         ax.axis("off")

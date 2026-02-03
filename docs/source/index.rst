@@ -67,7 +67,7 @@ What you can do with Generalized ADCS
 
    installation/index
    tutorials/index
-   features/index
+   release_notes/index
 
 .. toctree::
    :maxdepth: 1

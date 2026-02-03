@@ -67,44 +67,48 @@ class OrbitMagneticPlot(Subplot):
         self.log_y = log_y
 
     def plot(self, ax, sim) -> None:
+        runs = getattr(sim, "runs", None)
+        if runs is None:
+            runs = [sim]
+
         ax.set_frame_on(False)
         ax.tick_params(left=False, labelleft=False, bottom=False, labelbottom=False)
 
         gs = gridspec.GridSpecFromSubplotSpec(2, 2, subplot_spec=ax.get_subplotspec())
-
         ax_bx = ax.figure.add_subplot(gs[0, 0])
         ax_bmag = ax.figure.add_subplot(gs[0, 1])
         ax_by = ax.figure.add_subplot(gs[1, 0])
         ax_bz = ax.figure.add_subplot(gs[1, 1])
 
-        t = getattr(sim, self.time)
+        first = runs[0]
+        t = getattr(first, self.time)
 
-        if sim.os_hist is None or len(sim.os_hist) == 0:
-            ax_text = ax.figure.add_subplot(ax.get_subplotspec())
-            ax_text.axis("off")
-            ax_text.set_title(self.title, loc="left", pad=10)
-            ax_text.text(0.5, 0.5, "No os_hist available", ha="center", va="center")
-            return
+        alpha = max(0.15, 1.0 / len(runs))
 
-        B = np.vstack([np.asarray(os.B) for os in sim.os_hist])
-        bmag = np.linalg.norm(B, axis=1)
+        for run in runs:
+            if run.os_hist is None or len(run.os_hist) == 0:
+                continue
+
+            B = np.vstack([np.asarray(os.B) for os in run.os_hist])
+            bmag = np.linalg.norm(B, axis=1)
+
+            ax_bx.plot(t, B[:, 0], color=self.colors[0], alpha=alpha)
+            ax_by.plot(t, B[:, 1], color=self.colors[1], alpha=alpha)
+            ax_bz.plot(t, B[:, 2], color=self.colors[2], alpha=alpha)
+            ax_bmag.plot(t, bmag, color=self.mag_color, alpha=alpha)
 
         labels = [r"$B_x$", r"$B_y$", r"$B_z$"]
         axes = [ax_bx, ax_by, ax_bz]
 
         for i, ax_i in enumerate(axes):
-            ax_i.plot(t, B[:, i], color=self.colors[i], label=labels[i])
             ax_i.set_ylabel(f"{labels[i]} [{self.units}]")
             if self.log_y:
                 ax_i.set_yscale("log")
-            ax_i.legend()
             ax_i.grid(True, which="both")
 
-        ax_bmag.plot(t, bmag, color=self.mag_color, label=r"$\|B\|$")
         ax_bmag.set_ylabel(rf"$\|B\|$ [{self.units}]")
         if self.log_y:
             ax_bmag.set_yscale("log")
-        ax_bmag.legend()
         ax_bmag.grid(True, which="both")
 
         ax_by.set_xlabel("Time [s]")
@@ -185,45 +189,53 @@ class OrbitMagneticPlotSingle(Subplot):
         self.title = title
 
     def plot(self, ax, sim) -> None:
-        t = getattr(sim, self.time)
+        runs = getattr(sim, "runs", None)
+        if runs is None:
+            runs = [sim]
 
-        if sim.os_hist is None or len(sim.os_hist) == 0:
-            ax.axis("off")
-            ax.set_title(self.title or "Magnetic Field (ECI)", loc="left", pad=10)
-            ax.text(0.5, 0.5, "No os_hist available", ha="center", va="center")
-            return
+        first = runs[0]
+        t = getattr(first, self.time)
 
-        B = np.vstack([np.asarray(os.B) for os in sim.os_hist])
+        alpha = max(0.15, 1.0 / len(runs))
 
-        if self.component == "x":
-            y = B[:, 0]
-            label = self.labels["x"]
-            color = self.color or "tab:blue"
-            title = self.title or "Magnetic Field $B_x$ (ECI)"
-        elif self.component == "y":
-            y = B[:, 1]
-            label = self.labels["y"]
-            color = self.color or "tab:orange"
-            title = self.title or "Magnetic Field $B_y$ (ECI)"
-        elif self.component == "z":
-            y = B[:, 2]
-            label = self.labels["z"]
-            color = self.color or "tab:green"
-            title = self.title or "Magnetic Field $B_z$ (ECI)"
-        else:
-            y = np.linalg.norm(B, axis=1)
-            label = self.labels["m"]
-            color = self.color or "tab:red"
-            title = self.title or r"Magnetic Field $\|B\|$ (ECI)"
+        for run in runs:
+            if run.os_hist is None or len(run.os_hist) == 0:
+                continue
 
-        ax.plot(t, y, color=color, label=label)
+            B = np.vstack([np.asarray(os.B) for os in run.os_hist])
+
+            if self.component == "x":
+                y = B[:, 0]
+                label = self.labels["x"]
+                color = self.color or "tab:blue"
+                title = self.title or "Magnetic Field $B_x$ (ECI)"
+            elif self.component == "y":
+                y = B[:, 1]
+                label = self.labels["y"]
+                color = self.color or "tab:orange"
+                title = self.title or "Magnetic Field $B_y$ (ECI)"
+            elif self.component == "z":
+                y = B[:, 2]
+                label = self.labels["z"]
+                color = self.color or "tab:green"
+                title = self.title or "Magnetic Field $B_z$ (ECI)"
+            else:
+                y = np.linalg.norm(B, axis=1)
+                label = self.labels["m"]
+                color = self.color or "tab:red"
+                title = self.title or r"Magnetic Field $\|B\|$ (ECI)"
+
+            ax.plot(t, y, color=color, alpha=alpha)
+
         ax.set_xlabel("Time [s]")
         ax.set_ylabel(f"{label} [{self.units}]")
         ax.set_title(title, loc="left", pad=10)
+
         if self.log_y:
             ax.set_yscale("log")
-        ax.legend()
+
         ax.grid(True, which="both")
+
 
 
 class OrbitMagneticPlotCombined(Subplot):
@@ -286,23 +298,28 @@ class OrbitMagneticPlotCombined(Subplot):
         self.labels = labels or [r"$B_x$", r"$B_y$", r"$B_z$"]
 
     def plot(self, ax, sim) -> None:
-        t = getattr(sim, self.time)
+        runs = getattr(sim, "runs", None)
+        if runs is None:
+            runs = [sim]
 
-        if sim.os_hist is None or len(sim.os_hist) == 0:
-            ax.axis("off")
-            ax.set_title(self.title, loc="left", pad=10)
-            ax.text(0.5, 0.5, "No os_hist available", ha="center", va="center")
-            return
+        first = runs[0]
+        t = getattr(first, self.time)
 
-        B = np.vstack([np.asarray(os.B) for os in sim.os_hist])
+        alpha = max(0.15, 1.0 / len(runs))
 
-        for i in range(3):
-            ax.plot(
-                t,
-                B[:, i],
-                color=self.colors[i],
-                label=self.labels[i],
-            )
+        for run in runs:
+            if run.os_hist is None or len(run.os_hist) == 0:
+                continue
+
+            B = np.vstack([np.asarray(os.B) for os in run.os_hist])
+
+            for i in range(3):
+                ax.plot(
+                    t,
+                    B[:, i],
+                    color=self.colors[i],
+                    alpha=alpha,
+                )
 
         ax.set_xlabel("Time [s]")
         ax.set_ylabel(f"Magnetic Field [{self.units}]")
@@ -311,5 +328,4 @@ class OrbitMagneticPlotCombined(Subplot):
         if self.log_y:
             ax.set_yscale("log")
 
-        ax.legend()
         ax.grid(True, which="both")

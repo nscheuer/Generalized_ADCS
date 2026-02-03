@@ -23,7 +23,7 @@ from ADCS.helpers.plotting_mc.plot_controller_mc import plot_target_tracking_mc,
 from ADCS.helpers.plotting.close_all_plots import create_close_all_button_window
 
 # --- MC Runner Imports ---
-from ADCS.helpers.mc.monte_carlo_runner import (
+from ADCS.mc.monte_carlo_runner import (
     MonteCarloRunner,
     claim_worker_slot,
     release_worker_slot,
@@ -248,7 +248,7 @@ def generate_mc_config(run_id: int) -> Dict[str, Any]:
 
 if __name__ == "__main__":
     RUN_MC: bool = True
-    OUTPUT_DIR = "papers/ALTRO_Compare/output_data" # Adjusted folder name
+    OUTPUT_DIR = "papers/3MTQ+1RW/output_data" # Adjusted folder name
 
     if RUN_MC:
         runner = MonteCarloRunner(
@@ -260,7 +260,7 @@ if __name__ == "__main__":
         full_results = runner.run()
 
         print(f"\n--- Monte Carlo Complete: Generated {len(full_results)} histories ---")
-        save_data("3MTQ+1RW_MC_24_500s", full_results, out_dir=OUTPUT_DIR)
+        save_data("3MTQ+1RW_MC_24_1000s", full_results, out_dir=OUTPUT_DIR)
 
         plot_target_tracking_mc(full_results=full_results, body_boresight=np.array([0, 1, 0]), title="ALTRO Trajectory Tracking MC:100")
         plot_convergence_histogram_mc(full_results=full_results, body_boresight=np.array([0, 1, 0]), title="ALTRO Convergence")

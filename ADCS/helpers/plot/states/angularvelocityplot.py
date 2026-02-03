@@ -120,6 +120,10 @@ class AngularVelocityPlot(Subplot):
         self.log_y = log_y
 
     def plot(self, ax, sim) -> None:
+        runs = getattr(sim, "runs", None)
+        if runs is None:
+            runs = [sim]
+
         ax.set_frame_on(False)
         ax.tick_params(left=False, labelleft=False, bottom=False, labelbottom=False)
 
@@ -129,51 +133,46 @@ class AngularVelocityPlot(Subplot):
         sub_axes_wy = ax.figure.add_subplot(gs[1, 0])
         sub_axes_wz = ax.figure.add_subplot(gs[1, 1])
 
-        t = getattr(sim, self.time, None)
-
         labels = [r"$\omega_x$", r"$\omega_y$", r"$\omega_z$"]
         axes = [sub_axes_wx, sub_axes_wy, sub_axes_wz]
 
+        alpha = max(0.15, 1.0 / len(runs))
         plotted_any = False
 
-        for source in self.sources:
-            w = _get_w_series(sim, source)
-            if w is None:
-                continue
+        for run in runs:
+            t0 = getattr(run, self.time, None)
 
-            N = w.shape[0]
-            tt = np.asarray(t)[:N] if t is not None else np.arange(N)
+            for source in self.sources:
+                w = _get_w_series(run, source)
+                if w is None:
+                    continue
 
-            style = _source_style(source)
-            suf = _source_suffix(source)
+                N = w.shape[0]
+                tt = np.asarray(t0)[:N] if t0 is not None else np.arange(N)
 
-            w_mag = np.linalg.norm(w, axis=1)
+                style = _source_style(source)
 
-            for i, ax_i in enumerate(axes):
-                ax_i.plot(
+                w_mag = np.linalg.norm(w, axis=1)
+
+                for i, ax_i in enumerate(axes):
+                    ax_i.plot(
+                        tt,
+                        w[:, i],
+                        color=self.colors[i],
+                        alpha=alpha,
+                        label=None,
+                        **style,
+                    )
+                    plotted_any = True
+
+                sub_axes_mag.plot(
                     tt,
-                    w[:, i],
-                    color=self.colors[i],
-                    label=labels[i] + suf,
+                    w_mag,
+                    color="tab:red",
+                    alpha=alpha,
+                    label=None,
                     **style,
                 )
-                ax_i.set_ylabel(f"{labels[i]} [{self.units}]")
-                if self.log_y:
-                    ax_i.set_yscale("log")
-                ax_i.grid(True, which="both")
-                plotted_any = True
-
-            sub_axes_mag.plot(
-                tt,
-                w_mag,
-                color="tab:red",
-                label=r"$\|\omega\|$" + suf,
-                **style,
-            )
-            sub_axes_mag.set_ylabel(rf"$\|\omega\|$ [{self.units}]")
-            if self.log_y:
-                sub_axes_mag.set_yscale("log")
-            sub_axes_mag.grid(True, which="both")
 
         if not plotted_any:
             ax_text = ax.figure.add_subplot(ax.get_subplotspec())
@@ -182,15 +181,50 @@ class AngularVelocityPlot(Subplot):
             ax_text.text(0.5, 0.5, "No angular rate history available", ha="center", va="center")
             return
 
-        for ax_i in axes:
-            ax_i.legend()
-        sub_axes_mag.legend()
+        # Formatting
+        for i, ax_i in enumerate(axes):
+            ax_i.set_ylabel(f"{labels[i]} [{self.units}]")
+            if self.log_y:
+                ax_i.set_yscale("log")
+            ax_i.grid(True, which="both")
 
-        sub_axes_wy.set_xlabel("Time [s]" if t is not None else "Sample")
-        sub_axes_wz.set_xlabel("Time [s]" if t is not None else "Sample")
-        sub_axes_mag.set_xlabel("Time [s]" if t is not None else "Sample")
+            # clean legend: sources only (linestyle proxy)
+            if len(self.sources) > 1:
+                handles, labs = [], []
+                for src in self.sources:
+                    handles.append(ax_i.plot([], [], color="k", **_source_style(src))[0])
+                    labs.append(src)
+                ax_i.legend(handles, labs)
+            else:
+                ax_i.legend().set_visible(False)
+
+        sub_axes_mag.set_ylabel(rf"$\|\omega\|$ [{self.units}]")
+        if self.log_y:
+            sub_axes_mag.set_yscale("log")
+        sub_axes_mag.grid(True, which="both")
+        if len(self.sources) > 1:
+            handles, labs = [], []
+            for src in self.sources:
+                handles.append(sub_axes_mag.plot([], [], color="k", **_source_style(src))[0])
+                labs.append(src)
+            sub_axes_mag.legend(handles, labs)
+        else:
+            sub_axes_mag.legend().set_visible(False)
+
+        # X labels (pick from first run that has time)
+        any_t = None
+        for run in runs:
+            if getattr(run, self.time, None) is not None:
+                any_t = True
+                break
+
+        xlabel = "Time [s]" if any_t else "Sample"
+        sub_axes_wy.set_xlabel(xlabel)
+        sub_axes_wz.set_xlabel(xlabel)
+        sub_axes_mag.set_xlabel(xlabel)
 
         sub_axes_wx.set_title(self.title, loc="left", pad=10)
+
 
 
 class AngularVelocityPlotSingle(Subplot):
@@ -272,7 +306,9 @@ class AngularVelocityPlotSingle(Subplot):
         self.log_y = log_y
 
     def plot(self, ax, sim) -> None:
-        t = getattr(sim, self.time, None)
+        runs = getattr(sim, "runs", None)
+        if runs is None:
+            runs = [sim]
 
         comp_idx = {"x": 0, "y": 1, "z": 2}.get(self.component, None)
         base_label = {
@@ -289,40 +325,65 @@ class AngularVelocityPlotSingle(Subplot):
             base_color = self.mag_color
             default_title = r"$\|\omega\|$ vs Time"
 
+        alpha = max(0.15, 1.0 / len(runs))
         plotted_any = False
 
-        for source in self.sources:
-            w = _get_w_series(sim, source)
-            if w is None:
-                continue
+        for run in runs:
+            t0 = getattr(run, self.time, None)
 
-            N = w.shape[0]
-            tt = np.asarray(t)[:N] if t is not None else np.arange(N)
+            for source in self.sources:
+                w = _get_w_series(run, source)
+                if w is None:
+                    continue
 
-            if self.component in {"x", "y", "z"}:
-                y = w[:, comp_idx]
-            else:
-                y = np.linalg.norm(w, axis=1)
+                N = w.shape[0]
+                tt = np.asarray(t0)[:N] if t0 is not None else np.arange(N)
 
-            style = _source_style(source)
-            suf = _source_suffix(source)
+                if self.component in {"x", "y", "z"}:
+                    y = w[:, comp_idx]
+                else:
+                    y = np.linalg.norm(w, axis=1)
 
-            ax.plot(tt, y, color=base_color, label=base_label + suf, **style)
-            plotted_any = True
+                style = _source_style(source)
+
+                ax.plot(
+                    tt,
+                    y,
+                    color=base_color,
+                    alpha=alpha,
+                    label=None,
+                    **style,
+                )
+                plotted_any = True
 
         if not plotted_any:
             ax.axis("off")
             ax.set_title(self.title or default_title, loc="left", pad=10)
-            ax.text(0.5, 0.5, "No angular rate history available", ha="center", va="center", transform=ax.transAxes)
+            ax.text(
+                0.5,
+                0.5,
+                "No angular rate history available",
+                ha="center",
+                va="center",
+                transform=ax.transAxes,
+            )
             return
 
         ax.set_ylabel(f"{base_label} [{self.units}]")
-        ax.set_xlabel("Time [s]" if t is not None else "Sample")
+        ax.set_xlabel("Time [s]" if any(getattr(r, self.time, None) is not None for r in runs) else "Sample")
         ax.set_title(self.title or default_title)
         if self.log_y:
             ax.set_yscale("log")
-        ax.legend()
+
+        # clean legend: sources only
+        handles, labs = [], []
+        for src in self.sources:
+            handles.append(ax.plot([], [], color="k", **_source_style(src))[0])
+            labs.append(src)
+        ax.legend(handles, labs) if len(self.sources) > 1 else ax.legend().set_visible(False)
+
         ax.grid(True, which="both")
+
 
 
 class AngularVelocityPlotCombined(Subplot):
@@ -387,38 +448,74 @@ class AngularVelocityPlotCombined(Subplot):
         self.log_y = log_y
 
     def plot(self, ax, sim) -> None:
-        t = getattr(sim, self.time, None)
+        runs = getattr(sim, "runs", None)
+        if runs is None:
+            runs = [sim]
+
+        t_label = "Time [s]" if any(getattr(r, self.time, None) is not None for r in runs) else "Sample"
         labels = [r"$\omega_x$", r"$\omega_y$", r"$\omega_z$"]
 
+        alpha = max(0.15, 1.0 / len(runs))
         plotted_any = False
 
-        for source in self.sources:
-            w = _get_w_series(sim, source)
-            if w is None:
-                continue
+        for run in runs:
+            t0 = getattr(run, self.time, None)
 
-            N = w.shape[0]
-            tt = np.asarray(t)[:N] if t is not None else np.arange(N)
+            for source in self.sources:
+                w = _get_w_series(run, source)
+                if w is None:
+                    continue
 
-            style = _source_style(source)
-            suf = _source_suffix(source)
+                N = w.shape[0]
+                tt = np.asarray(t0)[:N] if t0 is not None else np.arange(N)
 
-            for i in range(3):
-                ax.plot(tt, w[:, i], color=self.colors[i], label=labels[i] + suf, **style)
+                style = _source_style(source)
 
-            plotted_any = True
+                for i in range(3):
+                    ax.plot(
+                        tt,
+                        w[:, i],
+                        color=self.colors[i],
+                        alpha=alpha,
+                        label=None,
+                        **style,
+                    )
+
+                plotted_any = True
 
         if not plotted_any:
             ax.axis("off")
             ax.set_title(self.title, loc="left", pad=10)
-            ax.text(0.5, 0.5, "No angular rate history available", ha="center", va="center", transform=ax.transAxes)
+            ax.text(
+                0.5,
+                0.5,
+                "No angular rate history available",
+                ha="center",
+                va="center",
+                transform=ax.transAxes,
+            )
             return
 
         ax.set_ylabel(f"Angular Velocity [{self.units}]")
-        ax.set_xlabel("Time [s]" if t is not None else "Sample")
+        ax.set_xlabel(t_label)
         ax.set_title(self.title)
         if self.log_y:
             ax.set_yscale("log")
 
-        ax.legend(loc="upper right")
+        # clean legend: show component colors + source linestyles
+        handles, labs = [], []
+
+        # component color proxies
+        for i in range(3):
+            handles.append(ax.plot([], [], color=self.colors[i], linestyle="-")[0])
+            labs.append(labels[i])
+
+        # source linestyle proxies (if multiple)
+        if len(self.sources) > 1:
+            for src in self.sources:
+                handles.append(ax.plot([], [], color="k", **_source_style(src))[0])
+                labs.append(src)
+
+        ax.legend(handles, labs, loc="upper right")
         ax.grid(True, which="both", linestyle="--", alpha=0.7)
+

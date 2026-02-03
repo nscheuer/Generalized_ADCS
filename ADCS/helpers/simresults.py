@@ -1,144 +1,142 @@
-__all__ = ["SimulationResults"]
-
+from __future__ import annotations
+import pickle
+import lzma
 import numpy as np
+from pathlib import Path
+from datetime import datetime
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import Any, Dict, List, Optional, Iterator, Union
 
 from ADCS.satellite_hardware.satellite import Satellite, EstimatedSatellite
 from ADCS.orbits.orbital_state import Orbital_State
 
 @dataclass
-class SimulationResults:
+class RunResults:
     satellite: Satellite
     est_satellite: Optional[EstimatedSatellite] = None
-
     time_J2000: Optional[np.ndarray] = None
     time_s: Optional[np.ndarray] = None
-
     os_hist: Optional[List[Orbital_State]] = None
     est_os_hist: Optional[List[Orbital_State]] = None
     os_cov_hist: Optional[List[np.ndarray]] = None
-
     state_hist: Optional[np.ndarray] = None
     est_state_hist: Optional[np.ndarray] = None
     state_cov_hist: Optional[List[np.ndarray]] = None
-
     sensor_bias: Optional[np.ndarray] = None
     est_sensor_bias: Optional[np.ndarray] = None
-
     actuator_bias: Optional[np.ndarray] = None
     est_actuator_bias: Optional[np.ndarray] = None
-    eci_target_hist: Optional[np.ndarray] = None
+    target_hist: Optional[np.ndarray] = None
     w_target_hist: Optional[np.ndarray] = None
-
     clean_sensor_hist: Optional[np.ndarray] = None
     sensor_hist: Optional[np.ndarray] = None
-
     control_hist: Optional[np.ndarray] = None
 
-    def record(
-        self,
-        *,
-        k: int,
-        time_J2000=None,
-        time_s=None,
-        os=None,
-        est_os=None,
-        os_cov=None,
-        state=None,
-        est_state=None,
-        state_cov=None,
-        sensor_bias=None,
-        est_sensor_bias=None,
-        actuator_bias=None,
-        est_actuator_bias=None,
-        eci_target=None,
-        w_target=None,
-        clean_sensor=None,
-        sensor=None,
-        control=None,
-    ):
-        if time_J2000 is not None:
-            if self.time_J2000 is None:
-                self.time_J2000 = []
-            self.time_J2000.append(time_J2000)
+    def record(self, *, k: int, **kwargs):
+        mapping = {
+            "time_J2000": "time_J2000", "time_s": "time_s", "os": "os_hist",
+            "est_os": "est_os_hist", "os_cov": "os_cov_hist", "state": "state_hist",
+            "est_state": "est_state_hist", "state_cov": "state_cov_hist",
+            "sensor_bias": "sensor_bias", "est_sensor_bias": "est_sensor_bias",
+            "actuator_bias": "actuator_bias", "est_actuator_bias": "est_actuator_bias",
+            "target": "target_hist", "w_target": "w_target_hist",
+            "clean_sensor": "clean_sensor_hist", "sensor": "sensor_hist", "control": "control_hist"
+        }
+        for key, val in kwargs.items():
+            if val is not None and key in mapping:
+                attr = mapping[key]
+                if getattr(self, attr) is None:
+                    setattr(self, attr, [])
+                if key in ["state", "est_state", "target", "w_target", "clean_sensor", "sensor", "control"]:
+                    getattr(self, attr).append(np.asarray(val).copy())
+                else:
+                    getattr(self, attr).append(val)
 
-        if time_s is not None:
-            if self.time_s is None:
-                self.time_s = []
-            self.time_s.append(time_s)
+    def flatten(self) -> Dict[str, Any]:
+        data = self.__dict__.copy()
+        if data.get("os_hist"):
+            data["os_hist"] = [os.to_dict() if hasattr(os, "to_dict") else os for os in data["os_hist"]]
+        if data.get("est_os_hist"):
+            data["est_os_hist"] = [os.to_dict() if hasattr(os, "to_dict") else os for os in data["est_os_hist"]]
+        return data
 
-        if os is not None:
-            if self.os_hist is None:
-                self.os_hist = []
-            self.os_hist.append(os)
+    @classmethod
+    def inflate(cls, data: Dict[str, Any], ephem: Any = None) -> RunResults:
+        if ephem is not None:
+            if data.get("os_hist"):
+                data["os_hist"] = [Orbital_State.from_dict(d, ephem=ephem) for d in data["os_hist"]]
+            if data.get("est_os_hist"):
+                data["est_os_hist"] = [Orbital_State.from_dict(d, ephem=ephem) for d in data["est_os_hist"]]
+        return cls(**data)
 
-        if est_os is not None:
-            if self.est_os_hist is None:
-                self.est_os_hist = []
-            self.est_os_hist.append(est_os)
+@dataclass
+class SimulationResults:
+    runs: List[RunResults]
+    configs: Optional[List[Dict[str, Any]]] = None
+    run_ids: Optional[List[int]] = None
 
-        if os_cov is not None:
-            if self.os_cov_hist is None:
-                self.os_cov_hist = []
-            self.os_cov_hist.append(os_cov)
+    def __post_init__(self) -> None:
+        if not isinstance(self.runs, list) or len(self.runs) == 0:
+            raise ValueError("runs must be a non-empty list")
 
-        if state is not None:
-            if self.state_hist is None:
-                self.state_hist = []
-            self.state_hist.append(np.asarray(state).copy())
+    def save(self, name: str, out_dir: str | Path = "output", compress: bool = True) -> Path:
+        out_path = Path(out_dir)
+        out_path.mkdir(parents=True, exist_ok=True)
+        file_path = out_path / f"{name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.sim"
+        
+        serializable_data = {
+            "runs": [r.flatten() for r in self.runs],
+            "configs": self.configs,
+            "run_ids": self.run_ids
+        }
+        
+        print(f"[SimulationResults] Saving sanitized data to {file_path}...")
+        open_func = lzma.open if compress else open
+        with open_func(file_path, "wb") as f:
+            pickle.dump(serializable_data, f, protocol=pickle.HIGHEST_PROTOCOL)
+        
+        return file_path
 
-        if est_state is not None:
-            if self.est_state_hist is None:
-                self.est_state_hist = []
-            self.est_state_hist.append(np.asarray(est_state).copy())
+    @classmethod
+    def load(cls, path: str | Path, ephem: Any = None) -> SimulationResults:
+        path = Path(path)
+        open_func = lzma.open if path.suffix == ".sim" else open
+        
+        print(f"[SimulationResults] Loading and inflating from {path}...")
+        with open_func(path, "rb") as f:
+            data = pickle.load(f)
+        
+        runs = [RunResults.inflate(r, ephem=ephem) for r in data["runs"]]
+        return cls(runs=runs, configs=data.get("configs"), run_ids=data.get("run_ids"))
 
-        if state_cov is not None:
-            if self.state_cov_hist is None:
-                self.state_cov_hist = []
-            self.state_cov_hist.append(state_cov)
+    @property
+    def satellite(self) -> Satellite:
+        return self.runs[0].satellite
 
-        if sensor_bias is not None:
-            if self.sensor_bias is None:
-                self.sensor_bias = []
-            self.sensor_bias.append(sensor_bias)
+    @property
+    def est_satellite(self) -> Optional[EstimatedSatellite]:
+        return self.runs[0].est_satellite
 
-        if est_sensor_bias is not None:
-            if self.est_sensor_bias is None:
-                self.est_sensor_bias = []
-            self.est_sensor_bias.append(est_sensor_bias)
+    def __len__(self) -> int:
+        return len(self.runs)
 
-        if actuator_bias is not None:
-            if self.actuator_bias is None:
-                self.actuator_bias = []
-            self.actuator_bias.append(actuator_bias)
+    def __iter__(self) -> Iterator[RunResults]:
+        return iter(self.runs)
 
-        if est_actuator_bias is not None:
-            if self.est_actuator_bias is None:
-                self.est_actuator_bias = []
-            self.est_actuator_bias.append(est_actuator_bias)
+    def __getitem__(self, idx: Union[int, slice]) -> Union[RunResults, List[RunResults]]:
+        return self.runs[idx]
 
-        if eci_target is not None:
-            if self.eci_target_hist is None:
-                self.eci_target_hist = []
-            self.eci_target_hist.append(np.asarray(eci_target).copy())
+    def first(self) -> RunResults:
+        return self.runs[0]
 
-        if w_target is not None:
-            if self.w_target_hist is None:
-                self.w_target_hist = []
-            self.w_target_hist.append(np.asarray(w_target).copy())
+    def stack_state(self) -> np.ndarray:
+        return np.stack([np.asarray(r.state_hist) for r in self.runs], axis=0)
 
-        if clean_sensor is not None:
-            if self.clean_sensor_hist is None:
-                self.clean_sensor_hist = []
-            self.clean_sensor_hist.append(np.asarray(clean_sensor).copy())
+    def stack_control(self) -> np.ndarray:
+        return np.stack([np.vstack(r.control_hist) for r in self.runs], axis=0)
 
-        if sensor is not None:
-            if self.sensor_hist is None:
-                self.sensor_hist = []
-            self.sensor_hist.append(np.asarray(sensor).copy())
+    def stack_time(self) -> np.ndarray:
+        return np.stack([np.asarray(r.time_s) for r in self.runs], axis=0)
 
-        if control is not None:
-            if self.control_hist is None:
-                self.control_hist = []
-            self.control_hist.append(np.asarray(control).copy())
+    def map(self, attr: str) -> List[Any]:
+        return [getattr(r, attr) for r in self.runs]

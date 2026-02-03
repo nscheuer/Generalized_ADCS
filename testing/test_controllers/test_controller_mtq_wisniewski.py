@@ -172,7 +172,7 @@ def simulate_scenario(
     os_hist: List[Orbital_State] = []
     sensor_hist = np.nan * np.zeros((N, len(sat.sensors + sat.rw_actuators)))
     u_hist = np.nan * np.zeros((N, len(acts)))
-    boresight_hist = np.nan * np.zeros((N, 3))
+    boresight_hist = np.nan * np.zeros((N, 4))
 
     t = 0.0
     ind = 0
@@ -265,7 +265,7 @@ def test_mtq_wisniewski_scenarios(scenario: str) -> None:
 
     # 2. Pointing Check (If Alignment)
     if "align" in scenario:
-        goal_vec = boresight_hist[k, :]
+        goal_vec = boresight_hist[k, 1:4]
         # Check for NaN in logs
         if np.isnan(goal_vec).any(): goal_vec = np.array([1,0,0]) # Fallback if logging issue
 

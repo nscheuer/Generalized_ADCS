@@ -154,8 +154,11 @@ class Attitude_Goal(Goal):
         """
         q_ref, _ = self.to_ref(os0)
 
-        # body-frame attitude error: R_e = R(q)^T R(q_ref)
-        q_err = quat_mult(quat_inv(q), q_ref)
+        # Body-frame attitude error quaternion.
+        # We want q_err such that applying -q_err[1:4] as torque drives q toward q_ref.
+        # The correct formulation is: q_err = q_ref^-1 * q
+        # This represents the rotation FROM q_ref TO q, so negating it drives toward q_ref.
+        q_err = quat_mult(quat_inv(q_ref), q)
 
         # shortest rotation
         if q_err[0] < 0.0:

@@ -5,7 +5,7 @@ All previous examples assumed perfect state knowledge of the satellite. The pack
 
 Consider the TRMM (Tropical Rainfall Measuring Mission) satellite, launched by NASA and JAXA in 1997. We will model the satellite with some of its sensors and try to build a simple estimator around it. 
 
-.. image:: ../_static/tutorial_03_trmm.jpeg
+.. image:: ../_static/tutorials/tutorial_03_trmm.jpeg
    :alt: Render of the TRMM satellite. (Credit NASA)
    :width: 400px
    :align: center
@@ -137,7 +137,7 @@ Note that in the configuration, we may not have perfect knowledge of the satelli
    :header-rows: 0
    :class: borderless
 
-   * - .. image:: ../_static/tutorial_03_attitudeplot.png
+   * - .. image:: ../_static/tutorials/tutorial_03_attitudeplot.png
           :width: 100%
-     - .. image:: ../_static/tutorial_03_plots.png
+     - .. image:: ../_static/tutorials/tutorial_03_plots.png
           :width: 100%

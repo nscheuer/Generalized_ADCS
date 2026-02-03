@@ -135,52 +135,60 @@ class OrbitVelocityPlot(Subplot):
         ax_vy = ax.figure.add_subplot(gs[1, 0])
         ax_vz = ax.figure.add_subplot(gs[1, 1])
 
-        t0 = getattr(sim, self.time, None)
-
         labels = [r"$v_x$", r"$v_y$", r"$v_z$"]
         axes = [ax_vx, ax_vy, ax_vz]
 
+        runs = getattr(sim, "runs", None)
+        if runs is None:
+            runs = [sim]
+
+        alpha = max(0.15, 1.0 / len(runs))
         plotted_any = False
 
-        for source in self.sources:
-            V = _get_V_series(sim, source)
-            if V is None:
-                continue
+        for run in runs:
+            t0 = getattr(run, self.time, None)
 
-            N = V.shape[0]
-            t = np.asarray(t0)[:N] if t0 is not None else np.arange(N)
+            for source in self.sources:
+                V = _get_V_series(run, source)
+                if V is None:
+                    continue
 
-            style = _source_style_orbit(source)
-            suf = _source_suffix_orbit(source)
+                N = V.shape[0]
+                t = np.asarray(t0)[:N] if t0 is not None else np.arange(N)
 
-            vmag = np.linalg.norm(V, axis=1)
+                style = _source_style_orbit(source)
+                suf = _source_suffix_orbit(source)
 
-            for i, ax_i in enumerate(axes):
-                ax_i.plot(
+                vmag = np.linalg.norm(V, axis=1)
+
+                for i, ax_i in enumerate(axes):
+                    ax_i.plot(
+                        t,
+                        V[:, i],
+                        color=self.colors[i],
+                        alpha=alpha,
+                        label=None,
+                        **style,
+                    )
+                    ax_i.set_ylabel(f"{labels[i]} [{self.units}]")
+                    if self.log_y:
+                        ax_i.set_yscale("log")
+                    ax_i.grid(True, which="both")
+
+                ax_vmag.plot(
                     t,
-                    V[:, i],
-                    color=self.colors[i],
-                    label=labels[i] + suf,
+                    vmag,
+                    color=self.mag_color,
+                    alpha=alpha,
+                    label=None,
                     **style,
                 )
-                ax_i.set_ylabel(f"{labels[i]} [{self.units}]")
+                ax_vmag.set_ylabel(f"$\\|v\\|$ [{self.units}]")
                 if self.log_y:
-                    ax_i.set_yscale("log")
-                ax_i.grid(True, which="both")
+                    ax_vmag.set_yscale("log")
+                ax_vmag.grid(True, which="both")
 
-            ax_vmag.plot(
-                t,
-                vmag,
-                color=self.mag_color,
-                label=r"$\|v\|$" + suf,
-                **style,
-            )
-            ax_vmag.set_ylabel(f"$\\|v\\|$ [{self.units}]")
-            if self.log_y:
-                ax_vmag.set_yscale("log")
-            ax_vmag.grid(True, which="both")
-
-            plotted_any = True
+                plotted_any = True
 
         if not plotted_any:
             ax_text = ax.figure.add_subplot(ax.get_subplotspec())
@@ -189,13 +197,38 @@ class OrbitVelocityPlot(Subplot):
             ax_text.text(0.5, 0.5, "No orbit velocity history available", ha="center", va="center")
             return
 
-        for ax_i in axes:
-            ax_i.legend()
-        ax_vmag.legend()
+        # Clean legends: one entry per source per axis (not per run)
+        for i, ax_i in enumerate(axes):
+            handles = []
+            labs = []
+            for source in self.sources:
+                handles.append(
+                    ax_i.plot(
+                        [], [],
+                        color=self.colors[i],
+                        **_source_style_orbit(source),
+                    )[0]
+                )
+                labs.append(labels[i] + _source_suffix_orbit(source))
+            ax_i.legend(handles, labs)
 
-        ax_vy.set_xlabel("Time [s]" if t0 is not None else "Sample")
-        ax_vz.set_xlabel("Time [s]" if t0 is not None else "Sample")
+        handles = []
+        labs = []
+        for source in self.sources:
+            handles.append(
+                ax_vmag.plot(
+                    [], [],
+                    color=self.mag_color,
+                    **_source_style_orbit(source),
+                )[0]
+            )
+            labs.append(r"$\|v\|$" + _source_suffix_orbit(source))
+        ax_vmag.legend(handles, labs)
+
+        ax_vy.set_xlabel("Time [s]" if getattr(runs[0], self.time, None) is not None else "Sample")
+        ax_vz.set_xlabel("Time [s]" if getattr(runs[0], self.time, None) is not None else "Sample")
         ax_vx.set_title(self.title, loc="left", pad=10)
+
 
 
 class OrbitVelocityPlotSingle(Subplot):
@@ -279,42 +312,54 @@ class OrbitVelocityPlotSingle(Subplot):
         self.title = title
 
     def plot(self, ax, sim) -> None:
-        t0 = getattr(sim, self.time, None)
+        runs = getattr(sim, "runs", None)
+        if runs is None:
+            runs = [sim]
 
-        default_title = self.title or "Orbit Velocity (ECI)"
-
+        alpha = max(0.15, 1.0 / len(runs))
         plotted_any = False
 
-        for source in self.sources:
-            V = _get_V_series(sim, source)
-            if V is None:
-                continue
+        default_title = self.title or "Orbit Velocity (ECI)"
+        t_label = "Time [s]"
 
-            N = V.shape[0]
-            t = np.asarray(t0)[:N] if t0 is not None else np.arange(N)
+        for run in runs:
+            t0 = getattr(run, self.time, None)
 
-            style = _source_style_orbit(source)
-            suf = _source_suffix_orbit(source)
+            for source in self.sources:
+                V = _get_V_series(run, source)
+                if V is None:
+                    continue
 
-            if self.component == "x":
-                y = V[:, 0]
-                label = self.labels["x"]
-                base_color = self.color or "tab:blue"
-            elif self.component == "y":
-                y = V[:, 1]
-                label = self.labels["y"]
-                base_color = self.color or "tab:orange"
-            elif self.component == "z":
-                y = V[:, 2]
-                label = self.labels["z"]
-                base_color = self.color or "tab:green"
-            else:
-                y = np.linalg.norm(V, axis=1)
-                label = self.labels["m"]
-                base_color = self.color or "tab:red"
+                N = V.shape[0]
+                if t0 is not None:
+                    t = np.asarray(t0)[:N]
+                    t_label = "Time [s]"
+                else:
+                    t = np.arange(N)
+                    t_label = "Sample"
 
-            ax.plot(t, y, color=base_color, label=label + suf, **style)
-            plotted_any = True
+                style = _source_style_orbit(source)
+                suf = _source_suffix_orbit(source)
+
+                if self.component == "x":
+                    y = V[:, 0]
+                    label = self.labels["x"] + suf
+                    base_color = self.color or "tab:blue"
+                elif self.component == "y":
+                    y = V[:, 1]
+                    label = self.labels["y"] + suf
+                    base_color = self.color or "tab:orange"
+                elif self.component == "z":
+                    y = V[:, 2]
+                    label = self.labels["z"] + suf
+                    base_color = self.color or "tab:green"
+                else:
+                    y = np.linalg.norm(V, axis=1)
+                    label = self.labels["m"] + suf
+                    base_color = self.color or "tab:red"
+
+                ax.plot(t, y, color=base_color, alpha=alpha, label=None, **style)
+                plotted_any = True
 
         if not plotted_any:
             ax.axis("off")
@@ -322,13 +367,36 @@ class OrbitVelocityPlotSingle(Subplot):
             ax.text(0.5, 0.5, "No orbit velocity history available", ha="center", va="center")
             return
 
-        ax.set_xlabel("Time [s]" if t0 is not None else "Sample")
+        # Clean legend: one entry per source
+        handles, labs = [], []
+        for source in self.sources:
+            suf = _source_suffix_orbit(source)
+            style = _source_style_orbit(source)
+
+            if self.component == "x":
+                base_color = self.color or "tab:blue"
+                lab = self.labels["x"] + suf
+            elif self.component == "y":
+                base_color = self.color or "tab:orange"
+                lab = self.labels["y"] + suf
+            elif self.component == "z":
+                base_color = self.color or "tab:green"
+                lab = self.labels["z"] + suf
+            else:
+                base_color = self.color or "tab:red"
+                lab = self.labels["m"] + suf
+
+            handles.append(ax.plot([], [], color=base_color, **style)[0])
+            labs.append(lab)
+
+        ax.set_xlabel(t_label)
         ax.set_ylabel(f"{self.labels[self.component]} [{self.units}]")
-        ax.set_title(self.title or default_title)
+        ax.set_title(self.title or default_title, loc="left", pad=10)
         if self.log_y:
             ax.set_yscale("log")
-        ax.legend()
+        ax.legend(handles, labs)
         ax.grid(True, which="both")
+
 
 
 class OrbitVelocityPlotCombined(Subplot):
@@ -399,31 +467,44 @@ class OrbitVelocityPlotCombined(Subplot):
         self.labels = labels or [r"$v_x$", r"$v_y$", r"$v_z$"]
 
     def plot(self, ax, sim) -> None:
-        t0 = getattr(sim, self.time, None)
+        runs = getattr(sim, "runs", None)
+        if runs is None:
+            runs = [sim]
 
+        alpha = max(0.15, 1.0 / len(runs))
         plotted_any = False
+        t_label = "Time [s]"
 
-        for source in self.sources:
-            V = _get_V_series(sim, source)
-            if V is None:
-                continue
+        for run in runs:
+            t0 = getattr(run, self.time, None)
 
-            N = V.shape[0]
-            t = np.asarray(t0)[:N] if t0 is not None else np.arange(N)
+            for source in self.sources:
+                V = _get_V_series(run, source)
+                if V is None:
+                    continue
 
-            style = _source_style_orbit(source)
-            suf = _source_suffix_orbit(source)
+                N = V.shape[0]
+                if t0 is not None:
+                    t = np.asarray(t0)[:N]
+                    t_label = "Time [s]"
+                else:
+                    t = np.arange(N)
+                    t_label = "Sample"
 
-            for i in range(3):
-                ax.plot(
-                    t,
-                    V[:, i],
-                    color=self.colors[i],
-                    label=self.labels[i] + suf,
-                    **style,
-                )
+                style = _source_style_orbit(source)
+                suf = _source_suffix_orbit(source)
 
-            plotted_any = True
+                for i in range(3):
+                    ax.plot(
+                        t,
+                        V[:, i],
+                        color=self.colors[i],
+                        alpha=alpha,
+                        label=None,
+                        **style,
+                    )
+
+                plotted_any = True
 
         if not plotted_any:
             ax.axis("off")
@@ -431,12 +512,19 @@ class OrbitVelocityPlotCombined(Subplot):
             ax.text(0.5, 0.5, "No orbit velocity history available", ha="center", va="center")
             return
 
-        ax.set_xlabel("Time [s]" if t0 is not None else "Sample")
+        # Clean legend: one entry per component per source
+        handles, labs = [], []
+        for source in self.sources:
+            suf = _source_suffix_orbit(source)
+            style = _source_style_orbit(source)
+            for i in range(3):
+                handles.append(ax.plot([], [], color=self.colors[i], **style)[0])
+                labs.append(self.labels[i] + suf)
+
+        ax.set_xlabel(t_label)
         ax.set_ylabel(f"Velocity [{self.units}]")
         ax.set_title(self.title, loc="left", pad=10)
-
         if self.log_y:
             ax.set_yscale("log")
-
-        ax.legend()
+        ax.legend(handles, labs)
         ax.grid(True, which="both")

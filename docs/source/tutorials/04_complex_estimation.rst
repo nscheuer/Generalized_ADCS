@@ -3,7 +3,7 @@
 
 We again consider the TRMM (Tropical Rainfall Measuring Mission) satellite, launched by NASA and JAXA in 1997. 
 
-.. image:: ../_static/tutorial_03_trmm.jpeg
+.. image:: ../_static/tutorials/tutorial_03_trmm.jpeg
    :alt: Render of the TRMM satellite. (Credit NASA)
    :width: 400px
    :align: center
@@ -157,9 +157,9 @@ Using the correct setup for the :math:`P` and :math:`Q` matrices, the estimator 
    :header-rows: 0
    :class: borderless
 
-   * - .. image:: ../_static/tutorial_04_attitudeplot.png
+   * - .. image:: ../_static/tutorials/tutorial_04_attitudeplot.png
           :width: 100%
-     - .. image:: ../_static/tutorial_04_plots.png
+     - .. image:: ../_static/tutorials/tutorial_04_plots.png
           :width: 100%
 
 Note that as the satellite enters the eclipse, the estimation quality degrades due to the loss of sun sensor measurements.

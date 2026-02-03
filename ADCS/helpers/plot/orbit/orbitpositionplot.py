@@ -131,41 +131,60 @@ class OrbitPositionPlot(Subplot):
         ax_ry = ax.figure.add_subplot(gs[1, 0])
         ax_rz = ax.figure.add_subplot(gs[1, 1])
 
-        t0 = getattr(sim, self.time, None)
-
         labels = [r"$r_x$", r"$r_y$", r"$r_z$"]
         axes = [ax_rx, ax_ry, ax_rz]
 
+        runs = getattr(sim, "runs", None)
+        if runs is None:
+            runs = [sim]
+
+        alpha = max(0.15, 1.0 / len(runs))
         plotted_any = False
 
-        for source in self.sources:
-            R = _get_R_series(sim, source)
-            if R is None:
-                continue
+        for run in runs:
+            t0 = getattr(run, self.time, None)
 
-            N = R.shape[0]
-            t = np.asarray(t0)[:N] if t0 is not None else np.arange(N)
+            for source in self.sources:
+                R = _get_R_series(run, source)
+                if R is None:
+                    continue
 
-            style = _source_style_orbit(source)
-            suf = _source_suffix_orbit(source)
+                N = R.shape[0]
+                t = np.asarray(t0)[:N] if t0 is not None else np.arange(N)
 
-            rmag = np.linalg.norm(R, axis=1)
+                style = _source_style_orbit(source)
+                suf = _source_suffix_orbit(source)
 
-            for i, ax_i in enumerate(axes):
-                ax_i.plot(t, R[:, i], color=self.colors[i], label=labels[i] + suf, **style)
-                ax_i.set_ylabel(f"{labels[i]} [{self.units}]")
+                rmag = np.linalg.norm(R, axis=1)
+
+                for i, ax_i in enumerate(axes):
+                    ax_i.plot(
+                        t,
+                        R[:, i],
+                        color=self.colors[i],
+                        alpha=alpha,
+                        label=None,
+                        **style,
+                    )
+                    ax_i.set_ylabel(f"{labels[i]} [{self.units}]")
+                    if self.log_y:
+                        ax_i.set_yscale("log")
+                    ax_i.grid(True, which="both")
+
+                ax_rmag.plot(
+                    t,
+                    rmag,
+                    color=self.mag_color,
+                    alpha=alpha,
+                    label=None,
+                    **style,
+                )
+                ax_rmag.set_ylabel(f"$\\|r\\|$ [{self.units}]")
                 if self.log_y:
-                    ax_i.set_yscale("log")
-                ax_i.grid(True, which="both")
+                    ax_rmag.set_yscale("log")
+                ax_rmag.grid(True, which="both")
 
-            # magnitude on its own axis
-            ax_rmag.plot(t, rmag, color=self.mag_color, label=r"$\|r\|$" + suf, **style)
-            ax_rmag.set_ylabel(f"$\\|r\\|$ [{self.units}]")
-            if self.log_y:
-                ax_rmag.set_yscale("log")
-            ax_rmag.grid(True, which="both")
-
-            plotted_any = True
+                plotted_any = True
 
         if not plotted_any:
             ax_text = ax.figure.add_subplot(ax.get_subplotspec())
@@ -174,13 +193,38 @@ class OrbitPositionPlot(Subplot):
             ax_text.text(0.5, 0.5, "No orbit history available", ha="center", va="center")
             return
 
-        for ax_i in axes:
-            ax_i.legend()
-        ax_rmag.legend()
+        # Clean legends: one entry per source per axis (not per run)
+        for i, ax_i in enumerate(axes):
+            handles = []
+            labs = []
+            for source in self.sources:
+                handles.append(
+                    ax_i.plot(
+                        [], [],
+                        color=self.colors[i],
+                        **_source_style_orbit(source),
+                    )[0]
+                )
+                labs.append(labels[i] + _source_suffix_orbit(source))
+            ax_i.legend(handles, labs)
 
-        ax_ry.set_xlabel("Time [s]" if t0 is not None else "Sample")
-        ax_rz.set_xlabel("Time [s]" if t0 is not None else "Sample")
+        handles = []
+        labs = []
+        for source in self.sources:
+            handles.append(
+                ax_rmag.plot(
+                    [], [],
+                    color=self.mag_color,
+                    **_source_style_orbit(source),
+                )[0]
+            )
+            labs.append(r"$\|r\|$" + _source_suffix_orbit(source))
+        ax_rmag.legend(handles, labs)
+
+        ax_ry.set_xlabel("Time [s]" if getattr(runs[0], self.time, None) is not None else "Sample")
+        ax_rz.set_xlabel("Time [s]" if getattr(runs[0], self.time, None) is not None else "Sample")
         ax_rx.set_title(self.title, loc="left", pad=10)
+
 
 
 class OrbitPositionPlotSingle(Subplot):
@@ -265,46 +309,58 @@ class OrbitPositionPlotSingle(Subplot):
         self.title = title
 
     def plot(self, ax, sim) -> None:
-        t0 = getattr(sim, self.time, None)
+        runs = getattr(sim, "runs", None)
+        if runs is None:
+            runs = [sim]
 
-        default_title = self.title or "Orbit Position (ECI)"
-
+        alpha = max(0.15, 1.0 / len(runs))
         plotted_any = False
 
-        for source in self.sources:
-            R = _get_R_series(sim, source)
-            if R is None:
-                continue
+        default_title = self.title or "Orbit Position (ECI)"
+        t_label = "Time [s]"
 
-            N = R.shape[0]
-            t = np.asarray(t0)[:N] if t0 is not None else np.arange(N)
+        for run in runs:
+            t0 = getattr(run, self.time, None)
 
-            style = _source_style_orbit(source)
-            suf = _source_suffix_orbit(source)
+            for source in self.sources:
+                R = _get_R_series(run, source)
+                if R is None:
+                    continue
 
-            if self.component == "x":
-                y = R[:, 0]
-                label = self.labels["x"]
-                base_color = self.color or "tab:blue"
-                title = self.title or "Orbit Position $r_x$ (ECI)"
-            elif self.component == "y":
-                y = R[:, 1]
-                label = self.labels["y"]
-                base_color = self.color or "tab:orange"
-                title = self.title or "Orbit Position $r_y$ (ECI)"
-            elif self.component == "z":
-                y = R[:, 2]
-                label = self.labels["z"]
-                base_color = self.color or "tab:green"
-                title = self.title or "Orbit Position $r_z$ (ECI)"
-            else:
-                y = np.linalg.norm(R, axis=1)
-                label = self.labels["m"]
-                base_color = self.color or "tab:red"
-                title = self.title or "Orbit Position $\\|r\\|$ (ECI)"
+                N = R.shape[0]
+                if t0 is not None:
+                    t = np.asarray(t0)[:N]
+                    t_label = "Time [s]"
+                else:
+                    t = np.arange(N)
+                    t_label = "Sample"
 
-            ax.plot(t, y, color=base_color, label=label + suf, **style)
-            plotted_any = True
+                style = _source_style_orbit(source)
+                suf = _source_suffix_orbit(source)
+
+                if self.component == "x":
+                    y = R[:, 0]
+                    label = self.labels["x"] + suf
+                    base_color = self.color or "tab:blue"
+                    title = self.title or "Orbit Position $r_x$ (ECI)"
+                elif self.component == "y":
+                    y = R[:, 1]
+                    label = self.labels["y"] + suf
+                    base_color = self.color or "tab:orange"
+                    title = self.title or "Orbit Position $r_y$ (ECI)"
+                elif self.component == "z":
+                    y = R[:, 2]
+                    label = self.labels["z"] + suf
+                    base_color = self.color or "tab:green"
+                    title = self.title or "Orbit Position $r_z$ (ECI)"
+                else:
+                    y = np.linalg.norm(R, axis=1)
+                    label = self.labels["m"] + suf
+                    base_color = self.color or "tab:red"
+                    title = self.title or "Orbit Position $\\|r\\|$ (ECI)"
+
+                ax.plot(t, y, color=base_color, alpha=alpha, label=None, **style)
+                plotted_any = True
 
         if not plotted_any:
             ax.axis("off")
@@ -312,13 +368,36 @@ class OrbitPositionPlotSingle(Subplot):
             ax.text(0.5, 0.5, "No orbit history available", ha="center", va="center")
             return
 
-        ax.set_xlabel("Time [s]" if t0 is not None else "Sample")
+        # Clean legend: one entry per source
+        handles, labs = [], []
+        for source in self.sources:
+            suf = _source_suffix_orbit(source)
+            style = _source_style_orbit(source)
+
+            if self.component == "x":
+                base_color = self.color or "tab:blue"
+                lab = self.labels["x"] + suf
+            elif self.component == "y":
+                base_color = self.color or "tab:orange"
+                lab = self.labels["y"] + suf
+            elif self.component == "z":
+                base_color = self.color or "tab:green"
+                lab = self.labels["z"] + suf
+            else:
+                base_color = self.color or "tab:red"
+                lab = self.labels["m"] + suf
+
+            handles.append(ax.plot([], [], color=base_color, **style)[0])
+            labs.append(lab)
+
+        ax.set_xlabel(t_label)
         ax.set_ylabel(f"{self.labels[self.component]} [{self.units}]")
-        ax.set_title(self.title or default_title)
+        ax.set_title(self.title or default_title, loc="left", pad=10)
         if self.log_y:
             ax.set_yscale("log")
-        ax.legend()
+        ax.legend(handles, labs)
         ax.grid(True, which="both")
+
 
 
 class OrbitPositionPlotCombined(Subplot):
@@ -389,31 +468,44 @@ class OrbitPositionPlotCombined(Subplot):
         self.labels = labels or [r"$r_x$", r"$r_y$", r"$r_z$"]
 
     def plot(self, ax, sim) -> None:
-        t0 = getattr(sim, self.time, None)
+        runs = getattr(sim, "runs", None)
+        if runs is None:
+            runs = [sim]
 
+        alpha = max(0.15, 1.0 / len(runs))
         plotted_any = False
+        t_label = "Time [s]"
 
-        for source in self.sources:
-            R = _get_R_series(sim, source)
-            if R is None:
-                continue
+        for run in runs:
+            t0 = getattr(run, self.time, None)
 
-            N = R.shape[0]
-            t = np.asarray(t0)[:N] if t0 is not None else np.arange(N)
+            for source in self.sources:
+                R = _get_R_series(run, source)
+                if R is None:
+                    continue
 
-            style = _source_style_orbit(source)
-            suf = _source_suffix_orbit(source)
+                N = R.shape[0]
+                if t0 is not None:
+                    t = np.asarray(t0)[:N]
+                    t_label = "Time [s]"
+                else:
+                    t = np.arange(N)
+                    t_label = "Sample"
 
-            for i in range(3):
-                ax.plot(
-                    t,
-                    R[:, i],
-                    color=self.colors[i],
-                    label=self.labels[i] + suf,
-                    **style,
-                )
+                style = _source_style_orbit(source)
+                suf = _source_suffix_orbit(source)
 
-            plotted_any = True
+                for i in range(3):
+                    ax.plot(
+                        t,
+                        R[:, i],
+                        color=self.colors[i],
+                        alpha=alpha,
+                        label=None,
+                        **style,
+                    )
+
+                plotted_any = True
 
         if not plotted_any:
             ax.axis("off")
@@ -421,12 +513,19 @@ class OrbitPositionPlotCombined(Subplot):
             ax.text(0.5, 0.5, "No orbit history available", ha="center", va="center")
             return
 
-        ax.set_xlabel("Time [s]" if t0 is not None else "Sample")
+        # Clean legend: one entry per component per source
+        handles, labs = [], []
+        for source in self.sources:
+            suf = _source_suffix_orbit(source)
+            style = _source_style_orbit(source)
+            for i in range(3):
+                handles.append(ax.plot([], [], color=self.colors[i], **style)[0])
+                labs.append(self.labels[i] + suf)
+
+        ax.set_xlabel(t_label)
         ax.set_ylabel(f"Position [{self.units}]")
         ax.set_title(self.title, loc="left", pad=10)
-
         if self.log_y:
             ax.set_yscale("log")
-
-        ax.legend()
+        ax.legend(handles, labs)
         ax.grid(True, which="both")
