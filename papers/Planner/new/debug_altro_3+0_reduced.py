@@ -49,6 +49,9 @@ planner_settings.cost_tvlqr = ADCS.controller.helpers.CostWeights(
         ang_cost_func_type=2,
     )
 
+planner_settings.mtq_control_weight = 1e0
+planner_settings.rw_control_weight = 1e8
+
 controller = ADCS.controller.Plan_and_Track_LQR(est_sat=real_sat, planner_settings=planner_settings)
 
 os0 = ADCS.Orbital_State(ephem=ADCS.Ephemeris(),J2000=0.22, R=7000*np.array([0, np.sqrt(2)/2, np.sqrt(2)/2]), V=np.array([8, 0, 0]))

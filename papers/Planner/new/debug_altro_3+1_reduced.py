@@ -28,7 +28,7 @@ planner_settings.cost_main = ADCS.controller.helpers.CostWeights(
         angle_N=1e1,
         ang_vel=1e5,
         ang_vel_N=1e5,
-        ang_vel_err_dir=0.0,
+        ang_vel_err_dir=1e2,
         ang_vel_err_dir_N=0.0,
         ang_vel_mag=0.0,
         ang_vel_mag_N=0.0,
@@ -39,8 +39,8 @@ planner_settings.cost_main = ADCS.controller.helpers.CostWeights(
 planner_settings.cost_second = planner_settings.cost_main
 
 planner_settings.cost_tvlqr = ADCS.controller.helpers.CostWeights(
-        angle=1e8,
-        angle_N=1e8,
+        angle=1e5,
+        angle_N=1e6,
         ang_vel=1e6,
         ang_vel_N=1e8,
         ang_vel_mag=0.0,
@@ -64,12 +64,12 @@ results = ADCS.simulate(
     tf=1000.0
 )
 
-# ADCS.plot(
-#     results,
-#     ADCS.plots.AnimationPlot(),
-#     layout=(1,1),
-#     title="3+1 ALTRO Reduced",
-# )
+ADCS.plot(
+    results,
+    ADCS.plots.AnimationPlot(),
+    layout=(1,1),
+    title="3+1 ALTRO Reduced",
+)
 
 ADCS.plot(
     results,
@@ -84,16 +84,6 @@ ADCS.plot(
     ADCS.plots.ControlPlotCombined(title="Magnetorquer Commands", units="Am²"),
     ADCS.plots.TargetHistogram(bin_width=5.0),
     ADCS.plots.TargetPlot(modes=["real_target"], title="Target Tracking"),
-    layout=(2,2),
-    title="3+1 ALTRO Reduced",
-)
-
-ADCS.plot(
-    results,
-    ADCS.plots.ControlPlotSingle(index=0, title="Magnetorquer 1", units="Am²"),
-    ADCS.plots.ControlPlotSingle(index=1, title="Magnetorquer 2", units="Am²"),
-    ADCS.plots.ControlPlotSingle(index=2, title="Magnetorquer 3", units="Am²"),
-    ADCS.plots.ControlPlotSingle(index=3, title="Reaction Wheel", units="Nms"),
     layout=(2,2),
     title="3+1 ALTRO Reduced",
 )

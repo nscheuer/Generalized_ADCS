@@ -5,8 +5,10 @@ import ADCS as ADCS
 import numpy as np
 import matplotlib.pyplot as plt
 
+np.random.seed(42)
 real_sat = ADCS.satellite_factory.create_beavercube2_cubesat(estimated=False)
 x_0 = np.array([0.0, 0.0, 0.0] + [1, 0, 0, 0] + [0.0]) # w, q, h
+
 
 planner_settings = ADCS.controller.helpers.PlannerSettings(est_sat=real_sat, bdot_on=0, dt_tp=50, dt_tvlqr=1.0)
 
@@ -28,7 +30,7 @@ planner_settings.cost_main = ADCS.controller.helpers.CostWeights(
         angle_N=1e1,
         ang_vel=1e5,
         ang_vel_N=1e5,
-        ang_vel_err_dir=0.0,
+        ang_vel_err_dir=1e2,
         ang_vel_err_dir_N=0.0,
         ang_vel_mag=0.0,
         ang_vel_mag_N=0.0,
@@ -50,9 +52,7 @@ planner_settings.cost_tvlqr = ADCS.controller.helpers.CostWeights(
     )
 
 controller = ADCS.controller.Plan_and_Track_LQR(est_sat=real_sat, planner_settings=planner_settings)
-
 os0 = ADCS.Orbital_State(ephem=ADCS.Ephemeris(),J2000=0.22, R=7000*np.array([0, np.sqrt(2)/2, np.sqrt(2)/2]), V=np.array([8, 0, 0]))
-goal = ADCS.goals.ECI_Goal(np.array([0, 0, -1]))
 
 def make_random_os(rng: np.random.Generator) -> ADCS.Orbital_State:
     return ADCS.orbits.create_random_circular_os(radius_km=7000.0, J2000=0.22, rng=rng)
@@ -77,12 +77,14 @@ results = ADCS.simulate_mc(
     base_seed=42
 )
 
-ADCS.plot(
-    results,
-    ADCS.plots.AnimationPlot(),
-    layout=(1,1),
-    title="3+1 ALTRO Reduced",
-)
+results.save("mc12_altro_3+1_reduced", out_dir="papers/Planner/new/output")
+
+# ADCS.plot(
+#     results,
+#     ADCS.plots.AnimationPlot(),
+#     layout=(1,1),
+#     title="3+1 ALTRO Reduced",
+# )
 
 ADCS.plot(
     results,
@@ -97,16 +99,6 @@ ADCS.plot(
     ADCS.plots.ControlPlotCombined(title="Magnetorquer Commands", units="Am²"),
     ADCS.plots.TargetHistogram(bin_width=5.0),
     ADCS.plots.TargetPlot(modes=["real_target"], title="Target Tracking"),
-    layout=(2,2),
-    title="3+1 ALTRO Reduced",
-)
-
-ADCS.plot(
-    results,
-    ADCS.plots.ControlPlotSingle(index=0, title="Magnetorquer 1", units="Am²"),
-    ADCS.plots.ControlPlotSingle(index=1, title="Magnetorquer 2", units="Am²"),
-    ADCS.plots.ControlPlotSingle(index=2, title="Magnetorquer 3", units="Am²"),
-    ADCS.plots.ControlPlotSingle(index=3, title="Reaction Wheel", units="Nms"),
     layout=(2,2),
     title="3+1 ALTRO Reduced",
 )

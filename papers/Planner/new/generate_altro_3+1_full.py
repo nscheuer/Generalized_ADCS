@@ -5,6 +5,7 @@ import ADCS as ADCS
 import numpy as np
 import matplotlib.pyplot as plt
 
+np.random.seed(42)
 real_sat = ADCS.satellite_factory.create_beavercube2_cubesat(estimated=False)
 x_0 = np.array([0.0, 0.0, 0.0] + [1, 0, 0, 0] + [0.0]) # w, q, h
 
@@ -17,15 +18,15 @@ planner_settings.init_traj.bdot_gain = 500
 planner_settings.pass1.aug_lag.penalty_init = 1e-3
 planner_settings.pass1.aug_lag.penalty_scale = 10
 planner_settings.pass1.convergence.max_outer_iter = 15
-planner_settings.pass1.convergence.max_inner_iter = 40
+planner_settings.pass1.convergence.max_inner_iter = 80
 planner_settings.pass2.aug_lag.penalty_init = 1e5
 planner_settings.pass2.aug_lag.penalty_scale = 10
 planner_settings.pass2.convergence.max_outer_iter = 8
-planner_settings.pass2.convergence.max_inner_iter = 20
+planner_settings.pass2.convergence.max_inner_iter = 80
 
 planner_settings.cost_main = ADCS.controller.helpers.CostWeights(
-        angle=0.0,
-        angle_N=0.0,
+        angle=2e0,
+        angle_N=2e0,
         ang_vel=1e4,
         ang_vel_N=1e4,
         ang_vel_err_dir=0.0,
@@ -46,8 +47,11 @@ planner_settings.cost_tvlqr = ADCS.controller.helpers.CostWeights(
         ang_vel_mag=0.0,
         ang_vel_mag_N=0.0,
         control_mult=1.0,
-        ang_cost_func_type=4,
+        ang_cost_func_type=2,
     )
+
+planner_settings.mtq_control_weight = 1e0
+planner_settings.rw_control_weight = 1e8
 
 controller = ADCS.controller.Plan_and_Track_LQR(est_sat=real_sat, planner_settings=planner_settings)
 
@@ -58,7 +62,7 @@ def make_random_os(rng: np.random.Generator) -> ADCS.Orbital_State:
     return ADCS.orbits.create_random_circular_os(radius_km=7000.0, J2000=0.22, rng=rng)
 
 mc_config = ADCS.MCConfig(
-    w = lambda rng: ADCS.helpers.normalize(rng.standard_normal(3)) * (rng.uniform(0.1, 1.0) * np.pi / 180.0),
+    w = lambda rng: ADCS.helpers.normalize(rng.standard_normal(3)) * (rng.uniform(0.0, 0.0) * np.pi / 180.0),
     q = lambda rng: ADCS.helpers.normalize(rng.standard_normal(4)),
     h = lambda rng: rng.uniform(-0.0001, 0.0001, size=1),
     goal = lambda rng: ADCS.goals.Fixed_Attitude_Goal(q_ref=ADCS.helpers.normalize(rng.standard_normal(4))),
@@ -77,18 +81,20 @@ results = ADCS.simulate_mc(
     base_seed=42
 )
 
-ADCS.plot(
-    results,
-    ADCS.plots.AnimationPlot(),
-    layout=(1,1),
-    title="3+1 ALTRO Reduced",
-)
+results.save("mc12_altro_3+1_full", out_dir="papers/Planner/new/output")
+
+# ADCS.plot(
+#     results,
+#     ADCS.plots.AnimationPlot(),
+#     layout=(1,1),
+#     title="3+1 ALTRO Reduced",
+# )
 
 ADCS.plot(
     results,
     ADCS.plots.AttitudePlot(sources=["real", "reference"]),
     layout=(1,1),
-    title="3+1 ALTRO Reduced",
+    title="3+1 ALTRO Full",
 )
 
 ADCS.plot(
@@ -98,7 +104,7 @@ ADCS.plot(
     ADCS.plots.TargetHistogram(bin_width=5.0),
     ADCS.plots.TargetPlot(modes=["real_target"], title="Target Tracking"),
     layout=(2,2),
-    title="3+1 ALTRO Reduced",
+    title="3+1 ALTRO Full",
 )
 
 ADCS.plot(
@@ -108,7 +114,7 @@ ADCS.plot(
     ADCS.plots.ControlPlotSingle(index=2, title="Magnetorquer 3", units="Am²"),
     ADCS.plots.ControlPlotSingle(index=3, title="Reaction Wheel", units="Nms"),
     layout=(2,2),
-    title="3+1 ALTRO Reduced",
+    title="3+1 ALTRO Full",
 )
 
 plt.show()

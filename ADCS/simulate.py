@@ -157,7 +157,7 @@ def simulate(
             x_0=x,
             os_0=os0,
             goals=goal_list,
-            verbose=False
+            verbose=True
         )
         
         if True:

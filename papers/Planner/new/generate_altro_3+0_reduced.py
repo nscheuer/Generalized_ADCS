@@ -17,11 +17,11 @@ planner_settings.init_traj.bdot_gain = 500
 planner_settings.pass1.aug_lag.penalty_init = 1e-3
 planner_settings.pass1.aug_lag.penalty_scale = 10
 planner_settings.pass1.convergence.max_outer_iter = 15
-planner_settings.pass1.convergence.max_inner_iter = 40
+planner_settings.pass1.convergence.max_inner_iter = 80
 planner_settings.pass2.aug_lag.penalty_init = 1e5
 planner_settings.pass2.aug_lag.penalty_scale = 10
 planner_settings.pass2.convergence.max_outer_iter = 8
-planner_settings.pass2.convergence.max_inner_iter = 20
+planner_settings.pass2.convergence.max_inner_iter = 80
 
 planner_settings.cost_main = ADCS.controller.helpers.CostWeights(
         angle=1e1,
@@ -60,7 +60,6 @@ def make_random_os(rng: np.random.Generator) -> ADCS.Orbital_State:
 mc_config = ADCS.MCConfig(
     w = lambda rng: ADCS.helpers.normalize(rng.standard_normal(3)) * (rng.uniform(0.1, 1.0) * np.pi / 180.0),
     q = lambda rng: ADCS.helpers.normalize(rng.standard_normal(4)),
-    h = lambda rng: rng.uniform(-0.0001, 0.0001, size=1),
     goal = lambda rng: ADCS.goals.ECI_Goal(eci_vector=ADCS.helpers.normalize(rng.standard_normal(3))),
     orbit = make_random_os
 )
@@ -77,18 +76,20 @@ results = ADCS.simulate_mc(
     base_seed=42
 )
 
-ADCS.plot(
-    results,
-    ADCS.plots.AnimationPlot(),
-    layout=(1,1),
-    title="3+1 ALTRO Reduced",
-)
+results.save("mc12_altro_3+0_reduced", out_dir="papers/Planner/new/output")
+
+# ADCS.plot(
+#     results,
+#     ADCS.plots.AnimationPlot(),
+#     layout=(1,1),
+#     title="3+1 ALTRO Reduced",
+# )
 
 ADCS.plot(
     results,
     ADCS.plots.AttitudePlot(sources=["real", "reference"]),
     layout=(1,1),
-    title="3+1 ALTRO Reduced",
+    title="3+0 ALTRO Reduced",
 )
 
 ADCS.plot(
@@ -98,7 +99,7 @@ ADCS.plot(
     ADCS.plots.TargetHistogram(bin_width=5.0),
     ADCS.plots.TargetPlot(modes=["real_target"], title="Target Tracking"),
     layout=(2,2),
-    title="3+1 ALTRO Reduced",
+    title="3+0 ALTRO Reduced",
 )
 
 ADCS.plot(
@@ -107,7 +108,7 @@ ADCS.plot(
     ADCS.plots.ControlPlotSingle(index=1, title="Magnetorquer 2", units="Am²"),
     ADCS.plots.ControlPlotSingle(index=2, title="Magnetorquer 3", units="Am²"),
     layout=(3,1),
-    title="3+1 ALTRO Reduced",
+    title="3+0 ALTRO Reduced",
 )
 
 plt.show()

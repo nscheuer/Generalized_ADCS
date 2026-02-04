@@ -6,7 +6,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 real_sat = ADCS.satellite_factory.create_beavercube2_cubesat(estimated=False)
-x_0 = np.array([0.0, 0.0, 0.0] + [1, 0, 0, 0] + [0.0]) # w, q, h
+
+rng = np.random.default_rng(322)
+w = ADCS.helpers.normalize(rng.standard_normal(3)) * (rng.uniform(0.1, 1.0) * np.pi / 180.0)
+q = ADCS.helpers.normalize(rng.standard_normal(4))
+h = rng.uniform(-0.0001, 0.0001, size=1)
+x_0 = np.concatenate((w, q, h)) # w, q, h
 
 planner_settings = ADCS.controller.helpers.PlannerSettings(est_sat=real_sat, bdot_on=0, dt_tp=50, dt_tvlqr=1.0)
 
@@ -24,9 +29,9 @@ planner_settings.pass2.convergence.max_outer_iter = 8
 planner_settings.pass2.convergence.max_inner_iter = 80
 
 planner_settings.cost_main = ADCS.controller.helpers.CostWeights(
-        angle=1e1,
-        angle_N=1e1,
-        ang_vel=1e4,
+        angle=4e0,
+        angle_N=4e0,
+        ang_vel=1e5,
         ang_vel_N=1e5,
         ang_vel_err_dir=0.0,
         ang_vel_err_dir_N=0.0,
@@ -52,7 +57,7 @@ planner_settings.cost_tvlqr = ADCS.controller.helpers.CostWeights(
 controller = ADCS.controller.Plan_and_Track_LQR(est_sat=real_sat, planner_settings=planner_settings)
 
 os0 = ADCS.Orbital_State(ephem=ADCS.Ephemeris(),J2000=0.22, R=7000*np.array([0, np.sqrt(2)/2, np.sqrt(2)/2]), V=np.array([8, 0, 0]))
-goal = ADCS.goals.Fixed_Attitude_Goal(q_ref=ADCS.helpers.normalize(np.array([1, 1, 1, 1])))
+goal = ADCS.goals.Fixed_Attitude_Goal(ADCS.helpers.normalize(rng.standard_normal(4)))
 
 results = ADCS.simulate(
     x=x_0,
