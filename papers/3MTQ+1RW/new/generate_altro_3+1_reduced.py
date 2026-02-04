@@ -73,9 +73,11 @@ results = ADCS.simulate_mc(
     dt=1.0,
     tf=1000.0,
     mc_config=mc_config,
-    num_runs=12,
+    num_runs=100,
     base_seed=42
 )
+
+results.save("mc100_altro_3+1_reduced", out_dir="papers/3MTQ+1RW/new/output")
 
 # ADCS.plot(
 #     results,

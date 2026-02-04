@@ -50,7 +50,7 @@ planner_settings.cost_tvlqr = ADCS.controller.helpers.CostWeights(
         ang_cost_func_type=2,
     )
 
-planner_settings.mtq_control_weight = 1e0
+planner_settings.mtq_control_weight = 1e1
 planner_settings.rw_control_weight = 1e8
 
 controller = ADCS.controller.Plan_and_Track_LQR(est_sat=real_sat, planner_settings=planner_settings)
@@ -77,11 +77,11 @@ results = ADCS.simulate_mc(
     dt=1.0,
     tf=1000.0,
     mc_config=mc_config,
-    num_runs=12,
+    num_runs=100,
     base_seed=42
 )
 
-results.save("mc12_altro_3+1_full", out_dir="papers/Planner/new/output")
+results.save("mc100_altro_3+1_full", out_dir="papers/Planner/new/output")
 
 # ADCS.plot(
 #     results,

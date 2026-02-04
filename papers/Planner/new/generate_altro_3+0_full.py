@@ -27,8 +27,8 @@ planner_settings.pass2.convergence.max_inner_iter = 80
 planner_settings.cost_main = ADCS.controller.helpers.CostWeights(
         angle=2e0,
         angle_N=2e0,
-        ang_vel=1e4,
-        ang_vel_N=1e4,
+        ang_vel=1e3,
+        ang_vel_N=1e3,
         ang_vel_err_dir=0.0,
         ang_vel_err_dir_N=0.0,
         ang_vel_mag=0.0,
@@ -76,11 +76,11 @@ results = ADCS.simulate_mc(
     dt=1.0,
     tf=1000.0,
     mc_config=mc_config,
-    num_runs=100,
+    num_runs=12,
     base_seed=42
 )
 
-results.save("mc100_altro_3+0_full", out_dir="papers/Planner/new/output")
+results.save("mc12e_altro_3+0_full", out_dir="papers/Planner/new/output")
 
 # ADCS.plot(
 #     results,
