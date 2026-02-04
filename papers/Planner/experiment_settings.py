@@ -114,7 +114,7 @@ def run_one(config, has_rw, tuning, settings_overrides=None, multi_goal=True):
     N = Xset.shape[1]
     n_state = Xset.shape[0]
     
-    BODY_BORESIGHT = np.array([0, 0, 1.0])
+    BODY_BORESIGHT = np.array([0, 1, 0])  # Y-axis, matches satellite definition
     omega_norms = np.linalg.norm(Xset[0:3, :], axis=0) * 180 / np.pi  # deg/s
 
     # Compute angle error per goal segment
