@@ -811,17 +811,17 @@ def apply_fast_slew_tuning(settings, verbose: bool = False):
     settings.pass1.aug_lag.penalty_init = 1e-3
     settings.pass1.aug_lag.penalty_max = 1e6
     
-    # Pass2: warm-start is already good from Pass1, so use moderate penalties
-    # High penalty_max (1e10) causes cost divergence without trajectory improvement
+    # Pass2: warm-start is already good from Pass1, so use gentle penalties
+    # Aggressive penalty growth destabilizes rather than helps
     settings.pass2.aug_lag.penalty_init = 1e-1
-    settings.pass2.aug_lag.penalty_max = 1e4
-    settings.pass2.aug_lag.penalty_scale = 5
+    settings.pass2.aug_lag.penalty_max = 1e3
+    settings.pass2.aug_lag.penalty_scale = 3
     
-    # Iteration limits
+    # Iteration limits: enough for convergence, z_count breaks early when stuck
     settings.pass1.convergence.max_inner_iter = 80
-    settings.pass2.convergence.max_inner_iter = 15
+    settings.pass2.convergence.max_inner_iter = 20
     settings.pass1.convergence.max_outer_iter = 20
-    settings.pass2.convergence.max_outer_iter = 5
+    settings.pass2.convergence.max_outer_iter = 8
     
     # Regularization settings
     # reg_mode: 0=control-space only, 1=state-space only, 2=both
@@ -842,7 +842,7 @@ def apply_fast_slew_tuning(settings, verbose: bool = False):
     
     # Convergence detection (break if cost hasn't improved for z_count_lim iterations)
     settings.pass1.convergence.z_count_lim = 5
-    settings.pass2.convergence.z_count_lim = 5
+    settings.pass2.convergence.z_count_lim = 3  # Exit early when stuck (warm-start is already good)
     
     if verbose:
         ratio = settings.cost_main.ang_vel / settings.cost_main.angle
