@@ -103,12 +103,12 @@ def create_good_planner_settings(sat, dt_planning: float = 1.0, has_rw: bool = N
     
     # State-space regularization (in addition to control-space)
     # reg_mode: 0=control-space only, 1=state-space only, 2=both
-    settings.pass1.regularization.reg_mode = 2
-    settings.pass2.regularization.reg_mode = 2
+    settings.pass1.regularization.reg_mode = 0
+    settings.pass2.regularization.reg_mode = 0
     
     # reg_min_cond: 0=no minimum regularization enforcement
-    settings.pass1.regularization.reg_min_cond = 0
-    settings.pass2.regularization.reg_min_cond = 0
+    settings.pass1.regularization.reg_min_cond = 2
+    settings.pass2.regularization.reg_min_cond = 2
     
     return settings
 
@@ -290,8 +290,9 @@ def create_adaptive_planner_settings(
     if actual_steps < 15:
         dt_tp = max(5, duration / 20)
     
-    # dt_tvlqr should be finer than dt_tp
-    dt_tvlqr = max(dt_planning, dt_tp / 10)
+    # dt_tvlqr must match dt_planning for proper TVLQR tracking
+    # Using dt_tvlqr > dt_planning causes discretization errors during tracking
+    dt_tvlqr = dt_planning
     
     if verbose:
         print(f"Auto-scaling for {duration}s trajectory:")
@@ -315,7 +316,7 @@ def create_adaptive_planner_settings(
                 # MTQ cost relative to RW - no torque scaling (caused tracking instability)
                 mtq_cost=1.0,
                 rw_torque_cost=5.0,
-                rw_momentum_cost=10.0,
+                rw_momentum_cost=0.01,
                 rw_stiction_cost=0.1,
                 use_torque_effective_mtq_scaling=False,
                 expected_B_field_uT=30.0,
@@ -431,7 +432,7 @@ def create_adaptive_planner_settings(
     
     # RW-specific settings
     if has_rw:
-        settings.rw_AM_weight = 0.0  # Rely on hard constraint, not soft penalty
+        settings.rw_AM_weight = 1.0  # Raw weight, bypasses normalization
         settings.RWh_ok_mult = 0.5
     
     return settings
@@ -766,11 +767,14 @@ def apply_fast_slew_tuning(settings, verbose: bool = False):
     orig_ang_vel = settings.cost_main.ang_vel
     
     # Make angle cost higher (10x) to penalize being far from goal
-    settings.cost_main.angle *= 10
+    settings.cost_main.ang_vel *= 100
     settings.cost_main.angle_N = settings.cost_main.angle  # Keep terminal = running
     settings.cost_main.ang_vel_N = settings.cost_main.ang_vel  # Keep terminal = running
-    
-    settings.cost_second.angle *= 10
+    # settings.mtq_control_weight *= 0.1     # Cheap MTQ for faster convergence
+    # settings.rw_control_weight *= 10.0     # Cheap RW for faster convergence
+
+    # settings.cost_second.ang_vel *= 1
+    settings.cost_second.angle *= 100
     settings.cost_second.angle_N = settings.cost_second.angle
     settings.cost_second.ang_vel_N = settings.cost_second.ang_vel
     
@@ -786,8 +790,8 @@ def apply_fast_slew_tuning(settings, verbose: bool = False):
     # Cross-term for discouraging wrong-direction ω (spinning backwards)
     # Auto-set to 75% of max PSD-safe value based on angle/ang_vel weights
     # NOTE: For PSD cost matrix, need: ang_vel_err_dir <= 2*sqrt(angle * ang_vel)
-    settings.cost_main.set_cross_term_auto(fraction=0.75, verbose=verbose)
-    settings.cost_second.set_cross_term_auto(fraction=0.75, verbose=verbose)
+    settings.cost_main.set_cross_term_auto(fraction=0.0, verbose=verbose)
+    settings.cost_second.set_cross_term_auto(fraction=0.0, verbose=verbose)
     
     # Path length cost: DISABLED - was causing issues with some seeds
     settings.cost_main.ang_vel_mag = 0.0
@@ -800,30 +804,43 @@ def apply_fast_slew_tuning(settings, verbose: bool = False):
     settings.cost_second.check_psd(warn=True)
     
     # Timestep for planning
-    settings.dt_tp = 10
+    settings.dt_tp = 30
     
     # Penalty settings
     settings.pass1.aug_lag.penalty_init = 1e-3
     settings.pass1.aug_lag.penalty_max = 1e6
     
     # Pass2: higher initial penalty for stricter constraint enforcement with warm start
-    settings.pass2.aug_lag.penalty_init = 1.0
+    settings.pass2.aug_lag.penalty_init = 1e0
     settings.pass2.aug_lag.penalty_max = 1e10
+    settings.pass2.aug_lag.penalty_scale = 10
     
     # More inner iterations to allow convergence
-    settings.pass1.convergence.max_inner_iter = 100
-    settings.pass2.convergence.max_inner_iter = 100
+    settings.pass1.convergence.max_inner_iter = 80
+    settings.pass2.convergence.max_inner_iter = 50
+    settings.pass1.convergence.max_outer_iter = 20
+    settings.pass2.convergence.max_outer_iter = 20
     
-    # Regularization settings - clamp to reg_min instead of going to 0
-    settings.pass1.regularization.reg_min_cond = 1
-    settings.pass2.regularization.reg_min_cond = 1
+    # Regularization settings
+    # reg_mode: 0=control-space only, 1=state-space only, 2=both
+    # State-space reg produces smoother trajectories and handles MTQ rank deficiency better
+    settings.pass1.regularization.reg_mode = 2
+    settings.pass2.regularization.reg_mode = 2
+    # reg_min_cond: clamp to reg_min instead of going to 0
+    settings.pass1.regularization.reg_min_cond = 2
+    settings.pass2.regularization.reg_min_cond = 2
+    settings.pass1.regularization.reg_min =  1e-4
+    settings.pass2.regularization.reg_min =  1e-4
+    settings.pass1.regularization.reg_bump =  1e2
+    settings.pass2.regularization.reg_bump =  1e2
     
     # Pass2: use normalized control cost (not raw) for better conditioning
     settings.cost_second.use_raw_control_cost = False
+    settings.cost_second.control_mult = 1e2 
     
     # Convergence detection (break if cost hasn't improved for z_count_lim iterations)
-    settings.pass1.convergence.z_count_lim = 10
-    settings.pass2.convergence.z_count_lim = 10
+    settings.pass1.convergence.z_count_lim = 5
+    settings.pass2.convergence.z_count_lim = 5
     
     if verbose:
         ratio = settings.cost_main.ang_vel / settings.cost_main.angle
@@ -906,6 +923,10 @@ def create_optimized_planner_settings(
     # For most conservative/slowest convergence
     settings = create_optimized_planner_settings(sat, 1000, tuning="anti_spin")
     """
+    # Auto-detect RW if not specified
+    if has_rw is None:
+        has_rw = len(sat.rw_actuators) > 0
+
     # Create base auto-scaled settings
     settings = create_adaptive_planner_settings(
         sat, duration, dt_planning, has_rw, goal_changes, verbose
@@ -928,16 +949,29 @@ def create_optimized_planner_settings(
     else:
         raise ValueError(f"Unknown tuning preset: {tuning}. Use 'smooth', 'balanced', 'anti_spin', 'aggressive', 'fast_slew', or 'none'")
     
-    # TVLQR gain tuning: Control multiplier affects feedback gain magnitude
-    # Higher control_mult -> smaller K-gains (more conservative feedback)
-    # Lower control_mult -> larger K-gains (more aggressive feedback)
-    # With auto_scale_control_costs:
-    #   1.0 = too aggressive (unstable)
-    #   1000 = too conservative (drift)
-    #   100 = moderate gains
-    settings.cost_tvlqr.control_mult = 500.0  # Conservative feedback
+    # RW control weight: Default is extremely high (~1.7e6) which effectively
+    # disables the RW. Set to 100 so the planner actually uses the RW for slews.
+    if has_rw:
+        settings.rw_control_weight = 100
+
+    # TVLQR cost settings: Match NSSR_python_improvements branch
+    # Use same state costs as planning, with control_mult=1.0
+    # This gives larger K-gains that actively correct tracking errors
+    # Tested: control_mult=1.0 gives ~4° final error vs ~26° with 500
+    from ADCS.controller.helpers.planner_subsettings import CostWeights
+    settings.cost_tvlqr = CostWeights(
+        angle=1e3,
+        angle_N=1e6,
+        ang_vel=1e3,
+        ang_vel_N=1e5,
+        control_mult=1.0,  # NSSR-style: aggressive feedback
+    )
     if verbose:
-        print(f"TVLQR control multiplier: {settings.cost_tvlqr.control_mult:.0e}")
+        print(f"TVLQR costs: angle={settings.cost_tvlqr.angle:.0e}, ang_vel={settings.cost_tvlqr.ang_vel:.0e}, control_mult={settings.cost_tvlqr.control_mult}")
+
+    # TVLQR segmentation
+    settings.tvlqr_len = 60
+    settings.tvlqr_overlap = 15
     
     # Enable multi-start if requested
     if use_multistart:

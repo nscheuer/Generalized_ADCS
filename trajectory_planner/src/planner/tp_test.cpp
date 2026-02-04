@@ -5048,6 +5048,398 @@ TEST_CASE("Test stepcost with RW Jacobians", "[armadillo][cost][.skip]") {
 	REQUIRE(arma::approx_equal(ddf__dudu,luu , "absdiff", 1e-04));
 }
 
+// ============================================================================
+// TEST: veccostJacobians state gradient (lx) and Hessian (lxx) finite differences
+// Tests the cross-coupling terms between angular velocity and attitude
+// ============================================================================
+TEST_CASE("veccostJacobians lx and lxx match finite differences", "[armadillo][cost][jacobian][state]") {
+	std::cout << "\n=== Test: veccostJacobians State Jacobians (lx, lxx) ===" << std::endl;
+
+	Satellite sat = Satellite();
+	sat.change_Jcom(arma::diagmat(arma::vec({0.01, 0.05, 0.05})));
+	sat.add_MTQ(arma::vec({1,0,0}), 0.2, 0.1);
+	sat.add_MTQ(arma::vec({0,1,0}), 0.5, 0.1);
+	sat.add_MTQ(arma::vec({0,0,1}), 0.5, 0.1);
+	// Add RWs to test full state
+	double rw_J = 1e-4, rw_max_torq = 1e-3, rw_h_max = 0.01;
+	double rw_cost = 1.0, rw_AM_cost = 1.0, rw_AM_thresh = 0.005;
+	double rw_stic_cost = 0.0, rw_stic_thresh = 0.001;
+	sat.add_RW(arma::vec({1,0,0}), rw_J, rw_max_torq, rw_h_max, rw_cost, rw_AM_cost, rw_AM_thresh, rw_stic_cost, rw_stic_thresh);
+	sat.add_RW(arma::vec({0,1,0}), rw_J, rw_max_torq, rw_h_max, rw_cost, rw_AM_cost, rw_AM_thresh, rw_stic_cost, rw_stic_thresh);
+	sat.add_RW(arma::vec({0,0,1}), rw_J, rw_max_torq, rw_h_max, rw_cost, rw_AM_cost, rw_AM_thresh, rw_stic_cost, rw_stic_thresh);
+
+	int nx = sat.state_N();
+	int nu = sat.control_N();
+	int nxr = sat.reduced_state_N();
+
+	arma::arma_rng::set_seed(100);
+
+	int N = 20;
+	int k = 10;
+
+	arma::vec3 w0 = 0.03 * arma::randn(3);
+	arma::vec4 q0 = arma::normalise(arma::vec({1.0, 0.1, 0.1, 0.1}) + 0.1*arma::randn(4));
+	arma::vec rw_h = 0.002 * arma::randn(sat.number_RW);
+	arma::vec x = arma::join_cols(arma::join_cols(w0, q0), rw_h);
+	x = sat.state_norm(x);
+
+	arma::vec u = arma::vec(nu).zeros();
+	u.head(sat.number_MTQ) = 0.05 * arma::randn(sat.number_MTQ);
+	u.tail(sat.number_RW) = 0.0003 * arma::randn(sat.number_RW);
+	arma::vec u_prev = 0.9 * u + 0.01 * arma::randn(nu);
+
+	arma::vec3 satvec = arma::normalise(arma::vec({0, 0, 1}));
+	arma::vec3 ECIvec = arma::normalise(arma::vec({1, 0, 0}));
+	arma::vec3 B_eci = arma::vec({1e-5, 3e-5, 2e-5});
+
+	// Test with w_avang enabled to exercise cross-coupling terms
+	COST_SETTINGS_FORM costSettings = std::make_tuple(
+		1e2, 1e1, 1.0, 0.0, 0.5,  // w_avang = 0.5 to test cross-coupling
+		1e3, 1e2, 0.0, 0.0,
+		2, 0, 0
+	);
+
+	arma::vec xkp1 = x;
+
+	// Get analytical Jacobians
+	cost_jacs jacs = sat.veccostJacobians(k, N, x, xkp1, u, u_prev, satvec, ECIvec, B_eci, &costSettings);
+
+	// Compute base cost
+	double c0 = sat.stepcost_vec(k, N, x, xkp1, u, u_prev, satvec, ECIvec, B_eci, &costSettings);
+
+	// Finite difference for lx using reduced state perturbations
+	double eps = 1e-7;
+	arma::vec lx_fd(nxr);
+	arma::mat W = findWMat(x.rows(sat.quat0index(), sat.quat0index()+3));
+
+	for(int i = 0; i < nxr; i++) {
+		arma::vec x_pert = x;
+		if (i < 3) {
+			// Angular velocity perturbation
+			x_pert(sat.avindex0() + i) += eps;
+		} else if (i < 6) {
+			// Reduced quaternion perturbation via W matrix
+			arma::vec3 delta = arma::vec(3).zeros();
+			delta(i - 3) = eps;
+			arma::vec4 q = x.rows(sat.quat0index(), sat.quat0index()+3);
+			arma::vec4 q_pert = arma::normalise(q + W * delta);
+			x_pert.rows(sat.quat0index(), sat.quat0index()+3) = q_pert;
+		} else {
+			// RW momentum perturbation
+			x_pert(sat.quat0index() + 4 + (i - 6)) += eps;
+		}
+		double c_pert = sat.stepcost_vec(k, N, x_pert, xkp1, u, u_prev, satvec, ECIvec, B_eci, &costSettings);
+		lx_fd(i) = (c_pert - c0) / eps;
+	}
+
+	double lx_error = arma::norm(jacs.lx - lx_fd);
+	double lx_rel_error = lx_error / (arma::norm(lx_fd) + 1e-10);
+
+	std::cout << "  lx error (abs): " << lx_error << ", (rel): " << lx_rel_error << std::endl;
+	std::cout << "    lx analytical: " << jacs.lx.t();
+	std::cout << "    lx finite diff: " << lx_fd.t();
+	REQUIRE(lx_rel_error < 1e-3);
+
+	// Finite difference for lxx (state Hessian) via gradient perturbation
+	double eps_hess = 1e-5;
+	arma::mat lxx_fd(nxr, nxr);
+	for(int i = 0; i < nxr; i++) {
+		arma::vec x_pert = x;
+		arma::mat W_pert = findWMat(x.rows(sat.quat0index(), sat.quat0index()+3));
+		if (i < 3) {
+			x_pert(sat.avindex0() + i) += eps_hess;
+		} else if (i < 6) {
+			arma::vec3 delta = arma::vec(3).zeros();
+			delta(i - 3) = eps_hess;
+			arma::vec4 q = x.rows(sat.quat0index(), sat.quat0index()+3);
+			arma::vec4 q_pert = arma::normalise(q + W_pert * delta);
+			x_pert.rows(sat.quat0index(), sat.quat0index()+3) = q_pert;
+		} else {
+			x_pert(sat.quat0index() + 4 + (i - 6)) += eps_hess;
+		}
+		cost_jacs jacs_pert = sat.veccostJacobians(k, N, x_pert, xkp1, u, u_prev, satvec, ECIvec, B_eci, &costSettings);
+		lxx_fd.col(i) = (jacs_pert.lx - jacs.lx) / eps_hess;
+	}
+
+	// Symmetrize for comparison
+	arma::mat lxx_fd_sym = 0.5 * (lxx_fd + lxx_fd.t());
+
+	double lxx_error = arma::norm(jacs.lxx - lxx_fd_sym, "fro");
+	double lxx_rel_error = lxx_error / (arma::norm(lxx_fd_sym, "fro") + 1e-10);
+
+	std::cout << "  lxx error (abs): " << lxx_error << ", (rel): " << lxx_rel_error << std::endl;
+
+	// Check cross-coupling blocks specifically (omega-quat cross term)
+	arma::mat lxx_cross_ana = jacs.lxx.submat(0, 3, 2, 5);
+	arma::mat lxx_cross_fd = lxx_fd_sym.submat(0, 3, 2, 5);
+	double cross_error = arma::norm(lxx_cross_ana - lxx_cross_fd, "fro");
+	double cross_rel_error = cross_error / (arma::norm(lxx_cross_fd, "fro") + 1e-10);
+	std::cout << "  lxx cross-coupling (w,q) error (abs): " << cross_error << ", (rel): " << cross_rel_error << std::endl;
+	std::cout << "    cross analytical:\n" << lxx_cross_ana << std::endl;
+	std::cout << "    cross finite diff:\n" << lxx_cross_fd << std::endl;
+
+	REQUIRE(lxx_rel_error < 1e-2);
+}
+
+// ============================================================================
+// TEST: quatcostJacobians state gradient (lx) and Hessian (lxx) finite differences
+// Tests the cross-coupling terms for quaternion tracking mode
+// ============================================================================
+TEST_CASE("quatcostJacobians lx and lxx match finite differences", "[armadillo][cost][jacobian][state]") {
+	std::cout << "\n=== Test: quatcostJacobians State Jacobians (lx, lxx) ===" << std::endl;
+
+	Satellite sat = Satellite();
+	sat.change_Jcom(arma::diagmat(arma::vec({0.01, 0.05, 0.05})));
+	sat.add_MTQ(arma::vec({1,0,0}), 0.2, 0.1);
+	sat.add_MTQ(arma::vec({0,1,0}), 0.5, 0.1);
+	sat.add_MTQ(arma::vec({0,0,1}), 0.5, 0.1);
+	// Add RWs to test full state
+	double rw_J = 1e-4, rw_max_torq = 1e-3, rw_h_max = 0.01;
+	double rw_cost = 1.0, rw_AM_cost = 1.0, rw_AM_thresh = 0.005;
+	double rw_stic_cost = 0.0, rw_stic_thresh = 0.001;
+	sat.add_RW(arma::vec({1,0,0}), rw_J, rw_max_torq, rw_h_max, rw_cost, rw_AM_cost, rw_AM_thresh, rw_stic_cost, rw_stic_thresh);
+	sat.add_RW(arma::vec({0,1,0}), rw_J, rw_max_torq, rw_h_max, rw_cost, rw_AM_cost, rw_AM_thresh, rw_stic_cost, rw_stic_thresh);
+	sat.add_RW(arma::vec({0,0,1}), rw_J, rw_max_torq, rw_h_max, rw_cost, rw_AM_cost, rw_AM_thresh, rw_stic_cost, rw_stic_thresh);
+
+	int nx = sat.state_N();
+	int nu = sat.control_N();
+	int nxr = sat.reduced_state_N();
+
+	arma::arma_rng::set_seed(101);
+
+	int N = 20;
+	int k = 10;
+
+	arma::vec3 w0 = 0.03 * arma::randn(3);
+	arma::vec4 q0 = arma::normalise(arma::vec({1.0, 0.1, 0.1, 0.1}) + 0.1*arma::randn(4));
+	arma::vec rw_h = 0.002 * arma::randn(sat.number_RW);
+	arma::vec x = arma::join_cols(arma::join_cols(w0, q0), rw_h);
+	x = sat.state_norm(x);
+
+	arma::vec u = arma::vec(nu).zeros();
+	u.head(sat.number_MTQ) = 0.05 * arma::randn(sat.number_MTQ);
+	u.tail(sat.number_RW) = 0.0003 * arma::randn(sat.number_RW);
+	arma::vec u_prev = 0.9 * u + 0.01 * arma::randn(nu);
+
+	arma::vec3 satvec = arma::normalise(arma::vec({0, 0, 1}));
+	arma::vec4 ECIquat = arma::normalise(arma::vec({0.7, 0.3, 0.5, 0.4}));  // Non-trivial target quaternion
+	arma::vec3 B_eci = arma::vec({1e-5, 3e-5, 2e-5});
+
+	// Test with w_avang enabled to exercise cross-coupling terms
+	COST_SETTINGS_FORM costSettings = std::make_tuple(
+		1e2, 1e1, 1.0, 0.0, 0.5,  // w_avang = 0.5 to test cross-coupling
+		1e3, 1e2, 0.0, 0.0,
+		2, 0, 0
+	);
+
+	arma::vec xkp1 = x;
+
+	// Get analytical Jacobians
+	cost_jacs jacs = sat.quatcostJacobians(k, N, x, xkp1, u, u_prev, satvec, ECIquat, B_eci, &costSettings);
+
+	// Compute base cost
+	double c0 = sat.stepcost_quat(k, N, x, xkp1, u, u_prev, satvec, ECIquat, B_eci, &costSettings);
+
+	// Finite difference for lx using reduced state perturbations
+	double eps = 1e-7;
+	arma::vec lx_fd(nxr);
+	arma::mat W = findWMat(x.rows(sat.quat0index(), sat.quat0index()+3));
+
+	for(int i = 0; i < nxr; i++) {
+		arma::vec x_pert = x;
+		if (i < 3) {
+			x_pert(sat.avindex0() + i) += eps;
+		} else if (i < 6) {
+			arma::vec3 delta = arma::vec(3).zeros();
+			delta(i - 3) = eps;
+			arma::vec4 q = x.rows(sat.quat0index(), sat.quat0index()+3);
+			arma::vec4 q_pert = arma::normalise(q + W * delta);
+			x_pert.rows(sat.quat0index(), sat.quat0index()+3) = q_pert;
+		} else {
+			x_pert(sat.quat0index() + 4 + (i - 6)) += eps;
+		}
+		double c_pert = sat.stepcost_quat(k, N, x_pert, xkp1, u, u_prev, satvec, ECIquat, B_eci, &costSettings);
+		lx_fd(i) = (c_pert - c0) / eps;
+	}
+
+	double lx_error = arma::norm(jacs.lx - lx_fd);
+	double lx_rel_error = lx_error / (arma::norm(lx_fd) + 1e-10);
+
+	std::cout << "  lx error (abs): " << lx_error << ", (rel): " << lx_rel_error << std::endl;
+	std::cout << "    lx analytical: " << jacs.lx.t();
+	std::cout << "    lx finite diff: " << lx_fd.t();
+	REQUIRE(lx_rel_error < 1e-3);
+
+	// Finite difference for lxx via gradient perturbation
+	double eps_hess = 1e-5;
+	arma::mat lxx_fd(nxr, nxr);
+	for(int i = 0; i < nxr; i++) {
+		arma::vec x_pert = x;
+		arma::mat W_pert = findWMat(x.rows(sat.quat0index(), sat.quat0index()+3));
+		if (i < 3) {
+			x_pert(sat.avindex0() + i) += eps_hess;
+		} else if (i < 6) {
+			arma::vec3 delta = arma::vec(3).zeros();
+			delta(i - 3) = eps_hess;
+			arma::vec4 q = x.rows(sat.quat0index(), sat.quat0index()+3);
+			arma::vec4 q_pert = arma::normalise(q + W_pert * delta);
+			x_pert.rows(sat.quat0index(), sat.quat0index()+3) = q_pert;
+		} else {
+			x_pert(sat.quat0index() + 4 + (i - 6)) += eps_hess;
+		}
+		cost_jacs jacs_pert = sat.quatcostJacobians(k, N, x_pert, xkp1, u, u_prev, satvec, ECIquat, B_eci, &costSettings);
+		lxx_fd.col(i) = (jacs_pert.lx - jacs.lx) / eps_hess;
+	}
+
+	arma::mat lxx_fd_sym = 0.5 * (lxx_fd + lxx_fd.t());
+
+	double lxx_error = arma::norm(jacs.lxx - lxx_fd_sym, "fro");
+	double lxx_rel_error = lxx_error / (arma::norm(lxx_fd_sym, "fro") + 1e-10);
+
+	std::cout << "  lxx error (abs): " << lxx_error << ", (rel): " << lxx_rel_error << std::endl;
+
+	// Check cross-coupling blocks specifically
+	arma::mat lxx_cross_ana = jacs.lxx.submat(0, 3, 2, 5);
+	arma::mat lxx_cross_fd = lxx_fd_sym.submat(0, 3, 2, 5);
+	double cross_error = arma::norm(lxx_cross_ana - lxx_cross_fd, "fro");
+	double cross_rel_error = cross_error / (arma::norm(lxx_cross_fd, "fro") + 1e-10);
+	std::cout << "  lxx cross-coupling (w,q) error (abs): " << cross_error << ", (rel): " << cross_rel_error << std::endl;
+	std::cout << "    cross analytical:\n" << lxx_cross_ana << std::endl;
+	std::cout << "    cross finite diff:\n" << lxx_cross_fd << std::endl;
+
+	REQUIRE(lxx_rel_error < 1e-2);
+}
+
+// ============================================================================
+// TEST: costJacobians (unified) state gradient (lx) and Hessian (lxx) finite differences
+// Tests the vector alignment mode (considerVectorInTVLQR=1)
+// ============================================================================
+TEST_CASE("costJacobians lx and lxx match finite differences", "[armadillo][cost][jacobian][state]") {
+	std::cout << "\n=== Test: costJacobians State Jacobians (lx, lxx) ===" << std::endl;
+
+	Satellite sat = Satellite();
+	sat.change_Jcom(arma::diagmat(arma::vec({0.01, 0.05, 0.05})));
+	sat.add_MTQ(arma::vec({1,0,0}), 0.2, 0.1);
+	sat.add_MTQ(arma::vec({0,1,0}), 0.5, 0.1);
+	sat.add_MTQ(arma::vec({0,0,1}), 0.5, 0.1);
+	// Add RWs
+	double rw_J = 1e-4, rw_max_torq = 1e-3, rw_h_max = 0.01;
+	double rw_cost = 1.0, rw_AM_cost = 1.0, rw_AM_thresh = 0.005;
+	double rw_stic_cost = 0.0, rw_stic_thresh = 0.001;
+	sat.add_RW(arma::vec({1,0,0}), rw_J, rw_max_torq, rw_h_max, rw_cost, rw_AM_cost, rw_AM_thresh, rw_stic_cost, rw_stic_thresh);
+	sat.add_RW(arma::vec({0,1,0}), rw_J, rw_max_torq, rw_h_max, rw_cost, rw_AM_cost, rw_AM_thresh, rw_stic_cost, rw_stic_thresh);
+	sat.add_RW(arma::vec({0,0,1}), rw_J, rw_max_torq, rw_h_max, rw_cost, rw_AM_cost, rw_AM_thresh, rw_stic_cost, rw_stic_thresh);
+
+	int nx = sat.state_N();
+	int nu = sat.control_N();
+	int nxr = sat.reduced_state_N();
+
+	arma::arma_rng::set_seed(102);
+
+	int N = 20;
+	int k = 10;
+
+	arma::vec3 w0 = 0.03 * arma::randn(3);
+	arma::vec4 q0 = arma::normalise(arma::vec({1.0, 0.1, 0.1, 0.1}) + 0.1*arma::randn(4));
+	arma::vec rw_h = 0.002 * arma::randn(sat.number_RW);
+	arma::vec x = arma::join_cols(arma::join_cols(w0, q0), rw_h);
+	x = sat.state_norm(x);
+
+	arma::vec u = arma::vec(nu).zeros();
+	u.head(sat.number_MTQ) = 0.05 * arma::randn(sat.number_MTQ);
+	u.tail(sat.number_RW) = 0.0003 * arma::randn(sat.number_RW);
+	arma::vec u_prev = 0.9 * u + 0.01 * arma::randn(nu);
+
+	arma::vec3 satvec = arma::normalise(arma::vec({0, 0, 1}));
+	// Use vec3 for ECIvec (vector alignment mode)
+	arma::vec ECIvec = arma::normalise(arma::vec({1, 0, 0}));
+	arma::vec3 B_eci = arma::vec({1e-5, 3e-5, 2e-5});
+
+	// Test with w_avang enabled and considerVectorInTVLQR=1
+	COST_SETTINGS_FORM costSettings = std::make_tuple(
+		1e2, 1e1, 1.0, 0.0, 0.5,  // w_avang = 0.5 to test cross-coupling
+		1e3, 1e2, 0.0, 0.0,
+		1, 0, 0  // whichAngCostFunc=1 for considerVectorInTVLQR mode
+	);
+
+	arma::vec xkp1 = x;
+
+	// Get analytical Jacobians
+	cost_jacs jacs = sat.costJacobians(k, N, x, xkp1, u, u_prev, satvec, ECIvec, B_eci, &costSettings);
+
+	// Compute base cost
+	double c0 = sat.stepcost_vec(k, N, x, xkp1, u, u_prev, satvec, ECIvec, B_eci, &costSettings);
+
+	// Finite difference for lx
+	double eps = 1e-7;
+	arma::vec lx_fd(nxr);
+	arma::mat W = findWMat(x.rows(sat.quat0index(), sat.quat0index()+3));
+
+	for(int i = 0; i < nxr; i++) {
+		arma::vec x_pert = x;
+		if (i < 3) {
+			x_pert(sat.avindex0() + i) += eps;
+		} else if (i < 6) {
+			arma::vec3 delta = arma::vec(3).zeros();
+			delta(i - 3) = eps;
+			arma::vec4 q = x.rows(sat.quat0index(), sat.quat0index()+3);
+			arma::vec4 q_pert = arma::normalise(q + W * delta);
+			x_pert.rows(sat.quat0index(), sat.quat0index()+3) = q_pert;
+		} else {
+			x_pert(sat.quat0index() + 4 + (i - 6)) += eps;
+		}
+		double c_pert = sat.stepcost_vec(k, N, x_pert, xkp1, u, u_prev, satvec, ECIvec, B_eci, &costSettings);
+		lx_fd(i) = (c_pert - c0) / eps;
+	}
+
+	double lx_error = arma::norm(jacs.lx - lx_fd);
+	double lx_rel_error = lx_error / (arma::norm(lx_fd) + 1e-10);
+
+	std::cout << "  lx error (abs): " << lx_error << ", (rel): " << lx_rel_error << std::endl;
+	std::cout << "    lx analytical: " << jacs.lx.t();
+	std::cout << "    lx finite diff: " << lx_fd.t();
+	REQUIRE(lx_rel_error < 1e-3);
+
+	// Finite difference for lxx
+	double eps_hess = 1e-5;
+	arma::mat lxx_fd(nxr, nxr);
+	for(int i = 0; i < nxr; i++) {
+		arma::vec x_pert = x;
+		arma::mat W_pert = findWMat(x.rows(sat.quat0index(), sat.quat0index()+3));
+		if (i < 3) {
+			x_pert(sat.avindex0() + i) += eps_hess;
+		} else if (i < 6) {
+			arma::vec3 delta = arma::vec(3).zeros();
+			delta(i - 3) = eps_hess;
+			arma::vec4 q = x.rows(sat.quat0index(), sat.quat0index()+3);
+			arma::vec4 q_pert = arma::normalise(q + W_pert * delta);
+			x_pert.rows(sat.quat0index(), sat.quat0index()+3) = q_pert;
+		} else {
+			x_pert(sat.quat0index() + 4 + (i - 6)) += eps_hess;
+		}
+		cost_jacs jacs_pert = sat.costJacobians(k, N, x_pert, xkp1, u, u_prev, satvec, ECIvec, B_eci, &costSettings);
+		lxx_fd.col(i) = (jacs_pert.lx - jacs.lx) / eps_hess;
+	}
+
+	arma::mat lxx_fd_sym = 0.5 * (lxx_fd + lxx_fd.t());
+
+	double lxx_error = arma::norm(jacs.lxx - lxx_fd_sym, "fro");
+	double lxx_rel_error = lxx_error / (arma::norm(lxx_fd_sym, "fro") + 1e-10);
+
+	std::cout << "  lxx error (abs): " << lxx_error << ", (rel): " << lxx_rel_error << std::endl;
+
+	// Check cross-coupling blocks
+	arma::mat lxx_cross_ana = jacs.lxx.submat(0, 3, 2, 5);
+	arma::mat lxx_cross_fd = lxx_fd_sym.submat(0, 3, 2, 5);
+	double cross_error = arma::norm(lxx_cross_ana - lxx_cross_fd, "fro");
+	double cross_rel_error = cross_error / (arma::norm(lxx_cross_fd, "fro") + 1e-10);
+	std::cout << "  lxx cross-coupling (w,q) error (abs): " << cross_error << ", (rel): " << cross_rel_error << std::endl;
+	std::cout << "    cross analytical:\n" << lxx_cross_ana << std::endl;
+	std::cout << "    cross finite diff:\n" << lxx_cross_fd << std::endl;
+
+	REQUIRE(lxx_rel_error < 1e-2);
+}
+
 TEST_CASE("Test backward pass math verification", "[armadillo][planner][math]") {
 	/*
 	 * This test verifies the mathematical correctness of the backward pass.
@@ -7167,6 +7559,519 @@ TEST_CASE("kgainWarmStart with zero K-gains equals open-loop", "[armadillo][kgai
 		CHECK(q0 > 0.99);  // Should stay close to identity
 	}
 }
+
+// =====================================================================
+// closedLoopInvDynWarmStart tests
+// =====================================================================
+
+// Helper: create a VECTOR_INFO_FORM for testing with constant environment
+static VECTOR_INFO_FORM makeTestVecs(int N, double B_z = 30e-6) {
+	arma::vec t = arma::linspace(0, (N-1), N);
+	arma::mat Rset(3, N, arma::fill::zeros);
+	Rset.row(0).fill(7000e3);
+	arma::mat Vset(3, N, arma::fill::zeros);
+	Vset.row(1).fill(7.5e3);
+	arma::mat Bset(3, N, arma::fill::zeros);
+	Bset.row(2).fill(B_z);
+	arma::mat Sset(3, N, arma::fill::zeros);
+	Sset.row(0).fill(1.0);
+	arma::mat satvec(3, N, arma::fill::zeros);
+	satvec.row(2).fill(1.0);
+	arma::mat ECIvec(3, N, arma::fill::zeros);
+	ECIvec.row(2).fill(1.0);
+	arma::vec pset(N, arma::fill::zeros);
+	arma::vec rhovec(N, arma::fill::zeros);
+	return std::make_tuple(t, Rset, Vset, Bset, Sset, satvec, ECIvec, pset, rhovec);
+}
+
+// Helper: create a test satellite (MTQ-only or MTQ+RW)
+static Satellite makeTestSat(bool with_rw = false) {
+	Satellite sat;
+	sat.change_Jcom(arma::diagmat(arma::vec({0.05, 0.04, 0.03})));
+	sat.add_MTQ(arma::vec3({1, 0, 0}), 0.2, 1.0);
+	sat.add_MTQ(arma::vec3({0, 1, 0}), 0.2, 1.0);
+	sat.add_MTQ(arma::vec3({0, 0, 1}), 0.2, 1.0);
+	if (with_rw) {
+		// RW along z-axis: J=1e-5, max_torq=0.001, max_h=0.01, cost params
+		sat.add_RW(arma::vec3({0, 0, 1}), 1e-5, 0.001, 0.01, 1.0, 0.0, 0.5, 0.0, 0.0);
+	}
+	sat.update_invJ_noRW();
+	return sat;
+}
+
+
+TEST_CASE("closedLoopInvDynWarmStart: at rest stays at rest", "[armadillo][warmstart][invdyn]") {
+	/*
+	 * Starting from rest at identity quaternion, the closed-loop warm-start
+	 * should keep the satellite at rest (tiny ω, q ≈ identity).
+	 */
+	cout << "\n=== Closed-loop inv dyn: at rest ===\n";
+
+	Satellite sat = makeTestSat(false);
+	double dt_coarse = 10.0;
+	double dt_fine = 1.0;
+	double tf = 100.0;
+	int N_coarse = int(tf / dt_coarse) + 1;
+	int N_fine = int(tf / dt_fine) + 1;
+	int n_state = sat.state_N();
+
+	// Coarse trajectory: at rest
+	arma::mat Xset_coarse(n_state, N_coarse, arma::fill::zeros);
+	for (int k = 0; k < N_coarse; k++) {
+		Xset_coarse(3, k) = 1.0;  // Identity quaternion
+	}
+
+	VECTOR_INFO_FORM vecs = makeTestVecs(N_fine);
+
+	TRAJECTORY_FORM result = closedLoopInvDynWarmStart(Xset_coarse, dt_coarse, dt_fine, tf, sat, vecs);
+	arma::mat Xset_fine = std::get<0>(result);
+	arma::mat Uset_fine = std::get<1>(result);
+
+	cout << "  Output: X(" << Xset_fine.n_rows << "," << Xset_fine.n_cols
+	     << "), U(" << Uset_fine.n_rows << "," << Uset_fine.n_cols << ")\n";
+
+	REQUIRE((int)Xset_fine.n_cols == N_fine);
+	REQUIRE((int)Uset_fine.n_cols == N_fine);
+
+	// Should stay near rest
+	double max_omega = arma::max(arma::abs(Xset_fine.head_rows(3))).max();
+	cout << "  Max |omega|: " << max_omega << " rad/s\n";
+	CHECK(max_omega < 1e-6);
+
+	// Quaternion should stay identity
+	for (int k = 0; k < N_fine; k++) {
+		CHECK(Xset_fine(3, k) > 0.999);
+	}
+
+	// No NaN
+	CHECK_FALSE(Xset_fine.has_nan());
+	CHECK_FALSE(Uset_fine.has_nan());
+}
+
+
+TEST_CASE("closedLoopInvDynWarmStart: single 90deg slew MTQ-only", "[armadillo][warmstart][invdyn]") {
+	/*
+	 * Coarse trajectory has a smooth 90° x-axis rotation with B along z.
+	 * MTQ torque = m × B, so z-directed B can produce x/y torque.
+	 * The warm-start should produce a fine trajectory that:
+	 *   - Has no NaN/inf
+	 *   - Keeps quaternions normalized
+	 *   - Controls stay within MTQ limits
+	 *   - Final quaternion tracks the coarse trajectory
+	 */
+	cout << "\n=== Closed-loop inv dyn: 90° slew MTQ-only ===\n";
+
+	Satellite sat = makeTestSat(false);
+	double dt_coarse = 30.0;
+	double dt_fine = 1.0;
+	double tf = 300.0;
+	int N_coarse = int(tf / dt_coarse) + 1;
+	int N_fine = int(tf / dt_fine) + 1;
+	int n_state = sat.state_N();
+
+	// Build a smooth slew trajectory about X-axis (B is along z, so m×B produces x-torque)
+	arma::mat Xset_coarse(n_state, N_coarse, arma::fill::zeros);
+	double total_angle = M_PI / 2.0;
+	for (int k = 0; k < N_coarse; k++) {
+		double t = k * dt_coarse;
+		double frac = t / tf;
+		// Smooth sigmoid-like angle profile: 3f² - 2f³
+		double angle = total_angle * (3.0 * frac * frac - 2.0 * frac * frac * frac);
+		Xset_coarse(3, k) = cos(angle / 2);  // q0
+		Xset_coarse(4, k) = sin(angle / 2);  // q1 (x-axis rotation)
+
+		// Angular velocity from derivative of angle profile
+		double angle_dot = total_angle * (6.0 * frac - 6.0 * frac * frac) / tf;
+		Xset_coarse(0, k) = angle_dot;  // wx
+	}
+
+	cout << "  Coarse start q: " << Xset_coarse.col(0).rows(3, 6).t();
+	cout << "  Coarse end q: " << Xset_coarse.col(N_coarse - 1).rows(3, 6).t();
+	cout << "  Max coarse wx: " << arma::max(arma::abs(Xset_coarse.row(0))) << " rad/s\n";
+
+	VECTOR_INFO_FORM vecs = makeTestVecs(N_fine);
+
+	TRAJECTORY_FORM result = closedLoopInvDynWarmStart(Xset_coarse, dt_coarse, dt_fine, tf, sat, vecs);
+	arma::mat Xset_fine = std::get<0>(result);
+	arma::mat Uset_fine = std::get<1>(result);
+
+	REQUIRE((int)Xset_fine.n_cols == N_fine);
+	CHECK_FALSE(Xset_fine.has_nan());
+	CHECK_FALSE(Uset_fine.has_nan());
+
+	// Quaternions should stay normalized
+	for (int k = 0; k < N_fine; k++) {
+		double qnorm = arma::norm(Xset_fine.col(k).rows(3, 6));
+		CHECK(fabs(qnorm - 1.0) < 1e-6);
+	}
+
+	// Controls should respect MTQ limits (0.2 Am²)
+	double m_max = 0.2;
+	double max_ctrl = arma::max(arma::abs(Uset_fine.head_rows(3))).max();
+	cout << "  Max |control|: " << max_ctrl << " Am^2 (limit: " << m_max << ")\n";
+	CHECK(max_ctrl <= m_max + 1e-10);
+
+	// Final quaternion should be close to coarse final
+	arma::vec4 q_final_coarse = Xset_coarse.col(N_coarse - 1).rows(3, 6);
+	arma::vec4 q_final_fine = Xset_fine.col(N_fine - 1).rows(3, 6);
+	double q_dot = fabs(arma::dot(q_final_coarse, q_final_fine));
+	double angle_err_deg = 2.0 * acos(std::min(q_dot, 1.0)) * 180.0 / M_PI;
+	cout << "  Final quaternion error: " << angle_err_deg << " deg\n";
+	// Allow generous error since MTQ can't produce arbitrary torque
+	CHECK(angle_err_deg < 45.0);
+
+	// Angular velocity should be bounded (no spikes)
+	double max_omega = arma::max(arma::abs(Xset_fine.head_rows(3))).max();
+	double max_omega_deg = max_omega * 180.0 / M_PI;
+	cout << "  Max |omega|: " << max_omega_deg << " deg/s\n";
+	CHECK(max_omega_deg < 5.0);
+}
+
+
+TEST_CASE("closedLoopInvDynWarmStart: multi-goal MTQ-only no spikes", "[armadillo][warmstart][invdyn][multi]") {
+	/*
+	 * Multi-goal scenario: coarse trajectory has 3 goal changes with
+	 * abrupt ω direction changes. The warm-start should NOT produce
+	 * winding/spikes — this was the original failure mode.
+	 */
+	cout << "\n=== Closed-loop inv dyn: multi-goal no spikes ===\n";
+
+	Satellite sat = makeTestSat(false);
+	double dt_coarse = 30.0;
+	double dt_fine = 1.0;
+	double tf = 900.0;
+	int N_coarse = int(tf / dt_coarse) + 1;
+	int N_fine = int(tf / dt_fine) + 1;
+	int n_state = sat.state_N();
+
+	// Build multi-goal coarse trajectory with 3 segments:
+	// Segment 1 (0-300s): rotate 90° about z
+	// Segment 2 (300-600s): rotate 90° about x
+	// Segment 3 (600-900s): rotate 90° about y
+	arma::mat Xset_coarse(n_state, N_coarse, arma::fill::zeros);
+
+	// Start at identity
+	arma::vec4 q_current = {1, 0, 0, 0};
+
+	for (int k = 0; k < N_coarse; k++) {
+		double t = k * dt_coarse;
+		double angle, frac;
+		arma::vec3 axis;
+
+		if (t < 300.0) {
+			frac = t / 300.0;
+			angle = (M_PI / 2.0) * (3.0 * frac * frac - 2.0 * frac * frac * frac);
+			axis = {0, 0, 1};
+			double angle_dot = (M_PI / 2.0) * (6.0 * frac - 6.0 * frac * frac) / 300.0;
+			Xset_coarse(2, k) = angle_dot;  // wz
+		} else if (t < 600.0) {
+			frac = (t - 300.0) / 300.0;
+			angle = (M_PI / 2.0) + (M_PI / 2.0) * (3.0 * frac * frac - 2.0 * frac * frac * frac);
+			axis = {0, 0, 1};  // We'll compute quaternion differently below
+			double angle_dot = (M_PI / 2.0) * (6.0 * frac - 6.0 * frac * frac) / 300.0;
+			Xset_coarse(0, k) = angle_dot;  // wx (now about x-axis)
+			Xset_coarse(2, k) = 0.0;
+		} else {
+			frac = (t - 600.0) / 300.0;
+			double angle_dot = (M_PI / 2.0) * (6.0 * frac - 6.0 * frac * frac) / 300.0;
+			Xset_coarse(1, k) = angle_dot;  // wy
+			Xset_coarse(0, k) = 0.0;
+		}
+
+		// Build quaternion for each segment using sequential rotations
+		arma::vec4 q;
+		if (t < 300.0) {
+			double a = (M_PI / 2.0) * (3.0 * (t/300.0) * (t/300.0) - 2.0 * (t/300.0) * (t/300.0) * (t/300.0));
+			q = {cos(a/2), 0, 0, sin(a/2)};
+		} else if (t < 600.0) {
+			// After 90° z-rotation, do x-rotation
+			arma::vec4 q1 = {cos(M_PI/4), 0, 0, sin(M_PI/4)};  // 90° z
+			double f = (t - 300.0) / 300.0;
+			double a2 = (M_PI / 2.0) * (3.0 * f * f - 2.0 * f * f * f);
+			arma::vec4 q2 = {cos(a2/2), sin(a2/2), 0, 0};
+			// q = q2 * q1 (quaternion multiplication)
+			q = {q2(0)*q1(0) - q2(1)*q1(1) - q2(2)*q1(2) - q2(3)*q1(3),
+			     q2(0)*q1(1) + q2(1)*q1(0) + q2(2)*q1(3) - q2(3)*q1(2),
+			     q2(0)*q1(2) - q2(1)*q1(3) + q2(2)*q1(0) + q2(3)*q1(1),
+			     q2(0)*q1(3) + q2(1)*q1(2) - q2(2)*q1(1) + q2(3)*q1(0)};
+		} else {
+			arma::vec4 q1 = {cos(M_PI/4), 0, 0, sin(M_PI/4)};
+			arma::vec4 q2 = {cos(M_PI/4), sin(M_PI/4), 0, 0};
+			arma::vec4 q12 = {q2(0)*q1(0) - q2(1)*q1(1) - q2(2)*q1(2) - q2(3)*q1(3),
+			                  q2(0)*q1(1) + q2(1)*q1(0) + q2(2)*q1(3) - q2(3)*q1(2),
+			                  q2(0)*q1(2) - q2(1)*q1(3) + q2(2)*q1(0) + q2(3)*q1(1),
+			                  q2(0)*q1(3) + q2(1)*q1(2) - q2(2)*q1(1) + q2(3)*q1(0)};
+			double f = (t - 600.0) / 300.0;
+			double a3 = (M_PI / 2.0) * (3.0 * f * f - 2.0 * f * f * f);
+			arma::vec4 q3 = {cos(a3/2), 0, sin(a3/2), 0};
+			q = {q3(0)*q12(0) - q3(1)*q12(1) - q3(2)*q12(2) - q3(3)*q12(3),
+			     q3(0)*q12(1) + q3(1)*q12(0) + q3(2)*q12(3) - q3(3)*q12(2),
+			     q3(0)*q12(2) - q3(1)*q12(3) + q3(2)*q12(0) + q3(3)*q12(1),
+			     q3(0)*q12(3) + q3(1)*q12(2) - q3(2)*q12(1) + q3(3)*q12(0)};
+		}
+		q = arma::normalise(q);
+		Xset_coarse(3, k) = q(0);
+		Xset_coarse(4, k) = q(1);
+		Xset_coarse(5, k) = q(2);
+		Xset_coarse(6, k) = q(3);
+	}
+
+	cout << "  Built multi-goal coarse trajectory: " << N_coarse << " pts\n";
+
+	VECTOR_INFO_FORM vecs = makeTestVecs(N_fine);
+
+	TRAJECTORY_FORM result = closedLoopInvDynWarmStart(Xset_coarse, dt_coarse, dt_fine, tf, sat, vecs);
+	arma::mat Xset_fine = std::get<0>(result);
+	arma::mat Uset_fine = std::get<1>(result);
+
+	REQUIRE((int)Xset_fine.n_cols == N_fine);
+	CHECK_FALSE(Xset_fine.has_nan());
+	CHECK_FALSE(Uset_fine.has_nan());
+
+	// THE KEY CHECK: no angular velocity spikes
+	double max_omega_deg = arma::max(arma::abs(Xset_fine.head_rows(3))).max() * 180.0 / M_PI;
+	cout << "  Max |omega|: " << max_omega_deg << " deg/s\n";
+	CHECK(max_omega_deg < 5.0);  // Should be under 5°/s, NOT 60+°/s like old methods
+
+	// Controls within limits
+	double max_ctrl = arma::max(arma::abs(Uset_fine.head_rows(3))).max();
+	cout << "  Max |control|: " << max_ctrl << " Am^2\n";
+	CHECK(max_ctrl <= 0.2 + 1e-10);
+}
+
+
+TEST_CASE("closedLoopInvDynWarmStart: MTQ+RW configuration", "[armadillo][warmstart][invdyn][rw]") {
+	/*
+	 * With a reaction wheel, the warm-start should:
+	 *   - Use the RW for torque along its axis
+	 *   - Keep RW controls within limits
+	 *   - Track the reference well (RW gives full controllability)
+	 */
+	cout << "\n=== Closed-loop inv dyn: MTQ+RW ===\n";
+
+	Satellite sat = makeTestSat(true);  // with RW
+	double dt_coarse = 30.0;
+	double dt_fine = 1.0;
+	double tf = 300.0;
+	int N_coarse = int(tf / dt_coarse) + 1;
+	int N_fine = int(tf / dt_fine) + 1;
+	int n_state = sat.state_N();
+	int n_ctrl = sat.control_N();
+	int n_rw = sat.number_RW;
+	int n_mtq = sat.number_MTQ;
+
+	cout << "  n_state=" << n_state << ", n_ctrl=" << n_ctrl
+	     << ", n_mtq=" << n_mtq << ", n_rw=" << n_rw << "\n";
+
+	// 90° z-rotation (RW is along z — should handle this efficiently)
+	arma::mat Xset_coarse(n_state, N_coarse, arma::fill::zeros);
+	for (int k = 0; k < N_coarse; k++) {
+		double t = k * dt_coarse;
+		double frac = t / tf;
+		double angle = (M_PI / 2.0) * (3.0 * frac * frac - 2.0 * frac * frac * frac);
+		double angle_dot = (M_PI / 2.0) * (6.0 * frac - 6.0 * frac * frac) / tf;
+
+		Xset_coarse(2, k) = angle_dot;  // wz
+		Xset_coarse(3, k) = cos(angle / 2);
+		Xset_coarse(6, k) = sin(angle / 2);
+		Xset_coarse(7, k) = 0.0;  // RW momentum starts at zero
+	}
+
+	VECTOR_INFO_FORM vecs = makeTestVecs(N_fine);
+
+	TRAJECTORY_FORM result = closedLoopInvDynWarmStart(Xset_coarse, dt_coarse, dt_fine, tf, sat, vecs);
+	arma::mat Xset_fine = std::get<0>(result);
+	arma::mat Uset_fine = std::get<1>(result);
+
+	REQUIRE((int)Xset_fine.n_cols == N_fine);
+	CHECK_FALSE(Xset_fine.has_nan());
+	CHECK_FALSE(Uset_fine.has_nan());
+
+	// RW should be doing most of the z-axis torque
+	double max_rw_torque = arma::max(arma::abs(Uset_fine.row(n_mtq)));
+	cout << "  Max |RW torque|: " << max_rw_torque << " Nm\n";
+	CHECK(max_rw_torque > 0.0);  // RW should be active
+	CHECK(max_rw_torque <= 0.001 + 1e-10);  // Within RW limit
+
+	// Controls within limits
+	double max_mtq = arma::max(arma::abs(Uset_fine.head_rows(n_mtq))).max();
+	cout << "  Max |MTQ|: " << max_mtq << " Am^2\n";
+	CHECK(max_mtq <= 0.2 + 1e-10);
+
+	// No spikes
+	double max_omega_deg = arma::max(arma::abs(Xset_fine.head_rows(3))).max() * 180.0 / M_PI;
+	cout << "  Max |omega|: " << max_omega_deg << " deg/s\n";
+	CHECK(max_omega_deg < 5.0);
+
+	// Better tracking with RW than MTQ-only (final quat closer)
+	arma::vec4 q_final_coarse = Xset_coarse.col(N_coarse - 1).rows(3, 6);
+	arma::vec4 q_final_fine = Xset_fine.col(N_fine - 1).rows(3, 6);
+	double q_dot = fabs(arma::dot(q_final_coarse, q_final_fine));
+	double angle_err_deg = 2.0 * acos(std::min(q_dot, 1.0)) * 180.0 / M_PI;
+	cout << "  Final quaternion error: " << angle_err_deg << " deg\n";
+	CHECK(angle_err_deg < 20.0);  // Should track better with RW
+}
+
+
+TEST_CASE("closedLoopInvDynWarmStart: zero B-field graceful degradation", "[armadillo][warmstart][invdyn][edge]") {
+	/*
+	 * With zero B-field, MTQ can't produce torque. The warm-start should
+	 * NOT crash (NaN/inf) — it should just produce zero MTQ controls
+	 * and the satellite drifts.
+	 */
+	cout << "\n=== Closed-loop inv dyn: zero B-field ===\n";
+
+	Satellite sat = makeTestSat(false);
+	double dt_coarse = 10.0;
+	double dt_fine = 1.0;
+	double tf = 50.0;
+	int N_coarse = int(tf / dt_coarse) + 1;
+	int N_fine = int(tf / dt_fine) + 1;
+	int n_state = sat.state_N();
+
+	// Small rotation target
+	arma::mat Xset_coarse(n_state, N_coarse, arma::fill::zeros);
+	for (int k = 0; k < N_coarse; k++) {
+		double frac = (double)k / (N_coarse - 1);
+		double angle = 0.1 * frac;
+		Xset_coarse(3, k) = cos(angle / 2);
+		Xset_coarse(6, k) = sin(angle / 2);
+		Xset_coarse(2, k) = 0.1 / tf;  // Small constant omega
+	}
+
+	// Zero B-field
+	VECTOR_INFO_FORM vecs = makeTestVecs(N_fine, 0.0);
+
+	TRAJECTORY_FORM result = closedLoopInvDynWarmStart(Xset_coarse, dt_coarse, dt_fine, tf, sat, vecs);
+	arma::mat Xset_fine = std::get<0>(result);
+	arma::mat Uset_fine = std::get<1>(result);
+
+	// Should not have NaN
+	CHECK_FALSE(Xset_fine.has_nan());
+	CHECK_FALSE(Uset_fine.has_nan());
+
+	// Controls should be zero (no B-field = no MTQ authority)
+	double max_ctrl = arma::max(arma::abs(Uset_fine.head_rows(3))).max();
+	cout << "  Max |control| with zero B: " << max_ctrl << "\n";
+	CHECK(max_ctrl < 1e-15);
+
+	cout << "  No crash with zero B-field ✓\n";
+}
+
+
+TEST_CASE("closedLoopInvDynWarmStart: large omega rate-limited", "[armadillo][warmstart][invdyn][edge]") {
+	/*
+	 * If the coarse trajectory has a sudden large ω jump (simulating
+	 * a bad reference or gyroscopic coupling), the w_dot limiter
+	 * should prevent huge torque commands.
+	 */
+	cout << "\n=== Closed-loop inv dyn: rate limiter ===\n";
+
+	Satellite sat = makeTestSat(false);
+	double dt_coarse = 10.0;
+	double dt_fine = 1.0;
+	double tf = 30.0;
+	int N_coarse = int(tf / dt_coarse) + 1;
+	int N_fine = int(tf / dt_fine) + 1;
+	int n_state = sat.state_N();
+
+	// Trajectory with a sudden ω jump at t=10s
+	arma::mat Xset_coarse(n_state, N_coarse, arma::fill::zeros);
+	for (int k = 0; k < N_coarse; k++) {
+		Xset_coarse(3, k) = 1.0;  // Identity quat
+		double t = k * dt_coarse;
+		if (t >= 10.0) {
+			// Sudden jump to 5 rad/s (way too fast — should be rate limited)
+			Xset_coarse(0, k) = 5.0;
+		}
+	}
+
+	VECTOR_INFO_FORM vecs = makeTestVecs(N_fine);
+
+	TRAJECTORY_FORM result = closedLoopInvDynWarmStart(Xset_coarse, dt_coarse, dt_fine, tf, sat, vecs);
+	arma::mat Xset_fine = std::get<0>(result);
+	arma::mat Uset_fine = std::get<1>(result);
+
+	CHECK_FALSE(Xset_fine.has_nan());
+	CHECK_FALSE(Uset_fine.has_nan());
+
+	// The angular velocity should be bounded — the rate limiter prevents
+	// the sim from trying to instantly match the 5 rad/s reference
+	double max_omega = arma::max(arma::abs(Xset_fine.head_rows(3))).max();
+	cout << "  Max |omega|: " << max_omega << " rad/s (reference was 5 rad/s)\n";
+	// Should be much less than 5 rad/s because the rate limiter caps w_dot at 0.1 rad/s²
+	// Over ~20s that's at most ~2 rad/s
+	CHECK(max_omega < 3.0);
+
+	// Controls should still be within limits
+	double max_ctrl = arma::max(arma::abs(Uset_fine.head_rows(3))).max();
+	cout << "  Max |control|: " << max_ctrl << " Am^2\n";
+	CHECK(max_ctrl <= 0.2 + 1e-10);
+}
+
+
+TEST_CASE("closedLoopInvDynWarmStart: output shape correct", "[armadillo][warmstart][invdyn]") {
+	/*
+	 * Basic dimensionality check for MTQ-only and MTQ+RW configurations.
+	 */
+	cout << "\n=== Closed-loop inv dyn: output shapes ===\n";
+
+	double dt_coarse = 10.0;
+	double dt_fine = 2.0;
+	double tf = 100.0;
+	int N_fine = int(tf / dt_fine) + 1;
+
+	// Test MTQ-only
+	{
+		Satellite sat = makeTestSat(false);
+		int N_coarse = int(tf / dt_coarse) + 1;
+		arma::mat Xset_coarse(sat.state_N(), N_coarse, arma::fill::zeros);
+		for (int k = 0; k < N_coarse; k++) Xset_coarse(3, k) = 1.0;
+
+		VECTOR_INFO_FORM vecs = makeTestVecs(N_fine);
+		TRAJECTORY_FORM result = closedLoopInvDynWarmStart(Xset_coarse, dt_coarse, dt_fine, tf, sat, vecs);
+
+		arma::mat X = std::get<0>(result);
+		arma::mat U = std::get<1>(result);
+		arma::vec t = std::get<2>(result);
+		arma::mat TQ = std::get<3>(result);
+
+		cout << "  MTQ-only: X(" << X.n_rows << "," << X.n_cols
+		     << "), U(" << U.n_rows << "," << U.n_cols
+		     << "), t(" << t.n_elem << "), TQ(" << TQ.n_rows << "," << TQ.n_cols << ")\n";
+
+		CHECK((int)X.n_rows == sat.state_N());    // 7 for MTQ-only
+		CHECK((int)X.n_cols == N_fine);
+		CHECK((int)U.n_rows == sat.control_N());   // 3 for 3 MTQs
+		CHECK((int)U.n_cols == N_fine);
+		CHECK((int)t.n_elem == N_fine);
+		CHECK((int)TQ.n_rows == 3);
+		CHECK((int)TQ.n_cols == N_fine);
+	}
+
+	// Test MTQ+RW
+	{
+		Satellite sat = makeTestSat(true);
+		int N_coarse = int(tf / dt_coarse) + 1;
+		arma::mat Xset_coarse(sat.state_N(), N_coarse, arma::fill::zeros);
+		for (int k = 0; k < N_coarse; k++) Xset_coarse(3, k) = 1.0;
+
+		VECTOR_INFO_FORM vecs = makeTestVecs(N_fine);
+		TRAJECTORY_FORM result = closedLoopInvDynWarmStart(Xset_coarse, dt_coarse, dt_fine, tf, sat, vecs);
+
+		arma::mat X = std::get<0>(result);
+		arma::mat U = std::get<1>(result);
+
+		cout << "  MTQ+RW: X(" << X.n_rows << "," << X.n_cols
+		     << "), U(" << U.n_rows << "," << U.n_cols << ")\n";
+
+		CHECK((int)X.n_rows == sat.state_N());    // 8 for MTQ+1RW
+		CHECK((int)X.n_cols == N_fine);
+		CHECK((int)U.n_rows == sat.control_N());   // 4 for 3MTQ+1RW
+		CHECK((int)U.n_cols == N_fine);
+	}
+}
+
 
 /*TEST_CASE("Test dynamicsJacobians", "[csv][armadillo]") {
 	//Read inputs

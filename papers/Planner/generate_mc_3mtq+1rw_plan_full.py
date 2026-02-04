@@ -8,8 +8,10 @@ Supports different tracking modes:
 - TVLQR: Standard time-varying LQR feedback (default)
 - MPC: MPC-TVLQR hybrid tracking (better for MTQ-only, also improves RW systems)
 """
-import sys
 import os
+os.environ.setdefault('DISPLAY', ':0')  # WSLg display
+os.environ['MPLBACKEND'] = 'TkAgg'  # Must be set before any matplotlib import
+import sys
 import numpy as np
 from scipy.integrate import solve_ivp
 from typing import Dict, Any
@@ -43,7 +45,10 @@ from ADCS.orbits.helpers.orbit_factory import create_random_circular_orbit
 from ADCS.satellite_factory.satellites.create_cubesats import create_beavercube2_cubesat
 from ADCS.helpers.math_helpers import normalize, quat_mult
 from ADCS.helpers.save_and_load.save_and_load import save_data, load_data
-from ADCS.helpers.plotting_mc.plot_controller_mc import plot_target_tracking_mc, plot_convergence_histogram_mc
+from ADCS.helpers.plotting_mc.plot_controller_mc import (
+    plot_target_tracking_mc, plot_convergence_histogram_mc, plot_single_run, plot_mc_summary,
+    plot_planned_trajectory
+)
 from ADCS.helpers.plotting.close_all_plots import create_close_all_button_window
 from ADCS.helpers.mc.monte_carlo_runner import (
     MonteCarloRunner, claim_worker_slot, release_worker_slot, update_worker_progress
@@ -54,6 +59,9 @@ BODY_BORESIGHT = np.array([0, 1, 0])
 
 _CACHED_ORBIT = None
 _CACHED_ORBIT_KEY = None
+TF_OVERRIDE = None
+DT_OVERRIDE = None
+DT_PLANNING_OVERRIDE = None
 
 
 def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
@@ -64,7 +72,7 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
 
     try:
         tf = config.get("tf", 1000)
-        dt = config.get("dt", 2)
+        dt = config.get("dt", 1)
         dt_planning = config.get("dt_planning", 1)
         N = int(tf / dt)
 
@@ -125,6 +133,7 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
                 
                 # Track iteration count for periodic saving
                 iter_count = [0]  # Use list to allow modification in nested function
+
                 
                 # Add a custom callback to print angle error and save figures periodically
                 def diagnostic_callback(iter_data):
@@ -158,8 +167,6 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
                     iter_count[0] += 1
                     save_iters = [1, 5, 10, 20, 34, 50, 70, 100, 150, 200, 250, 300]
                     if iter_count[0] in save_iters:
-                        import matplotlib
-                        matplotlib.use('Agg')
                         import matplotlib.pyplot as plt
                         
                         fig, axes = plt.subplots(2, 2, figsize=(12, 8))
@@ -217,7 +224,7 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
                 traj = controller.calculate_trajectory(
                     t_start=0.22, duration=tf, x_0=x0, os_0=os0, goals=goals, 
                     verbose=False, visualize=True, viz_save_path=viz_save_path,
-                    skip_pass2=False  # TEST: Re-enable Pass2 with SLERP interpolation
+                    skip_pass2=False  # Always do pass 2 for best result
                 )
                 
                 # Save an additional diagnostic figure
@@ -284,76 +291,21 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
                     print(f"Saved diagnostic plot to /tmp/planner_diagnostic.png", flush=True)
                     plt.close(fig)
             else:
+                print('hi')
                 # C++ planner only supports verbose
                 traj = controller.calculate_trajectory(
                     t_start=0.22, duration=tf, x_0=x0, os_0=os0, goals=goals, verbose=verbose
                 )
             controller.set_active_trajectory(traj)
             traj_valid = True
-            
-            # Plot planned trajectory (pre-tracking) for verification
-            if config.get("plot_planned_traj", False):
-                import matplotlib.pyplot as plt
-                fig, axes = plt.subplots(2, 2, figsize=(14, 10))
-                
-                # Get trajectory data
-                Xset = traj.states
-                Uset = traj.controls
-                times = traj.times
-                N_traj = Xset.shape[1]
-                traj_times = (times - times[0]) * 36525 * 24 * 3600  # Convert to seconds
-                
-                # 1. Angular velocity
-                omega_deg = np.degrees(Xset[0:3, :])
-                for i in range(3):
-                    axes[0, 0].plot(traj_times, omega_deg[i, :], label=f'ω{["x","y","z"][i]}')
-                axes[0, 0].set_xlabel('Time (s)')
-                axes[0, 0].set_ylabel('Angular Velocity (°/s)')
-                axes[0, 0].set_title('Planned Angular Velocity')
-                axes[0, 0].legend()
-                axes[0, 0].grid(True)
-                
-                # 2. Angle from goal
-                q_goal = config["q_goal"]
-                angles_deg = np.zeros(N_traj)
-                for k in range(N_traj):
-                    q_traj = Xset[3:7, k]
-                    # Compute angle between quaternions
-                    dot = np.abs(np.dot(q_traj, q_goal))
-                    dot = np.clip(dot, -1.0, 1.0)
-                    angles_deg[k] = np.degrees(2 * np.arccos(dot))
-                axes[0, 1].plot(traj_times, angles_deg)
-                axes[0, 1].set_xlabel('Time (s)')
-                axes[0, 1].set_ylabel('Angle from Goal (°)')
-                axes[0, 1].set_title('Planned Attitude Error')
-                axes[0, 1].grid(True)
-                axes[0, 1].axhline(y=0, color='g', linestyle='--', alpha=0.5)
-                
-                # 3. Controls
-                ctrl_times = traj_times[:Uset.shape[1]]
-                ctrl_labels = ['MTQ_x', 'MTQ_y', 'MTQ_z', 'RW']
-                for i in range(min(Uset.shape[0], 4)):
-                    axes[1, 0].plot(ctrl_times, Uset[i, :], label=ctrl_labels[i] if i < len(ctrl_labels) else f'u{i}')
-                axes[1, 0].set_xlabel('Time (s)')
-                axes[1, 0].set_ylabel('Control')
-                axes[1, 0].set_title('Planned Controls')
-                axes[1, 0].legend()
-                axes[1, 0].grid(True)
-                
-                # 4. Angular velocity magnitude
-                omega_mag = np.linalg.norm(omega_deg, axis=0)
-                axes[1, 1].plot(traj_times, omega_mag)
-                axes[1, 1].set_xlabel('Time (s)')
-                axes[1, 1].set_ylabel('|ω| (°/s)')
-                axes[1, 1].set_title('Planned Angular Velocity Magnitude')
-                axes[1, 1].grid(True)
-                
-                plt.suptitle(f'Planned Trajectory (Pre-Tracking)\nStart: {angles_deg[0]:.1f}°, End: {angles_deg[-1]:.1f}°, ω_end: {omega_mag[-1]:.3f}°/s')
-                plt.tight_layout()
-                plt.savefig('/tmp/planned_trajectory.png', dpi=150)
-                print(f"Saved planned trajectory plot to /tmp/planned_trajectory.png")
-                # Don't call plt.show() here - it blocks! Show at end after simulation.
-                
+
+            # Show planned trajectory non-blocking before sim starts
+            if config.get("visualize", False):
+                plot_planned_trajectory(
+                    traj, config, BODY_BORESIGHT,
+                    title_prefix="3MTQ+1RW Planner Full: Planned Trajectory"
+                )
+
         except Exception as e:
             return {"run_id": run_id, "config": config, "error": str(e), "traj_valid": False}
 
@@ -374,12 +326,6 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
         print(f"Starting simulation: {N} steps, dt={dt}s, tf={tf}s", flush=True)
         
         for i in range(N):
-            if i % 10 == 0:
-                update_worker_progress(slot_id, run_id, i, N)
-            if i % 50 == 0:
-                elapsed = time_module.time() - sim_start_time
-                print(f"  Sim step {i}/{N} (t={t:.1f}s, elapsed={elapsed:.1f}s)", flush=True)
-
             t0_step = time_module.time()
             J2000 = 0.22 + t * sec2cent
             os_state = orb.get_os(J2000=J2000)
@@ -410,21 +356,29 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
             )
             x = out.y[:, -1]
             x[3:7] = normalize(x[3:7])
-            if i < 10:
-                omega_deg = np.linalg.norm(x[0:3]) * 180/np.pi
-                print(f"    Step {i}: u={u}, |ω|={omega_deg:.2f}°/s, t={t:.1f}s", flush=True)
-            elif i % 50 == 0:
-                omega_deg = np.linalg.norm(x[0:3]) * 180/np.pi
-                print(f"    Step {i} took {time_module.time()-t0_step:.3f}s, nfev={out.nfev}, |u|={np.linalg.norm(u):.4f}, |ω|={omega_deg:.2f}°/s", flush=True)
+            if visualize:
+                if i < 10:
+                    omega_deg = np.linalg.norm(x[0:3]) * 180/np.pi
+                    print(f"    Step {i}: u={u}, |ω|={omega_deg:.2f}°/s, t={t:.1f}s", flush=True)
+                elif i % 50 == 0:
+                    omega_deg = np.linalg.norm(x[0:3]) * 180/np.pi
+                    print(f"    Step {i} took {time_module.time()-t0_step:.3f}s, nfev={out.nfev}, |u|={np.linalg.norm(u):.4f}, |ω|={omega_deg:.2f}°/s", flush=True)
 
         update_worker_progress(slot_id, run_id, N, N)
         sim_elapsed = time_module.time() - sim_start_time
         print(f"Simulation complete: {N} steps in {sim_elapsed:.1f}s ({sim_elapsed/N*1000:.1f}ms/step)", flush=True)
 
+        # Extract trajectory data for plotting (convert from column-major to row-major)
+        traj_times_sec = (traj.times - traj.times[0]) * 36525 * 24 * 3600  # Convert J2000 centuries to seconds
+        traj_state = traj.states.T  # (N_traj, n_state)
+        traj_u = traj.controls.T    # (N_traj-1, n_control)
+
         return {
             "run_id": run_id, "config": config, "traj_valid": True,
             "time": time_hist, "state": state_hist, "u": u_hist,
-            "q_goal": q_goal_hist, "goal_type": "full_attitude"
+            "q_goal": q_goal_hist, "goal_type": "full_attitude",
+            # Trajectory data for comparison plotting
+            "traj_time": traj_times_sec, "traj_state": traj_state, "traj_u": traj_u
         }
     finally:
         release_worker_slot(slot_id)
@@ -442,12 +396,16 @@ def generate_mc_config(run_id: int) -> Dict[str, Any]:
     q_goal = quat_mult(q0, q_180_body)
     q_goal = normalize(q_goal)
     
+    tf = TF_OVERRIDE if TF_OVERRIDE is not None else 1000
+    dt = DT_OVERRIDE if DT_OVERRIDE is not None else 1
+    dt_planning = DT_PLANNING_OVERRIDE if DT_PLANNING_OVERRIDE is not None else 1
+
     return {
         "run_id": run_id,
         "seed": run_id,
-        "tf": 1000,
-        "dt": 2,
-        "dt_planning": 1,
+        "tf": tf,
+        "dt": dt,
+        "dt_planning": dt_planning,
         "radius_km": 7000.0,
         "w0": normalize(rng.standard_normal(3)) * (rng.uniform(0.1, 1.0) * np.pi / 180.0),
         "q0": q0,
@@ -460,7 +418,7 @@ def generate_mc_config(run_id: int) -> Dict[str, Any]:
 if __name__ == "__main__":
     RUN_MC = True
     OUTPUT_DIR = "papers/Planner/output_data"
-    NUM_RUNS = 2  # Production run
+    NUM_RUNS = 100  # Production run
     
     # Include tracking mode in filename for differentiation
     tracking_suffix = f"_{TRACKING_MODE}" if TRACKING_MODE != "tvlqr" else ""
@@ -474,11 +432,17 @@ if __name__ == "__main__":
                         help="Seed for test mode (default: 0)")
     parser.add_argument("-n", "--num-runs", type=int, default=None,
                         help="Override number of runs")
+    parser.add_argument("--tf", type=float, default=None, help="Override planning duration [s]")
+    parser.add_argument("--dt", type=float, default=None, help="Override sim dt [s]")
+    parser.add_argument("--dt-planning", type=float, default=None, help="Override planning dt [s]")
     args = parser.parse_args()
     
     TEST_MODE = args.test
     if args.num_runs is not None:
         NUM_RUNS = args.num_runs
+    TF_OVERRIDE = args.tf
+    DT_OVERRIDE = args.dt
+    DT_PLANNING_OVERRIDE = args.dt_planning
     
     if TEST_MODE:
         # Single run test mode - no multiprocessing
@@ -486,7 +450,7 @@ if __name__ == "__main__":
         print(f"=== TEST MODE: Single run (seed={test_seed}), no multiprocessing ===")
         config = generate_mc_config(test_seed)
         config["verbose"] = False  # Disable verbose text output
-        config["visualize"] = False  # Use C++ planner (Plan_and_Track_LQR)
+        config["visualize"] = True  # Use C++ planner (Plan_and_Track_LQR)
         config["save_viz"] = False
         config["plot_planned_traj"] = True  # Plot planned trajectory before tracking
         result = run_single_sim(config)
@@ -494,9 +458,8 @@ if __name__ == "__main__":
         valid = [r for r in full_results if r and r.get("traj_valid", False)]
         if valid:
             print(f"Test run completed successfully")
-            # Plot results
-            plot_target_tracking_mc(full_results=valid, title="Test Run")
-            plot_convergence_histogram_mc(full_results=valid, title="Test Run")
+            # Plot single run results
+            plot_single_run(result, body_boresight=BODY_BORESIGHT, title_prefix="3MTQ+1RW Planner Full Test")
             create_close_all_button_window()
             import matplotlib.pyplot as plt
             plt.show()
@@ -512,13 +475,22 @@ if __name__ == "__main__":
             max_workers=4
         )
         full_results = runner.run()
-        
+
         valid = [r for r in full_results if r and r.get("traj_valid", False)]
         print(f"\n--- Monte Carlo Complete: {len(valid)}/{len(full_results)} valid ---")
         print(f"Tracking mode: {TRACKING_MODE}")
         save_data(output_name, full_results, out_dir=OUTPUT_DIR)
-        #create_close_all_button_window()  # Disabled for batch runs
+        # Plot MC summary
+        plot_mc_summary(valid, body_boresight=BODY_BORESIGHT, title_prefix="3MTQ+1RW Planner Full")
+        create_close_all_button_window()
+        import matplotlib.pyplot as plt
+        plt.show()
     else:
         results = load_data(f"{OUTPUT_DIR}/{output_name}")
         full_results = results[0] if isinstance(results, tuple) else results
-        #create_close_all_button_window()  # Disabled for batch runs
+        valid = [r for r in full_results if r and r.get("traj_valid", False)]
+        # Plot loaded MC results
+        plot_mc_summary(valid, body_boresight=BODY_BORESIGHT, title_prefix="3MTQ+1RW Planner Full")
+        create_close_all_button_window()
+        import matplotlib.pyplot as plt
+        plt.show()

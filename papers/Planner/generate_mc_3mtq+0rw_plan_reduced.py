@@ -4,8 +4,10 @@ Monte Carlo: 3MTQ+0RW ALTRO+TVLQR Planner - Reduced Attitude (180° Boresight Sl
 Uses BC2 satellite configuration with MTQ-only trajectory planner.
 Same ICs as Lovera test for fair comparison.
 """
-import sys
 import os
+os.environ.setdefault('DISPLAY', ':0')  # WSLg display
+os.environ['MPLBACKEND'] = 'TkAgg'  # Must be set before any matplotlib import
+import sys
 import numpy as np
 from scipy.integrate import solve_ivp
 from typing import Dict, Any
@@ -20,6 +22,7 @@ sys.path.insert(0, _this_dir)  # Add local dir for local imports (e.g., mc_plann
 from ADCS.CONOPS.goals import ECI_Goal
 from ADCS.CONOPS.goallist import GoalList
 from ADCS.controller.plan_and_track_lqr import Plan_and_Track_LQR
+from ADCS.controller.plan_and_track_python_alilqr import Plan_and_Track_PythonALILQR
 from ADCS.controller.helpers import PlannerSettings
 
 # Import good settings
@@ -30,6 +33,10 @@ from ADCS.satellite_factory.satellites.create_cubesats import create_beavercube1
 from ADCS.helpers.math_helpers import normalize, rot_mat
 from ADCS.helpers.save_and_load.save_and_load import save_data, load_data
 from ADCS.helpers.plotting.close_all_plots import create_close_all_button_window
+from ADCS.helpers.plotting_mc.plot_controller_mc import (
+    plot_single_run, plot_mc_summary, plot_target_tracking_mc, plot_convergence_histogram_mc,
+    plot_planned_trajectory, create_planner_diagnostic_callback
+)
 from ADCS.helpers.mc.monte_carlo_runner import (
     MonteCarloRunner, claim_worker_slot, release_worker_slot, update_worker_progress
 )
@@ -39,6 +46,9 @@ BODY_BORESIGHT = np.array([0, 1, 0])
 
 _CACHED_ORBIT = None
 _CACHED_ORBIT_KEY = None
+TF_OVERRIDE = None
+DT_OVERRIDE = None
+DT_PLANNING_OVERRIDE = None
 
 
 def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
@@ -77,20 +87,41 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
 
         x0 = np.concatenate([config["w0"], config["q0"]])  # No RW momentum state
 
-        # Use well-conditioned normalized settings (MTQ-only)
-        planner_settings = create_optimized_planner_settings(real_sat, duration=tf, dt_planning=dt_planning)
+        # Use well-conditioned settings with fast_slew tuning
+        planner_settings = create_optimized_planner_settings(
+            real_sat, duration=tf, dt_planning=dt_planning, tuning="fast_slew"
+        )
+        planner_settings.verbosity = False
 
-        controller = Plan_and_Track_LQR(est_sat=real_sat, planner_settings=planner_settings)
+        visualize = config.get("visualize", False)
+        if visualize:
+            controller = Plan_and_Track_PythonALILQR(est_sat=real_sat, planner_settings=planner_settings)
+        else:
+            controller = Plan_and_Track_LQR(est_sat=real_sat, planner_settings=planner_settings)
 
         goals = GoalList({0.22: ECI_Goal(config["goal_eci_vec"])})
         os0 = orb.get_os(0.22)
 
         try:
-            traj = controller.calculate_trajectory(
-                t_start=0.22, duration=tf, x_0=x0, os_0=os0, goals=goals, verbose=False
-            )
+            if visualize:
+                callback = create_planner_diagnostic_callback(config, BODY_BORESIGHT, tf)
+                controller.set_iteration_callback(callback)
+                traj = controller.calculate_trajectory(
+                    t_start=0.22, duration=tf, x_0=x0, os_0=os0, goals=goals,
+                    verbose=False, visualize=True, viz_save_path="/tmp/planner_viz_final.png",
+                    skip_pass2=False
+                )
+            else:
+                traj = controller.calculate_trajectory(
+                    t_start=0.22, duration=tf, x_0=x0, os_0=os0, goals=goals, verbose=False
+                )
             controller.set_active_trajectory(traj)
             traj_valid = True
+            if visualize:
+                plot_planned_trajectory(
+                    traj, config, BODY_BORESIGHT,
+                    title_prefix="3MTQ+0RW Planner Reduced: Planned Trajectory"
+                )
         except Exception as e:
             return {"run_id": run_id, "config": config, "error": str(e), "traj_valid": False}
 
@@ -129,10 +160,17 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
 
         update_worker_progress(slot_id, run_id, N, N)
 
+        # Extract trajectory data for plotting (convert from column-major to row-major)
+        traj_times_sec = (traj.times - traj.times[0]) * 36525 * 24 * 3600  # Convert J2000 centuries to seconds
+        traj_state = traj.states.T  # (N_traj, n_state)
+        traj_u = traj.controls.T    # (N_traj-1, n_control)
+
         return {
             "run_id": run_id, "config": config, "traj_valid": True,
             "time": time_hist, "state": state_hist, "u": u_hist,
-            "boresight_goal": boresight_hist
+            "boresight_goal": boresight_hist,
+            # Trajectory data for comparison plotting
+            "traj_time": traj_times_sec, "traj_state": traj_state, "traj_u": traj_u
         }
     finally:
         release_worker_slot(slot_id)
@@ -146,12 +184,16 @@ def generate_mc_config(run_id: int) -> Dict[str, Any]:
     initial_boresight_eci = R0 @ BODY_BORESIGHT
     goal_eci_vec = -initial_boresight_eci
     
+    tf = TF_OVERRIDE if TF_OVERRIDE is not None else 1000
+    dt = DT_OVERRIDE if DT_OVERRIDE is not None else 1
+    dt_planning = DT_PLANNING_OVERRIDE if DT_PLANNING_OVERRIDE is not None else 1
+
     return {
         "run_id": run_id,
         "seed": run_id,
-        "tf": 1000,
-        "dt": 2,
-        "dt_planning": 1,
+        "tf": tf,
+        "dt": dt,
+        "dt_planning": dt_planning,
         "radius_km": 7000.0,
         "w0": normalize(rng.standard_normal(3)) * (rng.uniform(0.1, 1.0) * np.pi / 180.0),
         "q0": q0,
@@ -168,26 +210,35 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run Monte Carlo simulations")
     parser.add_argument("-t", "--test", action="store_true", 
                         help="Run single test simulation (no multiprocessing, with visualization)")
+    parser.add_argument("-s", "--seed", type=int, default=0,
+                        help="Seed for test mode (default: 0)")
     parser.add_argument("-n", "--num-runs", type=int, default=None,
                         help="Override number of runs")
+    parser.add_argument("--tf", type=float, default=None, help="Override planning duration [s]")
+    parser.add_argument("--dt", type=float, default=None, help="Override sim dt [s]")
+    parser.add_argument("--dt-planning", type=float, default=None, help="Override planning dt [s]")
     args = parser.parse_args()
     
     TEST_MODE = args.test
     if args.num_runs is not None:
         NUM_RUNS = args.num_runs
+    TF_OVERRIDE = args.tf
+    DT_OVERRIDE = args.dt
+    DT_PLANNING_OVERRIDE = args.dt_planning
     
     if TEST_MODE:
         # Single run test mode - no multiprocessing, with visualization
-        print("=== TEST MODE: Single run, no multiprocessing ===")
-        config = generate_mc_config(0)
+        test_seed = args.seed
+        print(f"=== TEST MODE: Single run (seed={test_seed}), no multiprocessing ===")
+        config = generate_mc_config(test_seed)
+        config["visualize"] = True
         result = run_single_sim(config)
         full_results = [result]
         valid = [r for r in full_results if r and r.get("traj_valid", False)]
         if valid:
             print(f"Test run completed successfully")
-            # Plot results
-            plot_target_tracking_mc(full_results=valid, title="Test Run")
-            plot_convergence_histogram_mc(full_results=valid, title="Test Run")
+            # Plot single run results
+            plot_single_run(result, body_boresight=BODY_BORESIGHT, title_prefix="3MTQ+0RW Planner Reduced Test")
             create_close_all_button_window()
             import matplotlib.pyplot as plt
             plt.show()
@@ -202,12 +253,21 @@ if __name__ == "__main__":
             max_workers=4
         )
         full_results = runner.run()
-        
+
         valid = [r for r in full_results if r and r.get("traj_valid", False)]
         print(f"\n--- Monte Carlo Complete: {len(valid)}/{len(full_results)} valid ---")
         save_data(f"3MTQ+0RW_plan_reduced_mc_{NUM_RUNS}", full_results, out_dir=OUTPUT_DIR)
-        #create_close_all_button_window()  # Disabled for batch runs
+        # Plot MC summary
+        plot_mc_summary(valid, body_boresight=BODY_BORESIGHT, title_prefix="3MTQ+0RW Planner Reduced")
+        create_close_all_button_window()
+        import matplotlib.pyplot as plt
+        plt.show()
     else:
         results = load_data(f"{OUTPUT_DIR}/3MTQ+0RW_plan_reduced_mc_{NUM_RUNS}")
         full_results = results[0] if isinstance(results, tuple) else results
-        #create_close_all_button_window()  # Disabled for batch runs
+        valid = [r for r in full_results if r and r.get("traj_valid", False)]
+        # Plot loaded MC results
+        plot_mc_summary(valid, body_boresight=BODY_BORESIGHT, title_prefix="3MTQ+0RW Planner Reduced")
+        create_close_all_button_window()
+        import matplotlib.pyplot as plt
+        plt.show()

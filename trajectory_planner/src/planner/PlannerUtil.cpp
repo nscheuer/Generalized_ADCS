@@ -2490,9 +2490,7 @@ TRAJECTORY_FORM kgainWarmStart(
             dx.rows(6, n_reduced - 1) = x_sim.tail(n_rw) - x_ref.tail(n_rw);
         }
 
-        // Apply K-gain correction with timestep ratio scaling
-        // K-gains from alilqr backward pass are in OPTIMIZER units
-        // du = K @ dx gives optimizer-unit corrections, need to scale RW rows to physical
+        // Apply K-gain feedback correction with timestep ratio scaling
         double dt_ratio = dt_fine / dt_coarse;
         vec du = K * dx * dt_ratio;
         if (n_rw > 0) {
@@ -2501,7 +2499,6 @@ TRAJECTORY_FORM kgainWarmStart(
         }
         vec u = u_nom + du;  // Both in physical units now
 
-        // Store control (no clamping - let optimizer handle constraints)
         Uset_fine.col(k) = u;
 
         // Create dynamics info for this timestep
@@ -2534,6 +2531,152 @@ TRAJECTORY_FORM kgainWarmStart(
 
     // Copy final control
     Uset_fine.col(N_fine - 1) = Uset_fine.col(N_fine - 2);
+
+    return make_tuple(Xset_fine, Uset_fine, t_fine, TQset_fine);
+}
+
+// --- Closed-loop inverse dynamics warm-start ---
+// At each fine timestep, computes controls from the ACTUAL simulated state
+// (not the reference), targeting the next reference angular velocity.
+// This prevents drift compounding that breaks open-loop warm-starts.
+TRAJECTORY_FORM closedLoopInvDynWarmStart(
+    const mat& Xset_coarse,
+    double dt_coarse,
+    double dt_fine,
+    double tf,
+    Satellite& sat,
+    VECTOR_INFO_FORM& vecs_fine
+) {
+    int N_fine = int(tf / dt_fine) + 1;
+    int n_state = sat.state_N();
+    int n_ctrl = sat.control_N();
+    int n_rw = sat.number_RW;
+    int n_mtq = sat.number_MTQ;
+
+    // 1. SLERP-interpolate reference trajectory to fine grid
+    mat Xset_ref = slerpInterpolateTrajectory(Xset_coarse, dt_coarse, dt_fine, tf);
+    if ((int)Xset_ref.n_cols < N_fine) {
+        mat pad = repmat(Xset_ref.col(Xset_ref.n_cols - 1), 1, N_fine - Xset_ref.n_cols);
+        Xset_ref = join_rows(Xset_ref, pad);
+    } else if ((int)Xset_ref.n_cols > N_fine) {
+        Xset_ref = Xset_ref.head_cols(N_fine);
+    }
+
+    // 2. Extract environment data
+    mat Bset = get<3>(vecs_fine);
+    mat Rset = get<1>(vecs_fine);
+    mat Vset = get<2>(vecs_fine);
+    mat Sset = get<4>(vecs_fine);
+    vec pset = get<7>(vecs_fine);
+
+    // 3. Get satellite properties
+    mat33 J = sat.Jcom_noRW;
+
+    // Get actuator limits
+    double m_max = 1.0;
+    if (n_mtq > 0) {
+        m_max = sat.MTQ_max[0];
+    }
+    double rw_torq_max = 0.0;
+    if (n_rw > 0) {
+        rw_torq_max = sat.RW_max_torq[0];
+    }
+
+    // Angular acceleration limit (rad/s²) — prevents huge torques from bad reference
+    double w_dot_max = 0.1;
+
+    // 4. Initialize output arrays
+    mat Xset_fine(n_state, N_fine, fill::zeros);
+    mat Uset_fine(n_ctrl, N_fine, fill::zeros);
+    mat TQset_fine(3, N_fine, fill::zeros);
+    vec t_fine = linspace(0, tf, N_fine);
+
+    // 5. Closed-loop propagation
+    vec x_sim = Xset_coarse.col(0);
+    x_sim = sat.state_norm(x_sim);
+    Xset_fine.col(0) = x_sim;
+
+    for (int k = 0; k < N_fine - 1; k++) {
+        vec3 w_sim = x_sim.head(3);
+        vec4 q_sim = normalise(x_sim.rows(3, 6));
+
+        // Target: reference ω at next timestep
+        vec3 w_target = Xset_ref(span(0, 2), span(k + 1, k + 1));
+        vec3 w_dot_desired = (w_target - w_sim) / dt_fine;
+
+        // Rate-limit angular acceleration
+        double w_dot_mag = norm(w_dot_desired);
+        if (w_dot_mag > w_dot_max) {
+            w_dot_desired *= (w_dot_max / w_dot_mag);
+        }
+
+        // Required torque from Euler equation: τ = J*ω̇ + ω×(J*ω)
+        vec3 tau_needed = J * w_dot_desired + cross(w_sim, J * w_sim);
+
+        // RW: project needed torque onto RW axes
+        vec3 tau_rw = zeros<vec>(3);
+        if (n_rw > 0) {
+            for (int i = 0; i < n_rw; i++) {
+                vec3 ax = sat.RW_axes[i];
+                double rw_torque = dot(tau_needed, ax);
+                rw_torque = clamp(rw_torque, -rw_torq_max, rw_torq_max);
+                Uset_fine(n_mtq + i, k) = rw_torque;
+                tau_rw += rw_torque * ax;
+            }
+        }
+
+        // MTQ: solve for dipole from actual body-frame B
+        vec3 tau_mtq_needed = tau_needed - tau_rw;
+        mat33 R = rotMat(q_sim);
+        int k_idx = min(k, (int)Bset.n_cols - 1);
+        vec3 B_body = R.t() * vec3(Bset.col(k_idx));
+        double B_sq = dot(B_body, B_body);
+
+        vec3 m_dipole = zeros<vec>(3);
+        if (B_sq > 1e-20) {
+            m_dipole = cross(B_body, tau_mtq_needed) / B_sq;
+            // Check for NaN/inf
+            if (m_dipole.has_nan() || !m_dipole.is_finite()) {
+                m_dipole.zeros();
+            }
+            m_dipole = clamp(m_dipole, -m_max, m_max);
+        }
+        for (int i = 0; i < n_mtq && i < 3; i++) {
+            Uset_fine(i, k) = m_dipole(i);
+        }
+
+        // Convert controls to optimizer units for rk4z
+        vec u_opt = Uset_fine.col(k);
+        if (n_rw > 0) {
+            u_opt.rows(n_mtq, n_ctrl - 1) /= NONMTQ_TORQ_SCALE;
+        }
+
+        // Build dynamics info
+        int k_next = min(k + 1, N_fine - 1);
+        DYNAMICS_INFO_FORM dyn_k = make_tuple(
+            vec3(Bset.col(k)), vec3(Rset.col(k)), (int)pset(k),
+            vec3(Vset.col(k)), vec3(Sset.col(k)), 0);
+        DYNAMICS_INFO_FORM dyn_kp1 = make_tuple(
+            vec3(Bset.col(k_next)), vec3(Rset.col(k_next)), (int)pset(k_next),
+            vec3(Vset.col(k_next)), vec3(Sset.col(k_next)), 0);
+
+        // Propagate one step
+        tuple<vec, vec> dynout = rk4z(dt_fine, x_sim, u_opt, sat, dyn_k, dyn_kp1);
+        x_sim = sat.state_norm(get<0>(dynout));
+        Xset_fine.col(k + 1) = x_sim;
+        TQset_fine.col(k) = get<1>(dynout);
+
+        // Early exit on NaN
+        if (x_sim.has_nan()) {
+            cout << "WARNING: closedLoopInvDynWarmStart NaN at k=" << k << ", aborting\n";
+            break;
+        }
+    }
+
+    // Copy final control
+    if (N_fine > 1) {
+        Uset_fine.col(N_fine - 1) = Uset_fine.col(N_fine - 2);
+    }
 
     return make_tuple(Xset_fine, Uset_fine, t_fine, TQset_fine);
 }

@@ -107,4 +107,13 @@ TRAJECTORY_FORM kgainWarmStart(
     int quat_to_3vec_mode = 2
 );
 
+TRAJECTORY_FORM closedLoopInvDynWarmStart(
+    const arma::mat& Xset_coarse,
+    double dt_coarse,
+    double dt_fine,
+    double tf,
+    Satellite& sat,
+    VECTOR_INFO_FORM& vecs_fine
+);
+
 #endif

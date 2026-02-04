@@ -253,7 +253,23 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
         
         # Apply scaled feedback: u = u_ref - scale * K @ dx
         # Standard LQR/TVLQR uses negative feedback for stability
-        u = u_ref - effective_scale * K @ dx
+        # 
+        # K-gains are in optimizer units. For RW/magic actuators, the optimizer uses
+        # scaled controls (u_opt = u_phys / NONMTQ_TORQ_SCALE). So du = K @ dx gives
+        # optimizer units, and we need to convert RW portion to physical units.
+        du = effective_scale * K @ dx
+        
+        # TVLQR feedback: u = u_ref - K @ dx
+        # 
+        # K-gains are computed in optimizer units where RW controls are scaled.
+        # u_ref is already converted to physical units by C++.
+        # We need to scale du for RW/magic: du_phys = du_opt * NONMTQ_TORQ_SCALE
+        NONMTQ_TORQ_SCALE = 3e-5  # Must match C++ Satellite.hpp value
+        n_mtq = len([a for a in est_sat.actuators if hasattr(a, 'axis') and not hasattr(a, 'J')])
+        if len(du) > n_mtq:
+            du[n_mtq:] *= NONMTQ_TORQ_SCALE
+        
+        u = u_ref - du
         
         # Saturate control to actuator limits
         u_max = np.array([act.u_max for act in est_sat.actuators])

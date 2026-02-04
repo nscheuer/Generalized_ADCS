@@ -248,6 +248,9 @@ def solve_controls_from_trajectory(Xset_interp, B_eci, dt, J, rw_axes,
         if B_sq > 1e-20:
             # Solve for m: τ = m × B → m = (B × τ) / |B|²
             m = np.cross(B_body, tau_mtq_needed) / B_sq
+            # Guard against NaN/inf (e.g., from degenerate interpolation)
+            if np.any(np.isnan(m)) or np.any(np.isinf(m)):
+                m = np.zeros(3)
             if m_max is not None:
                 m = np.clip(m, -m_max, m_max)
             Uset[0:3, k] = m
@@ -413,10 +416,12 @@ def interpolate_trajectory_to_finer_grid(Xset_coarse, dt_coarse, dt_fine, tf, us
                 if q_norm > 1e-10:
                     Xset_fine[3:7, k] /= q_norm
         
-        # Cubic interpolation for non-quaternion states (angular velocity, RW momentum, etc.)
+        # Linear interpolation for non-quaternion states (angular velocity, RW momentum, etc.)
+        # Linear avoids overshoot at goal-change discontinuities where ω changes abruptly.
+        # Cubic would create fictitious accelerations that break the inverse dynamics solve.
         for i in list(range(0, 3)) + list(range(7, n_states)):
             Xset_fine[i, :] = interp1d(t_coarse, Xset_coarse[i, :], 
-                                       kind='cubic', fill_value='extrapolate')(t_fine)
+                                       kind='linear', fill_value='extrapolate')(t_fine)
     else:
         # Legacy: cubic interpolation for all states
         for i in range(n_states):

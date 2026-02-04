@@ -149,6 +149,9 @@ def _compute_angle_cost_scale(
         elif ang_cost_func_type == 3:
             # 0.5 * θ²
             return 0.5 * theta ** 2
+        elif ang_cost_func_type == 4:
+            # Type 4 is quaternion-only (1-(q·q_goal)²), remapped to type 2 (geodesic) for vector goals
+            return theta
         else:
             raise ValueError(f"Unknown vector cost function type: {ang_cost_func_type}")
 
@@ -189,6 +192,7 @@ class NormalizedStateCosts:
         - 1: 0.5*(1-cos(θ))² - smoother, range [0, 2]
         - 2: θ (geodesic) - linear in angle, range [0, π]
         - 3: 0.5*θ² - quadratic geodesic, range [0, π²/2]
+        - 4: remapped to type 2 (geodesic) for vector goals
         
         **Quaternion goals (3-DOF attitude):**
         - 0: 1-|q·q_goal| - range [0, 1]

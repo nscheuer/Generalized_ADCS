@@ -31,7 +31,10 @@
 // After optimization, scale back: u_physical = u_scaled * NONMTQ_TORQ_SCALE
 //
 // Value = 3e-5: Matches typical B-field, RW/MTQ have similar B matrix entries
-// Value = 1.0:  No scaling (original behavior, ill-conditioned)
+// Value = 1.0:  No scaling (original behavior)
+//
+// NOTE: For TVLQR K-gain computation, we use original (unscaled) costs via
+// save_original_costs() and use_original_costs() to ensure proper K-gain scaling.
 static const double NONMTQ_TORQ_SCALE = 3e-5;  // ≈ typical |B| in Tesla
 
 
@@ -128,6 +131,8 @@ public:
     void clear_magics();
 
     void auto_scale_control_costs(double base_weight = 1.0);
+    void save_original_costs();  // Call before auto_scale to save unscaled costs
+    void use_original_costs(bool use_orig);  // Switch between scaled/original costs for TVLQR
 
     double get_nonmtq_torq_scale();
 
@@ -223,6 +228,12 @@ public:
     std::vector<double> RW_stiction_cost = {};
     std::vector<double> RW_stiction_threshold = {};
     std::vector<double> magic_cost = {};
+    
+    // Original (unscaled) costs for TVLQR - stored before auto_scale_control_costs
+    std::vector<double> MTQ_cost_orig = {};
+    std::vector<double> RW_cost_orig = {};
+    std::vector<double> magic_cost_orig = {};
+    bool use_original_costs_for_tvlqr = false;  // Flag to use unscaled costs
 
     std::vector<double> RW_J = {};
 

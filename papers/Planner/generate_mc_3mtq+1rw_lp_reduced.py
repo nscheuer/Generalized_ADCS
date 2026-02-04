@@ -2,12 +2,14 @@
 Monte Carlo: 3MTQ+1RW LP Controller - Reduced Attitude (180° Boresight Slew).
 
 Uses BC2 satellite configuration with LP controller.
-Each run has random initial conditions. Goal is to align boresight with the 
+Each run has random initial conditions. Goal is to align boresight with the
 direction it would point to after a 180° rotation (same setup as full attitude,
 but only tracking the boresight direction, not full quaternion).
 """
-import sys
 import os
+os.environ.setdefault('DISPLAY', ':0')  # WSLg display
+os.environ['MPLBACKEND'] = 'TkAgg'  # Must be set before any matplotlib import
+import sys
 import numpy as np
 from scipy.integrate import solve_ivp
 from typing import Dict, Any, Tuple, Optional
@@ -26,7 +28,9 @@ from ADCS.orbits.helpers.orbit_factory import create_random_circular_orbit
 from ADCS.satellite_factory.satellites.create_cubesats import create_beavercube2_cubesat
 from ADCS.helpers.math_helpers import normalize, rot_mat
 from ADCS.helpers.save_and_load.save_and_load import save_data, load_data
-from ADCS.helpers.plotting_mc.plot_controller_mc import plot_target_tracking_mc, plot_convergence_histogram_mc
+from ADCS.helpers.plotting_mc.plot_controller_mc import (
+    plot_target_tracking_mc, plot_convergence_histogram_mc, plot_single_run, plot_mc_summary
+)
 from ADCS.helpers.plotting.close_all_plots import create_close_all_button_window
 from ADCS.helpers.mc.monte_carlo_runner import (
     MonteCarloRunner, claim_worker_slot, release_worker_slot, update_worker_progress
@@ -140,7 +144,7 @@ def generate_mc_config(run_id: int) -> Dict[str, Any]:
         "run_id": run_id,
         "seed": run_id,
         "tf": 1000,
-        "dt": 2,
+        "dt": 1,
         "radius_km": 7000.0,
         "w0": normalize(rng.standard_normal(3)) * (rng.uniform(0.1, 1.0) * np.pi / 180.0),
         "q0": q0,
@@ -171,18 +175,12 @@ if __name__ == "__main__":
         print("=== TEST MODE: Single run, no multiprocessing ===")
         config = generate_mc_config(0)
         result = run_single_sim(config)
-        full_results = [result]
-        valid = [r for r in full_results if r and r.get("traj_valid", False)]
-        if valid:
-            print(f"Test run completed successfully")
-            # Plot results
-            plot_target_tracking_mc(full_results=valid, title="Test Run")
-            plot_convergence_histogram_mc(full_results=valid, title="Test Run")
-            create_close_all_button_window()
-            import matplotlib.pyplot as plt
-            plt.show()
-        else:
-            print(f"Test run failed: {result.get('error', 'Unknown error')}")
+        print(f"Test run completed successfully")
+        # Plot single run results
+        plot_single_run(result, body_boresight=BODY_BORESIGHT, title_prefix="3MTQ+1RW LP Reduced Test")
+        create_close_all_button_window()
+        import matplotlib.pyplot as plt
+        plt.show()
 
     elif RUN_MC:
         runner = MonteCarloRunner(
@@ -194,12 +192,16 @@ if __name__ == "__main__":
         full_results = runner.run()
         print(f"\n--- Monte Carlo Complete: {len(full_results)} runs ---")
         save_data(f"3MTQ+1RW_LP_reduced_mc_{NUM_RUNS}", full_results, out_dir=OUTPUT_DIR)
-        plot_target_tracking_mc(full_results, body_boresight=BODY_BORESIGHT, title=f"3MTQ+1RW LP Reduced N={NUM_RUNS}")
-        plot_convergence_histogram_mc(full_results, body_boresight=BODY_BORESIGHT, title=f"3MTQ+1RW LP Reduced")
-        #create_close_all_button_window()  # Disabled for batch runs
+        # Plot MC summary
+        plot_mc_summary(full_results, body_boresight=BODY_BORESIGHT, title_prefix="3MTQ+1RW LP Reduced")
+        create_close_all_button_window()
+        import matplotlib.pyplot as plt
+        plt.show()
     else:
         results = load_data(f"{OUTPUT_DIR}/3MTQ+1RW_LP_reduced_mc_{NUM_RUNS}")
         full_results = results[0] if isinstance(results, tuple) else results
-        plot_target_tracking_mc(full_results, body_boresight=BODY_BORESIGHT, title=f"3MTQ+1RW LP Reduced")
-        plot_convergence_histogram_mc(full_results, body_boresight=BODY_BORESIGHT, title=f"3MTQ+1RW LP Reduced")
-        #create_close_all_button_window()  # Disabled for batch runs
+        # Plot loaded MC results
+        plot_mc_summary(full_results, body_boresight=BODY_BORESIGHT, title_prefix="3MTQ+1RW LP Reduced")
+        create_close_all_button_window()
+        import matplotlib.pyplot as plt
+        plt.show()

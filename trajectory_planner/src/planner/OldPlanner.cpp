@@ -661,8 +661,81 @@ AFTER_OUTPUT_FORM OldPlanner::trajOptAfter(VECTOR_INFO_FORM vecs_w_time,double d
       cout<<"pass2_warm_start_mode: "<<pass2_warm_start_mode<<", Kset.n_elem: "<<Kset.n_elem<<"\n";
     }
 
-    // K-gain warm-start or legacy ZOH?
-    if (pass2_warm_start_mode == 1 && Kset.n_elem > 0) {
+    // Warm-start mode: 0=ZOH, 1=K-gain feedback, 2=SLERP interpolation, 3=closed-loop inverse dynamics
+    if (pass2_warm_start_mode == 3) {
+      // Closed-loop inverse dynamics: at each fine timestep, compute controls
+      // from the ACTUAL simulated state targeting the SLERP'd reference ω.
+      // Prevents drift compounding that breaks open-loop warm-starts.
+      double tf = (time_end - time_start) * 36525.0 * 24.0 * 3600.0;
+      if(verbose) {
+        cout << "Using closed-loop inverse dynamics warm-start for Pass2 (dt_coarse=" << dt_prev
+             << ", dt_fine=" << dt_tvlqr << ", tf=" << tf << ")\n";
+      }
+      trajLong = closedLoopInvDynWarmStart(Xset, dt_prev, dt_tvlqr, tf, sat, vecs_tvlqr);
+
+      // Check for NaN - fall back to ZOH if it failed
+      mat X_check = get<0>(trajLong);
+      if (X_check.has_nan()) {
+        if(verbose) cout << "  WARNING: closed-loop warm-start produced NaN, falling back to ZOH\n";
+        int interp_ratio = int(dt_prev / dt_tvlqr);
+        int K_ctrl = Uset.n_cols;
+        mat UsetLong = repelem(Uset.cols(0, K_ctrl - 2), 1, interp_ratio);
+        if(colMissing > 0){
+          UsetLong = join_rows(UsetLong, repelem(Uset.col(K_ctrl - 2), 1, int(colMissing)));
+        }
+        UsetLong = join_rows(UsetLong, Uset.col(K_ctrl - 1));
+        trajLong = OldPlanner::generateInitialTrajectory(dt_tvlqr, Xset.col(0), UsetLong, vecs_tvlqr);
+      } else if(verbose) {
+        mat U_ws = get<1>(trajLong);
+        cout << "  Closed-loop warm-start complete: X=(" << X_check.n_rows << "," << X_check.n_cols
+             << "), U=(" << U_ws.n_rows << "," << U_ws.n_cols << ")\n";
+      }
+    } else if (pass2_warm_start_mode == 2) {
+      // SLERP interpolation: directly interpolate Pass1 states and controls to fine grid
+      // No dynamics re-simulation — preserves Pass1 topology exactly
+      double tf = (time_end - time_start) * 36525.0 * 24.0 * 3600.0;
+      int N_fine = int(tf / dt_tvlqr) + 1;
+      if(verbose) {
+        cout << "Using SLERP warm-start for Pass2 (dt_coarse=" << dt_prev
+             << ", dt_fine=" << dt_tvlqr << ", N_fine=" << N_fine << ")\n";
+      }
+
+      // SLERP-interpolate states (handles quaternions properly)
+      mat Xset_fine = slerpInterpolateTrajectory(Xset, dt_prev, dt_tvlqr, tf);
+
+      // Ensure correct length
+      if ((int)Xset_fine.n_cols < N_fine) {
+        mat pad = repmat(Xset_fine.col(Xset_fine.n_cols - 1), 1, N_fine - Xset_fine.n_cols);
+        Xset_fine = join_rows(Xset_fine, pad);
+      } else if ((int)Xset_fine.n_cols > N_fine) {
+        Xset_fine = Xset_fine.head_cols(N_fine);
+      }
+
+      // ZOH-interpolate controls (same as legacy but without re-simulation)
+      int interp_ratio = int(dt_prev / dt_tvlqr);
+      int K_ctrl = Uset.n_cols;
+      mat UsetLong = repelem(Uset.cols(0, K_ctrl - 2), 1, interp_ratio);
+      if(colMissing > 0){
+        UsetLong = join_rows(UsetLong, repelem(Uset.col(K_ctrl - 2), 1, int(colMissing)));
+      }
+      UsetLong = join_rows(UsetLong, Uset.col(K_ctrl - 1));
+      // Trim or pad to match N_fine
+      if ((int)UsetLong.n_cols < N_fine) {
+        mat pad = repmat(UsetLong.col(UsetLong.n_cols - 1), 1, N_fine - UsetLong.n_cols);
+        UsetLong = join_rows(UsetLong, pad);
+      } else if ((int)UsetLong.n_cols > N_fine) {
+        UsetLong = UsetLong.head_cols(N_fine);
+      }
+
+      vec t_fine = linspace(0, tf, N_fine);
+      mat TQset_fine(3, N_fine, fill::zeros);  // Will be recomputed by optimizer
+      trajLong = make_tuple(Xset_fine, UsetLong, t_fine, TQset_fine);
+
+      if(verbose) {
+        cout << "  SLERP warm-start complete: X=(" << Xset_fine.n_rows << "," << Xset_fine.n_cols
+             << "), U=(" << UsetLong.n_rows << "," << UsetLong.n_cols << ")\n";
+      }
+    } else if (pass2_warm_start_mode == 1 && Kset.n_elem > 0) {
       // K-gain warm-start: propagate with feedback from coarse K-gains
       double tf = (time_end - time_start) * 36525.0 * 24.0 * 3600.0;
       if(verbose) {
@@ -678,14 +751,14 @@ AFTER_OUTPUT_FORM OldPlanner::trajOptAfter(VECTOR_INFO_FORM vecs_w_time,double d
              << "), U=(" << U_kgain.n_rows << "," << U_kgain.n_cols << ")\n";
       }
     } else {
-      // Legacy ZOH interpolation
+      // Legacy ZOH interpolation (mode 0): re-simulates dynamics
       int interp_ratio = int(dt_prev / dt_tvlqr);
-      int K = Uset.n_cols;
-      mat UsetLong = repelem(Uset.cols(0, K - 2), 1, interp_ratio);
+      int K_ctrl = Uset.n_cols;
+      mat UsetLong = repelem(Uset.cols(0, K_ctrl - 2), 1, interp_ratio);
       if(colMissing > 0){
-        UsetLong = join_rows(UsetLong, repelem(Uset.col(K - 2), 1, int(colMissing)));
+        UsetLong = join_rows(UsetLong, repelem(Uset.col(K_ctrl - 2), 1, int(colMissing)));
       }
-      UsetLong = join_rows(UsetLong, Uset.col(K - 1));
+      UsetLong = join_rows(UsetLong, Uset.col(K_ctrl - 1));
 
       trajLong = OldPlanner::generateInitialTrajectory(dt_tvlqr,Xset.col(0), UsetLong, vecs_tvlqr);
     }

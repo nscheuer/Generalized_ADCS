@@ -6,3 +6,4 @@
 
 Controllers
 - All current controllers do gyroscopic precession compensation, but no disturbance torque compensation
+- Revisit spin-local-minimum mitigation (omega-perp penalty vs cross-term) and pass1->pass2 interpolation alternatives

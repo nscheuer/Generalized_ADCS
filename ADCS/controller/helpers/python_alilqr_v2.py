@@ -237,9 +237,9 @@ class PythonALILQRv2:
         # =====================================================================
         # DEBUG: Check traj before maxViol
         Xset_pre, Uset_pre, _, _ = traj
-        print(f"  [{pass_label}] Before maxViol: X[389]={Xset_pre[:, min(389, Xset_pre.shape[1]-1)]}", flush=True)
+        # print(f"  [{pass_label}] Before maxViol: X[389]={Xset_pre[:, min(389, Xset_pre.shape[1]-1)]}", flush=True)
         clist, cmax_init = self.planner.maxViol(traj, vecs, auglag_vals)
-        print(f"  [{pass_label}] Initial cmax={cmax_init:.2e}", flush=True)
+        # print(f"  [{pass_label}] Initial cmax={cmax_init:.2e}", flush=True)
         auglag_vals = self.planner.incrementAugLag(auglag_vals, clist, auglag_settings)
         lambdaSet, mu, muSet = auglag_vals
         

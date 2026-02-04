@@ -73,7 +73,7 @@ public:
     bool verbose;
 
     int quaternionTo3VecMode = 0;
-    int pass2_warm_start_mode = 1;  // 0=ZOH (legacy), 1=K-gain warm-start (default)
+    int pass2_warm_start_mode = 3;  // 0=ZOH, 1=K-gain, 2=SLERP, 3=closed-loop inv dyn (default)
 
 private:
 

@@ -284,7 +284,12 @@ def build_cpp_satellite(est_sat: EstimatedSatellite, planner_settings: PlannerSe
         csat.add_gendist_torq(planner_settings.gendist_torq.reshape((3,1)))
 
     # Scale control costs by 1/max^2 to normalize across different actuator types
-    # This ensures comparable cost scaling between MTQs and RWs
+    # This improves optimizer conditioning.
+    # 
+    # For TVLQR, we use the ORIGINAL (unscaled) costs to ensure K-gains are
+    # properly scaled relative to actuator capabilities. This is handled by
+    # the C++ code via save_original_costs() and use_original_costs() methods.
+    csat.save_original_costs()  # Save unscaled costs before auto_scale
     csat.auto_scale_control_costs(1.0)
 
     return csat

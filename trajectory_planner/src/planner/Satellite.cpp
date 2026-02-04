@@ -342,6 +342,22 @@ void Satellite::auto_scale_control_costs(double base_weight){
   }
 }
 
+void Satellite::save_original_costs() {
+  // Save current costs as "original" before auto_scale modifies them
+  MTQ_cost_orig = MTQ_cost;
+  RW_cost_orig = RW_cost;
+  magic_cost_orig = magic_cost;
+}
+
+void Satellite::use_original_costs(bool use_orig) {
+  if(use_orig && MTQ_cost_orig.empty() && number_MTQ > 0) {
+    std::cerr << "WARNING: use_original_costs(true) called but no original costs saved. "
+              << "Call save_original_costs() before auto_scale_control_costs()." << std::endl;
+    return;
+  }
+  use_original_costs_for_tvlqr = use_orig;
+}
+
 vec Satellite::state_norm(vec x) const
 {
   vec out = x.t().t();
@@ -800,6 +816,10 @@ double Satellite::stepcost_vec(int k, int N, vec xk, vec xkp1, vec uk,vec ukprev
         case 3:
           angcost = 0.5*pow(acos(ddot),2.0);
           break;
+        case 4:
+          // Type 4 is quaternion-only (1-(q·q_goal)²), remap to type 2 (geodesic) for vector goals
+          angcost = acos(ddot);
+          break;
         default:
           throw("incorrect ang cost function specifier");
       }
@@ -1001,14 +1021,19 @@ mat Satellite::setupActuationCostMatrix(int k, int N, ExtractedCostSettings& set
     mat act_cost_mat = mat(control_N(), control_N()).zeros();
 
     if (k < N-1) {
+        // Choose between scaled (for optimizer) and original (for TVLQR) costs
+        const std::vector<double>& mtq_costs = use_original_costs_for_tvlqr && !MTQ_cost_orig.empty() ? MTQ_cost_orig : MTQ_cost;
+        const std::vector<double>& rw_costs = use_original_costs_for_tvlqr && !RW_cost_orig.empty() ? RW_cost_orig : RW_cost;
+        const std::vector<double>& magic_costs = use_original_costs_for_tvlqr && !magic_cost_orig.empty() ? magic_cost_orig : magic_cost;
+        
         if (number_MTQ > 0) {
-            act_cost_mat(0, 0, size(number_MTQ, number_MTQ)) = diagmat(vec(MTQ_cost));
+            act_cost_mat(0, 0, size(number_MTQ, number_MTQ)) = diagmat(vec(mtq_costs));
         }
         if (number_RW > 0) {
-            act_cost_mat(number_MTQ, number_MTQ, size(number_RW, number_RW)) = diagmat(vec(RW_cost) * NONMTQ_TORQ_SCALE * NONMTQ_TORQ_SCALE);
+            act_cost_mat(number_MTQ, number_MTQ, size(number_RW, number_RW)) = diagmat(vec(rw_costs) * NONMTQ_TORQ_SCALE * NONMTQ_TORQ_SCALE);
         }
         if (number_magic > 0) {
-            act_cost_mat(number_MTQ + number_RW, number_MTQ + number_RW, size(number_magic, number_magic)) = diagmat(vec(magic_cost) * NONMTQ_TORQ_SCALE * NONMTQ_TORQ_SCALE);
+            act_cost_mat(number_MTQ + number_RW, number_MTQ + number_RW, size(number_magic, number_magic)) = diagmat(vec(magic_costs) * NONMTQ_TORQ_SCALE * NONMTQ_TORQ_SCALE);
         }
     } else {
         settings.applyTerminalWeights();
@@ -1205,12 +1230,15 @@ cost_jacs  Satellite::veccostJacobians(int k, int N, vec xk, vec xkp1, vec uk,ve
         // mat33 ddphi = get<2>(angres);
         // eig_sym(case3_eigs, dphi*dphi.t());
         break;
+      case 4:
+        // Type 4 is quaternion-only (1-(q·q_goal)²), remap to type 2 (geodesic) for vector goals
+        sc_ang = phi;
+        d_sc_ang = dphi;
+        dd_sc_ang = ddphi;
+        break;
       default:
         throw("incorrect ang cost function specifier");
     }
-    switch (whichAngCostFunc) {
-    // ... cases ...
-}
 
 // // ADD THIS RIGHT HERE:
 
@@ -1547,7 +1575,7 @@ cost_jacs  Satellite::costJacobians(int k, int N, vec xk, vec xkp1, vec uk,vec u
   // mat33 ddsc = -sg*Wq.t()*ddzdq*Wq + mat33().eye()*zz;
   // ddsc = ddsc*cost_hess_mult;
 
-  if(ECIvec_k.has_nan())
+  if(ECIvec_k.is_zero() || (ECIvec_k.tail(3).is_zero() && isnan(ECIvec_k(0)) ))
   {
     w_ang = 0.0;
   }
@@ -1559,19 +1587,26 @@ cost_jacs  Satellite::costJacobians(int k, int N, vec xk, vec xkp1, vec uk,vec u
   cube::fixed<3,3,3> ddBdq = ddRTudqQ(qk,normalise(BECI_k));
 
 
-  mat33 lkxx_quat_add = mat33().eye();//
-  vec3 lkx_quat_add = vec(3).zeros();//
+  mat33 lkxx_quat_add = mat33().eye();//see eq38 in Planning wiht Attitude by Jackson, Tracy, Manchest, linearized with traj goal = ref traj
+  vec3 lkx_quat_add = vec(3).zeros();//see eq37 in Planning wiht Attitude by Jackson, Tracy, Manchest, linearized with traj goal = ref traj
   vec3 angerrvec = vec(3).zeros();
 
   if(considerVectorInTVLQR==1){
-      vec ek = normalise(ECIvec_k);
-      if((ek.n_elem==3)||((ek.n_elem==4)&&(isnan(ek(0))))){
+      if((ECIvec_k.n_elem==3)||((ECIvec_k.n_elem==4)&&(isnan(ECIvec_k(0))))){
+        
+        vec ek = normalise(ECIvec_k.tail(3));
+        angerrvec = (cross(rotMat(qk).t()*ek,sk));
 
-        vec3 angerrvec = (cross(rotMat(qk).t()*ek,sk));
-        ek = ek.tail(3);
+        lkxx_quat_add = lkxx_quat_add - 0.5*ddvTRTudqQ(qk,sk,ek);//adjust halfway for vector (we also carea bout quaternion because its a trajectory)
+        lkx_quat_add = lkx_quat_add - 0.5*(sk.t()*dRTBdqQ(qk,ek)).t() ;//adjust halfway for vector (we also carea bout quaternion because its a trajectory)
 
-        lkxx_quat_add = 0.5*(lkxx_quat_add - ddvTRTudqQ(qk,sk,ek));//
-        lkx_quat_add = 0.5*(lkx_quat_add - (sk.t()*dRTBdqQ(qk,ek)).t() );
+        
+        mat33 dangerr_dq = -skewSymmetric(sk) * dRTBdqQ(qk, ek);
+        
+        lkx.head(3) += angerrvec*w_avang;
+        lkx(span(redang0index(),redang0index()+2)) += w_avang*dangerr_dq.t()*wk;
+        lkxx(0,redang0index(),size(3,3)) += w_avang*dangerr_dq;
+        lkxx(redang0index(),0,size(3,3)) += w_avang*dangerr_dq.t();
       }
     }
   // double state_cost = 0.5*as_scalar(wk.t()*wk*w_av) + sc;
@@ -1580,10 +1615,6 @@ cost_jacs  Satellite::costJacobians(int k, int N, vec xk, vec xkp1, vec uk,vec u
   lkxx(redang0index(),redang0index(),size(3,3)) += lkxx_quat_add*w_ang;
   lkx(span(redang0index(),redang0index()+2)) += w_ang*lkx_quat_add;
   // double cross_cost = w_avang*mat33().eye();
-  lkx.head(3) += angerrvec*w_avang;
-  lkx(span(redang0index(),redang0index()+2)) += w_avang*wk;
-  lkxx(0,redang0index(),size(3,3)) += w_avang*mat33().eye();
-  lkxx(redang0index(),0,size(3,3)) += w_avang*mat33().eye();
 
 
   // lkx.head(3) += -sign(ddot)*(ek.t()*Wq).t()*w_avang;
@@ -2079,6 +2110,8 @@ PYBIND11_MODULE(pysat, m) {
         .def("add_RW", &Satellite::add_RW_py)
         .def("clear_RWs", &Satellite::clear_RWs)
         .def("auto_scale_control_costs", &Satellite::auto_scale_control_costs, py::arg("base_weight") = 1.0)
+        .def("save_original_costs", &Satellite::save_original_costs)
+        .def("use_original_costs", &Satellite::use_original_costs, py::arg("use_orig"))
         .def("set_AV_constraint", &Satellite::set_AV_constraint)
         .def("clear_AV_constraint", &Satellite::clear_AV_constraint)
         .def("add_sunpoint_constraint", &Satellite::add_sunpoint_constraint_py)
