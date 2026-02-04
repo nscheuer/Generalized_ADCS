@@ -163,11 +163,11 @@ public:
     arma::mat getImu(double mu, arma::vec muk, arma::vec ck, arma::vec lamk);
     arma::mat getIlam(double mu, arma::vec muk, arma::vec ck, arma::vec lamk);
 
-    std::tuple<arma::vec,arma::vec3> dynamics(arma::vec x, arma::vec u, DYNAMICS_INFO_FORM dynamics_info) const;
-    arma::vec3 dist_torque(arma::vec x, DYNAMICS_INFO_FORM dynamics_info) const;
-    arma::vec dynamics_pure(arma::vec x, arma::vec u, DYNAMICS_INFO_FORM dynamics_info) const;
-    std::tuple<arma::mat, arma::mat,arma::mat> dynamicsJacobians( arma::vec x,  arma::vec u,  DYNAMICS_INFO_FORM dynamics_info) const;
-    std::tuple<arma::cube, arma::cube,arma::cube> dynamicsHessians( arma::vec x,  arma::vec u,  DYNAMICS_INFO_FORM dynamics_info) const;
+    std::tuple<arma::vec,arma::vec3> dynamics(arma::vec x, arma::vec u, const DYNAMICS_INFO_FORM& dynamics_info) const;
+    arma::vec3 dist_torque(arma::vec x, const DYNAMICS_INFO_FORM& dynamics_info) const;
+    arma::vec dynamics_pure(arma::vec x, arma::vec u, const DYNAMICS_INFO_FORM& dynamics_info) const;
+    std::tuple<arma::mat, arma::mat,arma::mat> dynamicsJacobians( arma::vec x,  arma::vec u,  const DYNAMICS_INFO_FORM& dynamics_info) const;
+    std::tuple<arma::cube, arma::cube,arma::cube> dynamicsHessians( arma::vec x,  arma::vec u,  const DYNAMICS_INFO_FORM& dynamics_info) const;
 
     py::tuple py_tuple_out() const;
 

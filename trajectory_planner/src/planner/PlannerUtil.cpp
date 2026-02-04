@@ -134,7 +134,7 @@ mat interp_vector(mat m,vec t_of_m,vec t_des){
     7 x 7 matrix Ak the jacobian wrt x
     7 x 3 Bk the jacobian wrt u
 */
-tuple<mat, mat,mat> rk4zJacobians(double dt0,vec xk, vec uk,Satellite sat, DYNAMICS_INFO_FORM dynamics_info_k, DYNAMICS_INFO_FORM dynamics_info_kp1)
+tuple<mat, mat,mat> rk4zJacobians(double dt0,vec xk, vec uk,const Satellite& sat, const DYNAMICS_INFO_FORM& dynamics_info_k, const DYNAMICS_INFO_FORM& dynamics_info_kp1)
 {
   DYNAMICS_INFO_FORM dynamics_info_mid = make_tuple(
                           0.5*(get<0>(dynamics_info_k)+get<0>(dynamics_info_kp1)),
@@ -247,7 +247,7 @@ tuple<mat, mat,mat> rk4zJacobians(double dt0,vec xk, vec uk,Satellite sat, DYNAM
                     dxkp1__dxkp1r*((dt0/6.0)*(dxd0__dtorq + dxd1__dtorq_*2.0 + dxd2__dtorq_*2.0 + dxd3__dtorq_)));
 }
 
-tuple<mat, mat,mat> rk4zx2Jacobians(double dt0,vec xk, vec uk,Satellite sat, DYNAMICS_INFO_FORM dynamics_info_k, DYNAMICS_INFO_FORM dynamics_info_kp1)
+tuple<mat, mat,mat> rk4zx2Jacobians(double dt0,vec xk, vec uk,const Satellite& sat, const DYNAMICS_INFO_FORM& dynamics_info_k, const DYNAMICS_INFO_FORM& dynamics_info_kp1)
 {
   DYNAMICS_INFO_FORM dynamics_info_mid = make_tuple(
                           0.5*(get<0>(dynamics_info_k)+get<0>(dynamics_info_kp1)),
@@ -341,7 +341,7 @@ tuple<mat, mat,mat> rk4zx2Jacobians(double dt0,vec xk, vec uk,Satellite sat, DYN
 
 
 
-tuple<cube, cube,cube> rk4zHessians(double dt0,vec xk, vec uk,Satellite sat, DYNAMICS_INFO_FORM dynamics_info_k, DYNAMICS_INFO_FORM dynamics_info_kp1)
+tuple<cube, cube,cube> rk4zHessians(double dt0,vec xk, vec uk,const Satellite& sat, const DYNAMICS_INFO_FORM& dynamics_info_k, const DYNAMICS_INFO_FORM& dynamics_info_kp1)
 {
   DYNAMICS_INFO_FORM dynamics_info_mid = make_tuple(
                           0.5*(get<0>(dynamics_info_k)+get<0>(dynamics_info_kp1)),
@@ -550,7 +550,7 @@ tuple<cube, cube,cube> rk4zHessians(double dt0,vec xk, vec uk,Satellite sat, DYN
 }
 
 
-tuple<cube, cube,cube,mat,mat,cube,cube,cube,cube,cube> rk4zxkp1rHessians(double dt0,vec xk, vec uk,Satellite sat, DYNAMICS_INFO_FORM dynamics_info_k, DYNAMICS_INFO_FORM dynamics_info_kp1)
+tuple<cube, cube,cube,mat,mat,cube,cube,cube,cube,cube> rk4zxkp1rHessians(double dt0,vec xk, vec uk,const Satellite& sat, const DYNAMICS_INFO_FORM& dynamics_info_k, const DYNAMICS_INFO_FORM& dynamics_info_kp1)
 {
   DYNAMICS_INFO_FORM dynamics_info_mid = make_tuple(
                           0.5*(get<0>(dynamics_info_k)+get<0>(dynamics_info_kp1)),
@@ -762,7 +762,7 @@ tuple<cube, cube,cube,mat,mat,cube,cube,cube,cube,cube> rk4zxkp1rHessians(double
 
 
 
-tuple<cube, cube,cube,mat,mat> rk4zx3rHessians(double dt0,vec xk, vec uk,Satellite sat, DYNAMICS_INFO_FORM dynamics_info_k, DYNAMICS_INFO_FORM dynamics_info_kp1)
+tuple<cube, cube,cube,mat,mat> rk4zx3rHessians(double dt0,vec xk, vec uk,const Satellite& sat, const DYNAMICS_INFO_FORM& dynamics_info_k, const DYNAMICS_INFO_FORM& dynamics_info_kp1)
 {
   DYNAMICS_INFO_FORM dynamics_info_mid = make_tuple(
                           0.5*(get<0>(dynamics_info_k)+get<0>(dynamics_info_kp1)),
@@ -934,7 +934,7 @@ tuple<cube, cube,cube,mat,mat> rk4zx3rHessians(double dt0,vec xk, vec uk,Satelli
 
 
 
-tuple<cube, cube,cube> rk4zxd2Hessians(double dt0,vec xk, vec uk,Satellite sat, DYNAMICS_INFO_FORM dynamics_info_k, DYNAMICS_INFO_FORM dynamics_info_kp1)
+tuple<cube, cube,cube> rk4zxd2Hessians(double dt0,vec xk, vec uk,const Satellite& sat, const DYNAMICS_INFO_FORM& dynamics_info_k, const DYNAMICS_INFO_FORM& dynamics_info_kp1)
 {
   DYNAMICS_INFO_FORM dynamics_info_mid = make_tuple(
                           0.5*(get<0>(dynamics_info_k)+get<0>(dynamics_info_kp1)),
@@ -1075,7 +1075,7 @@ tuple<cube, cube,cube> rk4zxd2Hessians(double dt0,vec xk, vec uk,Satellite sat, 
 }
 
 
-tuple<cube, cube,cube> rk4zx3Hessians(double dt0,vec xk, vec uk,Satellite sat, DYNAMICS_INFO_FORM dynamics_info_k, DYNAMICS_INFO_FORM dynamics_info_kp1)
+tuple<cube, cube,cube> rk4zx3Hessians(double dt0,vec xk, vec uk,const Satellite& sat, const DYNAMICS_INFO_FORM& dynamics_info_k, const DYNAMICS_INFO_FORM& dynamics_info_kp1)
 {
   DYNAMICS_INFO_FORM dynamics_info_mid = make_tuple(
                           0.5*(get<0>(dynamics_info_k)+get<0>(dynamics_info_kp1)),
@@ -1249,7 +1249,7 @@ tuple<cube, cube,cube> rk4zx3Hessians(double dt0,vec xk, vec uk,Satellite sat, D
 }
 
 
-tuple<cube, cube,cube,mat,mat> rk4zx1Hessians(double dt0,vec xk, vec uk,Satellite sat, DYNAMICS_INFO_FORM dynamics_info_k, DYNAMICS_INFO_FORM dynamics_info_kp1)
+tuple<cube, cube,cube,mat,mat> rk4zx1Hessians(double dt0,vec xk, vec uk,const Satellite& sat, const DYNAMICS_INFO_FORM& dynamics_info_k, const DYNAMICS_INFO_FORM& dynamics_info_kp1)
 {
   DYNAMICS_INFO_FORM dynamics_info_mid = make_tuple(
                           0.5*(get<0>(dynamics_info_k)+get<0>(dynamics_info_kp1)),
@@ -1346,7 +1346,7 @@ tuple<cube, cube,cube,mat,mat> rk4zx1Hessians(double dt0,vec xk, vec uk,Satellit
 }
 
 
-tuple<cube, cube,cube> rk4zxd0Hessians(double dt0,vec xk, vec uk,Satellite sat, DYNAMICS_INFO_FORM dynamics_info_k, DYNAMICS_INFO_FORM dynamics_info_kp1)
+tuple<cube, cube,cube> rk4zxd0Hessians(double dt0,vec xk, vec uk,const Satellite& sat, const DYNAMICS_INFO_FORM& dynamics_info_k, const DYNAMICS_INFO_FORM& dynamics_info_kp1)
 {
   DYNAMICS_INFO_FORM dynamics_info_mid = make_tuple(
                           0.5*(get<0>(dynamics_info_k)+get<0>(dynamics_info_kp1)),
@@ -1411,7 +1411,7 @@ tuple<cube, cube,cube> rk4zxd0Hessians(double dt0,vec xk, vec uk,Satellite sat, 
 }
 
 
-tuple<cube, cube,cube> rk4zxd1Hessians(double dt0,vec xk, vec uk,Satellite sat, DYNAMICS_INFO_FORM dynamics_info_k, DYNAMICS_INFO_FORM dynamics_info_kp1)
+tuple<cube, cube,cube> rk4zxd1Hessians(double dt0,vec xk, vec uk,const Satellite& sat, const DYNAMICS_INFO_FORM& dynamics_info_k, const DYNAMICS_INFO_FORM& dynamics_info_kp1)
 {
   DYNAMICS_INFO_FORM dynamics_info_mid = make_tuple(
                           0.5*(get<0>(dynamics_info_k)+get<0>(dynamics_info_kp1)),
@@ -1506,7 +1506,7 @@ tuple<cube, cube,cube> rk4zxd1Hessians(double dt0,vec xk, vec uk,Satellite sat, 
   return make_tuple(ddxd1__dx0rdx0r,ddxd1__du_dx0r,ddxd1__du_du_);
 }
 
-tuple<cube, cube,cube,mat,mat> rk4zx2rHessians(double dt0,vec xk, vec uk,Satellite sat, DYNAMICS_INFO_FORM dynamics_info_k, DYNAMICS_INFO_FORM dynamics_info_kp1)
+tuple<cube, cube,cube,mat,mat> rk4zx2rHessians(double dt0,vec xk, vec uk,const Satellite& sat, const DYNAMICS_INFO_FORM& dynamics_info_k, const DYNAMICS_INFO_FORM& dynamics_info_kp1)
 {
   DYNAMICS_INFO_FORM dynamics_info_mid = make_tuple(
                           0.5*(get<0>(dynamics_info_k)+get<0>(dynamics_info_kp1)),
@@ -1631,7 +1631,7 @@ tuple<cube, cube,cube,mat,mat> rk4zx2rHessians(double dt0,vec xk, vec uk,Satelli
   return make_tuple(ddx2r__dx0rdx0r,ddx2r__du_dx0r,ddx2r__du_du_,dx2r__dx0r,dx2r__du_);
 }
 
-tuple<cube, cube,cube,mat,mat> rk4zx2Hessians(double dt0,vec xk, vec uk,Satellite sat, DYNAMICS_INFO_FORM dynamics_info_k, DYNAMICS_INFO_FORM dynamics_info_kp1)
+tuple<cube, cube,cube,mat,mat> rk4zx2Hessians(double dt0,vec xk, vec uk,const Satellite& sat, const DYNAMICS_INFO_FORM& dynamics_info_k, const DYNAMICS_INFO_FORM& dynamics_info_kp1)
 {
   DYNAMICS_INFO_FORM dynamics_info_mid = make_tuple(
                           0.5*(get<0>(dynamics_info_k)+get<0>(dynamics_info_kp1)),
@@ -1787,7 +1787,7 @@ tuple<cube, cube,cube,mat,mat> rk4zx2Hessians(double dt0,vec xk, vec uk,Satellit
    dynamics integrated forward by 1 timestep using rk4 - 7 x 1 vector
    hi
 */
-vec rk4z_pure(double dt0, vec xk, vec uk, Satellite sat, DYNAMICS_INFO_FORM dynamics_info_k, DYNAMICS_INFO_FORM dynamics_info_kp1)
+vec rk4z_pure(double dt0, vec xk, vec uk, const Satellite& sat, const DYNAMICS_INFO_FORM& dynamics_info_k, const DYNAMICS_INFO_FORM& dynamics_info_kp1)
 {
   tuple<vec,vec> rk4zout = rk4z(dt0,xk,uk,sat,dynamics_info_k,dynamics_info_kp1);
   vec out = get<0>(rk4zout);
@@ -1795,7 +1795,7 @@ vec rk4z_pure(double dt0, vec xk, vec uk, Satellite sat, DYNAMICS_INFO_FORM dyna
 }
 
 
-tuple<vec,vec> rk4z(double dt0, vec xk, vec uk, Satellite sat, DYNAMICS_INFO_FORM dynamics_info_k, DYNAMICS_INFO_FORM dynamics_info_kp1)
+tuple<vec,vec> rk4z(double dt0, vec xk, vec uk, const Satellite& sat, const DYNAMICS_INFO_FORM& dynamics_info_k, const DYNAMICS_INFO_FORM& dynamics_info_kp1)
 {
   //Now, get different dynamics outputs xd0....xd3
   DYNAMICS_INFO_FORM dynamics_info_mid = make_tuple(
@@ -1834,7 +1834,7 @@ tuple<vec,vec> rk4z(double dt0, vec xk, vec uk, Satellite sat, DYNAMICS_INFO_FOR
 
 
 
-vec rk4zxkp1r(double dt0, vec xk, vec uk, Satellite sat, DYNAMICS_INFO_FORM dynamics_info_k, DYNAMICS_INFO_FORM dynamics_info_kp1)
+vec rk4zxkp1r(double dt0, vec xk, vec uk, const Satellite& sat, const DYNAMICS_INFO_FORM& dynamics_info_k, const DYNAMICS_INFO_FORM& dynamics_info_kp1)
 {
   //Now, get different dynamics outputs xd0....xd3
   DYNAMICS_INFO_FORM dynamics_info_mid = make_tuple(
@@ -1870,7 +1870,7 @@ vec rk4zxkp1r(double dt0, vec xk, vec uk, Satellite sat, DYNAMICS_INFO_FORM dyna
 }
 
 
-vec rk4zxd3(double dt0, vec xk, vec uk, Satellite sat, DYNAMICS_INFO_FORM dynamics_info_k, DYNAMICS_INFO_FORM dynamics_info_kp1)
+vec rk4zxd3(double dt0, vec xk, vec uk, const Satellite& sat, const DYNAMICS_INFO_FORM& dynamics_info_k, const DYNAMICS_INFO_FORM& dynamics_info_kp1)
 {
   //Now, get different dynamics outputs xd0....xd3
   DYNAMICS_INFO_FORM dynamics_info_mid = make_tuple(
@@ -1904,7 +1904,7 @@ vec rk4zxd3(double dt0, vec xk, vec uk, Satellite sat, DYNAMICS_INFO_FORM dynami
   return xd3;
 }
 
-vec rk4zx1(double dt0, vec xk, vec uk, Satellite sat, DYNAMICS_INFO_FORM dynamics_info_k, DYNAMICS_INFO_FORM dynamics_info_kp1)
+vec rk4zx1(double dt0, vec xk, vec uk, const Satellite& sat, const DYNAMICS_INFO_FORM& dynamics_info_k, const DYNAMICS_INFO_FORM& dynamics_info_kp1)
 {
   //Now, get different dynamics outputs xd0....xd3
   DYNAMICS_INFO_FORM dynamics_info_mid = make_tuple(
@@ -1926,7 +1926,7 @@ vec rk4zx1(double dt0, vec xk, vec uk, Satellite sat, DYNAMICS_INFO_FORM dynamic
 }
 
 
-vec rk4zxd0(double dt0, vec xk, vec uk, Satellite sat, DYNAMICS_INFO_FORM dynamics_info_k, DYNAMICS_INFO_FORM dynamics_info_kp1)
+vec rk4zxd0(double dt0, vec xk, vec uk, const Satellite& sat, const DYNAMICS_INFO_FORM& dynamics_info_k, const DYNAMICS_INFO_FORM& dynamics_info_kp1)
 {
   //Now, get different dynamics outputs xd0....xd3
   DYNAMICS_INFO_FORM dynamics_info_mid = make_tuple(
@@ -1945,7 +1945,7 @@ vec rk4zxd0(double dt0, vec xk, vec uk, Satellite sat, DYNAMICS_INFO_FORM dynami
   return xd0;
 }
 
-vec rk4zx2(double dt0, vec xk, vec uk, Satellite sat, DYNAMICS_INFO_FORM dynamics_info_k, DYNAMICS_INFO_FORM dynamics_info_kp1)
+vec rk4zx2(double dt0, vec xk, vec uk, const Satellite& sat, const DYNAMICS_INFO_FORM& dynamics_info_k, const DYNAMICS_INFO_FORM& dynamics_info_kp1)
 {
   //Now, get different dynamics outputs xd0....xd3
   DYNAMICS_INFO_FORM dynamics_info_mid = make_tuple(
@@ -1972,7 +1972,7 @@ vec rk4zx2(double dt0, vec xk, vec uk, Satellite sat, DYNAMICS_INFO_FORM dynamic
 }
 
 
-vec rk4zx2r(double dt0, vec xk, vec uk, Satellite sat, DYNAMICS_INFO_FORM dynamics_info_k, DYNAMICS_INFO_FORM dynamics_info_kp1)
+vec rk4zx2r(double dt0, vec xk, vec uk, const Satellite& sat, const DYNAMICS_INFO_FORM& dynamics_info_k, const DYNAMICS_INFO_FORM& dynamics_info_kp1)
 {
   //Now, get different dynamics outputs xd0....xd3
   DYNAMICS_INFO_FORM dynamics_info_mid = make_tuple(
@@ -1996,7 +1996,7 @@ vec rk4zx2r(double dt0, vec xk, vec uk, Satellite sat, DYNAMICS_INFO_FORM dynami
   // out(span(sat.quat0index(),sat.quat0index()+3)) =  normalise(out(span(sat.quat0index(),sat.quat0index()+3)));
   return x2;
 }
-vec rk4zxd1(double dt0, vec xk, vec uk, Satellite sat, DYNAMICS_INFO_FORM dynamics_info_k, DYNAMICS_INFO_FORM dynamics_info_kp1)
+vec rk4zxd1(double dt0, vec xk, vec uk, const Satellite& sat, const DYNAMICS_INFO_FORM& dynamics_info_k, const DYNAMICS_INFO_FORM& dynamics_info_kp1)
 {
   //Now, get different dynamics outputs xd0....xd3
   DYNAMICS_INFO_FORM dynamics_info_mid = make_tuple(
@@ -2021,7 +2021,7 @@ vec rk4zxd1(double dt0, vec xk, vec uk, Satellite sat, DYNAMICS_INFO_FORM dynami
 }
 
 
-vec rk4zx3(double dt0, vec xk, vec uk, Satellite sat, DYNAMICS_INFO_FORM dynamics_info_k, DYNAMICS_INFO_FORM dynamics_info_kp1)
+vec rk4zx3(double dt0, vec xk, vec uk, const Satellite& sat, const DYNAMICS_INFO_FORM& dynamics_info_k, const DYNAMICS_INFO_FORM& dynamics_info_kp1)
 {
   //Now, get different dynamics outputs xd0....xd3
   DYNAMICS_INFO_FORM dynamics_info_mid = make_tuple(
@@ -2054,7 +2054,7 @@ vec rk4zx3(double dt0, vec xk, vec uk, Satellite sat, DYNAMICS_INFO_FORM dynamic
 
 
 
-vec rk4zx3r(double dt0, vec xk, vec uk, Satellite sat, DYNAMICS_INFO_FORM dynamics_info_k, DYNAMICS_INFO_FORM dynamics_info_kp1)
+vec rk4zx3r(double dt0, vec xk, vec uk, const Satellite& sat, const DYNAMICS_INFO_FORM& dynamics_info_k, const DYNAMICS_INFO_FORM& dynamics_info_kp1)
 {
   //Now, get different dynamics outputs xd0....xd3
   DYNAMICS_INFO_FORM dynamics_info_mid = make_tuple(
@@ -2086,7 +2086,7 @@ vec rk4zx3r(double dt0, vec xk, vec uk, Satellite sat, DYNAMICS_INFO_FORM dynami
 
 
 
-vec rk4zxd2(double dt0, vec xk, vec uk, Satellite sat, DYNAMICS_INFO_FORM dynamics_info_k, DYNAMICS_INFO_FORM dynamics_info_kp1)
+vec rk4zxd2(double dt0, vec xk, vec uk, const Satellite& sat, const DYNAMICS_INFO_FORM& dynamics_info_k, const DYNAMICS_INFO_FORM& dynamics_info_kp1)
 {
   //Now, get different dynamics outputs xd0....xd3
   DYNAMICS_INFO_FORM dynamics_info_mid = make_tuple(

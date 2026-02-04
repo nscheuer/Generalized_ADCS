@@ -1366,7 +1366,7 @@ vec OldPlanner::smartbdot_rawmtq_finder(double dt0, vec xk, double nB2,vec ECIvk
    Kset - 3 x 6 x N-1 cube, TVLQR gains
    Sset - 6 x 6 x N cube, intermediate values used to find gains
 */
-tuple<cube, cube> OldPlanner::findK(double dt_tvlqr0, TRAJECTORY_FORM traj, VECTOR_INFO_FORM vecs, COST_SETTINGS_FORM costSettings_tmp)
+tuple<cube, cube> OldPlanner::findK(double dt_tvlqr0, TRAJECTORY_FORM& traj, VECTOR_INFO_FORM& vecs, COST_SETTINGS_FORM costSettings_tmp)
 {
   //Initialize Sset and Kset
   mat Xset = get<0>(traj);
@@ -1476,7 +1476,7 @@ tuple<cube, cube> OldPlanner::findK(double dt_tvlqr0, TRAJECTORY_FORM traj, VECT
 
 // Variant of findK that uses a provided terminal S matrix instead of computing from terminal cost
 // This enables proper cost propagation when computing K-gains in segments
-tuple<cube, cube> OldPlanner::findKwithTerminalS(double dt_tvlqr0, TRAJECTORY_FORM traj, VECTOR_INFO_FORM vecs, COST_SETTINGS_FORM costSettings_tmp, mat terminal_S)
+tuple<cube, cube> OldPlanner::findKwithTerminalS(double dt_tvlqr0, TRAJECTORY_FORM& traj, VECTOR_INFO_FORM& vecs, COST_SETTINGS_FORM costSettings_tmp, mat terminal_S)
 {
   mat Xset = get<0>(traj);
   mat Uset = get<1>(traj);
@@ -1559,7 +1559,7 @@ tuple<cube, cube> OldPlanner::findKwithTerminalS(double dt_tvlqr0, TRAJECTORY_FO
   return make_tuple(Kset_lqr, Sset);
 }
 
-tuple<cube, cube> OldPlanner::findKwDist(double dt_tvlqr0, TRAJECTORY_FORM traj, VECTOR_INFO_FORM vecs, COST_SETTINGS_FORM costSettings_tmp)
+tuple<cube, cube> OldPlanner::findKwDist(double dt_tvlqr0, TRAJECTORY_FORM& traj, VECTOR_INFO_FORM& vecs, COST_SETTINGS_FORM costSettings_tmp)
 {
   //Initialize Sset and Kset
   mat Xset = get<0>(traj);
@@ -1698,7 +1698,7 @@ tuple<cube, cube> OldPlanner::findKwDist(double dt_tvlqr0, TRAJECTORY_FORM traj,
     newX - new states of trajectory - 7 x N matrix
     newU - new control inputs of trajectory - 3 x N matrix
 */
- TRAJECTORY_FORM OldPlanner::generateTrajectory( double dt0,  double alpha, TRAJECTORY_FORM traj,  VECTOR_INFO_FORM vecs,  cube Kset,  mat dset, bool useDist)
+ TRAJECTORY_FORM OldPlanner::generateTrajectory( double dt0,  double alpha, TRAJECTORY_FORM traj,  VECTOR_INFO_FORM& vecs,  const cube& Kset,  const mat& dset, bool useDist)
 {
   //Initialize newU, newX
   mat newX;

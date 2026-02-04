@@ -450,7 +450,7 @@ if __name__ == "__main__":
         print(f"=== TEST MODE: Single run (seed={test_seed}), no multiprocessing ===")
         config = generate_mc_config(test_seed)
         config["verbose"] = False  # Disable verbose text output
-        config["visualize"] = True  # Use C++ planner (Plan_and_Track_LQR)
+        config["visualize"] = False  # Use C++ planner (Plan_and_Track_LQR)
         config["save_viz"] = False
         config["plot_planned_traj"] = True  # Plot planned trajectory before tracking
         result = run_single_sim(config)

@@ -1717,14 +1717,14 @@ mat Satellite::getIlam(double mu, vec muk, vec ck, vec lamk)
     xdot = state derivative, 7 x 1
 */
 
-vec Satellite::dynamics_pure(vec x, vec u, DYNAMICS_INFO_FORM dynamics_info) const
+vec Satellite::dynamics_pure(vec x, vec u, const DYNAMICS_INFO_FORM& dynamics_info) const
 {
   tuple<vec,vec3> dynout = dynamics(x,u,dynamics_info);
   vec out = get<0>(dynout);
   return out;
 }
 
-vec3 Satellite::dist_torque(vec x, DYNAMICS_INFO_FORM dynamics_info) const{
+vec3 Satellite::dist_torque(vec x, const DYNAMICS_INFO_FORM& dynamics_info) const{
 
 
   vec3 Bk = get<0>(dynamics_info);
@@ -1751,7 +1751,7 @@ vec3 Satellite::dist_torque(vec x, DYNAMICS_INFO_FORM dynamics_info) const{
   return dist_torq*dist_on;
 }
 
-tuple<vec,vec3> Satellite::dynamics(vec x, vec u, DYNAMICS_INFO_FORM dynamics_info) const
+tuple<vec,vec3> Satellite::dynamics(vec x, vec u, const DYNAMICS_INFO_FORM& dynamics_info) const
 {
 
   vec3 Bk = get<0>(dynamics_info);
@@ -1805,7 +1805,7 @@ tuple<vec,vec3> Satellite::dynamics(vec x, vec u, DYNAMICS_INFO_FORM dynamics_in
     jxx - jacobian wrt x, 7 x 7
     jxu - jacobian wrt u, 7 x 3
 */
-tuple<mat, mat,mat>  Satellite::dynamicsJacobians( vec x,  vec u,  DYNAMICS_INFO_FORM dynamics_info) const
+tuple<mat, mat,mat>  Satellite::dynamicsJacobians( vec x,  vec u,  const DYNAMICS_INFO_FORM& dynamics_info) const
 {
 
   vec3 Bk = get<0>(dynamics_info);
@@ -1890,7 +1890,7 @@ tuple<mat, mat,mat>  Satellite::dynamicsJacobians( vec x,  vec u,  DYNAMICS_INFO
 
 
 
-tuple<cube, cube,cube>  Satellite::dynamicsHessians( vec x,  vec u,  DYNAMICS_INFO_FORM dynamics_info) const
+tuple<cube, cube,cube>  Satellite::dynamicsHessians( vec x,  vec u,  const DYNAMICS_INFO_FORM& dynamics_info) const
 {
 
   vec3 Bk = get<0>(dynamics_info);

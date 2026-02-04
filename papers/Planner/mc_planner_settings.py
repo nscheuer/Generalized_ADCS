@@ -575,6 +575,31 @@ def apply_balanced_tuning(settings, verbose: bool = False):
     settings.cost_main.use_full_cost_hessian = False
     settings.cost_second.use_full_cost_hessian = False
     
+    # Convergence tolerances:
+    # ilqr_cost_tol: inner loop break when dLA < tol (AND grad < grad_tol)
+    # total_cost_tol: used on last outer iteration (tighter)
+    # grad_tol: gradient norm tolerance
+    # z_count_lim: break after N consecutive stalled iterations
+    #
+    # Pass 1 (N~34, costs ~500-3000): keep tight, it's cheap per iteration
+    # Pass 2 (N~1001, costs ~100k, warm-started): can be looser
+    settings.pass1.convergence.ilqr_cost_tol = 0.1     # ~0.01% of Pass 1 cost
+    settings.pass1.convergence.total_cost_tol = 0.01
+    settings.pass1.convergence.grad_tol = 1e-3
+    settings.pass1.convergence.z_count_lim = 5
+    settings.pass2.convergence.ilqr_cost_tol = 10.0    # ~0.01% of Pass 2 cost
+    settings.pass2.convergence.total_cost_tol = 1.0
+    settings.pass2.convergence.grad_tol = 1e-2         # Relaxed — warm-start is close
+    settings.pass2.convergence.z_count_lim = 3          # Warm-start: stalls faster
+    
+    # Pass2: fewer iterations with warm-start
+    settings.pass2.convergence.max_inner_iter = 30
+    settings.pass2.convergence.max_outer_iter = 10
+    
+    # Line search: 10 halvings is plenty (α: 1 → 1/1024)
+    settings.pass1.line_search.max_iters = 10
+    settings.pass2.line_search.max_iters = 10
+    
     if verbose:
         print("Applied balanced tuning:")
         print(f"  angle_N: {orig_angle_N:.1f} -> {settings.cost_main.angle_N:.1f} (25x)")
@@ -771,12 +796,12 @@ def apply_fast_slew_tuning(settings, verbose: bool = False):
     settings.cost_main.angle_N = settings.cost_main.angle  # Keep terminal = running
     settings.cost_main.ang_vel_N = settings.cost_main.ang_vel  # Keep terminal = running
     # settings.mtq_control_weight *= 0.1     # Cheap MTQ for faster convergence
-    # settings.rw_control_weight *= 10.0     # Cheap RW for faster convergence
+    settings.rw_control_weight *= 10.0     # Cheap RW for faster convergence
 
     # settings.cost_second.ang_vel *= 1
-    settings.cost_second.angle *= 100
-    settings.cost_second.angle_N = settings.cost_second.angle
-    settings.cost_second.ang_vel_N = settings.cost_second.ang_vel
+    settings.cost_second.angle *= 10000
+    settings.cost_second.angle_N = settings.cost_second.angle*10000
+    settings.cost_second.ang_vel_N = settings.cost_second.ang_vel*100
     
     # Initialization mode
     # Mode 0: Random initialization  
@@ -815,11 +840,16 @@ def apply_fast_slew_tuning(settings, verbose: bool = False):
     settings.pass2.aug_lag.penalty_max = 1e10
     settings.pass2.aug_lag.penalty_scale = 10
     
-    # More inner iterations to allow convergence
+    # Iteration budget: Pass1 needs more (exploring from scratch), 
+    # Pass2 needs less (warm-start is close to solution)
     settings.pass1.convergence.max_inner_iter = 80
-    settings.pass2.convergence.max_inner_iter = 50
-    settings.pass1.convergence.max_outer_iter = 20
-    settings.pass2.convergence.max_outer_iter = 20
+    settings.pass2.convergence.max_inner_iter = 30  # Warm-start means less needed
+    settings.pass1.convergence.max_outer_iter = 25
+    settings.pass2.convergence.max_outer_iter = 15 # Constraints nearly satisfied from warm-start
+    
+    # Line search: 10 halvings is plenty (α goes from 1 to 1/1024)
+    settings.pass1.line_search.max_iters = 10
+    settings.pass2.line_search.max_iters = 10
     
     # Regularization settings
     # reg_mode: 0=control-space only, 1=state-space only, 2=both
@@ -829,18 +859,26 @@ def apply_fast_slew_tuning(settings, verbose: bool = False):
     # reg_min_cond: clamp to reg_min instead of going to 0
     settings.pass1.regularization.reg_min_cond = 2
     settings.pass2.regularization.reg_min_cond = 2
-    settings.pass1.regularization.reg_min =  1e-4
-    settings.pass2.regularization.reg_min =  1e-4
+    settings.pass1.regularization.reg_min =  1e-6
+    settings.pass2.regularization.reg_min =  1e-6
     settings.pass1.regularization.reg_bump =  1e2
     settings.pass2.regularization.reg_bump =  1e2
     
     # Pass2: use normalized control cost (not raw) for better conditioning
     settings.cost_second.use_raw_control_cost = False
-    settings.cost_second.control_mult = 1e2 
+    settings.cost_second.control_mult = 1e4
     
-    # Convergence detection (break if cost hasn't improved for z_count_lim iterations)
-    settings.pass1.convergence.z_count_lim = 5
-    settings.pass2.convergence.z_count_lim = 5
+    # Convergence detection — scaled to cost magnitudes:
+    # Pass 1 (N~34, costs ~500-3000): tight, cheap per iteration
+    # Pass 2 (N~1001, costs ~100k, warm-started): looser, expensive per iteration
+    # settings.pass1.convergence.ilqr_cost_tol = 0.1     # ~0.01% of Pass 1 cost
+    # settings.pass1.convergence.total_cost_tol = 0.01
+    # settings.pass1.convergence.grad_tol = 1e-3
+    # settings.pass1.convergence.z_count_lim = 5
+    # settings.pass2.convergence.ilqr_cost_tol = 10.0    # ~0.01% of Pass 2 cost
+    # settings.pass2.convergence.total_cost_tol = 1.0
+    # settings.pass2.convergence.grad_tol = 1e-2
+    # settings.pass2.convergence.z_count_lim = 3
     
     if verbose:
         ratio = settings.cost_main.ang_vel / settings.cost_main.angle
@@ -949,10 +987,23 @@ def create_optimized_planner_settings(
     else:
         raise ValueError(f"Unknown tuning preset: {tuning}. Use 'smooth', 'balanced', 'anti_spin', 'aggressive', 'fast_slew', or 'none'")
     
-    # RW control weight: Default is extremely high (~1.7e6) which effectively
-    # disables the RW. Set to 100 so the planner actually uses the RW for slews.
+    # RW control weight: Must account for NONMTQ_TORQ_SCALE (3e-5).
+    # The optimizer works in scaled units: u_opt = u_phys / NONMTQ_TORQ_SCALE.
+    # Cost = rw_control_weight * u_opt² = rw_control_weight * (u_phys/3e-5)².
+    # At max torque (0.0023 Nm): u_opt = 76.7, so cost = weight * 5880.
+    # 
+    # For the RW to be competitive with MTQ (cost ~0.044 * 0.15² = 0.001),
+    # we need: weight * 76.7² ≈ same order as state cost improvement per step.
+    # With ang_vel cost ~200k and typical omega ~0.01 rad/s, improvement per step ~20.
+    # So weight * 5880 ~ 20 → weight ~ 0.003.
+    #
+    # Using 0.1 makes the RW ~2x more expensive per Nm² than MTQ.
+    # This means the optimizer prefers MTQ for off-axis torque (where MTQ is fine)
+    # but uses RW for on-axis torque (where MTQ has null-space issues).
+    # Too low (0.01) → RW oscillates (cheaper than MTQ, optimizer swings it freely)
+    # Too high (100) → RW never used (300Mx more expensive than MTQ)
     if has_rw:
-        settings.rw_control_weight = 100
+        settings.rw_control_weight = 0.1
 
     # TVLQR cost settings: Match NSSR_python_improvements branch
     # Use same state costs as planning, with control_mult=1.0

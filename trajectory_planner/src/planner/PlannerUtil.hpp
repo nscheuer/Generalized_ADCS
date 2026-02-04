@@ -59,34 +59,34 @@ REG_PAIR decreaseReg(REG_PAIR reg0, REG_SETTINGS_FORM reg_settings_tmp);
 
 arma::mat interp_vector(arma::mat m,arma::vec t_of_m,arma::vec t_des);
 
-std::tuple<arma::vec,arma::vec> rk4z(double dt, arma::vec xk, arma::vec uk, Satellite sat, DYNAMICS_INFO_FORM dynamics_info_k,DYNAMICS_INFO_FORM dynamics_info_kp1);
-arma::vec rk4z_pure(double dt, arma::vec xk, arma::vec uk, Satellite sat, DYNAMICS_INFO_FORM dynamics_info_k,DYNAMICS_INFO_FORM dynamics_info_kp1);
+std::tuple<arma::vec,arma::vec> rk4z(double dt, arma::vec xk, arma::vec uk, const Satellite& sat, const DYNAMICS_INFO_FORM& dynamics_info_k,const DYNAMICS_INFO_FORM& dynamics_info_kp1);
+arma::vec rk4z_pure(double dt, arma::vec xk, arma::vec uk, const Satellite& sat, const DYNAMICS_INFO_FORM& dynamics_info_k,const DYNAMICS_INFO_FORM& dynamics_info_kp1);
 
-std::tuple<arma::mat, arma::mat,arma::mat> rk4zJacobians(double dt,arma::vec xk, arma::vec uk, Satellite sat,DYNAMICS_INFO_FORM dynamics_info_k, DYNAMICS_INFO_FORM dynamics_info_kp1);
-std::tuple<arma::mat, arma::mat,arma::mat> rk4zx2Jacobians(double dt,arma::vec xk, arma::vec uk, Satellite sat,DYNAMICS_INFO_FORM dynamics_info_k, DYNAMICS_INFO_FORM dynamics_info_kp1);
-arma::vec rk4zxkp1r(double dt, arma::vec xk, arma::vec uk, Satellite sat, DYNAMICS_INFO_FORM dynamics_info_k,DYNAMICS_INFO_FORM dynamics_info_kp1);
+std::tuple<arma::mat, arma::mat,arma::mat> rk4zJacobians(double dt,arma::vec xk, arma::vec uk, const Satellite& sat,const DYNAMICS_INFO_FORM& dynamics_info_k, const DYNAMICS_INFO_FORM& dynamics_info_kp1);
+std::tuple<arma::mat, arma::mat,arma::mat> rk4zx2Jacobians(double dt,arma::vec xk, arma::vec uk, const Satellite& sat,const DYNAMICS_INFO_FORM& dynamics_info_k, const DYNAMICS_INFO_FORM& dynamics_info_kp1);
+arma::vec rk4zxkp1r(double dt, arma::vec xk, arma::vec uk, const Satellite& sat, const DYNAMICS_INFO_FORM& dynamics_info_k,const DYNAMICS_INFO_FORM& dynamics_info_kp1);
 
-std::tuple<arma::cube, arma::cube,arma::cube> rk4zHessians(double dt0,arma::vec xk, arma::vec uk,Satellite sat, DYNAMICS_INFO_FORM dynamics_info_k, DYNAMICS_INFO_FORM dynamics_info_kp1);
-std::tuple<arma::cube, arma::cube,arma::cube,arma::mat,arma::mat,arma::cube,arma::cube, arma::cube,arma::cube,arma::cube> rk4zxkp1rHessians(double dt0,arma::vec xk, arma::vec uk,Satellite sat, DYNAMICS_INFO_FORM dynamics_info_k, DYNAMICS_INFO_FORM dynamics_info_kp1);
+std::tuple<arma::cube, arma::cube,arma::cube> rk4zHessians(double dt0,arma::vec xk, arma::vec uk,const Satellite& sat, const DYNAMICS_INFO_FORM& dynamics_info_k, const DYNAMICS_INFO_FORM& dynamics_info_kp1);
+std::tuple<arma::cube, arma::cube,arma::cube,arma::mat,arma::mat,arma::cube,arma::cube, arma::cube,arma::cube,arma::cube> rk4zxkp1rHessians(double dt0,arma::vec xk, arma::vec uk,const Satellite& sat, const DYNAMICS_INFO_FORM& dynamics_info_k, const DYNAMICS_INFO_FORM& dynamics_info_kp1);
 
-std::tuple<arma::cube, arma::cube,arma::cube> rk4zx3Hessians(double dt0,arma::vec xk, arma::vec uk,Satellite sat, DYNAMICS_INFO_FORM dynamics_info_k, DYNAMICS_INFO_FORM dynamics_info_kp1);
-arma::vec rk4zx3(double dt, arma::vec xk, arma::vec uk, Satellite sat, DYNAMICS_INFO_FORM dynamics_info_k,DYNAMICS_INFO_FORM dynamics_info_kp1);
-arma::vec rk4zx2(double dt, arma::vec xk, arma::vec uk, Satellite sat, DYNAMICS_INFO_FORM dynamics_info_k,DYNAMICS_INFO_FORM dynamics_info_kp1);
-std::tuple<arma::cube, arma::cube,arma::cube,arma::mat,arma::mat> rk4zx2Hessians(double dt0,arma::vec xk, arma::vec uk,Satellite sat, DYNAMICS_INFO_FORM dynamics_info_k, DYNAMICS_INFO_FORM dynamics_info_kp1);
-std::tuple<arma::cube, arma::cube,arma::cube,arma::mat,arma::mat> rk4zx1Hessians(double dt0,arma::vec xk, arma::vec uk,Satellite sat, DYNAMICS_INFO_FORM dynamics_info_k, DYNAMICS_INFO_FORM dynamics_info_kp1);
-arma::vec rk4zx1(double dt, arma::vec xk, arma::vec uk, Satellite sat, DYNAMICS_INFO_FORM dynamics_info_k,DYNAMICS_INFO_FORM dynamics_info_kp1);
-arma::vec rk4zxd0(double dt, arma::vec xk, arma::vec uk, Satellite sat, DYNAMICS_INFO_FORM dynamics_info_k,DYNAMICS_INFO_FORM dynamics_info_kp1);
-arma::vec rk4zxd3(double dt, arma::vec xk, arma::vec uk, Satellite sat, DYNAMICS_INFO_FORM dynamics_info_k,DYNAMICS_INFO_FORM dynamics_info_kp1);
+std::tuple<arma::cube, arma::cube,arma::cube> rk4zx3Hessians(double dt0,arma::vec xk, arma::vec uk,const Satellite& sat, const DYNAMICS_INFO_FORM& dynamics_info_k, const DYNAMICS_INFO_FORM& dynamics_info_kp1);
+arma::vec rk4zx3(double dt, arma::vec xk, arma::vec uk, const Satellite& sat, const DYNAMICS_INFO_FORM& dynamics_info_k,const DYNAMICS_INFO_FORM& dynamics_info_kp1);
+arma::vec rk4zx2(double dt, arma::vec xk, arma::vec uk, const Satellite& sat, const DYNAMICS_INFO_FORM& dynamics_info_k,const DYNAMICS_INFO_FORM& dynamics_info_kp1);
+std::tuple<arma::cube, arma::cube,arma::cube,arma::mat,arma::mat> rk4zx2Hessians(double dt0,arma::vec xk, arma::vec uk,const Satellite& sat, const DYNAMICS_INFO_FORM& dynamics_info_k, const DYNAMICS_INFO_FORM& dynamics_info_kp1);
+std::tuple<arma::cube, arma::cube,arma::cube,arma::mat,arma::mat> rk4zx1Hessians(double dt0,arma::vec xk, arma::vec uk,const Satellite& sat, const DYNAMICS_INFO_FORM& dynamics_info_k, const DYNAMICS_INFO_FORM& dynamics_info_kp1);
+arma::vec rk4zx1(double dt, arma::vec xk, arma::vec uk, const Satellite& sat, const DYNAMICS_INFO_FORM& dynamics_info_k,const DYNAMICS_INFO_FORM& dynamics_info_kp1);
+arma::vec rk4zxd0(double dt, arma::vec xk, arma::vec uk, const Satellite& sat, const DYNAMICS_INFO_FORM& dynamics_info_k,const DYNAMICS_INFO_FORM& dynamics_info_kp1);
+arma::vec rk4zxd3(double dt, arma::vec xk, arma::vec uk, const Satellite& sat, const DYNAMICS_INFO_FORM& dynamics_info_k,const DYNAMICS_INFO_FORM& dynamics_info_kp1);
 
-std::tuple<arma::cube, arma::cube,arma::cube> rk4zxd0Hessians(double dt0,arma::vec xk, arma::vec uk,Satellite sat, DYNAMICS_INFO_FORM dynamics_info_k, DYNAMICS_INFO_FORM dynamics_info_kp1);
-arma::vec rk4zxd1(double dt, arma::vec xk, arma::vec uk, Satellite sat, DYNAMICS_INFO_FORM dynamics_info_k,DYNAMICS_INFO_FORM dynamics_info_kp1);
-std::tuple<arma::cube, arma::cube,arma::cube> rk4zxd1Hessians(double dt0,arma::vec xk, arma::vec uk,Satellite sat, DYNAMICS_INFO_FORM dynamics_info_k, DYNAMICS_INFO_FORM dynamics_info_kp1);
-arma::vec rk4zx2r(double dt, arma::vec xk, arma::vec uk, Satellite sat, DYNAMICS_INFO_FORM dynamics_info_k,DYNAMICS_INFO_FORM dynamics_info_kp1);
-std::tuple<arma::cube, arma::cube,arma::cube,arma::mat,arma::mat> rk4zx2rHessians(double dt0,arma::vec xk, arma::vec uk,Satellite sat, DYNAMICS_INFO_FORM dynamics_info_k, DYNAMICS_INFO_FORM dynamics_info_kp1);
-arma::vec rk4zx3r(double dt, arma::vec xk, arma::vec uk, Satellite sat, DYNAMICS_INFO_FORM dynamics_info_k,DYNAMICS_INFO_FORM dynamics_info_kp1);
-std::tuple<arma::cube, arma::cube,arma::cube,arma::mat,arma::mat> rk4zx3rHessians(double dt0,arma::vec xk, arma::vec uk,Satellite sat, DYNAMICS_INFO_FORM dynamics_info_k, DYNAMICS_INFO_FORM dynamics_info_kp1);
-arma::vec rk4zxd2(double dt, arma::vec xk, arma::vec uk, Satellite sat, DYNAMICS_INFO_FORM dynamics_info_k,DYNAMICS_INFO_FORM dynamics_info_kp1);
-std::tuple<arma::cube, arma::cube,arma::cube> rk4zxd2Hessians(double dt0,arma::vec xk, arma::vec uk,Satellite sat, DYNAMICS_INFO_FORM dynamics_info_k, DYNAMICS_INFO_FORM dynamics_info_kp1);
+std::tuple<arma::cube, arma::cube,arma::cube> rk4zxd0Hessians(double dt0,arma::vec xk, arma::vec uk,const Satellite& sat, const DYNAMICS_INFO_FORM& dynamics_info_k, const DYNAMICS_INFO_FORM& dynamics_info_kp1);
+arma::vec rk4zxd1(double dt, arma::vec xk, arma::vec uk, const Satellite& sat, const DYNAMICS_INFO_FORM& dynamics_info_k,const DYNAMICS_INFO_FORM& dynamics_info_kp1);
+std::tuple<arma::cube, arma::cube,arma::cube> rk4zxd1Hessians(double dt0,arma::vec xk, arma::vec uk,const Satellite& sat, const DYNAMICS_INFO_FORM& dynamics_info_k, const DYNAMICS_INFO_FORM& dynamics_info_kp1);
+arma::vec rk4zx2r(double dt, arma::vec xk, arma::vec uk, const Satellite& sat, const DYNAMICS_INFO_FORM& dynamics_info_k,const DYNAMICS_INFO_FORM& dynamics_info_kp1);
+std::tuple<arma::cube, arma::cube,arma::cube,arma::mat,arma::mat> rk4zx2rHessians(double dt0,arma::vec xk, arma::vec uk,const Satellite& sat, const DYNAMICS_INFO_FORM& dynamics_info_k, const DYNAMICS_INFO_FORM& dynamics_info_kp1);
+arma::vec rk4zx3r(double dt, arma::vec xk, arma::vec uk, const Satellite& sat, const DYNAMICS_INFO_FORM& dynamics_info_k,const DYNAMICS_INFO_FORM& dynamics_info_kp1);
+std::tuple<arma::cube, arma::cube,arma::cube,arma::mat,arma::mat> rk4zx3rHessians(double dt0,arma::vec xk, arma::vec uk,const Satellite& sat, const DYNAMICS_INFO_FORM& dynamics_info_k, const DYNAMICS_INFO_FORM& dynamics_info_kp1);
+arma::vec rk4zxd2(double dt, arma::vec xk, arma::vec uk, const Satellite& sat, const DYNAMICS_INFO_FORM& dynamics_info_k,const DYNAMICS_INFO_FORM& dynamics_info_kp1);
+std::tuple<arma::cube, arma::cube,arma::cube> rk4zxd2Hessians(double dt0,arma::vec xk, arma::vec uk,const Satellite& sat, const DYNAMICS_INFO_FORM& dynamics_info_k, const DYNAMICS_INFO_FORM& dynamics_info_kp1);
 
 
 arma::vec4 qdes(arma::vec3 satvk, arma::vec3 ECIvk, arma::vec4 q, arma::vec3 w, arma::vec3 Bbody, arma::mat33 wt);
