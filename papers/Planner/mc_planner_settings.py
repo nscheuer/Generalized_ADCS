@@ -783,7 +783,7 @@ def apply_fast_slew_tuning(settings, verbose: bool = False):
     # Mode 1: B-dot damping
     # Mode 4: PD control toward goal
     # Mode 5: PD control + noise
-    settings.bdot_on = 0
+    settings.bdot_on = 0  # Random initialization
     settings.cost_main.use_full_cost_hessian = False
     settings.cost_second.use_full_cost_hessian = False
     

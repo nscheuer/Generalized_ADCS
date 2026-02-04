@@ -51,6 +51,8 @@ public:
     void setquaternionTo3VecMode(int val);
     void setPass2WarmStartMode(int mode);
     int getPass2WarmStartMode();
+    void setUseEulerPass2(bool use_euler);
+    bool getUseEulerPass2();
     py::tuple addRandNoisePython(double dt0, TRAJECTORY_PY_FORM trajPy, double dlaZcount, double stepsSinceRand, BREAK_SETTINGS_PY_FORM breakSettings_tmp,REG_SETTINGS_FORM regSettings_tmp,COST_SETTINGS_FORM costSettings_tmp, AUGLAG_INFO_PY_FORM auglag_vals,VECTOR_INFO_PY_FORM vecs);
     void setPlannerVerbosity(bool verbosity);
     

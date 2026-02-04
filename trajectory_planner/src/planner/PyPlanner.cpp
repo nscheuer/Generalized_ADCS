@@ -305,6 +305,14 @@ int PyPlanner::getPass2WarmStartMode(){
   return op.pass2_warm_start_mode;
 }
 
+void PyPlanner::setUseEulerPass2(bool use_euler){
+  op.use_euler_pass2 = use_euler;
+}
+
+bool PyPlanner::getUseEulerPass2(){
+  return op.use_euler_pass2;
+}
+
 void PyPlanner::setPlannerVerbosity(bool verbosity){
   op.setVerbosity(verbosity);
 }
@@ -361,6 +369,8 @@ PYBIND11_MODULE(tplaunch, m) {
         .def("setquaternionTo3VecMode", &PyPlanner::setquaternionTo3VecMode)
         .def("setPass2WarmStartMode", &PyPlanner::setPass2WarmStartMode)
         .def("getPass2WarmStartMode", &PyPlanner::getPass2WarmStartMode)
+        .def("setUseEulerPass2", &PyPlanner::setUseEulerPass2)
+        .def("getUseEulerPass2", &PyPlanner::getUseEulerPass2)
         .def("echo_int", &PyPlanner::echo_int)
         .def("get_nonmtq_torq_scale", &PyPlanner::getNonMtqTorqScale)
         .def("get_number_MTQ", &PyPlanner::getNumberMTQ)

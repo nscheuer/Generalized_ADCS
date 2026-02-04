@@ -1834,6 +1834,108 @@ tuple<vec,vec> rk4z(double dt0, vec xk, vec uk, const Satellite& sat, const DYNA
 
 
 
+// ============================================================================
+// Euler integration with quaternion exponential map (Solà 2017, §4.4)
+// 1 dynamics eval per step (vs 4 for RK4) → ~4x faster forward/backward pass.
+//
+// State = [ω(3), q(4), h_rw(n_rw)]
+//   ω(k+1) = ω(k) + dt * ω̇(k)              [forward Euler]
+//   q(k+1) = q(k) ⊗ exp(½ ω(k) dt)          [exact for constant ω]
+//   h(k+1) = h(k) + dt * ḣ(k)               [forward Euler]
+//
+// Falls back to forward Euler + normalize for q if ||ω|| < ε.
+// ============================================================================
+tuple<vec,vec> eulerz(double dt0, vec xk, vec uk, const Satellite& sat,
+                      const DYNAMICS_INFO_FORM& dynamics_info_k,
+                      const DYNAMICS_INFO_FORM& dynamics_info_kp1)
+{
+  xk = sat.state_norm(xk);
+
+  // Single dynamics evaluation
+  tuple<vec,vec> dynout = sat.dynamics(xk, uk, dynamics_info_k);
+  vec xdot = get<0>(dynout);
+  vec dist_torq = get<1>(dynout);
+
+  int q0 = sat.quat0index();
+  int n_state = sat.state_N();
+
+  // Forward Euler for all non-quaternion states
+  vec xkp1 = xk + dt0 * xdot;
+
+  // Quaternion: use exponential map for better accuracy
+  // q(k+1) = q(k) ⊗ Δq, where Δq = exp(½ ω dt)
+  //   = [cos(θ/2), sin(θ/2) * ω̂]  with θ = ||ω|| * dt
+  vec3 w = xk.head(3);
+  double w_norm = norm(w);
+  vec4 qk = xk.rows(q0, q0 + 3);
+
+  if (w_norm > 1e-10) {
+    double half_angle = 0.5 * w_norm * dt0;
+    double cH = cos(half_angle);
+    double sH = sin(half_angle) / w_norm;
+    vec4 dq = {cH, sH * w(0), sH * w(1), sH * w(2)};
+
+    // Quaternion multiplication: q(k+1) = qk ⊗ dq
+    // Using Hamilton product with scalar-first convention [w,x,y,z]
+    double qw = qk(0), qx = qk(1), qy = qk(2), qz = qk(3);
+    double dw = dq(0), dx = dq(1), dy = dq(2), dz = dq(3);
+    xkp1(q0)     = qw*dw - qx*dx - qy*dy - qz*dz;
+    xkp1(q0 + 1) = qw*dx + qx*dw + qy*dz - qz*dy;
+    xkp1(q0 + 2) = qw*dy - qx*dz + qy*dw + qz*dx;
+    xkp1(q0 + 3) = qw*dz + qx*dy - qy*dx + qz*dw;
+  }
+  // else: small ω, forward Euler + normalize is fine (already computed above)
+
+  xkp1 = sat.state_norm(xkp1);
+  return make_tuple(xkp1, dist_torq);
+}
+
+
+// Jacobians for Euler integration step.
+// A_k = ∂x(k+1)/∂x(k), B_k = ∂x(k+1)/∂u(k)
+//
+// Chain rule through: x_raw → state_norm → dynamics → Euler step → state_norm
+//   A = G_out * (I + dt * ∂f/∂x) * G_in
+//   B = G_out * dt * ∂f/∂u
+// where G = state_norm_jacobian (quaternion normalization Jacobian)
+tuple<mat, mat, mat> eulerzJacobians(double dt0, vec xk, vec uk, const Satellite& sat,
+                                     const DYNAMICS_INFO_FORM& dynamics_info_k,
+                                     const DYNAMICS_INFO_FORM& dynamics_info_kp1)
+{
+  vec xkraw = xk;
+  xk = sat.state_norm(xk);
+
+  // Single dynamics + Jacobian evaluation
+  tuple<vec,vec> dynout = sat.dynamics(xk, uk, dynamics_info_k);
+  vec xdot = get<0>(dynout);
+
+  tuple<mat, mat, mat> jac = sat.dynamicsJacobians(xk, uk, dynamics_info_k);
+  mat df_dx = get<0>(jac);
+  mat df_du = get<1>(jac);
+  mat df_dtorq = get<2>(jac);
+
+  int n_state = sat.state_N();
+  mat I_state = eye(n_state, n_state);
+
+  // Pre-normalization Jacobian (input)
+  mat G_in = sat.state_norm_jacobian(xkraw);
+
+  // Euler step (raw, before output normalization)
+  vec xkp1_raw = xk + dt0 * xdot;
+
+  // Post-normalization Jacobian (output)
+  mat G_out = sat.state_norm_jacobian(xkp1_raw);
+
+  // A_k = G_out * (I + dt * df/dx * G_in)
+  // Simplified: the input normalization chain applies to the dynamics Jacobian
+  mat A = G_out * (I_state + dt0 * df_dx) * G_in;
+  mat B = G_out * (dt0 * df_du);
+  mat T = G_out * (dt0 * df_dtorq);
+
+  return make_tuple(A, B, T);
+}
+
+
 vec rk4zxkp1r(double dt0, vec xk, vec uk, const Satellite& sat, const DYNAMICS_INFO_FORM& dynamics_info_k, const DYNAMICS_INFO_FORM& dynamics_info_kp1)
 {
   //Now, get different dynamics outputs xd0....xd3

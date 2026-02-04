@@ -767,7 +767,9 @@ AFTER_OUTPUT_FORM OldPlanner::trajOptAfter(VECTOR_INFO_FORM vecs_w_time,double d
     // TRAJECTORY_FORM traj_tvlqr = trajLong;
     // TRAJECTORY_FORM opt2 = trajLong;
     auto t_start_pass2 = std::chrono::high_resolution_clock::now();
+    _useEuler = use_euler_pass2;
     ALILQR_OUTPUT_FORM alilqrOut2 = OldPlanner::alilqr(dt_tvlqr,trajLong, vecs_tvlqr, costSettings2,alilqrSettings2,false);
+    _useEuler = false;
     auto t_end_pass2 = std::chrono::high_resolution_clock::now();
     auto pass2_ms = std::chrono::duration_cast<std::chrono::milliseconds>(t_end_pass2 - t_start_pass2).count();
     cout << "TIMING: Pass 2 (dt=" << dt_tvlqr << "s, N=" << get<0>(trajLong).n_cols << "): " << pass2_ms << " ms\n";
@@ -944,6 +946,7 @@ AFTER_OUTPUT_FORM OldPlanner::trajOpt(VECTOR_INFO_FORM &vecs,int N, TIME_FORM ti
   TRAJECTORY_FORM traj_init = get<0>(results);
   VECTOR_INFO_FORM vecs_dt = get<1>(results);
   COST_SETTINGS_FORM costSettings_tmp = get<2>(results);
+  _useEuler = false;  // Pass 1 always uses RK4 (coarse dt, cheap anyway)
   ALILQR_OUTPUT_FORM alilqrOut = OldPlanner::alilqr(dt,traj_init, vecs_dt, costSettings_tmp,alilqrSettings,false);
   auto t_end_pass1 = std::chrono::high_resolution_clock::now();
   auto pass1_ms = std::chrono::duration_cast<std::chrono::milliseconds>(t_end_pass1 - t_start_pass1).count();
@@ -1816,12 +1819,12 @@ tuple<cube, cube> OldPlanner::findKwDist(double dt_tvlqr0, TRAJECTORY_FORM& traj
         return make_tuple(newX.fill(datum::nan), newU.fill(datum::nan),dt_timevec,newTQ.fill(datum::nan));
       }
     }
-    //get newXk using rk4
-    //vec3 Bk = Bset.col(k-1);
-
-    tuple<vec,vec> rk4out = rk4z(dt0,newXk, newUprev,sat,dynamics_info_kn1,dynamics_info_k);
-    newXk = get<0>(rk4out);
-    newTQk = get<1>(rk4out);
+    //get newXk using integrator (RK4 or Euler)
+    tuple<vec,vec> integOut = _useEuler
+      ? eulerz(dt0, newXk, newUprev, sat, dynamics_info_kn1, dynamics_info_k)
+      : rk4z(dt0, newXk, newUprev, sat, dynamics_info_kn1, dynamics_info_k);
+    newXk = get<0>(integOut);
+    newTQk = get<1>(integOut);
     newXk = sat.state_norm(newXk);
 
     // newQk = normalise(newXk.rows(sat.quat0index(), sat.quat0index()+3));
@@ -1884,7 +1887,9 @@ TRAJECTORY_FORM OldPlanner::generateInitialTrajectory(double dt0, vec x0, mat Us
     uk = Uset.col(k-1);
     //xprev = xk;
     // Bk = Bset.col(k-1);
-    dynout = rk4z(dt0,xk, uk,sat,dynamics_info_kn1,dynamics_info_k);
+    dynout = _useEuler
+      ? eulerz(dt0, xk, uk, sat, dynamics_info_kn1, dynamics_info_k)
+      : rk4z(dt0, xk, uk, sat, dynamics_info_kn1, dynamics_info_k);
 
     xk = sat.state_norm(get<0>(dynout));
     // xk.rows(3, 6)  = normalise(xk.rows(3, 6));
@@ -2579,10 +2584,12 @@ tuple<BACKWARD_PASS_RESULTS_FORM, REG_PAIR> OldPlanner::backwardPass(double dt0,
     ukp = ukp.zeros();
     if(k<N-1)
     {
-      AB = rk4zJacobians(dt0,xk, Uset.col(k),sat,dynamics_info_k, dynamics_info_kp1);
+      AB = _useEuler
+        ? eulerzJacobians(dt0, xk, Uset.col(k), sat, dynamics_info_k, dynamics_info_kp1)
+        : rk4zJacobians(dt0, xk, Uset.col(k), sat, dynamics_info_k, dynamics_info_kp1);
       Aqk = Gkp1*get<0>(AB)*trans(Gk);
       Bqk = Gkp1*get<1>(AB);
-      if(useDynamicsHess_tmp){
+      if(useDynamicsHess_tmp && !_useEuler){
         hesses = rk4zHessians(dt0,xk, Uset.col(k),sat,dynamics_info_k, dynamics_info_kp1);
         ddxd__dxdx = get<0>(hesses);
         ddxd__dudx = get<1>(hesses);

@@ -62,6 +62,11 @@ arma::mat interp_vector(arma::mat m,arma::vec t_of_m,arma::vec t_des);
 std::tuple<arma::vec,arma::vec> rk4z(double dt, arma::vec xk, arma::vec uk, const Satellite& sat, const DYNAMICS_INFO_FORM& dynamics_info_k,const DYNAMICS_INFO_FORM& dynamics_info_kp1);
 arma::vec rk4z_pure(double dt, arma::vec xk, arma::vec uk, const Satellite& sat, const DYNAMICS_INFO_FORM& dynamics_info_k,const DYNAMICS_INFO_FORM& dynamics_info_kp1);
 
+// Euler integration: 1 dynamics eval per step (vs 4 for RK4). ~4x faster.
+// Uses forward Euler for ω,h and quaternion exponential map for q (Solà §4.4).
+std::tuple<arma::vec,arma::vec> eulerz(double dt, arma::vec xk, arma::vec uk, const Satellite& sat, const DYNAMICS_INFO_FORM& dynamics_info_k, const DYNAMICS_INFO_FORM& dynamics_info_kp1);
+std::tuple<arma::mat, arma::mat,arma::mat> eulerzJacobians(double dt, arma::vec xk, arma::vec uk, const Satellite& sat, const DYNAMICS_INFO_FORM& dynamics_info_k, const DYNAMICS_INFO_FORM& dynamics_info_kp1);
+
 std::tuple<arma::mat, arma::mat,arma::mat> rk4zJacobians(double dt,arma::vec xk, arma::vec uk, const Satellite& sat,const DYNAMICS_INFO_FORM& dynamics_info_k, const DYNAMICS_INFO_FORM& dynamics_info_kp1);
 std::tuple<arma::mat, arma::mat,arma::mat> rk4zx2Jacobians(double dt,arma::vec xk, arma::vec uk, const Satellite& sat,const DYNAMICS_INFO_FORM& dynamics_info_k, const DYNAMICS_INFO_FORM& dynamics_info_kp1);
 arma::vec rk4zxkp1r(double dt, arma::vec xk, arma::vec uk, const Satellite& sat, const DYNAMICS_INFO_FORM& dynamics_info_k,const DYNAMICS_INFO_FORM& dynamics_info_kp1);
