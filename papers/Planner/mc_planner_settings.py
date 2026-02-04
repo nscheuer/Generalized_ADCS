@@ -796,12 +796,12 @@ def apply_fast_slew_tuning(settings, verbose: bool = False):
     settings.cost_main.angle_N = settings.cost_main.angle  # Keep terminal = running
     settings.cost_main.ang_vel_N = settings.cost_main.ang_vel  # Keep terminal = running
     # settings.mtq_control_weight *= 0.1     # Cheap MTQ for faster convergence
-    settings.rw_control_weight *= 10.0     # Cheap RW for faster convergence
+    # settings.rw_control_weight *= 10.0     # Cheap RW for faster convergence
 
     # settings.cost_second.ang_vel *= 1
-    settings.cost_second.angle *= 10000
-    settings.cost_second.angle_N = settings.cost_second.angle*10000
-    settings.cost_second.ang_vel_N = settings.cost_second.ang_vel*100
+    settings.cost_second.angle *= 100
+    settings.cost_second.angle_N = settings.cost_second.angle
+    settings.cost_second.ang_vel_N = settings.cost_second.ang_vel
     
     # Initialization mode
     # Mode 0: Random initialization  
@@ -843,13 +843,9 @@ def apply_fast_slew_tuning(settings, verbose: bool = False):
     # Iteration budget: Pass1 needs more (exploring from scratch), 
     # Pass2 needs less (warm-start is close to solution)
     settings.pass1.convergence.max_inner_iter = 80
-    settings.pass2.convergence.max_inner_iter = 30  # Warm-start means less needed
-    settings.pass1.convergence.max_outer_iter = 25
-    settings.pass2.convergence.max_outer_iter = 15 # Constraints nearly satisfied from warm-start
-    
-    # Line search: 10 halvings is plenty (α goes from 1 to 1/1024)
-    settings.pass1.line_search.max_iters = 10
-    settings.pass2.line_search.max_iters = 10
+    settings.pass2.convergence.max_inner_iter = 50
+    settings.pass1.convergence.max_outer_iter = 20
+    settings.pass2.convergence.max_outer_iter = 20
     
     # Regularization settings
     # reg_mode: 0=control-space only, 1=state-space only, 2=both
@@ -859,14 +855,14 @@ def apply_fast_slew_tuning(settings, verbose: bool = False):
     # reg_min_cond: clamp to reg_min instead of going to 0
     settings.pass1.regularization.reg_min_cond = 2
     settings.pass2.regularization.reg_min_cond = 2
-    settings.pass1.regularization.reg_min =  1e-6
-    settings.pass2.regularization.reg_min =  1e-6
+    settings.pass1.regularization.reg_min =  1e-4
+    settings.pass2.regularization.reg_min =  1e-4
     settings.pass1.regularization.reg_bump =  1e2
     settings.pass2.regularization.reg_bump =  1e2
     
     # Pass2: use normalized control cost (not raw) for better conditioning
     settings.cost_second.use_raw_control_cost = False
-    settings.cost_second.control_mult = 1e4
+    settings.cost_second.control_mult = 1e2
     
     # Convergence detection — scaled to cost magnitudes:
     # Pass 1 (N~34, costs ~500-3000): tight, cheap per iteration

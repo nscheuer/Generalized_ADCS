@@ -798,11 +798,15 @@ double Satellite::stepcost_vec(int k, int N, vec xk, vec xkp1, vec uk,vec ukprev
 
   //if k == N, lku is zero so lkuu and lkux also zeros
   vec3 sk = normalise(satvec_k);
-  vec3 ek = normalise(ECIvec_k);
 
-  double ddot = norm_dot(sk,rotMat(qk).t()*ek);
+  // Zero goal vector means No_Goal — skip angle cost entirely.
+  // normalise([0,0,0]) returns [0,0,0] in armadillo, giving dot=0 → acos(0)=90° phantom error.
+  bool zeroGoal = (norm(ECIvec_k) < 1e-10);
+  vec3 ek = zeroGoal ? vec3({0,0,0}) : normalise(ECIvec_k);
+
+  double ddot = zeroGoal ? 1.0 : norm_dot(sk,rotMat(qk).t()*ek);
   ddot = min(max(ddot, -1.0), 1.0);
-  vec3 angerrvec = (cross(rotMat(qk).t()*ek,sk));
+  vec3 angerrvec = zeroGoal ? vec3({0,0,0}) : (cross(rotMat(qk).t()*ek,sk));
     switch(whichAngCostFunc){
         case 0:
           angcost = 1.0-ddot;
