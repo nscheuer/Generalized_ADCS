@@ -639,7 +639,7 @@ AFTER_OUTPUT_FORM OldPlanner::trajOptAfter(VECTOR_INFO_FORM vecs_w_time,double d
 
 
   vec tvlqr_times = get<0>(vecs_tvlqr);
-  int traj_length =tvlqr_times.n_elem;
+  int traj_length = tvlqr_times.n_elem;
   if(verbose){cout<<" refs "<<traj_length<<"\n";}
   if(verbose){cout<<"tvlqr times found\n";}
   // VECTOR_INFO_FORM vecs_tvlqr = get<1>(time_tuple_tvlqr);
@@ -736,53 +736,27 @@ AFTER_OUTPUT_FORM OldPlanner::trajOptAfter(VECTOR_INFO_FORM vecs_w_time,double d
   mat X_lqr = get<0>(opt2);
   mat TQ_lqr = get<2>(opt2);
   vec dt_lqr = get<5>(opt2);
-  int N_total = X_lqr.n_cols;
   
-  // Compute segment boundaries working BACKWARD from end
-  // This allows proper terminal cost propagation
-  std::vector<std::pair<int, int>> segments;  // (col_start, col_end) pairs
-  int overlap_cols = (int)(tvlqr_overlap_tmp / dt_tvlqr);
-  int len_cols = (int)(tvlqr_len_tmp / dt_tvlqr);
+  // Variables for segment iteration (NSSR_3+1 style - forward iteration)
+  // Initialize so first iteration starts at beginning of trajectory
+  TIME_FORM time_start_tmp = time_start;
+  TIME_FORM time_end_tmp = time_start + (tvlqr_overlap_tmp)/(36525.0*24.0*3600.0);
+  double col0 = 0;
+  double col1 = col0 + (tvlqr_overlap_tmp/dt_tvlqr);
+  double col1u = 0;
   
-  // Build segment list from end to start
-  int seg_end = N_total - 1;
-  while(seg_end > 0) {
-    int seg_start = max(0, seg_end - len_cols);
-    segments.push_back(make_pair(seg_start, seg_end));
-    seg_end = seg_start + overlap_cols;  // Next segment ends at overlap point
-    if(seg_start == 0) break;
-  }
+  // Use original (unscaled) costs for TVLQR K-gain computation
+  sat.use_original_costs(true);
   
-  // Reverse to process from end to start (for terminal cost propagation)
-  // segments[0] is now the LAST segment (at trajectory end)
-  
-  if(verbose) {
-    cout << "K-gain segments (backward): ";
-    for(auto& seg : segments) cout << "[" << seg.first << "," << seg.second << "] ";
-    cout << "\n";
-  }
-  
-  // Initialize K_lqr and S_lqr to hold full trajectory
-  int n_state_red = sat.reduced_state_N();
-  if(tracking_LQR_formulation == 2) n_state_red += 3;
-  K_lqr = mat(sat.control_N() * n_state_red, N_total - 1, fill::zeros);
-  S_lqr = mat(n_state_red * n_state_red, N_total, fill::zeros);
-  
-  // Process segments from END to START (terminal cost propagates backward)
-  mat terminal_S;  // Will hold S[0] from previous (more terminal) segment
-  bool have_terminal_S = false;
-  
-  for(size_t seg_idx = 0; seg_idx < segments.size(); seg_idx++) {
-    int col0 = segments[seg_idx].first;
-    int col1 = segments[seg_idx].second;
-    int col1u = min(col1, (int)U_lqr.n_cols - 1);
+  do {
+    time_start_tmp = time_end_tmp - (tvlqr_overlap_tmp)/(36525.0*24.0*3600.0);
+    time_end_tmp = min(time_start_tmp + (tvlqr_len_tmp)/(36525.0*24.0*3600.0), time_end);
     
-    // Get time range for this segment
-    double seg_duration = (col1 - col0) * dt_tvlqr;
-    TIME_FORM time_start_seg = time_start + col0 * dt_tvlqr / (36525.0*24.0*3600.0);
-    TIME_FORM time_end_seg = time_start + (col1 + 1) * dt_tvlqr / (36525.0*24.0*3600.0);
+    col0 = col1 - (tvlqr_overlap_tmp/dt_tvlqr);
+    col1 = std::min((double)(X_lqr.n_cols)-1, col0 + tvlqr_len_tmp/dt_tvlqr);
+    col1u = std::min((double)(U_lqr.n_cols)-1, col0 + tvlqr_len_tmp/dt_tvlqr);
     
-    VECTOR_INFO_FORM vecs_tvlqr_tmp = findVecTimes(vecs_w_time, dt_tvlqr/(36525.0*24.0*3600.0), time_start_seg, time_end_seg);
+    VECTOR_INFO_FORM vecs_tvlqr_tmp = findVecTimes(vecs_w_time, dt_tvlqr/(36525.0*24.0*3600.0), time_start_tmp, time_end_tmp);
     
     if(verbose) cout << col0 << " " << col1 << " " << col1u << " " << Rset_tvlqr.n_cols << "\n";
     
@@ -796,65 +770,33 @@ AFTER_OUTPUT_FORM OldPlanner::trajOptAfter(VECTOR_INFO_FORM vecs_w_time,double d
     TRAJECTORY_FORM traj_tvlqr_tmp = make_tuple(X_lqr_tmp, U_lqr_tmp, dt_lqr_tmp, TQ_lqr_tmp);
     
     COST_SETTINGS_FORM costSettingsFindK = this->costSettings_tvlqr;
-    std::tuple<cube, cube> KS;
+    cube Kcube;
+    cube Scube;
+    std::tuple<cube, cube> KS = make_tuple(Kcube, Scube);
     
     if(tracking_LQR_formulation == 0) {
-      if(have_terminal_S) {
-        KS = OldPlanner::findKwithTerminalS(dt_tvlqr, traj_tvlqr_tmp, vecs_tvlqr_tmp, costSettingsFindK, terminal_S);
-      } else {
-        KS = OldPlanner::findK(dt_tvlqr, traj_tvlqr_tmp, vecs_tvlqr_tmp, costSettingsFindK);
-      }
+      KS = OldPlanner::findK(dt_tvlqr, traj_tvlqr_tmp, vecs_tvlqr_tmp, costSettingsFindK);
     } else if(tracking_LQR_formulation == 2) {
       KS = OldPlanner::findKwDist(dt_tvlqr, traj_tvlqr_tmp, vecs_tvlqr_tmp, costSettingsFindK);
     } else {
-      if(have_terminal_S) {
-        KS = OldPlanner::findKwithTerminalS(dt_tvlqr, traj_tvlqr_tmp, vecs_tvlqr_tmp, costSettingsFindK, terminal_S);
-      } else {
-        KS = OldPlanner::findK(dt_tvlqr, traj_tvlqr_tmp, vecs_tvlqr_tmp, costSettingsFindK);
-      }
+      KS = OldPlanner::findK(dt_tvlqr, traj_tvlqr_tmp, vecs_tvlqr_tmp, costSettingsFindK);
     }
     
-    cube Kcube = get<0>(KS);
-    cube Scube = get<1>(KS);
+    mat K_lqr_tmp = packageK(get<0>(KS));
+    mat S_lqr_tmp = packageS(get<1>(KS));
     
-    // Copy K-gains into the appropriate columns
-    // For first segment (at trajectory end), copy all K-gains (cols col0 to col1-1)
-    // For subsequent segments, only copy cols that haven't been filled yet
-    // Since we process end-to-start, segment 0 fills the end, segment 1 fills up to where segment 0 started
-    int K_copy_start = col0;
-    int K_copy_end;
-    if(seg_idx == 0) {
-      // First segment (trajectory end): copy all
-      K_copy_end = col1 - 1;
-    } else {
-      // Subsequent segments: copy up to where previous segment started (with overlap)
-      // Previous segment started at segments[seg_idx-1].first, so we copy up to that point - 1
-      K_copy_end = segments[seg_idx - 1].first - 1;
-    }
-    
-    for(int k = K_copy_start; k <= min(K_copy_end, (int)K_lqr.n_cols - 1); k++) {
-      int local_k = k - col0;
-      if(local_k >= 0 && local_k < (int)Kcube.n_slices) {
-        K_lqr.col(k) = vectorise(Kcube.slice(local_k));
-      }
-    }
-    
-    // Copy S values (always copy all)
-    for(int k = col0; k <= col1 && k < (int)S_lqr.n_cols; k++) {
-      int local_k = k - col0;
-      if(local_k >= 0 && local_k < (int)Scube.n_slices) {
-        S_lqr.col(k) = vectorise(Scube.slice(local_k));
-      }
-    }
-    
-    // Extract S[0] from this segment to use as terminal S for next (earlier) segment
-    if(Scube.n_slices > 0) {
-      terminal_S = Scube.slice(0);
-      have_terminal_S = true;
-    }
+    // Concatenate using join_rows (NSSR_3+1 approach)
+    double Klen = ((K_lqr.n_cols - tvlqr_overlap_tmp/dt_tvlqr) < 0) ? 0 : K_lqr.n_cols - tvlqr_overlap_tmp/dt_tvlqr;
+    K_lqr = join_rows(K_lqr.head_cols((int)Klen), K_lqr_tmp);
+    double Slen = ((S_lqr.n_cols - tvlqr_overlap_tmp/dt_tvlqr - 1) < 0) ? 0 : S_lqr.n_cols - tvlqr_overlap_tmp/dt_tvlqr - 1;
+    S_lqr = join_rows(S_lqr.head_cols((int)Slen), S_lqr_tmp);
     
     if(verbose) cout << size(K_lqr) << "\n" << size(S_lqr) << "\n";
-  }
+    
+  } while((time_end_tmp < (time_end) - EPSVAR) && (time_start_tmp < (time_end - tvlqr_overlap_tmp/(36525.0*24.0*3600.0))));
+  
+  // Restore scaled costs for optimizer
+  sat.use_original_costs(false);
   
   if(verbose){cout<<"K found\n";}
 
@@ -883,31 +825,9 @@ AFTER_OUTPUT_FORM OldPlanner::trajOptAfter(VECTOR_INFO_FORM vecs_w_time,double d
     Uset_traj.rows(rw_magic_start, rw_magic_end) *= NONMTQ_TORQ_SCALE;
     get<1>(trajLong) = Uset_traj;
     
-    // Scale K gains (rows correspond to controls)
-    // K_lqr is flattened as (n_ctrl * n_state_reduced, N)
-    // Each control's K row spans n_state_reduced elements, so RW/magic controls
-    // occupy rows [rw_magic_start * n_state_red, (rw_magic_end+1) * n_state_red - 1]
-    int n_state_red = sat.reduced_state_N();
-    int n_rw_magic = sat.number_RW + sat.number_magic;
-    
-    if(n_rw_magic > 0 && K_lqr.n_rows == sat.control_N() * n_state_red) {
-      // Scale each RW/magic control's K row
-      for(int ctrl_idx = rw_magic_start; ctrl_idx <= rw_magic_end; ctrl_idx++) {
-        int row_start = ctrl_idx * n_state_red;
-        int row_end = row_start + n_state_red - 1;  // inclusive end for arma
-        if(row_end < (int)K_lqr.n_rows) {
-          K_lqr.rows(row_start, row_end) *= NONMTQ_TORQ_SCALE;
-        }
-      }
-      get<3>(lqr_opt) = K_lqr;
-      if(verbose) {
-        cout << "Scaled K_lqr RW/magic rows (ctrls " << rw_magic_start << " to " << rw_magic_end 
-             << ") by NONMTQ_TORQ_SCALE=" << NONMTQ_TORQ_SCALE << "\n";
-      }
-    } else if(verbose && n_rw_magic > 0) {
-      cout << "WARNING: K_lqr shape mismatch, expected " << sat.control_N() * n_state_red 
-           << " rows, got " << K_lqr.n_rows << " rows. K-gains not scaled.\n";
-    }
+    // K-gains are left in optimizer units.
+    // The Python tracking controller applies NONMTQ_TORQ_SCALE when computing du for RW.
+    // This matches how warmstart uses K-gains with optimizer-unit controls.
     
     if(verbose) {
       cout << "Scaled RW/magic controls by NONMTQ_TORQ_SCALE=" << NONMTQ_TORQ_SCALE << "\n";
@@ -2366,9 +2286,9 @@ AUGLAG_INFO_FORM OldPlanner::incrementAugLag(AUGLAG_INFO_FORM auglag_vals, mat c
     double mu = get<1>(auglag_vals);
     mat muSet = get<2>(auglag_vals);
 
-    double LMmax = get<1>(auglagSettings);
-    double muMax = get<3>(auglagSettings);
-    double muScale = get<4>(auglagSettings);
+    double LMmax = get<1>(auglagSettings_tmp);
+    double muMax = get<3>(auglagSettings_tmp);
+    double muScale = get<4>(auglagSettings_tmp);
 
     double N = lambdaSet.n_cols;
     for(int k = 0; k < N; k++)
