@@ -16,7 +16,7 @@ import numpy as np
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
 
-from ADCS.satellite_factory.satellites.create_cubesats import create_beavercube2_cubesat
+from ADCS.satellite_factory.satellites.create_cubesats import create_beavercube2_cubesat, create_beavercube1_cubesat
 from ADCS.controller.plan_and_track_lqr import Plan_and_Track_LQR
 from ADCS.orbits.helpers.orbit_factory import create_random_circular_orbit
 from ADCS.CONOPS.goallist import GoalList
@@ -52,9 +52,10 @@ def run_one(config, has_rw, tuning, settings_overrides=None, multi_goal=True):
     dt_planning = config["dt_planning"]
     
     np.random.seed(config["seed"])
-    sat = create_beavercube2_cubesat(estimated=False)
-    if not has_rw:
-        sat.rw_actuators = []
+    if has_rw:
+        sat = create_beavercube2_cubesat(estimated=False)
+    else:
+        sat = create_beavercube1_cubesat(estimated=False)
         
     rws = sat.rw_actuators
     x0 = np.concatenate([config["w0"], config["q0"], config["h0"]])
