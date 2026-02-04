@@ -24,10 +24,10 @@ planner_settings.pass2.convergence.max_outer_iter = 8
 planner_settings.pass2.convergence.max_inner_iter = 20
 
 planner_settings.cost_main = ADCS.controller.helpers.CostWeights(
-        angle=1e1,
-        angle_N=1e1,
+        angle=0.0,
+        angle_N=0.0,
         ang_vel=1e4,
-        ang_vel_N=1e5,
+        ang_vel_N=1e4,
         ang_vel_err_dir=0.0,
         ang_vel_err_dir_N=0.0,
         ang_vel_mag=0.0,
@@ -54,22 +54,35 @@ controller = ADCS.controller.Plan_and_Track_LQR(est_sat=real_sat, planner_settin
 os0 = ADCS.Orbital_State(ephem=ADCS.Ephemeris(),J2000=0.22, R=7000*np.array([0, np.sqrt(2)/2, np.sqrt(2)/2]), V=np.array([8, 0, 0]))
 goal = ADCS.goals.Fixed_Attitude_Goal(q_ref=ADCS.helpers.normalize(np.array([1, 1, 1, 1])))
 
-results = ADCS.simulate(
+def make_random_os(rng: np.random.Generator) -> ADCS.Orbital_State:
+    return ADCS.orbits.create_random_circular_os(radius_km=7000.0, J2000=0.22, rng=rng)
+
+mc_config = ADCS.MCConfig(
+    w = lambda rng: ADCS.helpers.normalize(rng.standard_normal(3)) * (rng.uniform(0.1, 1.0) * np.pi / 180.0),
+    q = lambda rng: ADCS.helpers.normalize(rng.standard_normal(4)),
+    h = lambda rng: rng.uniform(-0.0001, 0.0001, size=1),
+    goal = lambda rng: ADCS.goals.Fixed_Attitude_Goal(q_ref=ADCS.helpers.normalize(rng.standard_normal(4))),
+    orbit = make_random_os
+)
+
+results = ADCS.simulate_mc(
     x=x_0,
     satellite=real_sat,
     controller=controller,
-    goal=goal,
     os0=os0,
     dt=1.0,
-    tf=1000.0
+    tf=1000.0,
+    mc_config=mc_config,
+    num_runs=12,
+    base_seed=42
 )
 
-# ADCS.plot(
-#     results,
-#     ADCS.plots.AnimationPlot(),
-#     layout=(1,1),
-#     title="3+1 ALTRO Reduced",
-# )
+ADCS.plot(
+    results,
+    ADCS.plots.AnimationPlot(),
+    layout=(1,1),
+    title="3+1 ALTRO Reduced",
+)
 
 ADCS.plot(
     results,
