@@ -161,16 +161,19 @@ def run_one(config, has_rw, tuning, settings_overrides=None, multi_goal=True):
     else:
         final_errors.append(angle_errors[-1])
     
-    # Check for spikes: large sudden increases in angle error
-    valid_mask = ~np.isnan(angle_errors)
-    valid_err = angle_errors[valid_mask]
-    if len(valid_err) > 10:
-        diffs = np.diff(valid_err)
-        max_spike = np.max(diffs)  # largest single-step increase
-        n_spikes = np.sum(diffs > 5.0)  # jumps > 5°
-    else:
-        max_spike = 0
-        n_spikes = 0
+    # Check for spikes: large sudden increases WITHIN goal segments
+    # (exclude goal transitions where error jumps from one goal to the next)
+    n_spikes = 0
+    max_spike = 0
+    for t_start_seg, t_end_seg, _ in segments:
+        seg_mask = (times_sec >= t_start_seg) & (times_sec < t_end_seg + 1)
+        seg_err = angle_errors[seg_mask]
+        seg_err = seg_err[~np.isnan(seg_err)]
+        if len(seg_err) > 5:
+            diffs = np.diff(seg_err)
+            n_spikes += int(np.sum(diffs > 5.0))
+            if len(diffs) > 0:
+                max_spike = max(max_spike, float(np.max(diffs)))
 
     # RW utilization
     if has_rw:

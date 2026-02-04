@@ -805,21 +805,23 @@ def apply_fast_slew_tuning(settings, verbose: bool = False):
     
     # Timestep for planning
     settings.dt_tp = 30
+    # dt_tvlqr left at dt_planning (1s) — coarser hurts TVLQR tracking accuracy
     
     # Penalty settings
     settings.pass1.aug_lag.penalty_init = 1e-3
     settings.pass1.aug_lag.penalty_max = 1e6
     
-    # Pass2: higher initial penalty for stricter constraint enforcement with warm start
-    settings.pass2.aug_lag.penalty_init = 1e0
-    settings.pass2.aug_lag.penalty_max = 1e10
-    settings.pass2.aug_lag.penalty_scale = 10
+    # Pass2: warm-start is already good from Pass1, so use moderate penalties
+    # High penalty_max (1e10) causes cost divergence without trajectory improvement
+    settings.pass2.aug_lag.penalty_init = 1e-1
+    settings.pass2.aug_lag.penalty_max = 1e4
+    settings.pass2.aug_lag.penalty_scale = 5
     
-    # More inner iterations to allow convergence
+    # Iteration limits
     settings.pass1.convergence.max_inner_iter = 80
-    settings.pass2.convergence.max_inner_iter = 50
+    settings.pass2.convergence.max_inner_iter = 15
     settings.pass1.convergence.max_outer_iter = 20
-    settings.pass2.convergence.max_outer_iter = 20
+    settings.pass2.convergence.max_outer_iter = 5
     
     # Regularization settings
     # reg_mode: 0=control-space only, 1=state-space only, 2=both
@@ -950,9 +952,11 @@ def create_optimized_planner_settings(
         raise ValueError(f"Unknown tuning preset: {tuning}. Use 'smooth', 'balanced', 'anti_spin', 'aggressive', 'fast_slew', or 'none'")
     
     # RW control weight: Default is extremely high (~1.7e6) which effectively
-    # disables the RW. Set to 100 so the planner actually uses the RW for slews.
+    # RW in optimizer units: u_opt = tau / 3e-5, so full RW (0.0023 Nm) → u_opt=76.7
+    # cost = rw_w * 76.7² = rw_w * 5878. At rw_w=100, cost=587,800 vs MTQ cost=0.44
+    # Need rw_w ~ 1e-4 for equal cost, ~0.01 for moderate RW preference
     if has_rw:
-        settings.rw_control_weight = 100
+        settings.rw_control_weight = 0.01
 
     # TVLQR cost settings: Match NSSR_python_improvements branch
     # Use same state costs as planning, with control_mult=1.0

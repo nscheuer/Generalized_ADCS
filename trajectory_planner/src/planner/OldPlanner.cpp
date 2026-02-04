@@ -2053,6 +2053,7 @@ ALILQR_OUTPUT_FORM OldPlanner::alilqr(double dt0,TRAJECTORY_FORM traj, VECTOR_IN
     //update lambdaSet, etc.
     auglag_vals = OldPlanner::incrementAugLag(auglag_vals,clist,auglagSettings_tmp);
   }
+  cout << "ALILQR: " << iter << " total iters, " << current_outer_iter+1 << " outer, final grad=" << grad << " dLA=" << dLA << " cost=" << LA << endl;
   if(verbose){cout<<"out of loops\n";}
   
   // Run final backward pass to get K-gains for warm-start
