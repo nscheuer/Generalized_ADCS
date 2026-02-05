@@ -91,6 +91,9 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
             real_sat, duration=tf, dt_planning=dt_planning, tuning="fast_slew"
         )
         planner_settings.verbosity = False
+        # Skip Pass 2: plan at dt=10, ZOH to dt=1 for K-gains
+        planner_settings.dt_tp = 10
+        planner_settings.skip_pass2_optimization = True
 
         visualize = config.get("visualize", False)
         if visualize:

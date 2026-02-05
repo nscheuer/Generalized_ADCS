@@ -766,14 +766,15 @@ def apply_fast_slew_tuning(settings, verbose: bool = False):
     orig_angle = settings.cost_main.angle
     orig_ang_vel = settings.cost_main.ang_vel
     
-    # Pass 1 costs: ang_vel*100 provides strong ω damping needed for
-    # multi-goal transitions. Creates 10125:1 ratio but Pass 1 at coarse dt
-    # handles this well. Single-goal uses skip_pass2 to avoid wound trajectories.
-    settings.cost_main.ang_vel *= 100
+    # Pass 1 costs: ang_vel*30 prevents wound trajectories while allowing
+    # ~1.3°/s rotation (vs 0.8°/s at *100). Ratio ~3038:1. Sweet spot found
+    # by sweep: *20 and below causes wounds for some seeds.
+    # With skip_pass2=True, Pass 1 IS the final trajectory.
+    settings.cost_main.ang_vel *= 30
     settings.cost_main.angle_N = settings.cost_main.angle
     settings.cost_main.ang_vel_N = settings.cost_main.ang_vel
     
-    # Pass 2 costs: Higher angle for tighter convergence
+    # Pass 2 costs (only used if skip_pass2_optimization=False)
     settings.cost_second.angle *= 100
     settings.cost_second.angle_N = settings.cost_second.angle
     settings.cost_second.ang_vel_N = settings.cost_second.ang_vel
