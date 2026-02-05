@@ -106,6 +106,9 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
         planner_settings = create_optimized_planner_settings(
             real_sat, duration=tf, dt_planning=dt_planning, tuning="fast_slew"
         )
+        # Single-goal: skip Pass 2 optimization to avoid wound trajectories
+        planner_settings.dt_tp = 10
+        planner_settings.skip_pass2_optimization = True
         planner_settings.verbosity = False
 
         # Choose controller based on tracking mode and visualization

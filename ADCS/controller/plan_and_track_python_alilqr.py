@@ -480,28 +480,138 @@ class Plan_and_Track_PythonALILQR(PlanAndTrackBase):
         # PASS 2: Fine trajectory refinement (strict constraint enforcement)
         # Interpolate to fine timestep and run with high penalty
         # =====================================================================
+        # Check skip_pass2 from settings if not explicitly set
+        if not skip_pass2:
+            skip_pass2 = getattr(self.planner_settings, 'skip_pass2_optimization', False)
+        
         if skip_pass2:
             if verbose:
-                print(f"\n=== SKIPPING PASS 2 (using Pass1 result directly) ===")
-            # Use Pass1 result directly - just compute gains
-            result = result1
+                print(f"\n=== SKIP PASS 2: ZOH forward sim + K-gains (dt={dt_fine}s) ===")
+            
+            # Match C++: ZOH-interpolate controls to fine grid, forward simulate,
+            # compute K-gains at fine dt on the feasible trajectory.
+            interp_ratio = int(dt_coarse / dt_fine)
+            N_fine = int(np.ceil(duration / dt_fine)) + 1
+            N_ctrl_fine = N_fine - 1
+            
+            if interp_ratio > 1:
+                Uset_coarse = result1.Uset
+                # ZOH: repeat each control except last for interp_ratio steps
+                if Uset_coarse.shape[1] >= 2:
+                    Uset_main = np.repeat(Uset_coarse[:, :-1], interp_ratio, axis=1)
+                else:
+                    Uset_main = np.repeat(Uset_coarse, interp_ratio, axis=1)
+                # Pad/trim to exact N_ctrl_fine
+                if Uset_main.shape[1] < N_ctrl_fine:
+                    pad_cols = N_ctrl_fine - Uset_main.shape[1]
+                    Uset_main = np.hstack([Uset_main, np.tile(Uset_coarse[:, -1:], (1, pad_cols))])
+                Uset_fine = Uset_main[:, :N_ctrl_fine]
+            else:
+                Uset_fine = result1.Uset
+            
+            # Propagate environment at fine timestep
+            vecsPy_fine = self._propagate_environment(os_0, t_start, t_end, dt_fine, N_fine, goals)
+            initial_result_2 = self.planner.prepareForAlilqr(
+                vecsPy_fine, dt_fine, t_start, t_end, x_0_clean, 0
+            )
+            _, vecs_dt_fine, _ = initial_result_2
+            
+            # Forward-simulate using C++ rk4z (dynamically feasible trajectory)
+            traj_fine = self.planner.generateInitialTrajectory(
+                dt_fine, result1.Xset[:, 0].copy(), Uset_fine, vecs_dt_fine
+            )
+            Xset_fine, Uset_fs, times_fs, TQset_fine = traj_fine
+            
+            if verbose:
+                print(f"  ZOH forward sim: X=({Xset_fine.shape[0]},{Xset_fine.shape[1]}), "
+                      f"U=({Uset_fs.shape[0]},{Uset_fs.shape[1]})")
+            
+            # Save diagnostic
+            try:
+                self._save_trajectory_snapshot(
+                    Xset_fine, Uset_fs, dt_fine, duration,
+                    "/tmp/planner_skip_pass2_fwd_sim.png", "Skip Pass2 Forward Sim"
+                )
+            except Exception:
+                pass
+            
+            # Compute K-gains at fine dt via C++ alilqr with minimal iterations.
+            # Uses Pass 2 costs (not TVLQR — those have huge terminal costs that
+            # cause K-gain divergence without findK's special handling).
+            cost_settings_2 = self.planner_settings.optSecondCostSettings()
+            
+            # Create minimal alilqr settings: 1 outer, 1 inner iteration
+            from ADCS.controller.helpers.planner_subsettings import (
+                SolverPassConfig, ConvergenceConfig, AugLagConfig,
+                RegularizationConfig, LineSearchConfig
+            )
+            minimal_pass = SolverPassConfig(
+                convergence=ConvergenceConfig(max_outer_iter=1, max_inner_iter=1),
+                aug_lag=AugLagConfig(penalty_init=1e-6),
+                regularization=RegularizationConfig(),
+                line_search=LineSearchConfig()
+            )
+            minimal_alilqr = (
+                minimal_pass.line_search.to_tuple(),
+                minimal_pass.aug_lag.to_tuple(),
+                minimal_pass.convergence.to_tuple(state_len=self.est_sat.state_len),
+                minimal_pass.regularization.to_tuple()
+            )
+            
+            # Suppress verbose output for this minimal run
+            prev_verbose = self.planner_settings.verbosity
+            self.planner.setVerbosity(False)
+            
+            alilqr_result = self.planner.alilqr(
+                dt_fine, traj_fine, vecs_dt_fine,
+                cost_settings_2, minimal_alilqr, False
+            )
+            self.planner.setVerbosity(prev_verbose)
+            
+            opt_result, mu_out, grad_out = alilqr_result
+            Xset_kgain, Uset_kgain, TQset_kgain, Kset_kgain, Sset_kgain, times_kgain = opt_result
+            
+            Kset_final = Kset_kgain
+            
+            times_fine = np.linspace(t_start, t_end, Xset_fine.shape[1])
+            
+            # Build a minimal OptimizationResult for analysis
+            from ADCS.controller.helpers import OptimizationResult
+            TQset_fs = np.zeros((3, Xset_fine.shape[1]))
+            result = OptimizationResult(
+                success=True,
+                Xset=Xset_fine, Uset=Uset_fs, TQset=TQset_fs,
+                Kset=Kset_final,
+                times=times_fine,
+                final_cost=result1.final_cost,
+                final_cmax=result1.final_cmax,
+                final_grad=0.0,
+                iterations=result1.iterations,
+                total_inner_iters=result1.total_inner_iters,
+                total_outer_iters=result1.total_outer_iters,
+            )
             self.pass2_result = None
             self.last_optimization_result = result
             
-            # Reorder controls and create trajectory
-            Uset = reorder_controls_cpp_to_python(result.Uset, self.est_sat.actuators)
-            Kset = reorder_gains_cpp_to_python(result.Kset, self.est_sat.actuators)
+            # Reorder controls and gains to Python convention
+            Uset = reorder_controls_cpp_to_python(Uset_fs, self.est_sat.actuators)
+            Kset = reorder_gains_cpp_to_python(Kset_final, self.est_sat.actuators)
+            Kset = self._scale_rw_gains(Kset)
             
-            N_result = result.Xset.shape[1]
+            N_result = Xset_fine.shape[1]
             Sset = np.zeros((1, N_result))
+            
+            if verbose:
+                print(f"  K-gains computed: ({Kset.shape[0]},{Kset.shape[1]})")
             
             if live_viz is not None:
                 if viz_save_path:
                     live_viz.save(viz_save_path)
                 live_viz.finish(block=False)
+                live_viz.close()
                 self.set_iteration_callback(original_callback)
             
-            return Trajectory(result.times, result.Xset, Uset, Kset, Sset)
+            return Trajectory(times_fine, Xset_fine, Uset, Kset, Sset)
         
         if verbose:
             print(f"\n=== PASS 2: Refinement (dt={dt_fine}s, penalty_init={self.planner_settings.pass2.aug_lag.penalty_init}) ===", flush=True)
