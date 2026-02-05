@@ -596,6 +596,17 @@ class PlanAndTrackBase(Controller):
                     print(f"{i}: {lbl:<12} type={type(x)}")
             print("==============================================")
 
+        # Wire Pass 2 options to C++ planner
+        if hasattr(self.planner, 'setSkipPass2Optimization'):
+            self.planner.setSkipPass2Optimization(
+                getattr(self.planner_settings, 'skip_pass2_optimization', False))
+        if hasattr(self.planner, 'setPass2WarmStartMode'):
+            self.planner.setPass2WarmStartMode(
+                getattr(self.planner_settings, 'pass2_warm_start_mode', 3))
+        if hasattr(self.planner, 'setUseEulerPass2'):
+            self.planner.setUseEulerPass2(
+                getattr(self.planner_settings, 'use_euler_pass2', True))
+
         # Use multi-start if multistart_modes is specified
         multistart_modes = getattr(self.planner_settings, 'multistart_modes', None)
         if multistart_modes is not None and len(multistart_modes) > 1:

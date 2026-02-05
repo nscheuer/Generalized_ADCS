@@ -313,6 +313,14 @@ bool PyPlanner::getUseEulerPass2(){
   return op.use_euler_pass2;
 }
 
+void PyPlanner::setSkipPass2Optimization(bool skip){
+  op.skip_pass2_optimization = skip;
+}
+
+bool PyPlanner::getSkipPass2Optimization(){
+  return op.skip_pass2_optimization;
+}
+
 void PyPlanner::setPlannerVerbosity(bool verbosity){
   op.setVerbosity(verbosity);
 }
@@ -371,6 +379,8 @@ PYBIND11_MODULE(tplaunch, m) {
         .def("getPass2WarmStartMode", &PyPlanner::getPass2WarmStartMode)
         .def("setUseEulerPass2", &PyPlanner::setUseEulerPass2)
         .def("getUseEulerPass2", &PyPlanner::getUseEulerPass2)
+        .def("setSkipPass2Optimization", &PyPlanner::setSkipPass2Optimization)
+        .def("getSkipPass2Optimization", &PyPlanner::getSkipPass2Optimization)
         .def("echo_int", &PyPlanner::echo_int)
         .def("get_nonmtq_torq_scale", &PyPlanner::getNonMtqTorqScale)
         .def("get_number_MTQ", &PyPlanner::getNumberMTQ)

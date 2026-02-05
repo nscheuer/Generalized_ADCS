@@ -767,18 +767,58 @@ AFTER_OUTPUT_FORM OldPlanner::trajOptAfter(VECTOR_INFO_FORM vecs_w_time,double d
     // TRAJECTORY_FORM traj_tvlqr = trajLong;
     // TRAJECTORY_FORM opt2 = trajLong;
     auto t_start_pass2 = std::chrono::high_resolution_clock::now();
-    _useEuler = use_euler_pass2;
-    ALILQR_OUTPUT_FORM alilqrOut2 = OldPlanner::alilqr(dt_tvlqr,trajLong, vecs_tvlqr, costSettings2,alilqrSettings2,false);
-    _useEuler = false;
-    auto t_end_pass2 = std::chrono::high_resolution_clock::now();
-    auto pass2_ms = std::chrono::duration_cast<std::chrono::milliseconds>(t_end_pass2 - t_start_pass2).count();
-    cout << "TIMING: Pass 2 (dt=" << dt_tvlqr << "s, N=" << get<0>(trajLong).n_cols << "): " << pass2_ms << " ms\n";
 
-     opt2 = get<0>(alilqrOut2);
-    // double muOut2 = std::get<1>(alilqrOut2);
-     gradOut2 = std::get<2>(alilqrOut2);
-    if(verbose) {
-      cout<<"completed full length ALILQR successfully\n";
+    if (skip_pass2_optimization) {
+      // Skip alilqr: use ZOH forward-simulated trajectory directly for K-gains.
+      // This avoids the optimizer creating wound trajectories at dt=1.
+      // The trajectory is dynamically feasible (from generateInitialTrajectory)
+      // but not locally optimal. K-gains correct tracking errors.
+      
+      // Target: N_fine states at dt_tvlqr
+      int N_fine = int(round((time_end - time_start) * 36525.0 * 24.0 * 3600.0 / dt_tvlqr)) + 1;
+      int N_ctrl = N_fine - 1;
+      
+      // ZOH-interpolate coarse controls to fine grid
+      int interp_ratio_zoh = int(dt_prev / dt_tvlqr);
+      int K_ctrl_zoh = Uset.n_cols;
+      mat UsetLong_zoh = repelem(Uset.cols(0, K_ctrl_zoh - 2), 1, interp_ratio_zoh);
+      // Pad with last control to reach N_ctrl
+      while ((int)UsetLong_zoh.n_cols < N_ctrl) {
+        UsetLong_zoh = join_rows(UsetLong_zoh, Uset.col(K_ctrl_zoh - 1));
+      }
+      // Trim to exact size
+      UsetLong_zoh = UsetLong_zoh.head_cols(N_ctrl);
+      
+      trajLong = OldPlanner::generateInitialTrajectory(dt_tvlqr, Xset.col(0), UsetLong_zoh, vecs_tvlqr);
+      
+      // Convert TRAJECTORY_FORM to OPT_FORM (add empty K, S, times)
+      mat X_zoh = get<0>(trajLong);
+      mat U_zoh = get<1>(trajLong);
+      mat TQ_zoh = get<3>(trajLong);
+      mat K_empty;
+      mat S_empty;
+      int N_zoh = X_zoh.n_cols;
+      vec times_zoh = linspace(0, (N_zoh-1)*dt_tvlqr, N_zoh) / (36525.0*24.0*3600.0) + time_start;
+      opt2 = make_tuple(X_zoh, U_zoh, TQ_zoh, K_empty, S_empty, times_zoh);
+      gradOut2 = 0.0;
+      
+      auto t_end_pass2 = std::chrono::high_resolution_clock::now();
+      auto pass2_ms = std::chrono::duration_cast<std::chrono::milliseconds>(t_end_pass2 - t_start_pass2).count();
+      cout << "TIMING: Pass 2 SKIPPED (ZOH forward sim only, dt=" << dt_tvlqr << "s, N=" << get<0>(trajLong).n_cols << "): " << pass2_ms << " ms\n";
+    } else {
+      _useEuler = use_euler_pass2;
+      ALILQR_OUTPUT_FORM alilqrOut2 = OldPlanner::alilqr(dt_tvlqr,trajLong, vecs_tvlqr, costSettings2,alilqrSettings2,false);
+      _useEuler = false;
+      auto t_end_pass2 = std::chrono::high_resolution_clock::now();
+      auto pass2_ms = std::chrono::duration_cast<std::chrono::milliseconds>(t_end_pass2 - t_start_pass2).count();
+      cout << "TIMING: Pass 2 (dt=" << dt_tvlqr << "s, N=" << get<0>(trajLong).n_cols << "): " << pass2_ms << " ms\n";
+
+      opt2 = get<0>(alilqrOut2);
+      // double muOut2 = std::get<1>(alilqrOut2);
+      gradOut2 = std::get<2>(alilqrOut2);
+      if(verbose) {
+        cout<<"completed full length ALILQR successfully\n";
+      }
     }
   }else{
      opt2 = opt;

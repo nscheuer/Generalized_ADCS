@@ -74,6 +74,7 @@ public:
 
     int quaternionTo3VecMode = 0;
     int pass2_warm_start_mode = 3;  // 0=ZOH, 1=K-gain, 2=SLERP, 3=closed-loop inv dyn (default)
+    bool skip_pass2_optimization = false; // If true: ZOH warm-start → forward sim → K-gains (no alilqr)
     bool use_euler_pass2 = true;    // Use Euler integration (1 eval) instead of RK4 (4 evals) for Pass 2
     bool _useEuler = false;         // Internal: set per-pass before alilqr call
 

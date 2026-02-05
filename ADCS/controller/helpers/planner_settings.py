@@ -216,6 +216,11 @@ class PlannerSettings:
         self.multistart_modes = multistart_modes  # List of bdot modes for multi-start, e.g., [0, 1, 4, 5]
         self.verbosity = False
         self.eps = 2.22044604925031e-16
+        
+        # Pass 2 options
+        self.skip_pass2_optimization = False  # If True: ZOH forward sim + K-gains only (no alilqr)
+        self.pass2_warm_start_mode = 3        # 0=ZOH, 1=K-gain, 2=SLERP, 3=closed-loop inv dyn
+        self.use_euler_pass2 = True           # Euler integration for Pass 2 (faster)
 
         # Solver Configurations
         # Two-pass optimization strategy:

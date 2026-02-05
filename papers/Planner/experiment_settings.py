@@ -24,7 +24,7 @@ from ADCS.CONOPS.goals import ECI_Goal, No_Goal
 from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.helpers.math_helpers import normalize, rot_exp, rot_mat
 from ADCS.controller.helpers.live_planner_viz import quat_to_rotation_matrix, compute_angle_error
-from papers.Planner.mc_planner_settings import create_optimized_planner_settings
+from papers.Planner.mc_planner_settings_experiment import create_optimized_planner_settings
 
 
 def make_config(seed, has_rw=True, tf=1000, dt_planning=1.0):
