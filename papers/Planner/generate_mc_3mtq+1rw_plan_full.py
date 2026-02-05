@@ -108,6 +108,9 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
             real_sat, duration=tf, dt_planning=dt_planning, tuning="fast_slew"
         )
         planner_settings.verbosity = False  # Disable C++ planner verbose output
+        # Single-goal: skip Pass 2 optimization to avoid wound trajectories
+        planner_settings.dt_tp = 10
+        planner_settings.skip_pass2_optimization = True
 
         # Choose controller based on tracking mode and verbosity
         tracking_mode = config.get("tracking_mode", TRACKING_MODE)

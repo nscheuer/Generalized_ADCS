@@ -170,6 +170,9 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
             real_sat, duration=tf, dt_planning=dt_planning, tuning="fast_slew"
         )
         planner_settings.verbosity = False
+        # Single-goal: skip Pass 2 optimization to avoid wound trajectories
+        planner_settings.dt_tp = 10
+        planner_settings.skip_pass2_optimization = True
 
         visualize = config.get("visualize", False)
         if visualize:
@@ -315,7 +318,7 @@ if __name__ == "__main__":
         test_seed = args.seed
         print(f"=== TEST MODE: Single run (seed={test_seed}), no multiprocessing ===")
         config = generate_mc_config(test_seed)
-        config["visualize"] = True
+        config["visualize"] = False
         result = run_single_sim(config)
         full_results = [result]
         valid = [r for r in full_results if r and r.get("traj_valid", False)]
