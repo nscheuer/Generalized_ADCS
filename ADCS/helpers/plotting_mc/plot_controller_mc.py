@@ -1030,30 +1030,75 @@ def create_planner_diagnostic_callback(
                 angles[k] = np.degrees(2 * np.arccos(np.clip(np.abs(qerr_w), 0, 1)))
             return angles
     else:
-        if "goal_eci_vec" in config:
-            goal_vec = np.asarray(config["goal_eci_vec"], dtype=float)
-        elif "goal1" in config:
-            goal_vec = np.asarray(config["goal1"], dtype=float)
-        else:
-            goal_vec = np.array([0.0, 0.0, 1.0])
-        goal_norm = goal_vec / np.linalg.norm(goal_vec)
         body_bore = body_boresight / np.linalg.norm(body_boresight)
         error_label = "Boresight Error"
+        
+        # Check for multi-goal scenario
+        is_multi_goal = "goal2" in config and "goal1" in config
+        
+        if is_multi_goal:
+            # Multi-goal: build goal schedule
+            # Schedule: goal1 (0-350), NoGoal (350-550), goal2 (550-700), NoGoal (700-900), goal3 (900-end)
+            goal1 = np.asarray(config["goal1"], dtype=float)
+            goal1 = goal1 / np.linalg.norm(goal1)
+            goal2 = np.asarray(config["goal2"], dtype=float)
+            goal2 = goal2 / np.linalg.norm(goal2)
+            goal3 = np.asarray(config.get("goal3", config["goal2"]), dtype=float)
+            goal3 = goal3 / np.linalg.norm(goal3)
+            
+            def get_goal_at_time(t_idx, N_pts):
+                """Return appropriate goal vector for timestep index."""
+                # Compute time in seconds: N_pts points span tf seconds
+                # (N_pts-1 intervals of dt each, where dt = tf/(N_pts-1))
+                t_sec = t_idx * tf / max(N_pts - 1, 1)
+                # Goal schedule: g1 (0-350), NoGoal (350-550), g2 (550-700), NoGoal (700-900), g3 (900+)
+                # During NoGoal, show error to the most recent active goal
+                if t_sec < 550:
+                    return goal1
+                elif t_sec < 900:
+                    return goal2
+                else:
+                    return goal3
+            
+            def compute_angles(Xset):
+                N_pts = Xset.shape[1]
+                angles = np.zeros(N_pts)
+                for k in range(N_pts):
+                    w, x, y, z = Xset[3:7, k]
+                    R = np.array([
+                        [1 - 2*(y**2 + z**2), 2*(x*y - z*w), 2*(x*z + y*w)],
+                        [2*(x*y + z*w), 1 - 2*(x**2 + z**2), 2*(y*z - x*w)],
+                        [2*(x*z - y*w), 2*(y*z + x*w), 1 - 2*(x**2 + y**2)]
+                    ])
+                    bore_eci = R @ body_bore
+                    goal_norm = get_goal_at_time(k, N_pts)
+                    dot = np.clip(np.dot(bore_eci, goal_norm), -1.0, 1.0)
+                    angles[k] = np.degrees(np.arccos(dot))
+                return angles
+        else:
+            # Single goal
+            if "goal_eci_vec" in config:
+                goal_vec = np.asarray(config["goal_eci_vec"], dtype=float)
+            elif "goal1" in config:
+                goal_vec = np.asarray(config["goal1"], dtype=float)
+            else:
+                goal_vec = np.array([0.0, 0.0, 1.0])
+            goal_norm = goal_vec / np.linalg.norm(goal_vec)
 
-        def compute_angles(Xset):
-            N_pts = Xset.shape[1]
-            angles = np.zeros(N_pts)
-            for k in range(N_pts):
-                w, x, y, z = Xset[3:7, k]
-                R = np.array([
-                    [1 - 2*(y**2 + z**2), 2*(x*y - z*w), 2*(x*z + y*w)],
-                    [2*(x*y + z*w), 1 - 2*(x**2 + z**2), 2*(y*z - x*w)],
-                    [2*(x*z - y*w), 2*(y*z + x*w), 1 - 2*(x**2 + y**2)]
-                ])
-                bore_eci = R @ body_bore
-                dot = np.clip(np.dot(bore_eci, goal_norm), -1.0, 1.0)
-                angles[k] = np.degrees(np.arccos(dot))
-            return angles
+            def compute_angles(Xset):
+                N_pts = Xset.shape[1]
+                angles = np.zeros(N_pts)
+                for k in range(N_pts):
+                    w, x, y, z = Xset[3:7, k]
+                    R = np.array([
+                        [1 - 2*(y**2 + z**2), 2*(x*y - z*w), 2*(x*z + y*w)],
+                        [2*(x*y + z*w), 1 - 2*(x**2 + z**2), 2*(y*z - x*w)],
+                        [2*(x*z - y*w), 2*(y*z + x*w), 1 - 2*(x**2 + y**2)]
+                    ])
+                    bore_eci = R @ body_bore
+                    dot = np.clip(np.dot(bore_eci, goal_norm), -1.0, 1.0)
+                    angles[k] = np.degrees(np.arccos(dot))
+                return angles
 
     def callback(iter_data):
         Xset = iter_data.Xset
