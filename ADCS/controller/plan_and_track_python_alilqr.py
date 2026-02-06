@@ -141,6 +141,50 @@ class Plan_and_Track_PythonALILQR(PlanAndTrackBase):
             self.py_alilqr.debug_callback = callback
     
     @staticmethod
+    def _generate_slerp_trajectory(dt, x0, q_goal, N, times):
+        """Generate SLERP trajectory from x0 toward q_goal."""
+        from ADCS.helpers.math_helpers import normalize
+        n_state = len(x0)
+        n_ctrl = 3 + (n_state - 7)  # MTQ + RW
+        Xset = np.zeros((n_state, N))
+        Uset = np.zeros((n_ctrl, N))
+        TQset = np.zeros((3, N))
+        
+        q0 = normalize(x0[3:7])
+        qg = normalize(q_goal)
+        if np.dot(q0, qg) < 0:
+            qg = -qg
+        dot_val = np.clip(np.abs(np.dot(q0, qg)), 0, 1)
+        theta = np.arccos(dot_val)
+        sin_theta = np.sin(theta)
+        
+        for k in range(N):
+            frac = k / (N - 1) if N > 1 else 0
+            if theta < 1e-10:
+                qk = q0.copy()
+            else:
+                qk = normalize((np.sin((1-frac)*theta) * q0 + np.sin(frac*theta) * qg) / sin_theta)
+            Xset[3:7, k] = qk
+            if n_state > 7:
+                Xset[7:, k] = x0[7:]  # RW momentum constant
+        
+        # Angular velocity from finite differences
+        for k in range(N - 1):
+            qk = normalize(Xset[3:7, k])
+            qkp1 = normalize(Xset[3:7, k+1])
+            # q_err = qk^-1 * qkp1
+            qe_w = qk[0]*qkp1[0] + np.dot(qk[1:], qkp1[1:])
+            qe_v = qk[0]*qkp1[1:] - qkp1[0]*qk[1:] - np.cross(qk[1:], qkp1[1:])
+            if qe_w < 0:
+                qe_w, qe_v = -qe_w, -qe_v
+            half_angle = np.arccos(np.clip(np.abs(qe_w), 0, 1))
+            if half_angle > 1e-12:
+                axis = qe_v / np.linalg.norm(qe_v)
+                Xset[0:3, k] = (2 * half_angle / dt) * axis
+        
+        return (Xset, Uset, times[:N] if len(times) >= N else times, TQset)
+    
+    @staticmethod
     def _save_trajectory_snapshot(Xset, Uset, dt, duration, filepath, title):
         """Save a diagnostic 4-panel figure of the trajectory state.
 
@@ -448,6 +492,27 @@ class Plan_and_Track_PythonALILQR(PlanAndTrackBase):
             max_idx = np.argmax(angles_init)
             print(f"  [Init-traj] Angles: start={angles_init[0]:.0f}° max={max_angle:.0f}°@{max_idx} end={angles_init[-1]:.0f}°")
         
+        # Infeasible start: replace init with SLERP trajectory for Pass 1
+        use_infeasible = getattr(self.planner_settings, 'use_infeasible_start', False)
+        if use_infeasible and hasattr(self.planner, 'setUseInfeasibleStart'):
+            self.planner.setUseInfeasibleStart(True)
+            # Check if quaternion goal (4-vector, no NaN)
+            E_goals_check = vecs_dt_coarse[6]
+            if E_goals_check.shape[0] == 4 and not np.isnan(E_goals_check[0, 0]):
+                q_goal_slerp = E_goals_check[:, 0]
+                N_coarse = initial_traj_1[0].shape[1]
+                # Generate SLERP trajectory via C++
+                try:
+                    initial_traj_1 = self.planner.generateSlerpTrajectory(
+                        dt_coarse, x_0_clean, q_goal_slerp, N_coarse, vecs_dt_coarse)
+                except Exception:
+                    # Fallback to Python SLERP
+                    initial_traj_1 = self._generate_slerp_trajectory(
+                        dt_coarse, x_0_clean, q_goal_slerp, N_coarse, initial_traj_1[2])
+                if verbose:
+                    print(f"  [Infeasible start] Replaced init with SLERP trajectory")
+            self.py_alilqr._use_infeasible_start = True
+        
         result1 = self.py_alilqr.optimize(
             dt=dt_coarse,
             initial_traj=initial_traj_1,
@@ -484,6 +549,15 @@ class Plan_and_Track_PythonALILQR(PlanAndTrackBase):
         if not skip_pass2:
             skip_pass2 = getattr(self.planner_settings, 'skip_pass2_optimization', False)
         
+        # Enforce: infeasible start requires Pass 2 for dynamic feasibility
+        use_infeasible = getattr(self.planner_settings, 'use_infeasible_start', False)
+        if use_infeasible and skip_pass2:
+            import warnings
+            warnings.warn(
+                "use_infeasible_start=True requires Pass 2 for dynamic feasibility. "
+                "Overriding skip_pass2 to False.", stacklevel=2)
+            skip_pass2 = False
+        
         if skip_pass2:
             if verbose:
                 print(f"\n=== SKIP PASS 2: ZOH forward sim + K-gains (dt={dt_fine}s) ===")
@@ -494,8 +568,20 @@ class Plan_and_Track_PythonALILQR(PlanAndTrackBase):
             N_fine = int(np.ceil(duration / dt_fine)) + 1
             N_ctrl_fine = N_fine - 1
             
+            # result1.Uset has RW controls in PHYSICAL units (scaled by py_alilqr).
+            # generateInitialTrajectory expects OPTIMIZER units, so we need to unscale.
+            Uset_coarse = result1.Uset.copy()
+            scale = self.planner.get_nonmtq_torq_scale()
+            if scale != 1.0:
+                n_mtq = self.planner.get_number_MTQ()
+                n_rw = self.planner.get_number_RW()
+                n_magic = self.planner.get_number_magic()
+                if n_rw + n_magic > 0:
+                    rw_magic_start = n_mtq
+                    rw_magic_end = n_mtq + n_rw + n_magic
+                    Uset_coarse[rw_magic_start:rw_magic_end, :] /= scale
+            
             if interp_ratio > 1:
-                Uset_coarse = result1.Uset
                 # ZOH: repeat each control except last for interp_ratio steps
                 if Uset_coarse.shape[1] >= 2:
                     Uset_main = np.repeat(Uset_coarse[:, :-1], interp_ratio, axis=1)
@@ -507,7 +593,7 @@ class Plan_and_Track_PythonALILQR(PlanAndTrackBase):
                     Uset_main = np.hstack([Uset_main, np.tile(Uset_coarse[:, -1:], (1, pad_cols))])
                 Uset_fine = Uset_main[:, :N_ctrl_fine]
             else:
-                Uset_fine = result1.Uset
+                Uset_fine = Uset_coarse
             
             # Propagate environment at fine timestep
             vecsPy_fine = self._propagate_environment(os_0, t_start, t_end, dt_fine, N_fine, goals)
@@ -562,8 +648,16 @@ class Plan_and_Track_PythonALILQR(PlanAndTrackBase):
             prev_verbose = self.planner_settings.verbosity
             self.planner.setVerbosity(False)
             
+            # IMPORTANT: Make copies because alilqr modifies arrays in-place!
+            # We want to keep the original forward-sim trajectory.
+            traj_fine_copy = (
+                Xset_fine.copy(),
+                Uset_fs.copy(),
+                times_fs.copy() if times_fs is not None else None,
+                TQset_fine.copy()
+            )
             alilqr_result = self.planner.alilqr(
-                dt_fine, traj_fine, vecs_dt_fine,
+                dt_fine, traj_fine_copy, vecs_dt_fine,
                 cost_settings_2, minimal_alilqr, False
             )
             self.planner.setVerbosity(prev_verbose)
@@ -593,8 +687,14 @@ class Plan_and_Track_PythonALILQR(PlanAndTrackBase):
             self.pass2_result = None
             self.last_optimization_result = result
             
+            # Scale controls to physical units (Uset_fs is in optimizer units)
+            # This matches what py_alilqr.optimize() does internally
+            Uset_physical = Uset_fs.copy()
+            if scale != 1.0 and n_rw + n_magic > 0:
+                Uset_physical[rw_magic_start:rw_magic_end, :] *= scale
+            
             # Reorder controls and gains to Python convention
-            Uset = reorder_controls_cpp_to_python(Uset_fs, self.est_sat.actuators)
+            Uset = reorder_controls_cpp_to_python(Uset_physical, self.est_sat.actuators)
             Kset = reorder_gains_cpp_to_python(Kset_final, self.est_sat.actuators)
             Kset = self._scale_rw_gains(Kset)
             

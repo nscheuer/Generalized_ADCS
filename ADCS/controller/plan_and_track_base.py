@@ -596,6 +596,16 @@ class PlanAndTrackBase(Controller):
                     print(f"{i}: {lbl:<12} type={type(x)}")
             print("==============================================")
 
+        # Enforce: infeasible start (slacks) requires Pass 2 for dynamic feasibility
+        if (getattr(self.planner_settings, 'use_infeasible_start', False) and
+                getattr(self.planner_settings, 'skip_pass2_optimization', False)):
+            import warnings
+            warnings.warn(
+                "use_infeasible_start=True requires Pass 2 for dynamic feasibility. "
+                "Overriding skip_pass2_optimization to False.",
+                stacklevel=2)
+            self.planner_settings.skip_pass2_optimization = False
+
         # Wire Pass 2 options to C++ planner
         if hasattr(self.planner, 'setSkipPass2Optimization'):
             self.planner.setSkipPass2Optimization(
@@ -606,6 +616,18 @@ class PlanAndTrackBase(Controller):
         if hasattr(self.planner, 'setUseEulerPass2'):
             self.planner.setUseEulerPass2(
                 getattr(self.planner_settings, 'use_euler_pass2', True))
+        if hasattr(self.planner, 'setUseInfeasibleStart'):
+            self.planner.setUseInfeasibleStart(
+                getattr(self.planner_settings, 'use_infeasible_start', False))
+        if hasattr(self.planner, 'setInfeasibleCtrlMode'):
+            self.planner.setInfeasibleCtrlMode(
+                getattr(self.planner_settings, 'infeasible_ctrl_mode', 1))
+        if hasattr(self.planner, 'setAngCostTimePower'):
+            self.planner.setAngCostTimePower(
+                getattr(self.planner_settings, 'ang_cost_time_power', 0.0))
+        if hasattr(self.planner, 'setAngCostTimeMin'):
+            self.planner.setAngCostTimeMin(
+                getattr(self.planner_settings, 'ang_cost_time_min', 0.1))
 
         # Use multi-start if multistart_modes is specified
         multistart_modes = getattr(self.planner_settings, 'multistart_modes', None)

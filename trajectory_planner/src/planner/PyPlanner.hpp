@@ -55,6 +55,20 @@ public:
     bool getUseEulerPass2();
     void setSkipPass2Optimization(bool skip);
     bool getSkipPass2Optimization();
+    void setUseInfeasibleStart(bool use);
+    bool getUseInfeasibleStart();
+    void setInfeasibleCtrlMode(int mode);
+    int getInfeasibleCtrlMode();
+    void initSlackVariablesPython(double dt, TRAJECTORY_PY_FORM trajPy, VECTOR_INFO_PY_FORM vecsPy);
+    void updateSlackAugLag(double lm_max, double pen_max, double pen_scale);
+    void setSlackMu(double mu);
+    pybind11::tuple getSlackInfo();
+    TRAJECTORY_PY_FORM generateSlerpTrajectoryPython(double dt, pybind11::array_t<double> x0,
+        pybind11::array_t<double> q_goal, int N, VECTOR_INFO_PY_FORM vecsPy);
+    void setAngCostTimePower(double power);
+    double getAngCostTimePower();
+    void setAngCostTimeMin(double min_val);
+    double getAngCostTimeMin();
     py::tuple addRandNoisePython(double dt0, TRAJECTORY_PY_FORM trajPy, double dlaZcount, double stepsSinceRand, BREAK_SETTINGS_PY_FORM breakSettings_tmp,REG_SETTINGS_FORM regSettings_tmp,COST_SETTINGS_FORM costSettings_tmp, AUGLAG_INFO_PY_FORM auglag_vals,VECTOR_INFO_PY_FORM vecs);
     void setPlannerVerbosity(bool verbosity);
     

@@ -821,8 +821,35 @@ AFTER_OUTPUT_FORM OldPlanner::trajOptAfter(VECTOR_INFO_FORM vecs_w_time,double d
       }
     }
   }else{
-     opt2 = opt;
-     tvlqr_times = time_vec;
+    // Same timestep (dt_tp == dt_tvlqr): no warm-start interpolation needed.
+    // If Pass 1 used slacks, run Pass 2 without slacks to get feasible trajectory.
+    if (!skip_pass2_optimization) {
+      // Same-dt Pass 2: check if Pass 1 slacks are small enough to skip forward-sim
+      double slack_max_val = (slack_Sset.n_elem > 0) ? abs(slack_Sset).max() : 0.0;
+      double slack_tol = 1e-2;  // Accept Pass 1 trajectory if slacks this small
+      
+      if (slack_max_val < slack_tol && slack_max_val >= 0) {
+        // Slacks are tiny — Pass 1 trajectory is practically feasible
+        // Use it directly (avoids forward-sim destroying topology at 180° bifurcation)
+        cout << "Pass 2: using Pass 1 trajectory directly (slack_max=" << slack_max_val << " < " << slack_tol << ")\n";
+        mat K_empty, S_empty;
+        vec times_p1 = linspace(0, (Xset.n_cols-1)*dt_tvlqr, Xset.n_cols);
+        opt2 = make_tuple(Xset, Uset, get<2>(opt), K_empty, S_empty, times_p1);
+        gradOut2 = 0;
+      } else {
+        // Slacks too large — try forward-sim to get feasible trajectory
+        cout << "Pass 2: forward-simming Pass 1 controls (slack_max=" << slack_max_val << " >= " << slack_tol << ")\n";
+        TRAJECTORY_FORM trajFwd = generateInitialTrajectory(dt_tvlqr, Xset.col(0), Uset, vecs_tvlqr);
+        mat Xfwd = get<0>(trajFwd);
+        mat K_empty, S_empty;
+        vec times_fwd = linspace(0, (Xfwd.n_cols-1)*dt_tvlqr, Xfwd.n_cols);
+        opt2 = make_tuple(Xfwd, get<1>(trajFwd), get<3>(trajFwd), K_empty, S_empty, times_fwd);
+        gradOut2 = 0;
+      }
+    } else {
+      opt2 = opt;
+    }
+    tvlqr_times = time_vec;
   }
 
   mat K_lqr;
@@ -987,7 +1014,33 @@ AFTER_OUTPUT_FORM OldPlanner::trajOpt(VECTOR_INFO_FORM &vecs,int N, TIME_FORM ti
   VECTOR_INFO_FORM vecs_dt = get<1>(results);
   COST_SETTINGS_FORM costSettings_tmp = get<2>(results);
   _useEuler = false;  // Pass 1 always uses RK4 (coarse dt, cheap anyway)
+
+  // Infeasible start: optionally replace init trajectory with SLERP
+  if (use_infeasible_start) {
+    if (infeasible_ctrl_mode <= 2) {
+      // Modes 0-2: SLERP states + specified controls (original ALTRO-style infeasible start)
+      mat ECIvec_init = get<6>(vecs_dt);
+      vec ek0 = ECIvec_init.col(0);
+      if (ek0.n_elem == 4 && !isnan(ek0(0))) {
+        vec4 q_goal = normalise(ek0);
+        int N_init = get<0>(traj_init).n_cols;
+        traj_init = generateSlerpTrajectory(dt, x0, q_goal, N_init, vecs_dt, infeasible_ctrl_mode);
+        if (verbose) { cout << "Infeasible start: SLERP + ctrl_mode=" << infeasible_ctrl_mode << " for Pass 1\n"; }
+      } else if (verbose) {
+        cout << "Infeasible start: vector goal detected, using standard init with defects\n";
+      }
+    } else if (infeasible_ctrl_mode == 3) {
+      // Mode 3: Standard feasible init + slacks for exploration
+      // Keep traj_init as-is (from prepareForAlilqr — dynamically feasible)
+      // Slacks start at zero, give optimizer freedom to escape wound local minima
+      if (verbose) { cout << "Infeasible start mode 3: feasible start + slack exploration\n"; }
+    }
+  }
+
   ALILQR_OUTPUT_FORM alilqrOut = OldPlanner::alilqr(dt,traj_init, vecs_dt, costSettings_tmp,alilqrSettings,false);
+  // Disable slacks for Pass 2 — Pass 2 must produce dynamically feasible trajectory.
+  // If dt_tp == dt_tvlqr (same timestep), Pass 2 forward-sims Pass 1 controls → feasible.
+  use_infeasible_start = false;
   auto t_end_pass1 = std::chrono::high_resolution_clock::now();
   auto pass1_ms = std::chrono::duration_cast<std::chrono::milliseconds>(t_end_pass1 - t_start_pass1).count();
   cout << "TIMING: Pass 1 (dt=" << dt << "s, N=" << get<0>(traj_init).n_cols << "): " << pass1_ms << " ms\n";
@@ -1748,6 +1801,11 @@ tuple<cube, cube> OldPlanner::findKwDist(double dt_tvlqr0, TRAJECTORY_FORM& traj
   mat Xset = get<0>(traj);
   newX.copy_size(Xset);
   newX.zeros();
+
+  // Initialize candidate slack storage for infeasible start
+  if (use_infeasible_start && !slack_Sset.is_empty()) {
+    slack_Sset_new = mat(slack_Sset.n_rows, slack_Sset.n_cols, fill::zeros);
+  }
   //newX.fill(datum::nan);
   mat newU;
   mat Uset = get<1>(traj);
@@ -1847,15 +1905,28 @@ tuple<cube, cube> OldPlanner::findKwDist(double dt_tvlqr0, TRAJECTORY_FORM& traj
 
     otherErr = newXk.tail(sat.reduced_state_N()-6) - oldXprev.tail(sat.reduced_state_N()-6);
     avErr = newXk.head(3) - oldXprev.head(3);
-    newUprev = Uset.col(k-1) + Kset.slice(k-1)*join_cols(avErr,angErr,otherErr) + alpha*dset.col(k-1);
+    vec errVec = join_cols(avErr,angErr,otherErr);
+    newUprev = Uset.col(k-1) + Kset.slice(k-1)*errVec + alpha*dset.col(k-1);
     // newUprev = Uset.col(k-1)+Kset.slice(k-1)*join_cols(newXk.rows(sat.avindex0(),sat.avindex0()+2)-oldXprev.rows(sat.avindex0(),sat.avindex0()+2),(oldQprev(0)*Qkprev.rows(1,3) - Qkprev(0)*oldQprev.rows(1,3)-cross(oldQprev.rows(1,3),Qkprev.rows(1,3)))/(as_scalar(oldQprev.t()*Qkprev))) + alpha*dset.col(k-1);
+
+    // Compute slack update (infeasible start)
+    vec s_new;
+    if (use_infeasible_start && !slack_Kset.is_empty() && (k-1) < (int)slack_Sset.n_cols) {
+      s_new = slack_Sset.col(k-1) + slack_Kset.slice(k-1)*errVec + alpha*slack_dset.col(k-1);
+    }
 
     for(int i = 0; i < sat.control_N(); i++)
     {
       double ucheck = newUprev(i);
       if((isnan(ucheck)||isinf(ucheck)))//||abs(ucheck)>100000000))
       {
-
+        if (use_infeasible_start && k <= 3) {
+          cout << "  [infeas fwd] NaN ctrl at k=" << k << " i=" << i << "\n";
+          cout << "    errVec=" << errVec.t();
+          cout << "    K_max=" << Kset.slice(k-1).max() << " K_min=" << Kset.slice(k-1).min() << "\n";
+          cout << "    d=" << dset.col(k-1).t();
+          cout << "    u_prev=" << Uset.col(k-1).t();
+        }
         return make_tuple(newX.fill(datum::nan), newU.fill(datum::nan),dt_timevec,newTQ.fill(datum::nan));
       }
     }
@@ -1865,6 +1936,18 @@ tuple<cube, cube> OldPlanner::findKwDist(double dt_tvlqr0, TRAJECTORY_FORM& traj
       : rk4z(dt0, newXk, newUprev, sat, dynamics_info_kn1, dynamics_info_k);
     newXk = get<0>(integOut);
     newTQk = get<1>(integOut);
+
+    // Apply slack correction to state (infeasible start)
+    // x_{k+1} = f(x_k, u_k) + G'·s_k  (G maps full→reduced, G' maps reduced→full)
+    if (use_infeasible_start && s_new.n_elem > 0) {
+      mat Gkp1 = sat.findGMat(normalise(newXk.rows(3, 6)));
+      newXk += Gkp1.t() * s_new;
+      // Store new slack for cost evaluation
+      if ((k-1) < (int)slack_Sset_new.n_cols) {
+        slack_Sset_new.col(k-1) = s_new;
+      }
+    }
+
     newXk = sat.state_norm(newXk);
 
     // newQk = normalise(newXk.rows(sat.quat0index(), sat.quat0index()+3));
@@ -1877,6 +1960,223 @@ tuple<cube, cube> OldPlanner::findKwDist(double dt_tvlqr0, TRAJECTORY_FORM& traj
   }
   return make_tuple(newX, newU,dt_timevec,newTQ);
 }
+// ========================================================================
+// Infeasible start helper methods (ALTRO-style slack variables on dynamics)
+// ========================================================================
+
+/**
+ * Compute augmented Lagrangian cost for slack variables: Σ_k [λ'·s + (μ/2)·||s||²]
+ */
+double OldPlanner::slackCost(const mat& Sset_in) const {
+    if (!use_infeasible_start || Sset_in.is_empty()) return 0.0;
+    double cost = 0.0;
+    double mu_eff = slack_mu + slack_w;  // AL penalty + fixed cost
+    for (int k = 0; k < (int)Sset_in.n_cols; k++) {
+        vec sk = Sset_in.col(k);
+        cost += dot(slack_lambdaSet.col(k), sk) + 0.5 * mu_eff * dot(sk, sk);
+    }
+    return cost;
+}
+
+/**
+ * Compute dynamics defects of a given trajectory and store as initial slacks.
+ * Defect at step k: s_k = G_{k+1} · (x_{k+1} - f(x_k, u_k))  [in reduced state space]
+ */
+void OldPlanner::initSlacksFromDefects(double dt0, TRAJECTORY_FORM& traj, VECTOR_INFO_FORM& vecs) {
+    mat Xset = get<0>(traj);
+    mat Uset = get<1>(traj);
+    int N = Xset.n_cols;
+    int n_red = sat.reduced_state_N();
+
+    mat Bset = get<3>(vecs);
+    mat Rset = get<1>(vecs);
+    mat Vset = get<2>(vecs);
+    mat Sset_env = get<4>(vecs);
+    vec pset = get<7>(vecs);
+
+    slack_Sset = mat(n_red, N, fill::zeros);
+
+    DYNAMICS_INFO_FORM dyn_k, dyn_kp1;
+    dyn_k = make_tuple(Bset.col(0), Rset.col(0), pset(0), Vset.col(0), Sset_env.col(0), 0);
+
+    for (int k = 0; k < N - 1; k++) {
+        dyn_kp1 = make_tuple(Bset.col(k+1), Rset.col(k+1), pset(k+1), Vset.col(k+1), Sset_env.col(k+1), 0);
+
+        // Simulate one step from current state
+        auto [x_dyn, tq] = _useEuler
+            ? eulerz(dt0, Xset.col(k), Uset.col(k), sat, dyn_k, dyn_kp1)
+            : rk4z(dt0, Xset.col(k), Uset.col(k), sat, dyn_k, dyn_kp1);
+        x_dyn = sat.state_norm(x_dyn);
+
+        // Compute defect in reduced state space using G matrix
+        vec x_actual = Xset.col(k + 1);
+        mat Gkp1 = sat.findGMat(x_actual.rows(3, 6));
+
+        // Defect: difference between actual and predicted next state
+        // For non-quaternion states: simple difference
+        // For quaternion: use G to map to reduced space
+        vec defect_full = x_actual - x_dyn;
+        // Map to reduced space: ω difference + attitude error + other state difference
+        vec defect_red(n_red, fill::zeros);
+        defect_red.head(3) = defect_full.head(3);  // angular velocity defect
+        // Attitude defect: use quaternion error mapped to 3-vector
+        vec4 q_dyn = normalise(x_dyn.rows(3, 6));
+        vec4 q_actual = normalise(x_actual.rows(3, 6));
+        vec4 qe = normquaterr(q_dyn, q_actual);
+        if (qe(0) < 0) qe = -qe;
+        // Use same parameterization as backward pass (MRP by default, mode 0)
+        defect_red.rows(3, 5) = 2.0 * qe.rows(1, 3) / (1.0 + qe(0));
+        // Other states (RW momentum, etc.)
+        if (n_red > 6) {
+            defect_red.tail(n_red - 6) = defect_full.tail(n_red - 6);
+        }
+
+        slack_Sset.col(k) = defect_red;
+        dyn_k = dyn_kp1;
+    }
+
+    if (verbose) {
+        cout << "Infeasible start: initial slack norm = " << norm(slack_Sset, "fro")
+             << ", max = " << abs(slack_Sset).max() << "\n";
+    }
+}
+
+/**
+ * Generate a SLERP trajectory from x0 toward goal quaternion.
+ * States: SLERP quaternion with finite-difference angular velocity, constant RW momentum.
+ * Controls: zero.
+ */
+TRAJECTORY_FORM OldPlanner::generateSlerpTrajectory(double dt0, vec x0, vec4 q_goal, int N, VECTOR_INFO_FORM& vecs, int ctrl_mode) {
+    mat Xset(sat.state_N(), N, fill::zeros);
+    mat Uset(sat.control_N(), N, fill::zeros);
+    mat TQset(3, N, fill::zeros);
+    vec t = get<0>(vecs);
+
+    vec4 q0 = normalise(x0.rows(3, 6));
+    vec4 qg = normalise(q_goal);
+
+    // Ensure shortest path
+    if (dot(q0, qg) < 0) qg = -qg;
+
+    double dot_val = min(abs(dot(q0, qg)), 1.0);
+    double theta = acos(dot_val);  // half-angle in quaternion space
+    double sin_theta = sin(theta);
+
+    // Generate SLERP quaternions with front-loaded profile:
+    // Concentrate rotation in first ~30% of trajectory, hold at goal for remainder.
+    // This prevents the optimizer from getting stuck at the constant-rate SLERP minimum.
+    double slew_frac = 0.3;  // Do full rotation in first 30% of trajectory
+    for (int k = 0; k < N; k++) {
+        double t_norm = (double)k / (N - 1);
+        double frac = min(1.0, t_norm / slew_frac);  // Reaches 1.0 at slew_frac of trajectory
+        vec4 qk;
+        if (theta < 1e-10) {
+            qk = q0;
+        } else {
+            qk = normalise((sin((1.0 - frac) * theta) * q0 + sin(frac * theta) * qg) / sin_theta);
+        }
+        Xset(span(3, 6), k) = qk;
+        // RW momentum: constant from initial state
+        if (sat.state_N() > 7) {
+            Xset.rows(7, sat.state_N() - 1).col(k) = x0.rows(7, sat.state_N() - 1);
+        }
+    }
+
+    // Compute angular velocity from finite differences
+    for (int k = 0; k < N - 1; k++) {
+        vec4 qk = normalise(Xset(span(3, 6), k));
+        vec4 qkp1 = normalise(Xset(span(3, 6), k + 1));
+        vec4 dq = normquaterr(qk, qkp1);
+        if (dq(0) < 0) dq = -dq;
+        double half_angle = acos(min(abs(dq(0)), 1.0));
+        vec3 omega_k;
+        if (half_angle > 1e-12) {
+            omega_k = (2.0 * half_angle / dt0) * normalise(dq.rows(1, 3));
+        } else {
+            omega_k = vec3(fill::zeros);
+        }
+        Xset(span(0, 2), k) = omega_k;
+    }
+    // Terminal: zero angular velocity (at goal, at rest)
+    Xset(span(0, 2), N - 1) = vec3(fill::zeros);
+
+    // ================================================================
+    // Inverse dynamics: compute best-effort controls for SLERP path
+    // τ_des = J·α + ω×(Jω + h)
+    // Solve MTQ: m = (B × τ) / |B|², clamp to limits
+    // Solve RW: residual torque along RW axis, clamp
+    // ================================================================
+    // ================================================================
+    // Compute initial controls for SLERP path
+    // ctrl_mode: 0=zero, 1=inverse dynamics, 2=random
+    // ================================================================
+    if (ctrl_mode == 1) {
+      // Inverse dynamics: τ_des = J·α + ω×(J·ω+h), solve for MTQ/RW
+      mat Bset = get<3>(vecs);
+      mat33 J_body = sat.Jcom_noRW;
+      double rw_scale = NONMTQ_TORQ_SCALE;
+
+      for (int k = 0; k < N - 1; k++) {
+          vec3 wk = Xset(span(0, 2), k);
+          vec3 wkp1 = Xset(span(0, 2), k + 1);
+          vec3 alpha_des = (wkp1 - wk) / dt0;
+
+          vec3 Jw = J_body * wk;
+          for (int j = 0; j < sat.number_RW; j++) {
+              Jw += Xset(7 + j, k) * vec3(sat.rw_ax_mat.col(j));
+          }
+          vec3 tau_des = J_body * alpha_des + cross(wk, Jw);
+
+          vec3 tau_remaining = tau_des;
+          for (int j = 0; j < sat.number_RW; j++) {
+              vec3 ax(sat.rw_ax_mat.col(j));
+              double tau_proj = dot(tau_remaining, ax);
+              double u_rw = -tau_proj / rw_scale;
+              double u_lim = sat.RW_max_torq.at(j) / rw_scale;
+              u_rw = std::max(-u_lim, std::min(u_lim, u_rw));
+              Uset(sat.number_MTQ + j, k) = u_rw;
+              tau_remaining -= (-u_rw * rw_scale) * ax;
+          }
+
+          vec3 Bk = Bset.col(k);
+          double Bnorm2 = dot(Bk, Bk);
+          if (Bnorm2 > 1e-20 && sat.number_MTQ > 0) {
+              vec3 m_des = cross(Bk, tau_remaining) / Bnorm2;
+              vec u_mtq = pinv(sat.mtq_ax_mat) * m_des;
+              for (int j = 0; j < sat.number_MTQ; j++) {
+                  double u_lim = sat.MTQ_max.at(j);
+                  u_mtq(j) = std::max(-u_lim, std::min(u_lim, u_mtq(j)));
+              }
+              Uset(span(0, sat.number_MTQ - 1), k) = u_mtq;
+          }
+      }
+    } else if (ctrl_mode == 2) {
+      // Random controls within actuator limits
+      double rw_scale = NONMTQ_TORQ_SCALE;
+      arma::arma_rng::set_seed_random();
+      for (int k = 0; k < N - 1; k++) {
+          for (int j = 0; j < sat.number_MTQ; j++) {
+              double u_lim = sat.MTQ_max.at(j);
+              Uset(j, k) = u_lim * (2.0 * arma::randu() - 1.0);
+          }
+          for (int j = 0; j < sat.number_RW; j++) {
+              double u_lim = sat.RW_max_torq.at(j) / rw_scale;
+              Uset(sat.number_MTQ + j, k) = u_lim * (2.0 * arma::randu() - 1.0);
+          }
+      }
+    }
+    // ctrl_mode == 0: leave Uset as zeros
+
+    if (verbose) {
+        double ang_total = 2.0 * theta * 180.0 / datum::pi;
+        cout << "SLERP trajectory: " << ang_total << "° rotation over " << N
+             << " steps (dt=" << dt0 << "s), inv-dyn controls computed\n";
+    }
+
+    return make_tuple(Xset, Uset, t.head(N), TQset);
+}
+
+
 /*This function generates the initial trajectory for the trajectory optimizer, using rk4
   Arguments:
     x0 - initial state vector - 7 x 1 vector
@@ -2000,16 +2300,44 @@ ALILQR_OUTPUT_FORM OldPlanner::alilqr(double dt0,TRAJECTORY_FORM traj, VECTOR_IN
 
   // mat clist = mat(sat.constraint_N(),N);
 
-  traj = generateInitialTrajectory(dt0,Xset.col(0), Uset,vecs);
+  // For infeasible start modes 0-2: keep SLERP trajectory as-is
+  // For infeasible start mode 3: run forward sim (trajectory is already feasible)
+  // For skip_initial_fwd_sim: keep trajectory as-is (used by same-dt Pass 2 to preserve topology)
+  // For standard mode: re-simulate from controls to ensure feasibility
+  bool skip_fwd_sim = skip_initial_fwd_sim || (use_infeasible_start && infeasible_ctrl_mode <= 2);
+  if (!skip_fwd_sim) {
+    traj = generateInitialTrajectory(dt0, Xset.col(0), Uset, vecs);
+  }
 
+  // Initialize slack variables for infeasible start
+  if (use_infeasible_start) {
+    int n_red = sat.reduced_state_N();
+    double LMmax_tmp = get<1>(auglagSettings_tmp);
+    // Initialize slack storage
+    slack_lambdaSet = mat(n_red, N, fill::zeros);
+    // slack_w provides baseline PSD guarantee: (P + (mu + w)I) is PD when w > |min eig(P)|
+    // Pass 1 (mu=0→1): start low, slacks can be large to relax dynamics
+    // Pass 2 (mu inherited): cap at moderate level so slacks can still help with warm-start defects
+    if (slack_mu < 1.0) {
+      slack_mu = 1.0;  // Pass 1 init
+    } else {
+      slack_mu = std::min(slack_mu, 100.0);  // Pass 2: cap inherited mu
+    }
+    slack_Kset = cube(n_red, n_red, N, fill::zeros);
+    slack_dset = mat(n_red, N, fill::zeros);
+    slack_Sset_new = mat(n_red, N, fill::zeros);
+    // Compute initial slacks from dynamics defects
+    initSlacksFromDefects(dt0, traj, vecs);
+  }
 
   tuple<mat, double> viol = OldPlanner::maxViol(traj,vecs,auglag_vals);
   mat clist = get<0>(viol);
   auglag_vals = OldPlanner::incrementAugLag(auglag_vals,clist,auglagSettings_tmp);
   AUGLAG_INFO_FORM auglag_vals_clean = make_tuple(0*lambdaSet,0,0*muSet);
   double LA0 = OldPlanner::cost2Func(traj, vecs, auglag_vals, &costSettings_tmp);
+  if (use_infeasible_start) { LA0 += slackCost(slack_Sset); }
   double LA = LA0;
-  double LAnc = OldPlanner::cost2Func(traj, vecs, auglag_vals_clean, &costSettings_tmp);;
+  double LAnc = OldPlanner::cost2Func(traj, vecs, auglag_vals_clean, &costSettings_tmp);
 
 
   double cmaxtmp = 0.0;
@@ -2040,8 +2368,13 @@ ALILQR_OUTPUT_FORM OldPlanner::alilqr(double dt0,TRAJECTORY_FORM traj, VECTOR_IN
     regs = make_tuple(regInit_tmp,0.0);
     //Find initial cost and init dLA
     LA = OldPlanner::cost2Func(traj,vecs, auglag_vals, &costSettings_tmp);
+    if (use_infeasible_start) { LA += slackCost(slack_Sset); }
     if(verbose){
       OldPlanner::costInfo(traj, vecs, auglag_vals,&costSettings_tmp);
+      if (use_infeasible_start) {
+        cout << "  slack cost: " << slackCost(slack_Sset) << " slack_mu: " << slack_mu
+             << " slack_norm: " << norm(slack_Sset, "fro") << " slack_max: " << abs(slack_Sset).max() << "\n";
+      }
     }
     //inner loop
     for(int ii = 0; ii < maxIlqrIter_tmp; ii++)
@@ -2097,6 +2430,26 @@ ALILQR_OUTPUT_FORM OldPlanner::alilqr(double dt0,TRAJECTORY_FORM traj, VECTOR_IN
     }
     //update lambdaSet, etc.
     auglag_vals = OldPlanner::incrementAugLag(auglag_vals,clist,auglagSettings_tmp);
+
+    // Update slack augmented Lagrangian (same schedule as regular constraints)
+    if (use_infeasible_start) {
+      double LMmax_tmp = get<1>(auglagSettings_tmp);
+      double penMax_tmp = get<3>(auglagSettings_tmp);
+      double penScale_aug = get<4>(auglagSettings_tmp);
+      for (int k = 0; k < N - 1; k++) {
+        slack_lambdaSet.col(k) += slack_mu * slack_Sset.col(k);
+        slack_lambdaSet.col(k) = clamp(slack_lambdaSet.col(k), -LMmax_tmp, LMmax_tmp);
+        // No non-negativity clamp: equality constraint s=0, not inequality
+      }
+      // Slack penalty uses its own max (decoupled from constraint penalty)
+      slack_mu = min(slack_penalty_max, penScale_aug * slack_mu);
+      if (verbose) {
+        cout << "  Slack AL update: mu=" << slack_mu << " mu_eff=" << (slack_mu + slack_w)
+             << " |lambda|=" << norm(slack_lambdaSet, "fro")
+             << " |s|=" << norm(slack_Sset, "fro")
+             << " max|s|=" << abs(slack_Sset).max() << "\n";
+      }
+    }
   }
   cout << "ALILQR: " << iter << " total iters, " << current_outer_iter+1 << " outer, final grad=" << grad << " dLA=" << dLA << " cost=" << LA << endl;
   if(verbose){cout<<"out of loops\n";}
@@ -2278,6 +2631,19 @@ bool OldPlanner::outerBreak(AUGLAG_INFO_FORM auglag_vals, double cmaxtmp,BREAK_S
   mat muSet = get<2>(auglag_vals);
   double cmax_tmp = get<7>(breakSettings_tmp);
   double penMax_tmp = get<3>(auglagSettings_tmp);
+
+  // When using infeasible start, don't break if slacks are still large
+  if (use_infeasible_start && slack_Sset.n_elem > 0) {
+    double slack_max = abs(slack_Sset).max();
+    double slack_tol = 1e-3;  // Must drive slacks below this to exit
+    if (slack_max > slack_tol) {
+      if (verbose) {
+        cout << "outerBreak blocked: slack_max=" << slack_max << " > " << slack_tol << "\n";
+      }
+      return false;
+    }
+  }
+
   if (((cmaxtmp<cmax_tmp)|| (muSet.max() >= penMax_tmp)))
   {
     if(verbose) {
@@ -2642,12 +3008,13 @@ tuple<BACKWARD_PASS_RESULTS_FORM, REG_PAIR> OldPlanner::backwardPass(double dt0,
     //
     if (k>0){ukp = Uset.col(k-1);}else{ukp = Uset.col(0);}
     vec xkp1 = (k < N-1) ? vec(Xset.col(k+1)) : xk;  // Next state for path length cost
+    vec xkm1 = (k > 0) ? vec(Xset.col(k-1)) : vec();  // Previous state for backward path length gradient
     ek = ECIvec.col(k);
     if((ek.n_elem==3)||((ek.n_elem==4)&&(isnan(ek(0))))){
       ek = ek.tail(3);
-      costJac = sat.veccostJacobians(k, N, xk, xkp1, Uset.col(k), ukp,satvec.col(k),ek,Bset.col(k), costSettings_tmp);
+      costJac = sat.veccostJacobians(k, N, xk, xkp1, Uset.col(k), ukp,satvec.col(k),ek,Bset.col(k), costSettings_tmp, xkm1);
     }else{
-      costJac = sat.quatcostJacobians(k, N, xk, xkp1, Uset.col(k), ukp,satvec.col(k),ek,Bset.col(k), costSettings_tmp);
+      costJac = sat.quatcostJacobians(k, N, xk, xkp1, Uset.col(k), ukp,satvec.col(k),ek,Bset.col(k), costSettings_tmp, xkm1);
     }
 
     cnstrJac = sat.constraintJacobians(k, N,Uset.col(k), xk,sunk);
@@ -2680,10 +3047,17 @@ tuple<BACKWARD_PASS_RESULTS_FORM, REG_PAIR> OldPlanner::backwardPass(double dt0,
       Pk_reg = Pk + rho * mat(sat.reduced_state_N(), sat.reduced_state_N()).eye();
     }
 
-    Qkxx = costJac.lxx + trans(Aqk)*Pk_reg*Aqk + trans(ckx)*Imuk*ckx ;
+    // Infeasible start: use augmented controls approach (not Schur complement).
+    // Augment ū = [u; s], B̄ = [B; I]. Solve the larger (m+n)×(m+n) Q̄uu directly.
+    // Better conditioned than Schur because μI only appears in slack portion.
+    // No state-space regularization needed: B̄=[B;I] is always full rank.
+    mat Pk_use = Pk_reg;  // for standard iLQR (no slacks)
+    vec pk_use = pk;
+
+    Qkxx = costJac.lxx + trans(Aqk)*Pk*Aqk + trans(ckx)*Imuk*ckx ;
     Qkx = costJac.lx + trans(Aqk)*pk + trans(ckx)*viol;
     if(useDynamicsHess_tmp){
-      Qkxx += vecOverCube(pk,ddxd__dxdxQ);
+      Qkxx += vecOverCube(pk_use,ddxd__dxdxQ);
     }
     if(useConstraintsHess_tmp){
       Qkxx += vecOverCube(viol,get<2>(cnstrHess));//mat(sum(get<2>(cnstrHess) % violcxx,2));
@@ -2728,11 +3102,11 @@ tuple<BACKWARD_PASS_RESULTS_FORM, REG_PAIR> OldPlanner::backwardPass(double dt0,
       k--;
       continue;
     }
-    Qkux = costJac.lux + trans(Bqk)*Pk_reg*Aqk + trans(cku)*Imuk*ckx;
+    Qkux = costJac.lux + trans(Bqk)*Pk*Aqk + trans(cku)*Imuk*ckx;
     Qku = costJac.lu + trans(Bqk)*pk + trans(cku)*viol;
 
     //find Qkuu and Qkuureg
-    Qkuu = costJac.luu + trans(Bqk)*Pk_reg*Bqk + trans(cku)*Imuk*cku;
+    Qkuu = costJac.luu + trans(Bqk)*Pk*Bqk + trans(cku)*Imuk*cku;
 
 
     if(useDynamicsHess_tmp){
@@ -2744,19 +3118,59 @@ tuple<BACKWARD_PASS_RESULTS_FORM, REG_PAIR> OldPlanner::backwardPass(double dt0,
       Qkuu += vecOverCube(viol,get<0>(cnstrHess));//mat(sum(get<0>(cnstrHess) % violcuu,2));
     }
 
+    // Augmented controls for infeasible start: ū = [u; s], B̄ = [B; I]
+    // Build augmented Q̄uu (m+n × m+n), Q̄ux (m+n × n), Q̄u (m+n × 1)
+    // Slack portion: Q_ss = P + μ_eff·I, Q_sx = P·A, Q_su = P·B, Q_s = p + λ + μ_eff·s
+    bool augmented = use_infeasible_start && k < N-1;
+    mat Qkuu_aug, Qkux_aug, Qkuureg_aug;
+    vec Qku_aug;
+    if (augmented) {
+      int m = sat.control_N();
+      int n_red = sat.reduced_state_N();
+      double mu_eff = slack_mu + slack_w;
+
+      // Q̄uu = [Quu,     B^T P  ]   (m+n × m+n)
+      //        [P B,   P + μ_eff I]
+      Qkuu_aug = mat(m + n_red, m + n_red, fill::zeros);
+      Qkuu_aug(span(0, m-1), span(0, m-1)) = Qkuu;
+      Qkuu_aug(span(0, m-1), span(m, m+n_red-1)) = trans(Bqk) * Pk;
+      Qkuu_aug(span(m, m+n_red-1), span(0, m-1)) = Pk * Bqk;
+      Qkuu_aug(span(m, m+n_red-1), span(m, m+n_red-1)) = Pk + mu_eff * mat(n_red, n_red, fill::eye);
+      Qkuu_aug = 0.5 * (Qkuu_aug + Qkuu_aug.t());
+
+      // Q̄ux = [Qux ]   (m+n × n)
+      //        [P A ]
+      Qkux_aug = mat(m + n_red, n_red, fill::zeros);
+      Qkux_aug.rows(0, m-1) = Qkux;
+      Qkux_aug.rows(m, m+n_red-1) = Pk * Aqk;
+
+      // Q̄u = [Qu              ]   (m+n × 1)
+      //       [p + λ + μ_eff·s ]
+      vec lam_s = (!slack_lambdaSet.is_empty() && k < (int)slack_lambdaSet.n_cols)
+                  ? vec(slack_lambdaSet.col(k)) : vec(n_red, fill::zeros);
+      vec s_k = (!slack_Sset.is_empty() && k < (int)slack_Sset.n_cols)
+                ? vec(slack_Sset.col(k)) : vec(n_red, fill::zeros);
+      Qku_aug = vec(m + n_red, fill::zeros);
+      Qku_aug.head(m) = Qku;
+      Qku_aug.tail(n_red) = pk + lam_s + mu_eff * s_k;
+    }
+
     rho = get<0>(regs);
-    reset |= (Qkuu.has_nan()||Qkuu.has_inf());
+    // Choose which Q matrices to use for the solve
+    mat& Qsolve_uu = augmented ? Qkuu_aug : Qkuu;
+    mat& Qsolve_ux = augmented ? Qkux_aug : Qkux;
+    vec& Qsolve_u  = augmented ? Qku_aug  : Qku;
+
+    reset |= (Qsolve_uu.has_nan()||Qsolve_uu.has_inf());
     if(verbose&&reset){
-      cout<<"Qkuu has nan or inf: "<<Qkuu.has_nan()<<" "<<Qkuu.has_inf()<<"\n";
+      cout<<"Qkuu has nan or inf: "<<Qsolve_uu.has_nan()<<" "<<Qsolve_uu.has_inf()<<"\n";
     }
     if(!reset){
 
-        // reset |= !Qkuu.is_symmetric();
-        Qkuu = 0.5*(Qkuu+Qkuu.t());//trimatu(Qkuu)+trans(trimatu(Qkuu,1));
+        Qsolve_uu = 0.5*(Qsolve_uu+Qsolve_uu.t());
 
-        // Condition number monitoring for ill-conditioning detection
         if(verbose){
-          double cond_num = arma::cond(Qkuu);
+          double cond_num = arma::cond(Qsolve_uu);
           if(cond_num > 1e10){
             cout << "WARNING: Qkuu condition number = " << cond_num << " at k=" << k << endl;
           }
@@ -2784,11 +3198,19 @@ tuple<BACKWARD_PASS_RESULTS_FORM, REG_PAIR> OldPlanner::backwardPass(double dt0,
       // Control-space regularization: conditional based on regMode_tmp
       // 0=control-space only, 1=state-space only, 2=both
       bool useControlReg = (regMode_tmp == 0 || regMode_tmp == 2);
-      if (useControlReg) {
+      if (augmented) {
+        // For augmented system: regularize entire matrix with rho·I
+        // The slack portion has μ_eff·I but coupling B^T·P / P·B can make
+        // the full matrix indefinite when P has negative eigenvalues (cross-term).
+        int m = sat.control_N();
+        int n_red = sat.reduced_state_N();
+        Qkuureg_aug = Qkuu_aug + rho * mat(m + n_red, m + n_red, fill::eye);
+      } else if (useControlReg) {
         Qkuureg = Qkuu + rho*mat(sat.control_N(),sat.control_N()).eye();
       } else {
         Qkuureg = Qkuu;
       }
+      mat& Qsolve_uureg = augmented ? Qkuureg_aug : Qkuureg;
 
 
 
@@ -2817,47 +3239,65 @@ tuple<BACKWARD_PASS_RESULTS_FORM, REG_PAIR> OldPlanner::backwardPass(double dt0,
       // Qkuureg_chol = eigvecs*diagmat(1.0/clamp(eigs+rho,rho,datum::inf))*eigvecs.t();
       // eigsreg = eigs + rho;
       // reset |= !chol(Qkuureg_chol,Qkuureg_chol_piv,Qkuureg,"lower","matrix"); //cheap check for positive-definiteness
-      reset |= !chol(Qkuureg_chol,Qkuureg);//,"lower","matrix"); //cheap check for positive-definiteness
+      mat Qkuureg_chol_solve;
+      reset |= !chol(Qkuureg_chol_solve, Qsolve_uureg);
 
-      reset |= (Qkuureg_chol.has_nan()||Qkuureg_chol.has_inf());
+      reset |= (Qkuureg_chol_solve.has_nan()||Qkuureg_chol_solve.has_inf());
       if(verbose&&reset){
-        cout<<"Qkuu_reg not PD!\n";//has eigs<=-rho: "<<min(eigs)<<" < "<<-rho<<"\n";
+        cout<<"Qkuu_reg not PD!\n";
         cout<<"k "<<k<<"\n";
-        cout<<Qkuu<<"\n";
-        cout<<Qku.t()<<"\n";
+        cout<<Qsolve_uu<<"\n";
+        cout<<Qsolve_u.t()<<"\n";
       }
       if(!reset){
-        if(Qkuureg.has_nan()||Qkuureg.has_inf()){
+        if(Qsolve_uureg.has_nan()||Qsolve_uureg.has_inf()){
           if(verbose){
-            cout<<"noreg "<<Qkuu<<"\n";
-            cout<<"reg "<<Qkuureg<<"\n";
-            cout<<"rho "<<rho<<"\n";
-            cout<<"eigs "<<eigs<<"\n";
-            cout<<"cxeigs "<<cxeigs<<"\n";
-            cout<<"somehow regularized Qkuu has nan/inf but nonregularized does not\n";
+            cout<<"somehow regularized Qkuu has nan/inf\n";
           }
           throw("somehow regularized Qkuu has nan/inf but nonregularized does not");
         }
-        reset |= !solve(Kk,Qkuureg, Qkux,solve_opts::likely_sympd+solve_opts::fast);//17% faster than no_approx, same accuracy
-        if(verbose&&reset){
-          cout<<"Solving Kk failed \n";
+        // Solve augmented or standard system
+        mat Kk_full;
+        vec dk_full;
+        reset |= !solve(Kk_full, Qsolve_uureg, Qsolve_ux, solve_opts::likely_sympd+solve_opts::fast);
+        if(verbose&&reset){ cout<<"Solving Kk failed \n"; }
+        reset |= !solve(dk_full, Qsolve_uureg, Qsolve_u, solve_opts::likely_sympd+solve_opts::fast);
+        if(verbose&&reset){ cout<<"Solving dk failed \n"; }
+        reset |= (dk_full.has_nan()||dk_full.has_inf());
+        reset |= (Kk_full.has_nan()||Kk_full.has_inf());
+
+        if (!reset) {
+          if (augmented) {
+            // Extract control gains (top m rows) and slack gains (bottom n rows)
+            int m = sat.control_N();
+            int n_red = sat.reduced_state_N();
+            Kk = -Kk_full.rows(0, m-1);
+            dk = -dk_full.head(m);
+            slack_Kset.slice(k) = -Kk_full.rows(m, m+n_red-1);
+            slack_dset.col(k) = -dk_full.tail(n_red);
+          } else {
+            Kk = -Kk_full;
+            dk = -dk_full;
+          }
         }
-        reset |= !solve(dk,Qkuureg, Qku,solve_opts::likely_sympd+solve_opts::fast);//17% faster than no_approx, same accuracy
-        // dk = Qkuureg_chol*Qku;
-        if(verbose&&reset){
-          cout<<"Solving dk failed \n";
-        }
-        reset |= (dk.has_nan()||dk.has_inf());
-        reset |= (Kk.has_nan()||Kk.has_inf());
       }
     }
     if(!reset){
-      dk *= -1;
-      Kk *= -1;
       Kset.slice(k) = Kk;
       dset.col(k) = dk;
-      pk = Qkx + trans(Kk)*Qkuu*dk + trans(Kk)*Qku + trans(Qkux)*dk;
-      Pk = Qkxx + trans(Kk)*Qkuu*Kk + trans(Kk)*Qkux + trans(Qkux)*Kk;
+
+      if (augmented) {
+        // Ricatti update using full augmented K̄ = [K; Ks], d̄ = [d; ds]
+        int m = sat.control_N();
+        int n_red = sat.reduced_state_N();
+        mat Kbar = join_vert(Kk, mat(slack_Kset.slice(k)));  // (m+n) × n
+        vec dbar = join_vert(dk, vec(slack_dset.col(k)));     // (m+n) × 1
+        pk = Qkx + trans(Kbar)*Qkuu_aug*dbar + trans(Kbar)*Qku_aug + trans(Qkux_aug)*dbar;
+        Pk = Qkxx + trans(Kbar)*Qkuu_aug*Kbar + trans(Kbar)*Qkux_aug + trans(Qkux_aug)*Kbar;
+      } else {
+        pk = Qkx + trans(Kk)*Qkuu*dk + trans(Kk)*Qku + trans(Qkux)*dk;
+        Pk = Qkxx + trans(Kk)*Qkuu*Kk + trans(Kk)*Qkux + trans(Qkux)*Kk;
+      }
       if(Pk.has_nan()||Pk.has_inf()){
         if(verbose){
           cout<<"Costjac "<<costJac.lxx<<"\n";
@@ -2954,6 +3394,7 @@ tuple<TRAJECTORY_FORM,double, REG_PAIR> OldPlanner::forwardPass(double dt0,TRAJE
   bool everythingOK = true;
 
   double LA = cost2Func(traj,vecs,auglag_vals, costSettings_tmp_ptr);
+  if (use_infeasible_start) { LA += slackCost(slack_Sset); }
   // newTraj = generateTrajectory(dt0,0.0,traj,vecs, Kset, dset,useDist);
   // newX = get<0>(newTraj);
   // newU = get<1>(newTraj);
@@ -3000,6 +3441,7 @@ tuple<TRAJECTORY_FORM,double, REG_PAIR> OldPlanner::forwardPass(double dt0,TRAJE
     z = -1.0;
     if(!(newX.has_nan()||newX.has_inf()||newU.has_nan()||newU.has_inf())){//||(abs(newX).max()>100000000.0))) {
       newLA = cost2Func(newTraj,vecs,auglag_vals, costSettings_tmp_ptr);
+      if (use_infeasible_start) { newLA += slackCost(slack_Sset_new); }
       double newLAtest = cost2Func(traj,vecs,auglag_vals, costSettings_tmp_ptr);
         // if(verbose){cout<<"calced new LA\n";}
       // everythingOK |= !isnan(newLA);
@@ -3042,6 +3484,10 @@ tuple<TRAJECTORY_FORM,double, REG_PAIR> OldPlanner::forwardPass(double dt0,TRAJE
     throw("Increased cost in forwardpass");
   }
   if(verbose){cout<<"*************** z "<<z<<"\n";}
+  // Commit new slacks on acceptance
+  if (use_infeasible_start && !slack_Sset_new.is_empty()) {
+    slack_Sset = slack_Sset_new;
+  }
   return make_tuple(newTraj, newLA, regs);
 }
 

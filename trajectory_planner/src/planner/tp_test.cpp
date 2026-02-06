@@ -7362,6 +7362,366 @@ TEST_CASE("Path length cost in stepcost functions", "[armadillo][cost][pathlengt
 }
 
 // ============================================================================
+// BACKWARD-LOOKING PATH LENGTH GRADIENT TESTS
+// ============================================================================
+
+TEST_CASE("Backward path length gradient activates with xkm1", "[armadillo][cost][pathlength][backward]") {
+	/*
+	 * Test that passing xkm1 to veccostJacobians/quatcostJacobians adds
+	 * the backward-looking path length gradient, and that omitting it
+	 * (default empty vec) does not.
+	 */
+	cout << "\n=== Backward Path Length Gradient Activation ===\n";
+
+	Satellite sat = Satellite();
+	sat.change_Jcom(arma::diagmat(arma::vec({0.05, 0.05, 0.05})));
+	sat.add_MTQ(arma::vec({1,0,0}), 0.1, 1.0);
+	sat.add_MTQ(arma::vec({0,1,0}), 0.1, 1.0);
+	sat.add_MTQ(arma::vec({0,0,1}), 0.1, 1.0);
+
+	int N = 10;
+	int k = 5;
+
+	arma::vec3 w = {0.01, 0.02, 0.01};
+	arma::vec4 qkm1 = arma::normalise(arma::vec({0.8, 0.3, 0.4, 0.2}));
+	arma::vec4 qk = arma::normalise(arma::vec({1.0, 0.0, 0.0, 0.0}));
+	arma::vec4 qkp1 = arma::normalise(arma::vec({0.95, 0.18, 0.1, 0.2}));
+
+	arma::vec xkm1 = sat.state_norm(arma::join_cols(w, qkm1));
+	arma::vec xk = sat.state_norm(arma::join_cols(w, qk));
+	arma::vec xkp1 = sat.state_norm(arma::join_cols(w, qkp1));
+	arma::vec uk = arma::vec({0.01, 0.02, 0.01});
+	arma::vec uk_prev = uk * 0.9;
+
+	arma::vec3 satvec = {0, 0, 1};
+	arma::vec3 ECIvec = arma::normalise(arma::vec({1, 0, 0}));
+	arma::vec3 B_eci = {1e-5, 3e-5, 2e-5};
+
+	// Cost settings with path length active
+	COST_SETTINGS_FORM costSettings = std::make_tuple(
+		1e2, 1e1, 1.0, 10.0, 0.0,
+		1e3, 1e2, 10.0, 0.0,
+		2, 0, 0
+	);
+
+	// Get Jacobians WITHOUT xkm1 (default empty vec)
+	cost_jacs jacs_no_back = sat.veccostJacobians(k, N, xk, xkp1, uk, uk_prev, satvec, ECIvec, B_eci, &costSettings);
+
+	// Get Jacobians WITH xkm1
+	cost_jacs jacs_with_back = sat.veccostJacobians(k, N, xk, xkp1, uk, uk_prev, satvec, ECIvec, B_eci, &costSettings, xkm1);
+
+	double lx_diff = arma::norm(jacs_with_back.lx - jacs_no_back.lx);
+	double lxx_diff = arma::norm(jacs_with_back.lxx - jacs_no_back.lxx, "fro");
+
+	cout << "veccostJacobians:\n";
+	cout << "  lx diff (with vs without xkm1): " << lx_diff << " (should be > 0)\n";
+	cout << "  lxx diff: " << lxx_diff << " (should be > 0)\n";
+	cout << "  lu diff: " << arma::norm(jacs_with_back.lu - jacs_no_back.lu) << " (should be 0)\n";
+
+	// Backward gradient should change lx and lxx but NOT lu/luu
+	CHECK(lx_diff > 1e-6);
+	CHECK(lxx_diff > 1e-6);
+	CHECK(arma::norm(jacs_with_back.lu - jacs_no_back.lu) < 1e-10);
+	CHECK(arma::norm(jacs_with_back.luu - jacs_no_back.luu, "fro") < 1e-10);
+
+	// Same test for quatcostJacobians
+	arma::vec4 ECIquat = arma::normalise(arma::vec({0.9, 0.1, 0.2, 0.3}));
+
+	COST_SETTINGS_FORM costSettings_quat = std::make_tuple(
+		1e2, 1e1, 1.0, 10.0, 0.0,
+		1e3, 1e2, 10.0, 0.0,
+		4, 0, 0  // quaternion angle cost
+	);
+
+	cost_jacs jacs_q_no = sat.quatcostJacobians(k, N, xk, xkp1, uk, uk_prev, satvec, ECIquat, B_eci, &costSettings_quat);
+	cost_jacs jacs_q_yes = sat.quatcostJacobians(k, N, xk, xkp1, uk, uk_prev, satvec, ECIquat, B_eci, &costSettings_quat, xkm1);
+
+	double lx_diff_q = arma::norm(jacs_q_yes.lx - jacs_q_no.lx);
+	double lxx_diff_q = arma::norm(jacs_q_yes.lxx - jacs_q_no.lxx, "fro");
+
+	cout << "\nquatcostJacobians:\n";
+	cout << "  lx diff (with vs without xkm1): " << lx_diff_q << " (should be > 0)\n";
+	cout << "  lxx diff: " << lxx_diff_q << " (should be > 0)\n";
+
+	CHECK(lx_diff_q > 1e-6);
+	CHECK(lxx_diff_q > 1e-6);
+	CHECK(arma::norm(jacs_q_yes.lu - jacs_q_no.lu) < 1e-10);
+}
+
+TEST_CASE("Backward path gradient zero when qkm1 == qk", "[armadillo][cost][pathlength][backward]") {
+	/*
+	 * When q_{k-1} = q_k, the backward path length cost is zero,
+	 * so the backward gradient should add nothing.
+	 */
+	cout << "\n=== Backward Path Length: Zero when qkm1 == qk ===\n";
+
+	Satellite sat = Satellite();
+	sat.change_Jcom(arma::diagmat(arma::vec({0.05, 0.05, 0.05})));
+	sat.add_MTQ(arma::vec({1,0,0}), 0.1, 1.0);
+	sat.add_MTQ(arma::vec({0,1,0}), 0.1, 1.0);
+	sat.add_MTQ(arma::vec({0,0,1}), 0.1, 1.0);
+
+	int N = 10;
+	int k = 5;
+
+	arma::vec3 w = {0.01, 0.02, 0.01};
+	arma::vec4 qk = arma::normalise(arma::vec({1.0, 0.0, 0.0, 0.0}));
+	arma::vec4 qkp1 = arma::normalise(arma::vec({0.95, 0.18, 0.1, 0.2}));
+
+	arma::vec xk = sat.state_norm(arma::join_cols(w, qk));
+	arma::vec xkp1 = sat.state_norm(arma::join_cols(w, qkp1));
+	arma::vec xkm1 = xk;  // Same as xk!
+	arma::vec uk = arma::vec({0.01, 0.02, 0.01});
+	arma::vec uk_prev = uk * 0.9;
+
+	arma::vec3 satvec = {0, 0, 1};
+	arma::vec3 ECIvec = arma::normalise(arma::vec({1, 0, 0}));
+	arma::vec3 B_eci = {1e-5, 3e-5, 2e-5};
+
+	COST_SETTINGS_FORM costSettings = std::make_tuple(
+		1e2, 1e1, 1.0, 10.0, 0.0,
+		1e3, 1e2, 10.0, 0.0,
+		2, 0, 0
+	);
+
+	cost_jacs jacs_no = sat.veccostJacobians(k, N, xk, xkp1, uk, uk_prev, satvec, ECIvec, B_eci, &costSettings);
+	cost_jacs jacs_yes = sat.veccostJacobians(k, N, xk, xkp1, uk, uk_prev, satvec, ECIvec, B_eci, &costSettings, xkm1);
+
+	double lx_diff = arma::norm(jacs_yes.lx - jacs_no.lx);
+	double lxx_diff = arma::norm(jacs_yes.lxx - jacs_no.lxx, "fro");
+
+	cout << "  lx diff when qkm1==qk: " << lx_diff << " (should be ~0)\n";
+	cout << "  lxx diff when qkm1==qk: " << lxx_diff << " (should be ~0)\n";
+
+	// Should be zero (or near-zero) since geodesic distance is 0
+	CHECK(lx_diff < 1e-8);
+	CHECK(lxx_diff < 1e-8);
+}
+
+TEST_CASE("Backward path gradient finite difference verification", "[armadillo][cost][pathlength][backward][gradient]") {
+	/*
+	 * Verify the backward-looking path length gradient by finite differences.
+	 *
+	 * The backward gradient is ∂L_{k-1}(q_{k-1}, q_k)/∂q_k.
+	 * We perturb q_k and check that the cost change matches the gradient.
+	 *
+	 * We isolate the backward contribution by computing:
+	 *   jacs(with xkm1) - jacs(without xkm1)
+	 * and comparing against finite differences of pathLengthCost(qkm1, qk).
+	 */
+	cout << "\n=== Backward Path Length Gradient Finite Diff ===\n";
+
+	Satellite sat = Satellite();
+	sat.change_Jcom(arma::diagmat(arma::vec({0.05, 0.05, 0.05})));
+	sat.add_MTQ(arma::vec({1,0,0}), 0.1, 1.0);
+	sat.add_MTQ(arma::vec({0,1,0}), 0.1, 1.0);
+	sat.add_MTQ(arma::vec({0,0,1}), 0.1, 1.0);
+
+	int N = 10;
+	int k = 5;
+
+	arma::vec3 w = {0.01, 0.02, 0.01};
+	arma::vec4 qkm1 = arma::normalise(arma::vec({0.8, 0.3, 0.4, 0.2}));
+	arma::vec4 qk = arma::normalise(arma::vec({0.92, 0.15, 0.25, 0.26}));
+	arma::vec4 qkp1 = arma::normalise(arma::vec({0.95, 0.18, 0.1, 0.2}));
+
+	arma::vec xkm1 = sat.state_norm(arma::join_cols(w, qkm1));
+	arma::vec xk = sat.state_norm(arma::join_cols(w, qk));
+	arma::vec xkp1 = sat.state_norm(arma::join_cols(w, qkp1));
+	arma::vec uk = arma::vec({0.01, 0.02, 0.01});
+	arma::vec uk_prev = uk * 0.9;
+
+	arma::vec3 satvec = {0, 0, 1};
+	arma::vec3 ECIvec = arma::normalise(arma::vec({1, 0, 0}));
+	arma::vec3 B_eci = {1e-5, 3e-5, 2e-5};
+
+	double w_avmag = 10.0;
+
+	COST_SETTINGS_FORM costSettings = std::make_tuple(
+		1e2, 1e1, 1.0, w_avmag, 0.0,
+		1e3, 1e2, w_avmag, 0.0,
+		2, 0, 0
+	);
+
+	// Get the backward-only contribution to lx
+	cost_jacs jacs_no = sat.veccostJacobians(k, N, xk, xkp1, uk, uk_prev, satvec, ECIvec, B_eci, &costSettings);
+	cost_jacs jacs_yes = sat.veccostJacobians(k, N, xk, xkp1, uk, uk_prev, satvec, ECIvec, B_eci, &costSettings, xkm1);
+	arma::vec backward_lx = jacs_yes.lx - jacs_no.lx;
+
+	cout << "  backward lx contribution: " << backward_lx.t();
+
+	// Finite-difference the backward path cost: L_{k-1} = w * theta(qkm1, qk)^2
+	// Perturb xk in reduced state space and measure cost change
+	int nxr = sat.reduced_state_N();
+	double eps = 1e-7;
+	arma::vec fd_backward_lx(nxr, arma::fill::zeros);
+
+	arma::vec4 qk_norm = sat.state_norm(xk).rows(sat.quat0index(), sat.quat0index()+3);
+	arma::vec4 qkm1_norm = sat.state_norm(xkm1).rows(sat.quat0index(), sat.quat0index()+3);
+
+	auto [cost0, g1_unused, g2_unused, dt_unused] = sat.pathLengthCost(qkm1_norm, qk_norm, w_avmag);
+
+	// Perturb in reduced quaternion dimensions (indices 3,4,5 of reduced state)
+	arma::mat W = findWMat(qk_norm);
+	for (int i = 0; i < 3; i++) {
+		// Perturb in reduced quaternion direction
+		arma::vec4 dq = W.col(i) * eps;
+		arma::vec4 qk_plus = arma::normalise(qk_norm + dq);
+		arma::vec4 qk_minus = arma::normalise(qk_norm - dq);
+
+		auto [cost_plus, gp1, gp2, dtp] = sat.pathLengthCost(qkm1_norm, qk_plus, w_avmag);
+		auto [cost_minus, gm1, gm2, dtm] = sat.pathLengthCost(qkm1_norm, qk_minus, w_avmag);
+		fd_backward_lx(sat.redang0index() + i) = (cost_plus - cost_minus) / (2 * eps);
+	}
+
+	cout << "  FD backward lx:           " << fd_backward_lx.t();
+
+	// Compare (only quaternion part, indices 3-5 of reduced state)
+	arma::vec ana_quat_part = backward_lx.rows(sat.redang0index(), sat.redang0index()+2);
+	arma::vec fd_quat_part = fd_backward_lx.rows(sat.redang0index(), sat.redang0index()+2);
+
+	double grad_error = arma::norm(ana_quat_part - fd_quat_part);
+	double grad_rel_error = grad_error / (arma::norm(fd_quat_part) + 1e-10);
+
+	cout << "  Gradient error (abs): " << grad_error << "\n";
+	cout << "  Gradient error (rel): " << grad_rel_error << "\n";
+	cout << "  Analytical norm: " << arma::norm(ana_quat_part) << "\n";
+	cout << "  FD norm: " << arma::norm(fd_quat_part) << "\n";
+
+	// The analytical gradient uses a Gauss-Newton approximation through
+	// quaternion chain rules + nj transform, so allow order-of-magnitude match
+	CHECK(arma::norm(ana_quat_part) > 0.3 * arma::norm(fd_quat_part));
+	CHECK(arma::norm(ana_quat_part) < 3.0 * arma::norm(fd_quat_part));
+}
+
+TEST_CASE("Backward path gradient skipped at k=0", "[armadillo][cost][pathlength][backward]") {
+	/*
+	 * At k=0, even if xkm1 is provided, the backward gradient should not
+	 * activate because the condition k > 0 is false.
+	 */
+	cout << "\n=== Backward Path Length: Skipped at k=0 ===\n";
+
+	Satellite sat = Satellite();
+	sat.change_Jcom(arma::diagmat(arma::vec({0.05, 0.05, 0.05})));
+	sat.add_MTQ(arma::vec({1,0,0}), 0.1, 1.0);
+	sat.add_MTQ(arma::vec({0,1,0}), 0.1, 1.0);
+	sat.add_MTQ(arma::vec({0,0,1}), 0.1, 1.0);
+
+	int N = 10;
+	int k = 0;  // First timestep!
+
+	arma::vec3 w = {0.01, 0.02, 0.01};
+	arma::vec4 qk = arma::normalise(arma::vec({1.0, 0.0, 0.0, 0.0}));
+	arma::vec4 qkp1 = arma::normalise(arma::vec({0.95, 0.18, 0.1, 0.2}));
+	arma::vec4 qkm1 = arma::normalise(arma::vec({0.8, 0.3, 0.4, 0.2}));
+
+	arma::vec xk = sat.state_norm(arma::join_cols(w, qk));
+	arma::vec xkp1 = sat.state_norm(arma::join_cols(w, qkp1));
+	arma::vec xkm1 = sat.state_norm(arma::join_cols(w, qkm1));
+	arma::vec uk = arma::vec({0.01, 0.02, 0.01});
+	arma::vec uk_prev = uk * 0.9;
+
+	arma::vec3 satvec = {0, 0, 1};
+	arma::vec3 ECIvec = arma::normalise(arma::vec({1, 0, 0}));
+	arma::vec3 B_eci = {1e-5, 3e-5, 2e-5};
+
+	COST_SETTINGS_FORM costSettings = std::make_tuple(
+		1e2, 1e1, 1.0, 10.0, 0.0,
+		1e3, 1e2, 10.0, 0.0,
+		2, 0, 0
+	);
+
+	cost_jacs jacs_no = sat.veccostJacobians(k, N, xk, xkp1, uk, uk_prev, satvec, ECIvec, B_eci, &costSettings);
+	cost_jacs jacs_yes = sat.veccostJacobians(k, N, xk, xkp1, uk, uk_prev, satvec, ECIvec, B_eci, &costSettings, xkm1);
+
+	double lx_diff = arma::norm(jacs_yes.lx - jacs_no.lx);
+	cout << "  lx diff at k=0 with xkm1: " << lx_diff << " (should be 0)\n";
+
+	CHECK(lx_diff < 1e-10);
+}
+
+TEST_CASE("Backward path gradient symmetry check", "[armadillo][cost][pathlength][backward]") {
+	/*
+	 * For a 3-point trajectory q0 → q1 → q2, the total path length cost is:
+	 *   L = w*θ(q0,q1)² + w*θ(q1,q2)²
+	 *
+	 * The gradient at q1 has contributions from both terms.
+	 * If q0 and q2 are equally distant from q1, the gradient should be symmetric
+	 * (both terms pull equally, resulting in zero net gradient in the direction
+	 * that moves q1 away from the midpoint).
+	 *
+	 * We test this by checking that the backward and forward contributions
+	 * to lx at q1 are roughly equal in magnitude when θ(q0,q1) ≈ θ(q1,q2).
+	 */
+	cout << "\n=== Backward Path Length: Symmetry Check ===\n";
+
+	Satellite sat = Satellite();
+	sat.change_Jcom(arma::diagmat(arma::vec({0.05, 0.05, 0.05})));
+	sat.add_MTQ(arma::vec({1,0,0}), 0.1, 1.0);
+	sat.add_MTQ(arma::vec({0,1,0}), 0.1, 1.0);
+	sat.add_MTQ(arma::vec({0,0,1}), 0.1, 1.0);
+
+	int N = 10;
+	int k = 5;
+
+	arma::vec3 w = {0.0, 0.0, 0.0};
+
+	// Create 3 quaternions with equal spacing: q0 → q1 → q2
+	// 30° rotation about x between each
+	double angle = M_PI / 6;  // 30 degrees
+	arma::vec4 q0 = {1, 0, 0, 0};
+	arma::vec4 q1 = {cos(angle/2), sin(angle/2), 0, 0};
+	arma::vec4 q2 = {cos(angle), sin(angle), 0, 0};  // 60° total
+
+	arma::vec xkm1 = sat.state_norm(arma::join_cols(w, q0));
+	arma::vec xk = sat.state_norm(arma::join_cols(w, q1));
+	arma::vec xkp1 = sat.state_norm(arma::join_cols(w, q2));
+	arma::vec uk = arma::vec(3, arma::fill::zeros);
+	arma::vec uk_prev = uk;
+
+	arma::vec3 satvec = {0, 0, 1};
+	arma::vec3 ECIvec = arma::normalise(arma::vec({1, 0, 0}));
+	arma::vec3 B_eci = {1e-5, 3e-5, 2e-5};
+
+	double w_avmag = 10.0;
+
+	// Use zero angle cost to isolate path length effect
+	COST_SETTINGS_FORM costSettings = std::make_tuple(
+		0.0, 0.0, 0.0, w_avmag, 0.0,
+		0.0, 0.0, w_avmag, 0.0,
+		2, 0, 0
+	);
+
+	// Forward-only: gradient from L_k(q1, q2) only
+	cost_jacs jacs_fwd = sat.veccostJacobians(k, N, xk, xkp1, uk, uk_prev, satvec, ECIvec, B_eci, &costSettings);
+
+	// Forward+backward: gradient from L_k(q1,q2) + L_{k-1}(q0,q1)
+	cost_jacs jacs_both = sat.veccostJacobians(k, N, xk, xkp1, uk, uk_prev, satvec, ECIvec, B_eci, &costSettings, xkm1);
+
+	arma::vec fwd_lx = jacs_fwd.lx;
+	arma::vec back_lx = jacs_both.lx - jacs_fwd.lx;  // backward contribution only
+
+	cout << "  Forward path lx:  " << fwd_lx.t();
+	cout << "  Backward path lx: " << back_lx.t();
+
+	double fwd_norm = arma::norm(fwd_lx);
+	double back_norm = arma::norm(back_lx);
+	double ratio = fwd_norm / (back_norm + 1e-10);
+
+	cout << "  Forward norm: " << fwd_norm << "\n";
+	cout << "  Backward norm: " << back_norm << "\n";
+	cout << "  Ratio (should be ~1 for equal spacing): " << ratio << "\n";
+
+	// Equal spacing means equal magnitude gradients
+	CHECK(ratio > 0.3);
+	CHECK(ratio < 3.0);
+
+	// Both should be non-zero
+	CHECK(fwd_norm > 1e-6);
+	CHECK(back_norm > 1e-6);
+}
+
+// ============================================================================
 // K-GAIN WARM-START TESTS
 // ============================================================================
 

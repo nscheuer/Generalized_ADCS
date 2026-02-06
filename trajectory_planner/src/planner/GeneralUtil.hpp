@@ -35,7 +35,8 @@ double softplus_deriv2(double val, double k=1e6);
 double shifted_softplus_deriv(double val, double limit = 0.0, double k=1e6);
 double shifted_softplus_deriv2(double val, double limit = 0.0, double k=1e6);
 
-
+void chol_update_inplace(arma::mat& L, arma::vec v); 
+void chol_downdate_inplacehow (arma::mat& L, arma::vec v);
 
 double cost2AngOnly(arma::vec4 q, arma::vec3 v, arma::vec3 u);
 std::tuple<double, arma::vec4,arma::mat44> cost2ang(arma::vec4 q, arma::vec3 s, arma::vec3 e);

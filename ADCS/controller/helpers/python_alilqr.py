@@ -277,6 +277,17 @@ class PythonALILQR:
         # Don't regenerate - this can cause NaN with large timesteps
         traj = initial_traj
         
+        # Initialize slack variables for infeasible start (ALTRO-style)
+        use_infeasible = getattr(self, '_use_infeasible_start', False)
+        if use_infeasible and hasattr(self.planner, 'initSlackVariables'):
+            # Start mu high enough that (P + mu*I) is PD and P̃ retains
+            # meaningful state gradient. Cross-term gives eigs ~-100, so need mu>100.
+            self.planner.setSlackMu(max(200.0, mu_init / mu_scale))
+            self.planner.initSlackVariables(dt, traj, vecs)
+            s_norm, s_max, s_mu, s_cost = self.planner.getSlackInfo()
+            if self.verbose:
+                print(f"Infeasible start: slack_norm={s_norm:.4f}, slack_max={s_max:.4f}")
+        
         # Get initial constraint violations and increment auglag
         clist, cmax = self.planner.maxViol(traj, vecs, auglag_vals)
         auglag_vals = self.planner.incrementAugLag(auglag_vals, clist, auglag_settings)
@@ -285,8 +296,11 @@ class PythonALILQR:
         # Zero auglag for clean cost calculation
         auglag_vals_clean = (np.zeros_like(lambdaSet), 0.0, np.zeros_like(muSet))
         
-        # Initial costs
+        # Initial costs (includes slack cost if infeasible start)
         LA = self.planner.cost2Func(traj, vecs, auglag_vals, cost_settings)
+        if use_infeasible and hasattr(self.planner, 'getSlackInfo'):
+            _, _, _, s_cost = self.planner.getSlackInfo()
+            LA += s_cost
         LA_nc = self.planner.cost2Func(traj, vecs, auglag_vals_clean, cost_settings)
         
         # Initialize tracking
@@ -329,6 +343,9 @@ class PythonALILQR:
             
             # Compute cost at start of inner loop
             LA = self.planner.cost2Func(traj, vecs, auglag_vals, cost_settings)
+            if use_infeasible and hasattr(self.planner, 'getSlackInfo'):
+                _, _, _, s_cost = self.planner.getSlackInfo()
+                LA += s_cost
             
             # =================================================================
             # INNER LOOP: iLQR
@@ -470,6 +487,17 @@ class PythonALILQR:
             # Update augmented Lagrangian parameters
             auglag_vals = self.planner.incrementAugLag(auglag_vals, clist, auglag_settings)
             lambdaSet, mu, muSet = auglag_vals
+            
+            # Update slack augmented Lagrangian (infeasible start)
+            if use_infeasible and hasattr(self.planner, 'updateSlackAugLag'):
+                self.planner.updateSlackAugLag(lam_max, mu_max, mu_scale)
+                if self.verbose:
+                    s_norm, s_max, s_mu, s_cost = self.planner.getSlackInfo()
+                    print(f"    Slack AL: mu={s_mu:.2e}, |s|={s_norm:.4f}, max|s|={s_max:.4f}, cost={s_cost:.2e}")
+        
+        # Disable infeasible start after optimization (for Pass 2)
+        if use_infeasible and hasattr(self.planner, 'setUseInfeasibleStart'):
+            self.planner.setUseInfeasibleStart(False)
         
         # =====================================================================
         # Build result

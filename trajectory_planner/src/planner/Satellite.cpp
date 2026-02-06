@@ -788,6 +788,16 @@ double Satellite::stepcost_vec(int k, int N, vec xk, vec xkp1, vec uk,vec ukprev
     w_avmag = get<7>(costSettings_tmp);
     w_avang = get<8>(costSettings_tmp);
   }
+  // Apply time-varying angle cost ramp (only for running cost, k < N-1)
+  // power > 0: ramp UP (low start → full end), power < 0: ramp DOWN (full start → low end)
+  if (ang_cost_time_power != 0.0 && N > 1 && k < N-1) {
+    double t_frac = double(k) / double(N - 1);
+    double base = (ang_cost_time_power > 0.0) ? t_frac : (1.0 - t_frac);
+    double time_mult = ang_cost_time_min + (1.0 - ang_cost_time_min) * std::pow(base, std::abs(ang_cost_time_power));
+    w_ang *= time_mult;
+    // Cross-term PSD limit is 2*sqrt(w_ang*w_av); since w_ang *= m, w_avang *= sqrt(m)
+    w_avang *= std::sqrt(time_mult);
+  }
   xk = state_norm(xk);
   // vec4 qk = normalise(xk.rows(quat0index(), quat0index()+3));
   vec4 qk = xk.rows(quat0index(), quat0index()+3);
@@ -901,6 +911,16 @@ double Satellite::stepcost_quat(int k, int N, vec xk, vec xkp1, vec uk,vec ukpre
     w_av = get<6>(costSettings_tmp);
     w_avmag = get<7>(costSettings_tmp);
     w_avang = get<8>(costSettings_tmp);
+  }
+  // Apply time-varying angle cost ramp (only for running cost, k < N-1)
+  // power > 0: ramp UP (low start → full end), power < 0: ramp DOWN (full start → low end)
+  if (ang_cost_time_power != 0.0 && N > 1 && k < N-1) {
+    double t_frac = double(k) / double(N - 1);
+    double base = (ang_cost_time_power > 0.0) ? t_frac : (1.0 - t_frac);
+    double time_mult = ang_cost_time_min + (1.0 - ang_cost_time_min) * std::pow(base, std::abs(ang_cost_time_power));
+    w_ang *= time_mult;
+    // Cross-term PSD limit is 2*sqrt(w_ang*w_av); since w_ang *= m, w_avang *= sqrt(m)
+    w_avang *= std::sqrt(time_mult);
   }
   xk = state_norm(xk);
   // vec4 qk = normalise(xk.rows(quat0index(), quat0index()+3));
@@ -1019,6 +1039,23 @@ void ExtractedCostSettings::applyTerminalWeights() {
     w_av = w_av_N;
     w_avmag = w_avmag_N;
     w_avang = w_avang_N;
+}
+
+void ExtractedCostSettings::applyTimeRamp(int k, int N, double power, double min_val) {
+    // Time-varying angle cost multiplier m(k) applied to w_ang and w_avang
+    // power > 0: ramp UP   → m = min + (1-min) * (k/(N-1))^power     (low at start, full at end)
+    // power < 0: ramp DOWN → m = min + (1-min) * (1-k/(N-1))^|power|  (full at start, low at end)
+    // power = 0: disabled (no ramp)
+    // Terminal cost (k=N-1) always uses full weight
+    // min_val = floor multiplier (e.g. 0.1 = never below 10% of full cost)
+    if (power != 0.0 && N > 1 && k < N-1) {
+        double t_frac = double(k) / double(N - 1);
+        double base = (power > 0.0) ? t_frac : (1.0 - t_frac);
+        double time_mult = min_val + (1.0 - min_val) * std::pow(base, std::abs(power));
+        w_ang *= time_mult;
+        // Cross-term PSD limit is 2*sqrt(w_ang*w_av); since w_ang *= m, w_avang *= sqrt(m)
+        w_avang *= std::sqrt(time_mult);
+    }
 }
 
 mat Satellite::setupActuationCostMatrix(int k, int N, ExtractedCostSettings& settings) const {
@@ -1140,12 +1177,14 @@ std::tuple<double, vec4, vec4, vec4> Satellite::pathLengthCost(vec4 qk, vec4 qkp
 // Cost Jacobian Functions
 // ============================================================================
 
-cost_jacs  Satellite::veccostJacobians(int k, int N, vec xk, vec xkp1, vec uk,vec ukprev, vec3 satvec_k, vec3 ECIvec_k,vec3 BECI_k, COST_SETTINGS_FORM *costSettings_ptr) const
+cost_jacs  Satellite::veccostJacobians(int k, int N, vec xk, vec xkp1, vec uk,vec ukprev, vec3 satvec_k, vec3 ECIvec_k,vec3 BECI_k, COST_SETTINGS_FORM *costSettings_ptr, vec xkm1) const
 {
   ExtractedCostSettings settings = ExtractedCostSettings::fromTuple(*costSettings_ptr);
 
   // Setup actuation cost matrix (handles terminal step weight update)
   mat act_cost_mat = setupActuationCostMatrix(k, N, settings);
+  // Apply time-varying angle cost ramp after terminal weight update
+  settings.applyTimeRamp(k, N, ang_cost_time_power, ang_cost_time_min);
   vec3 magvec = vec(3).zeros();
   if (k < N-1 && number_MTQ > 0) {
     magvec = mtq_ax_mat*uk.head(number_MTQ);
@@ -1288,18 +1327,37 @@ cost_jacs  Satellite::veccostJacobians(int k, int N, vec xk, vec xkp1, vec uk,ve
       lkuu += act_cost_mat*w_u_mult;
     }
   }
-  // Path length cost: geodesic distance to next quaternion
-  // Standard Gauss-Newton: gradient 1x, Hessian = 2*w*(dtheta/dq)*(dtheta/dq)^T
+  // Path length cost: geodesic distance between consecutive quaternions
+  // Total path length gradient at x_k has TWO contributions:
+  //   1. Forward-looking: ∂L_k(q_k, q_{k+1})/∂q_k  — "pull q_k toward q_{k+1}"
+  //   2. Backward-looking: ∂L_{k-1}(q_{k-1}, q_k)/∂q_k — "pull q_k toward q_{k-1}"
+  // Both are needed for correct bidirectional path smoothing.
+  // Without (2), the optimizer only sees forward pulls, creating a unidirectional
+  // cascade that can increase path length instead of reducing it.
+  // Forward-looking: ∂L_k/∂q_k
   if (k < N-1 && w_avmag > 0 && xkp1.n_elem > 0) {
     vec xkp1_norm = state_norm(xkp1);
     vec4 qkp1 = xkp1_norm.rows(quat0index(), quat0index()+3);
     auto [cost, grad_qk, grad_qkp1, dtheta_dqd] = pathLengthCost(qk, qkp1, w_avmag);
     (void)grad_qkp1;
-    // Add gradient w.r.t. reduced quaternion (3D representation)
     lkx(span(redang0index(),redang0index()+2)) += Wq.t() * grad_qk;
     // Gauss-Newton Hessian: H = 2*weight * (∂θ/∂q)*(∂θ/∂q)^T
     vec3 dtheta_reduced = Wq.t() * (-dtheta_dqd);
     lkxx(redang0index(),redang0index(),size(3,3)) += 2.0 * w_avmag * dtheta_reduced * dtheta_reduced.t();
+  }
+  // Backward-looking: ∂L_{k-1}(q_{k-1}, q_k)/∂q_k
+  // xkm1 is the previous state from the trajectory (passed from backward pass).
+  // The cross-Hessian ∂²L_{k-1}/∂q_{k-1}∂q_k is dropped (Gauss-Newton approximation).
+  if (k > 0 && w_avmag > 0 && xkm1.n_elem > 0) {
+    vec xkm1_norm = state_norm(xkm1);
+    vec4 qkm1 = xkm1_norm.rows(quat0index(), quat0index()+3);
+    auto [cost_b, grad_qkm1, grad_qk_back, dtheta_dqd_b] = pathLengthCost(qkm1, qk, w_avmag);
+    (void)cost_b; (void)grad_qkm1;
+    // grad_qk_back is ∂L_{k-1}/∂q_k (gradient w.r.t. the second argument)
+    lkx(span(redang0index(),redang0index()+2)) += Wq.t() * grad_qk_back;
+    // Gauss-Newton Hessian for backward term
+    vec3 dtheta_reduced_b = Wq.t() * dtheta_dqd_b;
+    lkxx(redang0index(),redang0index(),size(3,3)) += 2.0 * w_avmag * dtheta_reduced_b * dtheta_reduced_b.t();
   }
 
   // mat33 cross_hess = w_avang*ddvTRTudqQ(qk,cross(sk,wk),ek);
@@ -1334,12 +1392,14 @@ cost_jacs  Satellite::veccostJacobians(int k, int N, vec xk, vec xkp1, vec uk,ve
 }
 
 
-cost_jacs  Satellite::quatcostJacobians(int k, int N, vec xk, vec xkp1, vec uk,vec ukprev, vec3 satvec_k, vec4 ECIvec_k,vec3 BECI_k, COST_SETTINGS_FORM *costSettings_ptr) const
+cost_jacs  Satellite::quatcostJacobians(int k, int N, vec xk, vec xkp1, vec uk,vec ukprev, vec3 satvec_k, vec4 ECIvec_k,vec3 BECI_k, COST_SETTINGS_FORM *costSettings_ptr, vec xkm1) const
 {
   ExtractedCostSettings settings = ExtractedCostSettings::fromTuple(*costSettings_ptr);
 
   // Setup actuation cost matrix (handles terminal step weight update)
   mat act_cost_mat = setupActuationCostMatrix(k, N, settings);
+  // Apply time-varying angle cost ramp after terminal weight update
+  settings.applyTimeRamp(k, N, ang_cost_time_power, ang_cost_time_min);
   vec3 magvec = vec(3).zeros();
   if (k < N-1 && number_MTQ > 0) {
     magvec = mtq_ax_mat*uk.head(number_MTQ);
@@ -1492,9 +1552,9 @@ cost_jacs  Satellite::quatcostJacobians(int k, int N, vec xk, vec xkp1, vec uk,v
   }else{
     lku += act_cost_mat*(uk)*w_u_mult;
   }
-  // Path length cost: geodesic distance to next quaternion
-  // Double gradient to account for grad_qkp1 ≈ -grad_qk
-  // Path length cost: standard Gauss-Newton (no doubling)
+  // Path length cost: geodesic distance between consecutive quaternions
+  // See veccostJacobians for full explanation of forward + backward gradient terms.
+  // Forward-looking: ∂L_k/∂q_k
   if (k < N-1 && w_avmag > 0 && xkp1.n_elem > 0) {
     vec xkp1_norm = state_norm(xkp1);
     vec4 qkp1 = xkp1_norm.rows(quat0index(), quat0index()+3);
@@ -1503,6 +1563,16 @@ cost_jacs  Satellite::quatcostJacobians(int k, int N, vec xk, vec xkp1, vec uk,v
     lkx(span(redang0index(),redang0index()+2)) += Wq.t() * grad_qk;
     vec3 dtheta_reduced = Wq.t() * (-dtheta_dqd);
     lkxx(redang0index(),redang0index(),size(3,3)) += 2.0 * w_avmag * dtheta_reduced * dtheta_reduced.t();
+  }
+  // Backward-looking: ∂L_{k-1}(q_{k-1}, q_k)/∂q_k
+  if (k > 0 && w_avmag > 0 && xkm1.n_elem > 0) {
+    vec xkm1_norm = state_norm(xkm1);
+    vec4 qkm1 = xkm1_norm.rows(quat0index(), quat0index()+3);
+    auto [cost_b, grad_qkm1, grad_qk_back, dtheta_dqd_b] = pathLengthCost(qkm1, qk, w_avmag);
+    (void)cost_b; (void)grad_qkm1;
+    lkx(span(redang0index(),redang0index()+2)) += Wq.t() * grad_qk_back;
+    vec3 dtheta_reduced_b = Wq.t() * dtheta_dqd_b;
+    lkxx(redang0index(),redang0index(),size(3,3)) += 2.0 * w_avmag * dtheta_reduced_b * dtheta_reduced_b.t();
   }
 
   double act_mag_cost = 0.0;
@@ -1521,12 +1591,19 @@ cost_jacs  Satellite::quatcostJacobians(int k, int N, vec xk, vec xkp1, vec uk,v
   return out;
 }
 
+// costJacobians: used by TVLQR (findK) only, NOT trajectory optimization.
+// This function does NOT include the backward-looking path length gradient
+// (∂L_{k-1}/∂q_k) because TVLQR computes tracking gains around an already-planned
+// trajectory — it doesn't need bidirectional path smoothing.
+// For trajectory optimization, use veccostJacobians/quatcostJacobians instead.
 cost_jacs  Satellite::costJacobians(int k, int N, vec xk, vec xkp1, vec uk,vec ukprev, vec3 satvec_k, vec ECIvec_k,vec3 BECI_k, COST_SETTINGS_FORM *costSettings_ptr) const
 {
   ExtractedCostSettings settings = ExtractedCostSettings::fromTuple(*costSettings_ptr);
 
   // Setup actuation cost matrix (handles terminal step weight update)
   mat act_cost_mat = setupActuationCostMatrix(k, N, settings);
+  // NOTE: No time ramp here — costJacobians is used by TVLQR (findK) only,
+  // which computes tracking gains around an already-planned trajectory.
   vec3 magvec = vec(3).zeros();
   if (k < N-1 && number_MTQ > 0) {
     magvec = mtq_ax_mat*uk.head(number_MTQ);

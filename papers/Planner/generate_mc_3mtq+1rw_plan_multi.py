@@ -6,9 +6,13 @@ Same multi-goal structure as LP test:
   Goal1 (0-250s) → No_Goal (250-350s) → Goal2 (350-600s) → No_Goal (600-700s) → Goal3 (700-1000s)
 """
 import os
-os.environ.setdefault('DISPLAY', ':0')  # WSLg display
-os.environ['MPLBACKEND'] = 'TkAgg'  # Must be set before any matplotlib import
 import sys
+# Check for --save-plots flag early to set backend before matplotlib import
+if '--save-plots' in sys.argv:
+    os.environ['MPLBACKEND'] = 'Agg'  # Non-interactive for saving
+else:
+    os.environ.setdefault('DISPLAY', ':0')  # WSLg display
+    os.environ['MPLBACKEND'] = 'TkAgg'  # Interactive
 import numpy as np
 from scipy.integrate import solve_ivp
 from typing import Dict, Any
@@ -99,7 +103,9 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
         planner_settings.skip_pass2_optimization = True
 
         visualize = config.get("visualize", False)
-        if visualize:
+        save_plots = config.get("save_plots", False)
+        # Use Python planner for live visualization, C++ planner for MC runs
+        if visualize or save_plots:
             controller = Plan_and_Track_PythonALILQR(est_sat=real_sat, planner_settings=planner_settings)
         else:
             controller = Plan_and_Track_LQR(est_sat=real_sat, planner_settings=planner_settings)
@@ -117,15 +123,19 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
         os0 = orb.get_os(t0_j2000)
 
         try:
-            if visualize:
-                callback = create_planner_diagnostic_callback(config, BODY_BORESIGHT, tf)
-                controller.set_iteration_callback(callback)
+            if visualize or save_plots:
+                # Python planner with visualization
+                if visualize:
+                    callback = create_planner_diagnostic_callback(config, BODY_BORESIGHT, tf)
+                    controller.set_iteration_callback(callback)
+                viz_save_path = f'/tmp/live_viz_seed{run_id}.png'
                 traj = controller.calculate_trajectory(
                     t_start=t0_j2000, duration=tf, x_0=x0, os_0=os0, goals=goals,
-                    verbose=False, visualize=True, viz_save_path="/tmp/planner_viz_final.png",
-                    skip_pass2=False
+                    verbose=False, visualize=True, viz_save_path=viz_save_path
                 )
+                print(f"Saved live viz to {viz_save_path}")
             else:
+                # C++ planner for MC runs
                 traj = controller.calculate_trajectory(
                     t_start=t0_j2000, duration=tf, x_0=x0, os_0=os0, goals=goals, verbose=False
                 )
@@ -137,6 +147,15 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
                     title_prefix="3MTQ+1RW Planner Multi: Planned Trajectory",
                     goals=goals,
                 )
+            # Save post-planning plot if requested
+            if save_plots:
+                plot_planned_trajectory(
+                    traj, config, BODY_BORESIGHT,
+                    title_prefix=f"Post-Planning (seed={run_id})",
+                    save_path=f'/tmp/post_planning_seed{run_id}.png',
+                    goals=goals,
+                )
+                print(f"Saved post-planning plot to /tmp/post_planning_seed{run_id}.png")
         except Exception as e:
             return {"run_id": run_id, "config": config, "error": str(e), "traj_valid": False}
 
@@ -237,6 +256,8 @@ if __name__ == "__main__":
     parser.add_argument("--tf", type=float, default=None, help="Override planning duration [s]")
     parser.add_argument("--dt", type=float, default=None, help="Override sim dt [s]")
     parser.add_argument("--dt-planning", type=float, default=None, help="Override planning dt [s]")
+    parser.add_argument("--save-plots", action="store_true",
+                        help="Save plots to /tmp instead of showing interactively")
     args = parser.parse_args()
     
     TEST_MODE = args.test
@@ -246,22 +267,39 @@ if __name__ == "__main__":
     DT_OVERRIDE = args.dt
     DT_PLANNING_OVERRIDE = args.dt_planning
     
+    SAVE_PLOTS = args.save_plots
+    
     if TEST_MODE:
         # Single run test mode - no multiprocessing, with visualization
         test_seed = args.seed
         print(f"=== TEST MODE: Single run (seed={test_seed}), no multiprocessing ===")
         config = generate_mc_config(test_seed)
-        config["visualize"] = True
+        config["visualize"] = not SAVE_PLOTS  # Disable live viz if saving plots
+        config["save_plots"] = SAVE_PLOTS  # Enable plot saving
         result = run_single_sim(config)
         full_results = [result]
         valid = [r for r in full_results if r and r.get("traj_valid", False)]
         if valid:
             print(f"Test run completed successfully")
-            # Plot single run results
-            plot_single_run(result, body_boresight=BODY_BORESIGHT, title_prefix="3MTQ+1RW Planner Multi Test")
-            create_close_all_button_window()
             import matplotlib.pyplot as plt
-            plt.show()
+            
+            # Plot single run results
+            fig = plot_single_run(result, body_boresight=BODY_BORESIGHT, 
+                                  title_prefix=f"3MTQ+1RW Multi Test (seed={test_seed})", show=False)
+            
+            if SAVE_PLOTS:
+                # Save post-sim plot
+                fig.savefig(f'/tmp/post_sim_seed{test_seed}.png', dpi=150, bbox_inches='tight')
+                print(f"Saved post-sim plot to /tmp/post_sim_seed{test_seed}.png")
+                plt.close(fig)
+                print(f"\n=== Plots saved ===")
+                print(f"  /tmp/live_viz_seed{test_seed}.png")
+                print(f"  /tmp/post_planning_seed{test_seed}.png")
+                print(f"  /tmp/post_sim_seed{test_seed}.png")
+            else:
+                print(f"\n(Live viz saved to /tmp/live_viz_seed{test_seed}.png)")
+                create_close_all_button_window()
+                plt.show()
         else:
             print(f"Test run failed: {result.get('error', 'Unknown error')}")
 

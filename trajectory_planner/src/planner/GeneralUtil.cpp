@@ -146,6 +146,59 @@ mat::fixed<4,3> findWMat(vec4 qk)
               {-q2, q1,   q0}});
 }
 
+#include <armadillo>
+#include <cmath>
+#include <stdexcept>
+
+// Rank-1 Cholesky update: L such that L*L' = A + v*v'
+// Modifies L in-place. L is lower-triangular.
+void chol_update_inplace(arma::mat& L, arma::vec v) {
+    int n = L.n_rows;
+    for (int k = 0; k < n; k++) {
+        double Lkk = L(k, k);
+        double vk = v(k);
+        double r = std::sqrt(Lkk * Lkk + vk * vk);
+        double c = r / Lkk;
+        double s = vk / Lkk;
+        L(k, k) = r;
+        if (k + 1 < n) {
+            // Update remaining elements in column k and v
+            L(arma::span(k + 1, n - 1), k) =
+                (L(arma::span(k + 1, n - 1), k) + s * v(arma::span(k + 1, n - 1))) / c;
+            v(arma::span(k + 1, n - 1)) =
+                c * v(arma::span(k + 1, n - 1)) - s * L(arma::span(k + 1, n - 1), k);
+        }
+    }
+}
+
+// Rank-1 Cholesky downdate: L such that L*L' = A - v*v'
+// Throws if the result would not be positive definite.
+void chol_downdate_inplace(arma::mat& L, arma::vec v) {
+    int n = L.n_rows;
+    // Forward solve L*p = v
+    arma::vec p = arma::solve(arma::trimatl(L), v);
+
+    double pnorm2 = arma::dot(p, p);
+    if (pnorm2 >= 1.0) {
+        throw std::runtime_error("Cholesky downdate would destroy positive definiteness");
+    }
+
+    for (int k = 0; k < n; k++) {
+        double Lkk = L(k, k);
+        double pk = p(k);
+        double r = std::sqrt(Lkk * Lkk - pk * pk);  // same check implicitly
+        double c = r / Lkk;
+        double s = pk / Lkk;
+        L(k, k) = r;
+        if (k + 1 < n) {
+            L(arma::span(k + 1, n - 1), k) =
+                (L(arma::span(k + 1, n - 1), k) - s * p(arma::span(k + 1, n - 1))) / c;
+            p(arma::span(k + 1, n - 1)) =
+                c * p(arma::span(k + 1, n - 1)) - s * L(arma::span(k + 1, n - 1), k);
+        }
+    }
+}
+
 
 
 /* This function gets the derivative of the ECI-to-body rotation matrix R^T with respect to q1, q2, q3, and q4

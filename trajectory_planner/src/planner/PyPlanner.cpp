@@ -321,6 +321,91 @@ bool PyPlanner::getSkipPass2Optimization(){
   return op.skip_pass2_optimization;
 }
 
+void PyPlanner::setUseInfeasibleStart(bool use){
+  op.use_infeasible_start = use;
+}
+
+bool PyPlanner::getUseInfeasibleStart(){
+  return op.use_infeasible_start;
+}
+
+void PyPlanner::setInfeasibleCtrlMode(int mode){
+  op.infeasible_ctrl_mode = mode;
+}
+
+int PyPlanner::getInfeasibleCtrlMode(){
+  return op.infeasible_ctrl_mode;
+}
+
+// Infeasible start helpers for Python optimizer
+void PyPlanner::initSlackVariablesPython(double dt, TRAJECTORY_PY_FORM trajPy, VECTOR_INFO_PY_FORM vecsPy) {
+  TRAJECTORY_FORM traj = trajPy2Cpp(trajPy);
+  VECTOR_INFO_FORM vecs = vecsPy2Cpp(vecsPy);
+  int N = std::get<0>(traj).n_cols;
+  int n_red = op.sat.reduced_state_N();
+  op.slack_lambdaSet = arma::mat(n_red, N, arma::fill::zeros);
+  op.slack_mu = 0.1;  // will be set properly by first updateSlackAugLag call
+  op.slack_Kset = arma::cube(n_red, n_red, N, arma::fill::zeros);
+  op.slack_dset = arma::mat(n_red, N, arma::fill::zeros);
+  op.slack_Sset_new = arma::mat(n_red, N, arma::fill::zeros);
+  op.initSlacksFromDefects(dt, traj, vecs);
+}
+
+void PyPlanner::updateSlackAugLag(double lm_max, double pen_max, double pen_scale) {
+  if (!op.use_infeasible_start || op.slack_Sset.is_empty()) return;
+  int N = op.slack_Sset.n_cols;
+  for (int k = 0; k < N; k++) {
+    op.slack_lambdaSet.col(k) += op.slack_mu * op.slack_Sset.col(k);
+    op.slack_lambdaSet.col(k) = arma::clamp(op.slack_lambdaSet.col(k), -lm_max, lm_max);
+  }
+  op.slack_mu = std::min(pen_max, pen_scale * op.slack_mu);
+}
+
+void PyPlanner::setSlackMu(double mu) {
+  op.slack_mu = mu;
+}
+
+py::tuple PyPlanner::getSlackInfo() {
+  if (!op.use_infeasible_start || op.slack_Sset.is_empty()) {
+    return py::make_tuple(0.0, 0.0, 0.0, 0.0);
+  }
+  double norm_val = arma::norm(op.slack_Sset, "fro");
+  double max_val = arma::abs(op.slack_Sset).max();
+  double mu_val = op.slack_mu;
+  double cost_val = op.slackCost(op.slack_Sset);
+  return py::make_tuple(norm_val, max_val, mu_val, cost_val);
+}
+
+TRAJECTORY_PY_FORM PyPlanner::generateSlerpTrajectoryPython(double dt, py::array_t<double> x0_py,
+    py::array_t<double> q_goal_py, int N, VECTOR_INFO_PY_FORM vecsPy) {
+  VECTOR_INFO_FORM vecs = vecsPy2Cpp(vecsPy);
+  auto x0_buf = x0_py.request();
+  auto qg_buf = q_goal_py.request();
+  arma::vec x0((double*)x0_buf.ptr, x0_buf.size);
+  arma::vec qg_tmp((double*)qg_buf.ptr, 4);
+  arma::vec4 q_goal;
+  q_goal(0) = qg_tmp(0); q_goal(1) = qg_tmp(1);
+  q_goal(2) = qg_tmp(2); q_goal(3) = qg_tmp(3);
+  TRAJECTORY_FORM result = op.generateSlerpTrajectory(dt, x0, q_goal, N, vecs);
+  return trajCpp2Py(result);
+}
+
+void PyPlanner::setAngCostTimePower(double power){
+  op.sat.ang_cost_time_power = power;
+}
+
+double PyPlanner::getAngCostTimePower(){
+  return op.sat.ang_cost_time_power;
+}
+
+void PyPlanner::setAngCostTimeMin(double min_val){
+  op.sat.ang_cost_time_min = min_val;
+}
+
+double PyPlanner::getAngCostTimeMin(){
+  return op.sat.ang_cost_time_min;
+}
+
 void PyPlanner::setPlannerVerbosity(bool verbosity){
   op.setVerbosity(verbosity);
 }
@@ -381,6 +466,19 @@ PYBIND11_MODULE(tplaunch, m) {
         .def("getUseEulerPass2", &PyPlanner::getUseEulerPass2)
         .def("setSkipPass2Optimization", &PyPlanner::setSkipPass2Optimization)
         .def("getSkipPass2Optimization", &PyPlanner::getSkipPass2Optimization)
+        .def("setUseInfeasibleStart", &PyPlanner::setUseInfeasibleStart)
+        .def("getUseInfeasibleStart", &PyPlanner::getUseInfeasibleStart)
+        .def("setInfeasibleCtrlMode", &PyPlanner::setInfeasibleCtrlMode)
+        .def("getInfeasibleCtrlMode", &PyPlanner::getInfeasibleCtrlMode)
+        .def("initSlackVariables", &PyPlanner::initSlackVariablesPython)
+        .def("updateSlackAugLag", &PyPlanner::updateSlackAugLag)
+        .def("setSlackMu", &PyPlanner::setSlackMu)
+        .def("getSlackInfo", &PyPlanner::getSlackInfo)
+        .def("generateSlerpTrajectory", &PyPlanner::generateSlerpTrajectoryPython)
+        .def("setAngCostTimePower", &PyPlanner::setAngCostTimePower)
+        .def("getAngCostTimePower", &PyPlanner::getAngCostTimePower)
+        .def("setAngCostTimeMin", &PyPlanner::setAngCostTimeMin)
+        .def("getAngCostTimeMin", &PyPlanner::getAngCostTimeMin)
         .def("echo_int", &PyPlanner::echo_int)
         .def("get_nonmtq_torq_scale", &PyPlanner::getNonMtqTorqScale)
         .def("get_number_MTQ", &PyPlanner::getNumberMTQ)

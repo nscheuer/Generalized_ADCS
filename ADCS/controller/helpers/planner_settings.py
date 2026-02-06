@@ -221,6 +221,21 @@ class PlannerSettings:
         self.skip_pass2_optimization = True   # ZOH forward sim + K-gains (avoids wound trajectories)
         self.pass2_warm_start_mode = 3        # 0=ZOH, 1=K-gain, 2=SLERP, 3=closed-loop inv dyn
         self.use_euler_pass2 = True           # Euler integration for Pass 2 (faster)
+        
+        # Infeasible start (ALTRO-style): Pass 1 uses slack variables on dynamics
+        # constraint (s_k = 0 enforced via AL), allowing topologically correct but
+        # dynamically infeasible trajectories (e.g., SLERP). Pass 2 is standard.
+        # Only active when skip_pass2_optimization=False (2-pass mode).
+        self.use_infeasible_start = False
+        
+        # Time-varying angle cost: w_ang *= min + (1-min) * (k/(N-1))^power
+        # power=0.0 → disabled (constant angle cost over trajectory)
+        # power>0 → angle cost ramps from min at start to full at end
+        # min = floor multiplier at k=0 (prevents zero angle cost at start)
+        # Terminal cost (k=N-1) always uses full weight regardless of this setting
+        # Pushes angle errors toward start of trajectory, preventing wound local minima
+        self.ang_cost_time_power = 0.0
+        self.ang_cost_time_min = 0.1  # 10% of full angle cost at trajectory start
 
         # Solver Configurations
         # Two-pass optimization strategy:

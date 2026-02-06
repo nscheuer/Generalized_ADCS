@@ -62,6 +62,7 @@ struct ExtractedCostSettings {
 
     static ExtractedCostSettings fromTuple(const COST_SETTINGS_FORM& settings);
     void applyTerminalWeights();
+    void applyTimeRamp(int k, int N, double power, double min_val);
 };
 
 // Struct for RW cost computation results
@@ -150,8 +151,10 @@ public:
     double stepcost_quat(int k, int N, arma::vec xk, arma::vec xkp1, arma::vec uk, arma::vec ukprev, arma::vec3 satvec_k, arma::vec4 ECIvec_k, arma::vec3 BECI_k,COST_SETTINGS_FORM *costSettings_ptr) const;
 
     //std::tuple<arma::vec6, arma::mat66> veccostJacobians(int k, int N, arma::vec xk, arma::vec uk, arma::vec vk, arma::mat QN, arma::mat satvec, arma::mat ECIvec, arma::vec vNslew, std::tuple<int, double, double, double, double> *costSettings_ptr);
-    cost_jacs veccostJacobians(int k, int N, arma::vec xk, arma::vec xkp1, arma::vec uk,arma::vec ukprev, arma::vec3 satvec_k, arma::vec3 ECIvec_k, arma::vec3 BECI_k, COST_SETTINGS_FORM *costSettings_ptr) const;
-    cost_jacs quatcostJacobians(int k, int N, arma::vec xk, arma::vec xkp1, arma::vec uk,arma::vec ukprev, arma::vec3 satvec_k, arma::vec4 ECIvec_k, arma::vec3 BECI_k, COST_SETTINGS_FORM *costSettings_ptr) const;
+    cost_jacs veccostJacobians(int k, int N, arma::vec xk, arma::vec xkp1, arma::vec uk,arma::vec ukprev, arma::vec3 satvec_k, arma::vec3 ECIvec_k, arma::vec3 BECI_k, COST_SETTINGS_FORM *costSettings_ptr, arma::vec xkm1 = arma::vec()) const;
+    cost_jacs quatcostJacobians(int k, int N, arma::vec xk, arma::vec xkp1, arma::vec uk,arma::vec ukprev, arma::vec3 satvec_k, arma::vec4 ECIvec_k, arma::vec3 BECI_k, COST_SETTINGS_FORM *costSettings_ptr, arma::vec xkm1 = arma::vec()) const;
+    // costJacobians: used by TVLQR (findK) only — no path length backward gradient needed
+    // since TVLQR computes tracking gains around an already-planned trajectory
     cost_jacs costJacobians(int k, int N, arma::vec xk, arma::vec xkp1, arma::vec uk,arma::vec ukprev,arma::vec3 satvec, arma::vec ECIvec, arma::vec3 BECI_k,COST_SETTINGS_FORM *costSettings_ptr) const;
 
     // Path length cost helper - computes geodesic rotation cost between consecutive quaternions
@@ -234,6 +237,16 @@ public:
     std::vector<double> RW_cost_orig = {};
     std::vector<double> magic_cost_orig = {};
     bool use_original_costs_for_tvlqr = false;  // Flag to use unscaled costs
+
+    // Time-varying angle cost multiplier: w_ang *= m(k)
+    // power > 0: ramp UP   → m = min + (1-min)*(k/(N-1))^power      (low start, full end)
+    // power < 0: ramp DOWN → m = min + (1-min)*(1-k/(N-1))^|power|   (full start, low end)
+    // power = 0: disabled (constant angle cost)
+    // min = floor multiplier (never below this fraction of full cost)
+    // Terminal cost (k=N-1) always uses full w_ang_N (no ramp)
+    // Negative power (ramp down) forces aggressive early rotation for torque-limited systems
+    double ang_cost_time_power = 0.0;
+    double ang_cost_time_min = 0.1;  // floor: 10% of full angle cost at low end of ramp
 
     std::vector<double> RW_J = {};
 

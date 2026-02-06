@@ -78,6 +78,29 @@ public:
     bool use_euler_pass2 = true;    // Use Euler integration (1 eval) instead of RK4 (4 evals) for Pass 2
     bool _useEuler = false;         // Internal: set per-pass before alilqr call
 
+    // Infeasible start (ALTRO-style slack variables on dynamics)
+    // Pass 1: slacks allow infeasible trajectories, AL drives s→0
+    // Pass 2: no slacks, strict dynamics enforcement
+    bool use_infeasible_start = false;
+    int infeasible_ctrl_mode = 0;  // 0=zero, 1=inv-dyn, 2=random
+    bool skip_initial_fwd_sim = false;  // Skip forward sim at start of alilqr (preserve trajectory topology)
+
+    // Slack variable storage (managed inside alilqr when use_infeasible_start=true)
+    arma::mat slack_Sset;           // reduced_state_N × N: slack values
+    arma::mat slack_Sset_new;       // reduced_state_N × N: candidate slacks (line search)
+    arma::mat slack_lambdaSet;      // reduced_state_N × N: Lagrange multipliers for s=0
+    double slack_mu = 0.0;          // AL penalty parameter for slacks (grows with outer loop)
+    double slack_w = 1e4;           // fixed quadratic cost weight on slacks (forces optimizer to find real controls)
+    double slack_penalty_max = 1e6; // separate penMax for slacks (independent of constraint penMax)
+    arma::cube slack_Kset;          // reduced_state_N × reduced_state_N × N: slack feedback gains
+    arma::mat slack_dset;           // reduced_state_N × N: slack feedforward
+
+    // Helper methods for infeasible start
+    double slackCost(const arma::mat& Sset_in) const;
+    void initSlacksFromDefects(double dt0, TRAJECTORY_FORM& traj, VECTOR_INFO_FORM& vecs);
+    // ctrl_mode: 0=zero, 1=inv-dyn, 2=random
+    TRAJECTORY_FORM generateSlerpTrajectory(double dt0, arma::vec x0, arma::vec4 q_goal, int N, VECTOR_INFO_FORM& vecs, int ctrl_mode=1);
+
 private:
 
 
