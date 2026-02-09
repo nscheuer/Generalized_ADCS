@@ -228,6 +228,14 @@ class PlannerSettings:
         # Only active when skip_pass2_optimization=False (2-pass mode).
         self.use_infeasible_start = False
         
+        # Multi-resolution fallback: when enabled, calculate_trajectory tries
+        # coarse dt first, then falls back to finer dt if the plan is wound.
+        # This resolves 180° maneuver bifurcation at minimal compute cost.
+        self.auto_refine_dt = False
+        self.auto_refine_dt_fine = 1.0       # Fine dt to fall back to (seconds)
+        self.auto_refine_dt_slerp = 2.0     # dt for SLERP+slacks fallback (seconds)
+        self.auto_refine_spike_thresh = 40.0  # Plan angle (°) above which plan is "wound"
+        
         # Time-varying angle cost: w_ang *= min + (1-min) * (k/(N-1))^power
         # power=0.0 → disabled (constant angle cost over trajectory)
         # power>0 → angle cost ramps from min at start to full at end

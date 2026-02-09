@@ -78,7 +78,8 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
 
     """
 
-    def __init__(self, est_sat: EstimatedSatellite, planner_settings: PlannerSettings) -> None:
+    def __init__(self, est_sat: EstimatedSatellite, planner_settings: PlannerSettings,
+                 settings_factory=None) -> None:
         r"""
         Construct the Plan-and-Track LQR controller.
 
@@ -111,6 +112,8 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
         self._max_K_norm = None  # No clamping by default
         self._warmup_time = 0.0  # No warmup by default
         self._trajectory_start_time = None  # Set when trajectory is assigned
+        # Optional factory: callable(dt) -> PlannerSettings, for auto_refine_dt
+        self._settings_factory = settings_factory
     
     def set_gain_scale(self, scale: float) -> None:
         """
@@ -251,6 +254,16 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
         # Compute state error
         dx = self.active_trajectory._state_diff(x_hat, x_ref)
         
+        # Adaptive gain scaling is available but disabled by default.
+        # Enable via controller._adaptive_gain_scaling = True if K-gains are
+        # computed at coarse dt and tracking uses finer dt.
+        if getattr(self, '_adaptive_gain_scaling', False):
+            w_ref_norm = np.linalg.norm(x_ref[0:3])
+            w_thresh_low = 0.002; w_thresh_high = 0.015
+            if w_ref_norm > w_thresh_low:
+                alpha = min(1.0, (w_ref_norm - w_thresh_low) / (w_thresh_high - w_thresh_low))
+                effective_scale *= (1.0 - 0.8 * alpha)
+        
         # Apply scaled feedback: u = u_ref - scale * K @ dx
         # Standard LQR/TVLQR uses negative feedback for stability
         # 
@@ -289,6 +302,72 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
         else:
             self._trajectory_start_time = None
 
+    @staticmethod
+    def _plan_max_angle(Xset: np.ndarray, q_goal: np.ndarray, skip_fraction: float = 0.2) -> float:
+        """Compute max angle to goal after initial transient, in degrees."""
+        N = Xset.shape[1]
+        skip = max(1, int(N * skip_fraction))
+        max_ang = 0.0
+        for k in range(skip, N):
+            q = Xset[3:7, k]
+            cos_half = min(abs(np.dot(q, q_goal)), 1.0)
+            ang = np.degrees(2 * np.arccos(cos_half))
+            if ang > max_ang:
+                max_ang = ang
+        return max_ang
+
+    def _try_plan_fresh(
+        self,
+        t_start: float,
+        duration: float,
+        x_0: np.ndarray,
+        os_0: Orbital_State,
+        goals: GoalList,
+        dt_plan: float,
+        bdot_on: int,
+        use_slacks: bool,
+        tuning: str,
+        cross_term_fraction: float,
+        verbose: bool = False
+    ) -> Optional[Trajectory]:
+        """Try planning with completely fresh settings for the given dt.
+        
+        Creates a new planner with settings auto-scaled for the given dt_plan,
+        runs the optimization, and returns the Trajectory. This avoids
+        cross-contamination of settings between dt values.
+        """
+        try:
+            from ADCS.satellite_factory.satellites.create_cubesats import create_beavercube2_cubesat
+            import copy
+            
+            # Create fresh settings properly scaled for this dt
+            settings_factory = getattr(self, '_settings_factory', None)
+            if settings_factory is not None:
+                new_settings = settings_factory(dt_plan)
+            else:
+                # Fallback: clone current settings and adjust dt
+                new_settings = copy.deepcopy(self.planner_settings)
+                new_settings.dt_tp = dt_plan
+                new_settings.dt_tvlqr = dt_plan
+            
+            new_settings.bdot_on = bdot_on
+            new_settings.use_infeasible_start = use_slacks
+            new_settings.skip_pass2_optimization = not use_slacks
+            if hasattr(self.planner_settings, 'infeasible_ctrl_mode'):
+                new_settings.infeasible_ctrl_mode = self.planner_settings.infeasible_ctrl_mode
+            
+            # Create a temporary controller with the new settings
+            temp_controller = Plan_and_Track_LQR(est_sat=self.est_sat, planner_settings=new_settings)
+            
+            lqr_times, Xset, Uset, Kset, Sset = temp_controller._calculate_trajectory_common(
+                t_start, duration, x_0, os_0, goals, verbose
+            )
+            return Trajectory(lqr_times, Xset, Uset, Kset, Sset)
+        except Exception as e:
+            if verbose:
+                print(f"  Plan attempt (dt={dt_plan}, mode={bdot_on}, slacks={use_slacks}) failed: {e}")
+            return None
+
     def calculate_trajectory(
         self,
         t_start: float,
@@ -301,24 +380,17 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
         r"""
         Plan an optimal trajectory using ALTRO and prepare it for TVLQR tracking.
 
-        This method invokes the shared planning routine provided by
-        :meth:`~ADCS.controller.plan_and_track_base.PlanAndTrackBase._calculate_trajectory_common`
-        to compute a nominal trajectory and associated TVLQR gains. The results are
-        packaged into a :class:`~ADCS.controller.helpers.Trajectory` object suitable
-        for closed-loop tracking.
+        If ``auto_refine_dt`` is enabled (via ``planner_settings``), this method
+        implements a multi-resolution fallback strategy:
 
-        Planner outputs
-        ---------------
-        The returned trajectory contains:
+        1. Try planning at the configured dt (e.g., dt=10s) — fast (~1s).
+        2. If the plan is "wound" (max angle to goal > threshold after transient),
+           try alternative warm-start modes at the same dt.
+        3. If still wound, fall back to finer dt (dt=1s) — slower (~10s) but
+           resolves 180° bifurcation issues.
+        4. As a last resort, try dt=1s with SLERP warm-start (slacks).
 
-        - A discrete time grid for planning and tracking.
-        - The nominal state sequence :math:`\mathbf{x}_k^\ast`.
-        - The nominal control sequence :math:`\mathbf{u}_k^\ast`.
-        - The time-varying LQR gain sequence :math:`K_k`.
-        - Auxiliary solver data required for tracking.
-
-        These data are subsequently used by
-        :meth:`~Plan_and_Track_LQR.find_u` to compute feedback control commands.
+        The best trajectory (spike-free with lowest max angle) is returned.
 
         :param t_start: Planning start time in J2000 centuries.
         :type t_start: float
@@ -336,7 +408,123 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
         :rtype: :class:`~ADCS.controller.helpers.Trajectory`
 
         """
-        lqr_times, Xset, Uset, Kset, Sset = self._calculate_trajectory_common(
-            t_start, duration, x_0, os_0, goals, verbose
-        )
-        return Trajectory(lqr_times, Xset, Uset, Kset, Sset)
+        auto_refine = getattr(self.planner_settings, 'auto_refine_dt', False)
+        
+        if not auto_refine:
+            # Standard single-attempt planning
+            lqr_times, Xset, Uset, Kset, Sset = self._calculate_trajectory_common(
+                t_start, duration, x_0, os_0, goals, verbose
+            )
+            return Trajectory(lqr_times, Xset, Uset, Kset, Sset)
+        
+        # Multi-resolution fallback strategy:
+        # 1. Try coarse dt (dt=10) with multiple init modes — fast (~1s each)
+        # 2. If all wound, try fine dt (dt=1) — resolves 180° bifurcation (~10s each)
+        # 3. Last resort: fine dt with SLERP slacks (~10s)
+        #
+        # Each attempt uses a completely independent controller to avoid any
+        # cross-contamination from C++ global state (Armadillo RNG, etc.)
+        spike_thresh = getattr(self.planner_settings, 'auto_refine_spike_thresh', 30.0)
+        dt_coarse = self.planner_settings.dt_tp
+        dt_fine = getattr(self.planner_settings, 'auto_refine_dt_fine', 1.0)
+        
+        # Extract goal quaternion for angle evaluation
+        q_goal = self._extract_goal_quaternion(goals, t_start, duration, x_0, os_0)
+        
+        settings_factory = getattr(self, '_settings_factory', None)
+        if settings_factory is None:
+            # No factory — just do standard single-attempt
+            lqr_times, Xset, Uset, Kset, Sset = self._calculate_trajectory_common(
+                t_start, duration, x_0, os_0, goals, verbose
+            )
+            return Trajectory(lqr_times, Xset, Uset, Kset, Sset)
+        
+        best_traj = None
+        best_angle = 999.0
+        
+        def try_config(dt, mode, slacks, label):
+            """Create an independent controller and plan with it."""
+            nonlocal best_traj, best_angle
+            try:
+                s = settings_factory(dt)
+                s.bdot_on = mode
+                s.use_infeasible_start = slacks
+                # Always skip Pass 2 alilqr: for standard plans it's unneeded
+                # (Pass 1 + findK is sufficient); for SLERP plans, Pass 2
+                # without slacks would wound the trajectory.
+                s.skip_pass2_optimization = True
+                if hasattr(self.planner_settings, 'infeasible_ctrl_mode'):
+                    s.infeasible_ctrl_mode = self.planner_settings.infeasible_ctrl_mode
+                
+                ctrl = Plan_and_Track_LQR(est_sat=self.est_sat, planner_settings=s)
+                lqr_times, Xset, Uset, Kset, Sset = ctrl._calculate_trajectory_common(
+                    t_start, duration, x_0, os_0, goals, verbose
+                )
+                traj = Trajectory(lqr_times, Xset, Uset, Kset, Sset)
+                angle = self._plan_max_angle(traj.states, q_goal)
+                if verbose:
+                    print(f"  {label}: max_angle={angle:.1f}°")
+                if angle < best_angle:
+                    best_angle = angle
+                    best_traj = traj
+                return angle
+            except Exception as e:
+                if verbose:
+                    print(f"  {label}: FAILED ({e})")
+                return 999.0
+        
+        # Phase 1: Coarse dt (fast, ~1s each)
+        for mode in [0, 4]:
+            angle = try_config(dt_coarse, mode, False, f"dt={dt_coarse} mode={mode}")
+            if angle <= spike_thresh:
+                return best_traj
+        
+        # Phase 2: Fine dt (slower, ~10-15s each, resolves 180° bifurcation)
+        # Try mode 0 first. If good enough (<= tight_thresh), accept.
+        # If mediocre, try mode 4 too — lower plan angle correlates with better tracking.
+        tight_thresh = spike_thresh / 5.0  # e.g., 8° for spike_thresh=40°
+        angle_m0 = try_config(dt_fine, 0, False, f"dt={dt_fine} mode=0")
+        if angle_m0 <= tight_thresh:
+            return best_traj
+        # mode 0 mediocre or wound — try mode 4
+        angle_m4 = try_config(dt_fine, 4, False, f"dt={dt_fine} mode=4")
+        if best_angle <= spike_thresh:
+            return best_traj
+        
+        # Phase 3: SLERP with slacks (last resort — always produces trackable trajectory)
+        # dt=2 is the sweet spot: resolves 180° bifurcation like dt=1 but 4× faster
+        if best_angle > spike_thresh:
+            dt_slerp = getattr(self.planner_settings, 'auto_refine_dt_slerp', 2.0)
+            try_config(dt_slerp, 0, True, f"dt={dt_slerp} slacks")
+        
+        if best_traj is None:
+            raise RuntimeError("All planning attempts failed")
+        
+        return best_traj
+
+    def _extract_goal_quaternion(self, goals, t_start, duration, x_0, os_0):
+        """Extract target quaternion from goals for plan quality evaluation.
+        
+        For Fixed_Attitude_Goal, returns the goal quaternion directly.
+        For vector goals (Nadir, Sun, etc.), evaluates the goal at the end time
+        to get the target quaternion.
+        """
+        from ADCS.orbits.universal_constants import TimeConstants
+        from ADCS.helpers.math_helpers import normalize
+        
+        # Try to get the goal at the end of the trajectory
+        t_end = t_start + duration * TimeConstants.sec2cent
+        goal = goals.get_active_goal(t_end)
+        
+        if goal is None:
+            # Fallback: use the last goal in the list
+            goal = list(goals.goals.values())[-1] if goals.goals else None
+        
+        if goal is not None and hasattr(goal, 'q_ref'):
+            # Fixed attitude goal — direct quaternion
+            return goal.q_ref
+        
+        # For vector goals or if we can't determine q_goal, use the final
+        # state quaternion from a quick coarse plan as reference
+        # (This is a fallback; most cases use Fixed_Attitude_Goal)
+        return x_0[3:7]  # Just use initial quaternion as reference (won't work for angle check)

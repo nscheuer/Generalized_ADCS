@@ -232,6 +232,10 @@ void OldPlanner::updateParameters_notsat(SYSTEM_SETTINGS_FORM systemSettings_tmp
 
 BEFORE_OUTPUT_FORM OldPlanner::trajOptBefore(VECTOR_INFO_FORM vecs_w_time,double dt_use, TIME_FORM time_start, TIME_FORM time_end, vec x0, int bdotOn)
 {
+  // Seed RNG deterministically so results don't depend on prior planning calls.
+  // Use bdotOn as part of the seed so different init modes explore differently.
+  arma::arma_rng::set_seed(42 + bdotOn);
+  
   x0 = sat.state_norm(x0);
   // x0.rows(3, 6) = normalise(x0.rows(3,6));
   //double dt = this->dt;//readJsonDouble(trajOptSettingsFile, "dt");
@@ -768,7 +772,124 @@ AFTER_OUTPUT_FORM OldPlanner::trajOptAfter(VECTOR_INFO_FORM vecs_w_time,double d
     // TRAJECTORY_FORM opt2 = trajLong;
     auto t_start_pass2 = std::chrono::high_resolution_clock::now();
 
-    if (skip_pass2_optimization) {
+    // Check if Pass 1 used slacks — if so, use TVLQR-tracked forward sim
+    // instead of warm-start + alilqr (which would destroy topology)
+    double slack_max_p1 = (slack_Sset.n_elem > 0) ? abs(slack_Sset).max() : 0.0;
+    if (slack_max_p1 > 0 && !skip_pass2_optimization) {
+      // TVLQR-tracked feasibility pass: SLERP-interpolate Pass 1 trajectory to dt=1,
+      // compute K-gains, then forward-sim with K-gain feedback to produce a
+      // dynamically feasible trajectory that follows the (infeasible) SLERP reference.
+      double tf = (time_end - time_start) * 36525.0 * 24.0 * 3600.0;
+      int N_fine = int(round(tf / dt_tvlqr)) + 1;
+      int N_ctrl = N_fine - 1;
+
+      cout << "Pass 2: TVLQR-tracked feasibility (slack_max=" << slack_max_p1
+           << ", dt_coarse=" << dt_prev << ", dt_fine=" << dt_tvlqr << ")\n";
+
+      // 1. SLERP-interpolate Pass 1 states to dt=1
+      mat Xset_fine = slerpInterpolateTrajectory(Xset, dt_prev, dt_tvlqr, tf);
+
+      // 2. ZOH-interpolate Pass 1 controls to dt=1
+      int interp_ratio = int(dt_prev / dt_tvlqr);
+      int K_ctrl = Uset.n_cols;
+      mat UsetLong_k = repelem(Uset.cols(0, K_ctrl - 2), 1, interp_ratio);
+      while ((int)UsetLong_k.n_cols < N_ctrl) {
+        UsetLong_k = join_rows(UsetLong_k, Uset.col(K_ctrl - 1));
+      }
+      UsetLong_k = UsetLong_k.head_cols(N_ctrl);
+
+      // Ensure state and control dimensions match
+      if ((int)Xset_fine.n_cols > N_fine) Xset_fine = Xset_fine.head_cols(N_fine);
+      while ((int)Xset_fine.n_cols < N_fine) {
+        Xset_fine = join_rows(Xset_fine, Xset_fine.tail_cols(1));
+      }
+
+      // 3. Build reference trajectory at dt=1
+      mat TQset_fine(3, N_fine, fill::zeros);
+      vec t_fine = linspace(0, (N_fine-1)*dt_tvlqr, N_fine);
+      TRAJECTORY_FORM traj_ref_fine = make_tuple(Xset_fine, UsetLong_k, t_fine, TQset_fine);
+
+      // 4. Compute inverse-dynamics controls along the SLERP reference.
+      // The slack optimizer's controls are physically wrong (can't reproduce the
+      // planned trajectory). Instead, derive controls from the SLERP kinematics:
+      //   τ = J*α + ω×(J*ω + h)
+      // Then cross-product with B-field for MTQ: m = (τ × B) / |B|²
+      // These controls are consistent with the reference by construction.
+      {
+        cout << "  Computing inverse-dynamics controls along SLERP reference\n";
+        mat U_invdyn(sat.control_N(), N_ctrl, fill::zeros);
+        
+        mat Bset_fine = get<3>(vecs_tvlqr);  // B-field at dt=1 times
+        
+        mat33 J = sat.Jcom;
+        
+        for (int k = 0; k < N_ctrl; k++) {
+          vec3 w_k = Xset_fine(span(0,2), span(k,k));
+          vec3 w_kp1 = Xset_fine(span(0,2), span(k+1,k+1));
+          vec3 alpha_k = (w_kp1 - w_k) / dt_tvlqr;  // Angular acceleration
+          
+          // Euler equation: τ = J*α + ω×(J*ω + h)
+          vec3 h_total = J * w_k;
+          // Add RW momentum contribution
+          for (int r = 0; r < sat.number_RW; r++) {
+            h_total += sat.rw_ax_mat.col(r) * Xset_fine(7 + r, k);
+          }
+          vec3 tau_req = J * alpha_k + cross(w_k, h_total);
+          
+          // MTQ control: τ = m × B, so m = (τ × B) / |B|²  (pseudoinverse)
+          int bk_idx = min(k, (int)Bset_fine.n_cols - 1);
+          vec3 B_k = Bset_fine.col(bk_idx);
+          double B_norm2 = dot(B_k, B_k);
+          if (B_norm2 > 1e-20) {
+            vec3 m_dipole = cross(tau_req, B_k) / B_norm2;
+            // Project onto MTQ axes
+            for (int j = 0; j < sat.number_MTQ; j++) {
+              U_invdyn(j, k) = dot(m_dipole, sat.mtq_ax_mat.col(j));
+              // Clamp to actuator limits
+              double u_max_j = sat.MTQ_max[j];
+              U_invdyn(j, k) = std::max(-u_max_j, std::min(u_max_j, U_invdyn(j, k)));
+            }
+          }
+          // RW torque: use ZOH from Pass 1 (RW controls are usually small)
+          for (int r = 0; r < sat.number_RW + sat.number_magic; r++) {
+            U_invdyn(sat.number_MTQ + r, k) = UsetLong_k(sat.number_MTQ + r, k);
+          }
+        }
+        
+        // Forward-simulate the inverse-dynamics controls at dt=1 to get a
+        // dynamically feasible trajectory. At dt=1, the 180° transition is smooth.
+        bool saved_infeas2 = use_infeasible_start;
+        use_infeasible_start = false;
+        TRAJECTORY_FORM trajFwd = generateInitialTrajectory(dt_tvlqr, Xset.col(0), U_invdyn, vecs_tvlqr);
+        use_infeasible_start = saved_infeas2;
+        
+        mat Xfwd = get<0>(trajFwd);
+        bool fwd_ok = !Xfwd.has_nan();
+        
+        mat K_empty, S_empty;
+        vec times_fine_j2000 = linspace(time_start, time_end, N_fine);
+        
+        if (fwd_ok) {
+          // Use forward-simulated (feasible) trajectory for K-gain computation
+          cout << "  Inverse-dynamics fwd-sim succeeded (N=" << Xfwd.n_cols << ")\n";
+          if ((int)Xfwd.n_cols > N_fine) Xfwd = Xfwd.head_cols(N_fine);
+          mat Ufwd = get<1>(trajFwd);
+          if ((int)Ufwd.n_cols > N_ctrl) Ufwd = Ufwd.head_cols(N_ctrl);
+          mat TQfwd = get<3>(trajFwd);
+          if ((int)TQfwd.n_cols > N_fine) TQfwd = TQfwd.head_cols(N_fine);
+          opt2 = make_tuple(Xfwd, Ufwd, TQfwd, K_empty, S_empty, times_fine_j2000.head(Xfwd.n_cols));
+        } else {
+          // Forward sim failed — use SLERP reference as fallback
+          cout << "  Inverse-dynamics fwd-sim NaN — using SLERP reference\n";
+          opt2 = make_tuple(Xset_fine, U_invdyn, TQset_fine, K_empty, S_empty, times_fine_j2000);
+        }
+        gradOut2 = 0;
+      }
+
+      auto t_end_pass2 = std::chrono::high_resolution_clock::now();
+      auto pass2_ms = std::chrono::duration_cast<std::chrono::milliseconds>(t_end_pass2 - t_start_pass2).count();
+      cout << "TIMING: Pass 2 TVLQR-tracked (dt=" << dt_tvlqr << "s, N=" << N_fine << "): " << pass2_ms << " ms\n";
+    } else if (skip_pass2_optimization) {
       // Skip alilqr: use ZOH forward-simulated trajectory directly for K-gains.
       // This avoids the optimizer creating wound trajectories at dt=1.
       // The trajectory is dynamically feasible (from generateInitialTrajectory)
@@ -822,34 +943,75 @@ AFTER_OUTPUT_FORM OldPlanner::trajOptAfter(VECTOR_INFO_FORM vecs_w_time,double d
     }
   }else{
     // Same timestep (dt_tp == dt_tvlqr): no warm-start interpolation needed.
-    // If Pass 1 used slacks, run Pass 2 without slacks to get feasible trajectory.
+    // If Pass 1 used slacks, run Pass 2 WITHOUT slacks to get a feasible trajectory.
+    // The nearly-feasible Pass 1 solution is the warm-start, so Pass 2 converges fast
+    // and produces a truly dynamically feasible trajectory — robust for tracking.
     if (!skip_pass2_optimization) {
-      // Same-dt Pass 2: check if Pass 1 slacks are small enough to skip forward-sim
       double slack_max_val = (slack_Sset.n_elem > 0) ? abs(slack_Sset).max() : 0.0;
-      double slack_tol = 1e-2;  // Accept Pass 1 trajectory if slacks this small
       
-      if (slack_max_val < slack_tol && slack_max_val >= 0) {
-        // Slacks are tiny — Pass 1 trajectory is practically feasible
-        // Use it directly (avoids forward-sim destroying topology at 180° bifurcation)
-        cout << "Pass 2: using Pass 1 trajectory directly (slack_max=" << slack_max_val << " < " << slack_tol << ")\n";
-        mat K_empty, S_empty;
-        vec times_p1 = linspace(0, (Xset.n_cols-1)*dt_tvlqr, Xset.n_cols);
-        opt2 = make_tuple(Xset, Uset, get<2>(opt), K_empty, S_empty, times_p1);
+      if (slack_max_val > 0 && dt_tvlqr <= 2.0) {
+        // Slacks were used at fine dt — run real Pass 2 without slacks.
+        // At fine dt (<=2s), the 180° bifurcation is resolved, so removing slacks
+        // won't create wound trajectories. The near-feasible Pass 1 solution
+        // provides an excellent warm-start.
+        cout << "Pass 2: alilqr without slacks (slack_max=" << slack_max_val 
+             << ", dt=" << dt_tvlqr << ")\n";
+        
+        // Disable slacks for Pass 2
+        bool saved_infeas = use_infeasible_start;
+        use_infeasible_start = false;
+        
+        _useEuler = use_euler_pass2;
+        ALILQR_OUTPUT_FORM alilqrOut2 = OldPlanner::alilqr(
+            dt_tvlqr, trajLong, vecs_tvlqr, costSettings2, alilqrSettings2, false);
+        _useEuler = false;
+        use_infeasible_start = saved_infeas;
+        
+        opt2 = get<0>(alilqrOut2);
+        gradOut2 = std::get<2>(alilqrOut2);
+        
+        // Check if Pass 2 wound the trajectory — if so, fall back to Pass 1
+        mat Xp2 = get<0>(opt2);
+        mat ECIvec2 = get<6>(vecs_tvlqr);
+        bool is_quat_goal = (ECIvec2.n_rows == 4);
+        double max_angle_p2 = 0;
+        if (is_quat_goal) {
+          vec4 q_goal = ECIvec2.col(ECIvec2.n_cols - 1);
+          int skip = max(1, (int)(Xp2.n_cols / 5));
+          for (int k = skip; k < (int)Xp2.n_cols; k++) {
+            vec4 q_k = normalise(Xp2(span(3,6), span(k,k)));
+            double cos_half = std::min(std::abs(dot(q_k, q_goal)), 1.0);
+            double ang = 2.0 * acos(cos_half) * 180.0 / datum::pi;
+            if (ang > max_angle_p2) max_angle_p2 = ang;
+          }
+        }
+        
+        if (max_angle_p2 > 60.0) {
+          // Pass 2 wound the trajectory — fall back to Pass 1
+          cout << "  Pass 2 wound (" << max_angle_p2 << "°) — using Pass 1 instead\n";
+          opt2 = opt;
+          gradOut2 = 0;
+        } else {
+          cout << "  Pass 2 succeeded (max_angle=" << max_angle_p2 << "°)\n";
+        }
+      } else if (slack_max_val > 0) {
+        // Slacks at coarse dt — use Pass 1 directly (Pass 2 would wound)
+        cout << "Pass 2: using Pass 1 traj directly (slack_max=" << slack_max_val 
+             << ", dt=" << dt_tvlqr << " too coarse for Pass 2)\n";
+        opt2 = opt;
         gradOut2 = 0;
       } else {
-        // Slacks too large — try forward-sim to get feasible trajectory
-        cout << "Pass 2: forward-simming Pass 1 controls (slack_max=" << slack_max_val << " >= " << slack_tol << ")\n";
-        TRAJECTORY_FORM trajFwd = generateInitialTrajectory(dt_tvlqr, Xset.col(0), Uset, vecs_tvlqr);
-        mat Xfwd = get<0>(trajFwd);
-        mat K_empty, S_empty;
-        vec times_fwd = linspace(0, (Xfwd.n_cols-1)*dt_tvlqr, Xfwd.n_cols);
-        opt2 = make_tuple(Xfwd, get<1>(trajFwd), get<3>(trajFwd), K_empty, S_empty, times_fwd);
+        // No slacks used — trajectory is already feasible
+        cout << "Pass 2: no slacks, using Pass 1 traj directly\n";
+        opt2 = opt;
         gradOut2 = 0;
       }
     } else {
       opt2 = opt;
     }
     tvlqr_times = time_vec;
+    
+
   }
 
   mat K_lqr;
@@ -1018,17 +1180,11 @@ AFTER_OUTPUT_FORM OldPlanner::trajOpt(VECTOR_INFO_FORM &vecs,int N, TIME_FORM ti
   // Infeasible start: optionally replace init trajectory with SLERP
   if (use_infeasible_start) {
     if (infeasible_ctrl_mode <= 2) {
-      // Modes 0-2: SLERP states + specified controls (original ALTRO-style infeasible start)
-      mat ECIvec_init = get<6>(vecs_dt);
-      vec ek0 = ECIvec_init.col(0);
-      if (ek0.n_elem == 4 && !isnan(ek0(0))) {
-        vec4 q_goal = normalise(ek0);
-        int N_init = get<0>(traj_init).n_cols;
-        traj_init = generateSlerpTrajectory(dt, x0, q_goal, N_init, vecs_dt, infeasible_ctrl_mode);
-        if (verbose) { cout << "Infeasible start: SLERP + ctrl_mode=" << infeasible_ctrl_mode << " for Pass 1\n"; }
-      } else if (verbose) {
-        cout << "Infeasible start: vector goal detected, using standard init with defects\n";
-      }
+      // Modes 0-2: Rate-limited SLERP + specified controls
+      // Works for both quaternion goals AND vector pointing goals (multi-goal)
+      int N_init = get<0>(traj_init).n_cols;
+      traj_init = generateRateLimitedSlerpTrajectory(dt, x0, N_init, vecs_dt, infeasible_ctrl_mode);
+      if (verbose) { cout << "Infeasible start: rate-limited SLERP + ctrl_mode=" << infeasible_ctrl_mode << " for Pass 1\n"; }
     } else if (infeasible_ctrl_mode == 3) {
       // Mode 3: Standard feasible init + slacks for exploration
       // Keep traj_init as-is (from prepareForAlilqr — dynamically feasible)
@@ -2171,6 +2327,217 @@ TRAJECTORY_FORM OldPlanner::generateSlerpTrajectory(double dt0, vec x0, vec4 q_g
         double ang_total = 2.0 * theta * 180.0 / datum::pi;
         cout << "SLERP trajectory: " << ang_total << "° rotation over " << N
              << " steps (dt=" << dt0 << "s), inv-dyn controls computed\n";
+    }
+
+    return make_tuple(Xset, Uset, t.head(N), TQset);
+}
+
+
+/**
+ * Generate a rate-limited SLERP trajectory toward per-timestep goals.
+ *
+ * At each step k:
+ *   1. Determine goal quaternion for this timestep (from ECIvec/satvec for vector goals,
+ *      or directly for quaternion goals).
+ *   2. Compute remaining angle to goal.
+ *   3. SLERP toward goal by min(w_max*dt, remaining_angle).
+ *   4. Compute inverse-dynamics controls.
+ *
+ * Works for multi-goal (goals change per timestep) and vector pointing goals.
+ */
+TRAJECTORY_FORM OldPlanner::generateRateLimitedSlerpTrajectory(
+    double dt0, vec x0, int N, VECTOR_INFO_FORM& vecs, int ctrl_mode)
+{
+    mat Xset(sat.state_N(), N, fill::zeros);
+    mat Uset(sat.control_N(), N, fill::zeros);
+    mat TQset(3, N, fill::zeros);
+    vec t = get<0>(vecs);
+    mat ECIvec = get<6>(vecs);
+    mat satvec = get<5>(vecs);
+
+    // Maximum angular rate for SLERP trajectory generation (rad/s).
+    // This is NOT the constraint w_max — it's a trajectory shaping parameter.
+    // Too fast: slacks are huge because dynamics can't track the step function.
+    // Too slow: wastes trajectory time.
+    // Target: spread rotation over ~30% of segment, similar to front-loaded SLERP.
+    // For 180° over 1000s at 30%: 180/(0.3*1000) ≈ 0.6°/s.
+    // For 90° multi-goal segments of 350s: 90/(0.3*350) ≈ 0.86°/s.
+    // Cap at ~1°/s gives good balance for both cases.
+    double w_max = 1.0 * M_PI / 180.0;  // 1°/s in rad/s
+
+    // Determine if we have quaternion goals (4-elem, non-NaN) or vector goals (3-elem)
+    bool is_quat_goal = (ECIvec.n_rows == 4 && ECIvec.n_cols > 0 && !isnan(ECIvec(0,0)));
+
+    // Start from initial state
+    vec4 q_cur = normalise(x0.rows(3, 6));
+    Xset.col(0) = x0;
+
+    for (int k = 1; k < N; k++) {
+        vec4 q_goal_k;
+
+        if (is_quat_goal) {
+            // Quaternion goal: use directly
+            q_goal_k = normalise(vec4(ECIvec.col( std::min((int)k, (int)ECIvec.n_cols-1) )));
+        } else {
+            // Vector pointing goal: find quaternion that aligns boresight with ECI target
+            int eci_k = std::min((int)k, (int)ECIvec.n_cols-1);
+            int sat_k = std::min((int)k, (int)satvec.n_cols-1);
+            vec3 target_eci = normalise(vec3(ECIvec.col(eci_k)));
+            vec3 body_vec = normalise(vec3(satvec.col(sat_k)));
+
+            // Skip if zero goal (No_Goal period)
+            if (norm(vec3(ECIvec.col(eci_k))) < 1e-10) {
+                // Hold current orientation
+                q_goal_k = q_cur;
+            } else {
+                // Current body vector in ECI frame
+                vec3 body_in_eci = rotMat(q_cur).t() * body_vec;
+
+                // Rotation from current body-in-ECI to target
+                vec3 cross_prod = cross(body_in_eci, target_eci);
+                double dot_val = dot(body_in_eci, target_eci);
+
+                if (norm(cross_prod) < 1e-12 && dot_val > 0) {
+                    // Already aligned
+                    q_goal_k = q_cur;
+                } else if (norm(cross_prod) < 1e-12 && dot_val < 0) {
+                    // 180° rotation: pick arbitrary perpendicular axis
+                    vec3 perp;
+                    if (abs(body_in_eci(0)) < 0.9)
+                        perp = normalise(cross(body_in_eci, vec3({1,0,0})));
+                    else
+                        perp = normalise(cross(body_in_eci, vec3({0,1,0})));
+                    // q = [0, perp] = 180° rotation about perp
+                    vec4 q_rot = {0, perp(0), perp(1), perp(2)};
+                    // Apply rotation: q_goal = q_rot * q_cur
+                    double s1=q_rot(0), x1=q_rot(1), y1=q_rot(2), z1=q_rot(3);
+                    double s2=q_cur(0), x2=q_cur(1), y2=q_cur(2), z2=q_cur(3);
+                    q_goal_k = normalise(vec4({
+                        s1*s2 - x1*x2 - y1*y2 - z1*z2,
+                        s1*x2 + x1*s2 + y1*z2 - z1*y2,
+                        s1*y2 - x1*z2 + y1*s2 + z1*x2,
+                        s1*z2 + x1*y2 - y1*x2 + z1*s2
+                    }));
+                } else {
+                    // General rotation: axis = cross(body_in_eci, target), angle = acos(dot)
+                    vec3 axis = normalise(cross_prod);
+                    double angle = acos(std::min(std::max(dot_val, -1.0), 1.0));
+                    double ha = angle / 2.0;
+                    vec4 q_rot = {cos(ha), sin(ha)*axis(0), sin(ha)*axis(1), sin(ha)*axis(2)};
+                    // q_goal = q_rot * q_cur
+                    double s1=q_rot(0), x1=q_rot(1), y1=q_rot(2), z1=q_rot(3);
+                    double s2=q_cur(0), x2=q_cur(1), y2=q_cur(2), z2=q_cur(3);
+                    q_goal_k = normalise(vec4({
+                        s1*s2 - x1*x2 - y1*y2 - z1*z2,
+                        s1*x2 + x1*s2 + y1*z2 - z1*y2,
+                        s1*y2 - x1*z2 + y1*s2 + z1*x2,
+                        s1*z2 + x1*y2 - y1*x2 + z1*s2
+                    }));
+                }
+            }
+        }
+
+        // Ensure shortest path SLERP
+        if (dot(q_cur, q_goal_k) < 0) q_goal_k = -q_goal_k;
+
+        // Compute remaining angle
+        double dv = std::min(std::abs(dot(q_cur, q_goal_k)), 1.0);
+        double theta_remain = 2.0 * acos(dv);  // Full angle in rad
+
+        // Rate-limited step: rotate by min(w_max*dt, theta_remain)
+        double step_angle = std::min(w_max * dt0, theta_remain);
+        double frac = (theta_remain > 1e-10) ? (step_angle / theta_remain) : 1.0;
+        frac = std::min(frac, 1.0);
+
+        // SLERP from q_cur toward q_goal_k by fraction frac
+        double half_theta = acos(dv);  // half-angle in quaternion space
+        vec4 qk;
+        if (half_theta < 1e-10) {
+            qk = q_cur;
+        } else {
+            double sin_ht = sin(half_theta);
+            qk = normalise((sin((1.0 - frac) * half_theta) * q_cur
+                          + sin(frac * half_theta) * q_goal_k) / sin_ht);
+        }
+
+        Xset(span(3, 6), k) = qk;
+        // RW momentum: constant from initial state
+        if (sat.state_N() > 7) {
+            Xset.rows(7, sat.state_N() - 1).col(k) = x0.rows(7, sat.state_N() - 1);
+        }
+
+        // Update current quaternion for next step
+        q_cur = qk;
+    }
+
+    // Compute angular velocity from finite differences
+    for (int k = 0; k < N - 1; k++) {
+        vec4 qk = normalise(Xset(span(3, 6), k));
+        vec4 qkp1 = normalise(Xset(span(3, 6), k + 1));
+        vec4 dq = normquaterr(qk, qkp1);
+        if (dq(0) < 0) dq = -dq;
+        double half_angle = acos(std::min(std::abs(dq(0)), 1.0));
+        vec3 omega_k;
+        if (half_angle > 1e-12) {
+            omega_k = (2.0 * half_angle / dt0) * normalise(dq.rows(1, 3));
+        } else {
+            omega_k = vec3(fill::zeros);
+        }
+        Xset(span(0, 2), k) = omega_k;
+    }
+    // Terminal: zero angular velocity (at goal, at rest)
+    Xset(span(0, 2), N - 1) = vec3(fill::zeros);
+
+    // Inverse dynamics controls (same as generateSlerpTrajectory)
+    if (ctrl_mode == 1) {
+        mat Bset = get<3>(vecs);
+        mat33 J_body = sat.Jcom_noRW;
+        double rw_scale = NONMTQ_TORQ_SCALE;
+
+        for (int k = 0; k < N - 1; k++) {
+            vec3 wk = Xset(span(0, 2), k);
+            vec3 wkp1 = Xset(span(0, 2), k + 1);
+            vec3 alpha_des = (wkp1 - wk) / dt0;
+
+            vec3 Jw = J_body * wk;
+            for (int j = 0; j < sat.number_RW; j++) {
+                Jw += Xset(7 + j, k) * vec3(sat.rw_ax_mat.col(j));
+            }
+            vec3 tau_des = J_body * alpha_des + cross(wk, Jw);
+
+            vec3 tau_remaining = tau_des;
+            for (int j = 0; j < sat.number_RW; j++) {
+                vec3 ax(sat.rw_ax_mat.col(j));
+                double tau_proj = dot(tau_remaining, ax);
+                double u_rw = -tau_proj / rw_scale;
+                double u_lim = sat.RW_max_torq.at(j) / rw_scale;
+                u_rw = std::max(-u_lim, std::min(u_lim, u_rw));
+                Uset(sat.number_MTQ + j, k) = u_rw;
+                tau_remaining -= (-u_rw * rw_scale) * ax;
+            }
+
+            vec3 Bk = Bset.col(k);
+            double Bnorm2 = dot(Bk, Bk);
+            if (Bnorm2 > 1e-20 && sat.number_MTQ > 0) {
+                vec3 m_des = cross(Bk, tau_remaining) / Bnorm2;
+                vec u_mtq = pinv(sat.mtq_ax_mat) * m_des;
+                for (int j = 0; j < sat.number_MTQ; j++) {
+                    double u_lim = sat.MTQ_max.at(j);
+                    u_mtq(j) = std::max(-u_lim, std::min(u_lim, u_mtq(j)));
+                }
+                Uset(span(0, sat.number_MTQ - 1), k) = u_mtq;
+            }
+        }
+    }
+
+    if (verbose) {
+        // Compute total rotation from x0 to final state
+        vec4 q0 = normalise(x0.rows(3, 6));
+        vec4 qf = normalise(Xset(span(3, 6), N - 1));
+        double dv = std::min(std::abs(dot(q0, qf)), 1.0);
+        double ang_total = 2.0 * acos(dv) * 180.0 / M_PI;
+        cout << "Rate-limited SLERP: " << ang_total << "° rotation over " << N
+             << " steps (dt=" << dt0 << "s, w_max=" << w_max * 180.0 / M_PI << "°/s)\n";
     }
 
     return make_tuple(Xset, Uset, t.head(N), TQset);

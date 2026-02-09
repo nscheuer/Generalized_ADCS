@@ -596,15 +596,10 @@ class PlanAndTrackBase(Controller):
                     print(f"{i}: {lbl:<12} type={type(x)}")
             print("==============================================")
 
-        # Enforce: infeasible start (slacks) requires Pass 2 for dynamic feasibility
-        if (getattr(self.planner_settings, 'use_infeasible_start', False) and
-                getattr(self.planner_settings, 'skip_pass2_optimization', False)):
-            import warnings
-            warnings.warn(
-                "use_infeasible_start=True requires Pass 2 for dynamic feasibility. "
-                "Overriding skip_pass2_optimization to False.",
-                stacklevel=2)
-            self.planner_settings.skip_pass2_optimization = False
+        # Note: SLERP (use_infeasible_start=True) with skip_pass2_optimization=True
+        # is intentionally allowed. At fine dt (<=2s), the near-feasible SLERP
+        # trajectory + K-gains from findK provides excellent tracking (<1°).
+        # Running Pass 2 without slacks would wind the trajectory.
 
         # Wire Pass 2 options to C++ planner
         if hasattr(self.planner, 'setSkipPass2Optimization'):

@@ -100,6 +100,7 @@ public:
     void initSlacksFromDefects(double dt0, TRAJECTORY_FORM& traj, VECTOR_INFO_FORM& vecs);
     // ctrl_mode: 0=zero, 1=inv-dyn, 2=random
     TRAJECTORY_FORM generateSlerpTrajectory(double dt0, arma::vec x0, arma::vec4 q_goal, int N, VECTOR_INFO_FORM& vecs, int ctrl_mode=1);
+    TRAJECTORY_FORM generateRateLimitedSlerpTrajectory(double dt0, arma::vec x0, int N, VECTOR_INFO_FORM& vecs, int ctrl_mode=1);
 
 private:
 
