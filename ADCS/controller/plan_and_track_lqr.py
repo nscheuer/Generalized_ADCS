@@ -303,8 +303,12 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
             self._trajectory_start_time = None
 
     @staticmethod
+    @staticmethod
     def _plan_max_angle(Xset: np.ndarray, q_goal: np.ndarray, skip_fraction: float = 0.2) -> float:
-        """Compute max angle to goal after initial transient, in degrees."""
+        """Compute max angle to goal after initial transient, in degrees.
+        
+        For quaternion goals (4-element q_goal): measures quaternion geodesic distance.
+        """
         N = Xset.shape[1]
         skip = max(1, int(N * skip_fraction))
         max_ang = 0.0
@@ -315,6 +319,56 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
             if ang > max_ang:
                 max_ang = ang
         return max_ang
+
+    @staticmethod
+    def _plan_max_boresight_error(Xset: np.ndarray, goals, traj_times: np.ndarray,
+                                   body_boresight: np.ndarray = None,
+                                   skip_fraction: float = 0.2) -> float:
+        """Compute max boresight-to-goal error after initial transient, in degrees.
+        
+        Works for any goal type (ECI, Nadir, Sun, etc.) by evaluating the goal's
+        to_ref() at each trajectory timestep and computing the boresight alignment.
+        Only measures during active goal periods (skips No_Goal).
+        """
+        from ADCS.helpers.math_helpers import rot_mat
+        from ADCS.CONOPS.goals import No_Goal
+        if body_boresight is None:
+            body_boresight = np.array([0.0, 1.0, 0.0])  # Default Y-body boresight
+        
+        N = Xset.shape[1]
+        skip = max(1, int(N * skip_fraction))
+        max_err = 0.0
+        
+        for k in range(skip, N):
+            # Get goal at this time
+            t_k = traj_times[min(k, len(traj_times) - 1)]
+            goal = goals.get_active_goal(t_k)
+            if goal is None or isinstance(goal, No_Goal):
+                continue
+            
+            # Get ECI reference direction from goal
+            # Create a minimal orbital state for to_ref (some goals need it)
+            try:
+                eci_ref, _ = goal.to_ref(os0=None)
+            except:
+                continue
+            
+            if np.linalg.norm(eci_ref) < 1e-10:
+                continue
+            eci_ref = eci_ref / np.linalg.norm(eci_ref)
+            
+            # Compute boresight in ECI
+            q = Xset[3:7, k]
+            q = q / np.linalg.norm(q)
+            R = rot_mat(q)
+            bore_eci = R @ body_boresight
+            
+            cos_a = np.clip(np.dot(bore_eci, eci_ref), -1.0, 1.0)
+            err = np.degrees(np.arccos(cos_a))
+            if err > max_err:
+                max_err = err
+        
+        return max_err
 
     def _try_plan_fresh(
         self,
@@ -428,8 +482,9 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
         dt_coarse = self.planner_settings.dt_tp
         dt_fine = getattr(self.planner_settings, 'auto_refine_dt_fine', 1.0)
         
-        # Extract goal quaternion for angle evaluation
+        # Determine goal type and set up appropriate quality evaluator
         q_goal = self._extract_goal_quaternion(goals, t_start, duration, x_0, os_0)
+        is_quat_goal = (q_goal is not None)
         
         settings_factory = getattr(self, '_settings_factory', None)
         if settings_factory is None:
@@ -441,6 +496,14 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
         
         best_traj = None
         best_angle = 999.0
+        
+        def evaluate_plan(traj):
+            """Evaluate plan quality — returns max angle error in degrees."""
+            if is_quat_goal:
+                return self._plan_max_angle(traj.states, q_goal)
+            else:
+                return self._plan_max_boresight_error(
+                    traj.states, goals, traj.times)
         
         def try_config(dt, mode, slacks, label):
             """Create an independent controller and plan with it."""
@@ -461,7 +524,7 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
                     t_start, duration, x_0, os_0, goals, verbose
                 )
                 traj = Trajectory(lqr_times, Xset, Uset, Kset, Sset)
-                angle = self._plan_max_angle(traj.states, q_goal)
+                angle = evaluate_plan(traj)
                 if verbose:
                     print(f"  {label}: max_angle={angle:.1f}°")
                 if angle < best_angle:
@@ -505,26 +568,15 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
     def _extract_goal_quaternion(self, goals, t_start, duration, x_0, os_0):
         """Extract target quaternion from goals for plan quality evaluation.
         
-        For Fixed_Attitude_Goal, returns the goal quaternion directly.
-        For vector goals (Nadir, Sun, etc.), evaluates the goal at the end time
-        to get the target quaternion.
+        Returns the goal quaternion for Fixed_Attitude_Goal, or None for
+        vector goals (ECI, Nadir, Sun, etc.) which use boresight error instead.
         """
         from ADCS.orbits.universal_constants import TimeConstants
-        from ADCS.helpers.math_helpers import normalize
         
-        # Try to get the goal at the end of the trajectory
-        t_end = t_start + duration * TimeConstants.sec2cent
-        goal = goals.get_active_goal(t_end)
+        # Check all goals in the list for quaternion goals
+        for goal in goals.goals:
+            if hasattr(goal, 'q_ref'):
+                return goal.q_ref
         
-        if goal is None:
-            # Fallback: use the last goal in the list
-            goal = list(goals.goals.values())[-1] if goals.goals else None
-        
-        if goal is not None and hasattr(goal, 'q_ref'):
-            # Fixed attitude goal — direct quaternion
-            return goal.q_ref
-        
-        # For vector goals or if we can't determine q_goal, use the final
-        # state quaternion from a quick coarse plan as reference
-        # (This is a fallback; most cases use Fixed_Attitude_Goal)
-        return x_0[3:7]  # Just use initial quaternion as reference (won't work for angle check)
+        # No quaternion goal found — will use boresight error metric instead
+        return None
