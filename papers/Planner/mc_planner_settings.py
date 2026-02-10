@@ -989,3 +989,67 @@ def create_optimized_planner_settings(
             print(f"Multi-start enabled with modes: {multistart_modes}")
     
     return settings
+
+
+def create_mc_planner_and_factory(sat, tf, dt_planning=10.0, has_rw=None):
+    """
+    Create planner settings and settings_factory for MC runs with auto_refine.
+    
+    This encapsulates the full configuration pattern validated in development:
+    - dt_tp = dt_planning (coarse planning, auto_refine handles refinement)
+    - SLERP warm-start (infeasible_ctrl_mode=1)
+    - Skip Pass 2 (Pass 1 + findK is sufficient)
+    - Angular velocity cost scaled by dt/30.0 (matches fast_slew's ×30 base)
+    - Cross-term at 75% of PSD limit (prevents wound trajectories)
+    - auto_refine_dt enabled for robust fallback across dt values
+    
+    For MTQ-only (no RW): gain_scale=0.5, mandatory dt=1 refinement, and
+    lenient wound threshold (120°) are auto-applied by Plan_and_Track_LQR.
+    
+    Parameters
+    ----------
+    sat : Satellite
+        The satellite object
+    tf : float
+        Trajectory duration in seconds
+    dt_planning : float
+        Coarse planning timestep (default 10.0). Auto-refine tries finer dt.
+    has_rw : bool, optional
+        Whether the satellite has RW. None = auto-detect.
+        
+    Returns
+    -------
+    settings : PlannerSettings
+        Configured for dt=dt_planning with auto_refine_dt enabled
+    settings_factory : callable
+        Function(dt) → PlannerSettings, for auto_refine multi-dt attempts
+    """
+    if has_rw is None:
+        has_rw = len(sat.rw_actuators) > 0
+    
+    def _make_settings(dt):
+        """Create properly configured PlannerSettings for a given dt."""
+        s = create_optimized_planner_settings(
+            sat, duration=tf, dt_planning=dt, tuning='fast_slew', has_rw=has_rw
+        )
+        s.dt_tp = dt
+        s.dt_tvlqr = dt
+        s.skip_pass2_optimization = True
+        s.verbosity = False
+        # Scale angular velocity cost proportional to timestep.
+        # fast_slew applies ×30; we want effective ×dt for consistency
+        # across different dt values (dt=10 → ×10, dt=1 → ×1).
+        s.cost_main.ang_vel *= dt / 30.0
+        s.cost_main.ang_vel_N *= dt / 30.0
+        s.cost_second.ang_vel *= dt / 30.0
+        s.cost_second.ang_vel_N *= dt / 30.0
+        # Recompute cross-term after ang_vel scaling
+        s.cost_main.set_cross_term_auto(fraction=0.75)
+        s.cost_second.set_cross_term_auto(fraction=0.75)
+        return s
+    
+    # Create the primary settings at the coarse dt
+    settings = _make_settings(dt_planning)
+    settings.auto_refine_dt = True
+    
+    return settings, _make_settings

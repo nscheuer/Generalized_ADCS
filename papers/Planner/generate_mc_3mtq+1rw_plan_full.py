@@ -31,7 +31,7 @@ from ADCS.controller.plan_and_track_python_alilqr import Plan_and_Track_PythonAL
 from ADCS.controller.helpers import PlannerSettings
 
 # Import good settings
-from mc_planner_settings import create_optimized_planner_settings
+from mc_planner_settings import create_optimized_planner_settings, create_mc_planner_and_factory
 
 # ============================================================================
 # CONFIGURATION: Choose tracking mode
@@ -102,15 +102,10 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
         for i, rw in enumerate(rws):
             rw.h = config["h0"][i]
 
-        # Use well-conditioned normalized settings
-        # Use "fast_slew" tuning for better RW usage (~72%) with good accuracy (<1° error)
-        planner_settings = create_optimized_planner_settings(
-            real_sat, duration=tf, dt_planning=dt_planning, tuning="fast_slew"
+        # Use auto_refine with settings factory for robust planning across dt values
+        planner_settings, settings_factory = create_mc_planner_and_factory(
+            real_sat, tf=tf, dt_planning=10.0, has_rw=True
         )
-        planner_settings.verbosity = False  # Disable C++ planner verbose output
-        # Single-goal: skip Pass 2 optimization to avoid wound trajectories
-        planner_settings.dt_tp = 10
-        planner_settings.skip_pass2_optimization = True
 
         # Choose controller based on tracking mode and verbosity
         tracking_mode = config.get("tracking_mode", TRACKING_MODE)
@@ -123,7 +118,10 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
         elif tracking_mode == "mpc":
             controller = Plan_and_Track_MPC(est_sat=real_sat, planner_settings=planner_settings)
         else:
-            controller = Plan_and_Track_LQR(est_sat=real_sat, planner_settings=planner_settings)
+            controller = Plan_and_Track_LQR(
+                est_sat=real_sat, planner_settings=planner_settings,
+                settings_factory=settings_factory
+            )
 
         goals = GoalList({0.22: Fixed_Attitude_Goal(config["q_goal"])})
         os0 = orb.get_os(0.22)
@@ -294,7 +292,6 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
                     print(f"Saved diagnostic plot to /tmp/planner_diagnostic.png", flush=True)
                     plt.close(fig)
             else:
-                print('hi')
                 # C++ planner only supports verbose
                 traj = controller.calculate_trajectory(
                     t_start=0.22, duration=tf, x_0=x0, os_0=os0, goals=goals, verbose=verbose

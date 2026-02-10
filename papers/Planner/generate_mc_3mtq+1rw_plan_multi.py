@@ -31,7 +31,7 @@ from ADCS.controller.plan_and_track_python_alilqr import Plan_and_Track_PythonAL
 from ADCS.controller.helpers import PlannerSettings
 
 # Import good settings
-from mc_planner_settings import create_optimized_planner_settings
+from mc_planner_settings import create_optimized_planner_settings, create_mc_planner_and_factory
 from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.orbits.helpers.orbit_factory import create_random_circular_orbit
 from ADCS.satellite_factory.satellites.create_cubesats import create_beavercube2_cubesat
@@ -64,7 +64,7 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
 
     try:
         tf = config.get("tf", 1000)
-        dt = config.get("dt", 2)
+        dt = config.get("dt", 1)
         dt_planning = config.get("dt_planning", 1)
         N = int(tf / dt)
 
@@ -93,14 +93,10 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
         for i, rw in enumerate(rws):
             rw.h = config["h0"][i]
 
-        # Use well-conditioned settings with fast_slew tuning
-        planner_settings = create_optimized_planner_settings(
-            real_sat, duration=tf, dt_planning=dt_planning, tuning="fast_slew"
+        # Use auto_refine with settings factory for robust planning across dt values
+        planner_settings, settings_factory = create_mc_planner_and_factory(
+            real_sat, tf=tf, dt_planning=10.0, has_rw=True
         )
-        planner_settings.verbosity = False
-        # Skip Pass 2: plan at dt=10, ZOH to dt=1 for K-gains
-        planner_settings.dt_tp = 10
-        planner_settings.skip_pass2_optimization = True
 
         visualize = config.get("visualize", False)
         save_plots = config.get("save_plots", False)
@@ -108,7 +104,10 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
         if visualize or save_plots:
             controller = Plan_and_Track_PythonALILQR(est_sat=real_sat, planner_settings=planner_settings)
         else:
-            controller = Plan_and_Track_LQR(est_sat=real_sat, planner_settings=planner_settings)
+            controller = Plan_and_Track_LQR(
+                est_sat=real_sat, planner_settings=planner_settings,
+                settings_factory=settings_factory
+            )
 
         # Multi-goal structure matching LP test
         sec2cent = TimeConstants.sec2cent
