@@ -80,7 +80,7 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
 
         controller = MTQ_w_RW_LP(
             est_sat=real_sat, p_gain=0.00005, d_gain=0.002, c_gain=0.001,
-            h_target=np.array([0.0, 0.0, 0.0])
+            h_target=np.array([0.0])
         )
         goal = Fixed_Attitude_Goal(config["q_goal"])
 
