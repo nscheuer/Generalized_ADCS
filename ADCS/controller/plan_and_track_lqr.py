@@ -589,12 +589,15 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
                     # K-gains matched to tracking timestep.
                     coarse_traj = best_traj
                     coarse_angle = best_angle
+                    # Temporarily set best_angle very high so try_config always
+                    # captures the fine plan (even if metric is worse than coarse)
+                    best_angle = 999.0
                     angle_fine = try_config(dt_fine, 0, False, f"dt={dt_fine} mode=0 (MTQ refine)")
                     if angle_fine > spike_thresh:
                         # Fine dt wound — revert to coarse (still good plan)
                         best_traj = coarse_traj
                         best_angle = coarse_angle
-                    # Otherwise best_traj is the fine dt plan (better K-gains)
+                    # Otherwise best_traj is now the fine dt plan (better K-gains)
                 return best_traj
         
         # Phase 2: Fine dt (slower, ~10-15s each, resolves 180° bifurcation)
