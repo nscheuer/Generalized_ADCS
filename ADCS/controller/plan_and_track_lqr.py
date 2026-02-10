@@ -593,8 +593,13 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
                     # captures the fine plan (even if metric is worse than coarse)
                     best_angle = 999.0
                     angle_fine = try_config(dt_fine, 0, False, f"dt={dt_fine} mode=0 (MTQ refine)")
-                    if angle_fine > spike_thresh:
-                        # Fine dt wound — revert to coarse (still good plan)
+                    # Use a lenient wound threshold for the refine step: the
+                    # gain_scale=0.5 tracker tolerates moderate winding (~90°)
+                    # since it under-corrects during wound portions. Only reject
+                    # catastrophic winding (>120°) where even scaled gains diverge.
+                    mtq_refine_wound_thresh = 120.0
+                    if angle_fine > mtq_refine_wound_thresh:
+                        # Fine dt catastrophically wound — revert to coarse
                         best_traj = coarse_traj
                         best_angle = coarse_angle
                     # Otherwise best_traj is now the fine dt plan (better K-gains)
