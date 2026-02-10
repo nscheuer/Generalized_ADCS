@@ -108,7 +108,14 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
         """
         # tracking_lqr_formulation=0 is standard TVLQR
         self._init_planner(est_sat, planner_settings, tracking_lqr_formulation=0)
-        self._gain_scale = 1.0  # Default: use full K gains
+        
+        # MTQ-only gain scale: auto-detect if no reaction wheels
+        mtq_gs = getattr(planner_settings, 'mtq_gain_scale', None)
+        if mtq_gs is None:
+            has_rw = any(hasattr(a, 'J') for a in est_sat.actuators)
+            mtq_gs = 1.0 if has_rw else 0.5
+        self._gain_scale = mtq_gs
+        
         self._max_K_norm = None  # No clamping by default
         self._warmup_time = 0.0  # No warmup by default
         self._trajectory_start_time = None  # Set when trajectory is assigned
@@ -324,51 +331,80 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
     def _plan_max_boresight_error(Xset: np.ndarray, goals, traj_times: np.ndarray,
                                    body_boresight: np.ndarray = None,
                                    skip_fraction: float = 0.2) -> float:
-        """Compute max boresight-to-goal error after initial transient, in degrees.
+        """Compute max boresight error after convergence (winding detection).
         
-        Works for any goal type (ECI, Nadir, Sun, etc.) by evaluating the goal's
-        to_ref() at each trajectory timestep and computing the boresight alignment.
+        Instead of simple max-after-skip, this detects trajectory winding:
+        the boresight error is expected to decrease monotonically during a
+        maneuver. If it drops below a convergence threshold and then rises
+        back above a winding threshold, the plan is wound.
+        
+        Returns the max error after first convergence. For non-wound plans
+        this is the steady-state tracking error (~0°). For wound plans this
+        is the peak re-divergence (>>45°).
+        
+        Works for any goal type (ECI, Nadir, Sun, etc.).
         Only measures during active goal periods (skips No_Goal).
         """
         from ADCS.helpers.math_helpers import rot_mat
         from ADCS.CONOPS.goals import No_Goal
         if body_boresight is None:
-            body_boresight = np.array([0.0, 1.0, 0.0])  # Default Y-body boresight
+            body_boresight = np.array([0.0, 1.0, 0.0])
         
         N = Xset.shape[1]
-        skip = max(1, int(N * skip_fraction))
-        max_err = 0.0
         
-        for k in range(skip, N):
-            # Get goal at this time
+        # Step 1: Compute full boresight error trajectory
+        errors = np.full(N, np.nan)
+        for k in range(N):
             t_k = traj_times[min(k, len(traj_times) - 1)]
             goal = goals.get_active_goal(t_k)
             if goal is None or isinstance(goal, No_Goal):
                 continue
-            
-            # Get ECI reference direction from goal
-            # Create a minimal orbital state for to_ref (some goals need it)
             try:
                 eci_ref, _ = goal.to_ref(os0=None)
             except:
                 continue
-            
             if np.linalg.norm(eci_ref) < 1e-10:
                 continue
             eci_ref = eci_ref / np.linalg.norm(eci_ref)
-            
-            # Compute boresight in ECI
             q = Xset[3:7, k]
             q = q / np.linalg.norm(q)
-            R = rot_mat(q)
-            bore_eci = R @ body_boresight
-            
+            bore_eci = rot_mat(q) @ body_boresight
             cos_a = np.clip(np.dot(bore_eci, eci_ref), -1.0, 1.0)
-            err = np.degrees(np.arccos(cos_a))
-            if err > max_err:
-                max_err = err
+            errors[k] = np.degrees(np.arccos(cos_a))
         
-        return max_err
+        # Filter out NaN (No_Goal periods)
+        valid = ~np.isnan(errors)
+        if not np.any(valid):
+            return 0.0
+        
+        # Step 2: Find convergence point — first time error drops below threshold
+        # Use 10° as convergence threshold: "near goal" for boresight tracking.
+        # For non-wound plans, error monotonically decreases after this point.
+        # For wound plans, error goes back up to >>10° after convergence.
+        converge_thresh = 10.0
+        converge_idx = None
+        for k in range(N):
+            if valid[k] and errors[k] < converge_thresh:
+                converge_idx = k
+                break
+        
+        if converge_idx is None:
+            # Never converged — return max error after skip
+            skip = max(1, int(N * skip_fraction))
+            valid_after_skip = valid.copy()
+            valid_after_skip[:skip] = False
+            if np.any(valid_after_skip):
+                return np.nanmax(errors[valid_after_skip])
+            return 180.0
+        
+        # Step 3: Return max error after convergence
+        # This catches winding (error goes back up) while ignoring
+        # the initial maneuver transient
+        post_converge = errors[converge_idx:]
+        valid_post = ~np.isnan(post_converge)
+        if np.any(valid_post):
+            return np.nanmax(post_converge[valid_post])
+        return 0.0
 
     def _try_plan_fresh(
         self,
@@ -482,6 +518,13 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
         dt_coarse = self.planner_settings.dt_tp
         dt_fine = getattr(self.planner_settings, 'auto_refine_dt_fine', 1.0)
         
+        # For MTQ-only systems, use tighter threshold to trigger dt=1 fallback
+        # more aggressively. dt=10 K-gains are less reliable for MTQ-only due to
+        # B-field coupling nonlinearity, so prefer dt=1 plans when possible.
+        has_rw = any(hasattr(a, 'J') for a in self.est_sat.actuators)
+        if not has_rw and spike_thresh > 10.0:
+            spike_thresh = 10.0
+        
         # Determine goal type and set up appropriate quality evaluator
         q_goal = self._extract_goal_quaternion(goals, t_start, duration, x_0, os_0)
         is_quat_goal = (q_goal is not None)
@@ -540,12 +583,24 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
         for mode in [0, 4]:
             angle = try_config(dt_coarse, mode, False, f"dt={dt_coarse} mode={mode}")
             if angle <= spike_thresh:
+                if not has_rw:
+                    # MTQ-only: coarse dt K-gains may cause tracking instability
+                    # even when plan looks perfect. Always try fine dt to get
+                    # K-gains matched to tracking timestep.
+                    coarse_traj = best_traj
+                    coarse_angle = best_angle
+                    angle_fine = try_config(dt_fine, 0, False, f"dt={dt_fine} mode=0 (MTQ refine)")
+                    if angle_fine > spike_thresh:
+                        # Fine dt wound — revert to coarse (still good plan)
+                        best_traj = coarse_traj
+                        best_angle = coarse_angle
+                    # Otherwise best_traj is the fine dt plan (better K-gains)
                 return best_traj
         
         # Phase 2: Fine dt (slower, ~10-15s each, resolves 180° bifurcation)
         # Try mode 0 first. If good enough (<= tight_thresh), accept.
         # If mediocre, try mode 4 too — lower plan angle correlates with better tracking.
-        tight_thresh = spike_thresh / 5.0  # e.g., 8° for spike_thresh=40°
+        tight_thresh = spike_thresh / 5.0  # e.g., 8° for spike_thresh=40°, 2° for spike_thresh=10°
         angle_m0 = try_config(dt_fine, 0, False, f"dt={dt_fine} mode=0")
         if angle_m0 <= tight_thresh:
             return best_traj

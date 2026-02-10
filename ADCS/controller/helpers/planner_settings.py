@@ -236,6 +236,13 @@ class PlannerSettings:
         self.auto_refine_dt_slerp = 2.0     # dt for SLERP+slacks fallback (seconds)
         self.auto_refine_spike_thresh = 40.0  # Plan angle (°) above which plan is "wound"
         
+        # MTQ-only tracking: gain scale for TVLQR feedback.
+        # For MTQ-only satellites, dt=10 K-gains applied at dt=1 can cause
+        # oscillatory instability due to B-field coupling nonlinearity.
+        # Scale < 1.0 reduces this. 0.5 eliminates catastrophic failures while
+        # preserving good tracking on most seeds. Set to 1.0 to disable.
+        self.mtq_gain_scale = None  # None = auto (0.5 for MTQ-only, 1.0 for RW systems)
+        
         # Time-varying angle cost: w_ang *= min + (1-min) * (k/(N-1))^power
         # power=0.0 → disabled (constant angle cost over trajectory)
         # power>0 → angle cost ramps from min at start to full at end
