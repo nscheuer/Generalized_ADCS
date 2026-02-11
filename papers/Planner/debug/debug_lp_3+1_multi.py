@@ -125,7 +125,7 @@ def test_MTQ_w_RW_LP_multi_goal(
     os_hist: List[Orbital_State] = []
     sensor_hist = np.nan * np.zeros((N, len(real_sat.sensors + real_sat.rw_actuators)))
     u_hist = np.nan * np.zeros((N, len(real_sat.actuators)))
-    boresight_hist = np.nan * np.zeros((N, 3))
+    boresight_hist = np.nan*np.zeros((N, 4))
     goal_index_hist = np.nan * np.zeros(N)  # 0 = No_Goal, 1/2/3 correspond to goals
 
     t = t0

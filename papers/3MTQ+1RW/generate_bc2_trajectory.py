@@ -158,7 +158,7 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
         time_hist = np.zeros(steps)
         state_hist = np.zeros((steps, len(x)))
         u_hist = np.zeros((steps, len(real_sat.actuators)))
-        boresight_hist = np.zeros((steps, 3))
+        boresight_hist = np.zeros((steps, 4))
         
         t = t0
         ind = 0
@@ -254,7 +254,7 @@ if __name__ == "__main__":
         runner = MonteCarloRunner(
             sim_func=run_single_sim,
             config_generator=generate_mc_config,
-            num_runs=100,
+            num_runs=16,
             max_workers=24
         )
         full_results = runner.run()

@@ -235,7 +235,13 @@ def plot_target_tracking_mc(
              continue
         
         state = res["state"]       # Shape (N, 7+)
-        goal = res["boresight_goal"] # Shape (N, 3) ECI
+        goal_raw = res["boresight_goal"]
+        if goal_raw.shape[1] == 4:
+            goal = goal_raw[:, 1:4]
+        elif goal_raw.shape[1] == 3:
+            goal = goal_raw
+        else:
+            raise ValueError(f"Unexpected boresight_goal shape: {goal_raw.shape}")
         time = res["time"]         # Shape (N,)
         
         # --- Calculation ---
@@ -438,7 +444,7 @@ def plot_convergence_histogram_mc(
         v_b = R_b2i @ v_bore_body
 
         # 4) Normalize boresight & goal
-        v_g = np.asarray(goal[k, :], dtype=float).reshape(3,)
+        v_g = np.asarray(goal[k, -3:], dtype=float).reshape(3,)
         nb2 = np.linalg.norm(v_b)
         ng2 = np.linalg.norm(v_g)
         if nb2 == 0 or ng2 == 0:

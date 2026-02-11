@@ -254,7 +254,7 @@ if __name__ == "__main__":
         runner = MonteCarloRunner(
             sim_func=run_single_sim,
             config_generator=generate_mc_config,
-            num_runs=100,
+            num_runs=12,
             max_workers=24
         )
         full_results = runner.run()

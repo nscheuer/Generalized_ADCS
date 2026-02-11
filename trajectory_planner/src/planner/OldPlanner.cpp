@@ -1425,7 +1425,8 @@ ALILQR_OUTPUT_FORM OldPlanner::alilqr(double dt0,TRAJECTORY_FORM traj, VECTOR_IN
       dLA = abs(newLA-LA);
       // if(stepsSinceRand != 0){
         dlaZcount++;
-        if(dLA >= 1e-10)
+        double relative_change = dLA/(std::abs(LA) + 1e-10);
+        if(relative_change > 1e-3)
         {
           dlaZcount = 0;
         }

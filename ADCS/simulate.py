@@ -4,6 +4,9 @@ import numpy as np
 from typing import Optional
 from tqdm import tqdm
 from scipy.integrate import solve_ivp
+import matplotlib.pyplot as plt
+
+import ADCS as ADCS
 
 from ADCS.CONOPS.goals import Goal, No_Goal
 from ADCS.CONOPS.goallist import GoalList
@@ -31,6 +34,88 @@ def simulate(
     dt: float = 1.0,
     tf: float = 500.0,
 ) -> SimulationResults:
+    r"""
+    Run a time-domain simulation of the spacecraft Attitude Determination and Control
+    System (ADCS), including dynamics propagation, sensor simulation, state estimation,
+    orbit estimation, goal management, and control execution.
+
+    This function advances the true satellite state forward in time using numerical
+    integration, while optionally running attitude and orbit estimators and a control
+    law. Goals may be specified as a single goal or a time-varying goal list. All
+    simulation data are logged and returned as a :class:`~ADCS.helpers.simresults.SimulationResults`
+    object.
+
+    The simulation uses :func:`scipy.integrate.solve_ivp` with RK45 integration and
+    propagates the orbit using :class:`~ADCS.orbits.orbit.Orbit`.
+
+    :param x:
+        Initial true satellite state vector. The length must match
+        ``satellite.state_len`` and is expected to follow the satellite state
+        convention (angular velocity, quaternion, reaction wheel states, etc.).
+    :type x:
+        numpy.ndarray
+
+    :param satellite:
+        The true satellite model, including dynamics, sensors, and actuators.
+    :type satellite:
+        :class:`~ADCS.satellite_hardware.satellite.Satellite`
+
+    :param est_satellite:
+        Estimated satellite model used by estimators and controllers. If ``None`` and
+        either an estimator or controller is provided, it is constructed automatically
+        from ``satellite``.
+    :type est_satellite:
+        :class:`~ADCS.satellite_hardware.satellite.EstimatedSatellite` or None
+
+    :param controller:
+        Control law used to compute actuator commands. If the controller is a
+        :class:`~ADCS.controller.PlanAndTrackBase`, an initial trajectory is computed
+        before simulation.
+    :type controller:
+        :class:`~ADCS.controller.Controller` or None
+
+    :param estimator:
+        Attitude estimator used to estimate the spacecraft state from sensor
+        measurements.
+    :type estimator:
+        :class:`~ADCS.estimators.attitude_estimators.Attitude_Estimator` or None
+
+    :param orbit_estimator:
+        Orbit estimator used to estimate the orbital state from GPS measurements.
+    :type orbit_estimator:
+        :class:`~ADCS.estimators.orbit_estimators.Orbit_Estimator` or None
+
+    :param goal:
+        Desired attitude or pointing objective. This may be ``None`` (no goal),
+        a single :class:`~ADCS.CONOPS.goals.Goal`, or a
+        :class:`~ADCS.CONOPS.goallist.GoalList` defining time-varying goals.
+    :type goal:
+        :class:`~ADCS.CONOPS.goals.Goal`,
+        :class:`~ADCS.CONOPS.goallist.GoalList`,
+        or None
+
+    :param os0:
+        Initial orbital state at the start of the simulation.
+    :type os0:
+        :class:`~ADCS.orbits.orbital_state.Orbital_State`
+
+    :param dt:
+        Simulation time step in seconds.
+    :type dt:
+        float
+
+    :param tf:
+        Total simulation duration in seconds.
+    :type tf:
+        float
+
+    :return:
+        Container holding all recorded simulation data, including true and estimated
+        states, controls, sensor readings, biases, and targets for the entire run.
+    :rtype:
+        :class:`~ADCS.helpers.simresults.SimulationResults`
+
+    """
     if len(x) != satellite.state_len:
         raise ValueError(
             f"Initial state length {len(x)} does not match satellite state length "
@@ -72,8 +157,24 @@ def simulate(
             x_0=x,
             os_0=os0,
             goals=goal_list,
-            verbose=False
+            verbose=True
         )
+        
+        if True:
+            active_goal = goal_list.get_active_goal(start_time, time_units="centuries")
+            target, w_target = active_goal.to_ref(os0) 
+            simresults = trajectory.to_simulation_results(satellite, target=target, w_target=w_target)
+            ADCS.plot(
+                simresults,
+                ADCS.plots.AngularVelocityPlotCombined(sources=["real"]),
+                ADCS.plots.ControlPlotCombined(title="Magnetorquer Commands", units="Am²"),
+                ADCS.plots.TargetHistogram(bin_width=5.0),
+                ADCS.plots.TargetPlot(modes=["real_target"], title="Target Tracking"),
+                layout=(2,2),
+                title="TRAJECTORY",
+            )
+            plt.show()
+
         controller.set_active_trajectory(trajectory)
 
     run_capsule = RunResults(satellite=satellite, est_satellite=est_satellite)
