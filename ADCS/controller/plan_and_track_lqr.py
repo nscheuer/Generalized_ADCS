@@ -311,6 +311,21 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
 
     @staticmethod
     @staticmethod
+    @staticmethod
+    def _plan_final_angle(Xset: np.ndarray, q_goal: np.ndarray) -> float:
+        """Compute final quaternion angle to goal, in degrees.
+        
+        For MTQ-only fixed-attitude goals, the final error is the right metric:
+        feasible trajectories may wobble through large transients but converge
+        at the end. These are perfectly trackable (K-gains on feasible trajectory
+        are correct), unlike SLERP plans which converge to 0° but can't be tracked.
+        """
+        q = Xset[3:7, -1]
+        q = q / np.linalg.norm(q)
+        cos_half = min(abs(np.dot(q, q_goal)), 1.0)
+        return np.degrees(2 * np.arccos(cos_half))
+
+    @staticmethod
     def _plan_max_angle(Xset: np.ndarray, q_goal: np.ndarray, skip_fraction: float = 0.2) -> float:
         """Compute max angle to goal after initial transient, in degrees.
         
@@ -518,16 +533,23 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
         dt_coarse = self.planner_settings.dt_tp
         dt_fine = getattr(self.planner_settings, 'auto_refine_dt_fine', 1.0)
         
-        # For MTQ-only systems, use tighter threshold to trigger dt=1 fallback
-        # more aggressively. dt=10 K-gains are less reliable for MTQ-only due to
-        # B-field coupling nonlinearity, so prefer dt=1 plans when possible.
-        has_rw = any(hasattr(a, 'J') for a in self.est_sat.actuators)
-        if not has_rw and spike_thresh > 10.0:
-            spike_thresh = 10.0
-        
-        # Determine goal type and set up appropriate quality evaluator
+        # Determine goal type early (needed for metric selection)
         q_goal = self._extract_goal_quaternion(goals, t_start, duration, x_0, os_0)
         is_quat_goal = (q_goal is not None)
+        
+        # Adjust spike_thresh based on goal type and actuator configuration.
+        has_rw = any(hasattr(a, 'J') for a in self.est_sat.actuators)
+        if is_quat_goal:
+            # Quaternion goals use final error metric.
+            # Plans with <10° final error have reliable K-gains near the goal.
+            # Plans at 10-30° are marginal — K-gains may not stabilize tracking.
+            spike_thresh = 10.0
+            if not has_rw:
+                # MTQ-only: feasible plans ending <30° are much better than
+                # infeasible SLERP plans that end at 0° but can't be tracked.
+                spike_thresh = 30.0
+        elif not has_rw and spike_thresh > 10.0:
+            spike_thresh = 10.0
         
         settings_factory = getattr(self, '_settings_factory', None)
         if settings_factory is None:
@@ -540,10 +562,24 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
         best_traj = None
         best_angle = 999.0
         
+        # For MTQ-only with quaternion goals, evaluate by FINAL error instead
+        # of max error. Feasible MTQ trajectories can wobble through large
+        # transient angles (even 180°) during the maneuver but converge well
+        # at the end. Using max error would reject these perfectly trackable
+        # trajectories in favor of infeasible SLERP plans.
+        #
+        # For ALL quaternion goals (including 1RW), use final error as metric.
+        # For 180° maneuvers, _plan_max_angle rejects plans that correctly
+        # pass through high angles during the maneuver (expected transient).
+        # TVLQR tracks the planned trajectory, not the goal directly, so
+        # a high plan-to-goal angle mid-maneuver is fine as long as the plan
+        # is smooth and converges at the end.
+        use_final_metric = is_quat_goal
+        
         def evaluate_plan(traj):
-            """Evaluate plan quality — returns max angle error in degrees."""
+            """Evaluate plan quality — returns angle error in degrees."""
             if is_quat_goal:
-                return self._plan_max_angle(traj.states, q_goal)
+                return self._plan_final_angle(traj.states, q_goal)
             else:
                 return self._plan_max_boresight_error(
                     traj.states, goals, traj.times)
@@ -569,7 +605,7 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
                 traj = Trajectory(lqr_times, Xset, Uset, Kset, Sset)
                 angle = evaluate_plan(traj)
                 if verbose:
-                    print(f"  {label}: max_angle={angle:.1f}°")
+                    print(f"  {label}: angle={angle:.1f}°")
                 if angle < best_angle:
                     best_angle = angle
                     best_traj = traj
@@ -617,11 +653,24 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
         if best_angle <= spike_thresh:
             return best_traj
         
-        # Phase 3: SLERP with slacks (last resort — always produces trackable trajectory)
-        # dt=2 is the sweet spot: resolves 180° bifurcation like dt=1 but 4× faster
+        # Phase 3: SLERP warm-start WITHOUT slacks (mode 6)
+        # Uses the rate-limited SLERP trajectory as a non-wound starting point
+        # for the optimizer. Unlike SLERP+slacks, this forces feasible controls
+        # and produces valid K-gains. Try at dt=1 and dt=2.
+        if best_angle > spike_thresh:
+            try_config(dt_fine, 6, False, f"dt={dt_fine} mode=6 (SLERP no-slack)")
+            if best_angle <= spike_thresh:
+                return best_traj
+            dt_slerp = getattr(self.planner_settings, 'auto_refine_dt_slerp', 2.0)
+            try_config(dt_slerp, 6, False, f"dt={dt_slerp} mode=6 (SLERP no-slack)")
+            if best_angle <= spike_thresh:
+                return best_traj
+        
+        # Phase 4: SLERP with slacks (absolute last resort)
+        # Produces 0° plan error but K-gains may be poor for tracking.
         if best_angle > spike_thresh:
             dt_slerp = getattr(self.planner_settings, 'auto_refine_dt_slerp', 2.0)
-            try_config(dt_slerp, 0, True, f"dt={dt_slerp} slacks")
+            try_config(dt_slerp, 0, True, f"dt={dt_slerp} slacks (last resort)")
         
         if best_traj is None:
             raise RuntimeError("All planning attempts failed")

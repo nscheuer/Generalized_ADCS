@@ -7,11 +7,12 @@ Multi-goal structure (90° between successive goals):
 """
 import os
 os.environ.setdefault('DISPLAY', ':0')  # WSLg display
-os.environ['MPLBACKEND'] = 'TkAgg'  # Must be set before any matplotlib import
+os.environ.setdefault('MPLBACKEND', 'TkAgg')  # Must be set before any matplotlib import
 import sys
 import numpy as np
 from scipy.integrate import solve_ivp
 from typing import Dict, Any
+import time as time_module
 
 # --- Path Setup (works from Generalized_ADCS root directory) ---
 _this_file = os.path.abspath(__file__)
@@ -112,6 +113,7 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
         os0 = orb.get_os(t0_j2000)
 
         try:
+            t_plan_start = time_module.perf_counter()
             if visualize:
                 callback = create_planner_diagnostic_callback(config, BODY_BORESIGHT, tf)
                 controller.set_iteration_callback(callback)
@@ -124,6 +126,7 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
                 traj = controller.calculate_trajectory(
                     t_start=t0_j2000, duration=tf, x_0=x0, os_0=os0, goals=goals, verbose=False
                 )
+            plan_time_s = time_module.perf_counter() - t_plan_start
             controller.set_active_trajectory(traj)
             traj_valid = True
             if visualize:
@@ -143,6 +146,7 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
         x = x0.copy()
         t = 0
 
+        t_sim_start = time_module.perf_counter()
         for i in range(N):
             if i % 10 == 0:
                 update_worker_progress(slot_id, run_id, i, N)
@@ -167,6 +171,7 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
             x = out.y[:, -1]
             x[3:7] = normalize(x[3:7])
 
+        sim_time_s = time_module.perf_counter() - t_sim_start
         update_worker_progress(slot_id, run_id, N, N)
 
         # Extract trajectory data for plotting (convert from column-major to row-major)
@@ -178,6 +183,7 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
             "run_id": run_id, "config": config, "traj_valid": True,
             "time": time_hist, "state": state_hist, "u": u_hist,
             "boresight_goal": boresight_hist, "goal_type": "multi",
+            "plan_time_s": plan_time_s, "sim_time_s": sim_time_s,
             # Trajectory data for comparison plotting
             "traj_time": traj_times_sec, "traj_state": traj_state, "traj_u": traj_u
         }
@@ -228,6 +234,7 @@ if __name__ == "__main__":
     parser.add_argument("--tf", type=float, default=None, help="Override planning duration [s]")
     parser.add_argument("--dt", type=float, default=None, help="Override sim dt [s]")
     parser.add_argument("--dt-planning", type=float, default=None, help="Override planning dt [s]")
+    parser.add_argument("--plot", action="store_true", help="Show plots after MC (default: just save data)")
     args = parser.parse_args()
     
     TEST_MODE = args.test
@@ -268,11 +275,11 @@ if __name__ == "__main__":
         valid = [r for r in full_results if r and r.get("traj_valid", False)]
         print(f"\n--- Monte Carlo Complete: {len(valid)}/{len(full_results)} valid ---")
         save_data(f"3MTQ+0RW_plan_multi_mc_{NUM_RUNS}", full_results, out_dir=OUTPUT_DIR)
-        # Plot MC summary
-        plot_mc_summary(valid, body_boresight=BODY_BORESIGHT, title_prefix="3MTQ+0RW Planner Multi")
-        create_close_all_button_window()
-        import matplotlib.pyplot as plt
-        plt.show()
+        if args.plot:
+            plot_mc_summary(valid, body_boresight=BODY_BORESIGHT, title_prefix="3MTQ+0RW Planner Multi")
+            create_close_all_button_window()
+            import matplotlib.pyplot as plt
+            plt.show()
     else:
         results = load_data(f"{OUTPUT_DIR}/3MTQ+0RW_plan_multi_mc_{NUM_RUNS}")
         full_results = results[0] if isinstance(results, tuple) else results

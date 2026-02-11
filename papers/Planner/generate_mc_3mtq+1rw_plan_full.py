@@ -10,11 +10,12 @@ Supports different tracking modes:
 """
 import os
 os.environ.setdefault('DISPLAY', ':0')  # WSLg display
-os.environ['MPLBACKEND'] = 'TkAgg'  # Must be set before any matplotlib import
+os.environ.setdefault('MPLBACKEND', 'TkAgg')  # Must be set before any matplotlib import
 import sys
 import numpy as np
 from scipy.integrate import solve_ivp
 from typing import Dict, Any
+import time as time_module
 
 # --- Path Setup (works from Generalized_ADCS root directory) ---
 _this_file = os.path.abspath(__file__)
@@ -127,6 +128,7 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
         os0 = orb.get_os(0.22)
 
         try:
+            t_plan_start = time_module.perf_counter()
             if visualize:
                 # Python planner supports visualize parameter
                 save_viz = config.get("save_viz", False)
@@ -296,6 +298,7 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
                 traj = controller.calculate_trajectory(
                     t_start=0.22, duration=tf, x_0=x0, os_0=os0, goals=goals, verbose=verbose
                 )
+            plan_time_s = time_module.perf_counter() - t_plan_start
             controller.set_active_trajectory(traj)
             traj_valid = True
 
@@ -321,12 +324,9 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
         t = 0
         sec2cent = TimeConstants.sec2cent
 
-        import time as time_module
-        sim_start_time = time_module.time()
-        print(f"Starting simulation: {N} steps, dt={dt}s, tf={tf}s", flush=True)
-        
+        t_sim_start = time_module.perf_counter()
         for i in range(N):
-            t0_step = time_module.time()
+            t0_step = time_module.perf_counter()
             J2000 = 0.22 + t * sec2cent
             os_state = orb.get_os(J2000=J2000)
             sens = real_sat.sensor_readings(x=x, os=os_state)
@@ -362,11 +362,10 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
                     print(f"    Step {i}: u={u}, |ω|={omega_deg:.2f}°/s, t={t:.1f}s", flush=True)
                 elif i % 50 == 0:
                     omega_deg = np.linalg.norm(x[0:3]) * 180/np.pi
-                    print(f"    Step {i} took {time_module.time()-t0_step:.3f}s, nfev={out.nfev}, |u|={np.linalg.norm(u):.4f}, |ω|={omega_deg:.2f}°/s", flush=True)
+                    print(f"    Step {i} took {time_module.perf_counter()-t0_step:.3f}s, nfev={out.nfev}, |u|={np.linalg.norm(u):.4f}, |ω|={omega_deg:.2f}°/s", flush=True)
 
+        sim_time_s = time_module.perf_counter() - t_sim_start
         update_worker_progress(slot_id, run_id, N, N)
-        sim_elapsed = time_module.time() - sim_start_time
-        print(f"Simulation complete: {N} steps in {sim_elapsed:.1f}s ({sim_elapsed/N*1000:.1f}ms/step)", flush=True)
 
         # Extract trajectory data for plotting (convert from column-major to row-major)
         traj_times_sec = (traj.times - traj.times[0]) * 36525 * 24 * 3600  # Convert J2000 centuries to seconds
@@ -377,6 +376,7 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
             "run_id": run_id, "config": config, "traj_valid": True,
             "time": time_hist, "state": state_hist, "u": u_hist,
             "q_goal": q_goal_hist, "goal_type": "full_attitude",
+            "plan_time_s": plan_time_s, "sim_time_s": sim_time_s,
             # Trajectory data for comparison plotting
             "traj_time": traj_times_sec, "traj_state": traj_state, "traj_u": traj_u
         }
@@ -435,6 +435,7 @@ if __name__ == "__main__":
     parser.add_argument("--tf", type=float, default=None, help="Override planning duration [s]")
     parser.add_argument("--dt", type=float, default=None, help="Override sim dt [s]")
     parser.add_argument("--dt-planning", type=float, default=None, help="Override planning dt [s]")
+    parser.add_argument("--plot", action="store_true", help="Show plots after MC (default: just save data)")
     args = parser.parse_args()
     
     TEST_MODE = args.test
@@ -480,11 +481,11 @@ if __name__ == "__main__":
         print(f"\n--- Monte Carlo Complete: {len(valid)}/{len(full_results)} valid ---")
         print(f"Tracking mode: {TRACKING_MODE}")
         save_data(output_name, full_results, out_dir=OUTPUT_DIR)
-        # Plot MC summary
-        plot_mc_summary(valid, body_boresight=BODY_BORESIGHT, title_prefix="3MTQ+1RW Planner Full")
-        create_close_all_button_window()
-        import matplotlib.pyplot as plt
-        plt.show()
+        if args.plot:
+            plot_mc_summary(valid, body_boresight=BODY_BORESIGHT, title_prefix="3MTQ+1RW Planner Full")
+            create_close_all_button_window()
+            import matplotlib.pyplot as plt
+            plt.show()
     else:
         results = load_data(f"{OUTPUT_DIR}/{output_name}")
         full_results = results[0] if isinstance(results, tuple) else results
