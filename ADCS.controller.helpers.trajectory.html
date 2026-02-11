@@ -502,9 +502,6 @@
         <article role="main" id="furo-main-content">
           <section id="module-ADCS.controller.helpers.trajectory">
 <span id="adcs-controller-helpers-trajectory-module"></span><h1>ADCS.controller.helpers.trajectory module<a class="headerlink" href="#module-ADCS.controller.helpers.trajectory" title="Link to this heading">¶</a></h1>
-<p>Trajectory representation for ALTRO planner output.</p>
-<p>This module provides the Trajectory class for storing, interpolating, and
-visualizing planned trajectories from the ALTRO optimizer.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="ADCS.controller.helpers.trajectory.Trajectory">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">ADCS.controller.helpers.trajectory.</span></span><span class="sig-name descname"><span class="pre">Trajectory</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">S</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_disturbance_estimation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/controller/helpers/trajectory.html#Trajectory"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.controller.helpers.trajectory.Trajectory" title="Link to this definition">¶</a></dt>
@@ -697,6 +694,24 @@ trajectory, producing a 3D curve on the unit sphere.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="ADCS.controller.helpers.trajectory.Trajectory.to_simulation_results">
+<span class="sig-name descname"><span class="pre">to_simulation_results</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">satellite</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w_target</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_cost</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/controller/helpers/trajectory.html#Trajectory.to_simulation_results"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.controller.helpers.trajectory.Trajectory.to_simulation_results" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>satellite</strong> (<a class="reference internal" href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite" title="ADCS.satellite_hardware.satellite.satellite.Satellite"><em>Satellite</em></a>)</p></li>
+<li><p><strong>target</strong> (<em>ndarray</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>w_target</strong> (<em>ndarray</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>include_cost</strong> (<em>bool</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.SimulationResults" title="ADCS.helpers.simresults.SimulationResults"><em>SimulationResults</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="ADCS.controller.helpers.trajectory.Trajectory.update_disturbance_estimate">
 <span class="sig-name descname"><span class="pre">update_disturbance_estimate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dist_torque</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/controller/helpers/trajectory.html#Trajectory.update_disturbance_estimate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.controller.helpers.trajectory.Trajectory.update_disturbance_estimate" title="Link to this definition">¶</a></dt>
 <dd><p>Update the internal disturbance torque estimate.</p>
@@ -765,64 +780,6 @@ tracking controller.</p>
 <span class="sig-name descname"><span class="pre">times</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ndarray</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">dtype</span><span class="p"><span class="pre">[</span></span><span class="pre">float64</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#ADCS.controller.helpers.trajectory.Trajectory.times" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="ADCS.controller.helpers.trajectory.quat_diff">
-<span class="sig-prename descclassname"><span class="pre">ADCS.controller.helpers.trajectory.</span></span><span class="sig-name descname"><span class="pre">quat_diff</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">q0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/helpers/math_helpers.html#quat_diff"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.controller.helpers.trajectory.quat_diff" title="Link to this definition">¶</a></dt>
-<dd><p>Compute the relative quaternion between two attitudes.</p>
-<p>The quaternion error is defined as</p>
-<div class="math-wrapper docutils container">
-<div class="math notranslate nohighlight">
-\[\mathbf{q}_{\mathrm{err}} =
-\mathbf{q}_0^{-1} \otimes \mathbf{q}_1\]</div>
-</div>
-<p>The result is normalized and forced to have a non-negative scalar part,
-ensuring a unique minimal-angle representation.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>q0</strong> (<em>numpy.ndarray</em>) – Reference quaternion.</p></li>
-<li><p><strong>q1</strong> (<em>numpy.ndarray</em>) – Target quaternion.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Relative quaternion mapping <code class="docutils literal notranslate"><span class="pre">q0</span></code> to <code class="docutils literal notranslate"><span class="pre">q1</span></code>.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>numpy.ndarray</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="ADCS.controller.helpers.trajectory.quat_to_vec3">
-<span class="sig-prename descclassname"><span class="pre">ADCS.controller.helpers.trajectory.</span></span><span class="sig-name descname"><span class="pre">quat_to_vec3</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">quat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/helpers/math_helpers.html#quat_to_vec3"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.controller.helpers.trajectory.quat_to_vec3" title="Link to this definition">¶</a></dt>
-<dd><p>Convert a quaternion to a 3D attitude parameter vector according to mode.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>quat</strong> (<em>numpy.ndarray</em><em>, </em><em>shape</em><em> (</em><em>4</em><em>,</em><em>)</em>) – Quaternion.</p></li>
-<li><p><strong>mode</strong> (<em>int</em>) – <p>Conversion mode:</p>
-<ul>
-<li><p>6 → 2×MRP (with positive scalar part)</p></li>
-<li><p>5 → 2×MRP</p></li>
-<li><p>4 → Vector component</p></li>
-<li><p>3 → Vector component (positive scalar)</p></li>
-<li><p>2 → Cayley parameters</p></li>
-<li><p>1 → MRP</p></li>
-<li><p>0 → Default: MRP (positive scalar)</p></li>
-</ul>
-</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>v</strong> – Equivalent attitude parameter vector.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>numpy.ndarray, shape (3,)</p>
-</dd>
-</dl>
 </dd></dl>
 
 </section>

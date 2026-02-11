@@ -494,12 +494,13 @@
         </div>
         <article role="main" id="furo-main-content">
           <h1>Source code for ADCS.orbits.orbital_state</h1><div class="highlight"><pre>
-<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Orbital_State&quot;</span><span class="p">]</span>
+<span></span><span class="c1"># orbital_state.py</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Orbital_State&quot;</span><span class="p">]</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">ppigrf</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">skyfield</span><span class="w"> </span><span class="kn">import</span> <span class="n">api</span><span class="p">,</span> <span class="n">units</span><span class="p">,</span> <span class="n">positionlib</span><span class="p">,</span> <span class="n">toposlib</span><span class="p">,</span> <span class="n">framelib</span><span class="p">,</span> <span class="n">vectorlib</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">skyfield</span><span class="w"> </span><span class="kn">import</span> <span class="n">api</span><span class="p">,</span> <span class="n">units</span><span class="p">,</span> <span class="n">positionlib</span><span class="p">,</span> <span class="n">toposlib</span><span class="p">,</span> <span class="n">framelib</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">timezone</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Optional</span>
 
@@ -511,105 +512,84 @@
 <span class="n">_I3</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
 <span class="n">_I6</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">6</span><span class="p">)</span>
 
+
 <div class="viewcode-block" id="Orbital_State">
 <a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.helpers.simresults.Orbital_State">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">Orbital_State</span><span class="p">:</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Complete dynamical and environmental representation of a spacecraft orbit state.</span>
+<span class="sd">    Complete dynamical and environmental representation of a spacecraft orbital state.</span>
 
-<span class="sd">    This class encapsulates the translational orbital state of a spacecraft</span>
-<span class="sd">    together with time, reference-frame transformations, environmental models,</span>
-<span class="sd">    and auxiliary vectors required for guidance, navigation, and control (GNC)</span>
-<span class="sd">    and attitude determination and control systems (ADCS).</span>
+<span class="sd">    The state is defined by inertial position and velocity in the ECI/ICRF frame at</span>
+<span class="sd">    an epoch expressed in J2000 centuries. The class also stores commonly-used</span>
+<span class="sd">    derived quantities and environment vectors, including Earth-fixed coordinates,</span>
+<span class="sd">    Sun vector, geomagnetic field vector (IGRF), atmospheric density, and frame</span>
+<span class="sd">    transforms.</span>
 
-<span class="sd">    An :class:`~ADCS.orbits.orbital_state.Orbital_State` is defined primarily by</span>
-<span class="sd">    its inertial position and velocity vectors expressed in the Earth-Centered</span>
-<span class="sd">    Inertial (ECI / ICRF) frame at a given epoch. From this core state, the class</span>
-<span class="sd">    derives:</span>
-
-<span class="sd">    * Earth-fixed (ECEF) coordinates</span>
-<span class="sd">    * Geocentric spherical coordinates</span>
-<span class="sd">    * Sun direction vector</span>
-<span class="sd">    * Geomagnetic field vector (IGRF)</span>
-<span class="sd">    * Atmospheric density</span>
-<span class="sd">    * Linearized orbital dynamics and Jacobians</span>
-<span class="sd">    * Frame transformations (ECI, ECEF, ENU, body)</span>
-
-<span class="sd">    Mathematical Model</span>
-<span class="sd">    ------------------</span>
-<span class="sd">    The orbital motion is governed by Newton’s equation with optional J2</span>
-<span class="sd">    perturbation:</span>
-
-<span class="sd">    .. math::</span>
-
-<span class="sd">        \ddot{\mathbf{r}} =</span>
-<span class="sd">        -\frac{\mu}{r^3}\mathbf{r}</span>
-<span class="sd">        + \mathbf{a}_{J_2},</span>
-
-<span class="sd">    where</span>
-
-<span class="sd">    .. math::</span>
-
-<span class="sd">        \mathbf{a}_{J_2}</span>
-<span class="sd">        = \frac{3 J_2 \mu R_E^2}{2 r^5}</span>
-<span class="sd">        \begin{bmatrix}</span>
-<span class="sd">            x \left(5 \frac{z^2}{r^2} - 1\right) \\</span>
-<span class="sd">            y \left(5 \frac{z^2}{r^2} - 1\right) \\</span>
-<span class="sd">            z \left(5 \frac{z^2}{r^2} - 3\right)</span>
-<span class="sd">        \end{bmatrix}.</span>
-
-<span class="sd">    Environmental quantities such as atmospheric density</span>
-<span class="sd">    :math:`\rho(h)` and geomagnetic field :math:`\mathbf{B}` are evaluated</span>
-<span class="sd">    using empirical models via</span>
-<span class="sd">    :class:`~ADCS.orbits.density_model.DensityModel` and IGRF.</span>
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    The ``fast`` argument is accepted for backward compatibility but is ignored:</span>
+<span class="sd">    this implementation always computes real Sun and geomagnetic field vectors and</span>
+<span class="sd">    frame transforms.</span>
 
 <span class="sd">    :param ephem:</span>
-<span class="sd">        Planetary ephemeris object providing Earth and Sun states.</span>
+<span class="sd">        Ephemeris object used for Earth and Sun position queries.</span>
+<span class="sd">        If ``None``, a new :class:`~ADCS.orbits.ephemeris.Ephemeris` is constructed.</span>
 <span class="sd">    :type ephem: Ephemeris</span>
 
 <span class="sd">    :param J2000:</span>
-<span class="sd">        Epoch expressed in Julian centuries since J2000.</span>
+<span class="sd">        Epoch in Julian centuries since J2000.</span>
 <span class="sd">    :type J2000: float</span>
 
 <span class="sd">    :param R:</span>
-<span class="sd">        Spacecraft position vector in ECI frame [km].</span>
+<span class="sd">        Position vector in ECI frame [km].</span>
 <span class="sd">    :type R: numpy.ndarray</span>
 
 <span class="sd">    :param V:</span>
-<span class="sd">        Spacecraft velocity vector in ECI frame [km/s].</span>
+<span class="sd">        Velocity vector in ECI frame [km/s].</span>
 <span class="sd">    :type V: numpy.ndarray</span>
 
 <span class="sd">    :param S:</span>
-<span class="sd">        Optional Sun direction vector in ECI frame [km].</span>
+<span class="sd">        Optional Sun position vector in ECI frame [km]. If ``None``, it is computed.</span>
 <span class="sd">    :type S: numpy.ndarray or None</span>
 
 <span class="sd">    :param B:</span>
-<span class="sd">        Optional geomagnetic field vector in ECI frame [T].</span>
+<span class="sd">        Optional geomagnetic field vector in ECI frame [T]. If ``None``, it is computed.</span>
 <span class="sd">    :type B: numpy.ndarray or None</span>
 
 <span class="sd">    :param rho:</span>
-<span class="sd">        Optional atmospheric density [kg/m³].</span>
+<span class="sd">        Optional atmospheric density [kg/m^3]. If ``None``, it is computed using</span>
+<span class="sd">        :class:`~ADCS.orbits.density_model.DensityModel`.</span>
 <span class="sd">    :type rho: float or None</span>
 
 <span class="sd">    :param density_model:</span>
-<span class="sd">        Atmospheric density interpolation model.</span>
+<span class="sd">        Atmospheric density interpolation model. If ``None``, a new</span>
+<span class="sd">        :class:`~ADCS.orbits.density_model.DensityModel` is constructed.</span>
 <span class="sd">    :type density_model: DensityModel or None</span>
 
 <span class="sd">    :param fast:</span>
-<span class="sd">        If ``True``, skips expensive environment and frame computations.</span>
+<span class="sd">        Backward-compatible parameter (ignored). Real environment vectors are always</span>
+<span class="sd">        computed.</span>
 <span class="sd">    :type fast: bool</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ephem</span><span class="p">:</span> <span class="n">Ephemeris</span><span class="p">,</span> <span class="n">J2000</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">R</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">V</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">S</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">B</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">rho</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">density_model</span><span class="p">:</span> <span class="n">DensityModel</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">fast</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">ephem</span><span class="p">:</span> <span class="n">Ephemeris</span><span class="p">,</span>
+        <span class="n">J2000</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">R</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="n">V</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="n">S</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">B</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">rho</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">density_model</span><span class="p">:</span> <span class="n">DensityModel</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">fast</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Initialize a fully defined orbital state.</span>
 
-<span class="sd">        This constructor initializes the inertial orbital state and derives</span>
-<span class="sd">        all dependent quantities such as Earth-fixed coordinates, Sun vector,</span>
-<span class="sd">        geomagnetic field, and atmospheric density.</span>
-
 <span class="sd">        :param ephem:</span>
-<span class="sd">            Ephemeris object used for Sun and Earth position queries.</span>
+<span class="sd">            Ephemeris object used for Earth and Sun position queries.</span>
 <span class="sd">        :type ephem: Ephemeris</span>
 
 <span class="sd">        :param J2000:</span>
@@ -625,15 +605,15 @@
 <span class="sd">        :type V: numpy.ndarray</span>
 
 <span class="sd">        :param S:</span>
-<span class="sd">            Optional Sun vector in ECI frame.</span>
+<span class="sd">            Optional Sun vector in ECI frame [km]. If not provided, it is computed.</span>
 <span class="sd">        :type S: numpy.ndarray or None</span>
 
 <span class="sd">        :param B:</span>
-<span class="sd">            Optional geomagnetic field vector in ECI frame.</span>
+<span class="sd">            Optional geomagnetic field vector in ECI frame [T]. If not provided, it is computed.</span>
 <span class="sd">        :type B: numpy.ndarray or None</span>
 
 <span class="sd">        :param rho:</span>
-<span class="sd">            Optional atmospheric density [kg/m³].</span>
+<span class="sd">            Optional atmospheric density [kg/m^3]. If not provided, it is computed.</span>
 <span class="sd">        :type rho: float or None</span>
 
 <span class="sd">        :param density_model:</span>
@@ -641,7 +621,7 @@
 <span class="sd">        :type density_model: DensityModel or None</span>
 
 <span class="sd">        :param fast:</span>
-<span class="sd">            Skip non-essential calculations if ``True``.</span>
+<span class="sd">            Backward-compatible parameter (ignored).</span>
 <span class="sd">        :type fast: bool</span>
 
 <span class="sd">        :return:</span>
@@ -649,96 +629,93 @@
 <span class="sd">        :rtype: None</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="n">ephem</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">ephem</span> <span class="o">=</span> <span class="n">Ephemeris</span><span class="p">()</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">ephem</span> <span class="o">=</span> <span class="n">ephem</span>
+        <span class="n">_</span> <span class="o">=</span> <span class="n">fast</span>  <span class="c1"># ignored (kept for backward compatibility)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">ephem</span> <span class="o">=</span> <span class="n">Ephemeris</span><span class="p">()</span> <span class="k">if</span> <span class="n">ephem</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">ephem</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">ts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ephem</span><span class="o">.</span><span class="n">ts</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">J2000</span> <span class="o">=</span> <span class="n">J2000</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">R</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">R</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">V</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">V</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">J2000</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">J2000</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">R</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">R</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">V</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">V</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span> <span class="o">=</span> <span class="n">EarthConstants</span><span class="o">.</span><span class="n">mu_e</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">R_e</span> <span class="o">=</span> <span class="n">EarthConstants</span><span class="o">.</span><span class="n">R_e</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span> <span class="o">=</span> <span class="n">EarthConstants</span><span class="o">.</span><span class="n">J2coeff</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">TAI</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">j2000_to_tai</span><span class="p">()</span>
-        <span class="n">pos_time</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ts</span><span class="o">.</span><span class="n">tai_jd</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">TAI</span><span class="p">)</span>
+        <span class="n">t_sf</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ts</span><span class="o">.</span><span class="n">tai_jd</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">TAI</span><span class="p">)</span>
 
-        <span class="n">pos</span><span class="p">:</span> <span class="n">units</span><span class="o">.</span><span class="n">Distance</span> <span class="o">=</span> <span class="n">units</span><span class="o">.</span><span class="n">Distance</span><span class="p">(</span><span class="n">km</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">R</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
-        <span class="n">vel_sf</span><span class="p">:</span> <span class="n">units</span><span class="o">.</span><span class="n">Velocity</span> <span class="o">=</span> <span class="n">units</span><span class="o">.</span><span class="n">Velocity</span><span class="p">(</span><span class="n">km_per_s</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">V</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
-
-        <span class="bp">self</span><span class="o">.</span><span class="n">sf_pos</span><span class="p">:</span> <span class="n">positionlib</span><span class="o">.</span><span class="n">ICRF</span> <span class="o">=</span> <span class="n">positionlib</span><span class="o">.</span><span class="n">ICRF</span><span class="p">(</span>
-            <span class="n">pos</span><span class="o">.</span><span class="n">au</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span>
-            <span class="n">velocity_au_per_d</span><span class="o">=</span><span class="n">vel_sf</span><span class="o">.</span><span class="n">au_per_d</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span>
-            <span class="n">t</span><span class="o">=</span><span class="n">pos_time</span><span class="p">,</span>
+        <span class="c1"># Construct a Skyfield ICRF position for downstream functionality (e.g. is_sunlit).</span>
+        <span class="n">pos</span> <span class="o">=</span> <span class="n">units</span><span class="o">.</span><span class="n">Distance</span><span class="p">(</span><span class="n">km</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">R</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
+        <span class="n">vel_sf</span> <span class="o">=</span> <span class="n">units</span><span class="o">.</span><span class="n">Velocity</span><span class="p">(</span><span class="n">km_per_s</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">V</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sf_pos</span> <span class="o">=</span> <span class="n">positionlib</span><span class="o">.</span><span class="n">ICRF</span><span class="p">(</span>
+            <span class="n">pos</span><span class="o">.</span><span class="n">au</span><span class="p">,</span>
+            <span class="n">velocity_au_per_d</span><span class="o">=</span><span class="n">vel_sf</span><span class="o">.</span><span class="n">au_per_d</span><span class="p">,</span>
+            <span class="n">t</span><span class="o">=</span><span class="n">t_sf</span><span class="p">,</span>
             <span class="n">center</span><span class="o">=</span><span class="mi">399</span><span class="p">,</span>
-            <span class="n">target</span><span class="o">=</span><span class="mi">0</span>
+            <span class="n">target</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
         <span class="p">)</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">datetime</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sf_pos</span><span class="o">.</span><span class="n">t</span><span class="o">.</span><span class="n">astimezone</span><span class="p">(</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">tzinfo</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="c1"># Cache a naive UTC datetime for ppigrf compatibility.</span>
+        <span class="n">dt_aware</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sf_pos</span><span class="o">.</span><span class="n">t</span><span class="o">.</span><span class="n">astimezone</span><span class="p">(</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">datetime</span> <span class="o">=</span> <span class="n">dt_aware</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">tzinfo</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
 
-        <span class="c1"># Precompute ECI &lt;-&gt; ECEF rotation</span>
+        <span class="c1"># ECI &lt;-&gt; ECEF rotation at this time (Skyfield)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_R_eci2ecef</span> <span class="o">=</span> <span class="n">framelib</span><span class="o">.</span><span class="n">itrs</span><span class="o">.</span><span class="n">rotation_at</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sf_pos</span><span class="o">.</span><span class="n">t</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_R_ecef2eci</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_R_eci2ecef</span><span class="o">.</span><span class="n">T</span>
 
+        <span class="c1"># ECEF position and geocentric coordinates</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">ECEF</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_R_eci2ecef</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">R</span>
 
-        <span class="n">r</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ECEF</span><span class="p">)</span>
-        <span class="n">th</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arccos</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ECEF</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">/</span><span class="n">r</span><span class="p">)</span>
-        <span class="n">ph</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arctan2</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ECEF</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">ECEF</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">geocentric</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">r</span><span class="p">,</span> <span class="n">th</span><span class="p">,</span> <span class="n">ph</span><span class="p">])</span>
+        <span class="n">r_ecef</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ECEF</span><span class="p">))</span>
+        <span class="n">th</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arccos</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ECEF</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">/</span> <span class="n">r_ecef</span><span class="p">))</span>
+        <span class="n">ph</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arctan2</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ECEF</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">ECEF</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">geocentric</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">r_ecef</span><span class="p">,</span> <span class="n">th</span><span class="p">,</span> <span class="n">ph</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
 
-        <span class="c1"># Precompute local geocentric basis</span>
+        <span class="c1"># Local geocentric basis in ECEF</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_n_ecef</span> <span class="o">=</span> <span class="n">normalize</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ECEF</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_svec</span> <span class="o">=</span> <span class="n">normalize</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">]),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_n_ecef</span><span class="p">))</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_tvec</span> <span class="o">=</span> <span class="n">normalize</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_svec</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_n_ecef</span><span class="p">))</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_ecef_to_geo</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">_n_ecef</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tvec</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_svec</span><span class="p">])</span>
 
-        <span class="c1"># Geographic position and ENU transform</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">fast</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">sf_geo_pos</span><span class="p">:</span> <span class="n">toposlib</span><span class="o">.</span><span class="n">GeographicPosition</span> <span class="o">=</span> <span class="n">api</span><span class="o">.</span><span class="n">wgs84</span><span class="o">.</span><span class="n">geographic_position_of</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sf_pos</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">LLA</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">sf_geo_pos</span><span class="o">.</span><span class="n">latitude</span><span class="o">.</span><span class="n">radians</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">sf_geo_pos</span><span class="o">.</span><span class="n">longitude</span><span class="o">.</span><span class="n">radians</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">sf_geo_pos</span><span class="o">.</span><span class="n">elevation</span><span class="o">.</span><span class="n">km</span><span class="p">])</span>
-
-            <span class="n">R_eci_to_ecef</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sf_geo_pos</span><span class="o">.</span><span class="n">rotation_at</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sf_pos</span><span class="o">.</span><span class="n">t</span><span class="p">)</span>
-            <span class="n">R_ecef_to_enu</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]])</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">ECI2ENUmat</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">R_ecef_to_enu</span> <span class="o">@</span> <span class="n">R_eci_to_ecef</span>
+        <span class="c1"># Geographic position and ENU transform (always computed)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sf_geo_pos</span> <span class="o">=</span> <span class="n">api</span><span class="o">.</span><span class="n">wgs84</span><span class="o">.</span><span class="n">geographic_position_of</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sf_pos</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">LLA</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">sf_geo_pos</span><span class="o">.</span><span class="n">latitude</span><span class="o">.</span><span class="n">radians</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">sf_geo_pos</span><span class="o">.</span><span class="n">longitude</span><span class="o">.</span><span class="n">radians</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">sf_geo_pos</span><span class="o">.</span><span class="n">elevation</span><span class="o">.</span><span class="n">km</span><span class="p">,</span>
+            <span class="p">],</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">R_eci_to_ecef</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sf_geo_pos</span><span class="o">.</span><span class="n">rotation_at</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sf_pos</span><span class="o">.</span><span class="n">t</span><span class="p">)</span>
+        <span class="n">R_ecef_to_enu</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ECI2ENUmat</span> <span class="o">=</span> <span class="n">R_ecef_to_enu</span> <span class="o">@</span> <span class="n">R_eci_to_ecef</span>
 
         <span class="c1"># Atmospheric density model</span>
-        <span class="k">if</span> <span class="n">density_model</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">density_model</span> <span class="o">=</span> <span class="n">density_model</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">density_model</span> <span class="o">=</span> <span class="n">DensityModel</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">density_model</span> <span class="o">=</span> <span class="n">density_model</span> <span class="k">if</span> <span class="n">density_model</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">DensityModel</span><span class="p">()</span>
 
-        <span class="c1"># Sun Vector</span>
+        <span class="c1"># Sun vector (ECI)</span>
         <span class="k">if</span> <span class="n">S</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">S</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">S</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="n">fast</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">S</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">S</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">S</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">S</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_sun_eci</span><span class="p">()</span>
 
-        <span class="c1"># Magnetic field</span>
+        <span class="c1"># Magnetic field (ECI)</span>
         <span class="k">if</span> <span class="n">B</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">B</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="n">fast</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">B</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">B</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">B</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_b_eci</span><span class="p">()</span>
 
         <span class="c1"># Atmospheric density</span>
         <span class="k">if</span> <span class="n">rho</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">rho</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">rho</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="n">fast</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">density_model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">rho</span> <span class="o">=</span> <span class="mf">0.0</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">altitude_from_core</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">R</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">rho</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">density_model</span><span class="o">.</span><span class="n">interpolate</span><span class="p">(</span><span class="n">altitude_from_core</span> <span class="o">-</span> <span class="n">EarthConstants</span><span class="o">.</span><span class="n">R_e</span><span class="p">)</span>
+            <span class="n">altitude_from_core</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">R</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">rho</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">density_model</span><span class="o">.</span><span class="n">interpolate</span><span class="p">(</span><span class="n">altitude_from_core</span> <span class="o">-</span> <span class="n">EarthConstants</span><span class="o">.</span><span class="n">R_e</span><span class="p">))</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">vecs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_last_x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-
 
 <div class="viewcode-block" id="Orbital_State.copy">
 <a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.helpers.simresults.Orbital_State.copy">[docs]</a>
@@ -746,14 +723,60 @@
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Return a deep copy of the orbital state.</span>
 
+<span class="sd">        This implementation avoids recomputing environment vectors and frame</span>
+<span class="sd">        transforms.</span>
+
 <span class="sd">        :return:</span>
 <span class="sd">            Independent copy of the orbital state.</span>
 <span class="sd">        :rtype: Orbital_State</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span></div>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">Orbital_State</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="n">Orbital_State</span><span class="p">)</span>
 
-    
+        <span class="n">out</span><span class="o">.</span><span class="n">ephem</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ephem</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">ts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ts</span>
+
+        <span class="n">out</span><span class="o">.</span><span class="n">J2000</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">J2000</span><span class="p">)</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">R</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">R</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">V</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">V</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+        <span class="n">out</span><span class="o">.</span><span class="n">mu_e</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">R_e</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">R_e</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">J2coeff</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span>
+
+        <span class="n">out</span><span class="o">.</span><span class="n">TAI</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">TAI</span><span class="p">)</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">sf_pos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sf_pos</span>  <span class="c1"># treated as immutable for practical purposes</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">datetime</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">datetime</span>
+
+        <span class="n">out</span><span class="o">.</span><span class="n">_R_eci2ecef</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_R_eci2ecef</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">_R_ecef2eci</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_R_ecef2eci</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="n">out</span><span class="o">.</span><span class="n">ECEF</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ECEF</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">geocentric</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">geocentric</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+        <span class="n">out</span><span class="o">.</span><span class="n">_n_ecef</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_n_ecef</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">_svec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_svec</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">_tvec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tvec</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">_ecef_to_geo</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_ecef_to_geo</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="n">out</span><span class="o">.</span><span class="n">sf_geo_pos</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;sf_geo_pos&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">LLA</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">LLA</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">ECI2ENUmat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ECI2ENUmat</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="n">out</span><span class="o">.</span><span class="n">density_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">density_model</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">S</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">S</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">B</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">B</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">rho</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rho</span><span class="p">)</span>
+
+        <span class="n">out</span><span class="o">.</span><span class="n">vecs</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">_last_x</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># Preserve any cached sunlit flag if present</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_sunlit&quot;</span><span class="p">):</span>
+            <span class="n">out</span><span class="o">.</span><span class="n">_sunlit</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_sunlit&quot;</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">out</span></div>
+
 
 <div class="viewcode-block" id="Orbital_State.average">
 <a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.helpers.simresults.Orbital_State.average">[docs]</a>
@@ -761,23 +784,16 @@
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Linearly interpolate between two orbital states.</span>
 
-<span class="sd">        The interpolation is performed element-wise on all state quantities:</span>
-
-<span class="sd">        .. math::</span>
-
-<span class="sd">            \mathbf{x}_{\text{avg}} =</span>
-<span class="sd">            (1-\alpha)\mathbf{x}_1 + \alpha \mathbf{x}_2.</span>
-
 <span class="sd">        :param orbital_state_2:</span>
 <span class="sd">            Second orbital state.</span>
 <span class="sd">        :type orbital_state_2: Orbital_State</span>
 
 <span class="sd">        :param ratio:</span>
-<span class="sd">            Interpolation ratio :math:`\alpha \in [0,1]`.</span>
+<span class="sd">            Interpolation ratio in [0, 1].</span>
 <span class="sd">        :type ratio: float</span>
 
 <span class="sd">        :param fast:</span>
-<span class="sd">            Skip non-essential calculations in the output state.</span>
+<span class="sd">            Backward-compatible parameter (ignored).</span>
 <span class="sd">        :type fast: bool</span>
 
 <span class="sd">        :return:</span>
@@ -785,10 +801,10 @@
 <span class="sd">        :rtype: Orbital_State</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-
+        <span class="n">_</span> <span class="o">=</span> <span class="n">fast</span>  <span class="c1"># ignored</span>
         <span class="n">os2</span> <span class="o">=</span> <span class="n">orbital_state_2</span>
-        <span class="n">a</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">ratio</span>
-        <span class="n">b</span> <span class="o">=</span> <span class="n">ratio</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="nb">float</span><span class="p">(</span><span class="n">ratio</span><span class="p">)</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">ratio</span><span class="p">)</span>
 
         <span class="n">j2000</span> <span class="o">=</span> <span class="n">a</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">J2000</span> <span class="o">+</span> <span class="n">b</span> <span class="o">*</span> <span class="n">os2</span><span class="o">.</span><span class="n">J2000</span>
         <span class="n">R</span> <span class="o">=</span> <span class="n">a</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">R</span> <span class="o">+</span> <span class="n">b</span> <span class="o">*</span> <span class="n">os2</span><span class="o">.</span><span class="n">R</span>
@@ -798,21 +814,32 @@
         <span class="n">rho</span> <span class="o">=</span> <span class="n">a</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">rho</span> <span class="o">+</span> <span class="n">b</span> <span class="o">*</span> <span class="n">os2</span><span class="o">.</span><span class="n">rho</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">density_model</span><span class="o">.</span><span class="n">altitude_range</span> <span class="o">==</span> <span class="n">os2</span><span class="o">.</span><span class="n">density_model</span><span class="o">.</span><span class="n">altitude_range</span><span class="p">):</span>
-            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
-                <span class="s2">&quot;non-matching altitude range in atmospheric model between 2 orbital states&quot;</span>
-            <span class="p">)</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;non-matching altitude range in atmospheric model between 2 orbital states&quot;</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">density_model</span><span class="o">.</span><span class="n">rho_range</span> <span class="o">==</span> <span class="n">os2</span><span class="o">.</span><span class="n">density_model</span><span class="o">.</span><span class="n">rho_range</span><span class="p">):</span>
-            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
-                <span class="s2">&quot;non-matching air density vs altitude in atmospheric model between 2 orbital states&quot;</span>
-            <span class="p">)</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;non-matching air density vs altitude in atmospheric model between 2 orbital states&quot;</span><span class="p">)</span>
 
-        <span class="n">density_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">density_model</span>
-        <span class="k">return</span> <span class="n">Orbital_State</span><span class="p">(</span><span class="n">ephem</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ephem</span><span class="p">,</span> <span class="n">J2000</span><span class="o">=</span><span class="n">j2000</span><span class="p">,</span> <span class="n">R</span><span class="o">=</span><span class="n">R</span><span class="p">,</span> <span class="n">V</span><span class="o">=</span><span class="n">V</span><span class="p">,</span> <span class="n">S</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">B</span><span class="o">=</span><span class="n">B</span><span class="p">,</span> <span class="n">rho</span><span class="o">=</span><span class="n">rho</span><span class="p">,</span> <span class="n">density_model</span><span class="o">=</span><span class="n">density_model</span><span class="p">,</span> <span class="n">fast</span><span class="o">=</span><span class="n">fast</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">Orbital_State</span><span class="p">(</span>
+            <span class="n">ephem</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ephem</span><span class="p">,</span>
+            <span class="n">J2000</span><span class="o">=</span><span class="n">j2000</span><span class="p">,</span>
+            <span class="n">R</span><span class="o">=</span><span class="n">R</span><span class="p">,</span>
+            <span class="n">V</span><span class="o">=</span><span class="n">V</span><span class="p">,</span>
+            <span class="n">S</span><span class="o">=</span><span class="n">S</span><span class="p">,</span>
+            <span class="n">B</span><span class="o">=</span><span class="n">B</span><span class="p">,</span>
+            <span class="n">rho</span><span class="o">=</span><span class="n">rho</span><span class="p">,</span>
+            <span class="n">density_model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">density_model</span><span class="p">,</span>
+            <span class="n">fast</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="p">)</span></div>
 
-    
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">_orbit_dynamics_raw</span><span class="p">(</span><span class="n">R</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">V</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">mu_e</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">R_e</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">J2coeff</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">J2_perturbation_on</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_orbit_dynamics_raw</span><span class="p">(</span>
+        <span class="n">R</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="n">V</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="n">mu_e</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">R_e</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">J2coeff</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">J2_perturbation_on</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Compute raw orbital dynamics.</span>
 
@@ -842,12 +869,14 @@
 
 <span class="sd">        :return:</span>
 <span class="sd">            Tuple of position and velocity derivatives.</span>
-<span class="sd">        :rtype:</span>
-<span class="sd">            tuple[numpy.ndarray, numpy.ndarray]</span>
+<span class="sd">        :rtype: tuple[numpy.ndarray, numpy.ndarray]</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">R</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">R</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+        <span class="n">V</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">V</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+
         <span class="n">r2</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">R</span><span class="p">,</span> <span class="n">R</span><span class="p">))</span>
-        <span class="n">rn</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">r2</span><span class="p">)</span>
+        <span class="n">rn</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">r2</span><span class="p">))</span>
         <span class="n">r3</span> <span class="o">=</span> <span class="n">r2</span> <span class="o">*</span> <span class="n">rn</span>
 
         <span class="n">v_dot</span> <span class="o">=</span> <span class="o">-</span><span class="n">mu_e</span> <span class="o">*</span> <span class="n">R</span> <span class="o">/</span> <span class="n">r3</span>
@@ -857,21 +886,20 @@
             <span class="n">z2</span> <span class="o">=</span> <span class="n">zk</span> <span class="o">*</span> <span class="n">zk</span>
             <span class="n">factor</span> <span class="o">=</span> <span class="mf">1.5</span> <span class="o">*</span> <span class="n">J2coeff</span> <span class="o">*</span> <span class="n">mu_e</span> <span class="o">*</span> <span class="n">R_e</span> <span class="o">*</span> <span class="n">R_e</span> <span class="o">/</span> <span class="p">(</span><span class="n">rn</span><span class="o">**</span><span class="mi">5</span><span class="p">)</span>
             <span class="n">common</span> <span class="o">=</span> <span class="mf">5.0</span> <span class="o">*</span> <span class="n">z2</span> <span class="o">/</span> <span class="n">r2</span>
-            <span class="n">a_J2</span> <span class="o">=</span> <span class="n">factor</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
-                <span class="p">[</span>
-                    <span class="n">xk</span> <span class="o">*</span> <span class="p">(</span><span class="n">common</span> <span class="o">-</span> <span class="mf">1.0</span><span class="p">),</span>
-                    <span class="n">yk</span> <span class="o">*</span> <span class="p">(</span><span class="n">common</span> <span class="o">-</span> <span class="mf">1.0</span><span class="p">),</span>
-                    <span class="n">zk</span> <span class="o">*</span> <span class="p">(</span><span class="n">common</span> <span class="o">-</span> <span class="mf">3.0</span><span class="p">),</span>
-                <span class="p">]</span>
-            <span class="p">)</span>
+            <span class="n">a_J2</span> <span class="o">=</span> <span class="n">factor</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">xk</span> <span class="o">*</span> <span class="p">(</span><span class="n">common</span> <span class="o">-</span> <span class="mf">1.0</span><span class="p">),</span> <span class="n">yk</span> <span class="o">*</span> <span class="p">(</span><span class="n">common</span> <span class="o">-</span> <span class="mf">1.0</span><span class="p">),</span> <span class="n">zk</span> <span class="o">*</span> <span class="p">(</span><span class="n">common</span> <span class="o">-</span> <span class="mf">3.0</span><span class="p">)],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
             <span class="n">v_dot</span> <span class="o">=</span> <span class="n">v_dot</span> <span class="o">+</span> <span class="n">a_J2</span>
 
         <span class="n">r_dot</span> <span class="o">=</span> <span class="n">V</span>
         <span class="k">return</span> <span class="n">r_dot</span><span class="p">,</span> <span class="n">v_dot</span>
-    
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">_orbit_dynamics_jacobians_raw</span><span class="p">(</span><span class="n">R</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">mu_e</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">R_e</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">J2coeff</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">J2_perturbation_on</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_orbit_dynamics_jacobians_raw</span><span class="p">(</span>
+        <span class="n">R</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="n">mu_e</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">R_e</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">J2coeff</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">J2_perturbation_on</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="p">):</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Compute Jacobians of orbital dynamics.</span>
 
@@ -897,41 +925,35 @@
 
 <span class="sd">        :return:</span>
 <span class="sd">            Partial derivatives of dynamics.</span>
-<span class="sd">        :rtype:</span>
-<span class="sd">            tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray, numpy.ndarray]</span>
+<span class="sd">        :rtype: tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray, numpy.ndarray]</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">rn</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">R</span><span class="p">)</span>
-        <span class="n">nr</span> <span class="o">=</span> <span class="n">R</span> <span class="o">/</span> <span class="n">rn</span>
-        <span class="n">zk</span> <span class="o">=</span> <span class="n">R</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">R</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">R</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
 
-        <span class="n">drd_dr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+        <span class="n">rn</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">R</span><span class="p">))</span>
+        <span class="n">nr</span> <span class="o">=</span> <span class="n">R</span> <span class="o">/</span> <span class="n">rn</span>
+        <span class="n">zk</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">R</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+
+        <span class="n">drd_dr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
         <span class="n">drd_dv</span> <span class="o">=</span> <span class="n">_I3</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-        <span class="n">dvd_dv</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+        <span class="n">dvd_dv</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
 
         <span class="n">dvd_dr</span> <span class="o">=</span> <span class="o">-</span><span class="n">mu_e</span> <span class="o">*</span> <span class="p">(</span><span class="n">_I3</span> <span class="o">-</span> <span class="mf">3.0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">nr</span><span class="p">,</span> <span class="n">nr</span><span class="p">))</span> <span class="o">/</span> <span class="n">rn</span><span class="o">**</span><span class="mi">3</span>
 
         <span class="k">if</span> <span class="n">J2_perturbation_on</span><span class="p">:</span>
             <span class="n">rn2</span> <span class="o">=</span> <span class="n">rn</span> <span class="o">*</span> <span class="n">rn</span>
-            <span class="n">j2_mult</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diagflat</span><span class="p">(</span>
-                <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">])</span> <span class="o">*</span> <span class="n">rn2</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span> <span class="o">*</span> <span class="mf">5.0</span> <span class="o">*</span> <span class="n">zk</span> <span class="o">*</span> <span class="n">zk</span>
-            <span class="p">)</span>
+            <span class="n">j2_mult</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diagflat</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">])</span> <span class="o">*</span> <span class="n">rn2</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span> <span class="o">*</span> <span class="mf">5.0</span> <span class="o">*</span> <span class="n">zk</span> <span class="o">*</span> <span class="n">zk</span><span class="p">)</span>
 
             <span class="n">coeff</span> <span class="o">=</span> <span class="n">mu_e</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">rn</span><span class="o">**</span><span class="mf">7.0</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">J2coeff</span> <span class="o">*</span> <span class="n">R_e</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mf">3.0</span> <span class="o">/</span> <span class="mf">2.0</span><span class="p">)</span>
-            <span class="n">unit_z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">])</span>
+            <span class="n">unit_z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
 
             <span class="n">dvd_dr</span> <span class="o">+=</span> <span class="o">-</span><span class="n">coeff</span> <span class="o">*</span> <span class="p">(</span>
                 <span class="o">-</span><span class="mf">7.0</span> <span class="o">*</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">R</span><span class="p">,</span> <span class="n">R</span> <span class="o">@</span> <span class="n">j2_mult</span><span class="p">))</span> <span class="o">/</span> <span class="n">rn2</span>
                 <span class="o">+</span> <span class="n">j2_mult</span>
-                <span class="o">+</span> <span class="mf">2.0</span>
-                <span class="o">*</span> <span class="p">(</span>
-                    <span class="n">np</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="o">-</span><span class="mf">5.0</span> <span class="o">*</span> <span class="n">zk</span> <span class="o">*</span> <span class="n">unit_z</span> <span class="o">+</span> <span class="n">R</span><span class="p">,</span> <span class="n">R</span><span class="p">)</span>
-                    <span class="o">+</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">zk</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">R</span><span class="p">,</span> <span class="n">unit_z</span><span class="p">)</span>
-                <span class="p">)</span>
+                <span class="o">+</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="o">-</span><span class="mf">5.0</span> <span class="o">*</span> <span class="n">zk</span> <span class="o">*</span> <span class="n">unit_z</span> <span class="o">+</span> <span class="n">R</span><span class="p">,</span> <span class="n">R</span><span class="p">)</span> <span class="o">+</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">zk</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">R</span><span class="p">,</span> <span class="n">unit_z</span><span class="p">))</span>
             <span class="p">)</span>
 
         <span class="k">return</span> <span class="n">drd_dr</span><span class="p">,</span> <span class="n">drd_dv</span><span class="p">,</span> <span class="n">dvd_dr</span><span class="p">,</span> <span class="n">dvd_dv</span>
-    
 
 <div class="viewcode-block" id="Orbital_State.orbit_dynamics">
 <a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.helpers.simresults.Orbital_State.orbit_dynamics">[docs]</a>
@@ -945,13 +967,11 @@
 
 <span class="sd">        :return:</span>
 <span class="sd">            Time derivatives of position and velocity.</span>
-<span class="sd">        :rtype:</span>
-<span class="sd">            tuple[numpy.ndarray, numpy.ndarray]</span>
+<span class="sd">        :rtype: tuple[numpy.ndarray, numpy.ndarray]</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orbit_dynamics_raw</span><span class="p">(</span><span class="n">R</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">R</span><span class="p">,</span> <span class="n">V</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">V</span><span class="p">,</span> <span class="n">mu_e</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span><span class="p">,</span> <span class="n">R_e</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">R_e</span><span class="p">,</span> <span class="n">J2coeff</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span><span class="p">,</span> <span class="n">J2_perturbation_on</span><span class="o">=</span><span class="n">J2_perturbation_on</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orbit_dynamics_raw</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">R</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">V</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span><span class="p">,</span> <span class="n">J2_perturbation_on</span><span class="p">)</span></div>
 
-    
 
 <div class="viewcode-block" id="Orbital_State.orbit_dynamics_jacobians">
 <a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.helpers.simresults.Orbital_State.orbit_dynamics_jacobians">[docs]</a>
@@ -965,13 +985,11 @@
 
 <span class="sd">        :return:</span>
 <span class="sd">            Jacobian matrices of the dynamics.</span>
-<span class="sd">        :rtype:</span>
-<span class="sd">            tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray, numpy.ndarray]</span>
+<span class="sd">        :rtype: tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray, numpy.ndarray]</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orbit_dynamics_jacobians_raw</span><span class="p">(</span><span class="n">R</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">R</span><span class="p">,</span> <span class="n">mu_e</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span><span class="p">,</span> <span class="n">R_e</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">R_e</span><span class="p">,</span> <span class="n">J2coeff</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span><span class="p">,</span> <span class="n">J2_perturbation_on</span><span class="o">=</span><span class="n">J2_perturbation_on</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orbit_dynamics_jacobians_raw</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">R</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span><span class="p">,</span> <span class="n">J2_perturbation_on</span><span class="p">)</span></div>
 
-    
 
 <div class="viewcode-block" id="Orbital_State.propagate_orbit">
 <a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.helpers.simresults.Orbital_State.propagate_orbit">[docs]</a>
@@ -988,7 +1006,7 @@
 <span class="sd">        :type J2_perturbation_on: bool</span>
 
 <span class="sd">        :param fast:</span>
-<span class="sd">            Skip environment updates if ``True``.</span>
+<span class="sd">            Backward-compatible parameter (ignored).</span>
 <span class="sd">        :type fast: bool</span>
 
 <span class="sd">        :return:</span>
@@ -996,19 +1014,18 @@
 <span class="sd">        :rtype: Orbital_State</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">_</span> <span class="o">=</span> <span class="n">fast</span>  <span class="c1"># ignored</span>
         <span class="n">r_ECI</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">R</span>
         <span class="n">v_ECI</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">V</span>
 
         <span class="n">k1a</span><span class="p">,</span> <span class="n">k1b</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orbit_dynamics_raw</span><span class="p">(</span><span class="n">r_ECI</span><span class="p">,</span> <span class="n">v_ECI</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span><span class="p">,</span> <span class="n">J2_perturbation_on</span><span class="p">)</span>
 
-        <span class="n">r_out</span> <span class="o">=</span> <span class="n">r_ECI</span> <span class="o">+</span> <span class="n">k1a</span> <span class="o">*</span> <span class="n">dt</span>
-        <span class="n">v_out</span> <span class="o">=</span> <span class="n">v_ECI</span> <span class="o">+</span> <span class="n">k1b</span> <span class="o">*</span> <span class="n">dt</span>
+        <span class="n">r_out</span> <span class="o">=</span> <span class="n">r_ECI</span> <span class="o">+</span> <span class="n">k1a</span> <span class="o">*</span> <span class="nb">float</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span>
+        <span class="n">v_out</span> <span class="o">=</span> <span class="n">v_ECI</span> <span class="o">+</span> <span class="n">k1b</span> <span class="o">*</span> <span class="nb">float</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span>
+        <span class="n">j2000</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">J2000</span> <span class="o">+</span> <span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span> <span class="o">/</span> <span class="n">TimeConstants</span><span class="o">.</span><span class="n">cent2sec</span><span class="p">)</span>
 
-        <span class="n">j2000</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">J2000</span> <span class="o">+</span> <span class="p">(</span><span class="n">dt</span><span class="o">/</span><span class="n">TimeConstants</span><span class="o">.</span><span class="n">cent2sec</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">Orbital_State</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ephem</span><span class="p">,</span> <span class="n">j2000</span><span class="p">,</span> <span class="n">r_out</span><span class="p">,</span> <span class="n">v_out</span><span class="p">,</span> <span class="n">S</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">B</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">rho</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">density_model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">density_model</span><span class="p">,</span> <span class="n">fast</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
 
-        <span class="k">return</span> <span class="n">Orbital_State</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ephem</span><span class="p">,</span> <span class="n">j2000</span><span class="p">,</span> <span class="n">r_out</span><span class="p">,</span> <span class="n">v_out</span><span class="p">,</span> <span class="n">S</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">B</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">rho</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">density_model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">density_model</span><span class="p">,</span> <span class="n">fast</span><span class="o">=</span><span class="n">fast</span><span class="p">)</span></div>
-
-    
 
 <div class="viewcode-block" id="Orbital_State.propagate_orbit_rk4">
 <a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.helpers.simresults.Orbital_State.propagate_orbit_rk4">[docs]</a>
@@ -1025,7 +1042,7 @@
 <span class="sd">        :type J2_perturbation_on: bool</span>
 
 <span class="sd">        :param fast:</span>
-<span class="sd">            Skip environment updates if ``True``.</span>
+<span class="sd">            Backward-compatible parameter (ignored).</span>
 <span class="sd">        :type fast: bool</span>
 
 <span class="sd">        :return:</span>
@@ -1033,54 +1050,25 @@
 <span class="sd">        :rtype: Orbital_State</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">_</span> <span class="o">=</span> <span class="n">fast</span>  <span class="c1"># ignored</span>
+        <span class="n">dt</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span>
+
         <span class="n">r0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">R</span>
         <span class="n">v0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">V</span>
 
-        <span class="n">k1a</span><span class="p">,</span> <span class="n">k1b</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orbit_dynamics_raw</span><span class="p">(</span>
-            <span class="n">r0</span><span class="p">,</span>
-            <span class="n">v0</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">R_e</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span><span class="p">,</span>
-            <span class="n">J2_perturbation_on</span><span class="p">,</span>
-        <span class="p">)</span>
-
-        <span class="n">k2a</span><span class="p">,</span> <span class="n">k2b</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orbit_dynamics_raw</span><span class="p">(</span>
-            <span class="n">r0</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">k1a</span><span class="p">,</span>
-            <span class="n">v0</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">k1b</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">R_e</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span><span class="p">,</span>
-            <span class="n">J2_perturbation_on</span><span class="p">,</span>
-        <span class="p">)</span>
-
-        <span class="n">k3a</span><span class="p">,</span> <span class="n">k3b</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orbit_dynamics_raw</span><span class="p">(</span>
-            <span class="n">r0</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">k2a</span><span class="p">,</span>
-            <span class="n">v0</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">k2b</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">R_e</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span><span class="p">,</span>
-            <span class="n">J2_perturbation_on</span><span class="p">,</span>
-        <span class="p">)</span>
-
-        <span class="n">k4a</span><span class="p">,</span> <span class="n">k4b</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orbit_dynamics_raw</span><span class="p">(</span>
-            <span class="n">r0</span> <span class="o">+</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">k3a</span><span class="p">,</span>
-            <span class="n">v0</span> <span class="o">+</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">k3b</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">R_e</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span><span class="p">,</span>
-            <span class="n">J2_perturbation_on</span><span class="p">,</span>
-        <span class="p">)</span>
+        <span class="n">k1a</span><span class="p">,</span> <span class="n">k1b</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orbit_dynamics_raw</span><span class="p">(</span><span class="n">r0</span><span class="p">,</span> <span class="n">v0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span><span class="p">,</span> <span class="n">J2_perturbation_on</span><span class="p">)</span>
+        <span class="n">k2a</span><span class="p">,</span> <span class="n">k2b</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orbit_dynamics_raw</span><span class="p">(</span><span class="n">r0</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">k1a</span><span class="p">,</span> <span class="n">v0</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">k1b</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span><span class="p">,</span> <span class="n">J2_perturbation_on</span><span class="p">)</span>
+        <span class="n">k3a</span><span class="p">,</span> <span class="n">k3b</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orbit_dynamics_raw</span><span class="p">(</span><span class="n">r0</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">k2a</span><span class="p">,</span> <span class="n">v0</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">k2b</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span><span class="p">,</span> <span class="n">J2_perturbation_on</span><span class="p">)</span>
+        <span class="n">k4a</span><span class="p">,</span> <span class="n">k4b</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orbit_dynamics_raw</span><span class="p">(</span><span class="n">r0</span> <span class="o">+</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">k3a</span><span class="p">,</span> <span class="n">v0</span> <span class="o">+</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">k3b</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span><span class="p">,</span> <span class="n">J2_perturbation_on</span><span class="p">)</span>
 
         <span class="n">r_out</span> <span class="o">=</span> <span class="n">r0</span> <span class="o">+</span> <span class="p">(</span><span class="n">dt</span> <span class="o">/</span> <span class="mf">6.0</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">k1a</span> <span class="o">+</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">k2a</span> <span class="o">+</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">k3a</span> <span class="o">+</span> <span class="n">k4a</span><span class="p">)</span>
         <span class="n">v_out</span> <span class="o">=</span> <span class="n">v0</span> <span class="o">+</span> <span class="p">(</span><span class="n">dt</span> <span class="o">/</span> <span class="mf">6.0</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">k1b</span> <span class="o">+</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">k2b</span> <span class="o">+</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">k3b</span> <span class="o">+</span> <span class="n">k4b</span><span class="p">)</span>
 
-        <span class="n">j2000</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">J2000</span> <span class="o">+</span> <span class="p">(</span><span class="n">dt</span><span class="o">/</span><span class="n">TimeConstants</span><span class="o">.</span><span class="n">cent2sec</span><span class="p">)</span>
+        <span class="n">j2000</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">J2000</span> <span class="o">+</span> <span class="p">(</span><span class="n">dt</span> <span class="o">/</span> <span class="n">TimeConstants</span><span class="o">.</span><span class="n">cent2sec</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">Orbital_State</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ephem</span><span class="p">,</span> <span class="n">j2000</span><span class="p">,</span> <span class="n">r_out</span><span class="p">,</span> <span class="n">v_out</span><span class="p">,</span> <span class="n">S</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">B</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">rho</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">density_model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">density_model</span><span class="p">,</span> <span class="n">fast</span><span class="o">=</span><span class="n">fast</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">Orbital_State</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ephem</span><span class="p">,</span> <span class="n">j2000</span><span class="p">,</span> <span class="n">r_out</span><span class="p">,</span> <span class="n">v_out</span><span class="p">,</span> <span class="n">S</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">B</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">rho</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">density_model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">density_model</span><span class="p">,</span> <span class="n">fast</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
 
-    
-    
+
 <div class="viewcode-block" id="Orbital_State.propagate_jacobians">
 <a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.helpers.simresults.Orbital_State.propagate_jacobians">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">propagate_jacobians</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">J2_perturbation_on</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
@@ -1097,16 +1085,12 @@
 
 <span class="sd">        :return:</span>
 <span class="sd">            State transition Jacobian blocks.</span>
-<span class="sd">        :rtype:</span>
-<span class="sd">            tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray, numpy.ndarray]</span>
+<span class="sd">        :rtype: tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray, numpy.ndarray]</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">dt</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span>
         <span class="n">drd0__dr0</span><span class="p">,</span> <span class="n">drd0__dv0</span><span class="p">,</span> <span class="n">dvd0__dr0</span><span class="p">,</span> <span class="n">dvd0__dv0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orbit_dynamics_jacobians_raw</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">R</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">R_e</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span><span class="p">,</span>
-            <span class="n">J2_perturbation_on</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">R</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span><span class="p">,</span> <span class="n">J2_perturbation_on</span>
         <span class="p">)</span>
 
         <span class="n">dr1__dr0</span> <span class="o">=</span> <span class="n">_I3</span> <span class="o">+</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">drd0__dr0</span>
@@ -1116,7 +1100,6 @@
 
         <span class="k">return</span> <span class="n">dr1__dr0</span><span class="p">,</span> <span class="n">dr1__dv0</span><span class="p">,</span> <span class="n">dv1__dr0</span><span class="p">,</span> <span class="n">dv1__dv0</span></div>
 
-    
 
 <div class="viewcode-block" id="Orbital_State.propagate_jacobians_rk4">
 <a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.helpers.simresults.Orbital_State.propagate_jacobians_rk4">[docs]</a>
@@ -1134,28 +1117,17 @@
 
 <span class="sd">        :return:</span>
 <span class="sd">            State transition Jacobian blocks.</span>
-<span class="sd">        :rtype:</span>
-<span class="sd">            tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray, numpy.ndarray]</span>
+<span class="sd">        :rtype: tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray, numpy.ndarray]</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">dt</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span>
 
         <span class="n">r0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">R</span>
         <span class="n">v0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">V</span>
 
-        <span class="n">rd0</span><span class="p">,</span> <span class="n">vd0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orbit_dynamics_raw</span><span class="p">(</span>
-            <span class="n">r0</span><span class="p">,</span>
-            <span class="n">v0</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">R_e</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span><span class="p">,</span>
-            <span class="n">J2_perturbation_on</span><span class="p">,</span>
-        <span class="p">)</span>
+        <span class="n">rd0</span><span class="p">,</span> <span class="n">vd0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orbit_dynamics_raw</span><span class="p">(</span><span class="n">r0</span><span class="p">,</span> <span class="n">v0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span><span class="p">,</span> <span class="n">J2_perturbation_on</span><span class="p">)</span>
         <span class="n">drd0__dr0</span><span class="p">,</span> <span class="n">drd0__dv0</span><span class="p">,</span> <span class="n">dvd0__dr0</span><span class="p">,</span> <span class="n">dvd0__dv0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orbit_dynamics_jacobians_raw</span><span class="p">(</span>
-            <span class="n">r0</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">R_e</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span><span class="p">,</span>
-            <span class="n">J2_perturbation_on</span><span class="p">,</span>
+            <span class="n">r0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span><span class="p">,</span> <span class="n">J2_perturbation_on</span>
         <span class="p">)</span>
         <span class="n">dsd0__ds0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">block</span><span class="p">([[</span><span class="n">drd0__dr0</span><span class="p">,</span> <span class="n">dvd0__dr0</span><span class="p">],</span> <span class="p">[</span><span class="n">drd0__dv0</span><span class="p">,</span> <span class="n">dvd0__dv0</span><span class="p">]])</span>
 
@@ -1163,20 +1135,9 @@
         <span class="n">v1</span> <span class="o">=</span> <span class="n">v0</span> <span class="o">+</span> <span class="n">vd0</span> <span class="o">*</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">dt</span>
         <span class="n">ds1__ds0</span> <span class="o">=</span> <span class="n">_I6</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">dsd0__ds0</span>
 
-        <span class="n">rd1</span><span class="p">,</span> <span class="n">vd1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orbit_dynamics_raw</span><span class="p">(</span>
-            <span class="n">r1</span><span class="p">,</span>
-            <span class="n">v1</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">R_e</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span><span class="p">,</span>
-            <span class="n">J2_perturbation_on</span><span class="p">,</span>
-        <span class="p">)</span>
+        <span class="n">rd1</span><span class="p">,</span> <span class="n">vd1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orbit_dynamics_raw</span><span class="p">(</span><span class="n">r1</span><span class="p">,</span> <span class="n">v1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span><span class="p">,</span> <span class="n">J2_perturbation_on</span><span class="p">)</span>
         <span class="n">drd1__dr1</span><span class="p">,</span> <span class="n">drd1__dv1</span><span class="p">,</span> <span class="n">dvd1__dr1</span><span class="p">,</span> <span class="n">dvd1__dv1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orbit_dynamics_jacobians_raw</span><span class="p">(</span>
-            <span class="n">r1</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">R_e</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span><span class="p">,</span>
-            <span class="n">J2_perturbation_on</span><span class="p">,</span>
+            <span class="n">r1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span><span class="p">,</span> <span class="n">J2_perturbation_on</span>
         <span class="p">)</span>
         <span class="n">dsd1__ds1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">block</span><span class="p">([[</span><span class="n">drd1__dr1</span><span class="p">,</span> <span class="n">dvd1__dr1</span><span class="p">],</span> <span class="p">[</span><span class="n">drd1__dv1</span><span class="p">,</span> <span class="n">dvd1__dv1</span><span class="p">]])</span>
         <span class="n">dsd1__ds0</span> <span class="o">=</span> <span class="n">ds1__ds0</span> <span class="o">@</span> <span class="n">dsd1__ds1</span>
@@ -1185,20 +1146,9 @@
         <span class="n">v2</span> <span class="o">=</span> <span class="n">v0</span> <span class="o">+</span> <span class="n">vd1</span> <span class="o">*</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">dt</span>
         <span class="n">ds2__ds0</span> <span class="o">=</span> <span class="n">_I6</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">dsd1__ds0</span>
 
-        <span class="n">rd2</span><span class="p">,</span> <span class="n">vd2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orbit_dynamics_raw</span><span class="p">(</span>
-            <span class="n">r2</span><span class="p">,</span>
-            <span class="n">v2</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">R_e</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span><span class="p">,</span>
-            <span class="n">J2_perturbation_on</span><span class="p">,</span>
-        <span class="p">)</span>
+        <span class="n">rd2</span><span class="p">,</span> <span class="n">vd2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orbit_dynamics_raw</span><span class="p">(</span><span class="n">r2</span><span class="p">,</span> <span class="n">v2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span><span class="p">,</span> <span class="n">J2_perturbation_on</span><span class="p">)</span>
         <span class="n">drd2__dr2</span><span class="p">,</span> <span class="n">drd2__dv2</span><span class="p">,</span> <span class="n">dvd2__dr2</span><span class="p">,</span> <span class="n">dvd2__dv2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orbit_dynamics_jacobians_raw</span><span class="p">(</span>
-            <span class="n">r2</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">R_e</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span><span class="p">,</span>
-            <span class="n">J2_perturbation_on</span><span class="p">,</span>
+            <span class="n">r2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span><span class="p">,</span> <span class="n">J2_perturbation_on</span>
         <span class="p">)</span>
         <span class="n">dsd2__ds2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">block</span><span class="p">([[</span><span class="n">drd2__dr2</span><span class="p">,</span> <span class="n">dvd2__dr2</span><span class="p">],</span> <span class="p">[</span><span class="n">drd2__dv2</span><span class="p">,</span> <span class="n">dvd2__dv2</span><span class="p">]])</span>
         <span class="n">dsd2__ds0</span> <span class="o">=</span> <span class="n">ds2__ds0</span> <span class="o">@</span> <span class="n">dsd2__ds2</span>
@@ -1207,27 +1157,12 @@
         <span class="n">v3</span> <span class="o">=</span> <span class="n">v0</span> <span class="o">+</span> <span class="n">vd2</span> <span class="o">*</span> <span class="n">dt</span>
         <span class="n">ds3__ds0</span> <span class="o">=</span> <span class="n">_I6</span> <span class="o">+</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">dsd2__ds0</span>
 
-        <span class="n">rd3</span><span class="p">,</span> <span class="n">vd3</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orbit_dynamics_raw</span><span class="p">(</span>
-            <span class="n">r3</span><span class="p">,</span>
-            <span class="n">v3</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">R_e</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span><span class="p">,</span>
-            <span class="n">J2_perturbation_on</span><span class="p">,</span>
-        <span class="p">)</span>
+        <span class="n">rd3</span><span class="p">,</span> <span class="n">vd3</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orbit_dynamics_raw</span><span class="p">(</span><span class="n">r3</span><span class="p">,</span> <span class="n">v3</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span><span class="p">,</span> <span class="n">J2_perturbation_on</span><span class="p">)</span>
         <span class="n">drd3__dr3</span><span class="p">,</span> <span class="n">drd3__dv3</span><span class="p">,</span> <span class="n">dvd3__dr3</span><span class="p">,</span> <span class="n">dvd3__dv3</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orbit_dynamics_jacobians_raw</span><span class="p">(</span>
-            <span class="n">r3</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">R_e</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span><span class="p">,</span>
-            <span class="n">J2_perturbation_on</span><span class="p">,</span>
+            <span class="n">r3</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span><span class="p">,</span> <span class="n">J2_perturbation_on</span>
         <span class="p">)</span>
         <span class="n">dsd3__ds3</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">block</span><span class="p">([[</span><span class="n">drd3__dr3</span><span class="p">,</span> <span class="n">dvd3__dr3</span><span class="p">],</span> <span class="p">[</span><span class="n">drd3__dv3</span><span class="p">,</span> <span class="n">dvd3__dv3</span><span class="p">]])</span>
         <span class="n">dsd3__ds0</span> <span class="o">=</span> <span class="n">ds3__ds0</span> <span class="o">@</span> <span class="n">dsd3__ds3</span>
-
-        <span class="n">r4</span> <span class="o">=</span> <span class="n">r0</span> <span class="o">+</span> <span class="p">(</span><span class="n">dt</span> <span class="o">/</span> <span class="mf">6.0</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">rd0</span> <span class="o">+</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">rd1</span> <span class="o">+</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">rd2</span> <span class="o">+</span> <span class="n">rd3</span><span class="p">)</span>
-        <span class="n">v4</span> <span class="o">=</span> <span class="n">v0</span> <span class="o">+</span> <span class="p">(</span><span class="n">dt</span> <span class="o">/</span> <span class="mf">6.0</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">vd0</span> <span class="o">+</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">vd1</span> <span class="o">+</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">vd2</span> <span class="o">+</span> <span class="n">vd3</span><span class="p">)</span>
-        <span class="n">_</span> <span class="o">=</span> <span class="p">(</span><span class="n">r4</span><span class="p">,</span> <span class="n">v4</span><span class="p">)</span>  <span class="c1"># keep variables (not used, but consistent with original intent)</span>
 
         <span class="n">dsd4__ds0</span> <span class="o">=</span> <span class="n">_I6</span> <span class="o">+</span> <span class="p">(</span><span class="n">dt</span> <span class="o">/</span> <span class="mf">6.0</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">dsd0__ds0</span> <span class="o">+</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">dsd1__ds0</span> <span class="o">+</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">dsd2__ds0</span> <span class="o">+</span> <span class="n">dsd3__ds0</span><span class="p">)</span>
 
@@ -1238,7 +1173,6 @@
             <span class="n">dsd4__ds0</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">6</span><span class="p">,</span> <span class="mi">3</span><span class="p">:</span><span class="mi">6</span><span class="p">],</span>
         <span class="p">)</span></div>
 
-    
 
 <div class="viewcode-block" id="Orbital_State.eci_to_ecef">
 <a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.helpers.simresults.Orbital_State.eci_to_ecef">[docs]</a>
@@ -1255,8 +1189,7 @@
 <span class="sd">        :rtype: numpy.ndarray</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_R_eci2ecef</span> <span class="o">@</span> <span class="n">vec</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_R_eci2ecef</span> <span class="o">@</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">vec</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Orbital_State.ecef_to_eci">
@@ -1274,7 +1207,7 @@
 <span class="sd">        :rtype: numpy.ndarray</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_R_ecef2eci</span> <span class="o">@</span> <span class="n">vec</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_R_ecef2eci</span> <span class="o">@</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">vec</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Orbital_State.ecef_to_geocentric">
@@ -1292,7 +1225,7 @@
 <span class="sd">        :rtype: numpy.ndarray</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ecef_to_geo</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">vec</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ecef_to_geo</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">vec</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Orbital_State.geocentric_to_ecef">
@@ -1310,7 +1243,8 @@
 <span class="sd">        :rtype: numpy.ndarray</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">vec</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_n_ecef</span> <span class="o">+</span> <span class="n">vec</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tvec</span> <span class="o">+</span> <span class="n">vec</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_svec</span></div>
+        <span class="n">v</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">vec</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_n_ecef</span> <span class="o">+</span> <span class="n">v</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tvec</span> <span class="o">+</span> <span class="n">v</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_svec</span></div>
 
 
 <div class="viewcode-block" id="Orbital_State.eci_to_enu">
@@ -1328,7 +1262,7 @@
 <span class="sd">        :rtype: numpy.ndarray</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">vec</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">ECI2ENUmat</span><span class="o">.</span><span class="n">T</span></div>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">vec</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">ECI2ENUmat</span><span class="o">.</span><span class="n">T</span></div>
 
 
 <div class="viewcode-block" id="Orbital_State.enu_to_eci">
@@ -1346,7 +1280,7 @@
 <span class="sd">        :rtype: numpy.ndarray</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">vec</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">ECI2ENUmat</span></div>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">vec</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">ECI2ENUmat</span></div>
 
 
 <div class="viewcode-block" id="Orbital_State.get_b_eci">
@@ -1360,9 +1294,9 @@
 <span class="sd">        :rtype: numpy.ndarray</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">geocentric</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-        <span class="n">theta_rad</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">geocentric</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-        <span class="n">phi_rad</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">geocentric</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">geocentric</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">theta_rad</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">geocentric</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">phi_rad</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">geocentric</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
 
         <span class="n">b_r</span><span class="p">,</span> <span class="n">b_th</span><span class="p">,</span> <span class="n">b_ph</span> <span class="o">=</span> <span class="n">ppigrf</span><span class="o">.</span><span class="n">igrf_gc</span><span class="p">(</span>
             <span class="n">r</span><span class="p">,</span>
@@ -1370,11 +1304,11 @@
             <span class="n">phi_rad</span> <span class="o">*</span> <span class="mf">180.0</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">datetime</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="n">b_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">b_r</span><span class="p">,</span> <span class="n">b_th</span><span class="p">,</span> <span class="n">b_ph</span><span class="p">])</span>
 
-        <span class="n">b_ecef</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">geocentric_to_ecef</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">b_array</span><span class="p">))</span>
+        <span class="n">b_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="nb">float</span><span class="p">(</span><span class="n">b_r</span><span class="p">),</span> <span class="nb">float</span><span class="p">(</span><span class="n">b_th</span><span class="p">),</span> <span class="nb">float</span><span class="p">(</span><span class="n">b_ph</span><span class="p">)],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+        <span class="n">b_ecef</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">geocentric_to_ecef</span><span class="p">(</span><span class="n">b_array</span><span class="p">)</span>
         <span class="n">b_eci</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ecef_to_eci</span><span class="p">(</span><span class="n">b_ecef</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">b_eci</span> <span class="o">*</span> <span class="mf">1e-9</span> <span class="c1"># Returned in Tesla</span></div>
+        <span class="k">return</span> <span class="n">b_eci</span> <span class="o">*</span> <span class="mf">1e-9</span></div>
 
 
 <div class="viewcode-block" id="Orbital_State.j2000_to_tai">
@@ -1402,14 +1336,9 @@
 <span class="sd">        :rtype: numpy.ndarray</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">timescale_object</span><span class="p">:</span> <span class="n">api</span><span class="o">.</span><span class="n">Timescale</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ephem</span><span class="o">.</span><span class="n">ts</span>
-        <span class="n">pos_time</span> <span class="o">=</span> <span class="n">timescale_object</span><span class="o">.</span><span class="n">tai_jd</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">TAI</span><span class="p">)</span>
-
-        <span class="n">sun_icrf</span><span class="p">:</span> <span class="n">positionlib</span><span class="o">.</span><span class="n">ICRF</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ephem</span><span class="o">.</span><span class="n">earth</span><span class="o">.</span><span class="n">at</span><span class="p">(</span><span class="n">pos_time</span><span class="p">)</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">ephem</span><span class="o">.</span><span class="n">sun</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">apparent</span><span class="p">()</span>
-        <span class="n">sun_eci</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">sun_icrf</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">km</span>
-        <span class="k">return</span> <span class="n">sun_eci</span></div>
+        <span class="n">t</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ts</span><span class="o">.</span><span class="n">tai_jd</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">TAI</span><span class="p">)</span>
+        <span class="n">sun_icrf</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ephem</span><span class="o">.</span><span class="n">earth</span><span class="o">.</span><span class="n">at</span><span class="p">(</span><span class="n">t</span><span class="p">)</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ephem</span><span class="o">.</span><span class="n">sun</span><span class="p">)</span><span class="o">.</span><span class="n">apparent</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">sun_icrf</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">km</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Orbital_State.update_vecs">
@@ -1427,7 +1356,7 @@
 <span class="sd">        :rtype: None</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">q0</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">7</span><span class="p">]</span>
+        <span class="n">q0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)[</span><span class="mi">3</span><span class="p">:</span><span class="mi">7</span><span class="p">]</span>
 
         <span class="n">R</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">R</span>
         <span class="n">V</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">V</span>
@@ -1465,7 +1394,7 @@
             <span class="s2">&quot;ddv&quot;</span><span class="p">:</span> <span class="n">ddV_B__dqdq</span><span class="p">,</span>
             <span class="s2">&quot;ddr&quot;</span><span class="p">:</span> <span class="n">ddR_B__dqdq</span><span class="p">,</span>
         <span class="p">}</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_last_x</span> <span class="o">=</span> <span class="n">x</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_last_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span></div>
 
 
 <div class="viewcode-block" id="Orbital_State.get_state_vector">
@@ -1480,12 +1409,11 @@
 
 <span class="sd">        :return:</span>
 <span class="sd">            Dictionary of vectors and derivatives.</span>
-<span class="sd">        :rtype:</span>
-<span class="sd">            dict[str, numpy.ndarray]</span>
+<span class="sd">        :rtype: dict[str, numpy.ndarray]</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">array_equal</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_last_x</span><span class="p">):</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">update_vecs</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">x</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_last_x</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">array_equal</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_last_x</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">update_vecs</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">))</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">vecs</span></div>
 
 
@@ -1500,9 +1428,11 @@
 <span class="sd">        :rtype: bool</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sf_pos</span><span class="o">.</span><span class="n">is_sunlit</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ephem</span><span class="o">.</span><span class="n">planets</span><span class="p">)</span></div>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_sunlit&quot;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_sunlit&quot;</span><span class="p">))</span>
+        <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sf_pos</span><span class="o">.</span><span class="n">is_sunlit</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ephem</span><span class="o">.</span><span class="n">planets</span><span class="p">))</span></div>
 
-    
+
 <div class="viewcode-block" id="Orbital_State.to_dict">
 <a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.helpers.simresults.Orbital_State.to_dict">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
@@ -1514,15 +1444,7 @@
 <span class="sd">        :rtype: dict</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="p">{</span>
-            <span class="s2">&quot;J2000&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">J2000</span><span class="p">,</span>
-            <span class="s2">&quot;R&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">R</span><span class="p">,</span>
-            <span class="s2">&quot;V&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">V</span><span class="p">,</span>
-            <span class="s2">&quot;S&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">S</span><span class="p">,</span>
-            <span class="s2">&quot;B&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">B</span><span class="p">,</span>
-            <span class="s2">&quot;rho&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">rho</span><span class="p">,</span>
-        <span class="p">}</span></div>
-
+        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;J2000&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">J2000</span><span class="p">,</span> <span class="s2">&quot;R&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">R</span><span class="p">,</span> <span class="s2">&quot;V&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">V</span><span class="p">,</span> <span class="s2">&quot;S&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">S</span><span class="p">,</span> <span class="s2">&quot;B&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">B</span><span class="p">,</span> <span class="s2">&quot;rho&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">rho</span><span class="p">}</span></div>
 
 
 <div class="viewcode-block" id="Orbital_State.from_dict">
@@ -1531,6 +1453,10 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">from_dict</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">d</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">ephem</span><span class="p">:</span> <span class="n">Ephemeris</span><span class="p">,</span> <span class="n">density_model</span><span class="p">:</span> <span class="n">DensityModel</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">fast</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Construct an orbital state from a dictionary.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        The ``fast`` argument is accepted for backward compatibility but is ignored.</span>
 
 <span class="sd">        :param d:</span>
 <span class="sd">            Dictionary containing orbital state fields.</span>
@@ -1545,7 +1471,7 @@
 <span class="sd">        :type density_model: DensityModel or None</span>
 
 <span class="sd">        :param fast:</span>
-<span class="sd">            Skip non-essential calculations if ``True``.</span>
+<span class="sd">            Backward-compatible parameter (ignored).</span>
 <span class="sd">        :type fast: bool</span>
 
 <span class="sd">        :return:</span>
@@ -1553,6 +1479,7 @@
 <span class="sd">        :rtype: Orbital_State</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">_</span> <span class="o">=</span> <span class="n">fast</span>  <span class="c1"># ignored</span>
         <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
             <span class="n">ephem</span><span class="o">=</span><span class="n">ephem</span><span class="p">,</span>
             <span class="n">J2000</span><span class="o">=</span><span class="n">d</span><span class="p">[</span><span class="s2">&quot;J2000&quot;</span><span class="p">],</span>
@@ -1562,8 +1489,8 @@
             <span class="n">B</span><span class="o">=</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;B&quot;</span><span class="p">),</span>
             <span class="n">rho</span><span class="o">=</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;rho&quot;</span><span class="p">),</span>
             <span class="n">density_model</span><span class="o">=</span><span class="n">density_model</span><span class="p">,</span>
-            <span class="n">fast</span><span class="o">=</span><span class="n">fast</span><span class="p">,</span>
-    <span class="p">)</span></div>
+            <span class="n">fast</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="p">)</span></div>
 </div>
 
 </pre></div>

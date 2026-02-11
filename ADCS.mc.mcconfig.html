@@ -603,18 +603,33 @@ on the specific subclass implementation.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="ADCS.mc.mcconfig.MCConfig">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">ADCS.mc.mcconfig.</span></span><span class="sig-name descname"><span class="pre">MCConfig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">h</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orbit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbit" title="ADCS.orbits.orbit.Orbit"><span class="pre">ADCS.orbits.orbit.Orbit</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">goal</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="ADCS.CONOPS.goals.goal.html#ADCS.CONOPS.goals.goal.Goal" title="ADCS.CONOPS.goals.goal.Goal"><span class="pre">ADCS.CONOPS.goals.goal.Goal</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tf</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/mc/mcconfig.html#MCConfig"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.mc.mcconfig.MCConfig" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">ADCS.mc.mcconfig.</span></span><span class="sig-name descname"><span class="pre">MCConfig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">h</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orbit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">goal</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tf</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/mc/mcconfig.html#MCConfig"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.mc.mcconfig.MCConfig" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Configuration container defining run-to-run sampling rules for Monte Carlo ADCS
+simulations.</p>
+<p>Each attribute may be either a fixed value or a callable sampler. If a callable
+is provided, it is invoked once per Monte Carlo run to generate the value applied
+to that run. This class is consumed by <a class="reference internal" href="ADCS.mc.simulate_mc.html#ADCS.mc.simulate_mc.simulate_mc" title="ADCS.mc.simulate_mc.simulate_mc"><code class="xref py py-func docutils literal notranslate"><span class="pre">simulate_mc()</span></code></a> to
+perturb initial conditions, goals, timing parameters, and orbit definitions.</p>
+<p>All attributes are optional; unspecified fields fall back to the base values
+passed directly to the Monte Carlo simulation function.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>w</strong> (<em>ndarray</em><em> | </em><em>None</em>)</p></li>
-<li><p><strong>q</strong> (<em>ndarray</em><em> | </em><em>None</em>)</p></li>
-<li><p><strong>h</strong> (<em>ndarray</em><em> | </em><em>None</em>)</p></li>
-<li><p><strong>orbit</strong> (<a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbit" title="ADCS.orbits.orbit.Orbit"><em>Orbit</em></a><em> | </em><em>None</em>)</p></li>
-<li><p><strong>goal</strong> (<a class="reference internal" href="ADCS.CONOPS.goals.goal.html#ADCS.CONOPS.goals.goal.Goal" title="ADCS.CONOPS.goals.goal.Goal"><em>Goal</em></a><em> | </em><em>None</em>)</p></li>
-<li><p><strong>dt</strong> (<em>float</em><em> | </em><em>None</em>)</p></li>
-<li><p><strong>tf</strong> (<em>float</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>w</strong> (<em>numpy.ndarray</em><em> or </em><em>None</em>) – Initial angular velocity override. If provided, replaces the first three
+elements of the state vector.</p></li>
+<li><p><strong>q</strong> (<em>numpy.ndarray</em><em> or </em><em>None</em>) – Initial attitude quaternion override. If provided, replaces elements
+3 through 6 of the state vector.</p></li>
+<li><p><strong>h</strong> (<em>numpy.ndarray</em><em> or </em><em>None</em>) – Initial reaction wheel momentum override. If provided, replaces the
+reaction wheel portion of the state vector.</p></li>
+<li><p><strong>orbit</strong> (<a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbit" title="ADCS.orbits.orbit.Orbit"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbit</span></code></a> or None) – Orbit override for the run. This may be an
+<a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbit" title="ADCS.orbits.orbit.Orbit"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbit</span></code></a> instance, an
+<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbital_State</span></code></a>, or an equivalent
+dictionary representation, depending on how it is sampled and applied.</p></li>
+<li><p><strong>goal</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">Goal</span></code> or None) – Goal override for the run. If provided, replaces the base goal passed to
+the Monte Carlo simulation.</p></li>
+<li><p><strong>dt</strong> (<em>float</em><em> or </em><em>None</em>) – Simulation time step override in seconds.</p></li>
+<li><p><strong>tf</strong> (<em>float</em><em> or </em><em>None</em>) – Simulation duration override in seconds.</p></li>
 </ul>
 </dd>
 </dl>
@@ -660,45 +675,18 @@ on the specific subclass implementation.</p>
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">ADCS.mc.mcconfig.</span></span><span class="sig-name descname"><span class="pre">Orbit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">os0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end_time</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_J2</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fast</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/orbits/orbit.html#Orbit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.mc.mcconfig.Orbit" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Time-ordered container and propagator for orbital states.</p>
-<p>This class represents an orbit as a discrete, time-indexed collection
-of <a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbital_State</span></code></a> objects. It supports
-orbit propagation, interpolation, sub-sampling, coordinate-frame
-transformations, and environment-related vector extraction
-(e.g. geomagnetic field).</p>
-<p>The class can be initialized in three distinct modes:</p>
-<ol class="arabic simple">
-<li><p><strong>Singleton orbit</strong>
-A single orbital state with no propagation.</p></li>
-<li><p><strong>Propagated orbit</strong>
-A single initial state propagated forward in time using a
-fourth-order Runge–Kutta (RK4) integrator.</p></li>
-<li><p><strong>Predefined orbit</strong>
-A list of already-computed orbital states.</p></li>
-</ol>
-<section id="mathematical-background">
-<h2>Mathematical Background<a class="headerlink" href="#mathematical-background" title="Link to this heading">¶</a></h2>
-<p>Orbit propagation is performed by numerically integrating the
-translational equations of motion:</p>
-<div class="math-wrapper docutils container">
-<div class="math notranslate nohighlight">
-\[\ddot{\mathbf{r}} =
--\frac{\mu}{r^3}\mathbf{r}
-+ \mathbf{a}_{J_2},\]</div>
-</div>
-<p>where <span class="math notranslate nohighlight">\(\mu\)</span> is Earth’s gravitational parameter and
-<span class="math notranslate nohighlight">\(\mathbf{a}_{J_2}\)</span> is the optional oblateness perturbation:</p>
-<div class="math-wrapper docutils container">
-<div class="math notranslate nohighlight">
-\[\begin{split}\mathbf{a}_{J_2}
-= \frac{3 J_2 \mu R_E^2}{2 r^5}
-\begin{bmatrix}
-    x \left(5 \frac{z^2}{r^2} - 1\right) \\
-    y \left(5 \frac{z^2}{r^2} - 1\right) \\
-    z \left(5 \frac{z^2}{r^2} - 3\right)
-\end{bmatrix}.\end{split}\]</div>
-</div>
-<p>The resulting trajectory is sampled at discrete epochs
-<span class="math notranslate nohighlight">\(t_k\)</span> expressed in J2000 centuries.</p>
+<p class="rubric">Notes</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">fast</span></code> argument is accepted for backward compatibility but is ignored:
+this implementation always computes real environment vectors (Sun and magnetic
+field) and full frame transforms for each stored
+<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbital_State</span></code></a>.</p>
+<section id="performance">
+<h2>Performance<a class="headerlink" href="#performance" title="Link to this heading">¶</a></h2>
+<p>For propagated orbits, this constructor propagates the translational dynamics
+using pure NumPy and then batch-computes the expensive environment quantities
+(Skyfield frames / Sun vector and ppigrf geomagnetic field) for the full time
+array once, before constructing individual <a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbital_State</span></code></a>
+objects.</p>
 <dl class="field-list simple">
 <dt class="field-odd">param os0<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Initial orbital state or list of orbital states.</p>
@@ -725,8 +713,7 @@ translational equations of motion:</p>
 <dd class="field-even"><p>bool</p>
 </dd>
 <dt class="field-odd">param fast<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Enable fast (approximate) propagation mode if supported
-by <a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbital_State</span></code></a>.</p>
+<dd class="field-odd"><p>Backward-compatible parameter (ignored).</p>
 </dd>
 <dt class="field-even">type fast<span class="colon">:</span></dt>
 <dd class="field-even"><p>bool</p>
@@ -762,11 +749,9 @@ by <a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbit
 <dt class="sig sig-object py" id="ADCS.mc.mcconfig.Orbit.geocentric_to_ecef_orbit">
 <span class="sig-name descname"><span class="pre">geocentric_to_ecef_orbit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">b_vec</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/orbits/orbit.html#Orbit.geocentric_to_ecef_orbit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.mc.mcconfig.Orbit.geocentric_to_ecef_orbit" title="Link to this definition">¶</a></dt>
 <dd><p>Convert geocentric spherical vectors to ECEF coordinates along the orbit.</p>
-<p>This method applies a local orthonormal frame transformation defined
-by the orbit geometry.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>b_vec</strong> (<em>numpy.ndarray</em>) – Geocentric vector components <span class="math notranslate nohighlight">\((b_r, b_\theta, b_\phi)\)</span>.</p>
+<dd class="field-odd"><p><strong>b_vec</strong> (<em>numpy.ndarray</em>) – Geocentric vector components (b_r, b_theta, b_phi).</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Vectors expressed in the ECEF frame.</p>
@@ -781,8 +766,8 @@ by the orbit geometry.</p>
 <dt class="sig sig-object py" id="ADCS.mc.mcconfig.Orbit.get_b_eci_orbit">
 <span class="sig-name descname"><span class="pre">get_b_eci_orbit</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/orbits/orbit.html#Orbit.get_b_eci_orbit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.mc.mcconfig.Orbit.get_b_eci_orbit" title="Link to this definition">¶</a></dt>
 <dd><p>Compute the geomagnetic field in the ECI frame along the orbit.</p>
-<p>The magnetic field is evaluated using the IGRF model in geocentric
-coordinates and transformed into the inertial frame.</p>
+<p>If per-state magnetic field vectors are already available, they are returned
+directly.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Geomagnetic field vectors in ECI coordinates [Tesla].</p>
@@ -797,10 +782,6 @@ coordinates and transformed into the inertial frame.</p>
 <dt class="sig sig-object py" id="ADCS.mc.mcconfig.Orbit.get_os">
 <span class="sig-name descname"><span class="pre">get_os</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">J2000</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/orbits/orbit.html#Orbit.get_os"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.mc.mcconfig.Orbit.get_os" title="Link to this definition">¶</a></dt>
 <dd><p>Retrieve or interpolate the orbital state at a given epoch.</p>
-<p>If an orbital state exists at the requested time, it is returned.
-Otherwise, linear interpolation between the nearest neighboring
-states is performed using the averaging method defined in
-<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbital_State</span></code></a>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>J2000</strong> (<em>float</em>) – Requested epoch in J2000 centuries.</p>
@@ -821,8 +802,6 @@ states is performed using the averaging method defined in
 <dt class="sig sig-object py" id="ADCS.mc.mcconfig.Orbit.get_range">
 <span class="sig-name descname"><span class="pre">get_range</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t_0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/orbits/orbit.html#Orbit.get_range"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.mc.mcconfig.Orbit.get_range" title="Link to this definition">¶</a></dt>
 <dd><p>Extract a sub-orbit over a specified time interval.</p>
-<p>This method returns either an existing subset of orbital states
-or a newly interpolated orbit sampled at a specified time step.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -847,11 +826,9 @@ or a newly interpolated orbit sampled at a specified time step.</p>
 <dt class="sig sig-object py" id="ADCS.mc.mcconfig.Orbit.get_vecs">
 <span class="sig-name descname"><span class="pre">get_vecs</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/orbits/orbit.html#Orbit.get_vecs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.mc.mcconfig.Orbit.get_vecs" title="Link to this definition">¶</a></dt>
 <dd><p>Return commonly used orbit-related vectors.</p>
-<p>The returned lists contain position, velocity, magnetic field,
-Sun vector, and atmospheric density values for each epoch.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Lists of vectors <code class="docutils literal notranslate"><span class="pre">[R,</span> <span class="pre">V,</span> <span class="pre">B,</span> <span class="pre">S,</span> <span class="pre">rho]</span></code> over the orbit.</p>
+<dd class="field-odd"><p>Lists of vectors [R, V, B, S, rho] over the orbit.</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p>list[list[numpy.ndarray]]</p>
@@ -891,8 +868,6 @@ Sun vector, and atmospheric density values for each epoch.</p>
 <dt class="sig sig-object py" id="ADCS.mc.mcconfig.Orbit.new_orbit_from_times">
 <span class="sig-name descname"><span class="pre">new_orbit_from_times</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">time_list</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/orbits/orbit.html#Orbit.new_orbit_from_times"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.mc.mcconfig.Orbit.new_orbit_from_times" title="Link to this definition">¶</a></dt>
 <dd><p>Construct a new orbit sampled at specific epochs.</p>
-<p>For each requested time, the orbital state is obtained using
-<a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbit.get_os" title="ADCS.orbits.orbit.Orbit.get_os"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_os()</span></code></a>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>time_list</strong> (<em>list</em><em>[</em><em>float</em><em>]</em>) – List of epochs in J2000 centuries.</p>

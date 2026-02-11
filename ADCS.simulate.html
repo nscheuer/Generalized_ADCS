@@ -505,23 +505,48 @@
 <dl class="py function">
 <dt class="sig sig-object py" id="ADCS.simulate.simulate">
 <span class="sig-prename descclassname"><span class="pre">ADCS.simulate.</span></span><span class="sig-name descname"><span class="pre">simulate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">satellite</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">est_satellite</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">controller</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">estimator</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orbit_estimator</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">goal</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tf</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">500.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/simulate.html#simulate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.simulate.simulate" title="Link to this definition">¶</a></dt>
-<dd><dl class="field-list simple">
+<dd><p>Run a time-domain simulation of the spacecraft Attitude Determination and Control
+System (ADCS), including dynamics propagation, sensor simulation, state estimation,
+orbit estimation, goal management, and control execution.</p>
+<p>This function advances the true satellite state forward in time using numerical
+integration, while optionally running attitude and orbit estimators and a control
+law. Goals may be specified as a single goal or a time-varying goal list. All
+simulation data are logged and returned as a <a class="reference internal" href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.SimulationResults" title="ADCS.helpers.simresults.SimulationResults"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimulationResults</span></code></a>
+object.</p>
+<p>The simulation uses <code class="xref py py-func docutils literal notranslate"><span class="pre">scipy.integrate.solve_ivp()</span></code> with RK45 integration and
+propagates the orbit using <a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbit" title="ADCS.orbits.orbit.Orbit"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbit</span></code></a>.</p>
+<dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>x</strong> (<em>ndarray</em>)</p></li>
-<li><p><strong>satellite</strong> (<a class="reference internal" href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite" title="ADCS.satellite_hardware.satellite.satellite.Satellite"><em>Satellite</em></a>)</p></li>
-<li><p><strong>est_satellite</strong> (<a class="reference internal" href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite" title="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite"><em>EstimatedSatellite</em></a><em> | </em><em>None</em>)</p></li>
-<li><p><strong>controller</strong> (<a class="reference internal" href="ADCS.controller.controller.html#ADCS.controller.controller.Controller" title="ADCS.controller.controller.Controller"><em>Controller</em></a><em> | </em><em>None</em>)</p></li>
-<li><p><strong>estimator</strong> (<a class="reference internal" href="ADCS.estimators.attitude_estimators.attitude_estimator.html#ADCS.estimators.attitude_estimators.attitude_estimator.Attitude_Estimator" title="ADCS.estimators.attitude_estimators.attitude_estimator.Attitude_Estimator"><em>Attitude_Estimator</em></a><em> | </em><em>None</em>)</p></li>
-<li><p><strong>orbit_estimator</strong> (<a class="reference internal" href="ADCS.estimators.orbit_estimators.orbit_estimator.html#ADCS.estimators.orbit_estimators.orbit_estimator.Orbit_Estimator" title="ADCS.estimators.orbit_estimators.orbit_estimator.Orbit_Estimator"><em>Orbit_Estimator</em></a><em> | </em><em>None</em>)</p></li>
-<li><p><strong>goal</strong> (<a class="reference internal" href="ADCS.CONOPS.goals.goal.html#ADCS.CONOPS.goals.goal.Goal" title="ADCS.CONOPS.goals.goal.Goal"><em>Goal</em></a><em> | </em><a class="reference internal" href="ADCS.CONOPS.goallist.goallist.html#ADCS.CONOPS.goallist.goallist.GoalList" title="ADCS.CONOPS.goallist.goallist.GoalList"><em>GoalList</em></a><em> | </em><em>None</em>)</p></li>
-<li><p><strong>os0</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>)</p></li>
-<li><p><strong>dt</strong> (<em>float</em>)</p></li>
-<li><p><strong>tf</strong> (<em>float</em>)</p></li>
+<li><p><strong>x</strong> (<em>numpy.ndarray</em>) – Initial true satellite state vector. The length must match
+<code class="docutils literal notranslate"><span class="pre">satellite.state_len</span></code> and is expected to follow the satellite state
+convention (angular velocity, quaternion, reaction wheel states, etc.).</p></li>
+<li><p><strong>satellite</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">Satellite</span></code>) – The true satellite model, including dynamics, sensors, and actuators.</p></li>
+<li><p><strong>est_satellite</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">EstimatedSatellite</span></code> or None) – Estimated satellite model used by estimators and controllers. If <code class="docutils literal notranslate"><span class="pre">None</span></code> and
+either an estimator or controller is provided, it is constructed automatically
+from <code class="docutils literal notranslate"><span class="pre">satellite</span></code>.</p></li>
+<li><p><strong>controller</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">Controller</span></code> or None) – Control law used to compute actuator commands. If the controller is a
+<code class="xref py py-class docutils literal notranslate"><span class="pre">PlanAndTrackBase</span></code>, an initial trajectory is computed
+before simulation.</p></li>
+<li><p><strong>estimator</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">Attitude_Estimator</span></code> or None) – Attitude estimator used to estimate the spacecraft state from sensor
+measurements.</p></li>
+<li><p><strong>orbit_estimator</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">Orbit_Estimator</span></code> or None) – Orbit estimator used to estimate the orbital state from GPS measurements.</p></li>
+<li><p><strong>goal</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">Goal</span></code>,
+<code class="xref py py-class docutils literal notranslate"><span class="pre">GoalList</span></code>,
+or None) – Desired attitude or pointing objective. This may be <code class="docutils literal notranslate"><span class="pre">None</span></code> (no goal),
+a single <code class="xref py py-class docutils literal notranslate"><span class="pre">Goal</span></code>, or a
+<code class="xref py py-class docutils literal notranslate"><span class="pre">GoalList</span></code> defining time-varying goals.</p></li>
+<li><p><strong>os0</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbital_State</span></code></a>) – Initial orbital state at the start of the simulation.</p></li>
+<li><p><strong>dt</strong> (<em>float</em>) – Simulation time step in seconds.</p></li>
+<li><p><strong>tf</strong> (<em>float</em>) – Total simulation duration in seconds.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference internal" href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.SimulationResults" title="ADCS.helpers.simresults.SimulationResults"><em>SimulationResults</em></a></p>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Container holding all recorded simulation data, including true and estimated
+states, controls, sensor readings, biases, and targets for the entire run.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.SimulationResults" title="ADCS.helpers.simresults.SimulationResults"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimulationResults</span></code></a></p>
 </dd>
 </dl>
 </dd></dl>

@@ -494,17 +494,23 @@
         </div>
         <article role="main" id="furo-main-content">
           <h1>Source code for ADCS.orbits.orbit</h1><div class="highlight"><pre>
-<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Orbit&quot;</span><span class="p">]</span>
+<span></span><span class="c1"># orbit.py</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Orbit&quot;</span><span class="p">]</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">ppigrf</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">ppigrf</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">ppigrf</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Union</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tqdm</span><span class="w"> </span><span class="kn">import</span> <span class="n">tqdm</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">skyfield</span><span class="w"> </span><span class="kn">import</span> <span class="n">api</span><span class="p">,</span> <span class="n">units</span><span class="p">,</span> <span class="n">positionlib</span><span class="p">,</span> <span class="n">framelib</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">timezone</span>
+
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.orbits.orbital_state</span><span class="w"> </span><span class="kn">import</span> <span class="n">Orbital_State</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.orbits.universal_constants</span><span class="w"> </span><span class="kn">import</span> <span class="n">TimeConstants</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.orbits.universal_constants</span><span class="w"> </span><span class="kn">import</span> <span class="n">TimeConstants</span><span class="p">,</span> <span class="n">EarthConstants</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.helpers.math_constants</span><span class="w"> </span><span class="kn">import</span> <span class="n">MathConstants</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.helpers.math_helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">matrix_row_normalize</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.orbits.density_model</span><span class="w"> </span><span class="kn">import</span> <span class="n">DensityModel</span>
+
 
 <div class="viewcode-block" id="Orbit">
 <a class="viewcode-back" href="../../../ADCS.orbits.orbit.html#ADCS.mc.mcconfig.Orbit">[docs]</a>
@@ -512,55 +518,24 @@
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Time-ordered container and propagator for orbital states.</span>
 
-<span class="sd">    This class represents an orbit as a discrete, time-indexed collection</span>
-<span class="sd">    of :class:`~ADCS.orbits.orbital_state.Orbital_State` objects. It supports</span>
-<span class="sd">    orbit propagation, interpolation, sub-sampling, coordinate-frame</span>
-<span class="sd">    transformations, and environment-related vector extraction</span>
-<span class="sd">    (e.g. geomagnetic field).</span>
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    The ``fast`` argument is accepted for backward compatibility but is ignored:</span>
+<span class="sd">    this implementation always computes real environment vectors (Sun and magnetic</span>
+<span class="sd">    field) and full frame transforms for each stored</span>
+<span class="sd">    :class:`~ADCS.orbits.orbital_state.Orbital_State`.</span>
 
-<span class="sd">    The class can be initialized in three distinct modes:</span>
-
-<span class="sd">    1. **Singleton orbit**  </span>
-<span class="sd">       A single orbital state with no propagation.</span>
-
-<span class="sd">    2. **Propagated orbit**  </span>
-<span class="sd">       A single initial state propagated forward in time using a</span>
-<span class="sd">       fourth-order Runge–Kutta (RK4) integrator.</span>
-
-<span class="sd">    3. **Predefined orbit**  </span>
-<span class="sd">       A list of already-computed orbital states.</span>
-
-<span class="sd">    Mathematical Background</span>
-<span class="sd">    -----------------------</span>
-<span class="sd">    Orbit propagation is performed by numerically integrating the</span>
-<span class="sd">    translational equations of motion:</span>
-
-<span class="sd">    .. math::</span>
-
-<span class="sd">        \ddot{\mathbf{r}} =</span>
-<span class="sd">        -\frac{\mu}{r^3}\mathbf{r}</span>
-<span class="sd">        + \mathbf{a}_{J_2},</span>
-
-<span class="sd">    where :math:`\mu` is Earth’s gravitational parameter and</span>
-<span class="sd">    :math:`\mathbf{a}_{J_2}` is the optional oblateness perturbation:</span>
-
-<span class="sd">    .. math::</span>
-
-<span class="sd">        \mathbf{a}_{J_2}</span>
-<span class="sd">        = \frac{3 J_2 \mu R_E^2}{2 r^5}</span>
-<span class="sd">        \begin{bmatrix}</span>
-<span class="sd">            x \left(5 \frac{z^2}{r^2} - 1\right) \\</span>
-<span class="sd">            y \left(5 \frac{z^2}{r^2} - 1\right) \\</span>
-<span class="sd">            z \left(5 \frac{z^2}{r^2} - 3\right)</span>
-<span class="sd">        \end{bmatrix}.</span>
-
-<span class="sd">    The resulting trajectory is sampled at discrete epochs</span>
-<span class="sd">    :math:`t_k` expressed in J2000 centuries.</span>
+<span class="sd">    Performance</span>
+<span class="sd">    -----------</span>
+<span class="sd">    For propagated orbits, this constructor propagates the translational dynamics</span>
+<span class="sd">    using pure NumPy and then batch-computes the expensive environment quantities</span>
+<span class="sd">    (Skyfield frames / Sun vector and ppigrf geomagnetic field) for the full time</span>
+<span class="sd">    array once, before constructing individual :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
+<span class="sd">    objects.</span>
 
 <span class="sd">    :param os0:</span>
 <span class="sd">        Initial orbital state or list of orbital states.</span>
-<span class="sd">    :type os0:</span>
-<span class="sd">        Orbital_State or list[Orbital_State]</span>
+<span class="sd">    :type os0: Orbital_State or list[Orbital_State]</span>
 
 <span class="sd">    :param end_time:</span>
 <span class="sd">        Final propagation time in J2000 centuries.</span>
@@ -575,8 +550,7 @@
 <span class="sd">    :type use_J2: bool</span>
 
 <span class="sd">    :param fast:</span>
-<span class="sd">        Enable fast (approximate) propagation mode if supported</span>
-<span class="sd">        by :class:`~ADCS.orbits.orbital_state.Orbital_State`.</span>
+<span class="sd">        Backward-compatible parameter (ignored).</span>
 <span class="sd">    :type fast: bool</span>
 
 <span class="sd">    :param verbose:</span>
@@ -587,6 +561,7 @@
 <span class="sd">        If input arguments are inconsistent or unsupported.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
+
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">os0</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Orbital_State</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Orbital_State</span><span class="p">]],</span>
@@ -594,19 +569,14 @@
         <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">use_J2</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">fast</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-        <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Initialize an orbit from an initial condition or a list of states.</span>
 
-<span class="sd">        Depending on the inputs, this constructor either stores a single</span>
-<span class="sd">        orbital state, propagates it forward in time using RK4 integration,</span>
-<span class="sd">        or constructs an orbit from a provided list of orbital states.</span>
-
 <span class="sd">        :param os0:</span>
 <span class="sd">            Initial orbital state or list of orbital states.</span>
-<span class="sd">        :type os0:</span>
-<span class="sd">            Orbital_State or list[Orbital_State]</span>
+<span class="sd">        :type os0: Orbital_State or list[Orbital_State]</span>
 
 <span class="sd">        :param end_time:</span>
 <span class="sd">            Final propagation time in J2000 centuries.</span>
@@ -621,7 +591,7 @@
 <span class="sd">        :type use_J2: bool</span>
 
 <span class="sd">        :param fast:</span>
-<span class="sd">            Enable fast propagation mode.</span>
+<span class="sd">            Backward-compatible parameter (ignored).</span>
 <span class="sd">        :type fast: bool</span>
 
 <span class="sd">        :param verbose:</span>
@@ -633,14 +603,21 @@
 <span class="sd">        :rtype: None</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">_</span> <span class="o">=</span> <span class="n">fast</span>  <span class="c1"># ignored</span>
+        <span class="n">use_J2</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">use_J2</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">os0</span><span class="p">,</span> <span class="n">Orbital_State</span><span class="p">):</span>
+            <span class="n">start_time</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">os0</span><span class="o">.</span><span class="n">J2000</span><span class="p">)</span>
 
-            <span class="n">start_time</span> <span class="o">=</span> <span class="n">os0</span><span class="o">.</span><span class="n">J2000</span>
-            <span class="k">if</span> <span class="n">end_time</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">dt</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">end_time</span> <span class="o">==</span> <span class="n">start_time</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">states</span> <span class="o">=</span> <span class="p">{</span><span class="n">os0</span><span class="o">.</span><span class="n">J2000</span><span class="p">:</span> <span class="n">os0</span><span class="o">.</span><span class="n">copy</span><span class="p">()}</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">times</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">os0</span><span class="o">.</span><span class="n">J2000</span><span class="p">])</span>
+            <span class="c1"># Singleton orbit</span>
+            <span class="k">if</span> <span class="n">end_time</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">dt</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">float</span><span class="p">(</span><span class="n">end_time</span><span class="p">)</span> <span class="o">==</span> <span class="n">start_time</span><span class="p">:</span>
+                <span class="n">st</span> <span class="o">=</span> <span class="n">os0</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">states</span> <span class="o">=</span> <span class="p">{</span><span class="n">st</span><span class="o">.</span><span class="n">J2000</span><span class="p">:</span> <span class="n">st</span><span class="p">}</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">times</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">st</span><span class="o">.</span><span class="n">J2000</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
                 <span class="k">return</span>
+
+            <span class="n">end_time</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">end_time</span><span class="p">)</span>
+            <span class="n">dt</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span>
 
             <span class="n">duration</span> <span class="o">=</span> <span class="n">end_time</span> <span class="o">-</span> <span class="n">start_time</span>
             <span class="n">l</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">duration</span> <span class="o">/</span> <span class="p">(</span><span class="n">dt</span> <span class="o">/</span> <span class="n">TimeConstants</span><span class="o">.</span><span class="n">cent2sec</span><span class="p">))</span>
@@ -650,47 +627,234 @@
                 <span class="o">+</span> <span class="p">[</span><span class="n">start_time</span> <span class="o">+</span> <span class="n">j</span> <span class="o">*</span> <span class="p">(</span><span class="n">dt</span> <span class="o">/</span> <span class="n">TimeConstants</span><span class="o">.</span><span class="n">cent2sec</span><span class="p">)</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="nb">int</span><span class="p">(</span><span class="n">l</span><span class="p">))]</span>
                 <span class="o">+</span> <span class="p">[</span><span class="n">end_time</span><span class="p">]</span>
             <span class="p">)</span>
-
-            <span class="c1"># Remove duplicates and sort</span>
             <span class="n">times</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">times</span><span class="p">)))</span>
+            <span class="n">times</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">start_time</span>
 
-            <span class="c1"># Storage for states</span>
-            <span class="n">states0</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Orbital_State</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">times</span><span class="p">]</span>
-            <span class="n">states0</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">os0</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-            <span class="n">times</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">os0</span><span class="o">.</span><span class="n">J2000</span>
+            <span class="n">N</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">times</span><span class="p">)</span>
+            <span class="n">times_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">times</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
 
-            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">times</span><span class="p">)),</span> <span class="n">desc</span><span class="o">=</span><span class="s2">&quot;Propagating Orbit&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s2">&quot;step&quot;</span><span class="p">,</span> <span class="n">disable</span><span class="o">=</span><span class="ow">not</span> <span class="n">verbose</span><span class="p">):</span>
+            <span class="c1"># --- Propagate translational dynamics (RK4) without constructing Orbital_State each step ---</span>
+            <span class="n">R_hist</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">N</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+            <span class="n">V_hist</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">N</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
 
-                <span class="n">dt_step</span> <span class="o">=</span> <span class="p">(</span><span class="n">times</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">-</span> <span class="n">times</span><span class="p">[</span><span class="n">j</span> <span class="o">-</span> <span class="mi">1</span><span class="p">])</span> <span class="o">*</span> <span class="n">TimeConstants</span><span class="o">.</span><span class="n">cent2sec</span>
+            <span class="n">R_hist</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">os0</span><span class="o">.</span><span class="n">R</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+            <span class="n">V_hist</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">os0</span><span class="o">.</span><span class="n">V</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
 
-                <span class="n">states0</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">states0</span><span class="p">[</span><span class="n">j</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">propagate_orbit_rk4</span><span class="p">(</span>
-                    <span class="n">dt</span><span class="o">=</span><span class="n">dt_step</span><span class="p">,</span>
-                    <span class="n">J2_perturbation_on</span><span class="o">=</span><span class="n">use_J2</span><span class="p">,</span>
-                    <span class="n">fast</span><span class="o">=</span><span class="n">fast</span>
-                <span class="p">)</span>
+            <span class="n">mu_e</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">os0</span><span class="p">,</span> <span class="s2">&quot;mu_e&quot;</span><span class="p">,</span> <span class="n">EarthConstants</span><span class="o">.</span><span class="n">mu_e</span><span class="p">))</span>
+            <span class="n">R_e</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">os0</span><span class="p">,</span> <span class="s2">&quot;R_e&quot;</span><span class="p">,</span> <span class="n">EarthConstants</span><span class="o">.</span><span class="n">R_e</span><span class="p">))</span>
+            <span class="n">J2coeff</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">os0</span><span class="p">,</span> <span class="s2">&quot;J2coeff&quot;</span><span class="p">,</span> <span class="n">EarthConstants</span><span class="o">.</span><span class="n">J2coeff</span><span class="p">))</span>
 
-            <span class="c1"># Build time-indexed dictionary</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">states</span> <span class="o">=</span> <span class="p">{</span><span class="n">state</span><span class="o">.</span><span class="n">J2000</span><span class="p">:</span> <span class="n">state</span> <span class="k">for</span> <span class="n">state</span> <span class="ow">in</span> <span class="n">states0</span><span class="p">}</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">times</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">N</span><span class="p">),</span> <span class="n">desc</span><span class="o">=</span><span class="s2">&quot;Propagating Orbit&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s2">&quot;step&quot;</span><span class="p">,</span> <span class="n">disable</span><span class="o">=</span><span class="ow">not</span> <span class="n">verbose</span><span class="p">):</span>
+                <span class="n">dt_step</span> <span class="o">=</span> <span class="p">(</span><span class="n">times_arr</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">-</span> <span class="n">times_arr</span><span class="p">[</span><span class="n">j</span> <span class="o">-</span> <span class="mi">1</span><span class="p">])</span> <span class="o">*</span> <span class="n">TimeConstants</span><span class="o">.</span><span class="n">cent2sec</span>
+
+                <span class="n">r0</span> <span class="o">=</span> <span class="n">R_hist</span><span class="p">[</span><span class="n">j</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:]</span>
+                <span class="n">v0</span> <span class="o">=</span> <span class="n">V_hist</span><span class="p">[</span><span class="n">j</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:]</span>
+
+                <span class="n">k1r</span><span class="p">,</span> <span class="n">k1v</span> <span class="o">=</span> <span class="n">Orbital_State</span><span class="o">.</span><span class="n">_orbit_dynamics_raw</span><span class="p">(</span><span class="n">r0</span><span class="p">,</span> <span class="n">v0</span><span class="p">,</span> <span class="n">mu_e</span><span class="p">,</span> <span class="n">R_e</span><span class="p">,</span> <span class="n">J2coeff</span><span class="p">,</span> <span class="n">use_J2</span><span class="p">)</span>
+                <span class="n">k2r</span><span class="p">,</span> <span class="n">k2v</span> <span class="o">=</span> <span class="n">Orbital_State</span><span class="o">.</span><span class="n">_orbit_dynamics_raw</span><span class="p">(</span><span class="n">r0</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">dt_step</span> <span class="o">*</span> <span class="n">k1r</span><span class="p">,</span> <span class="n">v0</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">dt_step</span> <span class="o">*</span> <span class="n">k1v</span><span class="p">,</span> <span class="n">mu_e</span><span class="p">,</span> <span class="n">R_e</span><span class="p">,</span> <span class="n">J2coeff</span><span class="p">,</span> <span class="n">use_J2</span><span class="p">)</span>
+                <span class="n">k3r</span><span class="p">,</span> <span class="n">k3v</span> <span class="o">=</span> <span class="n">Orbital_State</span><span class="o">.</span><span class="n">_orbit_dynamics_raw</span><span class="p">(</span><span class="n">r0</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">dt_step</span> <span class="o">*</span> <span class="n">k2r</span><span class="p">,</span> <span class="n">v0</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">dt_step</span> <span class="o">*</span> <span class="n">k2v</span><span class="p">,</span> <span class="n">mu_e</span><span class="p">,</span> <span class="n">R_e</span><span class="p">,</span> <span class="n">J2coeff</span><span class="p">,</span> <span class="n">use_J2</span><span class="p">)</span>
+                <span class="n">k4r</span><span class="p">,</span> <span class="n">k4v</span> <span class="o">=</span> <span class="n">Orbital_State</span><span class="o">.</span><span class="n">_orbit_dynamics_raw</span><span class="p">(</span><span class="n">r0</span> <span class="o">+</span> <span class="n">dt_step</span> <span class="o">*</span> <span class="n">k3r</span><span class="p">,</span> <span class="n">v0</span> <span class="o">+</span> <span class="n">dt_step</span> <span class="o">*</span> <span class="n">k3v</span><span class="p">,</span> <span class="n">mu_e</span><span class="p">,</span> <span class="n">R_e</span><span class="p">,</span> <span class="n">J2coeff</span><span class="p">,</span> <span class="n">use_J2</span><span class="p">)</span>
+
+                <span class="n">R_hist</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">r0</span> <span class="o">+</span> <span class="p">(</span><span class="n">dt_step</span> <span class="o">/</span> <span class="mf">6.0</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">k1r</span> <span class="o">+</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">k2r</span> <span class="o">+</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">k3r</span> <span class="o">+</span> <span class="n">k4r</span><span class="p">)</span>
+                <span class="n">V_hist</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">v0</span> <span class="o">+</span> <span class="p">(</span><span class="n">dt_step</span> <span class="o">/</span> <span class="mf">6.0</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">k1v</span> <span class="o">+</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">k2v</span> <span class="o">+</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">k3v</span> <span class="o">+</span> <span class="n">k4v</span><span class="p">)</span>
+
+            <span class="c1"># --- Batch-compute environment and frame transforms once ---</span>
+            <span class="n">ephem</span> <span class="o">=</span> <span class="n">os0</span><span class="o">.</span><span class="n">ephem</span>
+            <span class="n">ts</span> <span class="o">=</span> <span class="n">ephem</span><span class="o">.</span><span class="n">ts</span>
+
+            <span class="n">TAI</span> <span class="o">=</span> <span class="n">times_arr</span> <span class="o">*</span> <span class="mf">36525.0</span> <span class="o">+</span> <span class="mf">2451545.0</span>
+            <span class="n">t_sf</span> <span class="o">=</span> <span class="n">ts</span><span class="o">.</span><span class="n">tai_jd</span><span class="p">(</span><span class="n">TAI</span><span class="p">)</span>
+
+            <span class="c1"># Rotation matrices ECI-&gt;ECEF (vectorized)</span>
+            <span class="n">R_eci2ecef_raw</span> <span class="o">=</span> <span class="n">framelib</span><span class="o">.</span><span class="n">itrs</span><span class="o">.</span><span class="n">rotation_at</span><span class="p">(</span><span class="n">t_sf</span><span class="p">)</span>
+            <span class="n">R_eci2ecef_raw</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">R_eci2ecef_raw</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">R_eci2ecef_raw</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">3</span> <span class="ow">and</span> <span class="n">R_eci2ecef_raw</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">3</span> <span class="ow">and</span> <span class="n">R_eci2ecef_raw</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+                <span class="n">R_eci2ecef</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">R_eci2ecef_raw</span><span class="p">,</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>  <span class="c1"># (N,3,3)</span>
+            <span class="k">elif</span> <span class="n">R_eci2ecef_raw</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">3</span> <span class="ow">and</span> <span class="n">R_eci2ecef_raw</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:]</span> <span class="o">==</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">):</span>
+                <span class="n">R_eci2ecef</span> <span class="o">=</span> <span class="n">R_eci2ecef_raw</span>  <span class="c1"># (N,3,3)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># Fallback: treat as a single matrix (should not happen for multi-time)</span>
+                <span class="n">R_eci2ecef</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">R_eci2ecef_raw</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">N</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+            <span class="n">R_ecef2eci</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">R_eci2ecef</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+
+            <span class="c1"># ECEF positions</span>
+            <span class="n">ECEF_hist</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;nij,nj-&gt;ni&quot;</span><span class="p">,</span> <span class="n">R_eci2ecef</span><span class="p">,</span> <span class="n">R_hist</span><span class="p">)</span>
+
+            <span class="c1"># Geocentric (r, theta, phi) from ECEF</span>
+            <span class="n">r_ecef</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">ECEF_hist</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">theta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arccos</span><span class="p">(</span><span class="n">ECEF_hist</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">/</span> <span class="n">r_ecef</span><span class="p">)</span>
+            <span class="n">phi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arctan2</span><span class="p">(</span><span class="n">ECEF_hist</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">ECEF_hist</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">])</span>
+            <span class="n">geo_hist</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">r_ecef</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">phi</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+            <span class="c1"># Datetimes (naive UTC)</span>
+            <span class="n">dts</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">dt_i</span> <span class="ow">in</span> <span class="n">t_sf</span><span class="o">.</span><span class="n">utc_datetime</span><span class="p">():</span>
+                <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">dt_i</span><span class="p">,</span> <span class="s2">&quot;tzinfo&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">dts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dt_i</span><span class="o">.</span><span class="n">astimezone</span><span class="p">(</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">tzinfo</span><span class="o">=</span><span class="kc">None</span><span class="p">))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">dts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dt_i</span><span class="p">)</span>
+
+            <span class="c1"># Sun vector (ECI) in km (vectorized)</span>
+            <span class="n">sun_icrf</span> <span class="o">=</span> <span class="n">ephem</span><span class="o">.</span><span class="n">earth</span><span class="o">.</span><span class="n">at</span><span class="p">(</span><span class="n">t_sf</span><span class="p">)</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">ephem</span><span class="o">.</span><span class="n">sun</span><span class="p">)</span><span class="o">.</span><span class="n">apparent</span><span class="p">()</span>
+            <span class="n">sun_km</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">sun_icrf</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">km</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">sun_km</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span> <span class="ow">and</span> <span class="n">sun_km</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">3</span> <span class="ow">and</span> <span class="n">sun_km</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">N</span><span class="p">:</span>
+                <span class="n">S_hist</span> <span class="o">=</span> <span class="n">sun_km</span><span class="o">.</span><span class="n">T</span>
+            <span class="k">elif</span> <span class="n">sun_km</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span> <span class="ow">and</span> <span class="n">sun_km</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">N</span> <span class="ow">and</span> <span class="n">sun_km</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+                <span class="n">S_hist</span> <span class="o">=</span> <span class="n">sun_km</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">S_hist</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">sun_km</span><span class="p">,</span> <span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+
+            <span class="c1"># Magnetic field (IGRF) in geocentric components (vectorized call)</span>
+            <span class="n">b_r</span><span class="p">,</span> <span class="n">b_th</span><span class="p">,</span> <span class="n">b_ph</span> <span class="o">=</span> <span class="n">ppigrf</span><span class="o">.</span><span class="n">igrf_gc</span><span class="p">(</span>
+                <span class="n">geo_hist</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span>
+                <span class="n">geo_hist</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="mf">180.0</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span>
+                <span class="n">geo_hist</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="mf">180.0</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span>
+                <span class="n">dts</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">b_r</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">b_r</span><span class="p">)</span>
+            <span class="n">b_th</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">b_th</span><span class="p">)</span>
+            <span class="n">b_ph</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">b_ph</span><span class="p">)</span>
+
+            <span class="c1"># ppigrf sometimes returns diagonal matrices when passed time lists; handle both</span>
+            <span class="k">if</span> <span class="n">b_r</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span> <span class="ow">and</span> <span class="n">b_r</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">b_r</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">N</span><span class="p">:</span>
+                <span class="n">b_r</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diagonal</span><span class="p">(</span><span class="n">b_r</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">b_th</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span> <span class="ow">and</span> <span class="n">b_th</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">b_th</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">N</span><span class="p">:</span>
+                <span class="n">b_th</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diagonal</span><span class="p">(</span><span class="n">b_th</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">b_ph</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span> <span class="ow">and</span> <span class="n">b_ph</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">b_ph</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">N</span><span class="p">:</span>
+                <span class="n">b_ph</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diagonal</span><span class="p">(</span><span class="n">b_ph</span><span class="p">)</span>
+
+            <span class="n">b_r</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">b_r</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">N</span><span class="p">)</span>
+            <span class="n">b_th</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">b_th</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">N</span><span class="p">)</span>
+            <span class="n">b_ph</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">b_ph</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">N</span><span class="p">)</span>
+
+            <span class="c1"># Local basis for geocentric-&gt;ECEF conversion (vectorized, matches existing Orbit.geocentric_to_ecef_orbit)</span>
+            <span class="n">n_ecef</span> <span class="o">=</span> <span class="n">ECEF_hist</span> <span class="o">/</span> <span class="n">r_ecef</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span>
+            <span class="n">zhat</span> <span class="o">=</span> <span class="n">MathConstants</span><span class="o">.</span><span class="n">unitvecs</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+            <span class="n">svec</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">zhat</span><span class="p">,</span> <span class="n">n_ecef</span><span class="p">)</span>
+            <span class="n">svec</span> <span class="o">=</span> <span class="n">svec</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">svec</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">]</span>
+            <span class="n">tvec</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">svec</span><span class="p">,</span> <span class="n">n_ecef</span><span class="p">)</span>
+            <span class="n">tvec</span> <span class="o">=</span> <span class="n">tvec</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">tvec</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">]</span>
+
+            <span class="c1"># Convert to ECEF, then to ECI</span>
+            <span class="n">b_ecef</span> <span class="o">=</span> <span class="n">b_r</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">n_ecef</span> <span class="o">+</span> <span class="n">b_ph</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">svec</span> <span class="o">+</span> <span class="n">b_th</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">tvec</span>
+            <span class="n">B_hist</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;nij,nj-&gt;ni&quot;</span><span class="p">,</span> <span class="n">R_ecef2eci</span><span class="p">,</span> <span class="n">b_ecef</span><span class="p">)</span> <span class="o">*</span> <span class="mf">1e-9</span>
+
+            <span class="c1"># Density model (reuse os0 model if present)</span>
+            <span class="n">density_model</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">os0</span><span class="p">,</span> <span class="s2">&quot;density_model&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">density_model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">density_model</span> <span class="o">=</span> <span class="n">DensityModel</span><span class="p">()</span>
+
+            <span class="n">alt_core</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">R_hist</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="n">EarthConstants</span><span class="o">.</span><span class="n">R_e</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">rho_hist</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">density_model</span><span class="o">.</span><span class="n">interpolate</span><span class="p">(</span><span class="n">alt_core</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">N</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                <span class="n">rho_hist</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="nb">float</span><span class="p">(</span><span class="n">density_model</span><span class="o">.</span><span class="n">interpolate</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">h</span><span class="p">)))</span> <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">alt_core</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+
+            <span class="c1"># ENU transform (vectorized)</span>
+            <span class="n">pos</span> <span class="o">=</span> <span class="n">units</span><span class="o">.</span><span class="n">Distance</span><span class="p">(</span><span class="n">km</span><span class="o">=</span><span class="p">[</span><span class="n">R_hist</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">R_hist</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">R_hist</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]])</span>
+            <span class="n">vel</span> <span class="o">=</span> <span class="n">units</span><span class="o">.</span><span class="n">Velocity</span><span class="p">(</span><span class="n">km_per_s</span><span class="o">=</span><span class="p">[</span><span class="n">V_hist</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">V_hist</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">V_hist</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]])</span>
+            <span class="n">sf_pos_vec</span> <span class="o">=</span> <span class="n">positionlib</span><span class="o">.</span><span class="n">ICRF</span><span class="p">(</span><span class="n">pos</span><span class="o">.</span><span class="n">au</span><span class="p">,</span> <span class="n">velocity_au_per_d</span><span class="o">=</span><span class="n">vel</span><span class="o">.</span><span class="n">au_per_d</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="n">t_sf</span><span class="p">,</span> <span class="n">center</span><span class="o">=</span><span class="mi">399</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">sf_geo_pos_vec</span> <span class="o">=</span> <span class="n">api</span><span class="o">.</span><span class="n">wgs84</span><span class="o">.</span><span class="n">geographic_position_of</span><span class="p">(</span><span class="n">sf_pos_vec</span><span class="p">)</span>
+
+            <span class="n">lat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">sf_geo_pos_vec</span><span class="o">.</span><span class="n">latitude</span><span class="o">.</span><span class="n">radians</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">N</span><span class="p">)</span>
+            <span class="n">lon</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">sf_geo_pos_vec</span><span class="o">.</span><span class="n">longitude</span><span class="o">.</span><span class="n">radians</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">N</span><span class="p">)</span>
+            <span class="n">elev</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">sf_geo_pos_vec</span><span class="o">.</span><span class="n">elevation</span><span class="o">.</span><span class="n">km</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">N</span><span class="p">)</span>
+            <span class="n">LLA_hist</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">lat</span><span class="p">,</span> <span class="n">lon</span><span class="p">,</span> <span class="n">elev</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+            <span class="n">R_eci_to_ecef_geo_raw</span> <span class="o">=</span> <span class="n">sf_geo_pos_vec</span><span class="o">.</span><span class="n">rotation_at</span><span class="p">(</span><span class="n">t_sf</span><span class="p">)</span>
+            <span class="n">R_eci_to_ecef_geo_raw</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">R_eci_to_ecef_geo_raw</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">R_eci_to_ecef_geo_raw</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">3</span> <span class="ow">and</span> <span class="n">R_eci_to_ecef_geo_raw</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">3</span> <span class="ow">and</span> <span class="n">R_eci_to_ecef_geo_raw</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+                <span class="n">R_eci_to_ecef_geo</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">R_eci_to_ecef_geo_raw</span><span class="p">,</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+            <span class="k">elif</span> <span class="n">R_eci_to_ecef_geo_raw</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">3</span> <span class="ow">and</span> <span class="n">R_eci_to_ecef_geo_raw</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:]</span> <span class="o">==</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">):</span>
+                <span class="n">R_eci_to_ecef_geo</span> <span class="o">=</span> <span class="n">R_eci_to_ecef_geo_raw</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">R_eci_to_ecef_geo</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">R_eci_to_ecef_geo_raw</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">N</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+            <span class="n">R_ecef_to_enu</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+            <span class="n">ECI2ENU_hist</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;ij,njk-&gt;nik&quot;</span><span class="p">,</span> <span class="n">R_ecef_to_enu</span><span class="p">,</span> <span class="n">R_eci_to_ecef_geo</span><span class="p">)</span>
+
+            <span class="c1"># Sunlit flag (vectorized)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">sunlit_hist</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">sf_pos_vec</span><span class="o">.</span><span class="n">is_sunlit</span><span class="p">(</span><span class="n">ephem</span><span class="o">.</span><span class="n">planets</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">N</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                <span class="n">sunlit_hist</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="kc">False</span><span class="p">]</span> <span class="o">*</span> <span class="n">N</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+
+            <span class="c1"># --- Construct Orbital_State objects cheaply without per-state skyfield/ppigrf calls ---</span>
+            <span class="n">states0</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Orbital_State</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">N</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span><span class="p">):</span>
+                <span class="n">st</span> <span class="o">=</span> <span class="n">Orbital_State</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="n">Orbital_State</span><span class="p">)</span>
+
+                <span class="n">st</span><span class="o">.</span><span class="n">ephem</span> <span class="o">=</span> <span class="n">ephem</span>
+                <span class="n">st</span><span class="o">.</span><span class="n">ts</span> <span class="o">=</span> <span class="n">ts</span>
+
+                <span class="n">st</span><span class="o">.</span><span class="n">J2000</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">times_arr</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+                <span class="n">st</span><span class="o">.</span><span class="n">R</span> <span class="o">=</span> <span class="n">R_hist</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                <span class="n">st</span><span class="o">.</span><span class="n">V</span> <span class="o">=</span> <span class="n">V_hist</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+                <span class="n">st</span><span class="o">.</span><span class="n">mu_e</span> <span class="o">=</span> <span class="n">mu_e</span>
+                <span class="n">st</span><span class="o">.</span><span class="n">R_e</span> <span class="o">=</span> <span class="n">R_e</span>
+                <span class="n">st</span><span class="o">.</span><span class="n">J2coeff</span> <span class="o">=</span> <span class="n">J2coeff</span>
+
+                <span class="n">st</span><span class="o">.</span><span class="n">TAI</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">TAI</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+                <span class="n">st</span><span class="o">.</span><span class="n">datetime</span> <span class="o">=</span> <span class="n">dts</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+                <span class="n">st</span><span class="o">.</span><span class="n">_R_eci2ecef</span> <span class="o">=</span> <span class="n">R_eci2ecef</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                <span class="n">st</span><span class="o">.</span><span class="n">_R_ecef2eci</span> <span class="o">=</span> <span class="n">R_ecef2eci</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+                <span class="n">st</span><span class="o">.</span><span class="n">ECEF</span> <span class="o">=</span> <span class="n">ECEF_hist</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                <span class="n">st</span><span class="o">.</span><span class="n">geocentric</span> <span class="o">=</span> <span class="n">geo_hist</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+                <span class="c1"># Local basis</span>
+                <span class="n">st</span><span class="o">.</span><span class="n">_n_ecef</span> <span class="o">=</span> <span class="n">n_ecef</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                <span class="n">st</span><span class="o">.</span><span class="n">_svec</span> <span class="o">=</span> <span class="n">svec</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                <span class="n">st</span><span class="o">.</span><span class="n">_tvec</span> <span class="o">=</span> <span class="n">tvec</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                <span class="n">st</span><span class="o">.</span><span class="n">_ecef_to_geo</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="n">st</span><span class="o">.</span><span class="n">_n_ecef</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">_tvec</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">_svec</span><span class="p">])</span>
+
+                <span class="c1"># Environment</span>
+                <span class="n">st</span><span class="o">.</span><span class="n">density_model</span> <span class="o">=</span> <span class="n">density_model</span>
+                <span class="n">st</span><span class="o">.</span><span class="n">S</span> <span class="o">=</span> <span class="n">S_hist</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                <span class="n">st</span><span class="o">.</span><span class="n">B</span> <span class="o">=</span> <span class="n">B_hist</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                <span class="n">st</span><span class="o">.</span><span class="n">rho</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">rho_hist</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+
+                <span class="c1"># Geographic + ENU</span>
+                <span class="n">st</span><span class="o">.</span><span class="n">LLA</span> <span class="o">=</span> <span class="n">LLA_hist</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                <span class="n">st</span><span class="o">.</span><span class="n">ECI2ENUmat</span> <span class="o">=</span> <span class="n">ECI2ENU_hist</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                <span class="n">st</span><span class="o">.</span><span class="n">sf_geo_pos</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># kept for compatibility; LLA/ECI2ENUmat are provided</span>
+
+                <span class="c1"># Provide a scalar sf_pos mainly for compatibility; heavy calls are avoided elsewhere</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">pos_i</span> <span class="o">=</span> <span class="n">units</span><span class="o">.</span><span class="n">Distance</span><span class="p">(</span><span class="n">km</span><span class="o">=</span><span class="n">st</span><span class="o">.</span><span class="n">R</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
+                    <span class="n">vel_i</span> <span class="o">=</span> <span class="n">units</span><span class="o">.</span><span class="n">Velocity</span><span class="p">(</span><span class="n">km_per_s</span><span class="o">=</span><span class="n">st</span><span class="o">.</span><span class="n">V</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
+                    <span class="n">st</span><span class="o">.</span><span class="n">sf_pos</span> <span class="o">=</span> <span class="n">positionlib</span><span class="o">.</span><span class="n">ICRF</span><span class="p">(</span><span class="n">pos_i</span><span class="o">.</span><span class="n">au</span><span class="p">,</span> <span class="n">velocity_au_per_d</span><span class="o">=</span><span class="n">vel_i</span><span class="o">.</span><span class="n">au_per_d</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="n">t_sf</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">center</span><span class="o">=</span><span class="mi">399</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                    <span class="n">st</span><span class="o">.</span><span class="n">sf_pos</span> <span class="o">=</span> <span class="kc">None</span>
+
+                <span class="n">st</span><span class="o">.</span><span class="n">_sunlit</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">sunlit_hist</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+
+                <span class="n">st</span><span class="o">.</span><span class="n">vecs</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="n">st</span><span class="o">.</span><span class="n">_last_x</span> <span class="o">=</span> <span class="kc">None</span>
+
+                <span class="n">states0</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">st</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">states</span> <span class="o">=</span> <span class="p">{</span><span class="n">st</span><span class="o">.</span><span class="n">J2000</span><span class="p">:</span> <span class="n">st</span> <span class="k">for</span> <span class="n">st</span> <span class="ow">in</span> <span class="n">states0</span><span class="p">}</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">times</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="o">.</span><span class="n">keys</span><span class="p">()),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
 
         <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">os0</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">j</span><span class="p">,</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">os0</span><span class="p">):</span>
+            <span class="c1"># Ensure uniqueness by time and copy states (copy is fast and does not recompute environment)</span>
             <span class="n">unique_times</span> <span class="o">=</span> <span class="p">{</span><span class="n">j</span><span class="o">.</span><span class="n">J2000</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">os0</span><span class="p">}</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">states</span> <span class="o">=</span> <span class="p">{</span><span class="n">j</span><span class="o">.</span><span class="n">J2000</span><span class="p">:</span> <span class="n">j</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">os0</span> <span class="k">if</span> <span class="n">j</span><span class="o">.</span><span class="n">J2000</span> <span class="ow">in</span> <span class="n">unique_times</span><span class="p">}</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">times</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">times</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="o">.</span><span class="n">keys</span><span class="p">()),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
 
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Orbit must be initialized with Orbital_State or List[Orbital_State]&quot;</span><span class="p">)</span>
-        
+
 <div class="viewcode-block" id="Orbit.get_os">
 <a class="viewcode-back" href="../../../ADCS.orbits.orbit.html#ADCS.mc.mcconfig.Orbit.get_os">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_os</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">J2000</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Orbital_State</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Retrieve or interpolate the orbital state at a given epoch.</span>
-
-<span class="sd">        If an orbital state exists at the requested time, it is returned.</span>
-<span class="sd">        Otherwise, linear interpolation between the nearest neighboring</span>
-<span class="sd">        states is performed using the averaging method defined in</span>
-<span class="sd">        :class:`~ADCS.orbits.orbital_state.Orbital_State`.</span>
 
 <span class="sd">        :param J2000:</span>
 <span class="sd">            Requested epoch in J2000 centuries.</span>
@@ -704,32 +868,28 @@
 <span class="sd">            If the requested time lies outside the orbit span.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">t</span> <span class="o">=</span> <span class="n">J2000</span>
-        <span class="k">if</span> <span class="n">t</span><span class="o">&gt;</span><span class="bp">self</span><span class="o">.</span><span class="n">max_time</span><span class="p">():</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">J2000</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">t</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_time</span><span class="p">():</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;get_os() called with t &gt; max_time&quot;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">t</span><span class="o">&lt;</span><span class="bp">self</span><span class="o">.</span><span class="n">min_time</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">t</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_time</span><span class="p">():</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;get_os() called with t &lt; min_time&quot;</span><span class="p">)</span>
-        <span class="n">close</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">isclose</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">rtol</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-2</span><span class="o">/</span><span class="n">TimeConstants</span><span class="o">.</span><span class="n">cent2sec</span><span class="p">)</span>
+
+        <span class="n">close</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">isclose</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">rtol</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-2</span> <span class="o">/</span> <span class="n">TimeConstants</span><span class="o">.</span><span class="n">cent2sec</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">close</span><span class="p">):</span>
             <span class="n">inds</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span><span class="n">close</span><span class="p">)</span>
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">inds</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-                <span class="n">ind</span> <span class="o">=</span> <span class="n">inds</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">ind</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">inds</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
                 <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="p">[</span><span class="n">ind</span><span class="p">]]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-            <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">inds</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;get_os() has more than one match!&quot;</span><span class="p">)</span>
-                <span class="n">close_times</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="p">[</span><span class="n">inds</span><span class="p">]</span>
-                <span class="n">inds2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">close_times</span><span class="p">)</span> <span class="o">-</span> <span class="n">t</span><span class="p">))</span>
-                <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="n">inds2</span><span class="p">):</span>
-                    <span class="n">ind</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">inds2</span><span class="p">)</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="n">ind</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">inds2</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="p">[</span><span class="n">close_times</span><span class="p">[</span><span class="n">ind</span><span class="p">]]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;get_os() has more than one match!&quot;</span><span class="p">)</span>
+            <span class="n">close_times</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="p">[</span><span class="n">inds</span><span class="p">]</span>
+            <span class="n">ind2</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">close_times</span> <span class="o">-</span> <span class="n">t</span><span class="p">)))</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="p">[</span><span class="n">close_times</span><span class="p">[</span><span class="n">ind2</span><span class="p">]]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
 
-        <span class="n">i0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="o">&lt;</span><span class="n">t</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-        <span class="n">i1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="o">&gt;</span><span class="n">t</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">i0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">times</span> <span class="o">&lt;</span> <span class="n">t</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">i1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">times</span> <span class="o">&gt;</span> <span class="n">t</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
         <span class="n">t0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="p">[</span><span class="n">i0</span><span class="p">]</span>
         <span class="n">t1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="p">[</span><span class="n">i1</span><span class="p">]</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="p">[</span><span class="n">t0</span><span class="p">]</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="p">[</span><span class="n">t1</span><span class="p">],</span><span class="n">ratio</span> <span class="o">=</span> <span class="p">(</span><span class="n">t</span><span class="o">-</span><span class="n">t0</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">t1</span><span class="o">-</span><span class="n">t0</span><span class="p">))</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="p">[</span><span class="n">t0</span><span class="p">]</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="p">[</span><span class="n">t1</span><span class="p">],</span> <span class="n">ratio</span><span class="o">=</span><span class="p">(</span><span class="n">t</span> <span class="o">-</span> <span class="n">t0</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">t1</span> <span class="o">-</span> <span class="n">t0</span><span class="p">))</span></div>
 
 
 <div class="viewcode-block" id="Orbit.get_range">
@@ -737,9 +897,6 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">get_range</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t_0</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">t_1</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Extract a sub-orbit over a specified time interval.</span>
-
-<span class="sd">        This method returns either an existing subset of orbital states</span>
-<span class="sd">        or a newly interpolated orbit sampled at a specified time step.</span>
 
 <span class="sd">        :param t_0:</span>
 <span class="sd">            Start time in J2000 centuries.</span>
@@ -755,51 +912,51 @@
 
 <span class="sd">        :return:</span>
 <span class="sd">            New orbit or orbital state(s) within the given time range.</span>
-<span class="sd">        :rtype:</span>
-<span class="sd">            Orbit or Orbital_State</span>
+<span class="sd">        :rtype: Orbit or Orbital_State</span>
 
 <span class="sd">        :raises ValueError:</span>
 <span class="sd">            If the time bounds are invalid or outside the orbit span.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="n">t_1</span><span class="o">&lt;</span><span class="n">t_0</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;times are in wrong order&#39;</span><span class="p">)</span>
+        <span class="n">t_0</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">t_0</span><span class="p">)</span>
+        <span class="n">t_1</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">t_1</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="n">t_1</span><span class="o">==</span><span class="n">t_0</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">t_1</span> <span class="o">&lt;</span> <span class="n">t_0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;times are in wrong order&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">t_1</span> <span class="o">==</span> <span class="n">t_0</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">dt</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_os</span><span class="p">(</span><span class="n">t_0</span><span class="p">)</span>
-            <span class="k">elif</span> <span class="n">t_0</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">t_0</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="p">:</span>
                 <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_os</span><span class="p">(</span><span class="n">t_0</span><span class="p">)</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;times are equal, no matching time exactly. Try again with a specified dt or a wider time bracket. (or use the get_os() method)&#39;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">t_0</span><span class="o">&gt;</span><span class="bp">self</span><span class="o">.</span><span class="n">max_time</span><span class="p">():</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;first orbital state is not within this orbit (too far in future)&#39;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">t_0</span><span class="o">&lt;</span><span class="bp">self</span><span class="o">.</span><span class="n">min_time</span><span class="p">():</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;first orbital state is not within this orbit (too far in past)&#39;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">t_1</span><span class="o">&gt;</span><span class="bp">self</span><span class="o">.</span><span class="n">max_time</span><span class="p">():</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;last orbital state is not within this orbit (too far in future)&#39;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">t_1</span><span class="o">&lt;</span><span class="bp">self</span><span class="o">.</span><span class="n">min_time</span><span class="p">():</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;last orbital state is not within this orbit (too far in past)&#39;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;times are equal, no matching time exactly. Try again with a specified dt or a wider time bracket. &quot;</span>
+                <span class="s2">&quot;(or use the get_os() method)&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">t_0</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_time</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;first orbital state is not within this orbit (too far in future)&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">t_0</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_time</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;first orbital state is not within this orbit (too far in past)&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">t_1</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_time</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;last orbital state is not within this orbit (too far in future)&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">t_1</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_time</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;last orbital state is not within this orbit (too far in past)&quot;</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">dt</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">newstates</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">times</span> <span class="k">if</span> <span class="p">(</span><span class="n">j</span><span class="o">&lt;=</span><span class="n">t_1</span> <span class="ow">and</span> <span class="n">j</span><span class="o">&gt;=</span><span class="n">t_0</span><span class="p">)]</span>
-            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">newstates</span><span class="p">)</span><span class="o">==</span><span class="mi">0</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;there are no pre-created states in this time span&#39;</span><span class="p">)</span>
-            <span class="n">orbit_out</span> <span class="o">=</span> <span class="n">Orbit</span><span class="p">(</span><span class="n">newstates</span><span class="p">)</span>
-            <span class="k">return</span> <span class="n">orbit_out</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">ts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">t_0</span><span class="p">,</span><span class="n">t_1</span><span class="p">,</span><span class="n">dt</span><span class="o">/</span><span class="n">TimeConstants</span><span class="o">.</span><span class="n">cent2sec</span><span class="p">),[</span><span class="n">t_1</span><span class="p">]])</span>
-            <span class="c1"># ts = np.unique(ts)</span>
-            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">new_orbit_from_times</span><span class="p">(</span><span class="n">ts</span><span class="p">)</span></div>
+            <span class="n">newstates</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">times</span> <span class="k">if</span> <span class="p">(</span><span class="n">j</span> <span class="o">&lt;=</span> <span class="n">t_1</span> <span class="ow">and</span> <span class="n">j</span> <span class="o">&gt;=</span> <span class="n">t_0</span><span class="p">)]</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">newstates</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;there are no pre-created states in this time span&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">Orbit</span><span class="p">(</span><span class="n">newstates</span><span class="p">)</span>
+        <span class="n">ts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">t_0</span><span class="p">,</span> <span class="n">t_1</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span> <span class="o">/</span> <span class="n">TimeConstants</span><span class="o">.</span><span class="n">cent2sec</span><span class="p">),</span> <span class="p">[</span><span class="n">t_1</span><span class="p">]])</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">new_orbit_from_times</span><span class="p">(</span><span class="n">ts</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span></div>
 
-        
+
 <div class="viewcode-block" id="Orbit.new_orbit_from_times">
 <a class="viewcode-back" href="../../../ADCS.orbits.orbit.html#ADCS.mc.mcconfig.Orbit.new_orbit_from_times">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">new_orbit_from_times</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">time_list</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]):</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Construct a new orbit sampled at specific epochs.</span>
-
-<span class="sd">        For each requested time, the orbital state is obtained using</span>
-<span class="sd">        :meth:`~ADCS.orbits.orbit.Orbit.get_os`.</span>
 
 <span class="sd">        :param time_list:</span>
 <span class="sd">            List of epochs in J2000 centuries.</span>
@@ -813,13 +970,12 @@
 <span class="sd">            If any requested time lies outside the orbit span.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">time_in_span</span><span class="p">(</span><span class="n">j</span><span class="p">)</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">time_list</span><span class="p">]):</span>
-            <span class="nb">print</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_time</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_time</span><span class="p">(),</span><span class="nb">min</span><span class="p">(</span><span class="n">time_list</span><span class="p">),</span><span class="nb">max</span><span class="p">(</span><span class="n">time_list</span><span class="p">))</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;at least one time is not within this orbit span&#39;</span><span class="p">)</span>
-        <span class="n">newstates</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">get_os</span><span class="p">(</span><span class="n">j</span><span class="p">)</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">time_list</span><span class="p">]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">time_in_span</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">j</span><span class="p">))</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">time_list</span><span class="p">]):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;at least one time is not within this orbit span&quot;</span><span class="p">)</span>
+        <span class="n">newstates</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">get_os</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">j</span><span class="p">))</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">time_list</span><span class="p">]</span>
         <span class="k">return</span> <span class="n">Orbit</span><span class="p">(</span><span class="n">newstates</span><span class="p">)</span></div>
 
-    
+
 <div class="viewcode-block" id="Orbit.next_state">
 <a class="viewcode-back" href="../../../ADCS.orbits.orbit.html#ADCS.mc.mcconfig.Orbit.next_state">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">next_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">:</span> <span class="n">Orbital_State</span> <span class="o">|</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Orbital_State</span><span class="p">:</span>
@@ -828,8 +984,7 @@
 
 <span class="sd">        :param input:</span>
 <span class="sd">            Reference time or orbital state.</span>
-<span class="sd">        :type input:</span>
-<span class="sd">            Orbital_State or float</span>
+<span class="sd">        :type input: Orbital_State or float</span>
 
 <span class="sd">        :return:</span>
 <span class="sd">            Next orbital state in chronological order.</span>
@@ -839,23 +994,22 @@
 <span class="sd">            If the input time lies outside the orbit span.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span><span class="n">Orbital_State</span><span class="p">):</span>
-            <span class="n">t</span> <span class="o">=</span> <span class="nb">input</span><span class="o">.</span><span class="n">J2000</span>
-        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span><span class="nb">float</span><span class="p">):</span>
-            <span class="n">t</span> <span class="o">=</span> <span class="nb">input</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="n">Orbital_State</span><span class="p">):</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="nb">input</span><span class="o">.</span><span class="n">J2000</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="nb">input</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Must be j2000 time or orbital state&quot;</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="n">t</span><span class="o">&gt;</span><span class="bp">self</span><span class="o">.</span><span class="n">max_time</span><span class="p">():</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;this orbital state is not within this orbit (too far in future)&#39;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">t</span><span class="o">&lt;</span><span class="bp">self</span><span class="o">.</span><span class="n">min_time</span><span class="p">():</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;this orbital state is not within this orbit (too far in past)&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">t</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_time</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;this orbital state is not within this orbit (too far in future)&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">t</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_time</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;this orbital state is not within this orbit (too far in past)&quot;</span><span class="p">)</span>
 
-        <span class="n">ind</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="o">&gt;=</span><span class="n">t</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-
+        <span class="n">ind</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">times</span> <span class="o">&gt;=</span> <span class="n">t</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="p">[</span><span class="n">ind</span><span class="p">]]</span></div>
 
-    
+
 <div class="viewcode-block" id="Orbit.min_time">
 <a class="viewcode-back" href="../../../ADCS.orbits.orbit.html#ADCS.mc.mcconfig.Orbit.min_time">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">min_time</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
@@ -867,7 +1021,7 @@
 <span class="sd">        :rtype: float</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">amin</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">amin</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="p">))</span></div>
 
 
 <div class="viewcode-block" id="Orbit.max_time">
@@ -881,12 +1035,12 @@
 <span class="sd">        :rtype: float</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">amax</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">amax</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="p">))</span></div>
 
 
 <div class="viewcode-block" id="Orbit.time_in_span">
 <a class="viewcode-back" href="../../../ADCS.orbits.orbit.html#ADCS.mc.mcconfig.Orbit.time_in_span">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">time_in_span</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">t</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">time_in_span</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Check whether a time lies within the orbit span.</span>
 
@@ -899,20 +1053,18 @@
 <span class="sd">        :rtype: bool</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">t</span><span class="o">&lt;=</span><span class="bp">self</span><span class="o">.</span><span class="n">max_time</span><span class="p">()</span> <span class="ow">and</span> <span class="n">t</span><span class="o">&gt;=</span><span class="bp">self</span><span class="o">.</span><span class="n">min_time</span><span class="p">()</span></div>
+        <span class="n">t</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">t</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_time</span><span class="p">()</span> <span class="ow">and</span> <span class="n">t</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_time</span><span class="p">()</span></div>
 
-    
+
 <div class="viewcode-block" id="Orbit.geocentric_to_ecef_orbit">
 <a class="viewcode-back" href="../../../ADCS.orbits.orbit.html#ADCS.mc.mcconfig.Orbit.geocentric_to_ecef_orbit">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">geocentric_to_ecef_orbit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">b_vec</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Convert geocentric spherical vectors to ECEF coordinates along the orbit.</span>
 
-<span class="sd">        This method applies a local orthonormal frame transformation defined</span>
-<span class="sd">        by the orbit geometry.</span>
-
 <span class="sd">        :param b_vec:</span>
-<span class="sd">            Geocentric vector components :math:`(b_r, b_\theta, b_\phi)`.</span>
+<span class="sd">            Geocentric vector components (b_r, b_theta, b_phi).</span>
 <span class="sd">        :type b_vec: numpy.ndarray</span>
 
 <span class="sd">        :return:</span>
@@ -923,7 +1075,11 @@
         <span class="n">ecef_mat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">ECEF</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="p">])</span>
         <span class="n">n_ecef</span> <span class="o">=</span> <span class="n">matrix_row_normalize</span><span class="p">(</span><span class="n">ecef_mat</span><span class="p">)</span>
         <span class="n">svec</span> <span class="o">=</span> <span class="n">matrix_row_normalize</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">MathConstants</span><span class="o">.</span><span class="n">unitvecs</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">n_ecef</span><span class="p">))</span>
-        <span class="k">return</span> <span class="n">b_vec</span><span class="p">[:,</span><span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">n_ecef</span> <span class="o">+</span> <span class="n">svec</span><span class="o">*</span><span class="n">b_vec</span><span class="p">[:,</span><span class="mi">2</span><span class="p">:]</span> <span class="o">+</span> <span class="n">matrix_row_normalize</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">svec</span><span class="p">,</span><span class="n">n_ecef</span><span class="p">))</span><span class="o">*</span><span class="n">b_vec</span><span class="p">[:,</span><span class="mi">1</span><span class="p">:</span><span class="mi">2</span><span class="p">]</span></div>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">b_vec</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">n_ecef</span>
+            <span class="o">+</span> <span class="n">svec</span> <span class="o">*</span> <span class="n">b_vec</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span>
+            <span class="o">+</span> <span class="n">matrix_row_normalize</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">svec</span><span class="p">,</span> <span class="n">n_ecef</span><span class="p">))</span> <span class="o">*</span> <span class="n">b_vec</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:</span><span class="mi">2</span><span class="p">]</span>
+        <span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Orbit.ecef_to_eci_orbit">
@@ -941,7 +1097,7 @@
 <span class="sd">        :rtype: numpy.ndarray</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="p">[</span><span class="n">j</span><span class="p">]]</span><span class="o">.</span><span class="n">ecef_to_eci</span><span class="p">(</span><span class="n">b_ecef_vec</span><span class="p">[</span><span class="n">j</span><span class="p">,:])</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="p">))])</span></div>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="p">[</span><span class="n">j</span><span class="p">]]</span><span class="o">.</span><span class="n">ecef_to_eci</span><span class="p">(</span><span class="n">b_ecef_vec</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="p">:])</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="p">))])</span></div>
 
 
 <div class="viewcode-block" id="Orbit.get_b_eci_orbit">
@@ -950,40 +1106,44 @@
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Compute the geomagnetic field in the ECI frame along the orbit.</span>
 
-<span class="sd">        The magnetic field is evaluated using the IGRF model in geocentric</span>
-<span class="sd">        coordinates and transformed into the inertial frame.</span>
+<span class="sd">        If per-state magnetic field vectors are already available, they are returned</span>
+<span class="sd">        directly.</span>
 
 <span class="sd">        :return:</span>
 <span class="sd">            Geomagnetic field vectors in ECI coordinates [Tesla].</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">B</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="p">])</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="c1"># Fallback to legacy computation if any state is missing B</span>
+            <span class="n">geos</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">geocentric</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="p">])</span>
+            <span class="n">dts</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">datetime</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="p">]</span>
+            <span class="n">b_r</span><span class="p">,</span> <span class="n">b_th</span><span class="p">,</span> <span class="n">b_ph</span> <span class="o">=</span> <span class="n">ppigrf</span><span class="o">.</span><span class="n">igrf_gc</span><span class="p">(</span><span class="n">geos</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">geos</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="mf">180.0</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="n">geos</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="mf">180.0</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="n">dts</span><span class="p">)</span>
+            <span class="n">b_r</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">b_r</span><span class="p">)</span>
+            <span class="n">b_th</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">b_th</span><span class="p">)</span>
+            <span class="n">b_ph</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">b_ph</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">b_r</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">b_r</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diagonal</span><span class="p">(</span><span class="n">b_r</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">b_th</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">b_th</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diagonal</span><span class="p">(</span><span class="n">b_th</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">b_ph</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">b_ph</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diagonal</span><span class="p">(</span><span class="n">b_ph</span><span class="p">)</span>
+            <span class="n">b_ecef</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">geocentric_to_ecef_orbit</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="n">b_r</span><span class="p">,</span> <span class="n">b_th</span><span class="p">,</span> <span class="n">b_ph</span><span class="p">])</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+            <span class="n">b_eci</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ecef_to_eci_orbit</span><span class="p">(</span><span class="n">b_ecef</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">b_eci</span> <span class="o">*</span> <span class="mf">1e-9</span></div>
 
-        <span class="n">geos</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">geocentric</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="p">])</span>
-        <span class="n">dts</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">datetime</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="p">]</span>
-        <span class="n">b_r</span><span class="p">,</span> <span class="n">b_th</span><span class="p">,</span> <span class="n">b_ph</span> <span class="o">=</span> <span class="n">ppigrf</span><span class="o">.</span><span class="n">igrf_gc</span><span class="p">(</span><span class="n">geos</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span><span class="n">geos</span><span class="p">[:,</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="mf">180.0</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span><span class="n">geos</span><span class="p">[:,</span><span class="mi">2</span><span class="p">]</span><span class="o">*</span><span class="mf">180.0</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span><span class="n">dts</span><span class="p">)</span>
-        <span class="n">b_r</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diagonal</span><span class="p">(</span><span class="n">b_r</span><span class="p">)</span>
-        <span class="n">b_th</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diagonal</span><span class="p">(</span><span class="n">b_th</span><span class="p">)</span>
-        <span class="n">b_ph</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diagonal</span><span class="p">(</span><span class="n">b_ph</span><span class="p">)</span>
 
-        <span class="n">b_ecef</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">geocentric_to_ecef_orbit</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">atleast_2d</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">b_r</span><span class="p">,</span> <span class="n">b_th</span><span class="p">,</span> <span class="n">b_ph</span><span class="p">]))</span><span class="o">.</span><span class="n">T</span><span class="p">))</span>
-        <span class="n">b_eci</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ecef_to_eci_orbit</span><span class="p">(</span><span class="n">b_ecef</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">b_eci</span><span class="o">*</span><span class="mf">1e-9</span></div>
-
-    
 <div class="viewcode-block" id="Orbit.get_vecs">
 <a class="viewcode-back" href="../../../ADCS.orbits.orbit.html#ADCS.mc.mcconfig.Orbit.get_vecs">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_vecs</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Return commonly used orbit-related vectors.</span>
 
-<span class="sd">        The returned lists contain position, velocity, magnetic field,</span>
-<span class="sd">        Sun vector, and atmospheric density values for each epoch.</span>
-
 <span class="sd">        :return:</span>
-<span class="sd">            Lists of vectors ``[R, V, B, S, rho]`` over the orbit.</span>
-<span class="sd">        :rtype:</span>
-<span class="sd">            list[list[numpy.ndarray]]</span>
+<span class="sd">            Lists of vectors [R, V, B, S, rho] over the orbit.</span>
+<span class="sd">        :rtype: list[list[numpy.ndarray]]</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">R</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">R</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="p">]</span>
@@ -991,7 +1151,7 @@
         <span class="n">B</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">B</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="p">]</span>
         <span class="n">S</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">S</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="p">]</span>
         <span class="n">rho</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">rho</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="p">]</span>
-        <span class="k">return</span> <span class="p">[</span><span class="n">R</span><span class="p">,</span><span class="n">V</span><span class="p">,</span><span class="n">B</span><span class="p">,</span><span class="n">S</span><span class="p">,</span><span class="n">rho</span><span class="p">]</span></div>
+        <span class="k">return</span> <span class="p">[</span><span class="n">R</span><span class="p">,</span> <span class="n">V</span><span class="p">,</span> <span class="n">B</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">rho</span><span class="p">]</span></div>
 </div>
 
 </pre></div>

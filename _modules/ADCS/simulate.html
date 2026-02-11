@@ -500,6 +500,9 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tqdm</span><span class="w"> </span><span class="kn">import</span> <span class="n">tqdm</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">scipy.integrate</span><span class="w"> </span><span class="kn">import</span> <span class="n">solve_ivp</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">ADCS</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">ADCS</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.CONOPS.goals</span><span class="w"> </span><span class="kn">import</span> <span class="n">Goal</span><span class="p">,</span> <span class="n">No_Goal</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.CONOPS.goallist</span><span class="w"> </span><span class="kn">import</span> <span class="n">GoalList</span>
@@ -529,6 +532,88 @@
     <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
     <span class="n">tf</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">500.0</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SimulationResults</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Run a time-domain simulation of the spacecraft Attitude Determination and Control</span>
+<span class="sd">    System (ADCS), including dynamics propagation, sensor simulation, state estimation,</span>
+<span class="sd">    orbit estimation, goal management, and control execution.</span>
+
+<span class="sd">    This function advances the true satellite state forward in time using numerical</span>
+<span class="sd">    integration, while optionally running attitude and orbit estimators and a control</span>
+<span class="sd">    law. Goals may be specified as a single goal or a time-varying goal list. All</span>
+<span class="sd">    simulation data are logged and returned as a :class:`~ADCS.helpers.simresults.SimulationResults`</span>
+<span class="sd">    object.</span>
+
+<span class="sd">    The simulation uses :func:`scipy.integrate.solve_ivp` with RK45 integration and</span>
+<span class="sd">    propagates the orbit using :class:`~ADCS.orbits.orbit.Orbit`.</span>
+
+<span class="sd">    :param x:</span>
+<span class="sd">        Initial true satellite state vector. The length must match</span>
+<span class="sd">        ``satellite.state_len`` and is expected to follow the satellite state</span>
+<span class="sd">        convention (angular velocity, quaternion, reaction wheel states, etc.).</span>
+<span class="sd">    :type x:</span>
+<span class="sd">        numpy.ndarray</span>
+
+<span class="sd">    :param satellite:</span>
+<span class="sd">        The true satellite model, including dynamics, sensors, and actuators.</span>
+<span class="sd">    :type satellite:</span>
+<span class="sd">        :class:`~ADCS.satellite_hardware.satellite.Satellite`</span>
+
+<span class="sd">    :param est_satellite:</span>
+<span class="sd">        Estimated satellite model used by estimators and controllers. If ``None`` and</span>
+<span class="sd">        either an estimator or controller is provided, it is constructed automatically</span>
+<span class="sd">        from ``satellite``.</span>
+<span class="sd">    :type est_satellite:</span>
+<span class="sd">        :class:`~ADCS.satellite_hardware.satellite.EstimatedSatellite` or None</span>
+
+<span class="sd">    :param controller:</span>
+<span class="sd">        Control law used to compute actuator commands. If the controller is a</span>
+<span class="sd">        :class:`~ADCS.controller.PlanAndTrackBase`, an initial trajectory is computed</span>
+<span class="sd">        before simulation.</span>
+<span class="sd">    :type controller:</span>
+<span class="sd">        :class:`~ADCS.controller.Controller` or None</span>
+
+<span class="sd">    :param estimator:</span>
+<span class="sd">        Attitude estimator used to estimate the spacecraft state from sensor</span>
+<span class="sd">        measurements.</span>
+<span class="sd">    :type estimator:</span>
+<span class="sd">        :class:`~ADCS.estimators.attitude_estimators.Attitude_Estimator` or None</span>
+
+<span class="sd">    :param orbit_estimator:</span>
+<span class="sd">        Orbit estimator used to estimate the orbital state from GPS measurements.</span>
+<span class="sd">    :type orbit_estimator:</span>
+<span class="sd">        :class:`~ADCS.estimators.orbit_estimators.Orbit_Estimator` or None</span>
+
+<span class="sd">    :param goal:</span>
+<span class="sd">        Desired attitude or pointing objective. This may be ``None`` (no goal),</span>
+<span class="sd">        a single :class:`~ADCS.CONOPS.goals.Goal`, or a</span>
+<span class="sd">        :class:`~ADCS.CONOPS.goallist.GoalList` defining time-varying goals.</span>
+<span class="sd">    :type goal:</span>
+<span class="sd">        :class:`~ADCS.CONOPS.goals.Goal`,</span>
+<span class="sd">        :class:`~ADCS.CONOPS.goallist.GoalList`,</span>
+<span class="sd">        or None</span>
+
+<span class="sd">    :param os0:</span>
+<span class="sd">        Initial orbital state at the start of the simulation.</span>
+<span class="sd">    :type os0:</span>
+<span class="sd">        :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
+
+<span class="sd">    :param dt:</span>
+<span class="sd">        Simulation time step in seconds.</span>
+<span class="sd">    :type dt:</span>
+<span class="sd">        float</span>
+
+<span class="sd">    :param tf:</span>
+<span class="sd">        Total simulation duration in seconds.</span>
+<span class="sd">    :type tf:</span>
+<span class="sd">        float</span>
+
+<span class="sd">    :return:</span>
+<span class="sd">        Container holding all recorded simulation data, including true and estimated</span>
+<span class="sd">        states, controls, sensor readings, biases, and targets for the entire run.</span>
+<span class="sd">    :rtype:</span>
+<span class="sd">        :class:`~ADCS.helpers.simresults.SimulationResults`</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">!=</span> <span class="n">satellite</span><span class="o">.</span><span class="n">state_len</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
             <span class="sa">f</span><span class="s2">&quot;Initial state length </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="si">}</span><span class="s2"> does not match satellite state length &quot;</span>
@@ -570,8 +655,24 @@
             <span class="n">x_0</span><span class="o">=</span><span class="n">x</span><span class="p">,</span>
             <span class="n">os_0</span><span class="o">=</span><span class="n">os0</span><span class="p">,</span>
             <span class="n">goals</span><span class="o">=</span><span class="n">goal_list</span><span class="p">,</span>
-            <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span>
+            <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span>
         <span class="p">)</span>
+        
+        <span class="k">if</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">active_goal</span> <span class="o">=</span> <span class="n">goal_list</span><span class="o">.</span><span class="n">get_active_goal</span><span class="p">(</span><span class="n">start_time</span><span class="p">,</span> <span class="n">time_units</span><span class="o">=</span><span class="s2">&quot;centuries&quot;</span><span class="p">)</span>
+            <span class="n">target</span><span class="p">,</span> <span class="n">w_target</span> <span class="o">=</span> <span class="n">active_goal</span><span class="o">.</span><span class="n">to_ref</span><span class="p">(</span><span class="n">os0</span><span class="p">)</span> 
+            <span class="n">simresults</span> <span class="o">=</span> <span class="n">trajectory</span><span class="o">.</span><span class="n">to_simulation_results</span><span class="p">(</span><span class="n">satellite</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="n">target</span><span class="p">,</span> <span class="n">w_target</span><span class="o">=</span><span class="n">w_target</span><span class="p">)</span>
+            <span class="n">ADCS</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+                <span class="n">simresults</span><span class="p">,</span>
+                <span class="n">ADCS</span><span class="o">.</span><span class="n">plots</span><span class="o">.</span><span class="n">AngularVelocityPlotCombined</span><span class="p">(</span><span class="n">sources</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;real&quot;</span><span class="p">]),</span>
+                <span class="n">ADCS</span><span class="o">.</span><span class="n">plots</span><span class="o">.</span><span class="n">ControlPlotCombined</span><span class="p">(</span><span class="n">title</span><span class="o">=</span><span class="s2">&quot;Magnetorquer Commands&quot;</span><span class="p">,</span> <span class="n">units</span><span class="o">=</span><span class="s2">&quot;Am²&quot;</span><span class="p">),</span>
+                <span class="n">ADCS</span><span class="o">.</span><span class="n">plots</span><span class="o">.</span><span class="n">TargetHistogram</span><span class="p">(</span><span class="n">bin_width</span><span class="o">=</span><span class="mf">5.0</span><span class="p">),</span>
+                <span class="n">ADCS</span><span class="o">.</span><span class="n">plots</span><span class="o">.</span><span class="n">TargetPlot</span><span class="p">(</span><span class="n">modes</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;real_target&quot;</span><span class="p">],</span> <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Target Tracking&quot;</span><span class="p">),</span>
+                <span class="n">layout</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">),</span>
+                <span class="n">title</span><span class="o">=</span><span class="s2">&quot;TRAJECTORY&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
         <span class="n">controller</span><span class="o">.</span><span class="n">set_active_trajectory</span><span class="p">(</span><span class="n">trajectory</span><span class="p">)</span>
 
     <span class="n">run_capsule</span> <span class="o">=</span> <span class="n">RunResults</span><span class="p">(</span><span class="n">satellite</span><span class="o">=</span><span class="n">satellite</span><span class="p">,</span> <span class="n">est_satellite</span><span class="o">=</span><span class="n">est_satellite</span><span class="p">)</span>

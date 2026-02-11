@@ -494,14 +494,9 @@
         </div>
         <article role="main" id="furo-main-content">
           <h1>Source code for ADCS.controller.helpers.trajectory</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">Trajectory representation for ALTRO planner output.</span>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
-<span class="sd">This module provides the Trajectory class for storing, interpolating, and</span>
-<span class="sd">visualizing planned trajectories from the ALTRO optimizer.</span>
-<span class="sd">&quot;&quot;&quot;</span>
-
-<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Trajectory&quot;</span><span class="p">]</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
@@ -510,7 +505,8 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">numpy.typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">NDArray</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.helpers.math_helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">quat_diff</span><span class="p">,</span> <span class="n">quat_to_vec3</span>
-
+<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.helpers.simresults</span><span class="w"> </span><span class="kn">import</span> <span class="n">SimulationResults</span><span class="p">,</span> <span class="n">RunResults</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.satellite</span><span class="w"> </span><span class="kn">import</span> <span class="n">Satellite</span>
 
 <div class="viewcode-block" id="Trajectory">
 <a class="viewcode-back" href="../../../../ADCS.controller.helpers.trajectory.html#ADCS.controller.helpers.trajectory.Trajectory">[docs]</a>
@@ -1148,7 +1144,59 @@
 
         <span class="n">ax</span><span class="o">.</span><span class="n">set_xlim3d</span><span class="p">([</span><span class="n">x_middle</span> <span class="o">-</span> <span class="n">plot_radius</span><span class="p">,</span> <span class="n">x_middle</span> <span class="o">+</span> <span class="n">plot_radius</span><span class="p">])</span>
         <span class="n">ax</span><span class="o">.</span><span class="n">set_ylim3d</span><span class="p">([</span><span class="n">y_middle</span> <span class="o">-</span> <span class="n">plot_radius</span><span class="p">,</span> <span class="n">y_middle</span> <span class="o">+</span> <span class="n">plot_radius</span><span class="p">])</span>
-        <span class="n">ax</span><span class="o">.</span><span class="n">set_zlim3d</span><span class="p">([</span><span class="n">z_middle</span> <span class="o">-</span> <span class="n">plot_radius</span><span class="p">,</span> <span class="n">z_middle</span> <span class="o">+</span> <span class="n">plot_radius</span><span class="p">])</span></div>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_zlim3d</span><span class="p">([</span><span class="n">z_middle</span> <span class="o">-</span> <span class="n">plot_radius</span><span class="p">,</span> <span class="n">z_middle</span> <span class="o">+</span> <span class="n">plot_radius</span><span class="p">])</span>
+
+    
+<div class="viewcode-block" id="Trajectory.to_simulation_results">
+<a class="viewcode-back" href="../../../../ADCS.controller.helpers.trajectory.html#ADCS.controller.helpers.trajectory.Trajectory.to_simulation_results">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_simulation_results</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">satellite</span><span class="p">:</span> <span class="n">Satellite</span><span class="p">,</span>
+        <span class="n">target</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">w_target</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">include_cost</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SimulationResults</span><span class="p">:</span>
+
+        <span class="n">time_J2000</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="p">)</span>
+        <span class="n">time_s</span> <span class="o">=</span> <span class="p">(</span><span class="n">time_J2000</span> <span class="o">-</span> <span class="n">time_J2000</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">*</span> <span class="mf">36525.0</span> <span class="o">*</span> <span class="mf">86400.0</span>
+        <span class="n">N</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">time_J2000</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_row_major</span><span class="p">:</span>
+            <span class="n">state_hist</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="p">)</span>
+            <span class="n">control_hist</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">controls</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">state_hist</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+            <span class="n">control_hist</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">controls</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+
+        <span class="n">run</span> <span class="o">=</span> <span class="n">RunResults</span><span class="p">(</span>
+            <span class="n">satellite</span><span class="o">=</span><span class="n">satellite</span><span class="p">,</span>
+            <span class="n">time_J2000</span><span class="o">=</span><span class="n">time_J2000</span><span class="p">,</span>
+            <span class="n">time_s</span><span class="o">=</span><span class="n">time_s</span><span class="p">,</span>
+            <span class="n">state_hist</span><span class="o">=</span><span class="n">state_hist</span><span class="p">,</span>
+            <span class="n">control_hist</span><span class="o">=</span><span class="n">control_hist</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">target</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">target</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">target</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">run</span><span class="o">.</span><span class="n">target_hist</span> <span class="o">=</span> <span class="p">[</span><span class="n">target</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span><span class="p">)]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">run</span><span class="o">.</span><span class="n">target_hist</span> <span class="o">=</span> <span class="p">[</span><span class="n">target</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span><span class="p">)]</span>
+
+        <span class="k">if</span> <span class="n">w_target</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">w_target</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">w_target</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">w_target</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">run</span><span class="o">.</span><span class="n">w_target_hist</span> <span class="o">=</span> <span class="p">[</span><span class="n">w_target</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span><span class="p">)]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">run</span><span class="o">.</span><span class="n">w_target_hist</span> <span class="o">=</span> <span class="p">[</span><span class="n">w_target</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span><span class="p">)]</span>
+
+        <span class="k">if</span> <span class="n">include_cost</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">costs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">costs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">costs</span><span class="p">)</span>
+            <span class="n">run</span><span class="o">.</span><span class="n">target_hist</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">costs</span><span class="p">[</span><span class="n">k</span><span class="p">]])</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span><span class="p">)]</span>
+
+        <span class="k">return</span> <span class="n">SimulationResults</span><span class="p">(</span><span class="n">runs</span><span class="o">=</span><span class="p">[</span><span class="n">run</span><span class="p">])</span></div>
+</div>
 
 </pre></div>
         </article>

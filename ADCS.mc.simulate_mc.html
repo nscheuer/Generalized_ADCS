@@ -505,27 +505,86 @@
 <dl class="py function">
 <dt class="sig sig-object py" id="ADCS.mc.simulate_mc.simulate_mc">
 <span class="sig-prename descclassname"><span class="pre">ADCS.mc.simulate_mc.</span></span><span class="sig-name descname"><span class="pre">simulate_mc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">satellite</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">est_satellite</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">controller</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">estimator</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orbit_estimator</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">goal</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tf</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">500.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mc_config</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_runs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_workers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">base_seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/mc/simulate_mc.html#simulate_mc"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.mc.simulate_mc.simulate_mc" title="Link to this definition">¶</a></dt>
-<dd><dl class="field-list simple">
+<dd><p>Run a Monte Carlo ensemble of ADCS simulations using parallel workers.</p>
+<p>This function generates <code class="docutils literal notranslate"><span class="pre">num_runs</span></code> independent simulation configurations by
+applying optional per-run sampling rules from <a class="reference internal" href="ADCS.mc.mcconfig.html#ADCS.mc.mcconfig.MCConfig" title="ADCS.mc.mcconfig.MCConfig"><code class="xref py py-class docutils literal notranslate"><span class="pre">MCConfig</span></code></a>,
+then executes each run via <a class="reference internal" href="ADCS.mc.monte_carlo_runner.html#ADCS.mc.monte_carlo_runner.MonteCarloRunner" title="ADCS.mc.monte_carlo_runner.MonteCarloRunner"><code class="xref py py-class docutils literal notranslate"><span class="pre">MonteCarloRunner</span></code></a>.
+Each run simulates spacecraft attitude dynamics, sensors, estimation, and control,
+while optionally sampling initial conditions and run parameters such as <code class="docutils literal notranslate"><span class="pre">dt</span></code>,
+<code class="docutils literal notranslate"><span class="pre">tf</span></code>, angular rate, quaternion, reaction wheel momentum, goals, and orbit
+overrides.</p>
+<p>Orbit handling supports two modes:</p>
+<div class="table-wrapper docutils container">
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p>Mode</p></td>
+<td><p>Description</p></td>
+</tr>
+<tr class="row-even"><td><p>os0</p></td>
+<td><p>Propagate an <a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbital_State</span></code></a>
+forward using <a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbit" title="ADCS.orbits.orbit.Orbit"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbit</span></code></a>.</p></td>
+</tr>
+<tr class="row-odd"><td><p>seq</p></td>
+<td><p>Use a precomputed orbital-state sequence (for example from an
+<a class="reference internal" href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbit" title="ADCS.orbits.orbit.Orbit"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbit</span></code></a> override or an explicit
+list).</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>For multiprocessing compatibility, all provided models (satellite, controller,
+estimators, goal objects) must be picklable.</p>
+<dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>x</strong> (<em>np.ndarray</em>)</p></li>
-<li><p><strong>satellite</strong> (<a class="reference internal" href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Satellite" title="ADCS.helpers.simresults.Satellite"><em>Satellite</em></a>)</p></li>
-<li><p><strong>est_satellite</strong> (<em>Optional</em><em>[</em><a class="reference internal" href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.EstimatedSatellite" title="ADCS.helpers.simresults.EstimatedSatellite"><em>EstimatedSatellite</em></a><em>]</em>)</p></li>
-<li><p><strong>controller</strong> (<em>Optional</em><em>[</em><a class="reference internal" href="ADCS.controller.controller.html#ADCS.controller.controller.Controller" title="ADCS.controller.controller.Controller"><em>Controller</em></a><em>]</em>)</p></li>
-<li><p><strong>estimator</strong> (<em>Optional</em><em>[</em><a class="reference internal" href="ADCS.estimators.attitude_estimators.attitude_estimator.html#ADCS.estimators.attitude_estimators.attitude_estimator.Attitude_Estimator" title="ADCS.estimators.attitude_estimators.attitude_estimator.Attitude_Estimator"><em>Attitude_Estimator</em></a><em>]</em>)</p></li>
-<li><p><strong>orbit_estimator</strong> (<em>Optional</em><em>[</em><a class="reference internal" href="ADCS.estimators.orbit_estimators.orbit_estimator.html#ADCS.estimators.orbit_estimators.orbit_estimator.Orbit_Estimator" title="ADCS.estimators.orbit_estimators.orbit_estimator.Orbit_Estimator"><em>Orbit_Estimator</em></a><em>]</em>)</p></li>
-<li><p><strong>goal</strong> (<em>Optional</em><em>[</em><a class="reference internal" href="ADCS.CONOPS.goals.goal.html#ADCS.CONOPS.goals.goal.Goal" title="ADCS.CONOPS.goals.goal.Goal"><em>Goal</em></a><em> | </em><a class="reference internal" href="ADCS.CONOPS.goallist.goallist.html#ADCS.CONOPS.goallist.goallist.GoalList" title="ADCS.CONOPS.goallist.goallist.GoalList"><em>GoalList</em></a><em>]</em>)</p></li>
-<li><p><strong>os0</strong> (<a class="reference internal" href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Orbital_State" title="ADCS.helpers.simresults.Orbital_State"><em>Orbital_State</em></a>)</p></li>
-<li><p><strong>dt</strong> (<em>float</em>)</p></li>
-<li><p><strong>tf</strong> (<em>float</em>)</p></li>
-<li><p><strong>mc_config</strong> (<em>Optional</em><em>[</em><em>'MCConfig'</em><em>]</em>)</p></li>
-<li><p><strong>num_runs</strong> (<em>int</em>)</p></li>
-<li><p><strong>max_workers</strong> (<em>Optional</em><em>[</em><em>int</em><em>]</em>)</p></li>
-<li><p><strong>base_seed</strong> (<em>int</em>)</p></li>
+<li><p><strong>x</strong> (<em>numpy.ndarray</em>) – Base initial true satellite state vector. The length must match
+<code class="docutils literal notranslate"><span class="pre">satellite.state_len</span></code> and is expected to follow the satellite state
+convention (angular velocity, quaternion, reaction wheel states, etc.).
+Per-run overrides may be applied by <code class="docutils literal notranslate"><span class="pre">mc_config</span></code>.</p></li>
+<li><p><strong>satellite</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">Satellite</span></code>) – The true satellite model, including dynamics, sensors, and actuators.
+This object must be picklable for parallel execution.</p></li>
+<li><p><strong>est_satellite</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">EstimatedSatellite</span></code> or None) – Estimated satellite model used by estimators and controllers. If <code class="docutils literal notranslate"><span class="pre">None</span></code>,
+it may be constructed internally on a per-run basis when required by the
+provided estimator or controller. If provided, it must be picklable.</p></li>
+<li><p><strong>controller</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">Controller</span></code> or None) – Control law used to compute actuator commands. If the controller is a
+<code class="xref py py-class docutils literal notranslate"><span class="pre">PlanAndTrackBase</span></code>, an initial trajectory is computed
+at the start of each run based on the run-specific initial conditions and
+goals. If provided, it must be picklable.</p></li>
+<li><p><strong>estimator</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">Attitude_Estimator</span></code> or None) – Attitude estimator used to estimate spacecraft state from sensor
+measurements. If provided, it must be picklable.</p></li>
+<li><p><strong>orbit_estimator</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">Orbit_Estimator</span></code> or None) – Orbit estimator used to estimate orbital state from GPS measurements.
+If provided, it must be picklable.</p></li>
+<li><p><strong>goal</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">Goal</span></code>,
+<code class="xref py py-class docutils literal notranslate"><span class="pre">GoalList</span></code>,
+or None) – Desired attitude or pointing objective. This may be <code class="docutils literal notranslate"><span class="pre">None</span></code> (no goal),
+a single <code class="xref py py-class docutils literal notranslate"><span class="pre">Goal</span></code>, or a
+<code class="xref py py-class docutils literal notranslate"><span class="pre">GoalList</span></code> defining time-varying goals.
+Per-run overrides may be applied by <code class="docutils literal notranslate"><span class="pre">mc_config</span></code>. If provided, it must be
+picklable.</p></li>
+<li><p><strong>os0</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><code class="xref py py-class docutils literal notranslate"><span class="pre">Orbital_State</span></code></a>) – Initial orbital state at the start of the Monte Carlo campaign. This must
+be provided and is used as the base orbit for propagation in runs that do
+not override the orbit.</p></li>
+<li><p><strong>dt</strong> (<em>float</em>) – Base simulation time step in seconds. Per-run overrides may be applied by
+<code class="docutils literal notranslate"><span class="pre">mc_config</span></code>.</p></li>
+<li><p><strong>tf</strong> (<em>float</em>) – Base simulation duration in seconds. Per-run overrides may be applied by
+<code class="docutils literal notranslate"><span class="pre">mc_config</span></code>.</p></li>
+<li><p><strong>mc_config</strong> (<a class="reference internal" href="ADCS.mc.mcconfig.html#ADCS.mc.mcconfig.MCConfig" title="ADCS.mc.mcconfig.MCConfig"><code class="xref py py-class docutils literal notranslate"><span class="pre">MCConfig</span></code></a> or None) – Monte Carlo configuration describing run-to-run sampling rules for selected
+parameters, such as <code class="docutils literal notranslate"><span class="pre">dt</span></code>, <code class="docutils literal notranslate"><span class="pre">tf</span></code>, initial angular velocity, quaternion,
+reaction wheel momentum, goal selection, and orbit overrides.</p></li>
+<li><p><strong>num_runs</strong> (<em>int</em>) – Number of Monte Carlo runs to execute.</p></li>
+<li><p><strong>max_workers</strong> (<em>int</em><em> or </em><em>None</em>) – Maximum number of worker processes to use. If <code class="docutils literal notranslate"><span class="pre">None</span></code>, the runner chooses
+an implementation-defined default.</p></li>
+<li><p><strong>base_seed</strong> (<em>int</em>) – Base seed used to deterministically generate per-run seeds as
+<code class="docutils literal notranslate"><span class="pre">base_seed</span> <span class="pre">+</span> <span class="pre">run_id</span></code>.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference internal" href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.SimulationResults" title="ADCS.helpers.simresults.SimulationResults">SimulationResults</a></p>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Aggregated results for all completed runs, including a list of per-run
+<a class="reference internal" href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.RunResults" title="ADCS.helpers.simresults.RunResults"><code class="xref py py-class docutils literal notranslate"><span class="pre">RunResults</span></code></a>, optional per-run configuration
+summaries, and run identifiers.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.SimulationResults" title="ADCS.helpers.simresults.SimulationResults"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimulationResults</span></code></a></p>
 </dd>
 </dl>
 </dd></dl>

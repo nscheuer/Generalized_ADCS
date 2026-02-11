@@ -506,6 +506,61 @@
 <a class="viewcode-back" href="../../../ADCS.mc.mcconfig.html#ADCS.mc.mcconfig.MCConfig">[docs]</a>
 <span class="nd">@dataclass</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">MCConfig</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Configuration container defining run-to-run sampling rules for Monte Carlo ADCS</span>
+<span class="sd">    simulations.</span>
+
+<span class="sd">    Each attribute may be either a fixed value or a callable sampler. If a callable</span>
+<span class="sd">    is provided, it is invoked once per Monte Carlo run to generate the value applied</span>
+<span class="sd">    to that run. This class is consumed by :func:`~ADCS.mc.simulate_mc.simulate_mc` to</span>
+<span class="sd">    perturb initial conditions, goals, timing parameters, and orbit definitions.</span>
+
+<span class="sd">    All attributes are optional; unspecified fields fall back to the base values</span>
+<span class="sd">    passed directly to the Monte Carlo simulation function.</span>
+
+<span class="sd">    :param w:</span>
+<span class="sd">        Initial angular velocity override. If provided, replaces the first three</span>
+<span class="sd">        elements of the state vector.</span>
+<span class="sd">    :type w:</span>
+<span class="sd">        numpy.ndarray or None</span>
+
+<span class="sd">    :param q:</span>
+<span class="sd">        Initial attitude quaternion override. If provided, replaces elements</span>
+<span class="sd">        3 through 6 of the state vector.</span>
+<span class="sd">    :type q:</span>
+<span class="sd">        numpy.ndarray or None</span>
+
+<span class="sd">    :param h:</span>
+<span class="sd">        Initial reaction wheel momentum override. If provided, replaces the</span>
+<span class="sd">        reaction wheel portion of the state vector.</span>
+<span class="sd">    :type h:</span>
+<span class="sd">        numpy.ndarray or None</span>
+
+<span class="sd">    :param orbit:</span>
+<span class="sd">        Orbit override for the run. This may be an</span>
+<span class="sd">        :class:`~ADCS.orbits.orbit.Orbit` instance, an</span>
+<span class="sd">        :class:`~ADCS.orbits.orbital_state.Orbital_State`, or an equivalent</span>
+<span class="sd">        dictionary representation, depending on how it is sampled and applied.</span>
+<span class="sd">    :type orbit:</span>
+<span class="sd">        :class:`~ADCS.orbits.orbit.Orbit` or None</span>
+
+<span class="sd">    :param goal:</span>
+<span class="sd">        Goal override for the run. If provided, replaces the base goal passed to</span>
+<span class="sd">        the Monte Carlo simulation.</span>
+<span class="sd">    :type goal:</span>
+<span class="sd">        :class:`~ADCS.CONOPS.goals.Goal` or None</span>
+
+<span class="sd">    :param dt:</span>
+<span class="sd">        Simulation time step override in seconds.</span>
+<span class="sd">    :type dt:</span>
+<span class="sd">        float or None</span>
+
+<span class="sd">    :param tf:</span>
+<span class="sd">        Simulation duration override in seconds.</span>
+<span class="sd">    :type tf:</span>
+<span class="sd">        float or None</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">w</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>         
     <span class="n">q</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>          
     <span class="n">h</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>          
