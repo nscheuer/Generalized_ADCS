@@ -1,11 +1,6 @@
-"""
-Trajectory representation for ALTRO planner output.
-
-This module provides the Trajectory class for storing, interpolating, and
-visualizing planned trajectories from the ALTRO optimizer.
-"""
-
 from __future__ import annotations
+
+__all__ = ["Trajectory"]
 
 import numpy as np
 import matplotlib.pyplot as plt
