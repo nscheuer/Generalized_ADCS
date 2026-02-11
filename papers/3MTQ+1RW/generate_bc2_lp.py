@@ -104,7 +104,7 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
         time_hist = np.zeros(N)
         state_hist = np.zeros((N, len(x)))
         u_hist = np.zeros((N, len(real_sat.actuators)))
-        boresight_hist = np.zeros((N, 3))
+        boresight_hist = np.zeros((N, 4))
         t = t0
         ind = 0
         steps = int((tf - t0) / dt)

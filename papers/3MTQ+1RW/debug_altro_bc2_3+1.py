@@ -47,21 +47,21 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
     h0 = np.array([rw_h0])
     x = np.concatenate([w0, q0, h0])
 
-    start_time = 0.22 - 1*TimeConstants.sec2cent
+    start_time = 0.22
     orb = create_random_circular_orbit(7000, dt=1, tf=1000, use_J2=True, fast=False)
     os0 = orb.get_os(J2000=start_time)
 
     # Build Planner
     planner_settings = PlannerSettings(
         est_sat=real_sat,
-        bdot_on=0,  # Skip bdot initial guess (faster, more reliable)
+        bdot_on=1,  # Skip bdot initial guess (faster, more reliable)
         dt_tp=50,
         dt_tvlqr=1,
     )
 
     planner_settings.verbosity = False
-    planner_settings.cost_main.use_full_cost_hessian = True
-    planner_settings.pass1.regularization.use_dynamics_hess = 1
+    planner_settings.cost_main.use_full_cost_hessian = False
+    planner_settings.pass1.regularization.use_dynamics_hess = 0
     planner_settings.init_traj.bdot_gain = 500
     planner_settings.pass1.aug_lag.penalty_init = 1e-3
     planner_settings.pass1.aug_lag.penalty_scale = 10
@@ -105,7 +105,7 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
     os_hist: List[Orbital_State] = list()
     sensor_hist: np.ndarray = np.nan*np.zeros((N, len(real_sat.sensors + real_sat.rw_actuators)))
     u_hist = np.nan*np.zeros((N, len(real_sat.actuators)))
-    boresight_hist = np.nan*np.zeros((N, 3))
+    boresight_hist = np.nan*np.zeros((N, 4))
 
     t = t0
     ind = 0
@@ -160,9 +160,6 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
 
         sens = real_sat.sensor_readings(x=x, os=os)
         u = controller.find_u(x_hat=x, sens=sens, est_sat=real_sat, os_hat=os)
-
-        if verbose:
-            print("u: ", u)
 
         time_hist[ind] = t
         state_hist[ind,:] = x

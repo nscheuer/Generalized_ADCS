@@ -413,6 +413,136 @@ def simulate_mc(
     max_workers: Optional[int] = None,
     base_seed: int = 0,
 ) -> SimulationResults:
+    r"""
+    Run a Monte Carlo ensemble of ADCS simulations using parallel workers.
+
+    This function generates ``num_runs`` independent simulation configurations by
+    applying optional per-run sampling rules from :class:`~ADCS.mc.mcconfig.MCConfig`,
+    then executes each run via :class:`~ADCS.mc.monte_carlo_runner.MonteCarloRunner`.
+    Each run simulates spacecraft attitude dynamics, sensors, estimation, and control,
+    while optionally sampling initial conditions and run parameters such as ``dt``,
+    ``tf``, angular rate, quaternion, reaction wheel momentum, goals, and orbit
+    overrides.
+
+    Orbit handling supports two modes:
+
+    +------------+---------------------------------------------------------------+
+    | Mode       | Description                                                   |
+    +------------+---------------------------------------------------------------+
+    | os0        | Propagate an :class:`~ADCS.orbits.orbital_state.Orbital_State`|
+    |            | forward using :class:`~ADCS.orbits.orbit.Orbit`.              |
+    +------------+---------------------------------------------------------------+
+    | seq        | Use a precomputed orbital-state sequence (for example from an |
+    |            | :class:`~ADCS.orbits.orbit.Orbit` override or an explicit     |
+    |            | list).                                                        |
+    +------------+---------------------------------------------------------------+
+
+    For multiprocessing compatibility, all provided models (satellite, controller,
+    estimators, goal objects) must be picklable.
+
+    :param x:
+        Base initial true satellite state vector. The length must match
+        ``satellite.state_len`` and is expected to follow the satellite state
+        convention (angular velocity, quaternion, reaction wheel states, etc.).
+        Per-run overrides may be applied by ``mc_config``.
+    :type x:
+        numpy.ndarray
+
+    :param satellite:
+        The true satellite model, including dynamics, sensors, and actuators.
+        This object must be picklable for parallel execution.
+    :type satellite:
+        :class:`~ADCS.satellite_hardware.satellite.Satellite`
+
+    :param est_satellite:
+        Estimated satellite model used by estimators and controllers. If ``None``,
+        it may be constructed internally on a per-run basis when required by the
+        provided estimator or controller. If provided, it must be picklable.
+    :type est_satellite:
+        :class:`~ADCS.satellite_hardware.satellite.EstimatedSatellite` or None
+
+    :param controller:
+        Control law used to compute actuator commands. If the controller is a
+        :class:`~ADCS.controller.PlanAndTrackBase`, an initial trajectory is computed
+        at the start of each run based on the run-specific initial conditions and
+        goals. If provided, it must be picklable.
+    :type controller:
+        :class:`~ADCS.controller.Controller` or None
+
+    :param estimator:
+        Attitude estimator used to estimate spacecraft state from sensor
+        measurements. If provided, it must be picklable.
+    :type estimator:
+        :class:`~ADCS.estimators.attitude_estimators.Attitude_Estimator` or None
+
+    :param orbit_estimator:
+        Orbit estimator used to estimate orbital state from GPS measurements.
+        If provided, it must be picklable.
+    :type orbit_estimator:
+        :class:`~ADCS.estimators.orbit_estimators.Orbit_Estimator` or None
+
+    :param goal:
+        Desired attitude or pointing objective. This may be ``None`` (no goal),
+        a single :class:`~ADCS.CONOPS.goals.Goal`, or a
+        :class:`~ADCS.CONOPS.goallist.GoalList` defining time-varying goals.
+        Per-run overrides may be applied by ``mc_config``. If provided, it must be
+        picklable.
+    :type goal:
+        :class:`~ADCS.CONOPS.goals.Goal`,
+        :class:`~ADCS.CONOPS.goallist.GoalList`,
+        or None
+
+    :param os0:
+        Initial orbital state at the start of the Monte Carlo campaign. This must
+        be provided and is used as the base orbit for propagation in runs that do
+        not override the orbit.
+    :type os0:
+        :class:`~ADCS.orbits.orbital_state.Orbital_State`
+
+    :param dt:
+        Base simulation time step in seconds. Per-run overrides may be applied by
+        ``mc_config``.
+    :type dt:
+        float
+
+    :param tf:
+        Base simulation duration in seconds. Per-run overrides may be applied by
+        ``mc_config``.
+    :type tf:
+        float
+
+    :param mc_config:
+        Monte Carlo configuration describing run-to-run sampling rules for selected
+        parameters, such as ``dt``, ``tf``, initial angular velocity, quaternion,
+        reaction wheel momentum, goal selection, and orbit overrides.
+    :type mc_config:
+        :class:`~ADCS.mc.mcconfig.MCConfig` or None
+
+    :param num_runs:
+        Number of Monte Carlo runs to execute.
+    :type num_runs:
+        int
+
+    :param max_workers:
+        Maximum number of worker processes to use. If ``None``, the runner chooses
+        an implementation-defined default.
+    :type max_workers:
+        int or None
+
+    :param base_seed:
+        Base seed used to deterministically generate per-run seeds as
+        ``base_seed + run_id``.
+    :type base_seed:
+        int
+
+    :return:
+        Aggregated results for all completed runs, including a list of per-run
+        :class:`~ADCS.helpers.simresults.RunResults`, optional per-run configuration
+        summaries, and run identifiers.
+    :rtype:
+        :class:`~ADCS.helpers.simresults.SimulationResults`
+
+    """
     if os0 is None:
         raise ValueError("os0 must be provided to simulate_mc().")
     if len(x) != satellite.state_len:

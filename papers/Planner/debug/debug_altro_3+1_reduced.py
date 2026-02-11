@@ -7,7 +7,7 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 import time
 
-sys.path.append(os_pack.path.abspath(os_pack.path.join(__file__, "../../..")))
+sys.path.append(os_pack.path.abspath(os_pack.path.join(__file__, "../../../..")))
 from ADCS.CONOPS.goals import Goal, ECI_Goal, Coordinate_Goal, No_Goal
 from ADCS.CONOPS.goallist import GoalList
 from ADCS.controller.plan_and_track_lqr import Plan_and_Track_LQR
@@ -47,7 +47,7 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
     h0 = np.array([rw_h0])
     x = np.concatenate([w0, q0, h0])
 
-    start_time = 0.22 - 1*TimeConstants.sec2cent
+    start_time = 0.22
     orb = create_random_circular_orbit(7000, dt=1, tf=1000, use_J2=True, fast=False)
     os0 = orb.get_os(J2000=start_time)
 
@@ -105,7 +105,7 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
     os_hist: List[Orbital_State] = list()
     sensor_hist: np.ndarray = np.nan*np.zeros((N, len(real_sat.sensors + real_sat.rw_actuators)))
     u_hist = np.nan*np.zeros((N, len(real_sat.actuators)))
-    boresight_hist = np.nan*np.zeros((N, 3))
+    boresight_hist = np.nan*np.zeros((N, 4))
 
     t = t0
     ind = 0
