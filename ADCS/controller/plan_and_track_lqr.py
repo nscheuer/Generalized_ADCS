@@ -619,48 +619,37 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
         for mode in [0, 4]:
             angle = try_config(dt_coarse, mode, False, f"dt={dt_coarse} mode={mode}")
             if angle <= spike_thresh:
-                if not has_rw:
-                    # MTQ-only: coarse dt K-gains may cause tracking instability
-                    # even when plan looks perfect. Always try fine dt to get
-                    # K-gains matched to tracking timestep.
+                if not has_rw and is_quat_goal:
+                    # MTQ-only quaternion goals: always continue to Phase 2.
+                    # Coarse plans at 10-25° are local minima; dt=1 often
+                    # finds much better solutions. Also, coarse K-gains are
+                    # less reliable for MTQ-only (B-field coupling).
+                    continue
+                if not has_rw and not is_quat_goal:
+                    # MTQ-only ECI goals: try dt=1 refine for better K-gains
+                    # but don't reject the coarse plan.
                     coarse_traj = best_traj
                     coarse_angle = best_angle
-                    # Temporarily set best_angle very high so try_config always
-                    # captures the fine plan (even if metric is worse than coarse)
                     best_angle = 999.0
-                    angle_fine = try_config(dt_fine, 0, False, f"dt={dt_fine} mode=0 (MTQ refine)")
-                    # Use a lenient wound threshold for the refine step: the
-                    # gain_scale=0.5 tracker tolerates moderate winding (~90°)
-                    # since it under-corrects during wound portions. Only reject
-                    # catastrophic winding (>120°) where even scaled gains diverge.
-                    mtq_refine_wound_thresh = 120.0
-                    if angle_fine > mtq_refine_wound_thresh:
-                        # Fine dt catastrophically wound — revert to coarse
+                    angle_fine = try_config(dt_fine, 0, False, 
+                                           f"dt={dt_fine} mode=0 (MTQ refine)")
+                    if angle_fine > 120.0:  # catastrophic winding
                         best_traj = coarse_traj
                         best_angle = coarse_angle
-                    # Otherwise best_traj is now the fine dt plan (better K-gains)
+                    return best_traj
                 return best_traj
         
         # Phase 2: Fine dt (slower, ~10-15s each, resolves 180° bifurcation)
-        # Try mode 0 first. If good enough (<= tight_thresh), accept.
-        # If mediocre, try mode 4 too — lower plan angle correlates with better tracking.
-        tight_thresh = spike_thresh / 5.0  # e.g., 8° for spike_thresh=40°, 2° for spike_thresh=10°
-        angle_m0 = try_config(dt_fine, 0, False, f"dt={dt_fine} mode=0")
-        if angle_m0 <= tight_thresh:
-            return best_traj
-        # mode 0 mediocre or wound — try mode 4
-        angle_m4 = try_config(dt_fine, 4, False, f"dt={dt_fine} mode=4")
+        tight_thresh = spike_thresh / 5.0
+        for mode in [0, 4, 6]:
+            angle = try_config(dt_fine, mode, False, f"dt={dt_fine} mode={mode}")
+            if angle <= tight_thresh:
+                return best_traj
         if best_angle <= spike_thresh:
             return best_traj
         
-        # Phase 3: SLERP warm-start WITHOUT slacks (mode 6)
-        # Uses the rate-limited SLERP trajectory as a non-wound starting point
-        # for the optimizer. Unlike SLERP+slacks, this forces feasible controls
-        # and produces valid K-gains. Try at dt=1 and dt=2.
+        # Phase 3: SLERP warm-start WITHOUT slacks (mode 6) at dt=2
         if best_angle > spike_thresh:
-            try_config(dt_fine, 6, False, f"dt={dt_fine} mode=6 (SLERP no-slack)")
-            if best_angle <= spike_thresh:
-                return best_traj
             dt_slerp = getattr(self.planner_settings, 'auto_refine_dt_slerp', 2.0)
             try_config(dt_slerp, 6, False, f"dt={dt_slerp} mode=6 (SLERP no-slack)")
             if best_angle <= spike_thresh:
