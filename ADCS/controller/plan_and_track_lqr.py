@@ -599,6 +599,13 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
                     s.infeasible_ctrl_mode = self.planner_settings.infeasible_ctrl_mode
                 if slerp_rate is not None:
                     s.slerp_init_rate = slerp_rate
+                # MTQ-only quaternion goals: boost terminal angle cost 100×.
+                # fast_slew sets angle_N = angle * 10, too weak for MTQ-only
+                # to push through the last 10-20° of B-field-coupled maneuvers.
+                # Applied AFTER cross-term so it doesn't inflate the cross-term.
+                if is_quat_goal and not has_rw:
+                    s.cost_main.angle_N *= 100
+                    s.cost_second.angle_N *= 100
                 
                 ctrl = Plan_and_Track_LQR(est_sat=self.est_sat, planner_settings=s)
                 lqr_times, Xset, Uset, Kset, Sset = ctrl._calculate_trajectory_common(
@@ -617,16 +624,10 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
                     print(f"  {label}: FAILED ({e})")
                 return 999.0
         
-        # Phase 1: Coarse dt (fast, ~1s each)
+        # Phase 1: Coarse dt (fast, ~3s each)
         for mode in [0, 4]:
             angle = try_config(dt_coarse, mode, False, f"dt={dt_coarse} mode={mode}")
             if angle <= spike_thresh:
-                if not has_rw and is_quat_goal:
-                    # MTQ-only quaternion goals: always continue to Phase 2.
-                    # Coarse plans at 10-25° are local minima; dt=1 often
-                    # finds much better solutions. Also, coarse K-gains are
-                    # less reliable for MTQ-only (B-field coupling).
-                    continue
                 if not has_rw and not is_quat_goal:
                     # MTQ-only ECI goals: try dt=1 refine for better K-gains
                     # but don't reject the coarse plan.
@@ -639,42 +640,29 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
                         best_traj = coarse_traj
                         best_angle = coarse_angle
                     return best_traj
+                if not has_rw and is_quat_goal:
+                    # MTQ-only quat goals: if wound (>90°), try mode 4 too.
+                    # Otherwise accept — with boosted terminal cost, coarse plans
+                    # converge well and K-gains are reasonable at dt=10.
+                    if angle > 90.0:
+                        continue  # Try next mode
+                    return best_traj
                 return best_traj
         
-        # Phase 2: Fine dt (slower, ~10-15s each, resolves 180° bifurcation)
+        # Phase 2: Try mode 6 at dt_coarse (SLERP warm-start, ~3s)
+        if best_angle > spike_thresh:
+            try_config(dt_coarse, 6, False, f"dt={dt_coarse} mode=6")
+            if best_angle <= spike_thresh:
+                return best_traj
+        
+        # Phase 3: Fine dt (slower, ~10-15s each)
         tight_thresh = spike_thresh / 5.0
-        # modes 7,8 = random init with different RNG seeds (same as mode 0)
-        for mode in [0, 4, 6, 7, 8]:
+        for mode in [0, 4, 6]:
             angle = try_config(dt_fine, mode, False, f"dt={dt_fine} mode={mode}")
             if angle <= tight_thresh:
                 return best_traj
-        if best_angle <= spike_thresh and not (is_quat_goal and not has_rw):
-            # For MTQ-only quat goals, don't return here — continue to SLERP rate sweep
+        if best_angle <= spike_thresh:
             return best_traj
-        
-        # Phase 2.5: Multiple SLERP rates (mode 6 with varied rates)
-        # Different SLERP rates explore different basins of attraction.
-        # For MTQ-only quat goals, always try this even if Phase 2 found <spike_thresh.
-        # For other goal types, only try if still above spike_thresh.
-        import math
-        slerp_rates = [1.0, 2.0, 5.0, 10.0, 15.0, 20.0]  # degrees/s
-        run_slerp_sweep = (best_angle > spike_thresh) or (is_quat_goal and not has_rw)
-        if run_slerp_sweep:
-            for rate_deg in slerp_rates:
-                rate_rad = rate_deg * math.pi / 180.0
-                try_config(dt_coarse, 6, False,
-                           f"dt={dt_coarse} mode=6 rate={rate_deg}°/s",
-                           slerp_rate=rate_rad)
-                if best_angle <= tight_thresh:
-                    return best_traj
-            # Try at dt_fine for rates that might benefit from finer resolution
-            for rate_deg in slerp_rates:
-                rate_rad = rate_deg * math.pi / 180.0
-                try_config(dt_fine, 6, False,
-                           f"dt={dt_fine} mode=6 rate={rate_deg}°/s",
-                           slerp_rate=rate_rad)
-                if best_angle <= tight_thresh:
-                    return best_traj
         
         # Phase 3: SLERP warm-start WITHOUT slacks (mode 6) at dt=2
         if best_angle > spike_thresh:
