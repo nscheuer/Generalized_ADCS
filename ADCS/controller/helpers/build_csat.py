@@ -268,6 +268,8 @@ def build_cpp_satellite(est_sat: EstimatedSatellite, planner_settings: PlannerSe
 
     if planner_settings.wmax > 0:
         csat.set_AV_constraint(planner_settings.wmax)
+    if hasattr(planner_settings, 'slerp_init_rate') and planner_settings.slerp_init_rate is not None:
+        csat.slerp_init_rate = planner_settings.slerp_init_rate
     if planner_settings.sun_limit_angle > 0:
         csat.add_sunpoint_constraint(planner_settings.camera_axis, planner_settings.sun_limit_angle, 0)
     if planner_settings.plan_for_gg:

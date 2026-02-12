@@ -271,6 +271,7 @@ class PlannerSettings:
         self.control_limit_scale = 0.75
         self.umax = self.control_limit_scale * np.array([act.u_max for act in self.est_sat.actuators])
         self.wmax = 50*np.pi/180.0  # 50°/s - allows aggressive RW usage
+        self.slerp_init_rate = None  # Mode 6 SLERP rate (rad/s). None = use C++ default (3°/s)
         self.sun_limit_angle = 1*np.pi/180.0
         self.camera_axis = np.array([[0, 1, 0]]).T
 

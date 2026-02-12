@@ -2195,6 +2195,7 @@ PYBIND11_MODULE(pysat, m) {
         .def("use_original_costs", &Satellite::use_original_costs, py::arg("use_orig"))
         .def("set_AV_constraint", &Satellite::set_AV_constraint)
         .def("clear_AV_constraint", &Satellite::clear_AV_constraint)
+        .def_readwrite("slerp_init_rate", &Satellite::slerp_init_rate)
         .def("add_sunpoint_constraint", &Satellite::add_sunpoint_constraint_py)
         .def("clear_sunpoint_constraints", &Satellite::clear_sunpoint_constraints)
         .def("py_tuple_out",&Satellite::py_tuple_out)

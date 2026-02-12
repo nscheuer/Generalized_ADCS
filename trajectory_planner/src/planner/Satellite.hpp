@@ -206,6 +206,7 @@ public:
 
     bool useAVconstraint = false;
     double AVmax = nan("1");
+    double slerp_init_rate = 3.0 * M_PI / 180.0;  // Rate for mode 6 SLERP init (rad/s, default 3°/s)
 
     int number_sunpoints = 0;
     std::vector<arma::vec3> sunpoint_axes = {};

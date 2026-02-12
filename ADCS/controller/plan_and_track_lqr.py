@@ -584,7 +584,7 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
                 return self._plan_max_boresight_error(
                     traj.states, goals, traj.times)
         
-        def try_config(dt, mode, slacks, label):
+        def try_config(dt, mode, slacks, label, slerp_rate=None):
             """Create an independent controller and plan with it."""
             nonlocal best_traj, best_angle
             try:
@@ -597,6 +597,8 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
                 s.skip_pass2_optimization = True
                 if hasattr(self.planner_settings, 'infeasible_ctrl_mode'):
                     s.infeasible_ctrl_mode = self.planner_settings.infeasible_ctrl_mode
+                if slerp_rate is not None:
+                    s.slerp_init_rate = slerp_rate
                 
                 ctrl = Plan_and_Track_LQR(est_sat=self.est_sat, planner_settings=s)
                 lqr_times, Xset, Uset, Kset, Sset = ctrl._calculate_trajectory_common(
@@ -605,7 +607,7 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
                 traj = Trajectory(lqr_times, Xset, Uset, Kset, Sset)
                 angle = evaluate_plan(traj)
                 if verbose:
-                    print(f"  {label}: angle={angle:.1f}°")
+                    print(f"  {label}: {angle:.1f}° (best={best_angle:.1f}°)")
                 if angle < best_angle:
                     best_angle = angle
                     best_traj = traj
@@ -641,12 +643,38 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
         
         # Phase 2: Fine dt (slower, ~10-15s each, resolves 180° bifurcation)
         tight_thresh = spike_thresh / 5.0
-        for mode in [0, 4, 6]:
+        # modes 7,8 = random init with different RNG seeds (same as mode 0)
+        for mode in [0, 4, 6, 7, 8]:
             angle = try_config(dt_fine, mode, False, f"dt={dt_fine} mode={mode}")
             if angle <= tight_thresh:
                 return best_traj
-        if best_angle <= spike_thresh:
+        if best_angle <= spike_thresh and not (is_quat_goal and not has_rw):
+            # For MTQ-only quat goals, don't return here — continue to SLERP rate sweep
             return best_traj
+        
+        # Phase 2.5: Multiple SLERP rates (mode 6 with varied rates)
+        # Different SLERP rates explore different basins of attraction.
+        # For MTQ-only quat goals, always try this even if Phase 2 found <spike_thresh.
+        # For other goal types, only try if still above spike_thresh.
+        import math
+        slerp_rates = [1.0, 2.0, 5.0, 10.0, 15.0, 20.0]  # degrees/s
+        run_slerp_sweep = (best_angle > spike_thresh) or (is_quat_goal and not has_rw)
+        if run_slerp_sweep:
+            for rate_deg in slerp_rates:
+                rate_rad = rate_deg * math.pi / 180.0
+                try_config(dt_coarse, 6, False,
+                           f"dt={dt_coarse} mode=6 rate={rate_deg}°/s",
+                           slerp_rate=rate_rad)
+                if best_angle <= tight_thresh:
+                    return best_traj
+            # Try at dt_fine for rates that might benefit from finer resolution
+            for rate_deg in slerp_rates:
+                rate_rad = rate_deg * math.pi / 180.0
+                try_config(dt_fine, 6, False,
+                           f"dt={dt_fine} mode=6 rate={rate_deg}°/s",
+                           slerp_rate=rate_rad)
+                if best_angle <= tight_thresh:
+                    return best_traj
         
         # Phase 3: SLERP warm-start WITHOUT slacks (mode 6) at dt=2
         if best_angle > spike_thresh:

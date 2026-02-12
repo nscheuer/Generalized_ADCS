@@ -528,10 +528,10 @@ BEFORE_OUTPUT_FORM OldPlanner::trajOptBefore(VECTOR_INFO_FORM vecs_w_time,double
     // 2. Forward-simulate those controls to get dynamically consistent states
     // This gives the optimizer a non-wound, dynamically feasible starting point.
     // Use case: when all other modes wind, SLERP provides a non-wound seed.
-    if(verbose){cout<<"SLERP warm-start (no slacks) initialization\n";}
-    // Temporarily override SLERP rate to 3°/s for feasible inv-dynamics
+    if(verbose){cout<<"SLERP warm-start (no slacks) initialization, rate="<<sat.slerp_init_rate*180.0/M_PI<<"°/s\n";}
+    // Temporarily override SLERP rate for feasible inv-dynamics
     double saved_AVmax = sat.AVmax;
-    sat.AVmax = 3.0 * M_PI / 180.0;
+    sat.AVmax = sat.slerp_init_rate;
     TRAJECTORY_FORM slerp_traj = generateRateLimitedSlerpTrajectory(dt_use, x0, traj_length, vecs, 1);
     sat.AVmax = saved_AVmax;  // Restore
     mat U_slerp = get<1>(slerp_traj);
