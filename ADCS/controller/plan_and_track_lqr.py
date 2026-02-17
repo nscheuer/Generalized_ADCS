@@ -667,10 +667,9 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
         # "needs refinement" > 0.5 (cascade to finer dt)
         good_thresh = 0.3   # ★★★ — stop immediately
         retry_thresh = 0.5  # Worth cascading below this
-        if has_rw:
-            # RW provides tracking authority — dt=10 plans are sufficient.
-            # Only cascade for truly terrible plans.
-            retry_thresh = 2.0  # effectively disable cascade
+        # No special case for has_rw — the quality score handles everything.
+        # RW configs can still produce bouncing plans (optimizer local minima
+        # from the extra control dimension) that need dt=1 refinement.
         
         settings_factory = getattr(self, '_settings_factory', None)
         if settings_factory is None:
@@ -742,10 +741,12 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
         # catastrophic tracking failure in real simulation (~148° error).
         # Must use no-slacks for physically valid K-gains.
         #
-        # For RW+quat goals, try mode 6 (SLERP warm-start) first — it avoids
-        # bounce local minima by starting from the geometric SLERP path. Mode 0
-        # is tried as fallback or shape-retry.
-        phase1_modes = [6, 0] if (has_rw and is_quat_goal) else [0, 4]
+        # For RW configs, try mode 6 (SLERP warm-start) first — it avoids
+        # bounce local minima by starting from the geometric SLERP path.
+        # The extra control dimension from the RW creates a richer optimization
+        # landscape with more (worse) local minima. Mode 6 keeps the optimizer
+        # near the smooth-convergence basin. Mode 0 fallback for different basin.
+        phase1_modes = [6, 0] if has_rw else [0, 4]
         for mode in phase1_modes:
             score = try_config(dt_coarse, mode, False, f"dt={dt_coarse} mode={mode}")
             if score <= good_thresh:
@@ -763,20 +764,26 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
                 if best_score <= good_thresh:
                     return best_traj
         
-        # Phase 2: Fine dt (slower, ~30-60s each at N=1001)
-        # Only for MTQ-only — RW configs have retry_thresh=2.0 (skip).
-        if best_score > retry_thresh and not has_rw:
-            for mode in [0, 4, 6]:
-                score = try_config(dt_fine, mode, False, f"dt={dt_fine} mode={mode}")
-                if score <= good_thresh:
-                    return best_traj
+        # Phase 2: Finer dt attempts for plans that didn't reach retry_thresh.
+        if best_score > retry_thresh:
+            if has_rw:
+                # RW configs: single dt=2 mode=6 attempt (~10-20s).
+                # dt=1 with N=1001 × 4 controls + homotopy is too slow.
+                dt_med = 2.0
+                try_config(dt_med, 6, False, f"dt={dt_med} mode=6 (RW refine)")
+            else:
+                # MTQ-only: try multiple modes at dt=1 (~30-60s each)
+                for mode in [0, 4, 6]:
+                    score = try_config(dt_fine, mode, False, f"dt={dt_fine} mode={mode}")
+                    if score <= good_thresh:
+                        return best_traj
         
         # Phase 3: SLERP warm-start WITHOUT slacks (mode 6) at dt=2
         if best_score > retry_thresh and not has_rw:
             dt_slerp = getattr(self.planner_settings, 'auto_refine_dt_slerp', 2.0)
             try_config(dt_slerp, 6, False, f"dt={dt_slerp} mode=6 (SLERP no-slack)")
         
-        # Phase 4: SLERP with slacks (absolute last resort)
+        # Phase 4: SLERP with slacks (absolute last resort, MTQ-only)
         # Produces 0° plan error but K-gains may be poor for tracking.
         if best_score > retry_thresh and not has_rw:
             dt_slerp = getattr(self.planner_settings, 'auto_refine_dt_slerp', 2.0)
