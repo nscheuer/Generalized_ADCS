@@ -310,7 +310,95 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
             self._trajectory_start_time = None
 
     @staticmethod
-    @staticmethod
+    def _plan_quality_score(Xset: np.ndarray, traj_times: np.ndarray,
+                            goals: GoalList, q_goal: np.ndarray = None,
+                            orbit=None, t_start: float = None,
+                            settle_thresh_deg: float = 5.0,
+                            tail_frac: float = 0.5,
+                            body_boresight: np.ndarray = None) -> float:
+        """Compute trajectory quality score: lower is better.
+
+        Score = settle_frac(settle_thresh) + tail_mean / 180°
+
+        - **settle_frac**: Fraction of trajectory before error permanently drops
+          below ``settle_thresh_deg``. 0 = converged instantly, 1 = never settled.
+        - **tail_mean / 180°**: Mean error over the last ``tail_frac`` of the
+          trajectory, normalized to [0, 1]. 0 = perfect tracking, 1 = worst.
+
+        The score lives in [0, 2]. A ★★★ trajectory scores < 0.3
+        (settled by ~20% of the horizon, tail mean < ~5°).
+
+        Works for both quaternion goals (q_goal is not None) and ECI/vector
+        goals (q_goal is None, uses boresight error via goals + orbit).
+
+        Parameters
+        ----------
+        orbit : Orbit, optional
+            Required for time-varying ECI goals (Nadir, Sun, etc.) to compute
+            the goal direction at each timestep via ``goal.to_ref(os)``.
+        t_start : float, optional
+            Planning start time in J2000 centuries. Required with orbit.
+        """
+        from ADCS.helpers.math_helpers import rot_mat
+        from ADCS.CONOPS.goals import No_Goal
+
+        if body_boresight is None:
+            body_boresight = np.array([0.0, 1.0, 0.0])
+
+        N = Xset.shape[1]
+        T = traj_times[-1] - traj_times[0]
+        if T <= 0:
+            return 2.0  # degenerate
+
+        # --- Compute per-timestep error ---
+        errors = np.full(N, 180.0)
+        if q_goal is not None:
+            # Quaternion goal: geodesic distance
+            for k in range(N):
+                q = Xset[3:7, k]
+                q = q / np.linalg.norm(q)
+                cos_half = min(abs(np.dot(q, q_goal)), 1.0)
+                errors[k] = np.degrees(2 * np.arccos(cos_half))
+        else:
+            # ECI/vector goal: boresight angle
+            for k in range(N):
+                t_k = traj_times[min(k, len(traj_times) - 1)]
+                goal = goals.get_active_goal(t_k)
+                if goal is None or isinstance(goal, No_Goal):
+                    errors[k] = 0.0  # no goal → no error
+                    continue
+                try:
+                    # traj_times are in J2000 centuries — use directly
+                    if orbit is not None:
+                        os_k = orbit.get_os(t_k)
+                        eci_ref, _ = goal.to_ref(os0=os_k)
+                    else:
+                        eci_ref, _ = goal.to_ref(os0=None)
+                except Exception:
+                    continue
+                nrm = np.linalg.norm(eci_ref)
+                if nrm < 1e-10:
+                    continue
+                eci_ref = eci_ref / nrm
+                q = Xset[3:7, k]
+                q = q / np.linalg.norm(q)
+                bore_eci = rot_mat(q) @ body_boresight
+                cos_a = np.clip(np.dot(bore_eci, eci_ref), -1.0, 1.0)
+                errors[k] = np.degrees(np.arccos(cos_a))
+
+        # --- settle_frac: first time error < thresh AND stays below ---
+        settle_frac = 1.0
+        for k in range(N):
+            if errors[k] < settle_thresh_deg and np.all(errors[k:] < settle_thresh_deg):
+                settle_frac = (traj_times[k] - traj_times[0]) / T
+                break
+
+        # --- tail_mean: mean error over last tail_frac of trajectory ---
+        start_idx = max(0, int(N * (1.0 - tail_frac)))
+        tail_mean = np.mean(errors[start_idx:])
+
+        return settle_frac + tail_mean / 180.0
+
     @staticmethod
     def _plan_final_angle(Xset: np.ndarray, q_goal: np.ndarray) -> float:
         """Compute final quaternion angle to goal, in degrees.
@@ -554,38 +642,35 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
         #
         # Each attempt uses a completely independent controller to avoid any
         # cross-contamination from C++ global state (Armadillo RNG, etc.)
-        spike_thresh = getattr(self.planner_settings, 'auto_refine_spike_thresh', 30.0)
         dt_coarse = self.planner_settings.dt_tp
         dt_fine = getattr(self.planner_settings, 'auto_refine_dt_fine', 1.0)
         
         # Determine goal type early (needed for metric selection)
         q_goal = self._extract_goal_quaternion(goals, t_start, duration, x_0, os_0)
         is_quat_goal = (q_goal is not None)
-        
-        # Adjust spike_thresh based on goal type and actuator configuration.
         has_rw = any(hasattr(a, 'J') for a in self.est_sat.actuators)
-        if is_quat_goal:
-            # Quaternion goals use final error metric.
-            # Plans with <10° final error have reliable K-gains near the goal.
-            # Plans at 10-30° are marginal — K-gains may not stabilize tracking.
-            spike_thresh = 10.0
-            if not has_rw:
-                # MTQ-only: feasible plans ending <30° are much better than
-                # infeasible SLERP plans that end at 0° but can't be tracked.
-                spike_thresh = 30.0
-        elif has_rw:
-            # 1RW ECI goals: RW provides enough tracking authority to correct
-            # moderate planning errors. High threshold effectively disables
-            # the cascade for 1RW configs — dt=10 plans + RW tracking is
-            # sufficient, and the cascade (dt=2/dt=1) is extremely slow
-            # with homotopy enabled.
-            spike_thresh = 180.0
-        elif not has_rw:
-            # MTQ-only ECI goals: 30° threshold balances accuracy vs planning time.
-            # The cascade to dt=1 (30-60s per attempt) rarely improves results
-            # beyond what gain_scale=0.5 provides for tracking. Seeds with >30°
-            # plan error at dt=10 have fundamental B-field-parallel torque gaps.
-            spike_thresh = 30.0
+        
+        # Create orbit for ECI goal quality evaluation (Nadir, Sun, etc.)
+        # Reused across all planning attempts for consistency and speed.
+        eval_orbit = None
+        if not is_quat_goal:
+            from ADCS.orbits.orbit import Orbit
+            from ADCS.orbits.universal_constants import TimeConstants
+            t_end = t_start + duration * TimeConstants.sec2cent
+            eval_orbit = Orbit(os0=os_0, end_time=t_end, dt=1.0, 
+                               use_J2=True, fast=True)
+        
+        # Quality score threshold for cascade decisions.
+        # score = settle_frac(5°) + tail_mean/180°  (lower = better, range [0,2])
+        # ★★★ < 0.3 (settled by 20%, tail < 5°)
+        # "good enough" < 0.5 (no need to cascade to expensive dt=1)
+        # "needs refinement" > 0.5 (cascade to finer dt)
+        good_thresh = 0.3   # ★★★ — stop immediately
+        retry_thresh = 0.5  # Worth cascading below this
+        if has_rw:
+            # RW provides tracking authority — dt=10 plans are sufficient.
+            # Only cascade for truly terrible plans.
+            retry_thresh = 2.0  # effectively disable cascade
         
         settings_factory = getattr(self, '_settings_factory', None)
         if settings_factory is None:
@@ -596,33 +681,22 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
             return Trajectory(lqr_times, Xset, Uset, Kset, Sset)
         
         best_traj = None
-        best_angle = 999.0
-        
-        # For MTQ-only with quaternion goals, evaluate by FINAL error instead
-        # of max error. Feasible MTQ trajectories can wobble through large
-        # transient angles (even 180°) during the maneuver but converge well
-        # at the end. Using max error would reject these perfectly trackable
-        # trajectories in favor of infeasible SLERP plans.
-        #
-        # For ALL quaternion goals (including 1RW), use final error as metric.
-        # For 180° maneuvers, _plan_max_angle rejects plans that correctly
-        # pass through high angles during the maneuver (expected transient).
-        # TVLQR tracks the planned trajectory, not the goal directly, so
-        # a high plan-to-goal angle mid-maneuver is fine as long as the plan
-        # is smooth and converges at the end.
-        use_final_metric = is_quat_goal
+        best_score = 999.0
         
         def evaluate_plan(traj):
-            """Evaluate plan quality — returns angle error in degrees."""
-            if is_quat_goal:
-                return self._plan_final_angle(traj.states, q_goal)
-            else:
-                return self._plan_max_boresight_error(
-                    traj.states, goals, traj.times)
+            """Evaluate trajectory quality — lower is better.
+            
+            Uses composite score = settle_frac(5°) + tail_mean/180°.
+            Captures both convergence speed and steady-state quality.
+            ★★★ trajectories score < 0.3.
+            """
+            return self._plan_quality_score(
+                traj.states, traj.times, goals, q_goal,
+                orbit=eval_orbit, t_start=t_start)
         
         def try_config(dt, mode, slacks, label, slerp_rate=None):
             """Create an independent controller and plan with it."""
-            nonlocal best_traj, best_angle
+            nonlocal best_traj, best_score
             try:
                 s = settings_factory(dt)
                 s.bdot_on = mode
@@ -649,13 +723,13 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
                     t_start, duration, x_0, os_0, goals, verbose
                 )
                 traj = Trajectory(lqr_times, Xset, Uset, Kset, Sset)
-                angle = evaluate_plan(traj)
+                score = evaluate_plan(traj)
                 if verbose:
-                    print(f"  {label}: {angle:.1f}° (best={best_angle:.1f}°)")
-                if angle < best_angle:
-                    best_angle = angle
+                    print(f"  {label}: score={score:.3f} (best={best_score:.3f})")
+                if score < best_score:
+                    best_score = score
                     best_traj = traj
-                return angle
+                return score
             except Exception as e:
                 if verbose:
                     print(f"  {label}: FAILED ({e})")
@@ -673,106 +747,38 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
         # is tried as fallback or shape-retry.
         phase1_modes = [6, 0] if (has_rw and is_quat_goal) else [0, 4]
         for mode in phase1_modes:
-            angle = try_config(dt_coarse, mode, False, f"dt={dt_coarse} mode={mode}")
-            if angle <= spike_thresh:
-                if not has_rw and not is_quat_goal:
-                    # MTQ-only ECI goals: try dt=1 refine for better K-gains
-                    # ONLY if the coarse plan is marginal (>5° error).
-                    # Good plans (≤5°) at dt=10 track well enough with
-                    # gain_scale=0.5 that dt=1 refinement isn't worth 30-60s.
-                    if angle > 5.0:
-                        coarse_traj = best_traj
-                        coarse_angle = best_angle
-                        best_angle = 999.0
-                        angle_fine = try_config(dt_fine, 0, False, 
-                                               f"dt={dt_fine} mode=0 (MTQ refine)")
-                        if angle_fine > 120.0:  # catastrophic winding
-                            best_traj = coarse_traj
-                            best_angle = coarse_angle
-                    return best_traj
-                if not has_rw and is_quat_goal:
-                    # MTQ-only quat goals: if wound (>90°), try mode 4 too.
-                    if angle > 90.0:
-                        continue  # Try next mode
-                    return best_traj
-                
-                # RW configs with quat goals: check trajectory SHAPE quality.
-                # Some plans converge to 0° final error but have "bounce"
-                # trajectories (error spikes in the 2nd half). These are local
-                # minima from the B-field varying along the orbit.
-                #
-                # Mode 0 (zero init) and Mode 6 (SLERP warm-start) find
-                # DIFFERENT local minima — they're complementary. When the
-                # current mode bounces, try the other mode and pick the
-                # better shape. ~1s overhead.
-                if has_rw and is_quat_goal and best_traj is not None:
-                    max_2nd_half = self._plan_max_2nd_half_error(
-                        best_traj.states, q_goal)
-                    shape_thresh = 5.0  # degrees
-                    if max_2nd_half > shape_thresh:
-                        # Try the complementary init mode
-                        alt_mode = 6 if mode == 0 else 0
-                        if verbose:
-                            print(f"  Shape check: max_2nd_half={max_2nd_half:.1f}° > {shape_thresh}°, trying mode {alt_mode}")
-                        saved_traj = best_traj
-                        saved_angle = best_angle
-                        saved_max2 = max_2nd_half
-                        try:
-                            angle_alt = try_config(dt_coarse, alt_mode, False,
-                                                   f"dt={dt_coarse} mode={alt_mode} (shape retry)")
-                            if best_traj is not None and best_traj != saved_traj:
-                                max2_alt = self._plan_max_2nd_half_error(
-                                    best_traj.states, q_goal)
-                                if verbose:
-                                    print(f"  mode {alt_mode}: final={angle_alt:.1f}°, max2nd={max2_alt:.1f}°")
-                                # Pick the one with better shape
-                                if max2_alt >= saved_max2:
-                                    best_traj = saved_traj
-                                    best_angle = saved_angle
-                                    if verbose:
-                                        print(f"  Keeping mode {mode} (max2nd {max2_alt:.1f}° ≥ {saved_max2:.1f}°)")
-                                elif verbose:
-                                    print(f"  Using mode {alt_mode} (max2nd {saved_max2:.1f}→{max2_alt:.1f}°)")
-                            else:
-                                best_traj = saved_traj
-                                best_angle = saved_angle
-                        except Exception as e:
-                            if verbose:
-                                print(f"  mode {alt_mode} attempt failed: {e}")
-                            best_traj = saved_traj
-                            best_angle = saved_angle
-                
-                return best_traj
+            score = try_config(dt_coarse, mode, False, f"dt={dt_coarse} mode={mode}")
+            if score <= good_thresh:
+                return best_traj  # ★★★ — no need to try anything else
         
-        # Phase 2: Try mode 6 at dt_coarse (SLERP warm-start, ~3s)
-        if best_angle > spike_thresh:
-            try_config(dt_coarse, 6, False, f"dt={dt_coarse} mode=6")
-            if best_angle <= spike_thresh:
-                return best_traj
+        # Phase 1b: Try complementary mode if first didn't reach good_thresh.
+        # Mode 0 and Mode 6 find different local minima — complementary.
+        # The quality score already captures bounce/shape issues, so just
+        # try the other mode and keep whichever scored better.
+        if best_score > good_thresh and len(phase1_modes) >= 1:
+            alt_mode = 6 if phase1_modes[0] in [0, 4] else 0
+            if alt_mode not in phase1_modes:
+                try_config(dt_coarse, alt_mode, False,
+                           f"dt={dt_coarse} mode={alt_mode} (complement)")
+                if best_score <= good_thresh:
+                    return best_traj
         
-        # Phase 3: Fine dt (slower, ~60-80s each at N=1001)
-        # Skip for RW configs: dt=1 rarely improves ECI/quat results for 1RW,
-        # and each attempt costs 60-80s. The RW provides enough tracking
-        # authority to correct moderate plan errors at dt=10.
-        if not has_rw:
-            tight_thresh = spike_thresh / 5.0
+        # Phase 2: Fine dt (slower, ~30-60s each at N=1001)
+        # Only for MTQ-only — RW configs have retry_thresh=2.0 (skip).
+        if best_score > retry_thresh and not has_rw:
             for mode in [0, 4, 6]:
-                angle = try_config(dt_fine, mode, False, f"dt={dt_fine} mode={mode}")
-                if angle <= tight_thresh:
+                score = try_config(dt_fine, mode, False, f"dt={dt_fine} mode={mode}")
+                if score <= good_thresh:
                     return best_traj
-            if best_angle <= spike_thresh:
-                return best_traj
         
-        # Phase 3b: SLERP warm-start WITHOUT slacks (mode 6) at dt=2
-        if best_angle > spike_thresh:
+        # Phase 3: SLERP warm-start WITHOUT slacks (mode 6) at dt=2
+        if best_score > retry_thresh and not has_rw:
             dt_slerp = getattr(self.planner_settings, 'auto_refine_dt_slerp', 2.0)
             try_config(dt_slerp, 6, False, f"dt={dt_slerp} mode=6 (SLERP no-slack)")
-            if best_angle <= spike_thresh:
-                return best_traj
         
         # Phase 4: SLERP with slacks (absolute last resort)
         # Produces 0° plan error but K-gains may be poor for tracking.
-        if best_angle > spike_thresh:
+        if best_score > retry_thresh and not has_rw:
             dt_slerp = getattr(self.planner_settings, 'auto_refine_dt_slerp', 2.0)
             try_config(dt_slerp, 0, True, f"dt={dt_slerp} slacks (last resort)")
         
