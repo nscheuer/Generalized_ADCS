@@ -767,10 +767,24 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
         # Phase 2: Finer dt attempts for plans that didn't reach retry_thresh.
         if best_score > retry_thresh:
             if has_rw:
-                # RW configs: single dt=2 mode=6 attempt (~10-20s).
-                # dt=1 with N=1001 × 4 controls + homotopy is too slow.
-                dt_med = 2.0
-                try_config(dt_med, 6, False, f"dt={dt_med} mode=6 (RW refine)")
+                # RW fallback: plan with MTQ-only (0RW) model, then pad to 1RW.
+                # The RW adds an extra control dimension that creates worse local
+                # minima — the optimizer finds "lazy" trajectories that coast and
+                # bounce. The 0RW model avoids this (simpler landscape, ★★★).
+                # The padded trajectory has zero RW control/momentum/K-gains,
+                # so TVLQR uses MTQs only for tracking (which is sufficient).
+                traj_0rw = self._plan_with_mtq_only_model(
+                    t_start, duration, x_0, os_0, goals, settings_factory,
+                    dt_coarse, verbose)
+                if traj_0rw is not None:
+                    score_0rw = evaluate_plan(traj_0rw)
+                    if verbose:
+                        print(f"  0RW fallback: score={score_0rw:.3f} (best={best_score:.3f})")
+                    if score_0rw < best_score:
+                        best_score = score_0rw
+                        best_traj = traj_0rw
+                    if best_score <= good_thresh:
+                        return best_traj
             else:
                 # MTQ-only: try multiple modes at dt=1 (~30-60s each)
                 for mode in [0, 4, 6]:
@@ -793,6 +807,75 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
             raise RuntimeError("All planning attempts failed")
         
         return best_traj
+
+    def _plan_with_mtq_only_model(self, t_start, duration, x_0, os_0, goals,
+                                    settings_factory, dt, verbose=False):
+        """Plan with an MTQ-only (0RW) satellite model, then pad to 1RW dims.
+
+        When the 1RW optimizer finds bouncing local minima for ECI goals, the
+        0RW optimizer consistently converges smoothly (simpler landscape).
+        The resulting trajectory is padded with zero RW state/control/K-gains.
+
+        Returns a Trajectory with 1RW dimensions, or None on failure.
+        """
+        try:
+            from ADCS.satellite_factory.satellites.create_cubesats import (
+                create_beavercube1_cubesat)
+
+            # Create 0RW satellite (MTQ-only) with same MTQ config
+            sat_0rw = create_beavercube1_cubesat(estimated=False)
+
+            # Strip RW state from x_0: [ω(3), q(4), h_rw(1)] → [ω(3), q(4)]
+            x_0_mtq = x_0[:7]
+
+            # Create settings for 0RW planning
+            s = settings_factory(dt)
+            s.bdot_on = 0
+            s.use_infeasible_start = False
+
+            ctrl_0rw = Plan_and_Track_LQR(est_sat=sat_0rw, planner_settings=s)
+            lqr_times, Xset, Uset, Kset, Sset = ctrl_0rw._calculate_trajectory_common(
+                t_start, duration, x_0_mtq, os_0, goals, verbose
+            )
+
+            # Pad to 1RW dimensions:
+            # States: (7, N) → (8, N): append h_rw=0 row
+            N_states = Xset.shape[1]
+            Xset_1rw = np.vstack([Xset, np.zeros((1, N_states))])
+
+            # Controls: (3, N) → (4, N): append τ_rw=0 row
+            N_ctrl = Uset.shape[1]
+            Uset_1rw = np.vstack([Uset, np.zeros((1, N_ctrl))])
+
+            # K-gains: (n_ctrl_0rw * n_dx_0rw, N_K) → (n_ctrl_1rw * n_dx_1rw, N_K)
+            # 0RW: K is (3×6, N_K) = (18, N_K) — 3 controls, 6 reduced states
+            # 1RW: K is (4×7, N_K) = (28, N_K) — 4 controls, 7 reduced states
+            # Strategy: embed 0RW K into 1RW K with zeros for RW row/column
+            if Kset is not None and Kset.shape[0] > 0:
+                N_K = Kset.shape[1]
+                n_ctrl_0 = 3; n_dx_0 = 6
+                n_ctrl_1 = 4; n_dx_1 = 7
+                Kset_1rw = np.zeros((n_ctrl_1 * n_dx_1, N_K))
+                for k in range(N_K):
+                    # Reshape 0RW K to (3, 6) matrix
+                    K_0 = Kset[:, k].reshape(n_ctrl_0, n_dx_0)
+                    # Embed into (4, 7): first 3 rows × first 6 cols = MTQ gains
+                    K_1 = np.zeros((n_ctrl_1, n_dx_1))
+                    K_1[:n_ctrl_0, :n_dx_0] = K_0
+                    # RW row (index 3) and h_rw column (index 6) stay zero
+                    Kset_1rw[:, k] = K_1.ravel()
+            else:
+                Kset_1rw = Kset
+
+            if verbose:
+                print(f"  0RW fallback: planned successfully, padded to 1RW dims")
+
+            return Trajectory(lqr_times, Xset_1rw, Uset_1rw, Kset_1rw, Sset)
+
+        except Exception as e:
+            if verbose:
+                print(f"  0RW fallback: FAILED ({e})")
+            return None
 
     def _extract_goal_quaternion(self, goals, t_start, duration, x_0, os_0):
         """Extract target quaternion from goals for plan quality evaluation.
