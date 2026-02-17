@@ -265,10 +265,7 @@ class MonteCarloRunner:
         print(f"Starting Monte Carlo: {self.num_runs} runs on {self.max_workers} cores.")
 
         with Live(dashboard, refresh_per_second=10):
-            # Use 'spawn' to avoid fork-safety issues with C++ pybind11 modules
-            # (Armadillo RNG, augmented Lagrangian state, etc.)
-            mp_ctx = multiprocessing.get_context('spawn')
-            with ProcessPoolExecutor(max_workers=self.max_workers, mp_context=mp_ctx, initializer=_worker_init, initargs=(progress_q, slot_q)) as executor:
+            with ProcessPoolExecutor(max_workers=self.max_workers, initializer=_worker_init, initargs=(progress_q, slot_q)) as executor:
                 
                 futures = {executor.submit(self.sim_func, cfg): cfg["run_id"] for cfg in configs}
                 

@@ -346,7 +346,7 @@ if __name__ == "__main__":
             sim_func=run_single_sim,
             config_generator=generate_mc_config,
             num_runs=NUM_RUNS,
-            max_workers=1  # Planner is memory-intensive
+            max_workers=4  # Planner is memory-intensive
         )
         full_results = runner.run()
 
