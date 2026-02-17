@@ -580,8 +580,12 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
             # sufficient, and the cascade (dt=2/dt=1) is extremely slow
             # with homotopy enabled.
             spike_thresh = 180.0
-        elif not has_rw and spike_thresh > 10.0:
-            spike_thresh = 10.0
+        elif not has_rw:
+            # MTQ-only ECI goals: 30° threshold balances accuracy vs planning time.
+            # The cascade to dt=1 (30-60s per attempt) rarely improves results
+            # beyond what gain_scale=0.5 provides for tracking. Seeds with >30°
+            # plan error at dt=10 have fundamental B-field-parallel torque gaps.
+            spike_thresh = 30.0
         
         settings_factory = getattr(self, '_settings_factory', None)
         if settings_factory is None:
@@ -663,20 +667,28 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
         # K-gains are computed along infeasible states/controls, causing
         # catastrophic tracking failure in real simulation (~148° error).
         # Must use no-slacks for physically valid K-gains.
-        for mode in [0, 4]:
+        #
+        # For RW+quat goals, try mode 6 (SLERP warm-start) first — it avoids
+        # bounce local minima by starting from the geometric SLERP path. Mode 0
+        # is tried as fallback or shape-retry.
+        phase1_modes = [6, 0] if (has_rw and is_quat_goal) else [0, 4]
+        for mode in phase1_modes:
             angle = try_config(dt_coarse, mode, False, f"dt={dt_coarse} mode={mode}")
             if angle <= spike_thresh:
                 if not has_rw and not is_quat_goal:
                     # MTQ-only ECI goals: try dt=1 refine for better K-gains
-                    # but don't reject the coarse plan.
-                    coarse_traj = best_traj
-                    coarse_angle = best_angle
-                    best_angle = 999.0
-                    angle_fine = try_config(dt_fine, 0, False, 
-                                           f"dt={dt_fine} mode=0 (MTQ refine)")
-                    if angle_fine > 120.0:  # catastrophic winding
-                        best_traj = coarse_traj
-                        best_angle = coarse_angle
+                    # ONLY if the coarse plan is marginal (>5° error).
+                    # Good plans (≤5°) at dt=10 track well enough with
+                    # gain_scale=0.5 that dt=1 refinement isn't worth 30-60s.
+                    if angle > 5.0:
+                        coarse_traj = best_traj
+                        coarse_angle = best_angle
+                        best_angle = 999.0
+                        angle_fine = try_config(dt_fine, 0, False, 
+                                               f"dt={dt_fine} mode=0 (MTQ refine)")
+                        if angle_fine > 120.0:  # catastrophic winding
+                            best_traj = coarse_traj
+                            best_angle = coarse_angle
                     return best_traj
                 if not has_rw and is_quat_goal:
                     # MTQ-only quat goals: if wound (>90°), try mode 4 too.
@@ -688,50 +700,45 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
                 # Some plans converge to 0° final error but have "bounce"
                 # trajectories (error spikes in the 2nd half). These are local
                 # minima from the B-field varying along the orbit.
-                # Fix: try with boosted ang_vel cost (×3) which penalizes the
-                # angular velocity needed for bounces. ~1s overhead.
+                #
+                # Mode 0 (zero init) and Mode 6 (SLERP warm-start) find
+                # DIFFERENT local minima — they're complementary. When the
+                # current mode bounces, try the other mode and pick the
+                # better shape. ~1s overhead.
                 if has_rw and is_quat_goal and best_traj is not None:
                     max_2nd_half = self._plan_max_2nd_half_error(
                         best_traj.states, q_goal)
                     shape_thresh = 5.0  # degrees
                     if max_2nd_half > shape_thresh:
+                        # Try the complementary init mode
+                        alt_mode = 6 if mode == 0 else 0
                         if verbose:
-                            print(f"  Shape check: max_2nd_half={max_2nd_half:.1f}° > {shape_thresh}°, trying av×3")
-                        # Save current best
+                            print(f"  Shape check: max_2nd_half={max_2nd_half:.1f}° > {shape_thresh}°, trying mode {alt_mode}")
                         saved_traj = best_traj
                         saved_angle = best_angle
                         saved_max2 = max_2nd_half
-                        # Try with boosted ang_vel cost
                         try:
-                            s_boost = settings_factory(dt_coarse)
-                            s_boost.bdot_on = mode
-                            s_boost.use_infeasible_start = False
-                            for cs in [s_boost.cost_main, s_boost.cost_second]:
-                                cs.ang_vel *= 3.0
-                                cs.ang_vel_N *= 3.0
-                                cs.set_cross_term_auto(fraction=0.25)
-                            ctrl_boost = Plan_and_Track_LQR(
-                                est_sat=self.est_sat, planner_settings=s_boost)
-                            lqr_t, Xs, Us, Ks, Ss = ctrl_boost._calculate_trajectory_common(
-                                t_start, duration, x_0, os_0, goals, verbose)
-                            traj_boost = Trajectory(lqr_t, Xs, Us, Ks, Ss)
-                            angle_boost = evaluate_plan(traj_boost)
-                            max2_boost = self._plan_max_2nd_half_error(
-                                traj_boost.states, q_goal)
-                            if verbose:
-                                print(f"  av×3 attempt: final={angle_boost:.1f}°, max2nd={max2_boost:.1f}°")
-                            # Pick the one with better shape (lower max_2nd_half)
-                            if max2_boost < saved_max2:
-                                best_traj = traj_boost
-                                best_angle = angle_boost
+                            angle_alt = try_config(dt_coarse, alt_mode, False,
+                                                   f"dt={dt_coarse} mode={alt_mode} (shape retry)")
+                            if best_traj is not None and best_traj != saved_traj:
+                                max2_alt = self._plan_max_2nd_half_error(
+                                    best_traj.states, q_goal)
                                 if verbose:
-                                    print(f"  Using av×3 trajectory (max2nd {saved_max2:.1f}→{max2_boost:.1f}°)")
+                                    print(f"  mode {alt_mode}: final={angle_alt:.1f}°, max2nd={max2_alt:.1f}°")
+                                # Pick the one with better shape
+                                if max2_alt >= saved_max2:
+                                    best_traj = saved_traj
+                                    best_angle = saved_angle
+                                    if verbose:
+                                        print(f"  Keeping mode {mode} (max2nd {max2_alt:.1f}° ≥ {saved_max2:.1f}°)")
+                                elif verbose:
+                                    print(f"  Using mode {alt_mode} (max2nd {saved_max2:.1f}→{max2_alt:.1f}°)")
                             else:
                                 best_traj = saved_traj
                                 best_angle = saved_angle
                         except Exception as e:
                             if verbose:
-                                print(f"  av×3 attempt failed: {e}")
+                                print(f"  mode {alt_mode} attempt failed: {e}")
                             best_traj = saved_traj
                             best_angle = saved_angle
                 
