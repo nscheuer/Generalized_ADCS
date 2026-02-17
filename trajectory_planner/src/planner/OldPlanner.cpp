@@ -1329,9 +1329,11 @@ AFTER_OUTPUT_FORM OldPlanner::trajOptAfter(VECTOR_INFO_FORM vecs_w_time,double d
           }
         }
       } else if (slack_max_val > 0) {
-        // Slacks at coarse dt — use Pass 1 directly (Pass 2 would wound)
+        // Slacks at coarse dt — use Pass 1 directly (Pass 2 inv-dyn forward sim
+        // is unstable at dt > 2s). K-gains from SLERP states + inv-dyn controls
+        // via skip_pass2 path still work well.
         cout << "Pass 2: using Pass 1 traj directly (slack_max=" << slack_max_val 
-             << ", dt=" << dt_tvlqr << " too coarse for Pass 2)\n";
+             << ", dt=" << dt_tvlqr << " too coarse for inv-dyn fwd sim)\n";
         opt2 = opt;
         gradOut2 = 0;
       } else {
