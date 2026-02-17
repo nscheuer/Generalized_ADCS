@@ -248,6 +248,14 @@ public:
     // Negative power (ramp down) forces aggressive early rotation for torque-limited systems
     double ang_cost_time_power = 0.0;
     double ang_cost_time_min = 0.1;  // floor: 10% of full angle cost at low end of ramp
+    
+    // Cost homotopy: gradually shift from front-weighted to uniform angle cost.
+    // Over the first cost_homotopy_iters outer iterations, ang_cost_time_power
+    // ramps from cost_homotopy_power_start toward 0 (uniform). This forces the
+    // optimizer to first establish a smooth early trajectory, then gradually
+    // extend convergence toward the end. Set cost_homotopy_iters=0 to disable.
+    int cost_homotopy_iters = 0;
+    double cost_homotopy_power_start = -2.0;  // negative = front-heavy ramp
 
     std::vector<double> RW_J = {};
 

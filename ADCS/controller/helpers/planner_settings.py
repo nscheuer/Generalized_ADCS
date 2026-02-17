@@ -255,13 +255,17 @@ class PlannerSettings:
         # Solver Configurations
         # Two-pass optimization strategy:
         # - Pass 1 (Exploration): Lower penalty (1e-3), more iterations for global search
-        # - Pass 2 (Refinement): Higher penalty (1e4), fewer iterations for constraint satisfaction
+        # - Pass 2 (Refinement): Same penalty as Pass 1, fewer iterations for polishing.
+        #   Pass 2 warm-starts from Pass 1's converged solution, so constraints are
+        #   already nearly satisfied. High penalty (old: 1e4) fights the warm-start
+        #   and destroys trajectory topology. Low penalty lets the optimizer refine
+        #   while respecting the Pass 1 structure.
         converge1 = ConvergenceConfig(max_outer_iter=20, max_inner_iter=60)
         auglag1 = AugLagConfig(penalty_init=1e-3)
         self.pass1 = pass1_config if pass1_config else SolverPassConfig(convergence=converge1, aug_lag=auglag1)
 
         converge2 = ConvergenceConfig(max_outer_iter=20, max_inner_iter=30)
-        auglag2 = AugLagConfig(penalty_init=1e4)
+        auglag2 = AugLagConfig(penalty_init=1e-3)
         self.pass2 = pass2_config if pass2_config else SolverPassConfig(convergence=converge2, aug_lag=auglag2)
 
         # Initilization
@@ -272,6 +276,8 @@ class PlannerSettings:
         self.umax = self.control_limit_scale * np.array([act.u_max for act in self.est_sat.actuators])
         self.wmax = 50*np.pi/180.0  # 50°/s - allows aggressive RW usage
         self.slerp_init_rate = None  # Mode 6 SLERP rate (rad/s). None = use C++ default (3°/s)
+        self.cost_homotopy_iters = 0  # Number of outer iters for cost homotopy (0=disabled)
+        self.cost_homotopy_power_start = -2.0  # Starting power for front-heavy ramp
         self.sun_limit_angle = 1*np.pi/180.0
         self.camera_axis = np.array([[0, 1, 0]]).T
 

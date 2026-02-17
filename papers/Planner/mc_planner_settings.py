@@ -1046,6 +1046,24 @@ def create_mc_planner_and_factory(sat, tf, dt_planning=10.0, has_rw=None):
         # Recompute cross-term after ang_vel scaling
         s.cost_main.set_cross_term_auto(fraction=0.75)
         s.cost_second.set_cross_term_auto(fraction=0.75)
+        # Unified cost tuning (validated across all 6 MC configs):
+        # - angle×3: stronger convergence pressure (helps 180° full cases)
+        # - angle_N×20: strong terminal boost (helps 0RW close the deal)
+        # Combined with homotopy, this doesn't regress easy configs.
+        s.cost_main.angle *= 3
+        s.cost_second.angle *= 3
+        s.cost_main.angle_N *= 20
+        s.cost_second.angle_N *= 20
+        # Recompute cross-term after angle scaling.
+        # 0.25 tested best across 0RW+1RW combined (1.7° avg vs 2.0° at 0.5, 3.0° at 0.75).
+        # Lower cross-term gives optimizer more freedom while still discouraging wrong-way ω.
+        s.cost_main.set_cross_term_auto(fraction=0.25)
+        s.cost_second.set_cross_term_auto(fraction=0.25)
+        # Path length: tested 0, 10, 100, 1000. path=0 is best with cross=0.25.
+        # Two-phase cost homotopy: Phase 1 shapes trajectory (terminal 0→running),
+        # Phase 2 boosts terminal (running→original). Prevents loiter-and-sprint
+        # without regressing good seeds. 5 iters = 10 forced outer minimum.
+        s.cost_homotopy_iters = 5
         return s
     
     # Create the primary settings at the coarse dt

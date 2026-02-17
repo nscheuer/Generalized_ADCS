@@ -269,7 +269,7 @@ BEFORE_OUTPUT_FORM OldPlanner::trajOptBefore(VECTOR_INFO_FORM vecs_w_time,double
   TRAJECTORY_FORM traj;
 
   if(verbose){cout<<"setting bdotOn="<<bdotOn<<endl;}
-  if(bdotOn==0 || sat.number_MTQ<3 || bdotOn>6)
+  if(bdotOn==0 || sat.number_MTQ<3 || bdotOn>7)
   {
     if(verbose)
     {
@@ -551,6 +551,145 @@ BEFORE_OUTPUT_FORM OldPlanner::trajOptBefore(VECTOR_INFO_FORM vecs_w_time,double
       }
       cout<<"SLERP no-slack init (3°/s), |U| = "<<norm(U_slerp, "fro")
           <<", max fwd-sim vs SLERP q-diff = "<<max_q_diff<<"°\n";
+    }
+  }
+  else if(bdotOn==7)
+  {
+    // Mode 7: B-field-perpendicular continuous rotation warm-start.
+    // At each timestep, compute the best rotation axis that's perpendicular to B
+    // AND makes progress toward the goal. When the error axis aligns with B
+    // (no direct progress possible), rotate sideways to change the alignment.
+    // This is the continuous version of decomposing a rotation into two rotations
+    // around axes perpendicular to B.
+    if(verbose){cout<<"B-field-perpendicular warm-start initialization\n";}
+    
+    mat Bset = get<3>(vecs);
+    mat Rset = get<1>(vecs);
+    mat Vset = get<2>(vecs);
+    mat Sset = get<4>(vecs);
+    mat ECIvec = get<6>(vecs);
+    vec pset = get<7>(vecs);
+    vec t = get<0>(vecs);
+    
+    mat Xset = mat(sat.state_N(), traj_length);
+    mat Uset = mat(sat.control_N(), traj_length).zeros();
+    mat TQset = mat(3, traj_length).zeros();
+    
+    vec xk = sat.state_norm(x0);
+    Xset.col(0) = xk;
+    
+    vec umax = join_cols(vec(sat.MTQ_max), 
+                         vec(sat.RW_max_torq) / NONMTQ_TORQ_SCALE, 
+                         vec(sat.magic_max_torq) / NONMTQ_TORQ_SCALE);
+    
+    // Use slerp_init_rate for maximum angular velocity (rad/s)
+    double w_max = sat.slerp_init_rate;
+    
+    for(int k = 0; k < traj_length - 1; k++) {
+      vec4 qk = normalise(xk.rows(3, 6));
+      vec3 wk = xk.head(3);
+      mat33 Rmat = rotMat(qk);
+      mat33 RmatT = Rmat.t();
+      vec3 Bk_eci = Bset.col(k);
+      vec3 Bbody = RmatT * Bk_eci;
+      vec3 Bhat = normalise(Bbody);
+      double nB2 = dot(Bbody, Bbody);
+      
+      vec ek = ECIvec.col(k);
+      vec3 w_des = vec3(fill::zeros);
+      vec uk = vec(sat.control_N()).zeros();
+      
+      bool is_quat = !((ek.n_elem == 3) || ((ek.n_elem == 4) && (isnan(ek(0)))));
+      
+      if (is_quat) {
+        vec4 qgoal = normalise(ek);
+        vec4 qerr = normquaterr(qgoal, qk);
+        if (qerr(0) < 0) qerr = -qerr;
+        
+        double theta_err = 2.0 * acos(std::min(1.0, std::abs(qerr(0))));
+        
+        if (theta_err > 1e-4) {
+          // Error axis in body frame
+          vec3 n_err_body = normalise(qerr.rows(1, 3));
+          
+          // Project error axis onto plane perpendicular to B
+          vec3 n_proj = n_err_body - dot(n_err_body, Bhat) * Bhat;
+          double proj_mag = norm(n_proj);
+          
+          // Perpendicular axis: B × n_err (for indirect progress when stuck)
+          vec3 n_perp = cross(Bhat, n_err_body);
+          double perp_mag = norm(n_perp);
+          
+          // Smooth blending: use projection magnitude to blend between
+          // direct progress and indirect (setup) rotation
+          double direct_weight = proj_mag;  // sin(angle between n_err and B)
+          double indirect_weight = 1.0 - proj_mag * proj_mag;  // cos²(angle)
+          
+          vec3 w_dir = vec3(fill::zeros);
+          if (proj_mag > 1e-6) {
+            w_dir = (direct_weight * theta_err) * (n_proj / proj_mag);
+          }
+          vec3 w_indir = vec3(fill::zeros);
+          if (perp_mag > 1e-6) {
+            // Indirect: rotate to change alignment, scaled by how stuck we are
+            w_indir = (indirect_weight * theta_err) * (n_perp / perp_mag);
+          }
+          
+          w_des = w_dir + w_indir;
+          
+          // Cap angular velocity
+          double w_mag = norm(w_des);
+          if (w_mag > w_max) {
+            w_des *= w_max / w_mag;
+          }
+        }
+      } else {
+        // Vector goal: use small random for now (B-perp mainly benefits quat goals)
+        uk = 0.05 * umax % (2*randu(sat.control_N()) - 1);
+      }
+      
+      // Inverse dynamics: τ = J * (w_des - wk) / dt + wk × (J * wk)
+      // Simplified: just compute the torque needed to achieve w_des
+      vec3 tau_des = sat.Jcom * (w_des - wk) / dt_use + cross(wk, sat.Jcom * wk);
+      
+      // Project torque onto achievable space: m = (B × τ) / |B|²
+      vec3 m_des = cross(Bbody, tau_des) / nB2;
+      uk.head(sat.number_MTQ) = sat.mtq_ax_mat.t() * m_des;
+      
+      // Saturate
+      double ur = max(abs(uk / umax));
+      if (ur > 1.0) uk = uk / ur;
+      
+      Uset.col(k) = uk;
+      
+      // Propagate dynamics
+      DYNAMICS_INFO_FORM dyn_kn1 = make_tuple(Bset.col(k), Rset.col(k), pset(k), Vset.col(k), Sset.col(k), 0);
+      DYNAMICS_INFO_FORM dyn_k = make_tuple(Bset.col(k+1), Rset.col(k+1), pset(k+1), Vset.col(k+1), Sset.col(k+1), 0);
+      
+      tuple<vec, vec> dynout = rk4z(dt_use, xk, uk, sat, dyn_kn1, dyn_k);
+      xk = sat.state_norm(get<0>(dynout));
+      Xset.col(k+1) = xk;
+    }
+    
+    traj = make_tuple(Xset, Uset, t, TQset);
+    U.cols(0, traj_length-1) = Uset;
+    X = get<0>(traj);
+    TQ = TQset;
+    
+    if(verbose) {
+      // Report progress
+      vec4 qfinal = normalise(Xset.col(traj_length-1).rows(3,6));
+      vec ek_final = ECIvec.col(traj_length-1);
+      double final_err = 0;
+      if (!((ek_final.n_elem==3)||((ek_final.n_elem==4)&&(isnan(ek_final(0)))))) {
+        vec4 qgoal = normalise(ek_final);
+        final_err = 2.0 * acos(std::min(1.0, std::abs(dot(qfinal, qgoal)))) * 180.0 / M_PI;
+      }
+      double max_w = 0;
+      for(int k=0; k<traj_length; k++) {
+        max_w = std::max(max_w, norm(Xset.col(k).head(3)));
+      }
+      cout << "B-perp init: final_err=" << final_err << "° max_w=" << max_w*180/M_PI << "°/s\n";
     }
   }
   else
@@ -1035,9 +1174,16 @@ AFTER_OUTPUT_FORM OldPlanner::trajOptAfter(VECTOR_INFO_FORM vecs_w_time,double d
       auto pass2_ms = std::chrono::duration_cast<std::chrono::milliseconds>(t_end_pass2 - t_start_pass2).count();
       cout << "TIMING: Pass 2 SKIPPED (dt=" << dt_tvlqr << "s, N=" << get<0>(opt2).n_cols << "): " << pass2_ms << " ms\n";
     } else {
+      // Disable homotopy for Pass 2 (trajectory already shaped by Pass 1)
+      int saved_homotopy_diffdt = sat.cost_homotopy_iters;
+      sat.cost_homotopy_iters = 0;
+      
       _useEuler = use_euler_pass2;
       ALILQR_OUTPUT_FORM alilqrOut2 = OldPlanner::alilqr(dt_tvlqr,trajLong, vecs_tvlqr, costSettings2,alilqrSettings2,false);
       _useEuler = false;
+      
+      sat.cost_homotopy_iters = saved_homotopy_diffdt;
+      
       auto t_end_pass2 = std::chrono::high_resolution_clock::now();
       auto pass2_ms = std::chrono::duration_cast<std::chrono::milliseconds>(t_end_pass2 - t_start_pass2).count();
       cout << "TIMING: Pass 2 (dt=" << dt_tvlqr << "s, N=" << get<0>(trajLong).n_cols << "): " << pass2_ms << " ms\n";
@@ -1137,6 +1283,10 @@ AFTER_OUTPUT_FORM OldPlanner::trajOptAfter(VECTOR_INFO_FORM vecs_w_time,double d
           gradOut2 = 0;
         } else {
           // 3. Run Pass 2 ALILQR without slacks
+          // Disable homotopy — trajectory shape comes from inv-dyn warm-start
+          int saved_homotopy_slack = sat.cost_homotopy_iters;
+          sat.cost_homotopy_iters = 0;
+          
           bool saved_infeas2 = use_infeasible_start;
           use_infeasible_start = false;
           
@@ -1145,6 +1295,8 @@ AFTER_OUTPUT_FORM OldPlanner::trajOptAfter(VECTOR_INFO_FORM vecs_w_time,double d
               dt_tvlqr, trajInvDyn, vecs_tvlqr, costSettings2, alilqrSettings2, false);
           _useEuler = false;
           use_infeasible_start = saved_infeas2;
+          
+          sat.cost_homotopy_iters = saved_homotopy_slack;
           
           opt2 = get<0>(alilqrOut2);
           gradOut2 = std::get<2>(alilqrOut2);
@@ -1183,10 +1335,90 @@ AFTER_OUTPUT_FORM OldPlanner::trajOptAfter(VECTOR_INFO_FORM vecs_w_time,double d
         opt2 = opt;
         gradOut2 = 0;
       } else {
-        // No slacks used — trajectory is already feasible
-        cout << "Pass 2: no slacks, using Pass 1 traj directly\n";
-        opt2 = opt;
-        gradOut2 = 0;
+        // No slacks used — trajectory is dynamically feasible.
+        // Run Pass 2 ALILQR to refine the trajectory shape.
+        //
+        // CRITICAL: Disable cost homotopy for Pass 2. The trajectory is already
+        // well-shaped from Pass 1's homotopy. Re-running homotopy would set
+        // terminal cost to 0 at j=0, undoing the converged trajectory and
+        // causing it to "loiter" at intermediate angles.
+        cout << "Pass 2: no slacks, refining with Pass 2 ALILQR\n" << std::flush;
+        
+        // Save Pass 1 result for quality comparison
+        mat X_p1 = get<0>(opt);
+        mat U_p1 = get<1>(opt);
+        
+        // Build warm-start from Pass 1 result
+        // TRAJECTORY_FORM = (X, U, time_vec, TQ)
+        // OPT_FORM = (X, U, TQ, K, lambda, time_vec)
+        TRAJECTORY_FORM trajP2ws = make_tuple(
+            X_p1, U_p1, get<5>(opt), get<2>(opt));
+        
+        // Disable homotopy for Pass 2
+        int saved_homotopy = sat.cost_homotopy_iters;
+        sat.cost_homotopy_iters = 0;
+        
+        _useEuler = use_euler_pass2;
+        bool saved_infeas_noslack = use_infeasible_start;
+        use_infeasible_start = false;
+        // Skip forward sim: warm-start IS the trajectory we want to polish.
+        // Re-simulating could introduce numerical drift on 180° maneuvers.
+        bool saved_skip_fwd = skip_initial_fwd_sim;
+        skip_initial_fwd_sim = true;
+        ALILQR_OUTPUT_FORM alilqrOut2 = OldPlanner::alilqr(
+            dt_tvlqr, trajP2ws, vecs_tvlqr, costSettings2, alilqrSettings2, false);
+        skip_initial_fwd_sim = saved_skip_fwd;
+        _useEuler = false;
+        use_infeasible_start = saved_infeas_noslack;
+        
+        // Restore homotopy
+        sat.cost_homotopy_iters = saved_homotopy;
+        
+        OPT_FORM opt2_candidate = get<0>(alilqrOut2);
+        gradOut2 = std::get<2>(alilqrOut2);
+        
+        // Quality gate: compare Pass 2 to Pass 1 using max angle in 2nd half.
+        // If Pass 2 made trajectory worse (bounce, winding), keep Pass 1.
+        mat X_p2 = get<0>(opt2_candidate);
+        mat ECIvec_p2 = get<6>(vecs_tvlqr);
+        bool is_quat_p2 = (ECIvec_p2.n_rows == 4);
+        
+        double p1_max2nd = 0, p2_max2nd = 0;
+        if (is_quat_p2) {
+          vec4 q_goal_p2 = ECIvec_p2.col(ECIvec_p2.n_cols - 1);
+          int half_p1 = X_p1.n_cols / 2;
+          for (int k = half_p1; k < (int)X_p1.n_cols; k++) {
+            vec4 qk = normalise(X_p1(span(3,6), span(k,k)));
+            double c = std::min(std::abs(dot(qk, q_goal_p2)), 1.0);
+            double a = 2.0 * acos(c) * 180.0 / datum::pi;
+            p1_max2nd = std::max(p1_max2nd, a);
+          }
+          int half_p2 = X_p2.n_cols / 2;
+          for (int k = half_p2; k < (int)X_p2.n_cols; k++) {
+            vec4 qk = normalise(X_p2(span(3,6), span(k,k)));
+            double c = std::min(std::abs(dot(qk, q_goal_p2)), 1.0);
+            double a = 2.0 * acos(c) * 180.0 / datum::pi;
+            p2_max2nd = std::max(p2_max2nd, a);
+          }
+        }
+        
+        // Check for NaN in Pass 2 output
+        bool p2_has_nan = X_p2.has_nan() || get<1>(opt2_candidate).has_nan();
+        
+        if (p2_has_nan) {
+          cout << "  Pass 2 produced NaN — keeping Pass 1\n" << std::flush;
+          opt2 = opt;
+          gradOut2 = gradOut;
+        } else if (is_quat_p2 && p2_max2nd > p1_max2nd + 2.0) {
+          // Pass 2 made shape worse — keep Pass 1
+          cout << "  Pass 2 regressed shape (" << p2_max2nd << "° > " 
+               << p1_max2nd << "°) — keeping Pass 1\n" << std::flush;
+          opt2 = opt;
+          gradOut2 = gradOut;
+        } else {
+          opt2 = opt2_candidate;
+          cout << "  Pass 2 OK: max2nd " << p1_max2nd << "° → " << p2_max2nd << "°\n" << std::flush;
+        }
       }
     } else {
       // skip_pass2_optimization=True, same-dt case.
@@ -1273,6 +1505,15 @@ AFTER_OUTPUT_FORM OldPlanner::trajOptAfter(VECTOR_INFO_FORM vecs_w_time,double d
   mat X_lqr = get<0>(opt2);
   mat TQ_lqr = get<2>(opt2);
   vec dt_lqr = get<5>(opt2);
+  
+  if(verbose) {
+    cout << "findK prep: X=(" << X_lqr.n_rows << "," << X_lqr.n_cols 
+         << ") U=(" << U_lqr.n_rows << "," << U_lqr.n_cols 
+         << ") TQ=(" << TQ_lqr.n_rows << "," << TQ_lqr.n_cols 
+         << ") dt_lqr=" << dt_lqr.n_elem 
+         << " tvlqr_len=" << tvlqr_len << " tvlqr_overlap=" << tvlqr_overlap
+         << " dt_tvlqr=" << dt_tvlqr << "\n" << std::flush;
+  }
   
   // Variables for segment iteration (NSSR_3+1 style - forward iteration)
   // Initialize so first iteration starts at beginning of trajectory
@@ -2236,7 +2477,7 @@ tuple<cube, cube> OldPlanner::findKwDist(double dt_tvlqr0, TRAJECTORY_FORM& traj
   vec3 angErr;
   vec4 quatErr;
   vec otherErr = vec(sat.reduced_state_N()-6).zeros();
-  vec3 avErr = vec3().zeros();
+  vec3 avErr = vec3(fill::zeros);
   int N = Xset.n_cols;
   //Loop from k=1 to k=N-1 and update newU and newX
   DYNAMICS_INFO_FORM dynamics_info_kn1 = make_tuple(Bset.col(0),Rset.col(0),pset(0),Vset.col(0),Sset.col(0),int(useDist));
@@ -2949,8 +3190,64 @@ ALILQR_OUTPUT_FORM OldPlanner::alilqr(double dt0,TRAJECTORY_FORM traj, VECTOR_IN
   }
   double stepsSinceRand = -1;
 
+  // Save original settings for homotopy restoration
+  double orig_ang_cost_time_power = sat.ang_cost_time_power;
+  double orig_ang_cost_time_min = sat.ang_cost_time_min;
+  double orig_angle_weight_N = get<5>(costSettings_tmp);
+  double orig_angvel_weight_N = get<6>(costSettings_tmp);
+  double orig_cross_weight_N = get<8>(costSettings_tmp);
+  
   for(int j = 0; j < maxOuterIter_tmp; j++)
   {
+    // Two-phase cost homotopy:
+    //
+    // Phase 1 (j < homotopy_iters): "Shape" phase
+    //   Running cost: front-heavy → uniform (ang_cost_time_min: 0 → 1)
+    //   Terminal cost: 0 → running_weight (no boost, same as running at k=N-1)
+    //   This produces smooth, monotonically converging trajectory shapes
+    //   without the "loiter and sprint" incentive.
+    //
+    // Phase 2 (j >= homotopy_iters): "Finish" phase
+    //   Running cost: uniform (ang_cost_time_min = 1, power = 0)
+    //   Terminal cost: running_weight → original terminal weight (the 100× boost)
+    //   This adds the terminal pressure to push through the last degrees,
+    //   starting from the good trajectory shape established in Phase 1.
+    if (sat.cost_homotopy_iters > 0) {
+      int H = sat.cost_homotopy_iters;
+      double w_ang_running = get<0>(costSettings_tmp);
+      double w_av_running = get<1>(costSettings_tmp);
+      double w_cross_running = get<4>(costSettings_tmp);
+      
+      if (j < H) {
+        // Phase 1: shape the trajectory
+        double alpha = double(j) / double(H);
+        sat.ang_cost_time_power = -1.0;  // linear ramp
+        sat.ang_cost_time_min = alpha;    // floor: 0 → 1
+        // Terminal = running * alpha (zero at start, equals running at end of phase 1)
+        get<5>(costSettings_tmp) = w_ang_running * alpha;
+        get<6>(costSettings_tmp) = w_av_running * alpha;
+        get<8>(costSettings_tmp) = w_cross_running * alpha;
+        if (verbose) {
+          cout << "  homotopy SHAPE j=" << j << ": alpha=" << alpha 
+               << " ang_N=" << get<5>(costSettings_tmp) << "\n";
+        }
+      } else {
+        // Phase 2: boost terminal to close the deal
+        double beta = std::min(1.0, double(j - H) / double(H));
+        sat.ang_cost_time_power = 0.0;   // uniform running cost
+        sat.ang_cost_time_min = 1.0;
+        // Terminal ramps: running → original (e.g. 100× running)
+        get<5>(costSettings_tmp) = w_ang_running + beta * (orig_angle_weight_N - w_ang_running);
+        get<6>(costSettings_tmp) = w_av_running + beta * (orig_angvel_weight_N - w_av_running);
+        get<8>(costSettings_tmp) = w_cross_running + beta * (orig_cross_weight_N - w_cross_running);
+        if (verbose) {
+          cout << "  homotopy FINISH j=" << j << ": beta=" << beta 
+               << " ang_N=" << get<5>(costSettings_tmp) 
+               << " target=" << orig_angle_weight_N << "\n";
+        }
+      }
+    }
+    
      if(verbose){cout<<"outer iter "<<j<<"\n";}
     //reset cmaxtmp, dlaZcount
     cmaxtmp = 0.0;
@@ -3019,7 +3316,9 @@ ALILQR_OUTPUT_FORM OldPlanner::alilqr(double dt0,TRAJECTORY_FORM traj, VECTOR_IN
         break;
       }
     }
-    if(OldPlanner::outerBreak(auglag_vals,cmaxtmp,breakSettings_tmp,auglagSettings_tmp)&&j>2&&OldPlanner::ilqrBreak(grad,LA,dLA,dlaZcount,cmaxtmp,iter,breakSettings_tmp,true)) {
+    // Don't allow early break during cost homotopy — the cost function is still changing
+    int min_outer = (sat.cost_homotopy_iters > 0) ? 2 * sat.cost_homotopy_iters : 2;
+    if(OldPlanner::outerBreak(auglag_vals,cmaxtmp,breakSettings_tmp,auglagSettings_tmp)&&j>min_outer&&OldPlanner::ilqrBreak(grad,LA,dLA,dlaZcount,cmaxtmp,iter,breakSettings_tmp,true)) {
       if(verbose){cout<<"outerbreak\n";}
       break;
     }
@@ -3046,6 +3345,15 @@ ALILQR_OUTPUT_FORM OldPlanner::alilqr(double dt0,TRAJECTORY_FORM traj, VECTOR_IN
       }
     }
   }
+  // Restore original settings after homotopy
+  if (sat.cost_homotopy_iters > 0) {
+    sat.ang_cost_time_power = orig_ang_cost_time_power;
+    sat.ang_cost_time_min = orig_ang_cost_time_min;
+    get<5>(costSettings_tmp) = orig_angle_weight_N;
+    get<6>(costSettings_tmp) = orig_angvel_weight_N;
+    get<8>(costSettings_tmp) = orig_cross_weight_N;
+  }
+  
   cout << "ALILQR: " << iter << " total iters, " << current_outer_iter+1 << " outer, final grad=" << grad << " dLA=" << dLA << " cost=" << LA << endl;
   if(verbose){cout<<"out of loops\n";}
   

@@ -326,6 +326,27 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
         return np.degrees(2 * np.arccos(cos_half))
 
     @staticmethod
+    def _plan_max_2nd_half_error(Xset: np.ndarray, q_goal: np.ndarray) -> float:
+        """Compute max quaternion angle to goal in the 2nd half of the trajectory.
+        
+        This measures trajectory SHAPE quality: a good trajectory converges
+        monotonically, so the max error in the 2nd half should be near 0°.
+        A "bounce" trajectory may have 0° final error but >50° max in the
+        2nd half, indicating the optimizer found a bad local minimum.
+        """
+        N = Xset.shape[1]
+        start = N // 2
+        max_ang = 0.0
+        for k in range(start, N):
+            q = Xset[3:7, k]
+            q = q / np.linalg.norm(q)
+            cos_half = min(abs(np.dot(q, q_goal)), 1.0)
+            ang = np.degrees(2 * np.arccos(cos_half))
+            if ang > max_ang:
+                max_ang = ang
+        return max_ang
+
+    @staticmethod
     def _plan_max_angle(Xset: np.ndarray, q_goal: np.ndarray, skip_fraction: float = 0.2) -> float:
         """Compute max angle to goal after initial transient, in degrees.
         
@@ -457,7 +478,11 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
             
             new_settings.bdot_on = bdot_on
             new_settings.use_infeasible_start = use_slacks
-            new_settings.skip_pass2_optimization = not use_slacks
+            # Respect the user's skip_pass2 setting; only force-skip when
+            # slacks are active (Pass 2 without slacks would wound).
+            if use_slacks:
+                new_settings.skip_pass2_optimization = True
+            # else: keep whatever the settings/factory produced
             if hasattr(self.planner_settings, 'infeasible_ctrl_mode'):
                 new_settings.infeasible_ctrl_mode = self.planner_settings.infeasible_ctrl_mode
             
@@ -548,6 +573,13 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
                 # MTQ-only: feasible plans ending <30° are much better than
                 # infeasible SLERP plans that end at 0° but can't be tracked.
                 spike_thresh = 30.0
+        elif has_rw:
+            # 1RW ECI goals: RW provides enough tracking authority to correct
+            # moderate planning errors. High threshold effectively disables
+            # the cascade for 1RW configs — dt=10 plans + RW tracking is
+            # sufficient, and the cascade (dt=2/dt=1) is extremely slow
+            # with homotopy enabled.
+            spike_thresh = 180.0
         elif not has_rw and spike_thresh > 10.0:
             spike_thresh = 10.0
         
@@ -591,10 +623,10 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
                 s = settings_factory(dt)
                 s.bdot_on = mode
                 s.use_infeasible_start = slacks
-                # Always skip Pass 2 alilqr: for standard plans it's unneeded
-                # (Pass 1 + findK is sufficient); for SLERP plans, Pass 2
-                # without slacks would wound the trajectory.
-                s.skip_pass2_optimization = True
+                # For SLERP (slacks=True), skip Pass 2 — without slacks it wounds.
+                # Otherwise, respect the setting from the factory.
+                if slacks:
+                    s.skip_pass2_optimization = True
                 if hasattr(self.planner_settings, 'infeasible_ctrl_mode'):
                     s.infeasible_ctrl_mode = self.planner_settings.infeasible_ctrl_mode
                 if slerp_rate is not None:
@@ -647,6 +679,58 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
                     if angle > 90.0:
                         continue  # Try next mode
                     return best_traj
+                
+                # RW configs with quat goals: check trajectory SHAPE quality.
+                # Some plans converge to 0° final error but have "bounce"
+                # trajectories (error spikes in the 2nd half). These are local
+                # minima from the B-field varying along the orbit.
+                # Fix: try with boosted ang_vel cost (×3) which penalizes the
+                # angular velocity needed for bounces. ~1s overhead.
+                if has_rw and is_quat_goal and best_traj is not None:
+                    max_2nd_half = self._plan_max_2nd_half_error(
+                        best_traj.states, q_goal)
+                    shape_thresh = 5.0  # degrees
+                    if max_2nd_half > shape_thresh:
+                        if verbose:
+                            print(f"  Shape check: max_2nd_half={max_2nd_half:.1f}° > {shape_thresh}°, trying av×3")
+                        # Save current best
+                        saved_traj = best_traj
+                        saved_angle = best_angle
+                        saved_max2 = max_2nd_half
+                        # Try with boosted ang_vel cost
+                        try:
+                            s_boost = settings_factory(dt_coarse)
+                            s_boost.bdot_on = mode
+                            s_boost.use_infeasible_start = False
+                            for cs in [s_boost.cost_main, s_boost.cost_second]:
+                                cs.ang_vel *= 3.0
+                                cs.ang_vel_N *= 3.0
+                                cs.set_cross_term_auto(fraction=0.25)
+                            ctrl_boost = Plan_and_Track_LQR(
+                                est_sat=self.est_sat, planner_settings=s_boost)
+                            lqr_t, Xs, Us, Ks, Ss = ctrl_boost._calculate_trajectory_common(
+                                t_start, duration, x_0, os_0, goals, verbose)
+                            traj_boost = Trajectory(lqr_t, Xs, Us, Ks, Ss)
+                            angle_boost = evaluate_plan(traj_boost)
+                            max2_boost = self._plan_max_2nd_half_error(
+                                traj_boost.states, q_goal)
+                            if verbose:
+                                print(f"  av×3 attempt: final={angle_boost:.1f}°, max2nd={max2_boost:.1f}°")
+                            # Pick the one with better shape (lower max_2nd_half)
+                            if max2_boost < saved_max2:
+                                best_traj = traj_boost
+                                best_angle = angle_boost
+                                if verbose:
+                                    print(f"  Using av×3 trajectory (max2nd {saved_max2:.1f}→{max2_boost:.1f}°)")
+                            else:
+                                best_traj = saved_traj
+                                best_angle = saved_angle
+                        except Exception as e:
+                            if verbose:
+                                print(f"  av×3 attempt failed: {e}")
+                            best_traj = saved_traj
+                            best_angle = saved_angle
+                
                 return best_traj
         
         # Phase 2: Try mode 6 at dt_coarse (SLERP warm-start, ~3s)
@@ -655,16 +739,20 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
             if best_angle <= spike_thresh:
                 return best_traj
         
-        # Phase 3: Fine dt (slower, ~10-15s each)
-        tight_thresh = spike_thresh / 5.0
-        for mode in [0, 4, 6]:
-            angle = try_config(dt_fine, mode, False, f"dt={dt_fine} mode={mode}")
-            if angle <= tight_thresh:
+        # Phase 3: Fine dt (slower, ~60-80s each at N=1001)
+        # Skip for RW configs: dt=1 rarely improves ECI/quat results for 1RW,
+        # and each attempt costs 60-80s. The RW provides enough tracking
+        # authority to correct moderate plan errors at dt=10.
+        if not has_rw:
+            tight_thresh = spike_thresh / 5.0
+            for mode in [0, 4, 6]:
+                angle = try_config(dt_fine, mode, False, f"dt={dt_fine} mode={mode}")
+                if angle <= tight_thresh:
+                    return best_traj
+            if best_angle <= spike_thresh:
                 return best_traj
-        if best_angle <= spike_thresh:
-            return best_traj
         
-        # Phase 3: SLERP warm-start WITHOUT slacks (mode 6) at dt=2
+        # Phase 3b: SLERP warm-start WITHOUT slacks (mode 6) at dt=2
         if best_angle > spike_thresh:
             dt_slerp = getattr(self.planner_settings, 'auto_refine_dt_slerp', 2.0)
             try_config(dt_slerp, 6, False, f"dt={dt_slerp} mode=6 (SLERP no-slack)")
