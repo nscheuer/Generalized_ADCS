@@ -2783,4 +2783,100 @@ TRAJECTORY_FORM closedLoopInvDynWarmStart(
     return make_tuple(Xset_fine, Uset_fine, t_fine, TQset_fine);
 }
 
+// Standalone findK: compute LQR K-gains along a trajectory
+// This mirrors OldPlanner::findK but takes the satellite directly,
+// so it can be called without constructing an OldPlanner.
+tuple<cube, cube> findK_standalone(
+    double dt_tvlqr0,
+    TRAJECTORY_FORM& traj,
+    VECTOR_INFO_FORM& vecs,
+    COST_SETTINGS_FORM costSettings,
+    Satellite& sat
+) {
+    mat Xset = get<0>(traj);
+    mat Uset = get<1>(traj);
+    mat ECIvec = get<6>(vecs);
+    mat satvec = get<5>(vecs);
+    mat Bset = get<3>(vecs);
+    mat Rset = get<1>(vecs);
+    mat sunset = get<4>(vecs);
+    mat Vset = get<2>(vecs);
+    vec pset = get<7>(vecs);
+    int N = Xset.n_cols;
+
+    cube Kset_lqr = cube(sat.control_N(), sat.reduced_state_N(), N-1).zeros();
+    cube Sset = cube(sat.reduced_state_N(), sat.reduced_state_N(), N).zeros();
+
+    // Terminal step
+    int k = N - 1;
+    vec xk = Xset.col(k);
+    vec xkp1 = xk;
+    vec3 bk = Bset.col(k);
+    vec3 sk = satvec.col(k);
+    vec ek = ECIvec.col(k);
+    vec uk = vec(sat.control_N()).zeros();
+    vec ukp = vec(sat.control_N()).zeros();
+    vec4 qk = xk.rows(sat.quat0index(), sat.quat0index() + 3);
+
+    cost_jacs costJac = sat.costJacobians(k, N, xk, xkp1, uk, ukp, sk, ek, bk, &costSettings);
+    mat lkxx = costJac.lxx;
+    mat lkuu = costJac.luu;
+
+    mat Sk = lkxx;
+    mat Kk = mat(sat.control_N(), sat.reduced_state_N()).zeros();
+    Sset.slice(k) = Sk;
+
+    mat A = mat(sat.state_N(), sat.state_N()).zeros();
+    mat B = mat(sat.state_N(), sat.control_N()).zeros();
+    mat Aqk = mat(sat.reduced_state_N(), sat.reduced_state_N()).zeros();
+    mat Bqk = mat(sat.reduced_state_N(), sat.control_N()).zeros();
+    mat C = mat(sat.state_N(), 3).zeros();
+
+    mat Gk = sat.findGMat(qk);
+    mat Gkp1 = Gk;
+    mat Skp1 = Sk;
+
+    // Backward pass
+    DYNAMICS_INFO_FORM dynamics_info_kp1 = make_tuple(Bset.col(k), Rset.col(k), pset(k), Vset.col(k), sunset.col(k), 1);
+    DYNAMICS_INFO_FORM dynamics_info_k = dynamics_info_kp1;
+
+    for (int k = N - 2; k >= 0; k--) {
+        dynamics_info_kp1 = dynamics_info_k;
+        dynamics_info_k = make_tuple(Bset.col(k), Rset.col(k), pset(k), Vset.col(k), sunset.col(k), 1);
+
+        Gkp1 = Gk;
+        xk = Xset.col(k);
+        xkp1 = Xset.col(k + 1);
+        uk = Uset.col(k);
+        ukp = ukp.zeros();
+        if (k > 0) { ukp = Uset.col(k - 1); }
+        sk = satvec.col(k);
+        ek = ECIvec.col(k);
+        qk = xk.rows(sat.quat0index(), sat.quat0index() + 3);
+        Skp1 = Sk;
+
+        costJac = sat.costJacobians(k, N, xk, xkp1, uk, ukp, sk, ek, bk, &costSettings);
+        lkxx = costJac.lxx;
+        lkuu = costJac.luu;
+
+        Gk = sat.findGMat(qk);
+
+        tuple<mat, mat, mat> AB = rk4zJacobians(dt_tvlqr0, xk, uk, sat, dynamics_info_k, dynamics_info_kp1);
+        A = get<0>(AB);
+        B = get<1>(AB);
+        C = get<2>(AB);
+
+        Aqk = Gkp1 * A * trans(Gk);
+        Bqk = Gkp1 * B;
+        mat Reff = lkuu + trans(Bqk) * Skp1 * Bqk;
+        Kk = solve(Reff, (trans(Bqk) * Skp1 * Aqk), solve_opts::likely_sympd + solve_opts::fast);
+
+        Kset_lqr.slice(k) = Kk;
+        Sk = lkxx + trans(Aqk) * Skp1 * Aqk - trans(Aqk) * Skp1 * Bqk * Kk;
+        Sk = 0.5 * (Sk + trans(Sk));
+        Sset.slice(k) = Sk;
+    }
+    return make_tuple(Kset_lqr, Sset);
+}
+
 // --- END HELPERS ---

@@ -810,11 +810,13 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
 
     def _plan_with_mtq_only_model(self, t_start, duration, x_0, os_0, goals,
                                     settings_factory, dt, verbose=False):
-        """Plan with an MTQ-only (0RW) satellite model, then pad to 1RW dims.
+        """Plan with an MTQ-only (0RW) model, then pad to 1RW dimensions.
 
         When the 1RW optimizer finds bouncing local minima for ECI goals, the
-        0RW optimizer consistently converges smoothly (simpler landscape).
-        The resulting trajectory is padded with zero RW state/control/K-gains.
+        0RW optimizer consistently converges smoothly (simpler 3-control
+        landscape). The resulting trajectory is padded with zero RW
+        state/control/K-gains. TVLQR tracking uses MTQs only, which is
+        sufficient (proven by 0RW Reduced ★★★ results).
 
         Returns a Trajectory with 1RW dimensions, or None on failure.
         """
@@ -847,28 +849,21 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
             N_ctrl = Uset.shape[1]
             Uset_1rw = np.vstack([Uset, np.zeros((1, N_ctrl))])
 
-            # K-gains: (n_ctrl_0rw * n_dx_0rw, N_K) → (n_ctrl_1rw * n_dx_1rw, N_K)
-            # 0RW: K is (3×6, N_K) = (18, N_K) — 3 controls, 6 reduced states
-            # 1RW: K is (4×7, N_K) = (28, N_K) — 4 controls, 7 reduced states
-            # Strategy: embed 0RW K into 1RW K with zeros for RW row/column
+            # K-gains: embed 0RW K(3×6) into 1RW K(4×7) with zeros for RW
             if Kset is not None and Kset.shape[0] > 0:
                 N_K = Kset.shape[1]
-                n_ctrl_0 = 3; n_dx_0 = 6
-                n_ctrl_1 = 4; n_dx_1 = 7
-                Kset_1rw = np.zeros((n_ctrl_1 * n_dx_1, N_K))
+                Kset_1rw = np.zeros((28, N_K))  # 4 controls × 7 reduced states
                 for k in range(N_K):
-                    # Reshape 0RW K to (3, 6) matrix
-                    K_0 = Kset[:, k].reshape(n_ctrl_0, n_dx_0)
-                    # Embed into (4, 7): first 3 rows × first 6 cols = MTQ gains
-                    K_1 = np.zeros((n_ctrl_1, n_dx_1))
-                    K_1[:n_ctrl_0, :n_dx_0] = K_0
+                    K_0 = Kset[:, k].reshape(3, 6)
+                    K_1 = np.zeros((4, 7))
+                    K_1[:3, :6] = K_0  # MTQ gains preserved
                     # RW row (index 3) and h_rw column (index 6) stay zero
                     Kset_1rw[:, k] = K_1.ravel()
             else:
                 Kset_1rw = Kset
 
             if verbose:
-                print(f"  0RW fallback: planned successfully, padded to 1RW dims")
+                print(f"  0RW fallback: planned with 0RW, padded to 1RW dims")
 
             return Trajectory(lqr_times, Xset_1rw, Uset_1rw, Kset_1rw, Sset)
 

@@ -112,6 +112,15 @@ TRAJECTORY_FORM kgainWarmStart(
     int quat_to_3vec_mode = 2
 );
 
+// Standalone findK: compute LQR K-gains along a trajectory without needing OldPlanner
+std::tuple<arma::cube, arma::cube> findK_standalone(
+    double dt,
+    TRAJECTORY_FORM& traj,
+    VECTOR_INFO_FORM& vecs,
+    COST_SETTINGS_FORM costSettings,
+    Satellite& sat
+);
+
 TRAJECTORY_FORM closedLoopInvDynWarmStart(
     const arma::mat& Xset_coarse,
     double dt_coarse,

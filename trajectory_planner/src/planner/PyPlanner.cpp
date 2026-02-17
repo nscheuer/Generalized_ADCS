@@ -596,4 +596,103 @@ PYBIND11_MODULE(tplaunch, m) {
     py::arg("quat_to_3vec_mode") = 2,
     "K-gain warm-start: propagate trajectory with feedback gains from coarse optimization"
     );
+
+    // Standalone findK: compute LQR K-gains along a given trajectory
+    // This creates a temporary OldPlanner and calls findK.
+    // Useful for computing K-gains with a different satellite model
+    // (e.g., 1RW K-gains on a trajectory planned with 0RW model).
+    m.def("compute_findK", [](
+        py::array_t<double> Xset_py,
+        py::array_t<double> Uset_py,
+        py::array_t<double> time_vec_py,
+        double dt,
+        Satellite& sat,
+        py::array_t<double> Rset_py,
+        py::array_t<double> Vset_py,
+        py::array_t<double> Bset_py,
+        py::array_t<double> Sset_py,
+        py::array_t<double> satvec_py,
+        py::array_t<double> ECIvec_py,
+        py::array_t<double> pset_py,
+        py::array_t<double> rhovec_py,
+        py::dict cost_settings_py
+    ) {
+        // Convert numpy arrays to arma
+        arma::mat Xset = numpyToArmaMatrix(Xset_py);
+        arma::mat Uset = numpyToArmaMatrix(Uset_py);
+        arma::vec time_vec = numpyToArmaVector(time_vec_py);
+        arma::mat Rset = numpyToArmaMatrix(Rset_py);
+        arma::mat Vset = numpyToArmaMatrix(Vset_py);
+        arma::mat Bset = numpyToArmaMatrix(Bset_py);
+        arma::mat Sset_mat = numpyToArmaMatrix(Sset_py);
+        arma::mat satvec = numpyToArmaMatrix(satvec_py);
+        arma::mat ECIvec = numpyToArmaMatrix(ECIvec_py);
+        arma::vec pset = numpyToArmaVector(pset_py);
+        arma::vec rhovec = numpyToArmaVector(rhovec_py);
+
+        // Build TRAJECTORY_FORM = (X, U, time_vec, TQ)
+        arma::mat TQset = arma::mat(3, Xset.n_cols, arma::fill::zeros);
+        TRAJECTORY_FORM traj = std::make_tuple(Xset, Uset, time_vec, TQset);
+
+        // Build VECTOR_INFO_FORM
+        VECTOR_INFO_FORM vecs = std::make_tuple(
+            time_vec, Rset, Vset, Bset, Sset_mat, satvec, ECIvec, pset, rhovec
+        );
+
+        // Build minimal cost settings from Python dict
+        // We need to read the cost weights from the dict
+        auto readDouble = [&](const char* key, double def) -> double {
+            if (cost_settings_py.contains(key)) return cost_settings_py[key].cast<double>();
+            return def;
+        };
+        auto readInt = [&](const char* key, int def) -> int {
+            if (cost_settings_py.contains(key)) return cost_settings_py[key].cast<int>();
+            return def;
+        };
+
+        // Build cost settings for findK
+        COST_SETTINGS_FORM costSettings;
+        std::get<0>(costSettings) = readDouble("angle", 100.0);      // angle cost
+        std::get<1>(costSettings) = readDouble("ang_vel", 100.0);     // angular velocity cost
+        std::get<2>(costSettings) = readDouble("angle_N", 1000.0);    // terminal angle cost
+        std::get<3>(costSettings) = readDouble("ang_vel_N", 1000.0);  // terminal ang_vel cost
+        std::get<4>(costSettings) = readDouble("cross_term", 0.0);    // cross term
+        std::get<5>(costSettings) = readDouble("cross_term_N", 0.0);  // terminal cross term
+        std::get<6>(costSettings) = readInt("boresight_mode", 0);     // boresight mode
+        std::get<7>(costSettings) = readInt("ang_cost_time_power", 0); // time power
+
+        // Call standalone findK (no OldPlanner needed)
+        auto [Kset_cube, Sset_cube] = findK_standalone(dt, traj, vecs, costSettings, sat);
+
+        // Package K-gains: cube(n_ctrl, n_reduced, N-1) → flat matrix (n_ctrl*n_reduced, N-1)
+        arma::mat Kset_flat = packageK(Kset_cube);
+
+        // Also package S matrix: cube(n_reduced, n_reduced, N) → flat matrix
+        arma::mat Sset_flat(Sset_cube.n_rows * Sset_cube.n_cols, Sset_cube.n_slices);
+        for (arma::uword k = 0; k < Sset_cube.n_slices; k++) {
+            Sset_flat.col(k) = arma::vectorise(Sset_cube.slice(k));
+        }
+
+        py::array_t<double> Kset_out = armaMatrixToNumpy(Kset_flat);
+        py::array_t<double> Sset_out = armaMatrixToNumpy(Sset_flat);
+
+        return py::make_tuple(Kset_out, Sset_out);
+    },
+    py::arg("Xset"),
+    py::arg("Uset"),
+    py::arg("time_vec"),
+    py::arg("dt"),
+    py::arg("sat"),
+    py::arg("Rset"),
+    py::arg("Vset"),
+    py::arg("Bset"),
+    py::arg("Sset"),
+    py::arg("satvec"),
+    py::arg("ECIvec"),
+    py::arg("pset"),
+    py::arg("rhovec"),
+    py::arg("cost_settings"),
+    "Compute LQR K-gains along a given trajectory using findK.\n"
+    "Useful for computing K-gains with a different satellite model than was used for planning."
+    );
 }
