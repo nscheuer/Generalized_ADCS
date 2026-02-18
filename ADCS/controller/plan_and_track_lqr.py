@@ -284,7 +284,7 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
         # K-gains are computed in optimizer units where RW controls are scaled.
         # u_ref is already converted to physical units by C++.
         # We need to scale du for RW/magic: du_phys = du_opt * NONMTQ_TORQ_SCALE
-        NONMTQ_TORQ_SCALE = 3e-5  # Must match C++ Satellite.hpp value
+        NONMTQ_TORQ_SCALE = 1.0  # Must match C++ Satellite.hpp value (was 3e-5)
         n_mtq = len([a for a in est_sat.actuators if hasattr(a, 'axis') and not hasattr(a, 'J')])
         if len(du) > n_mtq:
             du[n_mtq:] *= NONMTQ_TORQ_SCALE

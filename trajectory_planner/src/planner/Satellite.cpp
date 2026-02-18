@@ -321,7 +321,8 @@ void Satellite::auto_scale_control_costs(double base_weight){
     }
   }
 
-  // Scale RW costs
+  // Scale RW costs: preserve input weight, divide by max^2
+  // With NONMTQ_TORQ_SCALE=1.0, optimizer controls are in physical Nm
   for(int i = 0; i < number_RW; i++){
     double max_val = RW_max_torq.at(i);
     if(max_val > 0){

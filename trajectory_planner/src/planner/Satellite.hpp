@@ -35,7 +35,7 @@
 //
 // NOTE: For TVLQR K-gain computation, we use original (unscaled) costs via
 // save_original_costs() and use_original_costs() to ensure proper K-gain scaling.
-static const double NONMTQ_TORQ_SCALE = 3e-5;  // ≈ typical |B| in Tesla
+static const double NONMTQ_TORQ_SCALE = 1.0;  // Match thesis: no scaling (was 3e-5)
 
 
 

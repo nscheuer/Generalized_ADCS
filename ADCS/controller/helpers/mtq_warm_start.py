@@ -655,7 +655,7 @@ def kgain_warm_start_controls(
     # C++ optimizer uses scaled controls: u_opt = u_physical / NONMTQ_TORQ_SCALE
     # The flattened K format bypasses C++ output scaling (condition K_lqr.n_rows == sat.control_N() fails)
     # So both K and U from Pass1 are in optimizer units for RW - we scale to physical here
-    NONMTQ_TORQ_SCALE = 3e-5
+    NONMTQ_TORQ_SCALE = 1.0  # Must match C++ Satellite.hpp value (was 3e-5)
     n_mtq = n_controls - n_rw
 
     # Scale Uset_coarse RW rows to physical units (make a copy to avoid modifying original)
