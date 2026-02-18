@@ -2185,7 +2185,7 @@ tuple<cube, cube> OldPlanner::findK(double dt_tvlqr0, TRAJECTORY_FORM& traj, VEC
     Aqk = Gkp1*A*trans(Gk);
     Bqk = Gkp1*B;
     mat Reff = lkuu + trans(Bqk)*Skp1*Bqk;
-    Kk = solve(Reff, (trans(Bqk)*Skp1*Aqk),solve_opts::likely_sympd+solve_opts::fast);//inv(R + trans(Bqk)*Skp1*Bqk)*(trans(Bqk)*Skp1*Aqk);//
+    Kk = solve(Reff, (trans(Bqk)*Skp1*Aqk),solve_opts::likely_sympd);//inv(R + trans(Bqk)*Skp1*Bqk)*(trans(Bqk)*Skp1*Aqk);//
     
     Kset_lqr.slice(k) = Kk;
     // Sk = lkxx + trans(Aqk)*Skp1*Aqk - trans(Aqk)*Skp1*Bqk*Kk;
@@ -2276,7 +2276,7 @@ tuple<cube, cube> OldPlanner::findKwithTerminalS(double dt_tvlqr0, TRAJECTORY_FO
     C = get<2>(AB);
     Aqk = Gkp1*A*trans(Gk);
     Bqk = Gkp1*B;
-    Kk = solve((lkuu + trans(Bqk)*Skp1*Bqk), (trans(Bqk)*Skp1*Aqk),solve_opts::likely_sympd+solve_opts::fast);
+    Kk = solve((lkuu + trans(Bqk)*Skp1*Bqk), (trans(Bqk)*Skp1*Aqk),solve_opts::likely_sympd);
     Kset_lqr.slice(k) = Kk;
     Sk = lkxx + trans(Aqk)*Skp1*Aqk - trans(Aqk)*Skp1*Bqk*Kk;
     Sk = 0.5*(Sk+trans(Sk));
@@ -2394,7 +2394,7 @@ tuple<cube, cube> OldPlanner::findKwDist(double dt_tvlqr0, TRAJECTORY_FORM& traj
     //mat tmpVal = lkuu + trans(Bqk)*Skp1*Bqk;
     //eig_gen(eigvals,eigvecs,tmpVal);
     //Kk = eigvecs*diagmat(1/clamp(abs(eigvals),1e-8,datum::inf))*eigvecs.t()*trans(Bqk)*Skp1*Aqk;
-    Kk = solve((lkuu + trans(Bqk)*Skp1*Bqk), (trans(Bqk)*Skp1*Aqk),solve_opts::likely_sympd+solve_opts::fast);//inv(R + trans(Bqk)*Skp1*Bqk)*(trans(Bqk)*Skp1*Aqk);//
+    Kk = solve((lkuu + trans(Bqk)*Skp1*Bqk), (trans(Bqk)*Skp1*Aqk),solve_opts::likely_sympd);//inv(R + trans(Bqk)*Skp1*Bqk)*(trans(Bqk)*Skp1*Aqk);//
 
     Kset_lqr.slice(k) = Kk;
     // Sk = lkxx + trans(Aqk)*Skp1*Aqk - trans(Aqk)*Skp1*Bqk*Kk;
@@ -4100,60 +4100,35 @@ tuple<BACKWARD_PASS_RESULTS_FORM, REG_PAIR> OldPlanner::backwardPass(double dt0,
       // Qkuureg = eigvecs*diagmat(clamp(eigs,rho,datum::inf))*eigvecs.t();
       // Qkuureg = eigvecs*diagmat(clamp(abs(eigs),rho,datum::inf))*eigvecs.t();
 
-      // Control-space regularization: conditional based on regMode_tmp
-      // 0=control-space only, 1=state-space only, 2=both
+      // Control-space regularization matching BeaverCube flight code:
+      // 1. Eigenvalue pre-check: compute eigs(Quu), check min(eigs+rho) > 0
+      // 2. Only attempt solve if pre-check passes
+      // 3. Use likely_sympd solve (Cholesky-based, matching thesis)
       bool useControlReg = (regMode_tmp == 0 || regMode_tmp == 2);
       if (augmented) {
-        // For augmented system: regularize entire matrix with rho·I
-        // The slack portion has μ_eff·I but coupling B^T·P / P·B can make
-        // the full matrix indefinite when P has negative eigenvalues (cross-term).
         int m = sat.control_N();
         int n_red = sat.reduced_state_N();
         Qkuureg_aug = Qkuu_aug + rho * mat(m + n_red, m + n_red, fill::eye);
+        // Eigenvalue pre-check for augmented system
+        vec eigs_aug = eig_sym(Qkuu_aug);
+        if (min(eigs_aug + rho) <= 0) {
+          reset = true;
+          if(verbose){ cout<<"Augmented Qkuu eigenvalue pre-check failed: min(eigs+rho)="<<min(eigs_aug+rho)<<" at k="<<k<<"\n"; }
+        }
       } else if (useControlReg) {
+        // Eigenvalue pre-check (matching BeaverCube flight code)
+        eigs = eig_sym(Qkuu);
         Qkuureg = Qkuu + rho*mat(sat.control_N(),sat.control_N()).eye();
+        eigsreg = eigs + rho;
+        if (min(eigsreg) <= 0) {
+          reset = true;
+          if(verbose){ cout<<"Qkuu eigenvalue pre-check failed: min(eigs)="<<min(eigs)<<" rho="<<rho<<" at k="<<k<<"\n"; }
+        }
       } else {
         Qkuureg = Qkuu;
       }
       mat& Qsolve_uureg = augmented ? Qkuureg_aug : Qkuureg;
 
-
-
-
-
-      //regularization to all
-      // modeig = eigs+rho; //pure inverse of Qkuu+rho*eye
-      // modeig = abs(eigs)+rho; //pure inverse but abs(eigs)
-      // modeig = rho+clamp(eigs,0,datum::inf);  //pure inverse but first negative eigs are eliminated.
-
-      //clamping
-      // modeig = clamp(eigs,rho,datum::inf);  //all eigs greater than rho
-      // modeig = clamp(abs(eigs),rho,datum::inf);
-
-
-      //unlcear
-      // modeig = clamp(eigs+rho,rho,datum::inf);
-      // modeig = clamp(eigs+rho,0,datum::inf);
-
-
-      // reset |= (min(modeig) <= 0);
-      // Qkuureg_chol = eigvecs*diagmat(1.0/modeig)*eigvecs.t();
-
-      // Qkuureg_chol = eigvecs*diagmat(clamp(1.0/(eigs+rho),0,1.0/rho))*eigvecs.t();
-      // Qkuureg_chol = eigvecs*diagmat(clamp(1.0/abs(eigs+rho),0,datum::inf))*eigvecs.t();
-      // Qkuureg_chol = eigvecs*diagmat(1.0/clamp(eigs+rho,rho,datum::inf))*eigvecs.t();
-      // eigsreg = eigs + rho;
-      // reset |= !chol(Qkuureg_chol,Qkuureg_chol_piv,Qkuureg,"lower","matrix"); //cheap check for positive-definiteness
-      mat Qkuureg_chol_solve;
-      reset |= !chol(Qkuureg_chol_solve, Qsolve_uureg);
-
-      reset |= (Qkuureg_chol_solve.has_nan()||Qkuureg_chol_solve.has_inf());
-      if(verbose&&reset){
-        cout<<"Qkuu_reg not PD!\n";
-        cout<<"k "<<k<<"\n";
-        cout<<Qsolve_uu<<"\n";
-        cout<<Qsolve_u.t()<<"\n";
-      }
       if(!reset){
         if(Qsolve_uureg.has_nan()||Qsolve_uureg.has_inf()){
           if(verbose){
@@ -4161,12 +4136,13 @@ tuple<BACKWARD_PASS_RESULTS_FORM, REG_PAIR> OldPlanner::backwardPass(double dt0,
           }
           throw("somehow regularized Qkuu has nan/inf but nonregularized does not");
         }
-        // Solve augmented or standard system
+        // Solve augmented or standard system using Cholesky-based solve
+        // (matching BeaverCube flight code: solve_opts::likely_sympd)
         mat Kk_full;
         vec dk_full;
-        reset |= !solve(Kk_full, Qsolve_uureg, Qsolve_ux, solve_opts::likely_sympd+solve_opts::fast);
+        reset |= !solve(Kk_full, Qsolve_uureg, Qsolve_ux, solve_opts::likely_sympd);
         if(verbose&&reset){ cout<<"Solving Kk failed \n"; }
-        reset |= !solve(dk_full, Qsolve_uureg, Qsolve_u, solve_opts::likely_sympd+solve_opts::fast);
+        reset |= !solve(dk_full, Qsolve_uureg, Qsolve_u, solve_opts::likely_sympd);
         if(verbose&&reset){ cout<<"Solving dk failed \n"; }
         reset |= (dk_full.has_nan()||dk_full.has_inf());
         reset |= (Kk_full.has_nan()||Kk_full.has_inf());
