@@ -2185,7 +2185,7 @@ tuple<cube, cube> OldPlanner::findK(double dt_tvlqr0, TRAJECTORY_FORM& traj, VEC
     Aqk = Gkp1*A*trans(Gk);
     Bqk = Gkp1*B;
     mat Reff = lkuu + trans(Bqk)*Skp1*Bqk;
-    Kk = solve(Reff, (trans(Bqk)*Skp1*Aqk),solve_opts::likely_sympd);//inv(R + trans(Bqk)*Skp1*Bqk)*(trans(Bqk)*Skp1*Aqk);//
+    Kk = solve(Reff, (trans(Bqk)*Skp1*Aqk),solve_opts::likely_sympd+solve_opts::no_approx);//inv(R + trans(Bqk)*Skp1*Bqk)*(trans(Bqk)*Skp1*Aqk);//
     
     Kset_lqr.slice(k) = Kk;
     // Sk = lkxx + trans(Aqk)*Skp1*Aqk - trans(Aqk)*Skp1*Bqk*Kk;
@@ -2276,7 +2276,7 @@ tuple<cube, cube> OldPlanner::findKwithTerminalS(double dt_tvlqr0, TRAJECTORY_FO
     C = get<2>(AB);
     Aqk = Gkp1*A*trans(Gk);
     Bqk = Gkp1*B;
-    Kk = solve((lkuu + trans(Bqk)*Skp1*Bqk), (trans(Bqk)*Skp1*Aqk),solve_opts::likely_sympd);
+    Kk = solve((lkuu + trans(Bqk)*Skp1*Bqk), (trans(Bqk)*Skp1*Aqk),solve_opts::likely_sympd+solve_opts::no_approx);
     Kset_lqr.slice(k) = Kk;
     Sk = lkxx + trans(Aqk)*Skp1*Aqk - trans(Aqk)*Skp1*Bqk*Kk;
     Sk = 0.5*(Sk+trans(Sk));
@@ -2394,7 +2394,7 @@ tuple<cube, cube> OldPlanner::findKwDist(double dt_tvlqr0, TRAJECTORY_FORM& traj
     //mat tmpVal = lkuu + trans(Bqk)*Skp1*Bqk;
     //eig_gen(eigvals,eigvecs,tmpVal);
     //Kk = eigvecs*diagmat(1/clamp(abs(eigvals),1e-8,datum::inf))*eigvecs.t()*trans(Bqk)*Skp1*Aqk;
-    Kk = solve((lkuu + trans(Bqk)*Skp1*Bqk), (trans(Bqk)*Skp1*Aqk),solve_opts::likely_sympd);//inv(R + trans(Bqk)*Skp1*Bqk)*(trans(Bqk)*Skp1*Aqk);//
+    Kk = solve((lkuu + trans(Bqk)*Skp1*Bqk), (trans(Bqk)*Skp1*Aqk),solve_opts::likely_sympd+solve_opts::no_approx);//inv(R + trans(Bqk)*Skp1*Bqk)*(trans(Bqk)*Skp1*Aqk);//
 
     Kset_lqr.slice(k) = Kk;
     // Sk = lkxx + trans(Aqk)*Skp1*Aqk - trans(Aqk)*Skp1*Bqk*Kk;
@@ -4137,12 +4137,12 @@ tuple<BACKWARD_PASS_RESULTS_FORM, REG_PAIR> OldPlanner::backwardPass(double dt0,
           throw("somehow regularized Qkuu has nan/inf but nonregularized does not");
         }
         // Solve augmented or standard system using Cholesky-based solve
-        // (matching BeaverCube flight code: solve_opts::likely_sympd)
+        // (matching BeaverCube flight code: solve_opts::likely_sympd+solve_opts::no_approx)
         mat Kk_full;
         vec dk_full;
-        reset |= !solve(Kk_full, Qsolve_uureg, Qsolve_ux, solve_opts::likely_sympd);
+        reset |= !solve(Kk_full, Qsolve_uureg, Qsolve_ux, solve_opts::likely_sympd+solve_opts::no_approx);
         if(verbose&&reset){ cout<<"Solving Kk failed \n"; }
-        reset |= !solve(dk_full, Qsolve_uureg, Qsolve_u, solve_opts::likely_sympd);
+        reset |= !solve(dk_full, Qsolve_uureg, Qsolve_u, solve_opts::likely_sympd+solve_opts::no_approx);
         if(verbose&&reset){ cout<<"Solving dk failed \n"; }
         reset |= (dk_full.has_nan()||dk_full.has_inf());
         reset |= (Kk_full.has_nan()||Kk_full.has_inf());
@@ -4286,12 +4286,15 @@ tuple<TRAJECTORY_FORM,double, REG_PAIR> OldPlanner::forwardPass(double dt0,TRAJE
   //Loop while z is NOT between beta2 and beta1, and the new cost is higher than the original cost
   if(verbose){cout<<delV.t()<<"\n";}
 
+  // Evaluate alpha=0 (full step) cost BEFORE entering line search
+  // (matching thesis "stunningly beautiful" version: if cost already decreased, accept immediately)
   newTraj = generateTrajectory(dt0,0,traj,vecs, Kset, dset,useDist);
   newLA = cost2Func(newTraj,vecs,auglag_vals, costSettings_tmp_ptr);
-  // if(verbose){cout<<"ls iter, LA-nLA, nLA,TEST, z,alph,reg "<<-1<<" "<<LA-newLA<<" "<<newLA<<" "<<0<<" "<<nan("1")<<" "<<0<<" "<<get<0>(regs)<<"\n";}
-  newLA = 1.79769e+308;//1/eps;
+  if (use_infeasible_start) { newLA += slackCost(slack_Sset); }
 
-  while((z<=beta1_tmp||z>beta2_tmp)||(newLA>=LA))
+  // Use && (thesis behavior): exit line search when EITHER z is acceptable OR cost decreased
+  // With ||, the line search is too strict and prevents exploration of the RW control space
+  while((z<=beta1_tmp||z>beta2_tmp)&&(newLA>=LA))
   {
 
     //If iter > maxLsIter, need to give up and just return the original trajectory if we haven't found a better new one
