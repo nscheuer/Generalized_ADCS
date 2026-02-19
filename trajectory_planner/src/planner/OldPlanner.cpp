@@ -3876,6 +3876,8 @@ tuple<BACKWARD_PASS_RESULTS_FORM, REG_PAIR> OldPlanner::backwardPass(double dt0,
   double regAddComp;
   vec ek;
   int k = N-1;
+  int bwd_retries = 0;
+  const int max_bwd_retries = 50;  // Cap backward pass resets to prevent infinite loops
 
   while(k >= 0)
   {
@@ -4203,6 +4205,14 @@ tuple<BACKWARD_PASS_RESULTS_FORM, REG_PAIR> OldPlanner::backwardPass(double dt0,
     }
     if (reset)
     {
+      bwd_retries++;
+      if (bwd_retries > max_bwd_retries) {
+        // Backward pass retry limit exceeded — regularization cannot fix
+        // a structurally non-PSD cost Hessian. Return current gains (zeros)
+        // and let the line search reject the step.
+        if(verbose){ cout<<"Backward pass retry limit ("<<max_bwd_retries<<") exceeded at rho="<<get<0>(regs)<<"\n"; }
+        break;
+      }
       k = N-1;
       delV.zeros();
       Gk.zeros();
