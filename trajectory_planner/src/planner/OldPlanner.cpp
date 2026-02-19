@@ -3975,6 +3975,27 @@ tuple<BACKWARD_PASS_RESULTS_FORM, REG_PAIR> OldPlanner::backwardPass(double dt0,
       Pk = Qkxx;
       Pk = 0.5*(Pk + trans(Pk));
 
+      // Project terminal cost Hessian to PSD.
+      // ECI boresight cost with angular velocity cross-terms produces
+      // indefinite Hessians (negative eigenvalue ~-8000 for 1RW configs).
+      // This cascades backward, causing repeated backward pass failures
+      // and enormous regularization growth (rho → 1e11).
+      // Clamping eigenvalues to ≥0 is a standard Gauss-Newton approximation
+      // that preserves the cost landscape while ensuring convergence.
+      {
+        vec Pk_eigs;
+        mat Pk_vecs;
+        eig_sym(Pk_eigs, Pk_vecs, Pk);
+        if(min(Pk_eigs) < 0) {
+          if(verbose) {
+            cout << "Terminal Pk eigenvalues (pre-clamp): " << Pk_eigs.t();
+          }
+          Pk_eigs = clamp(Pk_eigs, 0.0, datum::inf);
+          Pk = Pk_vecs * diagmat(Pk_eigs) * Pk_vecs.t();
+          Pk = 0.5*(Pk + trans(Pk));  // re-symmetrize
+        }
+      }
+
       if(verbose){
         vec Pk_eigs;
         eig_sym(Pk_eigs, Pk);
