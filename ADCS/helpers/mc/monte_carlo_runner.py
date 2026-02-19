@@ -186,11 +186,13 @@ class MonteCarloRunner:
                  sim_func: Callable[[Dict[str, Any]], Dict[str, Any]], 
                  config_generator: Callable[[int], Dict[str, Any]], 
                  num_runs: int, 
-                 max_workers: int = None):
+                 max_workers: int = None,
+                 per_run_timeout: float = None):
         self.sim_func = sim_func
         self.config_generator = config_generator
         self.num_runs = num_runs
         self.max_workers = max_workers if max_workers else multiprocessing.cpu_count()
+        self.per_run_timeout = per_run_timeout  # seconds; None = no timeout
 
     def run(self) -> List[Dict[str, Any]]:
         r"""
@@ -267,7 +269,11 @@ class MonteCarloRunner:
         with Live(dashboard, refresh_per_second=10):
             with ProcessPoolExecutor(max_workers=self.max_workers, initializer=_worker_init, initargs=(progress_q, slot_q)) as executor:
                 
-                futures = {executor.submit(self.sim_func, cfg): cfg["run_id"] for cfg in configs}
+                futures = {}
+                for cfg in configs:
+                    f = executor.submit(self.sim_func, cfg)
+                    f._start_time = time.time()
+                    futures[f] = cfg["run_id"]
                 
                 completed_count = 0
                 while completed_count < self.num_runs:
@@ -287,6 +293,22 @@ class MonteCarloRunner:
                             break
 
                     done_futures = [f for f in futures if f.done()]
+                    
+                    # Check for timed-out futures
+                    if self.per_run_timeout is not None:
+                        now = time.time()
+                        for f in list(futures):
+                            if not f.done() and hasattr(f, '_start_time'):
+                                elapsed = now - f._start_time
+                                if elapsed > self.per_run_timeout:
+                                    run_id = futures[f]
+                                    f.cancel()
+                                    print(f"\n[!] Run {run_id} timed out after {elapsed:.0f}s")
+                                    results.append({"run_id": run_id, "error": "timeout", "traj_valid": False})
+                                    del futures[f]
+                                    completed_count += 1
+                                    overall_progress.update(overall_task, advance=1)
+
                     for f in done_futures:
                         try:
                             results.append(f.result())

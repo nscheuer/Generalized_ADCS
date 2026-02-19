@@ -4292,9 +4292,10 @@ tuple<TRAJECTORY_FORM,double, REG_PAIR> OldPlanner::forwardPass(double dt0,TRAJE
   newLA = cost2Func(newTraj,vecs,auglag_vals, costSettings_tmp_ptr);
   if (use_infeasible_start) { newLA += slackCost(slack_Sset); }
 
-  // Use && (thesis behavior): exit line search when EITHER z is acceptable OR cost decreased
-  // With ||, the line search is too strict and prevents exploration of the RW control space
-  while((z<=beta1_tmp||z>beta2_tmp)&&(newLA>=LA))
+  // Use || (stricter): requires both z-acceptance AND cost decrease.
+  // && (thesis) can cause infinite loops with tiny cost decreases that never
+  // satisfy convergence criteria. || is safer for automated MC runs.
+  while((z<=beta1_tmp||z>beta2_tmp)||(newLA>=LA))
   {
 
     //If iter > maxLsIter, need to give up and just return the original trajectory if we haven't found a better new one
