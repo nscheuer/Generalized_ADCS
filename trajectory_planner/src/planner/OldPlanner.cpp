@@ -2130,9 +2130,20 @@ tuple<cube, cube> OldPlanner::findK(double dt_tvlqr0, TRAJECTORY_FORM& traj, VEC
   mat lkxx = costJac.lxx;
   mat lkuu = costJac.luu;
   
-  mat Sk = lkxx;//get<0>(weights);// mat66().zeros();
+  mat Sk = lkxx;
+  // Project terminal Sk to PSD (critical for ECI goals near 180°)
+  Sk = 0.5*(Sk + Sk.t());
+  {
+    vec sk_eigs; mat sk_vecs;
+    eig_sym(sk_eigs, sk_vecs, Sk);
+    if (sk_eigs.min() < 0) {
+      sk_eigs = clamp(sk_eigs, 0.0, datum::inf);
+      Sk = sk_vecs * diagmat(sk_eigs) * sk_vecs.t();
+      Sk = 0.5*(Sk + Sk.t());
+    }
+  }
   mat Kk = mat(sat.control_N(),sat.reduced_state_N()).zeros();
-  Sset.slice(k) = Sk;//mat66().zeros();
+  Sset.slice(k) = Sk;
   mat A = mat(sat.state_N(),sat.state_N()).zeros();
   mat B = mat(sat.state_N(),sat.control_N()).zeros();
   mat Aqk = mat(sat.reduced_state_N(),sat.reduced_state_N()).zeros();
@@ -2184,17 +2195,41 @@ tuple<cube, cube> OldPlanner::findK(double dt_tvlqr0, TRAJECTORY_FORM& traj, VEC
     //Get Aqk and Bqk
     Aqk = Gkp1*A*trans(Gk);
     Bqk = Gkp1*B;
-    mat Reff = lkuu + trans(Bqk)*Skp1*Bqk;
-    Kk = solve(Reff, (trans(Bqk)*Skp1*Aqk),solve_opts::likely_sympd+solve_opts::no_approx);//inv(R + trans(Bqk)*Skp1*Bqk)*(trans(Bqk)*Skp1*Aqk);//
+    mat BtSB = trans(Bqk)*Skp1*Bqk;
+    mat BtSA = trans(Bqk)*Skp1*Aqk;
+    mat Reff = lkuu + BtSB;
+    Reff = 0.5*(Reff + Reff.t());
+
+    // Regularized solve for findK (matches optimizer backward pass approach).
+    // Without this, non-PSD Reff from ECI goals at large error angles
+    // causes solve() to fail or produce garbage K-gains.
+    {
+      bool solved = false;
+      double rho_fk = 1e-6;
+      for (int attempt = 0; attempt < 25; attempt++) {
+        mat Reff_reg = Reff + rho_fk * eye(Reff.n_rows, Reff.n_cols);
+        if (solve(Kk, Reff_reg, BtSA, solve_opts::likely_sympd)) {
+          solved = true;
+          break;
+        }
+        rho_fk *= 10.0;
+      }
+      if (!solved) { Kk.zeros(); }
+    }
     
     Kset_lqr.slice(k) = Kk;
-    // Sk = lkxx + trans(Aqk)*Skp1*Aqk - trans(Aqk)*Skp1*Bqk*Kk;
-    // Sk = lkxx + trans(Kk)*lkuu*Kk + solve((Aqk-Bqk*Kk), Skp1*(Aqk-Bqk*Kk));
-    // Sk = lkxx + trans(Kk)*lkuu*Kk + trans(Aqk-Bqk*Kk)*Skp1*(Aqk-Bqk*Kk);
     Sk = lkxx + trans(Aqk)*Skp1*Aqk - trans(Aqk)*Skp1*Bqk*Kk;
-
     Sk = 0.5*(Sk+trans(Sk));
-    // Sk = 0.5*(Sk+lkxx);
+    // Project Sk to PSD to prevent non-PSD propagation
+    {
+      vec sk_eigs; mat sk_vecs;
+      eig_sym(sk_eigs, sk_vecs, Sk);
+      if (sk_eigs.min() < 0) {
+        sk_eigs = clamp(sk_eigs, 0.0, datum::inf);
+        Sk = sk_vecs * diagmat(sk_eigs) * sk_vecs.t();
+        Sk = 0.5*(Sk + Sk.t());
+      }
+    }
     Sset.slice(k) = Sk;
   }
   if(verbose){cout<<size(Kset_lqr)<<"\n";}

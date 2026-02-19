@@ -2822,7 +2822,21 @@ tuple<cube, cube> findK_standalone(
     mat lkxx = costJac.lxx;
     mat lkuu = costJac.luu;
 
+    // Project terminal cost Hessian to PSD (same fix as OldPlanner backward pass).
+    // For ECI vector goals near 180°, dd_sc_ang is rank-1 (2 zero eigenvalues),
+    // and the cross-term creates negative eigenvalues in lkxx. Clamp to PSD.
     mat Sk = lkxx;
+    Sk = 0.5 * (Sk + Sk.t());  // Ensure symmetric
+    {
+        vec eigs;
+        mat vecs;
+        eig_sym(eigs, vecs, Sk);
+        if (eigs.min() < 0) {
+            eigs = clamp(eigs, 0.0, datum::inf);
+            Sk = vecs * diagmat(eigs) * vecs.t();
+            Sk = 0.5 * (Sk + Sk.t());
+        }
+    }
     mat Kk = mat(sat.control_N(), sat.reduced_state_N()).zeros();
     Sset.slice(k) = Sk;
 
@@ -2868,12 +2882,44 @@ tuple<cube, cube> findK_standalone(
 
         Aqk = Gkp1 * A * trans(Gk);
         Bqk = Gkp1 * B;
-        mat Reff = lkuu + trans(Bqk) * Skp1 * Bqk;
-        Kk = solve(Reff, (trans(Bqk) * Skp1 * Aqk), solve_opts::likely_sympd + solve_opts::fast);
+        mat BtSB = trans(Bqk) * Skp1 * Bqk;
+        mat BtSA = trans(Bqk) * Skp1 * Aqk;
+        mat Reff = lkuu + BtSB;
+
+        // Regularized solve: if Reff is not PSD, add rho*I.
+        // This matches the optimizer's backward pass approach.
+        Reff = 0.5 * (Reff + Reff.t());
+        bool solved = false;
+        double rho = 1e-6;  // Start with small regularization for robustness
+        for (int attempt = 0; attempt < 25; attempt++) {
+            mat Reff_reg = Reff + rho * eye(Reff.n_rows, Reff.n_cols);
+            bool ok = solve(Kk, Reff_reg, BtSA, solve_opts::likely_sympd);
+            if (ok) {
+                solved = true;
+                break;
+            }
+            rho *= 10.0;
+        }
+        if (!solved) {
+            // Fallback: zero gains for this step (safe — just uses feedforward)
+            Kk.zeros();
+        }
 
         Kset_lqr.slice(k) = Kk;
-        Sk = lkxx + trans(Aqk) * Skp1 * Aqk - trans(Aqk) * Skp1 * Bqk * Kk;
+        mat AtSA = trans(Aqk) * Skp1 * Aqk;
+        Sk = lkxx + AtSA - trans(Aqk) * Skp1 * Bqk * Kk;
         Sk = 0.5 * (Sk + trans(Sk));
+        // Project Sk to PSD to prevent non-PSD propagation through backward pass
+        {
+            vec sk_eigs;
+            mat sk_vecs;
+            eig_sym(sk_eigs, sk_vecs, Sk);
+            if (sk_eigs.min() < 0) {
+                sk_eigs = clamp(sk_eigs, 0.0, datum::inf);
+                Sk = sk_vecs * diagmat(sk_eigs) * sk_vecs.t();
+                Sk = 0.5 * (Sk + Sk.t());
+            }
+        }
         Sset.slice(k) = Sk;
     }
     return make_tuple(Kset_lqr, Sset);
