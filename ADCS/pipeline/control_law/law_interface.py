@@ -34,6 +34,7 @@ class ControlLaw(ABC):
         self,
         attitude_input: np.ndarray,
         omega_input: Optional[np.ndarray] = None,
+        **kwargs,
     ) -> np.ndarray:
         """Compute the control output.
 
@@ -45,6 +46,9 @@ class ControlLaw(ABC):
         omega_input : ndarray or None
             Angular velocity error, raw omega, or None depending on
             ``interface.omega_type``.
+        **kwargs
+            Additional state for laws that need more than error signals
+            (e.g., omega_raw, h_rw_body for sliding mode laws).
 
         Returns
         -------

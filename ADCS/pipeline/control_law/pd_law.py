@@ -54,6 +54,7 @@ class PD_Law(ControlLaw):
         self,
         attitude_input: np.ndarray,
         omega_input: Optional[np.ndarray] = None,
+        **kwargs,
     ) -> np.ndarray:
         """Compute PD control torque.
 

@@ -74,6 +74,14 @@ class LawInterface:
     automatically to any control law.
     """
     attitude_type: str = 'full'             # 'full', 'reduced'
+    attitude_representation: str = 'quaternion_vector'
+        # 'quaternion_vector' : q_e[1:4] vector part (3-vec, default)
+        # 'quaternion_full'   : full error quaternion (4-vec)
+        # 'mrp'               : Modified Rodrigues Parameters (3-vec)
+        # 'cayley'            : Cayley / classical Rodrigues (3-vec)
+        # 'dcm'               : Direction Cosine Matrix (3x3)
+        # 'euler_321'         : Euler angles 3-2-1 in degrees (3-vec)
+        # '2mrp'              : 2x MRP (3-vec)
     omega_type: str = 'omega_error'         # 'omega_error', 'omega_raw', 'no_omega'
     world_vector_frame: str = 'body'        # 'body', 'world' (reduced laws only)
     quat_convention: str = 'hamilton_scalar_first'
@@ -124,11 +132,16 @@ class CompensationConfig:
 
     @classmethod
     def from_law_interface(cls, li: LawInterface) -> 'CompensationConfig':
-        """Auto-configure compensation from what the law already includes."""
+        """Auto-configure compensation from what the law already includes.
+
+        Gyroscopic and frame rotation are auto-enabled (unless the law
+        handles them internally).  Disturbance FF is opt-in only because
+        it requires model parameters.
+        """
         return cls(
             enable_gyroscopic=not li.includes_gyroscopic,
             enable_frame_rotation=not li.includes_frame_rotation,
-            enable_disturbance_ff=not li.includes_disturbance_ff,
+            enable_disturbance_ff=False,  # opt-in: requires model params
             enable_damping_injection=(li.omega_type == 'no_omega' and li.includes_damping),
         )
 

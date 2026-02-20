@@ -15,6 +15,8 @@ __all__ = [
     "attitude_reduced_to_reduced",
     "attitude_full_to_reduced",
     "attitude_none",
+    "convert_error_representation",
+    "zero_attitude",
     "AlternatingState",
 ]
 
@@ -27,12 +29,86 @@ from ADCS.helpers.math_helpers import (
     quat_inv,
     normalize,
     rot_mat,
+    quat_to_mrp,
+    quat_to_cayley,
+    quat_to_euler,
 )
 from ADCS.pipeline.data import LawInterface
 from ADCS.pipeline.goal_formulation.quat_set import (
     compute_set_basis,
     select_nearest_quaternion,
 )
+
+
+_VALID_REPRESENTATIONS = {
+    'quaternion_vector', 'quaternion_full', 'mrp', 'cayley',
+    'dcm', 'euler_321', '2mrp',
+}
+
+
+def convert_error_representation(
+    q_e: np.ndarray,
+    representation: str,
+) -> np.ndarray:
+    """Convert a shortest-path error quaternion to the requested representation.
+
+    The input must be a Hamilton scalar-first error quaternion with
+    positive scalar part (shortest-path enforced).
+
+    Parameters
+    ----------
+    q_e : ndarray, shape (4,)
+        Error quaternion (Hamilton, scalar-first, q_e[0] >= 0).
+    representation : str
+        Target representation (see LawInterface.attitude_representation).
+
+    Returns
+    -------
+    ndarray
+        Attitude error in requested form:
+        - 'quaternion_vector' → shape (3,)
+        - 'quaternion_full'   → shape (4,)
+        - 'mrp'               → shape (3,)
+        - 'cayley'            → shape (3,)
+        - 'dcm'               → shape (3, 3)
+        - 'euler_321'         → shape (3,)  [degrees]
+        - '2mrp'              → shape (3,)
+    """
+    if representation == 'quaternion_vector':
+        return q_e[1:4]
+    elif representation == 'quaternion_full':
+        return q_e
+    elif representation == 'mrp':
+        return quat_to_mrp(q_e)
+    elif representation == '2mrp':
+        return 2.0 * quat_to_mrp(q_e)
+    elif representation == 'cayley':
+        return quat_to_cayley(q_e)
+    elif representation == 'dcm':
+        return rot_mat(q_e)
+    elif representation == 'euler_321':
+        return quat_to_euler(q_e)
+    else:
+        raise ValueError(
+            f"Unknown attitude_representation: {representation!r}. "
+            f"Valid options: {sorted(_VALID_REPRESENTATIONS)}"
+        )
+
+
+def zero_attitude(representation: str) -> np.ndarray:
+    """Return the identity / zero-error value for a given representation."""
+    if representation == 'quaternion_vector':
+        return np.zeros(3)
+    elif representation == 'quaternion_full':
+        return np.array([1.0, 0.0, 0.0, 0.0])
+    elif representation in ('mrp', 'cayley', '2mrp'):
+        return np.zeros(3)
+    elif representation == 'dcm':
+        return np.eye(3)
+    elif representation == 'euler_321':
+        return np.zeros(3)
+    else:
+        return np.zeros(3)
 
 
 @dataclass
@@ -49,9 +125,8 @@ def attitude_full_to_full(
 ) -> np.ndarray:
     """Full goal x full law: direct quaternion error.
 
-    Computes q_e = q_g^{-1} * q (body-frame error), matching the
-    existing Attitude_Goal.error() convention. Returns the 3-element
-    vector part q_e[1:4].
+    Computes q_e = q_g^{-1} * q (body-frame error), then converts
+    to the representation requested by law_flags.attitude_representation.
 
     Parameters
     ----------
@@ -60,13 +135,12 @@ def attitude_full_to_full(
     q : ndarray, shape (4,)
         Current attitude quaternion.
     law_flags : LawInterface
-        Target conventions (unused for now; reserved for future
-        convention conversion support).
+        Declares attitude_representation (default 'quaternion_vector').
 
     Returns
     -------
-    ndarray, shape (3,)
-        Attitude error vector (vector part of error quaternion).
+    ndarray
+        Attitude error in the requested representation.
     """
     q_e = quat_mult(quat_inv(q_g), q)
 
@@ -74,7 +148,7 @@ def attitude_full_to_full(
     if q_e[0] < 0:
         q_e = -q_e
 
-    return q_e[1:4]
+    return convert_error_representation(q_e, law_flags.attitude_representation)
 
 
 def attitude_reduced_to_full(
@@ -88,7 +162,8 @@ def attitude_reduced_to_full(
 
     Selects the nearest quaternion from the goal set that aligns
     b_hat with u_hat, then computes the error as q_g^{-1} * q,
-    returning the 3-element vector part.
+    converted to the representation requested by
+    law_flags.attitude_representation.
 
     Parameters
     ----------
@@ -99,14 +174,14 @@ def attitude_reduced_to_full(
     q : ndarray, shape (4,)
         Current attitude quaternion.
     law_flags : LawInterface
-        Target conventions (unused for now).
+        Declares attitude_representation.
     epsilon_reg : float
         Anti-parallel regularization strength.
 
     Returns
     -------
-    ndarray, shape (3,)
-        Attitude error vector (vector part of error quaternion).
+    ndarray
+        Attitude error in the requested representation.
     """
     # Compute quaternion set basis
     x_bar, y_bar = compute_set_basis(b_hat, u_hat, epsilon_reg)
@@ -119,7 +194,7 @@ def attitude_reduced_to_full(
     if q_e[0] < 0:
         q_e = -q_e
 
-    return q_e[1:4]
+    return convert_error_representation(q_e, law_flags.attitude_representation)
 
 
 def attitude_reduced_to_reduced(
@@ -246,20 +321,21 @@ def attitude_full_to_reduced(
 
 
 def attitude_none(law_flags: LawInterface):
-    """No goal: return zero error.
+    """No goal: return zero/identity error.
 
     Parameters
     ----------
     law_flags : LawInterface
-        Law's attitude type.
+        Law's attitude type and representation.
 
     Returns
     -------
     attitude_output
-        Zero error vector (full) or aligned vectors (reduced).
+        Zero error in requested representation (full) or
+        aligned vectors (reduced).
     """
     if law_flags.attitude_type == 'full':
-        return np.zeros(3)
+        return zero_attitude(law_flags.attitude_representation)
     else:  # reduced
         b_default = np.array([0.0, 0.0, 1.0])
         return (b_default, b_default)

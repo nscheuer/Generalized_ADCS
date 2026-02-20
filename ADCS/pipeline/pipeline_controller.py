@@ -156,6 +156,8 @@ class PipelineController(Controller):
         tau_law = self.law.compute(
             attitude_input=gf_out.attitude_output,
             omega_input=gf_out.omega_output,
+            omega_raw=omega,
+            h_rw_body=h_rw_body,
         )
 
         # --- Stage 3: Compensation ---
@@ -165,6 +167,12 @@ class PipelineController(Controller):
             goal_type=gf_out.goal_type,
             inject_damping=gf_out.inject_damping,
         )
+        # Track previous omega_ref for frame rotation finite-diff
+        omega_ref_prev = getattr(self, '_omega_ref_body_prev', None)
+        self._omega_ref_body_prev = gf_out.omega_ref_body.copy()
+
+        r_eci = np.asarray(os_hat.R).flatten() if os_hat is not None else None
+
         tau_desired = compensation_step(
             tau_law=tau_law,
             omega=omega,
@@ -172,6 +180,11 @@ class PipelineController(Controller):
             h_rw_body=h_rw_body,
             comp_config=self.comp_config,
             comp_inputs=comp_inputs,
+            omega_ref_body_prev=omega_ref_prev,
+            dt=kwargs.get('dt', 1.0),
+            q=q,
+            r_eci=r_eci,
+            B_body=B_body,
         )
 
         # --- Stage 4: Allocation ---

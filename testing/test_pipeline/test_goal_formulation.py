@@ -26,6 +26,8 @@ from ADCS.pipeline.goal_formulation.attitude_error import (
     attitude_reduced_to_full,
     attitude_reduced_to_reduced,
     attitude_none,
+    convert_error_representation,
+    zero_attitude,
     AlternatingState,
 )
 from ADCS.pipeline.goal_formulation.omega_ref import compute_omega_ref_world
@@ -367,6 +369,90 @@ def test_full_goal_formulation_step():
 
 
 # ==================================================================
+# Test 11: Attitude error representations
+# ==================================================================
+def test_attitude_representations():
+    print("\n--- Attitude error representations ---")
+    from ADCS.helpers.math_helpers import quat_to_mrp, quat_to_cayley, quat_to_euler
+
+    q = normalize(np.array([0.8, 0.2, -0.3, 0.1]))    # current
+    q_g = normalize(np.array([0.9, -0.1, 0.2, 0.3]))   # goal
+
+    # Compute the error quaternion manually for reference
+    q_e = quat_mult(quat_inv(q_g), q)
+    if q_e[0] < 0:
+        q_e = -q_e
+
+    # quaternion_vector (default, already tested)
+    law_qv = LawInterface(attitude_representation='quaternion_vector')
+    out_qv = attitude_full_to_full(q_g, q, law_qv)
+    check(out_qv.shape == (3,), "quat_vector: shape (3,)")
+    check(norm(out_qv - q_e[1:4]) < 1e-12, "quat_vector: matches q_e[1:4]")
+
+    # quaternion_full
+    law_qf = LawInterface(attitude_representation='quaternion_full')
+    out_qf = attitude_full_to_full(q_g, q, law_qf)
+    check(out_qf.shape == (4,), "quat_full: shape (4,)")
+    check(norm(out_qf - q_e) < 1e-12, "quat_full: matches full q_e")
+
+    # MRP
+    law_mrp = LawInterface(attitude_representation='mrp')
+    out_mrp = attitude_full_to_full(q_g, q, law_mrp)
+    expected_mrp = quat_to_mrp(q_e)
+    check(out_mrp.shape == (3,), "mrp: shape (3,)")
+    check(norm(out_mrp - expected_mrp) < 1e-12, "mrp: matches quat_to_mrp(q_e)")
+
+    # Cayley
+    law_cay = LawInterface(attitude_representation='cayley')
+    out_cay = attitude_full_to_full(q_g, q, law_cay)
+    expected_cay = quat_to_cayley(q_e)
+    check(out_cay.shape == (3,), "cayley: shape (3,)")
+    check(norm(out_cay - expected_cay) < 1e-12, "cayley: matches quat_to_cayley(q_e)")
+
+    # DCM
+    law_dcm = LawInterface(attitude_representation='dcm')
+    out_dcm = attitude_full_to_full(q_g, q, law_dcm)
+    expected_dcm = rot_mat(q_e)
+    check(out_dcm.shape == (3, 3), "dcm: shape (3,3)")
+    check(norm(out_dcm - expected_dcm) < 1e-12, "dcm: matches rot_mat(q_e)")
+
+    # Euler 3-2-1
+    law_euler = LawInterface(attitude_representation='euler_321')
+    out_euler = attitude_full_to_full(q_g, q, law_euler)
+    expected_euler = quat_to_euler(q_e)
+    check(out_euler.shape == (3,), "euler_321: shape (3,)")
+    check(norm(out_euler - expected_euler) < 1e-12, "euler_321: matches quat_to_euler(q_e)")
+
+    # 2x MRP
+    law_2mrp = LawInterface(attitude_representation='2mrp')
+    out_2mrp = attitude_full_to_full(q_g, q, law_2mrp)
+    expected_2mrp = 2.0 * quat_to_mrp(q_e)
+    check(out_2mrp.shape == (3,), "2mrp: shape (3,)")
+    check(norm(out_2mrp - expected_2mrp) < 1e-12, "2mrp: matches 2*quat_to_mrp(q_e)")
+
+    # Zero error: all representations should give identity/zero
+    for rep in ['quaternion_vector', 'mrp', 'cayley', '2mrp', 'euler_321']:
+        law_z = LawInterface(attitude_representation=rep)
+        z = attitude_full_to_full(q, q, law_z)
+        check(norm(z) < 1e-10, f"zero error ({rep}): norm < 1e-10")
+
+    law_zf = LawInterface(attitude_representation='quaternion_full')
+    zf = attitude_full_to_full(q, q, law_zf)
+    check(abs(zf[0] - 1.0) < 1e-10 and norm(zf[1:]) < 1e-10,
+          "zero error (quat_full): identity quaternion")
+
+    law_zd = LawInterface(attitude_representation='dcm')
+    zd = attitude_full_to_full(q, q, law_zd)
+    check(norm(zd - np.eye(3)) < 1e-10, "zero error (dcm): identity matrix")
+
+    # zero_attitude helper
+    check(norm(zero_attitude('quaternion_vector')) < 1e-12, "zero_attitude quat_vector")
+    check(abs(zero_attitude('quaternion_full')[0] - 1.0) < 1e-12, "zero_attitude quat_full")
+    check(norm(zero_attitude('mrp')) < 1e-12, "zero_attitude mrp")
+    check(norm(zero_attitude('dcm') - np.eye(3)) < 1e-12, "zero_attitude dcm")
+
+
+# ==================================================================
 # Main
 # ==================================================================
 def main():
@@ -384,6 +470,7 @@ def main():
     test_projection_matrix()
     test_omega_ref_analytical()
     test_full_goal_formulation_step()
+    test_attitude_representations()
 
     print("\n" + "=" * 60)
     print(f"Results: {PASS_COUNT} passed, {FAIL_COUNT} failed")
