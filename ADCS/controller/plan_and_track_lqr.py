@@ -746,7 +746,15 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
         # The extra control dimension from the RW creates a richer optimization
         # landscape with more (worse) local minima. Mode 6 keeps the optimizer
         # near the smooth-convergence basin. Mode 0 fallback for different basin.
-        phase1_modes = [6, 0] if has_rw else [0, 4]
+        # Mode 6 (SLERP warm-start) is ideal for quaternion goals with RW:
+        # it avoids bounce local minima by starting near the geometric path.
+        # For ECI goals, mode 6 plans look "prettier" (plan ★★★) but their
+        # K-gains are fragile (sim ✗). Mode 0 (random init) produces plans
+        # with slower convergence but much more robust tracking. This is
+        # because the SLERP path over-constrains the quaternion trajectory
+        # for a reduced-attitude (2-DOF) goal, biasing the optimizer toward
+        # a solution that's optimal only for that specific quaternion path.
+        phase1_modes = [6, 0] if (has_rw and is_quat_goal) else [0, 4]
         for mode in phase1_modes:
             score = try_config(dt_coarse, mode, False, f"dt={dt_coarse} mode={mode}")
             if score <= good_thresh:
