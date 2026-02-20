@@ -633,6 +633,11 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
             lqr_times, Xset, Uset, Kset, Sset = self._calculate_trajectory_common(
                 t_start, duration, x_0, os_0, goals, verbose
             )
+            # ECI+RW gain scale (same logic as auto_refine path)
+            has_rw = any(hasattr(a, 'J') for a in self.est_sat.actuators)
+            q_goal = self._extract_goal_quaternion(goals, t_start, duration, x_0, os_0)
+            if has_rw and q_goal is None:
+                self._gain_scale = 0.3
             return Trajectory(lqr_times, Xset, Uset, Kset, Sset)
         
         # Multi-resolution fallback strategy:
@@ -654,10 +659,11 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
         # ECI vector goals only constrain 2 DOFs (boresight pointing).
         # The 3rd DOF (rotation around boresight) is free, but TVLQR
         # K-gains try to correct it anyway, wasting control authority
-        # and causing instability. Reducing gain_scale prevents these
-        # parasitic corrections from destabilizing the tracker.
-        # Empirically validated: 0.3 transforms ★ → ★★★ on mediocre
-        # seeds without degrading good seeds (0.142 → 0.145).
+        # and causing oscillatory instability. Reducing gain_scale
+        # uniformly attenuates ALL feedback, preserving K-gain structure
+        # while preventing parasitic corrections from destabilizing.
+        # Empirically: 0.3 transforms ★ → ★★★ on mediocre seeds
+        # without degrading good seeds (0.142 → 0.142).
         if has_rw and not is_quat_goal:
             self._gain_scale = 0.3
         
