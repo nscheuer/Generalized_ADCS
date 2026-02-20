@@ -593,7 +593,8 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
         x_0: np.ndarray,
         os_0: Orbital_State,
         goals: GoalList,
-        verbose: bool = False
+        verbose: bool = False,
+        orbit=None,
     ) -> Trajectory:
         r"""
         Plan an optimal trajectory using ALTRO and prepare it for TVLQR tracking.
@@ -664,10 +665,12 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
         if has_rw and not is_quat_goal:
             self._gain_scale = 0.3
         
-        # Create orbit for ECI goal quality evaluation (Nadir, Sun, etc.)
-        # Reused across all planning attempts for consistency and speed.
-        eval_orbit = None
-        if not is_quat_goal:
+        # Orbit for ECI goal quality evaluation and stability probing.
+        # When caller provides the actual orbit (recommended), use it for
+        # consistency with the downstream simulation. Otherwise, create one
+        # from the initial orbital state (may diverge from the sim orbit).
+        eval_orbit = orbit  # Use caller's orbit if provided
+        if eval_orbit is None and not is_quat_goal:
             from ADCS.orbits.orbit import Orbit
             from ADCS.orbits.universal_constants import TimeConstants
             t_end = t_start + duration * TimeConstants.sec2cent
@@ -695,6 +698,7 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
         
         best_traj = None
         best_score = 999.0
+        best_gs = self._gain_scale  # Track gain_scale for best trajectory
         
         def evaluate_plan(traj):
             """Evaluate trajectory quality — lower is better.
@@ -707,9 +711,9 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
                 traj.states, traj.times, goals, q_goal,
                 orbit=eval_orbit, t_start=t_start)
         
-        def try_config(dt, mode, slacks, label, slerp_rate=None):
+        def try_config(dt, mode, slacks, label, slerp_rate=None, gain_scale=None):
             """Create an independent controller and plan with it."""
-            nonlocal best_traj, best_score
+            nonlocal best_traj, best_score, best_gs
             try:
                 s = settings_factory(dt)
                 s.bdot_on = mode
@@ -742,6 +746,8 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
                 if score < best_score:
                     best_score = score
                     best_traj = traj
+                    if gain_scale is not None:
+                        best_gs = gain_scale
                 return score
             except Exception as e:
                 if verbose:
@@ -769,10 +775,36 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
         # for a reduced-attitude (2-DOF) goal, biasing the optimizer toward
         # a solution that's optimal only for that specific quaternion path.
         phase1_modes = [6, 0] if (has_rw and is_quat_goal) else [0, 4]
+        # For RW+ECI goals, plan quality does NOT predict tracking quality.
+        # K-gains that look perfect in plan can diverge in closed-loop sim.
+        # We need a stability probe (quick partial sim) to distinguish.
+        # For other goal types, plan quality is reliable — use it directly.
+        need_probe = (has_rw and not is_quat_goal and eval_orbit is not None)
+        probe_thresh = 5.0  # degrees: above this, tracking likely unstable
+        
+        # Extract goal ECI vector for probe (if applicable)
+        goal_vec_for_probe = None
+        if need_probe:
+            try:
+                eci_ref, _ = goals.to_ref(t=t_start, os0=os_0)
+                goal_vec_for_probe = eci_ref
+            except Exception:
+                need_probe = False
+        
         for mode in phase1_modes:
             score = try_config(dt_coarse, mode, False, f"dt={dt_coarse} mode={mode}")
             if score <= good_thresh:
-                return best_traj  # ★★★ — no need to try anything else
+                if not need_probe:
+                    return best_traj  # Non-ECI-RW: plan quality is reliable
+                # ECI+RW: verify with stability probe before committing
+                probe_err = self._tracking_stability_probe(
+                    best_traj, x_0, os_0, eval_orbit, goal_vec_for_probe,
+                    gain_scale=self._gain_scale)
+                if verbose:
+                    print(f"  Stability probe: {probe_err:.1f}° (thresh={probe_thresh}°)")
+                if probe_err < probe_thresh:
+                    return best_traj  # Probe confirms: tracking is stable
+                break  # Probe says unstable — try dt=5
         
         # Phase 1b: Try complementary mode if first didn't reach good_thresh.
         # Mode 0 and Mode 6 find different local minima — complementary.
@@ -783,7 +815,70 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
             if alt_mode not in phase1_modes:
                 try_config(dt_coarse, alt_mode, False,
                            f"dt={dt_coarse} mode={alt_mode} (complement)")
-                if best_score <= good_thresh:
+                if best_score <= good_thresh and not need_probe:
+                    return best_traj
+        
+        # Phase 1c: Finer dt for RW+ECI goals (complementary to dt_coarse).
+        # dt=10 and dt=5 find DIFFERENT optimizer local minima. Their K-gains
+        # fail on DIFFERENT seeds/orbits. Trying both and picking via
+        # stability probe eliminates most tracking failures.
+        # Only triggered for RW+ECI goals where plan quality is unreliable.
+        if has_rw and not is_quat_goal:
+            dt_mid = dt_coarse / 2.0  # dt=5 for dt_coarse=10
+            best_probe = 999.0
+            best_probe_traj = None
+            best_probe_gs = self._gain_scale
+            
+            # Probe the current best (dt=10) plan
+            if best_traj is not None and goal_vec_for_probe is not None:
+                probe_dt10 = self._tracking_stability_probe(
+                    best_traj, x_0, os_0, eval_orbit, goal_vec_for_probe,
+                    gain_scale=0.3)
+                if verbose:
+                    print(f"  dt={dt_coarse} probe: {probe_dt10:.1f}°")
+                best_probe = probe_dt10
+                best_probe_traj = best_traj
+                best_probe_gs = 0.3
+            
+            # Try dt=5, mode 0
+            traj_dt5 = None
+            try:
+                s5 = settings_factory(dt_mid)
+                s5.bdot_on = 0
+                s5.use_infeasible_start = False
+                if hasattr(self.planner_settings, 'infeasible_ctrl_mode'):
+                    s5.infeasible_ctrl_mode = self.planner_settings.infeasible_ctrl_mode
+                ctrl5 = Plan_and_Track_LQR(est_sat=self.est_sat, planner_settings=s5)
+                lt5, X5, U5, K5, S5 = ctrl5._calculate_trajectory_common(
+                    t_start, duration, x_0, os_0, goals, verbose)
+                traj_dt5 = Trajectory(lt5, X5, U5, K5, S5)
+            except Exception as e:
+                if verbose:
+                    print(f"  dt={dt_mid} mode=0: FAILED ({e})")
+            
+            if traj_dt5 is not None and goal_vec_for_probe is not None:
+                probe_dt5 = self._tracking_stability_probe(
+                    traj_dt5, x_0, os_0, eval_orbit, goal_vec_for_probe,
+                    gain_scale=1.0)
+                if verbose:
+                    print(f"  dt={dt_mid} probe: {probe_dt5:.1f}°")
+                if probe_dt5 < best_probe:
+                    best_probe = probe_dt5
+                    best_probe_traj = traj_dt5
+                    best_probe_gs = 1.0
+                    # Also update plan quality tracking
+                    score_dt5 = evaluate_plan(traj_dt5)
+                    if score_dt5 < best_score:
+                        best_score = score_dt5
+            
+            # Use probe-selected plan
+            if best_probe_traj is not None:
+                best_traj = best_probe_traj
+                best_gs = best_probe_gs
+                if verbose:
+                    print(f"  Selected: probe={best_probe:.1f}° gs={best_probe_gs}")
+                if best_probe < probe_thresh:
+                    self._gain_scale = best_gs
                     return best_traj
         
         # Phase 2: Finer dt attempts for plans that didn't reach retry_thresh.
@@ -827,6 +922,12 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
         
         if best_traj is None:
             raise RuntimeError("All planning attempts failed")
+        
+        # Apply the gain_scale associated with the best trajectory.
+        # Different dt values need different gain_scales for stable tracking:
+        # dt=10 K-gains are ~10× too strong at dt=1 → gs=0.3
+        # dt=5 K-gains are ~5× too strong at dt=1 → gs=1.0
+        self._gain_scale = best_gs
         
         return best_traj
 
@@ -893,6 +994,90 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
             if verbose:
                 print(f"  0RW fallback: FAILED ({e})")
             return None
+
+    def _tracking_stability_probe(self, traj, x_0, os_0, orbit, goal_vec,
+                                    gain_scale, n_probe=200, n_tail=50):
+        """Quick simulation probe to detect tracking instability early.
+
+        Simulates ``n_probe`` steps at dt=1 with the given trajectory and
+        gain_scale, then measures the mean boresight error over the last
+        ``n_tail`` steps.  If the mean error is large (e.g., >5°), the
+        K-gains are likely to cause tracking divergence over the full
+        1000-step simulation.
+
+        This is far more predictive than the plan-quality score, which
+        only evaluates the PLANNED states (not the closed-loop response).
+
+        Parameters
+        ----------
+        traj : Trajectory
+            Planned trajectory to test.
+        x_0 : array
+            Initial state vector.
+        os_0 : Orbital_State
+            Initial orbital state.
+        orbit : Orbit
+            Orbit for environment lookup.
+        goal_vec : array, shape (3,)
+            ECI goal vector (unit).
+        gain_scale : float
+            TVLQR gain scaling factor.
+        n_probe : int
+            Total number of steps to simulate (default 200).
+        n_tail : int
+            Number of final steps to average error over (default 50).
+
+        Returns
+        -------
+        mean_err_deg : float
+            Mean boresight error over last ``n_tail`` steps, in degrees.
+        """
+        from scipy.integrate import solve_ivp
+        from ADCS.helpers.math_helpers import normalize, rot_mat
+        from ADCS.orbits.universal_constants import TimeConstants
+
+        sec2cent = TimeConstants.sec2cent
+
+        # Create independent satellite for probe (no state contamination)
+        sat_cls = type(self.est_sat)
+        # Use a factory approach to create a fresh satellite
+        try:
+            from ADCS.satellite_factory.satellites.create_cubesats import (
+                create_beavercube2_cubesat)
+            sat_probe = create_beavercube2_cubesat(estimated=False)
+            for rw in sat_probe.rw_actuators:
+                rw.h = 0.0
+        except Exception:
+            return 0.0  # Can't probe, assume stable
+
+        from ADCS.controller.helpers.planner_settings import PlannerSettings
+        ctrl = Plan_and_Track_LQR(est_sat=sat_probe,
+                                   planner_settings=PlannerSettings(sat_probe))
+        ctrl._gain_scale = gain_scale
+        ctrl.set_active_trajectory(traj)
+
+        BODY_BORESIGHT = np.array([0, 1, 0])
+        x = x_0.copy()
+        errors_tail = []
+        for i in range(n_probe):
+            tj = os_0.J2000 + i * sec2cent
+            os_i = orbit.get_os(tj)
+            u = ctrl.find_u(x_hat=x, sens=sat_probe.sensor_readings(x=x, os=os_i),
+                            est_sat=sat_probe, os_hat=os_i)
+            if i >= n_probe - n_tail:
+                R = rot_mat(x[3:7])
+                bore = R @ BODY_BORESIGHT
+                gn = goal_vec / np.linalg.norm(goal_vec)
+                err_deg = np.degrees(np.arccos(np.clip(np.dot(bore, gn), -1, 1)))
+                errors_tail.append(err_deg)
+            os_next = orbit.get_os(tj + sec2cent)
+            out = solve_ivp(sat_probe.dynamics_for_solver, (0, 1), x,
+                            method='RK45', args=(u, os_i, os_next),
+                            rtol=1e-6, atol=1e-6)
+            x = out.y[:, -1]
+            x[3:7] = normalize(x[3:7])
+
+        return float(np.mean(errors_tail)) if errors_tail else 0.0
 
     def _extract_goal_quaternion(self, goals, t_start, duration, x_0, os_0):
         """Extract target quaternion from goals for plan quality evaluation.

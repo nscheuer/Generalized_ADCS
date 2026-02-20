@@ -227,7 +227,7 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
                 traj = controller.calculate_trajectory(
                     t_start=0.22, duration=tf, x_0=x0, os_0=os0, goals=goals, 
                     verbose=False, visualize=True, viz_save_path=viz_save_path,
-                    skip_pass2=False  # Always do pass 2 for best result
+                    skip_pass2=False, orbit=orb  # Always do pass 2 for best result
                 )
                 
                 # Save an additional diagnostic figure
@@ -296,7 +296,8 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
             else:
                 # C++ planner only supports verbose
                 traj = controller.calculate_trajectory(
-                    t_start=0.22, duration=tf, x_0=x0, os_0=os0, goals=goals, verbose=verbose
+                    t_start=0.22, duration=tf, x_0=x0, os_0=os0, goals=goals,
+                    verbose=verbose, orbit=orb
                 )
             plan_time_s = time_module.perf_counter() - t_plan_start
             controller.set_active_trajectory(traj)

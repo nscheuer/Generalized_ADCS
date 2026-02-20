@@ -132,13 +132,14 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
                 viz_save_path = f'/tmp/live_viz_seed{run_id}.png'
                 traj = controller.calculate_trajectory(
                     t_start=t0_j2000, duration=tf, x_0=x0, os_0=os0, goals=goals,
-                    verbose=False, visualize=True, viz_save_path=viz_save_path
+                    verbose=False, visualize=True, viz_save_path=viz_save_path, orbit=orb
                 )
                 print(f"Saved live viz to {viz_save_path}")
             else:
                 # C++ planner for MC runs
                 traj = controller.calculate_trajectory(
-                    t_start=t0_j2000, duration=tf, x_0=x0, os_0=os0, goals=goals, verbose=False
+                    t_start=t0_j2000, duration=tf, x_0=x0, os_0=os0, goals=goals,
+                    verbose=False, orbit=orb
                 )
             plan_time_s = time_module.perf_counter() - t_plan_start
             controller.set_active_trajectory(traj)

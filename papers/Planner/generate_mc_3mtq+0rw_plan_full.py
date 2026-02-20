@@ -132,11 +132,12 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
                 traj = controller.calculate_trajectory(
                     t_start=0.22, duration=tf, x_0=x0, os_0=os0, goals=goals,
                     verbose=False, visualize=True, viz_save_path="/tmp/planner_viz_final.png",
-                    skip_pass2=False
+                    skip_pass2=False, orbit=orb
                 )
             else:
                 traj = controller.calculate_trajectory(
-                    t_start=0.22, duration=tf, x_0=x0, os_0=os0, goals=goals, verbose=False
+                    t_start=0.22, duration=tf, x_0=x0, os_0=os0, goals=goals,
+                    verbose=False, orbit=orb
                 )
             plan_time_s = time_module.perf_counter() - t_plan_start
             controller.set_active_trajectory(traj)
