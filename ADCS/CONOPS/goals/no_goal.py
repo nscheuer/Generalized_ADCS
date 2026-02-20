@@ -55,7 +55,7 @@ class No_Goal(Goal):
             None
 
         """
-        pass
+        super().__init__()
 
     def to_ref(self, os0: Orbital_State) -> Tuple[np.ndarray, np.ndarray]:
         r"""

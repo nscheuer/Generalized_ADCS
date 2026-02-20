@@ -38,13 +38,19 @@ class Goal:
     :class:`~ADCS.goals.goal_list.GoalList`
 
     """
-    def __init__(self):
+    def __init__(self, b_hat: np.ndarray = None):
         r"""
         Initialize a goal instance.
 
-        This constructor performs no initialization. It exists to
-        enforce a uniform interface across all subclasses of
-        :class:`~ADCS.goals.goal.Goal`.
+        :param b_hat:
+            Optional body-frame direction to align with the goal
+            target. When set, the pipeline uses this instead of the
+            satellite's default boresight. Different goals can specify
+            different body vectors (e.g., camera boresight, solar panel
+            normal, antenna axis). Defaults to None, which means
+            "use the satellite's default boresight."
+        :type b_hat:
+            numpy.ndarray or None
 
         :return:
             None
@@ -52,7 +58,7 @@ class Goal:
             None
 
         """
-        pass
+        self.b_hat = b_hat
 
     def to_ref(self, os0: Orbital_State) -> Tuple[np.ndarray, np.ndarray]:
         r"""

@@ -44,6 +44,7 @@ class ECI_Goal(Vector_Goal):
             Desired pointing direction expressed in the ECI frame.
             The vector is assumed to be constant in inertial space.
         """
+        super().__init__()
         self.eci_vector = normalize(eci_vector)
 
     def to_ref(self, os0: Orbital_State) -> Tuple[np.ndarray, np.ndarray]:

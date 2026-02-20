@@ -72,6 +72,7 @@ class Coordinate_Goal(Vector_Goal):
             None
 
         """
+        super().__init__()
         self.lat_deg = lat
         self.lon_deg = lon
         self.alt_km = alt
