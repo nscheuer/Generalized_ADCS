@@ -996,7 +996,7 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
             return None
 
     def _tracking_stability_probe(self, traj, x_0, os_0, orbit, goal_vec,
-                                    gain_scale, n_probe=200, n_tail=50):
+                                    gain_scale, n_probe=300, n_tail=100):
         """Quick simulation probe to detect tracking instability early.
 
         Simulates ``n_probe`` steps at dt=1 with the given trajectory and
@@ -1077,7 +1077,12 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
             x = out.y[:, -1]
             x[3:7] = normalize(x[3:7])
 
-        return float(np.mean(errors_tail)) if errors_tail else 0.0
+        if not errors_tail:
+            return 0.0
+        # Use max error (not mean) to catch intermittent spikes.
+        # Mean can be 2° while max is 10° — the spikes cause settle_time
+        # failures and quality score degradation.
+        return float(np.max(errors_tail))
 
     def _extract_goal_quaternion(self, goals, t_start, duration, x_0, os_0):
         """Extract target quaternion from goals for plan quality evaluation.
