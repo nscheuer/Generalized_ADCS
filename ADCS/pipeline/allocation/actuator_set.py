@@ -12,7 +12,7 @@ The combined matrix is:
     B_tau = [A_rw | -skew(B_body) @ A_mtq]
 """
 
-__all__ = ["assemble_B_tau"]
+__all__ = ["assemble_B_tau", "mask_failed_actuators"]
 
 import numpy as np
 from typing import List, Tuple
@@ -80,3 +80,48 @@ def assemble_B_tau(
     u_max = np.concatenate(u_max_parts)
 
     return B_tau, u_min, u_max
+
+
+def mask_failed_actuators(
+    B_tau: np.ndarray,
+    u_min: np.ndarray,
+    u_max: np.ndarray,
+    failed_indices: np.ndarray,
+    group_indices: np.ndarray,
+) -> tuple:
+    """Remove failed actuators from B_tau, bounds, and group_indices.
+
+    Drops the columns corresponding to failed actuators entirely
+    (rather than zeroing, which would break solvers that require
+    strict u_min < u_max).
+
+    Parameters
+    ----------
+    B_tau : ndarray, shape (3, n)
+        Torque effectiveness matrix.
+    u_min, u_max : ndarray, shape (n,)
+        Actuator command bounds.
+    failed_indices : ndarray of int
+        Indices in the *full actuator command vector* that have failed.
+    group_indices : ndarray of int
+        Mapping from B_tau column index to full command vector index.
+
+    Returns
+    -------
+    B_tau, u_min, u_max, group_indices :
+        Copies with failed columns removed.
+    """
+    failed_set = set(int(i) for i in failed_indices)
+
+    # Find which B_tau columns to keep
+    keep_mask = np.array([
+        int(full_idx) not in failed_set
+        for full_idx in group_indices
+    ], dtype=bool)
+
+    return (
+        B_tau[:, keep_mask],
+        u_min[keep_mask],
+        u_max[keep_mask],
+        group_indices[keep_mask],
+    )

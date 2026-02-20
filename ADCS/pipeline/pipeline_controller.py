@@ -195,6 +195,8 @@ class PipelineController(Controller):
             B_body=B_body,
             n_actuators=self.n_actuators,
             omega=omega,
+            h_rw_body=h_rw_body,
+            failed_actuators=kwargs.get('failed_actuators', None),
         )
 
         return result.u

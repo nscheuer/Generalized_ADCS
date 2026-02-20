@@ -14,6 +14,7 @@ __all__ = [
     "CompensationConfig",
     "CompensationInputs",
     "AllocationConfig",
+    "DesaturationConfig",
     "AllocationResult",
     "ActuatorGroup",
 ]
@@ -208,7 +209,34 @@ class AllocationConfig:
 
     # Momentum management (Phase 5)
     enable_desaturation: bool = False
-    desaturation_strategy: str = 'nullspace'  # 'nullspace', 'weighted', 'scheduled'
+    desat_config: Optional['DesaturationConfig'] = None
+
+
+@dataclass
+class DesaturationConfig:
+    """Configuration for momentum management / wheel desaturation.
+
+    Attributes:
+        strategy: 'nullspace' (zero torque impact, overactuated only),
+                  'weighted' (augmented QP cost, trades pointing for desat),
+                  'scheduled' (add desat torque when MTQ authority is high).
+        k_desat: Desaturation gain (scales h_rw error into desired dump torque).
+        h_rw_target: Target RW momentum in body frame [3]. Default zeros.
+        w_desat: Weight on desaturation term in 'weighted' strategy.
+        authority_threshold: Minimum MTQ authority fraction [0,1] for
+            'scheduled' strategy to activate desaturation.
+        h_rw_threshold: Minimum RW momentum error norm to trigger desat.
+    """
+    strategy: str = 'nullspace'
+    k_desat: float = 0.01
+    h_rw_target: Optional[np.ndarray] = None
+    w_desat: float = 1.0
+    authority_threshold: float = 0.3
+    h_rw_threshold: float = 0.0
+
+    def __post_init__(self):
+        if self.h_rw_target is None:
+            self.h_rw_target = np.zeros(3)
 
 
 @dataclass
