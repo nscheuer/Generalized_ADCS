@@ -183,8 +183,30 @@ class ActuatorGroup:
 
 @dataclass
 class AllocationConfig:
-    """Configuration for the allocation stage."""
-    method: str = 'magnetic_cross'          # 'magnetic_cross', 'lp', 'qp', 'pseudoinverse'
+    """Configuration for the allocation stage.
+
+    Supported methods:
+        'magnetic_cross' : Cross-product inversion for MTQ-only (Phase 1)
+        'lp'             : Direction-preserving LP (max alpha along tau_hat)
+        'qp'             : Bounded least-squares (min ||B_tau u - tau_des||^2)
+        'qpw'            : Direction-weighted QP (penalize perp error more)
+        'qpc'            : Energy-constrained QP (Lyapunov power gate)
+        'pseudoinverse'  : Moore-Penrose pinv + clip
+    """
+    method: str = 'lp'
+
+    # QP weighting matrix (for 'qp' with regularization)
+    W: Optional[np.ndarray] = None          # [3x3] torque error weighting
+    lambda_reg: float = 0.0                 # regularization weight on ||u||^2
+
+    # QPW direction-weighting params
+    w_parallel: float = 1.0                 # weight on parallel error
+    w_perpendicular: float = 100.0          # weight on perpendicular error
+
+    # LP projection fallback
+    lp_project_when_infeasible: bool = True
+
+    # Momentum management (Phase 5)
     enable_desaturation: bool = False
     desaturation_strategy: str = 'nullspace'  # 'nullspace', 'weighted', 'scheduled'
 
@@ -194,5 +216,6 @@ class AllocationResult:
     """Output of the allocation stage."""
     u: np.ndarray                           # actuator command vector
     tau_achieved: Optional[np.ndarray] = None  # achieved torque (if computable)
-    alpha: float = 1.0                      # scaling factor (1.0 = no saturation)
-    direction_error: float = 0.0            # angle between desired and achieved torque
+    alpha: float = 1.0                      # fraction of desired torque achieved
+    direction_error: float = 0.0            # angle between desired and achieved (rad)
+    feasible: bool = True                   # True if full desired torque achievable

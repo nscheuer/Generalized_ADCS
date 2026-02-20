@@ -194,6 +194,7 @@ class PipelineController(Controller):
             alloc_config=self.alloc_config,
             B_body=B_body,
             n_actuators=self.n_actuators,
+            omega=omega,
         )
 
         return result.u
