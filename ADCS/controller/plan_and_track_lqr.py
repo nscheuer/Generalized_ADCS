@@ -655,15 +655,12 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
         is_quat_goal = (q_goal is not None)
         has_rw = any(hasattr(a, 'J') for a in self.est_sat.actuators)
         
-        # Adjust gain scale for ECI goals with RW.
-        # ECI vector goals only constrain 2 DOFs (boresight pointing).
-        # The 3rd DOF (rotation around boresight) is free, but TVLQR
-        # K-gains try to correct it anyway, wasting control authority
-        # and causing oscillatory instability. Reducing gain_scale
-        # uniformly attenuates ALL feedback, preserving K-gain structure
-        # while preventing parasitic corrections from destabilizing.
-        # Empirically: 0.3 transforms ★ → ★★★ on mediocre seeds
-        # without degrading good seeds (0.142 → 0.142).
+        # Gain scale for ECI goals with RW.
+        # ECI vector goals have a free DOF (boresight rotation) that
+        # TVLQR K-gains wastefully correct. At large tracking errors,
+        # K@dx is massive and saturates actuators, causing oscillation.
+        # Static gain_scale=0.3 prevents instability onset while
+        # preserving enough feedback for fine convergence.
         if has_rw and not is_quat_goal:
             self._gain_scale = 0.3
         
