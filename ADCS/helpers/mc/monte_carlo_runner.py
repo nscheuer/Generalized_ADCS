@@ -269,11 +269,21 @@ class MonteCarloRunner:
         with Live(dashboard, refresh_per_second=10):
             with ProcessPoolExecutor(max_workers=self.max_workers, initializer=_worker_init, initargs=(progress_q, slot_q), mp_context=multiprocessing.get_context('spawn')) as executor:
                 
+                # Submit futures in batches to avoid queue starvation.
+                # With 100 seeds and 4 workers, submitting all at once means
+                # 96 futures sit in the queue. Their _start_time would be
+                # the submit time, so they'd all "timeout" after per_run_timeout
+                # despite never running. Solution: track when futures actually
+                # start by using a running callback, and submit in waves.
+                pending_configs = list(configs)
                 futures = {}
-                for cfg in configs:
+                # Seed initial batch (max_workers × 2 to keep pipeline full)
+                batch_size = self.max_workers * 2
+                for cfg in pending_configs[:batch_size]:
                     f = executor.submit(self.sim_func, cfg)
                     f._start_time = time.time()
                     futures[f] = cfg["run_id"]
+                pending_configs = pending_configs[batch_size:]
                 
                 completed_count = 0
                 while completed_count < self.num_runs:
@@ -319,6 +329,13 @@ class MonteCarloRunner:
                         del futures[f]
                         completed_count += 1
                         overall_progress.update(overall_task, advance=1)
+                    
+                    # Submit more futures as slots free up
+                    while pending_configs and len(futures) < batch_size:
+                        cfg = pending_configs.pop(0)
+                        f = executor.submit(self.sim_func, cfg)
+                        f._start_time = time.time()
+                        futures[f] = cfg["run_id"]
                     
                     time.sleep(0.05)
 
