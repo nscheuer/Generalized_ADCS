@@ -22,6 +22,7 @@ __all__ = [
     "tail_mean",
     "quality_score",
     "quality_score_from_trace",
+    "quality_score_from_trace_segmented",
     "mc_result_quality",
     "summarize_mc_quality",
 ]
@@ -141,6 +142,68 @@ def quality_score_from_trace(
     sf = st / T if T > 0 else 1.0
     tm = tail_mean(errors, tail_frac)
     return quality_score(sf, tm), st, sf, tm
+
+
+def quality_score_from_trace_segmented(
+    times: np.ndarray,
+    errors: np.ndarray,
+    boresight_goal: np.ndarray | None = None,
+    settle_thresh_deg: float = 5.0,
+    tail_frac: float = 0.5,
+) -> tuple[float, float, float, float]:
+    """Segment-wise quality score for multi-goal trajectories.
+
+    Identifies goal-change boundaries from ``boresight_goal`` and evaluates
+    quality within each active segment (non-zero goal).  Skips idle/transition
+    segments where goal is [0, 0, 0].
+
+    The per-segment score uses ``quality_score_from_trace`` with the segment's
+    own time window.  The final score is the **mean** across active segments,
+    which avoids penalizing inevitable error spikes at goal transitions.
+
+    Falls back to ``quality_score_from_trace`` when ``boresight_goal`` is None
+    or there is only one segment.
+
+    Returns (score, mean_settle_time_s, mean_settle_frac, mean_tail_mean_deg).
+    """
+    if boresight_goal is None or boresight_goal.ndim != 2:
+        return quality_score_from_trace(times, errors, settle_thresh_deg, tail_frac)
+
+    # Detect segment boundaries (where goal changes)
+    diffs = np.linalg.norm(np.diff(boresight_goal, axis=0), axis=1)
+    change_idx = np.where(diffs > 0.01)[0]  # small tolerance for float noise
+    segment_bounds = np.split(np.arange(len(times)), change_idx + 1)
+
+    # Filter to active segments (non-zero goal)
+    seg_scores = []
+    seg_settles = []
+    seg_fracs = []
+    seg_tails = []
+    for seg_idx in segment_bounds:
+        if len(seg_idx) < 3:
+            continue  # too short to evaluate
+        gv = boresight_goal[seg_idx[0]]
+        if np.linalg.norm(gv) < 0.01:
+            continue  # idle segment, skip
+
+        seg_times = times[seg_idx]
+        seg_errors = errors[seg_idx]
+        sc, st, sf, tm = quality_score_from_trace(
+            seg_times, seg_errors, settle_thresh_deg, tail_frac)
+        seg_scores.append(sc)
+        seg_settles.append(st)
+        seg_fracs.append(sf)
+        seg_tails.append(tm)
+
+    if not seg_scores:
+        return quality_score_from_trace(times, errors, settle_thresh_deg, tail_frac)
+
+    return (
+        float(np.mean(seg_scores)),
+        float(np.mean(seg_settles)),
+        float(np.mean(seg_fracs)),
+        float(np.mean(seg_tails)),
+    )
 
 
 def mc_result_quality(
