@@ -1064,6 +1064,19 @@ def create_mc_planner_and_factory(sat, tf, dt_planning=10.0, has_rw=None):
         # Phase 2 boosts terminal (running→original). Prevents loiter-and-sprint
         # without regressing good seeds. 5 iters = 10 forced outer minimum.
         s.cost_homotopy_iters = 5
+        
+        # TVLQR K-gain computation: boost angular velocity weight ×2.
+        # For ECI boresight goals, the planned trajectory has a free boresight-roll
+        # DOF. The default K-gains (quaternion tracking cost) can overcorrect small
+        # errors by injecting excessive angular velocity, causing actuator saturation
+        # cascades (ω spirals from 0.7°/s to 37°/s in 16 seconds, all MTQs at ±max).
+        # Doubling the ω weight makes K-gains penalize angular velocity more, producing
+        # gentler corrections. Tested on 15 seeds: eliminates all ✗ with zero ★★★ regression.
+        # Only affects K-gain computation, NOT the optimizer's trajectory planning.
+        if has_rw:
+            s.cost_tvlqr.ang_vel *= 2
+            s.cost_tvlqr.ang_vel_N *= 2
+        
         return s
     
     # Create the primary settings at the coarse dt
