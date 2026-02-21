@@ -267,7 +267,7 @@ class MonteCarloRunner:
         print(f"Starting Monte Carlo: {self.num_runs} runs on {self.max_workers} cores.")
 
         with Live(dashboard, refresh_per_second=10):
-            with ProcessPoolExecutor(max_workers=self.max_workers, initializer=_worker_init, initargs=(progress_q, slot_q)) as executor:
+            with ProcessPoolExecutor(max_workers=self.max_workers, initializer=_worker_init, initargs=(progress_q, slot_q), mp_context=multiprocessing.get_context('spawn')) as executor:
                 
                 futures = {}
                 for cfg in configs:

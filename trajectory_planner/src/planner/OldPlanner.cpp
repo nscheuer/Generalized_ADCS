@@ -1093,11 +1093,15 @@ AFTER_OUTPUT_FORM OldPlanner::trajOptAfter(VECTOR_INFO_FORM vecs_w_time,double d
       UsetLong_zoh = UsetLong_zoh.head_cols(N_ctrl);
       
       double slack_max_skip = (slack_Sset.n_elem > 0) ? abs(slack_Sset).max() : 0.0;
+      bool use_slerp_for_kgains = (slack_max_skip > 1e-5) || (abs(dt_prev - dt_tvlqr) > 0.01);
       
-      if (slack_max_skip > 1e-5) {
-        // --- Strategy (b): slacks present — use Pass 1 states directly ---
-        cout << "Pass 2 SKIPPED: using Pass 1 SLERP states for K-gains (slack_max=" 
-             << slack_max_skip << ")\n";
+      if (use_slerp_for_kgains) {
+        // --- SLERP interpolation for K-gain reference trajectory ---
+        // Always use SLERP when dt differs (even without slacks), because
+        // ZOH forward-sim at dt_tvlqr << dt_prev drifts due to B-field
+        // changes within each coarse time step.
+        cout << "Pass 2 SKIPPED: using SLERP states for K-gains (slack_max=" 
+             << slack_max_skip << ", dt_prev=" << dt_prev << ", dt_tvlqr=" << dt_tvlqr << ")\n";
         
         // SLERP-interpolate Pass 1 states to fine grid (if dt differs)
         mat X_slerp;
@@ -4283,6 +4287,21 @@ tuple<BACKWARD_PASS_RESULTS_FORM, REG_PAIR> OldPlanner::backwardPass(double dt0,
       continue;
     }
     Pk = 0.5*(Pk + trans(Pk));
+    // Project Pk to PSD at every backward step (Gauss-Newton approximation).
+    // For ECI goals, the running cost Hessian can be indefinite (rank-1 ddφ
+    // with negative eigenvalues from the cross-term). Without projection,
+    // negative eigenvalues accumulate over 1000+ backward steps at dt=1,
+    // causing Qkuu condition numbers of ~1e33 and optimizer failure.
+    // This matches the PSD projection already used in findK.
+    {
+      vec Pk_eigs_bwd; mat Pk_vecs_bwd;
+      eig_sym(Pk_eigs_bwd, Pk_vecs_bwd, Pk);
+      if (Pk_eigs_bwd.min() < 0) {
+        Pk_eigs_bwd = clamp(Pk_eigs_bwd, 0.0, datum::inf);
+        Pk = Pk_vecs_bwd * diagmat(Pk_eigs_bwd) * Pk_vecs_bwd.t();
+        Pk = 0.5*(Pk + Pk.t());
+      }
+    }
     delV += join_cols(trans(dk)*Qku, 0.5*trans(dk)*Qkuu*dk);//*(get<0>(regs)+mean(eigs))/mean(eigs);//delV_int;
     dk.zeros();
     Kk.zeros();

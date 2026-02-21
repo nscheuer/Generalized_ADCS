@@ -347,7 +347,7 @@ if __name__ == "__main__":
             sim_func=run_single_sim,
             config_generator=generate_mc_config,
             num_runs=NUM_RUNS,
-            max_workers=4, per_run_timeout=1800  # 5min per seed
+            max_workers=4, per_run_timeout=600  # 10min per seed
         )
         full_results = runner.run()
 
