@@ -64,6 +64,7 @@ class Fixed_Attitude_Goal(Attitude_Goal):
             None
 
         """
+        super().__init__()
         self.q_ref = normalize(q_ref)
 
     def to_ref(self, os0: Orbital_State) -> Tuple[np.ndarray, np.ndarray]:

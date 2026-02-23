@@ -49,7 +49,7 @@ class PlannerSettings:
     est_sat: EstimatedSatellite
 
     # Constraints
-    constraints: ConstraintConfig = field(default_factory=ConstraintConfig)
+    constraints: ConstraintConfig = field(init=False)
 
     # Disturbances
     disturbances: DisturbanceConfig = field(init=False)
@@ -62,3 +62,4 @@ class PlannerSettings:
 
     def __post_init__(self):
         self.disturbances = DisturbanceConfig(self.est_sat)
+        self.constraints = ConstraintConfig(self.est_sat)

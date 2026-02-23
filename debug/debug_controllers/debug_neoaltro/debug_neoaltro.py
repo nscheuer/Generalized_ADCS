@@ -28,6 +28,13 @@ from ADCS.helpers.plotting.plot_controller import plot_control, plot_rw_momentum
 from ADCS.helpers.plotting.animate_orbit import animate_orbit
 from ADCS.helpers.plotting.animate_orbit_pyvista import animate_orbit_pyvista
 
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.abspath(os.path.join(current_dir, "../../../.."))
+saltro_path = os.path.join(parent_dir, "SALTRO", "build")
+sys.path.append(saltro_path)
+
+import saltro_py
+
 if __name__ == "__main__":
     np.random.seed(1)
     t0 = 0
@@ -64,8 +71,8 @@ if __name__ == "__main__":
     os0 = Orbital_State(ephem=ephem, J2000=start_time, R=R, V=V)
     orb = Orbit(os0=os0, end_time=end_time, dt=dt, use_J2=True, fast=False)
     
+    # Planner Settings
     planner_settings = PlannerSettings(est_sat=real_sat)
     print("Created Planner Settings")
     
     
-    return

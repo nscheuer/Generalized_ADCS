@@ -28,6 +28,7 @@ class RunResults:
     est_actuator_bias: Optional[np.ndarray] = None
     target_hist: Optional[np.ndarray] = None
     w_target_hist: Optional[np.ndarray] = None
+    boresight_hist: Optional[np.ndarray] = None
     clean_sensor_hist: Optional[np.ndarray] = None
     sensor_hist: Optional[np.ndarray] = None
     control_hist: Optional[np.ndarray] = None
@@ -39,7 +40,7 @@ class RunResults:
             "est_state": "est_state_hist", "state_cov": "state_cov_hist",
             "sensor_bias": "sensor_bias", "est_sensor_bias": "est_sensor_bias",
             "actuator_bias": "actuator_bias", "est_actuator_bias": "est_actuator_bias",
-            "target": "target_hist", "w_target": "w_target_hist",
+            "target": "target_hist", "w_target": "w_target_hist", "boresight": "boresight_hist",
             "clean_sensor": "clean_sensor_hist", "sensor": "sensor_hist", "control": "control_hist"
         }
         for key, val in kwargs.items():
@@ -47,7 +48,7 @@ class RunResults:
                 attr = mapping[key]
                 if getattr(self, attr) is None:
                     setattr(self, attr, [])
-                if key in ["state", "est_state", "target", "w_target", "clean_sensor", "sensor", "control"]:
+                if key in ["state", "est_state", "target", "w_target", "boresight", "clean_sensor", "sensor", "control"]:
                     getattr(self, attr).append(np.asarray(val).copy())
                 else:
                     getattr(self, attr).append(val)

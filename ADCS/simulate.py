@@ -230,6 +230,13 @@ def simulate(
 
         target, w_target = active_goal.to_ref(os_for_gnc) 
 
+        # Get the boresight vector for the current goal
+        boresight_vec = None
+        try:
+            boresight_vec = est_satellite.get_boresight(active_goal.boresight_name)
+        except (AttributeError, KeyError, ValueError, TypeError):
+            pass
+
         est_act_bias_snapshot = None
         est_sens_bias_snapshot = None
 
@@ -324,6 +331,7 @@ def simulate(
 
             target=target,
             w_target=w_target,
+            boresight=boresight_vec,
             clean_sensor=y_clean,
             sensor=y,
             control=u,
