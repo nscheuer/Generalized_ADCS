@@ -9,6 +9,17 @@ from dataclasses import dataclass, field, InitVar
 
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
 
+try:
+    import sys
+    import os
+    parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../.."))
+    build_dir = os.path.join(parent_dir, "SALTRO", "build")
+    if build_dir not in sys.path:
+        sys.path.append(build_dir)
+    import saltro_py
+except ImportError:
+    saltro_py = None
+
 @dataclass
 class ConstraintConfig:
     est_sat: InitVar[EstimatedSatellite]
@@ -20,3 +31,14 @@ class ConstraintConfig:
     
     def __post_init__(self, est_sat):
         self.u_max = self.control_limit_scale * np.array([act.u_max for act in est_sat.actuators])
+
+    def to_cpp(self):
+        """Convert to C++ ConstraintConfig"""
+        if saltro_py is None:
+            raise ImportError("saltro_py not available")
+        cpp_constraints = saltro_py.ConstraintConfig()
+        cpp_constraints.control_limit_scale = self.control_limit_scale
+        cpp_constraints.u_max = self.u_max
+        cpp_constraints.wmax = self.wmax
+        cpp_constraints.sun_limit_angle = self.sun_limit_angle
+        return cpp_constraints

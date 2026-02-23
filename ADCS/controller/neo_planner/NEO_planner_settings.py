@@ -13,9 +13,28 @@ from ADCS.satellite_hardware.disturbances import Dipole_Disturbance, Prop_Distur
 from .NEO_pass_settings import PassConfig
 from .NEO_constraint_settings import ConstraintConfig
 
+try:
+    import sys
+    import os
+    parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../.."))
+    build_dir = os.path.join(parent_dir, "SALTRO", "build")
+    if build_dir not in sys.path:
+        sys.path.append(build_dir)
+    import saltro_py
+except ImportError:
+    saltro_py = None
+
 @dataclass
 class InitTrajConfig:
     initcontroller: int = 0
+
+    def to_cpp(self):
+        """Convert to C++ InitTrajConfig"""
+        if saltro_py is None:
+            raise ImportError("saltro_py not available")
+        cpp_init = saltro_py.InitTrajConfig()
+        cpp_init.initcontroller = self.initcontroller
+        return cpp_init
     
 @dataclass
 class DisturbanceConfig:
@@ -44,6 +63,26 @@ class DisturbanceConfig:
         self.gendist_torq = np.zeros(3)
         self.J_est = est_sat.J_0
 
+    def to_cpp(self):
+        """Convert to C++ DisturbanceConfig"""
+        if saltro_py is None:
+            raise ImportError("saltro_py not available")
+        cpp_dist = saltro_py.DisturbanceConfig()
+        cpp_dist.plan_for_aero = bool(self.plan_for_aero)
+        cpp_dist.plan_for_prop = bool(self.plan_for_prop)
+        cpp_dist.plan_for_srp = bool(self.plan_for_srp)
+        cpp_dist.plan_for_gg = bool(self.plan_for_gg)
+        cpp_dist.plan_for_gendist = bool(self.plan_for_gendist)
+        cpp_dist.plan_for_resdipole = bool(self.plan_for_resdipole)
+        cpp_dist.srp_coeff = self.srp_coeff
+        cpp_dist.drag_coeff = self.drag_coeff
+        cpp_dist.coeff_N = self.coeff_N
+        cpp_dist.res_dipole = self.res_dipole
+        cpp_dist.prop_torque = self.prop_torque
+        cpp_dist.gendist_torque = self.gendist_torq  # Note: Python uses gendist_torq, C++ uses gendist_torque
+        cpp_dist.J_est = self.J_est
+        return cpp_dist
+
 @dataclass
 class PlannerSettings:
     est_sat: EstimatedSatellite
@@ -63,3 +102,30 @@ class PlannerSettings:
     def __post_init__(self):
         self.disturbances = DisturbanceConfig(self.est_sat)
         self.constraints = ConstraintConfig(self.est_sat)
+
+    def to_cpp(self):
+        """Convert Python PlannerSettings to C++ PlannerSettings"""
+        if saltro_py is None:
+            raise ImportError("saltro_py not available")
+        
+        cpp_settings = saltro_py.PlannerSettings()
+        
+        # Convert constraints
+        cpp_settings.constraints = self.constraints.to_cpp()
+        
+        # Convert disturbances
+        cpp_settings.disturbances = self.disturbances.to_cpp()
+        
+        # Convert init trajectory
+        cpp_settings.init_traj = self.init_traj.to_cpp()
+        
+        # Set number of passes
+        cpp_settings.num_passes = len(self.passes)
+        
+        # Convert each pass (limited by MAX_OUTER_PASSES in C++)
+        for i, pass_cfg in enumerate(self.passes):
+            if i >= 2:  # MAX_OUTER_PASSES = 2
+                break
+            cpp_settings.passes[i] = pass_cfg.to_cpp()
+        
+        return cpp_settings

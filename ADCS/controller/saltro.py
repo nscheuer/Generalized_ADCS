@@ -33,6 +33,17 @@ class SALTRO(Controller):
         self.est_sat = est_sat
         self.planner_settings = planner_settings
 
+    def manual_trajectory(self, goallist: GoalList, x0: np.ndarray) -> Trajectory:
+        self.cpp_settings = self.settings_to_cpp(self.planner_settings)
+        self.cpp_satellite = self.satellite_to_cpp(self.est_sat)
+
+    def settings_to_cpp(self, settings: PlannerSettings) -> saltro_py.PlannerSettings:
+        cpp_settings = settings.to_cpp()
+        return cpp_settings
+    
+    def satellite_to_cpp(self, satellite: EstimatedSatellite) -> saltro_py.Satellite:
+        mass = satellite
+
     def calculate_trajectory(self, goallist: GoalList, x0: np.ndarray) -> Trajectory:
         lqr_times, Xset, Uset, Kset, Sset = saltro_py.trajOpt(self.est_sat, self.planner_settings, goallist, x0)
         return Trajectory(lqr_times, Xset, Uset, Kset, Sset)

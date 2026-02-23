@@ -75,4 +75,11 @@ if __name__ == "__main__":
     planner_settings = PlannerSettings(est_sat=real_sat)
     print("Created Planner Settings")
     
+    # Convert to C++ object
+    cpp_settings = planner_settings.to_cpp()
+    print("Created C++ Planner Settings")
+    
+    # Convert Satellite to C++ object
+    cpp_satellite = 
+    
     

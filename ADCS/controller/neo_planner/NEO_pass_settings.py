@@ -7,6 +7,17 @@ from typing import Tuple, Optional, List
 from numpy.typing import NDArray
 from dataclasses import dataclass, field
 
+try:
+    import sys
+    import os
+    parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../.."))
+    build_dir = os.path.join(parent_dir, "SALTRO", "build")
+    if build_dir not in sys.path:
+        sys.path.append(build_dir)
+    import saltro_py
+except ImportError:
+    saltro_py = None
+
 @dataclass
 class CostConfig:
     # Running costs
@@ -36,6 +47,32 @@ class CostConfig:
     ang_cost_func_type: int = 2
     use_cost_hess: int = 0
 
+    def to_cpp(self):
+        """Convert to C++ CostConfig"""
+        if saltro_py is None:
+            raise ImportError("saltro_py not available")
+        cpp_cost = saltro_py.CostConfig()
+        cpp_cost.angle = self.angle
+        cpp_cost.ang_vel = self.ang_vel
+        cpp_cost.ang_vel_mag = self.ang_vel_mag
+        cpp_cost.ang_vel_err_dir = self.ang_vel_err_dir
+        cpp_cost.control_mult = self.control_mult
+        cpp_cost.mtq_control_weight = self.mtq_control_weight
+        cpp_cost.rw_control_weight = self.rw_control_weight
+        cpp_cost.magic_control_weight = self.magic_control_weight
+        cpp_cost.rw_AM_weight = self.rw_AM_weight
+        cpp_cost.rw_stic_weight = self.rw_stic_weight
+        cpp_cost.RWh_max_mult = self.RWh_max_mult
+        cpp_cost.RWh_stiction_mult = self.RWh_stiction_mult
+        cpp_cost.RWh_ok_mult = self.RWh_ok_mult
+        cpp_cost.angle_N = self.angle_N
+        cpp_cost.ang_vel_N = self.ang_vel_N
+        cpp_cost.ang_vel_mag_N = self.ang_vel_mag_N
+        cpp_cost.ang_vel_err_dir_N = self.ang_vel_err_dir_N
+        cpp_cost.ang_cost_func_type = self.ang_cost_func_type
+        cpp_cost.use_cost_hess = bool(self.use_cost_hess)
+        return cpp_cost
+
 
 @dataclass
 class AugLagConfig:
@@ -51,6 +88,21 @@ class AugLagConfig:
     constraint_tol: float = 0.002
     total_cost_tol: float = 1e-2
 
+    def to_cpp(self):
+        """Convert to C++ AugLagConfig"""
+        if saltro_py is None:
+            raise ImportError("saltro_py not available")
+        cpp_auglag = saltro_py.AugLagConfig()
+        cpp_auglag.max_outer_iters = self.max_outer_iters
+        cpp_auglag.lag_mult_init = self.lag_mult_init
+        cpp_auglag.lag_mult_max = self.lag_mult_max
+        cpp_auglag.penalty_init = self.penalty_init
+        cpp_auglag.penalty_max = self.penalty_max
+        cpp_auglag.penalty_scale = self.penalty_scale
+        cpp_auglag.constraint_tol = self.constraint_tol
+        cpp_auglag.total_cost_tol = self.total_cost_tol
+        return cpp_auglag
+
 @dataclass
 class ILQRConfig:
     max_iters: int = 250
@@ -60,6 +112,19 @@ class ILQRConfig:
 
     max_cost: float = 1e40
     state_bound: float = 10.0
+
+    def to_cpp(self):
+        """Convert to C++ ILQRConfig"""
+        if saltro_py is None:
+            raise ImportError("saltro_py not available")
+        cpp_ilqr = saltro_py.ILQRConfig()
+        cpp_ilqr.max_iters = self.max_iters
+        cpp_ilqr.grad_tol = self.grad_tol
+        cpp_ilqr.cost_tol = self.cost_tol
+        cpp_ilqr.z_count_lim = self.z_count_lim
+        cpp_ilqr.max_cost = self.max_cost
+        cpp_ilqr.state_bound = self.state_bound
+        return cpp_ilqr
 
 @dataclass
 class RegularizationConfig:
@@ -75,11 +140,37 @@ class RegularizationConfig:
     use_dynamics_hess: int = 0
     use_constraint_hess: int = 0
 
+    def to_cpp(self):
+        """Convert to C++ RegularizationConfig"""
+        if saltro_py is None:
+            raise ImportError("saltro_py not available")
+        cpp_reg = saltro_py.RegularizationConfig()
+        cpp_reg.reg_init = self.reg_init
+        cpp_reg.reg_min = self.reg_min
+        cpp_reg.reg_max = self.reg_max
+        cpp_reg.reg_scale = self.reg_scale
+        cpp_reg.reg_bump = self.reg_bump
+        cpp_reg.reg_min_cond = self.reg_min_cond
+        cpp_reg.rand_add_ratio = self.rand_add_ratio
+        cpp_reg.use_dynamics_hess = bool(self.use_dynamics_hess)
+        cpp_reg.use_constraint_hess = bool(self.use_constraint_hess)
+        return cpp_reg
+
 @dataclass
 class LineSearchConfig:
     max_iters: int = 20
     beta1: float = 1e-10
     beta2: float = 500.0
+
+    def to_cpp(self):
+        """Convert to C++ LineSearchConfig"""
+        if saltro_py is None:
+            raise ImportError("saltro_py not available")
+        cpp_ls = saltro_py.LineSearchConfig()
+        cpp_ls.max_iters = self.max_iters
+        cpp_ls.beta1 = self.beta1
+        cpp_ls.beta2 = self.beta2
+        return cpp_ls
 
 @dataclass
 class PassConfig:
@@ -98,5 +189,18 @@ class PassConfig:
 
     # Timestep
     dt: float = 1.0
+
+    def to_cpp(self):
+        """Convert to C++ PassConfig"""
+        if saltro_py is None:
+            raise ImportError("saltro_py not available")
+        cpp_pass = saltro_py.PassConfig()
+        cpp_pass.cost = self.cost.to_cpp()
+        cpp_pass.auglag = self.aug_lag.to_cpp()
+        cpp_pass.ilqr = self.ilqr.to_cpp()
+        cpp_pass.reg = self.reg.to_cpp()
+        cpp_pass.linesearch = self.linesearch.to_cpp()
+        cpp_pass.dt = self.dt
+        return cpp_pass
 
 
