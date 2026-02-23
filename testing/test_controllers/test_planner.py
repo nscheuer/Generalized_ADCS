@@ -680,7 +680,8 @@ class TestPlanAndTrackIntegration:
             mass=basic_satellite.mass,
             J_0=basic_satellite.J_0,
             actuators=basic_satellite.actuators,
-            sensors=basic_satellite.sensors
+            sensors=basic_satellite.sensors,
+            boresight=basic_satellite.boresight
         )
 
     @pytest.fixture

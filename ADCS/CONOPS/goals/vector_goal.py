@@ -42,12 +42,20 @@ class Vector_Goal(Goal):
     :class:`~ADCS.goals.attitude_goal.Attitude_Goal`
 
     """
-    def __init__(self) -> None:
+    def __init__(self, boresight_name: str | None = None) -> None:
         r"""
         Initialize a vector-alignment goal.
 
-        This constructor performs no initialization beyond invoking the
-        base :class:`~ADCS.goals.goal.Goal` constructor.
+        This constructor stores the optional boresight name to be used
+        when computing the error with respect to the satellite's boresight
+        dictionary.
+
+        :param boresight_name:
+            Optional name of the boresight to use from the satellite's
+            boresight dictionary. If ``None``, the first available boresight
+            is selected.
+        :type boresight_name:
+            str | None
 
         :return:
             None
@@ -56,6 +64,7 @@ class Vector_Goal(Goal):
 
         """
         super().__init__()
+        self.boresight_name = boresight_name
 
     def to_ref(self, os0: Orbital_State) -> Tuple[np.ndarray, np.ndarray]:
         r"""

@@ -234,7 +234,8 @@ class MTQ_w_RW(Controller):
         sens_clean[np.isnan(sens_clean)] = 0.0
         b_body = np.asarray(self.M_mtm_read @ sens_clean, float).reshape(3,)
 
-        q_err_vec = goal.error(q=q, body_boresight=est_sat.boresight, os0=os_hat)
+        boresight = est_sat.get_boresight(goal.boresight_name)
+        q_err_vec = goal.error(q=q, body_boresight=boresight, os0=os_hat)
         # q_err_vec = vector_alignment_error(q=q, eci_goal=goal_vector_eci, body_boresight=est_sat.boresight)
         R_b2i = rot_mat(q)
         w_ref_body = R_b2i.T @ w_ref_eci

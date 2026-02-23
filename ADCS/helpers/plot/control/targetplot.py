@@ -164,17 +164,17 @@ class TargetPlot(Subplot):
 
         ref_run = valid_runs[0]
 
-        bore_body_unit = None
-        bore_body = getattr(ref_run.satellite, "boresight", None)
-        if bore_body is not None:
-            bb = np.asarray(bore_body, dtype=float).reshape(-1)
-            if bb.size == 3 and np.linalg.norm(bb) > 0:
-                bore_body_unit = bb / np.linalg.norm(bb)
+        # Check if we can do 3D visualization - we need boresights available
+        can_do_3d = False
+        satellite = getattr(ref_run, "satellite", None)
+        if satellite is not None and hasattr(satellite, "get_boresight"):
+            try:
+                _ = satellite.get_boresight()
+                can_do_3d = True
+            except (KeyError, AttributeError, ValueError):
+                can_do_3d = False
 
-        if bore_body_unit is None:
-            want_3d = False
-        else:
-            want_3d = "directions3d" in self.modes
+        want_3d = can_do_3d and "directions3d" in self.modes
 
         def _prep_run(r):
             X_real = np.asarray(r.state_hist)
@@ -189,6 +189,13 @@ class TargetPlot(Subplot):
                 X_est = np.asarray(r.est_state_hist)
                 N = min(N, len(X_est))
 
+            # Get boresight vectors for each timestep
+            boresight_hist = getattr(r, "boresight_hist", None)
+            if boresight_hist is None:
+                return None  # Cannot compute errors without boresights
+            boresight_hist = np.asarray(boresight_hist)
+            N = min(N, len(boresight_hist))
+
             t = getattr(r, self.time, None)
             if t is not None:
                 t = np.asarray(t)[:N]
@@ -197,6 +204,7 @@ class TargetPlot(Subplot):
             target_ok = np.ones(N, dtype=bool)
             target_vec_eci = np.full((N, 3), np.nan, dtype=float)
             target_qref = np.full((N, 4), np.nan, dtype=float)
+            bore_body_units = np.full((N, 3), np.nan, dtype=float)
 
             for i in range(N):
                 row = np.asarray(Th[i], dtype=float).reshape(-1)
@@ -204,12 +212,17 @@ class TargetPlot(Subplot):
                     target_ok[i] = False
                     continue
 
+                # Get and normalize the boresight for this timestep
+                bore_body = np.asarray(boresight_hist[i], dtype=float).reshape(-1)
+                if bore_body.size == 3 and np.linalg.norm(bore_body) > 0:
+                    bore_body_units[i] = bore_body / np.linalg.norm(bore_body)
+                else:
+                    target_ok[i] = False
+                    continue
+
                 if np.isnan(row[0]):
                     v = row[1:4]
                     if not np.all(np.isfinite(v)) or np.linalg.norm(v) == 0:
-                        target_ok[i] = False
-                        continue
-                    if bore_body_unit is None:
                         target_ok[i] = False
                         continue
                     target_vec_eci[i] = v / np.linalg.norm(v)
@@ -229,10 +242,13 @@ class TargetPlot(Subplot):
                     if not target_ok[i]:
                         continue
                     q = X_real[i, 3:7]
+                    bore_unit = bore_body_units[i]
+                    if np.any(np.isnan(bore_unit)):
+                        continue
                     if is_quat[i]:
                         y[i] = _attitude_error_deg(q, target_qref[i])
                     else:
-                        bore_eci = _boresight_eci(q, bore_body_unit)  # type: ignore[arg-type]
+                        bore_eci = _boresight_eci(q, bore_unit)
                         y[i] = _angle_deg(bore_eci, target_vec_eci[i])
                 series["Real vs Target"] = y
 
@@ -245,25 +261,29 @@ class TargetPlot(Subplot):
                         if not target_ok[i]:
                             continue
                         qh = X_est[i, 3:7]
+                        bore_unit = bore_body_units[i]
+                        if np.any(np.isnan(bore_unit)):
+                            continue
                         if is_quat[i]:
                             y[i] = _attitude_error_deg(qh, target_qref[i])
                         else:
-                            bore_eci_hat = _boresight_eci(qh, bore_body_unit)  # type: ignore[arg-type]
+                            bore_eci_hat = _boresight_eci(qh, bore_unit)
                             y[i] = _angle_deg(bore_eci_hat, target_vec_eci[i])
                     series["Estimated vs Target"] = y
 
             if "real_est" in self.modes:
                 if X_est is None:
                     series["Real vs Estimated (missing est_state_hist)"] = None
-                elif bore_body_unit is None:
-                    series["Real vs Estimated (missing satellite.boresight)"] = None
                 else:
                     y = np.full(N, np.nan, dtype=float)
                     for i in range(N):
                         q = X_real[i, 3:7]
                         qh = X_est[i, 3:7]
-                        bore_eci = _boresight_eci(q, bore_body_unit)
-                        bore_eci_hat = _boresight_eci(qh, bore_body_unit)
+                        bore_unit = bore_body_units[i]
+                        if np.any(np.isnan(bore_unit)):
+                            continue
+                        bore_eci = _boresight_eci(q, bore_unit)
+                        bore_eci_hat = _boresight_eci(qh, bore_unit)
                         y[i] = _angle_deg(bore_eci, bore_eci_hat)
                     series["Real vs Estimated"] = y
 
@@ -279,6 +299,7 @@ class TargetPlot(Subplot):
                 target_ok=target_ok,
                 target_vec_eci=target_vec_eci,
                 target_qref=target_qref,
+                bore_body_units=bore_body_units,
                 series=series,
                 n_series=n_series,
             )
@@ -349,44 +370,49 @@ class TargetPlot(Subplot):
             ax3 = ax.figure.add_subplot(gs[rrow, 0], projection="3d")
 
             q = pr0["X_real"][idx, 3:7]
-            bore_eci = _boresight_eci(q, bore_body_unit)  # type: ignore[arg-type]
+            bear_unit_at_idx = pr0["bore_body_units"][idx]
+            
+            if np.any(np.isnan(bear_unit_at_idx)):
+                ax3.text(0.5, 0.5, 0.5, "No valid boresight for this sample", ha="center")
+            else:
+                bore_eci = _boresight_eci(q, bear_unit_at_idx)
 
-            target_dir = None
-            target_label = "Target"
-            if pr0["target_ok"][idx]:
-                if pr0["is_quat"][idx]:
-                    qref = pr0["target_qref"][idx]
-                    target_dir = _boresight_eci(qref, bore_body_unit)  # type: ignore[arg-type]
-                    target_label = "Target (q_ref boresight)"
-                else:
-                    target_dir = pr0["target_vec_eci"][idx]
-                    target_label = "Target"
+                target_dir = None
+                target_label = "Target"
+                if pr0["target_ok"][idx]:
+                    if pr0["is_quat"][idx]:
+                        qref = pr0["target_qref"][idx]
+                        target_dir = _boresight_eci(qref, bear_unit_at_idx)
+                        target_label = "Target (q_ref boresight)"
+                    else:
+                        target_dir = pr0["target_vec_eci"][idx]
+                        target_label = "Target"
 
-            bore_hat = None
-            if pr0["X_est"] is not None:
-                qh = pr0["X_est"][idx, 3:7]
-                bore_hat = _boresight_eci(qh, bore_body_unit)  # type: ignore[arg-type]
+                bore_hat = None
+                if pr0["X_est"] is not None:
+                    qh = pr0["X_est"][idx, 3:7]
+                    bore_hat = _boresight_eci(qh, bear_unit_at_idx)
 
-            def _seg(v: np.ndarray):
-                return np.array([0.0, v[0]]), np.array([0.0, v[1]]), np.array([0.0, v[2]])
+                def _seg(v: np.ndarray):
+                    return np.array([0.0, v[0]]), np.array([0.0, v[1]]), np.array([0.0, v[2]])
 
-            xs, ys, zs = _seg(bore_eci)
-            ax3.plot(xs, ys, zs, label="Real boresight")
+                xs, ys, zs = _seg(bore_eci)
+                ax3.plot(xs, ys, zs, label="Real boresight")
 
-            if target_dir is not None and np.all(np.isfinite(target_dir)) and np.linalg.norm(target_dir) > 0:
-                xs, ys, zs = _seg(target_dir)
-                ax3.plot(xs, ys, zs, label=target_label)
+                if target_dir is not None and np.all(np.isfinite(target_dir)) and np.linalg.norm(target_dir) > 0:
+                    xs, ys, zs = _seg(target_dir)
+                    ax3.plot(xs, ys, zs, label=target_label)
 
-            if bore_hat is not None:
-                xs, ys, zs = _seg(bore_hat)
-                ax3.plot(xs, ys, zs, label="Estimated boresight")
+                if bore_hat is not None:
+                    xs, ys, zs = _seg(bore_hat)
+                    ax3.plot(xs, ys, zs, label="Estimated boresight")
 
-            ax3.set_xlim(-1, 1)
-            ax3.set_ylim(-1, 1)
-            ax3.set_zlim(-1, 1)
-            ax3.set_box_aspect([1, 1, 1])
-            ax3.set_title(f"Direction snapshot (k={idx})")
-            ax3.legend()
+                ax3.set_xlim(-1, 1)
+                ax3.set_ylim(-1, 1)
+                ax3.set_zlim(-1, 1)
+                ax3.set_box_aspect([1, 1, 1])
+                ax3.set_title(f"Direction snapshot (k={idx})")
+                ax3.legend()
 
 
     def _plot_no_data(self, ax, msg: str = "No target / state data available") -> None:
@@ -507,16 +533,19 @@ class TargetHistogram(Subplot):
         if not np.isnan(last_target[0]):
             return _attitude_error_deg(q_real, last_target)
 
-        bore_attr = getattr(run.satellite, "boresight", None)
-        if bore_attr is not None:
-            bore_body = np.asarray(bore_attr, dtype=float).flatten()
-            if bore_body.size == 3 and np.linalg.norm(bore_body) > 0:
-                bore_unit = bore_body / np.linalg.norm(bore_body)
-                target_vec = last_target[1:4]
-                if np.linalg.norm(target_vec) > 0:
-                    target_unit = target_vec / np.linalg.norm(target_vec)
-                    bore_eci = _boresight_eci(q_real, bore_unit)
-                    return _angle_deg(bore_eci, target_unit)
+        # Get the boresight vector for the final timestep
+        boresight_hist = getattr(run, "boresight_hist", None)
+        if boresight_hist is None or len(boresight_hist) == 0:
+            return None
+
+        bore_body = np.asarray(boresight_hist[-1], dtype=float).flatten()
+        if bore_body.size == 3 and np.linalg.norm(bore_body) > 0:
+            bore_unit = bore_body / np.linalg.norm(bore_body)
+            target_vec = last_target[1:4]
+            if np.linalg.norm(target_vec) > 0:
+                target_unit = target_vec / np.linalg.norm(target_vec)
+                bore_eci = _boresight_eci(q_real, bore_unit)
+                return _angle_deg(bore_eci, target_unit)
 
         return None
 

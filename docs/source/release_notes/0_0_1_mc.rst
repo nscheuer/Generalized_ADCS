@@ -1,4 +1,4 @@
-Closed-Alpha 0.0.1 Release Notes (2026-02-02)
+0.0.1 Monte Carlo Simulations (2026-02-02)
 =============================================
 
 New Features
