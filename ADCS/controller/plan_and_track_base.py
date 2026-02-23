@@ -370,15 +370,9 @@ class PlanAndTrackBase(Controller):
             target, _w_ref = goals.to_ref(t, os_at_t, time_units="centuries")
             goal_vecs_eci[:, i] = target
             
-            sat_body_vecs[:, i] = np.asarray(self.est_sat.boresight, dtype=np.float64).reshape(3)
+            sat_body_vecs[:, i] = np.asarray(self.est_sat.get_boresight(), dtype=np.float64).reshape(3)
 
-        A = np.asfortranarray(sat_body_vecs, dtype=np.float64)      # a in C++
-        E = np.asfortranarray(goal_vecs_eci, dtype=np.float64)      # e in C++
-        p = np.ascontiguousarray(prop_vals.reshape(-1), dtype=np.float64)
-
-        t_c = np.ascontiguousarray(times_arr.reshape(-1), dtype=np.float64)
-
-        return (t_c, R, V, B, S, A, E, p, rho)
+        return (times_arr, R, V, B, S, sat_body_vecs, goal_vecs_eci, prop_vals, rho)
 
     def _calculate_trajectory_common(
         self,

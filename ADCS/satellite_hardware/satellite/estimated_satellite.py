@@ -74,7 +74,7 @@ class EstimatedSatellite(Satellite):
         :meth:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.match_estimate`.
     """
 
-    def __init__(self, mass: float = 1.0, COM: np.ndarray = None, J_0: np.ndarray = None, disturbances: List[Disturbance] = [], sensors: List[Sensor] = [], actuators: List[Actuator] = [], boresight: np.ndarray = np.array([0, 0, 1])) -> None:
+    def __init__(self, mass: float = 1.0, COM: np.ndarray = None, J_0: np.ndarray = None, disturbances: List[Disturbance] = [], sensors: List[Sensor] = [], actuators: List[Actuator] = [], boresight: dict[str, np.ndarray] | np.ndarray = None) -> None:
         r"""
         Construct an estimator-augmented satellite.
 
@@ -112,8 +112,8 @@ class EstimatedSatellite(Satellite):
         :param actuators: Actuator model list.
         :type actuators: list[:class:`~ADCS.satellite_hardware.actuators.Actuator`]
 
-        :param boresight: Body-frame boresight direction, shape ``(3,)``.
-        :type boresight: numpy.ndarray
+        :param boresight: Named boresight vectors dict or single vector, shape ``(3,)``.
+        :type boresight: dict[str, numpy.ndarray] | numpy.ndarray | None
 
         :return: ``None``.
         :rtype: None
