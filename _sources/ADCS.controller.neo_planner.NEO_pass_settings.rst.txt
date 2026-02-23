@@ -1,0 +1,7 @@
+ADCS.controller.neo\_planner.NEO\_pass\_settings module
+=======================================================
+
+.. automodule:: ADCS.controller.neo_planner.NEO_pass_settings
+   :members:
+   :show-inheritance:
+   :undoc-members:
