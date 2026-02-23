@@ -43,7 +43,7 @@ class Coordinate_Goal(Vector_Goal):
     :class:`~ADCS.orbits.orbital_state.Orbital_State`
 
     """
-    def __init__(self, lat: float, lon: float, alt: float) -> None:
+    def __init__(self, lat: float, lon: float, alt: float, boresight_name: str | None = None) -> None:
         r"""
         Initialize a coordinate-based ground target goal.
 
@@ -66,12 +66,20 @@ class Coordinate_Goal(Vector_Goal):
         :type alt:
             float
 
+        :param boresight_name:
+            Optional name of the boresight to use from the satellite's
+            boresight dictionary. If ``None``, the first available boresight
+            is selected.
+        :type boresight_name:
+            str | None
+
         :return:
             None
         :rtype:
             None
 
         """
+        super().__init__(boresight_name=boresight_name)
         self.lat_deg = lat
         self.lon_deg = lon
         self.alt_km = alt

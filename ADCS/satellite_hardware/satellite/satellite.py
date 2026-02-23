@@ -129,7 +129,7 @@ class Satellite:
     :raises ValueError:
         If ``COM`` is not shape ``(3,)`` or ``J_0`` is not shape ``(3,3)``.
     """
-    def __init__(self, mass: float = 1.0, COM: np.ndarray = None, J_0: np.ndarray = None, disturbances: List[Disturbance] = [], sensors: List[Sensor] = [], actuators: List[Actuator] = [], boresight: np.ndarray = np.array([0, 0, 1])) -> None:
+    def __init__(self, mass: float = 1.0, COM: np.ndarray = None, J_0: np.ndarray = None, disturbances: List[Disturbance] = [], sensors: List[Sensor] = [], actuators: List[Actuator] = [], boresight: dict[str, np.ndarray] | np.ndarray = None) -> None:
         r"""
         Construct a :class:`~ADCS.satellite.Satellite`.
 
@@ -158,7 +158,7 @@ class Satellite:
         :type actuators: list[:class:`~ADCS.satellite_hardware.actuators.Actuator`]
 
         :param boresight: Nominal body-frame boresight direction, shape ``(3,)``.
-        :type boresight: numpy.ndarray
+        :type boresight: dict[str, numpy.ndarray]
 
         :return: ``None``.
         :rtype: None
@@ -190,14 +190,43 @@ class Satellite:
         self.rw_actuators: List[RW] = [s for s in actuators if isinstance(s, RW)]
         self.mtq_actuators: List[MTQ] = [s for s in actuators if not isinstance(s, RW)]
         self.momentum_inds = np.array([j for j in range(len(self.actuators)) if isinstance(self.actuators[j], RW)])
-        self.boresight = boresight
-
+        
+        if boresight is None:
+            self.boresight: dict[str, np.ndarray] = {
+                "default": np.array([0, 0, 1], dtype=float)
+            }
+        elif isinstance(boresight, dict):
+            if len(boresight) == 0:
+                raise ValueError("Boresight dictionary cannot be empty")
+            self.boresight = {}
+            for name, vec in boresight.items():
+                vec = np.asarray(vec, dtype=float)
+                if vec.shape != (3,):
+                    raise ValueError(f"Boresight vector '{name}' must be shape (3,), got {vec.shape}")
+                self.boresight[str(name)] = normalize(vec)
+        else:
+            vec = np.asarray(boresight, dtype=float)
+            if vec.shape != (3,):
+                raise ValueError(f"Boresight vector must be shape (3,), got {vec.shape}")
+            self.boresight = {"default": normalize(vec)}
+            
         self.number_RW = sum([1 for j in self.actuators if isinstance(j,RW)])
 
         # Initialize state
         self.state_len = 7 + self.number_RW
         self.control_len = len(actuators)
         self.update_J(J_0=J_0, COM=COM)
+
+    def get_boresight(self, name: str | None = None) -> np.ndarray:
+        if name is None:
+            name = list(self.boresight.keys())[0]
+
+        if name not in self.boresight:
+            raise KeyError(
+                f"Unknown boresight '{name}'. Available: {list(self.boresight.keys())}"
+            )
+
+        return self.boresight[name]
 
     def update_J(self, J_0: np.ndarray = None, COM: np.ndarray = None) -> None:
         r"""
