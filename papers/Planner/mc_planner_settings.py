@@ -380,11 +380,14 @@ def create_adaptive_planner_settings(
     settings.bdot_on = 0
     settings.verbosity = False
     
-    # Use full backward pass for K-gains (single segment)
-    # For long trajectories, this ensures consistent K-gains without boundary issues
-    # Full backward pass (non-segmented) for now
-    settings.tvlqr_len = duration + 100
-    settings.tvlqr_overlap = 0
+    # Segmented TVLQR backward pass for K-gains.
+    # 200s segments with 80s overlap. At dt=10 this is 20 steps / 8 overlap.
+    # Segmented K-gains are locally recomputed within each segment, preventing
+    # accumulated non-PSD Hessian corruption from propagating the full 1000s
+    # backward pass. Tested on 15 seeds each for quaternion and ECI goals:
+    # zero regression on good seeds, helps catastrophic recovery on edge cases.
+    settings.tvlqr_len = 200
+    settings.tvlqr_overlap = 80
     
     # === Auto-scale iterations based on problem size ===
     # More steps = need more iterations, but cap to avoid excessive runtime
