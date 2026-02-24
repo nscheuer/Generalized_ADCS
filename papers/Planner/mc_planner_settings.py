@@ -380,14 +380,12 @@ def create_adaptive_planner_settings(
     settings.bdot_on = 0
     settings.verbosity = False
     
-    # Segmented TVLQR backward pass for K-gains.
-    # 200s segments with 80s overlap. At dt=10 this is 20 steps / 8 overlap.
-    # Segmented K-gains are locally recomputed within each segment, preventing
-    # accumulated non-PSD Hessian corruption from propagating the full 1000s
-    # backward pass. Tested on 15 seeds each for quaternion and ECI goals:
-    # zero regression on good seeds, helps catastrophic recovery on edge cases.
-    settings.tvlqr_len = 200
-    settings.tvlqr_overlap = 80
+    # Monolithic TVLQR: full backward pass covering entire trajectory.
+    # Segmented (tvlqr_len=200, tvlqr_overlap=80) was tested in full 100-seed MC 
+    # and found to hurt 0RW configs (MTQ-only needs long-range B-field correlation
+    # in K-gains: 0RW Multi 35→24 ★★★, 0RW Reduced +4 ✗). Kept monolithic.
+    settings.tvlqr_len = duration + 100
+    settings.tvlqr_overlap = 0
     
     # === Auto-scale iterations based on problem size ===
     # More steps = need more iterations, but cap to avoid excessive runtime
@@ -1068,17 +1066,9 @@ def create_mc_planner_and_factory(sat, tf, dt_planning=10.0, has_rw=None):
         # without regressing good seeds. 5 iters = 10 forced outer minimum.
         s.cost_homotopy_iters = 5
         
-        # TVLQR K-gain computation: boost angular velocity weight ×2.
-        # For ECI boresight goals, the planned trajectory has a free boresight-roll
-        # DOF. The default K-gains (quaternion tracking cost) can overcorrect small
-        # errors by injecting excessive angular velocity, causing actuator saturation
-        # cascades (ω spirals from 0.7°/s to 37°/s in 16 seconds, all MTQs at ±max).
-        # Doubling the ω weight makes K-gains penalize angular velocity more, producing
-        # gentler corrections. Tested on 15 seeds: eliminates all ✗ with zero ★★★ regression.
-        # Only affects K-gain computation, NOT the optimizer's trajectory planning.
-        if has_rw:
-            s.cost_tvlqr.ang_vel *= 2
-            s.cost_tvlqr.ang_vel_N *= 2
+        # NOTE: TVLQR ang_vel×2 was tested and found to hurt 1RW Full (quaternion)
+        # goals: 85→74 ★★★. The extra ω damping makes quaternion tracking sluggish.
+        # It helps some ECI edge cases but regresses overall. Kept disabled.
         
         return s
     

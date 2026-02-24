@@ -239,8 +239,19 @@ def mc_result_quality(
 
     errors = compute_error_trace(states, times, q_goal=q_goal,
                                  boresight_goal=boresight_goal)
-    score, st, sf, tm = quality_score_from_trace(
-        times, errors, settle_thresh_deg, tail_frac)
+    # Use segment-wise scoring for multi-goal trajectories (avoids penalizing
+    # goal-transition error spikes that are inherent in multi-target missions).
+    if boresight_goal is not None and boresight_goal.ndim == 2:
+        diffs = np.linalg.norm(np.diff(boresight_goal, axis=0), axis=1)
+        is_multi = np.any(diffs > 0.01)
+    else:
+        is_multi = False
+    if is_multi:
+        score, st, sf, tm = quality_score_from_trace_segmented(
+            times, errors, boresight_goal, settle_thresh_deg, tail_frac)
+    else:
+        score, st, sf, tm = quality_score_from_trace(
+            times, errors, settle_thresh_deg, tail_frac)
 
     grade = "★★★" if score < 0.3 else ("★★" if score < 0.5 else ("★" if score < 1.0 else "✗"))
 
