@@ -380,12 +380,11 @@ def create_adaptive_planner_settings(
     settings.bdot_on = 0
     settings.verbosity = False
     
-    # Monolithic TVLQR: full backward pass covering entire trajectory.
-    # Segmented (tvlqr_len=200, tvlqr_overlap=80) was tested in full 100-seed MC 
-    # and found to hurt 0RW configs (MTQ-only needs long-range B-field correlation
-    # in K-gains: 0RW Multi 35→24 ★★★, 0RW Reduced +4 ✗). Kept monolithic.
-    settings.tvlqr_len = duration + 100
-    settings.tvlqr_overlap = 0
+    # NOTE: tvlqr_len/overlap are overridden in create_optimized_planner_settings
+    # (line ~981) which always sets 60/15. This line is dead code.
+    # The effective TVLQR uses 60s segments with 15s overlap.
+    settings.tvlqr_len = duration + 100  # Overridden downstream
+    settings.tvlqr_overlap = 0           # Overridden downstream
     
     # === Auto-scale iterations based on problem size ===
     # More steps = need more iterations, but cap to avoid excessive runtime
