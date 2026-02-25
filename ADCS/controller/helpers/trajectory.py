@@ -141,13 +141,11 @@ class Trajectory:
         if use_disturbance_estimation:
             self._dist_estimate = np.zeros(3)
 
-        # Boresight-roll projection for ECI (reduced-attitude) goals.
-        # When enabled, the quaternion error component along the body boresight
-        # axis (the "roll" DOF that is free for boresight goals) is projected
-        # out before K-gain multiplication.  This prevents the TVLQR controller
-        # from wasting control authority correcting an error in a DOF that the
-        # goal does not constrain.
-        self._project_boresight_roll = False
+        # Boresight-roll projection: TESTED AND FOUND HARMFUL.
+        # Removing roll feedback from K-gains breaks MTQ cross-coupling
+        # (τ = m × B couples all axes). Catastrophic for 0RW: 77→26 ★★★.
+        # The roll DOF is "free" in the cost but NOT in the dynamics.
+        self._project_boresight_roll = False  # DO NOT ENABLE
         self._body_boresight = np.array([0.0, 1.0, 0.0])
 
     def is_valid_time(self, t: float) -> bool:
