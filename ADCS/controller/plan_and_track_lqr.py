@@ -261,6 +261,21 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
         # Compute state error
         dx = self.active_trajectory._state_diff(x_hat, x_ref)
         
+        # For ECI (boresight) goals, project out the boresight-roll component
+        # from the quaternion error.  The planned trajectory picks an arbitrary
+        # roll angle (boresight-roll is a free DOF for vector goals).  Without
+        # projection, the K-gains spend control authority correcting this
+        # "phantom" roll error, leaving insufficient budget for actual boresight
+        # correction.  When B-field alignment becomes unfavorable (MTQ
+        # controllability drops), this causes catastrophic divergence:
+        #   ω spirals 0.7→37°/s in 16s, all actuators saturated.
+        # Projecting out the roll DOF eliminates this failure mode entirely.
+        if getattr(self.active_trajectory, '_project_boresight_roll', False):
+            bore = self.active_trajectory._body_boresight
+            dq = dx[3:6]
+            roll_component = np.dot(dq, bore) * bore
+            dx[3:6] = dq - roll_component
+        
         # Adaptive gain scaling is available but disabled by default.
         # Enable via controller._adaptive_gain_scaling = True if K-gains are
         # computed at coarse dt and tracking uses finer dt.
@@ -639,7 +654,10 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
             q_goal = self._extract_goal_quaternion(goals, t_start, duration, x_0, os_0)
             # PSD projection in optimizer backward pass now produces well-conditioned
             # K-gains for ECI goals. No gain scaling needed (gs=1.0).
-            return Trajectory(lqr_times, Xset, Uset, Kset, Sset)
+            traj = Trajectory(lqr_times, Xset, Uset, Kset, Sset)
+            if q_goal is None:  # ECI goal: project out boresight-roll DOF
+                traj._project_boresight_roll = True
+            return traj
         
         # Multi-resolution fallback strategy:
         # 1. Try coarse dt (dt=10) with multiple init modes — fast (~1s each)
@@ -735,6 +753,9 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
                     t_start, duration, x_0, os_0, goals, verbose
                 )
                 traj = Trajectory(lqr_times, Xset, Uset, Kset, Sset)
+                # For ECI (boresight) goals, enable roll-DOF projection in TVLQR
+                if not is_quat_goal:
+                    traj._project_boresight_roll = True
                 score = evaluate_plan(traj)
                 if verbose:
                     print(f"  {label}: score={score:.3f} (best={best_score:.3f})")
@@ -906,7 +927,9 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
             if verbose:
                 print(f"  0RW fallback: planned with 0RW, padded to 1RW dims")
 
-            return Trajectory(lqr_times, Xset_1rw, Uset_1rw, Kset_1rw, Sset)
+            traj_1rw = Trajectory(lqr_times, Xset_1rw, Uset_1rw, Kset_1rw, Sset)
+            traj_1rw._project_boresight_roll = True  # Always ECI for 0RW fallback
+            return traj_1rw
 
         except Exception as e:
             if verbose:

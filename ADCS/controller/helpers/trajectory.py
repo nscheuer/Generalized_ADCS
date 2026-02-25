@@ -141,6 +141,15 @@ class Trajectory:
         if use_disturbance_estimation:
             self._dist_estimate = np.zeros(3)
 
+        # Boresight-roll projection for ECI (reduced-attitude) goals.
+        # When enabled, the quaternion error component along the body boresight
+        # axis (the "roll" DOF that is free for boresight goals) is projected
+        # out before K-gain multiplication.  This prevents the TVLQR controller
+        # from wasting control authority correcting an error in a DOF that the
+        # goal does not constrain.
+        self._project_boresight_roll = False
+        self._body_boresight = np.array([0.0, 1.0, 0.0])
+
     def is_valid_time(self, t: float) -> bool:
         r"""
         Check whether a time lies within the trajectory bounds.
