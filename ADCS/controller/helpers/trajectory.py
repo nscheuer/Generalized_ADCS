@@ -417,6 +417,37 @@ class Trajectory:
 
         return dx
 
+    def get_S_at(self, t: float) -> Optional[np.ndarray]:
+        r"""
+        Retrieve the value-function Hessian :math:`S(t)` at a given time.
+
+        The cost-to-go (S) matrices are stored flattened as
+        ``(n_err*n_err, N)`` where ``n_err = state_dim - 1`` (reduced error
+        dimension).  This method reshapes the appropriate column into a
+        square matrix.
+
+        Returns ``None`` if the costs array is empty or has unexpected shape.
+
+        :param t: Query time.
+        :type t: float
+        :return: :math:`S` matrix of shape ``(n_err, n_err)``, or ``None``.
+        :rtype: numpy.ndarray or None
+        """
+        if self.costs is None or self.costs.size == 0:
+            return None
+        idx = (np.abs(self.times - t)).argmin()
+        n_err = self.state_dim - 1          # quaternion 4→3 reduction
+        if self.costs.ndim == 2:
+            if self.costs.shape[0] == n_err * n_err:
+                # Flattened column-major: (n_err², N)
+                safe_idx = min(idx, self.costs.shape[1] - 1)
+                return self.costs[:, safe_idx].reshape(n_err, n_err)
+            elif self.costs.shape[1] == n_err * n_err:
+                # Row-major: (N, n_err²)
+                safe_idx = min(idx, self.costs.shape[0] - 1)
+                return self.costs[safe_idx, :].reshape(n_err, n_err)
+        return None
+
     def update_disturbance_estimate(self, dist_torque: np.ndarray) -> None:
         r"""
         Update the internal disturbance torque estimate.

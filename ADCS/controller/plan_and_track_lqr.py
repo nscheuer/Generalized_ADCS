@@ -238,11 +238,27 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
             raise RuntimeError(f"Plan_and_Track_LQR: Active trajectory expired or not started. "
                                 f"Current: {current_time}, Traj: [{self.active_trajectory.start_time}, {self.active_trajectory.end_time}]")
 
-        # Get trajectory data
+        # Get trajectory data at current time
         x_ref = self.active_trajectory.get_state_at(current_time)
         u_ref = self.active_trajectory.get_control_at(current_time)
         K = self.active_trajectory.get_gain_at(current_time)
         
+        # Actuator bounds
+        u_bounds = np.array([act.u_max for act in est_sat.actuators])
+        
+        # ----- Single-step MPC mode -----
+        # When enabled, replaces TVLQR's linear `u = u_ref - K @ dx` with a
+        # bound-constrained optimization that uses nonlinear RK4 dynamics.
+        # Key advantages over TVLQR:
+        #   - Linearizes at actual state (correct B-field for MTQ cross-product)
+        #   - Respects actuator bounds (optimal allocation when saturated)
+        #   - No accumulated linearization error from state drift
+        if getattr(self, '_use_mpc', False):
+            return self._find_u_mpc(
+                x_hat, x_ref, u_ref, K, est_sat, os_hat,
+                u_bounds, current_time)
+        
+        # ----- Standard TVLQR mode -----
         # Apply gain clamping if configured
         if self._max_K_norm is not None:
             K_norm = np.linalg.norm(K)
@@ -261,17 +277,7 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
         # Compute state error
         dx = self.active_trajectory._state_diff(x_hat, x_ref)
         
-        # NOTE: Boresight-roll DOF projection was tested and found to be
-        # catastrophically harmful for 0RW (77→26 ★★★, 8→62 ✗). MTQ torque
-        # τ = m × B couples all attitude axes; removing roll feedback breaks
-        # this coupling. Even for 1RW, coupled K-gains need roll info for
-        # correct MTQ commands. The roll DOF is "free" in the cost, but not
-        # in the dynamics — the K-gains use roll to help boresight through
-        # actuator cross-coupling.
-        
         # Adaptive gain scaling is available but disabled by default.
-        # Enable via controller._adaptive_gain_scaling = True if K-gains are
-        # computed at coarse dt and tracking uses finer dt.
         if getattr(self, '_adaptive_gain_scaling', False):
             w_ref_norm = np.linalg.norm(x_ref[0:3])
             w_thresh_low = 0.002; w_thresh_high = 0.015
@@ -279,41 +285,184 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
                 alpha = min(1.0, (w_ref_norm - w_thresh_low) / (w_thresh_high - w_thresh_low))
                 effective_scale *= (1.0 - 0.8 * alpha)
         
-        # Apply scaled feedback: u = u_ref - scale * K @ dx
-        # Standard LQR/TVLQR uses negative feedback for stability
-        # 
-        # K-gains are in optimizer units. For RW/magic actuators, the optimizer uses
-        # scaled controls (u_opt = u_phys / NONMTQ_TORQ_SCALE). So du = K @ dx gives
-        # optimizer units, and we need to convert RW portion to physical units.
         du = effective_scale * K @ dx
         
-        # TVLQR feedback: u = u_ref - K @ dx
-        # 
-        # K-gains are computed in optimizer units where RW controls are scaled.
-        # u_ref is already converted to physical units by C++.
-        # We need to scale du for RW/magic: du_phys = du_opt * NONMTQ_TORQ_SCALE
-        NONMTQ_TORQ_SCALE = 1.0  # Must match C++ Satellite.hpp value (was 3e-5)
+        # K-gains are in optimizer units. Scale RW portion to physical units.
+        NONMTQ_TORQ_SCALE = 1.0  # Must match C++ Satellite.hpp
         n_mtq = len([a for a in est_sat.actuators if hasattr(a, 'axis') and not hasattr(a, 'J')])
         if len(du) > n_mtq:
             du[n_mtq:] *= NONMTQ_TORQ_SCALE
         
         u = u_ref - du
-        
-        # Saturate control to actuator limits
-        u_max = np.array([act.u_max for act in est_sat.actuators])
-        u = np.clip(u, -u_max, u_max)
+        u = np.clip(u, -u_bounds, u_bounds)
         
         return u
 
-    def set_active_trajectory(self, traj) -> None:
+    # -----------------------------------------------------------------
+    # Single-step MPC tracker
+    # -----------------------------------------------------------------
+    def _find_u_mpc(
+        self,
+        x_hat: np.ndarray,
+        x_ref: np.ndarray,
+        u_ref: np.ndarray,
+        K: np.ndarray,
+        est_sat: EstimatedSatellite,
+        os_hat: Orbital_State,
+        u_bounds: np.ndarray,
+        current_time: float,
+    ) -> np.ndarray:
+        r"""Compute control via single-step forward-dynamics MPC.
+
+        Solves the bounded QP
+
+        .. math::
+
+            \min_{\delta u}\;
+            \tfrac12\,\mathbf{e}^{\!\top} S\,\mathbf{e}
+            + \tfrac12\,\delta u^{\!\top} R\,\delta u
+            \quad\text{s.t.}\;
+            -u_{\max} \le u_{\text{ref}}+\delta u \le u_{\max}
+
+        where :math:`\mathbf{e} = \text{state\_diff}\!\bigl(
+        \text{RK4}(x,\,u_{\text{ref}}+\delta u),\;x_{\text{ref}}^+\bigr)`
+        is linearised around :math:`\delta u = 0`, and :math:`S` is the
+        TVLQR value-function Hessian at the next time step.
+
+        When the unconstrained optimum is feasible the result closely matches
+        standard TVLQR (same cost structure, different linearisation point).
+        When actuators saturate the bounded solve redistributes effort
+        optimally — the key advantage over TVLQR's post-hoc clipping.
+        """
+        from ADCS.controller.plan_and_track_mpc import _solve_bvls
+        from ADCS.orbits.universal_constants import TimeConstants
+
+        traj = self.active_trajectory
+        dt = 1.0  # tracking timestep [s]
+        sec2cent = TimeConstants.sec2cent
+        ct_next = min(current_time + dt * sec2cent, traj.times[-1])
+
+        x_ref_next = traj.get_state_at(ct_next)
+        S_next = traj.get_S_at(ct_next)
+
+        # Fallback to TVLQR if S is unavailable
+        if S_next is None:
+            dx = traj._state_diff(x_hat, x_ref)
+            return np.clip(u_ref - K @ dx, -u_bounds, u_bounds)
+
+        n_ctrl = len(u_ref)
+
+        # Forward-predict at u_ref using actual state & environment
+        x_pred0 = est_sat.noiseless_rk4(
+            x_hat.copy(), u_ref, dt, os_hat, os_hat)
+        x_pred0[3:7] /= np.linalg.norm(x_pred0[3:7])
+        e0 = traj._state_diff(x_pred0, x_ref_next)
+
+        # Finite-difference control Jacobian de/du (5 RK4 evals total)
+        eps = 1e-6
+        n_err = len(e0)
+        Am = np.zeros((n_err, n_ctrl))
+        for j in range(n_ctrl):
+            u_p = u_ref.copy()
+            u_p[j] += eps
+            x_p = est_sat.noiseless_rk4(
+                x_hat.copy(), u_p, dt, os_hat, os_hat)
+            x_p[3:7] /= np.linalg.norm(x_p[3:7])
+            Am[:, j] = (traj._state_diff(x_p, x_ref_next) - e0) / eps
+
+        # QP:  min ½(e0+Am·du)ᵀS(e0+Am·du) + ½ duᵀR du
+        R_alpha = getattr(self, '_mpc_R_alpha', 0.01)
+        H = Am.T @ S_next @ Am + R_alpha * np.eye(n_ctrl)
+        g = Am.T @ (S_next @ e0)
+
+        lb = -u_bounds - u_ref
+        ub = u_bounds - u_ref
+
+        du = _solve_bvls(H, g, lb, ub)
+        return np.clip(u_ref + du, -u_bounds, u_bounds)
+
+    def _calibrate_mpc_R(
+        self,
+        traj: Trajectory,
+        est_sat: EstimatedSatellite,
+        orbit=None,
+    ) -> float:
+        r"""Calibrate the MPC control-cost scalar R = α·I.
+
+        Computes :math:`A_m^{\!\top} S\,A_m` at a mid-trajectory reference
+        point and sets α to its median positive eigenvalue.  This makes the
+        control cost comparable to the state cost so that the bounded QP
+        neither over-corrects (too small α) nor under-corrects (too large α).
+
+        Falls back to 0.01 if S is unavailable or the computation fails.
+        """
+        try:
+            from ADCS.orbits.universal_constants import TimeConstants
+
+            mid = len(traj.times) // 2
+            t_mid = traj.times[mid]
+            t_next = traj.times[min(mid + 1, len(traj.times) - 1)]
+            S_next = traj.get_S_at(t_next)
+            if S_next is None:
+                return 0.01
+
+            x_ref = traj.get_state_at(t_mid)
+            u_ref = traj.get_control_at(t_mid)
+
+            # Need an orbital state at t_mid for RK4
+            if orbit is not None:
+                os_mid = orbit.get_os(t_mid)
+                os_next = orbit.get_os(t_next)
+            else:
+                # No orbit — skip calibration
+                return 0.01
+
+            dt = 1.0
+            eps = 1e-6
+            n_ctrl = len(u_ref)
+
+            x_pred0 = est_sat.noiseless_rk4(
+                x_ref.copy(), u_ref, dt, os_mid, os_next)
+            x_pred0[3:7] /= np.linalg.norm(x_pred0[3:7])
+            x_ref_next = traj.get_state_at(t_next)
+            e0 = traj._state_diff(x_pred0, x_ref_next)
+
+            Am = np.zeros((len(e0), n_ctrl))
+            for j in range(n_ctrl):
+                u_p = u_ref.copy()
+                u_p[j] += eps
+                x_p = est_sat.noiseless_rk4(
+                    x_ref.copy(), u_p, dt, os_mid, os_next)
+                x_p[3:7] /= np.linalg.norm(x_p[3:7])
+                Am[:, j] = (traj._state_diff(x_p, x_ref_next) - e0) / eps
+
+            eigs = np.linalg.eigvalsh(Am.T @ S_next @ Am)
+            pos = eigs[eigs > 1e-6]
+            if len(pos) > 0:
+                return float(np.median(pos))
+        except Exception:
+            pass
+        return 0.01
+
+    def set_active_trajectory(self, traj, orbit=None) -> None:
         """
         Set the active trajectory and record its start time for warmup.
         
-        Overrides base class to track trajectory start time for warmup period.
+        When MPC mode is enabled, also calibrates the control-cost
+        scalar R from the trajectory's S matrices.
+        
+        :param traj: Trajectory to track.
+        :param orbit: Orbit object for MPC R-calibration (optional).
         """
         super().set_active_trajectory(traj)
         if traj is not None:
             self._trajectory_start_time = traj.start_time
+            # Calibrate MPC R if MPC mode is active
+            if getattr(self, '_use_mpc', False):
+                est_sat = getattr(self, 'est_sat', None)
+                if est_sat is not None:
+                    self._mpc_R_alpha = self._calibrate_mpc_R(
+                        traj, est_sat, orbit)
         else:
             self._trajectory_start_time = None
 
