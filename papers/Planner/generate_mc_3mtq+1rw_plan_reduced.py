@@ -168,8 +168,12 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
             rw.h = config["h0"][i]
 
         # Use auto_refine with settings factory for robust planning across dt values
+        # consider_vector_in_tvlqr=2: pure vector TVLQR for ECI goals
+        # K-gains only correct boresight error, roll is free
+        cv_tvlqr = config.get("consider_vector_in_tvlqr", 0)
         planner_settings, settings_factory = create_mc_planner_and_factory(
-            real_sat, tf=tf, dt_planning=10.0, has_rw=True
+            real_sat, tf=tf, dt_planning=10.0, has_rw=True,
+            consider_vector_in_tvlqr=cv_tvlqr
         )
 
         visualize = config.get("visualize", False)
@@ -180,6 +184,9 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
                 est_sat=real_sat, planner_settings=planner_settings,
                 settings_factory=settings_factory
             )
+        # Single-step MPC tracking (opt-in via --mpc flag)
+        if config.get("use_mpc", False):
+            controller._use_mpc = True
 
         goals = GoalList({0.22: ECI_Goal(config["goal_eci_vec"])})
         os0 = orb.get_os(0.22)
@@ -312,8 +319,13 @@ if __name__ == "__main__":
     parser.add_argument("--dt", type=float, default=None, help="Override sim dt [s]")
     parser.add_argument("--dt-planning", type=float, default=None, help="Override planning dt [s]")
     parser.add_argument("--plot", action="store_true", help="Show plots after MC (default: just save data)")
+    parser.add_argument("--mpc", action="store_true", help="Use single-step MPC tracker instead of TVLQR")
+    parser.add_argument("--cv", type=int, default=0, choices=[0,1,2],
+                        help="TVLQR angle cost mode: 0=quaternion, 1=half-and-half, 2=pure vector")
     args = parser.parse_args()
 
+    USE_MPC = args.mpc
+    USE_CV = args.cv
     TEST_MODE = args.test
     if args.num_runs is not None:
         NUM_RUNS = args.num_runs
@@ -327,6 +339,8 @@ if __name__ == "__main__":
         print(f"=== TEST MODE: Single run (seed={test_seed}), no multiprocessing ===")
         config = generate_mc_config(test_seed)
         config["visualize"] = False
+        config["use_mpc"] = USE_MPC
+        config["consider_vector_in_tvlqr"] = USE_CV
         result = run_single_sim(config)
         full_results = [result]
         valid = [r for r in full_results if r and r.get("traj_valid", False)]
@@ -343,17 +357,26 @@ if __name__ == "__main__":
             print(f"Test run failed: {result.get('error', 'Unknown error')}")
 
     elif RUN_MC:
+        def mc_config_gen(run_id):
+            cfg = generate_mc_config(run_id)
+            cfg["use_mpc"] = USE_MPC
+            cfg["consider_vector_in_tvlqr"] = USE_CV
+            return cfg
+        timeout = 1200 if USE_MPC else 600  # MPC 5× slower sim
         runner = MonteCarloRunner(
             sim_func=run_single_sim,
-            config_generator=generate_mc_config,
+            config_generator=mc_config_gen,
             num_runs=NUM_RUNS,
-            max_workers=4, per_run_timeout=600  # 10min per seed
+            max_workers=4, per_run_timeout=timeout
         )
         full_results = runner.run()
 
         valid = [r for r in full_results if r and r.get("traj_valid", False)]
         print(f"\n--- Monte Carlo Complete: {len(valid)}/{len(full_results)} valid ---")
-        save_data(f"3MTQ+1RW_plan_reduced_mc_{NUM_RUNS}", full_results, out_dir=OUTPUT_DIR)
+        suffix = ""
+        if USE_MPC: suffix += "_mpc"
+        if USE_CV != 0: suffix += f"_cv{USE_CV}"
+        save_data(f"3MTQ+1RW_plan_reduced_mc_{NUM_RUNS}{suffix}", full_results, out_dir=OUTPUT_DIR)
         if args.plot:
             plot_mc_summary(valid, body_boresight=BODY_BORESIGHT, title_prefix="3MTQ+1RW Planner Reduced")
             create_close_all_button_window()

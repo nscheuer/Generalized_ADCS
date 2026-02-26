@@ -991,7 +991,8 @@ def create_optimized_planner_settings(
     return settings
 
 
-def create_mc_planner_and_factory(sat, tf, dt_planning=10.0, has_rw=None):
+def create_mc_planner_and_factory(sat, tf, dt_planning=10.0, has_rw=None,
+                                   consider_vector_in_tvlqr=0):
     """
     Create planner settings and settings_factory for MC runs with auto_refine.
     
@@ -1016,6 +1017,11 @@ def create_mc_planner_and_factory(sat, tf, dt_planning=10.0, has_rw=None):
         Coarse planning timestep (default 10.0). Auto-refine tries finer dt.
     has_rw : bool, optional
         Whether the satellite has RW. None = auto-detect.
+    consider_vector_in_tvlqr : int, optional
+        TVLQR angle cost mode for K-gain computation:
+        - 0: Pure quaternion (default) — K-gains track full attitude
+        - 1: Half-and-half (50% quat + 50% vector) — REJECTED, worse
+        - 2: Pure vector — K-gains only track boresight, roll is free
         
     Returns
     -------
@@ -1068,6 +1074,9 @@ def create_mc_planner_and_factory(sat, tf, dt_planning=10.0, has_rw=None):
         # NOTE: TVLQR ang_vel×2 was tested and found to hurt 1RW Full (quaternion)
         # goals: 85→74 ★★★. The extra ω damping makes quaternion tracking sluggish.
         # It helps some ECI edge cases but regresses overall. Kept disabled.
+        
+        # TVLQR angle cost mode: 0=quaternion, 2=pure vector (boresight only)
+        s.cost_tvlqr.consider_vector_in_tvlqr = consider_vector_in_tvlqr
         
         return s
     

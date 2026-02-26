@@ -1673,16 +1673,24 @@ cost_jacs  Satellite::costJacobians(int k, int N, vec xk, vec xkp1, vec uk,vec u
   vec3 lkx_quat_add = vec(3).zeros();//see eq37 in Planning wiht Attitude by Jackson, Tracy, Manchest, linearized with traj goal = ref traj
   vec3 angerrvec = vec(3).zeros();
 
-  if(considerVectorInTVLQR==1){
+  if(considerVectorInTVLQR==1 || considerVectorInTVLQR==2){
       if((ECIvec_k.n_elem==3)||((ECIvec_k.n_elem==4)&&(isnan(ECIvec_k(0))))){
         
         vec ek = normalise(ECIvec_k.tail(3));
         angerrvec = (cross(rotMat(qk).t()*ek,sk));
 
-        lkxx_quat_add = lkxx_quat_add - 0.5*ddvTRTudqQ(qk,sk,ek);//adjust halfway for vector (we also carea bout quaternion because its a trajectory)
-        lkx_quat_add = lkx_quat_add - 0.5*(sk.t()*dRTBdqQ(qk,ek)).t() ;//adjust halfway for vector (we also carea bout quaternion because its a trajectory)
+        if(considerVectorInTVLQR==1){
+          // Mode 1: Half-and-half (50% quaternion + 50% vector)
+          lkxx_quat_add = lkxx_quat_add - 0.5*ddvTRTudqQ(qk,sk,ek);
+          lkx_quat_add = lkx_quat_add - 0.5*(sk.t()*dRTBdqQ(qk,ek)).t();
+        } else {
+          // Mode 2: Pure vector — only penalize boresight error, roll is free.
+          // Replace quaternion identity with vector Hessian entirely.
+          // This makes K-gains ignore roll DOF around the boresight axis.
+          lkxx_quat_add = -ddvTRTudqQ(qk,sk,ek);
+          lkx_quat_add = -(sk.t()*dRTBdqQ(qk,ek)).t();
+        }
 
-        
         mat33 dangerr_dq = -skewSymmetric(sk) * dRTBdqQ(qk, ek);
         
         lkx.head(3) += angerrvec*w_avang;

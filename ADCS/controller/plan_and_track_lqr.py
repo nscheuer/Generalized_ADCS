@@ -452,17 +452,20 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
         scalar R from the trajectory's S matrices.
         
         :param traj: Trajectory to track.
-        :param orbit: Orbit object for MPC R-calibration (optional).
+        :param orbit: Orbit object for MPC R-calibration.  If ``None`` and
+            ``_use_mpc`` is ``True``, the method falls back to the orbit
+            stored during the most recent :meth:`calculate_trajectory` call.
         """
         super().set_active_trajectory(traj)
         if traj is not None:
             self._trajectory_start_time = traj.start_time
             # Calibrate MPC R if MPC mode is active
             if getattr(self, '_use_mpc', False):
+                orb = orbit or getattr(self, '_orbit', None)
                 est_sat = getattr(self, 'est_sat', None)
                 if est_sat is not None:
                     self._mpc_R_alpha = self._calibrate_mpc_R(
-                        traj, est_sat, orbit)
+                        traj, est_sat, orb)
         else:
             self._trajectory_start_time = None
 
@@ -784,6 +787,9 @@ class Plan_and_Track_LQR(PlanAndTrackBase):
         :rtype: :class:`~ADCS.controller.helpers.Trajectory`
 
         """
+        # Store orbit for MPC R-calibration (used by set_active_trajectory)
+        self._orbit = orbit
+
         auto_refine = getattr(self.planner_settings, 'auto_refine_dt', False)
         
         if not auto_refine:
