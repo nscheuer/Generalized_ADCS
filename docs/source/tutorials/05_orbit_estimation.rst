@@ -29,7 +29,7 @@ For this example, we use the CYGNSS (Cyclone Global Navigation Satellite System)
    * - **Orbital State**
      - The initial position and velocity of the spacecraft in orbit.
 
-.. code-block::python
+.. code-block:: python
 
     import ADCS as ADCS
     import numpy as np
@@ -92,6 +92,7 @@ For this example, we use the CYGNSS (Cyclone Global Navigation Satellite System)
     )
 
     plt.show()
+
 
 The EKF is able to very accurately estimate the orbit of the satellite using noisy GPS measurements. GPS receivers have come so far that many CubeSat missions do not even require explicit orbit estimators, and just use raw GPS measurements.
 
