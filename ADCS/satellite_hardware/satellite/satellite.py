@@ -1,6 +1,7 @@
 __all__ = ["Satellite"]
 
 import numpy as np
+from numba import njit
 
 from typing import List, Dict, Union, Tuple, Any
 from scipy.linalg import block_diag
@@ -14,6 +15,79 @@ from ADCS.satellite_hardware.actuators import Actuator, RW, MTQ
 from ADCS.satellite_hardware.errors import ErrorMode
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.universal_constants import TimeConstants
+
+
+@njit(cache=True)
+def _cross3(a: np.ndarray, b: np.ndarray) -> np.ndarray:
+    return np.array(
+        [
+            a[1] * b[2] - a[2] * b[1],
+            a[2] * b[0] - a[0] * b[2],
+            a[0] * b[1] - a[1] * b[0],
+        ],
+        dtype=np.float64,
+    )
+
+
+@njit(cache=True)
+def _quat_qdot(w: np.ndarray, q: np.ndarray) -> np.ndarray:
+    q0 = q[0]
+    q1 = q[1]
+    q2 = q[2]
+    q3 = q[3]
+    w0 = w[0]
+    w1 = w[1]
+    w2 = w[2]
+
+    return 0.5 * np.array(
+        [
+            -(w0 * q1 + w1 * q2 + w2 * q3),
+            q0 * w0 + q2 * w2 - q3 * w1,
+            q0 * w1 + q3 * w0 - q1 * w2,
+            q0 * w2 + q1 * w1 - q2 * w0,
+        ],
+        dtype=np.float64,
+    )
+
+
+@njit(cache=True)
+def _wdot_no_rw_kernel(
+    w: np.ndarray, total_torque: np.ndarray, J: np.ndarray, invJ_noRW: np.ndarray
+) -> np.ndarray:
+    Jw = w @ J
+    return (-_cross3(w, Jw) + total_torque) @ invJ_noRW
+
+
+@njit(cache=True)
+def _wdot_rw_kernel(
+    w: np.ndarray,
+    h: np.ndarray,
+    total_torque: np.ndarray,
+    J: np.ndarray,
+    invJ_noRW: np.ndarray,
+    rw_axes: np.ndarray,
+) -> np.ndarray:
+    coupled_momentum = w @ J + h @ rw_axes
+    return (-_cross3(w, coupled_momentum) + total_torque) @ invJ_noRW
+
+
+@njit(cache=True)
+def _rw_hdot_kernel(u_rw: np.ndarray, wdot: np.ndarray, rw_axes: np.ndarray, rw_js: np.ndarray) -> np.ndarray:
+    return u_rw - (wdot @ rw_axes.T) * rw_js
+
+
+@njit(cache=True)
+def _sum_torques(torques: np.ndarray) -> np.ndarray:
+    """Aggregate torque vectors (n, 3) into a single (3,) vector."""
+    total = np.zeros(3, dtype=np.float64)
+    for i in range(torques.shape[0]):
+        total = total + torques[i, :]
+    return total
+
+
+_DEFAULT_DMODE = ErrorMode(add_bias=True, add_noise=True, update_bias=True, update_noise=True)
+_SOLVER_DMODE = ErrorMode(add_bias=True, add_noise=True, update_bias=False, update_noise=False)
+_NOISELESS_DMODE = ErrorMode(add_bias=False, add_noise=False, update_bias=False, update_noise=False)
 
 class Satellite:
     r"""
@@ -215,6 +289,8 @@ class Satellite:
         # Initialize state
         self.state_len = 7 + self.number_RW
         self.control_len = len(actuators)
+        self._rw_axes_cached = np.zeros((0, 3), dtype=float)
+        self._rw_js_cached = np.zeros(0, dtype=float)
         self.update_J(J_0=J_0, COM=COM)
 
     def get_boresight(self, name: str | None = None) -> np.ndarray:
@@ -321,6 +397,22 @@ class Satellite:
         # ) if getattr(self, "momentum_inds", None) else self.J_COM
 
         self.invJ_noRW = np.linalg.inv(self.J_noRW)
+
+        if self.number_RW > 0:
+            self._rw_axes_cached = np.vstack([self.actuators[j].axis for j in self.momentum_inds]).astype(float)
+            self._rw_js_cached = np.array([self.actuators[j].J for j in self.momentum_inds], dtype=float)
+        else:
+            self._rw_axes_cached = np.zeros((0, 3), dtype=float)
+            self._rw_js_cached = np.zeros(0, dtype=float)
+        
+        # Cache dispatch maps for faster torque aggregation
+        self._mtq_inds = np.array([j for j in range(len(self.actuators)) if not isinstance(self.actuators[j], RW)], dtype=int)
+        self._rw_inds = np.array([j for j in range(len(self.actuators)) if isinstance(self.actuators[j], RW)], dtype=int)
+        
+        # Pre-check which disturbances accept sat parameter for fast dispatch
+        self._dist_needs_sat = np.array([
+            'sat' in d.torque.__code__.co_varnames for d in self.disturbances
+        ], dtype=bool)
 
     def _toggle_disturbance(self, dist_class: Disturbance, on: bool, ind: int | None = None) -> None:
         r"""
@@ -631,26 +723,26 @@ class Satellite:
         invJ_noRW = self.invJ_noRW
 
         if dmode is None:
-            dmode = ErrorMode(add_bias=True, add_noise=True, update_bias=True, update_noise=True)
+            dmode = _DEFAULT_DMODE
 
         disturbance_torque: np.ndarray = self.dist_torques(x=x, os=orbital_state, dmode=dmode)
         actuator_torque: np.ndarray = self.act_torque(x=x, u=u, os=orbital_state, dmode=dmode)
 
         # Dynamics
-        qdot = 0.5*w@Wmat(q).T
+        qdot = _quat_qdot(w, q)
         total_torque = disturbance_torque + actuator_torque
 
         # Reaction wheels
         if self.number_RW==0:
-            wdot = (-np.cross(w,w@J) + total_torque)@invJ_noRW
+            wdot = _wdot_no_rw_kernel(w, total_torque, J, invJ_noRW)
             result = np.concatenate([wdot,qdot])
         else:
-            RWjs = np.array([self.actuators[j].J for j in self.momentum_inds])
-            RWaxes = np.vstack([self.actuators[j].axis for j in self.momentum_inds])
+            RWjs = self._rw_js_cached
+            RWaxes = self._rw_axes_cached
             storage_torques = [self.actuators[j].storage_torque(u=u[j], x=x, os=orbital_state, dmode=dmode) for j in self.momentum_inds]
             u_RW = np.array(storage_torques)
-            wdot = (-np.cross(w,w@J + h@RWaxes) + total_torque)@invJ_noRW
-            RW_hdot = u_RW-wdot@RWaxes.T@np.diagflat(RWjs) #u_RW-wdot@RWaxes.T@np.diagflat(RWjs)
+            wdot = _wdot_rw_kernel(w, h, total_torque, J, invJ_noRW, RWaxes)
+            RW_hdot = _rw_hdot_kernel(u_RW, wdot, RWaxes, RWjs)
 
             result = np.concatenate([wdot,qdot,RW_hdot])
 
@@ -716,7 +808,7 @@ class Satellite:
         :return: State derivative :math:`\dot{\mathbf{x}}`, shape ``(state_len,)``.
         :rtype: numpy.ndarray
         """
-        dmode = ErrorMode(add_bias=True, add_noise=True, update_bias=False, update_noise=False)
+        dmode = _SOLVER_DMODE
         delta_t_between_os = (os1.J2000 - os0.J2000)*TimeConstants.cent2sec
         time_frac = t/delta_t_between_os
 
@@ -755,8 +847,8 @@ class Satellite:
         """
         torque_total = np.zeros(3)
 
-        for j in self.disturbances:
-            if 'sat' in j.torque.__code__.co_varnames:
+        for idx, j in enumerate(self.disturbances):
+            if self._dist_needs_sat[idx]:
                 t = j.torque(sat=self, x=x, os=os)
             else:
                 t = j.torque(x=x, os=os)
@@ -793,9 +885,16 @@ class Satellite:
         :return: Actuator torque vector in body frame, shape ``(3,)`` (N·m).
         :rtype: numpy.ndarray
         """
-
-        act_list = [self.actuators[j].torque(u[j], x, os=os, dmode=dmode) for j in range(len(self.actuators))]
-        return sum(act_list, np.zeros(3))
+        torque_total = np.zeros(3)
+        
+        # Use pre-computed indices to avoid repeated type checking
+        for j in self._mtq_inds:
+            torque_total = torque_total + self.actuators[j].torque(u[j], x, os=os, dmode=dmode)
+        
+        for j in self._rw_inds:
+            torque_total = torque_total + self.actuators[j].torque(u[j], x, os=os, dmode=dmode)
+        
+        return torque_total
 
     
     def dist_torques_jacobian(self, x: np.ndarray, vecs: Dict[str, np.ndarray]) -> Union[np.ndarray, np.ndarray]:
@@ -1244,7 +1343,7 @@ class Satellite:
         """
         x[3:7] = normalize(x[3:7])
         # Use no noise, no bias, no updates to either
-        dmode = ErrorMode(add_bias=False, add_noise=False, update_bias=False, update_noise=False)
+        dmode = _NOISELESS_DMODE
         if quat_as_vec:
             if mid_orbital_state is None:
                 mid_orbital_state = orbital_state0.average(orbital_state1)
