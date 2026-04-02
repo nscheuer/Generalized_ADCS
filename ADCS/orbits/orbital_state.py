@@ -298,7 +298,6 @@ class Orbital_State:
         :rtype: Orbital_State
 
         """
-        _ = fast  # ignored
         os2 = orbital_state_2
         a = 1.0 - float(ratio)
         b = float(ratio)
@@ -309,6 +308,49 @@ class Orbital_State:
         S = a * self.S + b * os2.S
         B = a * self.B + b * os2.B
         rho = a * self.rho + b * os2.rho
+
+        if fast:
+            # Fast path for tight propagation loops: reuse an existing state object and
+            # interpolate cached environment/frame data rather than reconstructing via Skyfield.
+            out = self.copy() if ratio < 0.5 else os2.copy()
+
+            out.J2000 = j2000
+            out.R = R
+            out.V = V
+            out.S = S
+            out.B = B
+            out.rho = float(rho)
+
+            out.ECEF = a * self.ECEF + b * os2.ECEF
+            out.geocentric = a * self.geocentric + b * os2.geocentric
+            out.LLA = a * self.LLA + b * os2.LLA
+
+            out._R_eci2ecef = a * self._R_eci2ecef + b * os2._R_eci2ecef
+            out._R_ecef2eci = out._R_eci2ecef.T
+            out.ECI2ENUmat = a * self.ECI2ENUmat + b * os2.ECI2ENUmat
+
+            out._n_ecef = normalize(out.ECEF)
+            out._svec = normalize(np.cross(np.array([0.0, 0.0, 1.0]), out._n_ecef))
+            out._tvec = normalize(np.cross(out._svec, out._n_ecef))
+            out._ecef_to_geo = np.vstack([out._n_ecef, out._tvec, out._svec])
+
+            # Keep nearest epoch metadata for APIs that need time-tagged objects.
+            if ratio < 0.5:
+                out.TAI = float(self.TAI)
+                out.sf_pos = self.sf_pos
+                out.datetime = self.datetime
+                if hasattr(self, "_sunlit"):
+                    out._sunlit = bool(getattr(self, "_sunlit"))
+            else:
+                out.TAI = float(os2.TAI)
+                out.sf_pos = os2.sf_pos
+                out.datetime = os2.datetime
+                if hasattr(os2, "_sunlit"):
+                    out._sunlit = bool(getattr(os2, "_sunlit"))
+
+            out.vecs = None
+            out._last_x = None
+            return out
 
         if not np.all(self.density_model.altitude_range == os2.density_model.altitude_range):
             warnings.warn("non-matching altitude range in atmospheric model between 2 orbital states")

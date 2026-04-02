@@ -707,7 +707,7 @@ class SRUAKF(UAKF):
         state0 = self.x_hat.val.copy()
 
         # --- 1. Determine Active Sensors (Eclipse Check) ---
-        mid_os = [self.prev_os.average(os, CG5.c[j]) for j in range(5)]
+        mid_os = [self.prev_os.average(os, CG5.c[j], fast=True) for j in range(5)]
         
         # Nominal propagation
         dyn_state0 = self.est_sat.noiseless_rk4(

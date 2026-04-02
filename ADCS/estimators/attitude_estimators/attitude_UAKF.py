@@ -868,7 +868,7 @@ class UAKF(Attitude_Estimator):
         state0 = self.x_hat.val.copy()
 
         # Middle orbital states (CG5 coefficients)
-        mid_os = [self.prev_os.average(os, CG5.c[j]) for j in range(5)]
+        mid_os = [self.prev_os.average(os, CG5.c[j], fast=True) for j in range(5)]
 
         # One-step propagation of the nominal dynamics
         dyn_state0 = self.est_sat.noiseless_rk4(

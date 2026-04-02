@@ -1346,7 +1346,7 @@ class Satellite:
         dmode = _NOISELESS_DMODE
         if quat_as_vec:
             if mid_orbital_state is None:
-                mid_orbital_state = orbital_state0.average(orbital_state1)
+                mid_orbital_state = orbital_state0.average(orbital_state1, fast=True)
 
             k1 = self.dynamics_core(x=x, u=u, orbital_state=orbital_state0, dmode=dmode, verbose=verbose)
             k2_in = x + 0.5 * dt * k1
@@ -1395,7 +1395,7 @@ class Satellite:
 
             if mid_orbital_state is None:
                 mid_orbital_state = [
-                    orbital_state0.average(orbital_state1, CG5_c[i]) for i in range(5)
+                    orbital_state0.average(orbital_state1, CG5_c[i], fast=True) for i in range(5)
                 ]
 
             for j in range(5):
