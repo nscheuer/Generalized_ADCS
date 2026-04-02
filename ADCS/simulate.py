@@ -33,6 +33,9 @@ def simulate(
     os0: Orbital_State = None,
     dt: float = 1.0,
     tf: float = 500.0,
+    precompute_orbit: bool = True,
+    progress: bool = True,
+    log_mode: str = "full",
 ) -> SimulationResults:
     r"""
     Run a time-domain simulation of the spacecraft Attitude Determination and Control
@@ -109,6 +112,29 @@ def simulate(
     :type tf:
         float
 
+    :param precompute_orbit:
+        If ``True``, precompute all orbital states on the simulation grid once and reuse
+        them inside the time loop. This reduces repeated interpolation/lookups and
+        improves runtime for most tutorials.
+    :type precompute_orbit:
+        bool
+
+    :param progress:
+        If ``True``, show a tqdm progress bar. Disable for slightly lower overhead in
+        batched/headless runs.
+    :type progress:
+        bool
+
+    :param log_mode:
+        Controls per-step result logging detail. Supported values:
+
+        - ``"full"``: record all telemetry fields (default, backward-compatible)
+        - ``"minimal"``: record only core timelines/state/control/targets
+        - ``"none"``: skip per-step logging entirely (maximum runtime throughput)
+
+    :type log_mode:
+        str
+
     :return:
         Container holding all recorded simulation data, including true and estimated
         states, controls, sensor readings, biases, and targets for the entire run.
@@ -121,6 +147,9 @@ def simulate(
             f"Initial state length {len(x)} does not match satellite state length "
             f"{satellite.state_len}. It must be 7 + N_rw."
         )
+
+    if log_mode not in {"full", "minimal", "none"}:
+        raise ValueError("log_mode must be one of: 'full', 'minimal', 'none'.")
 
     N = int(tf / dt)
 
@@ -136,6 +165,13 @@ def simulate(
     start_time = os0.J2000
     end_time = start_time + tf * TimeConstants.sec2cent
     orb = Orbit(os0=os0, end_time=end_time, dt=dt, use_J2=True, fast=False)
+
+    orbit_states = None
+    if precompute_orbit:
+        orbit_states = [
+            orb.get_os(J2000=start_time + i * dt * TimeConstants.sec2cent)
+            for i in range(N + 1)
+        ]
 
     u = np.zeros(satellite.control_len)
 
@@ -179,12 +215,18 @@ def simulate(
 
     run_capsule = RunResults(satellite=satellite, est_satellite=est_satellite)
 
-    for k in tqdm(range(N), desc="Simulating ADCS", unit="step"):
-        J2000_k = start_time + k * dt * TimeConstants.sec2cent
-        os_k = orb.get_os(J2000=J2000_k)
+    step_iter = tqdm(range(N), desc="Simulating ADCS", unit="step") if progress else range(N)
 
-        J2000_kp1 = start_time + (k + 1) * dt * TimeConstants.sec2cent
-        os_kp1 = orb.get_os(J2000=J2000_kp1)
+    for k in step_iter:
+        J2000_k = start_time + k * dt * TimeConstants.sec2cent
+
+        if orbit_states is not None:
+            os_k = orbit_states[k]
+            os_kp1 = orbit_states[k + 1]
+        else:
+            os_k = orb.get_os(J2000=J2000_k)
+            J2000_kp1 = start_time + (k + 1) * dt * TimeConstants.sec2cent
+            os_kp1 = orb.get_os(J2000=J2000_kp1)
 
         y = satellite.sensor_readings(x=x, os=os_k)
         y_clean = satellite.noiseless_sensor_readings(x=x, os=os_k)
@@ -302,39 +344,46 @@ def simulate(
                     else:
                         est_sens_bias_snapshot = np.array(sens_parts, dtype=object)
 
-        run_capsule.record(
-            k=k,
-            time_J2000=J2000_k,
-            time_s=k * dt,
-            os=os_k,
-            est_os=os_hat,
-            os_cov=(getattr(getattr(orbit_estimator, "os_hat", None), "P", None)
-                    if orbit_estimator is not None else None),
-            state=x,
-            est_state=x_hat,
-            state_cov=(getattr(getattr(estimator, "x_hat", None), "cov", None)
-                       if estimator is not None else None),
-
-            # --- real biases (existing) ---
-            actuator_bias=(
-                np.array([np.atleast_1d(act.bias.bias) for act in satellite.actuators], dtype=object)
-                if getattr(satellite, "actuators", None) else None
-            ),
-            sensor_bias=(
-                np.array([np.atleast_1d(sens.bias.bias) for sens in satellite.sensors], dtype=object)
-                if getattr(satellite, "sensors", None) else None
-            ),
-
-            # --- estimated biases (NEW) ---
-            est_actuator_bias=est_act_bias_snapshot,
-            est_sensor_bias=est_sens_bias_snapshot,
-
-            target=target,
-            w_target=w_target,
-            boresight=boresight_vec,
-            clean_sensor=y_clean,
-            sensor=y,
-            control=u,
-        )
+        if log_mode == "full":
+            run_capsule.record(
+                k=k,
+                time_J2000=J2000_k,
+                time_s=k * dt,
+                os=os_k,
+                est_os=os_hat,
+                os_cov=(getattr(getattr(orbit_estimator, "os_hat", None), "P", None)
+                        if orbit_estimator is not None else None),
+                state=x,
+                est_state=x_hat,
+                state_cov=(getattr(getattr(estimator, "x_hat", None), "cov", None)
+                           if estimator is not None else None),
+                actuator_bias=(
+                    np.array([np.atleast_1d(act.bias.bias) for act in satellite.actuators], dtype=object)
+                    if getattr(satellite, "actuators", None) else None
+                ),
+                sensor_bias=(
+                    np.array([np.atleast_1d(sens.bias.bias) for sens in satellite.sensors], dtype=object)
+                    if getattr(satellite, "sensors", None) else None
+                ),
+                est_actuator_bias=est_act_bias_snapshot,
+                est_sensor_bias=est_sens_bias_snapshot,
+                target=target,
+                w_target=w_target,
+                boresight=boresight_vec,
+                clean_sensor=y_clean,
+                sensor=y,
+                control=u,
+            )
+        elif log_mode == "minimal":
+            run_capsule.record(
+                k=k,
+                time_J2000=J2000_k,
+                time_s=k * dt,
+                state=x,
+                est_state=x_hat,
+                target=target,
+                w_target=w_target,
+                control=u,
+            )
 
     return SimulationResults(runs=[run_capsule])
