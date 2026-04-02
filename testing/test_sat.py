@@ -7,12 +7,13 @@ from typing import List
 # === Import project modules ===
 sys.path.append(os.path.abspath(os.path.join(__file__, "../..")))
 from ADCS.satellite_hardware.satellite.satellite import Satellite
+from ADCS.satellite_hardware.satellite.satellite import _quat_qdot, _rw_hdot_kernel
 from ADCS.satellite_hardware.actuators import Actuator, RW, MTQ
 from ADCS.satellite_hardware.errors import Bias, Noise
 from ADCS.satellite_hardware.disturbances import SRP_Disturbance, Drag_Disturbance, Prop_Disturbance, Dipole_Disturbance, GeometryConfig, GeometryFace
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.ephemeris import Ephemeris
-from ADCS.helpers.math_helpers import random_n_unit_vec, rot_mat
+from ADCS.helpers.math_helpers import random_n_unit_vec, rot_mat, Wmat
 from ADCS.helpers.math_constants import MathConstants
 
 def test_J():
@@ -517,6 +518,37 @@ def test_dynamics_RW():
     xd = sat.dynamics_core(x=x, u=u, orbital_state=os)
 
     assert np.allclose(np.array([0.02/(1-0.001),0,0,0,0.005,0,0,-0.02/(1-0.001),0,0]), xd,rtol = 1e-8,atol=1e-8)
+
+
+def test_quat_qdot_kernel_matches_wmat_formula():
+    rng = np.random.default_rng(1234)
+    for _ in range(200):
+        q = random_n_unit_vec(4)
+        w = 0.2 * rng.standard_normal(3)
+
+        qdot_ref = 0.5 * (w @ Wmat(q).T)
+        qdot_opt = _quat_qdot(w.astype(float), q.astype(float))
+
+        assert np.allclose(qdot_opt, qdot_ref, rtol=1e-13, atol=1e-13)
+
+
+def test_rw_hdot_kernel_matches_diagflat_formula():
+    rng = np.random.default_rng(5678)
+    for n_rw in [1, 2, 3, 5]:
+        wdot = rng.standard_normal(3)
+        rw_axes = rng.standard_normal((n_rw, 3))
+        rw_js = np.abs(rng.standard_normal(n_rw)) + 1e-6
+        u_rw = rng.standard_normal(n_rw)
+
+        hdot_ref = u_rw - (wdot @ rw_axes.T) @ np.diagflat(rw_js)
+        hdot_opt = _rw_hdot_kernel(
+            u_rw.astype(float),
+            wdot.astype(float),
+            rw_axes.astype(float),
+            rw_js.astype(float),
+        )
+
+        assert np.allclose(hdot_opt, hdot_ref, rtol=1e-13, atol=1e-13)
 
 
 

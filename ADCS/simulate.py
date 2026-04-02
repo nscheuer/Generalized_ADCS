@@ -36,6 +36,7 @@ def simulate(
     precompute_orbit: bool = True,
     progress: bool = True,
     log_mode: str = "full",
+    show_plan_trajectory: bool = False,
 ) -> SimulationResults:
     r"""
     Run a time-domain simulation of the spacecraft Attitude Determination and Control
@@ -135,6 +136,12 @@ def simulate(
     :type log_mode:
         str
 
+    :param show_plan_trajectory:
+        If ``True`` and using a :class:`~ADCS.controller.PlanAndTrackBase`, display
+        the initial planned trajectory plots before simulation starts.
+    :type show_plan_trajectory:
+        bool
+
     :return:
         Container holding all recorded simulation data, including true and estimated
         states, controls, sensor readings, biases, and targets for the entire run.
@@ -196,7 +203,7 @@ def simulate(
             verbose=True
         )
         
-        if True:
+        if show_plan_trajectory:
             active_goal = goal_list.get_active_goal(start_time, time_units="centuries")
             target, w_target = active_goal.to_ref(os0) 
             simresults = trajectory.to_simulation_results(satellite, target=target, w_target=w_target)

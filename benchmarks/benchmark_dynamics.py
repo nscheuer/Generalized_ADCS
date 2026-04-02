@@ -23,6 +23,7 @@ from scipy.integrate import solve_ivp
 sys.path.insert(0, os.path.abspath(os.path.join(__file__, "../..")))
 
 import ADCS
+from ADCS.orbits.orbit import Orbit
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.satellite_hardware.errors import ErrorMode
@@ -132,20 +133,18 @@ class DynamicsBenchmark:
         
         self.start_time = time.perf_counter()
         
+        end_time = self.os0.J2000 + N_steps * self.dt * TimeConstants.sec2cent
+        orb = Orbit(os0=self.os0, end_time=end_time, dt=self.dt, use_J2=True, fast=False)
+        orbit_states = [
+            orb.get_os(J2000=self.os0.J2000 + i * self.dt * TimeConstants.sec2cent)
+            for i in range(N_steps + 1)
+        ]
+
         for step in range(N_steps):
             step_start = time.perf_counter()
-            
-            # Update orbital states for this step
-            J2000_k = 0.22 + step * self.dt * TimeConstants.sec2cent
-            J2000_kp1 = 0.22 + (step + 1) * self.dt * TimeConstants.sec2cent
-            
-            # For simplicity, reuse same os in this benchmark (not dynamically updated)
-            # In real sim, these would be looked up from pre-computed orbit
-            os_k = self.os0
-            os_kp1 = self.os1
-            
-            self.os0 = os_k
-            self.os1 = os_kp1
+
+            self.os0 = orbit_states[step]
+            self.os1 = orbit_states[step + 1]
             
             # Propagate one step
             x, rhs_count = self.propagate_step(x, u, rtol=rtol, atol=atol)

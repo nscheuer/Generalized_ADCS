@@ -17,6 +17,16 @@ _I3 = np.eye(3)
 _I6 = np.eye(6)
 
 
+def _project_to_so3(mat: np.ndarray) -> np.ndarray:
+    """Project a near-rotation matrix onto SO(3) via SVD."""
+    u, _, vh = np.linalg.svd(np.asarray(mat, dtype=float))
+    r = u @ vh
+    if np.linalg.det(r) < 0.0:
+        u[:, -1] *= -1.0
+        r = u @ vh
+    return r
+
+
 class Orbital_State:
     r"""
     Complete dynamical and environmental representation of a spacecraft orbital state.
@@ -123,7 +133,9 @@ class Orbital_State:
         :type density_model: DensityModel or None
 
         :param fast:
-            Backward-compatible parameter (ignored).
+            If ``True``, use a lightweight interpolation path intended for tight
+            integration loops. This avoids reconstructing a full orbital state
+            from ephemeris while preserving valid rotation matrices.
         :type fast: bool
 
         :return:
@@ -325,9 +337,10 @@ class Orbital_State:
             out.geocentric = a * self.geocentric + b * os2.geocentric
             out.LLA = a * self.LLA + b * os2.LLA
 
-            out._R_eci2ecef = a * self._R_eci2ecef + b * os2._R_eci2ecef
+            # Blend then re-project to SO(3) so frame transforms remain orthonormal.
+            out._R_eci2ecef = _project_to_so3(a * self._R_eci2ecef + b * os2._R_eci2ecef)
             out._R_ecef2eci = out._R_eci2ecef.T
-            out.ECI2ENUmat = a * self.ECI2ENUmat + b * os2.ECI2ENUmat
+            out.ECI2ENUmat = _project_to_so3(a * self.ECI2ENUmat + b * os2.ECI2ENUmat)
 
             out._n_ecef = normalize(out.ECEF)
             out._svec = normalize(np.cross(np.array([0.0, 0.0, 1.0]), out._n_ecef))

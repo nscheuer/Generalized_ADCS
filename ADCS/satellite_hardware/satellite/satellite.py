@@ -73,6 +73,8 @@ def _wdot_rw_kernel(
 
 @njit(cache=True)
 def _rw_hdot_kernel(u_rw: np.ndarray, wdot: np.ndarray, rw_axes: np.ndarray, rw_js: np.ndarray) -> np.ndarray:
+    # Equivalent to: u_rw - (wdot @ rw_axes.T) @ np.diagflat(rw_js)
+    # for 1D vectors. Keep this form to avoid allocating a temporary diagonal matrix.
     return u_rw - (wdot @ rw_axes.T) * rw_js
 
 
