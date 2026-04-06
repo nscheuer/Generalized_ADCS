@@ -60,6 +60,60 @@ def _reorder_controls_cpp_to_python(Uset: np.ndarray, actuators) -> np.ndarray:
 
     raise ValueError(f"Uset shape {Uset.shape} does not match n_controls={n_ctrl}")
 
+
+def _safe_normalize(v: np.ndarray, eps: float = 1e-12) -> np.ndarray:
+    v = np.asarray(v, dtype=np.float64).reshape(-1)
+    n = np.linalg.norm(v)
+    if n < eps:
+        return np.zeros_like(v)
+    return v / n
+
+
+def _quat_set_basis(body_vec: np.ndarray, eci_vec: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    """Return basis (x, y) spanning quaternion set that aligns body_vec to eci_vec."""
+    v = _safe_normalize(body_vec)
+    u = _safe_normalize(eci_vec)
+    x = np.concatenate(([1.0 + np.dot(v, u)], np.cross(v, u)))
+    y = np.concatenate(([0.0], u + v))
+    x = _safe_normalize(x)
+    y = _safe_normalize(y)
+    return x, y
+
+
+def _closest_quat_in_alignment_set(q_ref: np.ndarray, body_vec: np.ndarray, eci_vec: np.ndarray) -> np.ndarray:
+    """Project q_ref onto the vector-goal alignment quaternion set."""
+    q_ref = normalize(np.asarray(q_ref, dtype=np.float64).reshape(4))
+    body_vec = _safe_normalize(body_vec)
+    eci_vec = _safe_normalize(eci_vec)
+
+    dot_vu = float(np.clip(np.dot(body_vec, eci_vec), -1.0, 1.0))
+
+    # Opposite-vector case is degenerate for set-basis formulas; choose a stable 180 deg axis.
+    if dot_vu < -1.0 + 1e-10:
+        perp = np.array([1.0, 0.0, 0.0], dtype=np.float64)
+        if abs(np.dot(perp, body_vec)) > 0.9:
+            perp = np.array([0.0, 1.0, 0.0], dtype=np.float64)
+        perp = _safe_normalize(perp - np.dot(perp, body_vec) * body_vec)
+        q = np.concatenate(([0.0], perp))
+        q = normalize(q)
+        if np.dot(q, q_ref) < 0.0:
+            q = -q
+        return q
+
+    x, y = _quat_set_basis(body_vec, eci_vec)
+    if np.linalg.norm(x) < 1e-12 or np.linalg.norm(y) < 1e-12:
+        q = np.array([1.0, 0.0, 0.0, 0.0], dtype=np.float64)
+        if np.dot(q, q_ref) < 0.0:
+            q = -q
+        return q
+
+    qdx = float(np.dot(q_ref, x))
+    qdy = float(np.dot(q_ref, y))
+    q = _safe_normalize(qdx * x + qdy * y)
+    if np.dot(q, q_ref) < 0.0:
+        q = -q
+    return normalize(q)
+
 class SALTRO(Controller):
     def __init__(self, est_sat: EstimatedSatellite, planner_settings: PlannerSettings):
         self.est_sat = est_sat
@@ -78,6 +132,7 @@ class SALTRO(Controller):
         goals: GoalList,
         sim_orbit: Orbit,
         jtime: np.ndarray,
+        q_seed: np.ndarray,
     ) -> Tuple[np.ndarray, np.ndarray]:
         """Build q_goal (4,N) and boresight (3,N) arrays for SALTRO."""
         N = int(jtime.size)
@@ -85,6 +140,7 @@ class SALTRO(Controller):
         boresight = np.zeros((3, N), dtype=np.float64)
 
         default_boresight = np.asarray(self.est_sat.get_boresight(), dtype=np.float64).reshape(3)
+        q_prev = normalize(np.asarray(q_seed, dtype=np.float64).reshape(4))
 
         for i, t in enumerate(jtime):
             os_at_t = sim_orbit.get_os(float(t))
@@ -107,18 +163,23 @@ class SALTRO(Controller):
 
             q_ref = np.asarray(target[:4], dtype=np.float64)
             if np.isnan(q_ref[0]):
-                # Vector-goal format [nan, x, y, z]: normalize tail for SALTRO validation.
+                # Vector-goal format [nan, x, y, z]: convert to closest quaternion
+                # in the alignment set to preserve roll-free semantics and continuity.
                 tail_norm = np.linalg.norm(q_ref[1:4])
                 if tail_norm > 1e-12:
-                    q_ref[1:4] = q_ref[1:4] / tail_norm
+                    eci_vec = q_ref[1:4] / tail_norm
+                    q_ref = _closest_quat_in_alignment_set(q_prev, body_vec, eci_vec)
+                else:
+                    q_ref = q_prev.copy()
             else:
                 # Quaternion-goal format [q0, qx, qy, qz]: normalize quaternion.
                 q_ref = normalize(q_ref)
-                if q_ref[0] < 0.0:
+                if np.dot(q_ref, q_prev) < 0.0:
                     q_ref = -q_ref
 
             q_goal[:, i] = q_ref
             boresight[:, i] = body_vec
+            q_prev = q_ref
 
         return q_goal, boresight
 
@@ -195,13 +256,19 @@ class SALTRO(Controller):
         t_end_buffered = t_end + 10.0 * dt * TimeConstants.sec2cent
         sim_orbit = Orbit(os0=os_0, end_time=t_end_buffered, dt=dt, use_J2=True, fast=False)
 
-        q_goal, boresight = self._build_goal_arrays(goals=goals, sim_orbit=sim_orbit, jtime=jtime)
+        x0_clean = np.ascontiguousarray(np.asarray(x_0, dtype=np.float64).reshape(-1), dtype=np.float64)
+
+        q_goal, boresight = self._build_goal_arrays(
+            goals=goals,
+            sim_orbit=sim_orbit,
+            jtime=jtime,
+            q_seed=x0_clean[3:7],
+        )
 
         saltro_py = _get_saltro_py()
         cpp_settings = self.settings_to_cpp(self.planner_settings)
         cpp_satellite = self.satellite_to_cpp(self.est_sat)
 
-        x0_clean = np.ascontiguousarray(np.asarray(x_0, dtype=np.float64).reshape(-1), dtype=np.float64)
         r0, v0 = self._adcs_orbit_to_saltro_si(os_0.R, os_0.V)
 
         ok, Xset, Uset_cpp, K_flat = saltro_py.trajOpt(
