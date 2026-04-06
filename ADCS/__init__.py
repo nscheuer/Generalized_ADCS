@@ -35,6 +35,7 @@ __all__ = [
     "Orbital_State",
     "Ephemeris",
     "orbits",
+    "satellite_factory",
 ]
 
 _SYMBOL_TO_MODULE = {
@@ -62,6 +63,7 @@ _SYMBOL_TO_MODULE = {
     "Orbital_State": ".orbits.orbital_state",
     "Ephemeris": ".orbits.ephemeris",
     "orbits": ".orbits",
+    "satellite_factory": ".satellite_factory",
     "goals": ".CONOPS",
     "GoalList": ".CONOPS.goallist",
     "simulate": ".simulate",
@@ -83,7 +85,7 @@ def __getattr__(name: str) -> Any:
         value = module
     elif name == "goals":
         value = module.goals
-    elif name in {"disturbances", "controller", "orbits"}:
+    elif name in {"disturbances", "controller", "orbits", "satellite_factory"}:
         value = module
     else:
         value = getattr(module, name)

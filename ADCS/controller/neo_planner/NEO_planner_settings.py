@@ -26,7 +26,7 @@ except ImportError:
 
 @dataclass
 class InitTrajConfig:
-    initcontroller: int = 0
+    initcontroller: int = 2
 
     def to_cpp(self):
         """Convert to C++ InitTrajConfig"""

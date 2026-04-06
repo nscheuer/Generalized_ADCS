@@ -21,31 +21,31 @@ except ImportError:
 @dataclass
 class CostConfig:
     # Running costs
-    angle: float = 1e3
-    ang_vel: float = 1e4
+    angle: float = 1.0
+    ang_vel: float = 1e1
     ang_vel_mag: float = 0.0
     ang_vel_err_dir: float = 0.0
     control_mult: float = 1.0
 
     # Actuator Weights
-    mtq_control_weight: float = 1e3
-    rw_control_weight: float = 1e8
-    magic_control_weight: float = 0.0001
-    rw_AM_weight: float = 1e4
-    rw_stic_weight: float = 1e0
-    RWh_max_mult: float = 0.8
-    RWh_stiction_mult: float = 0.01
-    RWh_ok_mult: float = 0.5
+    mtq_control_weight: float = 1e-2
+    rw_control_weight: float = 1.0
+    magic_control_weight: float = 0.0
+    rw_AM_weight: float = 0.0
+    rw_stic_weight: float = 0.0
+    RWh_max_mult: float = 0.0
+    RWh_stiction_mult: float = 0.0
+    RWh_ok_mult: float = 0.0
 
     # Terminal costs
-    angle_N: float = 1e4
-    ang_vel_N: float = 1e5
+    angle_N: float = 0.0
+    ang_vel_N: float = 0.0
     ang_vel_mag_N: float = 0.0
     ang_vel_err_dir_N: float = 0.0
 
     # Flags
-    ang_cost_func_type: int = 2
-    use_cost_hess: int = 0
+    ang_cost_func_type: int = 3
+    use_cost_hess: int = 1
 
     def to_cpp(self):
         """Convert to C++ CostConfig"""
@@ -76,7 +76,7 @@ class CostConfig:
 
 @dataclass
 class AugLagConfig:
-    max_outer_iters: int = 30
+    max_outer_iters: int = 10
 
     lag_mult_init: float = 0.0
     lag_mult_max: float = 1e20
@@ -85,7 +85,7 @@ class AugLagConfig:
     penalty_max: float = 1e16
     penalty_scale: float = 10.0
     
-    constraint_tol: float = 0.002
+    constraint_tol: float = 1e-3
     total_cost_tol: float = 1e-2
 
     def to_cpp(self):
@@ -105,9 +105,9 @@ class AugLagConfig:
 
 @dataclass
 class ILQRConfig:
-    max_iters: int = 250
+    max_iters: int = 20
     grad_tol: float = 1e-3
-    cost_tol: float = 1e-1
+    cost_tol: float = 1e-5
     z_count_lim: int = 10
 
     max_cost: float = 1e40
@@ -128,10 +128,10 @@ class ILQRConfig:
 
 @dataclass
 class RegularizationConfig:
-    reg_init: float = 1e-2
+    reg_init: float = 1e-6
     reg_min: float = 1e-8
-    reg_max: float = 1e30
-    reg_scale: float = 1.6
+    reg_max: float = 1e10
+    reg_scale: float = 10.0
     reg_bump: float = 10.0
 
     reg_min_cond: int = 2
@@ -158,9 +158,9 @@ class RegularizationConfig:
 
 @dataclass
 class LineSearchConfig:
-    max_iters: int = 20
+    max_iters: int = 24
     beta1: float = 1e-10
-    beta2: float = 500.0
+    beta2: float = 5000.0
 
     def to_cpp(self):
         """Convert to C++ LineSearchConfig"""
@@ -188,7 +188,7 @@ class PassConfig:
     linesearch: LineSearchConfig = field(default_factory=LineSearchConfig)
 
     # Timestep
-    dt: float = 1.0
+    dt: float = 10.0
 
     def to_cpp(self):
         """Convert to C++ PassConfig"""
