@@ -236,7 +236,10 @@ class SALTRO(Controller):
 
         K_cpp_time = self._reshape_saltro_gains(K_flat, n_red=n_red, N=N_out)
         cpp_to_py, _ = _get_cpp_to_python_control_permutation(self.est_sat.actuators)
-        Kset = K_cpp_time[:, cpp_to_py, :]
+        # SALTRO backward pass uses optimizer form u = u_nom + K*dx + d,
+        # while Trajectory tracking uses u = u_ref - K*dx. Negate once here
+        # so closed-loop feedback has the correct sign in Python.
+        Kset = -K_cpp_time[:, cpp_to_py, :]
 
         # SALTRO pybind does not expose S/cost-to-go yet.
         Sset = np.zeros(N_out, dtype=np.float64)

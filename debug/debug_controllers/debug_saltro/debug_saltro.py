@@ -2,6 +2,8 @@ import sys
 import os
 import numpy as np
 from typing import List, Tuple
+from scipy.integrate import solve_ivp
+from tqdm import tqdm
 
 sys.path.append(os.path.abspath(os.path.join(__file__, "../../../..")))
 
@@ -18,13 +20,14 @@ from ADCS.orbits.orbit import Orbit
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.controller.neo_planner.NEO_planner_settings import PlannerSettings
+from ADCS.controller.helpers.trajectory import Trajectory
 
 from ADCS.satellite_hardware.satellite.satellite import Satellite
 from ADCS.satellite_hardware.sensors import MTM
 from ADCS.satellite_hardware.actuators import MTQ, RW
 
 from ADCS.helpers.math_constants import MathConstants
-from ADCS.helpers.math_helpers import random_n_unit_vec, normalize
+from ADCS.helpers.math_helpers import normalize
 
 from ADCS.helpers.plotting.animate_estimator import animate_attitude
 from ADCS.helpers.plotting.plot_estimator import plot_state_comparison
@@ -192,7 +195,7 @@ def _run_open_loop_trajopt(
     t_start: float,
     tf: float,
     planner_dt: float,
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     planner_settings = PlannerSettings(est_sat=real_sat)
     _configure_like_saltro_debug(planner_settings, dt=planner_dt)
     cpp_settings = planner_settings.to_cpp()
@@ -228,7 +231,7 @@ def _run_open_loop_trajopt(
     r0_m = np.asarray(os0.R, dtype=np.float64) * 1.0e3
     v0_mps = np.asarray(os0.V, dtype=np.float64) * 1.0e3
 
-    ok, X, U, _K = saltro_py.trajOpt(
+    ok, X, U, K = saltro_py.trajOpt(
         cpp_settings,
         cpp_satellite,
         np.asarray(x0, dtype=np.float64),
@@ -245,10 +248,39 @@ def _run_open_loop_trajopt(
     return (
         np.asarray(X, dtype=np.float64),
         np.asarray(U, dtype=np.float64),
+        np.asarray(K, dtype=np.float64),
         np.asarray(jtime, dtype=np.float64),
         np.asarray(q_goal, dtype=np.float64),
         np.asarray(boresight, dtype=np.float64),
     )
+
+
+def _reshape_saltro_gains(K_flat: np.ndarray, n_steps: int, n_ctrl: int, n_red: int) -> np.ndarray:
+    if K_flat.shape != (n_ctrl, n_red * n_steps):
+        raise ValueError(
+            f"Unexpected K shape {K_flat.shape}, expected {(n_ctrl, n_red * n_steps)}"
+        )
+
+    K_time = np.zeros((n_steps, n_ctrl, n_red), dtype=np.float64)
+    for k in range(n_steps):
+        c0 = k * n_red
+        c1 = c0 + n_red
+        K_time[k, :, :] = K_flat[:, c0:c1]
+    return K_time
+
+
+def _build_orbit(os0: Orbital_State, t_start: float, t_end: float, dt: float) -> Orbit:
+    start_time = t_start - 1 * TimeConstants.sec2cent
+    end_time = t_end + 1 * TimeConstants.sec2cent
+    orb_os0 = os0.copy()
+    orb_os0.J2000 = start_time
+    return Orbit(os0=orb_os0, end_time=end_time, dt=max(1.0, float(dt)), use_J2=True, fast=False)
+
+
+def _goal_hist_from_knots(jtime_req: np.ndarray, q_goal: np.ndarray, jtime: np.ndarray) -> np.ndarray:
+    # SALTRO debug visualization uses zero-order hold between reference knots.
+    goal_idx = np.searchsorted(jtime_req[1:], jtime, side="right")
+    return q_goal[:, goal_idx].T
 
 
 def debug_saltro(
@@ -260,7 +292,7 @@ def debug_saltro(
     _ = real_orbit  # Open-loop uses ephemeris propagation here, matching plotted interface needs.
 
     real_sat, x0, os0, t_start = _build_common_setup()
-    X, U, jtime_req, q_goal, _boresight = _run_open_loop_trajopt(
+    X, U, _K, jtime_req, q_goal, _boresight = _run_open_loop_trajopt(
         real_sat=real_sat,
         x0=x0,
         os0=os0,
@@ -280,24 +312,17 @@ def debug_saltro(
             dtype=np.float64,
         )
 
-    # Build orbit history on the same timeline used by SALTRO outputs.
-    start_time = t_start - 1 * TimeConstants.sec2cent
-    end_time = float(jtime[-1]) + 1 * TimeConstants.sec2cent
-    orb_os0 = os0.copy()
-    orb_os0.J2000 = start_time
-    orb = Orbit(os0=orb_os0, end_time=end_time, dt=max(1.0, float(dt)), use_J2=True, fast=False)
+    orb = _build_orbit(os0=os0, t_start=t_start, t_end=float(jtime[-1]), dt=dt)
 
     time_hist = (jtime - t_start) / TimeConstants.sec2cent
     state_hist = X.T
     u_hist = U.T
-    # SALTRO viewer uses zero-order hold between coarse q_goal knots.
-    goal_idx = np.searchsorted(jtime_req[1:], jtime, side="right")
-    boresight_hist = q_goal[:, goal_idx].T
+    boresight_hist = _goal_hist_from_knots(jtime_req=jtime_req, q_goal=q_goal, jtime=jtime)
 
     os_hist: List[Orbital_State] = []
     sensor_hist = np.nan * np.zeros((n_out, len(real_sat.sensors + real_sat.rw_actuators)))
 
-    for k in range(n_out):
+    for k in tqdm(range(n_out), desc="Simulating SALTRO open-loop"):
         os_k = orb.get_os(J2000=float(jtime[k]))
         os_hist.append(os_k)
         sensor_hist[k, :] = real_sat.sensor_readings(x=state_hist[k, :], os=os_k)
@@ -310,19 +335,98 @@ def debug_saltro(
     return time_hist, state_hist, os_hist, sensor_hist, u_hist, boresight_hist
 
 
-def plot_mtq_w_rw_align_to_eci(
+def debug_saltro_closed_loop(
     verbose: bool = False,
     tf: float = 400.0,
-    dt: float = 10.0,
+    planner_dt: float = 10.0,
+    sim_dt: float = 1.0,
     real_orbit: bool = True,
-) -> None:
-    time_hist, state_hist, os_hist, _sensor_hist, u_hist, boresight_hist = debug_saltro(
-        verbose=verbose,
+) -> Tuple[np.ndarray, np.ndarray, List[Orbital_State], np.ndarray, np.ndarray, np.ndarray]:
+    _ = real_orbit
+
+    if sim_dt <= 0.0:
+        raise ValueError(f"sim_dt must be > 0, got {sim_dt}")
+
+    real_sat, x0, os0, t_start = _build_common_setup()
+    X_ref, U_ref, K_flat, jtime_req, q_goal, _boresight = _run_open_loop_trajopt(
+        real_sat=real_sat,
+        x0=x0,
+        os0=os0,
+        t_start=t_start,
         tf=tf,
-        dt=dt,
-        real_orbit=real_orbit,
+        planner_dt=planner_dt,
     )
 
+    n_ref = X_ref.shape[1]
+    n_ctrl = U_ref.shape[0]
+    n_red = x0.size - 1
+    K_time = _reshape_saltro_gains(K_flat=K_flat, n_steps=n_ref, n_ctrl=n_ctrl, n_red=n_red)
+    # SALTRO uses u = u_nom + K*dx internally; Trajectory uses u = u_ref - K*dx.
+    # Flip sign once at the interface, then apply debug attenuation.
+    K_time *= -1.0
+    S_dummy = np.zeros(n_ref, dtype=np.float64)
+    traj = Trajectory(
+        t=np.asarray(np.linspace(t_start, t_start + tf * TimeConstants.sec2cent, n_ref), dtype=np.float64),
+        x=np.asarray(X_ref, dtype=np.float64),
+        u=np.asarray(U_ref, dtype=np.float64),
+        K=K_time,
+        S=S_dummy,
+    )
+
+    n_out = int(np.floor(tf / sim_dt)) + 1
+    time_hist = np.arange(n_out, dtype=np.float64) * sim_dt
+    jtime = t_start + time_hist * TimeConstants.sec2cent
+
+    orb = _build_orbit(os0=os0, t_start=t_start, t_end=float(jtime[-1]), dt=sim_dt)
+
+    state_hist = np.zeros((n_out, x0.size), dtype=np.float64)
+    u_hist = np.zeros((n_out, n_ctrl), dtype=np.float64)
+    sensor_hist = np.nan * np.zeros((n_out, len(real_sat.sensors + real_sat.rw_actuators)))
+    os_hist: List[Orbital_State] = []
+
+    state_hist[0, :] = np.asarray(x0, dtype=np.float64)
+
+    for k in tqdm(range(n_out), desc="Simulating SALTRO closed-loop"):
+        os_k = orb.get_os(J2000=float(jtime[k]))
+        os_hist.append(os_k)
+        sensor_hist[k, :] = real_sat.sensor_readings(x=state_hist[k, :], os=os_k)
+
+        u_cmd = traj.compute_tracking_control(float(jtime[k]), state_hist[k, :])
+        u_hist[k, :] = u_cmd
+
+        if k < n_out - 1:
+            os_next = orb.get_os(J2000=float(jtime[k + 1]))
+            dt_step = float(time_hist[k + 1] - time_hist[k])
+            sol = solve_ivp(
+                real_sat.dynamics_for_solver,
+                (0.0, dt_step),
+                y0=state_hist[k, :],
+                args=(u_cmd, os_k, os_next),
+                atol=1e-9,
+                rtol=1e-7,
+            )
+            x_next = sol.y[:, -1]
+            x_next[3:7] = normalize(x_next[3:7])
+            state_hist[k + 1, :] = x_next
+
+    boresight_hist = _goal_hist_from_knots(jtime_req=jtime_req, q_goal=q_goal, jtime=jtime)
+
+    if verbose:
+        print("SALTRO trajOpt succeeded (closed-loop TVLQR)")
+        print(f"N ref={n_ref}, N sim={n_out}")
+        print(f"X_ref shape={X_ref.shape}, U_ref shape={U_ref.shape}, K_flat shape={K_flat.shape}")
+
+    return time_hist, state_hist, os_hist, sensor_hist, u_hist, boresight_hist
+
+
+def _plot_debug_run(
+    tag: str,
+    time_hist: np.ndarray,
+    state_hist: np.ndarray,
+    os_hist: List[Orbital_State],
+    u_hist: np.ndarray,
+    boresight_hist: np.ndarray,
+) -> None:
     animate_attitude(time=time_hist, state_hist=state_hist, os_hist=os_hist, boresight_goal_hist=boresight_hist)
     plot_control(time=time_hist, u_hist=u_hist)
     plot_state_comparison(time=time_hist, state_hist=state_hist)
@@ -333,6 +437,47 @@ def plot_mtq_w_rw_align_to_eci(
         body_boresight=np.array([0, 0, 1]),
         time=time_hist,
     )
+    print(f"Rendered {tag} plots")
+
+
+def plot_mtq_w_rw_align_to_eci(
+    verbose: bool = False,
+    tf: float = 400.0,
+    dt: float = 10.0,
+    closed_loop_dt: float = 1.0,
+    real_orbit: bool = True,
+) -> None:
+    time_hist_ol, state_hist_ol, os_hist_ol, _sensor_hist_ol, u_hist_ol, boresight_hist_ol = debug_saltro(
+        verbose=verbose,
+        tf=tf,
+        dt=dt,
+        real_orbit=real_orbit,
+    )
+    _plot_debug_run(
+        tag="open-loop",
+        time_hist=time_hist_ol,
+        state_hist=state_hist_ol,
+        os_hist=os_hist_ol,
+        u_hist=u_hist_ol,
+        boresight_hist=boresight_hist_ol,
+    )
+
+    time_hist_cl, state_hist_cl, os_hist_cl, _sensor_hist_cl, u_hist_cl, boresight_hist_cl = debug_saltro_closed_loop(
+        verbose=verbose,
+        tf=tf,
+        planner_dt=dt,
+        sim_dt=closed_loop_dt,
+        real_orbit=real_orbit,
+    )
+    _plot_debug_run(
+        tag="closed-loop",
+        time_hist=time_hist_cl,
+        state_hist=state_hist_cl,
+        os_hist=os_hist_cl,
+        u_hist=u_hist_cl,
+        boresight_hist=boresight_hist_cl,
+    )
+
     create_close_all_button_window()
 
 
