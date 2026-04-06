@@ -8,11 +8,7 @@ from typing import Any, Optional, Tuple
 from ADCS.CONOPS.goallist import GoalList
 from ADCS.CONOPS.goals import Goal
 from ADCS.controller import Controller
-from ADCS.controller.helpers import Trajectory
-from ADCS.controller.helpers.build_csat import (
-    get_cpp_to_python_control_permutation,
-    reorder_controls_cpp_to_python,
-)
+from ADCS.controller.helpers.trajectory import Trajectory
 from ADCS.controller.neo_planner.NEO_planner_settings import PlannerSettings
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
 from ADCS.orbits.orbital_state import Orbital_State
@@ -30,6 +26,39 @@ sys.path.append(saltro_path)
 def _get_saltro_py() -> Any:
     import saltro_py
     return saltro_py
+
+
+def _get_cpp_to_python_control_permutation(actuators):
+    mtq_py_indices = [i for i, act in enumerate(actuators) if isinstance(act, MTQ)]
+    rw_py_indices = [i for i, act in enumerate(actuators) if isinstance(act, RW)]
+
+    n_mtq = len(mtq_py_indices)
+    n_rw = len(rw_py_indices)
+    n_total = n_mtq + n_rw
+
+    cpp_to_py = np.zeros(n_total, dtype=int)
+    for cpp_idx, py_idx in enumerate(mtq_py_indices):
+        cpp_to_py[cpp_idx] = py_idx
+    for i, py_idx in enumerate(rw_py_indices):
+        cpp_to_py[n_mtq + i] = py_idx
+
+    py_to_cpp = np.zeros(n_total, dtype=int)
+    for cpp_idx, py_idx in enumerate(cpp_to_py):
+        py_to_cpp[py_idx] = cpp_idx
+
+    return cpp_to_py, py_to_cpp
+
+
+def _reorder_controls_cpp_to_python(Uset: np.ndarray, actuators) -> np.ndarray:
+    cpp_to_py, _ = _get_cpp_to_python_control_permutation(actuators)
+    n_ctrl = len(cpp_to_py)
+
+    if Uset.shape[0] == n_ctrl:
+        return Uset[cpp_to_py, :]
+    if Uset.shape[1] == n_ctrl:
+        return Uset[:, cpp_to_py]
+
+    raise ValueError(f"Uset shape {Uset.shape} does not match n_controls={n_ctrl}")
 
 class SALTRO(Controller):
     def __init__(self, est_sat: EstimatedSatellite, planner_settings: PlannerSettings):
@@ -195,7 +224,7 @@ class SALTRO(Controller):
         N_out = int(Xset.shape[1])
         lqr_times = np.ascontiguousarray(jtime[:N_out], dtype=np.float64)
 
-        Uset = reorder_controls_cpp_to_python(Uset_cpp, self.est_sat.actuators)
+        Uset = _reorder_controls_cpp_to_python(Uset_cpp, self.est_sat.actuators)
 
         n_red = int(cpp_satellite.reducedStateDim)
         expected_cols = n_red * N_out
@@ -206,7 +235,7 @@ class SALTRO(Controller):
             )
 
         K_cpp_time = self._reshape_saltro_gains(K_flat, n_red=n_red, N=N_out)
-        cpp_to_py, _ = get_cpp_to_python_control_permutation(self.est_sat.actuators)
+        cpp_to_py, _ = _get_cpp_to_python_control_permutation(self.est_sat.actuators)
         Kset = K_cpp_time[:, cpp_to_py, :]
 
         # SALTRO pybind does not expose S/cost-to-go yet.
