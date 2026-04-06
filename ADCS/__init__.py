@@ -1,31 +1,5 @@
-from .satellite_hardware.satellite import Satellite, EstimatedSatellite
-from .satellite_hardware.actuators import Actuator, RW, MTQ
-from .satellite_hardware.sensors import MTM, Gyro, SunSensor, SunPair, StarTracker, GPS
-from .satellite_hardware.errors import Bias, Noise
-from .satellite_hardware import disturbances
-
-from .satellite_factory import *
-
-from . import controller
-
-from .estimators.attitude_estimators import Attitude_Estimator, UAKF, SRUAKF
-from .estimators.orbit_estimators import Orbit_Estimator, Orbit_EKF, Orbit_GPS
-
-from .orbits.orbital_state import Orbital_State
-from .orbits.ephemeris import Ephemeris
-from . import orbits
-
-from .CONOPS import goals
-from .CONOPS.goallist import GoalList
-
-from .simulate import simulate
-from .helpers.simresults import SimulationResults, RunResults
-
-# Plotting
-from .helpers.plot import plot
-from .helpers import plot as plots
-
-from .mc import MCConfig, simulate_mc
+import importlib
+from typing import Any
 
 __all__ = [
     "Satellite",
@@ -34,7 +8,6 @@ __all__ = [
     "SimulationResults",
     "RunResults",
     "disturbances",
-
     "Actuator",
     "RW",
     "MTQ",
@@ -46,22 +19,74 @@ __all__ = [
     "GPS",
     "Bias",
     "Noise",
-
-    "controller"
-
+    "controller",
     "Attitude_Estimator",
     "UAKF",
     "SRUAKF",
     "Orbit_Estimator",
     "Orbit_EKF",
     "Orbit_GPS",
-
     "goals",
     "GoalList",
-
     "plot",
     "plots",
-
     "MCConfig",
     "simulate_mc",
+    "Orbital_State",
+    "Ephemeris",
+    "orbits",
 ]
+
+_SYMBOL_TO_MODULE = {
+    "Satellite": ".satellite_hardware.satellite",
+    "EstimatedSatellite": ".satellite_hardware.satellite",
+    "Actuator": ".satellite_hardware.actuators",
+    "RW": ".satellite_hardware.actuators",
+    "MTQ": ".satellite_hardware.actuators",
+    "MTM": ".satellite_hardware.sensors",
+    "Gyro": ".satellite_hardware.sensors",
+    "SunSensor": ".satellite_hardware.sensors",
+    "SunPair": ".satellite_hardware.sensors",
+    "StarTracker": ".satellite_hardware.sensors",
+    "GPS": ".satellite_hardware.sensors",
+    "Bias": ".satellite_hardware.errors",
+    "Noise": ".satellite_hardware.errors",
+    "disturbances": ".satellite_hardware.disturbances",
+    "controller": ".controller",
+    "Attitude_Estimator": ".estimators.attitude_estimators",
+    "UAKF": ".estimators.attitude_estimators",
+    "SRUAKF": ".estimators.attitude_estimators",
+    "Orbit_Estimator": ".estimators.orbit_estimators",
+    "Orbit_EKF": ".estimators.orbit_estimators",
+    "Orbit_GPS": ".estimators.orbit_estimators",
+    "Orbital_State": ".orbits.orbital_state",
+    "Ephemeris": ".orbits.ephemeris",
+    "orbits": ".orbits",
+    "goals": ".CONOPS",
+    "GoalList": ".CONOPS.goallist",
+    "simulate": ".simulate",
+    "SimulationResults": ".helpers.simresults",
+    "RunResults": ".helpers.simresults",
+    "plot": ".helpers.plot",
+    "plots": ".helpers.plot",
+    "MCConfig": ".mc",
+    "simulate_mc": ".mc",
+}
+
+
+def __getattr__(name: str) -> Any:
+    if name not in _SYMBOL_TO_MODULE:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+    module = importlib.import_module(_SYMBOL_TO_MODULE[name], __name__)
+    if name == "plots":
+        value = module
+    elif name == "goals":
+        value = module.goals
+    elif name in {"disturbances", "controller", "orbits"}:
+        value = module
+    else:
+        value = getattr(module, name)
+
+    globals()[name] = value
+    return value

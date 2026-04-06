@@ -1,17 +1,50 @@
-from .controller import Controller
-from .bdot import BDot
-from .mtq_w_rw import MTQ_w_RW
-from .mtq_lovera import MTQ_Lovera
-from .mtq_wisniewski import MTQ_Wisniewski
-from .mtq_w_rw_LP import MTQ_w_RW_LP
-from .mtq_w_rw_QP import MTQ_w_RW_QP
-from .mtq_w_rw_QPW import MTQ_w_RW_QPW
-from .mtq_w_rw_QPG import MTQ_w_RW_QPG
-from .mtq_w_rw_QPC import MTQ_w_RW_QPC
-from .plan_and_track_base import PlanAndTrackBase
-from .plan_and_track_exact import Plan_and_Track_Exact
-from .plan_and_track_lqr import Plan_and_Track_LQR
-from .plan_and_track_lqr_disturbed import Plan_and_Track_LQR_Disturbed
-from . import helpers
+import importlib
+from typing import Any
 
-__all__ = ["Controller", "BDot", "MTQ_w_RW", "MTQ_Lovera", "MTQ_Wisniewski", "MTQ_w_RW_LP", "MTQ_w_RW_QP", "MTQ_w_RW_QPW", "MTQ_w_RW_QPG", "MTQ_w_RW_QPC", "PlanAndTrackBase", "Plan_and_Track_Exact", "Plan_and_Track_LQR", "Plan_and_Track_LQR_Disturbed", "helpers"]
+__all__ = [
+    "Controller",
+    "BDot",
+    "MTQ_w_RW",
+    "MTQ_Lovera",
+    "MTQ_Wisniewski",
+    "MTQ_w_RW_LP",
+    "MTQ_w_RW_QP",
+    "MTQ_w_RW_QPW",
+    "MTQ_w_RW_QPG",
+    "MTQ_w_RW_QPC",
+    "PlanAndTrackBase",
+    "Plan_and_Track_Exact",
+    "Plan_and_Track_LQR",
+    "Plan_and_Track_LQR_Disturbed",
+    "SALTRO",
+    "helpers",
+]
+
+_SYMBOL_TO_MODULE = {
+    "Controller": ".controller",
+    "BDot": ".bdot",
+    "MTQ_w_RW": ".mtq_w_rw",
+    "MTQ_Lovera": ".mtq_lovera",
+    "MTQ_Wisniewski": ".mtq_wisniewski",
+    "MTQ_w_RW_LP": ".mtq_w_rw_LP",
+    "MTQ_w_RW_QP": ".mtq_w_rw_QP",
+    "MTQ_w_RW_QPW": ".mtq_w_rw_QPW",
+    "MTQ_w_RW_QPG": ".mtq_w_rw_QPG",
+    "MTQ_w_RW_QPC": ".mtq_w_rw_QPC",
+    "PlanAndTrackBase": ".plan_and_track_base",
+    "Plan_and_Track_Exact": ".plan_and_track_exact",
+    "Plan_and_Track_LQR": ".plan_and_track_lqr",
+    "Plan_and_Track_LQR_Disturbed": ".plan_and_track_lqr_disturbed",
+    "SALTRO": ".saltro",
+    "helpers": ".helpers",
+}
+
+
+def __getattr__(name: str) -> Any:
+    if name not in _SYMBOL_TO_MODULE:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+    module = importlib.import_module(_SYMBOL_TO_MODULE[name], __name__)
+    value = module if name == "helpers" else getattr(module, name)
+    globals()[name] = value
+    return value
