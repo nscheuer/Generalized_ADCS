@@ -122,10 +122,17 @@ class PlannerSettings:
         # Set number of passes
         cpp_settings.num_passes = len(self.passes)
         
-        # Convert each pass (limited by MAX_OUTER_PASSES in C++)
+        # Convert each pass in place (limited by MAX_OUTER_PASSES in C++)
         for i, pass_cfg in enumerate(self.passes):
             if i >= 2:  # MAX_OUTER_PASSES = 2
                 break
-            cpp_settings.passes[i] = pass_cfg.to_cpp()
+
+            cpp_pass = cpp_settings.passes[i]
+            cpp_pass.cost = pass_cfg.cost.to_cpp()
+            cpp_pass.auglag = pass_cfg.aug_lag.to_cpp()
+            cpp_pass.ilqr = pass_cfg.ilqr.to_cpp()
+            cpp_pass.reg = pass_cfg.reg.to_cpp()
+            cpp_pass.linesearch = pass_cfg.linesearch.to_cpp()
+            cpp_pass.dt = pass_cfg.dt
         
         return cpp_settings
