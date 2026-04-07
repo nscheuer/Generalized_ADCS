@@ -156,10 +156,10 @@ class QuaternionGoalErrorPlotSingle(Subplot):
         ax.grid(True)
 
 real_sat = ADCS.satellite_factory.create_beavercube2_cubesat(estimated=False)
-x_0 = np.array([0.0, 0.0, 0.0] + [1, 0, 0, 0] + [0.0])  # w, q, h
+x_0 = np.array([0.01, 0.01, 0.01] + [1, 0, 0, 0] + [0.0])  # w, q, h
 
 planner_settings = PlannerSettings(est_sat=real_sat)
-planner_settings.passes[0].dt = 1.0
+planner_settings.passes[0].dt = 5.0
 
 controller = ADCS.controller.SALTRO(est_sat=real_sat, planner_settings=planner_settings)
 
@@ -170,7 +170,7 @@ os0 = ADCS.Orbital_State(
     V=np.array([0.0, 7.5, 0.0]),
 )
 
-q_goal = np.array([0.0, 1.0, 0.0, 0.0])
+q_goal = np.array([np.sqrt(2) / 2, 0.0, 0.0, np.sqrt(2) / 2])
 goal = ADCS.goals.Fixed_Attitude_Goal(q_ref=q_goal)
 
 # Precompute and set the active trajectory so we can plot open-loop explicitly
@@ -192,16 +192,21 @@ open_loop_results = traj.to_simulation_results(
     w_target=w_ref,
 )
 
+# TargetPlot requires boresight history; open-loop trajectory conversion does not
+# populate it, so provide a constant boresight for all samples.
+open_loop_run = open_loop_results.runs[0]
+open_loop_bore = np.asarray(real_sat.get_boresight(), dtype=float).reshape(3)
+open_loop_run.boresight_hist = [open_loop_bore.copy() for _ in range(len(open_loop_run.state_hist))]
+
 ADCS.plot(
     open_loop_results,
     ADCS.plots.AngularVelocityPlotCombined(sources=["real"]),
     ADCS.plots.ControlPlotCombined(title="All Actuator Commands", units="Command"),
     ADCS.plots.ControlPlotSingle(index=3, title="RW Command", units="N·m", label="$u_{rw}$"),
     RWMomentumPlotSingle(title="RW Momentum State (Open-Loop)", label="$h_{rw}$"),
-    QuaternionGoalErrorPlotSingle(q_goal=q_goal, title="Angle Error (Open-Loop)", label=r"$\theta_{err}$"),
     ADCS.plots.TargetHistogram(bin_width=5.0),
     ADCS.plots.TargetPlot(modes=["real_target"], title="Target Tracking"),
-    layout=(3, 3),
+    layout=(2, 3),
     title="3+1 SALTRO Open-Loop (Quat Goal)",
 )
 
@@ -211,7 +216,7 @@ results = ADCS.simulate(
     controller=controller,
     goal=goal,
     os0=os0,
-    dt=1.0,
+    dt=5.0,
     tf=1000.0,
 )
 

@@ -35,6 +35,23 @@ class InitTrajConfig:
         cpp_init = saltro_py.InitTrajConfig()
         cpp_init.initcontroller = self.initcontroller
         return cpp_init
+
+
+@dataclass
+class TVLQRSettings:
+    dt_tvlqr: float = 1.0
+    tvlqr_len: float = 60.0
+    tvlqr_overlap: float = 15.0
+
+    def to_cpp(self):
+        """Convert to C++ TVLQRSettings"""
+        if saltro_py is None:
+            raise ImportError("saltro_py not available")
+        cpp_tvlqr = saltro_py.TVLQRSettings()
+        cpp_tvlqr.dt_tvlqr = float(self.dt_tvlqr)
+        cpp_tvlqr.tvlqr_len = float(self.tvlqr_len)
+        cpp_tvlqr.tvlqr_overlap = float(self.tvlqr_overlap)
+        return cpp_tvlqr
     
 @dataclass
 class DisturbanceConfig:
@@ -96,6 +113,9 @@ class PlannerSettings:
     # Initial Guess
     init_traj: InitTrajConfig = field(default_factory=InitTrajConfig)
 
+    # TVLQR gain-generation settings
+    tvlqr: TVLQRSettings = field(default_factory=TVLQRSettings)
+
     # Passes
     passes: List[PassConfig] = field(default_factory=lambda: [PassConfig()])
 
@@ -118,6 +138,9 @@ class PlannerSettings:
         
         # Convert init trajectory
         cpp_settings.init_traj = self.init_traj.to_cpp()
+
+        # TVLQR gain-generation configuration
+        cpp_settings.tvlqr = self.tvlqr.to_cpp()
         
         # Set number of passes
         cpp_settings.num_passes = len(self.passes)
