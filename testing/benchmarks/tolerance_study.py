@@ -10,9 +10,9 @@ import os
 import numpy as np
 from typing import Dict, List, Tuple
 
-sys.path.insert(0, os.path.abspath(os.path.join(__file__, "../..")))
+sys.path.insert(0, os.path.abspath(os.path.join(__file__, "../../..")))
 
-from benchmarks.benchmark_dynamics import DynamicsBenchmark, scenario_simple, scenario_heavy
+from benchmark_dynamics import DynamicsBenchmark, scenario_simple, scenario_heavy
 
 
 def run_tolerance_study() -> None:

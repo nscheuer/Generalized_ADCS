@@ -20,7 +20,7 @@ import numpy as np
 from typing import Dict, Optional, Tuple
 from scipy.integrate import solve_ivp
 
-sys.path.insert(0, os.path.abspath(os.path.join(__file__, "../..")))
+sys.path.insert(0, os.path.abspath(os.path.join(__file__, "../../..")))
 
 import ADCS
 from ADCS.orbits.orbit import Orbit
