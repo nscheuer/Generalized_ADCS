@@ -7,7 +7,7 @@ from typing import List
 # === Import project modules ===
 sys.path.append(os.path.abspath(os.path.join(__file__, "../..")))
 from ADCS.satellite_hardware.satellite.satellite import Satellite
-from ADCS.satellite_hardware.satellite.satellite import _quat_qdot, _rw_hdot_kernel
+from ADCS.satellite_hardware.satellite.satellite import _quat_qdot, _rw_hdot_kernel, _wdot_no_rw_kernel, _wdot_rw_kernel
 from ADCS.satellite_hardware.actuators import Actuator, RW, MTQ
 from ADCS.satellite_hardware.errors import Bias, Noise
 from ADCS.satellite_hardware.disturbances import SRP_Disturbance, Drag_Disturbance, Prop_Disturbance, Dipole_Disturbance, GeometryConfig, GeometryFace
@@ -15,6 +15,53 @@ from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.helpers.math_helpers import random_n_unit_vec, rot_mat, Wmat
 from ADCS.helpers.math_constants import MathConstants
+
+
+def test_wdot_no_rw_kernel_matches_rigid_body_formula():
+  rng = np.random.default_rng(2468)
+
+  for _ in range(100):
+    w = rng.standard_normal(3)
+    total_torque = rng.standard_normal(3)
+    j_rand = rng.standard_normal((3, 3))
+    J = j_rand.T @ j_rand + np.eye(3)
+    invJ_no_rw = np.linalg.inv(J)
+
+    wdot_ref = (-np.cross(w, w @ J) + total_torque) @ invJ_no_rw
+    wdot_opt = _wdot_no_rw_kernel(
+      w.astype(float),
+      total_torque.astype(float),
+      J.astype(float),
+      invJ_no_rw.astype(float),
+    )
+
+    assert np.allclose(wdot_opt, wdot_ref, rtol=1e-13, atol=1e-13)
+
+
+def test_wdot_rw_kernel_matches_coupled_rigid_body_formula():
+  rng = np.random.default_rng(97531)
+
+  for n_rw in [1, 2, 3, 5]:
+    w = rng.standard_normal(3)
+    h = rng.standard_normal(n_rw)
+    total_torque = rng.standard_normal(3)
+    j_rand = rng.standard_normal((3, 3))
+    J = j_rand.T @ j_rand + np.eye(3)
+    invJ_no_rw = np.linalg.inv(J)
+    rw_axes = np.vstack([random_n_unit_vec(3) for _ in range(n_rw)])
+
+    coupled_momentum = w @ J + h @ rw_axes
+    wdot_ref = (-np.cross(w, coupled_momentum) + total_torque) @ invJ_no_rw
+    wdot_opt = _wdot_rw_kernel(
+      w.astype(float),
+      h.astype(float),
+      total_torque.astype(float),
+      J.astype(float),
+      invJ_no_rw.astype(float),
+      rw_axes.astype(float),
+    )
+
+    assert np.allclose(wdot_opt, wdot_ref, rtol=1e-13, atol=1e-13)
 
 def test_J():
     mass = 1

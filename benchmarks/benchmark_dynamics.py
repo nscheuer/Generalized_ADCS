@@ -17,7 +17,7 @@ import os
 import argparse
 import time
 import numpy as np
-from typing import Dict, Tuple
+from typing import Dict, Optional, Tuple
 from scipy.integrate import solve_ivp
 
 sys.path.insert(0, os.path.abspath(os.path.join(__file__, "../..")))
@@ -37,15 +37,15 @@ class DynamicsBenchmark:
         self,
         satellite: ADCS.Satellite,
         os0: Orbital_State,
-        os1: Orbital_State,
+        os1: Optional[Orbital_State] = None,
         dt: float = 5.0,
     ):
         """Initialize benchmark environment."""
         self.satellite = satellite
         self.os0 = os0
-        self.os1 = os1
+        self.os1 = os0 if os1 is None else os1
         self.dt = dt
-        self.u_current = None  # Control input for current step
+        self.u_current: Optional[np.ndarray] = None  # Control input for current step
         
         # Performance counters
         self.rhs_call_count = 0
@@ -64,9 +64,11 @@ class DynamicsBenchmark:
         delta_t = (self.os1.J2000 - self.os0.J2000) * TimeConstants.cent2sec
         time_frac = t / delta_t
         os = self.os0.average(self.os1, time_frac, True)
+        u_current = self.u_current
+        assert u_current is not None
         
         # Call dynamics
-        x_dot = self.satellite.dynamics_core(x=x, u=self.u_current, orbital_state=os, dmode=dmode, verbose=False)
+        x_dot = self.satellite.dynamics_core(x=x, u=u_current, orbital_state=os, dmode=dmode, verbose=False)
         
         call_end = time.perf_counter()
         call_time = call_end - call_start

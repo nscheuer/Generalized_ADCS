@@ -415,6 +415,7 @@ class Satellite:
         self._dist_needs_sat = np.array([
             'sat' in d.torque.__code__.co_varnames for d in self.disturbances
         ], dtype=bool)
+        # NOTE: adding disturbances after construction requires calling update_J() to refresh this cache.
 
     def _toggle_disturbance(self, dist_class: Disturbance, on: bool, ind: int | None = None) -> None:
         r"""
@@ -889,7 +890,7 @@ class Satellite:
         """
         torque_total = np.zeros(3)
         
-        # Use pre-computed indices to avoid repeated type checking
+        # Use the pre-computed actuator index groups so torque dispatch stays explicit and JIT-friendly.
         for j in self._mtq_inds:
             torque_total = torque_total + self.actuators[j].torque(u[j], x, os=os, dmode=dmode)
         

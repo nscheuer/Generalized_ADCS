@@ -21,6 +21,7 @@ def _project_to_so3(mat: np.ndarray) -> np.ndarray:
     """Project a near-rotation matrix onto SO(3) via SVD."""
     u, _, vh = np.linalg.svd(np.asarray(mat, dtype=float))
     r = u @ vh
+    # Input is assumed to be close to SO(3); the determinant check only corrects numerical drift.
     if np.linalg.det(r) < 0.0:
         u[:, -1] *= -1.0
         r = u @ vh
