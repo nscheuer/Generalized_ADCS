@@ -52,82 +52,45 @@ class SALTRO(Controller):
         dt = float(self.planner_settings.passes[0].dt)
         if dt <= 0.0:
             raise ValueError(f"SALTRO pass dt must be > 0, got {dt}")
-
-        active_goal = goals.get_active_goal(t_start, time_units="centuries")
-        target_ref, _w_ref = active_goal.to_ref(os_0)
-        target_ref = np.asarray(target_ref, dtype=np.float64).reshape(4)
-
-        def _safe_normalize(v: np.ndarray, eps: float = 1e-12) -> np.ndarray:
-            v = np.asarray(v, dtype=np.float64).reshape(-1)
-            n = np.linalg.norm(v)
-            if n < eps:
-                return np.zeros_like(v)
-            return v / n
-
-        def _closest_quat_in_alignment_set(
-            q_seed: np.ndarray,
-            body_vec: np.ndarray,
-            eci_vec: np.ndarray,
-        ) -> np.ndarray:
-            q_seed = normalize(np.asarray(q_seed, dtype=np.float64).reshape(4))
-            body_vec = _safe_normalize(body_vec)
-            eci_vec = _safe_normalize(eci_vec)
-
-            dot_vu = float(np.clip(np.dot(body_vec, eci_vec), -1.0, 1.0))
-            if dot_vu < -1.0 + 1e-10:
-                perp = np.array([1.0, 0.0, 0.0], dtype=np.float64)
-                if abs(np.dot(perp, body_vec)) > 0.9:
-                    perp = np.array([0.0, 1.0, 0.0], dtype=np.float64)
-                perp = _safe_normalize(perp - np.dot(perp, body_vec) * body_vec)
-                q = normalize(np.concatenate(([0.0], perp)))
-                if np.dot(q, q_seed) < 0.0:
-                    q = -q
-                return q
-
-            x = np.concatenate(([1.0 + np.dot(body_vec, eci_vec)], np.cross(body_vec, eci_vec)))
-            y = np.concatenate(([0.0], eci_vec + body_vec))
-            x = _safe_normalize(x)
-            y = _safe_normalize(y)
-
-            if np.linalg.norm(x) < 1e-12 or np.linalg.norm(y) < 1e-12:
-                q = np.array([1.0, 0.0, 0.0, 0.0], dtype=np.float64)
-                if np.dot(q, q_seed) < 0.0:
-                    q = -q
-                return q
-
-            qdx = float(np.dot(q_seed, x))
-            qdy = float(np.dot(q_seed, y))
-            q = _safe_normalize(qdx * x + qdy * y)
-            if np.dot(q, q_seed) < 0.0:
-                q = -q
-            return normalize(q)
-
-        boresight_name = getattr(active_goal, "boresight_name", None)
-        try:
-            body_boresight = np.asarray(self.est_sat.get_boresight(boresight_name), dtype=np.float64).reshape(3)
-        except (KeyError, ValueError, TypeError, AttributeError):
-            body_boresight = np.asarray(self.est_sat.get_boresight(), dtype=np.float64).reshape(3)
-
-        if np.isnan(target_ref[0]):
-            eci_vec = target_ref[1:4]
-            if not np.isfinite(eci_vec).all() or np.linalg.norm(eci_vec) < 1e-12:
-                raise ValueError("SALTRO vector-goal target must be finite and nonzero in elements 1:4")
-            q_ref = _closest_quat_in_alignment_set(
-                q_seed=np.asarray(x_0, dtype=np.float64).reshape(-1)[3:7],
-                body_vec=body_boresight,
-                eci_vec=eci_vec,
-            )
-        else:
-            q_ref = normalize(target_ref)
-            if not np.isfinite(q_ref).all() or q_ref.shape != (4,):
-                raise ValueError("SALTRO goal must be a finite quaternion or vector-goal [nan, x, y, z]")
-
         t_end = float(t_start + duration * TimeConstants.sec2cent)
-        jtime = np.ascontiguousarray(np.array([t_start, t_end], dtype=np.float64))
-        q_goal = np.ascontiguousarray(np.column_stack([q_ref, q_ref]), dtype=np.float64)
-        boresight = np.ascontiguousarray(
-            np.column_stack([body_boresight, body_boresight]), dtype=np.float64
+        n_steps = max(1, int(np.ceil(duration / dt)))
+        jtime = np.ascontiguousarray(
+            t_start + (dt * TimeConstants.sec2cent) * np.arange(n_steps + 1, dtype=np.float64),
+            dtype=np.float64,
         )
+        jtime[-1] = t_end
+
+        sim_orbit = Orbit(os_0, t_end, dt=dt, use_J2=True, fast=True, verbose=False)
+        q_goal = np.empty((4, jtime.size), dtype=np.float64)
+        boresight = np.empty((3, jtime.size), dtype=np.float64)
+
+        for i, t_k in enumerate(jtime):
+            os_at_t = sim_orbit.get_os(float(t_k))
+            active_goal = goals.get_active_goal(float(t_k), time_units="centuries")
+            target_ref, _w_ref = active_goal.to_ref(os_at_t)
+            target_ref = np.asarray(target_ref, dtype=np.float64).reshape(4)
+
+            if np.isnan(target_ref[0]):
+                if not np.isfinite(target_ref[1:4]).all():
+                    raise ValueError("SALTRO vector-goal target must be [nan, x, y, z] with finite x/y/z")
+                q_goal[:, i] = target_ref
+            else:
+                q_ref = normalize(target_ref)
+                if not np.isfinite(q_ref).all() or q_ref.shape != (4,):
+                    raise ValueError("SALTRO goal must be a finite quaternion or vector-goal [nan, x, y, z]")
+                q_goal[:, i] = q_ref
+
+            boresight_name = getattr(active_goal, "boresight_name", None)
+            try:
+                body_boresight = np.asarray(
+                    self.est_sat.get_boresight(boresight_name), dtype=np.float64
+                ).reshape(3)
+            except (KeyError, ValueError, TypeError, AttributeError):
+                body_boresight = np.asarray(self.est_sat.get_boresight(), dtype=np.float64).reshape(3)
+            boresight[:, i] = body_boresight
+
+        q_goal = np.ascontiguousarray(q_goal, dtype=np.float64)
+        boresight = np.ascontiguousarray(boresight, dtype=np.float64)
 
         try:
             import saltro_py
@@ -171,7 +134,7 @@ class SALTRO(Controller):
 
         Xset = np.asarray(Xset, dtype=np.float64)
         Uset_cpp = np.asarray(Uset_cpp, dtype=np.float64)
-        K_flat = np.asarray(K_flat, dtype=np.float64)
+        K_flat = 0.5 * np.asarray(K_flat, dtype=np.float64)
 
         n_out = int(Xset.shape[1])
         times = np.linspace(t_start, t_end, n_out, dtype=np.float64)
