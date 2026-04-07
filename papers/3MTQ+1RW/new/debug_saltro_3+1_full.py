@@ -8,6 +8,50 @@ import matplotlib.pyplot as plt
 import numpy as np
 from ADCS.controller.neo_planner.NEO_planner_settings import PlannerSettings
 from ADCS.helpers.plot.subplot import Subplot
+from ADCS.satellite_hardware.actuators import MTQ, RW
+from ADCS.satellite_hardware.errors import Bias, Noise
+from ADCS.satellite_hardware.satellite.satellite import Satellite
+
+
+def create_saltro_debug_3_1_satellite() -> Satellite:
+    """Match SALTRO tests/debug/optimizer/alilqr_cpp/debug_3_1_slew90_dt10 satellite."""
+    J = np.array(
+        [
+            [0.03136490806, 5.88304e-05, -0.00671361357],
+            [5.88304e-05, 0.03409127827, -0.00012334756],
+            [-0.00671361357, -0.00012334756, 0.01004091997],
+        ],
+        dtype=float,
+    )
+
+    zero_bias = Bias(bias=0.0, std_bias=0.0)
+    zero_noise = Noise(noise=0.0, std_noise=0.0)
+
+    actuators = [
+        MTQ(axis=np.array([1.0, 0.0, 0.0]), max_torque=0.2, bias=zero_bias, noise=zero_noise),
+        MTQ(axis=np.array([0.0, 1.0, 0.0]), max_torque=0.2, bias=zero_bias, noise=zero_noise),
+        MTQ(axis=np.array([0.0, 0.0, 1.0]), max_torque=0.2, bias=zero_bias, noise=zero_noise),
+        RW(
+            axis=np.array([1.0, 0.0, 0.0]),
+            max_torque=0.0023,
+            J=5.7e-6,
+            h=0.0,
+            h_max=0.0036,
+            bias=zero_bias,
+            noise=zero_noise,
+            h_meas_noise=zero_noise,
+        ),
+    ]
+
+    return Satellite(
+        mass=4.0,
+        COM=np.zeros(3),
+        J_0=J,
+        disturbances=[],
+        sensors=[],
+        actuators=actuators,
+        boresight=np.array([1.0, 0.0, 0.0]),
+    )
 
 
 class RWMomentumPlotSingle(Subplot):
@@ -155,7 +199,7 @@ class QuaternionGoalErrorPlotSingle(Subplot):
         ax.set_ylabel(f"{self.label} [{self.units}]")
         ax.grid(True)
 
-real_sat = ADCS.satellite_factory.create_beavercube2_cubesat(estimated=False)
+real_sat = create_saltro_debug_3_1_satellite()
 x_0 = np.array([0.01, 0.01, 0.01] + [1, 0, 0, 0] + [0.0])  # w, q, h
 
 planner_settings = PlannerSettings(est_sat=real_sat)
@@ -216,7 +260,7 @@ results = ADCS.simulate(
     controller=controller,
     goal=goal,
     os0=os0,
-    dt=5.0,
+    dt=1.0,
     tf=1000.0,
 )
 

@@ -28,7 +28,7 @@ class CostConfig:
     control_mult: float = 1.0
 
     # Actuator Weights
-    mtq_control_weight: float = 1e-1
+    mtq_control_weight: float = 1e-2
     rw_control_weight: float = 1.0
     magic_control_weight: float = 0.0
     rw_AM_weight: float = 0.0

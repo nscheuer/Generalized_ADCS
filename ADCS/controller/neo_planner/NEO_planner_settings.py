@@ -40,7 +40,7 @@ class InitTrajConfig:
 @dataclass
 class TVLQRSettings:
     dt_tvlqr: float = 1.0
-    tvlqr_len: float = 60.0
+    tvlqr_len: float =  100.0
     tvlqr_overlap: float = 15.0
 
     def to_cpp(self):
