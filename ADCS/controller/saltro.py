@@ -134,7 +134,7 @@ class SALTRO(Controller):
 
         Xset = np.asarray(Xset, dtype=np.float64)
         Uset_cpp = np.asarray(Uset_cpp, dtype=np.float64)
-        K_flat = 0.5 * np.asarray(K_flat, dtype=np.float64)
+        K_flat = np.asarray(K_flat, dtype=np.float64)
 
         n_out = int(Xset.shape[1])
         times = np.linspace(t_start, t_end, n_out, dtype=np.float64)
