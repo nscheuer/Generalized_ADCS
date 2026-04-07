@@ -32,7 +32,7 @@ dependencies = [
     "matplotlib==3.10.7",
     "np==1.0.2",
     "numpy==2.2.6",
-    "numba==0.61.2",
+    "numba==0.65.0",
     "numdifftools==0.9.41",
     "packaging==25.0",
     "pandas==2.3.3",
