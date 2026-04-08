@@ -1,11 +1,74 @@
 import numpy as np
 import math
+from numba import njit
 import ADCS.orbits.universal_constants as uc
 from typing import List
 
 
 num_eps = uc.TimeConstants.num_eps
 zeroquat = uc.DefaultStates.zeroquat
+
+
+@njit(cache=True)
+def _cross3(a: np.ndarray, b: np.ndarray) -> np.ndarray:
+    return np.array(
+        [
+            a[1] * b[2] - a[2] * b[1],
+            a[2] * b[0] - a[0] * b[2],
+            a[0] * b[1] - a[1] * b[0],
+        ],
+        dtype=np.float64,
+    )
+
+
+@njit(cache=True)
+def _quat_qdot(w: np.ndarray, q: np.ndarray) -> np.ndarray:
+    q0 = q[0]
+    q1 = q[1]
+    q2 = q[2]
+    q3 = q[3]
+    w0 = w[0]
+    w1 = w[1]
+    w2 = w[2]
+    return 0.5 * np.array(
+        [
+            -(w0 * q1 + w1 * q2 + w2 * q3),
+            q0 * w0 + q2 * w2 - q3 * w1,
+            q0 * w1 + q3 * w0 - q1 * w2,
+            q0 * w2 + q1 * w1 - q2 * w0,
+        ],
+        dtype=np.float64,
+    )
+
+
+@njit(cache=True)
+def _wdot_no_rw_kernel(
+    w: np.ndarray, total_torque: np.ndarray, J: np.ndarray, invJ_noRW: np.ndarray
+) -> np.ndarray:
+    Jw = w @ J
+    return (-_cross3(w, Jw) + total_torque) @ invJ_noRW
+
+
+@njit(cache=True)
+def _wdot_rw_kernel(
+    w: np.ndarray,
+    h: np.ndarray,
+    total_torque: np.ndarray,
+    J: np.ndarray,
+    invJ_noRW: np.ndarray,
+    rw_axes: np.ndarray,
+) -> np.ndarray:
+    coupled_momentum = w @ J + h @ rw_axes
+    return (-_cross3(w, coupled_momentum) + total_torque) @ invJ_noRW
+
+
+@njit(cache=True)
+def _rw_hdot_kernel(
+    u_rw: np.ndarray, wdot: np.ndarray, rw_axes: np.ndarray, rw_js: np.ndarray
+) -> np.ndarray:
+    # Equivalent to: u_rw - (wdot @ rw_axes.T) @ np.diagflat(rw_js)
+    # for 1D vectors. Keep this form to avoid allocating a temporary diagonal matrix.
+    return u_rw - (wdot @ rw_axes.T) * rw_js
 
 
 # ===============================================================
@@ -58,6 +121,7 @@ def rot_mat(q: np.ndarray) -> np.ndarray:
     ])
 
 
+@njit(cache=True)
 def Wmat(q: np.ndarray) -> np.ndarray:
     r"""
     Compute the quaternion kinematic matrix used in first-order quaternion
@@ -143,6 +207,7 @@ def drotmatTvecdq(q: np.ndarray, v: np.ndarray) -> np.ndarray:
     ])
 
 
+@njit(cache=True)
 def skewsym(v: np.ndarray) -> np.ndarray:
     r"""
     Construct the skew-symmetric matrix associated with a 3D vector.
