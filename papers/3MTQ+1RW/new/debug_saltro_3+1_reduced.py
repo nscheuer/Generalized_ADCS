@@ -8,13 +8,28 @@ import matplotlib.pyplot as plt
 import numpy as np
 from ADCS.controller.neo_planner.NEO_planner_settings import PlannerSettings
 from ADCS.helpers.plot.subplot import Subplot
-from ADCS.satellite_hardware.actuators import MTQ, RW
+from ADCS.helpers.math_constants import MathConstants
+from ADCS.satellite_factory.actuators import create_cubewheel_smallplus_rw, create_isis_magnetorquer_board
+from ADCS.satellite_factory.sensors import create_Clydespace_3U_array, create_ICM20948_IMU, create_isis_magnetometer
 from ADCS.satellite_hardware.errors import Bias, Noise
+from ADCS.satellite_hardware.disturbances import (
+    Drag_Disturbance,
+    GG_Disturbance,
+    GeometryConfig,
+    GeometryFace,
+    SRP_Disturbance,
+)
 from ADCS.satellite_hardware.satellite.satellite import Satellite
+
+# Global toggles for all hardware bias/noise terms used in this constructor.
+ENABLE_BIAS = False
+ENABLE_NOISE = False
 
 
 def create_saltro_debug_3_1_satellite() -> Satellite:
-    """Match SALTRO tests/debug/optimizer/alilqr_cpp/debug_3_1_slew90_dt10 satellite."""
+    """Create a BeaverCube2-like 3MTQ+1RW cubesat with toggleable bias/noise."""
+    mass = 4.0
+    COM = np.zeros(3)
     J = np.array(
         [
             [0.03136490806, 5.88304e-05, -0.00671361357],
@@ -24,33 +39,87 @@ def create_saltro_debug_3_1_satellite() -> Satellite:
         dtype=float,
     )
 
-    zero_bias = Bias(bias=0.0, std_bias=0.0)
-    zero_noise = Noise(noise=0.0, std_noise=0.0)
+    def _maybe_bias(value: float, std_value: float) -> Bias:
+        if ENABLE_BIAS:
+            return Bias(bias=value, std_bias=std_value)
+        return Bias(bias=0.0, std_bias=0.0)
 
-    actuators = [
-        MTQ(axis=np.array([1.0, 0.0, 0.0]), max_torque=0.2, bias=zero_bias, noise=zero_noise),
-        MTQ(axis=np.array([0.0, 1.0, 0.0]), max_torque=0.2, bias=zero_bias, noise=zero_noise),
-        MTQ(axis=np.array([0.0, 0.0, 1.0]), max_torque=0.2, bias=zero_bias, noise=zero_noise),
-        RW(
-            axis=np.array([1.0, 0.0, 0.0]),
-            max_torque=0.0023,
-            J=5.7e-6,
-            h=0.0,
-            h_max=0.0036,
-            bias=zero_bias,
-            noise=zero_noise,
-            h_meas_noise=zero_noise,
-        ),
+    def _maybe_noise(value: float, std_value: float) -> Noise:
+        if ENABLE_NOISE:
+            return Noise(noise=value, std_noise=std_value)
+        return Noise(noise=0.0, std_noise=0.0)
+
+    # Actuators (mirrors create_beavercube2_cubesat).
+    mtq_bias = [_maybe_bias(0.0, 0.0) for _ in range(3)]
+    mtq_noise = [_maybe_noise(0.0, 0.0) for _ in range(3)]
+    mtqs = create_isis_magnetorquer_board(bias=mtq_bias, noise=mtq_noise, estimate_bias=False)
+
+    rw_bias = _maybe_bias(float(np.random.normal(0.0, 3e-7)), 1e-9)
+    rw_noise = _maybe_noise(0.0, 1e-6)
+    rw_h_meas_noise = _maybe_noise(0.0, 1e-6)
+    rws = [
+        create_cubewheel_smallplus_rw(
+            axis=np.array([0.0, 0.0, 1.0]),
+            bias=rw_bias,
+            noise=rw_noise,
+            h_meas_noise=rw_h_meas_noise,
+            estimate_bias=False,
+        )
     ]
 
+    # Sensors (mirrors create_beavercube2_cubesat).
+    mtm_bias_vals = MathConstants.unitvecs @ (np.random.uniform(1e-9, 1e-7, size=3) * 0.0)
+    mtm_bias = [_maybe_bias(float(mtm_bias_vals[i]), 1e-9) for i in range(3)]
+    mtm_noise = [_maybe_noise(0.0, 3e-7) for _ in range(3)]
+    mtms = create_isis_magnetometer(bias=mtm_bias, noise=mtm_noise, estimate_bias=False)
+
+    gyro_scale = np.pi / 180.0
+    gyro_bias_vals = np.random.uniform(0.01, 0.2, size=3) * gyro_scale
+    gyro_bias = [_maybe_bias(float(gyro_bias_vals[i]), 0.0004 * gyro_scale) for i in range(3)]
+    gyro_noise = [_maybe_noise(0.0, 0.03 * gyro_scale) for _ in range(3)]
+    gyros = create_ICM20948_IMU(bias=gyro_bias, noise=gyro_noise, estimate_bias=False)
+
+    sun_eff = 0.3
+    sun_bias_1 = _maybe_bias(float(np.random.uniform(0, 0.2) * sun_eff), 0.00001 * sun_eff)
+    sun_noise_1 = _maybe_noise(0.0, 0.001 * sun_eff)
+    sun_bias_2 = _maybe_bias(float(np.random.uniform(0, 0.2) * sun_eff), 0.00001 * sun_eff)
+    sun_noise_2 = _maybe_noise(0.0, 0.001 * sun_eff)
+    solar_panel_1 = create_Clydespace_3U_array(
+        axis=np.array([1, 0, 0]),
+        bias=sun_bias_1,
+        noise=sun_noise_1,
+        estimate_bias=False,
+    )
+    solar_panel_2 = create_Clydespace_3U_array(
+        axis=np.array([0, 1, 0]),
+        bias=sun_bias_2,
+        noise=sun_noise_2,
+        estimate_bias=False,
+    )
+    suns = solar_panel_1 + solar_panel_2
+
+    # Disturbances (mirrors create_beavercube2_cubesat).
+    geometry_faces = [
+        GeometryFace(area=0.1 * 0.3, centroid=MathConstants.unitvecs[0] * 0.05, normal=MathConstants.unitvecs[0], eta_s=0.5, eta_d=0.2, eta_a=0.3, CD=2.2),
+        GeometryFace(area=0.1 * 0.3, centroid=-MathConstants.unitvecs[0] * 0.05, normal=-MathConstants.unitvecs[0], eta_s=0.5, eta_d=0.2, eta_a=0.3, CD=2.2),
+        GeometryFace(area=0.1 * 0.3, centroid=MathConstants.unitvecs[1] * 0.05, normal=MathConstants.unitvecs[1], eta_s=0.5, eta_d=0.2, eta_a=0.3, CD=2.2),
+        GeometryFace(area=0.1 * 0.3, centroid=-MathConstants.unitvecs[1] * 0.05, normal=-MathConstants.unitvecs[1], eta_s=0.5, eta_d=0.2, eta_a=0.3, CD=2.2),
+        GeometryFace(area=0.1 * 0.1, centroid=MathConstants.unitvecs[2] * 0.15, normal=MathConstants.unitvecs[2], eta_s=0.5, eta_d=0.2, eta_a=0.3, CD=2.2),
+        GeometryFace(area=0.1 * 0.1, centroid=-MathConstants.unitvecs[2] * 0.15, normal=-MathConstants.unitvecs[2], eta_s=0.5, eta_d=0.2, eta_a=0.3, CD=2.2),
+    ]
+    config = GeometryConfig(geometry_faces)
+    disturbances = [GG_Disturbance(), Drag_Disturbance(config), SRP_Disturbance(config)]
+
+    boresight = np.array([0.0, 1.0, 0.0])
+
     return Satellite(
-        mass=4.0,
-        COM=np.zeros(3),
+        mass=mass,
+        COM=COM,
         J_0=J,
-        disturbances=[],
-        sensors=[],
-        actuators=actuators,
-        boresight=np.array([1.0, 0.0, 0.0]),
+        disturbances=disturbances,
+        sensors=mtms + gyros + suns,
+        actuators=mtqs + rws,
+        boresight=boresight,
     )
 
 
@@ -200,18 +269,40 @@ class QuaternionGoalErrorPlotSingle(Subplot):
         ax.grid(True)
 
 real_sat = create_saltro_debug_3_1_satellite()
-x_0 = np.array([0.01, 0.01, 0.01] + [1, 0, 0, 0] + [0.0])  # w, q, h
+x_0 = np.array([0.0, 0.0, 0.0] + [1, 0, 0, 0] + [0.0])  # w, q, h
 
 planner_settings = PlannerSettings(est_sat=real_sat)
 planner_settings.passes[0].dt = 5.0
+
+# Tune SALTRO planner settings explicitly (ALTRO-style direct assignments).
+planner_settings.passes[0].cost.use_cost_hess = 1
+planner_settings.passes[0].reg.use_dynamics_hess = 1
+planner_settings.passes[0].aug_lag.penalty_init = 1e-3
+planner_settings.passes[0].aug_lag.penalty_scale = 10
+planner_settings.passes[0].aug_lag.max_outer_iters = 15
+planner_settings.passes[0].ilqr.max_iters = 40
+
+# Cost tuning analogous to debug_altro_3+1_reduced.py
+planner_settings.passes[0].cost.angle = 1e1
+planner_settings.passes[0].cost.angle_N = 1e1
+planner_settings.passes[0].cost.ang_vel = 1e5
+planner_settings.passes[0].cost.ang_vel_N = 1e5
+planner_settings.passes[0].cost.ang_vel_err_dir = 0
+planner_settings.passes[0].cost.ang_vel_err_dir_N = 0.0
+planner_settings.passes[0].cost.ang_vel_mag = 0.0
+planner_settings.passes[0].cost.ang_vel_mag_N = 0.0
+planner_settings.passes[0].cost.control_mult = 1.0
+planner_settings.passes[0].cost.mtq_control_weight = 1e-2
+planner_settings.passes[0].cost.rw_control_weight = 1e5
+planner_settings.passes[0].cost.ang_cost_func_type = 2
 
 controller = ADCS.controller.SALTRO(est_sat=real_sat, planner_settings=planner_settings)
 
 os0 = ADCS.Orbital_State(
     ephem=ADCS.Ephemeris(),
     J2000=0.22,
-    R=np.array([7000.0, 0.0, 0.0]),
-    V=np.array([0.0, 7.5, 0.0]),
+    R=7000 * np.array([0.0, np.sqrt(2) / 2, np.sqrt(2) / 2]),
+    V=np.array([8.0, 0.0, 0.0]),
 )
 
 goal = ADCS.goals.ECI_Goal(np.array([0, 0, -1]))
