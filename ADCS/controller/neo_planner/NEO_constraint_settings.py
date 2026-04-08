@@ -9,16 +9,21 @@ from dataclasses import dataclass, field, InitVar
 
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
 
-try:
-    import sys
+def _get_saltro_py():
     import os
-    parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../.."))
+    import sys
+
+    parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.."))
     build_dir = os.path.join(parent_dir, "SALTRO", "build")
     if build_dir not in sys.path:
         sys.path.append(build_dir)
-    import saltro_py
-except ImportError:
-    saltro_py = None
+
+    try:
+        import saltro_py
+    except ImportError as exc:
+        raise ImportError(f"saltro_py not available (expected in {build_dir})") from exc
+
+    return saltro_py
 
 @dataclass
 class ConstraintConfig:
@@ -34,8 +39,7 @@ class ConstraintConfig:
 
     def to_cpp(self):
         """Convert to C++ ConstraintConfig"""
-        if saltro_py is None:
-            raise ImportError("saltro_py not available")
+        saltro_py = _get_saltro_py()
         cpp_constraints = saltro_py.ConstraintConfig()
         cpp_constraints.control_limit_scale = self.control_limit_scale
         cpp_constraints.u_max = self.u_max

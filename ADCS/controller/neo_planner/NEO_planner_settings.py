@@ -13,16 +13,21 @@ from ADCS.satellite_hardware.disturbances import Dipole_Disturbance, Prop_Distur
 from .NEO_pass_settings import PassConfig
 from .NEO_constraint_settings import ConstraintConfig
 
-try:
-    import sys
+def _get_saltro_py():
     import os
-    parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../.."))
+    import sys
+
+    parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.."))
     build_dir = os.path.join(parent_dir, "SALTRO", "build")
     if build_dir not in sys.path:
         sys.path.append(build_dir)
-    import saltro_py
-except ImportError:
-    saltro_py = None
+
+    try:
+        import saltro_py
+    except ImportError as exc:
+        raise ImportError(f"saltro_py not available (expected in {build_dir})") from exc
+
+    return saltro_py
 
 @dataclass
 class InitTrajConfig:
@@ -30,8 +35,7 @@ class InitTrajConfig:
 
     def to_cpp(self):
         """Convert to C++ InitTrajConfig"""
-        if saltro_py is None:
-            raise ImportError("saltro_py not available")
+        saltro_py = _get_saltro_py()
         cpp_init = saltro_py.InitTrajConfig()
         cpp_init.initcontroller = self.initcontroller
         return cpp_init
@@ -45,8 +49,7 @@ class TVLQRSettings:
 
     def to_cpp(self):
         """Convert to C++ TVLQRSettings"""
-        if saltro_py is None:
-            raise ImportError("saltro_py not available")
+        saltro_py = _get_saltro_py()
         cpp_tvlqr = saltro_py.TVLQRSettings()
         cpp_tvlqr.dt_tvlqr = float(self.dt_tvlqr)
         cpp_tvlqr.tvlqr_len = float(self.tvlqr_len)
@@ -82,8 +85,7 @@ class DisturbanceConfig:
 
     def to_cpp(self):
         """Convert to C++ DisturbanceConfig"""
-        if saltro_py is None:
-            raise ImportError("saltro_py not available")
+        saltro_py = _get_saltro_py()
         cpp_dist = saltro_py.DisturbanceConfig()
         cpp_dist.plan_for_aero = bool(self.plan_for_aero)
         cpp_dist.plan_for_prop = bool(self.plan_for_prop)
@@ -125,8 +127,7 @@ class PlannerSettings:
 
     def to_cpp(self):
         """Convert Python PlannerSettings to C++ PlannerSettings"""
-        if saltro_py is None:
-            raise ImportError("saltro_py not available")
+        saltro_py = _get_saltro_py()
         
         cpp_settings = saltro_py.PlannerSettings()
         

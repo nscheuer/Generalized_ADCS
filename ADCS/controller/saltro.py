@@ -18,11 +18,16 @@ from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.satellite_hardware.actuators import MTQ, RW
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
 
-current_dir = os.path.dirname(os.path.abspath(__file__))
-parent_dir = os.path.abspath(os.path.join(current_dir, "../../.."))
-saltro_path = os.path.join(parent_dir, "SALTRO", "build")
-if saltro_path not in sys.path:
-    sys.path.append(saltro_path)
+def _ensure_saltro_path() -> str:
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    parent_dir = os.path.abspath(os.path.join(current_dir, "../.."))
+    saltro_path = os.path.join(parent_dir, "SALTRO", "build")
+    if saltro_path not in sys.path:
+        sys.path.append(saltro_path)
+    return saltro_path
+
+
+_ensure_saltro_path()
 
 
 class SALTRO(Controller):
@@ -93,9 +98,10 @@ class SALTRO(Controller):
         boresight = np.ascontiguousarray(boresight, dtype=np.float64)
 
         try:
+            _ensure_saltro_path()
             import saltro_py
         except ImportError as exc:
-            raise ImportError("saltro_py not available") from exc
+            raise ImportError(f"saltro_py not available: {exc}") from exc
 
         cpp_settings = self.planner_settings.to_cpp()
 

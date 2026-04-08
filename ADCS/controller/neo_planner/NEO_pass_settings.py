@@ -7,16 +7,21 @@ from typing import Tuple, Optional, List
 from numpy.typing import NDArray
 from dataclasses import dataclass, field
 
-try:
-    import sys
+def _get_saltro_py():
     import os
-    parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../.."))
+    import sys
+
+    parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.."))
     build_dir = os.path.join(parent_dir, "SALTRO", "build")
     if build_dir not in sys.path:
         sys.path.append(build_dir)
-    import saltro_py
-except ImportError:
-    saltro_py = None
+
+    try:
+        import saltro_py
+    except ImportError as exc:
+        raise ImportError(f"saltro_py not available (expected in {build_dir})") from exc
+
+    return saltro_py
 
 @dataclass
 class CostConfig:
@@ -49,8 +54,7 @@ class CostConfig:
 
     def to_cpp(self):
         """Convert to C++ CostConfig"""
-        if saltro_py is None:
-            raise ImportError("saltro_py not available")
+        saltro_py = _get_saltro_py()
         cpp_cost = saltro_py.CostConfig()
         cpp_cost.angle = self.angle
         cpp_cost.ang_vel = self.ang_vel
@@ -90,8 +94,7 @@ class AugLagConfig:
 
     def to_cpp(self):
         """Convert to C++ AugLagConfig"""
-        if saltro_py is None:
-            raise ImportError("saltro_py not available")
+        saltro_py = _get_saltro_py()
         cpp_auglag = saltro_py.AugLagConfig()
         cpp_auglag.max_outer_iters = self.max_outer_iters
         cpp_auglag.lag_mult_init = self.lag_mult_init
@@ -115,8 +118,7 @@ class ILQRConfig:
 
     def to_cpp(self):
         """Convert to C++ ILQRConfig"""
-        if saltro_py is None:
-            raise ImportError("saltro_py not available")
+        saltro_py = _get_saltro_py()
         cpp_ilqr = saltro_py.ILQRConfig()
         cpp_ilqr.max_iters = self.max_iters
         cpp_ilqr.grad_tol = self.grad_tol
@@ -142,8 +144,7 @@ class RegularizationConfig:
 
     def to_cpp(self):
         """Convert to C++ RegularizationConfig"""
-        if saltro_py is None:
-            raise ImportError("saltro_py not available")
+        saltro_py = _get_saltro_py()
         cpp_reg = saltro_py.RegularizationConfig()
         cpp_reg.reg_init = self.reg_init
         cpp_reg.reg_min = self.reg_min
@@ -164,8 +165,7 @@ class LineSearchConfig:
 
     def to_cpp(self):
         """Convert to C++ LineSearchConfig"""
-        if saltro_py is None:
-            raise ImportError("saltro_py not available")
+        saltro_py = _get_saltro_py()
         cpp_ls = saltro_py.LineSearchConfig()
         cpp_ls.max_iters = self.max_iters
         cpp_ls.beta1 = self.beta1
@@ -192,8 +192,7 @@ class PassConfig:
 
     def to_cpp(self):
         """Convert to C++ PassConfig"""
-        if saltro_py is None:
-            raise ImportError("saltro_py not available")
+        saltro_py = _get_saltro_py()
         cpp_pass = saltro_py.PassConfig()
         cpp_pass.cost = self.cost.to_cpp()
         cpp_pass.auglag = self.aug_lag.to_cpp()
