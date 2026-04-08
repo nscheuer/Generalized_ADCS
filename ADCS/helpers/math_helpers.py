@@ -75,6 +75,7 @@ def _rw_hdot_kernel(
 # Quaternion Algebra and Rotation Matrices
 # ===============================================================
 
+
 def rot_mat(q: np.ndarray) -> np.ndarray:
     r"""
     Construct the direction cosine matrix (DCM) corresponding to a quaternion
@@ -112,12 +113,11 @@ def rot_mat(q: np.ndarray) -> np.ndarray:
     :rtype: numpy.ndarray
 
     """
-
     q0, q1, q2, q3 = q
     return np.array([
-        [q0**2+q1**2-q2**2-q3**2, 2*(q1*q2-q0*q3), 2*(q1*q3+q0*q2)],
-        [2*(q1*q2+q0*q3), q0**2-q1**2+q2**2-q3**2, 2*(q2*q3-q0*q1)],
-        [2*(q1*q3-q0*q2), 2*(q2*q3+q0*q1), q0**2-q1**2-q2**2+q3**2]
+        [q0**2 + q1**2 - q2**2 - q3**2, 2 * (q1 * q2 - q0 * q3), 2 * (q1 * q3 + q0 * q2)],
+        [2 * (q1 * q2 + q0 * q3), q0**2 - q1**2 + q2**2 - q3**2, 2 * (q2 * q3 - q0 * q1)],
+        [2 * (q1 * q3 - q0 * q2), 2 * (q2 * q3 + q0 * q1), q0**2 - q1**2 - q2**2 + q3**2]
     ])
 
 
@@ -277,7 +277,7 @@ def ddrotmatTvecdqdq(q: np.ndarray, v: np.ndarray) -> np.ndarray:
     return output
 
 
-def normalize(v: np.ndarray) -> np.ndarray:
+def _normalize_legacy(v: np.ndarray) -> np.ndarray:
     r"""
     Normalize a vector to unit length.
 
@@ -296,11 +296,12 @@ def normalize(v: np.ndarray) -> np.ndarray:
     - If :math:`\|v\| = 0`, the vector is returned unchanged.
     """
     sn = norm(v)
-    if sn == 0:
+    if sn == 0.0:
         return v
     return v / sn
 
 
+@njit(cache=True)
 def norm(v: np.ndarray) -> float:
     r"""
     Compute the Euclidean norm of a vector.
@@ -315,9 +316,13 @@ def norm(v: np.ndarray) -> float:
     n : float
         Euclidean norm (magnitude) of the vector.
     """
-    return np.linalg.norm(v)
+    total = 0.0
+    for i in range(v.shape[0]):
+        total += v[i] * v[i]
+    return math.sqrt(total)
 
 
+@njit(cache=True)
 def quat_to_mrp(quat: np.ndarray) -> np.ndarray:
     r"""
     Convert a quaternion to **Modified Rodrigues parameters (MRP)**.
@@ -335,9 +340,15 @@ def quat_to_mrp(quat: np.ndarray) -> np.ndarray:
     sigma : numpy.ndarray, shape (3,)
         Modified Rodrigues parameters.
     """
-    return 2 * quat[1:] / (1 + quat[0])
+    out = np.empty(3, dtype=np.float64)
+    scale = 2.0 / (1.0 + quat[0])
+    out[0] = quat[1] * scale
+    out[1] = quat[2] * scale
+    out[2] = quat[3] * scale
+    return out
 
 
+@njit(cache=True)
 def quat_to_cayley(quat: np.ndarray) -> np.ndarray:
     r"""
     Convert a quaternion to **Cayley parameters**.
@@ -362,9 +373,14 @@ def quat_to_cayley(quat: np.ndarray) -> np.ndarray:
     if abs(quat[0]) < num_eps:
         quat[0] = num_eps * np.sign(quat[0])
         quat = normalize(quat)
-    return quat[1:] / quat[0]
+    out = np.empty(3, dtype=np.float64)
+    out[0] = quat[1] / quat[0]
+    out[1] = quat[2] / quat[0]
+    out[2] = quat[3] / quat[0]
+    return out
 
 
+@njit(cache=True)
 def quat_to_vec3(quat: np.ndarray, mode: int = 0) -> np.ndarray:
     r"""
     Convert a quaternion to a 3D attitude parameter vector according to mode.
@@ -396,11 +412,19 @@ def quat_to_vec3(quat: np.ndarray, mode: int = 0) -> np.ndarray:
     if mode == 5:
         return 2 * quat_to_mrp(quat)
     if mode == 4:
-        return quat[1:]
+        out = np.empty(3, dtype=np.float64)
+        out[0] = quat[1]
+        out[1] = quat[2]
+        out[2] = quat[3]
+        return out
     if mode == 3:
         if quat[0] > 0.0:
             quat *= np.sign(quat[0])
-        return quat[1:]
+        out = np.empty(3, dtype=np.float64)
+        out[0] = quat[1]
+        out[1] = quat[2]
+        out[2] = quat[3]
+        return out
     if mode == 2:
         return quat_to_cayley(quat)
     if mode == 1:
@@ -410,7 +434,8 @@ def quat_to_vec3(quat: np.ndarray, mode: int = 0) -> np.ndarray:
     return quat_to_mrp(quat)
 
 
-def vec3_to_quat(v3,mode):
+@njit(cache=True)
+def vec3_to_quat(v3, mode):
     r"""
     Convert a 3-element attitude parameter vector into a quaternion according
     to a specified representation mode.
@@ -445,17 +470,27 @@ def vec3_to_quat(v3,mode):
 
     """
     if mode == 6:
-        q = mrp_to_quat(v3/2.0)
+        q = mrp_to_quat(v3 / 2.0)
         sq = np.sign(q[0])
-        if np.abs(sq)>0.0:
+        if np.abs(sq) > 0.0:
             q *= sq
         return q
     if mode == 5:
-        return mrp_to_quat(v3/2.0)
+        return mrp_to_quat(v3 / 2.0)
     if mode == 4:
-        return np.concatenate([[math.sqrt(1.0-norm(v3)**2.0)],v3])
+        q = np.empty(4, dtype=np.float64)
+        q[0] = math.sqrt(1.0 - norm(v3) ** 2.0)
+        q[1] = v3[0]
+        q[2] = v3[1]
+        q[3] = v3[2]
+        return q
     if mode == 3:
-        return np.concatenate([[math.sqrt(1.0-norm(v3)**2.0)],v3])
+        q = np.empty(4, dtype=np.float64)
+        q[0] = math.sqrt(1.0 - norm(v3) ** 2.0)
+        q[1] = v3[0]
+        q[2] = v3[1]
+        q[3] = v3[2]
+        return q
     if mode == 2:
         return cayley_to_quat(v3)
     elif mode == 1:
@@ -463,11 +498,12 @@ def vec3_to_quat(v3,mode):
     else:
         q = mrp_to_quat(v3)
         sq = np.sign(q[0])
-        if np.abs(sq)>0.0:
+        if np.abs(sq) > 0.0:
             q *= sq
         return q
     
 
+@njit(cache=True)
 def mrp_to_quat(mrp):
     r"""
     Convert Modified Rodrigues Parameters (MRP) to a quaternion.
@@ -506,9 +542,16 @@ def mrp_to_quat(mrp):
     thetad2 = 2*math.atan(norm(mrp)*0.5)
     nhat = normalize(mrp)
     costd2 = math.cos(thetad2)
-    return np.concatenate([[costd2],nhat*np.abs(math.sin(thetad2))])#.reshape((4,1))
+    out = np.empty(4, dtype=np.float64)
+    scale = np.abs(math.sin(thetad2))
+    out[0] = costd2
+    out[1] = nhat[0] * scale
+    out[2] = nhat[1] * scale
+    out[3] = nhat[2] * scale
+    return out  # .reshape((4,1))
 
 
+@njit(cache=True)
 def cayley_to_quat(cly):
     r"""
     Convert Cayley parameters to a quaternion.
@@ -533,7 +576,25 @@ def cayley_to_quat(cly):
     :rtype: numpy.ndarray
 
     """
-    return np.concatenate([[1],cly])/np.sqrt(1+norm(cly)**2)
+    out = np.empty(4, dtype=np.float64)
+    denom = math.sqrt(1.0 + norm(cly) ** 2.0)
+    out[0] = 1.0 / denom
+    out[1] = cly[0] / denom
+    out[2] = cly[1] / denom
+    out[3] = cly[2] / denom
+    return out
+
+
+@njit(cache=True)
+def _quat_mult_2(p: np.ndarray, q: np.ndarray) -> np.ndarray:
+    p0, p1, p2, p3 = p
+    q0, q1, q2, q3 = q
+    out = np.empty(4, dtype=np.float64)
+    out[0] = p0 * q0 - (p1 * q1 + p2 * q2 + p3 * q3)
+    out[1] = p0 * q1 + q0 * p1 + (p2 * q3 - p3 * q2)
+    out[2] = p0 * q2 + q0 * p2 + (p3 * q1 - p1 * q3)
+    out[3] = p0 * q3 + q0 * p3 + (p1 * q2 - p2 * q1)
+    return out
 
 
 def quat_mult(p: np.ndarray, q: np.ndarray, *extra) -> np.ndarray:
@@ -565,23 +626,25 @@ def quat_mult(p: np.ndarray, q: np.ndarray, *extra) -> np.ndarray:
     :rtype: numpy.ndarray
 
     """
+    result = _quat_mult_2(p, q)
     if isinstance(extra, np.ndarray):
-        return quat_mult(quat_mult(p, q), extra)
+        return _quat_mult_2(result, extra)
     elif isinstance(extra, (list, tuple)):
         if len(extra) > 1:
             if len(extra) == 4 and all(isinstance(j, (int, float, complex)) for j in extra):
-                return quat_mult(quat_mult(p, q), extra[0])
+                return _quat_mult_2(result, np.asarray(extra, dtype=np.float64))
             elif all(len(j) == 4 for j in extra):
-                return quat_mult(quat_mult(p, q), extra[0], *extra[1:])
+                for item in extra:
+                    result = _quat_mult_2(result, np.asarray(item, dtype=np.float64))
+                return result
             else:
                 raise ValueError("These do not all appear to be quaternions.")
         elif len(extra) == 1:
-            return quat_mult(quat_mult(p, q), extra[0])
-    p0, q0 = p[0], q[0]
-    pv, qv = p[1:], q[1:]
-    return np.concatenate([[p0*q0 - np.dot(pv, qv)], p0*qv + q0*pv + np.cross(pv, qv)])
+            return _quat_mult_2(result, np.asarray(extra[0], dtype=np.float64))
+    return result
 
 
+@njit(cache=True)
 def rot_exp(v: np.ndarray) -> np.ndarray:
     r"""
     Compute the exponential map :math:`\exp(\frac{\phi}{2}\hat{\mathbf{u}})`
@@ -603,12 +666,20 @@ def rot_exp(v: np.ndarray) -> np.ndarray:
     """
     assert v.size == 3
     phi = norm(v)
-    if phi == 0:
-        return zeroquat
+    if phi == 0.0:
+        return np.array([1.0, 0.0, 0.0, 0.0], dtype=np.float64)
     u = v / phi
-    return np.concatenate([[math.cos(phi / 2)], u * math.sin(phi / 2)])
+    out = np.empty(4, dtype=np.float64)
+    half_phi = phi / 2.0
+    s = math.sin(half_phi)
+    out[0] = math.cos(half_phi)
+    out[1] = u[0] * s
+    out[2] = u[1] * s
+    out[3] = u[2] * s
+    return out
 
 
+@njit(cache=True)
 def quat_inv(q: np.ndarray) -> np.ndarray:
     r"""
     Compute the inverse of a quaternion.
@@ -629,13 +700,23 @@ def quat_inv(q: np.ndarray) -> np.ndarray:
     :rtype: numpy.ndarray
     """
     q0 = q[0]
-    qv = q[-3:]
+    qv0 = q[1]
+    qv1 = q[2]
+    qv2 = q[3]
     nq = norm(q)
     if nq > num_eps:
-        return np.concatenate([[q0], -qv]) / (nq**2)
-    return np.concatenate([[q0], -qv])
+        scale = 1.0 / (nq ** 2)
+    else:
+        scale = 1.0
+    out = np.empty(4, dtype=np.float64)
+    out[0] = q0 * scale
+    out[1] = -qv0 * scale
+    out[2] = -qv1 * scale
+    out[3] = -qv2 * scale
+    return out
 
 
+@njit(cache=True)
 def normalize(v: np.ndarray) -> np.ndarray:
     r"""
     Normalize a vector to unit length.
@@ -654,11 +735,17 @@ def normalize(v: np.ndarray) -> np.ndarray:
     """
 
     sn = norm(v)
-    if sn == 0:
-        return v
-    return v/sn
+    out = np.empty(v.shape[0], dtype=np.float64)
+    if sn == 0.0:
+        for i in range(v.shape[0]):
+            out[i] = v[i]
+        return out
+    for i in range(v.shape[0]):
+        out[i] = v[i] / sn
+    return out
 
 
+@njit(cache=True)
 def normed_vec_jac(v,dv=None):
     r"""
     Compute the Jacobian of the normalized vector :math:`\hat{\mathbf{v}}`.
@@ -763,7 +850,8 @@ def random_n_unit_vec(n: int) -> np.ndarray:
     return normalize(np.array([np.random.normal() for j in range(n)]))
 
 
-def vec_norm_jac(v: np.ndarray, dv: np.ndarray = None) -> np.ndarray:
+@njit(cache=True)
+def vec_norm_jac(v: np.ndarray, dv: np.ndarray | None = None) -> np.ndarray:
     r"""
     Compute the Jacobian of the Euclidean norm of a vector.
 
@@ -795,7 +883,8 @@ def vec_norm_jac(v: np.ndarray, dv: np.ndarray = None) -> np.ndarray:
     return dv@dndv
 
 
-def vec_norm_hess(v: np.ndarray, dv: np.ndarray = None, ddv: np.ndarray = None) -> np.ndarray:
+@njit(cache=True)
+def vec_norm_hess(v: np.ndarray, dv: np.ndarray | None = None, ddv: np.ndarray | None = None) -> np.ndarray:
     r"""
     Compute the Hessian of the Euclidean norm of a vector.
 
@@ -955,6 +1044,7 @@ def wahbas_svd(weights, body, inertial):
 
     return np.array([q0, q1, q2, q3])
 
+@njit(cache=True)
 def square_mat_sections(mat: np.ndarray, vals: np.ndarray):
     r"""
     Extract a square submatrix from a matrix using index selection.
@@ -980,6 +1070,7 @@ def square_mat_sections(mat: np.ndarray, vals: np.ndarray):
     tmp = mat[vals,:]
     return tmp[:,vals]
 
+@njit(cache=True)
 def state_norm_jac(xk):
     r"""
     Construct the Jacobian of a state vector with quaternion normalization.
@@ -1005,6 +1096,7 @@ def state_norm_jac(xk):
     out[3:7,3:7] = np.eye(4)/norm(q) - np.outer(q,q)/norm(q)**3
     return out
 
+@njit(cache=True)
 def quat_diff(q0: np.ndarray, q1: np.ndarray) -> np.ndarray:
     r"""
     Compute the relative quaternion between two attitudes.
@@ -1079,35 +1171,7 @@ def limit(u, umax):
     return np.clip(u, -umax, umax)
 
 
-def quat_to_euler(q: np.ndarray) -> np.ndarray:
-    r"""
-    Convert a quaternion to 3-2-1 (yaw-pitch-roll) Euler angles.
-
-    The conversion is performed via the corresponding direction cosine matrix
-    and yields
-
-    .. math::
-
-        \begin{aligned}
-        \phi &= \arctan2(R_{32}, R_{33}) \\
-        \theta &= -\arcsin(R_{31}) \\
-        \psi &= \arctan2(R_{21}, R_{11})
-        \end{aligned}
-
-    The output angles are expressed in degrees.
-
-    :param q: Quaternion in Hamilton convention.
-    :type q: numpy.ndarray
-    :return: Euler angles ``[roll, pitch, yaw]`` in degrees.
-    :rtype: numpy.ndarray
-
-    """
-    R = rot_mat(q)
-    roll = np.arctan2(R[2, 1], R[2, 2])
-    pitch = -np.arcsin(R[2, 0])
-    yaw = np.arctan2(R[1, 0], R[0, 0])
-    return np.array([roll, pitch, yaw]) * 180/np.pi
-
+@njit(cache=True)
 def dcm_to_quat(R: np.ndarray) -> np.ndarray:
     r"""
     Convert a direction cosine matrix to a quaternion using a numerically
@@ -1132,33 +1196,33 @@ def dcm_to_quat(R: np.ndarray) -> np.ndarray:
 
     """
     tr = np.trace(R)
+    out = np.empty(4, dtype=np.float64)
 
-    if tr > 0:
-        q0 = 0.5 * np.sqrt(1 + tr)
-        q1 = (R[2,1] - R[1,2]) / (4*q0)
-        q2 = (R[0,2] - R[2,0]) / (4*q0)
-        q3 = (R[1,0] - R[0,1]) / (4*q0)
-        return normalize(np.array([q0, q1, q2, q3]))
+    if tr > 0.0:
+        q0 = 0.5 * np.sqrt(1.0 + tr)
+        out[0] = q0
+        out[1] = (R[2, 1] - R[1, 2]) / (4.0 * q0)
+        out[2] = (R[0, 2] - R[2, 0]) / (4.0 * q0)
+        out[3] = (R[1, 0] - R[0, 1]) / (4.0 * q0)
+        return normalize(out)
 
-    # Otherwise choose the largest diagonal entry for stability
-    i = np.argmax([R[0,0], R[1,1], R[2,2]])
-
-    if i == 0:
-        q1 = 0.5 * np.sqrt(1 + 2*R[0,0] - tr)
-        q0 = (R[2,1] - R[1,2]) / (4*q1)
-        q2 = (R[0,1] + R[1,0]) / (4*q1)
-        q3 = (R[0,2] + R[2,0]) / (4*q1)
-
-    elif i == 1:
-        q2 = 0.5 * np.sqrt(1 + 2*R[1,1] - tr)
-        q0 = (R[0,2] - R[2,0]) / (4*q2)
-        q1 = (R[0,1] + R[1,0]) / (4*q2)
-        q3 = (R[1,2] + R[2,1]) / (4*q2)
-
+    if R[0, 0] >= R[1, 1] and R[0, 0] >= R[2, 2]:
+        q1 = 0.5 * np.sqrt(1.0 + 2.0 * R[0, 0] - tr)
+        out[0] = (R[2, 1] - R[1, 2]) / (4.0 * q1)
+        out[1] = q1
+        out[2] = (R[0, 1] + R[1, 0]) / (4.0 * q1)
+        out[3] = (R[0, 2] + R[2, 0]) / (4.0 * q1)
+    elif R[1, 1] >= R[2, 2]:
+        q2 = 0.5 * np.sqrt(1.0 + 2.0 * R[1, 1] - tr)
+        out[0] = (R[0, 2] - R[2, 0]) / (4.0 * q2)
+        out[1] = (R[0, 1] + R[1, 0]) / (4.0 * q2)
+        out[2] = q2
+        out[3] = (R[1, 2] + R[2, 1]) / (4.0 * q2)
     else:
-        q3 = 0.5 * np.sqrt(1 + 2*R[2,2] - tr)
-        q0 = (R[1,0] - R[0,1]) / (4*q3)
-        q1 = (R[0,2] + R[2,0]) / (4*q3)
-        q2 = (R[1,2] + R[2,1]) / (4*q3)
+        q3 = 0.5 * np.sqrt(1.0 + 2.0 * R[2, 2] - tr)
+        out[0] = (R[1, 0] - R[0, 1]) / (4.0 * q3)
+        out[1] = (R[0, 2] + R[2, 0]) / (4.0 * q3)
+        out[2] = (R[1, 2] + R[2, 1]) / (4.0 * q3)
+        out[3] = q3
 
-    return normalize(np.array([q0, q1, q2, q3]))
+    return normalize(out)
