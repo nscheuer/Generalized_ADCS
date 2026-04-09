@@ -33,7 +33,7 @@ class CostConfig:
     control_mult: float = 1.0
 
     # Actuator Weights
-    mtq_control_weight: float = 1e-2
+    mtq_control_weight: float = 1e-1
     rw_control_weight: float = 1.0
     magic_control_weight: float = 0.0
     rw_AM_weight: float = 0.0
@@ -80,7 +80,7 @@ class CostConfig:
 
 @dataclass
 class AugLagConfig:
-    max_outer_iters: int = 20
+    max_outer_iters: int = 30
 
     lag_mult_init: float = 0.0
     lag_mult_max: float = 1e20
