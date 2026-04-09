@@ -27,13 +27,13 @@ def _get_saltro_py():
 class CostConfig:
     # Running costs
     angle: float = 1e2
-    ang_vel: float = 1e1
+    ang_vel: float = 1e5
     ang_vel_mag: float = 0.0
     ang_vel_err_dir: float = 0.0
     control_mult: float = 1.0
 
     # Actuator Weights
-    mtq_control_weight: float = 1e-1
+    mtq_control_weight: float = 1.0
     rw_control_weight: float = 1.0
     magic_control_weight: float = 0.0
     rw_AM_weight: float = 0.0
@@ -43,13 +43,13 @@ class CostConfig:
     RWh_ok_mult: float = 0.0
 
     # Terminal costs
-    angle_N: float = 1e2
-    ang_vel_N: float = 1e1
+    angle_N: float = 0.0
+    ang_vel_N: float = 0.0
     ang_vel_mag_N: float = 0.0
     ang_vel_err_dir_N: float = 0.0
 
     # Flags
-    ang_cost_func_type: int = 0
+    ang_cost_func_type: int = 2
     use_cost_hess: int = 1
 
     def to_cpp(self):

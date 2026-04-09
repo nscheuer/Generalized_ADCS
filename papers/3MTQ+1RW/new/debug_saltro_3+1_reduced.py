@@ -212,7 +212,7 @@ class QuaternionGoalErrorPlotSingle(Subplot):
         ax.grid(True)
 
 real_sat = create_clean_3_1_satellite()
-x_0 = np.array([0.0, 0.0, 0.0] + [1, 0, 0, 0] + [0.0])  # w, q, h
+x_0 = np.array([0.01, 0.01, -0.01] + [1, 0, 0, 0] + [0.0])  # w, q, h
 
 planner_settings = PlannerSettings(est_sat=real_sat)
 planner_settings.passes[0].dt = 5.0
@@ -226,11 +226,11 @@ planner_settings.passes[0].aug_lag.constraint_tol = 1e-3
 
 cost = planner_settings.passes[0].cost
 cost.angle = 1e2
-cost.ang_vel = 1e1
+cost.ang_vel = 1e5
 cost.ang_vel_mag = 0.0
 cost.ang_vel_err_dir = 0.0
 cost.control_mult = 1.0
-cost.mtq_control_weight = 1e-1
+cost.mtq_control_weight = 1.0
 cost.rw_control_weight = 1.0
 cost.magic_control_weight = 0.0
 cost.rw_AM_weight = 0.0
@@ -238,8 +238,8 @@ cost.rw_stic_weight = 0.0
 cost.RWh_max_mult = 0.0
 cost.RWh_stiction_mult = 0.0
 cost.RWh_ok_mult = 0.0
-cost.angle_N = 1e2
-cost.ang_vel_N = 1e1
+cost.angle_N = 0.0
+cost.ang_vel_N = 0.0
 cost.ang_vel_mag_N = 0.0
 cost.ang_vel_err_dir_N = 0.0
 cost.ang_cost_func_type = 0

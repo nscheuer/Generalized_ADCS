@@ -7,12 +7,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 from ADCS.controller.neo_planner.NEO_planner_settings import PlannerSettings
 
-np.random.seed(42)
+np.random.seed(43)
 real_sat = ADCS.satellite_factory.create_beavercube2_cubesat(estimated=False)
 x_0 = np.array([0.0, 0.0, 0.0] + [1, 0, 0, 0] + [0.0]) # w, q, h
 
 planner_settings = PlannerSettings(est_sat=real_sat)
-planner_settings.passes[0].dt = 5.0
+planner_settings.passes[0].dt = 10.0
 
 controller = ADCS.controller.SALTRO(est_sat=real_sat, planner_settings=planner_settings)
 os0 = ADCS.Orbital_State(ephem=ADCS.Ephemeris(),J2000=0.22, R=7000*np.array([0, np.sqrt(2)/2, np.sqrt(2)/2]), V=np.array([8, 0, 0]))
@@ -37,10 +37,10 @@ results = ADCS.simulate_mc(
     tf=1000.0,
     mc_config=mc_config,
     num_runs=10,
-    base_seed=42
+    base_seed=43
 )
 
-results.save("mc100_saltro_3+1_reduced", out_dir="papers/3MTQ+1RW/new/output")
+# results.save("mc100_saltro_3+1_reduced", out_dir="papers/3MTQ+1RW/new/output")
 
 # ADCS.plot(
 #     results,

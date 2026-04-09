@@ -43,9 +43,12 @@ class InitTrajConfig:
 
 @dataclass
 class TVLQRSettings:
-    dt_tvlqr: float = 1.0
+    dt_tvlqr: float = field(init=False)
     tvlqr_len: float =  100.0
     tvlqr_overlap: float = 15.0
+
+    def __post_init__(self):
+        self.dt_tvlqr = 0.0
 
     def to_cpp(self):
         """Convert to C++ TVLQRSettings"""
