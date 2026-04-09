@@ -36,9 +36,12 @@ from ADCS.helpers.plotting.close_all_plots import create_close_all_button_window
 from ADCS.helpers.plotting.plot_controller import plot_control, plot_rw_momentum, plot_target_tracking
 
 
-def create_saltro_satellite(sat: Satellite) -> object:
-    cpp_sat = saltro_py.Satellite()
-    cpp_sat.setInertia(sat.J_COM)
+def create_saltro_satellite(sat: Satellite, cpp_settings=None) -> object:
+    if cpp_settings is not None:
+        cpp_sat = saltro_py.Satellite(sat.J_COM, cpp_settings)
+    else:
+        cpp_sat = saltro_py.Satellite()
+        cpp_sat.setInertia(sat.J_COM)
 
     for mtq in sat.mtq_actuators:
         cpp_sat.addMTQ(mtq.axis, mtq.u_max)
@@ -53,18 +56,24 @@ def _build_common_setup() -> Tuple[Satellite, np.ndarray, Orbital_State, float]:
     mtm_max_torque = 0.2
     mtqs = [MTQ(axis=j, max_torque=mtm_max_torque) for j in MathConstants.unitvecs]
 
-    rw_max_torque = 0.001
-    rw_J = 1e-5
+    # Match sat_3_1_hybrid.py exactly
+    rw_max_torque = 5.7e-6
+    rw_J = 0.0023
     rw_h0 = 0.0
-    rw_hmax = 0.02
-    rws = [RW(axis=j, max_torque=rw_max_torque, J=rw_J, h=rw_h0, h_max=rw_hmax) for j in MathConstants.unitvecs]
+    rw_hmax = 0.0036
+    rws = [RW(axis=MathConstants.unitvecs[0], max_torque=rw_max_torque, J=rw_J, h=rw_h0, h_max=rw_hmax)]
 
     acts = mtqs + rws
     mtms = [MTM(axis=j) for j in MathConstants.unitvecs]
 
+    # Inertia matrix from sat_3_1_hybrid.py
+    J_0 = np.array([[0.03136490806, 5.88304e-05, -0.00671361357],
+                    [5.88304e-05, 0.03409127827, -0.00012334756],
+                    [-0.00671361357, -0.00012334756, 0.01004091997]])
+
     real_sat = Satellite(
         mass=4.0,
-        J_0=np.diagflat([0.067, 0.071, 0.069]),
+        J_0=J_0,
         actuators=acts,
         sensors=mtms,
         boresight=np.array([0, 0, 1]),
@@ -72,7 +81,7 @@ def _build_common_setup() -> Tuple[Satellite, np.ndarray, Orbital_State, float]:
 
     w0 = np.array([0.01, 0.01, 0.01])
     q0 = np.array([1.0, 0.0, 0.0, 0.0])
-    h0 = np.array([0.0, 0.0, 0.0])
+    h0 = np.array([0.0])
     x0 = np.concatenate([w0, q0, h0])
 
     ephem = Ephemeris()
@@ -87,7 +96,7 @@ def _build_common_setup() -> Tuple[Satellite, np.ndarray, Orbital_State, float]:
 
 
 def _configure_like_saltro_debug(planner_settings: PlannerSettings, dt: float) -> None:
-    """Apply the same planner settings used by SALTRO debug_3_3_slew90_dt10."""
+    """Apply the same planner settings used by SALTRO debug_3_1_slew90_dt10."""
     planner_settings.init_traj.initcontroller = 2
 
     p0 = planner_settings.passes[0]
@@ -95,16 +104,16 @@ def _configure_like_saltro_debug(planner_settings: PlannerSettings, dt: float) -
     p0.ilqr.cost_tol = 1e-5
     p0.ilqr.max_iters = 20
 
-    p0.aug_lag.max_outer_iters = 10
+    p0.aug_lag.max_outer_iters = 20
     p0.aug_lag.constraint_tol = 1e-3
 
     cost = p0.cost
-    cost.angle = 1.0
+    cost.angle = 1e2
     cost.ang_vel = 1e1
     cost.ang_vel_mag = 0.0
     cost.ang_vel_err_dir = 0.0
     cost.control_mult = 1.0
-    cost.mtq_control_weight = 1e-2
+    cost.mtq_control_weight = 1e-1
     cost.rw_control_weight = 1.0
     cost.magic_control_weight = 0.0
     cost.rw_AM_weight = 0.0
@@ -112,11 +121,11 @@ def _configure_like_saltro_debug(planner_settings: PlannerSettings, dt: float) -
     cost.RWh_max_mult = 0.0
     cost.RWh_stiction_mult = 0.0
     cost.RWh_ok_mult = 0.0
-    cost.angle_N = 0.0
-    cost.ang_vel_N = 0.0
+    cost.angle_N = 1e2
+    cost.ang_vel_N = 1e1
     cost.ang_vel_mag_N = 0.0
     cost.ang_vel_err_dir_N = 0.0
-    cost.ang_cost_func_type = 3
+    cost.ang_cost_func_type = 0
     cost.use_cost_hess = 1
 
     planner_settings.disturbances.plan_for_aero = 0
@@ -147,16 +156,16 @@ def _configure_like_saltro_debug_cpp(cpp_settings, dt: float) -> None:
     p0.ilqr.cost_tol = 1e-5
     p0.ilqr.max_iters = 20
 
-    p0.auglag.max_outer_iters = 10
+    p0.auglag.max_outer_iters = 20
     p0.auglag.constraint_tol = 1e-3
 
     cost = p0.cost
-    cost.angle = 1.0
+    cost.angle = 1e2
     cost.ang_vel = 1e1
     cost.ang_vel_mag = 0.0
     cost.ang_vel_err_dir = 0.0
     cost.control_mult = 1.0
-    cost.mtq_control_weight = 1e-2
+    cost.mtq_control_weight = 1e-1
     cost.rw_control_weight = 1.0
     cost.magic_control_weight = 0.0
     cost.rw_AM_weight = 0.0
@@ -164,11 +173,11 @@ def _configure_like_saltro_debug_cpp(cpp_settings, dt: float) -> None:
     cost.RWh_max_mult = 0.0
     cost.RWh_stiction_mult = 0.0
     cost.RWh_ok_mult = 0.0
-    cost.angle_N = 0.0
-    cost.ang_vel_N = 0.0
+    cost.angle_N = 1e2
+    cost.ang_vel_N = 1e1
     cost.ang_vel_mag_N = 0.0
     cost.ang_vel_err_dir_N = 0.0
-    cost.ang_cost_func_type = 3
+    cost.ang_cost_func_type = 0
     cost.use_cost_hess = True
 
     cpp_settings.disturbances.plan_for_aero = False
@@ -201,14 +210,14 @@ def _run_open_loop_trajopt(
     _configure_like_saltro_debug(planner_settings, dt=planner_dt)
     cpp_settings = planner_settings.to_cpp()
     _configure_like_saltro_debug_cpp(cpp_settings, dt=planner_dt)
-    cpp_satellite = create_saltro_satellite(real_sat)
+    cpp_satellite = create_saltro_satellite(real_sat, cpp_settings)
 
     jtime = np.array(
         [t_start, t_start + tf * TimeConstants.sec2cent],
         dtype=np.float64,
     )
 
-    # Match SALTRO debug_3_3_slew90_dt10 reference definition exactly.
+    # Match SALTRO debug_3_1_slew90_dt10 reference definition exactly.
     q_goal = np.array(
         [
             [np.sqrt(2) / 2, np.sqrt(2) / 2],
@@ -286,8 +295,8 @@ def _goal_hist_from_knots(jtime_req: np.ndarray, q_goal: np.ndarray, jtime: np.n
 
 def debug_saltro(
     verbose: bool = False,
-    tf: float = 400.0,
-    dt: float = 10.0,
+    tf: float = 1000.0,
+    dt: float = 5.0,
     real_orbit: bool = True,
 ) -> Tuple[np.ndarray, np.ndarray, List[Orbital_State], np.ndarray, np.ndarray, np.ndarray]:
     _ = real_orbit  # Open-loop uses ephemeris propagation here, matching plotted interface needs.
@@ -338,8 +347,8 @@ def debug_saltro(
 
 def debug_saltro_closed_loop(
     verbose: bool = False,
-    tf: float = 400.0,
-    planner_dt: float = 10.0,
+    tf: float = 1000.0,
+    planner_dt: float = 5.0,
     sim_dt: float = 1.0,
     real_orbit: bool = True,
 ) -> Tuple[np.ndarray, np.ndarray, List[Orbital_State], np.ndarray, np.ndarray, np.ndarray]:
@@ -501,8 +510,8 @@ def _plot_debug_run(
 
 def plot_mtq_w_rw_align_to_eci(
     verbose: bool = False,
-    tf: float = 400.0,
-    dt: float = 10.0,
+    tf: float = 1000.0,
+    dt: float = 5.0,
     closed_loop_dt: float = 1.0,
     real_orbit: bool = True,
 ) -> None:
@@ -524,4 +533,4 @@ def plot_mtq_w_rw_align_to_eci(
 
 
 if __name__ == "__main__":
-    plot_mtq_w_rw_align_to_eci(verbose=True, tf=400.0, dt=10.0, real_orbit=True)
+    plot_mtq_w_rw_align_to_eci(verbose=True, tf=1000.0, dt=5.0, real_orbit=True)
