@@ -1,15 +1,15 @@
 import os
 import sys
-sys.path.append(os.path.abspath(os.path.join(__file__, "../../../..")))
+sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))
 import ADCS as ADCS
 import numpy as np
 import matplotlib.pyplot as plt
 
-real_sat = ADCS.satellite_factory.create_beavercube2_cubesat()
+satellite = ADCS.satellite_factory.create_beavercube2_cubesat()
 
 x_0 = np.array([0, 0, 0] + [1, 0, 0, 0] + [0]) # w, q, h
 
-planner_settings = ADCS.controller.helpers.PlannerSettings(est_sat=real_sat, bdot_on=0, dt_tp=50, dt_tvlqr=1.0)
+planner_settings = ADCS.controller.helpers.PlannerSettings(est_sat=satellite, bdot_on=0, dt_tp=50, dt_tvlqr=1.0)
 
 planner_settings.verbosity = False
 planner_settings.cost_main.use_full_cost_hessian = True
@@ -50,42 +50,28 @@ planner_settings.cost_tvlqr = ADCS.controller.helpers.CostWeights(
         ang_cost_func_type=2,
     )
 
-controller = ADCS.controller.Plan_and_Track_LQR(est_sat=real_sat, planner_settings=planner_settings)
+controller = ADCS.controller.Plan_and_Track_LQR(est_sat=satellite, planner_settings=planner_settings)
 
 os0 = ADCS.Orbital_State(ephem=ADCS.Ephemeris(), J2000=0.22, R=np.array([5000, 0, 5000]), V=np.array([0, 7.5, 0]))
 goal_timeline = {0.0: ADCS.goals.ECI_Goal(np.array([1, 0, 0])), 300.0: ADCS.goals.No_Goal(), 400.0: ADCS.goals.ECI_Goal(np.array([0, 1, 0])), 700.0: ADCS.goals.No_Goal(), 800.0: ADCS.goals.ECI_Goal(np.array([0, 0, 1]))}
 goallist = ADCS.GoalList(goal_timeline=goal_timeline, time_units="seconds", start_juliantime=0.22)
 
-def make_random_os(rng: np.random.Generator) -> ADCS.Orbital_State:
-    return ADCS.orbits.create_random_circular_os(radius_km=7000.0, J2000=0.22, rng=rng)
-
-mc_config = ADCS.MCConfig(
-    w = lambda rng: ADCS.helpers.normalize(rng.standard_normal(3)) * (rng.uniform(0.1, 1.0) * np.pi / 180.0),
-    q = lambda rng: ADCS.helpers.normalize(rng.standard_normal(4)),
-    h = lambda rng: rng.uniform(-0.0001, 0.0001, size=1),
-    goal = lambda rng: ADCS.GoalList(goal_timeline={0.0: ADCS.goals.ECI_Goal(ADCS.helpers.normalize(rng.standard_normal(3))), 300.0: ADCS.goals.No_Goal(), 400.0: ADCS.goals.ECI_Goal(ADCS.helpers.normalize(rng.standard_normal(3))), 700.0: ADCS.goals.No_Goal(), 800.0: ADCS.goals.ECI_Goal(ADCS.helpers.normalize(rng.standard_normal(3)))}, time_units="seconds", start_juliantime=0.22),
-    orbit = make_random_os
-)
-
-results = ADCS.simulate_mc(
+results = ADCS.simulate(
     x=x_0,
-    satellite=real_sat,
+    satellite=satellite,
     controller=controller,
+    goal=goallist,
     os0=os0,
     dt=1.0,
-    tf=1000.0,
-    mc_config=mc_config,
-    num_runs=12,
-    base_seed=42
+    tf=1000.0
 )
 
-
-ADCS.plot(
-    results,
-    ADCS.plots.AnimationPlot(),
-    layout=(1,1),
-    title="3+1 ALTRO Mixed",
-)
+# ADCS.plot(
+#     results,
+#     ADCS.plots.AnimationPlot(),
+#     layout=(1,1),
+#     title="3+1 ALTRO Reduced",
+# )
 
 ADCS.plot(
     results,

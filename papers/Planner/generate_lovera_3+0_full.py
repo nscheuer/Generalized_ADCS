@@ -1,6 +1,6 @@
 import os
 import sys
-sys.path.append(os.path.abspath(os.path.join(__file__, "../../../..")))
+sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))
 import ADCS as ADCS
 import numpy as np
 import matplotlib.pyplot as plt
@@ -18,7 +18,7 @@ def make_random_os(rng: np.random.Generator) -> ADCS.Orbital_State:
 mc_config = ADCS.MCConfig(
     w = lambda rng: ADCS.helpers.normalize(rng.standard_normal(3)) * (rng.uniform(0.1, 1.0) * np.pi / 180.0),
     q = lambda rng: ADCS.helpers.normalize(rng.standard_normal(4)),
-    goal = lambda rng: ADCS.goals.ECI_Goal(eci_vector=ADCS.helpers.normalize(rng.standard_normal(3))),
+    goal = lambda rng: ADCS.goals.Fixed_Attitude_Goal(q_ref=ADCS.helpers.normalize(rng.standard_normal(4))),
     orbit = make_random_os
 )
 
@@ -34,20 +34,20 @@ results = ADCS.simulate_mc(
     base_seed=42
 )
 
-results.save("mc100_lovera_3+0_reduced", out_dir="papers/Planner/new/output")
+results.save("mc100_lovera_3+0_full", out_dir="papers/Planner/new/output")
 
 # ADCS.plot(
 #     results,
 #     ADCS.plots.AnimationPlot(),
 #     layout=(1,1),
-#     title="3+0 Lovera Reduced",
+#     title="3+0 Lovera Full",
 # )
 
 ADCS.plot(
     results,
     ADCS.plots.AttitudePlot(sources=["real", "reference"]),
     layout=(1,1),
-    title="3+0 Lovera Reduced",
+    title="3+0 Lovera Full",
 )
 
 ADCS.plot(
@@ -57,7 +57,7 @@ ADCS.plot(
     ADCS.plots.TargetHistogram(bin_width=5.0),
     ADCS.plots.TargetPlot(modes=["real_target"], title="Target Tracking"),
     layout=(2,2),
-    title="3+0 Lovera Reduced",
+    title="3+0 Lovera Full",
 )
 
 plt.show()

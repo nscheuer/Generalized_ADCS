@@ -1,6 +1,6 @@
 import os
 import sys
-sys.path.append(os.path.abspath(os.path.join(__file__, "../../../..")))
+sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))
 import ADCS as ADCS
 import numpy as np
 import matplotlib.pyplot as plt

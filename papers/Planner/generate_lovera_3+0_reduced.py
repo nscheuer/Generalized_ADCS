@@ -1,15 +1,15 @@
 import os
 import sys
-sys.path.append(os.path.abspath(os.path.join(__file__, "../../../..")))
+sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))
 import ADCS as ADCS
 import numpy as np
 import matplotlib.pyplot as plt
 
 np.random.seed(42)
-real_sat = ADCS.satellite_factory.create_beavercube2_cubesat(estimated=False)
-x_0 = np.array([0.0, 0.0, 0.0] + [1, 0, 0, 0] + [0.0]) # w, q, h
+real_sat = ADCS.satellite_factory.create_beavercube1_cubesat(estimated=False)
+x_0 = np.array([-0.00874868,  0.00209214,  0.005936770] + [0.86698928, 0.29417644, 0.34385383, 0.20869681]) # w, q
 
-controller = ADCS.controller.MTQ_w_RW_LP(est_sat=real_sat, p_gain=0.00005, d_gain=0.002, c_gain=0.001, h_target=np.array([0.0, 0.0, 0.0]))
+controller = ADCS.controller.MTQ_Lovera(est_sat=real_sat, p_gain=0.0001, d_gain=0.001, eps=1.0)
 os0 = ADCS.Orbital_State(ephem=ADCS.Ephemeris(),J2000=0.22, R=7000*np.array([0, np.sqrt(2)/2, np.sqrt(2)/2]), V=np.array([8, 0, 0]))
 
 def make_random_os(rng: np.random.Generator) -> ADCS.Orbital_State:
@@ -18,8 +18,7 @@ def make_random_os(rng: np.random.Generator) -> ADCS.Orbital_State:
 mc_config = ADCS.MCConfig(
     w = lambda rng: ADCS.helpers.normalize(rng.standard_normal(3)) * (rng.uniform(0.1, 1.0) * np.pi / 180.0),
     q = lambda rng: ADCS.helpers.normalize(rng.standard_normal(4)),
-    h = lambda rng: rng.uniform(-0.0001, 0.0001, size=1),
-    goal = lambda rng: ADCS.goals.Fixed_Attitude_Goal(q_ref=ADCS.helpers.normalize(rng.standard_normal(4))),
+    goal = lambda rng: ADCS.goals.ECI_Goal(eci_vector=ADCS.helpers.normalize(rng.standard_normal(3))),
     orbit = make_random_os
 )
 
@@ -35,20 +34,20 @@ results = ADCS.simulate_mc(
     base_seed=42
 )
 
-results.save("mc100_lp_3+1_full", out_dir="papers/3MTQ+1RW/new/output")
+results.save("mc100_lovera_3+0_reduced", out_dir="papers/Planner/new/output")
 
 # ADCS.plot(
 #     results,
 #     ADCS.plots.AnimationPlot(),
 #     layout=(1,1),
-#     title="3+1 LP Reduced",
+#     title="3+0 Lovera Reduced",
 # )
 
 ADCS.plot(
     results,
     ADCS.plots.AttitudePlot(sources=["real", "reference"]),
     layout=(1,1),
-    title="3+1 LP Full",
+    title="3+0 Lovera Reduced",
 )
 
 ADCS.plot(
@@ -58,7 +57,7 @@ ADCS.plot(
     ADCS.plots.TargetHistogram(bin_width=5.0),
     ADCS.plots.TargetPlot(modes=["real_target"], title="Target Tracking"),
     layout=(2,2),
-    title="3+1 LP Full",
+    title="3+0 Lovera Reduced",
 )
 
 plt.show()

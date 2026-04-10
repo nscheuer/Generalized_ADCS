@@ -1,12 +1,14 @@
 import os
 import sys
-sys.path.append(os.path.abspath(os.path.join(__file__, "../../../..")))
+sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))
 import ADCS as ADCS
 import numpy as np
 import matplotlib.pyplot as plt
 
+np.random.seed(42)
 real_sat = ADCS.satellite_factory.create_beavercube2_cubesat(estimated=False)
 x_0 = np.array([0.0, 0.0, 0.0] + [1, 0, 0, 0] + [0.0]) # w, q, h
+
 
 planner_settings = ADCS.controller.helpers.PlannerSettings(est_sat=real_sat, bdot_on=0, dt_tp=50, dt_tvlqr=1.0)
 
@@ -50,26 +52,38 @@ planner_settings.cost_tvlqr = ADCS.controller.helpers.CostWeights(
     )
 
 controller = ADCS.controller.Plan_and_Track_LQR(est_sat=real_sat, planner_settings=planner_settings)
-
 os0 = ADCS.Orbital_State(ephem=ADCS.Ephemeris(),J2000=0.22, R=7000*np.array([0, np.sqrt(2)/2, np.sqrt(2)/2]), V=np.array([8, 0, 0]))
-goal = ADCS.goals.ECI_Goal(np.array([0, 0, -1]))
 
-results = ADCS.simulate(
+def make_random_os(rng: np.random.Generator) -> ADCS.Orbital_State:
+    return ADCS.orbits.create_random_circular_os(radius_km=7000.0, J2000=0.22, rng=rng)
+
+mc_config = ADCS.MCConfig(
+    w = lambda rng: ADCS.helpers.normalize(rng.standard_normal(3)) * (rng.uniform(0.1, 1.0) * np.pi / 180.0),
+    q = lambda rng: ADCS.helpers.normalize(rng.standard_normal(4)),
+    h = lambda rng: rng.uniform(-0.0001, 0.0001, size=1),
+    goal = lambda rng: ADCS.goals.ECI_Goal(eci_vector=ADCS.helpers.normalize(rng.standard_normal(3))),
+    orbit = make_random_os
+)
+
+results = ADCS.simulate_mc(
     x=x_0,
     satellite=real_sat,
     controller=controller,
-    goal=goal,
     os0=os0,
     dt=1.0,
-    tf=1000.0
+    tf=1000.0,
+    mc_config=mc_config,
+    num_runs=100,
+    base_seed=42
 )
 
-ADCS.plot(
-    results,
-    ADCS.plots.AnimationPlot(),
-    layout=(1,1),
-    title="3+1 ALTRO Reduced",
-)
+results.save("mc100_altro_3+1_reduced", out_dir="papers/Planner/new/output")
+# ADCS.plot(
+#     results,
+#     ADCS.plots.AnimationPlot(),
+#     layout=(1,1),
+#     title="3+1 ALTRO Reduced",
+# )
 
 ADCS.plot(
     results,
