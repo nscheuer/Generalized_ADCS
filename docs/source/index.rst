@@ -11,7 +11,7 @@ and engineers who want a flexible, transparent ADCS simulation
 environment without black-box solvers.
 
 Latest Release Notes
---------------------
+====================
 
 .. container:: featured-release-box
 
