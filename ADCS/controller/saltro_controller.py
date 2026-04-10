@@ -11,7 +11,7 @@ from ADCS.CONOPS.goals import Goal
 from ADCS.controller import Controller
 from ADCS.controller.helpers.optional_dependencies import get_saltro_module
 from ADCS.controller.helpers.trajectory import Trajectory
-from ADCS.controller.neo_planner.NEO_planner_settings import PlannerSettings
+from ADCS.controller.saltro.SALTRO_planner_settings import PlannerSettings
 from ADCS.helpers.math_helpers import normalize
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.orbit import Orbit

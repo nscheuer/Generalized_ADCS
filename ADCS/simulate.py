@@ -170,9 +170,32 @@ def simulate(
             )
 
             if True:
-                active_goal = goal_list.get_active_goal(start_time, time_units="centuries")
-                target, w_target = active_goal.to_ref(os0)
-                simresults = trajectory.to_simulation_results(satellite, target=target, w_target=w_target)
+                target_hist = []
+                w_target_hist = []
+                boresight_hist = []
+
+                for t_j2000 in np.asarray(trajectory.times):
+                    os_t = orb.get_os(J2000=float(t_j2000))
+                    active_goal = goal_list.get_active_goal(float(t_j2000), time_units="centuries")
+                    target_t, w_target_t = active_goal.to_ref(os_t)
+
+                    target_hist.append(np.asarray(target_t, dtype=float).copy())
+                    w_target_hist.append(np.asarray(w_target_t, dtype=float).copy())
+
+                    boresight_vec = np.full(3, np.nan, dtype=float)
+                    try:
+                        b = est_satellite.get_boresight(active_goal.boresight_name)
+                        boresight_vec = np.asarray(b, dtype=float).reshape(3)
+                    except (AttributeError, KeyError, ValueError, TypeError):
+                        pass
+                    boresight_hist.append(boresight_vec)
+
+                simresults = trajectory.to_simulation_results(
+                    satellite,
+                    target=np.asarray(target_hist),
+                    w_target=np.asarray(w_target_hist),
+                    boresight=np.asarray(boresight_hist),
+                )
                 ADCS.plot(
                     simresults,
                     ADCS.plots.AngularVelocityPlotCombined(sources=["real"]),
@@ -180,7 +203,7 @@ def simulate(
                     ADCS.plots.TargetHistogram(bin_width=5.0),
                     ADCS.plots.TargetPlot(modes=["real_target"], title="Target Tracking"),
                     layout=(2,2),
-                    title="TRAJECTORY",
+                    title="Open-Loop Planned Trajectory",
                 )
                 plt.show()
 

@@ -20,7 +20,7 @@ from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.orbit import Orbit
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.universal_constants import TimeConstants
-from ADCS.controller.neo_planner.NEO_planner_settings import PlannerSettings
+from ADCS.controller.saltro.SALTRO_planner_settings import PlannerSettings
 from ADCS.controller.helpers.trajectory import Trajectory
 
 from ADCS.satellite_hardware.satellite.satellite import Satellite

@@ -6,7 +6,7 @@ import numpy as np
 from typing import Tuple, Optional
 from numpy.typing import NDArray
 
-from ADCS.controller.helpers.planner_subsettings import SolverPassConfig, CostWeights, InitTrajConfig, ConvergenceConfig, AugLagConfig
+from ADCS.controller.plan_and_track.planner_subsettings import SolverPassConfig, CostWeights, InitTrajConfig, ConvergenceConfig, AugLagConfig
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
 from ADCS.satellite_hardware.disturbances import Dipole_Disturbance, Prop_Disturbance, General_Disturbance
 
@@ -57,37 +57,37 @@ class PlannerSettings:
         Solver configuration for the first (exploration) optimization pass.
 
     :type pass1_config:
-        :class:`~ADCS.controller.helpers.planner_subsettings.SolverPassConfig`
+        :class:`~ADCS.controller.plan_and_track.planner_subsettings.SolverPassConfig`
 
     :param pass2_config:
         Solver configuration for the second (refinement) optimization pass.
 
     :type pass2_config:
-        :class:`~ADCS.controller.helpers.planner_subsettings.SolverPassConfig`
+        :class:`~ADCS.controller.plan_and_track.planner_subsettings.SolverPassConfig`
 
     :param cost_main:
         Cost weights for the main optimization pass.
 
     :type cost_main:
-        :class:`~ADCS.controller.helpers.planner_subsettings.CostWeights`
+        :class:`~ADCS.controller.plan_and_track.planner_subsettings.CostWeights`
 
     :param cost_second:
         Cost weights for the second optimization pass.
 
     :type cost_second:
-        :class:`~ADCS.controller.helpers.planner_subsettings.CostWeights`
+        :class:`~ADCS.controller.plan_and_track.planner_subsettings.CostWeights`
 
     :param cost_tvlqr:
         Cost weights for time-varying LQR tracking.
 
     :type cost_tvlqr:
-        :class:`~ADCS.controller.helpers.planner_subsettings.CostWeights`
+        :class:`~ADCS.controller.plan_and_track.planner_subsettings.CostWeights`
 
     :param init_traj:
         Initial trajectory generation configuration.
 
     :type init_traj:
-        :class:`~ADCS.controller.helpers.planner_subsettings.InitTrajConfig`
+        :class:`~ADCS.controller.plan_and_track.planner_subsettings.InitTrajConfig`
 
     :param dt_tvlqr:
         Time step for TVLQR controller discretization.

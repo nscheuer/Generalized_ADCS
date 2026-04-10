@@ -10,8 +10,8 @@ from dataclasses import dataclass, field, InitVar
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
 from ADCS.satellite_hardware.disturbances import Dipole_Disturbance, Prop_Disturbance
 
-from .NEO_pass_settings import PassConfig
-from .NEO_constraint_settings import ConstraintConfig
+from .SALTRO_pass_settings import PassConfig
+from .SALTRO_constraint_settings import ConstraintConfig
 
 def _get_saltro_py():
     import os

@@ -9,7 +9,7 @@ Usage:
     # In plan_and_track_exact.py, replace:
     #   self.planner = tplaunch.Planner(...)
     # With:
-    #   from ADCS.controller.helpers.debug_planner import DebugPlanner
+    #   from ADCS.controller.plan_and_track.debug_planner import DebugPlanner
     #   self.planner = DebugPlanner(csat, ..., debug_level=2)
 """
 from __future__ import annotations

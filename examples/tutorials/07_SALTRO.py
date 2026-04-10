@@ -5,11 +5,11 @@ import ADCS as ADCS
 import numpy as np
 import matplotlib.pyplot as plt
 
-satellite = ADCS.satellite_factory.create_beavercube1_cubesat()
+satellite = ADCS.satellite_factory.create_beavercube2_cubesat()
 
-x_0 = np.array([0, 0, 0] + [1, 0, 0, 0]) # w, q, h
+x_0 = np.array([0, 0, 0] + [1, 0, 0, 0] + [0.0]) # w, q, h
 
-planner_settings = ADCS.controller.neo_planner.NEO_planner_settings.PlannerSettings()
+planner_settings = ADCS.controller.saltro.PlannerSettings(est_sat=satellite)
 controller = ADCS.controller.SALTRO(est_sat=satellite, planner_settings=planner_settings)
 
 os0 = ADCS.Orbital_State(ephem=ADCS.Ephemeris(), J2000=0.22, R=np.array([5000, 0, 5000]), V=np.array([0, 7.5, 0]))

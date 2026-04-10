@@ -307,25 +307,25 @@ class SolverPassConfig:
         Line search configuration.
 
     :type line_search:
-        :class:`~ADCS.controller.helpers.planner_subsettings.LineSearchConfig`
+        :class:`~ADCS.controller.plan_and_track.planner_subsettings.LineSearchConfig`
 
     :param aug_lag:
         Augmented Lagrangian configuration.
 
     :type aug_lag:
-        :class:`~ADCS.controller.helpers.planner_subsettings.AugLagConfig`
+        :class:`~ADCS.controller.plan_and_track.planner_subsettings.AugLagConfig`
 
     :param convergence:
         Convergence configuration.
 
     :type convergence:
-        :class:`~ADCS.controller.helpers.planner_subsettings.ConvergenceConfig`
+        :class:`~ADCS.controller.plan_and_track.planner_subsettings.ConvergenceConfig`
 
     :param regularization:
         Regularization configuration.
 
     :type regularization:
-        :class:`~ADCS.controller.helpers.planner_subsettings.RegularizationConfig`
+        :class:`~ADCS.controller.plan_and_track.planner_subsettings.RegularizationConfig`
 
     """
     line_search: LineSearchConfig = field(default_factory=LineSearchConfig)

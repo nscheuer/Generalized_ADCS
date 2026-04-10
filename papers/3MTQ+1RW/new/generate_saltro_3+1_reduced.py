@@ -5,7 +5,7 @@ sys.path.append(os.path.abspath(os.path.join(__file__, "../../../..")))
 import ADCS as ADCS
 import numpy as np
 import matplotlib.pyplot as plt
-from ADCS.controller.neo_planner.NEO_planner_settings import PlannerSettings
+from ADCS.controller.saltro.SALTRO_planner_settings import PlannerSettings
 
 np.random.seed(43)
 real_sat = ADCS.satellite_factory.create_beavercube2_cubesat(estimated=False)

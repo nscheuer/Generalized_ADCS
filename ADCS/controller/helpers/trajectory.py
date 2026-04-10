@@ -627,6 +627,7 @@ class Trajectory:
         satellite: Satellite,
         target: Optional[np.ndarray] = None,
         w_target: Optional[np.ndarray] = None,
+        boresight: Optional[np.ndarray] = None,
         *,
         include_cost: bool = False,
     ) -> SimulationResults:
@@ -663,6 +664,13 @@ class Trajectory:
                 run.w_target_hist = [w_target.copy() for _ in range(N)]
             else:
                 run.w_target_hist = [w_target[k].copy() for k in range(N)]
+
+        if boresight is not None:
+            boresight = np.asarray(boresight)
+            if boresight.ndim == 1:
+                run.boresight_hist = [boresight.copy() for _ in range(N)]
+            else:
+                run.boresight_hist = [boresight[k].copy() for k in range(N)]
 
         if include_cost and self.costs is not None:
             costs = np.asarray(self.costs)

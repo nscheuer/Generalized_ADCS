@@ -11,8 +11,8 @@ sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))
 from ADCS.CONOPS.goals import Fixed_Attitude_Goal
 from ADCS.CONOPS.goallist import GoalList
 from ADCS.controller.plan_and_track_lqr import Plan_and_Track_LQR
-from ADCS.controller.helpers import PlannerSettings
-from ADCS.controller.helpers.planner_subsettings import CostWeights
+from ADCS.controller.plan_and_track import PlannerSettings
+from ADCS.controller.plan_and_track.planner_subsettings import CostWeights
 from ADCS.orbits.orbit import Orbit
 from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.orbits.helpers.orbit_factory import create_random_circular_orbit

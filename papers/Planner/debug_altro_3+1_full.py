@@ -13,7 +13,7 @@ q = ADCS.helpers.normalize(rng.standard_normal(4))
 h = rng.uniform(-0.0001, 0.0001, size=1)
 x_0 = np.concatenate((w, q, h)) # w, q, h
 
-planner_settings = ADCS.controller.helpers.PlannerSettings(est_sat=real_sat, bdot_on=0, dt_tp=50, dt_tvlqr=1.0)
+planner_settings = ADCS.controller.plan_and_track.PlannerSettings(est_sat=real_sat, bdot_on=0, dt_tp=50, dt_tvlqr=1.0)
 
 planner_settings.verbosity = False
 planner_settings.cost_main.use_full_cost_hessian = True
@@ -28,7 +28,7 @@ planner_settings.pass2.aug_lag.penalty_scale = 10
 planner_settings.pass2.convergence.max_outer_iter = 8
 planner_settings.pass2.convergence.max_inner_iter = 80
 
-planner_settings.cost_main = ADCS.controller.helpers.CostWeights(
+planner_settings.cost_main = ADCS.controller.plan_and_track.CostWeights(
         angle=4e0,
         angle_N=4e0,
         ang_vel=1e5,
@@ -43,7 +43,7 @@ planner_settings.cost_main = ADCS.controller.helpers.CostWeights(
 
 planner_settings.cost_second = planner_settings.cost_main
 
-planner_settings.cost_tvlqr = ADCS.controller.helpers.CostWeights(
+planner_settings.cost_tvlqr = ADCS.controller.plan_and_track.CostWeights(
         angle=1e5,
         angle_N=1e6,
         ang_vel=1e6,

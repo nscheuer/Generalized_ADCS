@@ -7,7 +7,7 @@ from typing import List, Tuple, TYPE_CHECKING
 from numpy.typing import NDArray
 
 if TYPE_CHECKING:
-    from ADCS.controller.helpers import PlannerSettings
+    from ADCS.controller.plan_and_track import PlannerSettings
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
 from ADCS.satellite_hardware.actuators import Actuator, MTQ, RW
 from ADCS.controller.helpers.optional_dependencies import get_trajectory_planner_modules
@@ -249,7 +249,7 @@ def build_cpp_satellite(est_sat: EstimatedSatellite, planner_settings: PlannerSe
         Planner configuration including weights, limits, and disturbance flags.
 
     :type planner_settings:
-        :class:`~ADCS.controller.helpers.PlannerSettings`
+        :class:`~ADCS.controller.plan_and_track.PlannerSettings`
 
     :return:
         Satellite object compatible with the C++ trajectory planner.
@@ -297,7 +297,7 @@ def add_actuator(act: Actuator, csat: pysat.Satellite, planner_settings: Planner
     - Reaction wheels, modeled with inertia, torque limits, and angular momentum bounds
 
     Actuator cost weights and saturation limits are taken from
-    :class:`~ADCS.controller.helpers.PlannerSettings`.
+    :class:`~ADCS.controller.plan_and_track.PlannerSettings`.
 
     :param act:
         Actuator instance to be added.
@@ -315,7 +315,7 @@ def add_actuator(act: Actuator, csat: pysat.Satellite, planner_settings: Planner
         Planner configuration providing weights and scaling factors.
 
     :type planner_settings:
-        :class:`~ADCS.controller.helpers.PlannerSettings`
+        :class:`~ADCS.controller.plan_and_track.PlannerSettings`
 
     :return:
         None.

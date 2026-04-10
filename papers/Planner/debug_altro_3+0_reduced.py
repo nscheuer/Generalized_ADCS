@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 real_sat = ADCS.satellite_factory.create_beavercube1_cubesat(estimated=False)
 x_0 = np.array([0.0, 0.0, 0.0] + [1, 0, 0, 0]) # w, q, h
 
-planner_settings = ADCS.controller.helpers.PlannerSettings(est_sat=real_sat, bdot_on=0, dt_tp=50, dt_tvlqr=1.0)
+planner_settings = ADCS.controller.plan_and_track.PlannerSettings(est_sat=real_sat, bdot_on=0, dt_tp=50, dt_tvlqr=1.0)
 
 planner_settings.verbosity = False
 planner_settings.cost_main.use_full_cost_hessian = True
@@ -23,7 +23,7 @@ planner_settings.pass2.aug_lag.penalty_scale = 10
 planner_settings.pass2.convergence.max_outer_iter = 8
 planner_settings.pass2.convergence.max_inner_iter = 20
 
-planner_settings.cost_main = ADCS.controller.helpers.CostWeights(
+planner_settings.cost_main = ADCS.controller.plan_and_track.CostWeights(
         angle=1e1,
         angle_N=1e1,
         ang_vel=1e5,
@@ -38,7 +38,7 @@ planner_settings.cost_main = ADCS.controller.helpers.CostWeights(
 
 planner_settings.cost_second = planner_settings.cost_main
 
-planner_settings.cost_tvlqr = ADCS.controller.helpers.CostWeights(
+planner_settings.cost_tvlqr = ADCS.controller.plan_and_track.CostWeights(
         angle=1e5,
         angle_N=1e6,
         ang_vel=1e6,

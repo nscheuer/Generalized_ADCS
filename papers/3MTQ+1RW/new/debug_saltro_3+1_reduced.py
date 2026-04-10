@@ -6,7 +6,7 @@ sys.path.append(os.path.abspath(os.path.join(__file__, "../../../..")))
 import ADCS as ADCS
 import matplotlib.pyplot as plt
 import numpy as np
-from ADCS.controller.neo_planner.NEO_planner_settings import PlannerSettings
+from ADCS.controller.saltro.SALTRO_planner_settings import PlannerSettings
 from ADCS.helpers.plot.subplot import Subplot
 from ADCS.helpers.math_constants import MathConstants
 from ADCS.satellite_factory.actuators import create_cubewheel_smallplus_rw, create_isis_magnetorquer_board
