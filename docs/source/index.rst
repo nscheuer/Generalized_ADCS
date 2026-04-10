@@ -10,6 +10,24 @@ estimation, and control in orbit.
 and engineers who want a flexible, transparent ADCS simulation
 environment without black-box solvers.
 
+Latest Release Notes
+--------------------
+
+.. container:: featured-release-box
+
+   .. image:: _static/release_notes/0_1_0_saltro_live.gif
+      :alt: Trajectory optimization animation
+      :width: 300px
+      :align: right
+
+   **The age of trajectory optimization is upon us!**
+
+   Generalized_ADCS now includes two optional add-ons:
+   :doc:`Trajectory Planner <installation/trajectory_planner_addon>` and :doc:`SALTRO <installation/saltro_addon>`.
+   Trajectory optimization enables more aggressive retargeting maneuvers than simple point-to-point commands.
+
+   :doc:`→ Explore release note 0.1.0 <release_notes/0_1_0_saltro>`
+
 What you can do with Generalized ADCS
 -------------------------------------
 - Simulate rigid-body spacecraft attitude dynamics

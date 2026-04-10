@@ -17,7 +17,7 @@ A trajectory planner computes a feasible, optimized reference trajectory that th
 can track while satisfying actuator limits and pointing objectives.
 
 For more details on related trajectory optimization methods, see
-`https://nscheuer.github.io/SALTRO <https://nscheuer.github.io/SALTRO>`_.
+`SALTRO documentation website <https://nscheuer.github.io/SALTRO>`_.
 
 .. list-table:: Simulation Configuration
    :widths: 25 75

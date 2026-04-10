@@ -1,7 +1,7 @@
 07: SALTRO Planner
 ==================
 
-This tutorial uses SALTRO on a BeaverCube 2 (3+1) pointing task aligned with Tutorial 06.
+This tutorial uses `SALTRO <https://nscheuer.github.io/SALTRO>`_ on a BeaverCube 2 (3+1) pointing task aligned with Tutorial 06.
 The control problem remains extremely difficult: 3 MTQ + 1 RW actuation with aggressive
 retargeting requirements.
 
@@ -10,15 +10,15 @@ retargeting requirements.
    :width: 400px
    :align: center
 
-Compared with the Plan-and-Track trajectory planner, SALTRO is typically much faster.
-The tradeoff is that SALTRO does not assume the same level of perfect field knowledge,
+Compared with the Plan-and-Track trajectory planner, `SALTRO <https://nscheuer.github.io/SALTRO>`_ is typically much faster.
+The tradeoff is that `SALTRO <https://nscheuer.github.io/SALTRO>`_ does not assume the same level of perfect field knowledge,
 so you should expect differences in tracking quality depending on scenario and tuning.
 
 A trajectory planner computes a feasible, optimized reference trajectory that the spacecraft
 can track while satisfying actuator limits and pointing objectives.
 
-For more details on SALTRO methods, see
-`https://nscheuer.github.io/SALTRO <https://nscheuer.github.io/SALTRO>`_.
+For more details on `SALTRO <https://nscheuer.github.io/SALTRO>`_ methods, see the
+`SALTRO documentation website <https://nscheuer.github.io/SALTRO>`_.
 
 .. list-table:: Simulation Configuration
    :widths: 25 75
@@ -31,7 +31,8 @@ For more details on SALTRO methods, see
    * - **Actuation**
      - 3 MTQ + 1 RW attitude control with aggressive magnetic-only retargeting constraints.
    * - **Controller**
-     - SALTRO planner/tracker with default SALTRO planner settings.
+     - `SALTRO <https://nscheuer.github.io/SALTRO>`_ planner/tracker with default
+       SALTRO planner settings.
    * - **Goal Sequence**
      - Piecewise inertial goals with no-goal interval between retargeting segments.
    * - **Orbit**
@@ -102,7 +103,8 @@ For more details on SALTRO methods, see
 
     plt.show()
 
-In practice, SALTRO provides a strong speed-accuracy tradeoff for hard magnetic-only
+In practice, `SALTRO <https://nscheuer.github.io/SALTRO>`_ provides a strong
+speed-accuracy tradeoff for hard magnetic-only
 pointing tasks and is often preferred when fast replanning is required.
 
 Simulation Results
@@ -126,7 +128,7 @@ Install and build prerequisites:
 - `docs/Install_Trajectory_Planner.md <../../Install_Trajectory_Planner.md>`_
 - `docs/Install_SALTRO.md <../../Install_SALTRO.md>`_
 
-If the SALTRO folder is missing, clone recursively:
+If the `SALTRO <https://nscheuer.github.io/SALTRO>`_ folder is missing, clone recursively:
 
 .. code-block:: bash
 

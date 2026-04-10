@@ -725,7 +725,7 @@ class TestPlanAndTrackIntegration:
         """Plan_and_Track_LQR can be constructed with EstimatedSatellite."""
         if CppSatellite is None:
             pytest.skip(CPP_SATELLITE_SKIP_REASON)
-        from ADCS.controller.plan_and_track.plan_and_track_lqr import Plan_and_Track_LQR
+        from ADCS.controller.plan_and_track_lqr import Plan_and_Track_LQR
         ps = PlannerSettings(est_sat=estimated_satellite)
         controller = Plan_and_Track_LQR(estimated_satellite, ps)
         assert controller.planner is not None
@@ -744,7 +744,7 @@ class TestPlanAndTrackIntegration:
         """
         if CppSatellite is None:
             pytest.skip(CPP_SATELLITE_SKIP_REASON)
-        from ADCS.controller.plan_and_track.plan_and_track_lqr import Plan_and_Track_LQR
+        from ADCS.controller.plan_and_track_lqr import Plan_and_Track_LQR
         ps = PlannerSettings(est_sat=estimated_satellite)
         controller = Plan_and_Track_LQR(estimated_satellite, ps)
 
@@ -771,7 +771,7 @@ class TestPlanAndTrackIntegration:
         """find_u raises RuntimeError if no trajectory set."""
         if CppSatellite is None:
             pytest.skip(CPP_SATELLITE_SKIP_REASON)
-        from ADCS.controller.plan_and_track.plan_and_track_lqr import Plan_and_Track_LQR
+        from ADCS.controller.plan_and_track_lqr import Plan_and_Track_LQR
         ps = PlannerSettings(est_sat=estimated_satellite)
         controller = Plan_and_Track_LQR(estimated_satellite, ps)
 
@@ -792,7 +792,7 @@ class TestPlanAndTrackIntegration:
         """
         if CppSatellite is None:
             pytest.skip(CPP_SATELLITE_SKIP_REASON)
-        from ADCS.controller.plan_and_track.plan_and_track_lqr import Plan_and_Track_LQR
+        from ADCS.controller.plan_and_track_lqr import Plan_and_Track_LQR
         ps = PlannerSettings(est_sat=estimated_satellite)
         controller = Plan_and_Track_LQR(estimated_satellite, ps)
 

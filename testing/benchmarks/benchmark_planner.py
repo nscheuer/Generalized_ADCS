@@ -34,7 +34,7 @@ if not trajectory_planner_available():
 
 from ADCS.CONOPS.goals import ECI_Goal, No_Goal
 from ADCS.CONOPS.goallist import GoalList
-from ADCS.controller.plan_and_track.plan_and_track_lqr import Plan_and_Track_LQR
+from ADCS.controller.plan_and_track_lqr import Plan_and_Track_LQR
 from ADCS.controller.plan_and_track import PlannerSettings, CostWeights
 from ADCS.controller.plan_and_track.planner_subsettings import ConvergenceConfig, SolverPassConfig, AugLagConfig
 from ADCS.orbits.ephemeris import Ephemeris

@@ -1,7 +1,7 @@
 Installation
 ============
 
-Generalized_ADCS supports Linux, WSL, and native Windows installations
+Generalized_ADCS supports Linux, WSL, and native Windows installations.
 
 Choose the guide appropriate for your system:
 
@@ -12,23 +12,14 @@ Choose the guide appropriate for your system:
    linux
    windows
 
-Furthermore, there is the experimental trajectory planner module, which is compiled separately:
+Optional add-ons can be installed after completing the core setup above.
 
 .. toctree::
-   :maxdepth: 1
-   :caption: Trajectory Planner (Experimental)
+   :maxdepth: 2
+   :caption: Add-Ons
 
-   trajectory_planner_linux
-   trajectory_planner_windows
+   trajectory_planner_addon
+   saltro_addon
 
-Canonical trajectory planner setup (Windows + Linux) is documented in:
-
-- `docs/Install_Trajectory_Planner.md <../../Install_Trajectory_Planner.md>`_
-
-The SALTRO module (``saltro_py``) is also optional and must be built separately
-if you want to use SALTRO-based planning.
-
-For SALTRO details and installation:
-
-- `SALTRO documentation website <https://nscheuer.github.io/SALTRO>`_
-- `docs/Install_SALTRO.md <../../Install_SALTRO.md>`_
+See :doc:`release note 0.1.0 <../release_notes/0_1_0_saltro>` for an overview of
+trajectory optimization add-ons and where to start.

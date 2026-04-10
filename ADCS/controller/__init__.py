@@ -11,10 +11,10 @@ from .mtq_w_rw_QPC import MTQ_w_RW_QPC
 from .mtq_w_rw_QPG import MTQ_w_RW_QPG
 from .mtq_w_rw_QPW import MTQ_w_RW_QPW
 from .mtq_wisniewski import MTQ_Wisniewski
-from .plan_and_track.plan_and_track_base import PlanAndTrackBase
-from .plan_and_track.plan_and_track_exact import Plan_and_Track_Exact
-from .plan_and_track.plan_and_track_lqr import Plan_and_Track_LQR
-from .plan_and_track.plan_and_track_lqr_disturbed import Plan_and_Track_LQR_Disturbed
+from .plan_and_track_base import PlanAndTrackBase
+from .plan_and_track_exact import Plan_and_Track_Exact
+from .plan_and_track_lqr import Plan_and_Track_LQR
+from .plan_and_track_lqr_disturbed import Plan_and_Track_LQR_Disturbed
 from .saltro.saltro_controller import SALTRO
 
 __all__ = [

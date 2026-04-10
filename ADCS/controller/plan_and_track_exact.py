@@ -8,7 +8,7 @@ from numpy.typing import NDArray
 
 from ADCS.CONOPS.goals import Goal
 from ADCS.CONOPS.goallist import GoalList
-from ADCS.controller.plan_and_track.plan_and_track_base import PlanAndTrackBase
+from ADCS.controller.plan_and_track_base import PlanAndTrackBase
 from ADCS.controller.helpers.trajectory import Trajectory
 from ADCS.controller.plan_and_track import PlannerSettings
 from ADCS.orbits.orbital_state import Orbital_State
