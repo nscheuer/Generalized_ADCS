@@ -45,7 +45,7 @@ sudo apt install -y cmake g++ libarmadillo-dev libboost-math-dev
 cd trajectory_planner
 mkdir -p build && cd build
 cmake .. \
-  -DCMAKE_BUILD_TYPE=Debug \
+  -DCMAKE_BUILD_TYPE=Release \
   -DPython3_EXECUTABLE=$(which python3) \
   -DPYTHON_EXECUTABLE=$(which python3) \
   -DPYTHON_INCLUDE_DIR=$(python3 -c "from sysconfig import get_paths; print(get_paths()['include'])") \
@@ -55,6 +55,18 @@ cmake .. \
 
 make -j$(nproc)
 ```
+
+## Optional: Build SALTRO (saltro_py)
+SALTRO is an optional add-on. Build it only if you plan to use the SALTRO controller.
+
+```bash
+cd SALTRO
+mkdir -p build && cd build
+cmake .. -DCMAKE_BUILD_TYPE=Debug -DPython3_EXECUTABLE=$(which python3)
+make -j$(nproc)
+```
+
+This should produce the Python extension in `SALTRO/build`.
 
 ## Debugging tplaunch
 Install GDB:

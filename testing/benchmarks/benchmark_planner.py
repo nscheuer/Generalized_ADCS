@@ -24,6 +24,14 @@ from dataclasses import dataclass, field
 
 sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))
 
+from ADCS.controller.helpers.optional_dependencies import (
+    trajectory_planner_available,
+    trajectory_planner_missing_reason,
+)
+
+if not trajectory_planner_available():
+    raise SystemExit(trajectory_planner_missing_reason())
+
 from ADCS.CONOPS.goals import ECI_Goal, No_Goal
 from ADCS.CONOPS.goallist import GoalList
 from ADCS.controller.plan_and_track_lqr import Plan_and_Track_LQR

@@ -12,11 +12,9 @@ from ADCS.controller.helpers import PlannerSettings, Trajectory, reorder_control
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.orbit import Orbit
 from ADCS.controller.helpers.build_csat import build_cpp_satellite
+from ADCS.controller.helpers.optional_dependencies import get_trajectory_planner_modules
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
 from ADCS.orbits.universal_constants import TimeConstants
-
-import trajectory_planner.build.tplaunch as tplaunch
-import trajectory_planner.build.pysat as pysat
 
 
 class PlanAndTrackBase(Controller):
@@ -152,6 +150,7 @@ class PlanAndTrackBase(Controller):
         self.est_sat = est_sat
         self.planner_settings = planner_settings
 
+        tplaunch, _ = get_trajectory_planner_modules()
         self.csat = build_cpp_satellite(est_sat=est_sat, planner_settings=planner_settings)
         self.planner = tplaunch.Planner(
             self.csat,

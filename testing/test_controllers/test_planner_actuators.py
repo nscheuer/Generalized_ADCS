@@ -14,6 +14,14 @@ import pytest
 
 sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))
 
+from ADCS.controller.helpers.optional_dependencies import (
+    trajectory_planner_available,
+    trajectory_planner_missing_reason,
+)
+
+if not trajectory_planner_available():
+    pytest.skip(trajectory_planner_missing_reason(), allow_module_level=True)
+
 from ADCS.CONOPS.goals import ECI_Goal
 from ADCS.CONOPS.goallist import GoalList
 from ADCS.controller.plan_and_track_lqr import Plan_and_Track_LQR

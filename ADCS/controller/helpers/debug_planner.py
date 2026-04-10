@@ -19,8 +19,7 @@ __all__ = ["DebugPlanner"]
 import numpy as np
 from typing import Tuple, Optional, Dict, List, Any, TextIO
 from numpy.typing import NDArray
-import trajectory_planner.build.tplaunch as tplaunch
-import trajectory_planner.build.pysat as pysat
+from ADCS.controller.helpers.optional_dependencies import get_trajectory_planner_modules
 
 
 class DebugPlanner:
@@ -36,7 +35,7 @@ class DebugPlanner:
 
     def __init__(
         self,
-        csat: pysat.Satellite,
+        csat,
         systemSettings,
         alilqrSettings,
         alilqrSettings2,
@@ -47,6 +46,7 @@ class DebugPlanner:
         debug_level: int = 1,
         log_file: Optional[str] = None
     ):
+        tplaunch, _ = get_trajectory_planner_modules()
         # Store the underlying planner
         self._planner = tplaunch.Planner(
             csat, systemSettings, alilqrSettings, alilqrSettings2,

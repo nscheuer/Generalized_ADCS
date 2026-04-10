@@ -10,9 +10,7 @@ if TYPE_CHECKING:
     from ADCS.controller.helpers import PlannerSettings
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
 from ADCS.satellite_hardware.actuators import Actuator, MTQ, RW
-
-import trajectory_planner.build.tplaunch as tplaunch
-import trajectory_planner.build.pysat as pysat
+from ADCS.controller.helpers.optional_dependencies import get_trajectory_planner_modules
 
 
 def get_cpp_to_python_control_permutation(actuators: List[Actuator]) -> Tuple[NDArray[np.intp], NDArray[np.intp]]:
@@ -260,6 +258,7 @@ def build_cpp_satellite(est_sat: EstimatedSatellite, planner_settings: PlannerSe
         :class:`~trajectory_planner.build.pysat.Satellite`
 
     """
+    _, pysat = get_trajectory_planner_modules()
     csat = pysat.Satellite()
     csat.change_Jcom(est_sat.J_0)
 

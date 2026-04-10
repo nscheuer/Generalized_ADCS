@@ -7,7 +7,7 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 import time
 
-sys.path.append(os_pack.path.abspath(os_pack.path.join(__file__, "../../..")))
+sys.path.append(os_pack.path.abspath(os_pack.path.join(__file__, "../../../..")))
 from ADCS.CONOPS.goals import Goal, ECI_Goal, Coordinate_Goal, No_Goal
 from ADCS.CONOPS.goallist import GoalList
 from ADCS.controller.plan_and_track_lqr import Plan_and_Track_LQR
@@ -36,6 +36,7 @@ from ADCS.helpers.plotting.animate_orbit_pyvista import animate_orbit_pyvista
 def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orbit: bool = False) -> Union[np.ndarray, np.ndarray, List[Orbital_State], np.ndarray, np.ndarray, np.ndarray]:
     np.random.seed(1)
     t0 = 0
+    j2000_start = 0.22
     N = int((tf-t0)/dt)
 
     real_sat = create_beavercube1_cubesat(estimated=False)
@@ -46,8 +47,8 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
     q0 = normalize(rng.standard_normal(4))
     x = np.concatenate([w0, q0])
 
-    start_time = 0.22 - 1*TimeConstants.sec2cent
-    orb = create_random_circular_orbit(7000, dt=1, tf=1000, use_J2=True, fast=False)
+    start_time = j2000_start
+    orb = create_random_circular_orbit(7000, dt=1, tf=1000, J2000=j2000_start, use_J2=True, fast=False)
     os0 = orb.get_os(J2000=start_time)
 
     # Build Planner
@@ -111,7 +112,7 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
     steps = int((tf - t0)/dt)
 
     # Simplified goal - just ECI_Goal from start, no transition
-    goals = GoalList({0.22: ECI_Goal(np.array([0, 0, -1]))})
+    goals = GoalList({j2000_start: ECI_Goal(np.array([0, 0, -1]))})
 
     traj_duration = tf - t0  # [s]
 
@@ -121,7 +122,7 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
     t_plan_start = time.perf_counter()
 
     traj: Trajectory = controller.calculate_trajectory(
-        t_start=0.22,
+        t_start=j2000_start,
         duration=traj_duration,
         x_0=x,
         os_0=os0,
@@ -153,7 +154,7 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
     create_close_all_button_window()
     
     for step in tqdm(range(steps), desc="Simulating ALTRO"):
-        J2000 = 0.22 + t*TimeConstants.sec2cent
+        J2000 = j2000_start + t*TimeConstants.sec2cent
         os = orb.get_os(J2000=J2000)
 
         sens = real_sat.sensor_readings(x=x, os=os)
@@ -177,7 +178,7 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
         ind += 1
         t += dt
         prev_os = os.copy()
-        os = orb.get_os(0.22+(t-t0)*TimeConstants.sec2cent)
+        os = orb.get_os(j2000_start+(t-t0)*TimeConstants.sec2cent)
 
         out = solve_ivp(fun=real_sat.dynamics_for_solver, t_span=(0, dt), y0=x, method="RK45", args=(u, prev_os, os), rtol=1e-7, atol=1e-7)
         x = out.y[:, -1]

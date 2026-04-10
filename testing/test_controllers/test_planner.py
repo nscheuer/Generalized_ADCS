@@ -14,6 +14,14 @@ sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))
 # Add trajectory planner build directory for C++ bindings
 sys.path.append(os.path.abspath(os.path.join(__file__, "../../../trajectory_planner/build")))
 
+from ADCS.controller.helpers.optional_dependencies import (
+    trajectory_planner_available,
+    trajectory_planner_missing_reason,
+)
+
+if not trajectory_planner_available():
+    pytest.skip(trajectory_planner_missing_reason(), allow_module_level=True)
+
 # Import ADCS modules first - they will load pysat internally
 from ADCS.controller.helpers import PlannerSettings, Trajectory
 from ADCS.controller.helpers.planner_subsettings import (

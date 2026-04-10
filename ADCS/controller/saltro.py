@@ -9,6 +9,7 @@ import numpy as np
 from ADCS.CONOPS.goallist import GoalList
 from ADCS.CONOPS.goals import Goal
 from ADCS.controller import Controller
+from ADCS.controller.helpers.optional_dependencies import get_saltro_module
 from ADCS.controller.helpers.trajectory import Trajectory
 from ADCS.controller.neo_planner.NEO_planner_settings import PlannerSettings
 from ADCS.helpers.math_helpers import normalize
@@ -99,9 +100,9 @@ class SALTRO(Controller):
 
         try:
             _ensure_saltro_path()
-            import saltro_py
+            saltro_py = get_saltro_module()
         except ImportError as exc:
-            raise ImportError(f"saltro_py not available: {exc}") from exc
+            raise ImportError(str(exc)) from exc
 
         cpp_settings = self.planner_settings.to_cpp()
 

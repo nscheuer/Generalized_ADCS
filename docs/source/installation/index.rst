@@ -20,3 +20,6 @@ Furthermore, there is the experimental trajectory planner module, which is compi
 
    trajectory_planner_linux
    trajectory_planner_windows
+
+The SALTRO module (``saltro_py``) is also optional and must be built separately
+if you want to use SALTRO-based planning.

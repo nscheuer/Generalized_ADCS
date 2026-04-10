@@ -79,3 +79,22 @@ $PYTHON_VENV = "$PSScriptRoot\..\Simulator_Python\venv\Scripts\python.exe"
 # Build in Release mode
 & $CMAKE_EXE --build . --config Release
 ```
+
+## Optional: Build SALTRO (saltro_py)
+`saltro_py` is an optional add-on used by the SALTRO controller.
+
+```powershell
+cd SALTRO
+mkdir build
+cd build
+
+& $CMAKE_EXE .. `
+  -A x64 `
+  -DCMAKE_TOOLCHAIN_FILE="$VCPKG_ROOT\scripts\buildsystems\vcpkg.cmake" `
+  -DVCPKG_TARGET_TRIPLET=x64-windows `
+  -DPython3_EXECUTABLE="$PYTHON_VENV"
+
+& $CMAKE_EXE --build . --config Release
+```
+
+This should produce the Python extension in `SALTRO/build`.
