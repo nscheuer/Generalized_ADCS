@@ -5,6 +5,14 @@ The ``trajectory_planner`` module is a C++ project built with Pybind and importe
 into the Python codebase. On Windows, it must be compiled using **Windows CMake**
 and **vcpkg**.
 
+Canonical instructions (including both Windows and Linux) are maintained in:
+
+- `docs/Install_Trajectory_Planner.md <../../Install_Trajectory_Planner.md>`_
+
+For algorithm background, see:
+
+- `https://nscheuer.github.io/SALTRO <https://nscheuer.github.io/SALTRO>`_
+
 Prerequisites
 -------------
 - Visual Studio (C++ workload)

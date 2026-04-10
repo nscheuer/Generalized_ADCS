@@ -9,7 +9,7 @@ import pytest
 sys.path.append(os.path.abspath(os.path.join(__file__, "../../../..")))
 from ADCS.CONOPS.goals import Goal, ECI_Goal, Coordinate_Goal, No_Goal
 from ADCS.CONOPS.goallist import GoalList
-from ADCS.controller.plan_and_track_lqr import Plan_and_Track_LQR
+from ADCS.controller.plan_and_track.plan_and_track_lqr import Plan_and_Track_LQR
 from ADCS.controller.plan_and_track import PlannerSettings, Trajectory
 from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.orbit import Orbit

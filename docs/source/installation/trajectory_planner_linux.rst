@@ -4,6 +4,14 @@ Trajectory Planner (Linux / WSL)
 The ``trajectory_planner`` module is a C++ library built with Pybind and imported
 into the Python codebase. It must be compiled from source on Linux and WSL.
 
+Canonical instructions (including both Windows and Linux) are maintained in:
+
+- `docs/Install_Trajectory_Planner.md <../../Install_Trajectory_Planner.md>`_
+
+For algorithm background, see:
+
+- `https://nscheuer.github.io/SALTRO <https://nscheuer.github.io/SALTRO>`_
+
 Prerequisites
 -------------
 Ensure the following system packages are installed:

@@ -1,3 +1,9 @@
+"""Constraint configuration for SALTRO planner settings.
+
+This module defines Python-side configuration containers that are converted
+into SALTRO C++ constraint structs.
+"""
+
 from __future__ import annotations
 
 __all__ = ["ConstraintConfig"]
@@ -10,6 +16,14 @@ from dataclasses import dataclass, field, InitVar
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
 
 def _get_saltro_py():
+    """Import and return the ``saltro_py`` binding module.
+
+    The loader appends ``SALTRO/build`` to ``sys.path`` if needed.
+
+    :return: Imported ``saltro_py`` module.
+    :rtype: module
+    :raises ImportError: If the SALTRO Python extension is not available.
+    """
     import os
     import sys
 
@@ -27,6 +41,21 @@ def _get_saltro_py():
 
 @dataclass
 class ConstraintConfig:
+    r"""Constraint settings for SALTRO optimization.
+
+    The class stores control and state-like bounds enforced by the optimizer,
+    including actuator limits, maximum angular velocity, and sun-angle limits.
+
+    :param est_sat: Estimated satellite model used to derive actuator limits.
+    :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+    :param control_limit_scale: Scale factor applied to actuator ``u_max``.
+    :type control_limit_scale: float
+    :param wmax: Maximum angular-velocity magnitude (rad/s).
+    :type wmax: float
+    :param sun_limit_angle: Minimum sun-avoidance angle (rad).
+    :type sun_limit_angle: float
+    """
+
     est_sat: InitVar[EstimatedSatellite]
 
     control_limit_scale: float = 0.75
@@ -35,10 +64,21 @@ class ConstraintConfig:
     sun_limit_angle: float = 20*np.pi/180.0
     
     def __post_init__(self, est_sat):
+        """Initialize derived actuator limits from the estimated satellite.
+
+        :param est_sat: Estimated satellite model containing actuators.
+        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+        :return: None
+        :rtype: None
+        """
         self.u_max = self.control_limit_scale * np.array([act.u_max for act in est_sat.actuators])
 
     def to_cpp(self):
-        """Convert to C++ ConstraintConfig"""
+        """Convert Python constraints to the SALTRO C++ ``ConstraintConfig``.
+
+        :return: C++ constraints object.
+        :rtype: Any
+        """
         saltro_py = _get_saltro_py()
         cpp_constraints = saltro_py.ConstraintConfig()
         cpp_constraints.control_limit_scale = self.control_limit_scale

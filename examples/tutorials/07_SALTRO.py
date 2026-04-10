@@ -30,14 +30,14 @@ ADCS.plot(
     results,
     ADCS.plots.AnimationPlot(),
     layout=(1,1),
-    title="3+1 ALTRO Reduced",
+    title="3+1 SALTRO Reduced",
 )
 
 ADCS.plot(
     results,
     ADCS.plots.AttitudePlot(sources=["real", "reference"]),
     layout=(1,1),
-    title="3+0 ALTRO Mixed",
+    title="3+1 SALTRO Mixed",
 )
 
 ADCS.plot(
@@ -47,7 +47,7 @@ ADCS.plot(
     ADCS.plots.TargetHistogram(bin_width=5.0),
     ADCS.plots.TargetPlot(modes=["real_target"], title="Target Tracking"),
     layout=(2,2),
-    title="3+0 ALTRO Mixed",
+    title="3+1 SALTRO Mixed",
 )
 
 ADCS.plot(
@@ -56,7 +56,7 @@ ADCS.plot(
     ADCS.plots.ControlPlotSingle(index=1, title="Magnetorquer 2", units="Am²"),
     ADCS.plots.ControlPlotSingle(index=2, title="Magnetorquer 3", units="Am²"),
     layout=(3,1),
-    title="3+0 ALTRO Mixed",
+    title="3+1 SALTRO Mixed",
 )
 
 plt.show()

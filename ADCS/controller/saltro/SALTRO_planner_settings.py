@@ -1,3 +1,10 @@
+"""Top-level SALTRO planner configuration.
+
+This module defines Python-side configuration objects that map to the SALTRO
+planner C++ API, including disturbance modeling, constraints, pass settings,
+and TVLQR gain-generation options.
+"""
+
 from __future__ import annotations
 
 __all__ = ["PlannerSettings"]
@@ -14,6 +21,14 @@ from .SALTRO_pass_settings import PassConfig
 from .SALTRO_constraint_settings import ConstraintConfig
 
 def _get_saltro_py():
+    """Import and return the ``saltro_py`` binding module.
+
+    The loader appends ``SALTRO/build`` to ``sys.path`` if needed.
+
+    :return: Imported ``saltro_py`` module.
+    :rtype: module
+    :raises ImportError: If the SALTRO Python extension is not available.
+    """
     import os
     import sys
 
@@ -31,10 +46,20 @@ def _get_saltro_py():
 
 @dataclass
 class InitTrajConfig:
+    """Initial-trajectory generation settings.
+
+    :param initcontroller: Initial controller selection index used by SALTRO.
+    :type initcontroller: int
+    """
+
     initcontroller: int = 2
 
     def to_cpp(self):
-        """Convert to C++ InitTrajConfig"""
+        """Convert Python settings to SALTRO C++ ``InitTrajConfig``.
+
+        :return: C++ init-trajectory config object.
+        :rtype: Any
+        """
         saltro_py = _get_saltro_py()
         cpp_init = saltro_py.InitTrajConfig()
         cpp_init.initcontroller = self.initcontroller
@@ -43,15 +68,35 @@ class InitTrajConfig:
 
 @dataclass
 class TVLQRSettings:
+    """TVLQR gain-generation configuration.
+
+    :param tvlqr_len: TVLQR horizon length in seconds.
+    :type tvlqr_len: float
+    :param tvlqr_overlap: Overlap between successive TVLQR windows in seconds.
+    :type tvlqr_overlap: float
+    """
+
     dt_tvlqr: float = field(init=False)
     tvlqr_len: float =  100.0
     tvlqr_overlap: float = 15.0
 
     def __post_init__(self):
+        """Initialize derived TVLQR fields.
+
+        ``dt_tvlqr`` is set during planner setup based on pass timestep and
+        trajectory discretization, so it starts at ``0.0``.
+
+        :return: None
+        :rtype: None
+        """
         self.dt_tvlqr = 0.0
 
     def to_cpp(self):
-        """Convert to C++ TVLQRSettings"""
+        """Convert Python settings to SALTRO C++ ``TVLQRSettings``.
+
+        :return: C++ TVLQR settings object.
+        :rtype: Any
+        """
         saltro_py = _get_saltro_py()
         cpp_tvlqr = saltro_py.TVLQRSettings()
         cpp_tvlqr.dt_tvlqr = float(self.dt_tvlqr)
@@ -61,6 +106,15 @@ class TVLQRSettings:
     
 @dataclass
 class DisturbanceConfig:
+    """Disturbance-model configuration for trajectory optimization.
+
+    The configuration controls which disturbances are included during planning
+    and stores associated model coefficients and fixed torques.
+
+    :param est_sat: Estimated satellite used to initialize disturbance terms.
+    :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+    """
+
     est_sat: InitVar[EstimatedSatellite]
 
     plan_for_aero: int = 0
@@ -80,6 +134,13 @@ class DisturbanceConfig:
     J_est: np.ndarray = field(init=False)
 
     def __post_init__(self, est_sat):
+        """Initialize disturbance vectors from the estimated satellite model.
+
+        :param est_sat: Estimated satellite containing disturbance instances.
+        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+        :return: None
+        :rtype: None
+        """
         self.res_dipole = sum([j.current_torque if isinstance(j, Dipole_Disturbance) else np.zeros(3) for j in est_sat.disturbances], start=np.zeros(3)).reshape((3,))
         self.prop_torque = sum([j.current_torque if isinstance(j, Prop_Disturbance) else np.zeros(3) for j in est_sat.disturbances], start=np.zeros(3)).reshape((3,))
 
@@ -87,7 +148,11 @@ class DisturbanceConfig:
         self.J_est = est_sat.J_0
 
     def to_cpp(self):
-        """Convert to C++ DisturbanceConfig"""
+        """Convert Python settings to SALTRO C++ ``DisturbanceConfig``.
+
+        :return: C++ disturbance config object.
+        :rtype: Any
+        """
         saltro_py = _get_saltro_py()
         cpp_dist = saltro_py.DisturbanceConfig()
         cpp_dist.plan_for_aero = bool(self.plan_for_aero)
@@ -107,6 +172,22 @@ class DisturbanceConfig:
 
 @dataclass
 class PlannerSettings:
+    """Top-level configuration for SALTRO trajectory planning.
+
+    This class aggregates constraints, disturbance assumptions, initial-guess
+    generation, TVLQR settings, and one or more optimization passes.
+
+    :param est_sat: Estimated satellite model used to derive constraints and
+        disturbance defaults.
+    :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+    :param init_traj: Initial trajectory generator settings.
+    :type init_traj: :class:`InitTrajConfig`
+    :param tvlqr: TVLQR gain-generation settings.
+    :type tvlqr: :class:`TVLQRSettings`
+    :param passes: Ordered list of SALTRO optimization passes.
+    :type passes: list[:class:`PassConfig`]
+    """
+
     est_sat: EstimatedSatellite
 
     # Constraints
@@ -125,11 +206,24 @@ class PlannerSettings:
     passes: List[PassConfig] = field(default_factory=lambda: [PassConfig()])
 
     def __post_init__(self):
+        """Initialize dependent constraint and disturbance configurations.
+
+        :return: None
+        :rtype: None
+        """
         self.disturbances = DisturbanceConfig(self.est_sat)
         self.constraints = ConstraintConfig(self.est_sat)
 
     def to_cpp(self):
-        """Convert Python PlannerSettings to C++ PlannerSettings"""
+        """Convert Python planner settings to SALTRO C++ ``PlannerSettings``.
+
+        The conversion copies constraints, disturbance settings, initial
+        trajectory settings, TVLQR settings, and pass configurations. Passes are
+        truncated to the C++ maximum supported count.
+
+        :return: C++ planner settings object.
+        :rtype: Any
+        """
         saltro_py = _get_saltro_py()
         
         cpp_settings = saltro_py.PlannerSettings()

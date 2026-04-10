@@ -1,3 +1,18 @@
+"""
+SALTRO-based trajectory planning and tracking controller.
+
+This module provides a controller wrapper around the ``saltro_py`` backend,
+including:
+
+- trajectory planning over a J2000 time horizon,
+- conversion of ADCS goal definitions into SALTRO target arrays,
+- actuator-order remapping between Python and C++ conventions,
+- closed-loop trajectory tracking through the shared ``Trajectory`` container.
+
+The implementation is designed to match the ADCS ``Controller`` interface while
+delegating optimization to the SALTRO C++ backend.
+"""
+
 __all__ = ["SALTRO"]
 
 import os
@@ -20,6 +35,15 @@ from ADCS.satellite_hardware.actuators import MTQ, RW
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
 
 def _ensure_saltro_path() -> str:
+    """Ensure the SALTRO build directory is available on ``sys.path``.
+
+    The Python bindings for SALTRO are generated in ``SALTRO/build``. This
+    helper appends that directory to ``sys.path`` if it is not already present
+    and returns the resolved path.
+
+    :return: Absolute path to the SALTRO build directory.
+    :rtype: str
+    """
     current_dir = os.path.dirname(os.path.abspath(__file__))
     parent_dir = os.path.abspath(os.path.join(current_dir, "../.."))
     saltro_path = os.path.join(parent_dir, "SALTRO", "build")
@@ -32,12 +56,62 @@ _ensure_saltro_path()
 
 
 class SALTRO(Controller):
+    r"""
+    SALTRO trajectory planning and tracking controller.
+
+    This controller computes an optimized trajectory using the ``saltro_py``
+    backend and then tracks it via the shared
+    :class:`~ADCS.controller.helpers.trajectory.Trajectory` interface.
+
+    Relationship to ADCS framework
+    ------------------------------
+    The class conforms to :class:`~ADCS.controller.Controller` and therefore
+    integrates with :func:`ADCS.simulate` using the standard controller hooks:
+
+    - :meth:`calculate_trajectory` for planning,
+    - :meth:`set_active_trajectory` for plan activation,
+    - :meth:`find_u` for control evaluation at runtime.
+
+    Time and horizon model
+    ----------------------
+    Planning is performed over :math:`[t_0, t_1]` in J2000 centuries, where
+
+    .. math::
+
+       t_1 = t_0 + T \cdot c_{\mathrm{sec}\rightarrow\mathrm{cent}},
+
+    with duration :math:`T` in seconds.
+
+    :param est_sat: Estimated satellite model used for constraints and actuator
+        definitions.
+    :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+    :param planner_settings: SALTRO planner settings bundle.
+    :type planner_settings: :class:`~ADCS.controller.saltro.SALTRO_planner_settings.PlannerSettings`
+    """
+
     def __init__(self, est_sat: EstimatedSatellite, planner_settings: PlannerSettings):
+        """Construct the SALTRO controller with no active trajectory.
+
+        :param est_sat: Estimated satellite model used by the planner.
+        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+        :param planner_settings: Planner and constraint settings for SALTRO.
+        :type planner_settings: :class:`~ADCS.controller.saltro.SALTRO_planner_settings.PlannerSettings`
+        :return: None
+        :rtype: None
+        """
         self.est_sat = est_sat
         self.planner_settings = planner_settings
         self.active_trajectory: Optional[Trajectory] = None
 
     def set_active_trajectory(self, traj: Trajectory) -> None:
+        """Set the trajectory used by :meth:`find_u` for runtime tracking.
+
+        :param traj: Active trajectory object containing times, states,
+            controls, and gains.
+        :type traj: :class:`~ADCS.controller.helpers.trajectory.Trajectory`
+        :return: None
+        :rtype: None
+        """
         self.active_trajectory = traj
 
     def calculate_trajectory(
@@ -49,6 +123,45 @@ class SALTRO(Controller):
         goals: GoalList,
         verbose: bool = False,
     ) -> Trajectory:
+        r"""Compute an optimized trajectory using the SALTRO backend.
+
+        The method performs the following pipeline:
+
+        1. Build planner time grid in J2000 centuries.
+        2. Sample orbit and active goals at each grid point.
+        3. Construct SALTRO target arrays:
+            - quaternion targets :math:`q_{\mathrm{goal}} \in \mathbb{R}^{4\times N}`
+            - body boresight vectors :math:`b_{\mathrm{body}} \in \mathbb{R}^{3\times N}`
+        4. Build C++ satellite model and call ``saltro_py.trajOpt``.
+        5. Reorder controls/gains from C++ actuator order (MTQ then RW) to
+            Python actuator order.
+        6. Return a :class:`~ADCS.controller.helpers.trajectory.Trajectory`.
+
+        Target encoding
+        ---------------
+        Goals are expected in ADCS ``to_ref`` format:
+
+        - Quaternion target: finite ``[q0, q1, q2, q3]``.
+        - Vector target: ``[nan, x, y, z]``.
+
+        :param t_start: Planning start time in J2000 centuries.
+        :type t_start: float
+        :param duration: Planning horizon duration in seconds.
+        :type duration: float
+        :param x_0: Initial state vector.
+        :type x_0: numpy.ndarray
+        :param os_0: Initial orbital state.
+        :type os_0: :class:`~ADCS.orbits.orbital_state.Orbital_State`
+        :param goals: Goal timeline used for target generation.
+        :type goals: :class:`~ADCS.CONOPS.goallist.GoalList`
+        :param verbose: Enable planner progress prints.
+        :type verbose: bool
+        :return: Planned trajectory with states, controls, and gains.
+        :rtype: :class:`~ADCS.controller.helpers.trajectory.Trajectory`
+        :raises ValueError: If pass configuration or target format is invalid.
+        :raises RuntimeError: If SALTRO optimization fails.
+        :raises ImportError: If ``saltro_py`` cannot be imported.
+        """
         if verbose:
             print(f"SALTRO planning: start={t_start:.8f} centuries, duration={duration:.3f} s")
 
@@ -184,6 +297,30 @@ class SALTRO(Controller):
         goal: Optional[Goal] = None,
         **kwargs,
     ) -> np.ndarray:
+        r"""Compute control input from the active trajectory at current time.
+
+        The control command is generated by evaluating trajectory tracking at
+        :math:`t = \mathrm{os\_hat.J2000}`:
+
+        .. math::
+
+           u(t) = u_\mathrm{traj}(t, x_{\hat{}}).
+
+        :param x_hat: Estimated state vector.
+        :type x_hat: numpy.ndarray
+        :param sens: Sensor vector (accepted for interface compatibility).
+        :type sens: numpy.ndarray
+        :param est_sat: Estimated satellite (accepted for interface compatibility).
+        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
+        :param os_hat: Orbital state carrying the current J2000 time.
+        :type os_hat: :class:`~ADCS.orbits.orbital_state.Orbital_State`
+        :param goal: Active goal (accepted for interface compatibility).
+        :type goal: typing.Optional[:class:`~ADCS.CONOPS.goals.Goal`]
+        :return: Control vector in Python actuator ordering.
+        :rtype: numpy.ndarray
+        :raises RuntimeError: If no active trajectory is set or time is outside
+            trajectory validity interval.
+        """
         _ = sens
         _ = est_sat
         _ = goal

@@ -10,7 +10,7 @@ import time
 sys.path.append(os_pack.path.abspath(os_pack.path.join(__file__, "../../..")))
 from ADCS.CONOPS.goals import Goal, ECI_Goal, Coordinate_Goal, No_Goal
 from ADCS.CONOPS.goallist import GoalList
-from ADCS.controller.plan_and_track_lqr import Plan_and_Track_LQR
+from ADCS.controller.plan_and_track.plan_and_track_lqr import Plan_and_Track_LQR
 from ADCS.controller.plan_and_track import PlannerSettings, Trajectory, planner_settings
 from ADCS.controller.plan_and_track.planner_subsettings import CostWeights
 from ADCS.orbits.ephemeris import Ephemeris

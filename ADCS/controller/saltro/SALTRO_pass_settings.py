@@ -1,3 +1,10 @@
+"""Pass-level SALTRO optimization settings.
+
+This module defines Python configuration dataclasses for solver costs,
+regularization, line search, and loop limits, with helpers to convert each
+configuration block to the corresponding SALTRO C++ struct.
+"""
+
 from __future__ import annotations
 
 __all__ = ["PassConfig"]
@@ -8,6 +15,14 @@ from numpy.typing import NDArray
 from dataclasses import dataclass, field
 
 def _get_saltro_py():
+    """Import and return the ``saltro_py`` binding module.
+
+    The loader appends ``SALTRO/build`` to ``sys.path`` if needed.
+
+    :return: Imported ``saltro_py`` module.
+    :rtype: module
+    :raises ImportError: If the SALTRO Python extension is not available.
+    """
     import os
     import sys
 
@@ -25,6 +40,20 @@ def _get_saltro_py():
 
 @dataclass
 class CostConfig:
+    """Running and terminal cost weights for one optimization pass.
+
+    :param angle: Running attitude error cost weight.
+    :type angle: float
+    :param ang_vel: Running angular velocity error cost weight.
+    :type ang_vel: float
+    :param control_mult: Global multiplier for actuator effort costs.
+    :type control_mult: float
+    :param angle_N: Terminal attitude error cost weight.
+    :type angle_N: float
+    :param ang_vel_N: Terminal angular velocity error cost weight.
+    :type ang_vel_N: float
+    """
+
     # Running costs
     angle: float = 1e2
     ang_vel: float = 1e5
@@ -53,7 +82,11 @@ class CostConfig:
     use_cost_hess: int = 1
 
     def to_cpp(self):
-        """Convert to C++ CostConfig"""
+        """Convert Python costs to SALTRO C++ ``CostConfig``.
+
+        :return: C++ cost config object.
+        :rtype: Any
+        """
         saltro_py = _get_saltro_py()
         cpp_cost = saltro_py.CostConfig()
         cpp_cost.angle = self.angle
@@ -80,6 +113,18 @@ class CostConfig:
 
 @dataclass
 class AugLagConfig:
+    """Augmented-Lagrangian outer-loop settings.
+
+    :param max_outer_iters: Maximum number of outer iterations.
+    :type max_outer_iters: int
+    :param penalty_init: Initial constraint penalty.
+    :type penalty_init: float
+    :param penalty_max: Maximum constraint penalty.
+    :type penalty_max: float
+    :param constraint_tol: Constraint satisfaction tolerance.
+    :type constraint_tol: float
+    """
+
     max_outer_iters: int = 30
 
     lag_mult_init: float = 0.0
@@ -93,7 +138,11 @@ class AugLagConfig:
     total_cost_tol: float = 1e-2
 
     def to_cpp(self):
-        """Convert to C++ AugLagConfig"""
+        """Convert Python settings to SALTRO C++ ``AugLagConfig``.
+
+        :return: C++ augmented-Lagrangian config object.
+        :rtype: Any
+        """
         saltro_py = _get_saltro_py()
         cpp_auglag = saltro_py.AugLagConfig()
         cpp_auglag.max_outer_iters = self.max_outer_iters
@@ -108,6 +157,16 @@ class AugLagConfig:
 
 @dataclass
 class ILQRConfig:
+    """iLQR middle-loop settings.
+
+    :param max_iters: Maximum iLQR iterations.
+    :type max_iters: int
+    :param grad_tol: Gradient norm tolerance.
+    :type grad_tol: float
+    :param cost_tol: Relative/absolute cost change tolerance.
+    :type cost_tol: float
+    """
+
     max_iters: int = 20
     grad_tol: float = 1e-3
     cost_tol: float = 1e-5
@@ -117,7 +176,11 @@ class ILQRConfig:
     state_bound: float = 10.0
 
     def to_cpp(self):
-        """Convert to C++ ILQRConfig"""
+        """Convert Python settings to SALTRO C++ ``ILQRConfig``.
+
+        :return: C++ iLQR config object.
+        :rtype: Any
+        """
         saltro_py = _get_saltro_py()
         cpp_ilqr = saltro_py.ILQRConfig()
         cpp_ilqr.max_iters = self.max_iters
@@ -130,6 +193,16 @@ class ILQRConfig:
 
 @dataclass
 class RegularizationConfig:
+    """Regularization settings for iLQR backward passes.
+
+    :param reg_init: Initial regularization value.
+    :type reg_init: float
+    :param reg_min: Lower bound on regularization.
+    :type reg_min: float
+    :param reg_max: Upper bound on regularization.
+    :type reg_max: float
+    """
+
     reg_init: float = 1e-6
     reg_min: float = 1e-8
     reg_max: float = 1e10
@@ -143,7 +216,11 @@ class RegularizationConfig:
     use_constraint_hess: int = 0
 
     def to_cpp(self):
-        """Convert to C++ RegularizationConfig"""
+        """Convert Python settings to SALTRO C++ ``RegularizationConfig``.
+
+        :return: C++ regularization config object.
+        :rtype: Any
+        """
         saltro_py = _get_saltro_py()
         cpp_reg = saltro_py.RegularizationConfig()
         cpp_reg.reg_init = self.reg_init
@@ -159,12 +236,26 @@ class RegularizationConfig:
 
 @dataclass
 class LineSearchConfig:
+    """Line-search settings for iLQR forward rollout.
+
+    :param max_iters: Maximum line-search iterations.
+    :type max_iters: int
+    :param beta1: Minimum step scaling factor.
+    :type beta1: float
+    :param beta2: Maximum step scaling factor.
+    :type beta2: float
+    """
+
     max_iters: int = 24
     beta1: float = 1e-10
     beta2: float = 5000.0
 
     def to_cpp(self):
-        """Convert to C++ LineSearchConfig"""
+        """Convert Python settings to SALTRO C++ ``LineSearchConfig``.
+
+        :return: C++ line-search config object.
+        :rtype: Any
+        """
         saltro_py = _get_saltro_py()
         cpp_ls = saltro_py.LineSearchConfig()
         cpp_ls.max_iters = self.max_iters
@@ -174,6 +265,25 @@ class LineSearchConfig:
 
 @dataclass
 class PassConfig:
+    """Composite settings for one SALTRO optimization pass.
+
+    A pass bundles cost, augmented-Lagrangian, iLQR, regularization, and
+    line-search configuration with a fixed planning timestep ``dt``.
+
+    :param cost: Cost-function configuration.
+    :type cost: :class:`CostConfig`
+    :param aug_lag: Augmented-Lagrangian outer-loop configuration.
+    :type aug_lag: :class:`AugLagConfig`
+    :param ilqr: iLQR middle-loop configuration.
+    :type ilqr: :class:`ILQRConfig`
+    :param reg: Regularization configuration.
+    :type reg: :class:`RegularizationConfig`
+    :param linesearch: Line-search configuration.
+    :type linesearch: :class:`LineSearchConfig`
+    :param dt: Planner timestep in seconds.
+    :type dt: float
+    """
+
     # Cost Function
     cost: CostConfig = field(default_factory=CostConfig)
 
@@ -191,7 +301,11 @@ class PassConfig:
     dt: float = 5.0
 
     def to_cpp(self):
-        """Convert to C++ PassConfig"""
+        """Convert Python settings to SALTRO C++ ``PassConfig``.
+
+        :return: C++ pass config object.
+        :rtype: Any
+        """
         saltro_py = _get_saltro_py()
         cpp_pass = saltro_py.PassConfig()
         cpp_pass.cost = self.cost.to_cpp()

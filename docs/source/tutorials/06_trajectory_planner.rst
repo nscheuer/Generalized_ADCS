@@ -4,9 +4,20 @@
 In this tutorial, we solve a challenging magnetic attitude-control problem for BeaverCube 1:
 quick retargeting with only 3 magnetorquers (MTQs) and no reaction wheels.
 
+.. image:: ../_static/tutorials/tutorial_06_beavercube1.jpg
+   :alt: Render of the BeaverCube 1 satellite.
+   :width: 400px
+   :align: center
+
 The scenario uses the Plan-and-Track controller with trajectory optimization and TVLQR
 tracking. This controller assumes high-fidelity field knowledge during planning, which can
 improve accuracy for aggressive maneuvers.
+
+A trajectory planner computes a feasible, optimized reference trajectory that the spacecraft
+can track while satisfying actuator limits and pointing objectives.
+
+For more details on related trajectory optimization methods, see
+`https://nscheuer.github.io/SALTRO <https://nscheuer.github.io/SALTRO>`_.
 
 .. list-table:: Simulation Configuration
    :widths: 25 75
@@ -138,4 +149,25 @@ an optimization-based controller with strong field knowledge assumptions.
 Simulation Results
 ------------------
 
-Add your figures for attitude, control, and target-tracking performance here.
+.. list-table:: Simulation Results
+   :widths: 50 50
+   :header-rows: 0
+   :class: borderless
+
+   * - .. image:: ../_static/tutorials/tutorial_06_planned_trajectory.png
+          :width: 100%
+     - .. image:: ../_static/tutorials/tutorial_06_tracked_trajectory.png
+          :width: 100%
+
+How To Run
+----------
+
+Install and build prerequisites:
+
+- `docs/Install_Trajectory_Planner.md <../../Install_Trajectory_Planner.md>`_
+
+Then run:
+
+.. code-block:: bash
+
+  python examples/tutorials/06_trajectory_planner.py
