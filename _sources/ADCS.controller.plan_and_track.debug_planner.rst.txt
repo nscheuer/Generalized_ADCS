@@ -1,0 +1,7 @@
+ADCS.controller.plan\_and\_track.debug\_planner module
+======================================================
+
+.. automodule:: ADCS.controller.plan_and_track.debug_planner
+   :members:
+   :show-inheritance:
+   :undoc-members:

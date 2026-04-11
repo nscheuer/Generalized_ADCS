@@ -1,0 +1,7 @@
+ADCS.controller.plan\_and\_track.build\_csat module
+===================================================
+
+.. automodule:: ADCS.controller.plan_and_track.build_csat
+   :members:
+   :show-inheritance:
+   :undoc-members:

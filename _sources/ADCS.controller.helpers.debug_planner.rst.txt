@@ -1,7 +1,0 @@
-ADCS.controller.helpers.debug\_planner module
-=============================================
-
-.. automodule:: ADCS.controller.helpers.debug_planner
-   :members:
-   :show-inheritance:
-   :undoc-members:

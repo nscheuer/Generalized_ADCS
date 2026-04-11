@@ -7,10 +7,7 @@ Submodules
 .. toctree::
    :maxdepth: 1
 
-   ADCS.controller.helpers.build_csat
-   ADCS.controller.helpers.debug_planner
-   ADCS.controller.helpers.planner_settings
-   ADCS.controller.helpers.planner_subsettings
+   ADCS.controller.helpers.optional_dependencies
    ADCS.controller.helpers.quaternion_math
    ADCS.controller.helpers.trajectory
 

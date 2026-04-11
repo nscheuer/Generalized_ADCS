@@ -1,0 +1,7 @@
+ADCS.controller.plan\_and\_track.planner\_settings module
+=========================================================
+
+.. automodule:: ADCS.controller.plan_and_track.planner_settings
+   :members:
+   :show-inheritance:
+   :undoc-members:

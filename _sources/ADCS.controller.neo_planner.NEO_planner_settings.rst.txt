@@ -1,7 +1,0 @@
-ADCS.controller.neo\_planner.NEO\_planner\_settings module
-==========================================================
-
-.. automodule:: ADCS.controller.neo_planner.NEO_planner_settings
-   :members:
-   :show-inheritance:
-   :undoc-members:

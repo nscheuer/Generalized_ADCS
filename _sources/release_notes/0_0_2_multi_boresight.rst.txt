@@ -10,7 +10,7 @@ New Features
 - **Backward Compatibility**
     - Passing ``np.ndarray`` as a boresight: automatically registered as ``"default"``
     - Passing ``None``: defaults to ``(0, 0, 1)`` and registered as ``"default"``
-- Added ``boresight_hist`` field to simulation results in both :doc:`simulate <../ADCS.simulate>` and :doc:`simulate_mc <../ADCS.mc.simulate_mc>`
+- Added ``boresight_hist`` field to simulation results in both ``ADCS.simulate`` and ``ADCS.simulate_mc``
 
 Example: Multi-Boresight Single-Run Simulation
 -----------------------------------------------

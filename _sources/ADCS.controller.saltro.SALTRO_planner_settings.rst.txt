@@ -1,0 +1,7 @@
+ADCS.controller.saltro.SALTRO\_planner\_settings module
+=======================================================
+
+.. automodule:: ADCS.controller.saltro.SALTRO_planner_settings
+   :members:
+   :show-inheritance:
+   :undoc-members:

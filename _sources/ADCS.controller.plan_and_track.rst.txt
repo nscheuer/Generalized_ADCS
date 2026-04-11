@@ -1,0 +1,21 @@
+ADCS.controller.plan\_and\_track package
+========================================
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   ADCS.controller.plan_and_track.build_csat
+   ADCS.controller.plan_and_track.debug_planner
+   ADCS.controller.plan_and_track.planner_settings
+   ADCS.controller.plan_and_track.planner_subsettings
+
+Module contents
+---------------
+
+.. automodule:: ADCS.controller.plan_and_track
+   :members:
+   :show-inheritance:
+   :undoc-members:

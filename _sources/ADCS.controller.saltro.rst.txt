@@ -1,5 +1,19 @@
-ADCS.controller.saltro module
-=============================
+ADCS.controller.saltro package
+==============================
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   ADCS.controller.saltro.SALTRO_constraint_settings
+   ADCS.controller.saltro.SALTRO_pass_settings
+   ADCS.controller.saltro.SALTRO_planner_settings
+   ADCS.controller.saltro.saltro_controller
+
+Module contents
+---------------
 
 .. automodule:: ADCS.controller.saltro
    :members:

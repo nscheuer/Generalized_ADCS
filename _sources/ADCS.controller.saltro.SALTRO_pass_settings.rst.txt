@@ -1,0 +1,7 @@
+ADCS.controller.saltro.SALTRO\_pass\_settings module
+====================================================
+
+.. automodule:: ADCS.controller.saltro.SALTRO_pass_settings
+   :members:
+   :show-inheritance:
+   :undoc-members:

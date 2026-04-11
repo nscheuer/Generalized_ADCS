@@ -1,16 +1,6 @@
 ADCS.controller.neo\_planner package
 ====================================
 
-Submodules
-----------
-
-.. toctree::
-   :maxdepth: 1
-
-   ADCS.controller.neo_planner.NEO_constraint_settings
-   ADCS.controller.neo_planner.NEO_pass_settings
-   ADCS.controller.neo_planner.NEO_planner_settings
-
 Module contents
 ---------------
 

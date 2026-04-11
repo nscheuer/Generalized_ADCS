@@ -10,6 +10,7 @@
 <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=522cca6d" />
     
     
 
@@ -199,20 +200,31 @@
 <li class="toctree-l1 has-children"><a class="reference internal" href="installation/index.html">Installation</a><input aria-label="Toggle navigation of Installation" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="installation/linux.html">Linux / WSL Installation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="installation/windows.html">Windows (Native) Installation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="installation/trajectory_planner_linux.html">Trajectory Planner (Linux / WSL)</a></li>
-<li class="toctree-l2"><a class="reference internal" href="installation/trajectory_planner_windows.html">Trajectory Planner (Windows)</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="installation/trajectory_planner_addon.html">Trajectory Planner Add-On</a><input aria-label="Toggle navigation of Trajectory Planner Add-On" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="installation/trajectory_planner_linux.html">Trajectory Planner Linux / WSL</a></li>
+<li class="toctree-l3"><a class="reference internal" href="installation/trajectory_planner_windows.html">Trajectory Planner Windows</a></li>
 </ul>
 </li>
-<li class="toctree-l1 has-children"><a class="reference internal" href="tutorials/index.html">Tutorials</a><input aria-label="Toggle navigation of Tutorials" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="installation/saltro_addon.html">SALTRO Add-On</a><input aria-label="Toggle navigation of SALTRO Add-On" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="installation/saltro_linux.html">SALTRO Linux / WSL</a></li>
+<li class="toctree-l3"><a class="reference internal" href="installation/saltro_windows.html">SALTRO Windows</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="tutorials/index.html">Tutorials</a><input aria-label="Toggle navigation of Tutorials" class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="tutorials/01_underactuated_control.html">01: Underactuated Control</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tutorials/02_noisy_control.html">02: Noisy Control</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tutorials/03_simple_estimation.html">03: Simple Estimation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tutorials/04_complex_estimation.html">04: Complex Estimation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tutorials/05_orbit_estimation.html">05: Orbit Estimation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorials/06_trajectory_planner.html">06: Trajectory Planner (Plan-and-Track)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorials/07_SALTRO.html">07: SALTRO Planner</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tutorials/advanced_features.html">Advanced Features</a></li>
 </ul>
 </li>
-<li class="toctree-l1 has-children"><a class="reference internal" href="release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="release_notes/0_1_0_saltro.html">0.1.0 The age of trajectory optimization is upon us! (2026-04-10)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="release_notes/0_0_2_multi_boresight.html">0.0.2 Multi-Boresight (2026-02-23)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="release_notes/0_0_1_mc.html">0.0.1 Monte Carlo Simulations (2026-02-02)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="release_notes/0_0_0_initial.html">0.0.0 Initial Release (2026-01-15)</a></li>
@@ -221,18 +233,18 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Function Documentation</span></p>
 <ul>
-<li class="toctree-l1 has-children"><a class="reference internal" href="ADCS.html">ADCS package</a><input aria-label="Toggle navigation of ADCS package" class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l2 has-children"><a class="reference internal" href="ADCS.CONOPS.html">ADCS.CONOPS package</a><input aria-label="Toggle navigation of ADCS.CONOPS package" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.CONOPS.goallist.html">ADCS.CONOPS.goallist package</a><input aria-label="Toggle navigation of ADCS.CONOPS.goallist package" class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="ADCS.html">ADCS package</a><input aria-label="Toggle navigation of ADCS package" class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="ADCS.CONOPS.html">ADCS.CONOPS package</a><input aria-label="Toggle navigation of ADCS.CONOPS package" class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.CONOPS.goallist.html">ADCS.CONOPS.goallist package</a><input aria-label="Toggle navigation of ADCS.CONOPS.goallist package" class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.CONOPS.goallist.goallist.html">ADCS.CONOPS.goallist.goallist module</a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.CONOPS.goals.html">ADCS.CONOPS.goals package</a><input aria-label="Toggle navigation of ADCS.CONOPS.goals package" class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l4 has-children"><a class="reference internal" href="ADCS.CONOPS.goals.attitude_goals.html">ADCS.CONOPS.goals.attitude_goals package</a><input aria-label="Toggle navigation of ADCS.CONOPS.goals.attitude_goals package" class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.CONOPS.goals.html">ADCS.CONOPS.goals package</a><input aria-label="Toggle navigation of ADCS.CONOPS.goals package" class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4 has-children"><a class="reference internal" href="ADCS.CONOPS.goals.attitude_goals.html">ADCS.CONOPS.goals.attitude_goals package</a><input aria-label="Toggle navigation of ADCS.CONOPS.goals.attitude_goals package" class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l5"><a class="reference internal" href="ADCS.CONOPS.goals.attitude_goals.fixed_attitude_goal.html">ADCS.CONOPS.goals.attitude_goals.fixed_attitude_goal module</a></li>
 </ul>
 </li>
-<li class="toctree-l4 has-children"><a class="reference internal" href="ADCS.CONOPS.goals.vector_goals.html">ADCS.CONOPS.goals.vector_goals package</a><input aria-label="Toggle navigation of ADCS.CONOPS.goals.vector_goals package" class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4 has-children"><a class="reference internal" href="ADCS.CONOPS.goals.vector_goals.html">ADCS.CONOPS.goals.vector_goals package</a><input aria-label="Toggle navigation of ADCS.CONOPS.goals.vector_goals package" class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" role="switch" type="checkbox"/><label for="toctree-checkbox-11"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l5"><a class="reference internal" href="ADCS.CONOPS.goals.vector_goals.antibfield_goal.html">ADCS.CONOPS.goals.vector_goals.antibfield_goal module</a></li>
 <li class="toctree-l5"><a class="reference internal" href="ADCS.CONOPS.goals.vector_goals.antisun_goal.html">ADCS.CONOPS.goals.vector_goals.antisun_goal module</a></li>
 <li class="toctree-l5"><a class="reference internal" href="ADCS.CONOPS.goals.vector_goals.antivelocity_goal.html">ADCS.CONOPS.goals.vector_goals.antivelocity_goal module</a></li>
@@ -255,20 +267,26 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="ADCS.controller.html">ADCS.controller package</a><input aria-label="Toggle navigation of ADCS.controller package" class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.controller.helpers.html">ADCS.controller.helpers package</a><input aria-label="Toggle navigation of ADCS.controller.helpers package" class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" role="switch" type="checkbox"/><label for="toctree-checkbox-11"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l4"><a class="reference internal" href="ADCS.controller.helpers.build_csat.html">ADCS.controller.helpers.build_csat module</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ADCS.controller.helpers.debug_planner.html">ADCS.controller.helpers.debug_planner module</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ADCS.controller.helpers.planner_settings.html">ADCS.controller.helpers.planner_settings module</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ADCS.controller.helpers.planner_subsettings.html">ADCS.controller.helpers.planner_subsettings module</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="ADCS.controller.html">ADCS.controller package</a><input aria-label="Toggle navigation of ADCS.controller package" class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" role="switch" type="checkbox"/><label for="toctree-checkbox-12"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.controller.helpers.html">ADCS.controller.helpers package</a><input aria-label="Toggle navigation of ADCS.controller.helpers package" class="toctree-checkbox" id="toctree-checkbox-13" name="toctree-checkbox-13" role="switch" type="checkbox"/><label for="toctree-checkbox-13"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="ADCS.controller.helpers.optional_dependencies.html">ADCS.controller.helpers.optional_dependencies module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.controller.helpers.quaternion_math.html">ADCS.controller.helpers.quaternion_math module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.controller.helpers.trajectory.html">ADCS.controller.helpers.trajectory module</a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.controller.neo_planner.html">ADCS.controller.neo_planner package</a><input aria-label="Toggle navigation of ADCS.controller.neo_planner package" class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" role="switch" type="checkbox"/><label for="toctree-checkbox-12"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l4"><a class="reference internal" href="ADCS.controller.neo_planner.NEO_constraint_settings.html">ADCS.controller.neo_planner.NEO_constraint_settings module</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ADCS.controller.neo_planner.NEO_pass_settings.html">ADCS.controller.neo_planner.NEO_pass_settings module</a></li>
-<li class="toctree-l4"><a class="reference internal" href="ADCS.controller.neo_planner.NEO_planner_settings.html">ADCS.controller.neo_planner.NEO_planner_settings module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ADCS.controller.neo_planner.html">ADCS.controller.neo_planner package</a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.controller.plan_and_track.html">ADCS.controller.plan_and_track package</a><input aria-label="Toggle navigation of ADCS.controller.plan_and_track package" class="toctree-checkbox" id="toctree-checkbox-14" name="toctree-checkbox-14" role="switch" type="checkbox"/><label for="toctree-checkbox-14"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="ADCS.controller.plan_and_track.build_csat.html">ADCS.controller.plan_and_track.build_csat module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ADCS.controller.plan_and_track.debug_planner.html">ADCS.controller.plan_and_track.debug_planner module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ADCS.controller.plan_and_track.planner_settings.html">ADCS.controller.plan_and_track.planner_settings module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ADCS.controller.plan_and_track.planner_subsettings.html">ADCS.controller.plan_and_track.planner_subsettings module</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.controller.saltro.html">ADCS.controller.saltro package</a><input aria-label="Toggle navigation of ADCS.controller.saltro package" class="toctree-checkbox" id="toctree-checkbox-15" name="toctree-checkbox-15" role="switch" type="checkbox"/><label for="toctree-checkbox-15"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="ADCS.controller.saltro.SALTRO_constraint_settings.html">ADCS.controller.saltro.SALTRO_constraint_settings module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ADCS.controller.saltro.SALTRO_pass_settings.html">ADCS.controller.saltro.SALTRO_pass_settings module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ADCS.controller.saltro.SALTRO_planner_settings.html">ADCS.controller.saltro.SALTRO_planner_settings module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ADCS.controller.saltro.saltro_controller.html">ADCS.controller.saltro.saltro_controller module</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="ADCS.controller.bdot.html">ADCS.controller.bdot module</a></li>
@@ -285,25 +303,24 @@
 <li class="toctree-l3"><a class="reference internal" href="ADCS.controller.plan_and_track_exact.html">ADCS.controller.plan_and_track_exact module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="ADCS.controller.plan_and_track_lqr.html">ADCS.controller.plan_and_track_lqr module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="ADCS.controller.plan_and_track_lqr_disturbed.html">ADCS.controller.plan_and_track_lqr_disturbed module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="ADCS.controller.saltro.html">ADCS.controller.saltro module</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="ADCS.environment.html">ADCS.environment package</a><input aria-label="Toggle navigation of ADCS.environment package" class="toctree-checkbox" id="toctree-checkbox-13" name="toctree-checkbox-13" role="switch" type="checkbox"/><label for="toctree-checkbox-13"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="ADCS.environment.html">ADCS.environment package</a><input aria-label="Toggle navigation of ADCS.environment package" class="toctree-checkbox" id="toctree-checkbox-16" name="toctree-checkbox-16" role="switch" type="checkbox"/><label for="toctree-checkbox-16"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="ADCS.environment.star_catalog.html">ADCS.environment.star_catalog module</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="ADCS.estimators.html">ADCS.estimators package</a><input aria-label="Toggle navigation of ADCS.estimators package" class="toctree-checkbox" id="toctree-checkbox-14" name="toctree-checkbox-14" role="switch" type="checkbox"/><label for="toctree-checkbox-14"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.estimators.attitude_estimators.html">ADCS.estimators.attitude_estimators package</a><input aria-label="Toggle navigation of ADCS.estimators.attitude_estimators package" class="toctree-checkbox" id="toctree-checkbox-15" name="toctree-checkbox-15" role="switch" type="checkbox"/><label for="toctree-checkbox-15"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="ADCS.estimators.html">ADCS.estimators package</a><input aria-label="Toggle navigation of ADCS.estimators package" class="toctree-checkbox" id="toctree-checkbox-17" name="toctree-checkbox-17" role="switch" type="checkbox"/><label for="toctree-checkbox-17"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.estimators.attitude_estimators.html">ADCS.estimators.attitude_estimators package</a><input aria-label="Toggle navigation of ADCS.estimators.attitude_estimators package" class="toctree-checkbox" id="toctree-checkbox-18" name="toctree-checkbox-18" role="switch" type="checkbox"/><label for="toctree-checkbox-18"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.estimators.attitude_estimators.attitude_SRUAKF.html">ADCS.estimators.attitude_estimators.attitude_SRUAKF module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.estimators.attitude_estimators.attitude_UAKF.html">ADCS.estimators.attitude_estimators.attitude_UAKF module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.estimators.attitude_estimators.attitude_estimator.html">ADCS.estimators.attitude_estimators.attitude_estimator module</a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.estimators.estimator_helpers.html">ADCS.estimators.estimator_helpers package</a><input aria-label="Toggle navigation of ADCS.estimators.estimator_helpers package" class="toctree-checkbox" id="toctree-checkbox-16" name="toctree-checkbox-16" role="switch" type="checkbox"/><label for="toctree-checkbox-16"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.estimators.estimator_helpers.html">ADCS.estimators.estimator_helpers package</a><input aria-label="Toggle navigation of ADCS.estimators.estimator_helpers package" class="toctree-checkbox" id="toctree-checkbox-19" name="toctree-checkbox-19" role="switch" type="checkbox"/><label for="toctree-checkbox-19"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.estimators.estimator_helpers.estimator_helpers.html">ADCS.estimators.estimator_helpers.estimator_helpers module</a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.estimators.orbit_estimators.html">ADCS.estimators.orbit_estimators package</a><input aria-label="Toggle navigation of ADCS.estimators.orbit_estimators package" class="toctree-checkbox" id="toctree-checkbox-17" name="toctree-checkbox-17" role="switch" type="checkbox"/><label for="toctree-checkbox-17"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.estimators.orbit_estimators.html">ADCS.estimators.orbit_estimators package</a><input aria-label="Toggle navigation of ADCS.estimators.orbit_estimators package" class="toctree-checkbox" id="toctree-checkbox-20" name="toctree-checkbox-20" role="switch" type="checkbox"/><label for="toctree-checkbox-20"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.estimators.orbit_estimators.orbit_EKF.html">ADCS.estimators.orbit_estimators.orbit_EKF module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.estimators.orbit_estimators.orbit_GPS.html">ADCS.estimators.orbit_estimators.orbit_GPS module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.estimators.orbit_estimators.orbit_estimator.html">ADCS.estimators.orbit_estimators.orbit_estimator module</a></li>
@@ -311,26 +328,26 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="ADCS.flight_software.html">ADCS.flight_software package</a><input aria-label="Toggle navigation of ADCS.flight_software package" class="toctree-checkbox" id="toctree-checkbox-18" name="toctree-checkbox-18" role="switch" type="checkbox"/><label for="toctree-checkbox-18"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.flight_software.single_core.html">ADCS.flight_software.single_core package</a><input aria-label="Toggle navigation of ADCS.flight_software.single_core package" class="toctree-checkbox" id="toctree-checkbox-19" name="toctree-checkbox-19" role="switch" type="checkbox"/><label for="toctree-checkbox-19"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="ADCS.flight_software.html">ADCS.flight_software package</a><input aria-label="Toggle navigation of ADCS.flight_software package" class="toctree-checkbox" id="toctree-checkbox-21" name="toctree-checkbox-21" role="switch" type="checkbox"/><label for="toctree-checkbox-21"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.flight_software.single_core.html">ADCS.flight_software.single_core package</a><input aria-label="Toggle navigation of ADCS.flight_software.single_core package" class="toctree-checkbox" id="toctree-checkbox-22" name="toctree-checkbox-22" role="switch" type="checkbox"/><label for="toctree-checkbox-22"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.flight_software.single_core.ttc_single_core.html">ADCS.flight_software.single_core.ttc_single_core module</a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.flight_software.tasks.html">ADCS.flight_software.tasks package</a><input aria-label="Toggle navigation of ADCS.flight_software.tasks package" class="toctree-checkbox" id="toctree-checkbox-20" name="toctree-checkbox-20" role="switch" type="checkbox"/><label for="toctree-checkbox-20"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.flight_software.tasks.html">ADCS.flight_software.tasks package</a><input aria-label="Toggle navigation of ADCS.flight_software.tasks package" class="toctree-checkbox" id="toctree-checkbox-23" name="toctree-checkbox-23" role="switch" type="checkbox"/><label for="toctree-checkbox-23"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.flight_software.tasks.task.html">ADCS.flight_software.tasks.task module</a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="ADCS.helpers.html">ADCS.helpers package</a><input aria-label="Toggle navigation of ADCS.helpers package" class="toctree-checkbox" id="toctree-checkbox-21" name="toctree-checkbox-21" role="switch" type="checkbox"/><label for="toctree-checkbox-21"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.helpers.plot.html">ADCS.helpers.plot package</a><input aria-label="Toggle navigation of ADCS.helpers.plot package" class="toctree-checkbox" id="toctree-checkbox-22" name="toctree-checkbox-22" role="switch" type="checkbox"/><label for="toctree-checkbox-22"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l4 has-children"><a class="reference internal" href="ADCS.helpers.plot.control.html">ADCS.helpers.plot.control package</a><input aria-label="Toggle navigation of ADCS.helpers.plot.control package" class="toctree-checkbox" id="toctree-checkbox-23" name="toctree-checkbox-23" role="switch" type="checkbox"/><label for="toctree-checkbox-23"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="ADCS.helpers.html">ADCS.helpers package</a><input aria-label="Toggle navigation of ADCS.helpers package" class="toctree-checkbox" id="toctree-checkbox-24" name="toctree-checkbox-24" role="switch" type="checkbox"/><label for="toctree-checkbox-24"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.helpers.plot.html">ADCS.helpers.plot package</a><input aria-label="Toggle navigation of ADCS.helpers.plot package" class="toctree-checkbox" id="toctree-checkbox-25" name="toctree-checkbox-25" role="switch" type="checkbox"/><label for="toctree-checkbox-25"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4 has-children"><a class="reference internal" href="ADCS.helpers.plot.control.html">ADCS.helpers.plot.control package</a><input aria-label="Toggle navigation of ADCS.helpers.plot.control package" class="toctree-checkbox" id="toctree-checkbox-26" name="toctree-checkbox-26" role="switch" type="checkbox"/><label for="toctree-checkbox-26"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l5"><a class="reference internal" href="ADCS.helpers.plot.control.attitudeplot.html">ADCS.helpers.plot.control.attitudeplot module</a></li>
 <li class="toctree-l5"><a class="reference internal" href="ADCS.helpers.plot.control.controlplot.html">ADCS.helpers.plot.control.controlplot module</a></li>
 <li class="toctree-l5"><a class="reference internal" href="ADCS.helpers.plot.control.targetplot.html">ADCS.helpers.plot.control.targetplot module</a></li>
 </ul>
 </li>
-<li class="toctree-l4 has-children"><a class="reference internal" href="ADCS.helpers.plot.orbit.html">ADCS.helpers.plot.orbit package</a><input aria-label="Toggle navigation of ADCS.helpers.plot.orbit package" class="toctree-checkbox" id="toctree-checkbox-24" name="toctree-checkbox-24" role="switch" type="checkbox"/><label for="toctree-checkbox-24"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4 has-children"><a class="reference internal" href="ADCS.helpers.plot.orbit.html">ADCS.helpers.plot.orbit package</a><input aria-label="Toggle navigation of ADCS.helpers.plot.orbit package" class="toctree-checkbox" id="toctree-checkbox-27" name="toctree-checkbox-27" role="switch" type="checkbox"/><label for="toctree-checkbox-27"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l5"><a class="reference internal" href="ADCS.helpers.plot.orbit.animationplot.html">ADCS.helpers.plot.orbit.animationplot module</a></li>
 <li class="toctree-l5"><a class="reference internal" href="ADCS.helpers.plot.orbit.illuminationplot.html">ADCS.helpers.plot.orbit.illuminationplot module</a></li>
 <li class="toctree-l5"><a class="reference internal" href="ADCS.helpers.plot.orbit.orbitdensityplot.html">ADCS.helpers.plot.orbit.orbitdensityplot module</a></li>
@@ -340,12 +357,12 @@
 <li class="toctree-l5"><a class="reference internal" href="ADCS.helpers.plot.orbit.orbitvelocityplot.html">ADCS.helpers.plot.orbit.orbitvelocityplot module</a></li>
 </ul>
 </li>
-<li class="toctree-l4 has-children"><a class="reference internal" href="ADCS.helpers.plot.sensors.html">ADCS.helpers.plot.sensors package</a><input aria-label="Toggle navigation of ADCS.helpers.plot.sensors package" class="toctree-checkbox" id="toctree-checkbox-25" name="toctree-checkbox-25" role="switch" type="checkbox"/><label for="toctree-checkbox-25"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4 has-children"><a class="reference internal" href="ADCS.helpers.plot.sensors.html">ADCS.helpers.plot.sensors package</a><input aria-label="Toggle navigation of ADCS.helpers.plot.sensors package" class="toctree-checkbox" id="toctree-checkbox-28" name="toctree-checkbox-28" role="switch" type="checkbox"/><label for="toctree-checkbox-28"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l5"><a class="reference internal" href="ADCS.helpers.plot.sensors.biasplot.html">ADCS.helpers.plot.sensors.biasplot module</a></li>
 <li class="toctree-l5"><a class="reference internal" href="ADCS.helpers.plot.sensors.sensorsplot.html">ADCS.helpers.plot.sensors.sensorsplot module</a></li>
 </ul>
 </li>
-<li class="toctree-l4 has-children"><a class="reference internal" href="ADCS.helpers.plot.states.html">ADCS.helpers.plot.states package</a><input aria-label="Toggle navigation of ADCS.helpers.plot.states package" class="toctree-checkbox" id="toctree-checkbox-26" name="toctree-checkbox-26" role="switch" type="checkbox"/><label for="toctree-checkbox-26"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4 has-children"><a class="reference internal" href="ADCS.helpers.plot.states.html">ADCS.helpers.plot.states package</a><input aria-label="Toggle navigation of ADCS.helpers.plot.states package" class="toctree-checkbox" id="toctree-checkbox-29" name="toctree-checkbox-29" role="switch" type="checkbox"/><label for="toctree-checkbox-29"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l5"><a class="reference internal" href="ADCS.helpers.plot.states.angularvelocityplot.html">ADCS.helpers.plot.states.angularvelocityplot module</a></li>
 <li class="toctree-l5"><a class="reference internal" href="ADCS.helpers.plot.states.quaternionplot.html">ADCS.helpers.plot.states.quaternionplot module</a></li>
 </ul>
@@ -355,7 +372,7 @@
 <li class="toctree-l4"><a class="reference internal" href="ADCS.helpers.plot.subplot.html">ADCS.helpers.plot.subplot module</a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.helpers.plotting.html">ADCS.helpers.plotting package</a><input aria-label="Toggle navigation of ADCS.helpers.plotting package" class="toctree-checkbox" id="toctree-checkbox-27" name="toctree-checkbox-27" role="switch" type="checkbox"/><label for="toctree-checkbox-27"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.helpers.plotting.html">ADCS.helpers.plotting package</a><input aria-label="Toggle navigation of ADCS.helpers.plotting package" class="toctree-checkbox" id="toctree-checkbox-30" name="toctree-checkbox-30" role="switch" type="checkbox"/><label for="toctree-checkbox-30"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.helpers.plotting.animate_estimator.html">ADCS.helpers.plotting.animate_estimator module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.helpers.plotting.animate_orbit.html">ADCS.helpers.plotting.animate_orbit module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.helpers.plotting.animate_orbit_pyvista.html">ADCS.helpers.plotting.animate_orbit_pyvista module</a></li>
@@ -365,12 +382,12 @@
 <li class="toctree-l4"><a class="reference internal" href="ADCS.helpers.plotting.plot_orbit_estimator.html">ADCS.helpers.plotting.plot_orbit_estimator module</a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.helpers.plotting_mc.html">ADCS.helpers.plotting_mc package</a><input aria-label="Toggle navigation of ADCS.helpers.plotting_mc package" class="toctree-checkbox" id="toctree-checkbox-28" name="toctree-checkbox-28" role="switch" type="checkbox"/><label for="toctree-checkbox-28"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.helpers.plotting_mc.html">ADCS.helpers.plotting_mc package</a><input aria-label="Toggle navigation of ADCS.helpers.plotting_mc package" class="toctree-checkbox" id="toctree-checkbox-31" name="toctree-checkbox-31" role="switch" type="checkbox"/><label for="toctree-checkbox-31"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.helpers.plotting_mc.plot_controller_compare_mc.html">ADCS.helpers.plotting_mc.plot_controller_compare_mc module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.helpers.plotting_mc.plot_controller_mc.html">ADCS.helpers.plotting_mc.plot_controller_mc module</a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.helpers.save_and_load.html">ADCS.helpers.save_and_load package</a><input aria-label="Toggle navigation of ADCS.helpers.save_and_load package" class="toctree-checkbox" id="toctree-checkbox-29" name="toctree-checkbox-29" role="switch" type="checkbox"/><label for="toctree-checkbox-29"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.helpers.save_and_load.html">ADCS.helpers.save_and_load package</a><input aria-label="Toggle navigation of ADCS.helpers.save_and_load package" class="toctree-checkbox" id="toctree-checkbox-32" name="toctree-checkbox-32" role="switch" type="checkbox"/><label for="toctree-checkbox-32"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.helpers.save_and_load.save_and_load.html">ADCS.helpers.save_and_load.save_and_load module</a></li>
 </ul>
 </li>
@@ -379,13 +396,13 @@
 <li class="toctree-l3"><a class="reference internal" href="ADCS.helpers.simresults.html">ADCS.helpers.simresults module</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="ADCS.mc.html">ADCS.mc package</a><input aria-label="Toggle navigation of ADCS.mc package" class="toctree-checkbox" id="toctree-checkbox-30" name="toctree-checkbox-30" role="switch" type="checkbox"/><label for="toctree-checkbox-30"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="ADCS.mc.html">ADCS.mc package</a><input aria-label="Toggle navigation of ADCS.mc package" class="toctree-checkbox" id="toctree-checkbox-33" name="toctree-checkbox-33" role="switch" type="checkbox"/><label for="toctree-checkbox-33"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="ADCS.mc.mcconfig.html">ADCS.mc.mcconfig module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="ADCS.mc.monte_carlo_runner.html">ADCS.mc.monte_carlo_runner module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="ADCS.mc.simulate_mc.html">ADCS.mc.simulate_mc module</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="ADCS.orbits.html">ADCS.orbits package</a><input aria-label="Toggle navigation of ADCS.orbits package" class="toctree-checkbox" id="toctree-checkbox-31" name="toctree-checkbox-31" role="switch" type="checkbox"/><label for="toctree-checkbox-31"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="ADCS.orbits.html">ADCS.orbits package</a><input aria-label="Toggle navigation of ADCS.orbits package" class="toctree-checkbox" id="toctree-checkbox-34" name="toctree-checkbox-34" role="switch" type="checkbox"/><label for="toctree-checkbox-34"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.density_model.html">ADCS.orbits.density_model module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.ephemeris.html">ADCS.orbits.ephemeris module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.orbit.html">ADCS.orbits.orbit module</a></li>
@@ -393,17 +410,17 @@
 <li class="toctree-l3"><a class="reference internal" href="ADCS.orbits.universal_constants.html">ADCS.orbits.universal_constants module</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="ADCS.satellite_factory.html">ADCS.satellite_factory package</a><input aria-label="Toggle navigation of ADCS.satellite_factory package" class="toctree-checkbox" id="toctree-checkbox-32" name="toctree-checkbox-32" role="switch" type="checkbox"/><label for="toctree-checkbox-32"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.satellite_factory.actuators.html">ADCS.satellite_factory.actuators package</a><input aria-label="Toggle navigation of ADCS.satellite_factory.actuators package" class="toctree-checkbox" id="toctree-checkbox-33" name="toctree-checkbox-33" role="switch" type="checkbox"/><label for="toctree-checkbox-33"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="ADCS.satellite_factory.html">ADCS.satellite_factory package</a><input aria-label="Toggle navigation of ADCS.satellite_factory package" class="toctree-checkbox" id="toctree-checkbox-35" name="toctree-checkbox-35" role="switch" type="checkbox"/><label for="toctree-checkbox-35"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.satellite_factory.actuators.html">ADCS.satellite_factory.actuators package</a><input aria-label="Toggle navigation of ADCS.satellite_factory.actuators package" class="toctree-checkbox" id="toctree-checkbox-36" name="toctree-checkbox-36" role="switch" type="checkbox"/><label for="toctree-checkbox-36"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.satellite_factory.actuators.create_cubesat_MTQ.html">ADCS.satellite_factory.actuators.create_cubesat_MTQ module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.satellite_factory.actuators.create_cubesat_RW.html">ADCS.satellite_factory.actuators.create_cubesat_RW module</a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.satellite_factory.satellites.html">ADCS.satellite_factory.satellites package</a><input aria-label="Toggle navigation of ADCS.satellite_factory.satellites package" class="toctree-checkbox" id="toctree-checkbox-34" name="toctree-checkbox-34" role="switch" type="checkbox"/><label for="toctree-checkbox-34"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.satellite_factory.satellites.html">ADCS.satellite_factory.satellites package</a><input aria-label="Toggle navigation of ADCS.satellite_factory.satellites package" class="toctree-checkbox" id="toctree-checkbox-37" name="toctree-checkbox-37" role="switch" type="checkbox"/><label for="toctree-checkbox-37"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.satellite_factory.satellites.create_cubesats.html">ADCS.satellite_factory.satellites.create_cubesats module</a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.satellite_factory.sensors.html">ADCS.satellite_factory.sensors package</a><input aria-label="Toggle navigation of ADCS.satellite_factory.sensors package" class="toctree-checkbox" id="toctree-checkbox-35" name="toctree-checkbox-35" role="switch" type="checkbox"/><label for="toctree-checkbox-35"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.satellite_factory.sensors.html">ADCS.satellite_factory.sensors package</a><input aria-label="Toggle navigation of ADCS.satellite_factory.sensors package" class="toctree-checkbox" id="toctree-checkbox-38" name="toctree-checkbox-38" role="switch" type="checkbox"/><label for="toctree-checkbox-38"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.satellite_factory.sensors.create_cubesat_GPS.html">ADCS.satellite_factory.sensors.create_cubesat_GPS module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.satellite_factory.sensors.create_cubesat_MTM.html">ADCS.satellite_factory.sensors.create_cubesat_MTM module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.satellite_factory.sensors.create_cubesat_gyro.html">ADCS.satellite_factory.sensors.create_cubesat_gyro module</a></li>
@@ -413,15 +430,15 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="ADCS.satellite_hardware.html">ADCS.satellite_hardware package</a><input aria-label="Toggle navigation of ADCS.satellite_hardware package" class="toctree-checkbox" id="toctree-checkbox-36" name="toctree-checkbox-36" role="switch" type="checkbox"/><label for="toctree-checkbox-36"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.satellite_hardware.actuators.html">ADCS.satellite_hardware.actuators package</a><input aria-label="Toggle navigation of ADCS.satellite_hardware.actuators package" class="toctree-checkbox" id="toctree-checkbox-37" name="toctree-checkbox-37" role="switch" type="checkbox"/><label for="toctree-checkbox-37"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="ADCS.satellite_hardware.html">ADCS.satellite_hardware package</a><input aria-label="Toggle navigation of ADCS.satellite_hardware package" class="toctree-checkbox" id="toctree-checkbox-39" name="toctree-checkbox-39" role="switch" type="checkbox"/><label for="toctree-checkbox-39"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.satellite_hardware.actuators.html">ADCS.satellite_hardware.actuators package</a><input aria-label="Toggle navigation of ADCS.satellite_hardware.actuators package" class="toctree-checkbox" id="toctree-checkbox-40" name="toctree-checkbox-40" role="switch" type="checkbox"/><label for="toctree-checkbox-40"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.satellite_hardware.actuators.actuator.html">ADCS.satellite_hardware.actuators.actuator module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.satellite_hardware.actuators.magnetotorquer.html">ADCS.satellite_hardware.actuators.magnetotorquer module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.satellite_hardware.actuators.reaction_wheel.html">ADCS.satellite_hardware.actuators.reaction_wheel module</a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.satellite_hardware.disturbances.html">ADCS.satellite_hardware.disturbances package</a><input aria-label="Toggle navigation of ADCS.satellite_hardware.disturbances package" class="toctree-checkbox" id="toctree-checkbox-38" name="toctree-checkbox-38" role="switch" type="checkbox"/><label for="toctree-checkbox-38"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l4 has-children"><a class="reference internal" href="ADCS.satellite_hardware.disturbances.helpers.html">ADCS.satellite_hardware.disturbances.helpers package</a><input aria-label="Toggle navigation of ADCS.satellite_hardware.disturbances.helpers package" class="toctree-checkbox" id="toctree-checkbox-39" name="toctree-checkbox-39" role="switch" type="checkbox"/><label for="toctree-checkbox-39"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.satellite_hardware.disturbances.html">ADCS.satellite_hardware.disturbances package</a><input aria-label="Toggle navigation of ADCS.satellite_hardware.disturbances package" class="toctree-checkbox" id="toctree-checkbox-41" name="toctree-checkbox-41" role="switch" type="checkbox"/><label for="toctree-checkbox-41"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4 has-children"><a class="reference internal" href="ADCS.satellite_hardware.disturbances.helpers.html">ADCS.satellite_hardware.disturbances.helpers package</a><input aria-label="Toggle navigation of ADCS.satellite_hardware.disturbances.helpers package" class="toctree-checkbox" id="toctree-checkbox-42" name="toctree-checkbox-42" role="switch" type="checkbox"/><label for="toctree-checkbox-42"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l5"><a class="reference internal" href="ADCS.satellite_hardware.disturbances.helpers.geometry_config.html">ADCS.satellite_hardware.disturbances.helpers.geometry_config module</a></li>
 </ul>
 </li>
@@ -434,8 +451,8 @@
 <li class="toctree-l4"><a class="reference internal" href="ADCS.satellite_hardware.disturbances.srp_disturbance.html">ADCS.satellite_hardware.disturbances.srp_disturbance module</a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.satellite_hardware.errors.html">ADCS.satellite_hardware.errors package</a><input aria-label="Toggle navigation of ADCS.satellite_hardware.errors package" class="toctree-checkbox" id="toctree-checkbox-40" name="toctree-checkbox-40" role="switch" type="checkbox"/><label for="toctree-checkbox-40"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l4 has-children"><a class="reference internal" href="ADCS.satellite_hardware.errors.helpers.html">ADCS.satellite_hardware.errors.helpers package</a><input aria-label="Toggle navigation of ADCS.satellite_hardware.errors.helpers package" class="toctree-checkbox" id="toctree-checkbox-41" name="toctree-checkbox-41" role="switch" type="checkbox"/><label for="toctree-checkbox-41"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.satellite_hardware.errors.html">ADCS.satellite_hardware.errors package</a><input aria-label="Toggle navigation of ADCS.satellite_hardware.errors package" class="toctree-checkbox" id="toctree-checkbox-43" name="toctree-checkbox-43" role="switch" type="checkbox"/><label for="toctree-checkbox-43"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4 has-children"><a class="reference internal" href="ADCS.satellite_hardware.errors.helpers.html">ADCS.satellite_hardware.errors.helpers package</a><input aria-label="Toggle navigation of ADCS.satellite_hardware.errors.helpers package" class="toctree-checkbox" id="toctree-checkbox-44" name="toctree-checkbox-44" role="switch" type="checkbox"/><label for="toctree-checkbox-44"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l5"><a class="reference internal" href="ADCS.satellite_hardware.errors.helpers.error_mode.html">ADCS.satellite_hardware.errors.helpers.error_mode module</a></li>
 </ul>
 </li>
@@ -444,12 +461,12 @@
 <li class="toctree-l4"><a class="reference internal" href="ADCS.satellite_hardware.errors.noise.html">ADCS.satellite_hardware.errors.noise module</a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.satellite_hardware.satellite.html">ADCS.satellite_hardware.satellite package</a><input aria-label="Toggle navigation of ADCS.satellite_hardware.satellite package" class="toctree-checkbox" id="toctree-checkbox-42" name="toctree-checkbox-42" role="switch" type="checkbox"/><label for="toctree-checkbox-42"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.satellite_hardware.satellite.html">ADCS.satellite_hardware.satellite package</a><input aria-label="Toggle navigation of ADCS.satellite_hardware.satellite package" class="toctree-checkbox" id="toctree-checkbox-45" name="toctree-checkbox-45" role="switch" type="checkbox"/><label for="toctree-checkbox-45"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.satellite_hardware.satellite.estimated_satellite.html">ADCS.satellite_hardware.satellite.estimated_satellite module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.satellite_hardware.satellite.satellite.html">ADCS.satellite_hardware.satellite.satellite module</a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.satellite_hardware.sensors.html">ADCS.satellite_hardware.sensors package</a><input aria-label="Toggle navigation of ADCS.satellite_hardware.sensors package" class="toctree-checkbox" id="toctree-checkbox-43" name="toctree-checkbox-43" role="switch" type="checkbox"/><label for="toctree-checkbox-43"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.satellite_hardware.sensors.html">ADCS.satellite_hardware.sensors package</a><input aria-label="Toggle navigation of ADCS.satellite_hardware.sensors package" class="toctree-checkbox" id="toctree-checkbox-46" name="toctree-checkbox-46" role="switch" type="checkbox"/><label for="toctree-checkbox-46"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.satellite_hardware.sensors.gps.html">ADCS.satellite_hardware.sensors.gps module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.satellite_hardware.sensors.gyro.html">ADCS.satellite_hardware.sensors.gyro module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.satellite_hardware.sensors.magnetometer.html">ADCS.satellite_hardware.sensors.magnetometer module</a></li>
@@ -722,31 +739,10 @@
 </li>
         </ul></li>
         <li>
-    ADCS.controller.helpers.build_csat
+    ADCS.controller.helpers.optional_dependencies
 
         <ul>
-          <li><a href="ADCS.controller.helpers.build_csat.html#module-ADCS.controller.helpers.build_csat">module</a>
-</li>
-        </ul></li>
-        <li>
-    ADCS.controller.helpers.debug_planner
-
-        <ul>
-          <li><a href="ADCS.controller.helpers.debug_planner.html#module-ADCS.controller.helpers.debug_planner">module</a>
-</li>
-        </ul></li>
-        <li>
-    ADCS.controller.helpers.planner_settings
-
-        <ul>
-          <li><a href="ADCS.controller.helpers.planner_settings.html#module-ADCS.controller.helpers.planner_settings">module</a>
-</li>
-        </ul></li>
-        <li>
-    ADCS.controller.helpers.planner_subsettings
-
-        <ul>
-          <li><a href="ADCS.controller.helpers.planner_subsettings.html#module-ADCS.controller.helpers.planner_subsettings">module</a>
+          <li><a href="ADCS.controller.helpers.optional_dependencies.html#module-ADCS.controller.helpers.optional_dependencies">module</a>
 </li>
         </ul></li>
         <li>
@@ -827,24 +823,38 @@
 </li>
         </ul></li>
         <li>
-    ADCS.controller.neo_planner.NEO_constraint_settings
+    ADCS.controller.plan_and_track
 
         <ul>
-          <li><a href="ADCS.controller.neo_planner.NEO_constraint_settings.html#module-ADCS.controller.neo_planner.NEO_constraint_settings">module</a>
+          <li><a href="ADCS.controller.plan_and_track.html#module-ADCS.controller.plan_and_track">module</a>
 </li>
         </ul></li>
         <li>
-    ADCS.controller.neo_planner.NEO_pass_settings
+    ADCS.controller.plan_and_track.build_csat
 
         <ul>
-          <li><a href="ADCS.controller.neo_planner.NEO_pass_settings.html#module-ADCS.controller.neo_planner.NEO_pass_settings">module</a>
+          <li><a href="ADCS.controller.plan_and_track.build_csat.html#module-ADCS.controller.plan_and_track.build_csat">module</a>
 </li>
         </ul></li>
         <li>
-    ADCS.controller.neo_planner.NEO_planner_settings
+    ADCS.controller.plan_and_track.debug_planner
 
         <ul>
-          <li><a href="ADCS.controller.neo_planner.NEO_planner_settings.html#module-ADCS.controller.neo_planner.NEO_planner_settings">module</a>
+          <li><a href="ADCS.controller.plan_and_track.debug_planner.html#module-ADCS.controller.plan_and_track.debug_planner">module</a>
+</li>
+        </ul></li>
+        <li>
+    ADCS.controller.plan_and_track.planner_settings
+
+        <ul>
+          <li><a href="ADCS.controller.plan_and_track.planner_settings.html#module-ADCS.controller.plan_and_track.planner_settings">module</a>
+</li>
+        </ul></li>
+        <li>
+    ADCS.controller.plan_and_track.planner_subsettings
+
+        <ul>
+          <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#module-ADCS.controller.plan_and_track.planner_subsettings">module</a>
 </li>
         </ul></li>
         <li>
@@ -880,6 +890,34 @@
 
         <ul>
           <li><a href="ADCS.controller.saltro.html#module-ADCS.controller.saltro">module</a>
+</li>
+        </ul></li>
+        <li>
+    ADCS.controller.saltro.SALTRO_constraint_settings
+
+        <ul>
+          <li><a href="ADCS.controller.saltro.SALTRO_constraint_settings.html#module-ADCS.controller.saltro.SALTRO_constraint_settings">module</a>
+</li>
+        </ul></li>
+        <li>
+    ADCS.controller.saltro.saltro_controller
+
+        <ul>
+          <li><a href="ADCS.controller.saltro.saltro_controller.html#module-ADCS.controller.saltro.saltro_controller">module</a>
+</li>
+        </ul></li>
+        <li>
+    ADCS.controller.saltro.SALTRO_pass_settings
+
+        <ul>
+          <li><a href="ADCS.controller.saltro.SALTRO_pass_settings.html#module-ADCS.controller.saltro.SALTRO_pass_settings">module</a>
+</li>
+        </ul></li>
+        <li>
+    ADCS.controller.saltro.SALTRO_planner_settings
+
+        <ul>
+          <li><a href="ADCS.controller.saltro.SALTRO_planner_settings.html#module-ADCS.controller.saltro.SALTRO_planner_settings">module</a>
 </li>
         </ul></li>
         <li>
@@ -1141,6 +1179,8 @@
           <li><a href="ADCS.helpers.plot.sensors.html#module-ADCS.helpers.plot.sensors">module</a>
 </li>
         </ul></li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
         <li>
     ADCS.helpers.plot.sensors.biasplot
 
@@ -1155,8 +1195,6 @@
           <li><a href="ADCS.helpers.plot.sensors.sensorsplot.html#module-ADCS.helpers.plot.sensors.sensorsplot">module</a>
 </li>
         </ul></li>
-    </ul></td>
-    <td style="width: 33%; vertical-align: top;"><ul>
         <li>
     ADCS.helpers.plot.states
 
@@ -1676,11 +1714,11 @@
 </li>
         <li><a href="ADCS.estimators.attitude_estimators.attitude_UAKF.html#ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF.add_to_state">add_to_state() (ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF method)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.debug_planner.html#ADCS.controller.helpers.debug_planner.DebugPlanner.addRandNoise">addRandNoise() (ADCS.controller.helpers.debug_planner.DebugPlanner method)</a>
+        <li><a href="ADCS.controller.plan_and_track.debug_planner.html#ADCS.controller.plan_and_track.debug_planner.DebugPlanner.addRandNoise">addRandNoise() (ADCS.controller.plan_and_track.debug_planner.DebugPlanner method)</a>
 </li>
         <li><a href="ADCS.satellite_hardware.errors.anisotropicnoise.html#ADCS.satellite_hardware.errors.anisotropicnoise.AnisotropicNoise.align_to_body">align_to_body() (ADCS.satellite_hardware.errors.anisotropicnoise.AnisotropicNoise method)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.debug_planner.html#ADCS.controller.helpers.debug_planner.DebugPlanner.alilqr">alilqr() (ADCS.controller.helpers.debug_planner.DebugPlanner method)</a>
+        <li><a href="ADCS.controller.plan_and_track.debug_planner.html#ADCS.controller.plan_and_track.debug_planner.DebugPlanner.alilqr">alilqr() (ADCS.controller.plan_and_track.debug_planner.DebugPlanner method)</a>
 </li>
         <li><a href="ADCS.controller.mtq_w_rw_LP.html#ADCS.controller.mtq_w_rw_LP.MTQ_w_RW_LP.allocate_max_torque_in_direction">allocate_max_torque_in_direction() (ADCS.controller.mtq_w_rw_LP.MTQ_w_RW_LP method)</a>
 
@@ -1694,23 +1732,23 @@
           <li><a href="ADCS.controller.mtq_w_rw_QPW.html#ADCS.controller.mtq_w_rw_QPW.MTQ_w_RW_QPW.allocate_max_torque_in_direction">(ADCS.controller.mtq_w_rw_QPW.MTQ_w_RW_QPW method)</a>
 </li>
         </ul></li>
-        <li><a href="ADCS.controller.helpers.planner_subsettings.html#ADCS.controller.helpers.planner_subsettings.CostWeights.ang_cost_func_type">ang_cost_func_type (ADCS.controller.helpers.planner_subsettings.CostWeights attribute)</a>
+        <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.CostWeights.ang_cost_func_type">ang_cost_func_type (ADCS.controller.plan_and_track.planner_subsettings.CostWeights attribute)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.planner_subsettings.html#ADCS.controller.helpers.planner_subsettings.CostWeights.ang_vel">ang_vel (ADCS.controller.helpers.planner_subsettings.CostWeights attribute)</a>
+        <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.CostWeights.ang_vel">ang_vel (ADCS.controller.plan_and_track.planner_subsettings.CostWeights attribute)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.planner_subsettings.html#ADCS.controller.helpers.planner_subsettings.CostWeights.ang_vel_err_dir">ang_vel_err_dir (ADCS.controller.helpers.planner_subsettings.CostWeights attribute)</a>
+        <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.CostWeights.ang_vel_err_dir">ang_vel_err_dir (ADCS.controller.plan_and_track.planner_subsettings.CostWeights attribute)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.planner_subsettings.html#ADCS.controller.helpers.planner_subsettings.CostWeights.ang_vel_err_dir_N">ang_vel_err_dir_N (ADCS.controller.helpers.planner_subsettings.CostWeights attribute)</a>
+        <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.CostWeights.ang_vel_err_dir_N">ang_vel_err_dir_N (ADCS.controller.plan_and_track.planner_subsettings.CostWeights attribute)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.planner_subsettings.html#ADCS.controller.helpers.planner_subsettings.CostWeights.ang_vel_mag">ang_vel_mag (ADCS.controller.helpers.planner_subsettings.CostWeights attribute)</a>
+        <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.CostWeights.ang_vel_mag">ang_vel_mag (ADCS.controller.plan_and_track.planner_subsettings.CostWeights attribute)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.planner_subsettings.html#ADCS.controller.helpers.planner_subsettings.CostWeights.ang_vel_mag_N">ang_vel_mag_N (ADCS.controller.helpers.planner_subsettings.CostWeights attribute)</a>
+        <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.CostWeights.ang_vel_mag_N">ang_vel_mag_N (ADCS.controller.plan_and_track.planner_subsettings.CostWeights attribute)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.planner_subsettings.html#ADCS.controller.helpers.planner_subsettings.CostWeights.ang_vel_N">ang_vel_N (ADCS.controller.helpers.planner_subsettings.CostWeights attribute)</a>
+        <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.CostWeights.ang_vel_N">ang_vel_N (ADCS.controller.plan_and_track.planner_subsettings.CostWeights attribute)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.planner_subsettings.html#ADCS.controller.helpers.planner_subsettings.CostWeights.angle">angle (ADCS.controller.helpers.planner_subsettings.CostWeights attribute)</a>
+        <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.CostWeights.angle">angle (ADCS.controller.plan_and_track.planner_subsettings.CostWeights attribute)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.planner_subsettings.html#ADCS.controller.helpers.planner_subsettings.CostWeights.angle_N">angle_N (ADCS.controller.helpers.planner_subsettings.CostWeights attribute)</a>
+        <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.CostWeights.angle_N">angle_N (ADCS.controller.plan_and_track.planner_subsettings.CostWeights attribute)</a>
 </li>
         <li><a href="ADCS.helpers.plot.states.angularvelocityplot.html#ADCS.helpers.plot.states.angularvelocityplot.AngularVelocityPlot">AngularVelocityPlot (class in ADCS.helpers.plot.states.angularvelocityplot)</a>
 </li>
@@ -1740,13 +1778,13 @@
 </li>
         <li><a href="ADCS.helpers.plot.control.attitudeplot.html#ADCS.helpers.plot.control.attitudeplot.AttitudePlot">AttitudePlot (class in ADCS.helpers.plot.control.attitudeplot)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.planner_subsettings.html#ADCS.controller.helpers.planner_subsettings.SolverPassConfig.aug_lag">aug_lag (ADCS.controller.helpers.planner_subsettings.SolverPassConfig attribute)</a>
+        <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.SolverPassConfig.aug_lag">aug_lag (ADCS.controller.plan_and_track.planner_subsettings.SolverPassConfig attribute)</a>
 
         <ul>
-          <li><a href="ADCS.controller.neo_planner.NEO_pass_settings.html#ADCS.controller.neo_planner.NEO_pass_settings.PassConfig.aug_lag">(ADCS.controller.neo_planner.NEO_pass_settings.PassConfig attribute)</a>
+          <li><a href="ADCS.controller.saltro.SALTRO_pass_settings.html#ADCS.controller.saltro.SALTRO_pass_settings.PassConfig.aug_lag">(ADCS.controller.saltro.SALTRO_pass_settings.PassConfig attribute)</a>
 </li>
         </ul></li>
-        <li><a href="ADCS.controller.helpers.planner_subsettings.html#ADCS.controller.helpers.planner_subsettings.AugLagConfig">AugLagConfig (class in ADCS.controller.helpers.planner_subsettings)</a>
+        <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.AugLagConfig">AugLagConfig (class in ADCS.controller.plan_and_track.planner_subsettings)</a>
 </li>
         <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Orbital_State.average">average() (ADCS.helpers.simresults.Orbital_State method)</a>
 
@@ -1762,7 +1800,7 @@
   <h2>B</h2>
   <table style="width: 100%" class="indextable genindextable"><tr>
     <td style="width: 33%; vertical-align: top;"><ul>
-        <li><a href="ADCS.controller.helpers.debug_planner.html#ADCS.controller.helpers.debug_planner.DebugPlanner.backwardPass">backwardPass() (ADCS.controller.helpers.debug_planner.DebugPlanner method)</a>
+        <li><a href="ADCS.controller.plan_and_track.debug_planner.html#ADCS.controller.plan_and_track.debug_planner.DebugPlanner.backwardPass">backwardPass() (ADCS.controller.plan_and_track.debug_planner.DebugPlanner method)</a>
 </li>
         <li><a href="ADCS.flight_software.single_core.ttc_single_core.html#ADCS.flight_software.single_core.ttc_single_core.TTC_Single_Core.base_utilization_wcet">base_utilization_wcet() (ADCS.flight_software.single_core.ttc_single_core.TTC_Single_Core method)</a>
 </li>
@@ -1782,11 +1820,11 @@
         </ul></li>
         <li><a href="ADCS.controller.bdot.html#ADCS.controller.bdot.BDot">BDot (class in ADCS.controller.bdot)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.planner_subsettings.html#ADCS.controller.helpers.planner_subsettings.InitTrajConfig.bdot_gain">bdot_gain (ADCS.controller.helpers.planner_subsettings.InitTrajConfig attribute)</a>
+        <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.InitTrajConfig.bdot_gain">bdot_gain (ADCS.controller.plan_and_track.planner_subsettings.InitTrajConfig attribute)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.planner_subsettings.html#ADCS.controller.helpers.planner_subsettings.LineSearchConfig.beta1">beta1 (ADCS.controller.helpers.planner_subsettings.LineSearchConfig attribute)</a>
+        <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.LineSearchConfig.beta1">beta1 (ADCS.controller.plan_and_track.planner_subsettings.LineSearchConfig attribute)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.planner_subsettings.html#ADCS.controller.helpers.planner_subsettings.LineSearchConfig.beta2">beta2 (ADCS.controller.helpers.planner_subsettings.LineSearchConfig attribute)</a>
+        <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.LineSearchConfig.beta2">beta2 (ADCS.controller.plan_and_track.planner_subsettings.LineSearchConfig attribute)</a>
 </li>
         <li><a href="ADCS.CONOPS.goals.vector_goals.bfield_goal.html#ADCS.CONOPS.goals.vector_goals.bfield_goal.BField_Goal">BField_Goal (class in ADCS.CONOPS.goals.vector_goals.bfield_goal)</a>
 </li>
@@ -1818,7 +1856,7 @@
 </li>
         <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.RunResults.boresight_hist">boresight_hist (ADCS.helpers.simresults.RunResults attribute)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.build_csat.html#ADCS.controller.helpers.build_csat.build_cpp_satellite">build_cpp_satellite() (in module ADCS.controller.helpers.build_csat)</a>
+        <li><a href="ADCS.controller.plan_and_track.build_csat.html#ADCS.controller.plan_and_track.build_csat.build_cpp_satellite">build_cpp_satellite() (in module ADCS.controller.plan_and_track.build_csat)</a>
 </li>
         <li><a href="ADCS.controller.controller.html#ADCS.controller.controller.Controller.build_sensor_matrix_pinv">build_sensor_matrix_pinv() (ADCS.controller.controller.Controller method)</a>
 </li>
@@ -1834,7 +1872,7 @@
   <h2>C</h2>
   <table style="width: 100%" class="indextable genindextable"><tr>
     <td style="width: 33%; vertical-align: top;"><ul>
-        <li><a href="ADCS.controller.helpers.planner_subsettings.html#ADCS.controller.helpers.planner_subsettings.ConvergenceConfig.c_max">c_max (ADCS.controller.helpers.planner_subsettings.ConvergenceConfig attribute)</a>
+        <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.ConvergenceConfig.c_max">c_max (ADCS.controller.plan_and_track.planner_subsettings.ConvergenceConfig attribute)</a>
 </li>
         <li><a href="ADCS.controller.plan_and_track_exact.html#ADCS.controller.plan_and_track_exact.Plan_and_Track_Exact.calculate_trajectory">calculate_trajectory() (ADCS.controller.plan_and_track_exact.Plan_and_Track_Exact method)</a>
 
@@ -1843,7 +1881,7 @@
 </li>
           <li><a href="ADCS.controller.plan_and_track_lqr_disturbed.html#ADCS.controller.plan_and_track_lqr_disturbed.Plan_and_Track_LQR_Disturbed.calculate_trajectory">(ADCS.controller.plan_and_track_lqr_disturbed.Plan_and_Track_LQR_Disturbed method)</a>
 </li>
-          <li><a href="ADCS.controller.saltro.html#ADCS.controller.saltro.SALTRO.calculate_trajectory">(ADCS.controller.saltro.SALTRO method)</a>
+          <li><a href="ADCS.controller.saltro.saltro_controller.html#ADCS.controller.saltro.saltro_controller.SALTRO.calculate_trajectory">(ADCS.controller.saltro.saltro_controller.SALTRO method)</a>
 </li>
         </ul></li>
         <li><a href="ADCS.helpers.math_helpers.html#ADCS.helpers.math_helpers.cayley_to_quat">cayley_to_quat() (in module ADCS.helpers.math_helpers)</a>
@@ -1868,7 +1906,7 @@
         </ul></li>
         <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.RunResults.clean_sensor_hist">clean_sensor_hist (ADCS.helpers.simresults.RunResults attribute)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.debug_planner.html#ADCS.controller.helpers.debug_planner.DebugPlanner.cleanUpAfterAlilqr">cleanUpAfterAlilqr() (ADCS.controller.helpers.debug_planner.DebugPlanner method)</a>
+        <li><a href="ADCS.controller.plan_and_track.debug_planner.html#ADCS.controller.plan_and_track.debug_planner.DebugPlanner.cleanUpAfterAlilqr">cleanUpAfterAlilqr() (ADCS.controller.plan_and_track.debug_planner.DebugPlanner method)</a>
 </li>
         <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.datetime.combine">combine() (ADCS.helpers.simresults.datetime class method)</a>
 </li>
@@ -1876,11 +1914,11 @@
 </li>
         <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.SimulationResults.configs">configs (ADCS.helpers.simresults.SimulationResults attribute)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.planner_subsettings.html#ADCS.controller.helpers.planner_subsettings.CostWeights.consider_vector_in_tvlqr">consider_vector_in_tvlqr (ADCS.controller.helpers.planner_subsettings.CostWeights attribute)</a>
+        <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.CostWeights.consider_vector_in_tvlqr">consider_vector_in_tvlqr (ADCS.controller.plan_and_track.planner_subsettings.CostWeights attribute)</a>
 </li>
-        <li><a href="ADCS.controller.neo_planner.NEO_constraint_settings.html#ADCS.controller.neo_planner.NEO_constraint_settings.ConstraintConfig">ConstraintConfig (class in ADCS.controller.neo_planner.NEO_constraint_settings)</a>
+        <li><a href="ADCS.controller.saltro.SALTRO_constraint_settings.html#ADCS.controller.saltro.SALTRO_constraint_settings.ConstraintConfig">ConstraintConfig (class in ADCS.controller.saltro.SALTRO_constraint_settings)</a>
 </li>
-        <li><a href="ADCS.controller.neo_planner.NEO_planner_settings.html#ADCS.controller.neo_planner.NEO_planner_settings.PlannerSettings.constraints">constraints (ADCS.controller.neo_planner.NEO_planner_settings.PlannerSettings attribute)</a>
+        <li><a href="ADCS.controller.saltro.SALTRO_planner_settings.html#ADCS.controller.saltro.SALTRO_planner_settings.PlannerSettings.constraints">constraints (ADCS.controller.saltro.SALTRO_planner_settings.PlannerSettings attribute)</a>
 </li>
         <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.EstimatedSatellite.control_cov">control_cov() (ADCS.helpers.simresults.EstimatedSatellite method)</a>
 
@@ -1890,9 +1928,9 @@
         </ul></li>
         <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.RunResults.control_hist">control_hist (ADCS.helpers.simresults.RunResults attribute)</a>
 </li>
-        <li><a href="ADCS.controller.neo_planner.NEO_constraint_settings.html#ADCS.controller.neo_planner.NEO_constraint_settings.ConstraintConfig.control_limit_scale">control_limit_scale (ADCS.controller.neo_planner.NEO_constraint_settings.ConstraintConfig attribute)</a>
+        <li><a href="ADCS.controller.saltro.SALTRO_constraint_settings.html#ADCS.controller.saltro.SALTRO_constraint_settings.ConstraintConfig.control_limit_scale">control_limit_scale (ADCS.controller.saltro.SALTRO_constraint_settings.ConstraintConfig attribute)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.planner_subsettings.html#ADCS.controller.helpers.planner_subsettings.CostWeights.control_mult">control_mult (ADCS.controller.helpers.planner_subsettings.CostWeights attribute)</a>
+        <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.CostWeights.control_mult">control_mult (ADCS.controller.plan_and_track.planner_subsettings.CostWeights attribute)</a>
 </li>
         <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.EstimatedSatellite.control_srcov">control_srcov() (ADCS.helpers.simresults.EstimatedSatellite method)</a>
 
@@ -1910,11 +1948,11 @@
 </li>
         <li><a href="ADCS.controller.helpers.trajectory.html#ADCS.controller.helpers.trajectory.Trajectory.controls">controls (ADCS.controller.helpers.trajectory.Trajectory attribute)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.planner_subsettings.html#ADCS.controller.helpers.planner_subsettings.SolverPassConfig.convergence">convergence (ADCS.controller.helpers.planner_subsettings.SolverPassConfig attribute)</a>
+        <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.SolverPassConfig.convergence">convergence (ADCS.controller.plan_and_track.planner_subsettings.SolverPassConfig attribute)</a>
 </li>
     </ul></td>
     <td style="width: 33%; vertical-align: top;"><ul>
-        <li><a href="ADCS.controller.helpers.planner_subsettings.html#ADCS.controller.helpers.planner_subsettings.ConvergenceConfig">ConvergenceConfig (class in ADCS.controller.helpers.planner_subsettings)</a>
+        <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.ConvergenceConfig">ConvergenceConfig (class in ADCS.controller.plan_and_track.planner_subsettings)</a>
 </li>
         <li><a href="ADCS.CONOPS.goals.vector_goals.coordinate_goal.html#ADCS.CONOPS.goals.vector_goals.coordinate_goal.Coordinate_Goal">Coordinate_Goal (class in ADCS.CONOPS.goals.vector_goals.coordinate_goal)</a>
 </li>
@@ -1934,13 +1972,13 @@
           <li><a href="ADCS.satellite_hardware.errors.noise.html#ADCS.satellite_hardware.errors.noise.Noise.copy">(ADCS.satellite_hardware.errors.noise.Noise method)</a>
 </li>
         </ul></li>
-        <li><a href="ADCS.controller.neo_planner.NEO_pass_settings.html#ADCS.controller.neo_planner.NEO_pass_settings.PassConfig.cost">cost (ADCS.controller.neo_planner.NEO_pass_settings.PassConfig attribute)</a>
+        <li><a href="ADCS.controller.saltro.SALTRO_pass_settings.html#ADCS.controller.saltro.SALTRO_pass_settings.PassConfig.cost">cost (ADCS.controller.saltro.SALTRO_pass_settings.PassConfig attribute)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.debug_planner.html#ADCS.controller.helpers.debug_planner.DebugPlanner.cost2Func">cost2Func() (ADCS.controller.helpers.debug_planner.DebugPlanner method)</a>
+        <li><a href="ADCS.controller.plan_and_track.debug_planner.html#ADCS.controller.plan_and_track.debug_planner.DebugPlanner.cost2Func">cost2Func() (ADCS.controller.plan_and_track.debug_planner.DebugPlanner method)</a>
 </li>
         <li><a href="ADCS.controller.helpers.trajectory.html#ADCS.controller.helpers.trajectory.Trajectory.costs">costs (ADCS.controller.helpers.trajectory.Trajectory attribute)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.planner_subsettings.html#ADCS.controller.helpers.planner_subsettings.CostWeights">CostWeights (class in ADCS.controller.helpers.planner_subsettings)</a>
+        <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.CostWeights">CostWeights (class in ADCS.controller.plan_and_track.planner_subsettings)</a>
 </li>
         <li><a href="ADCS.estimators.estimator_helpers.estimator_helpers.html#ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray.cov">cov (ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray attribute)</a>
 </li>
@@ -2126,7 +2164,7 @@
         </ul></li>
         <li><a href="ADCS.satellite_hardware.actuators.actuator.html#ADCS.satellite_hardware.actuators.actuator.Actuator.ddtorq__dudu">ddtorq__dudu() (ADCS.satellite_hardware.actuators.actuator.Actuator method)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.debug_planner.html#ADCS.controller.helpers.debug_planner.DebugPlanner">DebugPlanner (class in ADCS.controller.helpers.debug_planner)</a>
+        <li><a href="ADCS.controller.plan_and_track.debug_planner.html#ADCS.controller.plan_and_track.debug_planner.DebugPlanner">DebugPlanner (class in ADCS.controller.plan_and_track.debug_planner)</a>
 </li>
         <li><a href="ADCS.environment.star_catalog.html#ADCS.environment.star_catalog.NavigationStar.dec_rad">dec_rad (ADCS.environment.star_catalog.NavigationStar attribute)</a>
 </li>
@@ -2170,7 +2208,7 @@
         </ul></li>
         <li><a href="ADCS.satellite_hardware.disturbances.disturbance.html#ADCS.satellite_hardware.disturbances.disturbance.Disturbance">Disturbance (class in ADCS.satellite_hardware.disturbances.disturbance)</a>
 </li>
-        <li><a href="ADCS.controller.neo_planner.NEO_planner_settings.html#ADCS.controller.neo_planner.NEO_planner_settings.PlannerSettings.disturbances">disturbances (ADCS.controller.neo_planner.NEO_planner_settings.PlannerSettings attribute)</a>
+        <li><a href="ADCS.controller.saltro.SALTRO_planner_settings.html#ADCS.controller.saltro.SALTRO_planner_settings.PlannerSettings.disturbances">disturbances (ADCS.controller.saltro.SALTRO_planner_settings.PlannerSettings attribute)</a>
 </li>
         <li><a href="ADCS.satellite_hardware.disturbances.drag_disturbance.html#ADCS.satellite_hardware.disturbances.drag_disturbance.Drag_Disturbance">Drag_Disturbance (class in ADCS.satellite_hardware.disturbances.drag_disturbance)</a>
 </li>
@@ -2202,7 +2240,7 @@
           <li><a href="ADCS.satellite_hardware.actuators.reaction_wheel.html#ADCS.satellite_hardware.actuators.reaction_wheel.RW.dstor_torq__du">(ADCS.satellite_hardware.actuators.reaction_wheel.RW method)</a>
 </li>
         </ul></li>
-        <li><a href="ADCS.controller.neo_planner.NEO_pass_settings.html#ADCS.controller.neo_planner.NEO_pass_settings.PassConfig.dt">dt (ADCS.controller.neo_planner.NEO_pass_settings.PassConfig attribute)</a>
+        <li><a href="ADCS.controller.saltro.SALTRO_pass_settings.html#ADCS.controller.saltro.SALTRO_pass_settings.PassConfig.dt">dt (ADCS.controller.saltro.SALTRO_pass_settings.PassConfig attribute)</a>
 
         <ul>
           <li><a href="ADCS.mc.mcconfig.html#ADCS.mc.mcconfig.MCConfig.dt">(ADCS.mc.mcconfig.MCConfig attribute)</a>
@@ -2230,7 +2268,7 @@
           <li><a href="ADCS.satellite_hardware.actuators.reaction_wheel.html#ADCS.satellite_hardware.actuators.reaction_wheel.RW.dtorq__du">(ADCS.satellite_hardware.actuators.reaction_wheel.RW method)</a>
 </li>
         </ul></li>
-        <li><a href="ADCS.controller.helpers.debug_planner.html#ADCS.controller.helpers.debug_planner.DebugPlanner.dynamics">dynamics() (ADCS.controller.helpers.debug_planner.DebugPlanner method)</a>
+        <li><a href="ADCS.controller.plan_and_track.debug_planner.html#ADCS.controller.plan_and_track.debug_planner.DebugPlanner.dynamics">dynamics() (ADCS.controller.plan_and_track.debug_planner.DebugPlanner method)</a>
 </li>
         <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Satellite.dynamics_core">dynamics_core() (ADCS.helpers.simresults.Satellite method)</a>
 
@@ -2290,7 +2328,7 @@
           <li><a href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.ecef_to_geocentric">(ADCS.orbits.orbital_state.Orbital_State method)</a>
 </li>
         </ul></li>
-        <li><a href="ADCS.controller.helpers.debug_planner.html#ADCS.controller.helpers.debug_planner.DebugPlanner.echo_int">echo_int() (ADCS.controller.helpers.debug_planner.DebugPlanner method)</a>
+        <li><a href="ADCS.controller.plan_and_track.debug_planner.html#ADCS.controller.plan_and_track.debug_planner.DebugPlanner.echo_int">echo_int() (ADCS.controller.plan_and_track.debug_planner.DebugPlanner method)</a>
 </li>
         <li><a href="ADCS.CONOPS.goals.vector_goals.eci_goal.html#ADCS.CONOPS.goals.vector_goals.eci_goal.ECI_Goal">ECI_Goal (class in ADCS.CONOPS.goals.vector_goals.eci_goal)</a>
 </li>
@@ -2340,12 +2378,12 @@
 </li>
         <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.RunResults.est_os_hist">est_os_hist (ADCS.helpers.simresults.RunResults attribute)</a>
 </li>
-        <li><a href="ADCS.controller.neo_planner.NEO_constraint_settings.html#ADCS.controller.neo_planner.NEO_constraint_settings.ConstraintConfig.est_sat">est_sat (ADCS.controller.neo_planner.NEO_constraint_settings.ConstraintConfig attribute)</a>
+        <li><a href="ADCS.controller.plan_and_track_base.html#ADCS.controller.plan_and_track_base.PlanAndTrackBase.est_sat">est_sat (ADCS.controller.plan_and_track_base.PlanAndTrackBase attribute)</a>
 
         <ul>
-          <li><a href="ADCS.controller.neo_planner.NEO_planner_settings.html#ADCS.controller.neo_planner.NEO_planner_settings.PlannerSettings.est_sat">(ADCS.controller.neo_planner.NEO_planner_settings.PlannerSettings attribute)</a>
+          <li><a href="ADCS.controller.saltro.SALTRO_constraint_settings.html#ADCS.controller.saltro.SALTRO_constraint_settings.ConstraintConfig.est_sat">(ADCS.controller.saltro.SALTRO_constraint_settings.ConstraintConfig attribute)</a>
 </li>
-          <li><a href="ADCS.controller.plan_and_track_base.html#ADCS.controller.plan_and_track_base.PlanAndTrackBase.est_sat">(ADCS.controller.plan_and_track_base.PlanAndTrackBase attribute)</a>
+          <li><a href="ADCS.controller.saltro.SALTRO_planner_settings.html#ADCS.controller.saltro.SALTRO_planner_settings.PlannerSettings.est_sat">(ADCS.controller.saltro.SALTRO_planner_settings.PlannerSettings attribute)</a>
 </li>
           <li><a href="ADCS.estimators.orbit_estimators.orbit_EKF.html#ADCS.estimators.orbit_estimators.orbit_EKF.Orbit_EKF.est_sat">(ADCS.estimators.orbit_estimators.orbit_EKF.Orbit_EKF attribute)</a>
 </li>
@@ -2407,6 +2445,8 @@
 </li>
           <li><a href="ADCS.controller.plan_and_track_lqr_disturbed.html#ADCS.controller.plan_and_track_lqr_disturbed.Plan_and_Track_LQR_Disturbed.find_u">(ADCS.controller.plan_and_track_lqr_disturbed.Plan_and_Track_LQR_Disturbed method)</a>
 </li>
+          <li><a href="ADCS.controller.saltro.saltro_controller.html#ADCS.controller.saltro.saltro_controller.SALTRO.find_u">(ADCS.controller.saltro.saltro_controller.SALTRO method)</a>
+</li>
         </ul></li>
         <li><a href="ADCS.controller.mtq_w_rw_LP.html#ADCS.controller.mtq_w_rw_LP.MTQ_w_RW_LP.find_u_desaturate">find_u_desaturate() (ADCS.controller.mtq_w_rw_LP.MTQ_w_RW_LP method)</a>
 </li>
@@ -2422,7 +2462,7 @@
 </li>
         <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.datetime.fold">fold (ADCS.helpers.simresults.datetime attribute)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.debug_planner.html#ADCS.controller.helpers.debug_planner.DebugPlanner.forwardPass">forwardPass() (ADCS.controller.helpers.debug_planner.DebugPlanner method)</a>
+        <li><a href="ADCS.controller.plan_and_track.debug_planner.html#ADCS.controller.plan_and_track.debug_planner.DebugPlanner.forwardPass">forwardPass() (ADCS.controller.plan_and_track.debug_planner.DebugPlanner method)</a>
 </li>
         <li><a href="ADCS.flight_software.single_core.ttc_single_core.html#ADCS.flight_software.single_core.ttc_single_core.TTC_Single_Core.frame_budget_feasible_wcet">frame_budget_feasible_wcet() (ADCS.flight_software.single_core.ttc_single_core.TTC_Single_Core method)</a>
 </li>
@@ -2470,7 +2510,7 @@
         </ul></li>
         <li><a href="ADCS.satellite_hardware.disturbances.general_disturbance.html#ADCS.satellite_hardware.disturbances.general_disturbance.General_Disturbance">General_Disturbance (class in ADCS.satellite_hardware.disturbances.general_disturbance)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.debug_planner.html#ADCS.controller.helpers.debug_planner.DebugPlanner.generateInitialTrajectory">generateInitialTrajectory() (ADCS.controller.helpers.debug_planner.DebugPlanner method)</a>
+        <li><a href="ADCS.controller.plan_and_track.debug_planner.html#ADCS.controller.plan_and_track.debug_planner.DebugPlanner.generateInitialTrajectory">generateInitialTrajectory() (ADCS.controller.plan_and_track.debug_planner.DebugPlanner method)</a>
 </li>
         <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Orbital_State.geocentric_to_ecef">geocentric_to_ecef() (ADCS.helpers.simresults.Orbital_State method)</a>
 
@@ -2512,7 +2552,7 @@
         </ul></li>
         <li><a href="ADCS.controller.helpers.trajectory.html#ADCS.controller.helpers.trajectory.Trajectory.get_control_at">get_control_at() (ADCS.controller.helpers.trajectory.Trajectory method)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.build_csat.html#ADCS.controller.helpers.build_csat.get_cpp_to_python_control_permutation">get_cpp_to_python_control_permutation() (in module ADCS.controller.helpers.build_csat)</a>
+        <li><a href="ADCS.controller.plan_and_track.build_csat.html#ADCS.controller.plan_and_track.build_csat.get_cpp_to_python_control_permutation">get_cpp_to_python_control_permutation() (in module ADCS.controller.plan_and_track.build_csat)</a>
 </li>
         <li><a href="ADCS.controller.helpers.trajectory.html#ADCS.controller.helpers.trajectory.Trajectory.get_gain_at">get_gain_at() (ADCS.controller.helpers.trajectory.Trajectory method)</a>
 </li>
@@ -2534,6 +2574,8 @@
           <li><a href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbit.get_range">(ADCS.orbits.orbit.Orbit method)</a>
 </li>
         </ul></li>
+        <li><a href="ADCS.controller.helpers.optional_dependencies.html#ADCS.controller.helpers.optional_dependencies.get_saltro_module">get_saltro_module() (in module ADCS.controller.helpers.optional_dependencies)</a>
+</li>
         <li><a href="ADCS.controller.helpers.trajectory.html#ADCS.controller.helpers.trajectory.Trajectory.get_state_at">get_state_at() (ADCS.controller.helpers.trajectory.Trajectory method)</a>
 </li>
         <li><a href="ADCS.controller.helpers.trajectory.html#ADCS.controller.helpers.trajectory.Trajectory.get_state_input_gain">get_state_input_gain() (ADCS.controller.helpers.trajectory.Trajectory method)</a>
@@ -2550,6 +2592,8 @@
           <li><a href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.get_sun_eci">(ADCS.orbits.orbital_state.Orbital_State method)</a>
 </li>
         </ul></li>
+        <li><a href="ADCS.controller.helpers.optional_dependencies.html#ADCS.controller.helpers.optional_dependencies.get_trajectory_planner_modules">get_trajectory_planner_modules() (in module ADCS.controller.helpers.optional_dependencies)</a>
+</li>
         <li><a href="ADCS.mc.mcconfig.html#ADCS.mc.mcconfig.Orbit.get_vecs">get_vecs() (ADCS.mc.mcconfig.Orbit method)</a>
 
         <ul>
@@ -2558,7 +2602,7 @@
         </ul></li>
         <li><a href="ADCS.environment.star_catalog.html#ADCS.environment.star_catalog.StarCatalog.get_visible_stars">get_visible_stars() (ADCS.environment.star_catalog.StarCatalog method)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.debug_planner.html#ADCS.controller.helpers.debug_planner.DebugPlanner.getdt">getdt() (ADCS.controller.helpers.debug_planner.DebugPlanner method)</a>
+        <li><a href="ADCS.controller.plan_and_track.debug_planner.html#ADCS.controller.plan_and_track.debug_planner.DebugPlanner.getdt">getdt() (ADCS.controller.plan_and_track.debug_planner.DebugPlanner method)</a>
 </li>
         <li><a href="ADCS.satellite_hardware.disturbances.gg_disturbance.html#ADCS.satellite_hardware.disturbances.gg_disturbance.GG_Disturbance">GG_Disturbance (class in ADCS.satellite_hardware.disturbances.gg_disturbance)</a>
 </li>
@@ -2582,7 +2626,7 @@
           <li><a href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.GPS_readings">(ADCS.satellite_hardware.satellite.satellite.Satellite method)</a>
 </li>
         </ul></li>
-        <li><a href="ADCS.controller.helpers.planner_subsettings.html#ADCS.controller.helpers.planner_subsettings.ConvergenceConfig.grad_tol">grad_tol (ADCS.controller.helpers.planner_subsettings.ConvergenceConfig attribute)</a>
+        <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.ConvergenceConfig.grad_tol">grad_tol (ADCS.controller.plan_and_track.planner_subsettings.ConvergenceConfig attribute)</a>
 </li>
         <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Path.group">group() (ADCS.helpers.simresults.Path method)</a>
 </li>
@@ -2608,13 +2652,13 @@
 </li>
         <li><a href="ADCS.satellite_hardware.actuators.magnetotorquer.html#ADCS.satellite_hardware.actuators.magnetotorquer.MTQ.hessians">hessians() (ADCS.satellite_hardware.actuators.magnetotorquer.MTQ method)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.planner_subsettings.html#ADCS.controller.helpers.planner_subsettings.InitTrajConfig.high_settings">high_settings (ADCS.controller.helpers.planner_subsettings.InitTrajConfig attribute)</a>
+        <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.InitTrajConfig.high_settings">high_settings (ADCS.controller.plan_and_track.planner_subsettings.InitTrajConfig attribute)</a>
 </li>
     </ul></td>
     <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="ADCS.environment.star_catalog.html#ADCS.environment.star_catalog.NavigationStar.hip_id">hip_id (ADCS.environment.star_catalog.NavigationStar attribute)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.planner_subsettings.html#ADCS.controller.helpers.planner_subsettings.InitTrajConfig.hl_angle_limit">hl_angle_limit (ADCS.controller.helpers.planner_subsettings.InitTrajConfig attribute)</a>
+        <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.InitTrajConfig.hl_angle_limit">hl_angle_limit (ADCS.controller.plan_and_track.planner_subsettings.InitTrajConfig attribute)</a>
 </li>
         <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Path.home">home() (ADCS.helpers.simresults.Path class method)</a>
 </li>
@@ -2632,25 +2676,27 @@
     <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="ADCS.helpers.plot.orbit.illuminationplot.html#ADCS.helpers.plot.orbit.illuminationplot.IlluminationPlot">IlluminationPlot (class in ADCS.helpers.plot.orbit.illuminationplot)</a>
 </li>
-        <li><a href="ADCS.controller.neo_planner.NEO_pass_settings.html#ADCS.controller.neo_planner.NEO_pass_settings.PassConfig.ilqr">ilqr (ADCS.controller.neo_planner.NEO_pass_settings.PassConfig attribute)</a>
+        <li><a href="ADCS.controller.saltro.SALTRO_pass_settings.html#ADCS.controller.saltro.SALTRO_pass_settings.PassConfig.ilqr">ilqr (ADCS.controller.saltro.SALTRO_pass_settings.PassConfig attribute)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.planner_subsettings.html#ADCS.controller.helpers.planner_subsettings.ConvergenceConfig.ilqr_cost_tol">ilqr_cost_tol (ADCS.controller.helpers.planner_subsettings.ConvergenceConfig attribute)</a>
+        <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.ConvergenceConfig.ilqr_cost_tol">ilqr_cost_tol (ADCS.controller.plan_and_track.planner_subsettings.ConvergenceConfig attribute)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.debug_planner.html#ADCS.controller.helpers.debug_planner.DebugPlanner.ilqrBreak">ilqrBreak() (ADCS.controller.helpers.debug_planner.DebugPlanner method)</a>
+        <li><a href="ADCS.controller.plan_and_track.debug_planner.html#ADCS.controller.plan_and_track.debug_planner.DebugPlanner.ilqrBreak">ilqrBreak() (ADCS.controller.plan_and_track.debug_planner.DebugPlanner method)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.debug_planner.html#ADCS.controller.helpers.debug_planner.DebugPlanner.ilqrStep">ilqrStep() (ADCS.controller.helpers.debug_planner.DebugPlanner method)</a>
+        <li><a href="ADCS.controller.plan_and_track.debug_planner.html#ADCS.controller.plan_and_track.debug_planner.DebugPlanner.ilqrStep">ilqrStep() (ADCS.controller.plan_and_track.debug_planner.DebugPlanner method)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.debug_planner.html#ADCS.controller.helpers.debug_planner.DebugPlanner.incrementAugLag">incrementAugLag() (ADCS.controller.helpers.debug_planner.DebugPlanner method)</a>
+        <li><a href="ADCS.controller.helpers.optional_dependencies.html#ADCS.controller.helpers.optional_dependencies.import_module">import_module() (in module ADCS.controller.helpers.optional_dependencies)</a>
+</li>
+        <li><a href="ADCS.controller.plan_and_track.debug_planner.html#ADCS.controller.plan_and_track.debug_planner.DebugPlanner.incrementAugLag">incrementAugLag() (ADCS.controller.plan_and_track.debug_planner.DebugPlanner method)</a>
 </li>
         <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.RunResults.inflate">inflate() (ADCS.helpers.simresults.RunResults class method)</a>
 </li>
-        <li><a href="ADCS.controller.neo_planner.NEO_planner_settings.html#ADCS.controller.neo_planner.NEO_planner_settings.PlannerSettings.init_traj">init_traj (ADCS.controller.neo_planner.NEO_planner_settings.PlannerSettings attribute)</a>
+        <li><a href="ADCS.controller.saltro.SALTRO_planner_settings.html#ADCS.controller.saltro.SALTRO_planner_settings.PlannerSettings.init_traj">init_traj (ADCS.controller.saltro.SALTRO_planner_settings.PlannerSettings attribute)</a>
 </li>
         <li><a href="ADCS.estimators.attitude_estimators.attitude_estimator.html#ADCS.estimators.attitude_estimators.attitude_estimator.Attitude_Estimator.initialize_estimate">initialize_estimate() (ADCS.estimators.attitude_estimators.attitude_estimator.Attitude_Estimator method)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.planner_subsettings.html#ADCS.controller.helpers.planner_subsettings.InitTrajConfig">InitTrajConfig (class in ADCS.controller.helpers.planner_subsettings)</a>
+        <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.InitTrajConfig">InitTrajConfig (class in ADCS.controller.plan_and_track.planner_subsettings)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.planner_settings.html#ADCS.controller.helpers.planner_settings.PlannerSettings.initTrajSettings">initTrajSettings() (ADCS.controller.helpers.planner_settings.PlannerSettings method)</a>
+        <li><a href="ADCS.controller.plan_and_track.planner_settings.html#ADCS.controller.plan_and_track.planner_settings.PlannerSettings.initTrajSettings">initTrajSettings() (ADCS.controller.plan_and_track.planner_settings.PlannerSettings method)</a>
 </li>
         <li><a href="ADCS.estimators.estimator_helpers.estimator_helpers.html#ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray.int_cov">int_cov (ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray attribute)</a>
 </li>
@@ -2714,21 +2760,21 @@
   <h2>L</h2>
   <table style="width: 100%" class="indextable genindextable"><tr>
     <td style="width: 33%; vertical-align: top;"><ul>
-        <li><a href="ADCS.controller.helpers.planner_subsettings.html#ADCS.controller.helpers.planner_subsettings.AugLagConfig.lag_mult_init">lag_mult_init (ADCS.controller.helpers.planner_subsettings.AugLagConfig attribute)</a>
+        <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.AugLagConfig.lag_mult_init">lag_mult_init (ADCS.controller.plan_and_track.planner_subsettings.AugLagConfig attribute)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.planner_subsettings.html#ADCS.controller.helpers.planner_subsettings.AugLagConfig.lag_mult_max">lag_mult_max (ADCS.controller.helpers.planner_subsettings.AugLagConfig attribute)</a>
+        <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.AugLagConfig.lag_mult_max">lag_mult_max (ADCS.controller.plan_and_track.planner_subsettings.AugLagConfig attribute)</a>
 </li>
         <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Path.lchmod">lchmod() (ADCS.helpers.simresults.Path method)</a>
 </li>
         <li><a href="ADCS.helpers.math_helpers.html#ADCS.helpers.math_helpers.limit">limit() (in module ADCS.helpers.math_helpers)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.planner_subsettings.html#ADCS.controller.helpers.planner_subsettings.SolverPassConfig.line_search">line_search (ADCS.controller.helpers.planner_subsettings.SolverPassConfig attribute)</a>
+        <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.SolverPassConfig.line_search">line_search (ADCS.controller.plan_and_track.planner_subsettings.SolverPassConfig attribute)</a>
 </li>
-        <li><a href="ADCS.controller.neo_planner.NEO_pass_settings.html#ADCS.controller.neo_planner.NEO_pass_settings.PassConfig.linesearch">linesearch (ADCS.controller.neo_planner.NEO_pass_settings.PassConfig attribute)</a>
+        <li><a href="ADCS.controller.saltro.SALTRO_pass_settings.html#ADCS.controller.saltro.SALTRO_pass_settings.PassConfig.linesearch">linesearch (ADCS.controller.saltro.SALTRO_pass_settings.PassConfig attribute)</a>
 </li>
     </ul></td>
     <td style="width: 33%; vertical-align: top;"><ul>
-        <li><a href="ADCS.controller.helpers.planner_subsettings.html#ADCS.controller.helpers.planner_subsettings.LineSearchConfig">LineSearchConfig (class in ADCS.controller.helpers.planner_subsettings)</a>
+        <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.LineSearchConfig">LineSearchConfig (class in ADCS.controller.plan_and_track.planner_subsettings)</a>
 </li>
         <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.SimulationResults.load">load() (ADCS.helpers.simresults.SimulationResults class method)</a>
 </li>
@@ -2736,7 +2782,7 @@
 </li>
         <li><a href="ADCS.helpers.save_and_load.save_and_load.html#ADCS.helpers.save_and_load.save_and_load.load_orbital_states">load_orbital_states() (in module ADCS.helpers.save_and_load.save_and_load)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.planner_subsettings.html#ADCS.controller.helpers.planner_subsettings.InitTrajConfig.low_settings">low_settings (ADCS.controller.helpers.planner_subsettings.InitTrajConfig attribute)</a>
+        <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.InitTrajConfig.low_settings">low_settings (ADCS.controller.plan_and_track.planner_subsettings.InitTrajConfig attribute)</a>
 </li>
         <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Path.lstat">lstat() (ADCS.helpers.simresults.Path method)</a>
 </li>
@@ -2750,7 +2796,7 @@
   <h2>M</h2>
   <table style="width: 100%" class="indextable genindextable"><tr>
     <td style="width: 33%; vertical-align: top;"><ul>
-        <li><a href="ADCS.controller.helpers.planner_settings.html#ADCS.controller.helpers.planner_settings.PlannerSettings.mainAlilqrSettings">mainAlilqrSettings() (ADCS.controller.helpers.planner_settings.PlannerSettings method)</a>
+        <li><a href="ADCS.controller.plan_and_track.planner_settings.html#ADCS.controller.plan_and_track.planner_settings.PlannerSettings.mainAlilqrSettings">mainAlilqrSettings() (ADCS.controller.plan_and_track.planner_settings.PlannerSettings method)</a>
 </li>
         <li><a href="ADCS.estimators.attitude_estimators.attitude_SRUAKF.html#ADCS.estimators.attitude_estimators.attitude_SRUAKF.SRUAKF.make_pts_and_wts">make_pts_and_wts() (ADCS.estimators.attitude_estimators.attitude_SRUAKF.SRUAKF method)</a>
 
@@ -2774,13 +2820,13 @@
 </li>
         <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.datetime.max">max (ADCS.helpers.simresults.datetime attribute)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.planner_subsettings.html#ADCS.controller.helpers.planner_subsettings.ConvergenceConfig.max_cost">max_cost (ADCS.controller.helpers.planner_subsettings.ConvergenceConfig attribute)</a>
+        <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.ConvergenceConfig.max_cost">max_cost (ADCS.controller.plan_and_track.planner_subsettings.ConvergenceConfig attribute)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.planner_subsettings.html#ADCS.controller.helpers.planner_subsettings.ConvergenceConfig.max_inner_iter">max_inner_iter (ADCS.controller.helpers.planner_subsettings.ConvergenceConfig attribute)</a>
+        <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.ConvergenceConfig.max_inner_iter">max_inner_iter (ADCS.controller.plan_and_track.planner_subsettings.ConvergenceConfig attribute)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.planner_subsettings.html#ADCS.controller.helpers.planner_subsettings.LineSearchConfig.max_iters">max_iters (ADCS.controller.helpers.planner_subsettings.LineSearchConfig attribute)</a>
+        <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.LineSearchConfig.max_iters">max_iters (ADCS.controller.plan_and_track.planner_subsettings.LineSearchConfig attribute)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.planner_subsettings.html#ADCS.controller.helpers.planner_subsettings.ConvergenceConfig.max_outer_iter">max_outer_iter (ADCS.controller.helpers.planner_subsettings.ConvergenceConfig attribute)</a>
+        <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.ConvergenceConfig.max_outer_iter">max_outer_iter (ADCS.controller.plan_and_track.planner_subsettings.ConvergenceConfig attribute)</a>
 </li>
         <li><a href="ADCS.mc.mcconfig.html#ADCS.mc.mcconfig.Orbit.max_time">max_time() (ADCS.mc.mcconfig.Orbit method)</a>
 
@@ -2788,9 +2834,9 @@
           <li><a href="ADCS.orbits.orbit.html#ADCS.orbits.orbit.Orbit.max_time">(ADCS.orbits.orbit.Orbit method)</a>
 </li>
         </ul></li>
-        <li><a href="ADCS.controller.helpers.planner_subsettings.html#ADCS.controller.helpers.planner_subsettings.ConvergenceConfig.max_total_iter">max_total_iter (ADCS.controller.helpers.planner_subsettings.ConvergenceConfig attribute)</a>
+        <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.ConvergenceConfig.max_total_iter">max_total_iter (ADCS.controller.plan_and_track.planner_subsettings.ConvergenceConfig attribute)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.debug_planner.html#ADCS.controller.helpers.debug_planner.DebugPlanner.maxViol">maxViol() (ADCS.controller.helpers.debug_planner.DebugPlanner method)</a>
+        <li><a href="ADCS.controller.plan_and_track.debug_planner.html#ADCS.controller.plan_and_track.debug_planner.DebugPlanner.maxViol">maxViol() (ADCS.controller.plan_and_track.debug_planner.DebugPlanner method)</a>
 </li>
         <li><a href="ADCS.mc.mcconfig.html#ADCS.mc.mcconfig.MCConfig">MCConfig (class in ADCS.mc.mcconfig)</a>
 </li>
@@ -2872,13 +2918,7 @@
 </li>
           <li><a href="ADCS.controller.helpers.html#module-ADCS.controller.helpers">ADCS.controller.helpers</a>
 </li>
-          <li><a href="ADCS.controller.helpers.build_csat.html#module-ADCS.controller.helpers.build_csat">ADCS.controller.helpers.build_csat</a>
-</li>
-          <li><a href="ADCS.controller.helpers.debug_planner.html#module-ADCS.controller.helpers.debug_planner">ADCS.controller.helpers.debug_planner</a>
-</li>
-          <li><a href="ADCS.controller.helpers.planner_settings.html#module-ADCS.controller.helpers.planner_settings">ADCS.controller.helpers.planner_settings</a>
-</li>
-          <li><a href="ADCS.controller.helpers.planner_subsettings.html#module-ADCS.controller.helpers.planner_subsettings">ADCS.controller.helpers.planner_subsettings</a>
+          <li><a href="ADCS.controller.helpers.optional_dependencies.html#module-ADCS.controller.helpers.optional_dependencies">ADCS.controller.helpers.optional_dependencies</a>
 </li>
           <li><a href="ADCS.controller.helpers.quaternion_math.html#module-ADCS.controller.helpers.quaternion_math">ADCS.controller.helpers.quaternion_math</a>
 </li>
@@ -2902,11 +2942,15 @@
 </li>
           <li><a href="ADCS.controller.neo_planner.html#module-ADCS.controller.neo_planner">ADCS.controller.neo_planner</a>
 </li>
-          <li><a href="ADCS.controller.neo_planner.NEO_constraint_settings.html#module-ADCS.controller.neo_planner.NEO_constraint_settings">ADCS.controller.neo_planner.NEO_constraint_settings</a>
+          <li><a href="ADCS.controller.plan_and_track.html#module-ADCS.controller.plan_and_track">ADCS.controller.plan_and_track</a>
 </li>
-          <li><a href="ADCS.controller.neo_planner.NEO_pass_settings.html#module-ADCS.controller.neo_planner.NEO_pass_settings">ADCS.controller.neo_planner.NEO_pass_settings</a>
+          <li><a href="ADCS.controller.plan_and_track.build_csat.html#module-ADCS.controller.plan_and_track.build_csat">ADCS.controller.plan_and_track.build_csat</a>
 </li>
-          <li><a href="ADCS.controller.neo_planner.NEO_planner_settings.html#module-ADCS.controller.neo_planner.NEO_planner_settings">ADCS.controller.neo_planner.NEO_planner_settings</a>
+          <li><a href="ADCS.controller.plan_and_track.debug_planner.html#module-ADCS.controller.plan_and_track.debug_planner">ADCS.controller.plan_and_track.debug_planner</a>
+</li>
+          <li><a href="ADCS.controller.plan_and_track.planner_settings.html#module-ADCS.controller.plan_and_track.planner_settings">ADCS.controller.plan_and_track.planner_settings</a>
+</li>
+          <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#module-ADCS.controller.plan_and_track.planner_subsettings">ADCS.controller.plan_and_track.planner_subsettings</a>
 </li>
           <li><a href="ADCS.controller.plan_and_track_base.html#module-ADCS.controller.plan_and_track_base">ADCS.controller.plan_and_track_base</a>
 </li>
@@ -2917,6 +2961,14 @@
           <li><a href="ADCS.controller.plan_and_track_lqr_disturbed.html#module-ADCS.controller.plan_and_track_lqr_disturbed">ADCS.controller.plan_and_track_lqr_disturbed</a>
 </li>
           <li><a href="ADCS.controller.saltro.html#module-ADCS.controller.saltro">ADCS.controller.saltro</a>
+</li>
+          <li><a href="ADCS.controller.saltro.SALTRO_constraint_settings.html#module-ADCS.controller.saltro.SALTRO_constraint_settings">ADCS.controller.saltro.SALTRO_constraint_settings</a>
+</li>
+          <li><a href="ADCS.controller.saltro.saltro_controller.html#module-ADCS.controller.saltro.saltro_controller">ADCS.controller.saltro.saltro_controller</a>
+</li>
+          <li><a href="ADCS.controller.saltro.SALTRO_pass_settings.html#module-ADCS.controller.saltro.SALTRO_pass_settings">ADCS.controller.saltro.SALTRO_pass_settings</a>
+</li>
+          <li><a href="ADCS.controller.saltro.SALTRO_planner_settings.html#module-ADCS.controller.saltro.SALTRO_planner_settings">ADCS.controller.saltro.SALTRO_planner_settings</a>
 </li>
           <li><a href="ADCS.environment.html#module-ADCS.environment">ADCS.environment</a>
 </li>
@@ -3145,6 +3197,8 @@
         </ul></li>
     </ul></td>
     <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="ADCS.controller.helpers.optional_dependencies.html#ADCS.controller.helpers.optional_dependencies.ModuleType">ModuleType (in module ADCS.controller.helpers.optional_dependencies)</a>
+</li>
         <li><a href="ADCS.mc.monte_carlo_runner.html#ADCS.mc.monte_carlo_runner.MonteCarloRunner">MonteCarloRunner (class in ADCS.mc.monte_carlo_runner)</a>
 </li>
         <li><a href="ADCS.helpers.math_helpers.html#ADCS.helpers.math_helpers.mrp_to_quat">mrp_to_quat() (in module ADCS.helpers.math_helpers)</a>
@@ -3259,11 +3313,11 @@
     <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Path.open">open() (ADCS.helpers.simresults.Path method)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.planner_settings.html#ADCS.controller.helpers.planner_settings.PlannerSettings.optMainCostSettings">optMainCostSettings() (ADCS.controller.helpers.planner_settings.PlannerSettings method)</a>
+        <li><a href="ADCS.controller.plan_and_track.planner_settings.html#ADCS.controller.plan_and_track.planner_settings.PlannerSettings.optMainCostSettings">optMainCostSettings() (ADCS.controller.plan_and_track.planner_settings.PlannerSettings method)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.planner_settings.html#ADCS.controller.helpers.planner_settings.PlannerSettings.optSecondCostSettings">optSecondCostSettings() (ADCS.controller.helpers.planner_settings.PlannerSettings method)</a>
+        <li><a href="ADCS.controller.plan_and_track.planner_settings.html#ADCS.controller.plan_and_track.planner_settings.PlannerSettings.optSecondCostSettings">optSecondCostSettings() (ADCS.controller.plan_and_track.planner_settings.PlannerSettings method)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.planner_settings.html#ADCS.controller.helpers.planner_settings.PlannerSettings.optTVLQRCostSettings">optTVLQRCostSettings() (ADCS.controller.helpers.planner_settings.PlannerSettings method)</a>
+        <li><a href="ADCS.controller.plan_and_track.planner_settings.html#ADCS.controller.plan_and_track.planner_settings.PlannerSettings.optTVLQRCostSettings">optTVLQRCostSettings() (ADCS.controller.plan_and_track.planner_settings.PlannerSettings method)</a>
 </li>
         <li><a href="ADCS.mc.mcconfig.html#ADCS.mc.mcconfig.MCConfig.orbit">orbit (ADCS.mc.mcconfig.MCConfig attribute)</a>
 </li>
@@ -3327,7 +3381,7 @@
 </li>
         <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.RunResults.os_hist">os_hist (ADCS.helpers.simresults.RunResults attribute)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.debug_planner.html#ADCS.controller.helpers.debug_planner.DebugPlanner.outerBreak">outerBreak() (ADCS.controller.helpers.debug_planner.DebugPlanner method)</a>
+        <li><a href="ADCS.controller.plan_and_track.debug_planner.html#ADCS.controller.plan_and_track.debug_planner.DebugPlanner.outerBreak">outerBreak() (ADCS.controller.plan_and_track.debug_planner.DebugPlanner method)</a>
 </li>
         <li><a href="ADCS.satellite_hardware.sensors.star_tracker.html#ADCS.satellite_hardware.sensors.star_tracker.StarTracker.output_length">output_length (ADCS.satellite_hardware.sensors.star_tracker.StarTracker attribute)</a>
 </li>
@@ -3343,17 +3397,17 @@
     <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="ADCS.estimators.estimator_helpers.estimator_helpers.html#ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedOrbital_State.P">P (ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedOrbital_State attribute)</a>
 </li>
-        <li><a href="ADCS.controller.neo_planner.NEO_pass_settings.html#ADCS.controller.neo_planner.NEO_pass_settings.PassConfig">PassConfig (class in ADCS.controller.neo_planner.NEO_pass_settings)</a>
+        <li><a href="ADCS.controller.saltro.SALTRO_pass_settings.html#ADCS.controller.saltro.SALTRO_pass_settings.PassConfig">PassConfig (class in ADCS.controller.saltro.SALTRO_pass_settings)</a>
 </li>
-        <li><a href="ADCS.controller.neo_planner.NEO_planner_settings.html#ADCS.controller.neo_planner.NEO_planner_settings.PlannerSettings.passes">passes (ADCS.controller.neo_planner.NEO_planner_settings.PlannerSettings attribute)</a>
+        <li><a href="ADCS.controller.saltro.SALTRO_planner_settings.html#ADCS.controller.saltro.SALTRO_planner_settings.PlannerSettings.passes">passes (ADCS.controller.saltro.SALTRO_planner_settings.PlannerSettings attribute)</a>
 </li>
         <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Path">Path (class in ADCS.helpers.simresults)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.planner_subsettings.html#ADCS.controller.helpers.planner_subsettings.AugLagConfig.penalty_init">penalty_init (ADCS.controller.helpers.planner_subsettings.AugLagConfig attribute)</a>
+        <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.AugLagConfig.penalty_init">penalty_init (ADCS.controller.plan_and_track.planner_subsettings.AugLagConfig attribute)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.planner_subsettings.html#ADCS.controller.helpers.planner_subsettings.AugLagConfig.penalty_max">penalty_max (ADCS.controller.helpers.planner_subsettings.AugLagConfig attribute)</a>
+        <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.AugLagConfig.penalty_max">penalty_max (ADCS.controller.plan_and_track.planner_subsettings.AugLagConfig attribute)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.planner_subsettings.html#ADCS.controller.helpers.planner_subsettings.AugLagConfig.penalty_scale">penalty_scale (ADCS.controller.helpers.planner_subsettings.AugLagConfig attribute)</a>
+        <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.AugLagConfig.penalty_scale">penalty_scale (ADCS.controller.plan_and_track.planner_subsettings.AugLagConfig attribute)</a>
 </li>
         <li><a href="ADCS.CONOPS.goals.vector_goals.perpbfield_goal.html#ADCS.CONOPS.goals.vector_goals.perpbfield_goal.PerpBField_Goal">PerpBField_Goal (class in ADCS.CONOPS.goals.vector_goals.perpbfield_goal)</a>
 </li>
@@ -3367,14 +3421,14 @@
 </li>
         <li><a href="ADCS.controller.plan_and_track_base.html#ADCS.controller.plan_and_track_base.PlanAndTrackBase.planner">planner (ADCS.controller.plan_and_track_base.PlanAndTrackBase attribute)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.planner_settings.html#ADCS.controller.helpers.planner_settings.PlannerSettings.planner_disturbance_settings">planner_disturbance_settings() (ADCS.controller.helpers.planner_settings.PlannerSettings method)</a>
+        <li><a href="ADCS.controller.plan_and_track.planner_settings.html#ADCS.controller.plan_and_track.planner_settings.PlannerSettings.planner_disturbance_settings">planner_disturbance_settings() (ADCS.controller.plan_and_track.planner_settings.PlannerSettings method)</a>
 </li>
         <li><a href="ADCS.controller.plan_and_track_base.html#ADCS.controller.plan_and_track_base.PlanAndTrackBase.planner_settings">planner_settings (ADCS.controller.plan_and_track_base.PlanAndTrackBase attribute)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.planner_settings.html#ADCS.controller.helpers.planner_settings.PlannerSettings">PlannerSettings (class in ADCS.controller.helpers.planner_settings)</a>
+        <li><a href="ADCS.controller.plan_and_track.planner_settings.html#ADCS.controller.plan_and_track.planner_settings.PlannerSettings">PlannerSettings (class in ADCS.controller.plan_and_track.planner_settings)</a>
 
         <ul>
-          <li><a href="ADCS.controller.neo_planner.NEO_planner_settings.html#ADCS.controller.neo_planner.NEO_planner_settings.PlannerSettings">(class in ADCS.controller.neo_planner.NEO_planner_settings)</a>
+          <li><a href="ADCS.controller.saltro.SALTRO_planner_settings.html#ADCS.controller.saltro.SALTRO_planner_settings.PlannerSettings">(class in ADCS.controller.saltro.SALTRO_planner_settings)</a>
 </li>
         </ul></li>
         <li><a href="ADCS.helpers.plot.control.attitudeplot.html#ADCS.helpers.plot.control.attitudeplot.AttitudePlot.plot">plot() (ADCS.helpers.plot.control.attitudeplot.AttitudePlot method)</a>
@@ -3475,7 +3529,7 @@
 </li>
         <li><a href="ADCS.controller.mtq_w_rw_LP.html#ADCS.controller.mtq_w_rw_LP.MTQ_w_RW_LP.plot_torques">plot_torques() (ADCS.controller.mtq_w_rw_LP.MTQ_w_RW_LP method)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.debug_planner.html#ADCS.controller.helpers.debug_planner.DebugPlanner.prepareForAlilqr">prepareForAlilqr() (ADCS.controller.helpers.debug_planner.DebugPlanner method)</a>
+        <li><a href="ADCS.controller.plan_and_track.debug_planner.html#ADCS.controller.plan_and_track.debug_planner.DebugPlanner.prepareForAlilqr">prepareForAlilqr() (ADCS.controller.plan_and_track.debug_planner.DebugPlanner method)</a>
 </li>
         <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Satellite.prop_dist_off">prop_dist_off() (ADCS.helpers.simresults.Satellite method)</a>
 
@@ -3571,7 +3625,7 @@
 </li>
         <li><a href="ADCS.environment.star_catalog.html#ADCS.environment.star_catalog.NavigationStar.ra_rad">ra_rad (ADCS.environment.star_catalog.NavigationStar attribute)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.planner_subsettings.html#ADCS.controller.helpers.planner_subsettings.RegularizationConfig.rand_add_ratio">rand_add_ratio (ADCS.controller.helpers.planner_subsettings.RegularizationConfig attribute)</a>
+        <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.RegularizationConfig.rand_add_ratio">rand_add_ratio (ADCS.controller.plan_and_track.planner_subsettings.RegularizationConfig attribute)</a>
 </li>
         <li><a href="ADCS.helpers.math_helpers.html#ADCS.helpers.math_helpers.random_n_unit_vec">random_n_unit_vec() (in module ADCS.helpers.math_helpers)</a>
 </li>
@@ -3579,7 +3633,7 @@
 </li>
         <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Path.read_text">read_text() (ADCS.helpers.simresults.Path method)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.debug_planner.html#ADCS.controller.helpers.debug_planner.DebugPlanner.readDebug">readDebug() (ADCS.controller.helpers.debug_planner.DebugPlanner method)</a>
+        <li><a href="ADCS.controller.plan_and_track.debug_planner.html#ADCS.controller.plan_and_track.debug_planner.DebugPlanner.readDebug">readDebug() (ADCS.controller.plan_and_track.debug_planner.DebugPlanner method)</a>
 </li>
         <li><a href="ADCS.satellite_hardware.sensors.sensor.html#ADCS.satellite_hardware.sensors.sensor.Sensor.reading">reading() (ADCS.satellite_hardware.sensors.sensor.Sensor method)</a>
 
@@ -3589,33 +3643,33 @@
         </ul></li>
         <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Path.readlink">readlink() (ADCS.helpers.simresults.Path method)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.debug_planner.html#ADCS.controller.helpers.debug_planner.DebugPlanner.readParameters">readParameters() (ADCS.controller.helpers.debug_planner.DebugPlanner method)</a>
+        <li><a href="ADCS.controller.plan_and_track.debug_planner.html#ADCS.controller.plan_and_track.debug_planner.DebugPlanner.readParameters">readParameters() (ADCS.controller.plan_and_track.debug_planner.DebugPlanner method)</a>
 </li>
         <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.RunResults.record">record() (ADCS.helpers.simresults.RunResults method)</a>
 </li>
-        <li><a href="ADCS.controller.neo_planner.NEO_pass_settings.html#ADCS.controller.neo_planner.NEO_pass_settings.PassConfig.reg">reg (ADCS.controller.neo_planner.NEO_pass_settings.PassConfig attribute)</a>
+        <li><a href="ADCS.controller.saltro.SALTRO_pass_settings.html#ADCS.controller.saltro.SALTRO_pass_settings.PassConfig.reg">reg (ADCS.controller.saltro.SALTRO_pass_settings.PassConfig attribute)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.planner_subsettings.html#ADCS.controller.helpers.planner_subsettings.RegularizationConfig.reg_bump">reg_bump (ADCS.controller.helpers.planner_subsettings.RegularizationConfig attribute)</a>
+        <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.RegularizationConfig.reg_bump">reg_bump (ADCS.controller.plan_and_track.planner_subsettings.RegularizationConfig attribute)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.planner_subsettings.html#ADCS.controller.helpers.planner_subsettings.RegularizationConfig.reg_init">reg_init (ADCS.controller.helpers.planner_subsettings.RegularizationConfig attribute)</a>
+        <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.RegularizationConfig.reg_init">reg_init (ADCS.controller.plan_and_track.planner_subsettings.RegularizationConfig attribute)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.planner_subsettings.html#ADCS.controller.helpers.planner_subsettings.RegularizationConfig.reg_max">reg_max (ADCS.controller.helpers.planner_subsettings.RegularizationConfig attribute)</a>
+        <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.RegularizationConfig.reg_max">reg_max (ADCS.controller.plan_and_track.planner_subsettings.RegularizationConfig attribute)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.planner_subsettings.html#ADCS.controller.helpers.planner_subsettings.RegularizationConfig.reg_min">reg_min (ADCS.controller.helpers.planner_subsettings.RegularizationConfig attribute)</a>
+        <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.RegularizationConfig.reg_min">reg_min (ADCS.controller.plan_and_track.planner_subsettings.RegularizationConfig attribute)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.planner_subsettings.html#ADCS.controller.helpers.planner_subsettings.RegularizationConfig.reg_min_cond">reg_min_cond (ADCS.controller.helpers.planner_subsettings.RegularizationConfig attribute)</a>
+        <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.RegularizationConfig.reg_min_cond">reg_min_cond (ADCS.controller.plan_and_track.planner_subsettings.RegularizationConfig attribute)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.planner_subsettings.html#ADCS.controller.helpers.planner_subsettings.RegularizationConfig.reg_scale">reg_scale (ADCS.controller.helpers.planner_subsettings.RegularizationConfig attribute)</a>
+        <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.RegularizationConfig.reg_scale">reg_scale (ADCS.controller.plan_and_track.planner_subsettings.RegularizationConfig attribute)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.planner_subsettings.html#ADCS.controller.helpers.planner_subsettings.SolverPassConfig.regularization">regularization (ADCS.controller.helpers.planner_subsettings.SolverPassConfig attribute)</a>
+        <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.SolverPassConfig.regularization">regularization (ADCS.controller.plan_and_track.planner_subsettings.SolverPassConfig attribute)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.planner_subsettings.html#ADCS.controller.helpers.planner_subsettings.RegularizationConfig">RegularizationConfig (class in ADCS.controller.helpers.planner_subsettings)</a>
+        <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.RegularizationConfig">RegularizationConfig (class in ADCS.controller.plan_and_track.planner_subsettings)</a>
 </li>
         <li><a href="ADCS.mc.monte_carlo_runner.html#ADCS.mc.monte_carlo_runner.release_worker_slot">release_worker_slot() (in module ADCS.mc.monte_carlo_runner)</a>
 </li>
         <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Path.rename">rename() (ADCS.helpers.simresults.Path method)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.build_csat.html#ADCS.controller.helpers.build_csat.reorder_controls_cpp_to_python">reorder_controls_cpp_to_python() (in module ADCS.controller.helpers.build_csat)</a>
+        <li><a href="ADCS.controller.plan_and_track.build_csat.html#ADCS.controller.plan_and_track.build_csat.reorder_controls_cpp_to_python">reorder_controls_cpp_to_python() (in module ADCS.controller.plan_and_track.build_csat)</a>
 </li>
         <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.datetime.replace">replace() (ADCS.helpers.simresults.datetime method)</a>
 
@@ -3649,7 +3703,7 @@
 </li>
         <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Path.rglob">rglob() (ADCS.helpers.simresults.Path method)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.debug_planner.html#ADCS.controller.helpers.debug_planner.DebugPlanner.rk4z">rk4z() (ADCS.controller.helpers.debug_planner.DebugPlanner method)</a>
+        <li><a href="ADCS.controller.plan_and_track.debug_planner.html#ADCS.controller.plan_and_track.debug_planner.DebugPlanner.rk4z">rk4z() (ADCS.controller.plan_and_track.debug_planner.DebugPlanner method)</a>
 </li>
         <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Path.rmdir">rmdir() (ADCS.helpers.simresults.Path method)</a>
 </li>
@@ -3701,7 +3755,13 @@
     <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="ADCS.environment.star_catalog.html#ADCS.environment.star_catalog.NavigationStar.s_eci">s_eci (ADCS.environment.star_catalog.NavigationStar attribute)</a>
 </li>
-        <li><a href="ADCS.controller.saltro.html#ADCS.controller.saltro.SALTRO">SALTRO (class in ADCS.controller.saltro)</a>
+        <li><a href="ADCS.controller.saltro.saltro_controller.html#ADCS.controller.saltro.saltro_controller.SALTRO">SALTRO (class in ADCS.controller.saltro.saltro_controller)</a>
+</li>
+        <li><a href="ADCS.controller.helpers.optional_dependencies.html#ADCS.controller.helpers.optional_dependencies.saltro_available">saltro_available() (in module ADCS.controller.helpers.optional_dependencies)</a>
+</li>
+        <li><a href="ADCS.controller.helpers.optional_dependencies.html#ADCS.controller.helpers.optional_dependencies.saltro_build_path">saltro_build_path() (in module ADCS.controller.helpers.optional_dependencies)</a>
+</li>
+        <li><a href="ADCS.controller.helpers.optional_dependencies.html#ADCS.controller.helpers.optional_dependencies.saltro_missing_reason">saltro_missing_reason() (in module ADCS.controller.helpers.optional_dependencies)</a>
 </li>
         <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Path.samefile">samefile() (ADCS.helpers.simresults.Path method)</a>
 </li>
@@ -3725,7 +3785,7 @@
 </li>
         <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.datetime.second">second (ADCS.helpers.simresults.datetime attribute)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.planner_settings.html#ADCS.controller.helpers.planner_settings.PlannerSettings.secondAlilqrSettings">secondAlilqrSettings() (ADCS.controller.helpers.planner_settings.PlannerSettings method)</a>
+        <li><a href="ADCS.controller.plan_and_track.planner_settings.html#ADCS.controller.plan_and_track.planner_settings.PlannerSettings.secondAlilqrSettings">secondAlilqrSettings() (ADCS.controller.plan_and_track.planner_settings.PlannerSettings method)</a>
 </li>
         <li><a href="ADCS.satellite_hardware.sensors.sensor.html#ADCS.satellite_hardware.sensors.sensor.Sensor">Sensor (class in ADCS.satellite_hardware.sensors.sensor)</a>
 </li>
@@ -3764,16 +3824,20 @@
         <li><a href="ADCS.helpers.plot.sensors.sensorsplot.html#ADCS.helpers.plot.sensors.sensorsplot.SensorsPlotSingle">SensorsPlotSingle (class in ADCS.helpers.plot.sensors.sensorsplot)</a>
 </li>
         <li><a href="ADCS.controller.plan_and_track_base.html#ADCS.controller.plan_and_track_base.PlanAndTrackBase.set_active_trajectory">set_active_trajectory() (ADCS.controller.plan_and_track_base.PlanAndTrackBase method)</a>
+
+        <ul>
+          <li><a href="ADCS.controller.saltro.saltro_controller.html#ADCS.controller.saltro.saltro_controller.SALTRO.set_active_trajectory">(ADCS.controller.saltro.saltro_controller.SALTRO method)</a>
 </li>
+        </ul></li>
         <li><a href="ADCS.estimators.estimator_helpers.estimator_helpers.html#ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray.set_indices">set_indices() (ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray method)</a>
 
         <ul>
           <li><a href="ADCS.estimators.estimator_helpers.estimator_helpers.html#ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedOrbital_State.set_indices">(ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedOrbital_State method)</a>
 </li>
         </ul></li>
-        <li><a href="ADCS.controller.helpers.debug_planner.html#ADCS.controller.helpers.debug_planner.DebugPlanner.setquaternionTo3VecMode">setquaternionTo3VecMode() (ADCS.controller.helpers.debug_planner.DebugPlanner method)</a>
+        <li><a href="ADCS.controller.plan_and_track.debug_planner.html#ADCS.controller.plan_and_track.debug_planner.DebugPlanner.setquaternionTo3VecMode">setquaternionTo3VecMode() (ADCS.controller.plan_and_track.debug_planner.DebugPlanner method)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.debug_planner.html#ADCS.controller.helpers.debug_planner.DebugPlanner.setVerbosity">setVerbosity() (ADCS.controller.helpers.debug_planner.DebugPlanner method)</a>
+        <li><a href="ADCS.controller.plan_and_track.debug_planner.html#ADCS.controller.plan_and_track.debug_planner.DebugPlanner.setVerbosity">setVerbosity() (ADCS.controller.plan_and_track.debug_planner.DebugPlanner method)</a>
 </li>
         <li><a href="ADCS.flight_software.single_core.ttc_single_core.html#ADCS.flight_software.single_core.ttc_single_core.TTC_Single_Core.simulate">simulate() (ADCS.flight_software.single_core.ttc_single_core.TTC_Single_Core method)</a>
 
@@ -3791,16 +3855,16 @@
 </li>
         <li><a href="ADCS.controller.mtq_w_rw_QPC.html#ADCS.controller.mtq_w_rw_QPC.MTQ_w_RW_QPC.solve_lp_scaling">solve_lp_scaling() (ADCS.controller.mtq_w_rw_QPC.MTQ_w_RW_QPC method)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.planner_subsettings.html#ADCS.controller.helpers.planner_subsettings.SolverPassConfig">SolverPassConfig (class in ADCS.controller.helpers.planner_subsettings)</a>
+        <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.SolverPassConfig">SolverPassConfig (class in ADCS.controller.plan_and_track.planner_subsettings)</a>
 </li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Satellite.specific_dist_off">specific_dist_off() (ADCS.helpers.simresults.Satellite method)</a>
 
         <ul>
           <li><a href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.specific_dist_off">(ADCS.satellite_hardware.satellite.satellite.Satellite method)</a>
 </li>
         </ul></li>
-    </ul></td>
-    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Satellite.specific_dist_on">specific_dist_on() (ADCS.helpers.simresults.Satellite method)</a>
 
         <ul>
@@ -3879,7 +3943,7 @@
         </ul></li>
         <li><a href="ADCS.CONOPS.goals.vector_goals.sun_goal.html#ADCS.CONOPS.goals.vector_goals.sun_goal.Sun_Goal">Sun_Goal (class in ADCS.CONOPS.goals.vector_goals.sun_goal)</a>
 </li>
-        <li><a href="ADCS.controller.neo_planner.NEO_constraint_settings.html#ADCS.controller.neo_planner.NEO_constraint_settings.ConstraintConfig.sun_limit_angle">sun_limit_angle (ADCS.controller.neo_planner.NEO_constraint_settings.ConstraintConfig attribute)</a>
+        <li><a href="ADCS.controller.saltro.SALTRO_constraint_settings.html#ADCS.controller.saltro.SALTRO_constraint_settings.ConstraintConfig.sun_limit_angle">sun_limit_angle (ADCS.controller.saltro.SALTRO_constraint_settings.ConstraintConfig attribute)</a>
 </li>
         <li><a href="ADCS.satellite_hardware.sensors.sunpair.html#ADCS.satellite_hardware.sensors.sunpair.SunPair">SunPair (class in ADCS.satellite_hardware.sensors.sunpair)</a>
 </li>
@@ -3899,7 +3963,7 @@
         </ul></li>
         <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Path.symlink_to">symlink_to() (ADCS.helpers.simresults.Path method)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.planner_settings.html#ADCS.controller.helpers.planner_settings.PlannerSettings.systemSettings">systemSettings() (ADCS.controller.helpers.planner_settings.PlannerSettings method)</a>
+        <li><a href="ADCS.controller.plan_and_track.planner_settings.html#ADCS.controller.plan_and_track.planner_settings.PlannerSettings.systemSettings">systemSettings() (ADCS.controller.plan_and_track.planner_settings.PlannerSettings method)</a>
 </li>
     </ul></td>
   </tr></table>
@@ -3943,6 +4007,14 @@
 </li>
         <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.datetime.timetz">timetz() (ADCS.helpers.simresults.datetime method)</a>
 </li>
+        <li><a href="ADCS.controller.saltro.SALTRO_constraint_settings.html#ADCS.controller.saltro.SALTRO_constraint_settings.ConstraintConfig.to_cpp">to_cpp() (ADCS.controller.saltro.SALTRO_constraint_settings.ConstraintConfig method)</a>
+
+        <ul>
+          <li><a href="ADCS.controller.saltro.SALTRO_pass_settings.html#ADCS.controller.saltro.SALTRO_pass_settings.PassConfig.to_cpp">(ADCS.controller.saltro.SALTRO_pass_settings.PassConfig method)</a>
+</li>
+          <li><a href="ADCS.controller.saltro.SALTRO_planner_settings.html#ADCS.controller.saltro.SALTRO_planner_settings.PlannerSettings.to_cpp">(ADCS.controller.saltro.SALTRO_planner_settings.PlannerSettings method)</a>
+</li>
+        </ul></li>
         <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Orbital_State.to_dict">to_dict() (ADCS.helpers.simresults.Orbital_State method)</a>
 
         <ul>
@@ -3995,18 +4067,18 @@
     <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="ADCS.controller.helpers.trajectory.html#ADCS.controller.helpers.trajectory.Trajectory.to_simulation_results">to_simulation_results() (ADCS.controller.helpers.trajectory.Trajectory method)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.planner_subsettings.html#ADCS.controller.helpers.planner_subsettings.AugLagConfig.to_tuple">to_tuple() (ADCS.controller.helpers.planner_subsettings.AugLagConfig method)</a>
+        <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.AugLagConfig.to_tuple">to_tuple() (ADCS.controller.plan_and_track.planner_subsettings.AugLagConfig method)</a>
 
         <ul>
-          <li><a href="ADCS.controller.helpers.planner_subsettings.html#ADCS.controller.helpers.planner_subsettings.ConvergenceConfig.to_tuple">(ADCS.controller.helpers.planner_subsettings.ConvergenceConfig method)</a>
+          <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.ConvergenceConfig.to_tuple">(ADCS.controller.plan_and_track.planner_subsettings.ConvergenceConfig method)</a>
 </li>
-          <li><a href="ADCS.controller.helpers.planner_subsettings.html#ADCS.controller.helpers.planner_subsettings.CostWeights.to_tuple">(ADCS.controller.helpers.planner_subsettings.CostWeights method)</a>
+          <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.CostWeights.to_tuple">(ADCS.controller.plan_and_track.planner_subsettings.CostWeights method)</a>
 </li>
-          <li><a href="ADCS.controller.helpers.planner_subsettings.html#ADCS.controller.helpers.planner_subsettings.InitTrajConfig.to_tuple">(ADCS.controller.helpers.planner_subsettings.InitTrajConfig method)</a>
+          <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.InitTrajConfig.to_tuple">(ADCS.controller.plan_and_track.planner_subsettings.InitTrajConfig method)</a>
 </li>
-          <li><a href="ADCS.controller.helpers.planner_subsettings.html#ADCS.controller.helpers.planner_subsettings.LineSearchConfig.to_tuple">(ADCS.controller.helpers.planner_subsettings.LineSearchConfig method)</a>
+          <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.LineSearchConfig.to_tuple">(ADCS.controller.plan_and_track.planner_subsettings.LineSearchConfig method)</a>
 </li>
-          <li><a href="ADCS.controller.helpers.planner_subsettings.html#ADCS.controller.helpers.planner_subsettings.RegularizationConfig.to_tuple">(ADCS.controller.helpers.planner_subsettings.RegularizationConfig method)</a>
+          <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.RegularizationConfig.to_tuple">(ADCS.controller.plan_and_track.planner_subsettings.RegularizationConfig method)</a>
 </li>
         </ul></li>
         <li><a href="ADCS.satellite_hardware.actuators.actuator.html#ADCS.satellite_hardware.actuators.actuator.Actuator.torque">torque() (ADCS.satellite_hardware.actuators.actuator.Actuator method)</a>
@@ -4055,15 +4127,23 @@
 </li>
         <li><a href="ADCS.satellite_hardware.disturbances.dipole_disturbance.html#ADCS.satellite_hardware.disturbances.dipole_disturbance.Dipole_Disturbance.torque_valjac">torque_valjac() (ADCS.satellite_hardware.disturbances.dipole_disturbance.Dipole_Disturbance method)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.planner_subsettings.html#ADCS.controller.helpers.planner_subsettings.ConvergenceConfig.total_cost_tol">total_cost_tol (ADCS.controller.helpers.planner_subsettings.ConvergenceConfig attribute)</a>
+        <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.ConvergenceConfig.total_cost_tol">total_cost_tol (ADCS.controller.plan_and_track.planner_subsettings.ConvergenceConfig attribute)</a>
 </li>
         <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Path.touch">touch() (ADCS.helpers.simresults.Path method)</a>
 </li>
         <li><a href="ADCS.controller.helpers.trajectory.html#ADCS.controller.helpers.trajectory.Trajectory">Trajectory (class in ADCS.controller.helpers.trajectory)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.debug_planner.html#ADCS.controller.helpers.debug_planner.DebugPlanner.trajOpt">trajOpt() (ADCS.controller.helpers.debug_planner.DebugPlanner method)</a>
+        <li><a href="ADCS.controller.helpers.optional_dependencies.html#ADCS.controller.helpers.optional_dependencies.trajectory_planner_available">trajectory_planner_available() (in module ADCS.controller.helpers.optional_dependencies)</a>
+</li>
+        <li><a href="ADCS.controller.helpers.optional_dependencies.html#ADCS.controller.helpers.optional_dependencies.trajectory_planner_build_path">trajectory_planner_build_path() (in module ADCS.controller.helpers.optional_dependencies)</a>
+</li>
+        <li><a href="ADCS.controller.helpers.optional_dependencies.html#ADCS.controller.helpers.optional_dependencies.trajectory_planner_missing_reason">trajectory_planner_missing_reason() (in module ADCS.controller.helpers.optional_dependencies)</a>
+</li>
+        <li><a href="ADCS.controller.plan_and_track.debug_planner.html#ADCS.controller.plan_and_track.debug_planner.DebugPlanner.trajOpt">trajOpt() (ADCS.controller.plan_and_track.debug_planner.DebugPlanner method)</a>
 </li>
         <li><a href="ADCS.flight_software.single_core.ttc_single_core.html#ADCS.flight_software.single_core.ttc_single_core.TTC_Single_Core">TTC_Single_Core (class in ADCS.flight_software.single_core.ttc_single_core)</a>
+</li>
+        <li><a href="ADCS.controller.saltro.SALTRO_planner_settings.html#ADCS.controller.saltro.SALTRO_planner_settings.PlannerSettings.tvlqr">tvlqr (ADCS.controller.saltro.SALTRO_planner_settings.PlannerSettings attribute)</a>
 </li>
         <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.datetime.tzinfo">tzinfo (ADCS.helpers.simresults.datetime attribute)</a>
 </li>
@@ -4077,7 +4157,7 @@
   <h2>U</h2>
   <table style="width: 100%" class="indextable genindextable"><tr>
     <td style="width: 33%; vertical-align: top;"><ul>
-        <li><a href="ADCS.controller.neo_planner.NEO_constraint_settings.html#ADCS.controller.neo_planner.NEO_constraint_settings.ConstraintConfig.u_max">u_max (ADCS.controller.neo_planner.NEO_constraint_settings.ConstraintConfig attribute)</a>
+        <li><a href="ADCS.controller.saltro.SALTRO_constraint_settings.html#ADCS.controller.saltro.SALTRO_constraint_settings.ConstraintConfig.u_max">u_max (ADCS.controller.saltro.SALTRO_constraint_settings.ConstraintConfig attribute)</a>
 </li>
         <li><a href="ADCS.estimators.attitude_estimators.attitude_UAKF.html#ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF">UAKF (class in ADCS.estimators.attitude_estimators.attitude_UAKF)</a>
 </li>
@@ -4135,15 +4215,15 @@
         </ul></li>
         <li><a href="ADCS.mc.monte_carlo_runner.html#ADCS.mc.monte_carlo_runner.update_worker_progress">update_worker_progress() (in module ADCS.mc.monte_carlo_runner)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.debug_planner.html#ADCS.controller.helpers.debug_planner.DebugPlanner.updateParameters">updateParameters() (ADCS.controller.helpers.debug_planner.DebugPlanner method)</a>
+        <li><a href="ADCS.controller.plan_and_track.debug_planner.html#ADCS.controller.plan_and_track.debug_planner.DebugPlanner.updateParameters">updateParameters() (ADCS.controller.plan_and_track.debug_planner.DebugPlanner method)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.planner_subsettings.html#ADCS.controller.helpers.planner_subsettings.RegularizationConfig.use_constraint_hess">use_constraint_hess (ADCS.controller.helpers.planner_subsettings.RegularizationConfig attribute)</a>
+        <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.RegularizationConfig.use_constraint_hess">use_constraint_hess (ADCS.controller.plan_and_track.planner_subsettings.RegularizationConfig attribute)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.planner_subsettings.html#ADCS.controller.helpers.planner_subsettings.RegularizationConfig.use_dynamics_hess">use_dynamics_hess (ADCS.controller.helpers.planner_subsettings.RegularizationConfig attribute)</a>
+        <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.RegularizationConfig.use_dynamics_hess">use_dynamics_hess (ADCS.controller.plan_and_track.planner_subsettings.RegularizationConfig attribute)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.planner_subsettings.html#ADCS.controller.helpers.planner_subsettings.CostWeights.use_full_cost_hessian">use_full_cost_hessian (ADCS.controller.helpers.planner_subsettings.CostWeights attribute)</a>
+        <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.CostWeights.use_full_cost_hessian">use_full_cost_hessian (ADCS.controller.plan_and_track.planner_subsettings.CostWeights attribute)</a>
 </li>
-        <li><a href="ADCS.controller.helpers.planner_subsettings.html#ADCS.controller.helpers.planner_subsettings.CostWeights.use_raw_control_cost">use_raw_control_cost (ADCS.controller.helpers.planner_subsettings.CostWeights attribute)</a>
+        <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.CostWeights.use_raw_control_cost">use_raw_control_cost (ADCS.controller.plan_and_track.planner_subsettings.CostWeights attribute)</a>
 </li>
         <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.datetime.utcfromtimestamp">utcfromtimestamp() (ADCS.helpers.simresults.datetime class method)</a>
 </li>
@@ -4201,7 +4281,7 @@
 </li>
         <li><a href="ADCS.helpers.math_helpers.html#ADCS.helpers.math_helpers.Wmat">Wmat() (in module ADCS.helpers.math_helpers)</a>
 </li>
-        <li><a href="ADCS.controller.neo_planner.NEO_constraint_settings.html#ADCS.controller.neo_planner.NEO_constraint_settings.ConstraintConfig.wmax">wmax (ADCS.controller.neo_planner.NEO_constraint_settings.ConstraintConfig attribute)</a>
+        <li><a href="ADCS.controller.saltro.SALTRO_constraint_settings.html#ADCS.controller.saltro.SALTRO_constraint_settings.ConstraintConfig.wmax">wmax (ADCS.controller.saltro.SALTRO_constraint_settings.ConstraintConfig attribute)</a>
 </li>
         <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Path.write_bytes">write_bytes() (ADCS.helpers.simresults.Path method)</a>
 </li>
@@ -4215,7 +4295,7 @@
   <h2>X</h2>
   <table style="width: 100%" class="indextable genindextable"><tr>
     <td style="width: 33%; vertical-align: top;"><ul>
-        <li><a href="ADCS.controller.helpers.planner_subsettings.html#ADCS.controller.helpers.planner_subsettings.ConvergenceConfig.xmax_val">xmax_val (ADCS.controller.helpers.planner_subsettings.ConvergenceConfig attribute)</a>
+        <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.ConvergenceConfig.xmax_val">xmax_val (ADCS.controller.plan_and_track.planner_subsettings.ConvergenceConfig attribute)</a>
 </li>
     </ul></td>
   </tr></table>
@@ -4225,7 +4305,7 @@
   <h2>Z</h2>
   <table style="width: 100%" class="indextable genindextable"><tr>
     <td style="width: 33%; vertical-align: top;"><ul>
-        <li><a href="ADCS.controller.helpers.planner_subsettings.html#ADCS.controller.helpers.planner_subsettings.ConvergenceConfig.z_count_lim">z_count_lim (ADCS.controller.helpers.planner_subsettings.ConvergenceConfig attribute)</a>
+        <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.ConvergenceConfig.z_count_lim">z_count_lim (ADCS.controller.plan_and_track.planner_subsettings.ConvergenceConfig attribute)</a>
 </li>
     </ul></td>
     <td style="width: 33%; vertical-align: top;"><ul>

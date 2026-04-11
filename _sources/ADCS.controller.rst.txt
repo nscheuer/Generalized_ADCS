@@ -9,6 +9,8 @@ Subpackages
 
    ADCS.controller.helpers
    ADCS.controller.neo_planner
+   ADCS.controller.plan_and_track
+   ADCS.controller.saltro
 
 Submodules
 ----------
@@ -30,7 +32,6 @@ Submodules
    ADCS.controller.plan_and_track_exact
    ADCS.controller.plan_and_track_lqr
    ADCS.controller.plan_and_track_lqr_disturbed
-   ADCS.controller.saltro
 
 Module contents
 ---------------
