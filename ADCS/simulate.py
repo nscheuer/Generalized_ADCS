@@ -10,7 +10,7 @@ import ADCS as ADCS
 
 from ADCS.CONOPS.goals import Goal, No_Goal
 from ADCS.CONOPS.goallist import GoalList
-from ADCS.controller import Controller, PlanAndTrackBase
+from ADCS.controller.controller import Controller
 from ADCS.estimators.attitude_estimators import Attitude_Estimator
 from ADCS.estimators.orbit_estimators import Orbit_Estimator
 from ADCS.estimators.estimator_helpers import EstimatedOrbital_State
@@ -21,6 +21,13 @@ from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.helpers.math_helpers import normalize
 
 from ADCS.helpers.simresults import SimulationResults, RunResults
+
+
+def _supports_planning(controller: Controller) -> bool:
+    """Return True if controller exposes plan-and-track style methods."""
+    return callable(getattr(controller, "calculate_trajectory", None)) and callable(
+        getattr(controller, "set_active_trajectory", None)
+    )
 
 def simulate(
     x: np.ndarray,
@@ -149,33 +156,58 @@ def simulate(
 
     os_hat = None
 
-    if controller is not None and isinstance(controller, PlanAndTrackBase):
-        print("Calculating initial trajectory for Plan-and-Track controller...")
-        trajectory = controller.calculate_trajectory(
-            t_start=start_time,
-            duration=tf,
-            x_0=x,
-            os_0=os0,
-            goals=goal_list,
-            verbose=True
-        )
-        
-        if True:
-            active_goal = goal_list.get_active_goal(start_time, time_units="centuries")
-            target, w_target = active_goal.to_ref(os0) 
-            simresults = trajectory.to_simulation_results(satellite, target=target, w_target=w_target)
-            ADCS.plot(
-                simresults,
-                ADCS.plots.AngularVelocityPlotCombined(sources=["real"]),
-                ADCS.plots.ControlPlotCombined(title="Magnetorquer Commands", units="Am²"),
-                ADCS.plots.TargetHistogram(bin_width=5.0),
-                ADCS.plots.TargetPlot(modes=["real_target"], title="Target Tracking"),
-                layout=(2,2),
-                title="TRAJECTORY",
+    if controller is not None and _supports_planning(controller):
+        has_active_trajectory = getattr(controller, "active_trajectory", None) is not None
+        if not has_active_trajectory:
+            print("Calculating initial trajectory for Plan-and-Track controller...")
+            trajectory = controller.calculate_trajectory(
+                t_start=start_time,
+                duration=tf,
+                x_0=x,
+                os_0=os0,
+                goals=goal_list,
+                verbose=False
             )
-            plt.show()
 
-        controller.set_active_trajectory(trajectory)
+            if True:
+                target_hist = []
+                w_target_hist = []
+                boresight_hist = []
+
+                for t_j2000 in np.asarray(trajectory.times):
+                    os_t = orb.get_os(J2000=float(t_j2000))
+                    active_goal = goal_list.get_active_goal(float(t_j2000), time_units="centuries")
+                    target_t, w_target_t = active_goal.to_ref(os_t)
+
+                    target_hist.append(np.asarray(target_t, dtype=float).copy())
+                    w_target_hist.append(np.asarray(w_target_t, dtype=float).copy())
+
+                    boresight_vec = np.full(3, np.nan, dtype=float)
+                    try:
+                        b = est_satellite.get_boresight(active_goal.boresight_name)
+                        boresight_vec = np.asarray(b, dtype=float).reshape(3)
+                    except (AttributeError, KeyError, ValueError, TypeError):
+                        pass
+                    boresight_hist.append(boresight_vec)
+
+                simresults = trajectory.to_simulation_results(
+                    satellite,
+                    target=np.asarray(target_hist),
+                    w_target=np.asarray(w_target_hist),
+                    boresight=np.asarray(boresight_hist),
+                )
+                ADCS.plot(
+                    simresults,
+                    ADCS.plots.AngularVelocityPlotCombined(sources=["real"]),
+                    ADCS.plots.ControlPlotCombined(title="Magnetorquer Commands", units="Am²"),
+                    ADCS.plots.TargetHistogram(bin_width=5.0),
+                    ADCS.plots.TargetPlot(modes=["real_target"], title="Target Tracking"),
+                    layout=(2,2),
+                    title="Open-Loop Planned Trajectory",
+                )
+                plt.show()
+
+            controller.set_active_trajectory(trajectory)
 
     run_capsule = RunResults(satellite=satellite, est_satellite=est_satellite)
 

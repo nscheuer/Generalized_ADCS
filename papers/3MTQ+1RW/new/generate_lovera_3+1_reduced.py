@@ -31,16 +31,19 @@ results = ADCS.simulate_mc(
     dt=1.0,
     tf=1000.0,
     mc_config=mc_config,
-    num_runs=12,
+    num_runs=100,
+    max_workers=20,
     base_seed=42
 )
 
-ADCS.plot(
-    results,
-    ADCS.plots.AnimationPlot(),
-    layout=(1,1),
-    title="3+0 Lovera Reduced",
-)
+results.save("mc100_lovera_3+1_vector", out_dir="papers/3MTQ+1RW/new/output")
+
+# ADCS.plot(
+#     results,
+#     ADCS.plots.AnimationPlot(),
+#     layout=(1,1),
+#     title="3+0 Lovera Reduced",
+# )
 
 ADCS.plot(
     results,
