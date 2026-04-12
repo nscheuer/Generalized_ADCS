@@ -280,14 +280,10 @@ def benchmark_actuator_types(iterations: int = 3, quick: bool = False, warmup: i
     for name, sat_factory in configs:
         sat = sat_factory()
 
-        # Adjust initial state for different control dimensions
-        if "RW" in name:
-            x0 = create_initial_state()
-        else:
-            # MTQ-only doesn't have RW momentum states
-            x0 = np.concatenate([np.zeros(3), normalize(np.array([0, 0, 0, 1]))])
-            # But our satellite model still expects 10 states
-            x0 = np.concatenate([x0, np.zeros(3)])
+        # Build state vector to match this satellite's expected state length (7 + number_RW).
+        x0 = np.concatenate(
+            [np.zeros(3), normalize(np.array([0, 0, 0, 1])), np.zeros(sat.number_RW)]
+        )
 
         planner_settings = PlannerSettings(est_sat=sat, bdot_on=0, dt_tp=1.0)
 
