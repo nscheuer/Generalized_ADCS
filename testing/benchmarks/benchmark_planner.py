@@ -11,6 +11,7 @@ Usage:
     python benchmark_planner.py              # Run all benchmarks
     python benchmark_planner.py --quick      # Run quick benchmarks only
     python benchmark_planner.py --detailed   # Include detailed per-iteration timing
+    python benchmark_planner.py --warmup 2   # Warmup runs before timing
 """
 from __future__ import annotations
 
@@ -203,7 +204,7 @@ def run_planning_benchmark(
 # Benchmark Configurations
 # ============================================================================
 
-def benchmark_trajectory_durations(iterations: int = 3, quick: bool = False) -> List[BenchmarkResult]:
+def benchmark_trajectory_durations(iterations: int = 3, quick: bool = False, warmup: int = 1) -> List[BenchmarkResult]:
     """Benchmark planning time vs trajectory duration."""
     results = []
     sat = create_rw_satellite()
@@ -222,7 +223,8 @@ def benchmark_trajectory_durations(iterations: int = 3, quick: bool = False) -> 
             os0=os0,
             goal=goal,
             duration=float(dur),
-            iterations=iterations
+            iterations=iterations,
+            warmup=warmup,
         )
         result.name = f"Duration {dur}s"
         result.config = {"duration": dur}
@@ -231,7 +233,7 @@ def benchmark_trajectory_durations(iterations: int = 3, quick: bool = False) -> 
     return results
 
 
-def benchmark_timestep_sizes(iterations: int = 3, quick: bool = False) -> List[BenchmarkResult]:
+def benchmark_timestep_sizes(iterations: int = 3, quick: bool = False, warmup: int = 1) -> List[BenchmarkResult]:
     """Benchmark planning time vs dt_tp (trajectory planner timestep)."""
     results = []
     sat = create_rw_satellite()
@@ -250,7 +252,8 @@ def benchmark_timestep_sizes(iterations: int = 3, quick: bool = False) -> List[B
             os0=os0,
             goal=goal,
             duration=30.0 if quick else 60.0,
-            iterations=iterations
+            iterations=iterations,
+            warmup=warmup,
         )
         result.name = f"dt_tp={dt}s"
         result.config = {"dt_tp": dt}
@@ -259,7 +262,7 @@ def benchmark_timestep_sizes(iterations: int = 3, quick: bool = False) -> List[B
     return results
 
 
-def benchmark_actuator_types(iterations: int = 3, quick: bool = False) -> List[BenchmarkResult]:
+def benchmark_actuator_types(iterations: int = 3, quick: bool = False, warmup: int = 1) -> List[BenchmarkResult]:
     """Benchmark planning time for different actuator configurations."""
     results = []
     _, os0 = create_test_orbit(100)
@@ -295,7 +298,8 @@ def benchmark_actuator_types(iterations: int = 3, quick: bool = False) -> List[B
             os0=os0,
             goal=goal,
             duration=30.0 if quick else 60.0,
-            iterations=iterations
+            iterations=iterations,
+            warmup=warmup,
         )
         result.name = name
         result.config = {"actuator_type": name}
@@ -304,7 +308,7 @@ def benchmark_actuator_types(iterations: int = 3, quick: bool = False) -> List[B
     return results
 
 
-def benchmark_solver_iterations(iterations: int = 3) -> List[BenchmarkResult]:
+def benchmark_solver_iterations(iterations: int = 3, warmup: int = 1) -> List[BenchmarkResult]:
     """Benchmark planning time vs max solver iterations."""
     results = []
     sat = create_rw_satellite()
@@ -337,7 +341,8 @@ def benchmark_solver_iterations(iterations: int = 3) -> List[BenchmarkResult]:
             os0=os0,
             goal=goal,
             duration=60.0,
-            iterations=iterations
+            iterations=iterations,
+            warmup=warmup,
         )
         result.name = name
         result.config = {"max_outer": outer, "max_inner": inner}
@@ -346,7 +351,7 @@ def benchmark_solver_iterations(iterations: int = 3) -> List[BenchmarkResult]:
     return results
 
 
-def benchmark_maneuver_sizes(iterations: int = 3) -> List[BenchmarkResult]:
+def benchmark_maneuver_sizes(iterations: int = 3, warmup: int = 1) -> List[BenchmarkResult]:
     """Benchmark planning time for different maneuver sizes."""
     results = []
     sat = create_rw_satellite()
@@ -372,7 +377,8 @@ def benchmark_maneuver_sizes(iterations: int = 3) -> List[BenchmarkResult]:
             os0=os0,
             goal=goal,
             duration=90.0,
-            iterations=iterations
+            iterations=iterations,
+            warmup=warmup,
         )
         result.name = name
         result.config = {"maneuver": name, "goal_vec": goal_vec.tolist()}
@@ -385,7 +391,7 @@ def benchmark_maneuver_sizes(iterations: int = 3) -> List[BenchmarkResult]:
 # Main Benchmark Runner
 # ============================================================================
 
-def run_all_benchmarks(quick: bool = False, detailed: bool = False) -> Dict[str, List[BenchmarkResult]]:
+def run_all_benchmarks(quick: bool = False, detailed: bool = False, warmup: int = 1) -> Dict[str, List[BenchmarkResult]]:
     """Run all benchmark suites."""
     iterations = 1 if quick else 3
 
@@ -393,6 +399,7 @@ def run_all_benchmarks(quick: bool = False, detailed: bool = False) -> Dict[str,
     print("ALTRO TRAJECTORY PLANNER BENCHMARKS")
     print("=" * 70)
     print(f"Running with {iterations} iterations per config")
+    print(f"Warmup runs before timing: {warmup}")
     if quick:
         print("(Quick mode - reduced configs)")
     print()
@@ -401,32 +408,32 @@ def run_all_benchmarks(quick: bool = False, detailed: bool = False) -> Dict[str,
 
     # Trajectory Duration Benchmarks
     print("Benchmarking trajectory durations...")
-    results = benchmark_trajectory_durations(iterations, quick)
+    results = benchmark_trajectory_durations(iterations, quick, warmup)
     all_results["Trajectory Duration"] = results
     print_benchmark_results("Trajectory Duration", results)
 
     # Timestep Size Benchmarks
     print("\nBenchmarking timestep sizes...")
-    results = benchmark_timestep_sizes(iterations, quick)
+    results = benchmark_timestep_sizes(iterations, quick, warmup)
     all_results["Timestep Size"] = results
     print_benchmark_results("Timestep Size", results)
 
     # Actuator Type Benchmarks
     print("\nBenchmarking actuator types...")
-    results = benchmark_actuator_types(iterations, quick)
+    results = benchmark_actuator_types(iterations, quick, warmup)
     all_results["Actuator Types"] = results
     print_benchmark_results("Actuator Types", results)
 
     if not quick:
         # Solver Iteration Benchmarks
         print("\nBenchmarking solver iterations...")
-        results = benchmark_solver_iterations(iterations)
+        results = benchmark_solver_iterations(iterations, warmup)
         all_results["Solver Iterations"] = results
         print_benchmark_results("Solver Iterations", results)
 
         # Maneuver Size Benchmarks
         print("\nBenchmarking maneuver sizes...")
-        results = benchmark_maneuver_sizes(iterations)
+        results = benchmark_maneuver_sizes(iterations, warmup)
         all_results["Maneuver Sizes"] = results
         print_benchmark_results("Maneuver Sizes", results)
 
@@ -478,7 +485,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run ALTRO planner benchmarks")
     parser.add_argument("--quick", action="store_true", help="Run quick benchmarks only")
     parser.add_argument("--detailed", action="store_true", help="Include detailed timing")
+    parser.add_argument(
+        "--warmup",
+        type=int,
+        default=1,
+        help="Number of warmup runs before timed runs (default: 1)",
+    )
     args = parser.parse_args()
 
-    all_results = run_all_benchmarks(quick=args.quick, detailed=args.detailed)
+    all_results = run_all_benchmarks(quick=args.quick, detailed=args.detailed, warmup=args.warmup)
     print_summary(all_results)

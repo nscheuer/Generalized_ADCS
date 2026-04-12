@@ -851,7 +851,20 @@ def random_n_unit_vec(n: int) -> np.ndarray:
 
 
 @njit(cache=True)
-def vec_norm_jac(v: np.ndarray, dv: np.ndarray | None = None) -> np.ndarray:
+def _vec_norm_jac(v: np.ndarray) -> np.ndarray:
+    l = v.size
+    normv = norm(v)
+    if normv > num_eps:
+        return v / normv
+    return np.ones(l)
+
+
+@njit(cache=True)
+def _vec_norm_jac_with_dv(v: np.ndarray, dv: np.ndarray) -> np.ndarray:
+    return dv @ _vec_norm_jac(v)
+
+
+def vec_norm_jac(v: np.ndarray, dv=None) -> np.ndarray:
     r"""
     Compute the Jacobian of the Euclidean norm of a vector.
 
@@ -872,19 +885,26 @@ def vec_norm_jac(v: np.ndarray, dv: np.ndarray | None = None) -> np.ndarray:
     :rtype: numpy.ndarray
 
     """
-    l = v.size
-    normv = norm(v)
-    if normv > num_eps:
-        dndv = v/normv
-    else:
-        dndv = np.ones(l)
     if dv is None:
-        return dndv
-    return dv@dndv
+        return _vec_norm_jac(v)
+    return _vec_norm_jac_with_dv(v, dv)
 
 
 @njit(cache=True)
-def vec_norm_hess(v: np.ndarray, dv: np.ndarray | None = None, ddv: np.ndarray | None = None) -> np.ndarray:
+def _vec_norm_hess(v: np.ndarray) -> np.ndarray:
+    l = v.size
+    normv = norm(v)
+    return np.eye(l) / normv - np.outer(v, v) / normv**3.0
+
+
+@njit(cache=True)
+def _vec_norm_hess_with_chain(v: np.ndarray, dv: np.ndarray, ddv: np.ndarray) -> np.ndarray:
+    dndv = _vec_norm_jac(v)
+    ddndvdv = _vec_norm_hess(v)
+    return dv @ ddndvdv @ dv.T + ddv @ dndv
+
+
+def vec_norm_hess(v: np.ndarray, dv=None, ddv=None) -> np.ndarray:
     r"""
     Compute the Hessian of the Euclidean norm of a vector.
 
@@ -908,19 +928,14 @@ def vec_norm_hess(v: np.ndarray, dv: np.ndarray | None = None, ddv: np.ndarray |
     :rtype: numpy.ndarray
 
     """
-
-    l = v.size
-    normv = norm(v)
-    dndv = v/normv
-    ddndvdv = np.eye(l)/normv - np.outer(v, v)/normv**3.0
     if dv is None:
         if ddv is not None:
             raise ValueError("If Jacobian of v is None, Hessian must also be None")
-        return ddndvdv
+        return _vec_norm_hess(v)
     else:
         if ddv is None:
             raise ValueError("If Jacobian of v is provided, Hessian must also be provided")
-        return dv@ddndvdv@dv.T + ddv@dndv
+        return _vec_norm_hess_with_chain(v, dv, ddv)
     
 def matrix_row_normalize(m: np.ndarray) -> np.ndarray:
     r"""
@@ -1169,6 +1184,36 @@ def limit(u, umax):
     # CASE 3: umax is an array → symmetric elementwise
     umax = np.asarray(umax)
     return np.clip(u, -umax, umax)
+
+
+def quat_to_euler(q: np.ndarray) -> np.ndarray:
+    r"""
+    Convert a quaternion to 3-2-1 (yaw-pitch-roll) Euler angles.
+
+    The conversion is performed via the corresponding direction cosine matrix
+    and yields
+
+    .. math::
+
+        \begin{aligned}
+        \phi &= \arctan2(R_{32}, R_{33}) \\
+        	heta &= -\arcsin(R_{31}) \\
+        \psi &= \arctan2(R_{21}, R_{11})
+        \end{aligned}
+
+    The output angles are expressed in degrees.
+
+    :param q: Quaternion in Hamilton convention.
+    :type q: numpy.ndarray
+    :return: Euler angles ``[roll, pitch, yaw]`` in degrees.
+    :rtype: numpy.ndarray
+
+    """
+    R = rot_mat(q)
+    roll = np.arctan2(R[2, 1], R[2, 2])
+    pitch = -np.arcsin(R[2, 0])
+    yaw = np.arctan2(R[1, 0], R[0, 0])
+    return np.array([roll, pitch, yaw]) * 180.0 / np.pi
 
 
 @njit(cache=True)
