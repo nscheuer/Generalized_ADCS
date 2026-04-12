@@ -664,7 +664,8 @@ def rot_exp(v: np.ndarray) -> np.ndarray:
     -----
     - For :math:`\|\boldsymbol{\phi}\| = 0`, returns identity quaternion.
     """
-    assert v.size == 3
+    if v.size != 3:
+        raise ValueError("rot_exp expects a 3-element rotation vector")
     phi = norm(v)
     if phi == 0.0:
         return np.array([1.0, 0.0, 0.0, 0.0], dtype=np.float64)
@@ -746,7 +747,20 @@ def normalize(v: np.ndarray) -> np.ndarray:
 
 
 @njit(cache=True)
-def normed_vec_jac(v,dv=None):
+def _normed_vec_jac(v: np.ndarray) -> np.ndarray:
+    l = v.size
+    normv = norm(v)
+    if normv > num_eps:
+        return np.eye(l) / normv - np.outer(v, v) / normv**3
+    return np.eye(l)
+
+
+@njit(cache=True)
+def _normed_vec_jac_with_dv(v: np.ndarray, dv: np.ndarray) -> np.ndarray:
+    return dv @ _normed_vec_jac(v)
+
+
+def normed_vec_jac(v, dv=None):
     r"""
     Compute the Jacobian of the normalized vector :math:`\hat{\mathbf{v}}`.
 
@@ -769,15 +783,9 @@ def normed_vec_jac(v,dv=None):
         The Jacobian :math:`\partial \hat{\mathbf{v}}/\partial \mathbf{v}`
         (or ``dv @ dndv`` if ``dv`` is supplied).
     """
-    l = v.size
-    normv = norm(v)
-    if normv>num_eps:
-        dndv = np.eye(l)/normv - np.outer(v,v)/normv**3
-    else:
-        dndv = np.eye(l)
     if dv is None:
-        return dndv
-    return dv@dndv
+        return _normed_vec_jac(v)
+    return _normed_vec_jac_with_dv(v, dv)
 
 
 def normed_vec_hess(v,dv=None,ddv=None):
