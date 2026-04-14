@@ -191,15 +191,17 @@ class RW(Actuator):
 
         torque = u
 
+        # Evolve states first so this call uses values at the current step.
+        if self.bias and dmode.update_bias:
+            self.bias._update_bias(j2000=os.J2000)
+        if self.noise and dmode.update_noise:
+            self.noise._update_noise()
+
         if self.bias and dmode.add_bias:
             torque += self.bias.get_bias(j2000=os.J2000)
-        if dmode.update_bias:
-            self.bias._update_bias(j2000=os.J2000)
 
         if self.noise and dmode.add_noise:
             torque += self.noise.get_noise()
-        if dmode.update_noise:
-            self.noise._update_noise()
 
         return self.axis*torque
 
@@ -248,15 +250,17 @@ class RW(Actuator):
         
         command = u
 
+        # Evolve stochastic states first so this call uses values at the current step.
+        if self.bias and dmode.update_bias:
+            self.bias._update_bias(j2000=os.J2000)
+        if self.noise and dmode.update_noise:
+            self.noise._update_noise()
+
         if self.bias and dmode.add_bias:
             command += self.bias.get_bias(j2000=os.J2000)
-        if dmode.update_bias:
-            self.bias._update_bias(os.J2000)
 
         if self.noise and dmode.add_noise:
             command += self.noise.get_noise()
-        if dmode.update_noise:
-            self.noise._update_noise()
 
         return -command
     
