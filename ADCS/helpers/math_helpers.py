@@ -341,7 +341,7 @@ def quat_to_mrp(quat: np.ndarray) -> np.ndarray:
         Modified Rodrigues parameters.
     """
     out = np.empty(3, dtype=np.float64)
-    scale = 2.0 / (1.0 + quat[0])
+    scale = 1.0 / (1.0 + quat[0])
     out[0] = quat[1] * scale
     out[1] = quat[2] * scale
     out[2] = quat[3] * scale
@@ -370,13 +370,14 @@ def quat_to_cayley(quat: np.ndarray) -> np.ndarray:
     -----
     - Ensures nonzero scalar part by applying a numerical epsilon if needed.
     """
-    if abs(quat[0]) < num_eps:
-        quat[0] = num_eps * np.sign(quat[0])
-        quat = normalize(quat)
+    q = quat.copy()
+    if abs(q[0]) < num_eps:
+        q[0] = num_eps * np.sign(q[0])
+        q = normalize(q)
     out = np.empty(3, dtype=np.float64)
-    out[0] = quat[1] / quat[0]
-    out[1] = quat[2] / quat[0]
-    out[2] = quat[3] / quat[0]
+    out[0] = q[1] / q[0]
+    out[1] = q[2] / q[0]
+    out[2] = q[3] / q[0]
     return out
 
 
@@ -405,33 +406,34 @@ def quat_to_vec3(quat: np.ndarray, mode: int = 0) -> np.ndarray:
     v : numpy.ndarray, shape (3,)
         Equivalent attitude parameter vector.
     """
+    q = quat.copy()
     if mode == 6:
-        if quat[0] > 0.0:
-            quat *= np.sign(quat[0])
-        return 2 * quat_to_mrp(quat)
+        if q[0] > 0.0:
+            q *= np.sign(q[0])
+        return 2 * quat_to_mrp(q)
     if mode == 5:
-        return 2 * quat_to_mrp(quat)
+        return 2 * quat_to_mrp(q)
     if mode == 4:
         out = np.empty(3, dtype=np.float64)
-        out[0] = quat[1]
-        out[1] = quat[2]
-        out[2] = quat[3]
+        out[0] = q[1]
+        out[1] = q[2]
+        out[2] = q[3]
         return out
     if mode == 3:
-        if quat[0] > 0.0:
-            quat *= np.sign(quat[0])
+        if q[0] > 0.0:
+            q *= np.sign(q[0])
         out = np.empty(3, dtype=np.float64)
-        out[0] = quat[1]
-        out[1] = quat[2]
-        out[2] = quat[3]
+        out[0] = q[1]
+        out[1] = q[2]
+        out[2] = q[3]
         return out
     if mode == 2:
-        return quat_to_cayley(quat)
+        return quat_to_cayley(q)
     if mode == 1:
-        return quat_to_mrp(quat)
-    if abs(quat[0]) > num_eps:
-        quat *= np.sign(quat[0])
-    return quat_to_mrp(quat)
+        return quat_to_mrp(q)
+    if abs(q[0]) > num_eps:
+        q *= np.sign(q[0])
+    return quat_to_mrp(q)
 
 
 @njit(cache=True)
@@ -479,14 +481,14 @@ def vec3_to_quat(v3, mode):
         return mrp_to_quat(v3 / 2.0)
     if mode == 4:
         q = np.empty(4, dtype=np.float64)
-        q[0] = math.sqrt(1.0 - norm(v3) ** 2.0)
+        q[0] = math.sqrt(max(0.0, 1.0 - norm(v3) ** 2.0))
         q[1] = v3[0]
         q[2] = v3[1]
         q[3] = v3[2]
         return q
     if mode == 3:
         q = np.empty(4, dtype=np.float64)
-        q[0] = math.sqrt(1.0 - norm(v3) ** 2.0)
+        q[0] = math.sqrt(max(0.0, 1.0 - norm(v3) ** 2.0))
         q[1] = v3[0]
         q[2] = v3[1]
         q[3] = v3[2]
@@ -539,15 +541,13 @@ def mrp_to_quat(mrp):
     :rtype: numpy.ndarray
 
     """
-    thetad2 = 2*math.atan(norm(mrp)*0.5)
-    nhat = normalize(mrp)
-    costd2 = math.cos(thetad2)
     out = np.empty(4, dtype=np.float64)
-    scale = np.abs(math.sin(thetad2))
-    out[0] = costd2
-    out[1] = nhat[0] * scale
-    out[2] = nhat[1] * scale
-    out[3] = nhat[2] * scale
+    s2 = np.dot(mrp, mrp)
+    denom = 1.0 + s2
+    out[0] = (1.0 - s2) / denom
+    out[1] = 2.0 * mrp[0] / denom
+    out[2] = 2.0 * mrp[1] / denom
+    out[3] = 2.0 * mrp[2] / denom
     return out  # .reshape((4,1))
 
 
