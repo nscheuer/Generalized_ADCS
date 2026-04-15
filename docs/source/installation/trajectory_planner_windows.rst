@@ -1,9 +1,18 @@
-Trajectory Planner (Windows)
-============================
+Trajectory Planner Windows
+==========================
 
-The ``trajectory_planner`` module is a C++ project built with Pybind and imported
-into the Python codebase. On Windows, it must be compiled using **Windows CMake**
-and **vcpkg**.
+``trajectory_planner`` is an optional add-on for Generalized_ADCS.
+
+The module is a C++ project built with Pybind and imported into the Python
+codebase. On Windows, it must be compiled using **Windows CMake** and **vcpkg**.
+
+Canonical instructions (including both Windows and Linux) are maintained in:
+
+- `docs/Install_Trajectory_Planner.md <../../Install_Trajectory_Planner.md>`_
+
+For algorithm background, see:
+
+- `SALTRO documentation website <https://nscheuer.github.io/SALTRO>`_
 
 Prerequisites
 -------------

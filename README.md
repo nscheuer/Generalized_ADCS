@@ -39,6 +39,11 @@ control and estimation workflows.
 - ✅ Growing catalog of CubeSat-scale sensors and actuators
 - ✅ Designed for underactuated and overactuated systems
 
+Optional add-ons:
+- trajectory_planner (tplaunch/pysat) and SALTRO (saltro_py) are optional C++ extensions.
+- Core ADCS functionality works without them.
+- Build instructions are in docs/Install_WSL.md and docs/Install_Windows.md.
+
 ## 📚 Academic Background
 
 This project is based on the PhD research of **Patrick McKeen**:

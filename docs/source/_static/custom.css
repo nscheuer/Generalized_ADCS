@@ -1,0 +1,73 @@
+/* Featured release box styling - Light mode */
+@media (prefers-color-scheme: light) {
+    .featured-release-box {
+        border: 2px solid #0066cc;
+        border-radius: 8px;
+        padding: 24px;
+        margin: 24px 0;
+        background-color: transparent;
+        max-width: 900px;
+        box-shadow: 0 2px 8px rgba(0, 102, 204, 0.15);
+    }
+
+    .featured-release-box p,
+    .featured-release-box strong {
+        margin-left: 20px;
+    }
+
+    .featured-release-box:hover {
+        box-shadow: 0 4px 12px rgba(0, 102, 204, 0.25);
+        transition: box-shadow 0.3s ease;
+    }
+
+    .featured-release-box strong {
+        color: #003d99;
+    }
+
+    .featured-release-box a {
+        font-weight: 600;
+        color: #0066cc;
+    }
+
+    .featured-release-box a:hover {
+        color: #0052a3;
+        text-decoration: underline;
+    }
+}
+
+/* Featured release box styling - Dark mode */
+@media (prefers-color-scheme: dark) {
+    .featured-release-box {
+        border: 2px solid #4d9eff;
+        border-radius: 8px;
+        padding: 24px;
+        margin: 24px 0;
+        background-color: transparent;
+        max-width: 900px;
+        box-shadow: 0 2px 8px rgba(77, 158, 255, 0.2);
+    }
+
+    .featured-release-box p,
+    .featured-release-box strong {
+        margin-left: 20px;
+    }
+
+    .featured-release-box:hover {
+        box-shadow: 0 4px 12px rgba(77, 158, 255, 0.35);
+        transition: box-shadow 0.3s ease;
+    }
+
+    .featured-release-box strong {
+        color: #80c0ff;
+    }
+
+    .featured-release-box a {
+        font-weight: 600;
+        color: #4d9eff;
+    }
+
+    .featured-release-box a:hover {
+        color: #80c0ff;
+        text-decoration: underline;
+    }
+}

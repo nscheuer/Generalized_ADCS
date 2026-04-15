@@ -8,15 +8,14 @@ from numpy.typing import NDArray
 
 from ADCS.CONOPS.goallist import GoalList
 from ADCS.controller import Controller
-from ADCS.controller.helpers import PlannerSettings, Trajectory, reorder_controls_cpp_to_python, reorder_gains_cpp_to_python
+from ADCS.controller.helpers.trajectory import Trajectory
+from ADCS.controller.plan_and_track import PlannerSettings, reorder_controls_cpp_to_python, reorder_gains_cpp_to_python
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.orbit import Orbit
-from ADCS.controller.helpers.build_csat import build_cpp_satellite
+from ADCS.controller.plan_and_track.build_csat import build_cpp_satellite
+from ADCS.controller.helpers.optional_dependencies import get_trajectory_planner_modules
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
 from ADCS.orbits.universal_constants import TimeConstants
-
-import trajectory_planner.build.tplaunch as tplaunch
-import trajectory_planner.build.pysat as pysat
 
 
 class PlanAndTrackBase(Controller):
@@ -127,9 +126,9 @@ class PlanAndTrackBase(Controller):
         Referenced components
         ---------------------
         - Satellite conversion:
-        :func:`~ADCS.controller.helpers.build_csat.build_cpp_satellite`.
+        :func:`~ADCS.controller.plan_and_track.build_csat.build_cpp_satellite`.
         - Planner settings container:
-        :class:`~ADCS.controller.helpers.PlannerSettings`.
+        :class:`~ADCS.controller.plan_and_track.PlannerSettings`.
         - Estimated satellite model:
         :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`.
 
@@ -138,7 +137,7 @@ class PlanAndTrackBase(Controller):
         :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
         :param planner_settings: Configuration bundle for system and solver settings
             used by the C++ planner.
-        :type planner_settings: :class:`~ADCS.controller.helpers.PlannerSettings`
+        :type planner_settings: :class:`~ADCS.controller.plan_and_track.PlannerSettings`
         :param tracking_lqr_formulation: Tracking LQR formulation selector used by
             the planner’s TVLQR cost configuration.
         :type tracking_lqr_formulation: int
@@ -152,6 +151,7 @@ class PlanAndTrackBase(Controller):
         self.est_sat = est_sat
         self.planner_settings = planner_settings
 
+        tplaunch, _ = get_trajectory_planner_modules()
         self.csat = build_cpp_satellite(est_sat=est_sat, planner_settings=planner_settings)
         self.planner = tplaunch.Planner(
             self.csat,
@@ -389,7 +389,7 @@ class PlanAndTrackBase(Controller):
         This method implements the shared planning workflow:
 
         1. Construct the planner time grid based on :math:`\Delta t` from
-        :class:`~ADCS.controller.helpers.PlannerSettings`.
+        :class:`~ADCS.controller.plan_and_track.PlannerSettings`.
         2. Propagate orbit/environment vectors into C++-compatible arrays using
         :meth:`~PlanAndTrackBase._propagate_environment`.
         3. Call the C++ planner optimization routine to obtain a nominal state and
@@ -445,7 +445,7 @@ class PlanAndTrackBase(Controller):
         Referenced components
         ---------------------
         - Planner settings:
-        :class:`~ADCS.controller.helpers.PlannerSettings`.
+        :class:`~ADCS.controller.plan_and_track.PlannerSettings`.
         - Estimated satellite and actuator ordering:
         :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`.
         - Goal system:

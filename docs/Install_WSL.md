@@ -1,6 +1,11 @@
 # Prerequisities
 - Linux or WSL Machine
 
+# What is trajectory_planner?
+`trajectory_planner` is the optimization module that computes reference attitude/control trajectories for difficult pointing maneuvers.
+
+For more algorithm background, see https://nscheuer.github.io/SALTRO.
+
 # WSL Setup
 To install WSL onto on a Windows machine, open Powershell in Administrator Mode.
 ```powershell
@@ -35,26 +40,16 @@ pip install git+https://github.com/jcrudy/choldate.git --no-build-isolation
 The reason choldate has to be installed with --no-build-isolation is that its compilation depends on pip having access to Cython.
 
 ## Build trajectory_planner
-### Install required C++ packages
-```bash
-sudo apt install -y cmake g++ libarmadillo-dev libboost-math-dev
-```
+`trajectory_planner` installation is documented in one canonical page:
 
-# Build tplaunch
-```bash
-cd trajectory_planner
-mkdir -p build && cd build
-cmake .. \
-  -DCMAKE_BUILD_TYPE=Debug \
-  -DPython3_EXECUTABLE=$(which python3) \
-  -DPYTHON_EXECUTABLE=$(which python3) \
-  -DPYTHON_INCLUDE_DIR=$(python3 -c "from sysconfig import get_paths; print(get_paths()['include'])") \
-  -DPYTHON_INCLUDE_DIRS=$(python3 -c "from sysconfig import get_paths; print(get_paths()['include'])") \
-  -DPYTHON_LIBRARY=$(python3 -c "import sysconfig; print(sysconfig.get_config_var('LIBDIR'))")/libpython3.12.so \
-  -DPYTHON_LIBRARIES=$(python3 -c "import sysconfig; print(sysconfig.get_config_var('LIBDIR'))")/libpython3.12.so
+- [Install_Trajectory_Planner.md](Install_Trajectory_Planner.md)
 
-make -j$(nproc)
-```
+Use the Linux/WSL section there for dependency and build commands.
+
+## Optional: Build SALTRO (saltro_py)
+SALTRO installation is documented in one canonical page:
+
+- [Install_SALTRO.md](Install_SALTRO.md)
 
 ## Debugging tplaunch
 Install GDB:
