@@ -1,7 +1,7 @@
 Tutorials
 =========
 
-Five tutorials are provided to help you get started with Generalized ADCS. It is recommended to go through them in order, as they build on each other.
+Seven tutorials are provided to help you get started with Generalized ADCS. It is recommended to go through them in order, as they build on each other.
 
 .. toctree::
    :maxdepth: 1
@@ -12,6 +12,8 @@ Five tutorials are provided to help you get started with Generalized ADCS. It is
    03_simple_estimation
    04_complex_estimation
    05_orbit_estimation
+   06_trajectory_planner
+   07_SALTRO
    advanced_features
 
 .. image:: ../_static/tutorials/tutorial_05_cygnss.jpeg

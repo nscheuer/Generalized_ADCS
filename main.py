@@ -6,8 +6,14 @@ build_path = os.path.join(this_dir, "trajectory_planner", "build")
 sys.path.append(build_path)
 
 import numpy as np
-import tplaunch
-import pysat
+try:
+    import tplaunch
+    import pysat
+except ImportError as exc:
+    raise ImportError(
+        "Optional add-on trajectory_planner is not available. "
+        "Build trajectory_planner/build first (see docs/Install_WSL.md or docs/Install_Windows.md)."
+    ) from exc
 
 from ADCS.satellite_hardware.satellite.satellite import Satellite
 from ADCS.orbits.ephemeris import Ephemeris

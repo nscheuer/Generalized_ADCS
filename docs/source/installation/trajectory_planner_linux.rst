@@ -1,8 +1,18 @@
-Trajectory Planner (Linux / WSL)
-================================
+Trajectory Planner Linux / WSL
+==============================
 
-The ``trajectory_planner`` module is a C++ library built with Pybind and imported
-into the Python codebase. It must be compiled from source on Linux and WSL.
+``trajectory_planner`` is an optional add-on for Generalized_ADCS.
+
+The module is a C++ library built with Pybind and imported into the Python
+codebase. It must be compiled from source on Linux and WSL.
+
+Canonical instructions (including both Windows and Linux) are maintained in:
+
+- `docs/Install_Trajectory_Planner.md <../../Install_Trajectory_Planner.md>`_
+
+For algorithm background, see:
+
+- `SALTRO documentation website <https://nscheuer.github.io/SALTRO>`_
 
 Prerequisites
 -------------

@@ -14,7 +14,7 @@ from scipy.integrate import solve_ivp
 
 from ADCS.CONOPS.goals import Goal, No_Goal
 from ADCS.CONOPS.goallist import GoalList
-from ADCS.controller import Controller, PlanAndTrackBase
+from ADCS.controller import Controller
 from ADCS.estimators.attitude_estimators import Attitude_Estimator
 from ADCS.estimators.orbit_estimators import Orbit_Estimator
 from ADCS.orbits.orbit import Orbit
@@ -168,7 +168,7 @@ def _simulate_with_precomputed_orbit(
 
     os_hat = None
 
-    if controller is not None and isinstance(controller, PlanAndTrackBase):
+    if controller is not None and hasattr(controller, "calculate_trajectory"):
         trajectory = controller.calculate_trajectory(
             t_start=os0.J2000,
             duration=tf,

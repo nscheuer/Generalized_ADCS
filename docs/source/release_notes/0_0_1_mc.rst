@@ -4,9 +4,9 @@
 New Features
 ------------
 - `simulate` framework has been extended to Monte Carlo runs
-    - :doc:`simulate_mc <../ADCS.mc.simulate_mc>` function
-    - :doc:`MCConfig <../ADCS.mc.mcconfig>` class for specifying Monte Carlo configurations
-    - Added saving and loading for :doc:`SimulationResults <../ADCS.helpers.simresults>` to support Monte Carlo runs
+    - ``ADCS.simulate_mc`` function
+    - ``ADCS.MCConfig`` class for specifying Monte Carlo configurations
+    - Added saving and loading for ``ADCS.helpers.simresults.SimulationResults`` to support Monte Carlo runs
 - Added support for quaternion goals, now goals are defined as:
     +----------------------+---------------------------------------------+
     | Target row format    | Interpretation                              |
@@ -15,7 +15,7 @@ New Features
     +----------------------+---------------------------------------------+
     | [q0, q1, q2, q3]     | Desired attitude quaternion (Body to ECI)   |
     +----------------------+---------------------------------------------+
-- Added support for goal series with simulate() using :doc:`GoalList <../ADCS.CONOPS.goallist.goallist>`
+- Added support for goal series with ``simulate()`` using ``ADCS.GoalList``
 - Reworked all plotting utilities to be compatible with Monte Carlo results
 
 Example: Multi-Goal Monte Carlo Simulation
