@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 from ADCS.satellite_hardware.disturbances.disturbance import Disturbance
 from ADCS.satellite_hardware.disturbances.helpers.geometry_config import GeometryConfig
 from ADCS.orbits.orbital_state import Orbital_State
-from ADCS.helpers.math_helpers import normalize, normed_vec_jac, normed_vec_hess
+from ADCS.helpers.math_helpers import normalize, normed_vec_jac, normed_vec_hess, _srp_torque_kernel
 from ADCS.orbits.universal_constants import EarthConstants
 
 
@@ -254,27 +254,16 @@ class SRP_Disturbance(Disturbance):
         :return: SRP disturbance torque in the body frame [N·m], shape ``(3,)``.
         :rtype: :class:`numpy.ndarray`
         """
+        if not os.is_sunlit():
+            return np.zeros(3)
+
         vecs = os.get_state_vector(x=x)
-
-        S_B = vecs["s"]
-        R_B = vecs["r"]
-
-        s_body = normalize(S_B - R_B)
-
-        cos_gamma = np.maximum(0, np.dot(self.normals, s_body))
-        proj_area = self.areas * cos_gamma
-        cents = self.centroids - sat.COM
-
-        m_s = proj_area * (self.eta_a + self.eta_d)
-        t_s = m_s @ np.cross(cents, s_body)
-
-        m_n = proj_area * (2 * self.eta_s * cos_gamma + (2 / 3) * self.eta_d)
-        t_n = m_n @ np.cross(cents, self.normals)
-
-        if os.is_sunlit():
-            return -(EarthConstants.solar_constant / EarthConstants.c) * (t_s + t_n)
-        else:
-            return np.zeros((3, 1))
+        return _srp_torque_kernel(
+            vecs["s"], vecs["r"], sat.COM,
+            self.normals, self.areas, self.centroids,
+            self.eta_s, self.eta_d, self.eta_a,
+            EarthConstants.solar_constant, EarthConstants.c,
+        )
 
     def torque_qjav(self, sat: Satellite, x: np.ndarray, os: Orbital_State) -> np.ndarray:
         r"""

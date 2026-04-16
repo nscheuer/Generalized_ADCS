@@ -9,6 +9,7 @@ from ADCS.satellite_hardware.errors.bias import Bias
 from ADCS.satellite_hardware.errors.noise import Noise
 from ADCS.satellite_hardware.errors import ErrorMode
 from ADCS.orbits.orbital_state import Orbital_State
+from ADCS.helpers.math_helpers import _mtq_torque_kernel
 
 class MTQ(Actuator):
     r"""
@@ -192,7 +193,7 @@ class MTQ(Actuator):
         if dmode.update_bias:
             self.bias._update_bias(j2000=os.J2000)
 
-        torque = -np.cross(b_body, self.axis) * u
+        torque = _mtq_torque_kernel(b_body, self.axis, u)
 
         if self.noise and dmode.add_noise:
             torque += self.noise.get_noise()
