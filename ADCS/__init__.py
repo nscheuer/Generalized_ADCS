@@ -15,7 +15,7 @@ from .satellite_hardware import disturbances
 from .satellite_hardware.actuators import Actuator, MTQ, RW
 from .satellite_hardware.errors import Bias, Noise
 from .satellite_hardware.satellite import EstimatedSatellite, Satellite
-from .satellite_hardware.sensors import GPS, Gyro, MTM, StarTracker, SunPair, SunSensor
+from .satellite_hardware.sensors import GPS, Gyro, MTM, StarTracker, SunPair, SunSensor, StarTrackerQuaternion, EarthHorizonSensor
 from .simulate import simulate
 
 __all__ = [
@@ -33,7 +33,9 @@ __all__ = [
     "SunSensor",
     "SunPair",
     "StarTracker",
+    "StarTrackerQuaternion",
     "GPS",
+    "EarthHorizonSensor",
     "Bias",
     "Noise",
     "controller",
