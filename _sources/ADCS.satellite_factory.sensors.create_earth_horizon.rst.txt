@@ -1,0 +1,7 @@
+ADCS.satellite\_factory.sensors.create\_earth\_horizon module
+=============================================================
+
+.. automodule:: ADCS.satellite_factory.sensors.create_earth_horizon
+   :members:
+   :show-inheritance:
+   :undoc-members:

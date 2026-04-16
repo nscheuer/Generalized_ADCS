@@ -1,0 +1,7 @@
+ADCS.satellite\_hardware.sensors.earth\_horizon module
+======================================================
+
+.. automodule:: ADCS.satellite_hardware.sensors.earth_horizon
+   :members:
+   :show-inheritance:
+   :undoc-members:

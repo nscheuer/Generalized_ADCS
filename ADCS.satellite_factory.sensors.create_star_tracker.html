@@ -3,7 +3,7 @@
   <head><meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="genindex.html"><link rel="search" title="Search" href="search.html"><link rel="next" title="ADCS.satellite_hardware package" href="ADCS.satellite_hardware.html"><link rel="prev" title="ADCS.satellite_factory.sensors.create_cubesat_sunpair module" href="ADCS.satellite_factory.sensors.create_cubesat_sunpair.html">
+<link rel="index" title="Index" href="genindex.html"><link rel="search" title="Search" href="search.html"><link rel="next" title="ADCS.satellite_hardware package" href="ADCS.satellite_hardware.html"><link rel="prev" title="ADCS.satellite_factory.sensors.create_earth_horizon module" href="ADCS.satellite_factory.sensors.create_earth_horizon.html">
         <link rel="prefetch" href="_static/starlab_logo.svg" as="image">
         <link rel="prefetch" href="_static/starlab_logo.svg" as="image">
 
@@ -226,6 +226,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="release_notes/0_1_1_earth_horizon.html">0.1.1 Earth Horizon Sensor Added (2026-04-15)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="release_notes/0_1_0_saltro.html">0.1.0 The age of trajectory optimization is upon us! (2026-04-10)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="release_notes/0_0_2_multi_boresight.html">0.0.2 Multi-Boresight (2026-02-23)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="release_notes/0_0_1_mc.html">0.0.1 Monte Carlo Simulations (2026-02-02)</a></li>
@@ -427,6 +428,7 @@
 <li class="toctree-l4"><a class="reference internal" href="ADCS.satellite_factory.sensors.create_cubesat_MTM.html">ADCS.satellite_factory.sensors.create_cubesat_MTM module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.satellite_factory.sensors.create_cubesat_gyro.html">ADCS.satellite_factory.sensors.create_cubesat_gyro module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.satellite_factory.sensors.create_cubesat_sunpair.html">ADCS.satellite_factory.sensors.create_cubesat_sunpair module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ADCS.satellite_factory.sensors.create_earth_horizon.html">ADCS.satellite_factory.sensors.create_earth_horizon module</a></li>
 <li class="toctree-l4 current current-page"><a class="current reference internal" href="#">ADCS.satellite_factory.sensors.create_star_tracker module</a></li>
 </ul>
 </li>
@@ -469,11 +471,13 @@
 </ul>
 </li>
 <li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.satellite_hardware.sensors.html">ADCS.satellite_hardware.sensors package</a><input aria-label="Toggle navigation of ADCS.satellite_hardware.sensors package" class="toctree-checkbox" id="toctree-checkbox-46" name="toctree-checkbox-46" role="switch" type="checkbox"/><label for="toctree-checkbox-46"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="ADCS.satellite_hardware.sensors.earth_horizon.html">ADCS.satellite_hardware.sensors.earth_horizon module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.satellite_hardware.sensors.gps.html">ADCS.satellite_hardware.sensors.gps module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.satellite_hardware.sensors.gyro.html">ADCS.satellite_hardware.sensors.gyro module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.satellite_hardware.sensors.magnetometer.html">ADCS.satellite_hardware.sensors.magnetometer module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.satellite_hardware.sensors.sensor.html">ADCS.satellite_hardware.sensors.sensor module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.satellite_hardware.sensors.star_tracker.html">ADCS.satellite_hardware.sensors.star_tracker module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ADCS.satellite_hardware.sensors.star_tracker_quaternion.html">ADCS.satellite_hardware.sensors.star_tracker_quaternion module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.satellite_hardware.sensors.sunpair.html">ADCS.satellite_hardware.sensors.sunpair module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.satellite_hardware.sensors.sunsensor.html">ADCS.satellite_hardware.sensors.sunsensor module</a></li>
 </ul>
@@ -541,6 +545,27 @@
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="ADCS.satellite_factory.sensors.create_star_tracker.create_bct_nst_quaternion">
+<span class="sig-prename descclassname"><span class="pre">ADCS.satellite_factory.sensors.create_star_tracker.</span></span><span class="sig-name descname"><span class="pre">create_bct_nst_quaternion</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">boresight</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">array([0.,</span> <span class="pre">0.,</span> <span class="pre">1.])</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_factory/sensors/create_star_tracker.html#create_bct_nst_quaternion"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_factory.sensors.create_star_tracker.create_bct_nst_quaternion" title="Link to this definition">¶</a></dt>
+<dd><p>Create a BCT Nano Star Tracker in quaternion output mode.</p>
+<p>Uses the same noise specification as the BCT NST vector tracker
+(6 arcsec cross-boresight, 40 arcsec roll) mapped to a 4-element
+quaternion noise model, with a wider FOV to ensure multiple stars
+are visible.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>boresight</strong> (<em>numpy.ndarray</em>) – Sensor boresight in the body frame.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Quaternion star tracker with BCT NST noise parameters.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="ADCS.satellite_hardware.sensors.star_tracker_quaternion.html#ADCS.satellite_hardware.sensors.star_tracker_quaternion.StarTrackerQuaternion" title="ADCS.satellite_hardware.sensors.star_tracker_quaternion.StarTrackerQuaternion"><code class="xref py py-class docutils literal notranslate"><span class="pre">StarTrackerQuaternion</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="ADCS.satellite_factory.sensors.create_star_tracker.create_generic_star_tracker">
 <span class="sig-prename descclassname"><span class="pre">ADCS.satellite_factory.sensors.create_star_tracker.</span></span><span class="sig-name descname"><span class="pre">create_generic_star_tracker</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">boresight</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">array([0.,</span> <span class="pre">0.,</span> <span class="pre">1.])</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cross_arcsec</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">roll_arcsec</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">50.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fov_deg</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">15.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sun_exclusion_deg</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">35.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_factory/sensors/create_star_tracker.html#create_generic_star_tracker"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_factory.sensors.create_star_tracker.create_generic_star_tracker" title="Link to this definition">¶</a></dt>
 <dd><dl class="field-list simple">
@@ -555,6 +580,29 @@
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p><a class="reference internal" href="ADCS.satellite_hardware.sensors.star_tracker.html#ADCS.satellite_hardware.sensors.star_tracker.StarTracker" title="ADCS.satellite_hardware.sensors.star_tracker.StarTracker"><em>StarTracker</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ADCS.satellite_factory.sensors.create_star_tracker.create_generic_star_tracker_quaternion">
+<span class="sig-prename descclassname"><span class="pre">ADCS.satellite_factory.sensors.create_star_tracker.</span></span><span class="sig-name descname"><span class="pre">create_generic_star_tracker_quaternion</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">boresight</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">array([0.,</span> <span class="pre">0.,</span> <span class="pre">1.])</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noise_arcsec</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fov_deg</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">20.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sun_exclusion_deg</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">35.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_stars</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_factory/sensors/create_star_tracker.html#create_generic_star_tracker_quaternion"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_factory.sensors.create_star_tracker.create_generic_star_tracker_quaternion" title="Link to this definition">¶</a></dt>
+<dd><p>Create a configurable quaternion-output star tracker.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>boresight</strong> (<em>numpy.ndarray</em>) – Sensor boresight in the body frame.</p></li>
+<li><p><strong>noise_arcsec</strong> (<em>float</em>) – Per-component quaternion noise [arcsec].</p></li>
+<li><p><strong>fov_deg</strong> (<em>float</em>) – Full-angle field of view [deg].</p></li>
+<li><p><strong>sun_exclusion_deg</strong> (<em>float</em>) – Sun exclusion angle [deg].</p></li>
+<li><p><strong>min_stars</strong> (<em>int</em>) – Minimum number of stars for a valid solution.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Configured quaternion star tracker.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="ADCS.satellite_hardware.sensors.star_tracker_quaternion.html#ADCS.satellite_hardware.sensors.star_tracker_quaternion.StarTrackerQuaternion" title="ADCS.satellite_hardware.sensors.star_tracker_quaternion.StarTrackerQuaternion"><code class="xref py py-class docutils literal notranslate"><span class="pre">StarTrackerQuaternion</span></code></a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -588,14 +636,14 @@
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>
-          <a class="prev-page" href="ADCS.satellite_factory.sensors.create_cubesat_sunpair.html">
+          <a class="prev-page" href="ADCS.satellite_factory.sensors.create_earth_horizon.html">
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
               <div class="page-info">
                 <div class="context">
                   <span>Previous</span>
                 </div>
                 
-                <div class="title">ADCS.satellite_factory.sensors.create_cubesat_sunpair module</div>
+                <div class="title">ADCS.satellite_factory.sensors.create_earth_horizon module</div>
                 
               </div>
             </a>

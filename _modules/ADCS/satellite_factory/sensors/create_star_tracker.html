@@ -225,6 +225,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../../release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_1_earth_horizon.html">0.1.1 Earth Horizon Sensor Added (2026-04-15)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_0_saltro.html">0.1.0 The age of trajectory optimization is upon us! (2026-04-10)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_0_2_multi_boresight.html">0.0.2 Multi-Boresight (2026-02-23)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_0_1_mc.html">0.0.1 Monte Carlo Simulations (2026-02-02)</a></li>
@@ -426,6 +427,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../../../ADCS.satellite_factory.sensors.create_cubesat_MTM.html">ADCS.satellite_factory.sensors.create_cubesat_MTM module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../../ADCS.satellite_factory.sensors.create_cubesat_gyro.html">ADCS.satellite_factory.sensors.create_cubesat_gyro module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../../ADCS.satellite_factory.sensors.create_cubesat_sunpair.html">ADCS.satellite_factory.sensors.create_cubesat_sunpair module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../ADCS.satellite_factory.sensors.create_earth_horizon.html">ADCS.satellite_factory.sensors.create_earth_horizon module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../../ADCS.satellite_factory.sensors.create_star_tracker.html">ADCS.satellite_factory.sensors.create_star_tracker module</a></li>
 </ul>
 </li>
@@ -468,11 +470,13 @@
 </ul>
 </li>
 <li class="toctree-l3 has-children"><a class="reference internal" href="../../../../ADCS.satellite_hardware.sensors.html">ADCS.satellite_hardware.sensors package</a><input aria-label="Toggle navigation of ADCS.satellite_hardware.sensors package" class="toctree-checkbox" id="toctree-checkbox-46" name="toctree-checkbox-46" role="switch" type="checkbox"/><label for="toctree-checkbox-46"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../../ADCS.satellite_hardware.sensors.earth_horizon.html">ADCS.satellite_hardware.sensors.earth_horizon module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../../ADCS.satellite_hardware.sensors.gps.html">ADCS.satellite_hardware.sensors.gps module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../../ADCS.satellite_hardware.sensors.gyro.html">ADCS.satellite_hardware.sensors.gyro module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../../ADCS.satellite_hardware.sensors.magnetometer.html">ADCS.satellite_hardware.sensors.magnetometer module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../../ADCS.satellite_hardware.sensors.sensor.html">ADCS.satellite_hardware.sensors.sensor module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../../ADCS.satellite_hardware.sensors.star_tracker.html">ADCS.satellite_hardware.sensors.star_tracker module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../ADCS.satellite_hardware.sensors.star_tracker_quaternion.html">ADCS.satellite_hardware.sensors.star_tracker_quaternion module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../../ADCS.satellite_hardware.sensors.sunpair.html">ADCS.satellite_hardware.sensors.sunpair module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../../ADCS.satellite_hardware.sensors.sunsensor.html">ADCS.satellite_hardware.sensors.sunsensor module</a></li>
 </ul>
@@ -525,13 +529,16 @@
     <span class="s2">&quot;create_bct_nst&quot;</span><span class="p">,</span>
     <span class="s2">&quot;create_terma_t1&quot;</span><span class="p">,</span>
     <span class="s2">&quot;create_generic_star_tracker&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;create_bct_nst_quaternion&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;create_generic_star_tracker_quaternion&quot;</span><span class="p">,</span>
 <span class="p">]</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">numpy.typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">NDArray</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.sensors.star_tracker</span><span class="w"> </span><span class="kn">import</span> <span class="n">StarTracker</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.errors</span><span class="w"> </span><span class="kn">import</span> <span class="n">AnisotropicNoise</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.sensors.star_tracker_quaternion</span><span class="w"> </span><span class="kn">import</span> <span class="n">StarTrackerQuaternion</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.errors</span><span class="w"> </span><span class="kn">import</span> <span class="n">AnisotropicNoise</span><span class="p">,</span> <span class="n">Noise</span>
 
 <span class="n">_ARCSEC2RAD</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="p">(</span><span class="mf">180.0</span> <span class="o">*</span> <span class="mf">3600.0</span><span class="p">)</span>
 
@@ -583,6 +590,78 @@
         <span class="n">fov</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">fov_deg</span><span class="p">),</span>
         <span class="n">anisotropic_noise</span><span class="o">=</span><span class="n">noise</span><span class="p">,</span>
         <span class="n">sun_exclusion</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">sun_exclusion_deg</span><span class="p">)</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="create_bct_nst_quaternion">
+<a class="viewcode-back" href="../../../../ADCS.satellite_factory.sensors.create_star_tracker.html#ADCS.satellite_factory.sensors.create_star_tracker.create_bct_nst_quaternion">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">create_bct_nst_quaternion</span><span class="p">(</span>
+    <span class="n">boresight</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">]),</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StarTrackerQuaternion</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create a BCT Nano Star Tracker in quaternion output mode.</span>
+
+<span class="sd">    Uses the same noise specification as the BCT NST vector tracker</span>
+<span class="sd">    (6 arcsec cross-boresight, 40 arcsec roll) mapped to a 4-element</span>
+<span class="sd">    quaternion noise model, with a wider FOV to ensure multiple stars</span>
+<span class="sd">    are visible.</span>
+
+<span class="sd">    :param boresight: Sensor boresight in the body frame.</span>
+<span class="sd">    :type boresight: numpy.ndarray</span>
+<span class="sd">    :return: Quaternion star tracker with BCT NST noise parameters.</span>
+<span class="sd">    :rtype: :class:`~ADCS.satellite_hardware.sensors.star_tracker_quaternion.StarTrackerQuaternion`</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">cross_rad</span> <span class="o">=</span> <span class="mf">6.0</span> <span class="o">*</span> <span class="n">_ARCSEC2RAD</span>
+    <span class="n">noise</span> <span class="o">=</span> <span class="n">Noise</span><span class="p">(</span>
+        <span class="n">noise</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">4</span><span class="p">),</span>
+        <span class="n">std_noise</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">cross_rad</span><span class="p">,</span> <span class="n">cross_rad</span><span class="p">,</span> <span class="n">cross_rad</span><span class="p">,</span> <span class="n">cross_rad</span><span class="p">]),</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">StarTrackerQuaternion</span><span class="p">(</span>
+        <span class="n">boresight</span><span class="o">=</span><span class="n">boresight</span><span class="p">,</span>
+        <span class="n">fov</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="mf">20.0</span><span class="p">),</span>
+        <span class="n">noise</span><span class="o">=</span><span class="n">noise</span><span class="p">,</span>
+        <span class="n">sun_exclusion</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="mf">45.0</span><span class="p">),</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="create_generic_star_tracker_quaternion">
+<a class="viewcode-back" href="../../../../ADCS.satellite_factory.sensors.create_star_tracker.html#ADCS.satellite_factory.sensors.create_star_tracker.create_generic_star_tracker_quaternion">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">create_generic_star_tracker_quaternion</span><span class="p">(</span>
+    <span class="n">boresight</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">]),</span>
+    <span class="n">noise_arcsec</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">10.0</span><span class="p">,</span>
+    <span class="n">fov_deg</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">20.0</span><span class="p">,</span>
+    <span class="n">sun_exclusion_deg</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">35.0</span><span class="p">,</span>
+    <span class="n">min_stars</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StarTrackerQuaternion</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create a configurable quaternion-output star tracker.</span>
+
+<span class="sd">    :param boresight: Sensor boresight in the body frame.</span>
+<span class="sd">    :type boresight: numpy.ndarray</span>
+<span class="sd">    :param noise_arcsec: Per-component quaternion noise [arcsec].</span>
+<span class="sd">    :type noise_arcsec: float</span>
+<span class="sd">    :param fov_deg: Full-angle field of view [deg].</span>
+<span class="sd">    :type fov_deg: float</span>
+<span class="sd">    :param sun_exclusion_deg: Sun exclusion angle [deg].</span>
+<span class="sd">    :type sun_exclusion_deg: float</span>
+<span class="sd">    :param min_stars: Minimum number of stars for a valid solution.</span>
+<span class="sd">    :type min_stars: int</span>
+<span class="sd">    :return: Configured quaternion star tracker.</span>
+<span class="sd">    :rtype: :class:`~ADCS.satellite_hardware.sensors.star_tracker_quaternion.StarTrackerQuaternion`</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">noise_rad</span> <span class="o">=</span> <span class="n">noise_arcsec</span> <span class="o">*</span> <span class="n">_ARCSEC2RAD</span>
+    <span class="n">noise</span> <span class="o">=</span> <span class="n">Noise</span><span class="p">(</span>
+        <span class="n">noise</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">4</span><span class="p">),</span>
+        <span class="n">std_noise</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">noise_rad</span><span class="p">]</span> <span class="o">*</span> <span class="mi">4</span><span class="p">),</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">StarTrackerQuaternion</span><span class="p">(</span>
+        <span class="n">boresight</span><span class="o">=</span><span class="n">boresight</span><span class="p">,</span>
+        <span class="n">fov</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">fov_deg</span><span class="p">),</span>
+        <span class="n">noise</span><span class="o">=</span><span class="n">noise</span><span class="p">,</span>
+        <span class="n">sun_exclusion</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">sun_exclusion_deg</span><span class="p">),</span>
+        <span class="n">min_stars</span><span class="o">=</span><span class="n">min_stars</span><span class="p">,</span>
     <span class="p">)</span></div>
 
 </pre></div>

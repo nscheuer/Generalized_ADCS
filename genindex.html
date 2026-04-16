@@ -224,6 +224,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="release_notes/0_1_1_earth_horizon.html">0.1.1 Earth Horizon Sensor Added (2026-04-15)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="release_notes/0_1_0_saltro.html">0.1.0 The age of trajectory optimization is upon us! (2026-04-10)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="release_notes/0_0_2_multi_boresight.html">0.0.2 Multi-Boresight (2026-02-23)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="release_notes/0_0_1_mc.html">0.0.1 Monte Carlo Simulations (2026-02-02)</a></li>
@@ -425,6 +426,7 @@
 <li class="toctree-l4"><a class="reference internal" href="ADCS.satellite_factory.sensors.create_cubesat_MTM.html">ADCS.satellite_factory.sensors.create_cubesat_MTM module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.satellite_factory.sensors.create_cubesat_gyro.html">ADCS.satellite_factory.sensors.create_cubesat_gyro module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.satellite_factory.sensors.create_cubesat_sunpair.html">ADCS.satellite_factory.sensors.create_cubesat_sunpair module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ADCS.satellite_factory.sensors.create_earth_horizon.html">ADCS.satellite_factory.sensors.create_earth_horizon module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.satellite_factory.sensors.create_star_tracker.html">ADCS.satellite_factory.sensors.create_star_tracker module</a></li>
 </ul>
 </li>
@@ -467,11 +469,13 @@
 </ul>
 </li>
 <li class="toctree-l3 has-children"><a class="reference internal" href="ADCS.satellite_hardware.sensors.html">ADCS.satellite_hardware.sensors package</a><input aria-label="Toggle navigation of ADCS.satellite_hardware.sensors package" class="toctree-checkbox" id="toctree-checkbox-46" name="toctree-checkbox-46" role="switch" type="checkbox"/><label for="toctree-checkbox-46"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="ADCS.satellite_hardware.sensors.earth_horizon.html">ADCS.satellite_hardware.sensors.earth_horizon module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.satellite_hardware.sensors.gps.html">ADCS.satellite_hardware.sensors.gps module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.satellite_hardware.sensors.gyro.html">ADCS.satellite_hardware.sensors.gyro module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.satellite_hardware.sensors.magnetometer.html">ADCS.satellite_hardware.sensors.magnetometer module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.satellite_hardware.sensors.sensor.html">ADCS.satellite_hardware.sensors.sensor module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.satellite_hardware.sensors.star_tracker.html">ADCS.satellite_hardware.sensors.star_tracker module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ADCS.satellite_hardware.sensors.star_tracker_quaternion.html">ADCS.satellite_hardware.sensors.star_tracker_quaternion module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.satellite_hardware.sensors.sunpair.html">ADCS.satellite_hardware.sensors.sunpair module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="ADCS.satellite_hardware.sensors.sunsensor.html">ADCS.satellite_hardware.sensors.sunsensor module</a></li>
 </ul>
@@ -1179,8 +1183,6 @@
           <li><a href="ADCS.helpers.plot.sensors.html#module-ADCS.helpers.plot.sensors">module</a>
 </li>
         </ul></li>
-    </ul></td>
-    <td style="width: 33%; vertical-align: top;"><ul>
         <li>
     ADCS.helpers.plot.sensors.biasplot
 
@@ -1195,6 +1197,8 @@
           <li><a href="ADCS.helpers.plot.sensors.sensorsplot.html#module-ADCS.helpers.plot.sensors.sensorsplot">module</a>
 </li>
         </ul></li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
         <li>
     ADCS.helpers.plot.states
 
@@ -1469,6 +1473,13 @@
 </li>
         </ul></li>
         <li>
+    ADCS.satellite_factory.sensors.create_earth_horizon
+
+        <ul>
+          <li><a href="ADCS.satellite_factory.sensors.create_earth_horizon.html#module-ADCS.satellite_factory.sensors.create_earth_horizon">module</a>
+</li>
+        </ul></li>
+        <li>
     ADCS.satellite_factory.sensors.create_star_tracker
 
         <ul>
@@ -1651,6 +1662,13 @@
 </li>
         </ul></li>
         <li>
+    ADCS.satellite_hardware.sensors.earth_horizon
+
+        <ul>
+          <li><a href="ADCS.satellite_hardware.sensors.earth_horizon.html#module-ADCS.satellite_hardware.sensors.earth_horizon">module</a>
+</li>
+        </ul></li>
+        <li>
     ADCS.satellite_hardware.sensors.gps
 
         <ul>
@@ -1683,6 +1701,13 @@
 
         <ul>
           <li><a href="ADCS.satellite_hardware.sensors.star_tracker.html#module-ADCS.satellite_hardware.sensors.star_tracker">module</a>
+</li>
+        </ul></li>
+        <li>
+    ADCS.satellite_hardware.sensors.star_tracker_quaternion
+
+        <ul>
+          <li><a href="ADCS.satellite_hardware.sensors.star_tracker_quaternion.html#module-ADCS.satellite_hardware.sensors.star_tracker_quaternion">module</a>
 </li>
         </ul></li>
         <li>
@@ -1804,14 +1829,18 @@
 </li>
         <li><a href="ADCS.flight_software.single_core.ttc_single_core.html#ADCS.flight_software.single_core.ttc_single_core.TTC_Single_Core.base_utilization_wcet">base_utilization_wcet() (ADCS.flight_software.single_core.ttc_single_core.TTC_Single_Core method)</a>
 </li>
-        <li><a href="ADCS.satellite_hardware.sensors.gyro.html#ADCS.satellite_hardware.sensors.gyro.Gyro.basestate_jac">basestate_jac() (ADCS.satellite_hardware.sensors.gyro.Gyro method)</a>
+        <li><a href="ADCS.satellite_hardware.sensors.earth_horizon.html#ADCS.satellite_hardware.sensors.earth_horizon.EarthHorizonSensor.basestate_jac">basestate_jac() (ADCS.satellite_hardware.sensors.earth_horizon.EarthHorizonSensor method)</a>
 
         <ul>
+          <li><a href="ADCS.satellite_hardware.sensors.gyro.html#ADCS.satellite_hardware.sensors.gyro.Gyro.basestate_jac">(ADCS.satellite_hardware.sensors.gyro.Gyro method)</a>
+</li>
           <li><a href="ADCS.satellite_hardware.sensors.magnetometer.html#ADCS.satellite_hardware.sensors.magnetometer.MTM.basestate_jac">(ADCS.satellite_hardware.sensors.magnetometer.MTM method)</a>
 </li>
           <li><a href="ADCS.satellite_hardware.sensors.sensor.html#ADCS.satellite_hardware.sensors.sensor.Sensor.basestate_jac">(ADCS.satellite_hardware.sensors.sensor.Sensor method)</a>
 </li>
           <li><a href="ADCS.satellite_hardware.sensors.star_tracker.html#ADCS.satellite_hardware.sensors.star_tracker.StarTracker.basestate_jac">(ADCS.satellite_hardware.sensors.star_tracker.StarTracker method)</a>
+</li>
+          <li><a href="ADCS.satellite_hardware.sensors.star_tracker_quaternion.html#ADCS.satellite_hardware.sensors.star_tracker_quaternion.StarTrackerQuaternion.basestate_jac">(ADCS.satellite_hardware.sensors.star_tracker_quaternion.StarTrackerQuaternion method)</a>
 </li>
           <li><a href="ADCS.satellite_hardware.sensors.sunpair.html#ADCS.satellite_hardware.sensors.sunpair.SunPair.basestate_jac">(ADCS.satellite_hardware.sensors.sunpair.SunPair method)</a>
 </li>
@@ -1832,9 +1861,11 @@
 </li>
     </ul></td>
     <td style="width: 33%; vertical-align: top;"><ul>
-        <li><a href="ADCS.satellite_hardware.sensors.gps.html#ADCS.satellite_hardware.sensors.gps.GPS.bias_jac">bias_jac() (ADCS.satellite_hardware.sensors.gps.GPS method)</a>
+        <li><a href="ADCS.satellite_hardware.sensors.earth_horizon.html#ADCS.satellite_hardware.sensors.earth_horizon.EarthHorizonSensor.bias_jac">bias_jac() (ADCS.satellite_hardware.sensors.earth_horizon.EarthHorizonSensor method)</a>
 
         <ul>
+          <li><a href="ADCS.satellite_hardware.sensors.gps.html#ADCS.satellite_hardware.sensors.gps.GPS.bias_jac">(ADCS.satellite_hardware.sensors.gps.GPS method)</a>
+</li>
           <li><a href="ADCS.satellite_hardware.sensors.gyro.html#ADCS.satellite_hardware.sensors.gyro.Gyro.bias_jac">(ADCS.satellite_hardware.sensors.gyro.Gyro method)</a>
 </li>
           <li><a href="ADCS.satellite_hardware.sensors.magnetometer.html#ADCS.satellite_hardware.sensors.magnetometer.MTM.bias_jac">(ADCS.satellite_hardware.sensors.magnetometer.MTM method)</a>
@@ -1842,6 +1873,8 @@
           <li><a href="ADCS.satellite_hardware.sensors.sensor.html#ADCS.satellite_hardware.sensors.sensor.Sensor.bias_jac">(ADCS.satellite_hardware.sensors.sensor.Sensor method)</a>
 </li>
           <li><a href="ADCS.satellite_hardware.sensors.star_tracker.html#ADCS.satellite_hardware.sensors.star_tracker.StarTracker.bias_jac">(ADCS.satellite_hardware.sensors.star_tracker.StarTracker method)</a>
+</li>
+          <li><a href="ADCS.satellite_hardware.sensors.star_tracker_quaternion.html#ADCS.satellite_hardware.sensors.star_tracker_quaternion.StarTrackerQuaternion.bias_jac">(ADCS.satellite_hardware.sensors.star_tracker_quaternion.StarTrackerQuaternion method)</a>
 </li>
           <li><a href="ADCS.satellite_hardware.sensors.sunpair.html#ADCS.satellite_hardware.sensors.sunpair.SunPair.bias_jac">(ADCS.satellite_hardware.sensors.sunpair.SunPair method)</a>
 </li>
@@ -1890,14 +1923,18 @@
 </li>
         <li><a href="ADCS.mc.monte_carlo_runner.html#ADCS.mc.monte_carlo_runner.claim_worker_slot">claim_worker_slot() (in module ADCS.mc.monte_carlo_runner)</a>
 </li>
-        <li><a href="ADCS.satellite_hardware.sensors.gps.html#ADCS.satellite_hardware.sensors.gps.GPS.clean_reading">clean_reading() (ADCS.satellite_hardware.sensors.gps.GPS method)</a>
+        <li><a href="ADCS.satellite_hardware.sensors.earth_horizon.html#ADCS.satellite_hardware.sensors.earth_horizon.EarthHorizonSensor.clean_reading">clean_reading() (ADCS.satellite_hardware.sensors.earth_horizon.EarthHorizonSensor method)</a>
 
         <ul>
+          <li><a href="ADCS.satellite_hardware.sensors.gps.html#ADCS.satellite_hardware.sensors.gps.GPS.clean_reading">(ADCS.satellite_hardware.sensors.gps.GPS method)</a>
+</li>
           <li><a href="ADCS.satellite_hardware.sensors.gyro.html#ADCS.satellite_hardware.sensors.gyro.Gyro.clean_reading">(ADCS.satellite_hardware.sensors.gyro.Gyro method)</a>
 </li>
           <li><a href="ADCS.satellite_hardware.sensors.magnetometer.html#ADCS.satellite_hardware.sensors.magnetometer.MTM.clean_reading">(ADCS.satellite_hardware.sensors.magnetometer.MTM method)</a>
 </li>
           <li><a href="ADCS.satellite_hardware.sensors.star_tracker.html#ADCS.satellite_hardware.sensors.star_tracker.StarTracker.clean_reading">(ADCS.satellite_hardware.sensors.star_tracker.StarTracker method)</a>
+</li>
+          <li><a href="ADCS.satellite_hardware.sensors.star_tracker_quaternion.html#ADCS.satellite_hardware.sensors.star_tracker_quaternion.StarTrackerQuaternion.clean_reading">(ADCS.satellite_hardware.sensors.star_tracker_quaternion.StarTrackerQuaternion method)</a>
 </li>
           <li><a href="ADCS.satellite_hardware.sensors.sunpair.html#ADCS.satellite_hardware.sensors.sunpair.SunPair.clean_reading">(ADCS.satellite_hardware.sensors.sunpair.SunPair method)</a>
 </li>
@@ -1950,10 +1987,10 @@
 </li>
         <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.SolverPassConfig.convergence">convergence (ADCS.controller.plan_and_track.planner_subsettings.SolverPassConfig attribute)</a>
 </li>
-    </ul></td>
-    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.ConvergenceConfig">ConvergenceConfig (class in ADCS.controller.plan_and_track.planner_subsettings)</a>
 </li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="ADCS.CONOPS.goals.vector_goals.coordinate_goal.html#ADCS.CONOPS.goals.vector_goals.coordinate_goal.Coordinate_Goal">Coordinate_Goal (class in ADCS.CONOPS.goals.vector_goals.coordinate_goal)</a>
 </li>
         <li><a href="ADCS.estimators.estimator_helpers.estimator_helpers.html#ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray.copy">copy() (ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray method)</a>
@@ -1994,6 +2031,8 @@
 </li>
         <li><a href="ADCS.satellite_factory.sensors.create_star_tracker.html#ADCS.satellite_factory.sensors.create_star_tracker.create_bct_nst">create_bct_nst() (in module ADCS.satellite_factory.sensors.create_star_tracker)</a>
 </li>
+        <li><a href="ADCS.satellite_factory.sensors.create_star_tracker.html#ADCS.satellite_factory.sensors.create_star_tracker.create_bct_nst_quaternion">create_bct_nst_quaternion() (in module ADCS.satellite_factory.sensors.create_star_tracker)</a>
+</li>
         <li><a href="ADCS.satellite_factory.satellites.create_cubesats.html#ADCS.satellite_factory.satellites.create_cubesats.create_beavercube1_cubesat">create_beavercube1_cubesat() (in module ADCS.satellite_factory.satellites.create_cubesats)</a>
 </li>
         <li><a href="ADCS.satellite_factory.satellites.create_cubesats.html#ADCS.satellite_factory.satellites.create_cubesats.create_beavercube2_cubesat">create_beavercube2_cubesat() (in module ADCS.satellite_factory.satellites.create_cubesats)</a>
@@ -2004,9 +2043,15 @@
 </li>
         <li><a href="ADCS.satellite_factory.actuators.create_cubesat_RW.html#ADCS.satellite_factory.actuators.create_cubesat_RW.create_cubewheel_smallplus_rw">create_cubewheel_smallplus_rw() (in module ADCS.satellite_factory.actuators.create_cubesat_RW)</a>
 </li>
+        <li><a href="ADCS.satellite_factory.sensors.create_earth_horizon.html#ADCS.satellite_factory.sensors.create_earth_horizon.create_generic_earth_horizon">create_generic_earth_horizon() (in module ADCS.satellite_factory.sensors.create_earth_horizon)</a>
+</li>
         <li><a href="ADCS.satellite_factory.sensors.create_star_tracker.html#ADCS.satellite_factory.sensors.create_star_tracker.create_generic_star_tracker">create_generic_star_tracker() (in module ADCS.satellite_factory.sensors.create_star_tracker)</a>
 </li>
+        <li><a href="ADCS.satellite_factory.sensors.create_star_tracker.html#ADCS.satellite_factory.sensors.create_star_tracker.create_generic_star_tracker_quaternion">create_generic_star_tracker_quaternion() (in module ADCS.satellite_factory.sensors.create_star_tracker)</a>
+</li>
         <li><a href="ADCS.satellite_factory.sensors.create_cubesat_gyro.html#ADCS.satellite_factory.sensors.create_cubesat_gyro.create_ICM20948_IMU">create_ICM20948_IMU() (in module ADCS.satellite_factory.sensors.create_cubesat_gyro)</a>
+</li>
+        <li><a href="ADCS.satellite_factory.sensors.create_earth_horizon.html#ADCS.satellite_factory.sensors.create_earth_horizon.create_irst_horizon_sensor">create_irst_horizon_sensor() (in module ADCS.satellite_factory.sensors.create_earth_horizon)</a>
 </li>
         <li><a href="ADCS.satellite_factory.sensors.create_cubesat_MTM.html#ADCS.satellite_factory.sensors.create_cubesat_MTM.create_isis_magnetometer">create_isis_magnetometer() (in module ADCS.satellite_factory.sensors.create_cubesat_MTM)</a>
 </li>
@@ -2310,6 +2355,10 @@
   <h2>E</h2>
   <table style="width: 100%" class="indextable genindextable"><tr>
     <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="ADCS.satellite_hardware.sensors.earth_horizon.html#ADCS.satellite_hardware.sensors.earth_horizon.EarthHorizonSensor.earth_angular_radius">earth_angular_radius (ADCS.satellite_hardware.sensors.earth_horizon.EarthHorizonSensor property)</a>
+</li>
+        <li><a href="ADCS.satellite_hardware.sensors.earth_horizon.html#ADCS.satellite_hardware.sensors.earth_horizon.EarthHorizonSensor">EarthHorizonSensor (class in ADCS.satellite_hardware.sensors.earth_horizon)</a>
+</li>
         <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Orbital_State.ecef_to_eci">ecef_to_eci() (ADCS.helpers.simresults.Orbital_State method)</a>
 
         <ul>
@@ -3126,6 +3175,8 @@
 </li>
           <li><a href="ADCS.satellite_factory.sensors.create_cubesat_sunpair.html#module-ADCS.satellite_factory.sensors.create_cubesat_sunpair">ADCS.satellite_factory.sensors.create_cubesat_sunpair</a>
 </li>
+          <li><a href="ADCS.satellite_factory.sensors.create_earth_horizon.html#module-ADCS.satellite_factory.sensors.create_earth_horizon">ADCS.satellite_factory.sensors.create_earth_horizon</a>
+</li>
           <li><a href="ADCS.satellite_factory.sensors.create_star_tracker.html#module-ADCS.satellite_factory.sensors.create_star_tracker">ADCS.satellite_factory.sensors.create_star_tracker</a>
 </li>
           <li><a href="ADCS.satellite_hardware.html#module-ADCS.satellite_hardware">ADCS.satellite_hardware</a>
@@ -3178,6 +3229,8 @@
 </li>
           <li><a href="ADCS.satellite_hardware.sensors.html#module-ADCS.satellite_hardware.sensors">ADCS.satellite_hardware.sensors</a>
 </li>
+          <li><a href="ADCS.satellite_hardware.sensors.earth_horizon.html#module-ADCS.satellite_hardware.sensors.earth_horizon">ADCS.satellite_hardware.sensors.earth_horizon</a>
+</li>
           <li><a href="ADCS.satellite_hardware.sensors.gps.html#module-ADCS.satellite_hardware.sensors.gps">ADCS.satellite_hardware.sensors.gps</a>
 </li>
           <li><a href="ADCS.satellite_hardware.sensors.gyro.html#module-ADCS.satellite_hardware.sensors.gyro">ADCS.satellite_hardware.sensors.gyro</a>
@@ -3187,6 +3240,8 @@
           <li><a href="ADCS.satellite_hardware.sensors.sensor.html#module-ADCS.satellite_hardware.sensors.sensor">ADCS.satellite_hardware.sensors.sensor</a>
 </li>
           <li><a href="ADCS.satellite_hardware.sensors.star_tracker.html#module-ADCS.satellite_hardware.sensors.star_tracker">ADCS.satellite_hardware.sensors.star_tracker</a>
+</li>
+          <li><a href="ADCS.satellite_hardware.sensors.star_tracker_quaternion.html#module-ADCS.satellite_hardware.sensors.star_tracker_quaternion">ADCS.satellite_hardware.sensors.star_tracker_quaternion</a>
 </li>
           <li><a href="ADCS.satellite_hardware.sensors.sunpair.html#module-ADCS.satellite_hardware.sensors.sunpair">ADCS.satellite_hardware.sensors.sunpair</a>
 </li>
@@ -3351,10 +3406,10 @@
           <li><a href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State">(class in ADCS.orbits.orbital_state)</a>
 </li>
         </ul></li>
-    </ul></td>
-    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="ADCS.helpers.plot.orbit.orbitdensityplot.html#ADCS.helpers.plot.orbit.orbitdensityplot.OrbitDensityModelPlot">OrbitDensityModelPlot (class in ADCS.helpers.plot.orbit.orbitdensityplot)</a>
 </li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="ADCS.helpers.plot.orbit.orbitdensityplot.html#ADCS.helpers.plot.orbit.orbitdensityplot.OrbitDensityPlot">OrbitDensityPlot (class in ADCS.helpers.plot.orbit.orbitdensityplot)</a>
 </li>
         <li><a href="ADCS.helpers.plot.orbit.orbitmagneticplot.html#ADCS.helpers.plot.orbit.orbitmagneticplot.OrbitMagneticPlot">OrbitMagneticPlot (class in ADCS.helpers.plot.orbit.orbitmagneticplot)</a>
@@ -3383,8 +3438,14 @@
 </li>
         <li><a href="ADCS.controller.plan_and_track.debug_planner.html#ADCS.controller.plan_and_track.debug_planner.DebugPlanner.outerBreak">outerBreak() (ADCS.controller.plan_and_track.debug_planner.DebugPlanner method)</a>
 </li>
-        <li><a href="ADCS.satellite_hardware.sensors.star_tracker.html#ADCS.satellite_hardware.sensors.star_tracker.StarTracker.output_length">output_length (ADCS.satellite_hardware.sensors.star_tracker.StarTracker attribute)</a>
+        <li><a href="ADCS.satellite_hardware.sensors.earth_horizon.html#ADCS.satellite_hardware.sensors.earth_horizon.EarthHorizonSensor.output_length">output_length (ADCS.satellite_hardware.sensors.earth_horizon.EarthHorizonSensor attribute)</a>
+
+        <ul>
+          <li><a href="ADCS.satellite_hardware.sensors.star_tracker.html#ADCS.satellite_hardware.sensors.star_tracker.StarTracker.output_length">(ADCS.satellite_hardware.sensors.star_tracker.StarTracker attribute)</a>
 </li>
+          <li><a href="ADCS.satellite_hardware.sensors.star_tracker_quaternion.html#ADCS.satellite_hardware.sensors.star_tracker_quaternion.StarTrackerQuaternion.output_length">(ADCS.satellite_hardware.sensors.star_tracker_quaternion.StarTrackerQuaternion attribute)</a>
+</li>
+        </ul></li>
         <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Path.owner">owner() (ADCS.helpers.simresults.Path method)</a>
 </li>
     </ul></td>
@@ -3635,10 +3696,14 @@
 </li>
         <li><a href="ADCS.controller.plan_and_track.debug_planner.html#ADCS.controller.plan_and_track.debug_planner.DebugPlanner.readDebug">readDebug() (ADCS.controller.plan_and_track.debug_planner.DebugPlanner method)</a>
 </li>
-        <li><a href="ADCS.satellite_hardware.sensors.sensor.html#ADCS.satellite_hardware.sensors.sensor.Sensor.reading">reading() (ADCS.satellite_hardware.sensors.sensor.Sensor method)</a>
+        <li><a href="ADCS.satellite_hardware.sensors.earth_horizon.html#ADCS.satellite_hardware.sensors.earth_horizon.EarthHorizonSensor.reading">reading() (ADCS.satellite_hardware.sensors.earth_horizon.EarthHorizonSensor method)</a>
 
         <ul>
+          <li><a href="ADCS.satellite_hardware.sensors.sensor.html#ADCS.satellite_hardware.sensors.sensor.Sensor.reading">(ADCS.satellite_hardware.sensors.sensor.Sensor method)</a>
+</li>
           <li><a href="ADCS.satellite_hardware.sensors.star_tracker.html#ADCS.satellite_hardware.sensors.star_tracker.StarTracker.reading">(ADCS.satellite_hardware.sensors.star_tracker.StarTracker method)</a>
+</li>
+          <li><a href="ADCS.satellite_hardware.sensors.star_tracker_quaternion.html#ADCS.satellite_hardware.sensors.star_tracker_quaternion.StarTrackerQuaternion.reading">(ADCS.satellite_hardware.sensors.star_tracker_quaternion.StarTrackerQuaternion method)</a>
 </li>
         </ul></li>
         <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Path.readlink">readlink() (ADCS.helpers.simresults.Path method)</a>
@@ -3857,14 +3922,14 @@
 </li>
         <li><a href="ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.SolverPassConfig">SolverPassConfig (class in ADCS.controller.plan_and_track.planner_subsettings)</a>
 </li>
-    </ul></td>
-    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Satellite.specific_dist_off">specific_dist_off() (ADCS.helpers.simresults.Satellite method)</a>
 
         <ul>
           <li><a href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite.specific_dist_off">(ADCS.satellite_hardware.satellite.satellite.Satellite method)</a>
 </li>
         </ul></li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Satellite.specific_dist_on">specific_dist_on() (ADCS.helpers.simresults.Satellite method)</a>
 
         <ul>
@@ -3904,6 +3969,8 @@
         <li><a href="ADCS.controller.helpers.trajectory.html#ADCS.controller.helpers.trajectory.Trajectory.start_time">start_time (ADCS.controller.helpers.trajectory.Trajectory attribute)</a>
 </li>
         <li><a href="ADCS.satellite_hardware.sensors.star_tracker.html#ADCS.satellite_hardware.sensors.star_tracker.StarTracker">StarTracker (class in ADCS.satellite_hardware.sensors.star_tracker)</a>
+</li>
+        <li><a href="ADCS.satellite_hardware.sensors.star_tracker_quaternion.html#ADCS.satellite_hardware.sensors.star_tracker_quaternion.StarTrackerQuaternion">StarTrackerQuaternion (class in ADCS.satellite_hardware.sensors.star_tracker_quaternion)</a>
 </li>
         <li><a href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Path.stat">stat() (ADCS.helpers.simresults.Path method)</a>
 </li>

@@ -1,0 +1,7 @@
+ADCS.satellite\_hardware.sensors.star\_tracker\_quaternion module
+=================================================================
+
+.. automodule:: ADCS.satellite_hardware.sensors.star_tracker_quaternion
+   :members:
+   :show-inheritance:
+   :undoc-members:
