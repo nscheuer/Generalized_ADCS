@@ -16,6 +16,7 @@ matplotlib==3.10.7
 myst-parser==5.0.0
 np==1.0.2
 numpy==2.2.6
+numba==0.65.0
 numdifftools==0.9.41
 packaging==25.0
 pandas==2.3.3
