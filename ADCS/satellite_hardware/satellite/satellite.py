@@ -8,6 +8,7 @@ import time
 
 import ADCS.orbits.universal_constants as uc
 from ADCS.helpers.math_helpers import *
+from ADCS.helpers.math_helpers import _quat_qdot, _wdot_no_rw_kernel, _wdot_rw_kernel, _rw_hdot_kernel
 from ADCS.satellite_hardware.disturbances import Disturbance, SRP_Disturbance, General_Disturbance, Prop_Disturbance
 from ADCS.satellite_hardware.sensors import Sensor, GPS, Gyro, MTM, SunPair, SunSensor
 from ADCS.satellite_hardware.actuators import Actuator, RW, MTQ
@@ -629,6 +630,12 @@ class Satellite:
         h = x[7:]
         J = self.J_0
         invJ_noRW = self.invJ_noRW
+        if self.number_RW == 0:
+            RWjs = np.zeros(0, dtype=float)
+            RWaxes = np.zeros((0, 3), dtype=float)
+        else:
+            RWjs = np.array([self.actuators[j].J for j in self.momentum_inds])
+            RWaxes = np.vstack([self.actuators[j].axis for j in self.momentum_inds])
 
         if dmode is None:
             dmode = ErrorMode(add_bias=True, add_noise=True, update_bias=True, update_noise=True)
@@ -637,20 +644,18 @@ class Satellite:
         actuator_torque: np.ndarray = self.act_torque(x=x, u=u, os=orbital_state, dmode=dmode)
 
         # Dynamics
-        qdot = 0.5*w@Wmat(q).T
+        qdot = _quat_qdot(w, q)
         total_torque = disturbance_torque + actuator_torque
 
         # Reaction wheels
         if self.number_RW==0:
-            wdot = (-np.cross(w,w@J) + total_torque)@invJ_noRW
+            wdot = _wdot_no_rw_kernel(w, total_torque, J, invJ_noRW)
             result = np.concatenate([wdot,qdot])
         else:
-            RWjs = np.array([self.actuators[j].J for j in self.momentum_inds])
-            RWaxes = np.vstack([self.actuators[j].axis for j in self.momentum_inds])
             storage_torques = [self.actuators[j].storage_torque(u=u[j], x=x, os=orbital_state, dmode=dmode) for j in self.momentum_inds]
             u_RW = np.array(storage_torques)
-            wdot = (-np.cross(w,w@J + h@RWaxes) + total_torque)@invJ_noRW
-            RW_hdot = u_RW-wdot@RWaxes.T@np.diagflat(RWjs) #u_RW-wdot@RWaxes.T@np.diagflat(RWjs)
+            wdot = _wdot_rw_kernel(w, h, total_torque, J, invJ_noRW, RWaxes)
+            RW_hdot = _rw_hdot_kernel(u_RW, wdot, RWaxes, RWjs)
 
             result = np.concatenate([wdot,qdot,RW_hdot])
 
