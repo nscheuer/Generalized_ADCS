@@ -1279,3 +1279,107 @@ def dcm_to_quat(R: np.ndarray) -> np.ndarray:
         out[3] = q3
 
     return normalize(out)
+
+
+# =====================================================================
+# Compiled disturbance / actuator torque kernels
+# =====================================================================
+
+@njit(cache=True)
+def _gg_torque_kernel(R_B, J_0, mu_e):
+    """Gravity-gradient torque: 3*mu/r^3 * (n x J*n), where n = -R_B/|R_B|."""
+    r2 = R_B[0]**2 + R_B[1]**2 + R_B[2]**2
+    r_norm = np.sqrt(r2)
+    inv_r = 1.0 / r_norm
+    n0 = -R_B[0] * inv_r
+    n1 = -R_B[1] * inv_r
+    n2 = -R_B[2] * inv_r
+    Jn0 = J_0[0, 0]*n0 + J_0[0, 1]*n1 + J_0[0, 2]*n2
+    Jn1 = J_0[1, 0]*n0 + J_0[1, 1]*n1 + J_0[1, 2]*n2
+    Jn2 = J_0[2, 0]*n0 + J_0[2, 1]*n1 + J_0[2, 2]*n2
+    out = np.empty(3)
+    out[0] = n1*Jn2 - n2*Jn1
+    out[1] = n2*Jn0 - n0*Jn2
+    out[2] = n0*Jn1 - n1*Jn0
+    const = 3.0 * mu_e / (r_norm * r2)
+    out[0] *= const
+    out[1] *= const
+    out[2] *= const
+    return out
+
+
+@njit(cache=True)
+def _srp_torque_kernel(S_B, R_B, COM, normals, areas, centroids,
+                       eta_s, eta_d, eta_a, solar_constant, c_light):
+    """SRP torque summed over geometry faces."""
+    diff = np.empty(3)
+    diff[0] = S_B[0] - R_B[0]
+    diff[1] = S_B[1] - R_B[1]
+    diff[2] = S_B[2] - R_B[2]
+    d_norm = np.sqrt(diff[0]**2 + diff[1]**2 + diff[2]**2)
+    inv_d = 1.0 / d_norm
+    sb0 = diff[0] * inv_d
+    sb1 = diff[1] * inv_d
+    sb2 = diff[2] * inv_d
+    nf = normals.shape[0]
+    t0 = 0.0
+    t1 = 0.0
+    t2 = 0.0
+    for i in range(nf):
+        cos_g = normals[i, 0]*sb0 + normals[i, 1]*sb1 + normals[i, 2]*sb2
+        if cos_g < 0.0:
+            cos_g = 0.0
+        A_cg = areas[i] * cos_g
+        c0 = centroids[i, 0] - COM[0]
+        c1 = centroids[i, 1] - COM[1]
+        c2 = centroids[i, 2] - COM[2]
+        ms = A_cg * (eta_a[i] + eta_d[i])
+        cs0 = c1*sb2 - c2*sb1
+        cs1 = c2*sb0 - c0*sb2
+        cs2 = c0*sb1 - c1*sb0
+        mn = A_cg * (2.0*eta_s[i]*cos_g + (2.0/3.0)*eta_d[i])
+        cn0 = c1*normals[i, 2] - c2*normals[i, 1]
+        cn1 = c2*normals[i, 0] - c0*normals[i, 2]
+        cn2 = c0*normals[i, 1] - c1*normals[i, 0]
+        t0 += ms*cs0 + mn*cn0
+        t1 += ms*cs1 + mn*cn1
+        t2 += ms*cs2 + mn*cn2
+    k = -(solar_constant / c_light)
+    out = np.empty(3)
+    out[0] = k * t0
+    out[1] = k * t1
+    out[2] = k * t2
+    return out
+
+
+@njit(cache=True)
+def _drag_torque_kernel(V_B, rho, COM, normals, areas, centroids, CDs):
+    """Aerodynamic drag torque summed over geometry faces."""
+    nf = normals.shape[0]
+    wx = 0.0
+    wy = 0.0
+    wz = 0.0
+    for i in range(nf):
+        v_proj = normals[i, 0]*V_B[0] + normals[i, 1]*V_B[1] + normals[i, 2]*V_B[2]
+        if v_proj < 0.0:
+            v_proj = 0.0
+        F = CDs[i] * areas[i] * v_proj
+        wx += F * (centroids[i, 0] - COM[0])
+        wy += F * (centroids[i, 1] - COM[1])
+        wz += F * (centroids[i, 2] - COM[2])
+    ct = -0.5 * rho
+    out = np.empty(3)
+    out[0] = ct * (wy*V_B[2] - wz*V_B[1])
+    out[1] = ct * (wz*V_B[0] - wx*V_B[2])
+    out[2] = ct * (wx*V_B[1] - wy*V_B[0])
+    return out
+
+
+@njit(cache=True)
+def _mtq_torque_kernel(b_body, axis, u):
+    """Magnetorquer torque: -(B x a) * u."""
+    out = np.empty(3)
+    out[0] = -(b_body[1]*axis[2] - b_body[2]*axis[1]) * u
+    out[1] = -(b_body[2]*axis[0] - b_body[0]*axis[2]) * u
+    out[2] = -(b_body[0]*axis[1] - b_body[1]*axis[0]) * u
+    return out

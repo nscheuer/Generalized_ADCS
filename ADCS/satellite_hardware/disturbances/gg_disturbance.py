@@ -1,4 +1,4 @@
-from __future__ import annotations 
+from __future__ import annotations
 __all__ = ["GG_Disturbance"]
 
 import numpy as np
@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 from ADCS.satellite_hardware.disturbances.disturbance import Disturbance
 from ADCS.satellite_hardware.disturbances.helpers.geometry_config import GeometryConfig
 from ADCS.orbits.orbital_state import Orbital_State
-from ADCS.helpers.math_helpers import normalize, normed_vec_jac, normed_vec_hess, norm, vec_norm_jac, vec_norm_hess
+from ADCS.helpers.math_helpers import normalize, normed_vec_jac, normed_vec_hess, norm, vec_norm_jac, vec_norm_hess, _gg_torque_kernel
 from ADCS.orbits.universal_constants import EarthConstants
 
 if TYPE_CHECKING:
@@ -122,13 +122,7 @@ class GG_Disturbance(Disturbance):
         :rtype: :class:`numpy.ndarray`
         """
         vecs = os.get_state_vector(x=x)
-
-        R_B = vecs["r"]
-        r_body_hat = normalize(R_B)
-        nadir_vec = -r_body_hat
-
-        const_term = 3.0*EarthConstants.mu_e/(norm(R_B)**3.0)
-        return const_term * np.cross(nadir_vec, sat.J_0 @ nadir_vec)
+        return _gg_torque_kernel(vecs["r"], sat.J_0, EarthConstants.mu_e)
     
     def torque_qvac(self, sat: Satellite, x: np.ndarray, os: Orbital_State) -> np.ndarray:
         r"""

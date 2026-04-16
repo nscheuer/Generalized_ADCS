@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 from ADCS.satellite_hardware.disturbances.disturbance import Disturbance
 from ADCS.satellite_hardware.disturbances.helpers.geometry_config import GeometryConfig
 from ADCS.orbits.orbital_state import Orbital_State
-from ADCS.helpers.math_helpers import normalize
+from ADCS.helpers.math_helpers import normalize, _drag_torque_kernel
 
 if TYPE_CHECKING:
     from ADCS.satellite_hardware.satellite.satellite import Satellite
@@ -214,15 +214,8 @@ class Drag_Disturbance(Disturbance):
         V_B = vecs["v"]*1000.0 #m/s
         rho = vecs["rho"]
 
-        v_proj = np.maximum(0, np.dot(self.normals, V_B))
-        F = self.CDs*self.areas*v_proj
-        cents = self.centroids - sat.COM
-        ct = 0.5*rho
-        torque = -ct*np.cross(F@cents, V_B)
-
-        t1 = time.process_time()
-        
-        return torque
+        return _drag_torque_kernel(V_B, rho, sat.COM,
+                                   self.normals, self.areas, self.centroids, self.CDs)
     
     def torque_qjac(self, sat: Satellite, x: np.ndarray, os: Orbital_State) -> np.ndarray:
         r"""
