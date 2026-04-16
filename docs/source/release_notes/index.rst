@@ -5,6 +5,7 @@ Release Notes
   :maxdepth: 1
   :caption: Getting Started
 
+  0_1_2_numba_optimizations
   0_1_0_saltro
   0_0_2_multi_boresight
   0_0_1_mc
