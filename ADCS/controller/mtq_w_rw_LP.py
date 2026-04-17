@@ -171,6 +171,7 @@ class MTQ_w_RW_LP(Controller):
         :rtype: None
 
         """
+        self.est_sat = est_sat
         self.mtqs = [a for a in est_sat.actuators if isinstance(a, MTQ)]
         self.rws  = [a for a in est_sat.actuators if isinstance(a, RW)]
         

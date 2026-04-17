@@ -32,6 +32,8 @@ class RunResults:
     clean_sensor_hist: Optional[np.ndarray] = None
     sensor_hist: Optional[np.ndarray] = None
     control_hist: Optional[np.ndarray] = None
+    control_rpc_time_hist: Optional[np.ndarray] = None
+    control_rpc_server_time_hist: Optional[np.ndarray] = None
 
     def record(self, *, k: int, **kwargs):
         mapping = {
@@ -41,7 +43,8 @@ class RunResults:
             "sensor_bias": "sensor_bias", "est_sensor_bias": "est_sensor_bias",
             "actuator_bias": "actuator_bias", "est_actuator_bias": "est_actuator_bias",
             "target": "target_hist", "w_target": "w_target_hist", "boresight": "boresight_hist",
-            "clean_sensor": "clean_sensor_hist", "sensor": "sensor_hist", "control": "control_hist"
+            "clean_sensor": "clean_sensor_hist", "sensor": "sensor_hist", "control": "control_hist",
+            "control_rpc_time": "control_rpc_time_hist", "control_rpc_server_time": "control_rpc_server_time_hist",
         }
         for key, val in kwargs.items():
             if val is not None and key in mapping:

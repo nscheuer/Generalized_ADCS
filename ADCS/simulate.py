@@ -367,6 +367,8 @@ def simulate(
             clean_sensor=y_clean,
             sensor=y,
             control=u,
+            control_rpc_time=getattr(controller, "last_roundtrip_s", None) if controller is not None else None,
+            control_rpc_server_time=getattr(controller, "last_server_s", None) if controller is not None else None,
         )
 
     return SimulationResults(runs=[run_capsule])
