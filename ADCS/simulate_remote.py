@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+__all__ = ["simulate_remote"]
+
 import time
 from typing import Optional
 
@@ -24,6 +26,19 @@ from ADCS.simulate import simulate
 
 
 def _as_float_array(values) -> np.ndarray:
+    """Convert arbitrary timing history input into a finite 1-D float array.
+
+    :param values:
+        Input values from a run-history field. May be ``None`` or any array-like
+        object.
+    :type values:
+        Any
+
+    :return:
+        Flattened array containing only finite float values.
+    :rtype:
+        numpy.ndarray
+    """
     if values is None:
         return np.asarray([], dtype=float)
     arr = np.asarray(values, dtype=float).reshape(-1)
@@ -33,24 +48,77 @@ def _as_float_array(values) -> np.ndarray:
 
 
 def _fmt_seconds(value: float | None) -> str:
+    """Format a duration in seconds and milliseconds for human-readable output.
+
+    :param value:
+        Duration in seconds.
+    :type value:
+        float or None
+
+    :return:
+        Formatted string, or ``"N/A"`` for missing/non-finite values.
+    :rtype:
+        str
+    """
     if value is None or not np.isfinite(value):
         return "N/A"
     return f"{value:.6f} s ({value * 1e3:.3f} ms)"
 
 
 def _fmt_ms(value: float | None) -> str:
+    """Format a duration in milliseconds for compact summary output.
+
+    :param value:
+        Duration in seconds.
+    :type value:
+        float or None
+
+    :return:
+        Millisecond-formatted string, or ``"N/A"`` for missing/non-finite values.
+    :rtype:
+        str
+    """
     if value is None or not np.isfinite(value):
         return "N/A"
     return f"{value * 1e3:.3f} ms"
 
 
 def _safe_mean(arr: np.ndarray) -> float | None:
+    """Return mean of an array or ``None`` when empty.
+
+    :param arr:
+        Input array.
+    :type arr:
+        numpy.ndarray
+
+    :return:
+        Arithmetic mean as float, or ``None`` if ``arr`` has no elements.
+    :rtype:
+        float or None
+    """
     if arr.size == 0:
         return None
     return float(np.mean(arr))
 
 
 def _safe_percentile(arr: np.ndarray, q: float) -> float | None:
+    """Return percentile of an array or ``None`` when empty.
+
+    :param arr:
+        Input array.
+    :type arr:
+        numpy.ndarray
+
+    :param q:
+        Percentile in the range ``[0, 100]``.
+    :type q:
+        float
+
+    :return:
+        Requested percentile as float, or ``None`` if ``arr`` has no elements.
+    :rtype:
+        float or None
+    """
     if arr.size == 0:
         return None
     return float(np.percentile(arr, q))
@@ -62,6 +130,27 @@ def _print_hil_timing_summary(
     remote: RemoteSimulationConfig,
     wall_clock_s: float,
 ) -> None:
+    """Print a concise timing breakdown for a remote simulation run.
+
+    The summary reports wall-clock runtime and averaged/p-percentile timing for
+    local environment work, dynamics propagation, RPC round-trip, and server
+    compute time.
+
+    :param results:
+        Simulation results containing per-step timing histories.
+    :type results:
+        :class:`~ADCS.helpers.simresults.SimulationResults`
+
+    :param remote:
+        Remote simulation configuration used for endpoint context.
+    :type remote:
+        :class:`~ADCS.remote.controller_rpc.RemoteSimulationConfig`
+
+    :param wall_clock_s:
+        End-to-end wall-clock runtime in seconds.
+    :type wall_clock_s:
+        float
+    """
     run = results.first()
 
     env_local = _as_float_array(getattr(run, "env_local_time_hist", None))
@@ -116,6 +205,80 @@ def simulate_remote(
     est_satellite: Optional[EstimatedSatellite] = None,
     remote: Optional[RemoteSimulationConfig] = None,
 ) -> SimulationResults:
+    r"""
+    Run an ADCS simulation with optional remoteized controller/estimator components.
+
+    This wrapper configures RPC proxies based on ``remote`` placement settings,
+    performs connectivity preflight checks, delegates execution to
+    :func:`ADCS.simulate.simulate`, and prints a hardware-in-the-loop timing
+    summary after completion.
+
+    :param x:
+        Initial true satellite state vector.
+    :type x:
+        numpy.ndarray
+
+    :param satellite:
+        True satellite model used for dynamics and sensor generation.
+    :type satellite:
+        :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`
+
+    :param os0:
+        Initial orbital state at simulation start.
+    :type os0:
+        :class:`~ADCS.orbits.orbital_state.Orbital_State`
+
+    :param controller:
+        Local controller implementation when controller placement is local.
+    :type controller:
+        :class:`~ADCS.controller.controller.Controller` or None
+
+    :param estimator:
+        Local attitude estimator when estimator placement is local.
+    :type estimator:
+        :class:`~ADCS.estimators.attitude_estimators.attitude_estimator.Attitude_Estimator` or None
+
+    :param orbit_estimator:
+        Local orbit estimator when orbit-estimator placement is local.
+    :type orbit_estimator:
+        :class:`~ADCS.estimators.orbit_estimators.orbit_estimator.Orbit_Estimator` or None
+
+    :param goal:
+        Optional pointing objective (single goal or goal list).
+    :type goal:
+        :class:`~ADCS.CONOPS.goals.goal.Goal`,
+        :class:`~ADCS.CONOPS.goallist.goallist.GoalList`,
+        or None
+
+    :param dt:
+        Simulation step size in seconds.
+    :type dt:
+        float
+
+    :param tf:
+        Simulation duration in seconds.
+    :type tf:
+        float
+
+    :param est_satellite:
+        Estimated satellite model for GNC components.
+    :type est_satellite:
+        :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite` or None
+
+    :param remote:
+        Remote execution placement and networking settings. If ``None``, defaults
+        from :class:`~ADCS.remote.controller_rpc.RemoteSimulationConfig` are used.
+    :type remote:
+        :class:`~ADCS.remote.controller_rpc.RemoteSimulationConfig` or None
+
+    :return:
+        Full simulation history container.
+    :rtype:
+        :class:`~ADCS.helpers.simresults.SimulationResults`
+
+    :raises ConnectionError:
+        If a component is configured as remote and preflight RPC ping fails.
+    """
     if remote is None:
         remote = RemoteSimulationConfig()
 

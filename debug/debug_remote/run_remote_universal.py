@@ -14,6 +14,16 @@ import ADCS as ADCS
 
 
 def build_controller():
+    """Construct the default remote-test controller instance.
+
+    The returned controller mirrors the debug configuration used by remote ADCS
+    bring-up scripts so desktop and remote runner behavior stay aligned.
+
+    :return:
+        Configured controller object for remote ``find_u`` serving.
+    :rtype:
+        Any
+    """
     real_sat = ADCS.satellite_factory.create_beavercube2_cubesat(estimated=False)
     return ADCS.controller.MTQ_w_RW_LP(
         est_sat=real_sat,
@@ -25,6 +35,16 @@ def build_controller():
 
 
 def build_attitude_estimator():
+    """Construct the default remote-test attitude estimator instance.
+
+    The sensor/noise and covariance settings are tuned for development and
+    parity with local debug scripts rather than on-orbit flight tuning.
+
+    :return:
+        Configured attitude estimator object for remote ``update`` serving.
+    :rtype:
+        Any
+    """
     dt = 20.0
 
     gyro_noise = ADCS.Noise(std_noise=3.1623e-7)
@@ -80,6 +100,13 @@ def build_attitude_estimator():
 
 
 def build_orbit_estimator():
+    """Construct the default remote-test orbit estimator instance.
+
+    :return:
+        Configured orbit estimator object for remote ``update`` serving.
+    :rtype:
+        Any
+    """
     gps_noise = ADCS.Noise(std_noise=np.array([5, 5, 5, 0.1, 0.1, 0.1]))
     gps = [ADCS.GPS(noise=gps_noise)]
 
@@ -111,7 +138,14 @@ BUILDERS = {
 
 
 def _detect_primary_ip() -> str:
-    """Best-effort local IP detection for client connection instructions."""
+    """Best-effort local IPv4 detection for client connection instructions.
+
+    :return:
+        Reachable host IP for remote client configuration messages. Falls back to
+        loopback if detection fails.
+    :rtype:
+        str
+    """
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
             s.connect(("8.8.8.8", 80))
@@ -127,6 +161,12 @@ def _detect_primary_ip() -> str:
 
 
 def main() -> None:
+    """Parse CLI arguments, build selected components, and start RPC service.
+
+    Supported component selections are defined by :data:`BUILDERS`. If no
+    ``--component`` flags are provided, all available components are served from
+    one XML-RPC endpoint.
+    """
     parser = argparse.ArgumentParser(description="Run a universal ADCS remote component server.")
     parser.add_argument(
         "--component",

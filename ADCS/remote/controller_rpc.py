@@ -1,5 +1,16 @@
 from __future__ import annotations
 
+__all__ = [
+    "ComponentLocation",
+    "RemoteSimulationConfig",
+    "RemoteControllerProxy",
+    "RemoteAttitudeEstimatorProxy",
+    "RemoteOrbitEstimatorProxy",
+    "serve_remote_components",
+    "serve_remote_component",
+    "serve_remote_controller",
+]
+
 from dataclasses import dataclass
 from enum import Enum
 from functools import lru_cache
@@ -37,6 +48,8 @@ class RemoteSimulationConfig:
 
 
 class _TimeoutTransport(Transport):
+    """XML-RPC transport with per-connection timeout enforcement."""
+
     def __init__(self, timeout_s: float) -> None:
         super().__init__()
         self._timeout_s = float(timeout_s)
@@ -46,6 +59,26 @@ class _TimeoutTransport(Transport):
 
 
 def _goal_to_payload(goal: Goal | None) -> dict[str, Any]:
+    """Serialize a goal object into an XML-RPC-safe dictionary.
+
+    Only goal types currently used by the remote controller path are supported.
+    The payload is intentionally explicit (with a ``kind`` tag) so the receiver
+    can safely reconstruct the correct ADCS goal class.
+
+    :param goal:
+        Goal object to serialize. ``None`` is treated as :class:`No_Goal`.
+    :type goal:
+        :class:`~ADCS.CONOPS.goals.Goal` or None
+
+    :return:
+        XML-RPC-safe dictionary representation of the goal.
+    :rtype:
+        dict[str, Any]
+
+    :raises NotImplementedError:
+        If the goal type is not supported by the remote transport format.
+    """
+
     if goal is None or isinstance(goal, No_Goal):
         return {"kind": "No_Goal"}
 
@@ -62,6 +95,23 @@ def _goal_to_payload(goal: Goal | None) -> dict[str, Any]:
 
 
 def _xmlrpc_safe(value: Any) -> Any:
+    """Recursively convert ADCS/NumPy objects into XML-RPC-safe primitives.
+
+    XML-RPC transports only basic Python scalar/list/dict types. This helper
+    normalizes NumPy arrays/scalars and ADCS container objects so request and
+    response payloads can be serialized by :mod:`xmlrpc.client`.
+
+    :param value:
+        Arbitrary value to normalize for XML-RPC transport.
+    :type value:
+        Any
+
+    :return:
+        A transport-safe representation of ``value``.
+    :rtype:
+        Any
+    """
+
     if isinstance(value, EstimatedOrbital_State):
         return _estimated_orbital_state_to_payload(value)
     if isinstance(value, np.ndarray):
@@ -76,6 +126,22 @@ def _xmlrpc_safe(value: Any) -> Any:
 
 
 def _goal_from_payload(payload: dict[str, Any]) -> Goal:
+    """Deserialize a goal payload back into an ADCS goal object.
+
+    :param payload:
+        Goal payload produced by :func:`_goal_to_payload`.
+    :type payload:
+        dict[str, Any]
+
+    :return:
+        Reconstructed ADCS goal instance.
+    :rtype:
+        :class:`~ADCS.CONOPS.goals.Goal`
+
+    :raises NotImplementedError:
+        If the payload encodes an unsupported goal ``kind``.
+    """
+
     kind = payload.get("kind", "No_Goal")
     if kind == "No_Goal":
         return No_Goal()
@@ -88,14 +154,50 @@ def _goal_from_payload(payload: dict[str, Any]) -> Goal:
 
 
 def _print_remote_marker(marker: str) -> None:
+    """Print a compact per-call marker in the server terminal.
+
+    :param marker:
+        Single-character marker identifying the RPC type (for example ``C``,
+        ``A``, or ``O``).
+    :type marker:
+        str
+    """
+
     print(marker, end="", flush=True)
 
 
 def _os_to_payload(os0: Orbital_State | None) -> dict[str, Any] | None:
+    """Serialize an orbital state for XML-RPC transport.
+
+    :param os0:
+        Orbital state to serialize.
+    :type os0:
+        :class:`~ADCS.orbits.orbital_state.Orbital_State` or None
+
+    :return:
+        ``None`` if input is ``None``; otherwise a dictionary payload containing
+        orbital-state fields.
+    :rtype:
+        dict[str, Any] or None
+    """
+
     return None if os0 is None else _xmlrpc_safe(os0.to_dict())
 
 
 def _os_from_payload(payload: dict[str, Any] | None) -> Orbital_State | None:
+    """Deserialize an orbital-state payload using a cached ephemeris.
+
+    :param payload:
+        Orbital-state dictionary payload, or ``None``.
+    :type payload:
+        dict[str, Any] or None
+
+    :return:
+        Reconstructed orbital state object, or ``None``.
+    :rtype:
+        :class:`~ADCS.orbits.orbital_state.Orbital_State` or None
+    """
+
     if payload is None:
         return None
 
@@ -104,10 +206,35 @@ def _os_from_payload(payload: dict[str, Any] | None) -> Orbital_State | None:
 
 @lru_cache(maxsize=1)
 def _shared_ephemeris() -> Ephemeris:
+    """Return a process-wide cached ephemeris instance.
+
+    Reusing the same ephemeris instance avoids repeated file loading and reduces
+    per-request overhead during high-rate RPC deserialization.
+
+    :return:
+        Cached ephemeris object.
+    :rtype:
+        :class:`~ADCS.orbits.orbital_state.Ephemeris`
+    """
+
     return Ephemeris()
 
 
 def _estimated_orbital_state_to_payload(state: EstimatedOrbital_State | None) -> dict[str, Any] | None:
+    """Serialize an estimated orbital state into an XML-RPC-safe dictionary.
+
+    :param state:
+        Estimated orbital state bundle to serialize.
+    :type state:
+        :class:`~ADCS.estimators.estimator_helpers.EstimatedOrbital_State` or None
+
+    :return:
+        Transport-safe dictionary containing ``os``, ``P``, and ``Q`` fields,
+        or ``None`` if ``state`` is ``None``.
+    :rtype:
+        dict[str, Any] or None
+    """
+
     if state is None:
         return None
     return {
@@ -118,6 +245,19 @@ def _estimated_orbital_state_to_payload(state: EstimatedOrbital_State | None) ->
 
 
 def _estimated_orbital_state_from_payload(payload: dict[str, Any] | None) -> EstimatedOrbital_State | None:
+    """Deserialize an estimated orbital-state payload.
+
+    :param payload:
+        Payload generated by :func:`_estimated_orbital_state_to_payload`.
+    :type payload:
+        dict[str, Any] or None
+
+    :return:
+        Reconstructed estimated orbital-state bundle.
+    :rtype:
+        :class:`~ADCS.estimators.estimator_helpers.EstimatedOrbital_State` or None
+    """
+
     if payload is None:
         return None
     return EstimatedOrbital_State(
@@ -128,13 +268,35 @@ def _estimated_orbital_state_from_payload(payload: dict[str, Any] | None) -> Est
 
 
 class RemoteControllerService:
+    """Server-side RPC endpoint for controller `find_u` evaluation."""
+
     def __init__(self, controller: Any) -> None:
         self.controller = controller
 
     def ping(self) -> bool:
+        """Return service liveness for preflight health checks.
+
+        :return:
+            ``True`` when the XML-RPC service is reachable.
+        :rtype:
+            bool
+        """
         return True
 
     def find_u(self, payload: dict[str, Any]) -> dict[str, Any]:
+        """Evaluate controller command generation for one simulation step.
+
+        :param payload:
+            Request payload containing serialized controller inputs.
+        :type payload:
+            dict[str, Any]
+
+        :return:
+            Response payload with commanded control vector ``u`` and measured
+            server compute duration in seconds.
+        :rtype:
+            dict[str, Any]
+        """
         _print_remote_marker("C")
         start = time.perf_counter()
         x_hat = np.asarray(payload["x_hat"], dtype=float)
@@ -157,13 +319,36 @@ class RemoteControllerService:
 
 
 class RemoteAttitudeEstimatorService:
+    """Server-side RPC endpoint for attitude-estimator `update` calls."""
+
     def __init__(self, estimator: Attitude_Estimator) -> None:
         self.estimator = estimator
 
     def ping(self) -> bool:
+        """Return service liveness for preflight health checks.
+
+        :return:
+            ``True`` when the XML-RPC service is reachable.
+        :rtype:
+            bool
+        """
         return True
 
     def update(self, payload: dict[str, Any]) -> dict[str, Any]:
+        """Run one remote attitude-estimator update.
+
+        :param payload:
+            Request payload containing control input, sensor readings, and
+            optional orbital-state estimate.
+        :type payload:
+            dict[str, Any]
+
+        :return:
+            Response payload containing the updated estimated state vector and
+            server compute duration in seconds.
+        :rtype:
+            dict[str, Any]
+        """
         _print_remote_marker("A")
         start = time.perf_counter()
         u = np.asarray(payload["u"], dtype=float)
@@ -179,13 +364,35 @@ class RemoteAttitudeEstimatorService:
 
 
 class RemoteOrbitEstimatorService:
+    """Server-side RPC endpoint for orbit-estimator `update` calls."""
+
     def __init__(self, estimator: Orbit_Estimator) -> None:
         self.estimator = estimator
 
     def ping(self) -> bool:
+        """Return service liveness for preflight health checks.
+
+        :return:
+            ``True`` when the XML-RPC service is reachable.
+        :rtype:
+            bool
+        """
         return True
 
     def update(self, payload: dict[str, Any]) -> dict[str, Any]:
+        """Run one remote orbit-estimator update.
+
+        :param payload:
+            Request payload containing GPS measurements and current J2000 time.
+        :type payload:
+            dict[str, Any]
+
+        :return:
+            Response payload containing serialized estimated orbital state and
+            server compute duration in seconds.
+        :rtype:
+            dict[str, Any]
+        """
         _print_remote_marker("O")
         start = time.perf_counter()
         gps_measurements = [np.asarray(measurement, dtype=float) for measurement in payload["GPS_measurements"]]
@@ -200,6 +407,8 @@ class RemoteOrbitEstimatorService:
 
 
 class RemoteCompositeService:
+    """Unified RPC service that can host controller and estimator components together."""
+
     def __init__(
         self,
         controller: Controller | None = None,
@@ -211,9 +420,32 @@ class RemoteCompositeService:
         self.orbit_estimator = orbit_estimator
 
     def ping(self) -> bool:
+        """Return service liveness for preflight health checks.
+
+        :return:
+            ``True`` when the XML-RPC service is reachable.
+        :rtype:
+            bool
+        """
         return True
 
     def find_u(self, payload: dict[str, Any]) -> dict[str, Any]:
+        """Dispatch a remote controller ``find_u`` request.
+
+        :param payload:
+            Request payload containing controller inputs.
+        :type payload:
+            dict[str, Any]
+
+        :return:
+            Response payload containing control output ``u`` and server compute
+            duration in seconds.
+        :rtype:
+            dict[str, Any]
+
+        :raises RuntimeError:
+            If no remote controller was configured on this server.
+        """
         if self.controller is None:
             raise RuntimeError("No remote controller is configured on this server.")
 
@@ -238,6 +470,27 @@ class RemoteCompositeService:
         }
 
     def update(self, payload: dict[str, Any]) -> dict[str, Any]:
+        """Dispatch a remote estimator update request.
+
+        The request is routed to the orbit estimator or attitude estimator based
+        on the explicit ``component`` field, or inferred payload keys for legacy
+        callers.
+
+        :param payload:
+            Request payload identifying estimator target and inputs.
+        :type payload:
+            dict[str, Any]
+
+        :return:
+            Response payload containing estimator outputs and server compute time.
+        :rtype:
+            dict[str, Any]
+
+        :raises RuntimeError:
+            If the requested estimator component is not configured.
+        :raises ValueError:
+            If payload does not identify a supported estimator request type.
+        """
         component = payload.get("component")
 
         if component == "orbit_estimator" or (component is None and "GPS_measurements" in payload):
@@ -277,6 +530,8 @@ class RemoteCompositeService:
 
 
 class _RemoteProxyBase:
+    """Shared client-side RPC wrapper with retry and timing bookkeeping."""
+
     def __init__(self, *, host: str, port: int, timeout_s: float = 0.25, retries: int = 0) -> None:
         self.host = host
         self.port = int(port)
@@ -293,9 +548,36 @@ class _RemoteProxyBase:
         )
 
     def ping(self) -> bool:
+        """Ping the remote XML-RPC endpoint.
+
+        :return:
+            ``True`` if the remote endpoint responds to health checks.
+        :rtype:
+            bool
+        """
         return bool(self._proxy.ping())
 
     def _call(self, method_name: str, payload: dict[str, Any]) -> dict[str, Any]:
+        """Perform an RPC call with retry and timing bookkeeping.
+
+        :param method_name:
+            Remote method name to invoke on the XML-RPC server.
+        :type method_name:
+            str
+
+        :param payload:
+            XML-RPC-safe request payload.
+        :type payload:
+            dict[str, Any]
+
+        :return:
+            RPC response dictionary.
+        :rtype:
+            dict[str, Any]
+
+        :raises RuntimeError:
+            If all retries fail and no response is received.
+        """
         start = time.perf_counter()
         response = None
         last_error: Exception | None = None
@@ -318,6 +600,8 @@ class _RemoteProxyBase:
 
 
 class RemoteControllerProxy:
+    """Client-side proxy exposing controller-compatible `find_u` calls."""
+
     def __init__(self, *, host: str, port: int, timeout_s: float = 0.25, retries: int = 0) -> None:
         self._base = _RemoteProxyBase(host=host, port=port, timeout_s=timeout_s, retries=retries)
 
@@ -346,9 +630,48 @@ class RemoteControllerProxy:
         return self._base.server_hist
 
     def ping(self) -> bool:
+        """Ping the remote server used by this controller proxy.
+
+        :return:
+            ``True`` if the remote endpoint responds.
+        :rtype:
+            bool
+        """
         return self._base.ping()
 
     def find_u(self, x_hat: np.ndarray, sens: np.ndarray, est_sat: Any, os_hat: Orbital_State, goal: Goal | None = None) -> np.ndarray:
+        """Execute remote controller command synthesis.
+
+        :param x_hat:
+            Estimated state vector for controller input.
+        :type x_hat:
+            numpy.ndarray
+
+        :param sens:
+            Sensor measurement vector for controller input.
+        :type sens:
+            numpy.ndarray
+
+        :param est_sat:
+            Estimated satellite model (unused for transport parity).
+        :type est_sat:
+            Any
+
+        :param os_hat:
+            Orbital state estimate.
+        :type os_hat:
+            :class:`~ADCS.orbits.orbital_state.Orbital_State`
+
+        :param goal:
+            Active guidance goal for the current step.
+        :type goal:
+            :class:`~ADCS.CONOPS.goals.Goal` or None
+
+        :return:
+            Control command vector from the remote controller.
+        :rtype:
+            numpy.ndarray
+        """
         payload = {
             "x_hat": np.asarray(x_hat, dtype=float).reshape(-1).tolist(),
             "sens": np.asarray(sens, dtype=float).reshape(-1).tolist(),
@@ -360,6 +683,8 @@ class RemoteControllerProxy:
 
 
 class RemoteAttitudeEstimatorProxy:
+    """Client-side proxy exposing attitude-estimator-compatible `update` calls."""
+
     def __init__(self, *, host: str, port: int, timeout_s: float = 0.25, retries: int = 0) -> None:
         self._base = _RemoteProxyBase(host=host, port=port, timeout_s=timeout_s, retries=retries)
 
@@ -388,9 +713,38 @@ class RemoteAttitudeEstimatorProxy:
         return self._base.server_hist
 
     def ping(self) -> bool:
+        """Ping the remote server used by this attitude-estimator proxy.
+
+        :return:
+            ``True`` if the remote endpoint responds.
+        :rtype:
+            bool
+        """
         return self._base.ping()
 
     def update(self, u: np.ndarray, sensors: list[np.ndarray], os: Orbital_State) -> np.ndarray:
+        """Execute one remote attitude-estimator update.
+
+        :param u:
+            Applied control command vector.
+        :type u:
+            numpy.ndarray
+
+        :param sensors:
+            Sensor measurement list for the estimator update.
+        :type sensors:
+            list[numpy.ndarray]
+
+        :param os:
+            Orbital-state estimate used by the estimator.
+        :type os:
+            :class:`~ADCS.orbits.orbital_state.Orbital_State`
+
+        :return:
+            Updated attitude-state estimate vector.
+        :rtype:
+            numpy.ndarray
+        """
         payload = {
             "component": "attitude_estimator",
             "u": np.asarray(u, dtype=float).reshape(-1).tolist(),
@@ -402,6 +756,8 @@ class RemoteAttitudeEstimatorProxy:
 
 
 class RemoteOrbitEstimatorProxy:
+    """Client-side proxy exposing orbit-estimator-compatible `update` calls."""
+
     def __init__(self, *, host: str, port: int, timeout_s: float = 0.25, retries: int = 0) -> None:
         self._base = _RemoteProxyBase(host=host, port=port, timeout_s=timeout_s, retries=retries)
 
@@ -430,9 +786,33 @@ class RemoteOrbitEstimatorProxy:
         return self._base.server_hist
 
     def ping(self) -> bool:
+        """Ping the remote server used by this orbit-estimator proxy.
+
+        :return:
+            ``True`` if the remote endpoint responds.
+        :rtype:
+            bool
+        """
         return self._base.ping()
 
     def update(self, GPS_measurements: list[np.ndarray], J2000: float) -> EstimatedOrbital_State:
+        """Execute one remote orbit-estimator update.
+
+        :param GPS_measurements:
+            List of GPS measurement vectors.
+        :type GPS_measurements:
+            list[numpy.ndarray]
+
+        :param J2000:
+            Current simulation time in Julian centuries from J2000.
+        :type J2000:
+            float
+
+        :return:
+            Updated estimated orbital state.
+        :rtype:
+            :class:`~ADCS.estimators.estimator_helpers.EstimatedOrbital_State`
+        """
         payload = {
             "component": "orbit_estimator",
             "GPS_measurements": [_xmlrpc_safe(np.asarray(measurement, dtype=float)) for measurement in GPS_measurements],
@@ -450,6 +830,37 @@ def serve_remote_components(
     host: str = "0.0.0.0",
     port: int = 5000,
 ) -> None:
+    """Serve any combination of ADCS components over a single XML-RPC endpoint.
+
+    :param controller:
+        Optional controller component handling ``find_u`` requests.
+    :type controller:
+        :class:`~ADCS.controller.controller.Controller` or None
+
+    :param estimator:
+        Optional attitude estimator handling attitude ``update`` requests.
+    :type estimator:
+        :class:`~ADCS.estimators.attitude_estimators.Attitude_Estimator` or None
+
+    :param orbit_estimator:
+        Optional orbit estimator handling orbit ``update`` requests.
+    :type orbit_estimator:
+        :class:`~ADCS.estimators.orbit_estimators.Orbit_Estimator` or None
+
+    :param host:
+        Bind address for the server.
+    :type host:
+        str
+
+    :param port:
+        Bind port for the server.
+    :type port:
+        int
+
+    :raises ValueError:
+        If no components are provided.
+    """
+
     if controller is None and estimator is None and orbit_estimator is None:
         raise ValueError("At least one remote component must be provided.")
 
@@ -472,6 +883,27 @@ def serve_remote_components(
 
 
 def serve_remote_component(component: Any, *, host: str = "0.0.0.0", port: int = 5000) -> None:
+    """Serve one ADCS component by dispatching to the composite helper.
+
+    :param component:
+        Component instance to serve.
+    :type component:
+        Any
+
+    :param host:
+        Bind address for the server.
+    :type host:
+        str
+
+    :param port:
+        Bind port for the server.
+    :type port:
+        int
+
+    :raises TypeError:
+        If ``component`` is not one of the supported ADCS component classes.
+    """
+
     if isinstance(component, Controller):
         serve_remote_components(controller=component, host=host, port=port)
         return
@@ -488,4 +920,22 @@ def serve_remote_component(component: Any, *, host: str = "0.0.0.0", port: int =
 
 
 def serve_remote_controller(controller: Any, *, host: str = "0.0.0.0", port: int = 5000) -> None:
+    """Backward-compatible controller-only server entry point.
+
+    :param controller:
+        Controller instance to serve.
+    :type controller:
+        Any
+
+    :param host:
+        Bind address for the server.
+    :type host:
+        str
+
+    :param port:
+        Bind port for the server.
+    :type port:
+        int
+    """
+
     serve_remote_component(controller, host=host, port=port)
