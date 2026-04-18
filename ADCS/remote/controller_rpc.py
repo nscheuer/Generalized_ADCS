@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
+from functools import lru_cache
 from typing import Any
 from xmlrpc.client import ServerProxy, Transport
 from xmlrpc.server import SimpleXMLRPCServer
@@ -86,6 +87,10 @@ def _goal_from_payload(payload: dict[str, Any]) -> Goal:
     raise NotImplementedError(f"Unsupported remote goal kind: {kind}")
 
 
+def _print_remote_marker(marker: str) -> None:
+    print(marker, end="", flush=True)
+
+
 def _os_to_payload(os0: Orbital_State | None) -> dict[str, Any] | None:
     return None if os0 is None else _xmlrpc_safe(os0.to_dict())
 
@@ -93,7 +98,13 @@ def _os_to_payload(os0: Orbital_State | None) -> dict[str, Any] | None:
 def _os_from_payload(payload: dict[str, Any] | None) -> Orbital_State | None:
     if payload is None:
         return None
-    return Orbital_State.from_dict(payload, ephem=Ephemeris(), density_model=None, fast=True)
+
+    return Orbital_State.from_dict(payload, ephem=_shared_ephemeris(), density_model=None, fast=True)
+
+
+@lru_cache(maxsize=1)
+def _shared_ephemeris() -> Ephemeris:
+    return Ephemeris()
 
 
 def _estimated_orbital_state_to_payload(state: EstimatedOrbital_State | None) -> dict[str, Any] | None:
@@ -124,6 +135,7 @@ class RemoteControllerService:
         return True
 
     def find_u(self, payload: dict[str, Any]) -> dict[str, Any]:
+        _print_remote_marker("C: Controller called ")
         start = time.perf_counter()
         x_hat = np.asarray(payload["x_hat"], dtype=float)
         sens = np.asarray(payload["sens"], dtype=float)
@@ -152,6 +164,7 @@ class RemoteAttitudeEstimatorService:
         return True
 
     def update(self, payload: dict[str, Any]) -> dict[str, Any]:
+        _print_remote_marker("A: Attitude Estimator called ")
         start = time.perf_counter()
         u = np.asarray(payload["u"], dtype=float)
         sensors = [np.asarray(sensor, dtype=float) for sensor in payload["sensors"]]
@@ -173,6 +186,7 @@ class RemoteOrbitEstimatorService:
         return True
 
     def update(self, payload: dict[str, Any]) -> dict[str, Any]:
+        _print_remote_marker("O: Orbit Estimator called ")
         start = time.perf_counter()
         gps_measurements = [np.asarray(measurement, dtype=float) for measurement in payload["GPS_measurements"]]
         J2000 = float(payload["J2000"])
@@ -203,6 +217,7 @@ class RemoteCompositeService:
         if self.controller is None:
             raise RuntimeError("No remote controller is configured on this server.")
 
+        _print_remote_marker("C: Controller called ")
         start = time.perf_counter()
         x_hat = np.asarray(payload["x_hat"], dtype=float)
         sens = np.asarray(payload["sens"], dtype=float)
@@ -228,6 +243,7 @@ class RemoteCompositeService:
         if component == "orbit_estimator" or (component is None and "GPS_measurements" in payload):
             if self.orbit_estimator is None:
                 raise RuntimeError("No remote orbit estimator is configured on this server.")
+            _print_remote_marker("O: Orbit Estimator called ")
             start = time.perf_counter()
             gps_measurements = [np.asarray(measurement, dtype=float) for measurement in payload["GPS_measurements"]]
             J2000 = float(payload["J2000"])
@@ -242,6 +258,7 @@ class RemoteCompositeService:
         if component == "attitude_estimator" or (component is None and "sensors" in payload):
             if self.estimator is None:
                 raise RuntimeError("No remote attitude estimator is configured on this server.")
+            _print_remote_marker("A: Attitude Estimator called ")
             start = time.perf_counter()
             u = np.asarray(payload["u"], dtype=float)
             sensors = [np.asarray(sensor, dtype=float) for sensor in payload["sensors"]]
