@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import socket
 import sys
 
 import numpy as np
@@ -109,6 +110,22 @@ BUILDERS = {
 }
 
 
+def _detect_primary_ip() -> str:
+    """Best-effort local IP detection for client connection instructions."""
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            s.connect(("8.8.8.8", 80))
+            ip = s.getsockname()[0]
+            if ip:
+                return ip
+    except OSError:
+        pass
+    try:
+        return socket.gethostbyname(socket.gethostname())
+    except OSError:
+        return "127.0.0.1"
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run a universal ADCS remote component server.")
     parser.add_argument(
@@ -138,6 +155,8 @@ def main() -> None:
     attitude_estimator = BUILDERS["attitude_estimator"]() if "attitude_estimator" in selected_components else None
     orbit_estimator = BUILDERS["orbit_estimator"]() if "orbit_estimator" in selected_components else None
 
+    connect_host = _detect_primary_ip() if args.host in {"0.0.0.0", "::"} else args.host
+
     print(
         "[remote-runner] starting on "
         f"{args.host}:{args.port} "
@@ -145,13 +164,21 @@ def main() -> None:
         f"attitude_estimator={'yes' if attitude_estimator is not None else 'no'}, "
         f"orbit_estimator={'yes' if orbit_estimator is not None else 'no'}"
     )
-    ADCS.remote.serve_remote_components(
-        controller=controller,
-        estimator=attitude_estimator,
-        orbit_estimator=orbit_estimator,
-        host=args.host,
-        port=args.port,
-    )
+    print("[remote-runner] main computer should use:")
+    print(f"  ADCS_REMOTE_HOST={connect_host}")
+    print(f"  ADCS_REMOTE_PORT={args.port}")
+    print("[remote-runner] stop server with Ctrl+C")
+
+    try:
+        ADCS.remote.serve_remote_components(
+            controller=controller,
+            estimator=attitude_estimator,
+            orbit_estimator=orbit_estimator,
+            host=args.host,
+            port=args.port,
+        )
+    except KeyboardInterrupt:
+        print("\n[remote-runner] Ctrl+C received. Shutting down cleanly.")
 
 
 if __name__ == "__main__":
