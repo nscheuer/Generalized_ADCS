@@ -3,11 +3,35 @@ __all__ = ["Drag_Disturbance"]
 
 import numpy as np
 import time
+from numba import njit
 from typing import TYPE_CHECKING
 from ADCS.satellite_hardware.disturbances.disturbance import Disturbance
 from ADCS.satellite_hardware.disturbances.helpers.geometry_config import GeometryConfig
 from ADCS.orbits.orbital_state import Orbital_State
-from ADCS.helpers.math_helpers import normalize, _drag_torque_kernel
+from ADCS.helpers.math_helpers import normalize
+
+
+@njit(cache=True)
+def _drag_torque_kernel(V_B, rho, COM, normals, areas, centroids, CDs):
+    """Aerodynamic drag torque summed over geometry faces."""
+    nf = normals.shape[0]
+    wx = 0.0
+    wy = 0.0
+    wz = 0.0
+    for i in range(nf):
+        v_proj = normals[i, 0]*V_B[0] + normals[i, 1]*V_B[1] + normals[i, 2]*V_B[2]
+        if v_proj < 0.0:
+            v_proj = 0.0
+        F = CDs[i] * areas[i] * v_proj
+        wx += F * (centroids[i, 0] - COM[0])
+        wy += F * (centroids[i, 1] - COM[1])
+        wz += F * (centroids[i, 2] - COM[2])
+    ct = -0.5 * rho
+    out = np.empty(3)
+    out[0] = ct * (wy*V_B[2] - wz*V_B[1])
+    out[1] = ct * (wz*V_B[0] - wx*V_B[2])
+    out[2] = ct * (wx*V_B[1] - wy*V_B[0])
+    return out
 
 if TYPE_CHECKING:
     from ADCS.satellite_hardware.satellite.satellite import Satellite

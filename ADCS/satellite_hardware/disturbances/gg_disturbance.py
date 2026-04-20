@@ -2,12 +2,37 @@ from __future__ import annotations
 __all__ = ["GG_Disturbance"]
 
 import numpy as np
+from numba import njit
 from typing import TYPE_CHECKING
 from ADCS.satellite_hardware.disturbances.disturbance import Disturbance
 from ADCS.satellite_hardware.disturbances.helpers.geometry_config import GeometryConfig
 from ADCS.orbits.orbital_state import Orbital_State
-from ADCS.helpers.math_helpers import normalize, normed_vec_jac, normed_vec_hess, norm, vec_norm_jac, vec_norm_hess, _gg_torque_kernel
+from ADCS.helpers.math_helpers import normalize, normed_vec_jac, normed_vec_hess, norm, vec_norm_jac, vec_norm_hess
 from ADCS.orbits.universal_constants import EarthConstants
+
+
+@njit(cache=True)
+def _gg_torque_kernel(R_B, J_0, mu_e):
+    """Gravity-gradient torque: 3*mu/r^3 * (n x J*n), where n = -R_B/|R_B|."""
+    r2 = R_B[0]**2 + R_B[1]**2 + R_B[2]**2
+    r_norm = np.sqrt(r2)
+    inv_r = 1.0 / r_norm
+    n0 = -R_B[0] * inv_r
+    n1 = -R_B[1] * inv_r
+    n2 = -R_B[2] * inv_r
+    Jn0 = J_0[0, 0]*n0 + J_0[0, 1]*n1 + J_0[0, 2]*n2
+    Jn1 = J_0[1, 0]*n0 + J_0[1, 1]*n1 + J_0[1, 2]*n2
+    Jn2 = J_0[2, 0]*n0 + J_0[2, 1]*n1 + J_0[2, 2]*n2
+    out = np.empty(3)
+    out[0] = n1*Jn2 - n2*Jn1
+    out[1] = n2*Jn0 - n0*Jn2
+    out[2] = n0*Jn1 - n1*Jn0
+    const = 3.0 * mu_e / (r_norm * r2)
+    out[0] *= const
+    out[1] *= const
+    out[2] *= const
+    return out
+
 
 if TYPE_CHECKING:
     from ADCS.satellite_hardware.satellite.satellite import Satellite
