@@ -3,13 +3,23 @@ __all__ = ["MTQ"]
 import numpy as np
 import warnings
 from typing import Union, Dict
+from numba import njit
 
 from ADCS.satellite_hardware.actuators.actuator import Actuator
 from ADCS.satellite_hardware.errors.bias import Bias
 from ADCS.satellite_hardware.errors.noise import Noise
 from ADCS.satellite_hardware.errors import ErrorMode
 from ADCS.orbits.orbital_state import Orbital_State
-from ADCS.helpers.math_helpers import _mtq_torque_kernel
+
+
+@njit(cache=True)
+def _mtq_torque_kernel(b_body, axis, u):
+    """Magnetorquer torque: -(B x a) * u."""
+    out = np.empty(3)
+    out[0] = -(b_body[1]*axis[2] - b_body[2]*axis[1]) * u
+    out[1] = -(b_body[2]*axis[0] - b_body[0]*axis[2]) * u
+    out[2] = -(b_body[0]*axis[1] - b_body[1]*axis[0]) * u
+    return out
 
 class MTQ(Actuator):
     r"""
@@ -193,7 +203,13 @@ class MTQ(Actuator):
         if dmode.update_bias:
             self.bias._update_bias(j2000=os.J2000)
 
-        torque = _mtq_torque_kernel(b_body, self.axis, u)
+        # Keep the JIT fast path for scalar-like commands; fall back for
+        # array-valued finite-difference probes used by some tests.
+        u_arr = np.asarray(u)
+        if u_arr.ndim == 0 or u_arr.size == 1:
+            torque = _mtq_torque_kernel(b_body, self.axis, float(u_arr.reshape(-1)[0]))
+        else:
+            torque = -np.cross(b_body, self.axis) * u_arr
 
         if self.noise and dmode.add_noise:
             torque += self.noise.get_noise()
