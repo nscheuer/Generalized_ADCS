@@ -212,13 +212,17 @@ def simulate(
 
     run_capsule = RunResults(satellite=satellite, est_satellite=est_satellite)
 
+    _skip_jac = (estimator is None)
+
     for k in tqdm(range(N), desc="Simulating ADCS", unit="step"):
         env_t0 = time.perf_counter()
         J2000_k = start_time + k * dt * TimeConstants.sec2cent
         os_k = orb.get_os(J2000=J2000_k)
+        os_k._skip_jacobians = _skip_jac
 
         J2000_kp1 = start_time + (k + 1) * dt * TimeConstants.sec2cent
         os_kp1 = orb.get_os(J2000=J2000_kp1)
+        os_kp1._skip_jacobians = _skip_jac
 
         y = satellite.sensor_readings(x=x, os=os_k)
         y_clean = satellite.noiseless_sensor_readings(x=x, os=os_k)
