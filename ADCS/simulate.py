@@ -1,6 +1,7 @@
 __all__ = ["simulate"]
 
 import numpy as np
+import time
 from typing import Optional
 from tqdm import tqdm
 from scipy.integrate import solve_ivp
@@ -214,6 +215,7 @@ def simulate(
     _skip_jac = (estimator is None)
 
     for k in tqdm(range(N), desc="Simulating ADCS", unit="step"):
+        env_t0 = time.perf_counter()
         J2000_k = start_time + k * dt * TimeConstants.sec2cent
         os_k = orb.get_os(J2000=J2000_k)
         os_k._skip_jacobians = _skip_jac
@@ -252,6 +254,9 @@ def simulate(
         else:
             u[:] = 0.0
 
+        env_local_time_s = time.perf_counter() - env_t0
+
+        dyn_t0 = time.perf_counter()
         out = solve_ivp(
             fun=satellite.dynamics_for_solver,
             t_span=(0, dt),
@@ -261,6 +266,7 @@ def simulate(
             rtol=1e-7,
             atol=1e-7,
         )
+        dynamics_time_s = time.perf_counter() - dyn_t0
         x = out.y[:, -1]
         x[3:7] = normalize(x[3:7])
 
@@ -371,6 +377,10 @@ def simulate(
             clean_sensor=y_clean,
             sensor=y,
             control=u,
+            control_rpc_time=getattr(controller, "last_roundtrip_s", None) if controller is not None else None,
+            control_rpc_server_time=getattr(controller, "last_server_s", None) if controller is not None else None,
+            env_local_time=env_local_time_s,
+            dynamics_time=dynamics_time_s,
         )
 
     return SimulationResults(runs=[run_capsule])

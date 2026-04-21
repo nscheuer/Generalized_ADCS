@@ -1,4 +1,5 @@
 from . import controller
+from . import remote
 from . import orbits
 from . import satellite_factory
 from .CONOPS import goals
@@ -17,11 +18,13 @@ from .satellite_hardware.errors import Bias, Noise
 from .satellite_hardware.satellite import EstimatedSatellite, Satellite
 from .satellite_hardware.sensors import GPS, Gyro, MTM, StarTracker, SunPair, SunSensor, StarTrackerQuaternion, EarthHorizonSensor
 from .simulate import simulate
+from .simulate_remote import simulate_remote
 
 __all__ = [
     "Satellite",
     "EstimatedSatellite",
     "simulate",
+    "simulate_remote",
     "SimulationResults",
     "RunResults",
     "disturbances",
