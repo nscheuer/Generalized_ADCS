@@ -303,29 +303,61 @@ class Orbital_State:
         a = 1.0 - float(ratio)
         b = float(ratio)
 
-        j2000 = a * self.J2000 + b * os2.J2000
-        R = a * self.R + b * os2.R
-        V = a * self.V + b * os2.V
-        S = a * self.S + b * os2.S
-        B = a * self.B + b * os2.B
-        rho = a * self.rho + b * os2.rho
+        # Build the result via __new__ to skip the heavy Skyfield constructor.
+        # All frame-rotation matrices and environment vectors are linearly
+        # interpolated from the two endpoint states that were already fully
+        # constructed during orbit propagation.
+        out = Orbital_State.__new__(Orbital_State)
 
-        if not np.all(self.density_model.altitude_range == os2.density_model.altitude_range):
-            warnings.warn("non-matching altitude range in atmospheric model between 2 orbital states")
-        if not np.all(self.density_model.rho_range == os2.density_model.rho_range):
-            warnings.warn("non-matching air density vs altitude in atmospheric model between 2 orbital states")
+        out.ephem = self.ephem
+        out.ts = self.ts
 
-        return Orbital_State(
-            ephem=self.ephem,
-            J2000=j2000,
-            R=R,
-            V=V,
-            S=S,
-            B=B,
-            rho=rho,
-            density_model=self.density_model,
-            fast=False,
-        )
+        out.J2000 = a * self.J2000 + b * os2.J2000
+        out.R = a * self.R + b * os2.R
+        out.V = a * self.V + b * os2.V
+        out.S = a * self.S + b * os2.S
+        out.B = a * self.B + b * os2.B
+        out.rho = a * self.rho + b * os2.rho
+
+        out.mu_e = self.mu_e
+        out.R_e = self.R_e
+        out.J2coeff = self.J2coeff
+
+        out.TAI = a * self.TAI + b * os2.TAI
+        out.sf_pos = self.sf_pos          # approximate; only used by is_sunlit
+        out.datetime = self.datetime       # approximate
+
+        out._R_eci2ecef = a * self._R_eci2ecef + b * os2._R_eci2ecef
+        out._R_ecef2eci = a * self._R_ecef2eci + b * os2._R_ecef2eci
+
+        out.ECEF = out._R_eci2ecef @ out.R
+        out.geocentric = a * self.geocentric + b * os2.geocentric
+
+        out._n_ecef = normalize(out.ECEF)
+        out._svec = a * self._svec + b * os2._svec
+        out._tvec = a * self._tvec + b * os2._tvec
+        out._ecef_to_geo = a * self._ecef_to_geo + b * os2._ecef_to_geo
+
+        out.sf_geo_pos = getattr(self, "sf_geo_pos", None)
+        out.LLA = a * self.LLA + b * os2.LLA
+        out.ECI2ENUmat = a * self.ECI2ENUmat + b * os2.ECI2ENUmat
+
+        out.density_model = self.density_model
+
+        out.vecs = None
+        out._last_x = None
+        out._cached_sunlit = getattr(self, '_cached_sunlit', None)
+
+        # Cache sunlit from nearest endpoint to avoid expensive Skyfield ephemeris call
+        if hasattr(self, '_sunlit'):
+            out._sunlit = self._sunlit
+        elif hasattr(os2, '_sunlit'):
+            out._sunlit = os2._sunlit
+
+        # Propagate Jacobian skip flag
+        out._skip_jacobians = getattr(self, '_skip_jacobians', False)
+
+        return out
 
     @staticmethod
     def _orbit_dynamics_raw(
@@ -819,14 +851,28 @@ class Orbital_State:
         S_B = rmat_ECI2B @ S
         V_B = rmat_ECI2B @ V
 
-        dR_B__dq = drotmatTvecdq(q0, R)
-        dB_B__dq = drotmatTvecdq(q0, B)
-        dV_B__dq = drotmatTvecdq(q0, V)
-        dS_B__dq = drotmatTvecdq(q0, S)
-        ddR_B__dqdq = ddrotmatTvecdqdq(q0, R)
-        ddB_B__dqdq = ddrotmatTvecdqdq(q0, B)
-        ddV_B__dqdq = ddrotmatTvecdqdq(q0, V)
-        ddS_B__dqdq = ddrotmatTvecdqdq(q0, S)
+        # Jacobians/Hessians are only needed when an estimator is in the loop.
+        # Skip them when _skip_jacobians is set to avoid ~25% overhead.
+        if getattr(self, '_skip_jacobians', False):
+            _z3x4 = np.zeros((3, 4))
+            _z3x4x4 = np.zeros((3, 4, 4))
+            dR_B__dq = _z3x4
+            dB_B__dq = _z3x4
+            dV_B__dq = _z3x4
+            dS_B__dq = _z3x4
+            ddR_B__dqdq = _z3x4x4
+            ddB_B__dqdq = _z3x4x4
+            ddV_B__dqdq = _z3x4x4
+            ddS_B__dqdq = _z3x4x4
+        else:
+            dR_B__dq = drotmatTvecdq(q0, R)
+            dB_B__dq = drotmatTvecdq(q0, B)
+            dV_B__dq = drotmatTvecdq(q0, V)
+            dS_B__dq = drotmatTvecdq(q0, S)
+            ddR_B__dqdq = ddrotmatTvecdqdq(q0, R)
+            ddB_B__dqdq = ddrotmatTvecdqdq(q0, B)
+            ddV_B__dqdq = ddrotmatTvecdqdq(q0, V)
+            ddS_B__dqdq = ddrotmatTvecdqdq(q0, S)
 
         self.vecs = {
             "b": B_B,
@@ -873,7 +919,9 @@ class Orbital_State:
         """
         if hasattr(self, "_sunlit"):
             return bool(getattr(self, "_sunlit"))
-        return bool(self.sf_pos.is_sunlit(self.ephem.planets))
+        result = bool(self.sf_pos.is_sunlit(self.ephem.planets))
+        self._sunlit = result
+        return result
 
     def to_dict(self) -> dict:
         r"""
