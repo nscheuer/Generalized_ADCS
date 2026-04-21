@@ -1,0 +1,7 @@
+ADCS.remote.controller\_rpc module
+==================================
+
+.. automodule:: ADCS.remote.controller_rpc
+   :members:
+   :show-inheritance:
+   :undoc-members:

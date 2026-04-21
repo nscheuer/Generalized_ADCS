@@ -1,0 +1,18 @@
+ADCS.remote package
+===================
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   ADCS.remote.controller_rpc
+
+Module contents
+---------------
+
+.. automodule:: ADCS.remote
+   :members:
+   :show-inheritance:
+   :undoc-members:

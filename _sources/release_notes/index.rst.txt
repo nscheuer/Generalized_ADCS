@@ -5,6 +5,7 @@ Release Notes
   :maxdepth: 1
   :caption: Getting Started
 
+  0_1_3_hardware_in_the_loop
   0_1_2_numba_optimizations
   0_1_1_earth_horizon
   0_1_0_saltro

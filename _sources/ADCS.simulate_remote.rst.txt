@@ -1,0 +1,7 @@
+ADCS.simulate\_remote module
+============================
+
+.. automodule:: ADCS.simulate_remote
+   :members:
+   :show-inheritance:
+   :undoc-members:
