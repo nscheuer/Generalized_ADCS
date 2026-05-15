@@ -151,7 +151,7 @@ class Actuator:
         :return: Body-frame torque vector.
         :rtype: numpy.ndarray of shape ``(3,)``
         """
-        return np.ndarray([0, 0, 0])
+        return np.zeros(3)
     
     def storage_torque(self, u: float, j2000: float, dmode: ErrorMode = None)-> float:
         r"""
