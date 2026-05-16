@@ -85,7 +85,11 @@ class SunSensor(Sensor):
     * This is a **coarse** Sun sensor intended for low-accuracy attitude
       determination.
     * The sensor output is scalar, so ``output_length = 1``.
-    * In eclipse, the clean measurement and all Jacobians are identically zero.
+    * In eclipse (``os.is_sunlit() == False``) the clean measurement and all
+      Jacobians return ``NaN`` as the "sensor invalid / occulted" sentinel;
+      the UKF/SRUKF detect this (``np.isnan``) and deactivate the sensor for
+      that step. (It is *not* zero -- a zero would be fed to the filter as a
+      real measurement.)
     """
     def __init__(self, axis: np.ndarray, efficiency: float, sample_time: float = 0.1, bias: Bias = None, noise: Noise = None, estimate_bias: bool = False):
         r"""
@@ -282,7 +286,14 @@ class SunSensor(Sensor):
         if os.is_sunlit():
             return np.vstack([np.zeros((3,1)),self.efficiency*np.expand_dims(dcos_incidence__dq,1)])
         else:
-            return np.zeros((7, 1))
+            # In eclipse clean_reading() returns NaN as the "sensor invalid /
+            # occulted" sentinel that the UKF/SRUKF use (np.isnan check) to
+            # deactivate this sensor. The Jacobian must carry the SAME sentinel
+            # for a consistent contract: returning finite zeros silently
+            # asserted "constant 0 measurement, zero sensitivity", which would
+            # bias the filter toward believing the eclipse reading is exactly 0
+            # if it were ever used without the active mask.
+            return np.full((7, 1), np.nan)
         
     
 
