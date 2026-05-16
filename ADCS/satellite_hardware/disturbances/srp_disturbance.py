@@ -431,12 +431,14 @@ class SRP_Disturbance(Disturbance):
         proj_area = self.areas * cos_gamma
         cents = self.centroids - sat.COM
 
-        dcos_gamma__dq = np.zeros_like(ds_body__dq @ self.normals.T)
-        for i in range(len(cos_gamma)):
-            if cos_gamma[i] > 0:
-                dcos_gamma__dq[i] = (ds_body__dq @ self.normals.T)[i]
-            else:
-                dcos_gamma__dq[i] = 0.0
+        # d(n_i . s_b)/dq for every face: (4, Nfaces) = [quat, face]. The
+        # Heaviside incidence mask is PER FACE (axis 1), not per quaternion
+        # component (axis 0); the old loop iterated range(Nfaces) but indexed
+        # dcos_gamma__dq[i] along the size-4 quaternion axis -- masking the
+        # wrong axis (and out of range for >4 faces).
+        normals_term = ds_body__dq @ self.normals.T
+        face_lit = (cos_gamma > 0.0)
+        dcos_gamma__dq = normals_term * face_lit[np.newaxis, :]
 
         dproj_area__dq = self.areas * dcos_gamma__dq
 
@@ -453,7 +455,20 @@ class SRP_Disturbance(Disturbance):
         if os.is_sunlit():
             return -(EarthConstants.solar_constant / EarthConstants.c) * (dt_s__dq + dt_n__dq)
         else:
-            return np.zeros((3, 1))
+            # Canonical Jacobian layout is (4,3) = [quat, torque-component];
+            # the eclipse return must match (was (3,1)).
+            return np.zeros((4, 3))
+
+    def torque_qjac(self, sat: Satellite, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+        r"""
+        Alias of :meth:`torque_qjav` so SRP exposes the same ``torque_qjac``
+        quaternion-Jacobian entry point as every other disturbance (the
+        original method name ``torque_qjav`` was an inconsistent typo).
+
+        :return: Quaternion Jacobian of the SRP torque, shape ``(4,3)``.
+        :rtype: :class:`numpy.ndarray`
+        """
+        return self.torque_qjav(sat=sat, x=x, os=os)
 
     def torque_qqhess(self, sat: Satellite, x: np.ndarray, os: Orbital_State) -> np.ndarray:
         r"""
