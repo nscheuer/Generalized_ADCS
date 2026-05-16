@@ -217,8 +217,24 @@ class UAKF(Attitude_Estimator):
             cross_term=cross_term,
             quat_as_vec=quat_as_vec,
         )
-        # UKF tuning parameters
-        self.al = 1e-3
+        # UKF tuning parameters.
+        #
+        # alpha controls the unscented sigma-point spread:
+        #   lambda = alpha^2 (L + kappa) - L,   gamma = sqrt(L + lambda).
+        # The textbook "default" alpha = 1e-3 gives gamma ~ alpha*sqrt(L)
+        # ~ 2.4e-3 and covariance weights ~ +/-1e6: the sigma points sit in an
+        # infinitesimal neighbourhood of the mean, so the unscented transform
+        # degenerates to a local (EKF-grade) linearisation. For the strongly
+        # nonlinear attitude propagation/measurement this systematically
+        # *under*-estimates the attitude covariance (measured attitude NEES
+        # ~263 vs the consistent value 3; alpha=1 -> ~55, a ~5x improvement and
+        # numerically far healthier with O(1) weights). alpha=1, kappa=0,
+        # beta=2 is the standard robust choice (gamma = sqrt(L)).
+        # NOTE: a residual ~18x attitude over-confidence remains after this
+        # change; that is an attitude process-noise (Q) tuning issue, tracked
+        # by testing/test_estimators/test_srukf_nees_consistency.py, not fixed
+        # here (it is model/config specific).
+        self.al = 1.0
         self.kap = 0.0
         self.bet = 2.0
         self.vec_mode = 6
