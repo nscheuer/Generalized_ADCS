@@ -326,31 +326,35 @@ class Drag_Disturbance(Disturbance):
         """
         vecs = os.get_state_vector(x=x)
 
-        V_B = vecs["v"]
+        # Velocity must be in m/s to match torque() (vecs["v"]*1000); drag is
+        # quadratic in V, so using km/s here made the Jacobian ~1e6 too small.
+        # dV_b/dq must carry the same unit scaling.
+        V_B = vecs["v"] * 1000.0          # m/s
         rho = vecs["rho"]
 
-        dv_body__dq = vecs["dv"]
-        ddv_body__dqdq = vecs["ddv"]
+        dv_body__dq = vecs["dv"] * 1000.0  # m/s, consistent with V_B
 
         cos_alpha = np.maximum(0, np.dot(self.normals, V_B))
         F = self.CDs * self.areas * cos_alpha
         cents = self.centroids - sat.COM
 
-        # Initialize derivative arrays
-        dcos_alpha__dq = np.zeros_like(dv_body__dq @ self.normals.T)
-
-        # Explicit conditional logic instead of inline boolean mask
+        # d(n_i . V_b)/dq for every face: shape (4, Nfaces) = [quat, face].
         normals_term = dv_body__dq @ self.normals.T
-        for i in range(len(cos_alpha)):
-            if cos_alpha[i] > 0:
-                dcos_alpha__dq[i] = normals_term[i]
-            else:
-                dcos_alpha__dq[i] = np.zeros_like(normals_term[i])
+        # The Heaviside incidence mask is PER FACE (axis 1), not per quaternion
+        # component (axis 0). The old loop iterated range(Nfaces) but indexed
+        # dcos_alpha__dq[i] along the size-4 quaternion axis, masking the wrong
+        # axis (and indexing out of range for >4 faces). Zero the columns whose
+        # face is in the wake (n_i . V_b <= 0).
+        face_lit = (cos_alpha > 0.0)
+        dcos_alpha__dq = normals_term * face_lit[np.newaxis, :]
 
         dF__dq = dcos_alpha__dq * self.CDs * self.areas
 
         ct = 0.5 * rho
-        return -ct * (np.cross(dF__dq @ cents, V_B) + np.cross(F @ cents, dv_body__dq)) * self.active
+        # Canonical Jacobian layout (4,3) = [quat, torque-component]. The
+        # spurious ``* self.active`` (attribute never defined -> AttributeError
+        # on every call) is removed.
+        return -ct * (np.cross(dF__dq @ cents, V_B) + np.cross(F @ cents, dv_body__dq))
 
     def torque_qqhess(self, sat: Satellite, x: np.ndarray, os: Orbital_State) -> np.ndarray:
         r"""
