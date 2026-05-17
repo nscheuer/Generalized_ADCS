@@ -170,6 +170,7 @@ class UAKF(Attitude_Estimator):
         dt: float = 1.0,
         cross_term: bool = False,
         quat_as_vec: bool = False,
+        ut_alpha: float = 1e-3,
     ) -> None:
         r"""
         Initialize the UKF estimator and store UKF scaling parameters.
@@ -221,20 +222,25 @@ class UAKF(Attitude_Estimator):
         #
         # alpha controls the unscented sigma-point spread:
         #   lambda = alpha^2 (L + kappa) - L,   gamma = sqrt(L + lambda).
-        # The textbook "default" alpha = 1e-3 gives gamma ~ alpha*sqrt(L)
-        # ~ 2.4e-3 and covariance weights ~ +/-1e6: the sigma points sit in an
-        # infinitesimal neighbourhood of the mean, so the unscented transform
-        # degenerates to a local (EKF-grade) linearisation. For the strongly
-        # nonlinear attitude propagation/measurement this systematically
-        # *under*-estimates the attitude covariance (measured attitude NEES
-        # ~263 vs the consistent value 3; alpha=1 -> ~55, a ~5x improvement and
-        # numerically far healthier with O(1) weights). alpha=1, kappa=0,
-        # beta=2 is the standard robust choice (gamma = sqrt(L)).
-        # NOTE: a residual ~18x attitude over-confidence remains after this
-        # change; that is an attitude process-noise (Q) tuning issue, tracked
-        # by testing/test_estimators/test_srukf_nees_consistency.py, not fixed
-        # here (it is model/config specific).
-        self.al = 1.0
+        #
+        # alpha = 1e-3 (the textbook "default") gives gamma ~ alpha*sqrt(L)
+        # ~ 2.4e-3 with covariance weights ~ +/-1e6 -- the UT degenerates to a
+        # local (EKF-grade) linearisation and *under*-estimates the attitude
+        # covariance (attitude NEES ~263 vs consistent 3). alpha = 1 gives
+        # gamma = sqrt(L), O(1) weights, ~5x better attitude NEES (~55).
+        #
+        # BUT alpha = 1 is a CONFIG-DEPENDENT TRADEOFF, not a free win: it
+        # deterministically REGRESSES reaction-wheel-momentum estimation in
+        # the RWS UKF/SRUKF variants (test_rw_momentum_estimation diverges;
+        # origin/main alpha=1e-3 passes, alpha=1 fails). It is therefore
+        # exposed as an OPT-IN parameter (`ut_alpha`) with the LEGACY default
+        # 1e-3 -> zero behavioural regression. Opt in to alpha=1 only where
+        # the augmented config is known safe (e.g. the attitude NEES guard
+        # tests). The principled resolution (derive RW-momentum / all
+        # augmented-state process noise so the filter is well-posed
+        # independent of alpha) is documented future work
+        # (~/adcs-srukf-process-noise-notes.md sections 7i/7j/7k).
+        self.al = ut_alpha
         self.kap = 0.0
         self.bet = 2.0
         self.vec_mode = 6

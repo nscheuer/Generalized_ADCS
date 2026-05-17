@@ -27,6 +27,7 @@ import pathlib
 import numpy as np
 import pytest
 
+import ADCS.estimators.attitude_estimators.attitude_UAKF as _UAKF_MOD
 from ADCS.helpers.math_helpers import quat_to_vec3, quat_mult, quat_inv
 
 pytestmark = pytest.mark.slow
@@ -36,10 +37,24 @@ _VEC_MODE = 6  # must match UAKF.vec_mode (the attitude error parametrisation)
 
 
 def _run():
+    # alpha=1 is OPT-IN (default is the legacy 1e-3 so the shared estimator
+    # suite -- incl. the RWS variants -- is bit-for-bit unchanged: see notes
+    # 7i, the RW-momentum tradeoff). This guard demonstrates the alpha=1
+    # improvement, so it opts in by forcing UAKF.al = 1 for the run.
     spec = importlib.util.spec_from_file_location("_srukf_h", _HARNESS)
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
-    return mod.run_srukf(verbose=False, tf=1000, dt=50, real_orbit=True)
+    _orig = _UAKF_MOD.UAKF.__init__
+
+    def _alpha1_init(self, *a, **k):
+        _orig(self, *a, **k)
+        self.al = 1.0
+
+    _UAKF_MOD.UAKF.__init__ = _alpha1_init
+    try:
+        return mod.run_srukf(verbose=False, tf=1000, dt=50, real_orbit=True)
+    finally:
+        _UAKF_MOD.UAKF.__init__ = _orig
 
 
 def _nees(results):
