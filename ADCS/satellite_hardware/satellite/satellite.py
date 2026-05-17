@@ -1026,6 +1026,28 @@ class Satellite:
         r"""
         Compute second-order partial derivatives (Hessians) of the dynamics.
 
+        .. warning::
+           **Staged scaffolding for a one-step look-ahead MPC controller that
+           is not yet (re)implemented — currently NON-FUNCTIONAL and called
+           by nothing in the codebase.** Two known defects:
+
+           1. ``J = self.J`` referenced a non-existent attribute
+              (``AttributeError`` on every call). FIXED here to ``self.J_COM``
+              (consistent with the gyroscopic-inertia convention in
+              ``dynamics_core``/``dynJacCore``, PR #33), so the inertia
+              convention is already correct for the future MPC work.
+           2. The actuator second-derivative calls (``dtorq__dbasestate``,
+              ``ddstor_torq__*``) are invoked with a **stale signature**
+              (an extra ``self`` argument) — the method was written against
+              an older actuator API and was never updated. A full actuator
+              second-derivative API audit + finite-difference verification of
+              the returned ``[[ddxdot__dxdx, ddxdot__dxdu], […, ddxdot__dudu]]``
+              tensor is required **as part of the MPC re-implementation**
+              before this is used. Tracked by a strict-xfail guard,
+              ``testing/test_sat_dynamics_hessians.py``
+              (FD-verifies the tensor; flips to xpass — strict, so CI flags
+              it — when the MPC work makes this functional + FD-correct).
+
         Returns the second derivatives of the dynamics map
         :math:`\dot{\mathbf{x}} = f(\mathbf{x},\mathbf{u},\mathrm{os})` with respect to state and input:
 
@@ -1095,8 +1117,9 @@ class Satellite:
         q = x[3:7]#normalize(x[3:7,:])
         RWhs = x[7:]
         invJ_noRW = self.invJ_noRW
-        # Match the COM-based rotational dynamics and avoid relying on the
-        # undefined self.J attribute.
+        # self.J does not exist (AttributeError on every call -> dynamics_Hessians
+        # was dead-on-arrival). Use J_COM, consistent with the gyroscopic-inertia
+        # convention now used by dynamics_core / dynJacCore (PR #33).
         J = self.J_COM
 
         R = orbital_state.R
