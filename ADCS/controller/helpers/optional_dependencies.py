@@ -76,13 +76,6 @@ def saltro_missing_reason() -> str:
         "See docs/Install_SALTRO.md."
     )
 
-
-# trajectory_planner's `pysat` and SALTRO's `saltro_py` are independently
-# built pybind11 extensions that BOTH register a C++ type named `Satellite`.
-# pybind11 keeps a single process-global type registry, so the second of the
-# two to import raises `generic_type: type "Satellite" is already registered!`.
-# This is NOT a missing/unbuilt extension, so we must not report it via
-# *_missing_reason() and send users down a rebuild dead end.
 _PYBIND_CLASH_MARKER = "already registered"
 
 
@@ -163,6 +156,42 @@ def _load_so_under_qualname(qualname: str, so_filename: str) -> ModuleType:
         raise
     return module
 
+
+# trajectory_planner's `pysat` and `SALTRO`'s `saltro_py` are independently
+# built pybind11 extensions that BOTH register a C++ type named `Satellite`.
+# pybind11 keeps a single process-global type registry, so the second of the
+# two to import raises `generic_type: type "Satellite" is already registered!`.
+# This is NOT a missing/unbuilt extension -- rebuilding does not help -- so it
+# must NOT be reported via *_missing_reason() (which tells the user to build
+# the add-on and read the install docs, sending them down a dead end).
+_PYBIND_CLASH_MARKER = "already registered"
+
+
+def _is_pybind_registry_clash(exc: BaseException) -> bool:
+    """True iff ``exc`` (or any exception in its cause/context chain) is the
+    pybind11 process-global type-registry clash between ``pysat`` and
+    ``saltro_py`` (both register a C++ ``Satellite``)."""
+    seen: set[int] = set()
+    cur: BaseException | None = exc
+    while cur is not None and id(cur) not in seen:
+        seen.add(id(cur))
+        if _PYBIND_CLASH_MARKER in str(cur):
+            return True
+        cur = cur.__cause__ or cur.__context__
+    return False
+
+
+def planner_extension_clash_reason() -> str:
+    return (
+        "trajectory_planner (pysat/tplaunch) and saltro_py each register a C++ "
+        "`Satellite` type via pybind11, which keeps a single process-global "
+        "type registry. They CANNOT be imported into the same Python process: "
+        "whichever loads second raises "
+        '`generic_type: type "Satellite" is already registered!`. This is NOT '
+        "a missing or unbuilt extension -- rebuilding will not help. Use only "
+        "one planner family per process (e.g. run the SALTRO and "
+        "plan_and_track controllers in separate processes / Monte-Carlo runs)."
+    )
 
 def get_trajectory_planner_modules() -> Tuple[ModuleType, ModuleType]:
     """Return ``(tplaunch, pysat)`` from the OldPlanner submodule build dir.
