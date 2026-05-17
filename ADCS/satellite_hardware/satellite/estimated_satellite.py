@@ -475,6 +475,30 @@ class EstimatedSatellite(Satellite):
         r"""
         Jacobians of augmented dynamics w.r.t. state, inputs, and estimated parameters.
 
+        .. warning::
+           **Pervasively API-rotted dead scaffolding** for the not-yet-
+           reimplemented EKF / one-step MPC — called by nothing in the
+           codebase (the sigma-point SRUKF never uses it), so the rot went
+           untested. Known defects:
+
+           1. ``q = x[4:7]`` (a 3-element slice) crashed ``rot_mat`` on every
+              call. **FIXED** here to ``x[3:7]`` (the quaternion is ``x[3:7]``
+              in ``dynamics_core`` / base ``dynJacCore``).
+           2. **NOT fixed** (out of proportion to fix in isolation; belongs
+              with the EKF/MPC reimplementation and is partly coupled to the
+              #35 disturbance-Jacobian fixes): the actuator second-/first-
+              derivative calls (``dtorq__dbasestate``, ``ddstor_torq__*``)
+              pass an extra ``self`` (stale signature), and
+              ``dist_torques_jacobian`` calls ``torque_qjac(self, vecs)``
+              (stale vs the ``(sat, x, os)`` API). Same defect family as
+              ``dynamics_Hessians`` (#3 / PR #44).
+
+           Base ``Satellite.dynJacCore`` IS FD-correct (incl. reaction
+           wheels, verified). Tracked by a strict-xfail guard,
+           ``testing/test_estimators/test_estimated_satellite_dynjac.py``
+           (FD-verifies; XPASSes — strict, CI fails — when the EKF/MPC
+           reimplementation makes this functional & correct).
+
         This method extends the base linearization from
         :meth:`~ADCS.satellite_hardware.satellite.satellite.Satellite.dynJacCore` by additionally
         returning Jacobians of :math:`\dot{\mathbf{x}}` w.r.t.:
@@ -554,8 +578,17 @@ class EstimatedSatellite(Satellite):
         rho = orbital_state.rho # Atmospheric density [kg/m^3]
 
         w = x[0:3]
-        q = x[4:7]
+        q = x[3:7]  # was x[4:7] (3-elem slice) -> crashed rot_mat(q) on any
+                    # normal state; the quaternion is x[3:7] everywhere else
+                    # (dynamics_core, base dynJacCore). This made the augmented
+                    # analytic Jacobian dead-on-arrival (untested: the
+                    # sigma-point SRUKF never calls it).
         RWhs = x[7:]
+        # NOTE: like base dynJacCore/dynamics_core pre-#33, this uses J_0; when
+        # the #33 gyroscopic-inertia convention (J_COM) merges, this override
+        # must switch to self.J_COM in lockstep to stay the Jacobian *of* the
+        # (then-J_COM) dynamics. Left as J_0 here so it matches the current
+        # origin/main dynamics_core under finite-difference verification.
         J = self.J_0
         invJ_noRW = self.invJ_noRW
 
