@@ -17,6 +17,7 @@ from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.universal_constants import CG5
 from ADCS.helpers.math_helpers import (
     vec3_to_quat,
+    quat_to_vec3,
     quat_mult,
     normalize,
     state_norm_jac,
@@ -79,6 +80,7 @@ class SRUAKF(UAKF):
         dt: float = 1.0,
         cross_term: bool = False,
         quat_as_vec: bool = False,
+        vanloan_Q: bool = False,
     ) -> None:
         r"""
         Initialize the SR-UKF and compute initial square-root factors.
@@ -142,6 +144,16 @@ class SRUAKF(UAKF):
             cross_term=cross_term,
             quat_as_vec=quat_as_vec,
         )
+
+        # When True, the additive process noise injected into the predicted
+        # square-root covariance is the exact continuous->discrete Van Loan
+        # discretisation of Q_hat (interpreted as a continuous spectral
+        # density), instead of the raw per-step Q_hat. Default False keeps the
+        # legacy behaviour bit-for-bit (no regression); the Van Loan path is
+        # validated by testing/test_estimators/test_srukf_vanloan_dt_invariance.py
+        # and is the physically-correct mode for real use. See
+        # ~/adcs-srukf-process-noise-notes.md (paper) for the derivation.
+        self.vanloan_Q = bool(vanloan_Q)
 
         try:
             # numpy cholesky returns Lower, so we transpose to get Upper
@@ -796,9 +808,58 @@ class SRUAKF(UAKF):
         pts_diff = post_pts - state1
 
         weighted_diffs = pts_diff[1:, :].T * np.sqrt(wts_c[1:])
-        
-        to_qr = np.hstack([pts_diff[1:, :].T * np.sqrt(wts_c[1:]), self.S_Q.T])
-        # Note: using S_Q.T implies S_Q was Upper, so S_Q.T is Lower. 
+
+        if not self.vanloan_Q:
+            # Legacy path (DEFAULT): raw per-step Q_hat with NO dt scaling.
+            # Kept bit-for-bit for backward compatibility / zero test
+            # regression. This is attitude-over-confident (the attitude block
+            # is the integral of the body rate and is short by ~dt); set
+            # vanloan_Q=True for the physically-correct discretisation.
+            S_Q_step = self.S_Q
+        else:
+            # --- Continuous->discrete process noise: exact Van Loan w/
+            # kinematic F. The correct discrete process-noise covariance over
+            # a step dt is the Van Loan integral
+            #     Q_d = ∫_0^dt e^{Fτ} M e^{Fτ}^T dτ ,
+            # with M the continuous process-noise PSD (= int_cov) and F the
+            # reduced error-state Jacobian. The dominant, convention-clear
+            # part of F is the kinematic coupling d(δθ)/dt ≈ G·ω (G = the
+            # small-angle gain of the attitude-error parametrisation
+            # self.vec_mode). With only that block F^2 = 0, so
+            # e^{Fτ} = I + Fτ EXACTLY and the integral is
+            #     Q_d = M dt + (F M + M F^T) dt^2/2 + (F M F^T) dt^3/3 ,
+            # i.e. every block gets its correct Δt power and all cross-
+            # couplings (rate↔attitude Δt^2/2, attitude-from-integrated-rate
+            # Δt^3/3, bias/rate Δt) in one expression — the Crassidis
+            # attitude/rate model generalised to the whole augmented state.
+            # Validated under realistic unmodeled dynamics
+            # (test_srukf_vanloan_dt_invariance.py); see the paper notes.
+            M = np.asarray(self.x_hat.int_cov, dtype=float)
+            L = M.shape[0]
+            if (not self.quat_as_vec) and L >= 6:
+                phi = 1e-6
+                dq = np.array([1.0, 0.5 * phi, 0.0, 0.0])
+                G = float(quat_to_vec3(dq / np.linalg.norm(dq),
+                                       self.vec_mode)[0]) / phi
+                F = np.zeros((L, L))
+                F[3:6, 0:3] = G * np.eye(3)
+                dt = float(self.dt)
+                FM = F @ M
+                Q_d = (M * dt
+                       + (FM + FM.T) * (0.5 * dt * dt)
+                       + (FM @ F.T) * (dt ** 3 / 3.0))
+            else:
+                Q_d = M * float(self.dt)  # random-walk (quat-as-vec path)
+            Q_d = 0.5 * (Q_d + Q_d.T)
+            try:
+                S_Q_step = np.linalg.cholesky(Q_d).T
+            except np.linalg.LinAlgError:
+                w_, v_ = np.linalg.eig(Q_d)
+                v_ = np.real(v_)
+                S_Q_step = (v_ @ np.diag(np.sqrt(np.abs(np.real(w_)))) @ v_.T).T
+
+        to_qr = np.hstack([pts_diff[1:, :].T * np.sqrt(wts_c[1:]), S_Q_step.T])
+        # Note: S_Q_step is Upper, so S_Q_step.T is Lower.
         
         srcov1 = np.linalg.qr(to_qr.T, mode='r')
         
