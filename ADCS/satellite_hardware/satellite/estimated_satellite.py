@@ -1,4 +1,5 @@
 __all__ = ["EstimatedSatellite"]
+import copy
 import numpy as np
 
 from typing import List, Dict, Union, Tuple, Any, Optional
@@ -133,14 +134,28 @@ class EstimatedSatellite(Satellite):
     def from_satellite(cls, sat: Satellite) -> "EstimatedSatellite":
         """
         Create an EstimatedSatellite by cloning a Satellite.
+
+        The sensor / actuator / disturbance objects MUST be deep-copied, not
+        shared by reference: they carry mutable state (``Bias``/``Noise``
+        evolution, reaction-wheel momentum and the shared
+        ``_effective_command`` cache, disturbance parameters). When the
+        estimated satellite is used by an estimator (e.g. inside
+        :func:`~ADCS.simulate.simulate`, which auto-builds it via this
+        method), the filter repeatedly evaluates ``sensor_readings`` /
+        ``noiseless_rk4`` / actuator torques on its sigma points; if those
+        objects were the *same* instances as the true satellite's, the
+        filter's internal predictions would silently corrupt the truth's
+        sensor/actuator/disturbance state (and vice versa) within and across
+        timesteps. Deep-copying makes the estimate model independent of the
+        plant, as the "cloning" contract promises.
         """
         est = cls(
             mass=sat.mass,
             COM=sat.COM.copy(),
             J_0=sat.J_0.copy(),
-            disturbances=sat.disturbances,
-            sensors=sat.sensors,
-            actuators=sat.actuators,
+            disturbances=copy.deepcopy(sat.disturbances),
+            sensors=copy.deepcopy(sat.sensors),
+            actuators=copy.deepcopy(sat.actuators),
             boresight=sat.boresight.copy(),
         )
 
