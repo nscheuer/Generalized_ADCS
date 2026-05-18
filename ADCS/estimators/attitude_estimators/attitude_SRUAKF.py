@@ -155,27 +155,64 @@ class SRUAKF(UAKF):
         # ~/adcs-srukf-process-noise-notes.md (paper) for the derivation.
         self.vanloan_Q = bool(vanloan_Q)
 
+        self.S = self._upper_sqrt(self.x_hat.cov)
+        # Initialize Process Noise Square Root (Upper Triangular)
+        self.S_Q = self._upper_sqrt(self.x_hat.int_cov)
+
+    @staticmethod
+    def _upper_sqrt(M: np.ndarray) -> np.ndarray:
+        r"""
+        Upper-triangular square-root factor :math:`S` with
+        :math:`S^\top S = M`.
+
+        Uses Cholesky (numpy returns Lower; transposed to Upper). If
+        :math:`M` is not strictly positive definite -- which happens, e.g.,
+        after :attr:`cross_term`-``False`` block zeroing makes a PSD
+        covariance indefinite -- falls back to the symmetric eigen-square-root
+        :math:`S = (V\sqrt{|\Lambda|}V^\top)^\top`. This is the exact same
+        construction the filter has always used to seed ``S``/``S_Q``; it is
+        factored out here only so the cross-term resync can reuse it.
+
+        :param M: Symmetric matrix to factor.
+        :type M: numpy.ndarray
+        :return: Upper-triangular ``S`` (PSD-projected if ``M`` is indefinite).
+        :rtype: numpy.ndarray
+        """
         try:
             # numpy cholesky returns Lower, so we transpose to get Upper
-            self.S = np.linalg.cholesky(self.x_hat.cov).T
+            return np.linalg.cholesky(M).T
         except np.linalg.LinAlgError:
-            # Fallback to Eigendecomposition if P is not strictly positive definite
-            w, v = np.linalg.eig(self.x_hat.cov)
+            # Fallback to Eigendecomposition if M is not strictly PD.
+            # M = V D V.T = (V D^0.5)(V D^0.5).T ; want S = (V D^0.5).T
+            w, v = np.linalg.eig(M)
             srw = np.diag(np.sqrt(np.abs(np.real(w))))
             v = np.real(v)
-            # Construct Upper Triangular S s.t. S.T @ S = P
-            # P = V D V.T = (V D^0.5) (V D^0.5).T
-            # We want S such that S = (V D^0.5).T
-            self.S = (v @ srw @ v.T).T
+            return (v @ srw @ v.T).T
 
-        # Initialize Process Noise Square Root (Upper Triangular)
-        try:
-            self.S_Q = np.linalg.cholesky(self.x_hat.int_cov).T
-        except np.linalg.LinAlgError:
-            w, v = np.linalg.eig(self.x_hat.int_cov)
-            srw = np.diag(np.sqrt(np.abs(np.real(w))))
-            v = np.real(v)
-            self.S_Q = (v @ srw @ v.T).T
+    def _resync_sqrt_factor(self, decoupled_cov: np.ndarray) -> None:
+        r"""
+        Rebuild the stored Cholesky factor :attr:`S` from the cross-term-
+        decoupled covariance so the SR-UKF actually propagates the requested
+        block structure and the reported covariance stays consistent with
+        :math:`S^\top S`. Without this, :attr:`cross_term`-``False`` is a
+        silent no-op for the SR-UKF and breaks the ``S``/``P`` invariant
+        whenever :math:`\ge 2` bias/parameter blocks are non-empty.
+
+        Zeroing a strong correlation can make the requested covariance
+        indefinite; the factor is then the PSD eigen-projection (the same
+        construction the filter uses at ``reset``). To keep the reported
+        covariance exactly consistent with the propagated factor (the S/P
+        invariant ``P == S^T S``), the decoupled covariance is overwritten
+        in place with :math:`S^\top S` after refactoring.
+
+        :param decoupled_cov: Reduced-space covariance, cross blocks zeroed.
+            Overwritten in place with :math:`S^\top S`.
+        :type decoupled_cov: numpy.ndarray
+        :return: None
+        :rtype: None
+        """
+        self.S = self._upper_sqrt(decoupled_cov)
+        decoupled_cov[...] = self.S.T @ self.S
 
     def weighted_cholupdate(self, mat: np.ndarray, vec: np.ndarray, wt: float) -> np.ndarray:
         r"""
