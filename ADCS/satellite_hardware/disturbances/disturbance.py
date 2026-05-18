@@ -1,5 +1,6 @@
 __all__ = ["Disturbance"]
 
+import numpy as np
 from typing import List
 
 class Disturbance:
@@ -60,4 +61,39 @@ class Disturbance:
         """
         self.estimate_dist = estimate_dist
         self.estimated_vector_length = estimated_vector_length
+
+        # Disturbance-parameter-estimation interface consumed by
+        # EstimatedSatellite.match_estimate (restored: this was working in
+        # the original PhD/thesis code and rotted in the port -- no
+        # disturbance class implemented it, so estimating ANY disturbance
+        # parameter raised AttributeError).
+        #
+        # `active`: a Drag-only deactivation flag; default True so every
+        #   disturbance exposes it (a disturbance with estimate_dist=True is
+        #   active for estimation by definition).
+        # `std`: the estimated-parameter 1-sigma vector, length
+        #   `estimated_vector_length`.
+        # Estimable disturbances (`estimated_vector_length > 0`) MUST also
+        # implement the `main_param` property (the estimated parameter
+        # vector, read by the estimator and written back by match_estimate);
+        # the base raises a clear error rather than silently mis-estimating.
+        self.active = True
+        self.std = np.zeros(int(estimated_vector_length))
+
+    @property
+    def main_param(self) -> "np.ndarray":
+        raise NotImplementedError(
+            f"{type(self).__name__} declares estimated_vector_length="
+            f"{getattr(self, 'estimated_vector_length', 0)} but does not "
+            f"implement the `main_param` parameter vector required for "
+            f"disturbance-parameter estimation."
+        )
+
+    @main_param.setter
+    def main_param(self, value) -> None:
+        raise NotImplementedError(
+            f"{type(self).__name__} does not implement a settable "
+            f"`main_param`; cannot write back an estimated disturbance "
+            f"parameter."
+        )
     
