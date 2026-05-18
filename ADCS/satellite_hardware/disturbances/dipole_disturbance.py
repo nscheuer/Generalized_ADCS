@@ -89,6 +89,27 @@ class Dipole_Disturbance(Disturbance):
 
         super().__init__(estimate_dist=estimate_dist, estimated_vector_length=3)
 
+    @property
+    def main_param(self) -> np.ndarray:
+        r"""
+        Estimated residual-dipole parameter :math:`\mathbf{m}_{d,0}` (the
+        deterministic dipole vector the estimator augments and refines).
+        This is the quantity disturbance-parameter estimation estimates;
+        the stochastic ``noise`` perturbation is separate and applied only
+        on the truth side via :meth:`update`.
+        """
+        return np.asarray(self.torque_nominal, dtype=float).reshape(-1)
+
+    @main_param.setter
+    def main_param(self, value) -> None:
+        v = np.asarray(value, dtype=float).reshape(-1)
+        self.torque_nominal = v
+        # Reflect the new estimate immediately in the torque the model
+        # produces. The truth path re-derives current_torque (= nominal +
+        # noise) in update(); the estimator's deterministic prediction uses
+        # this estimated value directly.
+        self.current_torque = v.copy()
+
     def update(self) -> None:
         r"""
         Update the residual magnetic dipole vector.
