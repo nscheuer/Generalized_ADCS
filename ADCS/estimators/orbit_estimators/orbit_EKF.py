@@ -47,7 +47,7 @@ class Orbit_EKF(Orbit_Estimator):
         """
         super().__init__(est_sat=est_sat, dt=dt)
         if not self.est_sat.GPS_sensors:
-            return ValueError("Satellite must have at least one GPS sensor!")
+            raise ValueError("Satellite must have at least one GPS sensor!")
 
         self.reset(est_sat=est_sat, J2000=J2000, os_hat=os_hat, P_hat=P_hat, Q_hat=Q_hat, dt=dt)
 
@@ -78,9 +78,9 @@ class Orbit_EKF(Orbit_Estimator):
         :param dt: Time step.
         """
         if P_hat.shape != (6, 6):
-            raise ValueError(f"P must be 6×6, got {self.P.shape}")
+            raise ValueError(f"P must be 6×6, got {P_hat.shape}")
         if Q_hat.shape != (6, 6):
-            raise ValueError(f"Q must be 6×6, got {self.Q.shape}")
+            raise ValueError(f"Q must be 6×6, got {Q_hat.shape}")
         self.os_hat = EstimatedOrbital_State(os=os_hat, P=P_hat, Q=Q_hat)
 
         gps_sensors = self.est_sat.GPS_sensors
@@ -136,14 +136,26 @@ class Orbit_EKF(Orbit_Estimator):
         r_pred, v_pred = os_pred.R, os_pred.V
         x_pred = np.hstack([r_pred, v_pred])   # (6,)
 
-        # Dynamics Jacobian Fk
-        dr_dr0, dr_dv0, dv_dr0, dv_dv0 = os0.orbit_dynamics_jacobians(
-            J2_perturbation_on=True
+        # Discrete state-transition matrix Phi_k, consistent with the RK4
+        # state propagation performed above.
+        #
+        # BUGFIX: orbit_dynamics_jacobians() returns the CONTINUOUS-time
+        # dynamics Jacobian A = df/dx (block form [[0, I],[G(r), 0]] -- zero
+        # on the diagonal blocks, no dt). It was previously used DIRECTLY as
+        # the discrete STM in P_pred = Fk P0 Fk^T + Q, which is dimensionally
+        # wrong and made the predicted covariance meaningless (filter NEES
+        # ~1e9 instead of O(state-dim); covariance catastrophically
+        # over-confident). The correct discrete STM is the Jacobian of the
+        # actual propagation map; propagate_jacobians_rk4 returns the RK4 STM
+        # blocks (a,b,c,d) assembled as Phi = [[a,b],[c,d]] -- FD-verified
+        # against propagate_orbit_rk4 to ~1e-8.
+        a_blk, b_blk, c_blk, d_blk = os0.propagate_jacobians_rk4(
+            dt=self.dt, J2_perturbation_on=True
         )
         Fk = np.block([
-            [dr_dr0, dr_dv0],
-            [dv_dr0, dv_dv0],
-        ])  # (6×6)
+            [a_blk, b_blk],
+            [c_blk, d_blk],
+        ])  # (6×6) discrete state-transition matrix
 
         P0 = self.os_hat.P      # 6×6
         Q0 = self.os_hat.Q      # 6×6
