@@ -510,10 +510,45 @@ class Attitude_Estimator():
             oc[sb0:sb1,d0:] = 0
             oc[d0:,sb0:sb1] = 0
 
+            # A square-root filter (e.g. the SR-UKF) propagates a stored
+            # Cholesky factor S, not the covariance itself; update_core() has
+            # already committed self.S and merely RETURNED oc = S^T S. Zeroing
+            # blocks of this returned copy therefore does NOT touch the factor
+            # the next step actually uses -- so cross_term=False would silently
+            # be a no-op on the filter AND leave the reported covariance
+            # inconsistent with the true filter covariance (S/P invariant
+            # broken) whenever >=2 bias/parameter blocks are non-empty. Let
+            # the subclass re-synchronise its factor with the decoupled
+            # covariance. Non-square-root filters store oc directly and
+            # override this as a no-op.
+            self._resync_sqrt_factor(oc)
+
         self.x_hat.set_indices(self.use, x_hat.val, oc, square_mat_sections(self.x_hat.int_cov, self.cov_use()),[3]*(not self.quat_as_vec))
         self.est_sat.match_estimate(self.x_hat, self.dt)
 
         return self.x_hat.val
+
+
+    def _resync_sqrt_factor(self, decoupled_cov: np.ndarray) -> None:
+        r"""
+        Hook for square-root filters to keep their stored Cholesky factor
+        consistent with the cross-term-decoupled covariance ``decoupled_cov``
+        (the reduced-space covariance after :attr:`cross_term`-``False`` block
+        zeroing).
+
+        Non-square-root estimators (e.g. the plain UAKF) store the covariance
+        matrix directly -- the zeroed ``oc`` they receive is exactly what the
+        next step uses -- so the base implementation is intentionally a no-op.
+        Square-root estimators (the SR-UKF) override this to rebuild their
+        factor; otherwise the decoupling never reaches the propagated state.
+
+        :param decoupled_cov: Reduced-space covariance with the cross blocks
+            already zeroed.
+        :type decoupled_cov: numpy.ndarray
+        :return: None
+        :rtype: None
+        """
+        return None
 
 
     def cov_use(self) -> np.ndarray:
