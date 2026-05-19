@@ -297,7 +297,21 @@ class EstimatedSatellite(Satellite):
         ind = 0
         for j in self.dist_param_inds:
             dist = self.disturbances[j]
-            if dist.active:  # Only update active ones
+            # WARNING: disturbance-parameter estimation is API-rotted dead
+            # scaffolding. This block references a `dist.active` /
+            # `dist.main_param` / `dist.std` interface that NO disturbance
+            # class implements (only Drag defines `active`; none define
+            # `main_param`/`std`), and `estimate_dist=True` is used nowhere
+            # in the codebase or tests. Same dead-scaffolding family as the
+            # rotted analytic Jacobians (PR #44 dynamics_Hessians / PR #47
+            # dynJacCore). The `getattr(..., True)` below fixes the one
+            # trivial, isolated sub-defect (the bare `dist.active` crashed
+            # for every non-Drag disturbance); the deeper `main_param`/`std`
+            # rot is NOT resurrected here (out of proportion -- there is no
+            # disturbance-param API or consumer to verify against) and is
+            # tracked by a strict-xfail guard:
+            # testing/test_estimators/test_disturbance_param_estimation.py.
+            if getattr(dist, "active", True):  # Only update active ones
                 l = dist.main_param.size
                 dist.main_param = dist_param[ind : ind + l]
                 dist.std = np.sqrt(dist_param_ic[ind : ind + l, ind : ind + l])
