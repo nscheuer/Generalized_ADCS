@@ -1,19 +1,11 @@
 """
-Actuator-bias estimation coverage guard (critique pass).
+Test coverage for actuator-bias estimation match_estimate write-back.
 
-Audit finding: sensor-bias estimation is exercised by the bias-convergence
-suite (test_estimator_*_bias*.py, gyro/MTM/sun with estimate_bias=True --
-verified sound). Actuator-bias estimation uses the SAME real,
-working interface (a default Bias object is always present; match_estimate
-writes act.bias.bias / act.bias.std_bias by act.input_len) -- but NO test
-in the suite ever sets an actuator's estimate_bias=True, so the
-actuator-bias path was completely uncovered.
-
-It currently works (verified: the estimate propagates through
-reset()->match_estimate for both UAKF and SR-UKF). This is a PR #37-model
-guard: GREEN on origin/main, locking the working behaviour so it cannot
-silently rot the way disturbance-parameter estimation did (that path used
-an unimplemented dist.main_param/std API and was dead-on-arrival).
+Verifies that `EstimatedSatellite` detects actuator bias slots and that
+`match_estimate` writes actuator bias values and per-element standard
+deviations into actuator `Bias` objects. Also ensures an actuator created
+with `estimate_bias=True` without an explicit `Bias` receives a usable
+default `Bias` object.
 """
 
 import numpy as np
