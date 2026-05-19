@@ -1,20 +1,9 @@
 """
-Smoke coverage for the Monte-Carlo pipeline simulate_mc()
-(critique pass).
+Smoke coverage for the Monte-Carlo pipeline simulate_mc().
 
-simulate_mc() generates num_runs configs and executes them through
-MonteCarloRunner (a real ProcessPoolExecutor with pickling of the
-satellite/os0/results). Nothing in the suite exercised it -- the whole MC
-path (config sampling, multiprocess fan-out, pickle round-trip, results
-aggregation) was uncovered. It also consumes EstimatedSatellite.from_
-satellite for the auto-built estimated model, so this additionally guards
-that the (now deep-copying) auto-builder survives the pickle/subprocess
-boundary.
-
-Smoke + structural consistency: deterministic config (no samplers), 2
-runs, 1 worker, tiny horizon -> a SimulationResults with exactly 2 runs of
-finite, unit-quaternion state of the expected shape. GREEN on origin/main
-(PR #37 model, test-only).
+The test runs simulate_mc() with a deterministic config, 2 runs, 1 worker,
+and a tiny horizon, then checks that results aggregate correctly and that
+each run produces finite states with unit-quaternion attitude history.
 """
 
 import numpy as np
