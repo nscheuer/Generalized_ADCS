@@ -790,6 +790,16 @@ evaluation.</p>
 </dl>
 </dd></dl>
 
+<dl class="py property">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.disturbances.dipole_disturbance.Dipole_Disturbance.main_param">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">main_param</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ndarray</span></span><a class="headerlink" href="#ADCS.satellite_hardware.disturbances.dipole_disturbance.Dipole_Disturbance.main_param" title="Link to this definition">¶</a></dt>
+<dd><p>Estimated residual-dipole parameter <span class="math notranslate nohighlight">\(\mathbf{m}_{d,0}\)</span> (the
+deterministic dipole vector the estimator augments and refines).
+This is the quantity disturbance-parameter estimation estimates;
+the stochastic <code class="docutils literal notranslate"><span class="pre">noise</span></code> perturbation is separate and applied only
+on the truth side via <a class="reference internal" href="#ADCS.satellite_hardware.disturbances.dipole_disturbance.Dipole_Disturbance.update" title="ADCS.satellite_hardware.disturbances.dipole_disturbance.Dipole_Disturbance.update"><code class="xref py py-meth docutils literal notranslate"><span class="pre">update()</span></code></a>.</p>
+</dd></dl>
+
 </section>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>

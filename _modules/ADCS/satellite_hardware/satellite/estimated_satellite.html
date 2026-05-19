@@ -838,7 +838,21 @@
         <span class="n">ind</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dist_param_inds</span><span class="p">:</span>
             <span class="n">dist</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">disturbances</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
-            <span class="k">if</span> <span class="n">dist</span><span class="o">.</span><span class="n">active</span><span class="p">:</span>  <span class="c1"># Only update active ones</span>
+            <span class="c1"># WARNING: disturbance-parameter estimation is API-rotted dead</span>
+            <span class="c1"># scaffolding. This block references a `dist.active` /</span>
+            <span class="c1"># `dist.main_param` / `dist.std` interface that NO disturbance</span>
+            <span class="c1"># class implements (only Drag defines `active`; none define</span>
+            <span class="c1"># `main_param`/`std`), and `estimate_dist=True` is used nowhere</span>
+            <span class="c1"># in the codebase or tests. Same dead-scaffolding family as the</span>
+            <span class="c1"># rotted analytic Jacobians (PR #44 dynamics_Hessians / PR #47</span>
+            <span class="c1"># dynJacCore). The `getattr(..., True)` below fixes the one</span>
+            <span class="c1"># trivial, isolated sub-defect (the bare `dist.active` crashed</span>
+            <span class="c1"># for every non-Drag disturbance); the deeper `main_param`/`std`</span>
+            <span class="c1"># rot is NOT resurrected here (out of proportion -- there is no</span>
+            <span class="c1"># disturbance-param API or consumer to verify against) and is</span>
+            <span class="c1"># tracked by a strict-xfail guard:</span>
+            <span class="c1"># testing/test_estimators/test_disturbance_param_estimation.py.</span>
+            <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">dist</span><span class="p">,</span> <span class="s2">&quot;active&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">):</span>  <span class="c1"># Only update active ones</span>
                 <span class="n">l</span> <span class="o">=</span> <span class="n">dist</span><span class="o">.</span><span class="n">main_param</span><span class="o">.</span><span class="n">size</span>
                 <span class="n">dist</span><span class="o">.</span><span class="n">main_param</span> <span class="o">=</span> <span class="n">dist_param</span><span class="p">[</span><span class="n">ind</span> <span class="p">:</span> <span class="n">ind</span> <span class="o">+</span> <span class="n">l</span><span class="p">]</span>
                 <span class="n">dist</span><span class="o">.</span><span class="n">std</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">dist_param_ic</span><span class="p">[</span><span class="n">ind</span> <span class="p">:</span> <span class="n">ind</span> <span class="o">+</span> <span class="n">l</span><span class="p">,</span> <span class="n">ind</span> <span class="p">:</span> <span class="n">ind</span> <span class="o">+</span> <span class="n">l</span><span class="p">])</span>

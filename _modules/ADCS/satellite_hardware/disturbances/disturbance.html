@@ -534,6 +534,7 @@
           <h1>Source code for ADCS.satellite_hardware.disturbances.disturbance</h1><div class="highlight"><pre>
 <span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Disturbance&quot;</span><span class="p">]</span>
 
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span>
 
 <div class="viewcode-block" id="Disturbance">
@@ -595,7 +596,42 @@
 <span class="sd">        :rtype: None</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">estimate_dist</span> <span class="o">=</span> <span class="n">estimate_dist</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">estimated_vector_length</span> <span class="o">=</span> <span class="n">estimated_vector_length</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">estimated_vector_length</span> <span class="o">=</span> <span class="n">estimated_vector_length</span>
+
+        <span class="c1"># Disturbance-parameter-estimation interface consumed by</span>
+        <span class="c1"># EstimatedSatellite.match_estimate (restored: this was working in</span>
+        <span class="c1"># the original PhD/thesis code and rotted in the port -- no</span>
+        <span class="c1"># disturbance class implemented it, so estimating ANY disturbance</span>
+        <span class="c1"># parameter raised AttributeError).</span>
+        <span class="c1">#</span>
+        <span class="c1"># `active`: a Drag-only deactivation flag; default True so every</span>
+        <span class="c1">#   disturbance exposes it (a disturbance with estimate_dist=True is</span>
+        <span class="c1">#   active for estimation by definition).</span>
+        <span class="c1"># `std`: the estimated-parameter 1-sigma vector, length</span>
+        <span class="c1">#   `estimated_vector_length`.</span>
+        <span class="c1"># Estimable disturbances (`estimated_vector_length &gt; 0`) MUST also</span>
+        <span class="c1"># implement the `main_param` property (the estimated parameter</span>
+        <span class="c1"># vector, read by the estimator and written back by match_estimate);</span>
+        <span class="c1"># the base raises a clear error rather than silently mis-estimating.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">active</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">std</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">estimated_vector_length</span><span class="p">))</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">main_param</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;np.ndarray&quot;</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2"> declares estimated_vector_length=&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;estimated_vector_length&#39;</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="si">}</span><span class="s2"> but does not &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;implement the `main_param` parameter vector required for &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;disturbance-parameter estimation.&quot;</span>
+        <span class="p">)</span>
+
+    <span class="nd">@main_param</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">main_param</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2"> does not implement a settable &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;`main_param`; cannot write back an estimated disturbance &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;parameter.&quot;</span>
+        <span class="p">)</span></div>
 
     
 </pre></div>
