@@ -1,15 +1,9 @@
 """
-Coverage for Orbit_GPS, the GPS pass-through orbit estimator
-(critique pass -- this estimator had NO test at all; the sibling Orbit_EKF
-was also assertion-free until its dedicated NEES/FD test was added).
+Test coverage for Orbit_GPS, the GPS pass-through orbit estimator.
 
-Orbit_GPS converts an ECEF GPS measurement straight to an ECI
-EstimatedOrbital_State (no dynamics; Q=0). The non-tautological reference:
-the GPS sensor builds the measurement from a KNOWN true orbital state via
-eci_to_ecef; the estimator must invert it (ecef_to_eci) and recover that
-truth. Asserting recovery of the independently-constructed true R (and V)
-exercises both the pass-through and the sensor<->estimator frame round
-trip.
+Orbit_GPS converts an ECEF GPS measurement straight to an ECI EstimatedOrbital_State
+(no dynamics; Q=0). The test verifies that a noiseless GPS measurement round-trips
+through the sensor/estimator frame conversion and recovers the true orbital state.
 """
 
 import numpy as np
