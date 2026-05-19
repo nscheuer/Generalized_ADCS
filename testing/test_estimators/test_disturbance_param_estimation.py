@@ -1,21 +1,11 @@
 """
-Disturbance-parameter estimation restored (critique pass).
+Test coverage for disturbance-parameter estimation in EstimatedSatellite.
 
-This worked in the original PhD/thesis code and rotted in the port:
-EstimatedSatellite.match_estimate references a `dist.active` /
-`dist.main_param` / `dist.std` interface that NO disturbance class
-implemented. Constructing ANY attitude estimator over an EstimatedSatellite
-that estimates a disturbance parameter (estimate_dist=True) raised
-`AttributeError: '..._Disturbance' object has no attribute 'active'`
-(then 'main_param'), so the whole feature was dead-on-arrival and there was
-no test exercising it.
-
-Restored: base Disturbance now provides `active` (default True) and `std`
-(length estimated_vector_length) and a fail-loud `main_param` contract;
-Dipole_Disturbance implements `main_param` bound to its residual dipole so
-the estimator's write-back actually drives the disturbance torque.
-
-RED on origin/main (AttributeError on estimator construction); GREEN after.
+This module verifies that disturbance parameters are included in the estimator
+state, that `EstimatedSatellite.match_estimate` writes estimated disturbance
+parameters back into disturbance models, and that `Dipole_Disturbance`
+implements the required `main_param` contract so the estimated dipole actually
+alters the produced torque.
 """
 
 import numpy as np
