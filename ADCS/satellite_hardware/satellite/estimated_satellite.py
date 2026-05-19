@@ -587,8 +587,8 @@ class EstimatedSatellite(Satellite):
         com = self.COM
 
         ddist_torq__dx,ddist_torq__ddmp = self.dist_torques_jacobian(x,vecs)
-        dact_torq__dbase = sum([self.actuators[j].dtorq__dbasestate(u[j],self,x,vecs) for j in range(len(self.actuators))],np.zeros((7,3)))
-        dact_torq__du = np.vstack([self.actuators[j].dtorq__du(u[j],self,x,vecs) for j in range(len(self.actuators))])
+        dact_torq__dbase = sum([self.actuators[j].dtorq__dbasestate(u[j],x,orbital_state) for j in range(len(self.actuators))],np.zeros((7,3)))
+        dact_torq__du = np.vstack([self.actuators[j].dtorq__du(u[j],x,orbital_state) for j in range(len(self.actuators))])
 
         dxdot__dx = np.zeros((self.state_len,self.state_len))
         dxdot__du = np.zeros((self.control_len,self.state_len))
@@ -604,22 +604,22 @@ class EstimatedSatellite(Satellite):
 
         # Reaction Wheels
         if self.number_RW>0:
-            dact_torq__dh = np.vstack([self.actuators[j].dtorq__dh(u[j],self,x,vecs) for j in range(len(self.actuators))])
+            dact_torq__dh = np.vstack([self.actuators[j].dtorq__dh(u[j],x,orbital_state) for j in range(len(self.actuators))])
             RWjs = np.array([rw.J for rw in self.rw_actuators])
             RWaxes = np.vstack([rw.axis for rw in self.rw_actuators])
             mRWjs = np.diagflat(RWjs)
             dxdot__dx[0:3,0:3] += -skewsym(RWhs@RWaxes)@invJ_noRW
             dxdot__dx[7:,0:3] += (dact_torq__dh+np.cross(RWaxes,w))@invJ_noRW
-            dxdot__du[:,7:] = block_diag(*[self.actuators[j].dstor_torq__du(u[j],self,x,vecs) for j in range(len(self.actuators))])
+            dxdot__du[:,7:] = block_diag(*[self.actuators[j].dstor_torq__du(u[j],x,orbital_state) for j in range(len(self.actuators))])
             dxdot__du[:,7:] -= dxdot__du[:,0:3]@RWaxes.T@mRWjs
-            dxdot__dx[0:7,7:] = np.hstack([act.dstor_torq__dbasestate(u[j],self,x,vecs) for act in self.actuators])
-            dxdot__dx[7:,7:] = np.diagflat([rw.dstor_torq__dh(u[j],self,x,vecs) for rw in self.rw_actuators])
+            dxdot__dx[0:7,7:] = np.hstack([act.dstor_torq__dbasestate(u[j],x,orbital_state) for act in self.actuators])
+            dxdot__dx[7:,7:] = np.diagflat([rw.dstor_torq__dh(u[j],x,orbital_state) for rw in self.rw_actuators])
             dxdot__dx[:,7:] -= dxdot__dx[:,0:3]@RWaxes.T@mRWjs
         dxdot__dab = np.zeros((self.act_bias_len,self.state_len))
         dxdot__dsb = np.zeros((self.att_sens_bias_len,self.state_len))
         dxdot__ddmp = np.zeros((self.dist_param_len,self.state_len))
         if self.act_bias_len>0:
-            dact_torq__dab = np.vstack([self.actuators[j].dtorq__dbias(u[j],self,x,vecs) for j in self.act_bias_inds])
+            dact_torq__dab = np.vstack([self.actuators[j].dtorq__dbias(u[j],x,orbital_state) for j in self.act_bias_inds])
         else:
             dact_torq__dab = np.zeros((0,3))
 
@@ -628,7 +628,7 @@ class EstimatedSatellite(Satellite):
         dxdot__ddmp[:,0:3] = ddist_torq__ddmp@invJ_noRW
 
         if self.number_RW>0:
-            dxdot__dab[:,7:] = block_diag(*[self.actuators[j].dstor_torq__dbias(u[j],self,x,vecs).T for j in self.act_bias_inds]).T
+            dxdot__dab[:,7:] = block_diag(*[self.actuators[j].dstor_torq__dbias(u[j],x,orbital_state).T for j in self.act_bias_inds]).T
             dxdot__dab[:,7:] -= dxdot__dab[:,0:3]@RWaxes.T@mRWjs
             dxdot__ddmp[:,7:] -= dxdot__ddmp[:,0:3]@RWaxes.T@mRWjs
 
@@ -732,7 +732,10 @@ class EstimatedSatellite(Satellite):
         q = x[3:7]#normalize(x[3:7,:])
         RWhs = x[7:]
         invJ_noRW = self.invJ_noRW
-        J = self.J
+        # Stage A: PR #44 fixed `self.J -> self.J_COM` in the analogous
+        # spot earlier in dynamics_Hessians but missed this second
+        # occurrence. Same gyroscopic-inertia convention (PR #33).
+        J = self.J_COM
 
         R = orbital_state.R
         V = orbital_state.V
@@ -756,14 +759,14 @@ class EstimatedSatellite(Satellite):
         vecs = {"b":B_B,"r":R_B,"s":S_B,"v":V_B,"rho":rho,"db":dB_B__dq,"ds":dS_B__dq,"dv":dV_B__dq,"dr":dR_B__dq,"ddb":ddB_B__dqdq,"dds":ddS_B__dqdq,"ddv":ddV_B__dqdq,"ddr":ddR_B__dqdq,"os":orbital_state}
         com = self.COM
 
-        dact_torq__dbase = sum([self.actuators[j].dtorq__dbasestate(u[j],self,x,vecs) for j in range(len(self.actuators))],np.zeros((7,3)))
-        ddact_torq__dbasedbase = sum([self.actuators[j].ddtorq__dbasestatedbasestate(u[j],self,x,vecs) for j in range(len(self.actuators))],np.zeros((7,7,3)))
-        dact_torq__du = np.vstack([self.actuators[j].dtorq__du(u[j],self,x,vecs) for j in range(len(self.actuators))])
+        dact_torq__dbase = sum([self.actuators[j].dtorq__dbasestate(u[j],x,orbital_state) for j in range(len(self.actuators))],np.zeros((7,3)))
+        ddact_torq__dbasedbase = sum([self.actuators[j].ddtorq__dbasestatedbasestate(u[j],x,orbital_state) for j in range(len(self.actuators))],np.zeros((7,7,3)))
+        dact_torq__du = np.vstack([self.actuators[j].dtorq__du(u[j],x,orbital_state) for j in range(len(self.actuators))])
         ddact_torq__dudu = np.zeros((self.control_len,self.control_len,3))
         ddact_torq__dudbase = np.zeros((self.control_len,7,3))
         for j in range(len(self.actuators)):
-            ddact_torq__dudu[j,j,:] = self.actuators[j].ddtorq__dudu(u[j],self,x,vecs)
-            ddact_torq__dudbase[j,:,:] = self.actuators[j].ddtorq__dudbasestate(u[j],self,x,vecs)
+            ddact_torq__dudu[j,j,:] = self.actuators[j].ddtorq__dudu(u[j],x,orbital_state)
+            ddact_torq__dudbase[j,:,:] = self.actuators[j].ddtorq__dudbasestate(u[j],x,orbital_state)
 
 
         ddxdot__dxdx = np.zeros((self.state_len,self.state_len,self.state_len))
@@ -792,9 +795,9 @@ class EstimatedSatellite(Satellite):
             ind = 0
             for ind in range(self.number_RW):
                 j = self.momentum_inds[ind]
-                ddact_torq__dudh[j,ind,:] = self.actuators[j].ddtorq__dudh(u[j],self,x,vecs)
-                ddact_torq__dhdh[ind,ind,:] = self.actuators[j].ddtorq__dhdh(u[j],self,x,vecs)
-                ddact_torq__dbasedh[:,ind,:] = np.squeeze(self.actuators[j].ddtorq__dbasestatedh(u[j],self,x,vecs))
+                ddact_torq__dudh[j,ind,:] = self.actuators[j].ddtorq__dudh(u[j],x,orbital_state)
+                ddact_torq__dhdh[ind,ind,:] = self.actuators[j].ddtorq__dhdh(u[j],x,orbital_state)
+                ddact_torq__dbasedh[:,ind,:] = np.squeeze(self.actuators[j].ddtorq__dbasestatedh(u[j],x,orbital_state))
 
             RWjs = np.array([self.actuators[j].J for j in self.momentum_inds])
             RWaxes = np.vstack([self.actuators[j].axis for j in self.momentum_inds])
@@ -814,13 +817,13 @@ class EstimatedSatellite(Satellite):
             ind = 0
             for ind in range(self.number_RW):
                 j = self.momentum_inds[ind]
-                ddxdot__dxdu[0:7,j,7+ind] += np.squeeze(np.transpose(self.actuators[j].ddstor_torq__dudbasestate(u[j],self,x,vecs),(1,0,2)))
-                ddxdot__dxdu[7+ind,j,7+ind] += np.transpose(self.actuators[j].ddstor_torq__dudh(u[j],self,x,vecs),(1,0,2))
-                ddxdot__dudu[j,j,7+ind] = self.actuators[j].ddstor_torq__dudu(u[j],self,x,vecs)
-                ddxdot__dxdx[0:7,0:7,7+ind] += np.squeeze(self.actuators[j].ddstor_torq__dbasestatedbasestate(u[j],self,x,vecs))
-                ddxdot__dxdx[7+ind,0:7,7+ind] += np.squeeze(np.transpose(self.actuators[j].ddstor_torq__dbasestatedh(u[j],self,x,vecs),(1,0,2)))
-                ddxdot__dxdx[0:7,7+ind,7+ind] += np.squeeze(self.actuators[j].ddstor_torq__dbasestatedh(u[j],self,x,vecs))
-                ddxdot__dxdx[7+ind,7+ind,7+ind] += np.squeeze(self.actuators[j].ddstor_torq__dhdh(u[j],self,x,vecs))
+                ddxdot__dxdu[0:7,j,7+ind] += np.squeeze(np.transpose(self.actuators[j].ddstor_torq__dudbasestate(u[j],x,orbital_state),(1,0,2)))
+                ddxdot__dxdu[7+ind,j,7+ind] += np.transpose(self.actuators[j].ddstor_torq__dudh(u[j],x,orbital_state),(1,0,2))
+                ddxdot__dudu[j,j,7+ind] = self.actuators[j].ddstor_torq__dudu(u[j],x,orbital_state)
+                ddxdot__dxdx[0:7,0:7,7+ind] += np.squeeze(self.actuators[j].ddstor_torq__dbasestatedbasestate(u[j],x,orbital_state))
+                ddxdot__dxdx[7+ind,0:7,7+ind] += np.squeeze(np.transpose(self.actuators[j].ddstor_torq__dbasestatedh(u[j],x,orbital_state),(1,0,2)))
+                ddxdot__dxdx[0:7,7+ind,7+ind] += np.squeeze(self.actuators[j].ddstor_torq__dbasestatedh(u[j],x,orbital_state))
+                ddxdot__dxdx[7+ind,7+ind,7+ind] += np.squeeze(self.actuators[j].ddstor_torq__dhdh(u[j],x,orbital_state))
 
             ddxdot__dxdu[:,:,7:] -= ddxdot__dxdu[:,:,0:3]@RWaxes.T@mRWjs
             ddxdot__dudu[:,:,7:] -= ddxdot__dudu[:,:,0:3]@RWaxes.T@mRWjs
