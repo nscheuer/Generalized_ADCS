@@ -3362,3 +3362,234 @@ TEST_CASE("RK4 integration Hessians match finite differences", "[rk4][hessian][!
     CHECK(Hxx_rel_error < 1e-2);
     CHECK(Hux_rel_error < 1e-2);
 }
+
+// ============================================================================
+// Tests for issue #73: random warmstart + tight constraint -> AL diverges
+//
+// These tests live with the constraint-satisfaction tests above
+// (TEST_CASE "ALTRO satisfies control constraints" at line 410). The
+// existing test uses a *zero*-control warmstart (Uset_init.zeros()),
+// which sidesteps the random-warmstart bug entirely. We add two new
+// tests that exercise the warmstart code path:
+//
+//   1. ``Random warmstart violates tight u_max constraint (#73)`` --
+//      tagged ``[.bug73]`` so it's not run by default but is runnable
+//      via ``./tp_test "[bug73]"``. Documents the failure mode.
+//
+//   2. ``Zero-control warmstart respects tight u_max constraint`` --
+//      regular test, passes. Confirms the workaround (don't trip the
+//      L276 random-warmstart code path) works as expected.
+//
+// When the fix in issue #73 lands (e.g., ``arma::arma_rng::set_seed()``
+// in pysat ctor, or restructuring of L268 gate, or zero-init fallback
+// instead of randn), test (1) should be promoted from ``[.bug73]`` to
+// regular runnable and become passing. Test (2) should stay passing.
+// ============================================================================
+
+// Helper: build an RW-only satellite with explicit u_max for the wheel.
+static Satellite create_y_axis_rw_sat(double rw_u_max) {
+    Satellite sat = Satellite();
+    sat.change_Jcom(arma::diagmat(arma::vec({0.1, 0.1, 0.1})));
+    // Args to add_RW: axis, J, max_torq, max_ang_mom, cost, AM_cost,
+    // AM_cost_threshold, stiction_cost, stiction_threshold
+    sat.add_RW(arma::vec({0.0, 1.0, 0.0}),
+               /*J=*/0.001,
+               /*max_torq=*/rw_u_max,
+               /*max_ang_mom=*/10.0,
+               /*cost=*/10.0,
+               /*AM_cost=*/0.0,
+               /*AM_cost_threshold=*/8.0,
+               /*stiction_cost=*/0.0,
+               /*stiction_threshold=*/0.1);
+    return sat;
+}
+
+TEST_CASE("Zero-control warmstart respects tight u_max constraint (#73 workaround)",
+          "[optimizer][constraints][regression73]") {
+    // Build a 90-degree y-axis slew problem with the constraint set
+    // tight enough to actually bind (u_max = 0.05 N*m, while LQR-optimal
+    // peak is ~0.05). With zero-control warmstart (the alilqr direct
+    // path, NOT trajOpt), the AL machinery should drive the constraint
+    // violation toward zero.
+    double rw_u_max = 0.05;
+    Satellite sat = create_y_axis_rw_sat(rw_u_max);
+    int nx = sat.state_N();
+    int nu = sat.control_N();
+    int N = 60;
+    double dt = 1.0;
+
+    // Initial: 90 deg y-rotation, at rest.
+    arma::vec3 w0 = arma::vec({0.0, 0.0, 0.0});
+    arma::vec4 q0 = arma::vec({std::cos(M_PI / 4), 0.0, std::sin(M_PI / 4), 0.0});
+    q0 = arma::normalise(q0);
+    arma::vec h0 = arma::vec(1).zeros();
+    arma::vec x0 = arma::join_cols(arma::join_cols(w0, q0), h0);
+
+    VECTOR_INFO_FORM vecs = createDefaultVecInfo(N, dt);
+    arma::vec3 B_eci = arma::vec({0.1, 0.0, 0.0});
+    DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(
+        B_eci, arma::vec3({7000.0, 0.0, 0.0}), 0,
+        arma::vec3({0.0, 7.5, 0.0}), arma::vec3({1.0, 0.0, 0.0}), 1);
+
+    COST_SETTINGS_FORM costSettings = std::make_tuple(
+        8e3, 2e4, 1.0, 0.0, 0.0,
+        8e4, 2e5, 0.0, 0.0,
+        0, true, 0);
+
+    arma::mat33 J_est = sat.Jcom;
+    SYSTEM_SETTINGS_FORM systemSettings = std::make_tuple(
+        J_est, dt, dt, 2.22e-16, 60.0, 15.0);
+    LINE_SEARCH_SETTINGS_FORM lineSearchSettings =
+        std::make_tuple(30, 1e-10, 500.0);
+    arma::mat xmax_vec = 10.0 * arma::mat(sat.reduced_state_N(), 1).ones();
+    BREAK_SETTINGS_FORM breakSettings = std::make_tuple(
+        50, 200, 5000, 1e-5, 1e-2, 1e-3, 10, 0.002, 1e40, xmax_vec);
+    AUGLAG_SETTINGS_FORM auglagSettings = std::make_tuple(0.0, 1e20, 1e-2, 1e16, 10.0);
+    double rho = 1e-3;
+    REG_SETTINGS_FORM regSettings = std::make_tuple(rho, 1e-8, 1e30, 1.6, 10.0, 2, 0.0, 0, 0);
+    ALILQR_SETTINGS_FORM alilqrSettings = std::make_tuple(
+        lineSearchSettings, auglagSettings, breakSettings, regSettings);
+    INITIAL_TRAJ_SETTINGS_FORM initTrajSettings = std::make_tuple(
+        1000.0, 10.0 * M_PI / 180.0,
+        std::make_tuple(0.0, -2e0, 0.0, -0.005, 0.1, 0.5),
+        std::make_tuple(0.0, -1e-4, 0.0, -1e-5, 0.1, 0.5));
+    LQR_COST_SETTINGS_FORM tvlqrCostSettings = std::make_tuple(
+        1e3, 1e2, 1.0, 0.0, 0.0, 1e3, 1e2, 0.0, 0.0, 0, true, 0);
+
+    ALL_SETTINGS_FORM allSettings = std::make_tuple(
+        systemSettings, alilqrSettings, alilqrSettings,
+        initTrajSettings, costSettings, costSettings, tvlqrCostSettings);
+
+    OldPlanner planner(sat, allSettings);
+    planner.setVerbosity(false);
+    planner.quaternionTo3VecMode = 2;
+
+    // ZERO-CONTROL warmstart -- this is what sidesteps issue #73.
+    arma::mat Uset_init = arma::mat(nu, N).zeros();
+    arma::mat Xset = arma::mat(nx, N).zeros();
+    Xset.col(0) = x0;
+    for (int k = 0; k < N - 1; k++) {
+        auto rk4out = rk4z(dt, Xset.col(k), Uset_init.col(k), sat,
+                            dynamics_info, dynamics_info);
+        Xset.col(k + 1) = sat.state_norm(std::get<0>(rk4out));
+    }
+    arma::vec dt_vec = arma::vec(N).fill(dt);
+    arma::mat TQset = arma::mat(3, N).zeros();
+    TRAJECTORY_FORM traj = std::make_tuple(Xset, Uset_init, dt_vec, TQset);
+
+    cout << "\n=== Test: Zero-warmstart, tight u_max = " << rw_u_max
+         << " (issue #73 workaround) ===" << endl;
+    ALILQR_OUTPUT_FORM result = planner.alilqr(
+        dt, traj, vecs, costSettings, alilqrSettings, true);
+
+    OPT_FORM opt_form = std::get<0>(result);
+    arma::mat opt_Uset = std::get<1>(opt_form);
+    double max_viol = std::get<2>(result);
+
+    double max_u = 0.0;
+    for (int k = 0; k < N; k++) {
+        max_u = std::max(max_u, arma::norm(opt_Uset.col(k), "inf"));
+    }
+    cout << "  max |u|        = " << max_u << " (bound: " << rw_u_max << ")" << endl;
+    cout << "  max viol       = " << max_viol << endl;
+
+    // The constraint MAY be at the boundary but must not be meaningfully
+    // violated. ``max_viol < 0.1`` is the same tolerance the existing
+    // line-499 constraint test uses; tightening to 1e-3 would be ideal
+    // but the AL convergence tolerance in our setup is 0.002.
+    CHECK(max_viol < 0.1);
+    // And the control should not exceed the bound by more than the
+    // AL tolerance.
+    CHECK(max_u < rw_u_max * 1.05);
+}
+
+TEST_CASE("Random warmstart + tight u_max violates constraint (#73)",
+          "[optimizer][constraints][.bug73]") {
+    // Same problem as the workaround test above, but uses ``trajOpt``
+    // (which routes through the random-warmstart code path at
+    // OldPlanner.cpp:276 because number_MTQ < 3). Expected to FAIL
+    // today: max_viol >> 0.1 because iLQR can't recover from the bad
+    // warmstart and AL drives penalty to penMax without satisfying the
+    // constraint.
+    //
+    // Tagged ``[.bug73]`` so it's not run by default (period in tag).
+    // Run via: ./tp_test "[bug73]"
+    //
+    // When issue #73 is fixed (seeded RNG, or zero-init fallback, or
+    // restructured L268 gate), this test should be re-tagged as
+    // ``[optimizer][constraints][regression73]`` and start passing.
+    double rw_u_max = 0.05;
+    Satellite sat = create_y_axis_rw_sat(rw_u_max);
+    int nx = sat.state_N();
+    int nu = sat.control_N();
+    int N = 60;
+    double dt = 1.0;
+
+    arma::vec3 w0 = arma::vec({0.0, 0.0, 0.0});
+    arma::vec4 q0 = arma::vec({std::cos(M_PI / 4), 0.0, std::sin(M_PI / 4), 0.0});
+    q0 = arma::normalise(q0);
+    arma::vec h0 = arma::vec(1).zeros();
+    arma::vec x0 = arma::join_cols(arma::join_cols(w0, q0), h0);
+
+    VECTOR_INFO_FORM vecs = createDefaultVecInfo(N, dt);
+
+    COST_SETTINGS_FORM costSettings = std::make_tuple(
+        8e3, 2e4, 1.0, 0.0, 0.0,
+        8e4, 2e5, 0.0, 0.0,
+        0, true, 0);
+
+    arma::mat33 J_est = sat.Jcom;
+    SYSTEM_SETTINGS_FORM systemSettings = std::make_tuple(
+        J_est, dt, dt, 2.22e-16, 60.0, 15.0);
+    LINE_SEARCH_SETTINGS_FORM lineSearchSettings =
+        std::make_tuple(30, 1e-10, 500.0);
+    arma::mat xmax_vec = 10.0 * arma::mat(sat.reduced_state_N(), 1).ones();
+    BREAK_SETTINGS_FORM breakSettings = std::make_tuple(
+        50, 200, 5000, 1e-5, 1e-2, 1e-3, 10, 0.002, 1e40, xmax_vec);
+    AUGLAG_SETTINGS_FORM auglagSettings = std::make_tuple(0.0, 1e20, 1e-2, 1e16, 10.0);
+    double rho = 1e-3;
+    REG_SETTINGS_FORM regSettings = std::make_tuple(rho, 1e-8, 1e30, 1.6, 10.0, 2, 0.0, 0, 0);
+    ALILQR_SETTINGS_FORM alilqrSettings = std::make_tuple(
+        lineSearchSettings, auglagSettings, breakSettings, regSettings);
+    INITIAL_TRAJ_SETTINGS_FORM initTrajSettings = std::make_tuple(
+        1000.0, 10.0 * M_PI / 180.0,
+        std::make_tuple(0.0, -2e0, 0.0, -0.005, 0.1, 0.5),
+        std::make_tuple(0.0, -1e-4, 0.0, -1e-5, 0.1, 0.5));
+    LQR_COST_SETTINGS_FORM tvlqrCostSettings = std::make_tuple(
+        1e3, 1e2, 1.0, 0.0, 0.0, 1e3, 1e2, 0.0, 0.0, 0, true, 0);
+
+    ALL_SETTINGS_FORM allSettings = std::make_tuple(
+        systemSettings, alilqrSettings, alilqrSettings,
+        initTrajSettings, costSettings, costSettings, tvlqrCostSettings);
+
+    OldPlanner planner(sat, allSettings);
+    planner.setVerbosity(false);
+    planner.quaternionTo3VecMode = 2;
+
+    cout << "\n=== Test: Random warmstart, tight u_max = " << rw_u_max
+         << " (issue #73) ===" << endl;
+
+    // Use trajOpt which goes through the random warmstart at L276
+    // (because number_MTQ < 3, the L268 gate fires).
+    int bdotOn = 1;
+    TIME_FORM time_start = 0.22;
+    TIME_FORM time_end = 0.22 + 60.0 / (365.25 * 86400.0 * 100.0);
+    AFTER_OUTPUT_FORM results = planner.trajOpt(vecs, N, time_start, time_end, x0, bdotOn);
+
+    // AFTER_OUTPUT_FORM = tuple<int, double, OPT_FORM, OPT_FORM, TRAJECTORY_FORM>
+    // (status, mu, alilqr main result, alilqr tvlqr result, trajectory).
+    // Take the main alilqr result (index 2). OPT_FORM = tuple<mat,mat,mat,mat,mat,vec>
+    // where index 1 is Uset.
+    OPT_FORM opt_form = std::get<2>(results);
+    arma::mat opt_Uset = std::get<1>(opt_form);
+
+    double max_u = 0.0;
+    for (int k = 0; k < N; k++) {
+        max_u = std::max(max_u, arma::norm(opt_Uset.col(k), "inf"));
+    }
+    cout << "  max |u|       = " << max_u << " (bound: " << rw_u_max << ")" << endl;
+
+    // Today: max_u >> rw_u_max. The check below is meant to FAIL until
+    // #73 is fixed. When it starts passing, demote the [.bug73] tag.
+    CHECK(max_u < rw_u_max * 1.05);
+}
