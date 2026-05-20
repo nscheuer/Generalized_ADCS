@@ -570,7 +570,10 @@ class EstimatedSatellite(Satellite):
         w = x[0:3]
         q = x[4:7]
         RWhs = x[7:]
-        J = self.J_0
+        # Must match the inertia used in dynamics_core (J_COM, not J_0) so the
+        # estimated-model Jacobian remains the correct linearization when COM
+        # is offset from the reference origin.
+        J = self.J_COM
         invJ_noRW = self.invJ_noRW
 
         rmat_ECI2B = rot_mat(q).T
@@ -732,7 +735,9 @@ class EstimatedSatellite(Satellite):
         q = x[3:7]#normalize(x[3:7,:])
         RWhs = x[7:]
         invJ_noRW = self.invJ_noRW
-        J = self.J
+        # Match the COM-based rotational dynamics and avoid relying on the
+        # undefined self.J attribute.
+        J = self.J_COM
 
         R = orbital_state.R
         V = orbital_state.V
