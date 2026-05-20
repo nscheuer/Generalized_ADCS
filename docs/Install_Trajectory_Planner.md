@@ -72,6 +72,30 @@ cmake .. \
 make -j$(nproc)
 ```
 
+## macOS
+
+### Install system dependencies
+```bash
+brew install armadillo boost
+```
+`cmake` is provided by the project's pip dependencies, so no system CMake is needed. On Intel Macs, replace `/opt/homebrew` with `/usr/local` below.
+
+### Build trajectory_planner
+Run with the virtual environment active (so `$VIRTUAL_ENV` is set):
+```bash
+cd trajectory_planner
+mkdir -p build && cd build
+
+cmake .. \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DPython3_EXECUTABLE="$VIRTUAL_ENV/bin/python" \
+  -DCMAKE_PREFIX_PATH="/opt/homebrew/opt/armadillo;/opt/homebrew/opt/boost;/opt/homebrew" \
+  -DCMAKE_CXX_FLAGS="-I/opt/homebrew/include"
+
+cmake --build . -j$(sysctl -n hw.logicalcpu)
+```
+The `-DCMAKE_CXX_FLAGS=-I/opt/homebrew/include` flag is required so the `tp_test` target can find Boost's `boost/math` headers — the CMake project does not add a Boost include path itself.
+
 ## Run trajectory planner examples
 
 - Tutorial 06 script: [examples/tutorials/06_trajectory_planner.py](../examples/tutorials/06_trajectory_planner.py)
