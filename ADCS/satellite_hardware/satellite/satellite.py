@@ -1094,7 +1094,9 @@ class Satellite:
         q = x[3:7]#normalize(x[3:7,:])
         RWhs = x[7:]
         invJ_noRW = self.invJ_noRW
-        J = self.J
+        # Match the COM-based rotational dynamics and avoid relying on the
+        # undefined self.J attribute.
+        J = self.J_COM
 
         R = orbital_state.R
         V = orbital_state.V
