@@ -11,6 +11,7 @@ Choose the guide appropriate for your system:
 
    linux
    windows
+   macos
 
 Optional add-ons can be installed after completing the core setup above.
 
