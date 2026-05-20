@@ -1,22 +1,26 @@
 """
-SRUKF full-state consistency (attitude block).
+SRUKF covariance-consistency checks for rate and attitude uncertainty.
 
-The existing `test_srukf_covariance_consistency` checks ONLY the rate block
-(P[0:3,0:3]) on a single seed and never looks at the attitude covariance.
-An adversarial probe found the attitude covariance block to be 2-3 orders of
-magnitude over-confident (NEES astronomically large; ~0% of attitude errors
-inside the filter's own 3-sigma) while the rate block is consistent.
+This module reuses the existing deterministic ``run_srukf()`` harness from
+``test_estimator_srukf.py`` and inspects how often the true error stays inside
+the filter's reported 3-sigma bounds after the initial transient.
 
-Per a conservative remediation policy this module does NOT force a filter
-fix (the root cause -- attitude error-state process-noise / sigma-point
-reconstruction tuning -- is not safely localizable here). Instead it:
+The helper path is:
 
-  * regression-guards the rate-block consistency (must stay >70%), and
-  * documents the attitude-block over-confidence as a STRICT-OFF xfail that
-    reports the measured in-3-sigma percentage, so the gap is tracked with a
-    reproducible number rather than silently untested.
+1. Run the seeded SRUKF scenario once through ``_run_srukf()``.
+2. Compute per-axis rate errors directly from the true and estimated state
+   histories.
+3. Convert quaternion attitude error into a small-angle rotation vector, then
+   compare each axis against the attitude covariance block ``P[:, 3:6, 3:6]``.
 
-Reuses the existing seeded `run_srukf` harness (deterministic, seed 3).
+The assertions are intentionally split by status:
+
+* ``test_srukf_rate_block_consistency_regression_guard`` is a hard regression
+  test that requires each rate axis to stay inside its reported 3-sigma bound
+  more than 70% of the time.
+* ``test_srukf_attitude_block_consistency`` is an ``xfail`` tracker for the
+  known over-confident attitude covariance block; it preserves a reproducible
+  measurement of the gap without forcing a speculative filter fix here.
 """
 
 import importlib.util
