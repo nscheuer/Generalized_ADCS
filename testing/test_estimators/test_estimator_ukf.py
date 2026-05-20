@@ -219,10 +219,8 @@ def run_ukf(verbose: bool = False, tf: float = 1000, dt: float = 10, real_orbit:
 
     # Initial State
     w0 = random_n_unit_vec(3)*np.random.uniform(0, 0.1)*np.pi/180.0
-    print(w0)
 
     q0 = random_n_unit_vec(4)
-    print(q0)
 
     x = np.concatenate([w0, q0])
     ephem = Ephemeris()
