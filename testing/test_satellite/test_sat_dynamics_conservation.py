@@ -16,8 +16,15 @@ The COM=0 path is mathematically a no-op under the fix (``J_COM == J_0``),
 so the full pre-existing suite must remain green.
 """
 
+import sys
+from pathlib import Path
+
 import numpy as np
 import pytest
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
 from ADCS.satellite_hardware.satellite.satellite import Satellite
 from ADCS.orbits.orbital_state import Orbital_State
