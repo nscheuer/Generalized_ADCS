@@ -1,16 +1,23 @@
 """
-Sensor measurement-contract regression tests.
+Regression tests for sensor validity and stochastic-update contracts.
 
-1. Eclipse contract: a Sun sensor / Sun pair is invalid in eclipse. The
-   estimators (UKF/SRUKF) detect this via ``np.isnan(reading)`` and deactivate
-   the sensor. clean_reading() correctly returned NaN, but basestate_jac()
-   returned finite ZEROS -- silently asserting "constant-0 measurement, zero
-   sensitivity", inconsistent with the NaN sentinel and the docstring. The
-   Jacobian must carry the same NaN sentinel.
+This module checks three behaviors that are easy to regress because they sit at
+the boundary between measurement models and estimator assumptions:
 
-2. Noise one-step lag: reading() added get_noise()/get_bias() BEFORE
-   _update_*(), so the very first measurement used the initial (zero) noise
-   sample -- every sensor's first reading was noise-free.
+1. Sun-sensor eclipse handling. For both ``SunSensor`` and ``SunPair``, the
+   clean measurement and its base-state Jacobian must agree on the eclipse
+   sentinel: both should return ``NaN`` when ``Orbital_State.is_sunlit()`` is
+   false, and both should stay finite when sunlit.
+
+2. First-sample noise injection. ``Sensor.reading()`` should evolve stochastic
+   noise before using it, so the very first ``MTM`` reading already reflects
+   the configured noise standard deviation. The test estimates that spread over
+   many random seeds and compares it to the configured ``Noise(std_noise=...)``.
+
+3. Bias diffusion over elapsed time. With a random-walk ``Bias`` enabled and
+   ``J2000`` advanced between samples, repeated ``MTM`` readings should drift
+   rather than repeat, confirming that bias updates are applied on the current
+   step instead of lagging by one measurement.
 """
 
 import numpy as np
