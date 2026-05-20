@@ -232,8 +232,9 @@ class SunPair(Sensor):
         with :math:`\varepsilon = 10^{-6}` and :math:`f(\cdot)` defined by
         :meth:`_clean_scalar`.
 
-        If the spacecraft is not sunlit, the clean measurement is identically
-        zero and all partial derivatives are zero.
+        If the spacecraft is not sunlit, the clean measurement is treated as
+        invalid and this method returns a ``NaN`` sentinel rather than a finite
+        Jacobian.
 
         :param x: Full 7-element ADCS state vector.
         :type x: numpy.ndarray
@@ -242,7 +243,7 @@ class SunPair(Sensor):
         :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
 
         :return: Jacobian of the clean measurement with respect to the base
-            state, with shape ``(7, 1)``.
+            state, with shape ``(7, 1)``. Returns ``NaN`` in eclipse.
         :rtype: numpy.ndarray
         """
         # In eclipse clean_reading() returns NaN as the "sensor invalid /
