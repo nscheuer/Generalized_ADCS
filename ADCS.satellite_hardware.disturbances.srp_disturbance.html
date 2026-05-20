@@ -717,6 +717,29 @@ the torque is:</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.disturbances.srp_disturbance.SRP_Disturbance.torque_qjac">
+<span class="sig-name descname"><span class="pre">torque_qjac</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/disturbances/srp_disturbance.html#SRP_Disturbance.torque_qjac"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.disturbances.srp_disturbance.SRP_Disturbance.torque_qjac" title="Link to this definition">¶</a></dt>
+<dd><p>Alias of <a class="reference internal" href="#ADCS.satellite_hardware.disturbances.srp_disturbance.SRP_Disturbance.torque_qjav" title="ADCS.satellite_hardware.disturbances.srp_disturbance.SRP_Disturbance.torque_qjav"><code class="xref py py-meth docutils literal notranslate"><span class="pre">torque_qjav()</span></code></a> so SRP exposes the same <code class="docutils literal notranslate"><span class="pre">torque_qjac</span></code>
+quaternion-Jacobian entry point as every other disturbance (the
+original method name <code class="docutils literal notranslate"><span class="pre">torque_qjav</span></code> was an inconsistent typo).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Quaternion Jacobian of the SRP torque, shape <code class="docutils literal notranslate"><span class="pre">(4,3)</span></code>.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></p>
+</dd>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sat</strong> (<a class="reference internal" href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Satellite" title="ADCS.helpers.simresults.Satellite"><em>Satellite</em></a>)</p></li>
+<li><p><strong>x</strong> (<em>np.ndarray</em>)</p></li>
+<li><p><strong>os</strong> (<a class="reference internal" href="ADCS.helpers.simresults.html#ADCS.helpers.simresults.Orbital_State" title="ADCS.helpers.simresults.Orbital_State"><em>Orbital_State</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="ADCS.satellite_hardware.disturbances.srp_disturbance.SRP_Disturbance.torque_qjav">
 <span class="sig-name descname"><span class="pre">torque_qjav</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">os</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/disturbances/srp_disturbance.html#SRP_Disturbance.torque_qjav"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.disturbances.srp_disturbance.SRP_Disturbance.torque_qjav" title="Link to this definition">¶</a></dt>
 <dd><p>Compute the <strong>Jacobian of SRP torque</strong> with respect to the attitude quaternion.</p>

@@ -974,12 +974,14 @@
         <span class="n">proj_area</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">areas</span> <span class="o">*</span> <span class="n">cos_gamma</span>
         <span class="n">cents</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">centroids</span> <span class="o">-</span> <span class="n">sat</span><span class="o">.</span><span class="n">COM</span>
 
-        <span class="n">dcos_gamma__dq</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">ds_body__dq</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">normals</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">cos_gamma</span><span class="p">)):</span>
-            <span class="k">if</span> <span class="n">cos_gamma</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-                <span class="n">dcos_gamma__dq</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">ds_body__dq</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">normals</span><span class="o">.</span><span class="n">T</span><span class="p">)[</span><span class="n">i</span><span class="p">]</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">dcos_gamma__dq</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="c1"># d(n_i . s_b)/dq for every face: (4, Nfaces) = [quat, face]. The</span>
+        <span class="c1"># Heaviside incidence mask is PER FACE (axis 1), not per quaternion</span>
+        <span class="c1"># component (axis 0); the old loop iterated range(Nfaces) but indexed</span>
+        <span class="c1"># dcos_gamma__dq[i] along the size-4 quaternion axis -- masking the</span>
+        <span class="c1"># wrong axis (and out of range for &gt;4 faces).</span>
+        <span class="n">normals_term</span> <span class="o">=</span> <span class="n">ds_body__dq</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">normals</span><span class="o">.</span><span class="n">T</span>
+        <span class="n">face_lit</span> <span class="o">=</span> <span class="p">(</span><span class="n">cos_gamma</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">)</span>
+        <span class="n">dcos_gamma__dq</span> <span class="o">=</span> <span class="n">normals_term</span> <span class="o">*</span> <span class="n">face_lit</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:]</span>
 
         <span class="n">dproj_area__dq</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">areas</span> <span class="o">*</span> <span class="n">dcos_gamma__dq</span>
 
@@ -996,7 +998,23 @@
         <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">is_sunlit</span><span class="p">():</span>
             <span class="k">return</span> <span class="o">-</span><span class="p">(</span><span class="n">EarthConstants</span><span class="o">.</span><span class="n">solar_constant</span> <span class="o">/</span> <span class="n">EarthConstants</span><span class="o">.</span><span class="n">c</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">dt_s__dq</span> <span class="o">+</span> <span class="n">dt_n__dq</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span></div>
+            <span class="c1"># Canonical Jacobian layout is (4,3) = [quat, torque-component];</span>
+            <span class="c1"># the eclipse return must match (was (3,1)).</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">4</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="SRP_Disturbance.torque_qjac">
+<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.disturbances.srp_disturbance.html#ADCS.satellite_hardware.disturbances.srp_disturbance.SRP_Disturbance.torque_qjac">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">torque_qjac</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sat</span><span class="p">:</span> <span class="n">Satellite</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Alias of :meth:`torque_qjav` so SRP exposes the same ``torque_qjac``</span>
+<span class="sd">        quaternion-Jacobian entry point as every other disturbance (the</span>
+<span class="sd">        original method name ``torque_qjav`` was an inconsistent typo).</span>
+
+<span class="sd">        :return: Quaternion Jacobian of the SRP torque, shape ``(4,3)``.</span>
+<span class="sd">        :rtype: :class:`numpy.ndarray`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">torque_qjav</span><span class="p">(</span><span class="n">sat</span><span class="o">=</span><span class="n">sat</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">os</span><span class="o">=</span><span class="n">os</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="SRP_Disturbance.torque_qqhess">

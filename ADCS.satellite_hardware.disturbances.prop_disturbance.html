@@ -634,7 +634,7 @@ other disturbance models derived from
 
 <dl class="py method">
 <dt class="sig sig-object py" id="ADCS.satellite_hardware.disturbances.prop_disturbance.Prop_Disturbance.torque_qjac">
-<span class="sig-name descname"><span class="pre">torque_qjac</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/disturbances/prop_disturbance.html#Prop_Disturbance.torque_qjac"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.disturbances.prop_disturbance.Prop_Disturbance.torque_qjac" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">torque_qjac</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/disturbances/prop_disturbance.html#Prop_Disturbance.torque_qjac"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.disturbances.prop_disturbance.Prop_Disturbance.torque_qjac" title="Link to this definition">¶</a></dt>
 <dd><p>Compute the <strong>Jacobian of the propulsion disturbance torque</strong> with respect
 to the attitude quaternion.</p>
 <p>Because the propulsion disturbance torque is constant and does not depend
@@ -647,7 +647,7 @@ on the attitude quaternion <span class="math notranslate nohighlight">\(\mathbf{
 </div>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Quaternion Jacobian matrix of zeros, shape <code class="docutils literal notranslate"><span class="pre">(3,</span> <span class="pre">4)</span></code>.</p>
+<dd class="field-odd"><p>Quaternion Jacobian matrix of zeros, shape <code class="docutils literal notranslate"><span class="pre">(4,</span> <span class="pre">3)</span></code>.</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></p>
@@ -671,6 +671,23 @@ derivatives vanish:</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Quaternion Hessian tensor of zeros, shape <code class="docutils literal notranslate"><span class="pre">(3,</span> <span class="pre">4,</span> <span class="pre">4)</span></code>.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ADCS.satellite_hardware.disturbances.prop_disturbance.Prop_Disturbance.torque_qqhess">
+<span class="sig-name descname"><span class="pre">torque_qqhess</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/disturbances/prop_disturbance.html#Prop_Disturbance.torque_qqhess"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.disturbances.prop_disturbance.Prop_Disturbance.torque_qqhess" title="Link to this definition">¶</a></dt>
+<dd><p>Lowercase alias of <a class="reference internal" href="#ADCS.satellite_hardware.disturbances.prop_disturbance.Prop_Disturbance.torque_qqHess" title="ADCS.satellite_hardware.disturbances.prop_disturbance.Prop_Disturbance.torque_qqHess"><code class="xref py py-meth docutils literal notranslate"><span class="pre">torque_qqHess()</span></code></a> so the propulsion disturbance
+exposes the same <code class="docutils literal notranslate"><span class="pre">torque_qqhess</span></code> entry point as every other
+disturbance (generic estimator/planner iteration uses the lowercase
+name). Constant torque -&gt; zero Hessian, canonical layout <code class="docutils literal notranslate"><span class="pre">(4,4,3)</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Quaternion Hessian tensor of zeros, shape <code class="docutils literal notranslate"><span class="pre">(4,</span> <span class="pre">4,</span> <span class="pre">3)</span></code>.</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></p>

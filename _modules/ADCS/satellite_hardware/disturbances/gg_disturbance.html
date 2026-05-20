@@ -777,13 +777,32 @@
         <span class="n">const_term</span> <span class="o">=</span> <span class="mf">3.0</span><span class="o">*</span><span class="n">EarthConstants</span><span class="o">.</span><span class="n">mu_e</span><span class="o">/</span><span class="p">(</span><span class="n">norm</span><span class="p">(</span><span class="n">R_B</span><span class="p">)</span><span class="o">**</span><span class="mf">3.0</span><span class="p">)</span>
 
         <span class="n">dc__dq</span> <span class="o">=</span> <span class="o">-</span><span class="mf">9.0</span><span class="o">*</span><span class="n">EarthConstants</span><span class="o">.</span><span class="n">mu_e</span><span class="o">*</span><span class="n">vec_norm_jac</span><span class="p">(</span><span class="n">R_B</span><span class="p">,</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">&quot;dr&quot;</span><span class="p">])</span><span class="o">/</span><span class="p">(</span><span class="n">norm</span><span class="p">(</span><span class="n">R_B</span><span class="p">)</span><span class="o">**</span><span class="mf">4.0</span><span class="p">)</span>
+        <span class="c1"># dnadir_vec__dq is (4,3) = [quat-index, vector-component]; the term</span>
+        <span class="c1"># J_0 @ dnadir must contract J_0 against the vector axis (axis 1), i.e.</span>
+        <span class="c1"># row i is J_0 @ dnadir[i]. ``sat.J_0 @ dnadir_vec__dq`` is (3,3)@(4,3)</span>
+        <span class="c1"># and raised a ValueError; ``dnadir_vec__dq @ sat.J_0.T`` is the correct</span>
+        <span class="c1"># (4,3) result.</span>
         <span class="n">dv__dq</span> <span class="o">=</span> <span class="p">(</span>
             <span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">dnadir_vec__dq</span><span class="p">,</span> <span class="n">sat</span><span class="o">.</span><span class="n">J_0</span> <span class="o">@</span> <span class="n">nadir_vec</span><span class="p">)</span>
-            <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">nadir_vec</span><span class="p">,</span> <span class="n">sat</span><span class="o">.</span><span class="n">J_0</span> <span class="o">@</span> <span class="n">dnadir_vec__dq</span><span class="p">)</span>
+            <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">nadir_vec</span><span class="p">,</span> <span class="n">dnadir_vec__dq</span> <span class="o">@</span> <span class="n">sat</span><span class="o">.</span><span class="n">J_0</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
         <span class="p">)</span>
         <span class="n">vec_term</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">nadir_vec</span><span class="p">,</span> <span class="n">sat</span><span class="o">.</span><span class="n">J_0</span> <span class="o">@</span> <span class="n">nadir_vec</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">dc__dq</span><span class="p">,</span> <span class="n">vec_term</span><span class="p">)</span> <span class="o">+</span> <span class="n">const_term</span><span class="o">*</span><span class="n">dv__dq</span></div>
+
+
+<div class="viewcode-block" id="GG_Disturbance.torque_qjac">
+<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.disturbances.gg_disturbance.html#ADCS.satellite_hardware.disturbances.gg_disturbance.GG_Disturbance.torque_qjac">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">torque_qjac</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sat</span><span class="p">:</span> <span class="n">Satellite</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Alias of :meth:`torque_qvac` so the gravity-gradient disturbance exposes</span>
+<span class="sd">        the same ``torque_qjac`` quaternion-Jacobian entry point as every other</span>
+<span class="sd">        disturbance (estimators/planners iterate ``torque_qjac`` generically).</span>
+
+<span class="sd">        :return: Quaternion Jacobian of the gravity-gradient torque, shape ``(4,3)``.</span>
+<span class="sd">        :rtype: :class:`numpy.ndarray`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">torque_qvac</span><span class="p">(</span><span class="n">sat</span><span class="o">=</span><span class="n">sat</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">os</span><span class="o">=</span><span class="n">os</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="GG_Disturbance.torque__qqhess">

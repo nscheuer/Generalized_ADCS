@@ -869,31 +869,35 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">vecs</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">get_state_vector</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">)</span>
 
-        <span class="n">V_B</span> <span class="o">=</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">&quot;v&quot;</span><span class="p">]</span>
+        <span class="c1"># Velocity must be in m/s to match torque() (vecs[&quot;v&quot;]*1000); drag is</span>
+        <span class="c1"># quadratic in V, so using km/s here made the Jacobian ~1e6 too small.</span>
+        <span class="c1"># dV_b/dq must carry the same unit scaling.</span>
+        <span class="n">V_B</span> <span class="o">=</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">&quot;v&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="mf">1000.0</span>          <span class="c1"># m/s</span>
         <span class="n">rho</span> <span class="o">=</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">&quot;rho&quot;</span><span class="p">]</span>
 
-        <span class="n">dv_body__dq</span> <span class="o">=</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">&quot;dv&quot;</span><span class="p">]</span>
-        <span class="n">ddv_body__dqdq</span> <span class="o">=</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">&quot;ddv&quot;</span><span class="p">]</span>
+        <span class="n">dv_body__dq</span> <span class="o">=</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">&quot;dv&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="mf">1000.0</span>  <span class="c1"># m/s, consistent with V_B</span>
 
         <span class="n">cos_alpha</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">normals</span><span class="p">,</span> <span class="n">V_B</span><span class="p">))</span>
         <span class="n">F</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">CDs</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">areas</span> <span class="o">*</span> <span class="n">cos_alpha</span>
         <span class="n">cents</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">centroids</span> <span class="o">-</span> <span class="n">sat</span><span class="o">.</span><span class="n">COM</span>
 
-        <span class="c1"># Initialize derivative arrays</span>
-        <span class="n">dcos_alpha__dq</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">dv_body__dq</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">normals</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
-
-        <span class="c1"># Explicit conditional logic instead of inline boolean mask</span>
+        <span class="c1"># d(n_i . V_b)/dq for every face: shape (4, Nfaces) = [quat, face].</span>
         <span class="n">normals_term</span> <span class="o">=</span> <span class="n">dv_body__dq</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">normals</span><span class="o">.</span><span class="n">T</span>
-        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">cos_alpha</span><span class="p">)):</span>
-            <span class="k">if</span> <span class="n">cos_alpha</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-                <span class="n">dcos_alpha__dq</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">normals_term</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">dcos_alpha__dq</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">normals_term</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+        <span class="c1"># The Heaviside incidence mask is PER FACE (axis 1), not per quaternion</span>
+        <span class="c1"># component (axis 0). The old loop iterated range(Nfaces) but indexed</span>
+        <span class="c1"># dcos_alpha__dq[i] along the size-4 quaternion axis, masking the wrong</span>
+        <span class="c1"># axis (and indexing out of range for &gt;4 faces). Zero the columns whose</span>
+        <span class="c1"># face is in the wake (n_i . V_b &lt;= 0).</span>
+        <span class="n">face_lit</span> <span class="o">=</span> <span class="p">(</span><span class="n">cos_alpha</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">)</span>
+        <span class="n">dcos_alpha__dq</span> <span class="o">=</span> <span class="n">normals_term</span> <span class="o">*</span> <span class="n">face_lit</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:]</span>
 
         <span class="n">dF__dq</span> <span class="o">=</span> <span class="n">dcos_alpha__dq</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">CDs</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">areas</span>
 
         <span class="n">ct</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">rho</span>
-        <span class="k">return</span> <span class="o">-</span><span class="n">ct</span> <span class="o">*</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">dF__dq</span> <span class="o">@</span> <span class="n">cents</span><span class="p">,</span> <span class="n">V_B</span><span class="p">)</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">F</span> <span class="o">@</span> <span class="n">cents</span><span class="p">,</span> <span class="n">dv_body__dq</span><span class="p">))</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">active</span></div>
+        <span class="c1"># Canonical Jacobian layout (4,3) = [quat, torque-component]. The</span>
+        <span class="c1"># spurious ``* self.active`` (attribute never defined -&gt; AttributeError</span>
+        <span class="c1"># on every call) is removed.</span>
+        <span class="k">return</span> <span class="o">-</span><span class="n">ct</span> <span class="o">*</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">dF__dq</span> <span class="o">@</span> <span class="n">cents</span><span class="p">,</span> <span class="n">V_B</span><span class="p">)</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">F</span> <span class="o">@</span> <span class="n">cents</span><span class="p">,</span> <span class="n">dv_body__dq</span><span class="p">))</span></div>
 
 
 <div class="viewcode-block" id="Drag_Disturbance.torque_qqhess">

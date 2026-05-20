@@ -694,7 +694,7 @@
 
 <div class="viewcode-block" id="Prop_Disturbance.torque_qjac">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.disturbances.prop_disturbance.html#ADCS.satellite_hardware.disturbances.prop_disturbance.Prop_Disturbance.torque_qjac">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">torque_qjac</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">torque_qjac</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Compute the **Jacobian of the propulsion disturbance torque** with respect</span>
 <span class="sd">        to the attitude quaternion.</span>
@@ -708,10 +708,28 @@
 <span class="sd">            =</span>
 <span class="sd">            \mathbf{0}_{3\times4}.</span>
 
-<span class="sd">        :return: Quaternion Jacobian matrix of zeros, shape ``(3, 4)``.</span>
+<span class="sd">        :return: Quaternion Jacobian matrix of zeros, shape ``(4, 3)``.</span>
 <span class="sd">        :rtype: :class:`numpy.ndarray`</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span></div>
+        <span class="c1"># Accept the generic (sat, x, os) call signature used for every other</span>
+        <span class="c1"># disturbance (the no-arg signature raised TypeError when a planner or</span>
+        <span class="c1"># estimator iterated torque_qjac uniformly). Canonical layout (4,3).</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">4</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="Prop_Disturbance.torque_qqhess">
+<a class="viewcode-back" href="../../../../ADCS.satellite_hardware.disturbances.prop_disturbance.html#ADCS.satellite_hardware.disturbances.prop_disturbance.Prop_Disturbance.torque_qqhess">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">torque_qqhess</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Lowercase alias of :meth:`torque_qqHess` so the propulsion disturbance</span>
+<span class="sd">        exposes the same ``torque_qqhess`` entry point as every other</span>
+<span class="sd">        disturbance (generic estimator/planner iteration uses the lowercase</span>
+<span class="sd">        name). Constant torque -&gt; zero Hessian, canonical layout ``(4,4,3)``.</span>
+
+<span class="sd">        :return: Quaternion Hessian tensor of zeros, shape ``(4, 4, 3)``.</span>
+<span class="sd">        :rtype: :class:`numpy.ndarray`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span></div>
 
 
 <div class="viewcode-block" id="Prop_Disturbance.torque_qqHess">
