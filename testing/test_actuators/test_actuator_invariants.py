@@ -1,23 +1,10 @@
 """
-Physical-invariant regression tests for ADCS actuator models.
+Regression tests for actuator physical invariants.
 
-Covers four verified bugs in ADCS/satellite_hardware/:
-
-1. RW violated Newton's 3rd law under noise/bias: torque() and
-   storage_torque() independently resampled noise/bias, so the body torque
-   and the wheel-reaction torque used different random draws and angular
-   momentum was created every step. They must now share one coherent draw
-   per (step/state), call-order independent.
-2. No saturation clamping: MTQ.torque and RW.torque/storage_torque only
-   warned on over-limit commands but still scaled with the raw command.
-   They must now clamp to +/- u_max (sign preserved, below-limit unchanged).
-3. RW momentum-saturation check was sign-blind and array-broken
-   (``if h > self.h_max``): negative saturation missed, vector h raised.
-   It must compare by magnitude, clamp at +/- h_max, and accept vector h.
-4. Base Actuator.torque returned ``np.ndarray([0, 0, 0])`` (uninitialized
-   shape-(0,0,0) garbage) instead of the zero vector ``np.zeros(3)``.
-
-All tests seed the RNG for determinism.
+These tests check that the base actuator returns a zero torque, actuator
+commands are saturated at their configured limits, reaction-wheel momentum is
+bounded safely for scalar and vector inputs, and reaction-wheel body/reaction
+torques remain equal and opposite under stochastic bias and noise.
 """
 
 import sys
