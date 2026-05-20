@@ -708,6 +708,7 @@
         <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
         <span class="n">cross_term</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">quat_as_vec</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">ut_alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-3</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Initialize the UKF estimator and store UKF scaling parameters.</span>
@@ -755,8 +756,29 @@
             <span class="n">cross_term</span><span class="o">=</span><span class="n">cross_term</span><span class="p">,</span>
             <span class="n">quat_as_vec</span><span class="o">=</span><span class="n">quat_as_vec</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="c1"># UKF tuning parameters</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">al</span> <span class="o">=</span> <span class="mf">1e-3</span>
+        <span class="c1"># UKF tuning parameters.</span>
+        <span class="c1">#</span>
+        <span class="c1"># alpha controls the unscented sigma-point spread:</span>
+        <span class="c1">#   lambda = alpha^2 (L + kappa) - L,   gamma = sqrt(L + lambda).</span>
+        <span class="c1">#</span>
+        <span class="c1"># alpha = 1e-3 (the textbook &quot;default&quot;) gives gamma ~ alpha*sqrt(L)</span>
+        <span class="c1"># ~ 2.4e-3 with covariance weights ~ +/-1e6 -- the UT degenerates to a</span>
+        <span class="c1"># local (EKF-grade) linearisation and *under*-estimates the attitude</span>
+        <span class="c1"># covariance (attitude NEES ~263 vs consistent 3). alpha = 1 gives</span>
+        <span class="c1"># gamma = sqrt(L), O(1) weights, ~5x better attitude NEES (~55).</span>
+        <span class="c1">#</span>
+        <span class="c1"># BUT alpha = 1 is a CONFIG-DEPENDENT TRADEOFF, not a free win: it</span>
+        <span class="c1"># deterministically REGRESSES reaction-wheel-momentum estimation in</span>
+        <span class="c1"># the RWS UKF/SRUKF variants (test_rw_momentum_estimation diverges;</span>
+        <span class="c1"># origin/main alpha=1e-3 passes, alpha=1 fails). It is therefore</span>
+        <span class="c1"># exposed as an OPT-IN parameter (`ut_alpha`) with the LEGACY default</span>
+        <span class="c1"># 1e-3 -&gt; zero behavioural regression. Opt in to alpha=1 only where</span>
+        <span class="c1"># the augmented config is known safe (e.g. the attitude NEES guard</span>
+        <span class="c1"># tests). The principled resolution (derive RW-momentum / all</span>
+        <span class="c1"># augmented-state process noise so the filter is well-posed</span>
+        <span class="c1"># independent of alpha) is documented future work</span>
+        <span class="c1"># (~/adcs-srukf-process-noise-notes.md sections 7i/7j/7k).</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">al</span> <span class="o">=</span> <span class="n">ut_alpha</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">kap</span> <span class="o">=</span> <span class="mf">0.0</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">bet</span> <span class="o">=</span> <span class="mf">2.0</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">vec_mode</span> <span class="o">=</span> <span class="mi">6</span>

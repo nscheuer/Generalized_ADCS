@@ -884,7 +884,11 @@
 <span class="sd">    Convert a quaternion to **Modified Rodrigues parameters (MRP)**.</span>
 
 <span class="sd">    .. math::</span>
-<span class="sd">        \boldsymbol{\sigma} = \frac{2\boldsymbol{q}_v}{1 + q_0}</span>
+<span class="sd">        \boldsymbol{\sigma} = \frac{\boldsymbol{q}_v}{1 + q_0}</span>
+
+<span class="sd">    (This is the standard MRP. The implementation computes exactly this; the</span>
+<span class="sd">    previous ``2 q_v / (1 + q_0)`` in this docstring was incorrect -- the code</span>
+<span class="sd">    has no factor of 2, and ``mrp_to_quat`` is its exact inverse.)</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>

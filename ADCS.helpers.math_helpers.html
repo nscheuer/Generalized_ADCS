@@ -1077,8 +1077,11 @@ and yields</p>
 <dd><p>Convert a quaternion to <strong>Modified Rodrigues parameters (MRP)</strong>.</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
-\[\boldsymbol{\sigma} = \frac{2\boldsymbol{q}_v}{1 + q_0}\]</div>
+\[\boldsymbol{\sigma} = \frac{\boldsymbol{q}_v}{1 + q_0}\]</div>
 </div>
+<p>(This is the standard MRP. The implementation computes exactly this; the
+previous <code class="docutils literal notranslate"><span class="pre">2</span> <span class="pre">q_v</span> <span class="pre">/</span> <span class="pre">(1</span> <span class="pre">+</span> <span class="pre">q_0)</span></code> in this docstring was incorrect – the code
+has no factor of 2, and <code class="docutils literal notranslate"><span class="pre">mrp_to_quat</span></code> is its exact inverse.)</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>quat</strong> (<em>numpy.ndarray</em><em>, </em><em>shape</em><em> (</em><em>4</em><em>,</em><em>)</em>) – Quaternion in Hamilton form.</p>
