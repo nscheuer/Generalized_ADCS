@@ -28,13 +28,12 @@ from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.ephemeris import Ephemeris
 
 
-@pytest.mark.xfail(strict=True, reason=(
-    "dynamics_Hessians is non-functional scaffolding for the not-yet-"
-    "reimplemented one-step look-ahead MPC: actuator 2nd-derivative calls "
-    "use a stale (extra-self) signature. XPASS here = the MPC work has made "
-    "it functional + FD-correct; remove this xfail when that happens."
-))
 def test_dynamics_hessians_matches_finite_difference_of_jacobian():
+    """Base Satellite.dynamics_Hessians revived as part of Stage B: with
+    the actuator-callsite signature fixes, dist_param_len=0 default, and
+    self.J -> self.J_COM, the method completes end-to-end and matches the
+    central-difference of dynJacCore. The strict-xfail tripwire fired:
+    the scaffolding is now live, so this test is a real GREEN check."""
     ephem = Ephemeris()
     os0 = Orbital_State(ephem=ephem, J2000=0.22,
                         R=np.array([7000.0, 0.0, 0.0]),
