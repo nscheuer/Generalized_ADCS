@@ -164,8 +164,11 @@ class Orbit:
             ephem = os0.ephem
             ts = ephem.ts
 
+            # 2451545.0 is the J2000.0 epoch in TT, so this is a TT Julian
+            # date and must use ts.tt_jd (ts.tai_jd mislabeled it as TAI ->
+            # constant ~32.184 s epoch error). Matches Orbital_State.__init__.
             TAI = times_arr * 36525.0 + 2451545.0
-            t_sf = ts.tai_jd(TAI)
+            t_sf = ts.tt_jd(TAI)
 
             # Rotation matrices ECI->ECEF (vectorized)
             R_eci2ecef_raw = framelib.itrs.rotation_at(t_sf)
@@ -386,10 +389,15 @@ class Orbit:
             return self.states[close_times[ind2]].copy()
 
         i0 = np.flatnonzero(self.times < t)[-1]
-        i1 = np.flatnonzero(self.times > t)[0]
         t0 = self.times[i0]
-        t1 = self.times[i1]
-        return self.states[t0].average(self.states[t1], ratio=(t - t0) / (t1 - t0))
+        # RK4-propagate from the nearest preceding node rather than linearly
+        # blending the two bracketing nodes (and their rotation matrices).
+        # Linear interpolation of a curved orbit produced ~95 km position
+        # error at mid-node epochs and non-orthonormal blended frame matrices;
+        # propagation recomputes R, V and rebuilds every frame transform
+        # consistently at exactly the requested epoch (RK4-truncation accuracy).
+        dt_sec = (t - t0) * TimeConstants.cent2sec
+        return self.states[t0].propagate_orbit_rk4(dt_sec)
 
     def get_range(self, t_0: float, t_1: float, dt: float = None):
         r"""
