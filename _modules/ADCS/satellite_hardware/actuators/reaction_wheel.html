@@ -679,6 +679,16 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">h</span> <span class="o">=</span> <span class="n">h</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">h_max</span> <span class="o">=</span> <span class="n">h_max</span>
 
+        <span class="c1"># Cache for one coherent stochastic realization per (step/state).</span>
+        <span class="c1"># ``torque()`` (body torque) and ``storage_torque()`` (wheel reaction)</span>
+        <span class="c1"># must be drawn from the SAME random sample so that the reaction is</span>
+        <span class="c1"># exactly equal and opposite to the applied torque (Newton&#39;s 3rd law /</span>
+        <span class="c1"># conservation of angular momentum). Without this, each method</span>
+        <span class="c1"># independently resamples bias/noise and angular momentum is created</span>
+        <span class="c1"># out of nothing every integration step.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_eff_cmd_key</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_eff_cmd_val</span> <span class="o">=</span> <span class="kc">None</span>
+
         <span class="k">if</span> <span class="n">h_meas_noise</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">h_meas_noise</span><span class="p">:</span> <span class="n">Noise</span> <span class="o">=</span> <span class="n">h_meas_noise</span>
         <span class="k">else</span><span class="p">:</span>
@@ -723,28 +733,86 @@
 <span class="sd">        :return: Body torque vector :math:`\boldsymbol{\tau}_{\mathrm{RW}}` [N·m], shape ``(3,)``.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">u</span><span class="p">)</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">u_max</span><span class="p">:</span>
-            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;requested torque exceeds actuation limit&quot;</span><span class="p">)</span>
+        <span class="n">u_eff</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_effective_command</span><span class="p">(</span><span class="n">u</span><span class="o">=</span><span class="n">u</span><span class="p">,</span> <span class="n">os</span><span class="o">=</span><span class="n">os</span><span class="p">,</span> <span class="n">dmode</span><span class="o">=</span><span class="n">dmode</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">axis</span> <span class="o">*</span> <span class="n">u_eff</span></div>
 
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_effective_command</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span> <span class="n">dmode</span><span class="p">:</span> <span class="n">ErrorMode</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Compute the effective scalar motor torque :math:`u_{\mathrm{eff}} = u + b(t) + n(t)`.</span>
+
+<span class="sd">        This is the single point at which the stochastic realization (bias random</span>
+<span class="sd">        walk and additive noise) is drawn for a given integration step. The result</span>
+<span class="sd">        is cached, keyed by the orbital time tag, the commanded torque, and the</span>
+<span class="sd">        disturbance-mode flags. Both :meth:`torque` (body torque) and</span>
+<span class="sd">        :meth:`storage_torque` (wheel reaction torque) call this helper, so within</span>
+<span class="sd">        a single dynamics step they share exactly one random draw. The wheel</span>
+<span class="sd">        reaction is therefore *exactly* equal and opposite to the body torque,</span>
+<span class="sd">        conserving angular momentum (Newton&#39;s third law). The result is also</span>
+<span class="sd">        independent of the order in which :meth:`torque` and</span>
+<span class="sd">        :meth:`storage_torque` are called.</span>
+
+<span class="sd">        The commanded torque is saturated to the actuation limit</span>
+<span class="sd">        :math:`[-u_{\max}, u_{\max}]` (sign preserved; below-limit unchanged)</span>
+<span class="sd">        *before* bias and noise are added, since the motor physically cannot</span>
+<span class="sd">        command beyond its torque limit.</span>
+
+<span class="sd">        :param u: Commanded motor torque about the wheel axis [N·m].</span>
+<span class="sd">        :type u: float</span>
+
+<span class="sd">        :param os: Orbital state providing the time tag for bias evolution.</span>
+<span class="sd">        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
+
+<span class="sd">        :param dmode: Disturbance mode toggles controlling inclusion and update of bias and noise.</span>
+<span class="sd">        :type dmode: :class:`~ADCS.satellite_hardware.errors.error_mode.ErrorMode` | None</span>
+
+<span class="sd">        :return: Effective scalar command :math:`u_{\mathrm{eff}}` [N·m].</span>
+<span class="sd">        :rtype: float</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">dmode</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">dmode</span> <span class="o">=</span> <span class="n">ErrorMode</span><span class="p">(</span><span class="n">add_bias</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">add_noise</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">update_bias</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">update_noise</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
-        <span class="n">torque</span> <span class="o">=</span> <span class="n">u</span>
+        <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">u</span><span class="p">)</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">u_max</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;requested torque exceeds actuation limit&quot;</span><span class="p">)</span>
 
-        <span class="c1"># Evolve states first so this call uses values at the current step.</span>
+        <span class="c1"># Saturate the commanded torque to the physical actuation limit,</span>
+        <span class="c1"># preserving sign. Below-limit commands are unchanged. Keep the numpy</span>
+        <span class="c1"># scalar type (do NOT cast to Python float): storage_torque() returns</span>
+        <span class="c1"># -u_eff and the long-standing contract / callers expect a numpy scalar</span>
+        <span class="c1"># (e.g. ``.item()``); casting to float would change the public type.</span>
+        <span class="n">u_cmd</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">u_max</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">u_max</span><span class="p">)</span>
+
+        <span class="n">key</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">J2000</span><span class="p">,</span>
+            <span class="n">u_cmd</span><span class="p">,</span>
+            <span class="n">dmode</span><span class="o">.</span><span class="n">add_bias</span><span class="p">,</span>
+            <span class="n">dmode</span><span class="o">.</span><span class="n">add_noise</span><span class="p">,</span>
+            <span class="n">dmode</span><span class="o">.</span><span class="n">update_bias</span><span class="p">,</span>
+            <span class="n">dmode</span><span class="o">.</span><span class="n">update_noise</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_eff_cmd_key</span> <span class="o">==</span> <span class="n">key</span><span class="p">:</span>
+            <span class="c1"># Same step/state: reuse the already-drawn realization so that the</span>
+            <span class="c1"># body torque and wheel reaction are exactly consistent.</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_eff_cmd_val</span>
+
+        <span class="n">command</span> <span class="o">=</span> <span class="n">u_cmd</span>
+
+        <span class="c1"># Evolve stochastic states first so this call uses values at the</span>
+        <span class="c1"># current step. Drawn exactly once per (step/state).</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bias</span> <span class="ow">and</span> <span class="n">dmode</span><span class="o">.</span><span class="n">update_bias</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">bias</span><span class="o">.</span><span class="n">_update_bias</span><span class="p">(</span><span class="n">j2000</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">J2000</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">noise</span> <span class="ow">and</span> <span class="n">dmode</span><span class="o">.</span><span class="n">update_noise</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">noise</span><span class="o">.</span><span class="n">_update_noise</span><span class="p">()</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bias</span> <span class="ow">and</span> <span class="n">dmode</span><span class="o">.</span><span class="n">add_bias</span><span class="p">:</span>
-            <span class="n">torque</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bias</span><span class="o">.</span><span class="n">get_bias</span><span class="p">(</span><span class="n">j2000</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">J2000</span><span class="p">)</span>
+            <span class="n">command</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bias</span><span class="o">.</span><span class="n">get_bias</span><span class="p">(</span><span class="n">j2000</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">J2000</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">noise</span> <span class="ow">and</span> <span class="n">dmode</span><span class="o">.</span><span class="n">add_noise</span><span class="p">:</span>
-            <span class="n">torque</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">noise</span><span class="o">.</span><span class="n">get_noise</span><span class="p">()</span>
+            <span class="n">command</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">noise</span><span class="o">.</span><span class="n">get_noise</span><span class="p">()</span>
 
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">axis</span><span class="o">*</span><span class="n">torque</span></div>
-
+        <span class="bp">self</span><span class="o">.</span><span class="n">_eff_cmd_key</span> <span class="o">=</span> <span class="n">key</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_eff_cmd_val</span> <span class="o">=</span> <span class="n">command</span>
+        <span class="k">return</span> <span class="n">command</span>
 
 <div class="viewcode-block" id="RW.storage_torque">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.reaction_wheel.html#ADCS.satellite_hardware.actuators.reaction_wheel.RW.storage_torque">[docs]</a>
@@ -784,28 +852,11 @@
 <span class="sd">        :return: Internal wheel torque vector :math:`\boldsymbol{\tau}_{\mathrm{wheel}}` [N·m], shape ``(3,)``.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-
-        <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">u</span><span class="p">)</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">u_max</span><span class="p">:</span>
-            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;RW Requested Torque exceeds actuation limit&quot;</span><span class="p">)</span>
-
-        <span class="k">if</span> <span class="n">dmode</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">dmode</span> <span class="o">=</span> <span class="n">ErrorMode</span><span class="p">(</span><span class="n">add_bias</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">add_noise</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">update_bias</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">update_noise</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-        
-        <span class="n">command</span> <span class="o">=</span> <span class="n">u</span>
-
-        <span class="c1"># Evolve stochastic states first so this call uses values at the current step.</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bias</span> <span class="ow">and</span> <span class="n">dmode</span><span class="o">.</span><span class="n">update_bias</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">bias</span><span class="o">.</span><span class="n">_update_bias</span><span class="p">(</span><span class="n">j2000</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">J2000</span><span class="p">)</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">noise</span> <span class="ow">and</span> <span class="n">dmode</span><span class="o">.</span><span class="n">update_noise</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">noise</span><span class="o">.</span><span class="n">_update_noise</span><span class="p">()</span>
-
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bias</span> <span class="ow">and</span> <span class="n">dmode</span><span class="o">.</span><span class="n">add_bias</span><span class="p">:</span>
-            <span class="n">command</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bias</span><span class="o">.</span><span class="n">get_bias</span><span class="p">(</span><span class="n">j2000</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">J2000</span><span class="p">)</span>
-
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">noise</span> <span class="ow">and</span> <span class="n">dmode</span><span class="o">.</span><span class="n">add_noise</span><span class="p">:</span>
-            <span class="n">command</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">noise</span><span class="o">.</span><span class="n">get_noise</span><span class="p">()</span>
-
-        <span class="k">return</span> <span class="o">-</span><span class="n">command</span></div>
+        <span class="c1"># Share the SAME stochastic realization as torque() for this step so</span>
+        <span class="c1"># that the wheel reaction is exactly equal and opposite to the applied</span>
+        <span class="c1"># body torque (conservation of angular momentum / Newton&#39;s 3rd law).</span>
+        <span class="n">u_eff</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_effective_command</span><span class="p">(</span><span class="n">u</span><span class="o">=</span><span class="n">u</span><span class="p">,</span> <span class="n">os</span><span class="o">=</span><span class="n">os</span><span class="p">,</span> <span class="n">dmode</span><span class="o">=</span><span class="n">dmode</span><span class="p">)</span>
+        <span class="k">return</span> <span class="o">-</span><span class="n">u_eff</span></div>
 
     
 
@@ -861,15 +912,36 @@
 
 <span class="sd">            \mathbf{h} \leftarrow \mathbf{h}_{\text{new}}.</span>
 
-<span class="sd">        :param h: New wheel angular momentum [N·m·s].</span>
-<span class="sd">        :type h: float</span>
+<span class="sd">        :param h: New wheel angular momentum [N·m·s]. May be a scalar or a</span>
+<span class="sd">            vector (the single-axis wheel momentum is collinear with the spin</span>
+<span class="sd">            axis, but a vector interface is supported).</span>
+<span class="sd">        :type h: float | numpy.ndarray</span>
 
 <span class="sd">        :return: ``None``.</span>
 <span class="sd">        :rtype: NoneType</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="n">h</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">h_max</span><span class="p">:</span>
+        <span class="n">h_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+        <span class="c1"># h_max is the saturation magnitude. Compare by magnitude so that</span>
+        <span class="c1"># negative saturation is detected as well as positive, and so a vector</span>
+        <span class="c1"># h does not raise (the previous ``h &gt; self.h_max`` was sign-blind and</span>
+        <span class="c1"># broke on array input).</span>
+        <span class="n">h_max_mag</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">h_max</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">h_arr</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">magnitude</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">h_arr</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">magnitude</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">h_arr</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">magnitude</span> <span class="o">&gt;</span> <span class="n">h_max_mag</span><span class="p">:</span>
             <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;RW Angular Momentum exceeds saturation limit&quot;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">h</span> <span class="o">=</span> <span class="n">h</span></div>
+            <span class="k">if</span> <span class="n">magnitude</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
+                <span class="c1"># Clamp stored momentum at +/- h_max, preserving direction/sign.</span>
+                <span class="n">h_arr</span> <span class="o">=</span> <span class="n">h_arr</span> <span class="o">*</span> <span class="p">(</span><span class="n">h_max_mag</span> <span class="o">/</span> <span class="n">magnitude</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">ndim</span><span class="p">(</span><span class="n">h</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">h</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">h_arr</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">h</span> <span class="o">=</span> <span class="n">h_arr</span></div>
 
 
 <div class="viewcode-block" id="RW.dtorq__du">

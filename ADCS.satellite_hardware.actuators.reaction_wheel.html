@@ -1291,7 +1291,9 @@ exceeds the saturation bound, a warning is emitted; the value is still assigned.
 </div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>h</strong> (<em>float</em>) – New wheel angular momentum [N·m·s].</p>
+<dd class="field-odd"><p><strong>h</strong> (<em>float</em><em> | </em><em>numpy.ndarray</em>) – New wheel angular momentum [N·m·s]. May be a scalar or a
+vector (the single-axis wheel momentum is collinear with the spin
+axis, but a vector interface is supported).</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
