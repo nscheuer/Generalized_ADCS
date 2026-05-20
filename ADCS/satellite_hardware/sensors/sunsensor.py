@@ -262,8 +262,9 @@ class SunSensor(Sensor):
 
         Because the measurement uses :math:`\max(c, 0)`, the Jacobian is defined
         to be zero whenever :math:`c \le 0`. Furthermore, when the spacecraft is
-        in eclipse (``os.is_sunlit() == False``), the measurement is identically
-        zero and all partial derivatives vanish.
+        in eclipse (``os.is_sunlit() == False``), the clean measurement is
+        treated as invalid and this method returns a ``NaN`` sentinel rather
+        than a finite derivative.
 
         :param x: Full 7-element ADCS state vector.
         :type x: numpy.ndarray
@@ -272,8 +273,8 @@ class SunSensor(Sensor):
         :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
 
         :return: Jacobian of the clean measurement with respect to the base
-            state, with shape ``(7, 1)``. The Jacobian is zero if the spacecraft
-            is in eclipse or if the Sun is behind the sensor.
+            state, with shape ``(7, 1)``. The Jacobian is zero if the Sun is
+            behind the sensor, and ``NaN`` if the spacecraft is in eclipse.
         :rtype: numpy.ndarray
         """
         vecs = os.get_state_vector(x=x)
@@ -296,4 +297,3 @@ class SunSensor(Sensor):
             return np.full((7, 1), np.nan)
         
     
-
