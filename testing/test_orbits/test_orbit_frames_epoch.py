@@ -1,16 +1,11 @@
 """
-Regression tests for four orbit/frame/epoch bugs, checked against external
-references (Skyfield) and convergence truths rather than the code itself.
+Regression tests for orbit frames, epoch handling, and interpolation.
 
-1. ecef_to_geocentric used `_ecef_to_geo.T @ v` and was NOT the inverse of
-   geocentric_to_ecef (`v0*n+v1*t+v2*s`).
-2. Epoch mislabeling: j2000_to_tai returns the J2000.0 TT Julian date
-   (2451545.0) but it was fed to ts.tai_jd, mislabeling TT as TAI
-   (constant TT-TAI = 32.184 s error in ECEF/Sun/IGRF).
-3. Orbit.get_os linearly blended two nodes (and two rotation matrices):
-   ~95 km position error at mid-node epochs, non-orthonormal frames.
-4. DensityModel.interpolate was linear-in-altitude with constant
-   extrapolation (orders-of-magnitude error; spurious GEO drag).
+These tests check that the ECEF and geocentric frame transforms are exact
+inverses, the J2000 epoch is interpreted consistently with Skyfield's TT time
+scale, atmospheric density interpolation follows the intended exponential
+behaviour, and ``Orbit.get_os`` returns accurately propagated states and
+orthonormal frame matrices between stored orbit nodes.
 """
 
 import numpy as np
