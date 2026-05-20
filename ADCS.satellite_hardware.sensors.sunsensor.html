@@ -623,7 +623,11 @@ the Sun position, both provided by
 <li><p>This is a <strong>coarse</strong> Sun sensor intended for low-accuracy attitude
 determination.</p></li>
 <li><p>The sensor output is scalar, so <code class="docutils literal notranslate"><span class="pre">output_length</span> <span class="pre">=</span> <span class="pre">1</span></code>.</p></li>
-<li><p>In eclipse, the clean measurement and all Jacobians are identically zero.</p></li>
+<li><p>In eclipse (<code class="docutils literal notranslate"><span class="pre">os.is_sunlit()</span> <span class="pre">==</span> <span class="pre">False</span></code>) the clean measurement and all
+Jacobians return <code class="docutils literal notranslate"><span class="pre">NaN</span></code> as the “sensor invalid / occulted” sentinel;
+the UKF/SRUKF detect this (<code class="docutils literal notranslate"><span class="pre">np.isnan</span></code>) and deactivate the sensor for
+that step. (It is <em>not</em> zero – a zero would be fed to the filter as a
+real measurement.)</p></li>
 </ul>
 <dl class="py method">
 <dt class="sig sig-object py" id="ADCS.satellite_hardware.sensors.sunsensor.SunSensor.basestate_jac">
@@ -670,8 +674,9 @@ computed using <a class="reference internal" href="ADCS.helpers.math_helpers.htm
 </div>
 <p>Because the measurement uses <span class="math notranslate nohighlight">\(\max(c, 0)\)</span>, the Jacobian is defined
 to be zero whenever <span class="math notranslate nohighlight">\(c \le 0\)</span>. Furthermore, when the spacecraft is
-in eclipse (<code class="docutils literal notranslate"><span class="pre">os.is_sunlit()</span> <span class="pre">==</span> <span class="pre">False</span></code>), the measurement is identically
-zero and all partial derivatives vanish.</p>
+in eclipse (<code class="docutils literal notranslate"><span class="pre">os.is_sunlit()</span> <span class="pre">==</span> <span class="pre">False</span></code>), the clean measurement is
+treated as invalid and this method returns a <code class="docutils literal notranslate"><span class="pre">NaN</span></code> sentinel rather
+than a finite derivative.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -682,8 +687,8 @@ information.</p></li>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Jacobian of the clean measurement with respect to the base
-state, with shape <code class="docutils literal notranslate"><span class="pre">(7,</span> <span class="pre">1)</span></code>. The Jacobian is zero if the spacecraft
-is in eclipse or if the Sun is behind the sensor.</p>
+state, with shape <code class="docutils literal notranslate"><span class="pre">(7,</span> <span class="pre">1)</span></code>. The Jacobian is zero if the Sun is
+behind the sensor, and <code class="docutils literal notranslate"><span class="pre">NaN</span></code> if the spacecraft is in eclipse.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>numpy.ndarray</p>

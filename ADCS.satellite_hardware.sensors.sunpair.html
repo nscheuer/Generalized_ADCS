@@ -629,7 +629,9 @@ the Sun position, both provided by
 <li><p>This is a <strong>coarse Sun sensor</strong>, intended for low-accuracy attitude
 determination.</p></li>
 <li><p>The output dimension is scalar, so <code class="docutils literal notranslate"><span class="pre">output_length</span> <span class="pre">=</span> <span class="pre">1</span></code>.</p></li>
-<li><p>When the spacecraft is in eclipse, all Jacobians are identically zero.</p></li>
+<li><p>In eclipse the clean measurement and all Jacobians return <code class="docutils literal notranslate"><span class="pre">NaN</span></code> as the
+“sensor invalid / occulted” sentinel; the UKF/SRUKF detect this
+(<code class="docutils literal notranslate"><span class="pre">np.isnan</span></code>) and deactivate the sensor (it is <em>not</em> zero).</p></li>
 </ul>
 <dl class="py method">
 <dt class="sig sig-object py" id="ADCS.satellite_hardware.sensors.sunpair.SunPair.basestate_jac">
@@ -656,8 +658,9 @@ differences</strong>:</p>
 </div>
 <p>with <span class="math notranslate nohighlight">\(\varepsilon = 10^{-6}\)</span> and <span class="math notranslate nohighlight">\(f(\cdot)\)</span> defined by
 <code class="xref py py-meth docutils literal notranslate"><span class="pre">_clean_scalar()</span></code>.</p>
-<p>If the spacecraft is not sunlit, the clean measurement is identically
-zero and all partial derivatives are zero.</p>
+<p>If the spacecraft is not sunlit, the clean measurement is treated as
+invalid and this method returns a <code class="docutils literal notranslate"><span class="pre">NaN</span></code> sentinel rather than a finite
+Jacobian.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -668,7 +671,7 @@ geometry.</p></li>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Jacobian of the clean measurement with respect to the base
-state, with shape <code class="docutils literal notranslate"><span class="pre">(7,</span> <span class="pre">1)</span></code>.</p>
+state, with shape <code class="docutils literal notranslate"><span class="pre">(7,</span> <span class="pre">1)</span></code>. Returns <code class="docutils literal notranslate"><span class="pre">NaN</span></code> in eclipse.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>numpy.ndarray</p>

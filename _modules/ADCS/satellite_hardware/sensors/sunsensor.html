@@ -623,7 +623,11 @@
 <span class="sd">    * This is a **coarse** Sun sensor intended for low-accuracy attitude</span>
 <span class="sd">      determination.</span>
 <span class="sd">    * The sensor output is scalar, so ``output_length = 1``.</span>
-<span class="sd">    * In eclipse, the clean measurement and all Jacobians are identically zero.</span>
+<span class="sd">    * In eclipse (``os.is_sunlit() == False``) the clean measurement and all</span>
+<span class="sd">      Jacobians return ``NaN`` as the &quot;sensor invalid / occulted&quot; sentinel;</span>
+<span class="sd">      the UKF/SRUKF detect this (``np.isnan``) and deactivate the sensor for</span>
+<span class="sd">      that step. (It is *not* zero -- a zero would be fed to the filter as a</span>
+<span class="sd">      real measurement.)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axis</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">efficiency</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">sample_time</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span> <span class="n">bias</span><span class="p">:</span> <span class="n">Bias</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">noise</span><span class="p">:</span> <span class="n">Noise</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">estimate_bias</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
@@ -804,8 +808,9 @@
 
 <span class="sd">        Because the measurement uses :math:`\max(c, 0)`, the Jacobian is defined</span>
 <span class="sd">        to be zero whenever :math:`c \le 0`. Furthermore, when the spacecraft is</span>
-<span class="sd">        in eclipse (``os.is_sunlit() == False``), the measurement is identically</span>
-<span class="sd">        zero and all partial derivatives vanish.</span>
+<span class="sd">        in eclipse (``os.is_sunlit() == False``), the clean measurement is</span>
+<span class="sd">        treated as invalid and this method returns a ``NaN`` sentinel rather</span>
+<span class="sd">        than a finite derivative.</span>
 
 <span class="sd">        :param x: Full 7-element ADCS state vector.</span>
 <span class="sd">        :type x: numpy.ndarray</span>
@@ -814,8 +819,8 @@
 <span class="sd">        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
 
 <span class="sd">        :return: Jacobian of the clean measurement with respect to the base</span>
-<span class="sd">            state, with shape ``(7, 1)``. The Jacobian is zero if the spacecraft</span>
-<span class="sd">            is in eclipse or if the Sun is behind the sensor.</span>
+<span class="sd">            state, with shape ``(7, 1)``. The Jacobian is zero if the Sun is</span>
+<span class="sd">            behind the sensor, and ``NaN`` if the spacecraft is in eclipse.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">vecs</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">get_state_vector</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">)</span>
@@ -828,12 +833,18 @@
         <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">is_sunlit</span><span class="p">():</span>
             <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">3</span><span class="p">,</span><span class="mi">1</span><span class="p">)),</span><span class="bp">self</span><span class="o">.</span><span class="n">efficiency</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">dcos_incidence__dq</span><span class="p">,</span><span class="mi">1</span><span class="p">)])</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">7</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span></div>
+            <span class="c1"># In eclipse clean_reading() returns NaN as the &quot;sensor invalid /</span>
+            <span class="c1"># occulted&quot; sentinel that the UKF/SRUKF use (np.isnan check) to</span>
+            <span class="c1"># deactivate this sensor. The Jacobian must carry the SAME sentinel</span>
+            <span class="c1"># for a consistent contract: returning finite zeros silently</span>
+            <span class="c1"># asserted &quot;constant 0 measurement, zero sensitivity&quot;, which would</span>
+            <span class="c1"># bias the filter toward believing the eclipse reading is exactly 0</span>
+            <span class="c1"># if it were ever used without the active mask.</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="mi">7</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span></div>
 </div>
 
         
     
-
 </pre></div>
         </article>
       </div>
