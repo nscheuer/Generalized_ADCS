@@ -1,19 +1,18 @@
 """
-External / analytic validation of the orbit propagator.
+Physics-validation tests for the orbit propagator.
 
-The adversarial review found the orbit dynamics physically *correct* but with
-NO conservation-law or analytic-element test anywhere: the suite's only
-"propagation" check re-ran the same RK4 and compared it to itself. These
-tests pin the propagator to textbook celestial mechanics so a future
-regression in mu, J2, the sign of the J2 term, or the integrator is caught:
-
-* two-body invariants: specific energy, specific angular-momentum vector,
-  and the Laplace-Runge-Lenz (eccentricity) vector are conserved;
-* the orbital period matches the Kepler value 2*pi*sqrt(a^3/mu);
-* the J2 secular nodal regression and apsidal precession match the
-  first-order analytic rates.
-
-All assertions are against independent closed-form references, not the code.
+This module checks the propagated orbit state against independent analytic
+references rather than against the propagator itself. For two representative
+two-body orbits propagated for three periods, it bounds the maximum relative
+drift in specific energy to ``1e-6``, the maximum relative drift in specific
+angular momentum to ``1e-7``, and the maximum absolute drift in the
+eccentricity vector to ``1e-4``. For two Keplerian test cases propagated for
+one analytic period ``2*pi*sqrt(a^3/mu)``, it requires the final position
+error to stay below ``1 km`` and the final velocity error below ``1e-3 km/s``.
+It also propagates an inclined eccentric orbit with J2 enabled for eight
+orbits and requires the numerically observed secular RAAN regression rate to
+match the first-order analytic J2 prediction within ``5%``, and the argument
+of perigee precession rate within ``8%``.
 """
 
 import numpy as np
