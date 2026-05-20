@@ -1,26 +1,13 @@
 """
-Finite-difference verification of every disturbance quaternion Jacobian.
+Regression tests for disturbance quaternion Jacobians.
 
-The disturbance ``torque()`` methods are physically correct, but their
-analytic quaternion Jacobians had no test at all and several were broken:
-
-* ``GG.torque_qvac``      : ``sat.J_0 @ dnadir`` was (3,3)@(4,3) -> ValueError.
-* ``Drag.torque_qjac``    : used km/s while ``torque()`` uses m/s (~1e6 off);
-                            Heaviside incidence mask applied along the
-                            quaternion axis instead of the face axis;
-                            undefined ``self.active``.
-* ``SRP.torque_qjav``     : same per-face-vs-per-quaternion mask bug; eclipse
-                            branch returned shape (3,1); name typo.
-* ``Prop.torque_qjac``    : no-arg signature (TypeError under generic use).
-* ``Dipole.torque_qjac``  : CORRECT -- included here as a regression guard
-                            (the earlier "sign error" was a layout artifact).
-
-Canonical Jacobian layout is ``(4, 3) = [quaternion-index, torque-component]``.
-Every disturbance is checked by central finite differencing of its own
-``torque()`` with respect to the raw (un-renormalised) quaternion, at smooth
-operating points (all faces strictly lit, so the Heaviside kinks are not
-straddled). Multi-face Drag/SRP cases are included because that is exactly
-where the per-quaternion masking bug produced wrong (or out-of-range) results.
+These tests compare each disturbance model's analytic ``torque_qjac`` against a
+central finite-difference derivative of ``torque()`` with respect to the raw
+quaternion, using representative operating points chosen to avoid
+non-differentiable contact or illumination boundaries. The module also checks a
+few disturbance-specific invariants, including Jacobian shape, eclipse
+behaviour for SRP, and generic call compatibility for gravity-gradient and
+propulsion disturbance helpers.
 """
 
 import numpy as np
