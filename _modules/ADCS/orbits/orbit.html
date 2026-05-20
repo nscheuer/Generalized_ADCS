@@ -702,8 +702,11 @@
             <span class="n">ephem</span> <span class="o">=</span> <span class="n">os0</span><span class="o">.</span><span class="n">ephem</span>
             <span class="n">ts</span> <span class="o">=</span> <span class="n">ephem</span><span class="o">.</span><span class="n">ts</span>
 
+            <span class="c1"># 2451545.0 is the J2000.0 epoch in TT, so this is a TT Julian</span>
+            <span class="c1"># date and must use ts.tt_jd (ts.tai_jd mislabeled it as TAI -&gt;</span>
+            <span class="c1"># constant ~32.184 s epoch error). Matches Orbital_State.__init__.</span>
             <span class="n">TAI</span> <span class="o">=</span> <span class="n">times_arr</span> <span class="o">*</span> <span class="mf">36525.0</span> <span class="o">+</span> <span class="mf">2451545.0</span>
-            <span class="n">t_sf</span> <span class="o">=</span> <span class="n">ts</span><span class="o">.</span><span class="n">tai_jd</span><span class="p">(</span><span class="n">TAI</span><span class="p">)</span>
+            <span class="n">t_sf</span> <span class="o">=</span> <span class="n">ts</span><span class="o">.</span><span class="n">tt_jd</span><span class="p">(</span><span class="n">TAI</span><span class="p">)</span>
 
             <span class="c1"># Rotation matrices ECI-&gt;ECEF (vectorized)</span>
             <span class="n">R_eci2ecef_raw</span> <span class="o">=</span> <span class="n">framelib</span><span class="o">.</span><span class="n">itrs</span><span class="o">.</span><span class="n">rotation_at</span><span class="p">(</span><span class="n">t_sf</span><span class="p">)</span>
@@ -926,10 +929,15 @@
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="p">[</span><span class="n">close_times</span><span class="p">[</span><span class="n">ind2</span><span class="p">]]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
 
         <span class="n">i0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">times</span> <span class="o">&lt;</span> <span class="n">t</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-        <span class="n">i1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">times</span> <span class="o">&gt;</span> <span class="n">t</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
         <span class="n">t0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="p">[</span><span class="n">i0</span><span class="p">]</span>
-        <span class="n">t1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="p">[</span><span class="n">i1</span><span class="p">]</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="p">[</span><span class="n">t0</span><span class="p">]</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="p">[</span><span class="n">t1</span><span class="p">],</span> <span class="n">ratio</span><span class="o">=</span><span class="p">(</span><span class="n">t</span> <span class="o">-</span> <span class="n">t0</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">t1</span> <span class="o">-</span> <span class="n">t0</span><span class="p">))</span></div>
+        <span class="c1"># RK4-propagate from the nearest preceding node rather than linearly</span>
+        <span class="c1"># blending the two bracketing nodes (and their rotation matrices).</span>
+        <span class="c1"># Linear interpolation of a curved orbit produced ~95 km position</span>
+        <span class="c1"># error at mid-node epochs and non-orthonormal blended frame matrices;</span>
+        <span class="c1"># propagation recomputes R, V and rebuilds every frame transform</span>
+        <span class="c1"># consistently at exactly the requested epoch (RK4-truncation accuracy).</span>
+        <span class="n">dt_sec</span> <span class="o">=</span> <span class="p">(</span><span class="n">t</span> <span class="o">-</span> <span class="n">t0</span><span class="p">)</span> <span class="o">*</span> <span class="n">TimeConstants</span><span class="o">.</span><span class="n">cent2sec</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="p">[</span><span class="n">t0</span><span class="p">]</span><span class="o">.</span><span class="n">propagate_orbit_rk4</span><span class="p">(</span><span class="n">dt_sec</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Orbit.get_range">

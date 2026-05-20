@@ -683,8 +683,15 @@
 <span class="sd">            \frac{\rho_{i+1} - \rho_i}{h_{i+1} - h_i}</span>
 <span class="sd">            (h - h_i).</span>
 
-<span class="sd">        If :math:`h` lies outside the reference range, the boundary density</span>
-<span class="sd">        values are returned (constant extrapolation).</span>
+<span class="sd">        The atmosphere is approximately *exponential* in altitude, so the</span>
+<span class="sd">        interpolation is performed **log-linearly** (linear in :math:`\ln\rho`</span>
+<span class="sd">        vs. altitude); plain linear-in-altitude interpolation over a sparse</span>
+<span class="sd">        table is wrong by orders of magnitude between samples (e.g. ~600x at</span>
+<span class="sd">        50 km). Above the top reference altitude the density continues to</span>
+<span class="sd">        **decay exponentially** using the scale height of the last table</span>
+<span class="sd">        interval (so e.g. GEO does not retain a spurious LEO-tail density);</span>
+<span class="sd">        below the lowest reference altitude the density is clamped to the</span>
+<span class="sd">        lowest sample (sub-surface / decayed-orbit guard).</span>
 
 <span class="sd">        :param altitude_km:</span>
 <span class="sd">            Altitude above Earth’s mean radius in kilometers (km).</span>
@@ -695,8 +702,26 @@
 <span class="sd">        :rtype: float</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">h</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">altitude_km</span><span class="p">)</span>
+        <span class="n">alt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">altitude_range</span>
+        <span class="n">rho</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rho_range</span>
+        <span class="n">log_rho</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">rho</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">interp</span><span class="p">(</span><span class="n">altitude_km</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">altitude_range</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">rho_range</span><span class="p">))</span></div>
+        <span class="k">if</span> <span class="n">h</span> <span class="o">&lt;=</span> <span class="n">alt</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+            <span class="c1"># Below the table (incl. sub-surface / negative): clamp, no crash.</span>
+            <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">rho</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">h</span> <span class="o">&gt;=</span> <span class="n">alt</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+            <span class="c1"># Continue the exponential decay of the last interval rather than</span>
+            <span class="c1"># holding a constant (the old constant extrapolation gave high</span>
+            <span class="c1"># orbits a spurious non-zero LEO-tail density).</span>
+            <span class="n">denom</span> <span class="o">=</span> <span class="n">log_rho</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="n">log_rho</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">denom</span> <span class="o">&lt;=</span> <span class="mf">0.0</span><span class="p">:</span>
+                <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">rho</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">scale_height</span> <span class="o">=</span> <span class="p">(</span><span class="n">alt</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">alt</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">])</span> <span class="o">/</span> <span class="n">denom</span>  <span class="c1"># km, &gt; 0</span>
+            <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">rho</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="p">(</span><span class="n">h</span> <span class="o">-</span> <span class="n">alt</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="o">/</span> <span class="n">scale_height</span><span class="p">))</span>
+
+        <span class="c1"># Interior: linear in ln(rho) vs altitude == exponential interpolation.</span>
+        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">interp</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">alt</span><span class="p">,</span> <span class="n">log_rho</span><span class="p">)))</span></div>
 
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>

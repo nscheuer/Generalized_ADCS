@@ -623,8 +623,15 @@ reference data.</p>
 \frac{\rho_{i+1} - \rho_i}{h_{i+1} - h_i}
 (h - h_i).\]</div>
 </div>
-<p>If <span class="math notranslate nohighlight">\(h\)</span> lies outside the reference range, the boundary density
-values are returned (constant extrapolation).</p>
+<p>The atmosphere is approximately <em>exponential</em> in altitude, so the
+interpolation is performed <strong>log-linearly</strong> (linear in <span class="math notranslate nohighlight">\(\ln\rho\)</span>
+vs. altitude); plain linear-in-altitude interpolation over a sparse
+table is wrong by orders of magnitude between samples (e.g. ~600x at
+50 km). Above the top reference altitude the density continues to
+<strong>decay exponentially</strong> using the scale height of the last table
+interval (so e.g. GEO does not retain a spurious LEO-tail density);
+below the lowest reference altitude the density is clamped to the
+lowest sample (sub-surface / decayed-orbit guard).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>altitude_km</strong> (<em>float</em>) – Altitude above Earth’s mean radius in kilometers (km).</p>

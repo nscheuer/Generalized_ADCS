@@ -682,8 +682,14 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">R_e</span> <span class="o">=</span> <span class="n">EarthConstants</span><span class="o">.</span><span class="n">R_e</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span> <span class="o">=</span> <span class="n">EarthConstants</span><span class="o">.</span><span class="n">J2coeff</span>
 
+        <span class="c1"># NOTE: j2000_to_tai() returns J2000*36525 + 2451545.0. JD 2451545.0 is</span>
+        <span class="c1"># the J2000.0 epoch in TT (2000-01-01 12:00:00 TT), so this Julian date</span>
+        <span class="c1"># is on the TT scale and must be passed to ts.tt_jd, NOT ts.tai_jd</span>
+        <span class="c1"># (which mislabeled it as TAI -&gt; a constant TT-TAI = 32.184 s epoch</span>
+        <span class="c1"># error in every time-dependent quantity: ECEF, Sun, IGRF). The legacy</span>
+        <span class="c1"># attribute name `self.TAI` is kept for serialization/back-compat.</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">TAI</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">j2000_to_tai</span><span class="p">()</span>
-        <span class="n">t_sf</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ts</span><span class="o">.</span><span class="n">tai_jd</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">TAI</span><span class="p">)</span>
+        <span class="n">t_sf</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ts</span><span class="o">.</span><span class="n">tt_jd</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">TAI</span><span class="p">)</span>
 
         <span class="c1"># Construct a Skyfield ICRF position for downstream functionality (e.g. is_sunlit).</span>
         <span class="n">pos</span> <span class="o">=</span> <span class="n">units</span><span class="o">.</span><span class="n">Distance</span><span class="p">(</span><span class="n">km</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">R</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
@@ -1297,7 +1303,11 @@
 <span class="sd">        :rtype: numpy.ndarray</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ecef_to_geo</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">vec</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span></div>
+        <span class="c1"># _ecef_to_geo = [n; t; s] (basis vectors as rows). geocentric_to_ecef</span>
+        <span class="c1"># is v0*n+v1*t+v2*s = _ecef_to_geo.T @ v, so the inverse (ECEF -&gt;</span>
+        <span class="c1"># geocentric) is _ecef_to_geo @ vec, NOT _ecef_to_geo.T @ vec (the</span>
+        <span class="c1"># transpose was not the inverse of geocentric_to_ecef).</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ecef_to_geo</span> <span class="o">@</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">vec</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Orbital_State.geocentric_to_ecef">
@@ -1408,7 +1418,7 @@
 <span class="sd">        :rtype: numpy.ndarray</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">t</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ts</span><span class="o">.</span><span class="n">tai_jd</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">TAI</span><span class="p">)</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ts</span><span class="o">.</span><span class="n">tt_jd</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">TAI</span><span class="p">)</span>  <span class="c1"># TT scale (see __init__ note on self.TAI)</span>
         <span class="n">sun_icrf</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ephem</span><span class="o">.</span><span class="n">earth</span><span class="o">.</span><span class="n">at</span><span class="p">(</span><span class="n">t</span><span class="p">)</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ephem</span><span class="o">.</span><span class="n">sun</span><span class="p">)</span><span class="o">.</span><span class="n">apparent</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">sun_icrf</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">km</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span></div>
 
