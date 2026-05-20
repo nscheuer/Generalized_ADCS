@@ -9,7 +9,7 @@ from numpy.typing import NDArray
 if TYPE_CHECKING:
     from ADCS.controller.plan_and_track import PlannerSettings
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
-from ADCS.satellite_hardware.actuators import Actuator, MTQ, RW
+from ADCS.satellite_hardware.actuators import Actuator, MTQ, RW, Magic_Actuator
 from ADCS.controller.helpers.optional_dependencies import get_trajectory_planner_modules
 
 
@@ -61,29 +61,27 @@ def get_cpp_to_python_control_permutation(actuators: List[Actuator]) -> Tuple[ND
     # Find indices of each actuator type in Python ordering
     mtq_py_indices = [i for i, act in enumerate(actuators) if isinstance(act, MTQ)]
     rw_py_indices = [i for i, act in enumerate(actuators) if isinstance(act, RW)]
-    # magic_py_indices would go here if needed
+    magic_py_indices = [
+        i for i, act in enumerate(actuators) if isinstance(act, Magic_Actuator)
+    ]
 
-    # C++ ordering is: MTQs first, then RWs
-    # cpp_index 0..n_mtq-1 -> MTQs
-    # cpp_index n_mtq..n_mtq+n_rw-1 -> RWs
-
+    # C++ ordering is: MTQs first, then RWs, then magic actuators.
+    # See trajectory_planner/src/planner/Satellite.cpp -- the control
+    # vector layout in OldPlanner is ``u = [u_MTQ; u_RW; u_magic]``
+    # (number_MTQ + number_RW + number_magic = control_N()).
     n_mtq = len(mtq_py_indices)
     n_rw = len(rw_py_indices)
-    n_total = n_mtq + n_rw
+    n_magic = len(magic_py_indices)
+    n_total = n_mtq + n_rw + n_magic
 
-    # Build cpp_to_py: for each C++ index, what's the corresponding Python index?
     cpp_to_py = np.zeros(n_total, dtype=int)
-
-    # First n_mtq C++ indices map to MTQ positions in Python
     for cpp_idx, py_idx in enumerate(mtq_py_indices):
         cpp_to_py[cpp_idx] = py_idx
-
-    # Next n_rw C++ indices map to RW positions in Python
     for i, py_idx in enumerate(rw_py_indices):
-        cpp_idx = n_mtq + i
-        cpp_to_py[cpp_idx] = py_idx
+        cpp_to_py[n_mtq + i] = py_idx
+    for i, py_idx in enumerate(magic_py_indices):
+        cpp_to_py[n_mtq + n_rw + i] = py_idx
 
-    # Build inverse permutation
     py_to_cpp = np.zeros(n_total, dtype=int)
     for cpp_idx, py_idx in enumerate(cpp_to_py):
         py_to_cpp[py_idx] = cpp_idx
@@ -341,5 +339,15 @@ def add_actuator(act: Actuator, csat: pysat.Satellite, planner_settings: Planner
             planner_settings.rw_stic_weight,
             act.h_max * planner_settings.RWh_stiction_mult
         )
+    elif isinstance(act, Magic_Actuator):
+        # ``magic`` actuators apply direct body torque along ``act.axis``
+        # with magnitude bounded by ``act.u_max * control_limit_scale``.
+        # The C++ Satellite::add_magic signature is
+        # ``add_magic(body_ax, max_torq, cost)``.
+        csat.add_magic(
+            act.axis,
+            act.u_max * planner_settings.control_limit_scale,
+            planner_settings.magic_control_weight,
+        )
     else:
-        raise ValueError(f"Unknown actuator received: {act.__name__}")
+        raise ValueError(f"Unknown actuator received: {type(act).__name__}")
