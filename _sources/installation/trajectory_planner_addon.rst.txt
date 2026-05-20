@@ -9,6 +9,7 @@ maneuvers in Generalized_ADCS.
 
    trajectory_planner_linux
    trajectory_planner_windows
+   trajectory_planner_macos
 
 Canonical setup notes (Windows + Linux) are maintained in:
 
