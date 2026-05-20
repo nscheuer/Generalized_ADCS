@@ -1095,6 +1095,7 @@ class Satellite:
         q = x[3:7]#normalize(x[3:7,:])
         RWhs = x[7:]
         invJ_noRW = self.invJ_noRW
+
         J = self.J_COM
 
         R = orbital_state.R
