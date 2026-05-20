@@ -310,7 +310,7 @@ class SRP_Disturbance(Disturbance):
             EarthConstants.solar_constant, EarthConstants.c,
         )
 
-    def torque_qjav(self, sat: Satellite, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+    def torque_qjac(self, sat: Satellite, x: np.ndarray, os: Orbital_State) -> np.ndarray:
         r"""
         Compute the **Jacobian of SRP torque** with respect to the attitude quaternion.
 
@@ -458,17 +458,6 @@ class SRP_Disturbance(Disturbance):
             # Canonical Jacobian layout is (4,3) = [quat, torque-component];
             # the eclipse return must match (was (3,1)).
             return np.zeros((4, 3))
-
-    def torque_qjac(self, sat: Satellite, x: np.ndarray, os: Orbital_State) -> np.ndarray:
-        r"""
-        Alias of :meth:`torque_qjav` so SRP exposes the same ``torque_qjac``
-        quaternion-Jacobian entry point as every other disturbance (the
-        original method name ``torque_qjav`` was an inconsistent typo).
-
-        :return: Quaternion Jacobian of the SRP torque, shape ``(4,3)``.
-        :rtype: :class:`numpy.ndarray`
-        """
-        return self.torque_qjav(sat=sat, x=x, os=os)
 
     def torque_qqhess(self, sat: Satellite, x: np.ndarray, os: Orbital_State) -> np.ndarray:
         r"""

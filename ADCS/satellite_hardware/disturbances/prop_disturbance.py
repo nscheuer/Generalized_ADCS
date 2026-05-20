@@ -182,22 +182,3 @@ class Prop_Disturbance(Disturbance):
         """
         return np.zeros((4, 4, 3))
 
-    def torque_qqHess(self) -> np.ndarray:
-        r"""
-        Compute the **Hessian of the propulsion disturbance torque** with respect
-        to the attitude quaternion.
-
-        Since :math:`\mathbf{T}_{\mathrm{prop}}` is constant, all second-order
-        derivatives vanish:
-
-        .. math::
-
-            \frac{\partial^2 \mathbf{T}_{\mathrm{prop}}}{\partial \mathbf{q}^2}
-            =
-            \mathbf{0}_{3\times4\times4}.
-
-        :return: Quaternion Hessian tensor of zeros, shape ``(3, 4, 4)``.
-        :rtype: :class:`numpy.ndarray`
-        """
-        return np.zeros((3, 4, 4))
-

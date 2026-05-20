@@ -149,7 +149,7 @@ class GG_Disturbance(Disturbance):
         vecs = os.get_state_vector(x=x)
         return _gg_torque_kernel(vecs["r"], sat.J_0, EarthConstants.mu_e)
     
-    def torque_qvac(self, sat: Satellite, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+    def torque_qjac(self, sat: Satellite, x: np.ndarray, os: Orbital_State) -> np.ndarray:
         r"""
         Compute the **Jacobian of the gravity-gradient torque with respect to the
         attitude quaternion**.
@@ -247,18 +247,7 @@ class GG_Disturbance(Disturbance):
 
         return np.outer(dc__dq, vec_term) + const_term*dv__dq
 
-    def torque_qjac(self, sat: Satellite, x: np.ndarray, os: Orbital_State) -> np.ndarray:
-        r"""
-        Alias of :meth:`torque_qvac` so the gravity-gradient disturbance exposes
-        the same ``torque_qjac`` quaternion-Jacobian entry point as every other
-        disturbance (estimators/planners iterate ``torque_qjac`` generically).
-
-        :return: Quaternion Jacobian of the gravity-gradient torque, shape ``(4,3)``.
-        :rtype: :class:`numpy.ndarray`
-        """
-        return self.torque_qvac(sat=sat, x=x, os=os)
-
-    def torque__qqhess(self, sat: Satellite, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+    def torque_qqhess(self, sat: Satellite, x: np.ndarray, os: Orbital_State) -> np.ndarray:
         r"""
         Compute the **Hessian of the gravity-gradient torque with respect to the
         attitude quaternion**.
@@ -338,9 +327,16 @@ class GG_Disturbance(Disturbance):
         ddnadir_vec__dqdq = -ddr_body_hat__dq
 
         const_term = 3.0*EarthConstants.mu_e/(norm(R_B)**3.0)
+        # Same J_0-contraction convention as torque_qjac above: ``dnadir_vec__dq``
+        # is (4,3) = [quat-index, vector-component], so J_0 must contract on the
+        # vector axis via right-multiplication by J_0.T. ``sat.J_0 @ dnadir_vec__dq``
+        # is (3,3)@(4,3) and raises ValueError; ``dnadir_vec__dq @ sat.J_0.T``
+        # yields the correct (4,3). For the (4,4,3) Hessian of nadir,
+        # ``ddnadir_vec__dqdq @ sat.J_0.T`` likewise contracts on the trailing
+        # vector axis and yields (4,4,3).
         tmp = np.cross(
             np.expand_dims(dnadir_vec__dq, 1),
-            np.expand_dims(sat.J_0 @ dnadir_vec__dq, 0),
+            np.expand_dims(dnadir_vec__dq @ sat.J_0.T, 0),
         )
 
         dc__dq = -9.0*EarthConstants.mu_e*vec_norm_jac(R_B, vecs["dr"])/(norm(R_B)**4.0)
@@ -353,13 +349,13 @@ class GG_Disturbance(Disturbance):
         )
         dv__dq = (
             np.cross(dnadir_vec__dq, sat.J_0 @ nadir_vec)
-            + np.cross(nadir_vec, sat.J_0 @ dnadir_vec__dq)
+            + np.cross(nadir_vec, dnadir_vec__dq @ sat.J_0.T)
         )
         ddv__dqdq = (
             np.cross(ddnadir_vec__dqdq, sat.J_0 @ nadir_vec)
             + tmp
             + np.transpose(tmp, (1, 0, 2))
-            + np.cross(nadir_vec, sat.J_0 @ ddnadir_vec__dqdq)
+            + np.cross(nadir_vec, ddnadir_vec__dqdq @ sat.J_0.T)
         )
 
         vec_term = np.cross(nadir_vec, sat.J_0 @ nadir_vec)

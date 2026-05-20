@@ -1,6 +1,10 @@
 __all__ = ["Disturbance"]
 
-from typing import List
+import numpy as np
+from typing import List, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ADCS.orbits.orbital_state import Orbital_State
 
 class Disturbance:
     def __init__(self, estimate_dist: bool = False, estimated_vector_length: int = 0):
@@ -60,4 +64,44 @@ class Disturbance:
         """
         self.estimate_dist = estimate_dist
         self.estimated_vector_length = estimated_vector_length
+
+    # ------------------------------------------------------------------
+    # Canonical analytic-derivative interface.
+    #
+    # Every consumer (`Satellite.dist_torques_jacobian`, `dist_torque_hess`,
+    # the dynamics-Hessians chain, an eventual EKF / one-step MPC) calls
+    # `j.torque_qjac` / `torque_qqhess` / `torque_valjac` /
+    # `torque_qvalhess` / `torque_valvalhess` on EVERY disturbance, not just
+    # the estimable ones. Without a default, any subclass that didn't
+    # implement a particular derivative raised AttributeError, making the
+    # whole chain dead-on-arrival for that disturbance combination.
+    #
+    # The base provides correctly-shaped ZERO defaults; subclasses override
+    # with real physics. This is the standard pattern used by base
+    # `Actuator` (zero-impls for every `dtorq__*` / `ddtorq__*` /
+    # `ddstor_torq__*`) and base `Sensor` (defaults for `reading` /
+    # `basestate_jac`). All derivatives use the unified signature
+    # ``(self, sat, x, os)`` -- consistent with Drag / GG / SRP, and the
+    # Dipole / Prop subclasses are updated to match.
+    # ------------------------------------------------------------------
+
+    def torque_qjac(self, sat, x: np.ndarray, os: "Orbital_State") -> np.ndarray:
+        r"""Quaternion Jacobian of the disturbance torque. Default = zeros (4, 3)."""
+        return np.zeros((4, 3))
+
+    def torque_qqhess(self, sat, x: np.ndarray, os: "Orbital_State") -> np.ndarray:
+        r"""Quaternion Hessian of the disturbance torque. Default = zeros (4, 4, 3)."""
+        return np.zeros((4, 4, 3))
+
+    def torque_valjac(self, sat, x: np.ndarray, os: "Orbital_State") -> np.ndarray:
+        r"""Disturbance-parameter Jacobian. Default = zeros (estimated_vector_length, 3)."""
+        return np.zeros((int(self.estimated_vector_length), 3))
+
+    def torque_qvalhess(self, sat, x: np.ndarray, os: "Orbital_State") -> np.ndarray:
+        r"""Mixed quaternion / disturbance-parameter Hessian. Default = zeros (4, val, 3)."""
+        return np.zeros((4, int(self.estimated_vector_length), 3))
+
+    def torque_valvalhess(self, sat, x: np.ndarray, os: "Orbital_State") -> np.ndarray:
+        r"""Disturbance-parameter Hessian. Default = zeros (val, val, 3)."""
+        return np.zeros((int(self.estimated_vector_length), int(self.estimated_vector_length), 3))
     

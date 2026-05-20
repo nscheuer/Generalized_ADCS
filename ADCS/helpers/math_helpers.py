@@ -905,7 +905,14 @@ def _vec_norm_hess(v: np.ndarray) -> np.ndarray:
     return np.eye(l) / normv - np.outer(v, v) / normv**3.0
 
 
-@njit(cache=True)
+# NOT @njit: ``ddv`` is in general a 3-D tensor (shape ``(M, N, k)``) and
+# ``dndv`` is the 1-D gradient of ``norm(v)`` (shape ``(k,)``). Numpy's
+# matmul broadcasts ``(M, N, k) @ (k,) -> (M, N)`` cleanly, but numba's
+# ``@`` does not implement the 3-D-by-1-D contraction (raises
+# ``TypingError: '@': inputs must have compatible dimensions``). The
+# matching plain-Python ``normed_vec_hess`` chain-rule helper is also
+# left un-jitted for the same reason. ``_vec_norm_jac`` and
+# ``_vec_norm_hess`` remain ``@njit``-compiled.
 def _vec_norm_hess_with_chain(v: np.ndarray, dv: np.ndarray, ddv: np.ndarray) -> np.ndarray:
     dndv = _vec_norm_jac(v)
     ddndvdv = _vec_norm_hess(v)

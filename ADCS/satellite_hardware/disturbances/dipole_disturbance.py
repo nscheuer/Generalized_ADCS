@@ -134,7 +134,7 @@ class Dipole_Disturbance(Disturbance):
         B_B = vecs["b"]
         return np.cross(self.current_torque, B_B)
 
-    def torque_qjac(self, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+    def torque_qjac(self, sat, x: np.ndarray, os: Orbital_State) -> np.ndarray:
         r"""
         Jacobian of the disturbance torque with respect to the attitude quaternion.
 
@@ -167,7 +167,7 @@ class Dipole_Disturbance(Disturbance):
         db_body__dq = vecs["db"]
         return np.cross(self.current_torque, db_body__dq)
 
-    def torque_qqhess(self, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+    def torque_qqhess(self, sat, x: np.ndarray, os: Orbital_State) -> np.ndarray:
         r"""
         Hessian of the disturbance torque with respect to the attitude quaternion.
 
@@ -200,7 +200,7 @@ class Dipole_Disturbance(Disturbance):
         ddb_body__dqdq = vecs["ddb"]
         return np.cross(self.current_torque, ddb_body__dqdq)
 
-    def torque_valjac(self, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+    def torque_valjac(self, sat, x: np.ndarray, os: Orbital_State) -> np.ndarray:
         r"""
         Jacobian of the disturbance torque with respect to the dipole vector.
 
@@ -234,7 +234,7 @@ class Dipole_Disturbance(Disturbance):
         B_B = vecs["b"]
         return np.cross(np.eye(3), B_B)
 
-    def torque_qvalhess(self, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+    def torque_qvalhess(self, sat, x: np.ndarray, os: Orbital_State) -> np.ndarray:
         r"""
         Mixed second derivative of the disturbance torque with respect to quaternion
         and dipole vector.
@@ -266,3 +266,29 @@ class Dipole_Disturbance(Disturbance):
         vecs = os.get_state_vector(x=x)
         db_body__dq = vecs["db"]
         return np.cross(np.expand_dims(np.eye(3), 0), np.expand_dims(db_body__dq, 1))
+
+    def torque_valvalhess(self, sat, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+        r"""
+        Second derivative of the disturbance torque with respect to the
+        dipole vector :math:`\mathbf{m}_d`.
+
+        Because :math:`\mathbf{T}_d = \mathbf{m}_d \times \mathbf{B}_b` is
+        linear in :math:`\mathbf{m}_d`, the Hessian is identically zero:
+
+        .. math::
+
+            \frac{\partial^2 \mathbf{T}_d}{\partial \mathbf{m}_d^{\,2}}
+            = \mathbf{0}_{3\times 3\times 3}.
+
+        Provided explicitly (rather than inherited from the base zero default)
+        so the canonical interface is locally complete for the dipole model.
+
+        :param sat: Satellite context (unused).
+        :param x: Spacecraft state vector (unused).
+        :type x: numpy.ndarray
+        :param os: Orbital state provider (unused).
+        :type os: ADCS.orbits.orbital_state.Orbital_State
+        :return: Dipole Hessian of zeros, shape ``(3, 3, 3)``.
+        :rtype: numpy.ndarray
+        """
+        return np.zeros((3, 3, 3))

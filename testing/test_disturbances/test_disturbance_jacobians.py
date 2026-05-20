@@ -2,15 +2,22 @@
 Finite-difference verification of every disturbance quaternion Jacobian.
 
 The disturbance ``torque()`` methods are physically correct, but their
-analytic quaternion Jacobians had no test at all and several were broken:
+analytic quaternion Jacobians had no test at all and several were broken.
+PR #35 fixed the bodies and added typo'd aliases (``torque_qvac`` on GG,
+``torque_qjav`` on SRP, ``torque_qqHess`` on Prop) so the canonical names
+still worked. Stage C removed the typo'd names at the source, leaving only
+the canonical ``torque_qjac`` / ``torque_qqhess`` interface. Pre-Stage-C
+defects fixed:
 
-* ``GG.torque_qvac``      : ``sat.J_0 @ dnadir`` was (3,3)@(4,3) -> ValueError.
+* ``GG.torque_qjac``      : ``sat.J_0 @ dnadir`` was (3,3)@(4,3) -> ValueError;
+                            the method itself was misspelled ``torque_qvac``.
 * ``Drag.torque_qjac``    : used km/s while ``torque()`` uses m/s (~1e6 off);
                             Heaviside incidence mask applied along the
                             quaternion axis instead of the face axis;
                             undefined ``self.active``.
-* ``SRP.torque_qjav``     : same per-face-vs-per-quaternion mask bug; eclipse
-                            branch returned shape (3,1); name typo.
+* ``SRP.torque_qjac``     : same per-face-vs-per-quaternion mask bug; eclipse
+                            branch returned shape (3,1); method was
+                            misspelled ``torque_qjav``.
 * ``Prop.torque_qjac``    : no-arg signature (TypeError under generic use).
 * ``Dipole.torque_qjac``  : CORRECT -- included here as a regression guard
                             (the earlier "sign error" was a layout artifact).
@@ -140,12 +147,20 @@ def test_disturbance_qjac_matches_central_fd(kind):
     )
 
 
-def test_gg_torque_qvac_no_longer_raises():
+def test_gg_torque_qjac_no_longer_raises():
+    """PR #35 fixed the GG J_0-contraction shape bug; Stage C renamed the
+    method from the typo'd ``torque_qvac`` to canonical ``torque_qjac``.
+    Pinning the canonical name + the regression guard that the body no
+    longer raises ValueError on the J_0 @ dnadir contraction."""
     d, sat, os_ = _build("gg")
-    j = np.asarray(d.torque_qvac(sat=sat, x=X0, os=os_), float)
+    j = np.asarray(d.torque_qjac(sat=sat, x=X0, os=os_), float)
     assert j.shape == (4, 3) and np.isfinite(j).all()
-    # torque_qjac is an alias of torque_qvac.
-    assert np.allclose(j, np.asarray(d.torque_qjac(sat=sat, x=X0, os=os_), float))
+    # The typo'd name was removed at source in Stage C -- accessing it
+    # must AttributeError, otherwise the cleanup has regressed.
+    assert not hasattr(d, "torque_qvac"), (
+        "Stage C removed the typo'd `torque_qvac`; resurrecting it would "
+        "fork the disturbance interface again."
+    )
 
 
 def test_srp_jacobian_zero_and_correct_shape_in_eclipse():
