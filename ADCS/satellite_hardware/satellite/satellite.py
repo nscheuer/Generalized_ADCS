@@ -628,7 +628,13 @@ class Satellite:
         w = x[0:3]
         q = x[3:7]
         h = x[7:]
-        J = self.J_0
+        # Gyroscopic w x (J w) term must use the inertia about the center of
+        # mass: that is the body the rotational EOM is written about, and it is
+        # what invJ_noRW is derived from (J_noRW = J_COM - sum RW). J_0 is the
+        # inertia about the reference origin and equals J_COM only when COM == 0;
+        # using J_0 here broke angular-momentum conservation for any non-zero
+        # COM offset (every pre-existing dynamics test used COM == 0).
+        J = self.J_COM
         invJ_noRW = self.invJ_noRW
         if self.number_RW == 0:
             RWjs = np.zeros(0, dtype=float)
@@ -965,7 +971,10 @@ class Satellite:
         w = x[0:3]
         q = x[3:7]
         RWhs = x[7:]
-        J = self.J_0
+        # Must match the inertia used in dynamics_core (J_COM, not J_0) so the
+        # analytic Jacobian stays the correct linearization of the dynamics for
+        # a non-zero COM offset. See dynamics_core for the rationale.
+        J = self.J_COM
         invJ_noRW = self.invJ_noRW
 
         rmat_ECI2B = rot_mat(q).T
@@ -1085,7 +1094,9 @@ class Satellite:
         q = x[3:7]#normalize(x[3:7,:])
         RWhs = x[7:]
         invJ_noRW = self.invJ_noRW
-        J = self.J
+        # Match the COM-based rotational dynamics and avoid relying on the
+        # undefined self.J attribute.
+        J = self.J_COM
 
         R = orbital_state.R
         V = orbital_state.V
@@ -1247,6 +1258,9 @@ class Satellite:
         :raises ValueError:
             If ``give_err_est=True`` while using the CG5 quaternion propagation variant.
         """
+        # Work on a private copy: the renormalisation below (and the RK stages)
+        # must not mutate the caller's input array.
+        x = np.array(x, dtype=float)
         x[3:7] = normalize(x[3:7])
         # Use no noise, no bias, no updates to either
         dmode = ErrorMode(add_bias=False, add_noise=False, update_bias=False, update_noise=False)
