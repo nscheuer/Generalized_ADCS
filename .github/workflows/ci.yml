@@ -16,7 +16,9 @@ jobs:
     steps:
       - name: ⬇️ Checkout Repository
         uses: actions/checkout@v4
-      
+        with:
+          submodules: recursive
+
       - name: 🐍 Set up Python
         uses: actions/setup-python@v5
         with:
@@ -45,11 +47,15 @@ jobs:
             libarmadillo-dev \
             libboost-math-dev
 
-      - name: 🛠️ Build trajectory_planner
+      - name: 🛠️ Build trajectory_planner (OldPlanner submodule)
         run: |
           source .venv/bin/activate
 
-          cd trajectory_planner
+          # OldPlanner lives at ./OldPlanner as a git submodule
+          # (https://github.com/patrickmckeen/OldPlanner). Build it out-of-
+          # tree into OldPlanner/build/ so ADCS.controller.helpers.
+          # optional_dependencies.trajectory_planner_build_path() finds it.
+          cd OldPlanner
           mkdir -p build
           cd build
 

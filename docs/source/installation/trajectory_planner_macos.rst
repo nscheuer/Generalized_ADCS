@@ -25,11 +25,19 @@ Note: on Intel Macs replace ``/opt/homebrew`` with ``/usr/local`` below.
 
 Build trajectory_planner
 ------------------------
-Run with the virtual environment active (so ``$VIRTUAL_ENV`` is set):
+The trajectory_planner C++ source lives in the
+`OldPlanner <https://github.com/patrickmckeen/OldPlanner>`_ submodule.
+Initialise it first if needed:
 
 .. code-block:: bash
 
-   cd trajectory_planner
+   git submodule update --init --recursive OldPlanner
+
+Then with the virtual environment active (so ``$VIRTUAL_ENV`` is set):
+
+.. code-block:: bash
+
+   cd OldPlanner
    mkdir -p build && cd build
 
    cmake .. \
