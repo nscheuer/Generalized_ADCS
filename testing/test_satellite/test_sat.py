@@ -1,11 +1,13 @@
 import sys
-import os
+from pathlib import Path
 import numpy as np
 import pytest
 from typing import List
 
 # === Import project modules ===
-sys.path.append(os.path.abspath(os.path.join(__file__, "../..")))
+REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 from ADCS.satellite_hardware.satellite.satellite import Satellite
 from ADCS.satellite_hardware.actuators import Actuator, RW, MTQ
 from ADCS.satellite_hardware.errors import Bias, Noise
@@ -636,7 +638,6 @@ def test_resdipole():
 
 if __name__ == "__main__":
     test_J_with_RW()
-
 
 
 
