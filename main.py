@@ -2,7 +2,9 @@ import sys
 import os
 
 this_dir = os.path.dirname(__file__)
-build_path = os.path.join(this_dir, "trajectory_planner", "build")
+# trajectory_planner now lives in the OldPlanner submodule
+# (https://github.com/patrickmckeen/OldPlanner), built into OldPlanner/build/.
+build_path = os.path.join(this_dir, "OldPlanner", "build")
 sys.path.append(build_path)
 
 import numpy as np
@@ -11,8 +13,9 @@ try:
     import pysat
 except ImportError as exc:
     raise ImportError(
-        "Optional add-on trajectory_planner is not available. "
-        "Build trajectory_planner/build first (see docs/Install_WSL.md or docs/Install_Windows.md)."
+        "Optional add-on trajectory_planner (OldPlanner) is not available. "
+        "Initialise the OldPlanner submodule and build into OldPlanner/build/ "
+        "first (see docs/Install_Trajectory_Planner.md)."
     ) from exc
 
 from ADCS.satellite_hardware.satellite.satellite import Satellite
