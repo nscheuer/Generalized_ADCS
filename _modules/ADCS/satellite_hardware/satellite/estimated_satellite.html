@@ -1122,7 +1122,10 @@
         <span class="n">w</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span>
         <span class="n">q</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">4</span><span class="p">:</span><span class="mi">7</span><span class="p">]</span>
         <span class="n">RWhs</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">7</span><span class="p">:]</span>
-        <span class="n">J</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">J_0</span>
+        <span class="c1"># Must match the inertia used in dynamics_core (J_COM, not J_0) so the</span>
+        <span class="c1"># estimated-model Jacobian remains the correct linearization when COM</span>
+        <span class="c1"># is offset from the reference origin.</span>
+        <span class="n">J</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">J_COM</span>
         <span class="n">invJ_noRW</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">invJ_noRW</span>
 
         <span class="n">rmat_ECI2B</span> <span class="o">=</span> <span class="n">rot_mat</span><span class="p">(</span><span class="n">q</span><span class="p">)</span><span class="o">.</span><span class="n">T</span>
@@ -1287,7 +1290,9 @@
         <span class="n">q</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">7</span><span class="p">]</span><span class="c1">#normalize(x[3:7,:])</span>
         <span class="n">RWhs</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">7</span><span class="p">:]</span>
         <span class="n">invJ_noRW</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">invJ_noRW</span>
-        <span class="n">J</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">J</span>
+        <span class="c1"># Match the COM-based rotational dynamics and avoid relying on the</span>
+        <span class="c1"># undefined self.J attribute.</span>
+        <span class="n">J</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">J_COM</span>
 
         <span class="n">R</span> <span class="o">=</span> <span class="n">orbital_state</span><span class="o">.</span><span class="n">R</span>
         <span class="n">V</span> <span class="o">=</span> <span class="n">orbital_state</span><span class="o">.</span><span class="n">V</span>

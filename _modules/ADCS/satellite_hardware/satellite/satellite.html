@@ -1207,7 +1207,13 @@
         <span class="n">w</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span>
         <span class="n">q</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">7</span><span class="p">]</span>
         <span class="n">h</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">7</span><span class="p">:]</span>
-        <span class="n">J</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">J_0</span>
+        <span class="c1"># Gyroscopic w x (J w) term must use the inertia about the center of</span>
+        <span class="c1"># mass: that is the body the rotational EOM is written about, and it is</span>
+        <span class="c1"># what invJ_noRW is derived from (J_noRW = J_COM - sum RW). J_0 is the</span>
+        <span class="c1"># inertia about the reference origin and equals J_COM only when COM == 0;</span>
+        <span class="c1"># using J_0 here broke angular-momentum conservation for any non-zero</span>
+        <span class="c1"># COM offset (every pre-existing dynamics test used COM == 0).</span>
+        <span class="n">J</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">J_COM</span>
         <span class="n">invJ_noRW</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">invJ_noRW</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">number_RW</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="n">RWjs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
@@ -1562,7 +1568,10 @@
         <span class="n">w</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span>
         <span class="n">q</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">7</span><span class="p">]</span>
         <span class="n">RWhs</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">7</span><span class="p">:]</span>
-        <span class="n">J</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">J_0</span>
+        <span class="c1"># Must match the inertia used in dynamics_core (J_COM, not J_0) so the</span>
+        <span class="c1"># analytic Jacobian stays the correct linearization of the dynamics for</span>
+        <span class="c1"># a non-zero COM offset. See dynamics_core for the rationale.</span>
+        <span class="n">J</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">J_COM</span>
         <span class="n">invJ_noRW</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">invJ_noRW</span>
 
         <span class="n">rmat_ECI2B</span> <span class="o">=</span> <span class="n">rot_mat</span><span class="p">(</span><span class="n">q</span><span class="p">)</span><span class="o">.</span><span class="n">T</span>
@@ -1685,7 +1694,9 @@
         <span class="n">q</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">7</span><span class="p">]</span><span class="c1">#normalize(x[3:7,:])</span>
         <span class="n">RWhs</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">7</span><span class="p">:]</span>
         <span class="n">invJ_noRW</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">invJ_noRW</span>
-        <span class="n">J</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">J</span>
+        <span class="c1"># Match the COM-based rotational dynamics and avoid relying on the</span>
+        <span class="c1"># undefined self.J attribute.</span>
+        <span class="n">J</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">J_COM</span>
 
         <span class="n">R</span> <span class="o">=</span> <span class="n">orbital_state</span><span class="o">.</span><span class="n">R</span>
         <span class="n">V</span> <span class="o">=</span> <span class="n">orbital_state</span><span class="o">.</span><span class="n">V</span>
@@ -1850,6 +1861,9 @@
 <span class="sd">        :raises ValueError:</span>
 <span class="sd">            If ``give_err_est=True`` while using the CG5 quaternion propagation variant.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Work on a private copy: the renormalisation below (and the RK stages)</span>
+        <span class="c1"># must not mutate the caller&#39;s input array.</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
         <span class="n">x</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">7</span><span class="p">]</span> <span class="o">=</span> <span class="n">normalize</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">7</span><span class="p">])</span>
         <span class="c1"># Use no noise, no bias, no updates to either</span>
         <span class="n">dmode</span> <span class="o">=</span> <span class="n">ErrorMode</span><span class="p">(</span><span class="n">add_bias</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">add_noise</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">update_bias</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">update_noise</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
