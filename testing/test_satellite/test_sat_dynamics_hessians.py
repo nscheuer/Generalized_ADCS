@@ -9,18 +9,16 @@ import sys
 import os
 import numpy as np
 import pytest
-from typing import List
 
 # === Import project modules ===
 sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))
-import numpy as np
-import pytest
 
 from ADCS.satellite_hardware.satellite.satellite import Satellite
 from ADCS.satellite_hardware.actuators import MTQ
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.ephemeris import Ephemeris
 
+@pytest.mark.slow
 def test_dynamics_hessians_matches_finite_difference_of_jacobian():
     ephem = Ephemeris()
     os0 = Orbital_State(ephem=ephem, J2000=0.22,
