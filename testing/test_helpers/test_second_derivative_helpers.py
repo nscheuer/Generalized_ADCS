@@ -1,14 +1,6 @@
 """
 Finite-difference verification of the second-derivative (Hessian) helpers
-in ADCS/helpers/math_helpers.py (backlog #5).
-
-ddrotmatTvecdqdq, normed_vec_hess, vec_norm_hess feed dynamics_Hessians
-(the one-step-MPC scaffolding) and planner second-order terms and had ZERO
-test coverage. Their first-derivative counterparts (drotmatTvecdq,
-normed_vec_jac, vec_norm_jac) were independently FD-verified earlier, so the
-Hessian = d(Jacobian)/d(input) is the right ground truth. Each Hessian is
-checked by central-differencing the verified Jacobian, plus index symmetry
-and (for the norm) the exact closed form.
+in ADCS/helpers/math_helpers.py.
 """
 
 import numpy as np
