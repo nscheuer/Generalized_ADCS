@@ -216,6 +216,7 @@ class Satellite:
         # Initialize state
         self.state_len = 7 + self.number_RW
         self.control_len = len(actuators)
+        self.dist_param_len = 0
         self.update_J(J_0=J_0, COM=COM)
 
     def get_boresight(self, name: str | None = None) -> np.ndarray:
@@ -1118,14 +1119,14 @@ class Satellite:
         vecs = {"b":B_B,"r":R_B,"s":S_B,"v":V_B,"rho":rho,"db":dB_B__dq,"ds":dS_B__dq,"dv":dV_B__dq,"dr":dR_B__dq,"ddb":ddB_B__dqdq,"dds":ddS_B__dqdq,"ddv":ddV_B__dqdq,"ddr":ddR_B__dqdq,"os":orbital_state}
         com = self.COM
 
-        dact_torq__dbase = sum([self.actuators[j].dtorq__dbasestate(u[j],self,x,vecs) for j in range(len(self.actuators))],np.zeros((7,3)))
-        ddact_torq__dbasedbase = sum([self.actuators[j].ddtorq__dbasestatedbasestate(u[j],self,x,vecs) for j in range(len(self.actuators))],np.zeros((7,7,3)))
-        dact_torq__du = np.vstack([self.actuators[j].dtorq__du(u[j],self,x,vecs) for j in range(len(self.actuators))])
+        dact_torq__dbase = sum([self.actuators[j].dtorq__dbasestate(u[j], x, orbital_state) for j in range(len(self.actuators))],np.zeros((7,3)))
+        ddact_torq__dbasedbase = sum([self.actuators[j].ddtorq__dbasestatedbasestate(u[j], x, orbital_state) for j in range(len(self.actuators))],np.zeros((7,7,3)))
+        dact_torq__du = np.vstack([self.actuators[j].dtorq__du(u[j], x, orbital_state) for j in range(len(self.actuators))])
         ddact_torq__dudu = np.zeros((self.control_len,self.control_len,3))
         ddact_torq__dudbase = np.zeros((self.control_len,7,3))
         for j in range(len(self.actuators)):
-            ddact_torq__dudu[j,j,:] = self.actuators[j].ddtorq__dudu(u[j],self,x,vecs)
-            ddact_torq__dudbase[j,:,:] = self.actuators[j].ddtorq__dudbasestate(u[j],self,x,vecs)
+            ddact_torq__dudu[j,j,:] = self.actuators[j].ddtorq__dudu(u[j], x, orbital_state)
+            ddact_torq__dudbase[j,:,:] = self.actuators[j].ddtorq__dudbasestate(u[j], x, orbital_state)
 
 
         ddxdot__dxdx = np.zeros((self.state_len,self.state_len,self.state_len))
@@ -1154,9 +1155,9 @@ class Satellite:
             ind = 0
             for ind in range(self.number_RW):
                 j = self.momentum_inds[ind]
-                ddact_torq__dudh[j,ind,:] = self.actuators[j].ddtorq__dudh(u[j],self,x,vecs)
-                ddact_torq__dhdh[ind,ind,:] = self.actuators[j].ddtorq__dhdh(u[j],self,x,vecs)
-                ddact_torq__dbasedh[:,ind,:] = np.squeeze(self.actuators[j].ddtorq__dbasestatedh(u[j],self,x,vecs))
+                ddact_torq__dudh[j,ind,:] = self.actuators[j].ddtorq__dudh(u[j], x, orbital_state)
+                ddact_torq__dhdh[ind,ind,:] = self.actuators[j].ddtorq__dhdh(u[j], x, orbital_state)
+                ddact_torq__dbasedh[:,ind,:] = np.squeeze(self.actuators[j].ddtorq__dbasestatedh(u[j], x, orbital_state))
 
             RWjs = np.array([self.actuators[j].J for j in self.momentum_inds])
             RWaxes = np.vstack([self.actuators[j].axis for j in self.momentum_inds])
@@ -1176,13 +1177,13 @@ class Satellite:
             ind = 0
             for ind in range(self.number_RW):
                 j = self.momentum_inds[ind]
-                ddxdot__dxdu[0:7,j,7+ind] += np.squeeze(np.transpose(self.actuators[j].ddstor_torq__dudbasestate(u[j],self,x,vecs),(1,0,2)))
-                ddxdot__dxdu[7+ind,j,7+ind] += np.transpose(self.actuators[j].ddstor_torq__dudh(u[j],self,x,vecs),(1,0,2))
-                ddxdot__dudu[j,j,7+ind] = self.actuators[j].ddstor_torq__dudu(u[j],self,x,vecs)
-                ddxdot__dxdx[0:7,0:7,7+ind] += np.squeeze(self.actuators[j].ddstor_torq__dbasestatedbasestate(u[j],self,x,vecs))
-                ddxdot__dxdx[7+ind,0:7,7+ind] += np.squeeze(np.transpose(self.actuators[j].ddstor_torq__dbasestatedh(u[j],self,x,vecs),(1,0,2)))
-                ddxdot__dxdx[0:7,7+ind,7+ind] += np.squeeze(self.actuators[j].ddstor_torq__dbasestatedh(u[j],self,x,vecs))
-                ddxdot__dxdx[7+ind,7+ind,7+ind] += np.squeeze(self.actuators[j].ddstor_torq__dhdh(u[j],self,x,vecs))
+                ddxdot__dxdu[0:7,j,7+ind] += np.squeeze(np.transpose(self.actuators[j].ddstor_torq__dudbasestate(u[j], x, orbital_state),(1,0,2)))
+                ddxdot__dxdu[7+ind,j,7+ind] += np.transpose(self.actuators[j].ddstor_torq__dudh(u[j], x, orbital_state),(1,0,2))
+                ddxdot__dudu[j,j,7+ind] = self.actuators[j].ddstor_torq__dudu(u[j], x, orbital_state)
+                ddxdot__dxdx[0:7,0:7,7+ind] += np.squeeze(self.actuators[j].ddstor_torq__dbasestatedbasestate(u[j], x, orbital_state))
+                ddxdot__dxdx[7+ind,0:7,7+ind] += np.squeeze(np.transpose(self.actuators[j].ddstor_torq__dbasestatedh(u[j], x, orbital_state),(1,0,2)))
+                ddxdot__dxdx[0:7,7+ind,7+ind] += np.squeeze(self.actuators[j].ddstor_torq__dbasestatedh(u[j], x, orbital_state))
+                ddxdot__dxdx[7+ind,7+ind,7+ind] += np.squeeze(self.actuators[j].ddstor_torq__dhdh(u[j], x, orbital_state))
 
             ddxdot__dxdu[:,:,7:] -= ddxdot__dxdu[:,:,0:3]@RWaxes.T@mRWjs
             ddxdot__dudu[:,:,7:] -= ddxdot__dudu[:,:,0:3]@RWaxes.T@mRWjs
