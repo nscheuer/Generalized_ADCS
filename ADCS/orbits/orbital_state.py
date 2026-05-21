@@ -144,8 +144,14 @@ class Orbital_State:
         self.R_e = EarthConstants.R_e
         self.J2coeff = EarthConstants.J2coeff
 
+        # NOTE: j2000_to_tai() returns J2000*36525 + 2451545.0. JD 2451545.0 is
+        # the J2000.0 epoch in TT (2000-01-01 12:00:00 TT), so this Julian date
+        # is on the TT scale and must be passed to ts.tt_jd, NOT ts.tai_jd
+        # (which mislabeled it as TAI -> a constant TT-TAI = 32.184 s epoch
+        # error in every time-dependent quantity: ECEF, Sun, IGRF). The legacy
+        # attribute name `self.TAI` is kept for serialization/back-compat.
         self.TAI = self.j2000_to_tai()
-        t_sf = self.ts.tai_jd(self.TAI)
+        t_sf = self.ts.tt_jd(self.TAI)
 
         # Construct a Skyfield ICRF position for downstream functionality (e.g. is_sunlit).
         pos = units.Distance(km=self.R.tolist())
@@ -727,7 +733,11 @@ class Orbital_State:
         :rtype: numpy.ndarray
 
         """
-        return self._ecef_to_geo.T @ np.asarray(vec, dtype=float)
+        # _ecef_to_geo = [n; t; s] (basis vectors as rows). geocentric_to_ecef
+        # is v0*n+v1*t+v2*s = _ecef_to_geo.T @ v, so the inverse (ECEF ->
+        # geocentric) is _ecef_to_geo @ vec, NOT _ecef_to_geo.T @ vec (the
+        # transpose was not the inverse of geocentric_to_ecef).
+        return self._ecef_to_geo @ np.asarray(vec, dtype=float)
 
     def geocentric_to_ecef(self, vec: np.ndarray) -> np.ndarray:
         r"""
@@ -820,7 +830,7 @@ class Orbital_State:
         :rtype: numpy.ndarray
 
         """
-        t = self.ts.tai_jd(self.TAI)
+        t = self.ts.tt_jd(self.TAI)  # TT scale (see __init__ note on self.TAI)
         sun_icrf = self.ephem.earth.at(t).observe(self.ephem.sun).apparent()
         return np.asarray(sun_icrf.position.km, dtype=float).reshape(3)
 

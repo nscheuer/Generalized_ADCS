@@ -518,7 +518,17 @@ def test_dynamics_RW():
     u = np.array([0.021, -0.05, 0.0])
     xd = sat.dynamics_core(x=x, u=u, orbital_state=os)
 
-    assert np.allclose(np.array([0.02/(1-0.001),0,0,0,0.005,0,0,-0.02/(1-0.001),0,0]), xd,rtol = 1e-8,atol=1e-8)
+    # NOTE: expected value updated for the actuator-saturation bug fix.
+    # u[0]=0.021 exceeds RW0's actuation limit max_torque[0]=0.01. The old
+    # RW model emitted only a warning and used the raw oversized command, so
+    # the previous expectation was the *unclamped* value 0.02 = 0.021 + bias
+    # (0.021 + e_bias[0]=-0.001). The corrected model saturates the command to
+    # +/- u_max BEFORE bias is added, giving effective RW0 torque
+    # clip(0.021, -0.01, 0.01) + (-0.001) = 0.01 - 0.001 = 0.009.
+    # RW1: |-0.05| is NOT > max_torque[1]=0.05, so unclamped: -0.05 + 0.05 = 0.0
+    # (unchanged). RW2: command 0.0 (unchanged). Hence the only nonzero entries
+    # change from 0.02 -> 0.009; gyro/qdot/disturbance terms are unaffected.
+    assert np.allclose(np.array([0.009/(1-0.001),0,0,0,0.005,0,0,-0.009/(1-0.001),0,0]), xd,rtol = 1e-8,atol=1e-8)
 
 
 
