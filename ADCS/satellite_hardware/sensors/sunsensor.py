@@ -85,7 +85,11 @@ class SunSensor(Sensor):
     * This is a **coarse** Sun sensor intended for low-accuracy attitude
       determination.
     * The sensor output is scalar, so ``output_length = 1``.
-    * In eclipse, the clean measurement and all Jacobians are identically zero.
+    * In eclipse (``os.is_sunlit() == False``) the clean measurement and all
+      Jacobians return ``NaN`` as the "sensor invalid / occulted" sentinel;
+      the UKF/SRUKF detect this (``np.isnan``) and deactivate the sensor for
+      that step. (It is *not* zero -- a zero would be fed to the filter as a
+      real measurement.)
     """
     def __init__(self, axis: np.ndarray, efficiency: float, sample_time: float = 0.1, bias: Bias = None, noise: Noise = None, estimate_bias: bool = False):
         r"""
@@ -258,8 +262,9 @@ class SunSensor(Sensor):
 
         Because the measurement uses :math:`\max(c, 0)`, the Jacobian is defined
         to be zero whenever :math:`c \le 0`. Furthermore, when the spacecraft is
-        in eclipse (``os.is_sunlit() == False``), the measurement is identically
-        zero and all partial derivatives vanish.
+        in eclipse (``os.is_sunlit() == False``), the clean measurement is
+        treated as invalid and this method returns a ``NaN`` sentinel rather
+        than a finite derivative.
 
         :param x: Full 7-element ADCS state vector.
         :type x: numpy.ndarray
@@ -268,8 +273,8 @@ class SunSensor(Sensor):
         :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
 
         :return: Jacobian of the clean measurement with respect to the base
-            state, with shape ``(7, 1)``. The Jacobian is zero if the spacecraft
-            is in eclipse or if the Sun is behind the sensor.
+            state, with shape ``(7, 1)``. The Jacobian is zero if the Sun is
+            behind the sensor, and ``NaN`` if the spacecraft is in eclipse.
         :rtype: numpy.ndarray
         """
         vecs = os.get_state_vector(x=x)
@@ -282,7 +287,13 @@ class SunSensor(Sensor):
         if os.is_sunlit():
             return np.vstack([np.zeros((3,1)),self.efficiency*np.expand_dims(dcos_incidence__dq,1)])
         else:
-            return np.zeros((7, 1))
+            # In eclipse clean_reading() returns NaN as the "sensor invalid /
+            # occulted" sentinel that the UKF/SRUKF use (np.isnan check) to
+            # deactivate this sensor. The Jacobian must carry the SAME sentinel
+            # for a consistent contract: returning finite zeros silently
+            # asserted "constant 0 measurement, zero sensitivity", which would
+            # bias the filter toward believing the eclipse reading is exactly 0
+            # if it were ever used without the active mask.
+            return np.full((7, 1), np.nan)
         
     
-

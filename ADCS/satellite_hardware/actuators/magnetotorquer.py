@@ -189,8 +189,14 @@ class MTQ(Actuator):
         :return: Body-frame torque vector.
         :rtype: numpy.ndarray, shape ``(3,)``
         """
-        if abs(u) > self.u_max:
+        if np.any(np.abs(u) > self.u_max):
             warnings.warn("requested torque exceeds actuation limit")
+            # Saturate the commanded dipole to the physical actuation limit,
+            # preserving sign. Below-limit commands are unchanged. Works for
+            # scalar commands and array-valued finite-difference probes alike.
+            u = np.clip(u, -self.u_max, self.u_max)
+            if np.ndim(u) == 0:
+                u = float(u)
 
         vecs = os.get_state_vector(x=x)
         b_body = vecs["b"]
