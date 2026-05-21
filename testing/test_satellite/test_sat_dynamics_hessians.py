@@ -20,6 +20,7 @@ from ADCS.satellite_hardware.actuators import MTQ
 from ADCS.satellite_hardware.satellite.satellite import Satellite
 
 
+@pytest.mark.slow
 def test_dynamics_hessians_matches_finite_difference_of_jacobian():
     ephem = Ephemeris()
     os0 = Orbital_State(
