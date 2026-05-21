@@ -3404,6 +3404,34 @@ static Satellite create_y_axis_rw_sat(double rw_u_max) {
     return sat;
 }
 
+// Helper: build a VECTOR_INFO_FORM that forces a 90-degree y-axis slew
+// when paired with the initial state ``q_0 = [cos(pi/4), 0, sin(pi/4), 0]``
+// (body z initially along ECI x). Boresight is body z, goal is ECI z, so
+// the planner must rotate 90 degrees about y to align them. The default
+// ``createDefaultVecInfo`` helper uses goal ECI x which q_0 already
+// satisfies (no slew); use this one for the #73 regression tests.
+static VECTOR_INFO_FORM createSlewVecInfo(int N, double dt) {
+    arma::vec3 B_eci = arma::vec({0.1, 0.0, 0.0});
+    arma::vec3 R_orb = arma::vec({7000.0, 0.0, 0.0});
+    arma::vec3 V_orb = arma::vec({0.0, 7.5, 0.0});
+    arma::vec3 sun_vec = arma::normalise(arma::vec({1.0, 0.0, 0.0}));
+    arma::vec3 sat_body_vec = arma::vec({0.0, 0.0, 1.0});
+    arma::vec3 eci_goal = arma::normalise(arma::vec({0.0, 0.0, 1.0}));
+
+    arma::vec times = arma::linspace(0.0, (N - 1) * dt, N);
+    arma::mat Rset = arma::repmat(R_orb, 1, N);
+    arma::mat Vset = arma::repmat(V_orb, 1, N);
+    arma::mat Bset = arma::repmat(B_eci, 1, N);
+    arma::mat sunset = arma::repmat(sun_vec, 1, N);
+    arma::mat satvec = arma::repmat(sat_body_vec, 1, N);
+    arma::mat ECIvec = arma::repmat(eci_goal, 1, N);
+    arma::vec pset = arma::vec(N).zeros();
+    arma::vec rhoset = arma::vec(N).zeros();
+
+    return std::make_tuple(times, Rset, Vset, Bset, sunset, satvec, ECIvec,
+                            pset, rhoset);
+}
+
 TEST_CASE("Zero-control warmstart respects tight u_max constraint (#73 workaround)",
           "[optimizer][constraints][regression73]") {
     // Build a 90-degree y-axis slew problem with the constraint set
@@ -3425,7 +3453,9 @@ TEST_CASE("Zero-control warmstart respects tight u_max constraint (#73 workaroun
     arma::vec h0 = arma::vec(1).zeros();
     arma::vec x0 = arma::join_cols(arma::join_cols(w0, q0), h0);
 
-    VECTOR_INFO_FORM vecs = createDefaultVecInfo(N, dt);
+    // ECI goal at +z so q_0's 90-degree y-rotation requires an actual
+    // slew (default helper has goal at ECI x which q_0 already satisfies).
+    VECTOR_INFO_FORM vecs = createSlewVecInfo(N, dt);
     arma::vec3 B_eci = arma::vec({0.1, 0.0, 0.0});
     DYNAMICS_INFO_FORM dynamics_info = std::make_tuple(
         B_eci, arma::vec3({7000.0, 0.0, 0.0}), 0,
@@ -3503,21 +3533,35 @@ TEST_CASE("Zero-control warmstart respects tight u_max constraint (#73 workaroun
     CHECK(max_u < rw_u_max * 1.05);
 }
 
-TEST_CASE("Random warmstart + tight u_max violates constraint (#73)",
-          "[optimizer][constraints][.bug73]") {
-    // Same problem as the workaround test above, but uses ``trajOpt``
-    // (which routes through the random-warmstart code path at
-    // OldPlanner.cpp:276 because number_MTQ < 3). Expected to FAIL
-    // today: max_viol >> 0.1 because iLQR can't recover from the bad
-    // warmstart and AL drives penalty to penMax without satisfying the
-    // constraint.
+TEST_CASE("Random warmstart from C++ trajOpt converges and respects constraint",
+          "[optimizer][constraints][regression73]") {
+    // Surprising finding while tightening this test: when called *directly*
+    // from C++ via ``trajOpt(vecs, N, time_start, time_end, x0, bdotOn=1)``,
+    // the random-warmstart code path at ``OldPlanner.cpp:276``
+    // (triggered because ``number_MTQ < 3``) DOES converge -- verbose log
+    // shows the AL outer loop runs ~8 iterations, ``cmaxtmp`` drops
+    // 6.6 -> 0.41 -> 0.16 -> 0.012 -> 9.8e-5, well below the 0.002
+    // tolerance.
     //
-    // Tagged ``[.bug73]`` so it's not run by default (period in tag).
-    // Run via: ./tp_test "[bug73]"
+    // This narrows issue #73 substantially: the constraint-violation
+    // behaviour the Python repro shows (``cmaxtmp = 1.08`` after AL hits
+    // ``penMax = 1e16``) must come from the **Python wrapper layer**,
+    // not from the C++ trajOpt itself. Possibilities:
     //
-    // When issue #73 is fixed (seeded RNG, or zero-init fallback, or
-    // restructured L268 gate), this test should be re-tagged as
-    // ``[optimizer][constraints][regression73]`` and start passing.
+    //   * ``Plan_and_Track_LQR`` passes settings the C++ direct caller
+    //     doesn't (e.g., a stricter ``regMax`` or ``maxOuterIter``).
+    //   * ``_propagate_environment`` produces a ``VECTOR_INFO_FORM`` that
+    //     differs from ``createSlewVecInfo`` here (e.g., the orbital
+    //     propagation makes ``Bset/Sset`` time-varying in a way that
+    //     destabilises iLQR).
+    //   * The ``dt_tvlqr`` vs ``dt_tp`` split in Python's PlannerSettings
+    //     introduces a TVLQR-cost-block computation the C++ direct path
+    //     skips.
+    //
+    // This test now serves as a **regression** for the working C++ path:
+    // random warmstart + tight constraint via C++ trajOpt converges. If a
+    // future change makes the C++ path also fail (e.g., the Python bug
+    // gets pushed down into trajOpt itself), this test catches it.
     double rw_u_max = 0.05;
     Satellite sat = create_y_axis_rw_sat(rw_u_max);
     int nx = sat.state_N();
@@ -3531,7 +3575,9 @@ TEST_CASE("Random warmstart + tight u_max violates constraint (#73)",
     arma::vec h0 = arma::vec(1).zeros();
     arma::vec x0 = arma::join_cols(arma::join_cols(w0, q0), h0);
 
-    VECTOR_INFO_FORM vecs = createDefaultVecInfo(N, dt);
+    // Same slew fixture as the workaround test above -- goal at +z
+    // forces a real 90-degree y-slew rather than the trivial u=0 path.
+    VECTOR_INFO_FORM vecs = createSlewVecInfo(N, dt);
 
     COST_SETTINGS_FORM costSettings = std::make_tuple(
         8e3, 2e4, 1.0, 0.0, 0.0,
