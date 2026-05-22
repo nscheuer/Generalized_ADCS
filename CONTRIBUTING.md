@@ -112,9 +112,6 @@ Include impact, affected components, reproduction details, and any suggested mit
 For usage questions, design discussion, and collaboration:
 
 - GitHub Discussions: TODO
-- Discord: TODO
-- Slack: TODO
-- Forum: TODO
 
 If these channels are not yet available, use GitHub Issues with the `question` label.
 
