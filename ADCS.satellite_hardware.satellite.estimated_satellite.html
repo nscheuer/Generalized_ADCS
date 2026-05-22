@@ -614,6 +614,19 @@ disturbances to ensure deterministic consistency when comparing propagation to e
 <dt class="sig sig-object py" id="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.from_satellite">
 <span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">from_satellite</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sat</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/satellite/estimated_satellite.html#EstimatedSatellite.from_satellite"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.from_satellite" title="Link to this definition">¶</a></dt>
 <dd><p>Create an EstimatedSatellite by cloning a Satellite.</p>
+<p>The sensor / actuator / disturbance objects MUST be deep-copied, not
+shared by reference: they carry mutable state (<code class="docutils literal notranslate"><span class="pre">Bias</span></code>/<code class="docutils literal notranslate"><span class="pre">Noise</span></code>
+evolution, reaction-wheel momentum and the shared
+<code class="docutils literal notranslate"><span class="pre">_effective_command</span></code> cache, disturbance parameters). When the
+estimated satellite is used by an estimator (e.g. inside
+<a class="reference internal" href="ADCS.simulate.html#ADCS.simulate.simulate" title="ADCS.simulate.simulate"><code class="xref py py-func docutils literal notranslate"><span class="pre">simulate()</span></code></a>, which auto-builds it via this
+method), the filter repeatedly evaluates <code class="docutils literal notranslate"><span class="pre">sensor_readings</span></code> /
+<code class="docutils literal notranslate"><span class="pre">noiseless_rk4</span></code> / actuator torques on its sigma points; if those
+objects were the <em>same</em> instances as the true satellite’s, the
+filter’s internal predictions would silently corrupt the truth’s
+sensor/actuator/disturbance state (and vice versa) within and across
+timesteps. Deep-copying makes the estimate model independent of the
+plant, as the “cloning” contract promises.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>sat</strong> (<a class="reference internal" href="ADCS.satellite_hardware.satellite.satellite.html#ADCS.satellite_hardware.satellite.satellite.Satellite" title="ADCS.satellite_hardware.satellite.satellite.Satellite"><em>Satellite</em></a>)</p>

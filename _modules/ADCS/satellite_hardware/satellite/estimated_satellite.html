@@ -535,6 +535,7 @@
         <article role="main" id="furo-main-content">
           <h1>Source code for ADCS.satellite_hardware.satellite.estimated_satellite</h1><div class="highlight"><pre>
 <span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;EstimatedSatellite&quot;</span><span class="p">]</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">copy</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Optional</span>
@@ -673,14 +674,28 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">from_satellite</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">sat</span><span class="p">:</span> <span class="n">Satellite</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;EstimatedSatellite&quot;</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Create an EstimatedSatellite by cloning a Satellite.</span>
+
+<span class="sd">        The sensor / actuator / disturbance objects MUST be deep-copied, not</span>
+<span class="sd">        shared by reference: they carry mutable state (``Bias``/``Noise``</span>
+<span class="sd">        evolution, reaction-wheel momentum and the shared</span>
+<span class="sd">        ``_effective_command`` cache, disturbance parameters). When the</span>
+<span class="sd">        estimated satellite is used by an estimator (e.g. inside</span>
+<span class="sd">        :func:`~ADCS.simulate.simulate`, which auto-builds it via this</span>
+<span class="sd">        method), the filter repeatedly evaluates ``sensor_readings`` /</span>
+<span class="sd">        ``noiseless_rk4`` / actuator torques on its sigma points; if those</span>
+<span class="sd">        objects were the *same* instances as the true satellite&#39;s, the</span>
+<span class="sd">        filter&#39;s internal predictions would silently corrupt the truth&#39;s</span>
+<span class="sd">        sensor/actuator/disturbance state (and vice versa) within and across</span>
+<span class="sd">        timesteps. Deep-copying makes the estimate model independent of the</span>
+<span class="sd">        plant, as the &quot;cloning&quot; contract promises.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">est</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span>
             <span class="n">mass</span><span class="o">=</span><span class="n">sat</span><span class="o">.</span><span class="n">mass</span><span class="p">,</span>
             <span class="n">COM</span><span class="o">=</span><span class="n">sat</span><span class="o">.</span><span class="n">COM</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span>
             <span class="n">J_0</span><span class="o">=</span><span class="n">sat</span><span class="o">.</span><span class="n">J_0</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span>
-            <span class="n">disturbances</span><span class="o">=</span><span class="n">sat</span><span class="o">.</span><span class="n">disturbances</span><span class="p">,</span>
-            <span class="n">sensors</span><span class="o">=</span><span class="n">sat</span><span class="o">.</span><span class="n">sensors</span><span class="p">,</span>
-            <span class="n">actuators</span><span class="o">=</span><span class="n">sat</span><span class="o">.</span><span class="n">actuators</span><span class="p">,</span>
+            <span class="n">disturbances</span><span class="o">=</span><span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">sat</span><span class="o">.</span><span class="n">disturbances</span><span class="p">),</span>
+            <span class="n">sensors</span><span class="o">=</span><span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">sat</span><span class="o">.</span><span class="n">sensors</span><span class="p">),</span>
+            <span class="n">actuators</span><span class="o">=</span><span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">sat</span><span class="o">.</span><span class="n">actuators</span><span class="p">),</span>
             <span class="n">boresight</span><span class="o">=</span><span class="n">sat</span><span class="o">.</span><span class="n">boresight</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span>
         <span class="p">)</span>
 
