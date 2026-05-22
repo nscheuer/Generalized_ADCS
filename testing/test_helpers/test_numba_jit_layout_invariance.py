@@ -1,32 +1,8 @@
 """
-Numba @njit(cache=True) memory-layout invariance guard (test-hardening #12).
+Regression test for Numba JIT helpers that may receive strided NumPy views.
 
-math_helpers.py has ~30 @njit(cache=True) kernels. The estimators/dynamics
-routinely pass NON-CONTIGUOUS inputs to them -- e.g. the SR-/UAKF passes
-strided slices like state1[3:6] or quaternion sub-vectors -- which is what
-triggers the `NumbaPerformanceWarning: np.dot() is faster on contiguous
-arrays`. That warning prompted backlog #12: do the cached kernels make
-latent contiguity/dtype assumptions that produce WRONG results, and is the
-on-disk cache a correctness hazard?
-
-PROBED -- NEGATIVE RESULT (recorded so #12 is not re-investigated as a bug):
-- Non-contiguous inputs: every kernel returns BIT-IDENTICAL results to the
-  contiguous case (numba specialises on the array *type*, layout included,
-  and computes correctly on strided arrays -- the warning is PURELY a
-  performance advisory, not a correctness issue).
-- Unsupported dtype (float32) into the f64 kernels raises a numba
-  TypingError -- it fails LOUD, not silently wrong; and float32 is not a
-  real code path (state/quaternion/covariance are float64 everywhere).
-- cache=True is keyed on a content hash of the function, so a source change
-  (or a different worktree's copy) invalidates it -- stale binaries are not
-  silently reused; the documented cross-worktree concern is operational
-  (recompiles / iCloud paths), not a wrong-result hazard.
-
-So there is no correctness defect. This file LOCKS the verified property:
-the JIT math kernels must be layout-invariant. The contiguous result is the
-independent reference (not the kernel compared to itself). It is GREEN on
-main and goes RED if a future change introduces a layout-dependent bug
-(manual stride math, a `.ravel()`/`reshape` assumption, etc.).
+It verifies that each kernel returns the same result for a non-contiguous
+input and its contiguous copy, guarding against layout-dependent bugs.
 """
 
 import warnings
