@@ -1,22 +1,8 @@
-"""
-EstimatedSatellite.from_satellite must DEEP-COPY hardware (test-hardening,
-critique pass 2).
+"""Test that ``EstimatedSatellite.from_satellite()`` deep-copies hardware.
 
-from_satellite is the "automatic estimation builder": simulate() (and the
-Monte-Carlo runner) call it to construct the estimated satellite when none
-is supplied. On origin/main it copies only mass/COM/J_0/boresight but passes
-`sensors`, `actuators`, `disturbances` BY REFERENCE -- the estimated
-satellite shares the EXACT same sensor/actuator/disturbance instances as
-the true satellite, despite the docstring promising a "clone".
-
-Those objects carry mutable state: Bias/Noise evolution, reaction-wheel
-momentum and the shared _effective_command cache (PR #34), disturbance
-parameters. An estimator repeatedly evaluates sensor_readings /
-noiseless_rk4 / actuator torques on its sigma points using the estimated
-satellite; if it is the same instances as the plant, the filter's internal
-predictions silently corrupt the truth's sensor/actuator/disturbance state
-(and vice versa) within and across timesteps -- a hard-to-spot integrated
-bug. These tests are RED on origin/main, GREEN after the deep-copy fix.
+These tests verify that the cloned satellite uses independent sensor,
+actuator, and disturbance objects, that state changes do not leak back to
+the original satellite, and that the copied hardware preserves behaviour.
 """
 
 import numpy as np
