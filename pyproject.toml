@@ -8,7 +8,8 @@ version = "2025.0.0"
 description = "Generalized Attitude Determination and Control System (ADCS) framework."
 authors = [
     { name = "Patrick McKeen" },
-    { name = "Niclas Scheuer" }
+    { name = "Niclas Scheuer" },
+    { name = "William Goldman" },
 ]
 readme = "README.md"
 requires-python = ">=3.10"
@@ -81,3 +82,9 @@ package-dir = {"" = "."}
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["ADCS*"]
+
+[tool.pytest.ini_options]
+markers = [
+    "slow: marks tests that are slower or more integration-heavy",
+    "vslow: marks tests that are very slow and should be run separately",
+]
