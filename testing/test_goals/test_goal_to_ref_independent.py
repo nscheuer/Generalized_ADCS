@@ -21,12 +21,18 @@ computed with plain numpy -- never from the goal code under test, never from
 sign / axis / frame / unit regression in ``*_Goal.to_ref()``.
 """
 
+import os
+import sys
+
 import numpy as np
 import pytest
+
+sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))
 
 from ADCS.CONOPS.goals import (
     Nadir_Goal, Zenith_Goal, Velocity_Goal, AntiVelocity_Goal,
     Sun_Goal, AntiSun_Goal, BField_Goal, AntiBField_Goal, Coordinate_Goal,
+    LVLH_Tangential_Goal, PerpBField_Goal,
 )
 from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.orbital_state import Orbital_State
@@ -35,6 +41,10 @@ from ADCS.orbits.orbital_state import Orbital_State
 def _u(v):
     v = np.asarray(v, float)
     return v / np.linalg.norm(v)
+
+
+def _expected_orbital_rate(os0):
+    return np.cross(os0.R, os0.V) / np.dot(os0.R, os0.R)
 
 
 @pytest.fixture(scope="module")
@@ -69,25 +79,32 @@ def test_nadir_is_negative_position_unit_vector(os0):
     r_ref, w_ref = Nadir_Goal().to_ref(os0)
     _check_vector_contract(r_ref, -_u(os0.R))
     # Feed-forward reference rate is the orbital angular velocity R x V/|R|^2.
-    np.testing.assert_allclose(
-        w_ref, np.cross(os0.R, os0.V) / np.dot(os0.R, os0.R), atol=1e-12, rtol=0)
+    np.testing.assert_allclose(w_ref, _expected_orbital_rate(os0), atol=1e-12, rtol=0)
 
 
 def test_zenith_is_positive_position_unit_vector(os0):
-    r_ref, _ = Zenith_Goal().to_ref(os0)
+    r_ref, w_ref = Zenith_Goal().to_ref(os0)
     _check_vector_contract(r_ref, _u(os0.R))
+    np.testing.assert_allclose(w_ref, _expected_orbital_rate(os0), atol=1e-12, rtol=0)
+
+
+def test_lvlh_tangential_is_independent_tangential_direction(os0):
+    r_ref, w_ref = LVLH_Tangential_Goal().to_ref(os0)
+    expected_t = _u(np.cross(_u(np.cross(os0.R, os0.V)), _u(os0.R)))
+    _check_vector_contract(r_ref, expected_t)
+    np.testing.assert_allclose(w_ref, _expected_orbital_rate(os0), atol=1e-12, rtol=0)
 
 
 def test_velocity_is_velocity_unit_vector(os0):
     r_ref, w_ref = Velocity_Goal().to_ref(os0)
     _check_vector_contract(r_ref, _u(os0.V))
-    np.testing.assert_allclose(
-        w_ref, np.cross(os0.R, os0.V) / np.dot(os0.R, os0.R), atol=1e-12, rtol=0)
+    np.testing.assert_allclose(w_ref, _expected_orbital_rate(os0), atol=1e-12, rtol=0)
 
 
 def test_antivelocity_is_negative_velocity_unit_vector(os0):
-    r_ref, _ = AntiVelocity_Goal().to_ref(os0)
+    r_ref, w_ref = AntiVelocity_Goal().to_ref(os0)
     _check_vector_contract(r_ref, -_u(os0.V))
+    np.testing.assert_allclose(w_ref, _expected_orbital_rate(os0), atol=1e-12, rtol=0)
 
 
 def test_sun_goal_points_at_sun(os0):
@@ -96,9 +113,30 @@ def test_sun_goal_points_at_sun(os0):
     np.testing.assert_allclose(w_ref, np.zeros(3), atol=1e-12, rtol=0)
 
 
+def test_antisun_goal_points_opposite_sun(os0):
+    r_ref, w_ref = AntiSun_Goal().to_ref(os0)
+    _check_vector_contract(r_ref, -_u(os0.get_sun_eci()))
+    np.testing.assert_allclose(w_ref, np.zeros(3), atol=1e-12, rtol=0)
+
+
 def test_bfield_goal_points_along_B(os0):
-    r_ref, _ = BField_Goal().to_ref(os0)
+    r_ref, w_ref = BField_Goal().to_ref(os0)
     _check_vector_contract(r_ref, _u(os0.get_b_eci()))
+    np.testing.assert_allclose(w_ref, np.zeros(3), atol=1e-12, rtol=0)
+
+
+def test_antibfield_goal_points_opposite_B(os0):
+    r_ref, w_ref = AntiBField_Goal().to_ref(os0)
+    _check_vector_contract(r_ref, -_u(os0.get_b_eci()))
+    np.testing.assert_allclose(w_ref, np.zeros(3), atol=1e-12, rtol=0)
+
+
+def test_perpbfield_goal_matches_independent_cross_construction(os0):
+    r_ref, w_ref = PerpBField_Goal().to_ref(os0)
+    expected_perp = _u(np.cross(_u(os0.B), _u(os0.V)))
+    _check_vector_contract(r_ref, expected_perp)
+    assert float(np.dot(r_ref[1:4], _u(os0.B))) == pytest.approx(0.0, abs=1e-9)
+    np.testing.assert_allclose(w_ref, _expected_orbital_rate(os0), atol=1e-12, rtol=0)
 
 
 # ---- Cross-goal relational invariants (independent of any single goal) ----
@@ -112,10 +150,13 @@ def test_bfield_goal_points_along_B(os0):
     (BField_Goal, AntiBField_Goal),
 ])
 def test_anti_goal_is_exactly_antiparallel(os0, base, anti):
-    b = base().to_ref(os0)[0][1:4]
-    a = anti().to_ref(os0)[0][1:4]
+    b_ref, b_w_ref = base().to_ref(os0)
+    a_ref, a_w_ref = anti().to_ref(os0)
+    b = b_ref[1:4]
+    a = a_ref[1:4]
     np.testing.assert_allclose(a, -b, atol=1e-12, rtol=0)
     assert float(np.dot(_u(a), _u(b))) == pytest.approx(-1.0, abs=1e-9)
+    np.testing.assert_allclose(a_w_ref, b_w_ref, atol=1e-12, rtol=0)
 
 
 # ---- Coordinate_Goal: closed-form WGS84 geometry, independent of the
@@ -167,6 +208,12 @@ def test_coordinate_to_ref_is_independent_line_of_sight(os0):
     ground target. ecef_to_eci is independently validated by PR #36; the
     goal-specific LOS/normalize/sentinel logic is what is pinned here."""
     g = Coordinate_Goal(lat=10.0, lon=20.0, alt=0.0)
-    r_ref, _ = g.to_ref(os0)
-    los = _u(os0.ecef_to_eci(g.target_ecef) - os0.R)
+    r_ref, w_ref = g.to_ref(os0)
+    r_target_eci = os0.ecef_to_eci(g.target_ecef)
+    v_target_eci = np.cross([0.0, 0.0, 7.2921159e-5], r_target_eci)
+    r_rel = r_target_eci - os0.R
+    v_rel = v_target_eci - os0.V
+    los = _u(r_rel)
     _check_vector_contract(r_ref, los)
+    np.testing.assert_allclose(
+        w_ref, np.cross(r_rel, v_rel) / np.dot(r_rel, r_rel), atol=1e-12, rtol=0)
