@@ -591,6 +591,46 @@
 
 
 
+<span class="c1"># trajectory_planner&#39;s `pysat` and `SALTRO`&#39;s `saltro_py` are independently</span>
+<span class="c1"># built pybind11 extensions that BOTH register a C++ type named `Satellite`.</span>
+<span class="c1"># pybind11 keeps a single process-global type registry, so the second of the</span>
+<span class="c1"># two to import raises `generic_type: type &quot;Satellite&quot; is already registered!`.</span>
+<span class="c1"># This is NOT a missing/unbuilt extension -- rebuilding does not help -- so it</span>
+<span class="c1"># must NOT be reported via *_missing_reason() (which tells the user to build</span>
+<span class="c1"># the add-on and read the install docs, sending them down a dead end).</span>
+<span class="n">_PYBIND_CLASH_MARKER</span> <span class="o">=</span> <span class="s2">&quot;already registered&quot;</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_is_pybind_registry_clash</span><span class="p">(</span><span class="n">exc</span><span class="p">:</span> <span class="ne">BaseException</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;True iff ``exc`` (or any exception in its cause/context chain) is the</span>
+<span class="sd">    pybind11 process-global type-registry clash between ``pysat`` and</span>
+<span class="sd">    ``saltro_py`` (both register a C++ ``Satellite``).&quot;&quot;&quot;</span>
+    <span class="n">seen</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="n">cur</span><span class="p">:</span> <span class="ne">BaseException</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">exc</span>
+    <span class="k">while</span> <span class="n">cur</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">id</span><span class="p">(</span><span class="n">cur</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">seen</span><span class="p">:</span>
+        <span class="n">seen</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="nb">id</span><span class="p">(</span><span class="n">cur</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">_PYBIND_CLASH_MARKER</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">cur</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="n">cur</span> <span class="o">=</span> <span class="n">cur</span><span class="o">.</span><span class="n">__cause__</span> <span class="ow">or</span> <span class="n">cur</span><span class="o">.</span><span class="n">__context__</span>
+    <span class="k">return</span> <span class="kc">False</span>
+
+
+<div class="viewcode-block" id="planner_extension_clash_reason">
+<a class="viewcode-back" href="../../../../ADCS.controller.helpers.optional_dependencies.html#ADCS.controller.helpers.optional_dependencies.planner_extension_clash_reason">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">planner_extension_clash_reason</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="s2">&quot;trajectory_planner (pysat/tplaunch) and saltro_py each register a C++ &quot;</span>
+        <span class="s2">&quot;`Satellite` type via pybind11, which keeps a single process-global &quot;</span>
+        <span class="s2">&quot;type registry. They CANNOT be imported into the same Python process: &quot;</span>
+        <span class="s2">&quot;whichever loads second raises &quot;</span>
+        <span class="s1">&#39;`generic_type: type &quot;Satellite&quot; is already registered!`. This is NOT &#39;</span>
+        <span class="s2">&quot;a missing or unbuilt extension -- rebuilding will not help. Use only &quot;</span>
+        <span class="s2">&quot;one planner family per process (e.g. run the SALTRO and &quot;</span>
+        <span class="s2">&quot;plan_and_track controllers in separate processes / Monte-Carlo runs).&quot;</span>
+    <span class="p">)</span></div>
+
+
+
 <div class="viewcode-block" id="get_trajectory_planner_modules">
 <a class="viewcode-back" href="../../../../ADCS.controller.helpers.optional_dependencies.html#ADCS.controller.helpers.optional_dependencies.get_trajectory_planner_modules">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">get_trajectory_planner_modules</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">ModuleType</span><span class="p">,</span> <span class="n">ModuleType</span><span class="p">]:</span>
@@ -599,6 +639,8 @@
         <span class="n">tplaunch</span> <span class="o">=</span> <span class="n">import_module</span><span class="p">(</span><span class="s2">&quot;trajectory_planner.build.tplaunch&quot;</span><span class="p">)</span>
         <span class="n">pysat</span> <span class="o">=</span> <span class="n">import_module</span><span class="p">(</span><span class="s2">&quot;trajectory_planner.build.pysat&quot;</span><span class="p">)</span>
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">_is_pybind_registry_clash</span><span class="p">(</span><span class="n">exc</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="n">planner_extension_clash_reason</span><span class="p">())</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
         <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">trajectory_planner_missing_reason</span><span class="p">()</span><span class="si">}</span><span class="s2"> Original error: </span><span class="si">{</span><span class="n">exc</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
 
     <span class="k">return</span> <span class="n">tplaunch</span><span class="p">,</span> <span class="n">pysat</span></div>
@@ -623,6 +665,8 @@
     <span class="k">try</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">import_module</span><span class="p">(</span><span class="s2">&quot;saltro_py&quot;</span><span class="p">)</span>
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">_is_pybind_registry_clash</span><span class="p">(</span><span class="n">exc</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="n">planner_extension_clash_reason</span><span class="p">())</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
         <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">saltro_missing_reason</span><span class="p">()</span><span class="si">}</span><span class="s2"> Original error: </span><span class="si">{</span><span class="n">exc</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span></div>
 
 
