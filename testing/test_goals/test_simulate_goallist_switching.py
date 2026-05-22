@@ -1,11 +1,4 @@
 """
-Time-varying GoalList switching inside simulate() (critique pass).
-
-simulate() accepts a GoalList and, every step, selects the active goal via
-goal_list.get_active_goal(J2000_k). No test exercised a GoalList with more
-than one goal through simulate(), so the goal-switching machinery (the
-piecewise-constant schedule + the per-step target logging) was uncovered.
-
 Independent reference: two hand-specified ECI_Goal directions and the
 GoalList's own switch time -- the logged target history must equal goal A's
 fixed ECI vector before the switch and goal B's after, with exactly one
