@@ -1,23 +1,9 @@
 """
-End-to-end integrated-GNC closed-loop test (test-hardening backlog #13).
+End-to-end closed-loop test for `simulate()` with estimator and controller.
 
-Coverage gap this closes (established by evidence earlier in the hardening
-effort): the attitude-estimator tests run the filter open-loop (u=0, no
-controller); the controller tests run the controller with the TRUE state
-fed in as x_hat (no estimator in the loop). NOTHING exercised
-`ADCS/simulate.py::simulate()`, the production pipeline that actually wires
-truth -> sensors -> ESTIMATOR -> CONTROLLER -> actuators -> truth. So the
-estimator<->controller interaction (the separation principle: a controller
-driven by the filter's noisy estimate, and a filter that must stay
-consistent while its own estimate excites the plant) was completely
-untested -- exactly the blind spot that lets bugs like the covariance-units
-mismatch / cross_term no-op hide.
-
-This runs the SAME detumble scenario the existing controller suite proves
-(MTQ_w_RW, p=0/d=1/c=0, No_Goal, static orbit) but with a UAKF placed in
-the loop via simulate(). Assertions are smoke + closed-loop consistency
-against INDEPENDENT references (the physical true-state trajectory and
-actuator limits), not code-vs-itself.
+It runs a detumble scenario through the full GNC stack and checks that the
+simulation stays physical, the estimator tracks truth, and the true tumble
+rate decreases.
 """
 
 import numpy as np
