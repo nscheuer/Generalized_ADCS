@@ -8,7 +8,9 @@ estimation, and control in orbit.
 
 **Generalized ADCS** is designed for aerospace students, researchers,
 and engineers who want a flexible, transparent ADCS simulation
-environment without black-box solvers.
+environment without black-box solvers. The project repository is
+available at `nscheuer/Generalized_ADCS <https://github.com/nscheuer/Generalized_ADCS>`_,
+and it is developed with `MIT STAR Lab <https://aeroastro.mit.edu/starlab/>`_.
 
 Latest Release Notes
 ====================

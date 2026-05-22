@@ -150,6 +150,8 @@ class TestMultiBoresightGoals:
         assert len(r_ref) == 4
         assert np.isnan(r_ref[0])  # Vector format
         assert np.linalg.norm(r_ref[1:4]) > 0  # Should have valid direction
+        assert w_ref.shape == (3,)
+        assert np.all(np.isfinite(w_ref))
 
     def test_goal_default_boresight_name(self, orbital_state):
         """Test that goals without explicit boresight_name have None."""
@@ -235,6 +237,8 @@ class TestMultiBoresightGoals:
         # Should not be upward (positive radial)
         dot_product = np.dot(direction, np.array([1.0, 0.0, 0.0]))
         assert dot_product < 0.5
+        assert w_ref.shape == (3,)
+        assert np.all(np.isfinite(w_ref))
 
 
 if __name__ == "__main__":
