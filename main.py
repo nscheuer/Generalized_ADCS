@@ -1,16 +1,9 @@
-import sys
-import os
-
-this_dir = os.path.dirname(__file__)
-# trajectory_planner now lives in the OldPlanner submodule
-# (https://github.com/patrickmckeen/OldPlanner), built into OldPlanner/build/.
-build_path = os.path.join(this_dir, "OldPlanner", "build")
-sys.path.append(build_path)
-
 import numpy as np
+
+from ADCS.controller.helpers.optional_dependencies import get_trajectory_planner_modules
+
 try:
-    import tplaunch
-    import pysat
+    tplaunch, pysat = get_trajectory_planner_modules()
 except ImportError as exc:
     raise ImportError(
         "Optional add-on trajectory_planner (OldPlanner) is not available. "
