@@ -561,7 +561,13 @@
 <dl class="py function">
 <dt class="sig sig-object py" id="ADCS.controller.helpers.optional_dependencies.get_trajectory_planner_modules">
 <span class="sig-prename descclassname"><span class="pre">ADCS.controller.helpers.optional_dependencies.</span></span><span class="sig-name descname"><span class="pre">get_trajectory_planner_modules</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/controller/helpers/optional_dependencies.html#get_trajectory_planner_modules"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.controller.helpers.optional_dependencies.get_trajectory_planner_modules" title="Link to this definition">¶</a></dt>
-<dd><dl class="field-list simple">
+<dd><p>Return <code class="docutils literal notranslate"><span class="pre">(tplaunch,</span> <span class="pre">pysat)</span></code> from the OldPlanner submodule build dir.</p>
+<p>Load order matters: <code class="docutils literal notranslate"><span class="pre">pysat</span></code> must be loaded first so its
+<code class="docutils literal notranslate"><span class="pre">Satellite</span></code> type binding is registered in pybind11’s global
+type table before <code class="docutils literal notranslate"><span class="pre">tplaunch</span></code>’s PYBIND11_MODULE runs (which
+internally does <code class="docutils literal notranslate"><span class="pre">py::module_::import(&quot;trajectory_planner.build.pysat&quot;)</span></code>
+and would otherwise either re-register or fail).</p>
+<dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><em>Tuple</em>[<em>ModuleType</em>, <em>ModuleType</em>]</p>
 </dd>
@@ -630,7 +636,11 @@ relative import to an absolute import.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="ADCS.controller.helpers.optional_dependencies.trajectory_planner_build_path">
 <span class="sig-prename descclassname"><span class="pre">ADCS.controller.helpers.optional_dependencies.</span></span><span class="sig-name descname"><span class="pre">trajectory_planner_build_path</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/controller/helpers/optional_dependencies.html#trajectory_planner_build_path"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.controller.helpers.optional_dependencies.trajectory_planner_build_path" title="Link to this definition">¶</a></dt>
-<dd><dl class="field-list simple">
+<dd><p>Path to the compiled <code class="docutils literal notranslate"><span class="pre">tplaunch</span></code> / <code class="docutils literal notranslate"><span class="pre">pysat</span></code> pybind modules.</p>
+<p>The trajectory-planner add-on lives in the <code class="docutils literal notranslate"><span class="pre">OldPlanner</span></code> submodule
+(<a class="reference external" href="https://github.com/patrickmckeen/OldPlanner">https://github.com/patrickmckeen/OldPlanner</a>), built out-of-tree
+into <code class="docutils literal notranslate"><span class="pre">OldPlanner/build/</span></code>.</p>
+<dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>str</p>
 </dd>

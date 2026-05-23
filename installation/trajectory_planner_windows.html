@@ -596,10 +596,20 @@ install Windows CMake:</p>
 </section>
 <section id="build-instructions">
 <h2>Build Instructions<a class="headerlink" href="#build-instructions" title="Link to this heading">¶</a></h2>
-<p>From the <code class="docutils literal notranslate"><span class="pre">trajectory_planner</span></code> build directory:</p>
-<div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="nv">$CMAKE_EXE</span> <span class="p">=</span> <span class="s2">&quot;C:\Program Files\CMake\bin\cmake.exe&quot;</span>
+<p>The trajectory_planner C++ source lives in the
+<a class="reference external" href="https://github.com/patrickmckeen/OldPlanner">OldPlanner</a> submodule.
+Initialise it first if needed:</p>
+<div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">submodule</span> <span class="n">update</span> <span class="p">-</span><span class="n">-init</span> <span class="p">-</span><span class="n">-recursive</span> <span class="n">OldPlanner</span>
+</pre></div>
+</div>
+<p>Then from the <code class="docutils literal notranslate"><span class="pre">OldPlanner</span></code> build directory:</p>
+<div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="nb">cd </span><span class="n">OldPlanner</span>
+<span class="n">mkdir</span> <span class="n">build</span>
+<span class="nb">cd </span><span class="n">build</span>
+
+<span class="nv">$CMAKE_EXE</span> <span class="p">=</span> <span class="s2">&quot;C:\Program Files\CMake\bin\cmake.exe&quot;</span>
 <span class="nv">$VCPKG_ROOT</span> <span class="p">=</span> <span class="s2">&quot;$env:USERPROFILE\vcpkg&quot;</span>
-<span class="nv">$PYTHON_VENV</span> <span class="p">=</span> <span class="s2">&quot;.\venv\Scripts\python.exe&quot;</span>
+<span class="nv">$PYTHON_VENV</span> <span class="p">=</span> <span class="s2">&quot;..\..\venv\Scripts\python.exe&quot;</span>
 </pre></div>
 </div>
 <p>Configure the build:</p>

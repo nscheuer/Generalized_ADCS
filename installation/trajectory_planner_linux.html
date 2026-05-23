@@ -567,8 +567,14 @@ sudo<span class="w"> </span>apt<span class="w"> </span>install<span class="w"> <
 </section>
 <section id="build-instructions">
 <h2>Build Instructions<a class="headerlink" href="#build-instructions" title="Link to this heading">¶</a></h2>
-<p>From the repository root:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>trajectory_planner
+<p>The trajectory_planner C++ source lives in the
+<a class="reference external" href="https://github.com/patrickmckeen/OldPlanner">OldPlanner</a> submodule.
+Initialise it first if needed:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>submodule<span class="w"> </span>update<span class="w"> </span>--init<span class="w"> </span>--recursive<span class="w"> </span>OldPlanner
+</pre></div>
+</div>
+<p>Then from the repository root:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>OldPlanner
 mkdir<span class="w"> </span>-p<span class="w"> </span>build
 <span class="nb">cd</span><span class="w"> </span>build
 </pre></div>

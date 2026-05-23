@@ -566,8 +566,14 @@ is a C++ project built with pybind11 and imported into the Python codebase.</p>
 </section>
 <section id="build-trajectory-planner">
 <h2>Build trajectory_planner<a class="headerlink" href="#build-trajectory-planner" title="Link to this heading">¶</a></h2>
-<p>Run with the virtual environment active (so <code class="docutils literal notranslate"><span class="pre">$VIRTUAL_ENV</span></code> is set):</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>trajectory_planner
+<p>The trajectory_planner C++ source lives in the
+<a class="reference external" href="https://github.com/patrickmckeen/OldPlanner">OldPlanner</a> submodule.
+Initialise it first if needed:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>submodule<span class="w"> </span>update<span class="w"> </span>--init<span class="w"> </span>--recursive<span class="w"> </span>OldPlanner
+</pre></div>
+</div>
+<p>Then with the virtual environment active (so <code class="docutils literal notranslate"><span class="pre">$VIRTUAL_ENV</span></code> is set):</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>OldPlanner
 mkdir<span class="w"> </span>-p<span class="w"> </span>build<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">cd</span><span class="w"> </span>build
 
 cmake<span class="w"> </span>..<span class="w"> </span><span class="se">\</span>
