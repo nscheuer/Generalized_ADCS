@@ -17,8 +17,8 @@ Before this fix BOTH loaders funnelled *every* exception through
 "Optional add-on ... is not available. Build ... into <path>. See
 docs/Install_*.md" -- telling the user to (re)build an add-on that is in fact
 already built. That misdiagnosis is the bug under test here. These tests do
-NOT require the compiled .so files: they monkeypatch the loader's
-`import_module` to raise the exact pybind11 message, so they run in CI / a
+NOT require the compiled .so files: they monkeypatch the loader's immediate
+import step to raise the exact pybind11 message, so they run in CI / a
 worktree without the C++ build. A real double-import integration check is
 included but skipped unless both extensions are actually built.
 """
@@ -45,25 +45,38 @@ def _raise(exc):
     return _f
 
 
-@pytest.mark.parametrize("loader", [od.get_saltro_module, od.get_trajectory_planner_modules])
-def test_genuine_missing_keeps_build_guidance(loader, monkeypatch):
+@pytest.mark.parametrize(
+    ("loader", "patch_attr"),
+    [
+        (od.get_saltro_module, "import_module"),
+        (od.get_trajectory_planner_modules, "_load_so_under_qualname"),
+    ],
+)
+def test_genuine_missing_keeps_build_guidance(loader, patch_attr, monkeypatch):
     """A truly absent/unbuilt extension must still get the actionable
     'build it / read the install docs' message (behaviour preserved)."""
-    monkeypatch.setattr(od, "import_module", _raise(ModuleNotFoundError("No module named 'x'")))
+    monkeypatch.setattr(od, patch_attr, _raise(ModuleNotFoundError("No module named 'x'")))
     with pytest.raises(ImportError) as ei:
         loader()
     msg = str(ei.value)
-    assert "Build " in msg and "docs/Install" in msg, msg
+    assert "docs/Install" in msg, msg
+    assert "build" in msg.lower(), msg
     # It is genuinely missing, so it must NOT claim a same-process clash.
     assert "same Python process" not in msg, msg
 
 
-@pytest.mark.parametrize("loader", [od.get_saltro_module, od.get_trajectory_planner_modules])
-def test_registry_clash_is_diagnosed_not_misreported(loader, monkeypatch):
+@pytest.mark.parametrize(
+    ("loader", "patch_attr"),
+    [
+        (od.get_saltro_module, "import_module"),
+        (od.get_trajectory_planner_modules, "_load_so_under_qualname"),
+    ],
+)
+def test_registry_clash_is_diagnosed_not_misreported(loader, patch_attr, monkeypatch):
     """The pybind11 'Satellite already registered' clash must be reported as
     a mutual-exclusivity / one-planner-per-process problem, NOT as a
     missing/unbuilt add-on the user should go (re)build."""
-    monkeypatch.setattr(od, "import_module", _raise(PYBIND_CLASH))
+    monkeypatch.setattr(od, patch_attr, _raise(PYBIND_CLASH))
     with pytest.raises(ImportError) as ei:
         loader()
     msg = str(ei.value)
