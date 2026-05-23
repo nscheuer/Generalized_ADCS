@@ -77,6 +77,40 @@ def saltro_missing_reason() -> str:
     )
 
 
+# trajectory_planner's `pysat` and SALTRO's `saltro_py` are independently
+# built pybind11 extensions that BOTH register a C++ type named `Satellite`.
+# pybind11 keeps a single process-global type registry, so the second of the
+# two to import raises `generic_type: type "Satellite" is already registered!`.
+# This is NOT a missing/unbuilt extension, so we must not report it via
+# *_missing_reason() and send users down a rebuild dead end.
+_PYBIND_CLASH_MARKER = "already registered"
+
+
+def _is_pybind_registry_clash(exc: BaseException) -> bool:
+    """True iff ``exc`` or its cause/context chain is the pybind11 clash."""
+    seen: set[int] = set()
+    cur: BaseException | None = exc
+    while cur is not None and id(cur) not in seen:
+        seen.add(id(cur))
+        if _PYBIND_CLASH_MARKER in str(cur):
+            return True
+        cur = cur.__cause__ or cur.__context__
+    return False
+
+
+def planner_extension_clash_reason() -> str:
+    return (
+        "trajectory_planner (pysat/tplaunch) and saltro_py each register a C++ "
+        "`Satellite` type via pybind11, which keeps a single process-global "
+        "type registry. They CANNOT be imported into the same Python process: "
+        "whichever loads second raises "
+        '`generic_type: type "Satellite" is already registered!`. This is NOT '
+        "a missing or unbuilt extension -- rebuilding will not help. Use only "
+        "one planner family per process (for example, run SALTRO and "
+        "plan_and_track controllers in separate processes)."
+    )
+
+
 def _so_filename(stem: str) -> str:
     """Return the platform-specific filename for a compiled pybind module.
 
@@ -143,6 +177,8 @@ def get_trajectory_planner_modules() -> Tuple[ModuleType, ModuleType]:
         pysat = _load_so_under_qualname(_PYSAT_MODULE_NAME, _so_filename("pysat"))
         tplaunch = _load_so_under_qualname(_TP_MODULE_NAME, _so_filename("tplaunch"))
     except Exception as exc:
+        if _is_pybind_registry_clash(exc):
+            raise ImportError(planner_extension_clash_reason()) from exc
         raise ImportError(f"{trajectory_planner_missing_reason()} Original error: {exc}") from exc
 
     return tplaunch, pysat
@@ -161,6 +197,8 @@ def get_saltro_module() -> ModuleType:
     try:
         return import_module("saltro_py")
     except Exception as exc:
+        if _is_pybind_registry_clash(exc):
+            raise ImportError(planner_extension_clash_reason()) from exc
         raise ImportError(f"{saltro_missing_reason()} Original error: {exc}") from exc
 
 
