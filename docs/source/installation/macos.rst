@@ -74,8 +74,14 @@ section there for dependency and build commands.
 Optional: Build SALTRO (saltro_py)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 SALTRO installation is documented in [Install_SALTRO.md]. The canonical SALTRO
-page does not yet cover macOS; the verified macOS build (run with the virtual
-environment active and from the repo root) is::
+page does not yet cover macOS. ``OldPlanner/`` and ``SALTRO/`` are both git
+submodules in this repository, so if you did not clone with
+``--recurse-submodules`` initialise them first::
+
+   git submodule update --init --recursive OldPlanner SALTRO
+
+The verified macOS SALTRO build (run with the virtual environment active and
+from the repo root) is::
 
    cd SALTRO && mkdir -p build && cd build
    cmake .. \
@@ -114,4 +120,3 @@ macOS uses LLDB (not GDB)::
 .. code-block:: bash
 
    lldb -- python examples/tutorials/06_trajectory_planner.py
-
