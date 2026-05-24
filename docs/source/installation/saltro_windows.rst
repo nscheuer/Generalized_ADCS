@@ -10,6 +10,12 @@ For the official upstream guide, see:
 - `SALTRO installation page <https://nscheuer.github.io/SALTRO/datasheets/Installation.html>`_
 - `SALTRO documentation website <https://nscheuer.github.io/SALTRO>`_
 
+Initialise the submodule first if needed:
+
+.. code-block:: powershell
+
+   git submodule update --init --recursive SALTRO
+
 Prerequisites
 -------------
 - Visual Studio 2022 with C++ workload

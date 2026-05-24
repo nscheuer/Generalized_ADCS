@@ -55,6 +55,14 @@ SALTRO installation is documented in one canonical page:
 
 - [Install_SALTRO.md](Install_SALTRO.md)
 
+`OldPlanner/` and `SALTRO/` are both included as git submodules in this
+repository. If you did not clone with `--recurse-submodules`, initialise them
+before building either optional add-on:
+
+```bash
+git submodule update --init --recursive OldPlanner SALTRO
+```
+
 The canonical SALTRO page does not yet cover macOS. The verified macOS build, run with the virtual environment active and from the repo root, is:
 ```bash
 cd SALTRO && mkdir -p build && cd build
