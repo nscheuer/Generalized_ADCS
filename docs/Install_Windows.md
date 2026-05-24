@@ -45,3 +45,11 @@ Use the Windows section there for CMake, vcpkg, and build commands.
 SALTRO installation is documented in one canonical page:
 
 - [Install_SALTRO.md](Install_SALTRO.md)
+
+`OldPlanner/` and `SALTRO/` are both included as git submodules in this
+repository. If you did not clone with `--recurse-submodules`, initialise them
+before building either optional add-on:
+
+```powershell
+git submodule update --init --recursive OldPlanner SALTRO
+```
