@@ -8,6 +8,12 @@ in-repository installation guide:
 
 - `SALTRO/docs/INSTALL.md <../../../SALTRO/docs/INSTALL.md>`_
 
+Initialise the submodule first if needed:
+
+.. code-block:: bash
+
+   git submodule update --init --recursive SALTRO
+
 Prerequisites
 -------------
 Install required system packages:

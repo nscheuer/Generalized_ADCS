@@ -611,8 +611,14 @@ section there for dependency and build commands.</p>
 <section id="optional-build-saltro-saltro-py">
 <h3>Optional: Build SALTRO (saltro_py)<a class="headerlink" href="#optional-build-saltro-saltro-py" title="Link to this heading">¶</a></h3>
 <p>SALTRO installation is documented in [Install_SALTRO.md]. The canonical SALTRO
-page does not yet cover macOS; the verified macOS build (run with the virtual
-environment active and from the repo root) is:</p>
+page does not yet cover macOS. <code class="docutils literal notranslate"><span class="pre">OldPlanner/</span></code> and <code class="docutils literal notranslate"><span class="pre">SALTRO/</span></code> are both git
+submodules in this repository, so if you did not clone with
+<code class="docutils literal notranslate"><span class="pre">--recurse-submodules</span></code> initialise them first:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">submodule</span> <span class="n">update</span> <span class="o">--</span><span class="n">init</span> <span class="o">--</span><span class="n">recursive</span> <span class="n">OldPlanner</span> <span class="n">SALTRO</span>
+</pre></div>
+</div>
+<p>The verified macOS SALTRO build (run with the virtual environment active and
+from the repo root) is:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>cd SALTRO &amp;&amp; mkdir -p build &amp;&amp; cd build
 cmake .. \
   -DCMAKE_BUILD_TYPE=Release \

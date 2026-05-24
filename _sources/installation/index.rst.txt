@@ -14,6 +14,8 @@ Choose the guide appropriate for your system:
    macos
 
 Optional add-ons can be installed after completing the core setup above.
+The optional ``OldPlanner`` and ``SALTRO`` sources are bundled as git
+submodules in this repository.
 
 .. toctree::
    :maxdepth: 2

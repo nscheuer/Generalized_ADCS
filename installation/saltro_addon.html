@@ -543,7 +543,8 @@
           <section id="saltro-add-on">
 <h1>SALTRO Add-On<a class="headerlink" href="#saltro-add-on" title="Link to this heading">¶</a></h1>
 <p><code class="docutils literal notranslate"><span class="pre">saltro_py</span></code> is an optional add-on module for <a class="reference external" href="https://nscheuer.github.io/SALTRO">SALTRO</a>-based planning in
-Generalized_ADCS.</p>
+Generalized_ADCS.
+Its source is pulled in via the <code class="docutils literal notranslate"><span class="pre">SALTRO/</span></code> git submodule.</p>
 <div class="toctree-wrapper compound">
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="saltro_linux.html">SALTRO Linux / WSL</a></li>
@@ -555,6 +556,10 @@ Generalized_ADCS.</p>
 <li><p><a class="reference external" href="https://nscheuer.github.io/SALTRO">SALTRO documentation website</a></p></li>
 <li><p><a class="reference external" href="../../Install_SALTRO.md">docs/Install_SALTRO.md</a></p></li>
 </ul>
+<p>If you cloned without submodules, initialise SALTRO with:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>submodule<span class="w"> </span>update<span class="w"> </span>--init<span class="w"> </span>--recursive<span class="w"> </span>SALTRO
+</pre></div>
+</div>
 <p>See also <a class="reference internal" href="../release_notes/0_1_0_saltro.html"><span class="doc">release note 0.1.0</span></a> for a quick
 comparison of trajectory optimization benefits and drawbacks.</p>
 </section>
