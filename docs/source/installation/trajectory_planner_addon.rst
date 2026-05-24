@@ -3,6 +3,7 @@ Trajectory Planner Add-On
 
 ``trajectory_planner`` is an optional optimization add-on for hard pointing
 maneuvers in Generalized_ADCS.
+Its source is pulled in via the ``OldPlanner/`` git submodule.
 
 .. toctree::
    :maxdepth: 1
