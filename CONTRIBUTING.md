@@ -4,7 +4,7 @@ Thank you for your interest in **Generalized ADCS**. This project is a research-
 
 ## Code of Conduct
 
-By participating in this project, you agree to follow the standards in [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
+By participating in this project, you agree to follow the standards in [CODE_OF_CONDUCT.md](https://github.com/nscheuer/Generalized_ADCS/blob/main/CODE_OF_CONDUCT.md).
 
 If you experience or witness unacceptable behavior, report it to the maintainers at **conduct@TODO.example**.
 
@@ -30,7 +30,7 @@ If you are new to the project, these are good first contributions:
 - Review and improve documentation for clarity, setup, and examples
 - Triage open issues (reproduce, label, and suggest scope)
 - Review open pull requests for test coverage and code clarity
-- Run and improve existing example scenarios in [examples](examples)
+- Run and improve existing example scenarios in [examples](https://github.com/nscheuer/Generalized_ADCS/tree/main/examples)
 
 ## Development Setup
 
@@ -131,7 +131,7 @@ Helpful guides:
 
 ## License Terms for Contributions
 
-By submitting code, documentation, or other contributions to this repository, you agree that your contribution is provided under the same license as the project: the MIT License (see [LICENSE](LICENSE)).
+By submitting code, documentation, or other contributions to this repository, you agree that your contribution is provided under the same license as the project: the MIT License (see [LICENSE](https://github.com/nscheuer/Generalized_ADCS/blob/main/LICENSE)).
 
 ## Becoming a Maintainer
 
