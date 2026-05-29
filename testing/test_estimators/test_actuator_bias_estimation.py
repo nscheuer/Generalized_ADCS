@@ -1,71 +1,107 @@
-"""
-Test coverage for actuator-bias estimation match_estimate write-back.
-
-Verifies that `EstimatedSatellite` detects actuator bias slots and that
-`match_estimate` writes actuator bias values and per-element standard
-deviations into actuator `Bias` objects. Also ensures an actuator created
-with `estimate_bias=True` without an explicit `Bias` receives a usable
-default `Bias` object.
-"""
-
 import numpy as np
 import pytest
 
-from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
-from ADCS.satellite_hardware.actuators import MTQ
-from ADCS.satellite_hardware.sensors import Gyro
-from ADCS.satellite_hardware.errors import Bias, Noise
-from ADCS.estimators.attitude_estimators import UAKF, SRUAKF
+from ADCS.estimators.attitude_estimators import SRUAKF, UAKF
 from ADCS.helpers.math_constants import MathConstants
+from ADCS.satellite_hardware.actuators import MTQ
+from ADCS.satellite_hardware.errors import Bias, Noise
+from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
+from ADCS.satellite_hardware.sensors import Gyro
 
-_UV = MathConstants.unitvecs
+
+UNIT_VECTORS = MathConstants.unitvecs
 
 
-def _est_sat():
+def make_estimated_satellite() -> EstimatedSatellite:
     return EstimatedSatellite(
-        mass=4.0, J_0=np.diagflat([3.4, 2.9, 1.3]),
-        actuators=[MTQ(axis=_UV[j], max_torque=0.1,
-                       bias=Bias(bias=0.0, std_bias=1e-4),
-                       estimate_bias=True) for j in range(3)],
-        sensors=[Gyro(axis=_UV[j], bias=Bias(bias=0.0, std_bias=1e-4),
-                      noise=Noise(noise=0.0, std_noise=1e-4))
-                 for j in range(3)])
+        mass=4.0,
+        J_0=np.diagflat([3.4, 2.9, 1.3]),
+        actuators=[
+            MTQ(
+                axis=UNIT_VECTORS[index],
+                max_torque=0.1,
+                bias=Bias(bias=0.0, std_bias=1e-4),
+                estimate_bias=True,
+            )
+            for index in range(3)
+        ],
+        sensors=[
+            Gyro(
+                axis=UNIT_VECTORS[index],
+                bias=Bias(bias=0.0, std_bias=1e-4),
+                noise=Noise(noise=0.0, std_noise=1e-4),
+            )
+            for index in range(3)
+        ],
+    )
 
 
-def test_default_bias_present_when_estimate_bias_without_explicit_bias():
-    """estimate_bias=True with no explicit Bias must still yield a usable
-    Bias object (the match_estimate write path must not hit a None)."""
-    m = MTQ(axis=_UV[0], max_torque=0.1, estimate_bias=True)
-    assert m.estimate_bias is True
-    assert m.bias is not None
-    assert int(m.input_len) >= 1
-    # match_estimate-style write must not raise
-    m.bias.bias = np.array([0.01] * m.input_len)
-    m.bias.std_bias = np.eye(m.input_len) * 1e-4
+def build_filter(filter_type, estimated_satellite: EstimatedSatellite, x_hat: np.ndarray):
+    reduced_length = (
+        estimated_satellite.state_len
+        - 1
+        + estimated_satellite.act_bias_len
+        + estimated_satellite.att_sens_bias_len
+        + estimated_satellite.dist_param_len
+    )
+    covariance = np.eye(reduced_length) * 1e-3
+    process_noise = np.eye(reduced_length) * 1e-9
+    return filter_type(
+        est_sat=estimated_satellite,
+        J2000=0.22,
+        x_hat=x_hat,
+        P_hat=covariance,
+        Q_hat=process_noise,
+        dt=1.0,
+        cross_term=True,
+        quat_as_vec=False,
+    )
 
 
-@pytest.mark.parametrize("Filter", [UAKF, SRUAKF])
-def test_actuator_bias_estimate_propagates_via_match_estimate(Filter):
-    es = _est_sat()
-    assert es.act_bias_len == 3 and es.att_sens_bias_len == 0
+def test_estimate_bias_creates_default_bias_object_for_mtq():
+    actuator = MTQ(axis=UNIT_VECTORS[0], max_torque=0.1, estimate_bias=True)
+    assert actuator.estimate_bias is True
+    assert actuator.bias is not None
+    actuator.bias.bias = np.array([0.01] * actuator.input_len)
+    actuator.bias.std_bias = np.eye(actuator.input_len) * 1e-4
 
-    SL = es.state_len                       # [w,q,(h_rw)] -> 7 (MTQ-only)
-    aug = SL + es.act_bias_len + es.att_sens_bias_len + es.dist_param_len
-    red = (SL - 1) + es.act_bias_len + es.att_sens_bias_len + es.dist_param_len
-    a0 = SL                                  # actuator-bias slot starts after state
 
-    x_hat = np.zeros(aug)
+def test_estimated_satellite_tracks_actuator_bias_layout():
+    estimated_satellite = make_estimated_satellite()
+    assert estimated_satellite.act_bias_len == 3
+    assert estimated_satellite.att_sens_bias_len == 0
+
+
+@pytest.mark.parametrize("filter_type", [UAKF, SRUAKF])
+def test_filter_builds_with_actuator_bias_augmented_state(filter_type):
+    estimated_satellite = make_estimated_satellite()
+    augmented_length = (
+        estimated_satellite.state_len
+        + estimated_satellite.act_bias_len
+        + estimated_satellite.att_sens_bias_len
+        + estimated_satellite.dist_param_len
+    )
+    x_hat = np.zeros(augmented_length)
     x_hat[3] = 1.0
-    abias = np.array([2.0e-3, -1.0e-3, 3.0e-3])
-    x_hat[a0:a0 + 3] = abias
+    filter_instance = build_filter(filter_type, estimated_satellite, x_hat)
+    assert filter_instance is not None
 
-    filt = Filter(est_sat=es, J2000=0.22, x_hat=x_hat,
-                  P_hat=np.eye(red) * 1e-3, Q_hat=np.eye(red) * 1e-9,
-                  dt=1.0, cross_term=True, quat_as_vec=False)
-    assert filt is not None
 
-    got = np.concatenate([np.atleast_1d(a.bias.bias) for a in es.actuators])
-    np.testing.assert_allclose(
-        got, abias, rtol=0, atol=0,
-        err_msg="estimated actuator bias was not written into the "
-                "actuator Bias models via match_estimate")
+@pytest.mark.parametrize("filter_type", [UAKF, SRUAKF])
+def test_match_estimate_writes_actuator_bias_values(filter_type):
+    estimated_satellite = make_estimated_satellite()
+    state_length = estimated_satellite.state_len
+    augmented_length = (
+        state_length
+        + estimated_satellite.act_bias_len
+        + estimated_satellite.att_sens_bias_len
+        + estimated_satellite.dist_param_len
+    )
+    x_hat = np.zeros(augmented_length)
+    x_hat[3] = 1.0
+    expected_biases = np.array([2.0e-3, -1.0e-3, 3.0e-3])
+    x_hat[state_length : state_length + 3] = expected_biases
+
+    build_filter(filter_type, estimated_satellite, x_hat)
+    actual_biases = np.concatenate([np.atleast_1d(actuator.bias.bias) for actuator in estimated_satellite.actuators])
+    np.testing.assert_allclose(actual_biases, expected_biases, rtol=0, atol=0)
