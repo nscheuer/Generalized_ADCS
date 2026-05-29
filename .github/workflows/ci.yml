@@ -17,8 +17,6 @@ jobs:
     steps:
       - name: ⬇️ Checkout Repository
         uses: actions/checkout@v4
-        with:
-          submodules: recursive
 
       - name: 🐍 Set up Python
         uses: actions/setup-python@v5
@@ -36,27 +34,6 @@ jobs:
           pip install -r requirements.txt
           pip install git+https://github.com/jcrudy/choldate.git --no-build-isolation
           pip uninstall -y cmake
-
-      - name: 🧰 Install system dependencies (C++)
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            cmake \
-            g++ \
-            libarmadillo-dev \
-            libboost-math-dev
-
-      - name: 🛠️ Build trajectory_planner (OldPlanner submodule)
-        run: |
-          source .venv/bin/activate
-          cd OldPlanner
-          mkdir -p build
-          cd build
-          cmake .. \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DPython3_EXECUTABLE=$(which python) \
-            -DPYTHON_EXECUTABLE=$(which python)
-          make -j$(nproc)
           
       - name: 🧪 Run Pytest
         run: |
