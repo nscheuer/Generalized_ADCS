@@ -63,6 +63,7 @@ jobs:
           source .venv/bin/activate
           mkdir -p testing/artifacts
           pytest \
+            testing/ \
             -m "not vslow" \
             --durations=0 \
             --durations-min=0.0 \

@@ -40,7 +40,7 @@ def finite_difference_dynamics_hessian(satellite: Satellite, state: np.ndarray, 
     return analytic, numeric
 
 
-@pytest.mark.slow
+
 def test_dynamics_hessian_has_expected_state_shape(hessian_case):
     satellite, state, control, orbital_state = hessian_case
     analytic = np.asarray(satellite.dynamics_Hessians(state, control, orbital_state)[0][0], dtype=float)
@@ -48,7 +48,7 @@ def test_dynamics_hessian_has_expected_state_shape(hessian_case):
     assert analytic.shape[1] >= state.size
 
 
-@pytest.mark.slow
+
 def test_dynamics_hessian_matches_finite_difference_of_jacobian(hessian_case):
     analytic, numeric = finite_difference_dynamics_hessian(*hessian_case)
     error = np.max(np.abs(analytic[: numeric.shape[0], : numeric.shape[1], :] - numeric))

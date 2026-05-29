@@ -145,7 +145,7 @@ def test_orbit_ekf_update_reduces_measurement_error_for_clean_gps():
     assert np.linalg.norm(updated_meas - truth_meas) < np.linalg.norm(pred_meas - truth_meas)
 
 
-@pytest.mark.slow
+
 def test_orbit_ekf_converges_in_short_run():
     _, true_hist, est_hist, _ = run_orbit_ekf(tf=120.0, dt=10.0, noisy=False)
 

@@ -57,7 +57,7 @@ def test_startracker_hidden_measurement_update_masks_dropouts(monkeypatch):
     assert np.isfinite(srukf.x_hat.val).all()
 
 
-@pytest.mark.slow
+
 def test_startracker_dropout_scenario_stays_finite_and_improves():
     result = startracker_dropout_scenario()
     assert np.isfinite(result.estimate).all()

@@ -304,7 +304,7 @@ def test_bdot_reconstructs_body_field_from_mtm_measurements(
     np.testing.assert_allclose(controller.M_read @ sens, expected_body_field)
 
 
-@pytest.mark.slow
+
 def test_bdot_full_convergence_loop() -> None:
     results = run_bdot_simulation(
         tf=500.0,

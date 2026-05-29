@@ -621,7 +621,7 @@ def test_desaturate_mode_respects_rw_and_mtq_limits(
     np.testing.assert_array_less(np.abs(command[desat_controller.rw_indices]), desat_controller.rw_umax + 1.0e-12)
 
 
-@pytest.mark.slow
+
 @pytest.mark.parametrize(
     ("scenario_name", "pointing_tol_deg", "control_tol", "rate_tol"),
     [

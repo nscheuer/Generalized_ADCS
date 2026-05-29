@@ -61,7 +61,7 @@ def test_estimated_satellite_syncs_rw_momentum_from_estimate():
     assert np.allclose(est_sat.RWhs(), np.array([0.7, 0.8, 0.9]))
 
 
-@pytest.mark.slow
+
 def test_rw_convergence_scenario_tracks_wheel_momentum():
     result = reaction_wheel_scenario()
     final_error = np.linalg.norm(result.estimate[-1, 7:10] - result.truth[-1, 7:10])

@@ -648,7 +648,7 @@ def test_mtq_wisniewski_saturates_with_uniform_scaling(
     assert np.isclose(np.max(np.abs(command[:3])), 0.01)
 
 
-@pytest.mark.slow
+
 @pytest.mark.parametrize(
     ("scenario_name", "alignment_tol_deg"),
     [

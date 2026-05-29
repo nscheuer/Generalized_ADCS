@@ -526,7 +526,7 @@ def test_mtq_w_rw_respects_mtq_and_rw_limits(
     np.testing.assert_array_less(np.abs(command[3:]), controller.max_torque[3:] + 1.0e-12)
 
 
-@pytest.mark.slow
+
 @pytest.mark.parametrize(
     ("scenario_name", "alignment_target", "alignment_tol_deg", "settle_tol", "rate_tol", "momentum_index", "momentum_tol"),
     [

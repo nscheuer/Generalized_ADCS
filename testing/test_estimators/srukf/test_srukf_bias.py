@@ -31,7 +31,7 @@ def test_short_bias_sequence_moves_bias_estimate_toward_truth():
     assert final < max(initial, 1.0e-2)
 
 
-@pytest.mark.slow
+
 def test_bias_convergence_scenario_recovers_final_bias():
     result = bias_scenario()
     true_bias = np.array([8.0e-4, -6.0e-4, 5.0e-4])
