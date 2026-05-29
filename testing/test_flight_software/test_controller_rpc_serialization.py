@@ -1,15 +1,4 @@
 """
-HIL XML-RPC serialization coverage for ADCS/remote/controller_rpc.py
-(critique pass).
-
-controller_rpc.py is a ~940-line Hardware-in-the-Loop framework
-(SimpleXMLRPCServer / ServerProxy) with ZERO tests. A full client/server
-loopback is flaky in CI (port binding, threads); the bugs in such a layer
-live in the (pure) serialization: numpy arrays / scalars must be turned
-into XML-RPC-safe primitives, and a wrong shape/frame/dtype silently
-corrupts every HIL exchange. xmlrpc.client cannot marshal numpy types at
-all, so a payload that still contains them fails only at wire time.
-
 These tests round-trip the encode/decode pairs (goal / orbital-state /
 estimated-orbital-state) and assert (a) semantic recovery and (b) payloads
 are strictly XML-RPC-safe (only bool/int/float/str/None/list/dict, no
