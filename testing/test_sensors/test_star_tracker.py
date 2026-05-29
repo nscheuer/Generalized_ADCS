@@ -1,13 +1,9 @@
-import sys
-import os
 import numpy as np
 import numdifftools as nd
 import pytest
 
-sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))
-
 from ADCS.satellite_hardware.sensors import StarTracker
-from ADCS.environment import StarCatalog, NavigationStar
+from ADCS.environment import StarCatalog
 from ADCS.satellite_factory.sensors import create_bct_nst, create_terma_t1, create_generic_star_tracker
 from ADCS.satellite_hardware.errors import AnisotropicNoise
 from ADCS.orbits.orbital_state import Orbital_State

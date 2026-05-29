@@ -1,18 +1,13 @@
-import sys
-import os
 import numpy as np
 import numdifftools as nd
 import pytest
-
-sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))
 
 from ADCS.satellite_hardware.sensors import EarthHorizonSensor
 from ADCS.satellite_factory.sensors import (
     create_generic_earth_horizon,
     create_irst_horizon_sensor,
 )
-from ADCS.satellite_hardware.errors import Bias, Noise
-from ADCS.satellite_hardware.errors import ErrorMode
+from ADCS.satellite_hardware.errors import ErrorMode, Noise
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.helpers.math_helpers import random_n_unit_vec, rot_mat

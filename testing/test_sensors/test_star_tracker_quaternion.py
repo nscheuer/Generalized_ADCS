@@ -1,13 +1,8 @@
-import sys
-import os
 import numpy as np
 import numdifftools as nd
 import pytest
 
-sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))
-
 from ADCS.satellite_hardware.sensors import StarTrackerQuaternion
-from ADCS.environment import StarCatalog, NavigationStar
 from ADCS.satellite_factory.sensors import (
     create_bct_nst_quaternion,
     create_generic_star_tracker_quaternion,
