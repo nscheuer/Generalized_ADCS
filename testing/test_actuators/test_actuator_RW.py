@@ -1,5 +1,3 @@
-import sys
-import os
 import numpy as np
 import numdifftools as nd
 import pytest
@@ -7,18 +5,14 @@ from typing import List
 from scipy.stats import kstest, ks_2samp
 from asciichartpy import plot
 
-# === Import project modules ===
-sys.path.append(
-    os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-)
-from ADCS.satellite_hardware.satellite.satellite import Satellite
 from ADCS.satellite_hardware.actuators import Actuator, RW, MTQ
 from ADCS.satellite_hardware.errors import Bias, Noise
+from ADCS.satellite_hardware.satellite import Satellite
+from ADCS.helpers.math_constants import MathConstants
 from ADCS.orbits.orbital_state import Orbital_State
-from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.helpers.math_helpers import normalize, rot_mat, random_n_unit_vec, drotmatTvecdq, ddrotmatTvecdqdq
-from ADCS.helpers.math_constants import MathConstants
+from ADCS.orbits.universal_constants import TimeConstants
 
 def test_RW_setup():
     ax = random_n_unit_vec(3)*3
