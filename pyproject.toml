@@ -89,6 +89,7 @@ addopts = [
     "--tb=short",
     "--durations=15",
     "--durations-min=0.1",
+    "--junitxml=testing/artifacts/pytest.xml",
 ]
 junit_family = "xunit2"
 markers = [
