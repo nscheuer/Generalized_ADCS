@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "Generalized_ADCS"
-version = "2025.0.0"
+version = "0.1.5"
 description = "Generalized Attitude Determination and Control System (ADCS) framework."
 authors = [
     { name = "Patrick McKeen" },
@@ -84,7 +84,11 @@ where = ["."]
 include = ["ADCS*"]
 
 [tool.pytest.ini_options]
-markers = [
-    "slow: marks tests that are slower or more integration-heavy",
-    "vslow: marks tests that are very slow and should be run separately",
+addopts = [
+    "-ra",
+    "--tb=short",
+    "--durations=15",
+    "--durations-min=0.1",
+    "--junitxml=testing/artifacts/pytest.xml",
 ]
+junit_family = "xunit2"

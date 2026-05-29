@@ -1,69 +1,89 @@
-"""
-Independent reference: two hand-specified ECI_Goal directions and the
-GoalList's own switch time -- the logged target history must equal goal A's
-fixed ECI vector before the switch and goal B's after, with exactly one
-transition.
-"""
-
 import numpy as np
-import pytest
 
-from ADCS.CONOPS.goals import ECI_Goal
 from ADCS.CONOPS.goallist import GoalList
+from ADCS.CONOPS.goals import ECI_Goal
+from ADCS.helpers.math_constants import MathConstants
+from ADCS.helpers.math_helpers import normalize
 from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.universal_constants import TimeConstants
+from ADCS.satellite_hardware.actuators import MTQ
 from ADCS.satellite_hardware.satellite.satellite import Satellite
 from ADCS.satellite_hardware.sensors import MTM
-from ADCS.satellite_hardware.actuators import MTQ
-from ADCS.helpers.math_constants import MathConstants
-from ADCS.helpers.math_helpers import normalize
 from ADCS.simulate import simulate
 
-_UV = MathConstants.unitvecs
+
+UNIT_VECTORS = MathConstants.unitvecs
 
 
-def test_simulate_switches_active_goal_per_goallist_schedule():
-    ephem = Ephemeris()
-    t0 = 0.22
-    dt, tf = 1.0, 60.0
-    t_switch = t0 + 30.0 * TimeConstants.sec2cent      # halfway
+def run_goallist_switch_simulation():
+    start_time = 0.22
+    dt = 1.0
+    final_time = 60.0
+    switch_time = start_time + 30.0 * TimeConstants.sec2cent
 
-    vec_a = normalize(np.array([1.0, 0.0, 0.0]))
-    vec_b = normalize(np.array([0.0, 1.0, 0.0]))
-    goals = GoalList({t0: ECI_Goal(vec_a.copy()),
-                      t_switch: ECI_Goal(vec_b.copy())},
-                     time_units="centuries")
+    vector_a = normalize(np.array([1.0, 0.0, 0.0]))
+    vector_b = normalize(np.array([0.0, 1.0, 0.0]))
+    goals = GoalList(
+        {start_time: ECI_Goal(vector_a.copy()), switch_time: ECI_Goal(vector_b.copy())},
+        time_units="centuries",
+    )
 
-    sat = Satellite(mass=4.0, J_0=np.diagflat([3.4, 2.9, 1.3]),
-                    actuators=[MTQ(axis=_UV[j], max_torque=0.1) for j in range(3)],
-                    sensors=[MTM(axis=_UV[j]) for j in range(3)])
-    os0 = Orbital_State(ephem=ephem, J2000=t0,
-                        R=-7000.0 * np.array([0, np.sqrt(.5), np.sqrt(.5)]),
-                        V=np.array([8.0, 0.0, 0.0]),
-                        B=np.array([0.0, 0.1, 0.0]),
-                        S=np.array([1e5 + 1, 0.0, 0.0]), rho=5e-12)
-    x = np.concatenate([np.zeros(3), [1.0, 0.0, 0.0, 0.0]])
+    satellite = Satellite(
+        mass=4.0,
+        J_0=np.diagflat([3.4, 2.9, 1.3]),
+        actuators=[MTQ(axis=UNIT_VECTORS[index], max_torque=0.1) for index in range(3)],
+        sensors=[MTM(axis=UNIT_VECTORS[index]) for index in range(3)],
+    )
+    orbital_state = Orbital_State(
+        ephem=Ephemeris(),
+        J2000=start_time,
+        R=-7000.0 * np.array([0.0, np.sqrt(0.5), np.sqrt(0.5)]),
+        V=np.array([8.0, 0.0, 0.0]),
+        B=np.array([0.0, 0.1, 0.0]),
+        S=np.array([1e5 + 1.0, 0.0, 0.0]),
+        rho=5e-12,
+    )
+    state = np.concatenate([np.zeros(3), [1.0, 0.0, 0.0, 0.0]])
+    result = simulate(x=state, satellite=satellite, goal=goals, os0=orbital_state, dt=dt, tf=final_time)[0]
+    target_history = np.asarray(result.target_hist, dtype=float)
+    directions = target_history[:, 1:4]
+    normalized_directions = directions / np.linalg.norm(directions, axis=1, keepdims=True)
+    return normalized_directions, vector_a, vector_b, start_time, switch_time, dt
 
-    res = simulate(x=x, satellite=sat, goal=goals, os0=os0, dt=dt, tf=tf)
-    # target_hist rows are the to_ref vector-mode format [nan, vx, vy, vz];
-    # the inertial direction is columns 1:4 (column 0 is the NaN sentinel).
-    target = np.asarray(res[0].target_hist, float)
-    assert target.ndim == 2 and target.shape[1] == 4 and target.shape[0] > 10
-    assert np.all(np.isnan(target[:, 0])), "expected the NaN vector-mode sentinel"
-    dirs = target[:, 1:4]
 
-    # ECI_Goal.to_ref is a constant inertial vector -> the target history is
-    # exactly vec_a then vec_b with a single switch.
-    u = dirs / np.linalg.norm(dirs, axis=1, keepdims=True)
-    matches_a = np.all(np.isclose(u, vec_a, atol=1e-9), axis=1)
-    matches_b = np.all(np.isclose(u, vec_b, atol=1e-9), axis=1)
-    assert np.all(matches_a | matches_b), "target is neither goal A nor B"
-    assert matches_a[0] and matches_b[-1], "goal did not switch A -> B"
-    # exactly one A->B transition (piecewise-constant schedule)
+def test_simulate_goallist_switch_logs_vector_mode_targets():
+    target_history, _, _, _, _, _ = run_goallist_switch_simulation()
+    assert target_history.ndim == 2
+    assert target_history.shape[1] == 3
+    assert target_history.shape[0] > 10
+
+
+def test_simulate_goallist_switch_uses_only_goal_a_or_goal_b_directions():
+    directions, vector_a, vector_b, _, _, _ = run_goallist_switch_simulation()
+    matches_a = np.all(np.isclose(directions, vector_a, atol=1e-9), axis=1)
+    matches_b = np.all(np.isclose(directions, vector_b, atol=1e-9), axis=1)
+    assert np.all(matches_a | matches_b)
+
+
+def test_simulate_goallist_switch_starts_with_goal_a_and_ends_with_goal_b():
+    directions, vector_a, vector_b, _, _, _ = run_goallist_switch_simulation()
+    matches_a = np.all(np.isclose(directions, vector_a, atol=1e-9), axis=1)
+    matches_b = np.all(np.isclose(directions, vector_b, atol=1e-9), axis=1)
+    assert matches_a[0]
+    assert matches_b[-1]
+
+
+def test_simulate_goallist_switch_has_exactly_one_transition():
+    directions, vector_a, _, _, _, _ = run_goallist_switch_simulation()
+    matches_a = np.all(np.isclose(directions, vector_a, atol=1e-9), axis=1)
     transitions = int(np.sum(np.diff(matches_a.astype(int)) != 0))
-    assert transitions == 1, f"expected one goal switch, saw {transitions}"
-    # the switch happens at the scheduled time (within one step)
-    sw = int(np.argmax(~matches_a))
-    t_sw_actual = t0 + sw * dt * TimeConstants.sec2cent
-    assert abs(t_sw_actual - t_switch) <= 1.5 * dt * TimeConstants.sec2cent
+    assert transitions == 1
+
+
+def test_simulate_goallist_switch_happens_at_scheduled_time_within_one_step():
+    directions, vector_a, _, start_time, switch_time, dt = run_goallist_switch_simulation()
+    matches_a = np.all(np.isclose(directions, vector_a, atol=1e-9), axis=1)
+    switch_index = int(np.argmax(~matches_a))
+    actual_switch_time = start_time + switch_index * dt * TimeConstants.sec2cent
+    assert abs(actual_switch_time - switch_time) <= 1.5 * dt * TimeConstants.sec2cent
