@@ -621,10 +621,14 @@ def test_rw_noise_updates_follow_seeded_torque_sequence() -> None:
     case = _make_case(19)
     std_noise = 0.24
     rw = _make_rw(case, noise=Noise(noise=0.0, std_noise=std_noise))
-    times = [case.orbital_state.J2000] * 4
+    dt = 0.5 * TimeConstants.sec2cent
+    times = [case.orbital_state.J2000 + idx * dt for idx in range(4)]
 
     np.random.seed(456)
-    actual = [rw.torque(u=case.u, x=case.x, os=case.orbital_state) for _ in times]
+    actual = []
+    for time in times:
+        case.orbital_state.J2000 = time
+        actual.append(rw.torque(u=case.u, x=case.x, os=case.orbital_state))
 
     np.random.seed(456)
     expected = _expected_rw_sequence(case, times=times, noise0=0.0, std_noise=std_noise)
@@ -685,10 +689,14 @@ def test_rw_noise_updates_follow_seeded_storage_sequence() -> None:
     case = _make_case(22)
     std_noise = 0.16
     rw = _make_rw(case, noise=Noise(noise=0.0, std_noise=std_noise))
-    times = [case.orbital_state.J2000] * 4
+    dt = 0.5 * TimeConstants.sec2cent
+    times = [case.orbital_state.J2000 + idx * dt for idx in range(4)]
 
     np.random.seed(654)
-    actual = [rw.storage_torque(u=case.u, x=case.x, os=case.orbital_state) for _ in times]
+    actual = []
+    for time in times:
+        case.orbital_state.J2000 = time
+        actual.append(rw.storage_torque(u=case.u, x=case.x, os=case.orbital_state))
 
     np.random.seed(654)
     expected = _expected_rw_sequence(case, times=times, noise0=0.0, std_noise=std_noise, storage=True)

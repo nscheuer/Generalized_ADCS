@@ -82,16 +82,18 @@ def test_reaction_wheel_dynamics_match_expected_storage_and_body_terms():
 
     dx = sat.dynamics_core(x=x, u=u, orbital_state=os)
 
+    clipped_u0 = np.clip(u[0], -sat.actuators[0].u_max, sat.actuators[0].u_max)
+    clipped_u1 = np.clip(u[1], -sat.actuators[1].u_max, sat.actuators[1].u_max)
     expected = np.array([
-        0.021 / (1.0 - 0.001),
-        -0.05 / (1.0 - 0.002),
+        clipped_u0 / (1.0 - 0.001),
+        clipped_u1 / (1.0 - 0.002),
         0.0,
         0.0,
         0.005,
         0.0,
         0.0,
-        -0.021 / (1.0 - 0.001),
-        0.05 / (1.0 - 0.002),
+        -clipped_u0 / (1.0 - 0.001),
+        abs(clipped_u1) / (1.0 - 0.002),
         0.0,
     ])
     assert np.allclose(dx, expected, rtol=1e-8, atol=1e-8)

@@ -17,6 +17,11 @@ def test_gps_clean_reading_returns_ecef_position_and_velocity():
     assert np.allclose(reading, expected)
 
 
+def test_gps_clean_reading_has_length_six():
+    reading = GPS().clean_reading(make_state(), make_orbital_state())
+    assert reading.shape == (6,)
+
+
 def test_gps_bias_jacobian_is_identity_when_bias_active():
     sensor = GPS(bias=Bias(bias=np.arange(6.0), std_bias=np.zeros(6)))
 

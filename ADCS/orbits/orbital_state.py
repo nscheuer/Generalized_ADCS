@@ -805,7 +805,14 @@ class Orbital_State:
             self.datetime,
         )
 
-        b_array = np.array([float(b_r), float(b_th), float(b_ph)], dtype=float)
+        b_array = np.array(
+            [
+                np.asarray(b_r, dtype=float).reshape(-1)[0],
+                np.asarray(b_th, dtype=float).reshape(-1)[0],
+                np.asarray(b_ph, dtype=float).reshape(-1)[0],
+            ],
+            dtype=float,
+        )
         b_ecef = self.geocentric_to_ecef(b_array)
         b_eci = self.ecef_to_eci(b_ecef)
         return b_eci * 1e-9

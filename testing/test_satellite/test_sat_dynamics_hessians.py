@@ -1,18 +1,5 @@
-"""
-Finite-difference check for ``Satellite.dynamics_Hessians``.
-
-This test compares the state Hessian returned by ``dynamics_Hessians`` with
-central differences of ``dynJacCore`` and keeps the current non-functional
-implementation visible via a strict ``xfail`` marker.
-"""
-import os
-import sys
-
 import numpy as np
 import pytest
-
-# === Import project modules ===
-sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))
 
 from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.orbital_state import Orbital_State
@@ -20,11 +7,10 @@ from ADCS.satellite_hardware.actuators import MTQ
 from ADCS.satellite_hardware.satellite.satellite import Satellite
 
 
-@pytest.mark.slow
-def test_dynamics_hessians_matches_finite_difference_of_jacobian():
-    ephem = Ephemeris()
-    os0 = Orbital_State(
-        ephem=ephem,
+@pytest.fixture(scope="module")
+def hessian_case():
+    orbital_state = Orbital_State(
+        ephem=Ephemeris(),
         J2000=0.22,
         R=np.array([7000.0, 0.0, 0.0]),
         V=np.array([0.0, 7.5, 0.0]),
@@ -32,24 +18,38 @@ def test_dynamics_hessians_matches_finite_difference_of_jacobian():
         S=np.array([1e8, 0.0, 0.0]),
         rho=0.0,
     )
-    mtq = MTQ(axis=np.array([1.0, 0.0, 0.0]), max_torque=10.0)
-    sat = Satellite(mass=4.0, J_0=np.diagflat([0.5, 0.8, 1.2]), actuators=[mtq])
-    x = np.hstack(([0.02, -0.01, 0.015], [1.0, 0.0, 0.0, 0.0]))
-    u = np.zeros(1)
+    satellite = Satellite(
+        mass=4.0,
+        J_0=np.diagflat([0.5, 0.8, 1.2]),
+        actuators=[MTQ(axis=np.array([1.0, 0.0, 0.0]), max_torque=10.0)],
+    )
+    state = np.hstack(([0.02, -0.01, 0.015], [1.0, 0.0, 0.0, 0.0]))
+    control = np.zeros(1)
+    return satellite, state, control, orbital_state
 
-    # The Hessian of the dynamics w.r.t. state == d(dynJacCore.dxdot__dx)/dx.
-    H = sat.dynamics_Hessians(x, u, os0)
-    ddxdot__dxdx = np.asarray(H[0][0], dtype=float)
 
-    eps = 1e-6
-    n = x.size
-    fd = np.zeros((n, n, ddxdot__dxdx.shape[-1]))
-    for i in range(n):
-        dx = np.zeros(n)
-        dx[i] = eps
-        Jp = np.asarray(sat.dynJacCore(x + dx, u, os0)[0], dtype=float)
-        Jm = np.asarray(sat.dynJacCore(x - dx, u, os0)[0], dtype=float)
-        fd[i] = (Jp - Jm) / (2.0 * eps)
+def finite_difference_dynamics_hessian(satellite: Satellite, state: np.ndarray, control: np.ndarray, orbital_state: Orbital_State):
+    analytic = np.asarray(satellite.dynamics_Hessians(state, control, orbital_state)[0][0], dtype=float)
+    numeric = np.zeros((state.size, state.size, analytic.shape[-1]))
+    for index in range(state.size):
+        delta = np.zeros(state.size)
+        delta[index] = 1e-6
+        plus = np.asarray(satellite.dynJacCore(state + delta, control, orbital_state)[0], dtype=float)
+        minus = np.asarray(satellite.dynJacCore(state - delta, control, orbital_state)[0], dtype=float)
+        numeric[index] = (plus - minus) / (2.0e-6)
+    return analytic, numeric
 
-    err = np.max(np.abs(ddxdot__dxdx[:n, :n, :] - fd))
-    assert err < 1e-4, f"dynamics_Hessians vs FD(dynJacCore): max err {err:.2e}"
+
+@pytest.mark.slow
+def test_dynamics_hessian_has_expected_state_shape(hessian_case):
+    satellite, state, control, orbital_state = hessian_case
+    analytic = np.asarray(satellite.dynamics_Hessians(state, control, orbital_state)[0][0], dtype=float)
+    assert analytic.shape[0] >= state.size
+    assert analytic.shape[1] >= state.size
+
+
+@pytest.mark.slow
+def test_dynamics_hessian_matches_finite_difference_of_jacobian(hessian_case):
+    analytic, numeric = finite_difference_dynamics_hessian(*hessian_case)
+    error = np.max(np.abs(analytic[: numeric.shape[0], : numeric.shape[1], :] - numeric))
+    assert error < 1e-4

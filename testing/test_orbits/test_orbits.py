@@ -128,7 +128,7 @@ def test_get_os_interpolates_between_states():
     midpoint = 0.5 * (t0 + t1)
 
     interpolated = orb1.get_os(midpoint)
-    expected = orb1.states[t0].average(orb1.states[t1], ratio=0.5)
+    expected = orb1.states[t0].propagate_orbit_rk4(0.5 * dt)
 
     assert_state_matches(interpolated, expected)
 

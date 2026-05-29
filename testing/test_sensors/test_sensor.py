@@ -19,9 +19,17 @@ def test_sensor_defaults_use_zero_bias_and_noise():
     sensor = DummySensor([1.0, -2.0])
 
     assert sensor.sample_time == 0.1
-    assert np.allclose(sensor.bias.bias, np.zeros(1))
-    assert np.allclose(sensor.noise.noise, np.zeros(1))
     assert sensor.output_length == 2
+
+
+def test_sensor_default_bias_is_zero():
+    sensor = DummySensor([1.0, -2.0])
+    assert np.allclose(sensor.bias.bias, np.zeros(1))
+
+
+def test_sensor_default_noise_is_zero():
+    sensor = DummySensor([1.0, -2.0])
+    assert np.allclose(sensor.noise.noise, np.zeros(1))
 
 
 def test_sensor_reading_adds_bias_and_noise_when_enabled():
