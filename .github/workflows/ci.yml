@@ -2,13 +2,14 @@
 
 name: Run Pytest on All Branches
 
-# 1. Define when this workflow runs
 on:
+  push:
+    branches:
+      - '**'
   pull_request:
     branches:
-      - '**' # Run on PR targeting ALL branches
+      - '**'
 
-# 2. Define the jobs
 jobs:
   check_all_pytests:
     runs-on: ubuntu-latest
@@ -20,18 +21,16 @@ jobs:
       - name: 🐍 Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12' # Use your required Python version
+          python-version: '3.12'
 
       - name: ⚙️ Create and Activate Virtual Environment
         run: |
           python -m venv .venv
           source .venv/bin/activate
-          # Use 'run' keyword for subsequent commands in the same step
           
       - name: 📦 Install Dependencies
         run: |
           source .venv/bin/activate
-          # Install dependencies from the requirements file
           pip install -r requirements.txt
           pip install git+https://github.com/jcrudy/choldate.git --no-build-isolation
           pip uninstall -y cmake
@@ -48,21 +47,34 @@ jobs:
       - name: 🛠️ Build trajectory_planner
         run: |
           source .venv/bin/activate
-
           cd trajectory_planner
           mkdir -p build
           cd build
-
           cmake .. \
             -DCMAKE_BUILD_TYPE=Release \
             -DPython3_EXECUTABLE=$(which python) \
             -DPYTHON_EXECUTABLE=$(which python)
-
           make -j$(nproc)
           
-      - name: 🧪 Run Pytest with Verbose Output
+      - name: 🧪 Run Pytest
         run: |
           source .venv/bin/activate
-          # Change directory and run pytest -v
-          cd testing/
-          pytest -m "not vslow" -v
+          mkdir -p testing/artifacts
+          pytest \
+            -m "not vslow" \
+            --durations=0 \
+            --durations-min=0.0 \
+            --junitxml=testing/artifacts/pytest.xml
+
+      - name: 📦 Upload Pytest JUnit XML
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-junit-report
+          path: testing/artifacts/pytest.xml
+
+      - name: 📋 Publish Test Summary
+        if: always()
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        with:
+          files: testing/artifacts/pytest.xml
