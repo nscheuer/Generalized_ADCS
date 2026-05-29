@@ -81,3 +81,9 @@ package-dir = {"" = "."}
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["ADCS*"]
+
+[tool.pytest.ini_options]
+markers = [
+    "slow: tests that are expensive but still part of normal CI coverage",
+    "vslow: tests that are very expensive and usually excluded from regular runs",
+]
