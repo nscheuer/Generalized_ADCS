@@ -1,239 +1,354 @@
-import sys
-import os
-import numpy as np
-from scipy.integrate import solve_ivp
-from typing import List, Union, Tuple, Optional
-from tqdm import tqdm
-import pytest
-from scipy.spatial.transform import Rotation as R
+from dataclasses import dataclass
 
-sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))
+import numpy as np
+import pytest
+from scipy.integrate import solve_ivp
+from tqdm import tqdm
+
 from ADCS.controller import BDot
+from ADCS.helpers.math_constants import MathConstants
+from ADCS.helpers.math_helpers import normalize
+from ADCS.helpers.math_helpers import limit
 from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.orbit import Orbit
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.universal_constants import TimeConstants
-from ADCS.satellite_hardware.satellite.satellite import Satellite
-from ADCS.satellite_hardware.sensors import MTM
 from ADCS.satellite_hardware.actuators import MTQ, RW
-from ADCS.helpers.math_constants import MathConstants
-from ADCS.helpers.math_helpers import random_n_unit_vec, normalize
+from ADCS.satellite_hardware.satellite import Satellite
+from ADCS.satellite_hardware.sensors import MTM
 
-from ADCS.helpers.plotting.animate_estimator import animate_attitude
-from ADCS.helpers.plotting.plot_estimator import plot_state_comparison
-from ADCS.helpers.plotting.close_all_plots import create_close_all_button_window
-from ADCS.helpers.plotting.plot_controller import plot_control
-from ADCS.helpers.plotting.animate_orbit import animate_orbit
 
-def run_bdot_simulation(
-    verbose: bool = False, 
-    tf: float = 1000, 
-    dt: float = 1, 
-    real_orbit: bool = False,
-    include_rw: bool = True
-) -> Tuple[np.ndarray, np.ndarray, List[Orbital_State], np.ndarray, np.ndarray]:
-    """
-    Runs the B-Dot simulation.
-    """
-    np.random.seed(1)
-    t0 = 0
-    N = int((tf-t0)/dt)
+@dataclass(frozen=True)
+class BDotRun:
+    time_hist: np.ndarray
+    state_hist: np.ndarray
+    os_hist: list[Orbital_State]
+    sensor_hist: np.ndarray
+    u_hist: np.ndarray
 
-    # --- Hardware Setup ---
-    # Magnetorquers (always present for B-Dot)
-    mtm_max_torque = 0.1 
+
+def _unit(vec: np.ndarray) -> np.ndarray:
+    return vec / np.linalg.norm(vec)
+
+
+def _make_satellite(*, include_rw: bool = False, mtq_max_torque: float = 0.1) -> Satellite:
+    mtqs = [MTQ(axis=axis, max_torque=mtq_max_torque) for axis in MathConstants.unitvecs]
+    actuators = list(mtqs)
+
     if include_rw:
-        mtm_max_torque = 0.01 
-        
-    mtqs = [MTQ(axis=j, max_torque=mtm_max_torque) for j in MathConstants.unitvecs]
-    acts = list(mtqs)
-    
-    # Reaction Wheels (Optional)
-    if include_rw:
-        rw_max_torque = 4.51
-        rw_J = 0.22
-        rw_h0 = 0
-        rw_hmax = 3.8
-        rws = [RW(axis=j, max_torque=rw_max_torque, J=rw_J, h=rw_h0, h_max=rw_hmax) for j in MathConstants.unitvecs]
-        acts += rws
+        rws = [
+            RW(axis=axis, max_torque=4.51, J=0.22, h=0.0, h_max=3.8)
+            for axis in MathConstants.unitvecs
+        ]
+        actuators.extend(rws)
 
-    mtms = [MTM(axis=j) for j in MathConstants.unitvecs]
-    real_sat = Satellite(mass=4.0, J_0=np.diagflat([3.4, 2.9, 1.3]), actuators=acts, sensors=mtms)
+    mtms = [MTM(axis=axis) for axis in MathConstants.unitvecs]
+    return Satellite(
+        mass=4.0,
+        J_0=np.diagflat([3.4, 2.9, 1.3]),
+        actuators=actuators,
+        sensors=mtms,
+    )
 
-    # --- Initial Conditions ---
-    w0 = random_n_unit_vec(3) * np.random.uniform(1, 2) * np.pi / 180.0
-    q0 = random_n_unit_vec(4)
-    
-    if include_rw:
-        h0 = np.array([rw_h0, rw_h0, rw_h0])
-        x = np.concatenate([w0, q0, h0])
-        state_dim = 10
-    else:
-        x = np.concatenate([w0, q0])
-        state_dim = 7
 
-    # --- Orbit Generation ---
+def _make_static_orbit(tf: float, dt: float, *, b_eci: np.ndarray) -> Orbit:
+    ephem = Ephemeris()
+    os0 = Orbital_State(
+        ephem=ephem,
+        J2000=0.22,
+        R=7000.0 * np.array([0.0, np.sqrt(2) / 2, np.sqrt(2) / 2]),
+        V=np.array([8.0, 0.0, 0.0]),
+        B=b_eci,
+        S=np.array([1e5 + 1, 0.0, 0.0]),
+        rho=5e-12,
+    )
+    steps = int(tf / dt) + 20
+    orbs = []
+    for step in range(steps):
+        current = os0.copy()
+        current.J2000 = os0.J2000 + step * dt * TimeConstants.sec2cent
+        orbs.append(current)
+    return Orbit(orbs)
+
+
+def _make_real_orbit(tf: float, dt: float) -> Orbit:
     ephem = Ephemeris()
     start_time_j2000 = 0.22
-    
-    if real_orbit:
-        start_date = start_time_j2000 - 1 * TimeConstants.sec2cent
-        end_date = start_time_j2000 + (tf - t0) * TimeConstants.sec2cent
-        R = 7000 * np.array([0, np.sqrt(2)/2, np.sqrt(2)/2])
-        V = np.array([8, 0, 0])
-        os0 = Orbital_State(ephem=ephem, J2000=start_date, R=R, V=V)
-        orb = Orbit(os0=os0, end_time=end_date, dt=dt, use_J2=True, fast=False)
-    else:
-        # Static magnetic field case for easier debugging
-        R = 7000 * np.array([0, np.sqrt(2)/2, np.sqrt(2)/2])
-        V = np.array([8, 0, 0])
-        # Constant B-field simplifies "rotation about B-field" checks
-        os0 = Orbital_State(ephem=ephem, J2000=start_time_j2000, R=R, V=V, 
-                            B=np.array([0, 0.1, 0]), S=np.array([1e5+1, 0, 0]), rho=5e-12)
-        
-        dur = int((tf-t0)/dt) + 10
-        orbs = [os0] * (dur + 10)
-        for j in range(dur):
-            temp_os = os0.copy()
-            temp_os.J2000 = os0.J2000 + j * dt * TimeConstants.sec2cent
-            orbs[j] = temp_os
-        orb = Orbit(orbs)
+    start_date = start_time_j2000 - TimeConstants.sec2cent
+    end_date = start_time_j2000 + tf * TimeConstants.sec2cent
+    os0 = Orbital_State(
+        ephem=ephem,
+        J2000=start_date,
+        R=7000.0 * np.array([0.0, np.sqrt(2) / 2, np.sqrt(2) / 2]),
+        V=np.array([8.0, 0.0, 0.0]),
+    )
+    return Orbit(os0=os0, end_time=end_date, dt=dt, use_J2=True, fast=False)
 
-    # --- Controller ---
-    controller = BDot(est_sat=real_sat, gain=100)
 
-    # --- Data Logging ---
-    time_hist = np.nan * np.zeros(N)
-    state_hist = np.nan * np.zeros((N, state_dim))
-    os_hist: List[Orbital_State] = list()
-    sensor_hist: np.ndarray = np.nan * np.zeros((N, len(real_sat.sensors + real_sat.rw_actuators)))
-    u_hist = np.nan * np.zeros((N, len(acts)))
+def run_bdot_simulation(
+    *,
+    tf: float = 500.0,
+    dt: float = 1.0,
+    real_orbit: bool = False,
+    include_rw: bool = True,
+    progress: bool = False,
+) -> BDotRun:
+    rng = np.random.default_rng(1)
+    satellite = _make_satellite(
+        include_rw=include_rw,
+        mtq_max_torque=0.01 if include_rw else 0.1,
+    )
 
-    # --- Simulation Loop ---
-    t = t0
-    ind = 0
-    steps = int((tf - t0) / dt)
-    
-    for step in tqdm(range(steps), desc=f"Simulating BDot (RW={include_rw})"):
+    w0 = _unit(rng.normal(size=3)) * rng.uniform(1.0, 2.0) * np.pi / 180.0
+    q0 = _unit(rng.normal(size=4))
+    x = np.concatenate([w0, q0, np.zeros(3)]) if include_rw else np.concatenate([w0, q0])
+    state_dim = 10 if include_rw else 7
+
+    orbit = (
+        _make_real_orbit(tf, dt)
+        if real_orbit
+        else _make_static_orbit(tf, dt, b_eci=np.array([0.0, 0.1, 0.0]))
+    )
+    controller = BDot(est_sat=satellite, gain=100.0)
+
+    steps = int(tf / dt)
+    time_hist = np.full(steps, np.nan)
+    state_hist = np.full((steps, state_dim), np.nan)
+    sensor_hist = np.full((steps, len(satellite.sensors + satellite.rw_actuators)), np.nan)
+    u_hist = np.full((steps, len(satellite.actuators)), np.nan)
+    os_hist: list[Orbital_State] = []
+
+    iterator = tqdm(range(steps), desc=f"Simulating BDot (RW={include_rw})") if progress else range(steps)
+    t = 0.0
+    start_time_j2000 = 0.22
+
+    for ind in iterator:
         current_j2000 = start_time_j2000 + t * TimeConstants.sec2cent
-        os = orb.get_os(J2000=current_j2000)
-
-        sens = real_sat.sensor_readings(x=x, os=os)
-        u = controller.find_u(x_hat=x, sens=sens, est_sat=real_sat, os_hat=os)
-
-        if verbose:
-            print("u: ", u)
+        os = orbit.get_os(J2000=current_j2000)
+        sens = satellite.sensor_readings(x=x, os=os)
+        u = controller.find_u(x_hat=x, sens=sens, est_sat=satellite, os_hat=os)
 
         time_hist[ind] = t
         state_hist[ind, :] = x
-        os_hist.append(os)
         sensor_hist[ind, :] = sens
         u_hist[ind, :] = u
+        os_hist.append(os)
 
-        # Integration
-        ind += 1
-        t += dt
+        next_t = t + dt
         prev_os = os.copy()
-        next_os = orb.get_os(start_time_j2000 + t * TimeConstants.sec2cent)
-
+        next_os = orbit.get_os(start_time_j2000 + next_t * TimeConstants.sec2cent)
         out = solve_ivp(
-            fun=real_sat.dynamics_for_solver, 
-            t_span=(0, dt), 
-            y0=x, 
-            method="RK45", 
-            args=(u, prev_os, next_os), 
-            rtol=1e-7, 
-            atol=1e-7
+            fun=satellite.dynamics_for_solver,
+            t_span=(0.0, dt),
+            y0=x,
+            method="RK45",
+            args=(u, prev_os, next_os),
+            rtol=1e-7,
+            atol=1e-7,
         )
         x = out.y[:, -1]
-        x[3:7] = normalize(x[3:7]) 
+        x[3:7] = normalize(x[3:7])
+        t = next_t
 
-    return time_hist, state_hist, os_hist, sensor_hist, u_hist
-
-
-@pytest.fixture(scope="module")
-def bdot_results():
-    """
-    Runs the B-Dot simulation ONCE for the entire module.
-    Returns: (time_hist, state_hist, os_hist, sensor_hist, u_hist)
-    """
-    print("\n--- Running B-Dot Simulation (Once) ---")
-    results = run_bdot_simulation(
-        verbose=False, 
-        tf=500, 
-        dt=1.0, 
-        real_orbit=False, 
-        include_rw=True
+    return BDotRun(
+        time_hist=time_hist,
+        state_hist=state_hist,
+        os_hist=os_hist,
+        sensor_hist=sensor_hist,
+        u_hist=u_hist,
     )
-    return results
 
 
-def test_bdot_control_effort(bdot_results):
-    """
-    Test 1: Check that control effort for all MTQ channels is close to zero at the end.
-    """
-    (_, _, _, _, u_hist) = bdot_results
-
-    # Analyze last 10 steps to account for minor noise
-    final_u = np.mean(np.abs(u_hist[-10:]), axis=0)
-    
-    # Extract MTQ indices (first 3 actuators)
-    mtq_effort = final_u[0:3] 
-    
-    print(f"\nFinal MTQ Effort (Mean Abs): {mtq_effort}")
-    assert np.all(mtq_effort < 1e-3), f"Control effort did not settle. Final MTQ u: {mtq_effort}"
-
-def test_bdot_rotational_dynamics(bdot_results):
-    """
-    Test 2: Check that only rotation about the axis of the magnetic field line exists.
-    All rotation perpendicular to B-field should be close to zero.
-    """
-    (_, state_hist, os_hist, _, _) = bdot_results
-
-    final_w = state_hist[-1, 0:3] # Body angular velocity
-    final_B_eci = os_hist[-1].B   # B-field in ECI
-    q_final = state_hist[-1, 3:7] # Quaternion (ECI -> Body)
-
-    # Transform B-field from ECI to Body frame
-    r = R.from_quat(q_final)
-    final_B_body = r.apply(final_B_eci, inverse=True)
-    
-    # Calculate component of w perpendicular to B
-    # w_perp = w - proj_B(w)
-    B_unit = final_B_body / np.linalg.norm(final_B_body)
-    w_parallel_mag = np.dot(final_w, B_unit)
-    w_parallel = w_parallel_mag * B_unit
-    w_perp = final_w - w_parallel
-    
-    w_perp_mag = np.linalg.norm(w_perp)
-    
-    print(f"\nResidual Perpendicular Rotation: {w_perp_mag:.2e} rad/s")
-    assert w_perp_mag < 1e-2, f"Residual rotation perpendicular to B-field detected: {w_perp_mag} rad/s"
+@pytest.fixture
+def bdot_satellite() -> Satellite:
+    return _make_satellite(include_rw=False, mtq_max_torque=0.1)
 
 
-def debug_plots(time_hist, state_hist, os_hist, u_hist):
-    """Helper to generate plots for debugging."""
-    animate_attitude(time=time_hist, state_hist=state_hist, os_hist=os_hist)
-    plot_control(time=time_hist, u_hist=u_hist)
-    plot_state_comparison(time=time_hist, state_hist=state_hist)
-    # animate_orbit(time_hist=time_hist, state_hist=state_hist, os_hist=os_hist)
+@pytest.fixture
+def bdot_satellite_with_rw() -> Satellite:
+    return _make_satellite(include_rw=True, mtq_max_torque=0.01)
+
+
+@pytest.fixture
+def base_orbital_state() -> Orbital_State:
+    return Orbital_State(
+        ephem=Ephemeris(),
+        J2000=0.22,
+        R=np.array([7000.0, 0.0, 0.0]),
+        V=np.array([0.0, 8.0, 0.0]),
+        B=np.array([1.0e-5, -2.0e-5, 3.0e-5]),
+    )
+
+
+@pytest.fixture
+def base_state() -> np.ndarray:
+    q = _unit(np.array([0.8, 0.2, -0.3, 0.4]))
+    w = np.array([0.01, -0.02, 0.03])
+    return np.concatenate([w, q])
+
+
+def test_bdot_first_call_returns_zero_command(
+    bdot_satellite: Satellite,
+    base_state: np.ndarray,
+    base_orbital_state: Orbital_State,
+) -> None:
+    controller = BDot(est_sat=bdot_satellite, gain=100.0)
+    sens = bdot_satellite.sensor_readings(x=base_state, os=base_orbital_state)
+
+    command = controller.find_u(
+        x_hat=base_state,
+        sens=sens,
+        est_sat=bdot_satellite,
+        os_hat=base_orbital_state,
+    )
+
+    np.testing.assert_allclose(command, np.zeros(3))
+
+
+def test_bdot_second_call_matches_finite_difference_law(
+    bdot_satellite: Satellite,
+    base_state: np.ndarray,
+    base_orbital_state: Orbital_State,
+) -> None:
+    controller = BDot(est_sat=bdot_satellite, gain=25.0)
+    os0 = base_orbital_state.copy()
+    os1 = base_orbital_state.copy()
+    os1.B = np.array([1.6e-5, -1.4e-5, 2.1e-5])
+    os1.J2000 = os0.J2000 + 2.0 * TimeConstants.sec2cent
+
+    sens0 = bdot_satellite.sensor_readings(x=base_state, os=os0)
+    sens1 = bdot_satellite.sensor_readings(x=base_state, os=os1)
+
+    controller.find_u(x_hat=base_state, sens=sens0, est_sat=bdot_satellite, os_hat=os0)
+    command = controller.find_u(x_hat=base_state, sens=sens1, est_sat=bdot_satellite, os_hat=os1)
+
+    b0 = controller.M_read @ sens0
+    b1 = controller.M_read @ sens1
+    bdot = (b1 - b0) / 2.0
+    expected = limit(-(controller.gain * bdot), controller.max_torque)
+
+    np.testing.assert_allclose(command, expected)
+
+
+def test_bdot_zero_time_step_returns_zero_derivative_command(
+    bdot_satellite: Satellite,
+    base_state: np.ndarray,
+    base_orbital_state: Orbital_State,
+) -> None:
+    controller = BDot(est_sat=bdot_satellite, gain=100.0)
+    os0 = base_orbital_state.copy()
+    os1 = base_orbital_state.copy()
+    os1.B = np.array([3.0e-5, 1.0e-5, -2.0e-5])
+    os1.J2000 = os0.J2000
+
+    sens0 = bdot_satellite.sensor_readings(x=base_state, os=os0)
+    sens1 = bdot_satellite.sensor_readings(x=base_state, os=os1)
+
+    controller.find_u(x_hat=base_state, sens=sens0, est_sat=bdot_satellite, os_hat=os0)
+    command = controller.find_u(x_hat=base_state, sens=sens1, est_sat=bdot_satellite, os_hat=os1)
+
+    np.testing.assert_allclose(command, np.zeros(3))
+
+
+def test_bdot_command_is_saturated_to_mtq_limits(bdot_satellite: Satellite) -> None:
+    controller = BDot(est_sat=bdot_satellite, gain=1e9)
+    sens0 = np.array([0.0, 0.0, 0.0])
+    sens1 = np.array([1.0, -2.0, 3.0])
+    os0 = Orbital_State(
+        ephem=Ephemeris(),
+        J2000=0.22,
+        R=np.array([7000.0, 0.0, 0.0]),
+        V=np.array([0.0, 8.0, 0.0]),
+        B=np.array([0.0, 0.0, 0.0]),
+    )
+    os1 = os0.copy()
+    os1.J2000 = os0.J2000 + 1.0 * TimeConstants.sec2cent
+
+    controller.find_u(x_hat=np.zeros(7), sens=sens0, est_sat=bdot_satellite, os_hat=os0)
+    command = controller.find_u(x_hat=np.zeros(7), sens=sens1, est_sat=bdot_satellite, os_hat=os1)
+
+    np.testing.assert_allclose(command, np.array([-0.1, 0.1, -0.1]))
+
+
+def test_bdot_with_reaction_wheels_only_commands_mtqs(
+    bdot_satellite_with_rw: Satellite,
+    base_state: np.ndarray,
+    base_orbital_state: Orbital_State,
+) -> None:
+    controller = BDot(est_sat=bdot_satellite_with_rw, gain=50.0)
+    state_with_rw = np.concatenate([base_state, np.zeros(3)])
+    os0 = base_orbital_state.copy()
+    os1 = base_orbital_state.copy()
+    os1.B = np.array([-2.0e-5, 1.0e-5, 2.5e-5])
+    os1.J2000 = os0.J2000 + 1.0 * TimeConstants.sec2cent
+
+    sens0 = bdot_satellite_with_rw.sensor_readings(x=state_with_rw, os=os0)
+    sens1 = bdot_satellite_with_rw.sensor_readings(x=state_with_rw, os=os1)
+
+    controller.find_u(x_hat=state_with_rw, sens=sens0, est_sat=bdot_satellite_with_rw, os_hat=os0)
+    command = controller.find_u(x_hat=state_with_rw, sens=sens1, est_sat=bdot_satellite_with_rw, os_hat=os1)
+
+    assert command.shape == (6,)
+    np.testing.assert_allclose(command[3:], np.zeros(3))
+
+
+def test_bdot_reconstructs_body_field_from_mtm_measurements(
+    bdot_satellite: Satellite,
+    base_state: np.ndarray,
+    base_orbital_state: Orbital_State,
+) -> None:
+    controller = BDot(est_sat=bdot_satellite, gain=10.0)
+    sens = bdot_satellite.sensor_readings(x=base_state, os=base_orbital_state)
+    expected_body_field = base_orbital_state.get_state_vector(x=base_state)["b"]
+
+    np.testing.assert_allclose(controller.M_read @ sens, expected_body_field)
+
+
+
+def test_bdot_full_convergence_loop() -> None:
+    results = run_bdot_simulation(
+        tf=500.0,
+        dt=1.0,
+        real_orbit=False,
+        include_rw=True,
+        progress=False,
+    )
+
+    final_u = np.mean(np.abs(results.u_hist[-10:, 0:3]), axis=0)
+    np.testing.assert_array_less(final_u, 1e-3)
+
+    final_w = results.state_hist[-1, 0:3]
+    q_final = results.state_hist[-1, 3:7]
+    final_b_body = results.os_hist[-1].get_state_vector(x=results.state_hist[-1])["b"]
+    b_unit = final_b_body / np.linalg.norm(final_b_body)
+    w_perp = final_w - np.dot(final_w, b_unit) * b_unit
+
+    assert np.linalg.norm(w_perp) < 1e-2
+    assert np.linalg.norm(q_final) == pytest.approx(1.0, abs=1e-6)
+
+
+def debug_plots(results: BDotRun) -> None:
+    from ADCS.helpers.plotting.animate_attitude import animate_attitude
+    from ADCS.helpers.plotting.close_all_plots import create_close_all_button_window
+    from ADCS.helpers.plotting.plot_controller import plot_control
+    from ADCS.helpers.plotting.plot_estimator import plot_state_comparison
+
+    animate_attitude(time=results.time_hist, state_hist=results.state_hist, os_hist=results.os_hist)
+    plot_control(time=results.time_hist, u_hist=results.u_hist)
+    plot_state_comparison(time=results.time_hist, state_hist=results.state_hist)
     create_close_all_button_window()
 
-if __name__ == "__main__":
-    print("Running B-Dot Simulation for visual debugging...")
-    
-    # Configuration
-    TF = 100
-    DT = 1.0
-    REAL_ORBIT = False 
-    INCLUDE_RW = True
-    
-    t, x, os_h, sens, u = run_bdot_simulation(
-        verbose=False, 
-        tf=TF, 
-        dt=DT, 
-        real_orbit=REAL_ORBIT, 
-        include_rw=INCLUDE_RW
+
+def main() -> None:
+    results = run_bdot_simulation(
+        tf=100.0,
+        dt=1.0,
+        real_orbit=False,
+        include_rw=True,
+        progress=True,
     )
-    
-    debug_plots(t, x, os_h, u)
+    debug_plots(results)
+
+
+if __name__ == "__main__":
+    main()

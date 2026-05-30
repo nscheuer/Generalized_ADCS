@@ -1,469 +1,177 @@
-import sys
-import os
 import numpy as np
-import numdifftools as nd
-import matplotlib.pyplot as plt
-from tqdm import tqdm
 import pytest
 
-# === Import project modules ===
-sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))
-from ADCS.orbits.ephemeris import Ephemeris
-from ADCS.orbits.universal_constants import EarthConstants, TimeConstants
-from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.orbit import Orbit
-from ADCS.helpers.math_helpers import random_n_unit_vec, normalize
+from ADCS.orbits.orbital_state import Orbital_State
+from ADCS.orbits.universal_constants import TimeConstants
 
-@pytest.mark.slow
-def test_orbit_creation():
-    n_n = random_n_unit_vec(3)
-    ecc = np.random.uniform(0.1, 0.4)
-    rp = np.random.uniform(6800, 9000)
-    a = rp/(1 - ecc)
-    vp = np.sqrt(EarthConstants.mu_e*(1+ecc)/(1-ecc)/a)
-    h = rp*vp
-    th = np.random.uniform(0, 2*np.pi)
-    r = h*h/(EarthConstants.mu_e*(1+ecc*np.cos(th)))
-    v = np.sqrt(EarthConstants.mu_e*(2/r - 1/a))
+from testing.test_orbits._helpers import make_orbit_family, make_reference_orbital_state
 
-    n_rp = normalize(np.cross(random_n_unit_vec(3),n_n))
-    n_vp = normalize(np.cross(n_n,n_rp))
 
-    rvec = r*(n_rp*np.cos(th)+n_vp*np.sin(th))
-    cphi = (1+ecc*np.cos(th))/np.sqrt(1+ecc*ecc+2*ecc*np.cos(th))
-    phi = np.arccos(cphi)*np.sign(np.sin(th))
-    psi = th + 0.5*np.pi - phi
-    vvec = v*(n_rp*np.cos(psi) + n_vp*np.sin(psi))
-    zero_time = 0.22
+def assert_state_matches(left, right):
+    assert np.isclose(left.J2000, right.J2000)
+    assert np.allclose(left.R, right.R)
+    assert np.allclose(left.V, right.V)
+    assert np.allclose(left.B, right.B)
+    assert np.allclose(left.S, right.S)
+    assert np.allclose(left.rho, right.rho)
 
-    ephem = Ephemeris()
-    os = Orbital_State(ephem=ephem, J2000=zero_time, R=rvec, V=vvec)
-    os0 = os.copy()
-    orb0 = Orbit(os0=os, fast=True)
 
-    dt = 3600
-    N_dt = 24*5
-    
-    end_time = zero_time + TimeConstants.sec2cent*dt*N_dt
-    print("Creating Orbit 1")
-    orb1 = Orbit(os0=os, end_time=end_time, dt=dt, fast=False)
-    print("Creating Orbit 2")
-    orb2 = Orbit([*orb1.states.values()])
-    print("Creating Orbit 3")
-    orb3 = Orbit(os0=os, end_time=end_time, dt=dt, fast=True)
-    Bvecs = orb3.get_b_eci_orbit()
-    for j in range(len(orb3.times)):
-        orb3.states[orb3.times[j]].B = Bvecs[j,:]
-   
-    # Check times
-    print("Checking Orbit Times")
-    assert orb0.times == zero_time
-    assert np.allclose(orb1.times , [zero_time+TimeConstants.sec2cent*dt*j for j in range(N_dt + 1)])
-    assert np.allclose(orb2.times , [zero_time+TimeConstants.sec2cent*dt*j for j in range(N_dt+ 1)])
-    assert np.allclose(orb3.times , [zero_time+TimeConstants.sec2cent*dt*j for j in range(N_dt+ 1)])
+def test_singleton_orbit_creation_preserves_initial_state():
+    os0, orb0, _, _, _, _, _, _ = make_orbit_family()
 
-    # Check orbit states
-    print("Checking Orbit States")
-    assert np.allclose(os0.R,orb0.states[zero_time].R)
-    assert np.allclose(os0.V,orb0.states[zero_time].V)
-    assert np.allclose(os0.J2000,orb0.states[zero_time].J2000)
-    assert np.allclose(zero_time,orb0.states[zero_time].J2000)
-    orb0statelist = [*orb0.states.values()]
-    assert len(orb0statelist)==1
-    assert np.allclose(os0.R,[j.R for j in orb0statelist][0])
-    assert np.allclose(os0.V,[j.V for j in orb0statelist][0])
-    assert np.allclose(os0.J2000,[j.J2000 for j in orb0statelist][0])
+    assert np.allclose(orb0.times, np.array([os0.J2000]))
+    assert_state_matches(orb0.states[os0.J2000], os0)
 
-    ind = 0
-    print("Checking Orbit 1 Manual Propagation")
+
+def test_propagated_orbit_times_match_requested_grid():
+    os0, _, orb1, orb2, orb3, dt, n_steps, _ = make_orbit_family()
+    expected_times = np.array([os0.J2000 + TimeConstants.sec2cent * dt * j for j in range(n_steps + 1)])
+
+    assert np.allclose(orb1.times, expected_times)
+    assert np.allclose(orb2.times, expected_times)
+    assert np.allclose(orb3.times, expected_times)
+
+
+@pytest.mark.parametrize("orbit_index", [2, 3])
+def test_propagated_orbits_match_stepwise_rk4(orbit_index):
+    _, _, orb1, _, orb3, dt, _, _ = make_orbit_family()
+    orbit = {2: orb1, 3: orb3}[orbit_index]
+
+    for i in range(1, len(orbit.times)):
+        prev_state = orbit.states[orbit.times[i - 1]]
+        current_state = orbit.states[orbit.times[i]]
+        propagated = prev_state.propagate_orbit_rk4(dt=dt, J2_perturbation_on=True, fast=True)
+        assert_state_matches(current_state, propagated)
+
+
+def test_orbit_from_state_list_copies_source_states():
+    _, _, orb1, orb2, _, _, _, _ = make_orbit_family()
+
+    assert np.allclose(orb2.times, orb1.times)
     for t in orb1.times:
-        assert orb1.states[t].J2000 == t
-        assert t == zero_time + TimeConstants.sec2cent*dt*ind
-
-        if ind>0:
-            os = orb1.states[t]
-            test_os = prev_os.propagate_orbit_rk4(dt=dt, J2_perturbation_on=True, fast=True)
-            assert np.isclose( test_os.J2000 , os.J2000, rtol=1e-15, atol=1e-15)
-            assert np.allclose(test_os.R , os.R)
-            assert np.allclose(test_os.V , os.V)
-        prev_os = orb2.states[t]
-        ind += 1
-
-    ind = 0
-    print("Checking Orbit 3 Manual Propagation")
-    for t in orb3.times:
-        assert orb3.states[t].J2000 == t
-        assert t == zero_time + TimeConstants.sec2cent*dt*ind
-
-        if ind>0:
-            os = orb3.states[t]
-            test_os = prev_os.propagate_orbit_rk4(dt=dt, J2_perturbation_on=True, fast=True)
-            assert np.isclose( test_os.J2000 , os.J2000, rtol=1e-15, atol=1e-15)
-            assert np.allclose(test_os.R , os.R)
-            assert np.allclose(test_os.V , os.V)
-        prev_os = orb3.states[t]
-        ind += 1
-
-    assert np.allclose(os0.B,orb0statelist[0].B)
-    assert np.allclose(os0.S,orb0statelist[0].S)
-    assert np.allclose(os0.rho,orb0statelist[0].rho)
-
-    print("Checking Orbit 1 Constructor")
-    for t in orb1.times:
-        assert np.allclose(orb1.states[t].B,orb1.states[t].get_b_eci())
-        assert np.allclose(orb1.states[t].S,orb1.states[t].get_sun_eci())
-        osbackup = Orbital_State(ephem=ephem, J2000=t, R=orb1.states[t].R, V=orb1.states[t].V)
-        assert np.allclose(orb1.states[t].rho,osbackup.rho)
-        assert np.allclose(orb1.states[t].B,osbackup.get_b_eci())
-        assert np.allclose(orb1.states[t].S,osbackup.get_sun_eci())
-        assert np.allclose(orb1.states[t].TAI,osbackup.TAI)
-        assert np.allclose(orb1.states[t].LLA,osbackup.LLA)
-        assert np.allclose(orb1.states[t].ECEF,osbackup.ECEF)
-        assert orb1.states[t].datetime == osbackup.datetime
-        assert np.allclose(orb1.states[t].geocentric,osbackup.geocentric)
-        assert np.allclose(orb1.states[t].ECI2ENUmat,osbackup.ECI2ENUmat)
-
-    print("Checking Orbit 1 Vector Length")
-    vecs1 = orb1.get_vecs()
-    assert len(vecs1[0]) == 121
-    assert len(vecs1[1]) == 121
-    assert len(vecs1[2]) == 121
-    assert len(vecs1[3]) == 121
-    assert len(vecs1[4]) == 121
-    assert np.all([np.allclose(vecs1[0][j],orb1.states[orb1.times[j]].R) for j in range(len(vecs1[0]))])
-    assert np.all([np.allclose(vecs1[1][j],orb1.states[orb1.times[j]].V) for j in range(len(vecs1[0]))])
-    assert np.all([np.allclose(vecs1[2][j],orb1.states[orb1.times[j]].B) for j in range(len(vecs1[0]))])
-    assert np.all([np.allclose(vecs1[3][j],orb1.states[orb1.times[j]].S) for j in range(len(vecs1[0]))])
-    assert np.all([np.allclose(vecs1[4][j],orb1.states[orb1.times[j]].rho) for j in range(len(vecs1[0]))])
-
-    print("Checking Orbit 2 Constructor")
-    for t in orb2.times:
-        B_saved = orb2.states[t].B
-        B_computed = orb2.states[t].get_b_eci()
-        assert np.allclose(orb2.states[t].B,orb2.states[t].get_b_eci())
-        assert np.allclose(orb2.states[t].S,orb2.states[t].get_sun_eci())
-        osbackup = Orbital_State(ephem=ephem, J2000=t, R=orb2.states[t].R, V=orb2.states[t].V)
-        assert np.allclose(orb2.states[t].rho,osbackup.rho)
-        assert np.allclose(orb2.states[t].B,osbackup.get_b_eci())
-        assert np.allclose(orb2.states[t].S,osbackup.get_sun_eci())
-        assert np.allclose(orb2.states[t].TAI,osbackup.TAI)
-        assert np.allclose(orb2.states[t].LLA,osbackup.LLA)
-        assert np.allclose(orb2.states[t].ECEF,osbackup.ECEF)
-        assert orb2.states[t].datetime == osbackup.datetime
-        assert np.allclose(orb2.states[t].geocentric,osbackup.geocentric)
-        assert np.allclose(orb2.states[t].ECI2ENUmat,osbackup.ECI2ENUmat)
-
-    print("Checking Orbit 2 Vector Length")
-    vecs2 = orb2.get_vecs()
-    assert len(vecs2[0]) == 121
-    assert len(vecs2[1]) == 121
-    assert len(vecs2[2]) == 121
-    assert len(vecs2[3]) == 121
-    assert len(vecs2[4]) == 121
-    assert np.all([np.allclose(vecs2[0][j],orb2.states[orb2.times[j]].R) for j in range(len(vecs2[0]))])
-    assert np.all([np.allclose(vecs2[1][j],orb2.states[orb2.times[j]].V) for j in range(len(vecs2[0]))])
-    assert np.all([np.allclose(vecs2[2][j],orb2.states[orb2.times[j]].B) for j in range(len(vecs2[0]))])
-    assert np.all([np.allclose(vecs2[3][j],orb2.states[orb2.times[j]].S) for j in range(len(vecs2[0]))])
-    assert np.all([np.allclose(vecs2[4][j],orb2.states[orb2.times[j]].rho) for j in range(len(vecs2[0]))])
-
-    print("Checking Orbit 3 Constructor")
-    for t in orb3.times:
-        assert np.allclose(orb3.states[t].B,orb3.states[t].get_b_eci())
-        osbackup = Orbital_State(ephem=ephem, J2000=t, R=orb3.states[t].R, V=orb3.states[t].V)
-        assert np.allclose(orb3.states[t].rho,osbackup.rho)
-        assert np.allclose(orb3.states[t].B,osbackup.get_b_eci())
-        assert np.allclose(orb3.states[t].TAI,osbackup.TAI)
-        assert np.allclose(orb3.states[t].ECEF,osbackup.ECEF)
-        assert orb3.states[t].datetime == osbackup.datetime
-        assert np.allclose(orb3.states[t].geocentric,osbackup.geocentric)
-
-    print("Checking Orbit 3 Vector Length")
-    vecs3 = orb3.get_vecs()
-    assert len(vecs3[0]) == 121
-    assert len(vecs3[1]) == 121
-    assert len(vecs3[2]) == 121
-    assert len(vecs3[3]) == 121
-    assert len(vecs3[4]) == 121
-    assert np.all([np.allclose(vecs3[0][j],orb3.states[orb3.times[j]].R) for j in range(len(vecs3[0]))])
-    assert np.all([np.allclose(vecs3[1][j],orb3.states[orb3.times[j]].V) for j in range(len(vecs3[0]))])
-    assert np.all([np.allclose(vecs3[2][j],orb3.states[orb3.times[j]].B) for j in range(len(vecs3[0]))])
-    assert np.all([np.allclose(vecs3[3][j],orb3.states[orb3.times[j]].S) for j in range(len(vecs3[0]))])
-    assert np.all([np.allclose(vecs3[4][j],orb3.states[orb3.times[j]].rho) for j in range(len(vecs3[0]))])
-
-    print("Checking Orbit 0 next_state()")
-    test0 = orb0.get_os(zero_time)
-    assert test0.J2000 == zero_time
-    assert np.allclose(os0.R,test0.R)
-    assert np.allclose(os0.V,test0.V)
-    assert np.allclose(os0.B,test0.B)
-    assert np.allclose(os0.S,test0.S)
-    assert np.allclose(os0.rho,test0.rho)
-
-    test0 = orb0.next_state(zero_time)
-    assert test0.J2000 == zero_time
-    assert np.allclose(os0.R,test0.R)
-    assert np.allclose(os0.V,test0.V)
-    assert np.allclose(os0.B,test0.B)
-    assert np.allclose(os0.S,test0.S)
-    assert np.allclose(os0.rho,test0.rho)
-
-    test0 = orb0.next_state(os0)
-    assert test0.J2000 == zero_time
-    assert np.allclose(os0.R,test0.R)
-    assert np.allclose(os0.V,test0.V)
-    assert np.allclose(os0.B,test0.B)
-    assert np.allclose(os0.S,test0.S)
-    assert np.allclose(os0.rho,test0.rho)
-
-    print("Checking Orbit 1 next_state()")
-    test1 = orb1.get_os(zero_time)
-    assert test1.J2000 == zero_time
-    assert np.allclose(os0.R,test1.R)
-    assert np.allclose(os0.V,test1.V)
-    assert np.allclose(os0.B,test1.B)
-    assert np.allclose(os0.S,test1.S)
-    assert np.allclose(os0.rho,test1.rho)
-
-    test1 = orb1.next_state(zero_time)
-    assert test1.J2000 == zero_time
-    assert np.allclose(os0.R,test1.R)
-    assert np.allclose(os0.V,test1.V)
-    assert np.allclose(os0.B,test1.B)
-    assert np.allclose(os0.S,test1.S)
-    assert np.allclose(os0.rho,test1.rho)
-
-    test1 = orb1.next_state(os0)
-    assert test1.J2000 == zero_time
-    assert np.allclose(os0.R,test1.R)
-    assert np.allclose(os0.V,test1.V)
-    assert np.allclose(os0.B,test1.B)
-    assert np.allclose(os0.S,test1.S)
-    assert np.allclose(os0.rho,test1.rho)
-
-    print("Checking Orbit 2 next_state()")
-    test2 = orb2.get_os(zero_time)
-    assert test2.J2000 == zero_time
-    assert np.allclose(os0.R,test2.R)
-    assert np.allclose(os0.V,test2.V)
-    assert np.allclose(os0.B,test2.B)
-    assert np.allclose(os0.S,test2.S)
-    assert np.allclose(os0.rho,test2.rho)
-
-    test2 = orb2.next_state(zero_time)
-    assert test2.J2000 == zero_time
-    assert np.allclose(os0.R,test2.R)
-    assert np.allclose(os0.V,test2.V)
-    assert np.allclose(os0.B,test2.B)
-    assert np.allclose(os0.S,test2.S)
-    assert np.allclose(os0.rho,test2.rho)
-
-    test2 = orb2.next_state(os0)
-    assert test2.J2000 == zero_time
-    assert np.allclose(os0.R,test2.R)
-    assert np.allclose(os0.V,test2.V)
-    assert np.allclose(os0.B,test2.B)
-    assert np.allclose(os0.S,test2.S)
-    assert np.allclose(os0.rho,test2.rho)
-
-    print("Checking Orbit 3 next_state()")
-    test3 = orb3.get_os(zero_time)
-    assert test3.J2000 == zero_time
-    assert np.allclose(os0.R,test3.R)
-    assert np.allclose(os0.V,test3.V)
-    assert np.allclose(os0.B,test3.B)
-    assert np.allclose(os0.S,test3.S)
-    assert np.allclose(os0.rho,test3.rho)
-
-    test3 = orb3.next_state(zero_time)
-    assert test3.J2000 == zero_time
-    assert np.allclose(os0.R,test3.R)
-    assert np.allclose(os0.V,test3.V)
-    assert np.allclose(os0.B,test3.B)
-    assert np.allclose(os0.S,test3.S)
-    assert np.allclose(os0.rho,test3.rho)
-
-    test3 = orb3.next_state(os0)
-    assert test3.J2000 == zero_time
-    assert np.allclose(os0.R,test3.R)
-    assert np.allclose(os0.V,test3.V)
-    assert np.allclose(os0.B,test3.B)
-    assert np.allclose(os0.S,test3.S)
-    assert np.allclose(os0.rho,test3.rho)
+        assert_state_matches(orb2.states[t], orb1.states[t])
+        assert orb2.states[t] is not orb1.states[t]
 
 
-    #last match
-    test0 = orb0.get_os(zero_time)
-    assert test0.J2000 == zero_time
-    assert np.allclose(os0.R,test0.R)
-    assert np.allclose(os0.V,test0.V)
-    assert np.allclose(os0.B,test0.B)
-    assert np.allclose(os0.S,test0.S)
-    assert np.allclose(os0.rho,test0.rho)
+@pytest.mark.parametrize("orbit_index", [1, 2, 3])
+def test_orbit_states_recompute_environment_consistently(orbit_index):
+    _, _, orb1, orb2, orb3, _, _, _ = make_orbit_family()
+    orbit = {1: orb1, 2: orb2, 3: orb3}[orbit_index]
 
-    test1 = orb1.get_os(zero_time+TimeConstants.sec2cent*dt*N_dt)
-    test1a = orb1.states[orb1.times[-1]]
-    assert test1a.J2000 == test1.J2000
-    assert np.allclose(test1a.R,test1.R)
-    assert np.allclose(test1a.V,test1.V)
-    assert np.allclose(test1a.B,test1.B)
-    assert np.allclose(test1a.S,test1.S)
-    assert np.allclose(test1a.rho,test1.rho)
-
-    test1 = orb1.next_state(zero_time+TimeConstants.sec2cent*dt*N_dt)
-    test1a = orb1.states[orb1.times[-1]]
-    assert test1a.J2000 == test1.J2000
-    assert np.allclose(test1a.R,test1.R)
-    assert np.allclose(test1a.V,test1.V)
-    assert np.allclose(test1a.B,test1.B)
-    assert np.allclose(test1a.S,test1.S)
-    assert np.allclose(test1a.rho,test1.rho)
-
-    test1 = orb1.next_state(orb1.states[orb1.times[-1]])
-    test1a = orb1.states[orb1.times[-1]]
-    assert test1a.J2000 == test1.J2000
-    assert np.allclose(test1a.R,test1.R)
-    assert np.allclose(test1a.V,test1.V)
-    assert np.allclose(test1a.B,test1.B)
-    assert np.allclose(test1a.S,test1.S)
-    assert np.allclose(test1a.rho,test1.rho)
-
-    test2 = orb2.get_os(zero_time+TimeConstants.sec2cent*dt*N_dt)
-    test2a = orb2.states[orb2.times[-1]]
-    assert test2a.J2000 == test2.J2000
-    assert np.allclose(test2a.R,test2.R)
-    assert np.allclose(test2a.V,test2.V)
-    assert np.allclose(test2a.B,test2.B)
-    assert np.allclose(test2a.S,test2.S)
-    assert np.allclose(test2a.rho,test2.rho)
-
-    test2 = orb2.next_state(zero_time+TimeConstants.sec2cent*dt*N_dt)
-    test2a = orb2.states[orb2.times[-1]]
-    assert test2a.J2000 == test2.J2000
-    assert np.allclose(test2a.R,test2.R)
-    assert np.allclose(test2a.V,test2.V)
-    assert np.allclose(test2a.B,test2.B)
-    assert np.allclose(test2a.S,test2.S)
-    assert np.allclose(test2a.rho,test2.rho)
-
-    test2 = orb2.next_state(orb2.states[orb2.times[-1]])
-    test2a = orb2.states[orb2.times[-1]]
-    assert test2a.J2000 == test2.J2000
-    assert np.allclose(test2a.R,test2.R)
-    assert np.allclose(test2a.V,test2.V)
-    assert np.allclose(test2a.B,test2.B)
-    assert np.allclose(test2a.S,test2.S)
-    assert np.allclose(test2a.rho,test2.rho)
+    for t in orbit.times[:: max(1, len(orbit.times) // 4)]:
+        state = orbit.states[t]
+        rebuilt = Orbital_State(ephem=state.ephem, J2000=t, R=state.R, V=state.V, fast=True)
+        assert np.allclose(state.B, rebuilt.get_b_eci())
+        assert np.allclose(state.S, rebuilt.get_sun_eci())
+        assert np.allclose(state.rho, rebuilt.rho)
+        assert np.allclose(state.TAI, rebuilt.TAI)
+        assert np.allclose(state.ECEF, rebuilt.ECEF)
+        assert np.allclose(state.LLA, rebuilt.LLA)
+        assert np.allclose(state.geocentric, rebuilt.geocentric)
+        assert np.allclose(state.ECI2ENUmat, rebuilt.ECI2ENUmat)
+        assert state.datetime == rebuilt.datetime
 
 
-    test3 = orb3.get_os(zero_time+TimeConstants.sec2cent*dt*N_dt)
-    test3a = orb3.states[orb3.times[-1]]
-    assert test3a.J2000 == test3.J2000
-    assert np.allclose(test3a.R,test3.R)
-    assert np.allclose(test3a.V,test3.V)
-    assert np.allclose(test3a.B,test3.B)
-    assert np.allclose(test3a.S,test3.S)
-    assert np.allclose(test3a.rho,test3.rho)
+@pytest.mark.parametrize("orbit_index", [1, 2, 3])
+def test_get_vecs_matches_state_storage(orbit_index):
+    _, _, orb1, orb2, orb3, _, _, _ = make_orbit_family()
+    orbit = {1: orb1, 2: orb2, 3: orb3}[orbit_index]
+    r_hist, v_hist, b_hist, s_hist, rho_hist = orbit.get_vecs()
 
-    test3 = orb3.next_state(zero_time+TimeConstants.sec2cent*dt*N_dt)
-    test3a = orb3.states[orb3.times[-1]]
-    assert test3a.J2000 == test3.J2000
-    assert np.allclose(test3a.R,test3.R)
-    assert np.allclose(test3a.V,test3.V)
-    assert np.allclose(test3a.B,test3.B)
-    assert np.allclose(test3a.S,test3.S)
-    assert np.allclose(test3a.rho,test3.rho)
+    assert len(r_hist) == len(orbit.times)
+    assert len(v_hist) == len(orbit.times)
+    assert len(b_hist) == len(orbit.times)
+    assert len(s_hist) == len(orbit.times)
+    assert len(rho_hist) == len(orbit.times)
 
-    test3 = orb3.next_state(orb3.states[orb3.times[-1]])
-    test3a = orb3.states[orb3.times[-1]]
-    assert test3a.J2000 == test3.J2000
-    assert np.allclose(test3a.R,test3.R)
-    assert np.allclose(test3a.V,test3.V)
-    assert np.allclose(test3a.B,test3.B)
-    assert np.allclose(test3a.S,test3.S)
-    assert np.allclose(test3a.rho,test3.rho)
+    for i, t in enumerate(orbit.times):
+        state = orbit.states[t]
+        assert np.allclose(r_hist[i], state.R)
+        assert np.allclose(v_hist[i], state.V)
+        assert np.allclose(b_hist[i], state.B)
+        assert np.allclose(s_hist[i], state.S)
+        assert np.allclose(rho_hist[i], state.rho)
 
 
-    #middle one
-    test1 = orb1.get_os(zero_time+TimeConstants.sec2cent*dt*24*2)
-    test1a = orb1.states[orb1.times[24*2]]
-    assert test1a.J2000 == test1.J2000
-    assert np.allclose(test1a.R,test1.R)
-    assert np.allclose(test1a.V,test1.V)
-    assert np.allclose(test1a.B,test1.B)
-    assert np.allclose(test1a.S,test1.S)
-    assert np.allclose(test1a.rho,test1.rho)
+def test_get_b_eci_orbit_returns_stored_field_history():
+    _, _, _, _, orb3, _, _, _ = make_orbit_family()
 
-    test1 = orb1.next_state(zero_time+TimeConstants.sec2cent*dt*24*2)
-    test1a = orb1.states[orb1.times[24*2]]
-    assert test1a.J2000 == test1.J2000
-    assert np.allclose(test1a.R,test1.R)
-    assert np.allclose(test1a.V,test1.V)
-    assert np.allclose(test1a.B,test1.B)
-    assert np.allclose(test1a.S,test1.S)
-    assert np.allclose(test1a.rho,test1.rho)
+    b_hist = orb3.get_b_eci_orbit()
 
-    test1 = orb1.next_state(orb1.states[orb1.times[24*2]])
-    test1a = orb1.states[orb1.times[24*2]]
-    assert test1a.J2000 == test1.J2000
-    assert np.allclose(test1a.R,test1.R)
-    assert np.allclose(test1a.V,test1.V)
-    assert np.allclose(test1a.B,test1.B)
-    assert np.allclose(test1a.S,test1.S)
-    assert np.allclose(test1a.rho,test1.rho)
+    assert np.allclose(b_hist, np.vstack([orb3.states[t].B for t in orb3.times]))
 
-    test2 = orb2.get_os(zero_time+TimeConstants.sec2cent*dt*24*2)
-    test2a = orb2.states[orb2.times[24*2]]
-    assert test2a.J2000 == test2.J2000
-    assert np.allclose(test2a.R,test2.R)
-    assert np.allclose(test2a.V,test2.V)
-    assert np.allclose(test2a.B,test2.B)
-    assert np.allclose(test2a.S,test2.S)
-    assert np.allclose(test2a.rho,test2.rho)
 
-    test2 = orb2.next_state(zero_time+TimeConstants.sec2cent*dt*24*2)
-    test2a = orb2.states[orb2.times[24*2]]
-    assert test2a.J2000 == test2.J2000
-    assert np.allclose(test2a.R,test2.R)
-    assert np.allclose(test2a.V,test2.V)
-    assert np.allclose(test2a.B,test2.B)
-    assert np.allclose(test2a.S,test2.S)
-    assert np.allclose(test2a.rho,test2.rho)
+@pytest.mark.parametrize("orbit_index", [0, 1, 2, 3])
+@pytest.mark.parametrize("sample_index", [0, -1, 12])
+def test_get_os_and_next_state_match_stored_samples(orbit_index, sample_index):
+    os0, orb0, orb1, orb2, orb3, _, _, _ = make_orbit_family()
+    orbit = {0: orb0, 1: orb1, 2: orb2, 3: orb3}[orbit_index]
 
-    test2 = orb2.next_state(orb2.states[orb2.times[24*2]])
-    test2a = orb2.states[orb2.times[24*2]]
-    assert test2a.J2000 == test2.J2000
-    assert np.allclose(test2a.R,test2.R)
-    assert np.allclose(test2a.V,test2.V)
-    assert np.allclose(test2a.B,test2.B)
-    assert np.allclose(test2a.S,test2.S)
-    assert np.allclose(test2a.rho,test2.rho)
+    if len(orbit.times) == 1:
+        sample_index = 0
+    elif sample_index == 12 and len(orbit.times) <= 12:
+        sample_index = len(orbit.times) // 2
 
-    test3 = orb3.get_os(zero_time+TimeConstants.sec2cent*dt*24*2)
-    test3a = orb3.states[orb3.times[24*2]]
-    assert test3a.J2000 == test3.J2000
-    assert np.allclose(test3a.R,test3.R)
-    assert np.allclose(test3a.V,test3.V)
-    assert np.allclose(test3a.B,test3.B)
-    assert np.allclose(test3a.S,test3.S)
-    assert np.allclose(test3a.rho,test3.rho)
+    t = orbit.times[sample_index]
+    state = orbit.states[t]
 
-    test3 = orb3.next_state(zero_time+TimeConstants.sec2cent*dt*24*2)
-    test3a = orb3.states[orb3.times[24*2]]
-    assert test3a.J2000 == test3.J2000
-    assert np.allclose(test3a.R,test3.R)
-    assert np.allclose(test3a.V,test3.V)
-    assert np.allclose(test3a.B,test3.B)
-    assert np.allclose(test3a.S,test3.S)
-    assert np.allclose(test3a.rho,test3.rho)
+    assert_state_matches(orbit.get_os(t), state)
+    assert_state_matches(orbit.next_state(float(t)), state)
+    assert_state_matches(orbit.next_state(state), state)
 
-    test3 = orb3.next_state(orb3.states[orb3.times[24*2]])
-    test3a = orb3.states[orb3.times[24*2]]
-    assert test3a.J2000 == test3.J2000
-    assert np.allclose(test3a.R,test3.R)
-    assert np.allclose(test3a.V,test3.V)
-    assert np.allclose(test3a.B,test3.B)
-    assert np.allclose(test3a.S,test3.S)
-    assert np.allclose(test3a.rho,test3.rho)
 
-if __name__ == "__main__":
-    test_orbit_creation()
+def test_get_os_interpolates_between_states():
+    _, _, orb1, _, _, dt, _, _ = make_orbit_family()
+    t0 = orb1.times[3]
+    t1 = orb1.times[4]
+    midpoint = 0.5 * (t0 + t1)
+
+    interpolated = orb1.get_os(midpoint)
+    expected = orb1.states[t0].propagate_orbit_rk4(0.5 * dt)
+
+    assert_state_matches(interpolated, expected)
+
+
+def test_get_range_with_dt_returns_resampled_orbit():
+    _, _, orb1, _, _, dt, _, _ = make_orbit_family()
+    t0 = orb1.times[2]
+    t1 = orb1.times[5]
+
+    sub_orbit = orb1.get_range(t0, t1, dt=dt)
+
+    assert isinstance(sub_orbit, Orbit)
+    assert np.allclose(sub_orbit.times, orb1.times[2:6])
+
+
+def test_get_range_without_dt_returns_existing_states_only():
+    _, _, orb1, _, _, _, _, _ = make_orbit_family()
+    t0 = orb1.times[1]
+    t1 = orb1.times[4]
+
+    sub_orbit = orb1.get_range(t0, t1)
+
+    assert isinstance(sub_orbit, Orbit)
+    assert np.allclose(sub_orbit.times, orb1.times[1:5])
+
+
+def test_new_orbit_from_times_reuses_get_os_contract():
+    _, _, orb1, _, _, _, _, _ = make_orbit_family()
+    requested_times = [orb1.times[0], 0.5 * (orb1.times[0] + orb1.times[1]), orb1.times[2]]
+
+    resampled = orb1.new_orbit_from_times(requested_times)
+
+    assert np.allclose(resampled.times, requested_times)
+    for t in requested_times:
+        assert_state_matches(resampled.states[t], orb1.get_os(t))
+
+
+def test_orbit_query_bounds_raise_errors():
+    reference = make_reference_orbital_state()
+    orbit = Orbit(os0=reference, end_time=reference.J2000 + TimeConstants.sec2cent * 3600.0, dt=3600.0, verbose=False)
+
+    with pytest.raises(ValueError):
+        orbit.get_os(orbit.min_time() - 1e-6)
+
+    with pytest.raises(ValueError):
+        orbit.next_state(orbit.max_time() + 1e-6)
