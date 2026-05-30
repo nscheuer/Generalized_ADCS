@@ -38,7 +38,7 @@ This Code of Conduct applies within all community spaces, and also applies when 
 
 ## Enforcement
 
-Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to the community leaders responsible for enforcement at conduct@TODO.example.
+Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to the community leaders responsible for enforcement at nscheuer@mit.edu.
 
 All complaints will be reviewed and investigated promptly and fairly.
 
@@ -74,7 +74,7 @@ Consequence: A permanent ban from any sort of public interaction within the proj
 
 ## Reporting a Violation
 
-To report a violation of the Code of Conduct, e-mail conduct@TODO.example.
+To report a violation of the Code of Conduct, e-mail nscheuer@mit.edu.
 
 ## Attribution
 

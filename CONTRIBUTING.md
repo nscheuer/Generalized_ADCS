@@ -6,7 +6,7 @@ Thank you for your interest in **Generalized ADCS**. This project is a research-
 
 By participating in this project, you agree to follow the standards in [CODE_OF_CONDUCT.md](https://github.com/nscheuer/Generalized_ADCS/blob/main/CODE_OF_CONDUCT.md).
 
-If you experience or witness unacceptable behavior, report it to the maintainers at **conduct@TODO.example**.
+If you experience or witness unacceptable behavior, report it to the maintainers at **nscheuer@mit.edu**.
 
 If this project is not currently using a conduct email, open a GitHub issue and title it `Code of Conduct report` (avoid including sensitive personal details in public reports).
 
@@ -102,18 +102,14 @@ When opening an issue, include the following:
 Do not report security vulnerabilities through public issues.
 
 Use one of these private channels:
-- Maintainer contact: **security@TODO.example**
+- Maintainer contact: **nscheuer@mit.edu**
 - add more?
 
 Include impact, affected components, reproduction details, and any suggested mitigation.
 
 ## Questions and Community
 
-For usage questions, design discussion, and collaboration:
-
-- GitHub Discussions: TODO
-
-If these channels are not yet available, use GitHub Issues with the `question` label.
+For usage questions, design discussion, and collaboration: GitHub Discussions
 
 ## Testing and Documentation
 
