@@ -1,333 +1,189 @@
-import sys
-import os
 import numpy as np
-import numdifftools as nd
 import pytest
 
-sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))
-
-from ADCS.satellite_hardware.sensors import EarthHorizonSensor
-from ADCS.satellite_factory.sensors import (
-    create_generic_earth_horizon,
-    create_irst_horizon_sensor,
-)
-from ADCS.satellite_hardware.errors import Bias, Noise
-from ADCS.satellite_hardware.errors import ErrorMode
-from ADCS.orbits.orbital_state import Orbital_State
-from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.helpers.math_helpers import random_n_unit_vec, rot_mat
+from ADCS.orbits.ephemeris import Ephemeris
+from ADCS.orbits.orbital_state import Orbital_State
+from ADCS.satellite_factory.sensors import create_generic_earth_horizon, create_irst_horizon_sensor
+from ADCS.satellite_hardware.errors import ErrorMode, Noise
+from ADCS.satellite_hardware.sensors import EarthHorizonSensor
 
 
-def _make_sensor(fov_deg=90.0, noise_std=0.0):
-    """Helper to create an EHS with default parameters."""
+def make_sensor(*, fov_deg: float = 90.0, noise_std: float = 0.0, boresight: np.ndarray | None = None, estimate_bias: bool = False):
     noise = None
-    if noise_std > 0:
-        noise = Noise(
-            noise=np.zeros(3),
-            std_noise=np.array([noise_std] * 3),
-        )
+    if noise_std > 0.0:
+        noise = Noise(noise=np.zeros(3), std_noise=np.array([noise_std] * 3))
     return EarthHorizonSensor(
-        boresight=np.array([0.0, 0.0, -1.0]),
+        boresight=np.array([0.0, 0.0, -1.0]) if boresight is None else boresight,
         fov=np.deg2rad(fov_deg),
         noise=noise,
+        estimate_bias=estimate_bias,
     )
 
 
-def _make_os(R=None, V=None):
-    """Helper to create a standard orbital state."""
-    if R is None:
-        R = np.array([7000.0, 0.0, 0.0])
-    if V is None:
-        V = np.array([0.0, 7.5, 0.0])
-    ephem = Ephemeris()
-    return Orbital_State(ephem=ephem, J2000=0.22, R=R, V=V)
+def make_orbital_state(*, R=None, V=None):
+    return Orbital_State(
+        ephem=Ephemeris(),
+        J2000=0.22,
+        R=np.array([7000.0, 0.0, 0.0]) if R is None else R,
+        V=np.array([0.0, 7.5, 0.0]) if V is None else V,
+    )
 
 
-# ---- Clean reading ----
+def central_difference_jacobian(sensor: EarthHorizonSensor, state: np.ndarray, orbital_state: Orbital_State, eps: float = 1e-7) -> np.ndarray:
+    def measurement(candidate):
+        quaternion = candidate[3:7]
+        nadir_eci = -orbital_state.R / np.linalg.norm(orbital_state.R)
+        return rot_mat(quaternion).T @ nadir_eci
 
-def test_clean_reading_returns_nadir():
-    sensor = _make_sensor()
-    os = _make_os()
-
-    # Identity quaternion: body = ECI
-    # Nadir in ECI: -R/|R| = [-1, 0, 0]
-    # Body boresight is [0,0,-1], FOV=90 deg
-    # nadir_body = R(q)^T @ nadir_eci = nadir_eci = [-1, 0, 0]
-    # Angle between boresight [0,0,-1] and nadir [-1,0,0] = 90 deg = FOV limit
-    # Use a quaternion that rotates nadir into boresight direction
-    # Rotate so that -x_eci maps near -z_body
-    # q that rotates [1,0,0] -> [0,0,1] is 90 deg about y
-    angle = np.pi / 4  # 45 deg about y
-    q = np.array([np.cos(angle / 2), 0, np.sin(angle / 2), 0])
-    x = np.concatenate([np.zeros(3), q])
-
-    n = sensor.clean_reading(x, os)
-
-    if not np.any(np.isnan(n)):
-        # Nadir in ECI is [-1, 0, 0]
-        A = rot_mat(q)
-        expected = A.T @ np.array([-1.0, 0.0, 0.0])
-        np.testing.assert_allclose(n, expected, atol=1e-10)
+    numeric = np.zeros((state.size, 3))
+    for index in range(state.size):
+        delta = np.zeros(state.size)
+        delta[index] = eps
+        numeric[index] = (measurement(state + delta) - measurement(state - delta)) / (2.0 * eps)
+    return numeric
 
 
-def test_output_is_unit_vector():
-    sensor = _make_sensor(fov_deg=180.0)
-    os = _make_os()
+def test_clean_reading_matches_rotated_nadir_direction():
+    sensor = make_sensor()
+    orbital_state = make_orbital_state()
+    angle = np.pi / 4
+    quaternion = np.array([np.cos(angle / 2), 0.0, np.sin(angle / 2), 0.0])
+    state = np.concatenate([np.zeros(3), quaternion])
+    reading = sensor.clean_reading(state, orbital_state)
+    if not np.any(np.isnan(reading)):
+        expected = rot_mat(quaternion).T @ np.array([-1.0, 0.0, 0.0])
+        np.testing.assert_allclose(reading, expected, atol=1e-10)
 
+
+def test_clean_reading_output_is_unit_vector_when_visible():
+    sensor = make_sensor(fov_deg=180.0)
+    orbital_state = make_orbital_state()
     for _ in range(10):
-        q = random_n_unit_vec(4)
-        x = np.concatenate([np.zeros(3), q])
-
-        n = sensor.clean_reading(x, os)
-
-        if not np.any(np.isnan(n)):
-            assert abs(np.linalg.norm(n) - 1.0) < 1e-10
+        state = np.concatenate([np.zeros(3), random_n_unit_vec(4)])
+        reading = sensor.clean_reading(state, orbital_state)
+        if not np.any(np.isnan(reading)):
+            assert abs(np.linalg.norm(reading) - 1.0) < 1e-10
 
 
-def test_nadir_outside_fov_returns_nan():
-    """If boresight points away from Earth, reading should be NaN."""
-    # Boresight points in +z, nadir is along -x for R=[7000,0,0]
-    sensor = EarthHorizonSensor(
-        boresight=np.array([0.0, 0.0, 1.0]),
-        fov=np.deg2rad(10.0),
-    )
-    os = _make_os()
-
-    # Identity quaternion: nadir_body = [-1,0,0], boresight = [0,0,1]
-    # Angle = 90 deg > 10 deg FOV → NaN
-    x = np.zeros(7)
-    x[3:7] = [1.0, 0.0, 0.0, 0.0]
-
-    n = sensor.clean_reading(x, os)
-    assert np.all(np.isnan(n))
+def test_clean_reading_returns_nan_when_nadir_outside_fov():
+    sensor = make_sensor(fov_deg=10.0, boresight=np.array([0.0, 0.0, 1.0]))
+    state = np.array([0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0])
+    reading = sensor.clean_reading(state, make_orbital_state())
+    assert np.all(np.isnan(reading))
 
 
-def test_full_hemisphere_fov():
-    """With 180-deg half-cone FOV, nadir should always be visible."""
-    sensor = _make_sensor(fov_deg=180.0)
-    os = _make_os()
-
+def test_clean_reading_is_always_visible_for_full_hemisphere_fov():
+    sensor = make_sensor(fov_deg=180.0)
+    orbital_state = make_orbital_state()
     for _ in range(20):
-        q = random_n_unit_vec(4)
-        x = np.concatenate([np.zeros(3), q])
-        n = sensor.clean_reading(x, os)
-        assert not np.any(np.isnan(n)), "Should always be visible with 180-deg FOV"
+        state = np.concatenate([np.zeros(3), random_n_unit_vec(4)])
+        reading = sensor.clean_reading(state, orbital_state)
+        assert not np.any(np.isnan(reading))
 
 
-# ---- Altitude independence ----
-
-def test_altitude_independence():
-    """Nadir direction should be correct at various altitudes."""
-    sensor = _make_sensor(fov_deg=180.0)
-
-    altitudes_km = [400, 800, 2000, 10000, 36000]
-    R_earth = 6378.137
-
-    for alt in altitudes_km:
-        r_mag = R_earth + alt
-        R = np.array([r_mag, 0.0, 0.0])
-        os = _make_os(R=R)
-
-        x = np.zeros(7)
-        x[3:7] = [1.0, 0.0, 0.0, 0.0]
-
-        n = sensor.clean_reading(x, os)
-
-        if not np.any(np.isnan(n)):
-            expected_nadir = np.array([-1.0, 0.0, 0.0])
-            np.testing.assert_allclose(n, expected_nadir, atol=1e-10)
+def test_clean_reading_is_correct_across_altitudes():
+    sensor = make_sensor(fov_deg=180.0)
+    state = np.array([0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0])
+    for altitude in [400, 800, 2000, 10000, 36000]:
+        radius = 6378.137 + altitude
+        reading = sensor.clean_reading(state, make_orbital_state(R=np.array([radius, 0.0, 0.0])))
+        if not np.any(np.isnan(reading)):
+            np.testing.assert_allclose(reading, np.array([-1.0, 0.0, 0.0]), atol=1e-10)
 
 
-def test_earth_angular_radius():
-    """Check that Earth angular radius is computed correctly."""
-    sensor = _make_sensor(fov_deg=180.0)
-    r_mag = 7000.0
-    os = _make_os(R=np.array([r_mag, 0.0, 0.0]))
-
-    x = np.zeros(7)
-    x[3:7] = [1.0, 0.0, 0.0, 0.0]
-
-    sensor.clean_reading(x, os)
-
-    # Use the same R_earth the sensor uses internally
-    expected_rho = np.arcsin(sensor._R_earth / r_mag)
-    assert sensor.earth_angular_radius == pytest.approx(expected_rho, rel=1e-10)
+def test_clean_reading_sets_expected_earth_angular_radius():
+    sensor = make_sensor(fov_deg=180.0)
+    orbital_state = make_orbital_state(R=np.array([7000.0, 0.0, 0.0]))
+    sensor.clean_reading(np.array([0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0]), orbital_state)
+    assert sensor.earth_angular_radius == pytest.approx(np.arcsin(sensor._R_earth / 7000.0), rel=1e-10)
 
 
-# ---- Jacobians ----
+def test_basestate_jacobian_matches_finite_difference():
+    sensor = make_sensor(fov_deg=180.0)
+    orbital_state = make_orbital_state()
+    quaternion = np.array([0.9, 0.2, 0.3, 0.1])
+    quaternion = quaternion / np.linalg.norm(quaternion)
+    state = np.concatenate([np.zeros(3), quaternion])
+    if not np.any(np.isnan(sensor.clean_reading(state, orbital_state))):
+        analytic = sensor.basestate_jac(state, orbital_state)
+        numeric = central_difference_jacobian(sensor, state, orbital_state)
+        np.testing.assert_allclose(analytic[3:7, :], numeric[3:7, :], rtol=1e-4, atol=1e-8)
 
-def test_jacobian_finite_difference():
-    sensor = _make_sensor(fov_deg=180.0)
-    os = _make_os()
 
-    q = np.array([0.9, 0.2, 0.3, 0.1])
-    q = q / np.linalg.norm(q)
-    x = np.concatenate([np.zeros(3), q])
+def test_basestate_jacobian_has_zero_omega_block():
+    sensor = make_sensor(fov_deg=180.0)
+    state = np.array([0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0])
+    jacobian = sensor.basestate_jac(state, make_orbital_state())
+    np.testing.assert_allclose(jacobian[0:3, :], np.zeros((3, 3)), atol=1e-15)
 
-    n0 = sensor.clean_reading(x, os)
-    if np.any(np.isnan(n0)):
-        return
 
-    J_ana = sensor.basestate_jac(x, os)
+def test_basestate_jacobian_is_zero_when_measurement_is_nan():
+    sensor = make_sensor(fov_deg=10.0, boresight=np.array([0.0, 0.0, 1.0]))
+    state = np.array([0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0])
+    jacobian = sensor.basestate_jac(state, make_orbital_state())
+    np.testing.assert_allclose(jacobian, np.zeros((7, 3)), atol=1e-15)
 
-    # Nadir ECI is fixed for a given orbit state
-    nadir_eci = -os.R / np.linalg.norm(os.R)
 
-    def measurement_func(state):
-        q_test = state[3:7]
-        A = rot_mat(q_test)
-        return A.T @ nadir_eci
+def test_bias_jacobian_is_empty_without_bias_estimation():
+    jacobian = make_sensor().bias_jac(np.array([0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0]), make_orbital_state())
+    assert jacobian.shape == (0, 3)
 
-    J_fd = nd.Jacobian(measurement_func)(x)
 
-    # Compare quaternion block
-    np.testing.assert_allclose(
-        J_ana[3:7, :], J_fd[:, 3:7].T, rtol=1e-4, atol=1e-8
+def test_bias_jacobian_is_identity_with_bias_estimation():
+    jacobian = make_sensor(estimate_bias=True).bias_jac(
+        np.array([0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0]),
+        make_orbital_state(),
     )
+    np.testing.assert_allclose(jacobian, np.eye(3))
 
 
-def test_omega_jacobian_is_zero():
-    sensor = _make_sensor(fov_deg=180.0)
-    os = _make_os()
-
-    x = np.zeros(7)
-    x[3:7] = [1.0, 0.0, 0.0, 0.0]
-
-    sensor.clean_reading(x, os)
-    J = sensor.basestate_jac(x, os)
-    np.testing.assert_allclose(J[0:3, :], np.zeros((3, 3)), atol=1e-15)
-
-
-def test_jacobian_zero_when_nan():
-    """Jacobian should be zero when measurement is NaN (outside FOV)."""
-    sensor = EarthHorizonSensor(
-        boresight=np.array([0.0, 0.0, 1.0]),
-        fov=np.deg2rad(10.0),
-    )
-    os = _make_os()
-
-    x = np.zeros(7)
-    x[3:7] = [1.0, 0.0, 0.0, 0.0]
-
-    sensor.clean_reading(x, os)
-    J = sensor.basestate_jac(x, os)
-    np.testing.assert_allclose(J, np.zeros((7, 3)), atol=1e-15)
-
-
-def test_bias_jacobian_no_estimate():
-    sensor = _make_sensor()
-    os = _make_os()
-
-    x = np.zeros(7)
-    x[3:7] = [1.0, 0.0, 0.0, 0.0]
-
-    J_bias = sensor.bias_jac(x, os)
-    assert J_bias.shape == (0, 3)
-
-
-def test_bias_jacobian_with_estimate():
-    sensor = EarthHorizonSensor(estimate_bias=True)
-    os = _make_os()
-
-    x = np.zeros(7)
-    x[3:7] = [1.0, 0.0, 0.0, 0.0]
-
-    J_bias = sensor.bias_jac(x, os)
-    np.testing.assert_allclose(J_bias, np.eye(3))
-
-
-# ---- Noisy reading ----
-
-def test_noisy_reading_unit_vector():
-    sensor = _make_sensor(fov_deg=180.0, noise_std=1e-3)
-    os = _make_os()
-
+def test_noisy_reading_remains_unit_vector():
+    sensor = make_sensor(fov_deg=180.0, noise_std=1e-3)
+    orbital_state = make_orbital_state()
     for _ in range(10):
-        q = random_n_unit_vec(4)
-        x = np.concatenate([np.zeros(3), q])
-
-        n = sensor.reading(x, os)
-
-        if not np.any(np.isnan(n)):
-            assert abs(np.linalg.norm(n) - 1.0) < 1e-10
+        state = np.concatenate([np.zeros(3), random_n_unit_vec(4)])
+        reading = sensor.reading(state, orbital_state)
+        if not np.any(np.isnan(reading)):
+            assert abs(np.linalg.norm(reading) - 1.0) < 1e-10
 
 
-def test_noise_angular_spread():
-    """Verify noise produces angular errors consistent with noise std."""
+def test_noise_creates_reasonable_angular_spread():
     noise_std = np.deg2rad(0.5)
-    noise = Noise(
-        noise=np.zeros(3),
-        std_noise=np.array([noise_std] * 3),
-    )
     sensor = EarthHorizonSensor(
         boresight=np.array([0.0, 0.0, -1.0]),
         fov=np.deg2rad(180.0),
-        noise=noise,
+        noise=Noise(noise=np.zeros(3), std_noise=np.array([noise_std] * 3)),
     )
-    os = _make_os()
+    orbital_state = make_orbital_state()
     dmode = ErrorMode(add_bias=False, add_noise=True, update_bias=False, update_noise=True)
+    state = np.array([0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0])
+    clean = sensor.clean_reading(state, orbital_state)
 
-    N = 500
-    angles = np.zeros(N)
+    angles = np.zeros(500)
+    for index in range(500):
+        noisy = sensor.reading(state, orbital_state, dmode=dmode)
+        angles[index] = np.arccos(np.clip(np.dot(noisy, clean), -1.0, 1.0))
 
-    x = np.zeros(7)
-    x[3:7] = [1.0, 0.0, 0.0, 0.0]
-
-    # Get clean reading once (deterministic)
-    clean = sensor.clean_reading(x, os)
-
-    for i in range(N):
-        noisy = sensor.reading(x, os, dmode=dmode)
-        cos_angle = np.clip(np.dot(noisy, clean), -1.0, 1.0)
-        angles[i] = np.arccos(cos_angle)
-
-    # RMS angular error should be approximately sqrt(2) * noise_std
-    # (two orthogonal noise components contribute to the angular error)
     rms_angle = np.sqrt(np.mean(angles**2))
-    expected_rms = noise_std * np.sqrt(2)
-    assert rms_angle < expected_rms * 3, f"RMS angle {np.rad2deg(rms_angle):.3f} deg too large"
-    assert rms_angle > expected_rms * 0.3, f"RMS angle {np.rad2deg(rms_angle):.3f} deg too small"
+    expected = noise_std * np.sqrt(2)
+    assert rms_angle < expected * 3
+    assert rms_angle > expected * 0.3
 
 
-# ---- Factory functions ----
-
-def test_create_generic_earth_horizon():
+def test_generic_earth_horizon_factory_sets_expected_properties():
     sensor = create_generic_earth_horizon(fov_deg=60.0, noise_deg=1.0)
     assert sensor.output_length == 3
     assert sensor.fov == pytest.approx(np.deg2rad(60.0))
 
 
-def test_create_irst_horizon_sensor():
+def test_irst_horizon_factory_sets_expected_properties():
     sensor = create_irst_horizon_sensor()
     assert sensor.output_length == 3
     assert sensor.fov == pytest.approx(np.deg2rad(60.0))
 
 
-def test_factory_custom_boresight():
+def test_generic_earth_horizon_factory_normalizes_custom_boresight():
     boresight = np.array([1.0, 0.0, 0.0])
     sensor = create_generic_earth_horizon(boresight=boresight)
-    np.testing.assert_allclose(
-        sensor.boresight,
-        boresight / np.linalg.norm(boresight),
-        rtol=1e-10,
-    )
-
-
-if __name__ == "__main__":
-    test_clean_reading_returns_nadir()
-    test_output_is_unit_vector()
-    test_nadir_outside_fov_returns_nan()
-    test_full_hemisphere_fov()
-    test_altitude_independence()
-    test_earth_angular_radius()
-    test_jacobian_finite_difference()
-    test_omega_jacobian_is_zero()
-    test_jacobian_zero_when_nan()
-    test_bias_jacobian_no_estimate()
-    test_bias_jacobian_with_estimate()
-    test_noisy_reading_unit_vector()
-    test_noise_distribution_KS()
-    test_create_generic_earth_horizon()
-    test_create_irst_horizon_sensor()
-    test_factory_custom_boresight()
-    print("All tests passed.")
+    np.testing.assert_allclose(sensor.boresight, boresight / np.linalg.norm(boresight), rtol=1e-10)

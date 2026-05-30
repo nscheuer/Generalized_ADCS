@@ -29,7 +29,10 @@ from ADCS.satellite_hardware.actuators import RW
 from ADCS.helpers.math_constants import MathConstants
 from ADCS.helpers.math_helpers import normalize
 
-import trajectory_planner.build.tplaunch as tplaunch
+# trajectory_planner / OldPlanner add-on; go through the helper so the
+# OldPlanner/build/ sys.path bookkeeping happens in one place.
+from ADCS.controller.helpers.optional_dependencies import get_trajectory_planner_modules
+tplaunch, _ = get_trajectory_planner_modules()
 
 
 def setup_problem():
