@@ -49,6 +49,9 @@ __all__ = [
     "allocation_magnitude_ratio",
     "metrics_table",
     "write_table",
+    "run_results_to_dict",
+    "from_simulation_results",
+    "rw_momentum",
 ]
 
 
@@ -349,3 +352,44 @@ def write_table(
                                    float_fmt=float_fmt))
         written.append(str(p))
     return written
+
+
+# --------------------------------------------------------------------------- #
+# Structured-result adapters (Paper 2: ADCS.simulate_mc / SimulationResults)
+# --------------------------------------------------------------------------- #
+# Paper 2's planner scripts use ``ADCS.simulate_mc`` which returns
+# ``SimulationResults`` (a list of ``RunResults`` dataclasses) rather than the
+# raw worker dicts Paper 1 uses. ``RunResults.state_hist`` and
+# ``.target_hist`` (the ``goal.to_ref`` reference, same quantity Paper 1
+# stored as ``boresight_goal``) map straight onto the verified core above, so
+# every metric works on Paper 2 data with zero new pointing math.
+def run_results_to_dict(run: Any) -> Dict[str, Any]:
+    """Adapt one ``RunResults`` to the dict shape the metrics consume."""
+    d: Dict[str, Any] = {
+        "time": np.asarray(run.time_s, dtype=float),
+        "state": np.asarray(run.state_hist, dtype=float),
+        "boresight_goal": np.asarray(run.target_hist, dtype=float),
+    }
+    if getattr(run, "control_hist", None) is not None:
+        d["u"] = np.asarray(run.control_hist, dtype=float)
+    return d
+
+
+def from_simulation_results(sim_results: Any) -> List[Dict[str, Any]]:
+    """``SimulationResults`` (or any iterable of ``RunResults``) ->
+    ``list`` of metric-ready dicts. Use the result with
+    :func:`convergence_stats`, :func:`run_pointing_error`, etc."""
+    runs = getattr(sim_results, "runs", sim_results)
+    return [run_results_to_dict(r) for r in runs]
+
+
+def rw_momentum(res: Dict[str, Any], n_rw: Optional[int] = None) -> np.ndarray:
+    """Reaction-wheel stored momentum history ``(N, n_rw)`` from a result's
+    state (``state = [w(3), q(4), h(n_rw)]``). For Paper 2 IV-A, which shows
+    pointing error and wheel momentum converging simultaneously (implicit
+    desaturation). Returns shape ``(N, 0)`` for wheel-less configs."""
+    s = np.asarray(res["state"], dtype=float)
+    h = s[:, 7:]
+    if n_rw is not None:
+        h = h[:, :n_rw]
+    return h

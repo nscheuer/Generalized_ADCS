@@ -1,0 +1,5 @@
+| config | n | pct_converged | mean_final_deg | median_final_deg | max_final_deg | mean_settle_s |
+| --- | --- | --- | --- | --- | --- | --- |
+| 3MTQ+0RW | 4 | 0.000 | 94.026 | 95.969 | 126.022 | nan |
+| 3MTQ+1RW | 4 | 50.000 | 25.780 | 10.985 | 80.536 | 113.000 |
+| 3MTQ+3RW | 4 | 75.000 | 3.844 | 3.843 | 5.258 | 84.000 |

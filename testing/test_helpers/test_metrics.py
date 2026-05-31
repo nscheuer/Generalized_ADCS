@@ -115,3 +115,34 @@ def test_table_emission(tmp_path):
     assert sorted(p.split(".")[-1] for p in written) == ["csv", "md", "tex"]
     for p in written:
         assert open(p).read()
+
+
+def test_simulation_results_adapter():
+    """Paper 2 RunResults adapter must reuse the verified pointing math and
+    expose RW momentum from the state vector."""
+    from types import SimpleNamespace
+
+    n = 30
+    t = np.arange(n, dtype=float)
+    q_id = np.tile([1.0, 0, 0, 0], (n, 1))
+    state = np.zeros((n, 8))          # w(3) q(4) h(1)
+    state[:, 3:7] = q_id
+    state[:, 7] = np.linspace(0.01, 0.0, n)  # wheel desaturating to zero
+    target = np.tile([0.0, 0, 1], (n, 1))
+
+    run = SimpleNamespace(time_s=t, state_hist=state, target_hist=target,
+                          control_hist=np.zeros((n, 4)))
+    sim = SimpleNamespace(runs=[run, run])
+
+    dicts = M.from_simulation_results(sim)
+    assert len(dicts) == 2
+    # identity attitude pointing at +z target -> ~0 deg, via the SAME core
+    _, err = M.run_pointing_error(dicts[0])
+    np.testing.assert_allclose(err, 0.0, atol=1e-9)
+    assert M.converged(dicts[0], threshold_deg=5.0)
+    # RW momentum extracted from state[:, 7:] and trends to zero (IV-A)
+    h = M.rw_momentum(dicts[0])
+    assert h.shape == (n, 1)
+    assert h[0, 0] == pytest.approx(0.01) and h[-1, 0] == pytest.approx(0.0)
+    # plain iterable of RunResults (no .runs) also accepted
+    assert len(M.from_simulation_results([run])) == 1

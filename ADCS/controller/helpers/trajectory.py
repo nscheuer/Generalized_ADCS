@@ -289,7 +289,14 @@ class Trajectory:
         #
         # For KwDist mode (disturbance estimation), gains will be
         # (n_ctrl, n_err + 3) but this is handled by checking actual shape.
-        k_flat = self.gains[:, idx]
+        #
+        # Clamp the column index: flattened gains hold one column per control
+        # knot (N-1 of them), so a query at the final trajectory time (idx ==
+        # n_steps-1) would overflow. Reuse the last available gain, mirroring
+        # the safe_idx clamp in the 3-D branch above. (TVLQR never queries the
+        # terminal knot; the single-step MPC tracker does, via ct_next.)
+        safe_idx = min(idx, self.gains.shape[1] - 1)
+        k_flat = self.gains[:, safe_idx]
         if self.use_disturbance_estimation:
             # KwDist gains: (ctrl_dim, state_dim - 1 + 3)
             error_dim_with_dist = self.state_dim - 1 + 3

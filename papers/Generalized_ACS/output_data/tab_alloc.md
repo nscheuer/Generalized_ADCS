@@ -1,0 +1,5 @@
+| method | mean_dir_err_deg | median_dir_err_deg | p95_dir_err_deg | mean_mag_ratio | solve_time_us |
+| --- | --- | --- | --- | --- | --- |
+| LP | 0.000 | 0.000 | 0.000 | 0.783 | 360.258 |
+| QP | 10.472 | 0.895 | 50.052 | 0.837 | 133.649 |
+| cQP | 7.566 | 0.079 | 36.188 | 0.875 | 1314.936 |

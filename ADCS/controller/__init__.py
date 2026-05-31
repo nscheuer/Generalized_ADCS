@@ -15,6 +15,7 @@ from .plan_and_track_base import PlanAndTrackBase
 from .plan_and_track_exact import Plan_and_Track_Exact
 from .plan_and_track_lqr import Plan_and_Track_LQR
 from .plan_and_track_lqr_disturbed import Plan_and_Track_LQR_Disturbed
+from .plan_and_track_mpc import Plan_and_Track_SingleStepMPC
 from .saltro.saltro_controller import SALTRO
 
 __all__ = [
@@ -32,6 +33,7 @@ __all__ = [
     "Plan_and_Track_Exact",
     "Plan_and_Track_LQR",
     "Plan_and_Track_LQR_Disturbed",
+    "Plan_and_Track_SingleStepMPC",
     "SALTRO",
     "helpers",
     "plan_and_track",

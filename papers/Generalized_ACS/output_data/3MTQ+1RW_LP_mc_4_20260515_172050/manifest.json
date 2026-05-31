@@ -1,0 +1,20 @@
+{
+  "created": "2026-05-15T17:20:50",
+  "python": "3.12.13 (main, May  6 2026, 13:40:39) [Clang 21.0.0 (clang-2100.0.123.102)]",
+  "numpy": "2.2.6",
+  "directory": "/Users/patrickmckeen/Documents/Generalized_ADCS/papers/Generalized_ACS/output_data/3MTQ+1RW_LP_mc_4_20260515_172050",
+  "items": [
+    {
+      "label": "obj0",
+      "var_name": "results",
+      "kind": "pickle",
+      "file": "objects.pkl",
+      "key": "obj0",
+      "info": {
+        "type": "list",
+        "len": 4,
+        "elem_type": "dict"
+      }
+    }
+  ]
+}
