@@ -19,7 +19,7 @@ from scipy.integrate import solve_ivp
 
 sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))
 
-from ADCS.CONOPS.goals import ECI_Goal
+from ADCS.CONOPS.goals import ECI_Goal, Fixed_Attitude_Goal
 from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.orbit import Orbit
 from ADCS.orbits.orbital_state import Orbital_State
@@ -137,7 +137,12 @@ def simulate(config: Dict[str, Any],
         orb = _CACHED_ORBIT
 
         controller = make_controller(real_sat, config)
-        goal = ECI_Goal(config["goal_eci_vec"])
+        # Full-attitude goal (DIFFLAW Wie cell) if a target quaternion is
+        # supplied; otherwise the default vector-pointing ECI goal.
+        if config.get("goal_quat") is not None:
+            goal = Fixed_Attitude_Goal(np.asarray(config["goal_quat"], float))
+        else:
+            goal = ECI_Goal(config["goal_eci_vec"])
         fail = config.get("fail")
 
         time_hist = np.zeros(steps)

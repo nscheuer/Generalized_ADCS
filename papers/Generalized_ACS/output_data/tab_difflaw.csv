@@ -1,4 +1,4 @@
 law,settling_time_s,steady_state_err_deg,final_err_deg
-Wie,nan,23.464,23.493
-Lovera,nan,71.864,74.157
-Wisniewski,nan,23.042,22.119
+LP-PD,nan,24.440,23.782
+Lovera,nan,98.352,90.493
+Wisniewski,nan,53.431,66.050

@@ -1,10 +1,12 @@
 """Paper 1 -- FIG-DIFFLAW + TAB-DIFFLAW (Section V-B).
 
-Three literature control laws run through the framework on the *same*
-hardware and the *same* scenario (one fixed seed); the only variable is the
-control law itself:
+Three control laws run through the framework on the *same* hardware and the
+*same* scenario (one fixed seed); the only variable is the control law:
 
-  * Wie        -- quaternion PD via the framework LP allocation
+  * LP-PD      -- linear quaternion PD via the framework LP allocation
+                  (formerly mislabelled "Wie"; the genuine Wie eigenaxis
+                  regulator is a distinct law, compared at 100 trials in
+                  generate_p1.3_difflaw_mc.py)
   * Lovera     -- magnetic PD with adaptive projection
   * Wisniewski -- LTV sliding-mode magnetic control
 
@@ -37,13 +39,13 @@ from papers.Generalized_ACS._paper1_sim import scale, simulate, make_config
 OUTPUT_DIR = "papers/Generalized_ACS/output_data"
 COMMON_CONFIG = "3MTQ+1RW"
 DIFFLAW_SEED = 7
-LAWS = ["Wie", "Lovera", "Wisniewski"]
+LAWS = ["LP-PD", "Lovera", "Wisniewski"]
 
 
 def _make_controller(sat: Satellite, config: Dict[str, Any]):
     """Dispatch on ``config['law']`` (module-level -> picklable for spawn)."""
     law = config["law"]
-    if law == "Wie":
+    if law == "LP-PD":
         return MTQ_w_RW_LP(est_sat=sat, p_gain=0.00005, d_gain=0.001,
                            c_gain=0.001, h_target=np.zeros(3))
     if law == "Lovera":
