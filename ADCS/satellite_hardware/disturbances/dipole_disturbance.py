@@ -155,7 +155,7 @@ class Dipole_Disturbance(Disturbance):
         B_B = vecs["b"]
         return np.cross(self.current_torque, B_B)
 
-    def torque_qjac(self, sat, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+    def torque_qjac(self, sat=None, x: np.ndarray = None, os: Orbital_State = None) -> np.ndarray:
         r"""
         Jacobian of the disturbance torque with respect to the attitude quaternion.
 
@@ -188,7 +188,7 @@ class Dipole_Disturbance(Disturbance):
         db_body__dq = vecs["db"]
         return np.cross(self.current_torque, db_body__dq)
 
-    def torque_qqhess(self, sat, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+    def torque_qqhess(self, sat=None, x: np.ndarray = None, os: Orbital_State = None) -> np.ndarray:
         r"""
         Hessian of the disturbance torque with respect to the attitude quaternion.
 
@@ -221,7 +221,7 @@ class Dipole_Disturbance(Disturbance):
         ddb_body__dqdq = vecs["ddb"]
         return np.cross(self.current_torque, ddb_body__dqdq)
 
-    def torque_valjac(self, sat, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+    def torque_valjac(self, sat=None, x: np.ndarray = None, os: Orbital_State = None) -> np.ndarray:
         r"""
         Jacobian of the disturbance torque with respect to the dipole vector.
 
@@ -255,7 +255,7 @@ class Dipole_Disturbance(Disturbance):
         B_B = vecs["b"]
         return np.cross(np.eye(3), B_B)
 
-    def torque_qvalhess(self, sat, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+    def torque_qvalhess(self, sat=None, x: np.ndarray = None, os: Orbital_State = None) -> np.ndarray:
         r"""
         Mixed second derivative of the disturbance torque with respect to quaternion
         and dipole vector.
@@ -288,7 +288,7 @@ class Dipole_Disturbance(Disturbance):
         db_body__dq = vecs["db"]
         return np.cross(np.expand_dims(np.eye(3), 0), np.expand_dims(db_body__dq, 1))
 
-    def torque_valvalhess(self, sat, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+    def torque_valvalhess(self, sat=None, x: np.ndarray = None, os: Orbital_State = None) -> np.ndarray:
         r"""
         Second derivative of the disturbance torque with respect to the
         estimated parameter twice. The dipole torque is linear in the
