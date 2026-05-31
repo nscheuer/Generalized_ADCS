@@ -2,3 +2,6 @@
 	path = SALTRO
 	url = https://github.com/nscheuer/SALTRO.git
 	branch = NSSR_3+1
+[submodule "OldPlanner"]
+	path = OldPlanner
+	url = https://github.com/patrickmckeen/OldPlanner.git
