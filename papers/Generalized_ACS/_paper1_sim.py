@@ -151,6 +151,7 @@ def simulate(config: Dict[str, Any],
         bore_hist = np.zeros((steps, 4))
         tau_des_hist = np.full((steps, 3), np.nan)
         tau_cmd_hist = np.full((steps, 3), np.nan)
+        alpha_hist = np.full(steps, np.nan)
         t = t0
         sec2cent = TimeConstants.sec2cent
 
@@ -177,6 +178,9 @@ def simulate(config: Dict[str, Any],
                 tau_des_hist[i, :] = np.asarray(td, dtype=float).ravel()[:3]
             if tc is not None:
                 tau_cmd_hist[i, :] = np.asarray(tc, dtype=float).ravel()[:3]
+            a = getattr(controller, "last_alpha", None)
+            if a is not None:
+                alpha_hist[i] = float(a)
 
             t += dt
             os_next = orb.get_os(0.22 + (t - t0) * sec2cent)
@@ -192,7 +196,7 @@ def simulate(config: Dict[str, Any],
         return {
             "run_id": run_id, "config": config, "time": time_hist,
             "state": state_hist, "u": u_hist, "boresight_goal": bore_hist,
-            "tau_des": tau_des_hist, "tau_cmd": tau_cmd_hist,
+            "tau_des": tau_des_hist, "tau_cmd": tau_cmd_hist, "alpha": alpha_hist,
         }
     finally:
         release_worker_slot(slot_id)

@@ -1,0 +1,7 @@
+config,task,n,conv_pct,mean_final_deg,p95_final_deg,mean_settle_s,mean_saturation,controllability,paired_delta_vs_3p3_mean_deg
+3MTQ+0RW,vector,100,1.000,90.294,153.238,996.000,0.998,True,90.288
+3MTQ+1RW,vector,100,71.000,9.613,51.837,218.789,0.223,True,9.608
+3MTQ+3RW,vector,100,100.000,0.006,0.013,99.300,0.000,True,0.000
+3MTQ+0RW,full,100,0.000,118.367,174.652,nan,0.999,False,118.360
+3MTQ+1RW,full,100,38.000,43.595,125.884,296.895,0.524,marginal,43.588
+3MTQ+3RW,full,100,100.000,0.007,0.014,130.140,0.000,True,0.000

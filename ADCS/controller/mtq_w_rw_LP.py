@@ -517,6 +517,10 @@ class MTQ_w_RW_LP(Controller):
         # 3) Primary allocation: max feasible torque in tau_des direction (your LP)
         # -------------------------
         u_rw_cmd, u_mtq_cmd, alpha = self.allocate_max_torque_in_direction(tau_des, b_body, est_sat)
+        # Realized LP allocation scale (fraction of the requested torque that is
+        # physically achievable); 1 - alpha is the saturation. Exposed for
+        # diagnostics (P1.2 same-PD-across-configs saturation metric).
+        self.last_alpha = float(alpha)
 
         # Assemble baseline command vector in *actuator ordering*
         u_out = np.zeros(len(est_sat.actuators), dtype=float)
