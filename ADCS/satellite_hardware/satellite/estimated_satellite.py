@@ -1,4 +1,5 @@
 __all__ = ["EstimatedSatellite"]
+import copy
 import numpy as np
 
 from typing import List, Dict, Union, Tuple, Any, Optional
@@ -133,14 +134,28 @@ class EstimatedSatellite(Satellite):
     def from_satellite(cls, sat: Satellite) -> "EstimatedSatellite":
         """
         Create an EstimatedSatellite by cloning a Satellite.
+
+        The sensor / actuator / disturbance objects MUST be deep-copied, not
+        shared by reference: they carry mutable state (``Bias``/``Noise``
+        evolution, reaction-wheel momentum and the shared
+        ``_effective_command`` cache, disturbance parameters). When the
+        estimated satellite is used by an estimator (e.g. inside
+        :func:`~ADCS.simulate.simulate`, which auto-builds it via this
+        method), the filter repeatedly evaluates ``sensor_readings`` /
+        ``noiseless_rk4`` / actuator torques on its sigma points; if those
+        objects were the *same* instances as the true satellite's, the
+        filter's internal predictions would silently corrupt the truth's
+        sensor/actuator/disturbance state (and vice versa) within and across
+        timesteps. Deep-copying makes the estimate model independent of the
+        plant, as the "cloning" contract promises.
         """
         est = cls(
             mass=sat.mass,
             COM=sat.COM.copy(),
             J_0=sat.J_0.copy(),
-            disturbances=sat.disturbances,
-            sensors=sat.sensors,
-            actuators=sat.actuators,
+            disturbances=copy.deepcopy(sat.disturbances),
+            sensors=copy.deepcopy(sat.sensors),
+            actuators=copy.deepcopy(sat.actuators),
             boresight=sat.boresight.copy(),
         )
 
@@ -297,7 +312,21 @@ class EstimatedSatellite(Satellite):
         ind = 0
         for j in self.dist_param_inds:
             dist = self.disturbances[j]
-            if dist.active:  # Only update active ones
+            # WARNING: disturbance-parameter estimation is API-rotted dead
+            # scaffolding. This block references a `dist.active` /
+            # `dist.main_param` / `dist.std` interface that NO disturbance
+            # class implements (only Drag defines `active`; none define
+            # `main_param`/`std`), and `estimate_dist=True` is used nowhere
+            # in the codebase or tests. Same dead-scaffolding family as the
+            # rotted analytic Jacobians (PR #44 dynamics_Hessians / PR #47
+            # dynJacCore). The `getattr(..., True)` below fixes the one
+            # trivial, isolated sub-defect (the bare `dist.active` crashed
+            # for every non-Drag disturbance); the deeper `main_param`/`std`
+            # rot is NOT resurrected here (out of proportion -- there is no
+            # disturbance-param API or consumer to verify against) and is
+            # tracked by a strict-xfail guard:
+            # testing/test_estimators/test_disturbance_param_estimation.py.
+            if getattr(dist, "active", True):  # Only update active ones
                 l = dist.main_param.size
                 dist.main_param = dist_param[ind : ind + l]
                 dist.std = np.sqrt(dist_param_ic[ind : ind + l, ind : ind + l])
@@ -556,7 +585,10 @@ class EstimatedSatellite(Satellite):
         w = x[0:3]
         q = x[4:7]
         RWhs = x[7:]
-        J = self.J_0
+        # Must match the inertia used in dynamics_core (J_COM, not J_0) so the
+        # estimated-model Jacobian remains the correct linearization when COM
+        # is offset from the reference origin.
+        J = self.J_COM
         invJ_noRW = self.invJ_noRW
 
         rmat_ECI2B = rot_mat(q).T
@@ -718,9 +750,8 @@ class EstimatedSatellite(Satellite):
         q = x[3:7]#normalize(x[3:7,:])
         RWhs = x[7:]
         invJ_noRW = self.invJ_noRW
-        # Stage A: PR #44 fixed `self.J -> self.J_COM` in the analogous
-        # spot earlier in dynamics_Hessians but missed this second
-        # occurrence. Same gyroscopic-inertia convention (PR #33).
+        # Match the COM-based rotational dynamics and avoid relying on the
+        # undefined self.J attribute.
         J = self.J_COM
 
         R = orbital_state.R

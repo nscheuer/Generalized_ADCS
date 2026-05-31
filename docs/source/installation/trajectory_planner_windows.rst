@@ -63,13 +63,25 @@ Note that this step may take up to 15 minutes.
 
 Build Instructions
 ------------------
-From the ``trajectory_planner`` build directory:
+The trajectory_planner C++ source lives in the
+`OldPlanner <https://github.com/patrickmckeen/OldPlanner>`_ submodule.
+Initialise it first if needed:
 
 .. code-block:: powershell
 
+   git submodule update --init --recursive OldPlanner
+
+Then from the ``OldPlanner`` build directory:
+
+.. code-block:: powershell
+
+   cd OldPlanner
+   mkdir build
+   cd build
+
    $CMAKE_EXE = "C:\Program Files\CMake\bin\cmake.exe"
    $VCPKG_ROOT = "$env:USERPROFILE\vcpkg"
-   $PYTHON_VENV = ".\venv\Scripts\python.exe"
+   $PYTHON_VENV = "..\..\venv\Scripts\python.exe"
 
 Configure the build:
 
