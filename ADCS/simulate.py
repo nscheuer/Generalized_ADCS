@@ -304,13 +304,19 @@ def simulate(
                 if getattr(satellite, "actuators", None):
                     for act in satellite.actuators:
                         # only include if bias exists (act.bias has __bool__)
-                        if hasattr(act, "bias") and bool(act.bias):
-                            # determine this actuator bias dimension from the true bias object
+                        if hasattr(act, "bias") and bool(act.bias) and ai + int(np.atleast_1d(act.bias.bias).size) <= b_act_hat.size:
+                            # The TRUE actuator has a bias AND the estimator
+                            # actually estimates it (enough entries remain in
+                            # b_act_hat). A real bias the estimator does NOT
+                            # estimate (b_act_hat empty/short) must fall through
+                            # to the None placeholder -- otherwise this slices
+                            # past the (possibly size-0) estimator bias vector
+                            # and raises "cannot reshape array of size 0".
                             dim = int(np.atleast_1d(act.bias.bias).size)
                             act_parts.append(b_act_hat[ai:ai + dim].reshape(dim, 1) if dim == 1 else b_act_hat[ai:ai + dim])
                             ai += dim
                         else:
-                            # keep placeholder for consistency with "real" formatting
+                            # bias not present, or not estimated by this filter
                             act_parts.append(None)
 
                 # If the estimator’s actuator-bias length doesn't match the sum of per-actuator dims,
@@ -329,7 +335,10 @@ def simulate(
                 si = 0
                 if getattr(satellite, "sensors", None):
                     for sens in satellite.sensors:
-                        if hasattr(sens, "bias") and bool(sens.bias):
+                        if hasattr(sens, "bias") and bool(sens.bias) and si + int(np.atleast_1d(sens.bias.bias).size) <= b_sens_hat.size:
+                            # TRUE sensor has a bias AND the estimator
+                            # estimates it; otherwise fall through to None
+                            # (do not index past a possibly size-0 b_sens_hat).
                             dim = int(np.atleast_1d(sens.bias.bias).size)
                             sens_parts.append(b_sens_hat[si:si + dim].reshape(dim, 1) if dim == 1 else b_sens_hat[si:si + dim])
                             si += dim

@@ -228,7 +228,7 @@ def build_cpp_satellite(est_sat: EstimatedSatellite, planner_settings: PlannerSe
 
     This function converts an instance of
     :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
-    into a :class:`~trajectory_planner.build.pysat.Satellite` object used by the
+    into a :class:`~pysat.Satellite` object used by the
     C++ trajectory planner. The conversion includes:
 
     - Inertia tensor assignment
@@ -255,7 +255,7 @@ def build_cpp_satellite(est_sat: EstimatedSatellite, planner_settings: PlannerSe
         Satellite object compatible with the C++ trajectory planner.
 
     :rtype:
-        :class:`~trajectory_planner.build.pysat.Satellite`
+        :class:`~pysat.Satellite`
 
     """
     _, pysat = get_trajectory_planner_modules()
@@ -309,7 +309,7 @@ def add_actuator(act: Actuator, csat: pysat.Satellite, planner_settings: Planner
         C++ planner satellite object to which the actuator is added.
 
     :type csat:
-        :class:`~trajectory_planner.build.pysat.Satellite`
+        :class:`~pysat.Satellite`
 
     :param planner_settings:
         Planner configuration providing weights and scaling factors.

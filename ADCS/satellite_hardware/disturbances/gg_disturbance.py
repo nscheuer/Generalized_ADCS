@@ -234,13 +234,29 @@ class GG_Disturbance(Disturbance):
         const_term = 3.0*EarthConstants.mu_e/(norm(R_B)**3.0)
 
         dc__dq = -9.0*EarthConstants.mu_e*vec_norm_jac(R_B, vecs["dr"])/(norm(R_B)**4.0)
+        # dnadir_vec__dq is (4,3) = [quat-index, vector-component]; the term
+        # J_0 @ dnadir must contract J_0 against the vector axis (axis 1), i.e.
+        # row i is J_0 @ dnadir[i]. ``sat.J_0 @ dnadir_vec__dq`` is (3,3)@(4,3)
+        # and raised a ValueError; ``dnadir_vec__dq @ sat.J_0.T`` is the correct
+        # (4,3) result.
         dv__dq = (
             np.cross(dnadir_vec__dq, sat.J_0 @ nadir_vec)
-            + np.cross(nadir_vec, sat.J_0 @ dnadir_vec__dq)
+            + np.cross(nadir_vec, dnadir_vec__dq @ sat.J_0.T)
         )
         vec_term = np.cross(nadir_vec, sat.J_0 @ nadir_vec)
 
         return np.outer(dc__dq, vec_term) + const_term*dv__dq
+
+    def torque_qjac(self, sat: Satellite, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+        r"""
+        Alias of :meth:`torque_qvac` so the gravity-gradient disturbance exposes
+        the same ``torque_qjac`` quaternion-Jacobian entry point as every other
+        disturbance (estimators/planners iterate ``torque_qjac`` generically).
+
+        :return: Quaternion Jacobian of the gravity-gradient torque, shape ``(4,3)``.
+        :rtype: :class:`numpy.ndarray`
+        """
+        return self.torque_qvac(sat=sat, x=x, os=os)
 
     def torque__qqhess(self, sat: Satellite, x: np.ndarray, os: Orbital_State) -> np.ndarray:
         r"""

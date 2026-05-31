@@ -182,5 +182,6 @@ class Vector_Goal(Goal):
             cross = np.cross(v_goal_body, v_bore)
             q_err_full = normalize(np.concatenate([[1.0 + dot], cross]))
 
-        q_err_vec = q_err_full[1:4] * np.sign(q_err_full[0])
+        sign = 1.0 if q_err_full[0] >= 0.0 else -1.0
+        q_err_vec = q_err_full[1:4] * sign
         return q_err_vec

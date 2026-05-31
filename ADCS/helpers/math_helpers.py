@@ -328,7 +328,11 @@ def quat_to_mrp(quat: np.ndarray) -> np.ndarray:
     Convert a quaternion to **Modified Rodrigues parameters (MRP)**.
 
     .. math::
-        \boldsymbol{\sigma} = \frac{2\boldsymbol{q}_v}{1 + q_0}
+        \boldsymbol{\sigma} = \frac{\boldsymbol{q}_v}{1 + q_0}
+
+    (This is the standard MRP. The implementation computes exactly this; the
+    previous ``2 q_v / (1 + q_0)`` in this docstring was incorrect -- the code
+    has no factor of 2, and ``mrp_to_quat`` is its exact inverse.)
 
     Parameters
     ----------
