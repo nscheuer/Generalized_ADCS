@@ -216,6 +216,9 @@ class Satellite:
         # Initialize state
         self.state_len = 7 + self.number_RW
         self.control_len = len(actuators)
+
+        self.act_bias_len = 0
+        self.att_sens_bias_len = 0
         self.dist_param_len = 0
         self.update_J(J_0=J_0, COM=COM)
 
@@ -858,7 +861,7 @@ class Satellite:
         +----------------------+--------------------------+
         """
         ddist_torq__dx = np.zeros((self.state_len,3))
-        ddist_torq__dx[3:7,:] = sum([j.torque_qjac(self,vecs) for j in self.disturbances],np.zeros((4,3)))
+        ddist_torq__dx[3:7,:] = sum([j.torque_qjac(self,x,vecs["os"]) for j in self.disturbances],np.zeros((4,3)))
         ddist_torq__ddmp = np.zeros((0,3))
         return ddist_torq__dx,ddist_torq__ddmp
 
@@ -903,7 +906,7 @@ class Satellite:
         +----------------------------+-----------------------------------------+
         """
         dddist_torq__dxdx = np.zeros((self.state_len,self.state_len,3))
-        dddist_torq__dxdx[3:7,3:7,:] = sum([j.torque_qqhess(self,vecs) for j in self.disturbances],np.zeros((4,4,3)))
+        dddist_torq__dxdx[3:7,3:7,:] = sum([j.torque_qqhess(self,x,vecs["os"]) for j in self.disturbances],np.zeros((4,4,3)))
         dddist_torq__ddmpddmp = np.zeros((self.dist_param_len,self.dist_param_len,3))
         dddist_torq__dxddmp = np.zeros((self.state_len,self.dist_param_len,3))
         return dddist_torq__dxdx,dddist_torq__dxddmp,dddist_torq__ddmpddmp
