@@ -148,7 +148,7 @@ class Prop_Disturbance(Disturbance):
         """
         return self.current_torque
 
-    def torque_qjac(self) -> np.ndarray:
+    def torque_qjac(self, *args, **kwargs) -> np.ndarray:
         r"""
         Compute the **Jacobian of the propulsion disturbance torque** with respect
         to the attitude quaternion.
@@ -162,10 +162,25 @@ class Prop_Disturbance(Disturbance):
             =
             \mathbf{0}_{3\times4}.
 
-        :return: Quaternion Jacobian matrix of zeros, shape ``(3, 4)``.
+        :return: Quaternion Jacobian matrix of zeros, shape ``(4, 3)``.
         :rtype: :class:`numpy.ndarray`
         """
-        return np.zeros((3, 4))
+        # Accept the generic (sat, x, os) call signature used for every other
+        # disturbance (the no-arg signature raised TypeError when a planner or
+        # estimator iterated torque_qjac uniformly). Canonical layout (4,3).
+        return np.zeros((4, 3))
+
+    def torque_qqhess(self, *args, **kwargs) -> np.ndarray:
+        r"""
+        Lowercase alias of :meth:`torque_qqHess` so the propulsion disturbance
+        exposes the same ``torque_qqhess`` entry point as every other
+        disturbance (generic estimator/planner iteration uses the lowercase
+        name). Constant torque -> zero Hessian, canonical layout ``(4,4,3)``.
+
+        :return: Quaternion Hessian tensor of zeros, shape ``(4, 4, 3)``.
+        :rtype: :class:`numpy.ndarray`
+        """
+        return np.zeros((4, 4, 3))
 
     def torque_qqHess(self) -> np.ndarray:
         r"""

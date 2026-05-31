@@ -236,9 +236,20 @@ class Orbit_GPS(Orbit_Estimator):
             else:
                 v_eci = np.zeros(3)
                 
-            std_pos = self.gps_std
-            std_vel = 1000.0 # High uncertainty for unmeasured velocity
-            P = np.diag([std_pos]*3 + [std_vel]*3)**2
+            # self.gps_std is the per-component sensor std array
+            # (gps.noise.std_noise), NOT a scalar. The old
+            # `np.diag([std_pos]*3 + [std_vel]*3)**2` built a ragged list and
+            # collapsed to a 1-D array -> EstimatedOrbital_State rejected it
+            # ("P must be 6x6"), so Orbit_GPS was dead-on-arrival for every
+            # real measurement. Build the 6x6 measurement covariance
+            # explicitly: diag(sigma_r^2 x3, sigma_v^2 x3).
+            std_pos = np.asarray(self.gps_std, dtype=float).reshape(-1)
+            if std_pos.size == 1:
+                std_pos = np.repeat(std_pos, 3)
+            std_pos = std_pos[:3]
+            std_vel = 1000.0  # High uncertainty for unmeasured velocity
+            P = np.diag(np.concatenate([std_pos ** 2,
+                                        np.full(3, std_vel ** 2)]))
 
         elif m.size == 6:
             # Position + Velocity
@@ -247,9 +258,11 @@ class Orbit_GPS(Orbit_Estimator):
 
             r_eci = temp_os.ecef_to_eci(r_ecef)
             v_eci = temp_os.ecef_to_eci(v_ecef)
-            
-            std = self.gps_std
-            P = np.diag([std]*6)**2
+
+            std = np.asarray(self.gps_std, dtype=float).reshape(-1)
+            if std.size == 1:
+                std = np.repeat(std, 6)
+            P = np.diag(std[:6] ** 2)
             
         else:
             raise ValueError(f"Unknown GPS measurement size: {m.size}")
