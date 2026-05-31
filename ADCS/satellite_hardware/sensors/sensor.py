@@ -165,15 +165,20 @@ class Sensor:
             dmode = ErrorMode(add_bias=True, add_noise=True, update_bias=True, update_noise=True)
 
         reading = self.clean_reading(x=x, os=os)
-        if self.bias and dmode.add_bias:
-            reading += self.bias.get_bias(os.J2000)
+        # Evolve the stochastic states FIRST so this reading uses the noise/bias
+        # realization for the current step. Previously get_noise()/get_bias()
+        # were added before _update_*(), so every sensor's first measurement
+        # used the initial (zero) noise sample -- i.e. the first reading was
+        # noise-free and bias diffusion lagged by one step.
         if dmode.update_bias:
             self.bias._update_bias(os.J2000)
+        if self.bias and dmode.add_bias:
+            reading += self.bias.get_bias(os.J2000)
 
-        if self.noise and dmode.add_noise:
-            reading += self.noise.get_noise()
         if dmode.update_noise:
             self.noise._update_noise()
+        if self.noise and dmode.add_noise:
+            reading += self.noise.get_noise()
 
         return reading
     

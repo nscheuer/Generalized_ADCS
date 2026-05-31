@@ -29,11 +29,19 @@ Ensure the following system packages are installed:
 
 Build Instructions
 ------------------
-From the repository root:
+The trajectory_planner C++ source lives in the
+`OldPlanner <https://github.com/patrickmckeen/OldPlanner>`_ submodule.
+Initialise it first if needed:
 
 .. code-block:: bash
 
-   cd trajectory_planner
+   git submodule update --init --recursive OldPlanner
+
+Then from the repository root:
+
+.. code-block:: bash
+
+   cd OldPlanner
    mkdir -p build
    cd build
 

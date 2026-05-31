@@ -143,8 +143,15 @@ class DensityModel:
             \frac{\rho_{i+1} - \rho_i}{h_{i+1} - h_i}
             (h - h_i).
 
-        If :math:`h` lies outside the reference range, the boundary density
-        values are returned (constant extrapolation).
+        The atmosphere is approximately *exponential* in altitude, so the
+        interpolation is performed **log-linearly** (linear in :math:`\ln\rho`
+        vs. altitude); plain linear-in-altitude interpolation over a sparse
+        table is wrong by orders of magnitude between samples (e.g. ~600x at
+        50 km). Above the top reference altitude the density continues to
+        **decay exponentially** using the scale height of the last table
+        interval (so e.g. GEO does not retain a spurious LEO-tail density);
+        below the lowest reference altitude the density is clamped to the
+        lowest sample (sub-surface / decayed-orbit guard).
 
         :param altitude_km:
             Altitude above Earth’s mean radius in kilometers (km).
@@ -155,8 +162,26 @@ class DensityModel:
         :rtype: float
 
         """
+        h = float(altitude_km)
+        alt = self.altitude_range
+        rho = self.rho_range
+        log_rho = np.log(rho)
 
-        return float(np.interp(altitude_km, self.altitude_range, self.rho_range))
+        if h <= alt[0]:
+            # Below the table (incl. sub-surface / negative): clamp, no crash.
+            return float(rho[0])
+        if h >= alt[-1]:
+            # Continue the exponential decay of the last interval rather than
+            # holding a constant (the old constant extrapolation gave high
+            # orbits a spurious non-zero LEO-tail density).
+            denom = log_rho[-2] - log_rho[-1]
+            if denom <= 0.0:
+                return float(rho[-1])
+            scale_height = (alt[-1] - alt[-2]) / denom  # km, > 0
+            return float(rho[-1] * np.exp(-(h - alt[-1]) / scale_height))
+
+        # Interior: linear in ln(rho) vs altitude == exponential interpolation.
+        return float(np.exp(np.interp(h, alt, log_rho)))
 
     def __repr__(self) -> str:
         r"""
