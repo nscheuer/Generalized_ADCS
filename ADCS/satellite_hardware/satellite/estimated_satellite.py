@@ -630,11 +630,7 @@ class EstimatedSatellite(Satellite):
             dxdot__dx[7:,0:3] += (dact_torq__dh+np.cross(RWaxes,w))@invJ_noRW
             dxdot__du[:,7:] = block_diag(*[self.actuators[j].dstor_torq__du(u[j],x,orbital_state) for j in range(len(self.actuators))])
             dxdot__du[:,7:] -= dxdot__du[:,0:3]@RWaxes.T@mRWjs
-            # Refactor bug: these comprehensions bound `act`/`rw` but kept
-            # using `u[j]` (`j` was the prior loop variable, undefined here).
-            # Bind index correctly: `j` for all-actuator indexing on the
-            # first, `momentum_inds[i]` for RW-position-in-full-actuator
-            # ordering on the second.
+            
             dxdot__dx[0:7,7:] = np.hstack([act.dstor_torq__dbasestate(u[j],x,orbital_state) for j,act in enumerate(self.actuators)])
             dxdot__dx[7:,7:] = np.diagflat([rw.dstor_torq__dh(u[self.momentum_inds[i]],x,orbital_state) for i,rw in enumerate(self.rw_actuators)])
             dxdot__dx[:,7:] -= dxdot__dx[:,0:3]@RWaxes.T@mRWjs
