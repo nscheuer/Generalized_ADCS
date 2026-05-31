@@ -36,6 +36,8 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 import ADCS as ADCS
 from ADCS.helpers import metrics as M
+from ADCS.helpers.plot.control.targetplot import (
+    _angle_deg, _attitude_error_deg, _boresight_eci)
 import _paper2_sim as P
 
 import matplotlib
@@ -82,16 +84,47 @@ def run_campaign(controller_factory):
 
 
 # --------------------------------------------------------------------------- #
-# Per-trial metric extraction
+# Per-trial metric extraction -- canonical Paper-2 pointing-error convention
+# (analyze_p2_matrix locked metric: body boresight rotated into ECI vs target;
+#  satellite.boresight is [0,1,0] for beavercube2, NOT [0,0,1]).
 # --------------------------------------------------------------------------- #
+def pointing_error_deg(run, bore_unit):
+    """Per-timestep pointing error (deg) for one RunResults, Paper-2 metric."""
+    st = np.asarray(run.state_hist, float)
+    tg = np.asarray(run.target_hist, float)
+    t = np.asarray(run.time_s, float)
+    err = np.empty(len(st))
+    for k in range(len(st)):
+        q = st[k, 3:7]
+        target = tg[k]
+        if not np.isnan(target[0]):                     # quaternion target
+            err[k] = _attitude_error_deg(q, target)
+        else:                                            # ECI direction target
+            err[k] = _angle_deg(_boresight_eci(q, bore_unit), target[1:4])
+    return t, err
+
+
+def _resolve_boresight(sat):
+    """Body boresight unit vector (sat.boresight may be an array or a
+    {name: vector} dict; the planner config uses 'default' = [0,1,0])."""
+    try:
+        b = sat.get_boresight(None)
+    except Exception:
+        b = sat.boresight
+        if isinstance(b, dict):
+            b = b.get("default", next(iter(b.values())))
+    b = np.asarray(b, float).reshape(3)
+    return b / np.linalg.norm(b)
+
+
 def per_trial(results):
-    dicts = M.from_simulation_results(results)
+    bore_unit = _resolve_boresight(results.satellite)
     out = []
-    for i, d in enumerate(dicts):
-        t, err = M.run_pointing_error(d)
-        u = np.asarray(d.get("u"), dtype=float) if d.get("u") is not None \
-            else np.zeros((len(t), 0))
-        # control effort: time-integrated L2 norm of the command
+    for i, run in enumerate(results.runs):
+        t, err = pointing_error_deg(run, bore_unit)
+        u = (np.asarray(run.control_hist, float)
+             if getattr(run, "control_hist", None) is not None
+             else np.zeros((len(t), 0)))
         dt = float(t[1] - t[0]) if len(t) > 1 else 1.0
         eff = float(np.sum(np.linalg.norm(u, axis=1)) * dt) if u.size else 0.0
         out.append({
@@ -102,7 +135,6 @@ def per_trial(results):
             "settling_time_s": M.settling_time(t, err, CONV_THRESH_DEG),
             "control_effort": eff,
             "converged": bool(err[-1] < CONV_THRESH_DEG),
-            # downsampled error curve for the paper figure
             "t_ds": t[::5].tolist(),
             "err_ds": err[::5].tolist(),
         })
@@ -218,9 +250,17 @@ def main():
     print("[P2.4] TVLQR campaign ...")
     tv_res = run_campaign(lambda s: ADCS.controller.Plan_and_Track_LQR(
         est_sat=s, planner_settings=P.make_planner_settings(s)))
+    try:
+        tv_res.save(f"P2.4_tvlqr_{ts}", out_dir=OUT)
+    except Exception as e:
+        print(f"[P2.4] warn: could not save tvlqr .sim: {e!r}")
     print("[P2.4] MPC campaign ...")
     mp_res = run_campaign(lambda s: ADCS.controller.Plan_and_Track_SingleStepMPC(
         est_sat=s, planner_settings=P.make_planner_settings(s)))
+    try:
+        mp_res.save(f"P2.4_mpc_{ts}", out_dir=OUT)
+    except Exception as e:
+        print(f"[P2.4] warn: could not save mpc .sim: {e!r}")
 
     tv = per_trial(tv_res); mp = per_trial(mp_res)
 
