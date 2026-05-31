@@ -408,10 +408,10 @@ class EstimatedSatellite(Satellite):
         +--------------------+------------------------------------+
         """
         ddist_torq__dx = np.zeros((self.state_len,3))
-        ddist_torq__dx[3:7,:] = sum([j.torque_qjac(self,vecs) for j in self.disturbances],np.zeros((4,3)))
+        ddist_torq__dx[3:7,:] = sum([j.torque_qjac(self,x,vecs["os"]) for j in self.disturbances],np.zeros((4,3)))
         ddist_torq__ddmp = np.zeros((0,3))
         if self.dist_param_len>0:
-            ddist_torq__ddmp = np.vstack([self.disturbances[j].torque_valjac(self,vecs) for j in self.dist_param_inds])
+            ddist_torq__ddmp = np.vstack([self.disturbances[j].torque_valjac(self,x,vecs["os"]) for j in self.dist_param_inds])
         return ddist_torq__dx,ddist_torq__ddmp
 
     def dist_torque_hess(self, x: np.ndarray, vecs: Dict[str, np.ndarray]) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -489,14 +489,14 @@ class EstimatedSatellite(Satellite):
         +---------------------------+-----------------------------------------+
         """
         dddist_torq__dxdx = np.zeros((self.state_len,self.state_len,3))
-        dddist_torq__dxdx[3:7,3:7,:] = sum([j.torque_qqhess(self,vecs) for j in self.disturbances],np.zeros((4,4,3)))
+        dddist_torq__dxdx[3:7,3:7,:] = sum([j.torque_qqhess(self,x,vecs["os"]) for j in self.disturbances],np.zeros((4,4,3)))
         dddist_torq__ddmpddmp = np.zeros((self.dist_param_len,self.dist_param_len,3))
         dddist_torq__dxddmp = np.zeros((self.state_len,self.dist_param_len,3))
         ind = 0
         for j in self.dist_param_inds:
             l = self.disturbances[j].main_param.size
-            dddist_torq__ddmpddmp[ind:ind+l,ind:ind+l,:] = self.disturbances[j].torque_valvalhess(self,vecs)
-            dddist_torq__dxddmp[3:7,ind:ind+l,:] = self.disturbances[j].torque_qvalhess(self,vecs)
+            dddist_torq__ddmpddmp[ind:ind+l,ind:ind+l,:] = self.disturbances[j].torque_valvalhess(self,x,vecs["os"])
+            dddist_torq__dxddmp[3:7,ind:ind+l,:] = self.disturbances[j].torque_qvalhess(self,x,vecs["os"])
             ind += l
         return dddist_torq__dxdx,dddist_torq__dxddmp,dddist_torq__ddmpddmp
     
@@ -583,7 +583,7 @@ class EstimatedSatellite(Satellite):
         rho = orbital_state.rho # Atmospheric density [kg/m^3]
 
         w = x[0:3]
-        q = x[4:7]
+        q = x[3:7]   # PR #47's q-slice fix folded into Stage B revival
         RWhs = x[7:]
         # Must match the inertia used in dynamics_core (J_COM, not J_0) so the
         # estimated-model Jacobian remains the correct linearization when COM
@@ -630,8 +630,9 @@ class EstimatedSatellite(Satellite):
             dxdot__dx[7:,0:3] += (dact_torq__dh+np.cross(RWaxes,w))@invJ_noRW
             dxdot__du[:,7:] = block_diag(*[self.actuators[j].dstor_torq__du(u[j],x,orbital_state) for j in range(len(self.actuators))])
             dxdot__du[:,7:] -= dxdot__du[:,0:3]@RWaxes.T@mRWjs
-            dxdot__dx[0:7,7:] = np.hstack([act.dstor_torq__dbasestate(u[j],x,orbital_state) for act in self.actuators])
-            dxdot__dx[7:,7:] = np.diagflat([rw.dstor_torq__dh(u[j],x,orbital_state) for rw in self.rw_actuators])
+            
+            dxdot__dx[0:7,7:] = np.hstack([act.dstor_torq__dbasestate(u[j],x,orbital_state) for j,act in enumerate(self.actuators)])
+            dxdot__dx[7:,7:] = np.diagflat([rw.dstor_torq__dh(u[self.momentum_inds[i]],x,orbital_state) for i,rw in enumerate(self.rw_actuators)])
             dxdot__dx[:,7:] -= dxdot__dx[:,0:3]@RWaxes.T@mRWjs
         dxdot__dab = np.zeros((self.act_bias_len,self.state_len))
         dxdot__dsb = np.zeros((self.att_sens_bias_len,self.state_len))
