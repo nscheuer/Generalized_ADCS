@@ -1,0 +1,26 @@
+% Paper 1 MC validation digest. Testbeds differ across
+% experiments; 1-abar (saturation) is the cross-consistent,
+% gain-robust metric. Absolute conv% on the harsh P1.1/P1.2
+% testbed is relative, not comparable to P2.1.
+\begin{tabular}{l l l l l r r r r r}
+\toprule
+Experiment & Config & Controller & Alloc & Task & n & Conv% & Mean(deg) & P95(deg) & 1-abar \\
+\midrule
+P1.1 alloc & 3+1 & LP-PD & LP & vector & 100 & 15.00% & 47.88 & 103.66 & 0.83 \\
+P1.1 alloc & 3+1 & LP-PD & LP & vector & 100 & 7.00% & 13.28 & 25.10 & 0.87 \\
+P1.1 alloc & 3+3 & LP-PD & LP & vector & 100 & 100.00% & 0.00 & 0.00 & 0.00 \\
+P1.1 alloc & 3+3 & LP-PD & LP & vector & 100 & 28.00% & 28.21 & 64.59 & 0.01 \\
+\addlinespace
+P1.2 same-PD & 3MTQ+0RW & LP-PD & LP & vector & 100 & 1.00% & 90.29 & 153.24 & 1.00 \\
+P1.2 same-PD & 3MTQ+1RW & LP-PD & LP & vector & 100 & 71.00% & 9.61 & 51.84 & 0.22 \\
+P1.2 same-PD & 3MTQ+3RW & LP-PD & LP & vector & 100 & 100.00% & 0.01 & 0.01 & 0.00 \\
+P1.2 same-PD & 3MTQ+0RW & LP-PD & LP & full & 100 & 0.00% & 118.37 & 174.65 & 1.00 \\
+P1.2 same-PD & 3MTQ+1RW & LP-PD & LP & full & 100 & 38.00% & 43.59 & 125.88 & 0.52 \\
+P1.2 same-PD & 3MTQ+3RW & LP-PD & LP & full & 100 & 100.00% & 0.01 & 0.01 & 0.00 \\
+\addlinespace
+P1.3 laws & 3MTQ+1RW & LP-PD & LP & full-attitude & 100 & 40.00% & 47.38 & 131.24 & - \\
+P1.3 laws & 3MTQ+1RW & Wie & LP & full-attitude & 100 & 35.00% & 46.02 & 128.89 & - \\
+P1.3 laws & 3MTQ+1RW & Lovera & LP & full-attitude & 100 & 0.00% & 112.34 & 174.39 & - \\
+P1.3 laws & 3MTQ+1RW & Wisniewski & LP & full-attitude & 100 & 0.00% & 108.06 & 171.31 & - \\
+\bottomrule
+\end{tabular}
