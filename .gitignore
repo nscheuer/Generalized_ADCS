@@ -221,3 +221,4 @@ __marimo__/
 # Documentation .rst files
 docs/source/*.rst
 !docs/source/index.rstpapers/Planner/output_data/P2.4_*.sim
+papers/Planner/output_data/P2.3_*.sim
