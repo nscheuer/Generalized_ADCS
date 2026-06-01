@@ -1,0 +1,99 @@
+{
+  "task": "P2.7_sensitivity",
+  "timestamp": "20260601_104410",
+  "config": "3+1",
+  "n_trials_per_setting": 6,
+  "conv_threshold_deg": 5.0,
+  "baseline": {
+    "params": {
+      "penalty_init": 0.001,
+      "angle": 10.0,
+      "control_mult": 1.0
+    },
+    "conv_pct": 100.0,
+    "mean_final_deg": 0.13868658372417897,
+    "median_final_deg": 0.10469422230609951,
+    "solve_s": 6.48310612491332,
+    "n": 6
+  },
+  "dimensions": {
+    "penalty_init": [
+      {
+        "value": 0.0001,
+        "conv_pct": 100.0,
+        "mean_final_deg": 0.14412985453352517,
+        "median_final_deg": 0.10906747303063327,
+        "solve_s": 7.325934792170301,
+        "n": 6
+      },
+      {
+        "value": 0.001,
+        "conv_pct": 100.0,
+        "mean_final_deg": 0.13868658372417897,
+        "median_final_deg": 0.10469422230609951,
+        "solve_s": 6.48310612491332,
+        "n": 6
+      },
+      {
+        "value": 0.01,
+        "conv_pct": 100.0,
+        "mean_final_deg": 0.1409521923098579,
+        "median_final_deg": 0.1068154763580097,
+        "solve_s": 7.4402104169130325,
+        "n": 6
+      }
+    ],
+    "angle": [
+      {
+        "value": 1.0,
+        "conv_pct": 100.0,
+        "mean_final_deg": 0.10330349471409235,
+        "median_final_deg": 0.015227958749193981,
+        "solve_s": 2.183765833033249,
+        "n": 6
+      },
+      {
+        "value": 10.0,
+        "conv_pct": 100.0,
+        "mean_final_deg": 0.13868658372417897,
+        "median_final_deg": 0.10469422230609951,
+        "solve_s": 6.48310612491332,
+        "n": 6
+      },
+      {
+        "value": 100.0,
+        "conv_pct": 100.0,
+        "mean_final_deg": 0.05580950009813271,
+        "median_final_deg": 0.021599753994618436,
+        "solve_s": 17.530834999866784,
+        "n": 6
+      }
+    ],
+    "control_mult": [
+      {
+        "value": 0.5,
+        "conv_pct": 100.0,
+        "mean_final_deg": 0.0775447183277042,
+        "median_final_deg": 0.058046883157495066,
+        "solve_s": 6.781709625152871,
+        "n": 6
+      },
+      {
+        "value": 1.0,
+        "conv_pct": 100.0,
+        "mean_final_deg": 0.13868658372417897,
+        "median_final_deg": 0.10469422230609951,
+        "solve_s": 6.48310612491332,
+        "n": 6
+      },
+      {
+        "value": 2.0,
+        "conv_pct": 100.0,
+        "mean_final_deg": 0.08476831224476218,
+        "median_final_deg": 0.017701614116764734,
+        "solve_s": 5.538246500073001,
+        "n": 6
+      }
+    ]
+  }
+}
