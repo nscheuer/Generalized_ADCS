@@ -42,6 +42,7 @@ class MTQ_Wie(MTQ_w_RW_LP):
     """
 
     def _feedback_torque(self, q_err: np.ndarray, w_err: np.ndarray,
-                         est_sat: EstimatedSatellite) -> np.ndarray:
+                         est_sat: EstimatedSatellite,
+                         w: np.ndarray = None) -> np.ndarray:
         J = np.asarray(est_sat.J_0, dtype=float)
         return -(J @ (self.p_gain * q_err)) - (J @ (self.d_gain * w_err))

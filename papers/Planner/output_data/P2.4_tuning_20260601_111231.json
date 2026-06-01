@@ -1,0 +1,36 @@
+{
+  "task": "P2.4_tuning",
+  "timestamp": "20260601_111231",
+  "n_trials": 25,
+  "config": "3+1",
+  "variants": {
+    "tvlqr": {
+      "n": 25,
+      "conv_pct": 100.0,
+      "mean_final_deg": 0.22291274673117242,
+      "p95_final_deg": 0.9862660795400595,
+      "mean_effort": 20.633001082271665
+    },
+    "mpc_default": {
+      "n": 25,
+      "conv_pct": 64.0,
+      "mean_final_deg": 8.343372500936995,
+      "p95_final_deg": 41.537563094291286,
+      "mean_effort": 33.0203553132551
+    },
+    "mpc_blendoff": {
+      "n": 25,
+      "conv_pct": 56.00000000000001,
+      "mean_final_deg": 14.330832801824208,
+      "p95_final_deg": 57.65623404154505,
+      "mean_effort": 35.08762336359698
+    },
+    "mpc_blendoff_reg1e-2": {
+      "n": 25,
+      "conv_pct": 36.0,
+      "mean_final_deg": 38.067202143385884,
+      "p95_final_deg": 143.84460162612532,
+      "mean_effort": 34.944324954710076
+    }
+  }
+}

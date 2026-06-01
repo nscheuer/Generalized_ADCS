@@ -1,5 +1,9 @@
-law,task,n,conv_pct,mean_final_deg,median_final_deg,p95_final_deg,mean_settle_s,paired_delta_vs_LPPD_mean_deg
-LP-PD,full-attitude,100,40.000,47.382,39.794,131.239,324.700,0.000
-Wie,full-attitude,100,35.000,46.021,29.908,128.889,459.257,-1.361
-Lovera,full-attitude,100,0.000,112.339,111.269,174.392,nan,64.958
-Wisniewski,full-attitude,100,0.000,108.063,113.804,171.315,nan,60.681
+task,law,n,conv_pct,mean_final_deg,median_final_deg,p95_final_deg,mean_settle_s,paired_delta_vs_LPPD_mean_deg
+vector,LP-PD,100,70.000,8.940,0.971,49.589,329.514,0.000
+vector,Wie,100,53.000,13.512,3.503,54.072,644.226,4.572
+vector,Lovera,100,67.000,11.401,0.063,55.737,264.478,2.461
+vector,Wisniewski,100,67.000,8.637,1.508,49.163,662.507,-0.303
+full,LP-PD,100,47.000,42.038,14.463,119.617,538.936,0.000
+full,Wie,100,44.000,40.346,17.934,123.868,903.273,-1.691
+full,Lovera,100,22.000,62.376,63.626,128.072,605.727,20.338
+full,Wisniewski,100,37.000,37.169,19.646,113.848,557.135,-4.869

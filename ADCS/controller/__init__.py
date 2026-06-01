@@ -12,6 +12,7 @@ from .mtq_w_rw_QPG import MTQ_w_RW_QPG
 from .mtq_w_rw_QPW import MTQ_w_RW_QPW
 from .mtq_wie import MTQ_Wie
 from .mtq_wisniewski import MTQ_Wisniewski
+from .mtq_magnetic_lp import MTQ_Lovera_LP, MTQ_Wisniewski_LP
 from .plan_and_track_base import PlanAndTrackBase
 from .plan_and_track_exact import Plan_and_Track_Exact
 from .plan_and_track_lqr import Plan_and_Track_LQR
@@ -26,6 +27,8 @@ __all__ = [
     "MTQ_Lovera",
     "MTQ_Wie",
     "MTQ_Wisniewski",
+    "MTQ_Lovera_LP",
+    "MTQ_Wisniewski_LP",
     "MTQ_w_RW_LP",
     "MTQ_w_RW_QP",
     "MTQ_w_RW_QPW",

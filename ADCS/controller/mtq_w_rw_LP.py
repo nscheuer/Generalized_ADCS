@@ -342,15 +342,19 @@ class MTQ_w_RW_LP(Controller):
             )
 
     def _feedback_torque(self, q_err: np.ndarray, w_err: np.ndarray,
-                         est_sat: EstimatedSatellite) -> np.ndarray:
+                         est_sat: EstimatedSatellite,
+                         w: np.ndarray = None) -> np.ndarray:
         r"""Attitude feedback control torque (excludes gyroscopic compensation,
         which :meth:`find_u_pointing` adds separately).
 
         Default: linear quaternion PD ``-k_p q_err - k_d w_err``. Subclasses
         override this to inject a different control *law* while inheriting the
         framework's identical LP allocation + torque-free desaturation. This is
-        the hook that lets Paper 1 swap control laws (e.g. Wie) cleanly through
-        one actuator interface.
+        the hook that lets Paper 1 swap control laws (e.g. Wie, or RW-enabled
+        Lovera / Wisniewski) cleanly through one actuator interface.
+
+        :param w: full body angular velocity (some laws, e.g. Wisniewski's
+            sliding mode, need it for the frame term); ``None`` if unused.
         """
         return -self.p_gain * q_err - self.d_gain * w_err
 
@@ -491,7 +495,7 @@ class MTQ_w_RW_LP(Controller):
         boresight = est_sat.get_boresight(goal.boresight_name)
         q_err = goal.error(q=q, body_boresight=boresight, os0=os_hat)
         w_err = w - w_ref_body
-        tau_pd = self._feedback_torque(q_err, w_err, est_sat)
+        tau_pd = self._feedback_torque(q_err, w_err, est_sat, w=w)
 
         # Build A_rw (3 x n_rw) and body wheel momentum vector (3,)
         if n_rw > 0:

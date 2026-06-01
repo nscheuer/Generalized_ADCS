@@ -9,7 +9,11 @@ P1.2 same-PD,3MTQ+3RW,LP-PD,LP,vector,100,100.00%,0.01,0.01,0.00,absolute (rel.)
 P1.2 same-PD,3MTQ+0RW,LP-PD,LP,full,100,0.00%,118.37,174.65,1.00,absolute (rel.); False
 P1.2 same-PD,3MTQ+1RW,LP-PD,LP,full,100,38.00%,43.59,125.88,0.52,absolute (rel.); marginal
 P1.2 same-PD,3MTQ+3RW,LP-PD,LP,full,100,100.00%,0.01,0.01,0.00,absolute (rel.); True
-P1.3 laws,3MTQ+1RW,LP-PD,LP,full-attitude,100,40.00%,47.38,131.24,-,absolute; Δ vs LP-PD 0.00
-P1.3 laws,3MTQ+1RW,Wie,LP,full-attitude,100,35.00%,46.02,128.89,-,absolute; Δ vs LP-PD -1.36
-P1.3 laws,3MTQ+1RW,Lovera,LP,full-attitude,100,0.00%,112.34,174.39,-,absolute; Δ vs LP-PD 64.96
-P1.3 laws,3MTQ+1RW,Wisniewski,LP,full-attitude,100,0.00%,108.06,171.31,-,absolute; Δ vs LP-PD 60.68
+P1.3 laws,3MTQ+1RW,LP-PD,LP,vector,100,70.00%,8.94,49.59,-,absolute; Δ vs LP-PD 0.00
+P1.3 laws,3MTQ+1RW,Wie,LP,vector,100,53.00%,13.51,54.07,-,absolute; Δ vs LP-PD 4.57
+P1.3 laws,3MTQ+1RW,Lovera,LP,vector,100,67.00%,11.40,55.74,-,absolute; Δ vs LP-PD 2.46
+P1.3 laws,3MTQ+1RW,Wisniewski,LP,vector,100,67.00%,8.64,49.16,-,absolute; Δ vs LP-PD -0.30
+P1.3 laws,3MTQ+1RW,LP-PD,LP,full,100,47.00%,42.04,119.62,-,absolute; Δ vs LP-PD 0.00
+P1.3 laws,3MTQ+1RW,Wie,LP,full,100,44.00%,40.35,123.87,-,absolute; Δ vs LP-PD -1.69
+P1.3 laws,3MTQ+1RW,Lovera,LP,full,100,22.00%,62.38,128.07,-,absolute; Δ vs LP-PD 20.34
+P1.3 laws,3MTQ+1RW,Wisniewski,LP,full,100,37.00%,37.17,113.85,-,absolute; Δ vs LP-PD -4.87

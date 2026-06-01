@@ -144,11 +144,15 @@ class Plan_and_Track_SingleStepMPC(Plan_and_Track_LQR):
         planner_settings,
         control_reg: float = 1e-3,
         gain_scale: Optional[float] = None,
+        disable_goal_blend: bool = False,
     ) -> None:
         super().__init__(est_sat, planner_settings)
 
         self.est_sat = est_sat
         self._control_reg = control_reg
+        # When True, find_u skips the goal-directed blend above 30 deg and runs
+        # pure K-gain-weighted trajectory tracking (P2.4 tuning knob).
+        self._disable_goal_blend = disable_goal_blend
 
         # MTQ-only gain scale: auto-detect if no reaction wheels
         if gain_scale is None:
@@ -285,6 +289,9 @@ class Plan_and_Track_SingleStepMPC(Plan_and_Track_LQR):
             (att_err_deg - switch_deg) / (full_goal_deg - switch_deg),
             0.0, 1.0
         )
+        # Pure trajectory-tracking mode: skip the goal-directed blend entirely.
+        if getattr(self, "_disable_goal_blend", False):
+            alpha = 0.0
         H_blend = (1.0 - alpha) * H_traj + alpha * H_goal
         g_blend = (1.0 - alpha) * g_traj + alpha * g_goal
 
