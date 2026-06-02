@@ -37,7 +37,7 @@ import numpy as np
 sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))
 
 from ADCS.controller import (MTQ_w_RW_LP, MTQ_Wie, MTQ_Lovera_LP,
-                             MTQ_Wisniewski_LP)
+                             MTQ_Wisniewski_LP, MTQ_Lovera, MTQ_Wisniewski)
 from ADCS.satellite_hardware.satellite.satellite import Satellite
 from ADCS.helpers import metrics as M
 from ADCS.helpers.math_helpers import normalize
@@ -49,6 +49,9 @@ OUT = "papers/Generalized_ACS/output_data"
 CONFIG = "3MTQ+1RW"
 CONV_DEG = 5.0
 LAWS = ["LP-PD", "Wie", "Lovera", "Wisniewski"]
+# Published magnetic-only baselines (RW commanded to zero); full task only,
+# overlaid for the apples-to-apples "what the RW buys you" comparison (v6).
+FULL_EXTRA = ["Lovera (RW idle)", "Wisniewski (RW idle)"]
 TASKS = ["vector", "full"]
 
 LP_KP, LP_KD, LP_KC = 5e-5, 1e-3, 1e-3            # canonical Paper-1 PD gains
@@ -71,6 +74,10 @@ def make_controller(sat: Satellite, config: Dict[str, Any]):
     if law == "Wisniewski":
         return MTQ_Wisniewski_LP(est_sat=sat, lambda_s=WIS_LS, lambda_q=WIS_LQ,
                                  c_gain=LP_KC)
+    if law == "Lovera (RW idle)":          # published magnetic-only form
+        return MTQ_Lovera(est_sat=sat, p_gain=LOV_KP, d_gain=LOV_KD, eps=LOV_EPS)
+    if law == "Wisniewski (RW idle)":
+        return MTQ_Wisniewski(est_sat=sat, lambda_s=WIS_LS, lambda_q=WIS_LQ)
     raise ValueError(f"unknown law {law!r}")
 
 
@@ -117,12 +124,16 @@ def main():
     import matplotlib.pyplot as plt
 
     fig, axs = plt.subplots(1, 2, figsize=(12, 4.6), sharey=True)
-    colors = {"LP-PD": "C0", "Wie": "C3", "Lovera": "C1", "Wisniewski": "C2"}
+    colors = {"LP-PD": "C0", "Wie": "C3", "Lovera": "C1", "Wisniewski": "C2",
+              # RW-idle baselines: same hue family, dashed (second-color family)
+              "Lovera (RW idle)": "C1", "Wisniewski (RW idle)": "C2"}
+    rw_idle = set(FULL_EXTRA)
     rows: List[Dict[str, Any]] = []
     per_cell: Dict[str, List[float]] = {}
 
     for ax, task in zip(axs, TASKS):
-        for law in LAWS:
+        laws = LAWS + (FULL_EXTRA if task == "full" else [])
+        for law in laws:
             def gen(rid, _law=law, _task=task):
                 c = make_config(rid, CONFIG, tf, dt, seed=rid)
                 c["law"] = _law
@@ -149,10 +160,14 @@ def main():
 
             tg = curves[0][0]
             E = np.vstack([np.interp(tg, t, e) for t, e in curves])
-            ax.plot(tg, np.median(E, axis=0), color=colors[law], lw=1.7, label=law)
-            ax.fill_between(tg, np.percentile(E, 25, axis=0),
-                            np.percentile(E, 75, axis=0),
-                            color=colors[law], alpha=0.10)
+            ls = "--" if law in rw_idle else "-"
+            lw = 1.4 if law in rw_idle else 1.7
+            ax.plot(tg, np.median(E, axis=0), color=colors[law], lw=lw, ls=ls,
+                    label=law)
+            if law not in rw_idle:
+                ax.fill_between(tg, np.percentile(E, 25, axis=0),
+                                np.percentile(E, 75, axis=0),
+                                color=colors[law], alpha=0.10)
 
             rows.append({
                 "task": task, "law": law, "n": int(finals.size),
