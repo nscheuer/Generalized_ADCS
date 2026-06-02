@@ -46,6 +46,14 @@ CONFIG, CONV, SEC2CENT = "3+1", 5.0, TimeConstants.sec2cent
 GOAL_VEC = normalize(np.array([0.3, 0.6, 0.74]))
 J_SCALES = [0.7, 0.85, 1.0, 1.15, 1.3]
 B_SCALES = [0.7, 0.85, 1.0, 1.15, 1.3]
+BROT_ANGLES = [0.0, 15.0, 30.0, 45.0, 60.0]       # field-rotation error [deg]
+
+# kind -> (levels, legend title, nominal level)
+KINDS = {
+    "J":    (J_SCALES,    "est J / true J",       1.0),
+    "B":    (B_SCALES,    "plant B / planned B",  1.0),
+    "Brot": (BROT_ANGLES, "field rotation [deg]", 0.0),
+}
 
 
 def _bore(sat):
@@ -90,7 +98,7 @@ def run_episode(kind, level, tf=1000.0, dt=1.0):
     if kind == "Brot":
         ang = np.radians(level)  # level interpreted as rotation angle [deg]
         Brot = rot_mat(np.concatenate([[np.cos(ang / 2)],
-                                       np.sin(ang / 2) * normalize([1, 1, 0.5])]))
+                                       np.sin(ang / 2) * normalize(np.array([1.0, 1.0, 0.5]))]))
 
     def perturbed_os(os_k):
         if kind == "B":
@@ -128,25 +136,32 @@ def settle(t, err):
 def main():
     ts = os.environ.get("P28_TS", _dt.datetime.now().strftime("%Y%m%d_%H%M%S"))
     tf = float(os.environ.get("P28_TF", 1000.0))
-    print(f"[P2.8] config={CONFIG} tf={tf} ts={ts}")
+    kinds = os.environ.get("P28_KINDS", "J,B,Brot").split(",")
+    titles = {"J": "inertia (J) mismatch", "B": "B-field magnitude mismatch",
+              "Brot": "B-field rotation mismatch"}
+    print(f"[P2.8] config={CONFIG} tf={tf} kinds={kinds} ts={ts}")
 
-    results = {"J": [], "B": []}
-    fig, axs = plt.subplots(1, 2, figsize=(12, 4.6), sharey=True)
+    results = {}
+    fig, axs = plt.subplots(1, len(kinds), figsize=(6 * len(kinds), 4.6),
+                            sharey=True, squeeze=False)
+    axs = axs[0]
 
-    for ax, kind, scales, lbl in ((axs[0], "J", J_SCALES, "est J / true J"),
-                                  (axs[1], "B", B_SCALES, "plant B / planned B")):
-        for s in scales:
+    for ax, kind in zip(axs, kinds):
+        levels, lbl, nominal = KINDS[kind]
+        results[kind] = []
+        for s in levels:
             t, err = run_episode(kind, s, tf=tf)
             rec = {"level": s, "final_deg": float(err[-1]),
                    "settle_s": settle(t, err),
                    "max_after_50pct_deg": float(np.max(err[len(err) // 2:]))}
             results[kind].append(rec)
-            ls = "-" if abs(s - 1.0) < 1e-9 else "--"
-            lw = 2.2 if abs(s - 1.0) < 1e-9 else 1.3
-            ax.plot(t, err, ls, lw=lw, label=f"{s:g}" + (" (nominal)" if s == 1.0 else ""))
-            print(f"  {kind} {s:g}: final {rec['final_deg']:.2f} deg  settle {rec['settle_s']}")
+            is_nom = abs(s - nominal) < 1e-9
+            ax.plot(t, err, "-" if is_nom else "--", lw=2.2 if is_nom else 1.3,
+                    label=f"{s:g}" + (" (nominal)" if is_nom else ""))
+            print(f"  {kind} {s:g}: final {rec['final_deg']:.2f} deg  "
+                  f"settle {rec['settle_s']}  max2nd {rec['max_after_50pct_deg']:.2f}")
         ax.axhline(CONV, c="k", ls=":", lw=0.7)
-        ax.set_yscale("log"); ax.set_xlabel("time [s]"); ax.set_title(f"{kind} mismatch")
+        ax.set_yscale("log"); ax.set_xlabel("time [s]"); ax.set_title(titles[kind])
         ax.legend(title=lbl, fontsize=8); ax.grid(True, which="both", alpha=0.3)
     axs[0].set_ylabel("pointing error [deg]")
     fig.suptitle(f"P2.8: planner robustness to plan-vs-sim mismatch ({CONFIG})")
