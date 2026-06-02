@@ -45,18 +45,26 @@ os.makedirs(OUT, exist_ok=True)
 
 BASE_SEED = 42
 CONV_DEG = 5.0
-# (label, t_start, t_end) active pointing windows
-WINDOWS = [("A", 0.0, 300.0), ("B", 400.0, 700.0), ("C", 800.0, 1000.0)]
-CHANGE_TIMES = [0.0, 300.0, 400.0, 700.0, 800.0]
+# Symmetric window structure: A active | no-goal | B active | no-goal | C active
+# with equal active widths (G) and equal no-goal coast widths (C). Widened from
+# the original 300/100 to 500/200 (v6) so the first slew (goal A) can complete.
+ACTIVE_W = float(os.environ.get("P23_ACTIVE_W", 500.0))
+COAST_W = float(os.environ.get("P23_COAST_W", 200.0))
+_G, _C = ACTIVE_W, COAST_W
+# goal A:[0,G) B:[G+C,2G+C) C:[2G+2C,3G+2C); coasts in between
+WINDOWS = [("A", 0.0, _G), ("B", _G + _C, 2 * _G + _C),
+           ("C", 2 * _G + 2 * _C, 3 * _G + 2 * _C)]
+CHANGE_TIMES = [0.0, _G, _G + _C, 2 * _G + _C, 2 * _G + 2 * _C]
+TF = 3 * _G + 2 * _C
 
 
 def goallist_for(rng):
     A = ADCS.helpers.normalize(rng.standard_normal(3))
     B = ADCS.helpers.normalize(rng.standard_normal(3))
     C = ADCS.helpers.normalize(rng.standard_normal(3))
-    timeline = {0.0: ADCS.goals.ECI_Goal(A), 300.0: ADCS.goals.No_Goal(),
-                400.0: ADCS.goals.ECI_Goal(B), 700.0: ADCS.goals.No_Goal(),
-                800.0: ADCS.goals.ECI_Goal(C)}
+    timeline = {0.0: ADCS.goals.ECI_Goal(A), _G: ADCS.goals.No_Goal(),
+                _G + _C: ADCS.goals.ECI_Goal(B), 2 * _G + _C: ADCS.goals.No_Goal(),
+                2 * _G + 2 * _C: ADCS.goals.ECI_Goal(C)}
     return ADCS.GoalList(goal_timeline=timeline, time_units="seconds",
                          start_juliantime=0.22)
 
@@ -87,11 +95,12 @@ def run_config(config_key):
         goal=lambda rng: goallist_for(rng),
         orbit=P.make_random_os,
     )
+    n = int(os.environ.get("P23_TRIALS", s["num_runs"]))
     return ADCS.simulate_mc(
         x=P.x0(n_rw), satellite=real_sat, controller=ctrl,
         goal=goallist_for(np.random.default_rng(0)),
-        os0=P.default_os0(), dt=s["dt"], tf=1000.0,
-        mc_config=mc, num_runs=s["num_runs"], base_seed=BASE_SEED)
+        os0=P.default_os0(), dt=s["dt"], tf=TF,
+        mc_config=mc, num_runs=n, base_seed=BASE_SEED)
 
 
 def _resolve_boresight(sat):
@@ -194,25 +203,31 @@ def representative_figure(results, config_key, bore, path):
     st = np.asarray(run.state_hist, float)
     h = st[:, 7:7 + n_rw] if n_rw else np.zeros((len(st), 0))
 
-    fig, axs = plt.subplots(2, 1, figsize=(8, 6), sharex=True)
-    axs[0].plot(t, err, lw=1.5, color="C0")
-    axs[0].axhline(CONV_DEG, ls=":", c="k", lw=0.8)
+    fig, ax = plt.subplots(figsize=(8.5, 4.8))
+    ax.plot(t, err, lw=1.5, color="C0")
+    ax.axhline(CONV_DEG, ls=":", c="k", lw=0.8)
     for tc in CHANGE_TIMES[1:]:
-        axs[0].axvline(tc, ls="--", c="gray", lw=0.8)
+        ax.axvline(tc, ls="--", c="gray", lw=0.8)
     for label, t0, t1 in WINDOWS:
-        axs[0].text((t0 + t1) / 2, axs[0].get_ylim()[1] * 0.6, f"goal {label}",
-                    ha="center", fontsize=9, color="C3")
-    axs[0].set_yscale("log"); axs[0].set_ylabel("pointing error [deg]")
-    axs[0].set_title(f"P2.3 multi-goal, {config_key} (trial {best_i})")
-    axs[0].grid(True, which="both", alpha=0.3)
+        ax.axvspan(t0, t1, color="C1", alpha=0.06)
+        ax.text((t0 + t1) / 2, ax.get_ylim()[1] * 0.55, f"goal {label}",
+                ha="center", fontsize=9, color="C3")
+    ax.set_yscale("log"); ax.set_ylabel("pointing error [deg]")
+    ax.set_xlabel("time [s]")
+    ax.set_title(f"P2.3 multi-goal, {config_key} (trial {best_i}, "
+                 f"active={ACTIVE_W:.0f}s coast={COAST_W:.0f}s)")
+    ax.grid(True, which="both", alpha=0.3)
+    # wheel-momentum inset
     if h.size:
+        axin = ax.inset_axes([0.62, 0.58, 0.36, 0.38])
         for j in range(h.shape[1]):
-            axs[1].plot(t, h[:, j], lw=1.2, label=f"RW {j}")
-        axs[1].legend(fontsize=8)
-    for tc in CHANGE_TIMES[1:]:
-        axs[1].axvline(tc, ls="--", c="gray", lw=0.8)
-    axs[1].set_ylabel("RW momentum [Nms]"); axs[1].set_xlabel("time [s]")
-    axs[1].grid(True, alpha=0.3)
+            axin.plot(t, h[:, j], lw=1.0, label=f"RW{j}")
+        for tc in CHANGE_TIMES[1:]:
+            axin.axvline(tc, ls="--", c="gray", lw=0.5)
+        axin.set_title("RW momentum [Nms]", fontsize=7)
+        axin.tick_params(labelsize=6)
+        if h.shape[1] <= 3:
+            axin.legend(fontsize=5, ncol=h.shape[1], loc="upper right")
     fig.tight_layout()
     fig.savefig(path + ".png", dpi=150); fig.savefig(path + ".pdf")
     plt.close(fig)
@@ -222,8 +237,10 @@ def representative_figure(results, config_key, bore, path):
 def main():
     ts = os.environ.get("P23_TS", _dt.datetime.now().strftime("%Y%m%d_%H%M%S"))
     configs = os.environ.get("P23_CONFIGS", "3+1,3+3").split(",")
-    print(f"[P2.3] configs={configs} scale={os.environ.get('PAPER2_SCALE','fast')} ts={ts}")
+    print(f"[P2.3] configs={configs} active={ACTIVE_W:.0f}s coast={COAST_W:.0f}s "
+          f"tf={TF:.0f}s scale={os.environ.get('PAPER2_SCALE','fast')} ts={ts}")
     summary = {}
+    table_rows = []   # (config, goal) cells
     for cfg in configs:
         print(f"[P2.3] config {cfg} ...")
         res = run_config(cfg)
@@ -237,14 +254,46 @@ def main():
                                        os.path.join(OUT, f"fig_multigoal_{tag}"))
         payload = {"task": "P2.3_multigoal", "config": cfg, "timestamp": ts,
                    "n_trials": len(trials), "windows": [w[0] for w in WINDOWS],
+                   "active_w": ACTIVE_W, "coast_w": COAST_W, "tf": TF,
                    "conv_threshold_deg": CONV_DEG, "aggregate": agg,
                    "representative_trial": best_i, "per_trial": trials}
         with open(os.path.join(OUT, f"P2.3_multigoal_{tag}_{ts}.json"), "w") as f:
             json.dump(payload, f, indent=2)
         summary[cfg] = agg
-        print(f"  {cfg}: per-goal conv " +
+        for lbl, _, _ in WINDOWS:
+            a = agg[lbl]
+            table_rows.append({"config": cfg, "goal": lbl, "n": len(trials),
+                               "acquired_pct": a["acquired_pct"],
+                               "held_pct": a["conv_pct"],
+                               "mean_final_deg": a["mean_final_deg"],
+                               "median_final_deg": a["median_final_deg"]})
+        print(f"  {cfg}: per-goal ACQUIRED " +
+              ", ".join(f"{l}={agg[l]['acquired_pct']:.0f}%" for l, _, _ in WINDOWS) +
+              " | held " +
               ", ".join(f"{l}={agg[l]['conv_pct']:.0f}%" for l, _, _ in WINDOWS) +
-              f"  all-goals={agg['all_goals']['conv_pct']:.0f}%")
+              f" | all-goals-held={agg['all_goals']['conv_pct']:.0f}%")
+
+    # tab_multigoal (6 rows: config x goal)
+    cols = ["config", "goal", "n", "acquired_pct", "held_pct",
+            "mean_final_deg", "median_final_deg"]
+    with open(os.path.join(OUT, "tab_multigoal.csv"), "w") as f:
+        f.write(",".join(cols) + "\n")
+        for r in table_rows:
+            f.write(",".join(f"{r[c]:.2f}" if isinstance(r[c], float) else str(r[c])
+                             for c in cols) + "\n")
+    with open(os.path.join(OUT, "tab_multigoal.tex"), "w") as f:
+        f.write("\\begin{tabular}{l l r r r r}\n\\hline\n")
+        f.write("Config & Goal & $n$ & Acquired\\% & Held\\% & Mean final (deg) \\\\\n\\hline\n")
+        last = None
+        for r in table_rows:
+            if last is not None and r["config"] != last:
+                f.write("\\hline\n")
+            last = r["config"]
+            f.write(f"{r['config']} & {r['goal']} & {r['n']} & "
+                    f"{r['acquired_pct']:.0f} & {r['held_pct']:.0f} & "
+                    f"{r['mean_final_deg']:.1f} \\\\\n")
+        f.write("\\hline\n\\end{tabular}\n")
+    print(f"[P2.3] wrote tab_multigoal.{{tex,csv}}")
     print("[P2.3] done:", json.dumps(summary, indent=2))
     return summary
 
