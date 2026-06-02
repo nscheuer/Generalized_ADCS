@@ -1,0 +1,42 @@
+{
+  "source_sim": "papers/Planner/output/mc100_altro_3+0_full_20260204_162440.sim",
+  "n_trials": 100,
+  "conv_pct_full": 18.0,
+  "n_nonconverging": 82,
+  "nonconv_median_full_final_deg": 18.29499682312139,
+  "nonconv_median_bore_final_deg": 11.331895852010291,
+  "nonconv_bore_settled_pct": 14.634146341463413,
+  "nonconv_w_init_med_degs": 0.03662891243499011,
+  "nonconv_w_final_med_degs": 0.07761802940279226,
+  "median_pick": {
+    "rid": 20,
+    "max_env": 138.6567365869943,
+    "full_final": 13.667776319698572,
+    "bore_final": 11.243895518653797,
+    "w_init": 0.04482210867217247,
+    "w_final": 0.07938159850937428
+  },
+  "worst_final_pick": {
+    "rid": 99,
+    "max_env": 173.7073499007697,
+    "full_final": 96.86818646885065,
+    "bore_final": 78.9402357358147,
+    "w_init": 0.03953257759046823,
+    "w_final": 0.1542408682455517
+  },
+  "highest_peak_pick": {
+    "rid": 70,
+    "max_env": 179.7227758530843,
+    "full_final": 11.644452081224546,
+    "bore_final": 6.883098429928839,
+    "w_init": 0.010645803292840173,
+    "w_peak": 1.074577969364315,
+    "w_final": 0.1135032416805159
+  },
+  "final_dist": {
+    "lt5": 18.0,
+    "lt30": 87.0,
+    "lt90": 99.0,
+    "max": 96.86818646885065
+  }
+}
