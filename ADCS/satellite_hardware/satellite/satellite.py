@@ -1394,6 +1394,13 @@ class Satellite:
         :return: Concatenated measurement vector.
         :rtype: numpy.ndarray
         """
+        # Sync stored wheel momentum from the supplied state so the momentum
+        # measurement reflects x. measure_momentum() reads each RW's internal
+        # self.h, which the ODE integrator never writes back (it advances x
+        # only), so without this the wheel-momentum reading is stale (stuck at
+        # the initial value) regardless of the state passed in.
+        if len(self.momentum_inds) and np.size(x) >= self.state_len:
+            self.update_RWhs(x)
         sensor_readings: List[np.ndarray] = [np.atleast_1d(self.attitude_sensors[j].reading(x=x, os=os, dmode=dmode)) for j in range(len(self.attitude_sensors))]
         rw_readings: List[np.ndarray] = [np.atleast_1d(self.rw_actuators[j].measure_momentum()) for j in range(len(self.rw_actuators))]
         combined_readings = sensor_readings + rw_readings
