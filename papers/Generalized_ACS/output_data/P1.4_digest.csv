@@ -1,8 +1,12 @@
 Experiment,Config,Controller,Alloc,Task,n,Conv%,Mean(deg),P95(deg),1-abar,Basis
-P1.1 alloc,3+1,LP-PD,LP,vector,100,15.00%,47.88,103.66,0.83,"absolute (harsh testbed; cite paired Δ, 1-ᾱ)"
-P1.1 alloc,3+1,LP-PD,LP,vector,100,7.00%,13.28,25.10,0.87,"absolute (harsh testbed; cite paired Δ, 1-ᾱ)"
-P1.1 alloc,3+3,LP-PD,LP,vector,100,100.00%,0.00,0.00,0.00,"absolute (harsh testbed; cite paired Δ, 1-ᾱ)"
-P1.1 alloc,3+3,LP-PD,LP,vector,100,28.00%,28.21,64.59,0.01,"absolute (harsh testbed; cite paired Δ, 1-ᾱ)"
+P1.1 alloc,3+1 (h0),LP1,1-stage LP,vector,100,15.00%,47.88,103.66,0.83,absolute (harsh testbed); paired w/ LP2 below
+P1.1 alloc,3+1 (h0),LP2,2-stage LP,vector,100,11.00%,55.81,113.41,0.86,paired Δ(LP1-LP2) mean -7.93 deg
+P1.1 alloc,3+1 (h.9),LP1,1-stage LP,vector,100,7.00%,13.28,25.10,0.87,absolute (harsh testbed); paired w/ LP2 below
+P1.1 alloc,3+1 (h.9),LP2,2-stage LP,vector,100,6.00%,16.57,29.64,0.87,paired Δ(LP1-LP2) mean -3.29 deg
+P1.1 alloc,3+3 (h0),LP1,1-stage LP,vector,100,100.00%,0.00,0.00,0.00,absolute (harsh testbed); paired w/ LP2 below
+P1.1 alloc,3+3 (h0),LP2,2-stage LP,vector,100,100.00%,0.00,0.00,0.02,paired Δ(LP1-LP2) mean +0.00 deg
+P1.1 alloc,3+3 (h.9),LP1,1-stage LP,vector,100,28.00%,28.21,64.59,0.01,absolute (harsh testbed); paired w/ LP2 below
+P1.1 alloc,3+3 (h.9),LP2,2-stage LP,vector,100,28.00%,32.84,73.49,0.01,paired Δ(LP1-LP2) mean -4.64 deg
 P1.2 same-PD,3MTQ+0RW,LP-PD,LP,vector,100,1.00%,90.29,153.24,1.00,absolute (rel.); True
 P1.2 same-PD,3MTQ+1RW,LP-PD,LP,vector,100,71.00%,9.61,51.84,0.22,absolute (rel.); True
 P1.2 same-PD,3MTQ+3RW,LP-PD,LP,vector,100,100.00%,0.01,0.01,0.00,absolute (rel.); True

@@ -6,10 +6,14 @@
 \toprule
 Experiment & Config & Controller & Alloc & Task & n & Conv% & Mean(deg) & P95(deg) & 1-abar \\
 \midrule
-P1.1 alloc & 3+1 & LP-PD & LP & vector & 100 & 15.00% & 47.88 & 103.66 & 0.83 \\
-P1.1 alloc & 3+1 & LP-PD & LP & vector & 100 & 7.00% & 13.28 & 25.10 & 0.87 \\
-P1.1 alloc & 3+3 & LP-PD & LP & vector & 100 & 100.00% & 0.00 & 0.00 & 0.00 \\
-P1.1 alloc & 3+3 & LP-PD & LP & vector & 100 & 28.00% & 28.21 & 64.59 & 0.01 \\
+P1.1 alloc & 3+1 (h0) & LP1 & 1-stage LP & vector & 100 & 15.00% & 47.88 & 103.66 & 0.83 \\
+P1.1 alloc & 3+1 (h0) & LP2 & 2-stage LP & vector & 100 & 11.00% & 55.81 & 113.41 & 0.86 \\
+P1.1 alloc & 3+1 (h.9) & LP1 & 1-stage LP & vector & 100 & 7.00% & 13.28 & 25.10 & 0.87 \\
+P1.1 alloc & 3+1 (h.9) & LP2 & 2-stage LP & vector & 100 & 6.00% & 16.57 & 29.64 & 0.87 \\
+P1.1 alloc & 3+3 (h0) & LP1 & 1-stage LP & vector & 100 & 100.00% & 0.00 & 0.00 & 0.00 \\
+P1.1 alloc & 3+3 (h0) & LP2 & 2-stage LP & vector & 100 & 100.00% & 0.00 & 0.00 & 0.02 \\
+P1.1 alloc & 3+3 (h.9) & LP1 & 1-stage LP & vector & 100 & 28.00% & 28.21 & 64.59 & 0.01 \\
+P1.1 alloc & 3+3 (h.9) & LP2 & 2-stage LP & vector & 100 & 28.00% & 32.84 & 73.49 & 0.01 \\
 \addlinespace
 P1.2 same-PD & 3MTQ+0RW & LP-PD & LP & vector & 100 & 1.00% & 90.29 & 153.24 & 1.00 \\
 P1.2 same-PD & 3MTQ+1RW & LP-PD & LP & vector & 100 & 71.00% & 9.61 & 51.84 & 0.22 \\

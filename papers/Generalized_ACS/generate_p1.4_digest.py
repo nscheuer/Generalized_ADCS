@@ -37,17 +37,34 @@ def f(x, d="-"):
 def main():
     rows = []
 
-    # --- P1.1 LP1 vs LP2 (allocation): LP rows, representative h levels ---
+    # --- P1.1 LP1 vs LP2 (allocation), paired & clustered per config/h ---
+    # 'LP' in the source is the single-stage allocator (LP1); 'LP2' is the
+    # two-stage allocator. Emit them as adjacent LP1/LP2 rows at representative
+    # h levels so the paired LP1-vs-LP2 delta and 1-abar are read off directly.
     lp = read_csv("tab_lp1_vs_lp2.csv")
-    for r in lp:
-        if r["allocator"] == "LP" and r["h_frac_of_hmax"] in ("0.0000", "0.9000"):
+    by = {(r["config"], r["h_frac_of_hmax"], r["allocator"]): r for r in lp}
+    for cfg in ("3+1", "3+3"):
+        for h in ("0.0000", "0.9000"):
+            r1, r2 = by.get((cfg, h, "LP")), by.get((cfg, h, "LP2"))
+            if r1 is None or r2 is None:
+                continue
+            d = float(r1["mean_err_deg"]) - float(r2["mean_err_deg"])  # LP1 - LP2
+            hlab = "h0" if h == "0.0000" else "h.9"
             rows.append({
-                "exp": "P1.1 alloc", "config": r["config"],
-                "controller": "LP-PD", "alloc": "LP", "task": "vector",
-                "n": "100", "conv": f(r["conv_pct"]) + "%",
-                "mean": f(r["mean_err_deg"]), "p95": f(r["p95_err_deg"]),
-                "sat": f(r["gyro_shortfall_proxy"]),
-                "basis": "absolute (harsh testbed; cite paired Δ, 1-ᾱ)",
+                "exp": "P1.1 alloc", "config": f"{cfg} ({hlab})",
+                "controller": "LP1", "alloc": "1-stage LP", "task": "vector",
+                "n": "100", "conv": f(r1["conv_pct"]) + "%",
+                "mean": f(r1["mean_err_deg"]), "p95": f(r1["p95_err_deg"]),
+                "sat": f(r1["gyro_shortfall_proxy"]),
+                "basis": "absolute (harsh testbed); paired w/ LP2 below",
+            })
+            rows.append({
+                "exp": "P1.1 alloc", "config": f"{cfg} ({hlab})",
+                "controller": "LP2", "alloc": "2-stage LP", "task": "vector",
+                "n": "100", "conv": f(r2["conv_pct"]) + "%",
+                "mean": f(r2["mean_err_deg"]), "p95": f(r2["p95_err_deg"]),
+                "sat": f(r2["gyro_shortfall_proxy"]),
+                "basis": f"paired Δ(LP1-LP2) mean {d:+.2f} deg",
             })
 
     # --- P1.2 same PD across configs ---
