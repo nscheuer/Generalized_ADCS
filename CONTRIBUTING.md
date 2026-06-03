@@ -38,7 +38,7 @@ Before contributing, follow the installation instructions to ensure a compatible
 
 - [Installation Guide](https://nscheuer.github.io/Generalized_ADCS/installation/index.html)
 
-## ✅ Testing & Documentation
+## Testing & Documentation
 
 For new features or significant changes, please ensure that:
 
