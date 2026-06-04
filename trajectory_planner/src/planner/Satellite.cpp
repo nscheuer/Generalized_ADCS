@@ -1631,6 +1631,24 @@ vec3 Satellite::dist_torque(vec x, DYNAMICS_INFO_FORM dynamics_info) const{
   vec3 variable_dist_torq = prop_torq_on*prop_torq*plan_for_prop+gen_dist_torq*plan_for_gendist;
   vec3 dist_torq = gg_torq + variable_dist_torq;
 
+  // Opt-in diagnostic (set TP_DIST_DBG=1): confirms the planned disturbance
+  // actually reaches the optimizer's satellite. Used to find the cached-csat
+  // no-op bug (plan_for_gendist/prop set on planner_settings after the C++
+  // Planner copied the satellite -> the optimizer saw zero disturbance). The
+  // getenv is cached so normal runs pay nothing.
+  static const bool tp_dist_dbg = (std::getenv("TP_DIST_DBG") != nullptr);
+  if(tp_dist_dbg){
+    static int dbg_count = 0;
+    if(dbg_count < 12){
+      std::cerr<<"[DIST_DBG] dist_on="<<dist_on
+               <<" plan_for_gendist="<<plan_for_gendist<<" |gen_dist_torq|="<<arma::norm(gen_dist_torq)
+               <<" plan_for_prop="<<plan_for_prop<<" prop_torq_on="<<prop_torq_on<<" |prop_torq|="<<arma::norm(prop_torq)
+               <<" |gg|="<<arma::norm(gg_torq)<<" |var_dist|="<<arma::norm(variable_dist_torq)
+               <<" -> |returned|="<<arma::norm(dist_torq*dist_on)<<"\n";
+      dbg_count++;
+    }
+  }
+
   vec3 magvec = res_dipole*plan_for_resdipole;
 
   dist_torq += cross(magvec,RmatT*Bk);

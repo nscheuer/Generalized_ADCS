@@ -165,10 +165,70 @@ class PlanAndTrackBase(Controller):
         )
         self.planner.setquaternionTo3VecMode(quat_to_3vec_mode)
 
+        # Remember how the planner model was built so it can be rebuilt when the
+        # planner settings change. The C++ Planner COPIES the satellite at
+        # construction, so any disturbance set on planner_settings AFTER init (e.g.
+        # a leak estimate fed in at a replan) would otherwise never reach the
+        # optimizer -- it would keep planning as if undisturbed (u_ref does not
+        # counter the leak). See _refresh_planner_if_dirty().
+        self._tracking_lqr_formulation = tracking_lqr_formulation
+        self._quat_to_3vec_mode = quat_to_3vec_mode
+        self._dist_signature = self._disturbance_signature()
+
         self.active_trajectory = None
 
         self.state_dim = est_sat.state_len
         self.ctrl_dim = est_sat.control_len
+
+    def _disturbance_signature(self):
+        r"""Hashable snapshot of every planner-disturbance field read by
+        :func:`build_cpp_satellite`. Used to detect when the C++ planner model is
+        stale and must be rebuilt (the optimizer copies the satellite, so changing
+        ``planner_settings`` after construction is otherwise a silent no-op)."""
+        ps = self.planner_settings
+
+        def _b(a):
+            return np.asarray(a, dtype=float).tobytes() if a is not None else b""
+
+        return (
+            int(getattr(ps, "plan_for_gg", 0)),
+            int(getattr(ps, "plan_for_aero", 0)),
+            int(getattr(ps, "plan_for_srp", 0)),
+            int(getattr(ps, "plan_for_resdipole", 0)),
+            int(getattr(ps, "plan_for_prop", 0)),
+            int(getattr(ps, "plan_for_gendist", 0)),
+            _b(getattr(ps, "drag_coeff", None)),
+            _b(getattr(ps, "srp_coeff", None)),
+            _b(getattr(ps, "coeff_N", None)),
+            _b(getattr(ps, "res_dipole", None)),
+            _b(getattr(ps, "prop_torque", None)),
+            _b(getattr(ps, "gendist_torq", None)),
+        )
+
+    def _refresh_planner_if_dirty(self) -> None:
+        r"""Rebuild the C++ satellite and Planner from the current
+        ``planner_settings`` if any disturbance field has changed since the model
+        was last built. This makes a disturbance fed in at a replan (e.g. an
+        estimated cold-gas leak) actually enter the trajectory optimization, so
+        the planned controls feed-forward against it instead of leaving the leak
+        for the proportional TVLQR feedback (which can only hold a constant offset)."""
+        sig = self._disturbance_signature()
+        if sig == self._dist_signature:
+            return
+        tplaunch, _ = get_trajectory_planner_modules()
+        self.csat = build_cpp_satellite(est_sat=self.est_sat, planner_settings=self.planner_settings)
+        self.planner = tplaunch.Planner(
+            self.csat,
+            self.planner_settings.systemSettings(),
+            self.planner_settings.mainAlilqrSettings(),
+            self.planner_settings.secondAlilqrSettings(),
+            self.planner_settings.initTrajSettings(),
+            self.planner_settings.optMainCostSettings(),
+            self.planner_settings.optSecondCostSettings(),
+            self.planner_settings.optTVLQRCostSettings(tracking_LQR_formulation=self._tracking_lqr_formulation),
+        )
+        self.planner.setquaternionTo3VecMode(self._quat_to_3vec_mode)
+        self._dist_signature = sig
 
     def set_active_trajectory(self, traj: Trajectory) -> None:
         r"""
@@ -475,6 +535,11 @@ class PlanAndTrackBase(Controller):
         :rtype: tuple[numpy.typing.NDArray[numpy.float64], numpy.typing.NDArray[numpy.float64], numpy.typing.NDArray[numpy.float64], numpy.typing.NDArray[numpy.float64], numpy.typing.NDArray[numpy.float64]]
 
         """
+        # Rebuild the C++ planner model if the disturbance settings changed since it
+        # was built (the optimizer copies the satellite at construction, so an
+        # in-place update to planner_settings would otherwise be ignored).
+        self._refresh_planner_if_dirty()
+
         if verbose:
             print(f"Planning traj: Start={t_start:.5f}, Dur={duration}s")
 
