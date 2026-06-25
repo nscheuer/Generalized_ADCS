@@ -57,6 +57,7 @@ class Constellation:
         density_model: Optional[DensityModel] = None,
         zonal_order: int = 2,
         lunisolar: bool = False,
+        aero: bool = False,
         world: Optional[FormationWorld] = None,
         verbose: bool = True,
     ) -> None:
@@ -71,6 +72,7 @@ class Constellation:
         self.tf = float(tf)
         self.zonal_order = int(zonal_order)
         self.lunisolar = bool(lunisolar)
+        self.aero = bool(aero)
         self.verbose = bool(verbose)
 
         # Assign default ids where missing (used as run ids in the results).
@@ -95,12 +97,14 @@ class Constellation:
             return None
         return EarthConstants.Jcoeffs[1:self.zonal_order - 1]
 
-    def _orbit_rk4_step(self, R_arr, V_arr, dt, higher_zonals, third_bodies):
+    def _orbit_rk4_step(self, R_arr, V_arr, dt, higher_zonals, third_bodies, external_accels=None):
         r"""
         Advance every satellite's (R, V) by one RK4 gravity step (NumPy only).
 
         Uses :meth:`Orbital_State._orbit_dynamics_raw` per satellite; third bodies
-        (Sun/Moon) are held fixed across the step. No Skyfield/ppigrf here.
+        (Sun/Moon) and the optional per-satellite ``external_accels`` (e.g. the
+        attitude-dependent aero drag+lift acceleration) are held fixed across the
+        step (operator-split coupling). No Skyfield/ppigrf here.
         """
         mu = EarthConstants.mu_e
         Re = EarthConstants.R_e
@@ -112,10 +116,11 @@ class Constellation:
         for i in range(n):
             r0 = R_arr[i]
             v0 = V_arr[i]
-            k1r, k1v = dyn(r0, v0, mu, Re, J2, True, higher_zonals, third_bodies)
-            k2r, k2v = dyn(r0 + 0.5 * dt * k1r, v0 + 0.5 * dt * k1v, mu, Re, J2, True, higher_zonals, third_bodies)
-            k3r, k3v = dyn(r0 + 0.5 * dt * k2r, v0 + 0.5 * dt * k2v, mu, Re, J2, True, higher_zonals, third_bodies)
-            k4r, k4v = dyn(r0 + dt * k3r, v0 + dt * k3v, mu, Re, J2, True, higher_zonals, third_bodies)
+            ext = None if external_accels is None else external_accels[i]
+            k1r, k1v = dyn(r0, v0, mu, Re, J2, True, higher_zonals, third_bodies, ext)
+            k2r, k2v = dyn(r0 + 0.5 * dt * k1r, v0 + 0.5 * dt * k1v, mu, Re, J2, True, higher_zonals, third_bodies, ext)
+            k3r, k3v = dyn(r0 + 0.5 * dt * k2r, v0 + 0.5 * dt * k2v, mu, Re, J2, True, higher_zonals, third_bodies, ext)
+            k4r, k4v = dyn(r0 + dt * k3r, v0 + dt * k3v, mu, Re, J2, True, higher_zonals, third_bodies, ext)
             outR[i] = r0 + (dt / 6.0) * (k1r + 2.0 * k2r + 2.0 * k3r + k4r)
             outV[i] = v0 + (dt / 6.0) * (k1v + 2.0 * k2v + 2.0 * k3v + k4v)
         return outR, outV
@@ -151,9 +156,14 @@ class Constellation:
             t_k = self.start_time + k * dt * sec2cent
             t_kp1 = self.start_time + (k + 1) * dt * sec2cent
 
-            # 1) advance orbits to the next epoch (gravity model)
+            # 1) advance orbits to the next epoch (gravity [+ optional aero])
             third_bodies = self._third_bodies(os_cur)
-            R_next, V_next = self._orbit_rk4_step(R_arr, V_arr, dt, higher_zonals, third_bodies)
+            external_accels = None
+            if self.aero:
+                # Attitude-dependent aero drag+lift from each satellite's current
+                # attitude, held fixed across the step (operator-split coupling).
+                external_accels = [ag.aero_accel_eci(os_cur[i]) for i, ag in enumerate(self.agents)]
+            R_next, V_next = self._orbit_rk4_step(R_arr, V_arr, dt, higher_zonals, third_bodies, external_accels)
             # 2) batched environment at the next epoch
             os_next = Orbital_State.batch_at_epoch(R_next, V_next, t_kp1, self.ephem, self.density_model)
 
