@@ -29,15 +29,46 @@ class _PhysicalConstants:
 class _EarthConstants:
     r"""
     Standard geophysical constants for Earth.
+
+    The zonal harmonic coefficients ``J2coeff`` .. ``J6coeff`` are the
+    *unnormalized* zonal coefficients :math:`J_n` defined through the geopotential
+
+    .. math::
+
+        U = \frac{\mu}{r}\left[1 - \sum_{n\ge 2} J_n
+            \left(\frac{R_e}{r}\right)^n P_n(\sin\phi)\right],
+
+    where :math:`\phi` is geocentric latitude and :math:`P_n` is the Legendre
+    polynomial of degree ``n``. Values are the standard EGM96-derived constants
+    (sign convention: :math:`J_2,J_6>0`, :math:`J_3,J_4,J_5<0`). They are
+    collected in :attr:`Jcoeffs` (degrees 2..6) for the orbit propagator.
     """
     R_e: float = 6378.1363            # km
     R_moon: float = 1737.4            # km
     mu_e: float = 398600.4415         # km^3/s^2
     J2coeff: float = 1.082635854e-3
+    J3coeff: float = -2.53265649e-6
+    J4coeff: float = -1.61962159e-6
+    J5coeff: float = -2.27296083e-7
+    J6coeff: float = 5.40681239e-7
     J2: float = J2coeff * R_e**2 * mu_e  # km^5/s^2
     m_earth: float = 5.9736e24        # kg
     solar_constant: float = 1361.0    # W/m^2
     c: float = 299792458.0            # m/s
+
+    @property
+    def Jcoeffs(self) -> np.ndarray:
+        r"""
+        Unnormalized zonal harmonic coefficients for degrees 2 through 6.
+
+        :return:
+            Array ``[J2, J3, J4, J5, J6]``.
+        :rtype: numpy.ndarray
+        """
+        return np.array(
+            [self.J2coeff, self.J3coeff, self.J4coeff, self.J5coeff, self.J6coeff],
+            dtype=float,
+        )
 
 
 @dataclass(frozen=True)
