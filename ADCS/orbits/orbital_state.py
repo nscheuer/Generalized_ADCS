@@ -618,6 +618,7 @@ class Orbital_State:
         J2_perturbation_on: bool = True,
         higher_zonals: np.ndarray = None,
         third_bodies=None,
+        external_accel=None,
     ) -> Tuple[np.ndarray, np.ndarray]:
         r"""
         Compute raw orbital dynamics.
@@ -659,6 +660,13 @@ class Orbital_State:
             default) applies no third-body acceleration.
         :type third_bodies: iterable[tuple[float, numpy.ndarray]] or None
 
+        :param external_accel:
+            Optional extra ECI acceleration [km/s^2] added to ``v_dot`` (e.g. an
+            attitude-dependent aerodynamic drag+lift acceleration supplied by the
+            caller and held fixed across an integration step). ``None`` adds
+            nothing and leaves the gravity-only dynamics bit-identical.
+        :type external_accel: numpy.ndarray or None
+
         :return:
             Tuple of position and velocity derivatives.
         :rtype: tuple[numpy.ndarray, numpy.ndarray]
@@ -686,6 +694,9 @@ class Orbital_State:
 
         if third_bodies is not None and len(third_bodies) > 0:
             v_dot = v_dot + _third_body_accel(R, third_bodies)
+
+        if external_accel is not None:
+            v_dot = v_dot + np.asarray(external_accel, dtype=float).reshape(3)
 
         r_dot = V
         return r_dot, v_dot
@@ -896,7 +907,7 @@ class Orbital_State:
 
         return Orbital_State(self.ephem, j2000, r_out, v_out, S=None, B=None, rho=None, density_model=self.density_model, fast=False)
 
-    def propagate_orbit_rk4(self, dt: float, J2_perturbation_on: bool = True, fast: bool = True, zonal_order: int = 2, lunisolar: bool = False):
+    def propagate_orbit_rk4(self, dt: float, J2_perturbation_on: bool = True, fast: bool = True, zonal_order: int = 2, lunisolar: bool = False, external_accel=None):
         r"""
         Propagate the orbital state using fourth-order Runge–Kutta integration.
 
@@ -922,6 +933,11 @@ class Orbital_State:
             Moon positions are held fixed across the RK4 sub-steps.
         :type lunisolar: bool
 
+        :param external_accel:
+            Optional extra ECI acceleration [km/s^2] (e.g. aerodynamic drag+lift)
+            held fixed across the RK4 sub-steps (operator-split coupling).
+        :type external_accel: numpy.ndarray or None
+
         :return:
             Propagated orbital state.
         :rtype: Orbital_State
@@ -935,10 +951,10 @@ class Orbital_State:
         r0 = self.R
         v0 = self.V
 
-        k1a, k1b = self._orbit_dynamics_raw(r0, v0, self.mu_e, self.R_e, self.J2coeff, J2_perturbation_on, higher_zonals=higher_zonals, third_bodies=third_bodies)
-        k2a, k2b = self._orbit_dynamics_raw(r0 + 0.5 * dt * k1a, v0 + 0.5 * dt * k1b, self.mu_e, self.R_e, self.J2coeff, J2_perturbation_on, higher_zonals=higher_zonals, third_bodies=third_bodies)
-        k3a, k3b = self._orbit_dynamics_raw(r0 + 0.5 * dt * k2a, v0 + 0.5 * dt * k2b, self.mu_e, self.R_e, self.J2coeff, J2_perturbation_on, higher_zonals=higher_zonals, third_bodies=third_bodies)
-        k4a, k4b = self._orbit_dynamics_raw(r0 + dt * k3a, v0 + dt * k3b, self.mu_e, self.R_e, self.J2coeff, J2_perturbation_on, higher_zonals=higher_zonals, third_bodies=third_bodies)
+        k1a, k1b = self._orbit_dynamics_raw(r0, v0, self.mu_e, self.R_e, self.J2coeff, J2_perturbation_on, higher_zonals=higher_zonals, third_bodies=third_bodies, external_accel=external_accel)
+        k2a, k2b = self._orbit_dynamics_raw(r0 + 0.5 * dt * k1a, v0 + 0.5 * dt * k1b, self.mu_e, self.R_e, self.J2coeff, J2_perturbation_on, higher_zonals=higher_zonals, third_bodies=third_bodies, external_accel=external_accel)
+        k3a, k3b = self._orbit_dynamics_raw(r0 + 0.5 * dt * k2a, v0 + 0.5 * dt * k2b, self.mu_e, self.R_e, self.J2coeff, J2_perturbation_on, higher_zonals=higher_zonals, third_bodies=third_bodies, external_accel=external_accel)
+        k4a, k4b = self._orbit_dynamics_raw(r0 + dt * k3a, v0 + dt * k3b, self.mu_e, self.R_e, self.J2coeff, J2_perturbation_on, higher_zonals=higher_zonals, third_bodies=third_bodies, external_accel=external_accel)
 
         r_out = r0 + (dt / 6.0) * (k1a + 2.0 * k2a + 2.0 * k3a + k4a)
         v_out = v0 + (dt / 6.0) * (k1b + 2.0 * k2b + 2.0 * k3b + k4b)

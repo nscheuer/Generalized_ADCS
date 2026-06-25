@@ -5,10 +5,13 @@ import numpy as np
 from typing import Optional
 from scipy.integrate import solve_ivp
 
-from ADCS.helpers.math_helpers import normalize
+from ADCS.helpers.math_helpers import normalize, rot_mat
 from ADCS.helpers.simresults import RunResults
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.universal_constants import TimeConstants
+
+# Earth sidereal rotation rate [rad/s] for the co-rotating atmosphere model.
+_OMEGA_EARTH = np.array([0.0, 0.0, 7.2921159e-5])
 
 
 class SatelliteAgent:
@@ -52,6 +55,7 @@ class SatelliteAgent:
         orbit_estimator=None,
         goal_list=None,
         sat_id: Optional[object] = None,
+        aero_model=None,
     ) -> None:
         self.satellite = satellite
         self.est_satellite = est_satellite
@@ -60,6 +64,10 @@ class SatelliteAgent:
         self.orbit_estimator = orbit_estimator
         self.goal_list = goal_list
         self.sat_id = sat_id
+        # Optional attitude-dependent orbital aero model (drag + lift). When set
+        # and the orchestrator has aero enabled, aero_accel_eci() supplies the
+        # extra ECI acceleration for the in-loop orbit step.
+        self.aero_model = aero_model
 
         self.x = np.asarray(x, dtype=float).copy()
         self.u = np.zeros(satellite.control_len)
@@ -72,6 +80,30 @@ class SatelliteAgent:
         self._skip_jac = (estimator is None)
 
         self.results = RunResults(satellite=satellite, est_satellite=est_satellite)
+
+    def aero_accel_eci(self, os: Orbital_State):
+        r"""
+        ECI aerodynamic (drag + lift) acceleration [km/s^2] at the current attitude.
+
+        Uses the satellite's :class:`~ADCS.satellite_hardware.aero.AeroModel`, the
+        current attitude quaternion (``self.x[3:7]``), and the orbital state's
+        density. The relative wind accounts for a co-rotating atmosphere
+        (:math:`\mathbf{V}_{rel} = \mathbf{V} - \boldsymbol{\omega}_\oplus \times
+        \mathbf{R}`). Returns ``None`` when no aero model is attached.
+
+        :param os: Current orbital state (provides ECI ``R``, ``V`` and ``rho``).
+        :return: ECI acceleration [km/s^2], shape ``(3,)``, or ``None``.
+        """
+        if self.aero_model is None:
+            return None
+        q = self.x[3:7]
+        R_b2i = rot_mat(q)                                   # body -> ECI
+        V_rel_eci = np.asarray(os.V, dtype=float) - np.cross(_OMEGA_EARTH, np.asarray(os.R, dtype=float))
+        V_rel_body = R_b2i.T @ V_rel_eci                     # km/s, body frame
+        F_body = self.aero_model.force_body(V_rel_body * 1000.0, float(os.rho))  # N
+        a_body = F_body / float(self.satellite.mass)         # m/s^2
+        a_eci = R_b2i @ a_body                               # m/s^2 ECI
+        return a_eci / 1000.0                                # km/s^2
 
     def step(self, k: int, J2000_k: float, os_k: Orbital_State, os_kp1: Orbital_State) -> np.ndarray:
         r"""
