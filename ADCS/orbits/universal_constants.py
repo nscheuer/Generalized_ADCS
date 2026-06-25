@@ -72,6 +72,16 @@ class _EarthConstants:
 
 
 @dataclass(frozen=True)
+class _ThirdBodyConstants:
+    r"""
+    Gravitational parameters of the third bodies used for lunisolar
+    (Sun and Moon) perturbations of Earth-orbiting spacecraft.
+    """
+    mu_sun: float = 1.32712440018e11   # km^3/s^2 (IAU/DE-consistent)
+    mu_moon: float = 4902.800066       # km^3/s^2
+
+
+@dataclass(frozen=True)
 class _TimeConstants:
     r"""
     Time conversion factors and numerical tolerances.
@@ -126,6 +136,7 @@ class _CG5Coefficients:
 
 PhysicalConstants = _PhysicalConstants()
 EarthConstants = _EarthConstants()
+ThirdBodyConstants = _ThirdBodyConstants()
 TimeConstants = _TimeConstants()
 DefaultStates = _DefaultStates()
 CG5 = _CG5Coefficients()
@@ -143,6 +154,7 @@ CG5_c = CG5.c
 __all__ = [
     "PhysicalConstants",
     "EarthConstants",
+    "ThirdBodyConstants",
     "TimeConstants",
     "DefaultStates",
     "CG5",

@@ -10,10 +10,41 @@ from skyfield import api, units, positionlib, framelib
 from datetime import timezone
 
 from ADCS.orbits.orbital_state import Orbital_State
-from ADCS.orbits.universal_constants import TimeConstants, EarthConstants
+from ADCS.orbits.universal_constants import TimeConstants, EarthConstants, ThirdBodyConstants
 from ADCS.helpers.math_constants import MathConstants
 from ADCS.helpers.math_helpers import matrix_row_normalize
 from ADCS.orbits.density_model import DensityModel
+
+
+def _bodies_eci_km(observer, target, t_sf, N):
+    r"""
+    Geocentric (ECI) positions of a solar-system body at ``N`` epochs.
+
+    Mirrors the vectorized Sun computation used for environment vectors and
+    returns a ``(N, 3)`` array in kilometres, robust to Skyfield's
+    ``(3, N)``/``(N, 3)`` output orientation.
+
+    :param observer:
+        Skyfield body used as the observer (Earth).
+    :param target:
+        Skyfield body being observed (Sun or Moon).
+    :param t_sf:
+        Skyfield time array of length ``N``.
+    :param N:
+        Number of epochs.
+    :type N: int
+
+    :return:
+        Body positions in ECI [km], shape ``(N, 3)``.
+    :rtype: numpy.ndarray
+    """
+    icrf = observer.at(t_sf).observe(target).apparent()
+    km = np.asarray(icrf.position.km, dtype=float)
+    if km.ndim == 2 and km.shape[0] == 3 and km.shape[1] == N:
+        return km.T
+    if km.ndim == 2 and km.shape[0] == N and km.shape[1] == 3:
+        return km
+    return np.reshape(km, (N, 3))
 
 
 class Orbit:
@@ -65,6 +96,11 @@ class Orbit:
         ``use_J2``; ignored when ``use_J2`` is ``False``.
     :type zonal_order: int
 
+    :param lunisolar:
+        Enable lunisolar (Sun + Moon) third-body perturbations during
+        propagation. Defaults to ``False``.
+    :type lunisolar: bool
+
     :raises ValueError:
         If input arguments are inconsistent or unsupported.
 
@@ -79,6 +115,7 @@ class Orbit:
         fast: bool = True,
         verbose: bool = True,
         zonal_order: int = 2,
+        lunisolar: bool = False,
     ) -> None:
         r"""
         Initialize an orbit from an initial condition or a list of states.
@@ -114,9 +151,11 @@ class Orbit:
         """
         _ = fast  # ignored
         use_J2 = bool(use_J2)
-        # Remember the zonal order so node-to-node interpolation in get_os()
-        # reuses the same gravity model the orbit was propagated with.
+        lunisolar = bool(lunisolar)
+        # Remember the perturbation model so node-to-node interpolation in
+        # get_os() reuses the same dynamics the orbit was propagated with.
         self._zonal_order = int(zonal_order) if use_J2 else 2
+        self._lunisolar = lunisolar
 
         if isinstance(os0, Orbital_State):
             start_time = float(os0.J2000)
@@ -159,16 +198,34 @@ class Orbit:
             # Higher (degree >= 3) zonal coefficients to apply, or None for J2-only.
             higher_zonals = None if int(zonal_order) <= 2 else Jcoeffs[1 : int(zonal_order) - 1]
 
+            # Pre-compute Sun and Moon ECI positions at every node time once
+            # (vectorized) so lunisolar third-body forces can be applied in the
+            # cheap NumPy propagation loop without per-step ephemeris calls.
+            sun_eci_nodes = moon_eci_nodes = None
+            if lunisolar:
+                ts_dyn = os0.ephem.ts
+                t_dyn = ts_dyn.tt_jd(times_arr * 36525.0 + 2451545.0)
+                sun_eci_nodes = _bodies_eci_km(os0.ephem.earth, os0.ephem.sun, t_dyn, N)
+                moon_eci_nodes = _bodies_eci_km(os0.ephem.earth, os0.ephem.moon, t_dyn, N)
+
             for j in tqdm(range(1, N), desc="Propagating Orbit", unit="step", disable=not verbose):
                 dt_step = (times_arr[j] - times_arr[j - 1]) * TimeConstants.cent2sec
 
                 r0 = R_hist[j - 1, :]
                 v0 = V_hist[j - 1, :]
 
-                k1r, k1v = Orbital_State._orbit_dynamics_raw(r0, v0, mu_e, R_e, J2coeff, use_J2, higher_zonals=higher_zonals)
-                k2r, k2v = Orbital_State._orbit_dynamics_raw(r0 + 0.5 * dt_step * k1r, v0 + 0.5 * dt_step * k1v, mu_e, R_e, J2coeff, use_J2, higher_zonals=higher_zonals)
-                k3r, k3v = Orbital_State._orbit_dynamics_raw(r0 + 0.5 * dt_step * k2r, v0 + 0.5 * dt_step * k2v, mu_e, R_e, J2coeff, use_J2, higher_zonals=higher_zonals)
-                k4r, k4v = Orbital_State._orbit_dynamics_raw(r0 + dt_step * k3r, v0 + dt_step * k3v, mu_e, R_e, J2coeff, use_J2, higher_zonals=higher_zonals)
+                # Hold Sun/Moon fixed at the step-start node across RK4 sub-steps.
+                third_bodies = None
+                if lunisolar:
+                    third_bodies = [
+                        (ThirdBodyConstants.mu_sun, sun_eci_nodes[j - 1, :]),
+                        (ThirdBodyConstants.mu_moon, moon_eci_nodes[j - 1, :]),
+                    ]
+
+                k1r, k1v = Orbital_State._orbit_dynamics_raw(r0, v0, mu_e, R_e, J2coeff, use_J2, higher_zonals=higher_zonals, third_bodies=third_bodies)
+                k2r, k2v = Orbital_State._orbit_dynamics_raw(r0 + 0.5 * dt_step * k1r, v0 + 0.5 * dt_step * k1v, mu_e, R_e, J2coeff, use_J2, higher_zonals=higher_zonals, third_bodies=third_bodies)
+                k3r, k3v = Orbital_State._orbit_dynamics_raw(r0 + 0.5 * dt_step * k2r, v0 + 0.5 * dt_step * k2v, mu_e, R_e, J2coeff, use_J2, higher_zonals=higher_zonals, third_bodies=third_bodies)
+                k4r, k4v = Orbital_State._orbit_dynamics_raw(r0 + dt_step * k3r, v0 + dt_step * k3v, mu_e, R_e, J2coeff, use_J2, higher_zonals=higher_zonals, third_bodies=third_bodies)
 
                 R_hist[j, :] = r0 + (dt_step / 6.0) * (k1r + 2.0 * k2r + 2.0 * k3r + k4r)
                 V_hist[j, :] = v0 + (dt_step / 6.0) * (k1v + 2.0 * k2v + 2.0 * k3v + k4v)
@@ -411,7 +468,11 @@ class Orbit:
         # propagation recomputes R, V and rebuilds every frame transform
         # consistently at exactly the requested epoch (RK4-truncation accuracy).
         dt_sec = (t - t0) * TimeConstants.cent2sec
-        return self.states[t0].propagate_orbit_rk4(dt_sec, zonal_order=getattr(self, "_zonal_order", 2))
+        return self.states[t0].propagate_orbit_rk4(
+            dt_sec,
+            zonal_order=getattr(self, "_zonal_order", 2),
+            lunisolar=getattr(self, "_lunisolar", False),
+        )
 
     def get_range(self, t_0: float, t_1: float, dt: float = None):
         r"""
