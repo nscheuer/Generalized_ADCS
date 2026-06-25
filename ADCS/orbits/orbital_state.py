@@ -1408,3 +1408,156 @@ class Orbital_State:
             density_model=density_model,
             fast=False,
         )
+
+    @classmethod
+    def batch_at_epoch(cls, R_arr, V_arr, J2000, ephem, density_model=None):
+        r"""
+        Build many orbital states sharing a single epoch in one batched pass.
+
+        For a constellation, every satellite is evaluated at the **same** time
+        but a **different** position. The time-only environment (ECI<->ECEF
+        rotation, Sun vector, UTC datetime) is therefore computed **once** and
+        shared, while the position-dependent quantities (geomagnetic field via a
+        single vectorized ``ppigrf`` call, density, geographic/ENU frames,
+        sunlit flag) are batched across all satellites. This collapses the
+        expensive Skyfield/ppigrf work from O(N) calls per timestep to O(1),
+        which is what makes 500-satellite, in-process simulation tractable.
+
+        The returned states are field-for-field equivalent to those produced by
+        the time-batched :class:`~ADCS.orbits.orbit.Orbit` constructor.
+
+        :param R_arr: ECI positions [km], shape ``(N, 3)``.
+        :param V_arr: ECI velocities [km/s], shape ``(N, 3)``.
+        :param J2000: Shared epoch in Julian centuries since J2000.
+        :param ephem: Shared :class:`~ADCS.orbits.ephemeris.Ephemeris`.
+        :param density_model: Shared density model (constructed if ``None``).
+        :return: List of ``N`` :class:`Orbital_State` at this epoch.
+        :rtype: list[Orbital_State]
+        """
+        R_arr = np.asarray(R_arr, dtype=float).reshape(-1, 3)
+        V_arr = np.asarray(V_arr, dtype=float).reshape(-1, 3)
+        N = R_arr.shape[0]
+        J2000 = float(J2000)
+
+        if density_model is None:
+            density_model = DensityModel()
+
+        ts = ephem.ts
+        TAI = J2000 * 36525.0 + 2451545.0  # TT-scale Julian date (see __init__)
+        t_sf = ts.tt_jd(TAI)
+        # Length-N time array (all equal to the epoch) for the position-batched
+        # Skyfield calls: is_sunlit / geographic frames mis-broadcast a scalar
+        # time against an (N,) position array, so positions and times must align.
+        t_arr = ts.tt_jd(np.full(N, TAI))
+
+        # --- time-only quantities (shared by all satellites) ---
+        R_eci2ecef = np.asarray(framelib.itrs.rotation_at(t_sf), dtype=float).reshape(3, 3)
+        R_ecef2eci = R_eci2ecef.T
+
+        dt_i = t_sf.utc_datetime()
+        if getattr(dt_i, "tzinfo", None) is not None:
+            dt_naive = dt_i.astimezone(timezone.utc).replace(tzinfo=None)
+        else:
+            dt_naive = dt_i
+
+        sun_icrf = ephem.earth.at(t_sf).observe(ephem.sun).apparent()
+        S_vec = np.asarray(sun_icrf.position.km, dtype=float).reshape(3)
+
+        # --- position-dependent quantities (batched over satellites) ---
+        ECEF_arr = R_arr @ R_eci2ecef.T  # (N,3)
+        r_ecef = np.linalg.norm(ECEF_arr, axis=1)
+        theta = np.arccos(ECEF_arr[:, 2] / r_ecef)
+        phi = np.arctan2(ECEF_arr[:, 1], ECEF_arr[:, 0])
+        geo_arr = np.stack([r_ecef, theta, phi], axis=1)
+
+        b_r, b_th, b_ph = ppigrf.igrf_gc(
+            geo_arr[:, 0], geo_arr[:, 1] * 180.0 / np.pi, geo_arr[:, 2] * 180.0 / np.pi, dt_naive,
+        )
+        b_r = np.asarray(b_r, dtype=float).reshape(N)
+        b_th = np.asarray(b_th, dtype=float).reshape(N)
+        b_ph = np.asarray(b_ph, dtype=float).reshape(N)
+
+        n_ecef = ECEF_arr / r_ecef[:, None]
+        zhat = np.array([[0.0, 0.0, 1.0]])
+        svec = np.cross(zhat, n_ecef)
+        svec = svec / np.linalg.norm(svec, axis=1)[:, None]
+        tvec = np.cross(svec, n_ecef)
+        tvec = tvec / np.linalg.norm(tvec, axis=1)[:, None]
+
+        b_ecef = b_r[:, None] * n_ecef + b_ph[:, None] * svec + b_th[:, None] * tvec
+        B_arr = (b_ecef @ R_ecef2eci.T) * 1e-9  # ECI [T]
+
+        alt_core = np.linalg.norm(R_arr, axis=1) - EarthConstants.R_e
+        try:
+            rho_arr = np.asarray(density_model.interpolate(alt_core), dtype=float).reshape(N)
+        except Exception:
+            rho_arr = np.array([float(density_model.interpolate(float(h))) for h in alt_core], dtype=float)
+
+        # Geographic + ENU (batched: N positions at one epoch)
+        pos = units.Distance(km=[R_arr[:, 0], R_arr[:, 1], R_arr[:, 2]])
+        vel = units.Velocity(km_per_s=[V_arr[:, 0], V_arr[:, 1], V_arr[:, 2]])
+        sf_pos_vec = positionlib.ICRF(pos.au, velocity_au_per_d=vel.au_per_d, t=t_arr, center=399, target=0)
+        sf_geo_pos_vec = api.wgs84.geographic_position_of(sf_pos_vec)
+        lat = np.asarray(sf_geo_pos_vec.latitude.radians, dtype=float).reshape(N)
+        lon = np.asarray(sf_geo_pos_vec.longitude.radians, dtype=float).reshape(N)
+        elev = np.asarray(sf_geo_pos_vec.elevation.km, dtype=float).reshape(N)
+        LLA_arr = np.stack([lat, lon, elev], axis=1)
+
+        R_geo_raw = np.asarray(sf_geo_pos_vec.rotation_at(t_arr), dtype=float)
+        if R_geo_raw.ndim == 3 and R_geo_raw.shape[0] == 3 and R_geo_raw.shape[1] == 3:
+            R_eci_to_ecef_geo = np.transpose(R_geo_raw, (2, 0, 1))  # (N,3,3)
+        elif R_geo_raw.ndim == 3 and R_geo_raw.shape[-2:] == (3, 3):
+            R_eci_to_ecef_geo = R_geo_raw
+        else:
+            R_eci_to_ecef_geo = np.repeat(R_geo_raw.reshape(1, 3, 3), N, axis=0)
+        R_ecef_to_enu = np.array([[0.0, 1.0, 0.0], [1.0, 0.0, 0.0], [0.0, 0.0, 1.0]], dtype=float)
+        ECI2ENU_arr = np.einsum("ij,njk->nik", R_ecef_to_enu, R_eci_to_ecef_geo)
+
+        try:
+            sunlit_arr = np.asarray(sf_pos_vec.is_sunlit(ephem.planets), dtype=bool).reshape(N)
+        except Exception:
+            sunlit_arr = np.zeros(N, dtype=bool)
+
+        Jcoeffs = EarthConstants.Jcoeffs
+
+        states = [None] * N
+        for i in range(N):
+            st = cls.__new__(cls)
+            st.ephem = ephem
+            st.ts = ts
+            st.J2000 = J2000
+            st.R = R_arr[i, :].copy()
+            st.V = V_arr[i, :].copy()
+            st.mu_e = EarthConstants.mu_e
+            st.R_e = EarthConstants.R_e
+            st.J2coeff = EarthConstants.J2coeff
+            st.Jcoeffs = np.array(Jcoeffs, dtype=float, copy=True)
+            st.TAI = float(TAI)
+            st.datetime = dt_naive
+            st._R_eci2ecef = R_eci2ecef.copy()
+            st._R_ecef2eci = R_ecef2eci.copy()
+            st.ECEF = ECEF_arr[i, :].copy()
+            st.geocentric = geo_arr[i, :].copy()
+            st._n_ecef = n_ecef[i, :].copy()
+            st._svec = svec[i, :].copy()
+            st._tvec = tvec[i, :].copy()
+            st._ecef_to_geo = np.vstack([st._n_ecef, st._tvec, st._svec])
+            st.density_model = density_model
+            st.S = S_vec.copy()
+            st.B = B_arr[i, :].copy()
+            st.rho = float(rho_arr[i])
+            st.LLA = LLA_arr[i, :].copy()
+            st.ECI2ENUmat = ECI2ENU_arr[i, :, :].copy()
+            st.sf_geo_pos = None
+            try:
+                pos_i = units.Distance(km=st.R.tolist())
+                vel_i = units.Velocity(km_per_s=st.V.tolist())
+                st.sf_pos = positionlib.ICRF(pos_i.au, velocity_au_per_d=vel_i.au_per_d, t=t_sf, center=399, target=0)
+            except Exception:
+                st.sf_pos = None
+            st._sunlit = bool(sunlit_arr[i])
+            st.vecs = None
+            st._last_x = None
+            states[i] = st
+
+        return states
