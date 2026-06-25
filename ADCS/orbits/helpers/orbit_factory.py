@@ -89,7 +89,8 @@ def create_random_circular_orbit(
     J2000: float = 0.22,
     use_J2: bool = True,
     fast: bool = False,
-    rng: Optional[np.random.Generator] = None
+    rng: Optional[np.random.Generator] = None,
+    zonal_order: int = 2,
 ) -> Orbit:
     r"""
     Creates an initialized Orbit object based on a random circular orbital state.
@@ -117,6 +118,9 @@ def create_random_circular_orbit(
     :type use_J2: bool
     :param fast: Flag to enable fast propagation mode (reduced precision).
     :type fast: bool
+    :param zonal_order: Highest zonal gravity harmonic degree to include
+        (2 = J2 only, up to 6 = J2..J6). Requires ``use_J2``.
+    :type zonal_order: int
     :return: The fully initialized orbit object.
     :rtype: :class:`~ADCS.orbits.orbit.Orbit`
 
@@ -130,4 +134,5 @@ def create_random_circular_orbit(
         use_J2=use_J2,
         fast=fast,
         verbose=False,
+        zonal_order=zonal_order,
     )
