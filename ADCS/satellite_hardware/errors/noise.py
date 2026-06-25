@@ -16,7 +16,7 @@ class Noise:
     bounds : (float, float), optional
         Lower and upper limits :math:`[n_{\min}, n_{\max}]` applied after sampling.
     """
-    def __init__(self, noise: np.ndarray | float = np.array([0.0]), std_noise: np.ndarray | float = np.array([0.0]), bounds: Sequence[np.ndarray | float] = (-np.array([np.inf]), np.array([np.inf]))) -> None:
+    def __init__(self, noise: np.ndarray | float = np.array([0.0]), std_noise: np.ndarray | float = np.array([0.0]), bounds: Sequence[np.ndarray | float] = (-np.array([np.inf]), np.array([np.inf])), rng: np.random.Generator | None = None) -> None:
         if isinstance(noise, (float, int)):
             noise = np.array([noise])
         else:
@@ -43,6 +43,20 @@ class Noise:
         self.noise = noise
         self.std_noise = std_noise
         self.bounds = (lo, hi)
+        # Optional per-instance random generator. When None, the global
+        # ``np.random`` state is used (legacy behavior). For multi-satellite
+        # simulations each satellite is given its own seeded Generator via
+        # ``Satellite.set_rng`` so runs are independently reproducible.
+        self.rng = rng
+
+    def set_rng(self, rng: np.random.Generator | None) -> None:
+        r"""Set the random generator used for noise sampling."""
+        self.rng = rng
+
+    def _generator(self):
+        r"""Return the active random source (per-instance Generator or ``np.random``)."""
+        gen = getattr(self, "rng", None)
+        return gen if gen is not None else np.random
 
     def __bool__(self):
         r"""
@@ -71,7 +85,7 @@ class Noise:
         This method is called internally each time :math:`get_noise` is invoked.
         """
         """Update actuator noise with a fresh Gaussian sample."""
-        self.noise = np.random.normal(
+        self.noise = self._generator().normal(
             loc=0.0,
             scale=self.std_noise
         )

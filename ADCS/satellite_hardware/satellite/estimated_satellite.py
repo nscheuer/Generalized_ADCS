@@ -75,7 +75,7 @@ class EstimatedSatellite(Satellite):
         :meth:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.match_estimate`.
     """
 
-    def __init__(self, mass: float = 1.0, COM: np.ndarray = None, J_0: np.ndarray = None, disturbances: List[Disturbance] = [], sensors: List[Sensor] = [], actuators: List[Actuator] = [], boresight: dict[str, np.ndarray] | np.ndarray = None) -> None:
+    def __init__(self, mass: float = 1.0, COM: np.ndarray = None, J_0: np.ndarray = None, disturbances: List[Disturbance] = None, sensors: List[Sensor] = None, actuators: List[Actuator] = None, boresight: dict[str, np.ndarray] | np.ndarray = None) -> None:
         r"""
         Construct an estimator-augmented satellite.
 

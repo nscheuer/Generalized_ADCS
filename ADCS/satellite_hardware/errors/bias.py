@@ -17,7 +17,7 @@ class Bias:
     bounds : (float, float), optional
         Clipping range :math:`[b_{\min}, b_{\max}]` applied after updates.
     """
-    def __init__(self, bias: np.ndarray | float = np.array([0.0]), std_bias: np.ndarray | float = np.array([0.0]), bounds: Sequence[np.ndarray | float] = (-np.array([np.inf]), np.array([np.inf]))) -> None:
+    def __init__(self, bias: np.ndarray | float = np.array([0.0]), std_bias: np.ndarray | float = np.array([0.0]), bounds: Sequence[np.ndarray | float] = (-np.array([np.inf]), np.array([np.inf])), rng: np.random.Generator | None = None) -> None:
         if isinstance(bias, (float, int)):
             bias = np.array([bias])
         else:
@@ -44,6 +44,18 @@ class Bias:
         self.std_bias = std_bias
         self.last_bias_time = float('nan')
         self.bounds = (lo, hi)
+        # Optional per-instance random generator (see Noise.rng). None -> global
+        # ``np.random`` (legacy). Set per-satellite via ``Satellite.set_rng``.
+        self.rng = rng
+
+    def set_rng(self, rng: np.random.Generator | None) -> None:
+        r"""Set the random generator used for the bias random walk."""
+        self.rng = rng
+
+    def _generator(self):
+        r"""Return the active random source (per-instance Generator or ``np.random``)."""
+        gen = getattr(self, "rng", None)
+        return gen if gen is not None else np.random
 
     def __bool__(self):
         r"""
@@ -91,7 +103,7 @@ class Bias:
             return
 
         dt_sec = dt_centuries * TimeConstants.cent2sec
-        self.bias = np.random.normal(loc=self.bias, scale=self.std_bias*np.sqrt(dt_sec))
+        self.bias = self._generator().normal(loc=self.bias, scale=self.std_bias*np.sqrt(dt_sec))
         self.bias = np.clip(self.bias, self.bounds[0], self.bounds[1])
         self.last_bias_time = j2000
 
