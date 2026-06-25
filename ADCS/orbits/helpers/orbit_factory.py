@@ -91,6 +91,7 @@ def create_random_circular_orbit(
     fast: bool = False,
     rng: Optional[np.random.Generator] = None,
     zonal_order: int = 2,
+    lunisolar: bool = False,
 ) -> Orbit:
     r"""
     Creates an initialized Orbit object based on a random circular orbital state.
@@ -121,6 +122,8 @@ def create_random_circular_orbit(
     :param zonal_order: Highest zonal gravity harmonic degree to include
         (2 = J2 only, up to 6 = J2..J6). Requires ``use_J2``.
     :type zonal_order: int
+    :param lunisolar: Enable lunisolar (Sun + Moon) third-body perturbations.
+    :type lunisolar: bool
     :return: The fully initialized orbit object.
     :rtype: :class:`~ADCS.orbits.orbit.Orbit`
 
@@ -135,4 +138,5 @@ def create_random_circular_orbit(
         fast=fast,
         verbose=False,
         zonal_order=zonal_order,
+        lunisolar=lunisolar,
     )

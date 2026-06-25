@@ -10,7 +10,7 @@ from typing import Dict, Tuple, Optional
 
 from ADCS.orbits.density_model import DensityModel
 from ADCS.orbits.ephemeris import Ephemeris
-from ADCS.orbits.universal_constants import EarthConstants, TimeConstants
+from ADCS.orbits.universal_constants import EarthConstants, TimeConstants, ThirdBodyConstants
 from ADCS.helpers.math_helpers import normalize, rot_mat, drotmatTvecdq, ddrotmatTvecdqdq
 
 _I3 = np.eye(3)
@@ -174,6 +174,83 @@ def _zonal_perturbation_accel_jac(R, mu_e, R_e, coeffs, start_degree):
         Rp[j] = Rp[j] + 1j * h
         accel = _zonal_perturbation_accel(Rp, mu_e, R_e, coeffs, start_degree)
         jac[:, j] = np.asarray(accel).imag / h
+    return jac
+
+
+def _third_body_accel(R, third_bodies):
+    r"""
+    Perturbing acceleration from one or more third bodies (Sun, Moon, ...).
+
+    For a third body of gravitational parameter :math:`\mu_3` at ECI position
+    :math:`\mathbf{s}`, the perturbation on a spacecraft at :math:`\mathbf{R}` is
+
+    .. math::
+        \mathbf{a}_3 = \mu_3\left(
+            \frac{\mathbf{s} - \mathbf{R}}{\lVert\mathbf{s}-\mathbf{R}\rVert^3}
+            - \frac{\mathbf{s}}{\lVert\mathbf{s}\rVert^3}\right),
+
+    i.e. the gradient of the third-body disturbing potential
+    :math:`\mu_3(1/\lVert\mathbf{R}-\mathbf{s}\rVert - \mathbf{R}\cdot\mathbf{s}/\lVert\mathbf{s}\rVert^3)`.
+    The second (indirect) term accounts for the acceleration of the Earth-centred
+    frame toward the third body. No non-analytic operations are used, so a
+    complex ``R`` yields exact complex-step derivatives.
+
+    :param R:
+        Spacecraft position in ECI [km]. Real or complex.
+    :type R: numpy.ndarray
+
+    :param third_bodies:
+        Iterable of ``(mu_body, position_eci)`` pairs, with ``mu_body`` in
+        km^3/s^2 and ``position_eci`` the body position in ECI [km].
+    :type third_bodies: iterable[tuple[float, numpy.ndarray]]
+
+    :return:
+        Total third-body perturbing acceleration [km/s^2].
+    :rtype: numpy.ndarray
+    """
+    R = np.asarray(R).reshape(3)
+    accel = np.zeros(3, dtype=R.dtype)
+    for mu_body, s in third_bodies:
+        s = np.asarray(s, dtype=R.dtype).reshape(3)
+        d = s - R
+        dn3 = (d @ d) ** 1.5
+        sn3 = (s @ s) ** 1.5
+        accel = accel + mu_body * (d / dn3 - s / sn3)
+    return accel
+
+
+def _third_body_accel_jac(R, third_bodies):
+    r"""
+    Jacobian :math:`\partial a/\partial R` of :func:`_third_body_accel`.
+
+    Only the direct term depends on the spacecraft position, giving the
+    closed-form
+
+    .. math::
+        \frac{\partial \mathbf{a}_3}{\partial \mathbf{R}} = \mu_3\left(
+            \frac{3\,\mathbf{d}\mathbf{d}^\top}{\lVert\mathbf{d}\rVert^5}
+            - \frac{I}{\lVert\mathbf{d}\rVert^3}\right),
+        \qquad \mathbf{d} = \mathbf{s} - \mathbf{R}.
+
+    :param R:
+        Spacecraft position in ECI [km].
+    :type R: numpy.ndarray
+
+    :param third_bodies:
+        Iterable of ``(mu_body, position_eci)`` pairs.
+    :type third_bodies: iterable[tuple[float, numpy.ndarray]]
+
+    :return:
+        3x3 Jacobian of the third-body acceleration with respect to position.
+    :rtype: numpy.ndarray
+    """
+    R = np.asarray(R, dtype=float).reshape(3)
+    jac = np.zeros((3, 3), dtype=float)
+    for mu_body, s in third_bodies:
+        s = np.asarray(s, dtype=float).reshape(3)
+        d = s - R
+        dn = float(np.sqrt(d @ d))
+        jac += mu_body * (3.0 * np.outer(d, d) / dn**5 - _I3 / dn**3)
     return jac
 
 
@@ -540,6 +617,7 @@ class Orbital_State:
         J2coeff: float,
         J2_perturbation_on: bool = True,
         higher_zonals: np.ndarray = None,
+        third_bodies=None,
     ) -> Tuple[np.ndarray, np.ndarray]:
         r"""
         Compute raw orbital dynamics.
@@ -575,6 +653,12 @@ class Orbital_State:
             ``None`` (the default) reproduces the legacy J2-only dynamics.
         :type higher_zonals: numpy.ndarray or None
 
+        :param third_bodies:
+            Optional iterable of ``(mu_body, position_eci)`` pairs adding
+            lunisolar (or other) third-body perturbations. ``None`` (the
+            default) applies no third-body acceleration.
+        :type third_bodies: iterable[tuple[float, numpy.ndarray]] or None
+
         :return:
             Tuple of position and velocity derivatives.
         :rtype: tuple[numpy.ndarray, numpy.ndarray]
@@ -600,6 +684,9 @@ class Orbital_State:
             if higher_zonals is not None and np.size(higher_zonals) > 0:
                 v_dot = v_dot + _zonal_perturbation_accel(R, mu_e, R_e, higher_zonals, start_degree=3)
 
+        if third_bodies is not None and len(third_bodies) > 0:
+            v_dot = v_dot + _third_body_accel(R, third_bodies)
+
         r_dot = V
         return r_dot, v_dot
 
@@ -611,6 +698,7 @@ class Orbital_State:
         J2coeff: float,
         J2_perturbation_on: bool = True,
         higher_zonals: np.ndarray = None,
+        third_bodies=None,
     ):
         r"""
         Compute Jacobians of orbital dynamics.
@@ -642,6 +730,12 @@ class Orbital_State:
             added (via complex-step differentiation). ``None`` reproduces the
             legacy J2-only Jacobian.
         :type higher_zonals: numpy.ndarray or None
+
+        :param third_bodies:
+            Optional iterable of ``(mu_body, position_eci)`` pairs; the
+            position-Jacobian of their third-body acceleration is added.
+            ``None`` applies no third-body contribution.
+        :type third_bodies: iterable[tuple[float, numpy.ndarray]] or None
 
         :return:
             Partial derivatives of dynamics.
@@ -676,6 +770,9 @@ class Orbital_State:
             if higher_zonals is not None and np.size(higher_zonals) > 0:
                 dvd_dr += _zonal_perturbation_accel_jac(R, mu_e, R_e, higher_zonals, start_degree=3)
 
+        if third_bodies is not None and len(third_bodies) > 0:
+            dvd_dr += _third_body_accel_jac(R, third_bodies)
+
         return drd_dr, drd_dv, dvd_dr, dvd_dv
 
     def _higher_zonals(self, zonal_order: int) -> np.ndarray:
@@ -699,7 +796,7 @@ class Orbital_State:
         # Jcoeffs is indexed by degree-2: index 1 -> J3, index 2 -> J4, ...
         return np.asarray(self.Jcoeffs, dtype=float)[1 : order - 1]
 
-    def orbit_dynamics(self, J2_perturbation_on: bool = True, zonal_order: int = 2) -> Tuple[np.ndarray, np.ndarray]:
+    def orbit_dynamics(self, J2_perturbation_on: bool = True, zonal_order: int = 2, lunisolar: bool = False) -> Tuple[np.ndarray, np.ndarray]:
         r"""
         Compute translational orbital dynamics at the current state.
 
@@ -712,6 +809,10 @@ class Orbital_State:
             up to 6 = J2..J6). Ignored when ``J2_perturbation_on`` is ``False``.
         :type zonal_order: int
 
+        :param lunisolar:
+            Enable lunisolar (Sun + Moon) third-body perturbations.
+        :type lunisolar: bool
+
         :return:
             Time derivatives of position and velocity.
         :rtype: tuple[numpy.ndarray, numpy.ndarray]
@@ -720,9 +821,10 @@ class Orbital_State:
         return self._orbit_dynamics_raw(
             self.R, self.V, self.mu_e, self.R_e, self.J2coeff, J2_perturbation_on,
             higher_zonals=self._higher_zonals(zonal_order),
+            third_bodies=self._lunisolar_bodies(lunisolar),
         )
 
-    def orbit_dynamics_jacobians(self, J2_perturbation_on: bool = True, zonal_order: int = 2) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    def orbit_dynamics_jacobians(self, J2_perturbation_on: bool = True, zonal_order: int = 2, lunisolar: bool = False) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         r"""
         Compute Jacobians of the translational dynamics.
 
@@ -735,6 +837,10 @@ class Orbital_State:
             up to 6 = J2..J6). Ignored when ``J2_perturbation_on`` is ``False``.
         :type zonal_order: int
 
+        :param lunisolar:
+            Enable lunisolar (Sun + Moon) third-body perturbations.
+        :type lunisolar: bool
+
         :return:
             Jacobian matrices of the dynamics.
         :rtype: tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray, numpy.ndarray]
@@ -743,9 +849,10 @@ class Orbital_State:
         return self._orbit_dynamics_jacobians_raw(
             self.R, self.mu_e, self.R_e, self.J2coeff, J2_perturbation_on,
             higher_zonals=self._higher_zonals(zonal_order),
+            third_bodies=self._lunisolar_bodies(lunisolar),
         )
 
-    def propagate_orbit(self, dt: float, J2_perturbation_on: bool = True, fast: bool = True, zonal_order: int = 2):
+    def propagate_orbit(self, dt: float, J2_perturbation_on: bool = True, fast: bool = True, zonal_order: int = 2, lunisolar: bool = False):
         r"""
         Propagate the orbital state forward using first-order integration.
 
@@ -766,6 +873,10 @@ class Orbital_State:
             up to 6 = J2..J6).
         :type zonal_order: int
 
+        :param lunisolar:
+            Enable lunisolar (Sun + Moon) third-body perturbations.
+        :type lunisolar: bool
+
         :return:
             Propagated orbital state.
         :rtype: Orbital_State
@@ -773,10 +884,11 @@ class Orbital_State:
         """
         _ = fast  # ignored
         higher_zonals = self._higher_zonals(zonal_order)
+        third_bodies = self._lunisolar_bodies(lunisolar)
         r_ECI = self.R
         v_ECI = self.V
 
-        k1a, k1b = self._orbit_dynamics_raw(r_ECI, v_ECI, self.mu_e, self.R_e, self.J2coeff, J2_perturbation_on, higher_zonals=higher_zonals)
+        k1a, k1b = self._orbit_dynamics_raw(r_ECI, v_ECI, self.mu_e, self.R_e, self.J2coeff, J2_perturbation_on, higher_zonals=higher_zonals, third_bodies=third_bodies)
 
         r_out = r_ECI + k1a * float(dt)
         v_out = v_ECI + k1b * float(dt)
@@ -784,7 +896,7 @@ class Orbital_State:
 
         return Orbital_State(self.ephem, j2000, r_out, v_out, S=None, B=None, rho=None, density_model=self.density_model, fast=False)
 
-    def propagate_orbit_rk4(self, dt: float, J2_perturbation_on: bool = True, fast: bool = True, zonal_order: int = 2):
+    def propagate_orbit_rk4(self, dt: float, J2_perturbation_on: bool = True, fast: bool = True, zonal_order: int = 2, lunisolar: bool = False):
         r"""
         Propagate the orbital state using fourth-order Runge–Kutta integration.
 
@@ -805,6 +917,11 @@ class Orbital_State:
             up to 6 = J2..J6).
         :type zonal_order: int
 
+        :param lunisolar:
+            Enable lunisolar (Sun + Moon) third-body perturbations. The Sun and
+            Moon positions are held fixed across the RK4 sub-steps.
+        :type lunisolar: bool
+
         :return:
             Propagated orbital state.
         :rtype: Orbital_State
@@ -813,14 +930,15 @@ class Orbital_State:
         _ = fast  # ignored
         dt = float(dt)
         higher_zonals = self._higher_zonals(zonal_order)
+        third_bodies = self._lunisolar_bodies(lunisolar)
 
         r0 = self.R
         v0 = self.V
 
-        k1a, k1b = self._orbit_dynamics_raw(r0, v0, self.mu_e, self.R_e, self.J2coeff, J2_perturbation_on, higher_zonals=higher_zonals)
-        k2a, k2b = self._orbit_dynamics_raw(r0 + 0.5 * dt * k1a, v0 + 0.5 * dt * k1b, self.mu_e, self.R_e, self.J2coeff, J2_perturbation_on, higher_zonals=higher_zonals)
-        k3a, k3b = self._orbit_dynamics_raw(r0 + 0.5 * dt * k2a, v0 + 0.5 * dt * k2b, self.mu_e, self.R_e, self.J2coeff, J2_perturbation_on, higher_zonals=higher_zonals)
-        k4a, k4b = self._orbit_dynamics_raw(r0 + dt * k3a, v0 + dt * k3b, self.mu_e, self.R_e, self.J2coeff, J2_perturbation_on, higher_zonals=higher_zonals)
+        k1a, k1b = self._orbit_dynamics_raw(r0, v0, self.mu_e, self.R_e, self.J2coeff, J2_perturbation_on, higher_zonals=higher_zonals, third_bodies=third_bodies)
+        k2a, k2b = self._orbit_dynamics_raw(r0 + 0.5 * dt * k1a, v0 + 0.5 * dt * k1b, self.mu_e, self.R_e, self.J2coeff, J2_perturbation_on, higher_zonals=higher_zonals, third_bodies=third_bodies)
+        k3a, k3b = self._orbit_dynamics_raw(r0 + 0.5 * dt * k2a, v0 + 0.5 * dt * k2b, self.mu_e, self.R_e, self.J2coeff, J2_perturbation_on, higher_zonals=higher_zonals, third_bodies=third_bodies)
+        k4a, k4b = self._orbit_dynamics_raw(r0 + dt * k3a, v0 + dt * k3b, self.mu_e, self.R_e, self.J2coeff, J2_perturbation_on, higher_zonals=higher_zonals, third_bodies=third_bodies)
 
         r_out = r0 + (dt / 6.0) * (k1a + 2.0 * k2a + 2.0 * k3a + k4a)
         v_out = v0 + (dt / 6.0) * (k1b + 2.0 * k2b + 2.0 * k3b + k4b)
@@ -829,7 +947,7 @@ class Orbital_State:
 
         return Orbital_State(self.ephem, j2000, r_out, v_out, S=None, B=None, rho=None, density_model=self.density_model, fast=False)
 
-    def propagate_jacobians(self, dt: float, J2_perturbation_on: bool = True, zonal_order: int = 2) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    def propagate_jacobians(self, dt: float, J2_perturbation_on: bool = True, zonal_order: int = 2, lunisolar: bool = False) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         r"""
         Propagate state transition Jacobians using first-order integration.
 
@@ -846,6 +964,10 @@ class Orbital_State:
             up to 6 = J2..J6).
         :type zonal_order: int
 
+        :param lunisolar:
+            Enable lunisolar (Sun + Moon) third-body perturbations.
+        :type lunisolar: bool
+
         :return:
             State transition Jacobian blocks.
         :rtype: tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray, numpy.ndarray]
@@ -853,8 +975,9 @@ class Orbital_State:
         """
         dt = float(dt)
         higher_zonals = self._higher_zonals(zonal_order)
+        third_bodies = self._lunisolar_bodies(lunisolar)
         drd0__dr0, drd0__dv0, dvd0__dr0, dvd0__dv0 = self._orbit_dynamics_jacobians_raw(
-            self.R, self.mu_e, self.R_e, self.J2coeff, J2_perturbation_on, higher_zonals=higher_zonals
+            self.R, self.mu_e, self.R_e, self.J2coeff, J2_perturbation_on, higher_zonals=higher_zonals, third_bodies=third_bodies
         )
 
         dr1__dr0 = _I3 + dt * drd0__dr0
@@ -864,7 +987,7 @@ class Orbital_State:
 
         return dr1__dr0, dr1__dv0, dv1__dr0, dv1__dv0
 
-    def propagate_jacobians_rk4(self, dt: float, J2_perturbation_on: bool = True, zonal_order: int = 2) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    def propagate_jacobians_rk4(self, dt: float, J2_perturbation_on: bool = True, zonal_order: int = 2, lunisolar: bool = False) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         r"""
         Propagate state transition Jacobians using RK4 integration.
 
@@ -881,6 +1004,10 @@ class Orbital_State:
             up to 6 = J2..J6).
         :type zonal_order: int
 
+        :param lunisolar:
+            Enable lunisolar (Sun + Moon) third-body perturbations.
+        :type lunisolar: bool
+
         :return:
             State transition Jacobian blocks.
         :rtype: tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray, numpy.ndarray]
@@ -888,13 +1015,14 @@ class Orbital_State:
         """
         dt = float(dt)
         hz = self._higher_zonals(zonal_order)
+        tb = self._lunisolar_bodies(lunisolar)
 
         r0 = self.R
         v0 = self.V
 
-        rd0, vd0 = self._orbit_dynamics_raw(r0, v0, self.mu_e, self.R_e, self.J2coeff, J2_perturbation_on, higher_zonals=hz)
+        rd0, vd0 = self._orbit_dynamics_raw(r0, v0, self.mu_e, self.R_e, self.J2coeff, J2_perturbation_on, higher_zonals=hz, third_bodies=tb)
         drd0__dr0, drd0__dv0, dvd0__dr0, dvd0__dv0 = self._orbit_dynamics_jacobians_raw(
-            r0, self.mu_e, self.R_e, self.J2coeff, J2_perturbation_on, higher_zonals=hz
+            r0, self.mu_e, self.R_e, self.J2coeff, J2_perturbation_on, higher_zonals=hz, third_bodies=tb
         )
         dsd0__ds0 = np.block([[drd0__dr0, dvd0__dr0], [drd0__dv0, dvd0__dv0]])
 
@@ -902,9 +1030,9 @@ class Orbital_State:
         v1 = v0 + vd0 * 0.5 * dt
         ds1__ds0 = _I6 + 0.5 * dt * dsd0__ds0
 
-        rd1, vd1 = self._orbit_dynamics_raw(r1, v1, self.mu_e, self.R_e, self.J2coeff, J2_perturbation_on, higher_zonals=hz)
+        rd1, vd1 = self._orbit_dynamics_raw(r1, v1, self.mu_e, self.R_e, self.J2coeff, J2_perturbation_on, higher_zonals=hz, third_bodies=tb)
         drd1__dr1, drd1__dv1, dvd1__dr1, dvd1__dv1 = self._orbit_dynamics_jacobians_raw(
-            r1, self.mu_e, self.R_e, self.J2coeff, J2_perturbation_on, higher_zonals=hz
+            r1, self.mu_e, self.R_e, self.J2coeff, J2_perturbation_on, higher_zonals=hz, third_bodies=tb
         )
         dsd1__ds1 = np.block([[drd1__dr1, dvd1__dr1], [drd1__dv1, dvd1__dv1]])
         dsd1__ds0 = ds1__ds0 @ dsd1__ds1
@@ -913,9 +1041,9 @@ class Orbital_State:
         v2 = v0 + vd1 * 0.5 * dt
         ds2__ds0 = _I6 + 0.5 * dt * dsd1__ds0
 
-        rd2, vd2 = self._orbit_dynamics_raw(r2, v2, self.mu_e, self.R_e, self.J2coeff, J2_perturbation_on, higher_zonals=hz)
+        rd2, vd2 = self._orbit_dynamics_raw(r2, v2, self.mu_e, self.R_e, self.J2coeff, J2_perturbation_on, higher_zonals=hz, third_bodies=tb)
         drd2__dr2, drd2__dv2, dvd2__dr2, dvd2__dv2 = self._orbit_dynamics_jacobians_raw(
-            r2, self.mu_e, self.R_e, self.J2coeff, J2_perturbation_on, higher_zonals=hz
+            r2, self.mu_e, self.R_e, self.J2coeff, J2_perturbation_on, higher_zonals=hz, third_bodies=tb
         )
         dsd2__ds2 = np.block([[drd2__dr2, dvd2__dr2], [drd2__dv2, dvd2__dv2]])
         dsd2__ds0 = ds2__ds0 @ dsd2__ds2
@@ -924,9 +1052,9 @@ class Orbital_State:
         v3 = v0 + vd2 * dt
         ds3__ds0 = _I6 + dt * dsd2__ds0
 
-        rd3, vd3 = self._orbit_dynamics_raw(r3, v3, self.mu_e, self.R_e, self.J2coeff, J2_perturbation_on, higher_zonals=hz)
+        rd3, vd3 = self._orbit_dynamics_raw(r3, v3, self.mu_e, self.R_e, self.J2coeff, J2_perturbation_on, higher_zonals=hz, third_bodies=tb)
         drd3__dr3, drd3__dv3, dvd3__dr3, dvd3__dv3 = self._orbit_dynamics_jacobians_raw(
-            r3, self.mu_e, self.R_e, self.J2coeff, J2_perturbation_on, higher_zonals=hz
+            r3, self.mu_e, self.R_e, self.J2coeff, J2_perturbation_on, higher_zonals=hz, third_bodies=tb
         )
         dsd3__ds3 = np.block([[drd3__dr3, dvd3__dr3], [drd3__dv3, dvd3__dv3]])
         dsd3__ds0 = ds3__ds0 @ dsd3__ds3
@@ -1090,6 +1218,43 @@ class Orbital_State:
         t = self.ts.tt_jd(self.TAI)  # TT scale (see __init__ note on self.TAI)
         sun_icrf = self.ephem.earth.at(t).observe(self.ephem.sun).apparent()
         return np.asarray(sun_icrf.position.km, dtype=float).reshape(3)
+
+    def get_moon_eci(self) -> np.ndarray:
+        r"""
+        Compute the Moon position vector in the ECI frame.
+
+        :return:
+            Moon vector in ECI coordinates [km].
+        :rtype: numpy.ndarray
+
+        """
+        t = self.ts.tt_jd(self.TAI)  # TT scale (see __init__ note on self.TAI)
+        moon_icrf = self.ephem.earth.at(t).observe(self.ephem.moon).apparent()
+        return np.asarray(moon_icrf.position.km, dtype=float).reshape(3)
+
+    def _lunisolar_bodies(self, lunisolar: bool):
+        r"""
+        Build the third-body list for lunisolar perturbations at this epoch.
+
+        The Sun position reuses the already-computed :attr:`S`; the Moon position
+        is queried from the ephemeris. Both are held fixed across the sub-steps
+        of a single propagation step (their motion over one step is negligible).
+
+        :param lunisolar:
+            Whether lunisolar (Sun + Moon) third-body perturbations are enabled.
+        :type lunisolar: bool
+
+        :return:
+            List of ``(mu_body, position_eci)`` pairs, or ``None`` when disabled.
+        :rtype: list[tuple[float, numpy.ndarray]] or None
+
+        """
+        if not lunisolar:
+            return None
+        return [
+            (ThirdBodyConstants.mu_sun, np.asarray(self.S, dtype=float).reshape(3)),
+            (ThirdBodyConstants.mu_moon, self.get_moon_eci()),
+        ]
 
     def update_vecs(self, x: np.ndarray) -> None:
         r"""

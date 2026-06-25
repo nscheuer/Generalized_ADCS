@@ -105,6 +105,7 @@ class Ephemeris:
         # Extract common bodies
         self.sun = self.planets['sun']
         self.earth = self.planets['earth']
+        self.moon = self.planets['moon']
 
         # Create a timescale object (shared across all orbital computations)
         self.ts = load.timescale()
