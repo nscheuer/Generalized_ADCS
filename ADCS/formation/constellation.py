@@ -59,6 +59,8 @@ class Constellation:
         lunisolar: bool = False,
         aero: bool = False,
         world: Optional[FormationWorld] = None,
+        record_stride: int = 1,
+        lean: bool = False,
         verbose: bool = True,
     ) -> None:
         if len(agents) != len(os0_list):
@@ -75,10 +77,17 @@ class Constellation:
         self.aero = bool(aero)
         self.verbose = bool(verbose)
 
+        # Constellation controls recording for all agents (memory at scale).
+        self.record_stride = max(1, int(record_stride))
+        self.lean = bool(lean)
+
         # Assign default ids where missing (used as run ids in the results).
         for i, ag in enumerate(self.agents):
             if ag.sat_id is None:
                 ag.sat_id = i
+            ag.record_stride = self.record_stride
+            ag.lean = self.lean
+            ag.results.lean = self.lean
 
         self.start_time = float(self.os0_list[0].J2000)
         if not all(np.isclose(float(os.J2000), self.start_time) for os in self.os0_list):

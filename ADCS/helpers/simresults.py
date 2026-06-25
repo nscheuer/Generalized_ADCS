@@ -36,6 +36,18 @@ class RunResults:
     control_rpc_server_time_hist: Optional[np.ndarray] = None
     env_local_time_hist: Optional[np.ndarray] = None
     dynamics_time_hist: Optional[np.ndarray] = None
+    # Compact orbit history used in lean recording mode (in place of the full
+    # Orbital_State objects in os_hist), to keep 500-satellite runs in memory.
+    os_pos_hist: Optional[np.ndarray] = None
+    os_vel_hist: Optional[np.ndarray] = None
+    # When True, numeric histories are stored as float32 (half the memory).
+    lean: bool = False
+
+    # Numeric per-step quantities that are copied (and downcast in lean mode).
+    _FLOAT_KEYS = (
+        "state", "est_state", "target", "w_target", "boresight",
+        "clean_sensor", "sensor", "control", "os_pos", "os_vel",
+    )
 
     def record(self, *, k: int, **kwargs):
         mapping = {
@@ -48,14 +60,18 @@ class RunResults:
             "clean_sensor": "clean_sensor_hist", "sensor": "sensor_hist", "control": "control_hist",
             "control_rpc_time": "control_rpc_time_hist", "control_rpc_server_time": "control_rpc_server_time_hist",
             "env_local_time": "env_local_time_hist", "dynamics_time": "dynamics_time_hist",
+            "os_pos": "os_pos_hist", "os_vel": "os_vel_hist",
         }
         for key, val in kwargs.items():
             if val is not None and key in mapping:
                 attr = mapping[key]
                 if getattr(self, attr) is None:
                     setattr(self, attr, [])
-                if key in ["state", "est_state", "target", "w_target", "boresight", "clean_sensor", "sensor", "control"]:
-                    getattr(self, attr).append(np.asarray(val).copy())
+                if key in self._FLOAT_KEYS:
+                    arr = np.asarray(val)
+                    if self.lean and np.issubdtype(arr.dtype, np.floating):
+                        arr = arr.astype(np.float32)
+                    getattr(self, attr).append(arr.copy())
                 else:
                     getattr(self, attr).append(val)
 
