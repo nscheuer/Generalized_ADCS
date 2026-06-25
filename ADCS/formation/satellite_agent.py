@@ -56,6 +56,8 @@ class SatelliteAgent:
         goal_list=None,
         sat_id: Optional[object] = None,
         aero_model=None,
+        record_stride: int = 1,
+        lean: bool = False,
     ) -> None:
         self.satellite = satellite
         self.est_satellite = est_satellite
@@ -76,10 +78,17 @@ class SatelliteAgent:
             self.x_hat = np.empty(est_satellite.state_len)
         self.os_hat = None
 
+        # Recording controls for large constellations: record only every
+        # ``record_stride`` steps; in lean mode store float32 histories and a
+        # compact orbit position/velocity instead of full Orbital_State objects
+        # and covariances.
+        self.record_stride = max(1, int(record_stride))
+        self.lean = bool(lean)
+
         # Jacobians are only needed when an estimator is in the loop.
         self._skip_jac = (estimator is None)
 
-        self.results = RunResults(satellite=satellite, est_satellite=est_satellite)
+        self.results = RunResults(satellite=satellite, est_satellite=est_satellite, lean=self.lean)
 
     def aero_accel_eci(self, os: Orbital_State):
         r"""
@@ -189,6 +198,29 @@ class SatelliteAgent:
             boresight_vec = est_satellite.get_boresight(active_goal.boresight_name)
         except (AttributeError, KeyError, ValueError, TypeError):
             pass
+
+        # Subsample recording for large constellations (still step every dt).
+        if k % self.record_stride != 0:
+            return x
+
+        if self.lean:
+            # Compact: float32 numeric histories, orbit stored as position +
+            # velocity arrays (no full Orbital_State), no covariances/biases.
+            self.results.record(
+                k=k,
+                time_J2000=J2000_k,
+                time_s=k * dt,
+                os_pos=os_k.R,
+                os_vel=os_k.V,
+                state=x,
+                est_state=self.x_hat,
+                target=target,
+                w_target=w_target,
+                boresight=boresight_vec,
+                sensor=y,
+                control=u,
+            )
+            return x
 
         est_act_bias_snapshot, est_sens_bias_snapshot = self._estimated_bias_snapshots()
 
