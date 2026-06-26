@@ -89,6 +89,10 @@ class Constellation:
             ag.lean = self.lean
             ag.results.lean = self.lean
 
+        # Whether any satellite has a low-thrust source (gates the external-accel
+        # path even when aero is off).
+        self._any_thrust = any(ag.thrust_source is not None for ag in self.agents)
+
         self.start_time = float(self.os0_list[0].J2000)
         if not all(np.isclose(float(os.J2000), self.start_time) for os in self.os0_list):
             raise ValueError("all initial orbital states must share the same epoch (J2000)")
@@ -165,20 +169,24 @@ class Constellation:
             t_k = self.start_time + k * dt * sec2cent
             t_kp1 = self.start_time + (k + 1) * dt * sec2cent
 
-            # 1) advance orbits to the next epoch (gravity [+ optional aero])
-            third_bodies = self._third_bodies(os_cur)
-            external_accels = None
-            if self.aero:
-                # Attitude-dependent aero drag+lift from each satellite's current
-                # attitude, held fixed across the step (operator-split coupling).
-                external_accels = [ag.aero_accel_eci(os_cur[i]) for i, ag in enumerate(self.agents)]
-            R_next, V_next = self._orbit_rk4_step(R_arr, V_arr, dt, higher_zonals, third_bodies, external_accels)
-            # 2) batched environment at the next epoch
-            os_next = Orbital_State.batch_at_epoch(R_next, V_next, t_kp1, self.ephem, self.density_model)
-
-            # 3) publish synchronous truth snapshot for formation-aware goals
+            # 1) publish the synchronous truth snapshot FIRST, so formation-aware
+            #    goals AND closed-loop thrust controllers read current neighbours.
             for i, ag in enumerate(self.agents):
                 self.world.update(ag.sat_id, R=R_arr[i], V=V_arr[i], q=ag.x[3:7], J2000=t_k)
+
+            # 2) advance orbits to the next epoch: gravity + (optional) aero
+            #    drag/lift + (optional) commanded low-thrust, held fixed across
+            #    the step (operator-split coupling).
+            third_bodies = self._third_bodies(os_cur)
+            external_accels = None
+            if self.aero or self._any_thrust:
+                external_accels = [
+                    ag.external_accel_eci(os_cur[i], t_k, self.world, aero=self.aero)
+                    for i, ag in enumerate(self.agents)
+                ]
+            R_next, V_next = self._orbit_rk4_step(R_arr, V_arr, dt, higher_zonals, third_bodies, external_accels)
+            # 3) batched environment at the next epoch
+            os_next = Orbital_State.batch_at_epoch(R_next, V_next, t_kp1, self.ephem, self.density_model)
 
             # 4) step each satellite's GNC + attitude dynamics
             for i, ag in enumerate(self.agents):

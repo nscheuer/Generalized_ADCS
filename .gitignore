@@ -222,3 +222,6 @@ __marimo__/
 # Documentation .rst files
 docs/source/*.rst
 !docs/source/index.rst
+
+# Generated example figures
+examples/formation/*.png
