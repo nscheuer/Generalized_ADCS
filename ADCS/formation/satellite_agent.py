@@ -9,6 +9,7 @@ from ADCS.helpers.math_helpers import normalize, rot_mat
 from ADCS.helpers.simresults import RunResults
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.universal_constants import TimeConstants
+from ADCS.formation.thrust import thrust_command_to_eci
 
 # Earth sidereal rotation rate [rad/s] for the co-rotating atmosphere model.
 _OMEGA_EARTH = np.array([0.0, 0.0, 7.2921159e-5])
@@ -56,6 +57,7 @@ class SatelliteAgent:
         goal_list=None,
         sat_id: Optional[object] = None,
         aero_model=None,
+        thrust_source=None,
         record_stride: int = 1,
         lean: bool = False,
     ) -> None:
@@ -70,6 +72,11 @@ class SatelliteAgent:
         # and the orchestrator has aero enabled, aero_accel_eci() supplies the
         # extra ECI acceleration for the in-loop orbit step.
         self.aero_model = aero_model
+        # Optional low-thrust source: callable (t_J2000, x, os, world) ->
+        # (accel_mps2, frame) | None. Supplies a commanded thrust acceleration
+        # (ECI / RTN / LVLH / BODY) that is superposed onto the orbit's
+        # external acceleration -- the general low-thrust orbit-control hook.
+        self.thrust_source = thrust_source
 
         self.x = np.asarray(x, dtype=float).copy()
         self.u = np.zeros(satellite.control_len)
@@ -113,6 +120,55 @@ class SatelliteAgent:
         a_body = F_body / float(self.satellite.mass)         # m/s^2
         a_eci = R_b2i @ a_body                               # m/s^2 ECI
         return a_eci / 1000.0                                # km/s^2
+
+    def thrust_accel_eci(self, os: Orbital_State, J2000: float, world=None):
+        r"""
+        ECI low-thrust acceleration [km/s^2] commanded by the thrust source.
+
+        Queries ``self.thrust_source(J2000, x, os, world)`` for a thrust
+        acceleration [m/s^2] in a named frame (ECI / RTN / LVLH / BODY), rotates
+        it to ECI (using the current attitude for ``BODY`` and the orbit frame
+        for ``RTN``/``LVLH``), and converts to km/s^2. ``world`` lets closed-loop
+        formation controllers read neighbour states. Returns ``None`` for coast
+        or when no source is attached.
+
+        :param os: Current orbital state (ECI ``R``, ``V``).
+        :param J2000: Current epoch in Julian centuries since J2000.
+        :param world: Optional :class:`FormationWorld` for closed-loop control.
+        :return: ECI thrust acceleration [km/s^2], shape ``(3,)``, or ``None``.
+        """
+        if self.thrust_source is None:
+            return None
+        cmd = self.thrust_source(J2000, self.x, os, world)
+        if cmd is None:
+            return None
+        accel_mps2, frame = cmd
+        a_eci = thrust_command_to_eci(accel_mps2, frame, self.x[3:7], os.R, os.V)  # m/s^2
+        return np.asarray(a_eci, dtype=float) / 1000.0                            # km/s^2
+
+    def external_accel_eci(self, os: Orbital_State, J2000: float, world=None, aero: bool = True):
+        r"""
+        Total non-gravitational ECI acceleration [km/s^2] on the orbit this step.
+
+        Superposes the (optional) aerodynamic drag+lift acceleration and the
+        (optional) commanded low-thrust acceleration. Returns ``None`` when
+        neither contributes (gravity-only).
+
+        :param os: Current orbital state.
+        :param J2000: Current epoch (Julian centuries).
+        :param world: Optional :class:`FormationWorld` for closed-loop thrust.
+        :param aero: Whether to include the aero term (the orchestrator's master
+            aero switch).
+        :return: ECI acceleration [km/s^2], shape ``(3,)``, or ``None``.
+        """
+        a = None
+        if aero and self.aero_model is not None:
+            a = self.aero_accel_eci(os)
+        if self.thrust_source is not None:
+            t = self.thrust_accel_eci(os, J2000, world)
+            if t is not None:
+                a = t if a is None else a + t
+        return a
 
     def step(self, k: int, J2000_k: float, os_k: Orbital_State, os_kp1: Orbital_State) -> np.ndarray:
         r"""

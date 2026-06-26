@@ -45,6 +45,7 @@ def simulate(
     zonal_order: int = 2,
     lunisolar: bool = False,
     aero_model=None,
+    thrust_source=None,
 ) -> SimulationResults:
     r"""
     Run a time-domain simulation of the spacecraft Attitude Determination and Control
@@ -141,6 +142,16 @@ def simulate(
     :type aero_model:
         AeroModel or None
 
+    :param thrust_source:
+        Optional low-thrust source -- a callable
+        ``(t_J2000, x, os, world) -> (accel_mps2, frame) | None`` returning a
+        commanded thrust acceleration (frame ``ECI``/``RTN``/``LVLH``/``BODY``),
+        superposed onto the orbit. See :mod:`ADCS.formation.thrust` for
+        convenience sources. When set, the orbit is co-integrated in the loop
+        (as for ``aero_model``); ``world`` is ``None`` in single-satellite runs.
+    :type thrust_source:
+        callable or None
+
     :return:
         Container holding all recorded simulation data, including true and estimated
         states, controls, sensor readings, biases, and targets for the entire run.
@@ -168,12 +179,14 @@ def simulate(
     start_time = os0.J2000
     end_time = start_time + tf * TimeConstants.sec2cent
 
-    # Gravity orbit is precomputed (and batched) unless aerodynamic forces are
-    # enabled -- attitude-dependent drag+lift couples the orbit to attitude, so
-    # in that case the orbit is stepped in the loop (operator-split) below. The
-    # precomputed orbit is still built for plan-and-track trajectory planning.
+    # Gravity orbit is precomputed (and batched) unless a non-gravitational
+    # force is enabled. Attitude-dependent drag+lift and commanded low-thrust
+    # both couple the orbit to per-step state, so in those cases the orbit is
+    # stepped in the loop (operator-split) below. The precomputed orbit is still
+    # built for plan-and-track trajectory planning.
+    inloop_orbit = (aero_model is not None) or (thrust_source is not None)
     orb = None
-    if aero_model is None:
+    if not inloop_orbit:
         orb = Orbit(os0=os0, end_time=end_time, dt=dt, use_J2=True, fast=False,
                     zonal_order=zonal_order, lunisolar=lunisolar)
 
@@ -257,9 +270,10 @@ def simulate(
         orbit_estimator=orbit_estimator,
         goal_list=goal_list,
         aero_model=aero_model,
+        thrust_source=thrust_source,
     )
 
-    if aero_model is None:
+    if not inloop_orbit:
         # Gravity-only orbit: read precomputed states.
         for k in tqdm(range(N), desc="Simulating ADCS", unit="step"):
             J2000_k = start_time + k * dt * TimeConstants.sec2cent
@@ -270,14 +284,15 @@ def simulate(
 
             agent.step(k, J2000_k, os_k, os_kp1)
     else:
-        # Aero co-integration: step the orbit in the loop using the satellite's
-        # current attitude (drag + lift), held fixed across the RK4 sub-steps.
+        # Co-integrate the orbit in the loop: gravity + (optional) attitude-
+        # dependent aero drag/lift + (optional) commanded low-thrust, held fixed
+        # across the RK4 sub-steps. world is None for a single satellite.
         os_cur = os0
         for k in tqdm(range(N), desc="Simulating ADCS", unit="step"):
             J2000_k = start_time + k * dt * TimeConstants.sec2cent
-            a_aero = agent.aero_accel_eci(os_cur)
+            a_ext = agent.external_accel_eci(os_cur, J2000_k, world=None)
             os_kp1 = os_cur.propagate_orbit_rk4(
-                dt, external_accel=a_aero, zonal_order=zonal_order, lunisolar=lunisolar,
+                dt, external_accel=a_ext, zonal_order=zonal_order, lunisolar=lunisolar,
             )
             agent.step(k, J2000_k, os_cur, os_kp1)
             os_cur = os_kp1
