@@ -42,6 +42,9 @@ def simulate(
     os0: Orbital_State = None,
     dt: float = 1.0,
     tf: float = 500.0,
+    zonal_order: int = 2,
+    lunisolar: bool = False,
+    aero_model=None,
 ) -> SimulationResults:
     r"""
     Run a time-domain simulation of the spacecraft Attitude Determination and Control
@@ -118,6 +121,26 @@ def simulate(
     :type tf:
         float
 
+    :param zonal_order:
+        Highest zonal gravity harmonic degree in the orbit (2 = J2 only, up to
+        6 = J2..J6).
+    :type zonal_order:
+        int
+
+    :param lunisolar:
+        Enable lunisolar (Sun + Moon) third-body perturbations on the orbit.
+    :type lunisolar:
+        bool
+
+    :param aero_model:
+        Optional :class:`~ADCS.satellite_hardware.aero.AeroModel`. When provided,
+        attitude-dependent aerodynamic drag + lift acts on the orbit: the orbit
+        is co-integrated with attitude in the loop (operator-split) instead of
+        being precomputed, so the satellite's attitude affects its own
+        trajectory. ``None`` (the default) keeps the precomputed gravity orbit.
+    :type aero_model:
+        AeroModel or None
+
     :return:
         Container holding all recorded simulation data, including true and estimated
         states, controls, sensor readings, biases, and targets for the entire run.
@@ -144,7 +167,15 @@ def simulate(
 
     start_time = os0.J2000
     end_time = start_time + tf * TimeConstants.sec2cent
-    orb = Orbit(os0=os0, end_time=end_time, dt=dt, use_J2=True, fast=False)
+
+    # Gravity orbit is precomputed (and batched) unless aerodynamic forces are
+    # enabled -- attitude-dependent drag+lift couples the orbit to attitude, so
+    # in that case the orbit is stepped in the loop (operator-split) below. The
+    # precomputed orbit is still built for plan-and-track trajectory planning.
+    orb = None
+    if aero_model is None:
+        orb = Orbit(os0=os0, end_time=end_time, dt=dt, use_J2=True, fast=False,
+                    zonal_order=zonal_order, lunisolar=lunisolar)
 
     u = np.zeros(satellite.control_len)
 
@@ -161,6 +192,9 @@ def simulate(
     if controller is not None and _supports_planning(controller):
         has_active_trajectory = getattr(controller, "active_trajectory", None) is not None
         if not has_active_trajectory:
+            if orb is None:  # aero mode: build a gravity orbit for planning
+                orb = Orbit(os0=os0, end_time=end_time, dt=dt, use_J2=True, fast=False,
+                            zonal_order=zonal_order, lunisolar=lunisolar)
             print("Calculating initial trajectory for Plan-and-Track controller...")
             trajectory = controller.calculate_trajectory(
                 t_start=start_time,
@@ -222,15 +256,30 @@ def simulate(
         estimator=estimator,
         orbit_estimator=orbit_estimator,
         goal_list=goal_list,
+        aero_model=aero_model,
     )
 
-    for k in tqdm(range(N), desc="Simulating ADCS", unit="step"):
-        J2000_k = start_time + k * dt * TimeConstants.sec2cent
-        os_k = orb.get_os(J2000=J2000_k)
+    if aero_model is None:
+        # Gravity-only orbit: read precomputed states.
+        for k in tqdm(range(N), desc="Simulating ADCS", unit="step"):
+            J2000_k = start_time + k * dt * TimeConstants.sec2cent
+            os_k = orb.get_os(J2000=J2000_k)
 
-        J2000_kp1 = start_time + (k + 1) * dt * TimeConstants.sec2cent
-        os_kp1 = orb.get_os(J2000=J2000_kp1)
+            J2000_kp1 = start_time + (k + 1) * dt * TimeConstants.sec2cent
+            os_kp1 = orb.get_os(J2000=J2000_kp1)
 
-        agent.step(k, J2000_k, os_k, os_kp1)
+            agent.step(k, J2000_k, os_k, os_kp1)
+    else:
+        # Aero co-integration: step the orbit in the loop using the satellite's
+        # current attitude (drag + lift), held fixed across the RK4 sub-steps.
+        os_cur = os0
+        for k in tqdm(range(N), desc="Simulating ADCS", unit="step"):
+            J2000_k = start_time + k * dt * TimeConstants.sec2cent
+            a_aero = agent.aero_accel_eci(os_cur)
+            os_kp1 = os_cur.propagate_orbit_rk4(
+                dt, external_accel=a_aero, zonal_order=zonal_order, lunisolar=lunisolar,
+            )
+            agent.step(k, J2000_k, os_cur, os_kp1)
+            os_cur = os_kp1
 
     return SimulationResults(runs=[agent.results])
