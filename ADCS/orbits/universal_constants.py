@@ -53,6 +53,7 @@ class _EarthConstants:
     J6coeff: float = 5.40681239e-7
     J2: float = J2coeff * R_e**2 * mu_e  # km^5/s^2
     m_earth: float = 5.9736e24        # kg
+    omega_e: float = 7.2921159e-5     # rad/s, Earth sidereal rotation rate (IERS)
     solar_constant: float = 1361.0    # W/m^2
     c: float = 299792458.0            # m/s
 
