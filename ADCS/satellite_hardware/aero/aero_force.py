@@ -21,11 +21,14 @@ def panel_aero_force_body(V_b, rho, normals, areas, Cn, Ct):
 
     .. math::
 
-        \mathbf{F} = -\rho V^2 A\, c\,
+        \mathbf{F} = -\tfrac{1}{2}\,\rho V^2 A\, c\,
             \Big[\, C_n\, c\, \hat{n} \;+\; C_t\,(\hat{v} - c\,\hat{n}) \,\Big].
 
-    At normal incidence (:math:`c=1`, :math:`\hat n=\hat v`) the force is purely
-    along :math:`-\hat v` (drag, zero lift). At oblique incidence the normal-
+    The **standard** dynamic pressure :math:`\tfrac{1}{2}\rho V^2` is used, so at
+    normal incidence (:math:`c=1`, :math:`\hat n=\hat v`) the force reduces to the
+    textbook drag :math:`\mathbf{F} = -\tfrac{1}{2} C_n\,\rho V^2 A\,\hat v` — i.e.
+    :math:`C_n` is the normal-incidence drag coefficient (:math:`C_D`), about 2.0
+    for a diffuse free-molecular flat plate. At oblique incidence the normal-
     pressure term contributes a component perpendicular to :math:`\hat v` — the
     **lift** — whose magnitude scales with :math:`(C_n-C_t)`; setting
     :math:`C_n=C_t` recovers a lift-free (drag-only) panel. Faces in the wake
@@ -49,7 +52,7 @@ def panel_aero_force_body(V_b, rho, normals, areas, Cn, Ct):
     c = normals @ vhat                      # (M,) incidence cosine per face
     c = np.where(c > 0.0, c, 0.0)           # only windward faces contribute
 
-    scale = rho * V2 * np.asarray(areas, dtype=float) * c   # (M,)
+    scale = 0.5 * rho * V2 * np.asarray(areas, dtype=float) * c   # (M,) standard 1/2 rho V^2
     F_normal = -(Cn * scale * c)[:, None] * normals
     F_shear = -(Ct * scale)[:, None] * (vhat[None, :] - c[:, None] * normals)
     return (F_normal + F_shear).sum(axis=0)
