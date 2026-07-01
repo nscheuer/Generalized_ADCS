@@ -131,20 +131,29 @@ def plume_impingement_deltav(droe, sats, env, policy, years):
     return np.zeros(len(sats))
 
 
-def make_sats(n, b_spread=0.0, base=SatSpec()):
-    """N satellites; b_spread fans the cross-sectional area +/- (=> differential drag)."""
-    sats = []
-    for i in range(n):
-        f = 1.0 + b_spread * (2.0 * i / max(n - 1, 1) - 1.0)   # linear ramp across the set
-        sats.append(SatSpec(name=f"sat{i}", mass_kg=base.mass_kg,
-                            area_m2=base.area_m2 * f, Cd=base.Cd))
-    return sats
+def make_sats(n, b_spread=0.0, base=SatSpec(), rng=None):
+    """N satellites with a +/- ``b_spread`` fractional cross-sectional-area (=> ballistic-
+    coefficient) dispersion.
+
+    Assignment defaults to a DETERMINISTIC linear index ramp (spans exactly [1-b, 1+b]);
+    pass a numpy Generator ``rng`` to draw the fractions UNIFORMLY in [1-b, 1+b] instead.
+    The per-satellite maintenance dV is independent of the assignment method -- each sat's
+    dV depends only on its own BC vs the fleet reference (no position/neighbour coupling),
+    and the reported max dV is the extreme-area sat either way. The ``rng`` path just lets
+    you confirm that, and is the closer analogue to the MC's attitude-driven dispersion.
+    """
+    if rng is not None:
+        fs = 1.0 + b_spread * (2.0 * rng.random(n) - 1.0)
+    else:
+        fs = np.array([1.0 + b_spread * (2.0 * i / max(n - 1, 1) - 1.0) for i in range(n)])
+    return [SatSpec(name=f"sat{i}", mass_kg=base.mass_kg, area_m2=base.area_m2 * float(fs[i]), Cd=base.Cd)
+            for i in range(n)]
 
 
 # --------------------------------------------------------------------------- #
 # Budget
 # --------------------------------------------------------------------------- #
-def maintenance_budget(R0, V0, meta, env, policy, years, sats=None, b_spread=0.0):
+def maintenance_budget(R0, V0, meta, env, policy, years, sats=None, b_spread=0.0, rng=None):
     """Per-satellite maintenance delta-V [m/s] broken down by source.
 
     Returns dict with per-source arrays (drag, absolute, j2, sso, total) plus
@@ -155,7 +164,7 @@ def maintenance_budget(R0, V0, meta, env, policy, years, sats=None, b_spread=0.0
     chief = center_index(meta)
     droe = relative_roe(oes, chief)
     if sats is None:
-        sats = make_sats(N, b_spread)
+        sats = make_sats(N, b_spread, rng=rng)
     T = years * SEC_PER_YEAR
     v = env.v_ms
 
