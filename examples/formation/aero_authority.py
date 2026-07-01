@@ -18,10 +18,10 @@ from ADCS.orbits.density_model import DensityModel
 from ADCS.satellite_hardware.aero.aero_force import AeroModel
 
 # ===================== TUNABLE CONFIGURATION ============================== #
-MASS_KG       = 800.0      # satellite mass
+MASS_KG       = 575.0      # satellite mass (Starlink V2 Mini dry)
 AREA_FRONT_M2 = 105.0      # broadside ("front-on") collector area  -> max drag / lift
 AREA_END_M2   = 2.0        # edge ("end-on") area                   -> min drag floor
-CN            = 2.6        # panel normal (pressure) coefficient
+CN            = 2.4        # panel normal (pressure) coeff = C_D (standard 1/2 rho V^2)
 CT            = 0.3        # panel tangential (shear) coefficient   (lift <- Cn != Ct)
 SOLAR_LEVEL   = 0.5        # 0=solar min, 1=solar max  (mid = 0.5)
 ALT           = ALT_KM     # km

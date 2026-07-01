@@ -52,9 +52,11 @@ SEC_PER_YEAR = 365.25 * 86400.0
 @dataclass
 class SatSpec:
     name: str = ""
-    mass_kg: float = 50.0
-    area_m2: float = 0.5
-    Cd: float = 2.2
+    mass_kg: float = 575.0     # Starlink V2 Mini dry
+    area_m2: float = 4.0       # NOMINAL operating (sun-pointing feathered) cross-section [m^2];
+                               # NOT the 105 m^2 broadside (that's the drag-modulation ceiling,
+                               # see aero_authority). ** DISCUSS: right feathered area? **
+    Cd: float = 2.4            # = Cn (standard 1/2 rho V^2 convention)
 
     @property
     def ballistic_coeff(self):           # kg/m^2 ; higher B => less drag
