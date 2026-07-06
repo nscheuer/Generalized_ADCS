@@ -55,3 +55,8 @@ This project is based on the PhD research of **Patrick McKeen**:
   with a Focus on Autonomy, Generalizability, and Underactuation*  
   https://dspace.mit.edu/handle/1721.1/158874
 
+See the release paper:
+
+- 📄 *A Modular Open-Source ADCS Framework for Small Satellite Development and Testing*  
+  https://smallsateurope.com/paper/a-modular-open-source-adcs-framework-for-small-satellite-development-and-testing/
+
