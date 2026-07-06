@@ -113,6 +113,15 @@ def erf_np(x):
     return np.vectorize(erf)(np.asarray(x, dtype=float))
 
 
+def erfc_np(x):
+    r"""Vectorized COMPLEMENTARY error function via math.erfc. Numerically stable
+    for large x -- computing 1 - erf(x) instead cancels catastrophically for
+    x >~ 5 (deep-leeward facets), which flips the sign of the DRIA temperature-
+    ratio denominator and produces negative/runaway T_r."""
+    from math import erfc
+    return np.vectorize(erfc)(np.asarray(x, dtype=float))
+
+
 def dria_reemission_temp(gamma, s: float, T_inf: float, T_wall: float, alpha_accom: float):
     r"""
     Re-emitted-particle temperature T_r per facet from the generalized DRIA
@@ -128,9 +137,9 @@ def dria_reemission_temp(gamma, s: float, T_inf: float, T_wall: float, alpha_acc
     """
     gamma = np.asarray(gamma, dtype=float)
     sg = s * gamma
-    erfc_term = 1.0 - erf_np(-sg)
-    denom = np.exp(-sg**2) / np.sqrt(np.pi) + sg * erfc_term
-    denom = np.where(np.abs(denom) < 1e-300, 1e-300, denom)
+    erfc_term = erfc_np(-sg)                                   # = 1 + erf(sg), stable at |sg| >> 1
+    denom = np.exp(-sg**2) / np.sqrt(np.pi) + sg * erfc_term   # analytically > 0 for all sg
+    denom = np.where(denom < 1e-300, 1e-300, denom)
     Tr_over_Ti = (alpha_accom * (T_wall / T_inf)
                   + (1.0 - alpha_accom) * (1.0 + s**2 / 2.0 + 0.25 * sg * erfc_term / denom))
     return Tr_over_Ti * T_inf

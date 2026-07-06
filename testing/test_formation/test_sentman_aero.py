@@ -75,6 +75,16 @@ def test_dria_alpha_limits():
     assert _plate(np.pi / 2, alpha=0.7) > _plate(np.pi / 2, alpha=1.0)
 
 
+def test_dria_temperature_stable_for_all_incidences():
+    # regression: erfc built as 1-erf cancels catastrophically for |s*gamma| >~ 5
+    # (deep leeward), flipping the denominator sign -> negative/runaway T_r.
+    gammas = np.linspace(-1.0, 1.0, 401)
+    for alpha in (0.0, 0.5, 0.7, 1.0):
+        Tr = dria_reemission_temp(gammas, S, T_INF, T_WALL, alpha)
+        assert np.all(np.isfinite(Tr)) and np.all(Tr > 0.0)
+        assert np.all(Tr < T_INF * (1 + S**2 / 2 + 1.0) + 1.0)   # bounded by the energy limit
+
+
 def test_exospheric_temperature_table():
     assert exospheric_temperature(0.0) == 700.0
     assert exospheric_temperature(0.5) == 900.0
