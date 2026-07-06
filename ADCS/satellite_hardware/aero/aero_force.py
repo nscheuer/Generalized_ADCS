@@ -58,6 +58,114 @@ def panel_aero_force_body(V_b, rho, normals, areas, Cn, Ct):
     return (F_normal + F_shear).sum(axis=0)
 
 
+# =========================================================================== #
+# Sentman / DRIA facet model (WP2 Task 4; NOT the default -- see AeroModel.mode)
+# =========================================================================== #
+K_BOLTZ = 1.380649e-23          # J/K
+AMU = 1.66053907e-27            # kg
+
+# 3-point exospheric-temperature table tied to solar_level (WP2 spec defaults;
+# overridable by callers): T_inf = 700 / 900 / 1100 K at level 0 / 0.5 / 1.
+EXO_TEMP_LEVELS = np.array([0.0, 0.5, 1.0])
+EXO_TEMP_K = np.array([700.0, 900.0, 1100.0])
+
+
+def exospheric_temperature(solar_level: float, levels=EXO_TEMP_LEVELS, temps=EXO_TEMP_K) -> float:
+    r"""Exospheric temperature T_inf [K] vs solar activity level (linear interp)."""
+    return float(np.interp(float(solar_level), levels, temps))
+
+
+def sentman_facet_coeffs(gamma, s: float, vr_ratio):
+    r"""
+    Sentman (1961) free-molecular facet coefficients with diffuse re-emission,
+    per unit area, normalized by the standard dynamic pressure 1/2 rho V^2.
+
+    Derived from the drifting-Maxwellian flux integrals of Bird (1994) Eqs. (4.22)
+    (number flux) and (4.27) (energy flux), as quoted in Fuchs & Fasoulas,
+    arXiv:2411.11597, Eqs. (10)-(11); the incident normal/tangential momentum
+    fluxes follow the same integrals. Diffuse re-emission carries momentum along
+    the surface normal only (Sentman's model; Doornbos 2012 Sec. 3.5 concept).
+    Validated against the WP2 spec gates: broadside C_D in [2.0, 2.5], grazing
+    dC_D/dphi = 2 erf(s sin phi) cos phi (alpha=1), hyperthermal recovery at s=50.
+
+    :param gamma: SIGNED incidence cosine n_hat . v_hat per facet (windward > 0;
+        leeward facets receive the thermal tail -- do NOT clip).
+    :param s: molecular speed ratio |V| / sqrt(2 k T_inf / m).
+    :param vr_ratio: re-emission speed ratio c_m,r / V = sqrt(2 k T_r / m) / V,
+        with T_r from the DRIA temperature ratio (see :func:`dria_reemission_temp`).
+    :return: (Cp, Ctau_over_l) -- normal-pressure coefficient and tangential
+        coefficient divided by the tangential direction cosine l = sqrt(1-gamma^2).
+    """
+    gamma = np.asarray(gamma, dtype=float)
+    P = np.exp(-gamma**2 * s**2) / s
+    Z = 1.0 + erf_np(gamma * s)
+    G = 1.0 / (2.0 * s**2)
+    flux = P / np.sqrt(np.pi) + gamma * Z          # ~ 2 m nu_i / (rho V), Bird Eq. 4.22
+    Cp_inc = gamma * P / np.sqrt(np.pi) + (gamma**2 + G) * Z
+    Cp_re = 0.5 * np.asarray(vr_ratio) * (np.sqrt(np.pi) * gamma * Z + P)
+    Ctau_over_l = flux                              # incident tangential momentum only
+    return Cp_inc + Cp_re, Ctau_over_l
+
+
+def erf_np(x):
+    r"""Vectorized error function (numpy has no erf; avoid a scipy dependency)."""
+    from math import erf
+    return np.vectorize(erf)(np.asarray(x, dtype=float))
+
+
+def dria_reemission_temp(gamma, s: float, T_inf: float, T_wall: float, alpha_accom: float):
+    r"""
+    Re-emitted-particle temperature T_r per facet from the generalized DRIA
+    temperature ratio of Fuchs & Fasoulas, arXiv:2411.11597, Eq. (19) (valid for
+    any speed ratio and facet orientation; erfc form for numerical robustness):
+
+        T_r/T_i = alpha * T_w/T_i
+                  + (1-alpha) * (1 + s^2/2 + (1/4) * s*g*erfc(-s*g) /
+                                 [ (1/sqrt(pi)) exp(-s^2 g^2) + s*g*erfc(-s*g) ])
+
+    with T_i = m V^2 / (2 k s^2) = T_inf (their Eq. 7). alpha=1 -> full
+    accommodation (T_r = T_wall); alpha=0 -> energy-conserving re-emission.
+    """
+    gamma = np.asarray(gamma, dtype=float)
+    sg = s * gamma
+    erfc_term = 1.0 - erf_np(-sg)
+    denom = np.exp(-sg**2) / np.sqrt(np.pi) + sg * erfc_term
+    denom = np.where(np.abs(denom) < 1e-300, 1e-300, denom)
+    Tr_over_Ti = (alpha_accom * (T_wall / T_inf)
+                  + (1.0 - alpha_accom) * (1.0 + s**2 / 2.0 + 0.25 * sg * erfc_term / denom))
+    return Tr_over_Ti * T_inf
+
+
+def panel_aero_force_body_sentman(V_b, rho, normals, areas, alpha_accom: float = 1.0,
+                                  T_wall: float = 300.0, T_inf: float = 900.0,
+                                  m_mean_amu: float = 16.0) -> np.ndarray:
+    r"""
+    Net body-frame aerodynamic force [N] from the Sentman/DRIA facet model (see
+    :func:`sentman_facet_coeffs`). Unlike the hyperthermal model, leeward facets
+    receive the thermal tail of the Maxwellian (the ~1/s "thermal floor"), so
+    gamma is NOT clipped. Speed ratio s = |V_b| / sqrt(2 k T_inf / m_mean).
+    """
+    V_b = np.asarray(V_b, dtype=float).reshape(3)
+    V2 = float(V_b @ V_b)
+    if rho <= 0.0 or V2 <= 0.0:
+        return np.zeros(3)
+    V = np.sqrt(V2)
+    vhat = V_b / V
+    m_kg = m_mean_amu * AMU
+    c_m = np.sqrt(2.0 * K_BOLTZ * T_inf / m_kg)
+    s = V / c_m
+    gamma = np.asarray(normals, dtype=float) @ vhat            # SIGNED
+    T_r = dria_reemission_temp(gamma, s, T_inf, T_wall, alpha_accom)
+    vr_ratio = np.sqrt(2.0 * K_BOLTZ * T_r / m_kg) / V
+    Cp, Ctau_over_l = sentman_facet_coeffs(gamma, s, vr_ratio)
+    q = 0.5 * rho * V2
+    A = np.asarray(areas, dtype=float)
+    n_arr = np.asarray(normals, dtype=float)
+    t_vec = vhat[None, :] - gamma[:, None] * n_arr             # l * t_hat (tangential flow dir)
+    F = -(q * A * Cp)[:, None] * n_arr - (q * A * Ctau_over_l)[:, None] * t_vec
+    return F.sum(axis=0)
+
+
 class AeroModel:
     r"""
     Attitude-dependent orbital aerodynamic force (drag + lift) for a satellite.
@@ -76,13 +184,26 @@ class AeroModel:
     :param Cn: Normal (pressure) coefficient (default 2.0).
     :param Ct: Tangential (shear) coefficient (default 0.0). ``Cn == Ct`` gives a
         lift-free (drag-only) model.
+    :param mode: ``"hyperthermal_faceted"`` (DEFAULT -- the Cn/Ct panel model) or
+        ``"sentman"`` (Sentman/DRIA facet model with thermal-tail leeward flux;
+        see :func:`panel_aero_force_body_sentman`). Sentman ignores Cn/Ct and uses
+        ``alpha_accom``/``T_wall`` plus the per-call ``T_inf``/``m_mean_amu``.
+    :param alpha_accom: DRIA energy-accommodation coefficient (sentman mode).
+    :param T_wall: Surface temperature [K] (sentman mode; default 300).
     """
 
-    def __init__(self, normals, areas, Cn: float = 2.0, Ct: float = 0.0) -> None:
+    def __init__(self, normals, areas, Cn: float = 2.0, Ct: float = 0.0,
+                 mode: str = "hyperthermal_faceted", alpha_accom: float = 1.0,
+                 T_wall: float = 300.0) -> None:
         self.normals = np.vstack([normalize(np.asarray(n, dtype=float)) for n in normals])
         self.areas = np.asarray(areas, dtype=float).reshape(-1)
         self.Cn = float(Cn)
         self.Ct = float(Ct)
+        if mode not in ("hyperthermal_faceted", "sentman"):
+            raise ValueError(f"unknown aero mode {mode!r}")
+        self.mode = mode
+        self.alpha_accom = float(alpha_accom)
+        self.T_wall = float(T_wall)
 
     @classmethod
     def from_geometry(cls, config: GeometryConfig, Cn: float = 2.0, Ct: float = 0.0) -> "AeroModel":
@@ -95,11 +216,18 @@ class AeroModel:
         areas = [p["area"] for p in params]
         return cls(normals=normals, areas=areas, Cn=Cn, Ct=Ct)
 
-    def force_body(self, V_b, rho) -> np.ndarray:
+    def force_body(self, V_b, rho, T_inf: float = 900.0, m_mean_amu: float = 16.0) -> np.ndarray:
         r"""
         Net body-frame aerodynamic force [N].
 
         :param V_b: Body-frame relative wind velocity [m/s], shape ``(3,)``.
         :param rho: Atmospheric density [kg/m^3].
+        :param T_inf: Exospheric temperature [K] (sentman mode only; see
+            :func:`exospheric_temperature` for the solar-level table).
+        :param m_mean_amu: Mean molecular mass [amu] (sentman mode only).
         """
+        if self.mode == "sentman":
+            return panel_aero_force_body_sentman(V_b, rho, self.normals, self.areas,
+                                                 self.alpha_accom, self.T_wall,
+                                                 T_inf, m_mean_amu)
         return panel_aero_force_body(V_b, rho, self.normals, self.areas, self.Cn, self.Ct)
