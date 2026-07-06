@@ -2583,6 +2583,30 @@ Jacobian, because environment vectors are rotated by attitude. Thus, the nonzero
 <dt class="sig sig-object py" id="ADCS.helpers.simresults.Satellite.dynamics_Hessians">
 <span class="sig-name descname"><span class="pre">dynamics_Hessians</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orbital_state</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/satellite_hardware/satellite/satellite.html#Satellite.dynamics_Hessians"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.helpers.simresults.Satellite.dynamics_Hessians" title="Link to this definition">¶</a></dt>
 <dd><p>Compute second-order partial derivatives (Hessians) of the dynamics.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><strong>Staged scaffolding for a one-step look-ahead MPC controller that
+is not yet (re)implemented — currently NON-FUNCTIONAL and called
+by nothing in the codebase.</strong> Two known defects:</p>
+<ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">J</span> <span class="pre">=</span> <span class="pre">self.J</span></code> referenced a non-existent attribute
+(<code class="docutils literal notranslate"><span class="pre">AttributeError</span></code> on every call). FIXED here to <code class="docutils literal notranslate"><span class="pre">self.J_COM</span></code>
+(consistent with the gyroscopic-inertia convention in
+<code class="docutils literal notranslate"><span class="pre">dynamics_core</span></code>/<code class="docutils literal notranslate"><span class="pre">dynJacCore</span></code>, PR #33), so the inertia
+convention is already correct for the future MPC work.</p></li>
+<li><p>The actuator second-derivative calls (<code class="docutils literal notranslate"><span class="pre">dtorq__dbasestate</span></code>,
+<code class="docutils literal notranslate"><span class="pre">ddstor_torq__*</span></code>) are invoked with a <strong>stale signature</strong>
+(an extra <code class="docutils literal notranslate"><span class="pre">self</span></code> argument) — the method was written against
+an older actuator API and was never updated. A full actuator
+second-derivative API audit + finite-difference verification of
+the returned <code class="docutils literal notranslate"><span class="pre">[[ddxdot__dxdx,</span> <span class="pre">ddxdot__dxdu],</span> <span class="pre">[…,</span> <span class="pre">ddxdot__dudu]]</span></code>
+tensor is required <strong>as part of the MPC re-implementation</strong>
+before this is used. Tracked by a strict-xfail guard,
+<code class="docutils literal notranslate"><span class="pre">testing/test_sat_dynamics_hessians.py</span></code>
+(FD-verifies the tensor; flips to xpass — strict, so CI flags
+it — when the MPC work makes this functional + FD-correct).</p></li>
+</ol>
+</div>
 <p>Returns the second derivatives of the dynamics map
 <span class="math notranslate nohighlight">\(\dot{\mathbf{x}} = f(\mathbf{x},\mathbf{u},\mathrm{os})\)</span> with respect to state and input:</p>
 <div class="math-wrapper docutils container">
