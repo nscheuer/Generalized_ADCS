@@ -175,6 +175,98 @@ def panel_aero_force_body_sentman(V_b, rho, normals, areas, alpha_accom: float =
     return F.sum(axis=0)
 
 
+# =========================================================================== #
+# Storch (2002) finite-speed-ratio facet model (WP4/5 Phase A1; ADA410696)
+# =========================================================================== #
+
+def storch_gamma1(x):
+    r"""Storch (2002) universal function Gamma_1, eq. (3.6):
+
+        Gamma_1(x) = (1/(2 sqrt(pi))) [ exp(-x^2) + sqrt(pi) x (1 + erf x) ]
+
+    evaluated with erfc(-x) = 1 + erf(x) for numerical stability at deep-leeward
+    arguments (x << 0 -> Gamma_1 -> 0 without cancellation)."""
+    x = np.asarray(x, dtype=float)
+    return (np.exp(-x**2) + np.sqrt(np.pi) * x * erfc_np(-x)) / (2.0 * np.sqrt(np.pi))
+
+
+def storch_gamma2(x):
+    r"""Storch (2002) universal function Gamma_2, eq. (3.8), via the exact
+    identity below eq. (3.14): Gamma_2(x) = x Gamma_1(x) + (1/4)(1 + erf x)."""
+    x = np.asarray(x, dtype=float)
+    return x * storch_gamma1(x) + 0.25 * erfc_np(-x)
+
+
+def storch_facet_coeffs(gamma, s: float, sigma_n: float, sigma_t: float,
+                        vw_over_va: float):
+    r"""
+    Per-facet force coefficients of the Storch (2002) eq. (3.9) single kernel
+    (free-molecular flow at FINITE molecular speed ratio, partial normal and
+    tangential momentum accommodation, diffuse re-emission at wall temperature),
+    normalized by the standard dynamic pressure q = 1/2 rho V^2:
+
+        F / (q A) = -Cn_coeff * n_hat  -  Cv_coeff * v_hat
+
+    with n_hat the OUTWARD facet normal and v_hat the ram direction (satellite
+    velocity relative to the atmosphere). With x = s * gamma (gamma = n_hat .
+    v_hat, SIGNED -- leeward facets receive the thermal tail; do not clip):
+
+        Cn_coeff = (2/s^2) [ (2 - sigma_n) Gamma_2(x) - sigma_t x Gamma_1(x)
+                             + sigma_n (V_w/V_a) Gamma_1(x) ]
+        Cv_coeff = (2/s)   sigma_t Gamma_1(x)
+
+    Hyperthermal limit (s -> inf, V_w/V_a fixed): Cn_coeff -> 2(2-sigma_n-sigma_t)
+    gamma^2 + 2 sigma_n (V_w/V) gamma and Cv_coeff -> 2 sigma_t gamma (windward),
+    i.e. exactly the legacy two-term model with Cn = 2(2-sigma_n), Ct = 2 sigma_t
+    plus the re-emission term -- the (0.90, 0.15) row reproduces the legacy
+    (2.2, 0.3) coefficients.
+
+    :param gamma: SIGNED incidence cosine n_hat . v_hat per facet.
+    :param s: molecular speed ratio |V| / sqrt(2 k T_inf / m)  (Storch's S).
+    :param sigma_n: normal momentum accommodation coefficient, eq. (2.1).
+    :param sigma_t: tangential momentum accommodation coefficient, eq. (2.1).
+    :param vw_over_va: V_w / V_a with V_w = sqrt(pi k T_wall / (2 m)) the mean
+        normal re-emission speed (eq. 2.2) and V_a = sqrt(2 k T_inf / m) the
+        atmospheric most-probable speed. Note V_w/V = vw_over_va / s.
+    """
+    gamma = np.asarray(gamma, dtype=float)
+    x = s * gamma
+    g1 = storch_gamma1(x)
+    g2 = storch_gamma2(x)
+    Cn_coeff = (2.0 / s**2) * ((2.0 - sigma_n) * g2 - sigma_t * x * g1
+                               + sigma_n * vw_over_va * g1)
+    Cv_coeff = (2.0 / s) * sigma_t * g1
+    return Cn_coeff, Cv_coeff
+
+
+def panel_aero_force_body_storch(V_b, rho, normals, areas, sigma_n: float = 0.9,
+                                 sigma_t: float = 0.7, T_wall: float = 300.0,
+                                 T_inf: float = 900.0,
+                                 m_mean_amu: float = 16.0) -> np.ndarray:
+    r"""
+    Net body-frame aerodynamic force [N] from the Storch eq. (3.9) facet kernel
+    (see :func:`storch_facet_coeffs`). Like Sentman, leeward facets receive the
+    Maxwellian thermal tail, so the incidence cosine is NOT clipped.
+    """
+    V_b = np.asarray(V_b, dtype=float).reshape(3)
+    V2 = float(V_b @ V_b)
+    if rho <= 0.0 or V2 <= 0.0:
+        return np.zeros(3)
+    V = np.sqrt(V2)
+    vhat = V_b / V
+    m_kg = m_mean_amu * AMU
+    v_a = np.sqrt(2.0 * K_BOLTZ * T_inf / m_kg)
+    v_w = np.sqrt(np.pi * K_BOLTZ * T_wall / (2.0 * m_kg))
+    s = V / v_a
+    n_arr = np.asarray(normals, dtype=float)
+    gamma = n_arr @ vhat                                       # SIGNED
+    Cn_coeff, Cv_coeff = storch_facet_coeffs(gamma, s, sigma_n, sigma_t, v_w / v_a)
+    q = 0.5 * rho * V2
+    A = np.asarray(areas, dtype=float)
+    F = -(q * A * Cn_coeff)[:, None] * n_arr - (q * A * Cv_coeff)[:, None] * vhat[None, :]
+    return F.sum(axis=0)
+
+
 class AeroModel:
     r"""
     Attitude-dependent orbital aerodynamic force (drag + lift) for a satellite.
@@ -193,26 +285,37 @@ class AeroModel:
     :param Cn: Normal (pressure) coefficient (default 2.0).
     :param Ct: Tangential (shear) coefficient (default 0.0). ``Cn == Ct`` gives a
         lift-free (drag-only) model.
-    :param mode: ``"hyperthermal_faceted"`` (DEFAULT -- the Cn/Ct panel model) or
-        ``"sentman"`` (Sentman/DRIA facet model with thermal-tail leeward flux;
-        see :func:`panel_aero_force_body_sentman`). Sentman ignores Cn/Ct and uses
-        ``alpha_accom``/``T_wall`` plus the per-call ``T_inf``/``m_mean_amu``.
+    :param mode: ``"hyperthermal_faceted"`` (DEFAULT -- the legacy Cn/Ct two-term
+        panel model, preserved bit-for-bit), ``"sentman"`` (Sentman/DRIA facet
+        model with thermal-tail leeward flux; see
+        :func:`panel_aero_force_body_sentman`) or ``"storch"`` (Storch 2002
+        eq. 3.9 finite-speed-ratio kernel with (sigma_n, sigma_t) momentum
+        accommodation; see :func:`storch_facet_coeffs`). Sentman ignores Cn/Ct
+        and uses ``alpha_accom``/``T_wall``; storch ignores Cn/Ct and uses
+        ``sigma_n``/``sigma_t``/``T_wall``; both take per-call
+        ``T_inf``/``m_mean_amu``.
     :param alpha_accom: DRIA energy-accommodation coefficient (sentman mode).
-    :param T_wall: Surface temperature [K] (sentman mode; default 300).
+    :param T_wall: Surface temperature [K] (sentman/storch modes; default 300).
+    :param sigma_n: normal momentum accommodation (storch mode; baseline 0.90).
+    :param sigma_t: tangential momentum accommodation (storch mode; baseline
+        0.70 == Ct 1.4; the specular-edge row 0.15 reproduces the legacy 0.3).
     """
 
     def __init__(self, normals, areas, Cn: float = 2.0, Ct: float = 0.0,
                  mode: str = "hyperthermal_faceted", alpha_accom: float = 1.0,
-                 T_wall: float = 300.0) -> None:
+                 T_wall: float = 300.0, sigma_n: float = 0.9,
+                 sigma_t: float = 0.7) -> None:
         self.normals = np.vstack([normalize(np.asarray(n, dtype=float)) for n in normals])
         self.areas = np.asarray(areas, dtype=float).reshape(-1)
         self.Cn = float(Cn)
         self.Ct = float(Ct)
-        if mode not in ("hyperthermal_faceted", "sentman"):
+        if mode not in ("hyperthermal_faceted", "sentman", "storch"):
             raise ValueError(f"unknown aero mode {mode!r}")
         self.mode = mode
         self.alpha_accom = float(alpha_accom)
         self.T_wall = float(T_wall)
+        self.sigma_n = float(sigma_n)
+        self.sigma_t = float(sigma_t)
 
     @classmethod
     def from_geometry(cls, config: GeometryConfig, Cn: float = 2.0, Ct: float = 0.0) -> "AeroModel":
@@ -239,4 +342,8 @@ class AeroModel:
             return panel_aero_force_body_sentman(V_b, rho, self.normals, self.areas,
                                                  self.alpha_accom, self.T_wall,
                                                  T_inf, m_mean_amu)
+        if self.mode == "storch":
+            return panel_aero_force_body_storch(V_b, rho, self.normals, self.areas,
+                                                self.sigma_n, self.sigma_t,
+                                                self.T_wall, T_inf, m_mean_amu)
         return panel_aero_force_body(V_b, rho, self.normals, self.areas, self.Cn, self.Ct)

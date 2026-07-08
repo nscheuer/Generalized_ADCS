@@ -90,3 +90,27 @@ def test_exospheric_temperature_table():
     assert exospheric_temperature(0.5) == 900.0
     assert exospheric_temperature(1.0) == 1100.0
     assert exospheric_temperature(0.25) == 800.0             # linear interp
+
+
+def test_a3_s_inf_limit_matches_three_term_hyperthermal():
+    r"""WP4/5 A3: the s -> inf limit of the Sentman module vs the THREE-TERM
+    hyperthermal form (Storch eq. 2.9 with sigma_n = sigma_t = 1: normal
+    pressure + shear + diffuse re-emission at the DRIA T_r), per plate area:
+
+        C_D = 2 sin(psi) [ 1 + (V_w/V) sin(psi) ],   V_w = sqrt(pi k T_r / 2 m)
+
+    Gate 2% at psi in {2, 5, 10} deg. MEASURED closure (for report_wp45): the
+    old gate-c 10% slack vs the bare geometric 2 sin(psi) was conservative --
+    actual bare-geometric residuals are 0.24/0.11/0.20% at s = 50; the
+    three-term form + s = 500 closes to < 1e-4 (re-emission term removes a
+    5-10x bias at psi >= 5 deg, erf saturation does the rest)."""
+    s_lim = 500.0
+    v = s_lim * np.sqrt(2.0 * K_BOLTZ * T_INF / (M_AMU * AMU))
+    for psi_deg in (2.0, 5.0, 10.0):
+        psi = np.radians(psi_deg)
+        cd = _plate(psi, alpha=1.0, s_speed=s_lim)
+        # alpha = 1 -> T_r = T_wall; mean normal re-emission speed (Storch 2.2)
+        v_w = np.sqrt(np.pi * K_BOLTZ * T_WALL / (2.0 * M_AMU * AMU))
+        cd_ref = 2.0 * np.sin(psi) * (1.0 + (v_w / v) * np.sin(psi))
+        assert abs(cd / cd_ref - 1.0) < 0.02, (psi_deg, cd, cd_ref)
+        # in fact the closure is ~1e-5; keep the spec's 2% as the formal gate
