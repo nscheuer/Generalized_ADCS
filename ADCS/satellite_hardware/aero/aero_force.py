@@ -267,6 +267,57 @@ def panel_aero_force_body_storch(V_b, rho, normals, areas, sigma_n: float = 0.9,
     return F.sum(axis=0)
 
 
+def facet_aero_forces(V_b, rho, normals, areas, mode: str = "hyperthermal_faceted",
+                      Cn: float = 2.2, Ct: float = 0.3, sigma_n: float = 0.9,
+                      sigma_t: float = 0.7, T_wall: float = 300.0,
+                      T_inf: float = 900.0, m_mean_amu: float = 16.0) -> np.ndarray:
+    r"""
+    PER-FACET aerodynamic force vectors [N], shape ``(M, 3)`` -- the moment-path
+    twin of the net-force routines (which are kept untouched for bit-for-bit
+    legacy reproducibility). Facets here are ONE-SIDED: in hyperthermal mode a
+    leeward facet (incidence cosine <= 0) contributes zero; in storch mode it
+    receives the Maxwellian thermal tail.
+    """
+    V_b = np.asarray(V_b, dtype=float).reshape(3)
+    V2 = float(V_b @ V_b)
+    n_arr = np.asarray(normals, dtype=float)
+    A = np.asarray(areas, dtype=float)
+    if rho <= 0.0 or V2 <= 0.0:
+        return np.zeros((n_arr.shape[0], 3))
+    V = np.sqrt(V2)
+    vhat = V_b / V
+    q = 0.5 * rho * V2
+    gamma = n_arr @ vhat
+    if mode == "storch":
+        m_kg = m_mean_amu * AMU
+        v_a = np.sqrt(2.0 * K_BOLTZ * T_inf / m_kg)
+        v_w = np.sqrt(np.pi * K_BOLTZ * T_wall / (2.0 * m_kg))
+        Cn_c, Cv_c = storch_facet_coeffs(gamma, V / v_a, sigma_n, sigma_t, v_w / v_a)
+        return (-(q * A * Cn_c)[:, None] * n_arr
+                - (q * A * Cv_c)[:, None] * vhat[None, :])
+    if mode != "hyperthermal_faceted":
+        raise ValueError(f"unknown mode {mode!r} for facet_aero_forces")
+    c = np.where(gamma > 0.0, gamma, 0.0)
+    scale = q * A * c
+    return (-(Cn * scale * c)[:, None] * n_arr
+            - (Ct * scale)[:, None] * (vhat[None, :] - c[:, None] * n_arr))
+
+
+def facet_aero_force_moment(V_b, rho, normals, areas, centroids, about=None,
+                            **kwargs):
+    r"""
+    Net aerodynamic force [N] and moment [N m] about ``about`` (default: the
+    origin of the centroid frame) for one-sided facets with centroids:
+    ``M = sum_i (r_i - about) x F_i``. Kernel selected via ``mode`` (see
+    :func:`facet_aero_forces`).
+    """
+    F_per = facet_aero_forces(V_b, rho, normals, areas, **kwargs)
+    r = np.asarray(centroids, dtype=float)
+    if about is not None:
+        r = r - np.asarray(about, dtype=float)[None, :]
+    return F_per.sum(axis=0), np.cross(r, F_per).sum(axis=0)
+
+
 class AeroModel:
     r"""
     Attitude-dependent orbital aerodynamic force (drag + lift) for a satellite.
