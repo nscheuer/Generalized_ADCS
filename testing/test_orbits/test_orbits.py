@@ -41,7 +41,7 @@ def test_propagated_orbits_match_stepwise_rk4(orbit_index):
     for i in range(1, len(orbit.times)):
         prev_state = orbit.states[orbit.times[i - 1]]
         current_state = orbit.states[orbit.times[i]]
-        propagated = prev_state.propagate_orbit_rk4(dt=dt, J2_perturbation_on=True, fast=True)
+        propagated = prev_state.propagate_orbit_rk4(dt=dt, zonal_J=2, fast=True)
         assert_state_matches(current_state, propagated)
 
 

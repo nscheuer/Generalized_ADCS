@@ -130,7 +130,7 @@ class Orbit_EKF(Orbit_Estimator):
 
         os_pred: Orbital_State = os0.propagate_orbit_rk4(
             dt=self.dt,
-            J2_perturbation_on=True,
+            zonal_J=2,
             fast=True,
         )
         r_pred, v_pred = os_pred.R, os_pred.V
@@ -138,7 +138,7 @@ class Orbit_EKF(Orbit_Estimator):
 
         # Dynamics Jacobian Fk
         dr_dr0, dr_dv0, dv_dr0, dv_dv0 = os0.orbit_dynamics_jacobians(
-            J2_perturbation_on=True
+            zonal_J=2
         )
         Fk = np.block([
             [dr_dr0, dr_dv0],

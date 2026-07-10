@@ -1,6 +1,11 @@
+from pathlib import Path
+import sys
+
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
 from dataclasses import dataclass
 from functools import lru_cache
-import sys
 
 import numpy as np
 import pytest
@@ -142,7 +147,7 @@ def _make_real_orbit(tf: float, dt: float) -> Orbit:
         R=7000.0 * np.array([0.0, -np.sqrt(2.0) / 2.0, np.sqrt(2.0) / 2.0]),
         V=np.array([8.0, 0.0, 0.0]),
     )
-    return Orbit(os0=os0, end_time=end_time, dt=dt, use_J2=True, fast=False)
+    return Orbit(os0=os0, end_time=end_time, dt=dt, zonal_J=2, fast=False)
 
 
 def _build_scenario(name: str) -> tuple[np.ndarray, np.ndarray, np.ndarray, Goal, float]:

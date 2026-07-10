@@ -143,7 +143,7 @@ def simulate(
 
     start_time = os0.J2000
     end_time = start_time + tf * TimeConstants.sec2cent
-    orb = Orbit(os0=os0, end_time=end_time, dt=dt, use_J2=True, fast=False)
+    orb = Orbit(os0=os0, end_time=end_time, dt=dt, zonal_J=2, fast=False)
 
     u = np.zeros(satellite.control_len)
 

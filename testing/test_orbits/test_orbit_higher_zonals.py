@@ -20,6 +20,7 @@ import pytest
 from numpy.polynomial import legendre as L
 
 from ADCS.orbits.ephemeris import Ephemeris
+from ADCS.orbits.orbit import Orbit
 from ADCS.orbits.orbital_state import (
     Orbital_State,
     _zonal_perturbation_accel,
@@ -79,8 +80,8 @@ def sample_positions(n=12, seed=7):
 @pytest.mark.parametrize("R", sample_positions(6))
 def test_general_zonal_reproduces_legacy_j2_exactly(R):
     V = np.zeros(3)
-    _, vdot_j2 = Orbital_State._orbit_dynamics_raw(R, V, MU, RE, JC[0], True)
-    _, vdot_2body = Orbital_State._orbit_dynamics_raw(R, V, MU, RE, JC[0], False)
+    _, vdot_j2 = Orbital_State._orbit_dynamics_raw(R, V, MU, RE, JC[0], 2)
+    _, vdot_2body = Orbital_State._orbit_dynamics_raw(R, V, MU, RE, JC[0], 0)
     a_legacy = vdot_j2 - vdot_2body
     a_general = _zonal_perturbation_accel(R, MU, RE, [JC[0]], start_degree=2)
     assert np.allclose(a_general, a_legacy, rtol=0.0, atol=1e-18)
@@ -143,16 +144,16 @@ def test_higher_harmonics_are_small_corrections_to_j2(R):
 def test_higher_zonals_none_is_bit_identical_to_legacy_call():
     R = np.array([7000.0, 1200.0, -800.0])
     V = np.array([1.0, 7.0, 0.5])
-    a_legacy = Orbital_State._orbit_dynamics_raw(R, V, MU, RE, JC[0], True)[1]
-    a_new = Orbital_State._orbit_dynamics_raw(R, V, MU, RE, JC[0], True, higher_zonals=None)[1]
+    a_legacy = Orbital_State._orbit_dynamics_raw(R, V, MU, RE, JC[0], 2)[1]
+    a_new = Orbital_State._orbit_dynamics_raw(R, V, MU, RE, JC[0], 2, Jcoeffs=JC)[1]
     assert np.array_equal(a_legacy, a_new)
 
 
-def test_propagate_default_equals_zonal_order_two():
+def test_propagate_default_equals_zonal_J_two():
     state = Orbital_State(ephem=EPHEM, J2000=0.1, R=np.array([7000.0, 0.0, 1500.0]),
                           V=np.array([0.0, 7.4, 0.6]))
     default = state.propagate_orbit_rk4(45.0)
-    explicit = state.propagate_orbit_rk4(45.0, zonal_order=2)
+    explicit = state.propagate_orbit_rk4(45.0, zonal_J=2)
     assert np.array_equal(default.R, explicit.R)
     assert np.array_equal(default.V, explicit.V)
 
@@ -170,7 +171,7 @@ def test_empty_higher_zonals_contributes_nothing():
 # --------------------------------------------------------------------------- #
 # Enabling higher harmonics measurably changes a propagated trajectory.
 # --------------------------------------------------------------------------- #
-def test_zonal_order_six_changes_trajectory_vs_j2_only():
+def test_zonal_J_six_changes_trajectory_vs_j2_only():
     R = np.array([6878.0, 0.0, 0.0])
     V = np.array([0.0, 7.0, 2.8])  # inclined so odd/even zonals both act
     s2 = Orbital_State(ephem=EPHEM, J2000=0.0, R=R, V=V)
@@ -179,8 +180,8 @@ def test_zonal_order_six_changes_trajectory_vs_j2_only():
     steps = 400
     dt = period / steps
     for _ in range(steps):
-        s2 = s2.propagate_orbit_rk4(dt, zonal_order=2)
-        s6 = s6.propagate_orbit_rk4(dt, zonal_order=6)
+        s2 = s2.propagate_orbit_rk4(dt, zonal_J=2)
+        s6 = s6.propagate_orbit_rk4(dt, zonal_J=6)
     drift = np.linalg.norm(s6.R - s2.R)
     # J3-J6 are tiny, but over a full orbit they accumulate to a clearly
     # non-zero, sub-kilometre-to-kilometre separation.
@@ -198,11 +199,11 @@ def test_dynamics_jacobian_with_higher_zonals_matches_finite_difference(R):
 
     def accel(Rv):
         return Orbital_State._orbit_dynamics_raw(
-            Rv, V, MU, RE, JC[0], True, higher_zonals=JC[1:]
+            Rv, V, MU, RE, JC[0], 6, Jcoeffs=JC
         )[1]
 
     _, _, dvd_dr, _ = Orbital_State._orbit_dynamics_jacobians_raw(
-        R, MU, RE, JC[0], True, higher_zonals=JC[1:]
+        R, MU, RE, JC[0], 6, Jcoeffs=JC
     )
     fd = np.zeros((3, 3))
     h = 1e-2
@@ -219,12 +220,12 @@ def test_stm_rk4_with_higher_zonals_matches_finite_difference():
     dt = 60.0
     base = Orbital_State(ephem=EPHEM, J2000=0.0, R=R0, V=V0)
 
-    dr_dr0, dr_dv0, dv_dr0, dv_dv0 = base.propagate_jacobians_rk4(dt, zonal_order=6)
+    dr_dr0, dr_dv0, dv_dr0, dv_dv0 = base.propagate_jacobians_rk4(dt, zonal_J=6)
     stm = np.block([[dr_dr0, dr_dv0], [dv_dr0, dv_dv0]])
 
     def step(R, V):
         s = Orbital_State(ephem=EPHEM, J2000=0.0, R=R, V=V)
-        out = s.propagate_orbit_rk4(dt, zonal_order=6)
+        out = s.propagate_orbit_rk4(dt, zonal_J=6)
         return np.concatenate([out.R, out.V])
 
     fd = np.zeros((6, 6))
@@ -244,19 +245,40 @@ def test_stm_rk4_with_higher_zonals_matches_finite_difference():
 
 
 # --------------------------------------------------------------------------- #
-# zonal_order is clamped to the available coefficients and disabled with J2 off.
+# zonal_J validation rejects unsupported values, and zonal_J=0 disables zonals.
 # --------------------------------------------------------------------------- #
-def test_zonal_order_above_six_is_clamped():
+@pytest.mark.parametrize("bad_zonal_J", [-1, 1, 7, 99])
+def test_invalid_zonal_J_raises(bad_zonal_J):
     state = Orbital_State(ephem=EPHEM, J2000=0.0, R=np.array([7000.0, 0.0, 1000.0]),
                           V=np.array([0.0, 7.4, 0.3]))
-    a6 = state.orbit_dynamics(zonal_order=6)[1]
-    a99 = state.orbit_dynamics(zonal_order=99)[1]
-    assert np.array_equal(a6, a99)
+    with pytest.raises(ValueError):
+        state.orbit_dynamics(zonal_J=bad_zonal_J)
 
 
-def test_j2_off_disables_all_zonals():
+def test_zonal_J_zero_disables_all_zonals():
     state = Orbital_State(ephem=EPHEM, J2000=0.0, R=np.array([7000.0, 0.0, 1000.0]),
                           V=np.array([0.0, 7.4, 0.3]))
-    a_off = state.orbit_dynamics(J2_perturbation_on=False, zonal_order=6)[1]
+    a_off = state.orbit_dynamics(zonal_J=0)[1]
     a_two_body = -MU * state.R / np.linalg.norm(state.R) ** 3
     assert np.allclose(a_off, a_two_body, rtol=0.0, atol=1e-18)
+
+
+def test_suborbit_keeps_zonal_J_for_interpolated_states():
+    os0 = Orbital_State(
+        ephem=EPHEM,
+        J2000=0.0,
+        R=np.array([7000.0, 0.0, 1200.0]),
+        V=np.array([0.3, 7.2, 1.0]),
+    )
+    dt = 60.0
+    orbit = Orbit(os0=os0, end_time=os0.J2000 + 8.0 * dt / (36525.0 * 24.0 * 3600.0), dt=dt, zonal_J=6, verbose=False)
+    suborbit = orbit.get_range(orbit.times[1], orbit.times[-2])
+    sample_t = 0.5 * (suborbit.times[1] + suborbit.times[2])
+
+    from_suborbit = suborbit.get_os(sample_t)
+    expected = suborbit.states[suborbit.times[1]].propagate_orbit_rk4(
+        (sample_t - suborbit.times[1]) * 36525.0 * 24.0 * 3600.0,
+        zonal_J=6,
+    )
+    assert np.allclose(from_suborbit.R, expected.R, rtol=0.0, atol=1e-12)
+    assert np.allclose(from_suborbit.V, expected.V, rtol=0.0, atol=1e-15)

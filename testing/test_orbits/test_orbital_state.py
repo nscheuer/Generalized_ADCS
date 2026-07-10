@@ -28,9 +28,9 @@ def propagate_one_orbit(method="rk4", use_j2=False, dt=60.0):
 
     for i in range(steps):
         if method == "rk4":
-            orbit = orbit.propagate_orbit_rk4(dt, use_j2)
+            orbit = orbit.propagate_orbit_rk4(dt, zonal_J=2 if use_j2 else 0)
         elif method == "euler":
-            orbit = orbit.propagate_orbit(dt, use_j2)
+            orbit = orbit.propagate_orbit(dt, zonal_J=2 if use_j2 else 0)
         else:
             raise ValueError(f"Unknown method: {method}")
         positions[i + 1] = orbit.R
@@ -41,7 +41,7 @@ def propagate_one_orbit(method="rk4", use_j2=False, dt=60.0):
 def test_orbit_dynamics_matches_two_body_without_j2():
     state = make_reference_orbital_state()
 
-    r_dot, v_dot = state.orbit_dynamics(J2_perturbation_on=False)
+    r_dot, v_dot = state.orbit_dynamics(zonal_J=0)
 
     expected_v_dot = -EarthConstants.mu_e * state.R / np.linalg.norm(state.R) ** 3
     assert np.allclose(r_dot, state.V)
@@ -52,7 +52,7 @@ def test_propagate_orbit_advances_time_by_dt():
     state = make_reference_orbital_state()
     dt = 30.0
 
-    propagated = state.propagate_orbit(dt=dt, J2_perturbation_on=True, fast=True)
+    propagated = state.propagate_orbit(dt=dt, zonal_J=2, fast=True)
 
     assert np.isclose(propagated.J2000, state.J2000 + dt / TimeConstants.cent2sec)
 
@@ -61,7 +61,7 @@ def test_propagate_orbit_rk4_advances_time_by_dt():
     state = make_reference_orbital_state()
     dt = 30.0
 
-    propagated = state.propagate_orbit_rk4(dt=dt, J2_perturbation_on=True, fast=True)
+    propagated = state.propagate_orbit_rk4(dt=dt, zonal_J=2, fast=True)
 
     assert np.isclose(propagated.J2000, state.J2000 + dt / TimeConstants.cent2sec)
 
@@ -90,19 +90,19 @@ def test_orbit_dynamics_jacobians_match_finite_difference():
         probe = make_reference_orbital_state()
         probe.R = np.array(c[:3], dtype=float)
         probe.V = np.array(c[3:], dtype=float)
-        return probe.orbit_dynamics(J2_perturbation_on=True)[0]
+        return probe.orbit_dynamics(zonal_J=2)[0]
 
     def vfun(c):
         probe = make_reference_orbital_state()
         probe.R = np.array(c[:3], dtype=float)
         probe.V = np.array(c[3:], dtype=float)
-        return probe.orbit_dynamics(J2_perturbation_on=True)[1]
+        return probe.orbit_dynamics(zonal_J=2)[1]
 
     x = state.R.tolist() + state.V.tolist()
     jr_num = np.array(nd.Jacobian(rfun)(x))
     jv_num = np.array(nd.Jacobian(vfun)(x))
 
-    drd_dr, drd_dv, dvd_dr, dvd_dv = state.orbit_dynamics_jacobians(J2_perturbation_on=True)
+    drd_dr, drd_dv, dvd_dr, dvd_dv = state.orbit_dynamics_jacobians(zonal_J=2)
     assert np.allclose(jr_num, np.hstack([drd_dr, drd_dv]))
     assert np.allclose(jv_num, np.hstack([dvd_dr, dvd_dv]))
 
@@ -115,19 +115,19 @@ def test_propagate_orbit_rk4_jacobians_match_finite_difference():
         probe = make_reference_orbital_state()
         probe.R = np.array(c[:3], dtype=float)
         probe.V = np.array(c[3:], dtype=float)
-        return probe.propagate_orbit_rk4(dt=dt, J2_perturbation_on=True).R
+        return probe.propagate_orbit_rk4(dt=dt, zonal_J=2).R
 
     def vfun(c):
         probe = make_reference_orbital_state()
         probe.R = np.array(c[:3], dtype=float)
         probe.V = np.array(c[3:], dtype=float)
-        return probe.propagate_orbit_rk4(dt=dt, J2_perturbation_on=True).V
+        return probe.propagate_orbit_rk4(dt=dt, zonal_J=2).V
 
     x = state.R.tolist() + state.V.tolist()
     jr_num = np.array(nd.Jacobian(rfun)(x))
     jv_num = np.array(nd.Jacobian(vfun)(x))
 
-    drd_dr, drd_dv, dvd_dr, dvd_dv = state.propagate_jacobians_rk4(dt=dt, J2_perturbation_on=True)
+    drd_dr, drd_dv, dvd_dr, dvd_dv = state.propagate_jacobians_rk4(dt=dt, zonal_J=2)
     analytic_r = np.hstack([drd_dr, drd_dv])
     analytic_v = np.hstack([dvd_dr, dvd_dv])
 
@@ -149,7 +149,7 @@ def test_copy_returns_independent_state():
 
 def test_average_interpolates_core_fields_linearly():
     state0 = make_reference_orbital_state()
-    state1 = state0.propagate_orbit_rk4(dt=60.0, J2_perturbation_on=True, fast=True)
+    state1 = state0.propagate_orbit_rk4(dt=60.0, zonal_J=2, fast=True)
 
     averaged = state0.average(state1, ratio=0.25)
 

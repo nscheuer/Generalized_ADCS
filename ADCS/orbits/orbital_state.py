@@ -21,6 +21,25 @@ _I6 = np.eye(6)
 _ZHAT = np.array([0.0, 0.0, 1.0])
 
 
+def _normalize_zonal_J(zonal_J, max_degree=None):
+    r"""
+    Validate and normalize the requested highest zonal harmonic degree.
+
+    ``zonal_J=0`` disables all zonal harmonics (pure two-body dynamics).
+    Positive values represent the highest degree included, so ``zonal_J=2``
+    means J2 only and ``zonal_J=6`` means J2 through J6.
+    """
+    if max_degree is None:
+        max_degree = len(EarthConstants.Jcoeffs) + 1
+
+    value = int(zonal_J)
+    if value == 0:
+        return 0
+    if 2 <= value <= int(max_degree):
+        return value
+    raise ValueError(f"zonal_J must be 0 or an integer from 2 through {int(max_degree)}, got {zonal_J!r}")
+
+
 def _legendre_p_and_dp(s, max_degree):
     r"""
     Evaluate Legendre polynomials and their first derivatives at ``s``.
@@ -304,8 +323,8 @@ class Orbital_State:
         self.R_e = EarthConstants.R_e
         self.J2coeff = EarthConstants.J2coeff
         # Unnormalized zonal harmonic coefficients [J2, J3, J4, J5, J6]; the
-        # higher (degree >= 3) terms are only applied when a propagation is
-        # asked for zonal_order > 2.
+        # higher (degree >= 3) terms are only applied when propagation is asked
+        # for zonal_J > 2.
         self.Jcoeffs = EarthConstants.Jcoeffs
 
         # NOTE: j2000_to_tai() returns J2000*36525 + 2451545.0. JD 2451545.0 is
@@ -538,8 +557,8 @@ class Orbital_State:
         mu_e: float,
         R_e: float,
         J2coeff: float,
-        J2_perturbation_on: bool = True,
-        higher_zonals: np.ndarray = None,
+        zonal_J: int = 2,
+        Jcoeffs: np.ndarray = None,
     ) -> Tuple[np.ndarray, np.ndarray]:
         r"""
         Compute raw orbital dynamics.
@@ -564,16 +583,16 @@ class Orbital_State:
             Earth J2 coefficient.
         :type J2coeff: float
 
-        :param J2_perturbation_on:
-            Enable J2 perturbation.
-        :type J2_perturbation_on: bool
+        :param zonal_J:
+            Highest zonal harmonic degree to include. ``0`` disables zonals,
+            ``2`` includes only J2, and larger values include every zonal term
+            up to that degree.
+        :type zonal_J: int
 
-        :param higher_zonals:
-            Optional unnormalized zonal coefficients for degrees 3, 4, ...
-            (i.e. ``[J3, J4, ...]``). When provided and ``J2_perturbation_on``
-            is set, these higher-order zonal harmonics are added on top of J2.
-            ``None`` (the default) reproduces the legacy J2-only dynamics.
-        :type higher_zonals: numpy.ndarray or None
+        :param Jcoeffs:
+            Unnormalized zonal coefficients ``[J2, J3, ...]``. When omitted,
+            :data:`EarthConstants.Jcoeffs` is used.
+        :type Jcoeffs: numpy.ndarray or None
 
         :return:
             Tuple of position and velocity derivatives.
@@ -582,6 +601,8 @@ class Orbital_State:
         """
         R = np.asarray(R, dtype=float).reshape(3)
         V = np.asarray(V, dtype=float).reshape(3)
+        zonal_J = _normalize_zonal_J(zonal_J)
+        Jcoeffs = EarthConstants.Jcoeffs if Jcoeffs is None else np.asarray(Jcoeffs, dtype=float)
 
         r2 = float(np.dot(R, R))
         rn = float(np.sqrt(r2))
@@ -589,7 +610,7 @@ class Orbital_State:
 
         v_dot = -mu_e * R / r3
 
-        if J2_perturbation_on:
+        if zonal_J >= 2:
             xk, yk, zk = R
             z2 = zk * zk
             factor = 1.5 * J2coeff * mu_e * R_e * R_e / (rn**5)
@@ -597,7 +618,8 @@ class Orbital_State:
             a_J2 = factor * np.array([xk * (common - 1.0), yk * (common - 1.0), zk * (common - 3.0)], dtype=float)
             v_dot = v_dot + a_J2
 
-            if higher_zonals is not None and np.size(higher_zonals) > 0:
+            higher_zonals = Jcoeffs[1 : zonal_J - 1]
+            if np.size(higher_zonals) > 0:
                 v_dot = v_dot + _zonal_perturbation_accel(R, mu_e, R_e, higher_zonals, start_degree=3)
 
         r_dot = V
@@ -609,8 +631,8 @@ class Orbital_State:
         mu_e: float,
         R_e: float,
         J2coeff: float,
-        J2_perturbation_on: bool = True,
-        higher_zonals: np.ndarray = None,
+        zonal_J: int = 2,
+        Jcoeffs: np.ndarray = None,
     ):
         r"""
         Compute Jacobians of orbital dynamics.
@@ -631,17 +653,16 @@ class Orbital_State:
             Earth J2 coefficient.
         :type J2coeff: float
 
-        :param J2_perturbation_on:
-            Enable J2 perturbation.
-        :type J2_perturbation_on: bool
+        :param zonal_J:
+            Highest zonal harmonic degree to include. ``0`` disables zonals,
+            ``2`` includes only J2, and larger values include every zonal term
+            up to that degree.
+        :type zonal_J: int
 
-        :param higher_zonals:
-            Optional unnormalized zonal coefficients for degrees 3, 4, ...
-            (``[J3, J4, ...]``). When provided and ``J2_perturbation_on`` is set,
-            the position-Jacobian of these higher-order zonal accelerations is
-            added (via complex-step differentiation). ``None`` reproduces the
-            legacy J2-only Jacobian.
-        :type higher_zonals: numpy.ndarray or None
+        :param Jcoeffs:
+            Unnormalized zonal coefficients ``[J2, J3, ...]``. When omitted,
+            :data:`EarthConstants.Jcoeffs` is used.
+        :type Jcoeffs: numpy.ndarray or None
 
         :return:
             Partial derivatives of dynamics.
@@ -649,6 +670,8 @@ class Orbital_State:
 
         """
         R = np.asarray(R, dtype=float).reshape(3)
+        zonal_J = _normalize_zonal_J(zonal_J)
+        Jcoeffs = EarthConstants.Jcoeffs if Jcoeffs is None else np.asarray(Jcoeffs, dtype=float)
 
         rn = float(np.linalg.norm(R))
         nr = R / rn
@@ -660,7 +683,7 @@ class Orbital_State:
 
         dvd_dr = -mu_e * (_I3 - 3.0 * np.outer(nr, nr)) / rn**3
 
-        if J2_perturbation_on:
+        if zonal_J >= 2:
             rn2 = rn * rn
             j2_mult = np.diagflat(np.array([1.0, 1.0, 3.0]) * rn2 - np.ones(3) * 5.0 * zk * zk)
 
@@ -673,44 +696,21 @@ class Orbital_State:
                 + 2.0 * (np.outer(-5.0 * zk * unit_z + R, R) + 2.0 * zk * np.outer(R, unit_z))
             )
 
-            if higher_zonals is not None and np.size(higher_zonals) > 0:
+            higher_zonals = Jcoeffs[1 : zonal_J - 1]
+            if np.size(higher_zonals) > 0:
                 dvd_dr += _zonal_perturbation_accel_jac(R, mu_e, R_e, higher_zonals, start_degree=3)
 
         return drd_dr, drd_dv, dvd_dr, dvd_dv
 
-    def _higher_zonals(self, zonal_order: int) -> np.ndarray:
-        r"""
-        Select the degree ``>= 3`` zonal coefficients for a requested order.
-
-        :param zonal_order:
-            Highest zonal harmonic degree to include (2 = J2 only). Values above
-            the number of available coefficients are clamped.
-        :type zonal_order: int
-
-        :return:
-            Coefficients ``[J3, ..., J_zonal_order]``, or ``None`` for
-            ``zonal_order <= 2`` (legacy J2-only dynamics).
-        :rtype: numpy.ndarray or None
-
-        """
-        order = int(zonal_order)
-        if order <= 2:
-            return None
-        # Jcoeffs is indexed by degree-2: index 1 -> J3, index 2 -> J4, ...
-        return np.asarray(self.Jcoeffs, dtype=float)[1 : order - 1]
-
-    def orbit_dynamics(self, J2_perturbation_on: bool = True, zonal_order: int = 2) -> Tuple[np.ndarray, np.ndarray]:
+    def orbit_dynamics(self, zonal_J: int = 2) -> Tuple[np.ndarray, np.ndarray]:
         r"""
         Compute translational orbital dynamics at the current state.
 
-        :param J2_perturbation_on:
-            Enable J2 perturbation.
-        :type J2_perturbation_on: bool
-
-        :param zonal_order:
-            Highest zonal gravity harmonic degree to include (2 = J2 only,
-            up to 6 = J2..J6). Ignored when ``J2_perturbation_on`` is ``False``.
-        :type zonal_order: int
+        :param zonal_J:
+            Highest zonal harmonic degree to include. ``0`` disables zonals,
+            ``2`` includes only J2, and larger values include every zonal term
+            up to that degree.
+        :type zonal_J: int
 
         :return:
             Time derivatives of position and velocity.
@@ -718,22 +718,19 @@ class Orbital_State:
 
         """
         return self._orbit_dynamics_raw(
-            self.R, self.V, self.mu_e, self.R_e, self.J2coeff, J2_perturbation_on,
-            higher_zonals=self._higher_zonals(zonal_order),
+            self.R, self.V, self.mu_e, self.R_e, self.J2coeff, zonal_J,
+            Jcoeffs=self.Jcoeffs,
         )
 
-    def orbit_dynamics_jacobians(self, J2_perturbation_on: bool = True, zonal_order: int = 2) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    def orbit_dynamics_jacobians(self, zonal_J: int = 2) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         r"""
         Compute Jacobians of the translational dynamics.
 
-        :param J2_perturbation_on:
-            Enable J2 perturbation.
-        :type J2_perturbation_on: bool
-
-        :param zonal_order:
-            Highest zonal gravity harmonic degree to include (2 = J2 only,
-            up to 6 = J2..J6). Ignored when ``J2_perturbation_on`` is ``False``.
-        :type zonal_order: int
+        :param zonal_J:
+            Highest zonal harmonic degree to include. ``0`` disables zonals,
+            ``2`` includes only J2, and larger values include every zonal term
+            up to that degree.
+        :type zonal_J: int
 
         :return:
             Jacobian matrices of the dynamics.
@@ -741,11 +738,11 @@ class Orbital_State:
 
         """
         return self._orbit_dynamics_jacobians_raw(
-            self.R, self.mu_e, self.R_e, self.J2coeff, J2_perturbation_on,
-            higher_zonals=self._higher_zonals(zonal_order),
+            self.R, self.mu_e, self.R_e, self.J2coeff, zonal_J,
+            Jcoeffs=self.Jcoeffs,
         )
 
-    def propagate_orbit(self, dt: float, J2_perturbation_on: bool = True, fast: bool = True, zonal_order: int = 2):
+    def propagate_orbit(self, dt: float, fast: bool = True, zonal_J: int = 2):
         r"""
         Propagate the orbital state forward using first-order integration.
 
@@ -753,18 +750,15 @@ class Orbital_State:
             Time step in seconds.
         :type dt: float
 
-        :param J2_perturbation_on:
-            Enable J2 perturbation.
-        :type J2_perturbation_on: bool
-
         :param fast:
             Backward-compatible parameter (ignored).
         :type fast: bool
 
-        :param zonal_order:
-            Highest zonal gravity harmonic degree to include (2 = J2 only,
-            up to 6 = J2..J6).
-        :type zonal_order: int
+        :param zonal_J:
+            Highest zonal harmonic degree to include. ``0`` disables zonals,
+            ``2`` includes only J2, and larger values include every zonal term
+            up to that degree.
+        :type zonal_J: int
 
         :return:
             Propagated orbital state.
@@ -772,11 +766,12 @@ class Orbital_State:
 
         """
         _ = fast  # ignored
-        higher_zonals = self._higher_zonals(zonal_order)
         r_ECI = self.R
         v_ECI = self.V
 
-        k1a, k1b = self._orbit_dynamics_raw(r_ECI, v_ECI, self.mu_e, self.R_e, self.J2coeff, J2_perturbation_on, higher_zonals=higher_zonals)
+        k1a, k1b = self._orbit_dynamics_raw(
+            r_ECI, v_ECI, self.mu_e, self.R_e, self.J2coeff, zonal_J, Jcoeffs=self.Jcoeffs
+        )
 
         r_out = r_ECI + k1a * float(dt)
         v_out = v_ECI + k1b * float(dt)
@@ -784,7 +779,7 @@ class Orbital_State:
 
         return Orbital_State(self.ephem, j2000, r_out, v_out, S=None, B=None, rho=None, density_model=self.density_model, fast=False)
 
-    def propagate_orbit_rk4(self, dt: float, J2_perturbation_on: bool = True, fast: bool = True, zonal_order: int = 2):
+    def propagate_orbit_rk4(self, dt: float, fast: bool = True, zonal_J: int = 2):
         r"""
         Propagate the orbital state using fourth-order Runge–Kutta integration.
 
@@ -792,18 +787,15 @@ class Orbital_State:
             Time step in seconds.
         :type dt: float
 
-        :param J2_perturbation_on:
-            Enable J2 perturbation.
-        :type J2_perturbation_on: bool
-
         :param fast:
             Backward-compatible parameter (ignored).
         :type fast: bool
 
-        :param zonal_order:
-            Highest zonal gravity harmonic degree to include (2 = J2 only,
-            up to 6 = J2..J6).
-        :type zonal_order: int
+        :param zonal_J:
+            Highest zonal harmonic degree to include. ``0`` disables zonals,
+            ``2`` includes only J2, and larger values include every zonal term
+            up to that degree.
+        :type zonal_J: int
 
         :return:
             Propagated orbital state.
@@ -812,15 +804,14 @@ class Orbital_State:
         """
         _ = fast  # ignored
         dt = float(dt)
-        higher_zonals = self._higher_zonals(zonal_order)
 
         r0 = self.R
         v0 = self.V
 
-        k1a, k1b = self._orbit_dynamics_raw(r0, v0, self.mu_e, self.R_e, self.J2coeff, J2_perturbation_on, higher_zonals=higher_zonals)
-        k2a, k2b = self._orbit_dynamics_raw(r0 + 0.5 * dt * k1a, v0 + 0.5 * dt * k1b, self.mu_e, self.R_e, self.J2coeff, J2_perturbation_on, higher_zonals=higher_zonals)
-        k3a, k3b = self._orbit_dynamics_raw(r0 + 0.5 * dt * k2a, v0 + 0.5 * dt * k2b, self.mu_e, self.R_e, self.J2coeff, J2_perturbation_on, higher_zonals=higher_zonals)
-        k4a, k4b = self._orbit_dynamics_raw(r0 + dt * k3a, v0 + dt * k3b, self.mu_e, self.R_e, self.J2coeff, J2_perturbation_on, higher_zonals=higher_zonals)
+        k1a, k1b = self._orbit_dynamics_raw(r0, v0, self.mu_e, self.R_e, self.J2coeff, zonal_J, Jcoeffs=self.Jcoeffs)
+        k2a, k2b = self._orbit_dynamics_raw(r0 + 0.5 * dt * k1a, v0 + 0.5 * dt * k1b, self.mu_e, self.R_e, self.J2coeff, zonal_J, Jcoeffs=self.Jcoeffs)
+        k3a, k3b = self._orbit_dynamics_raw(r0 + 0.5 * dt * k2a, v0 + 0.5 * dt * k2b, self.mu_e, self.R_e, self.J2coeff, zonal_J, Jcoeffs=self.Jcoeffs)
+        k4a, k4b = self._orbit_dynamics_raw(r0 + dt * k3a, v0 + dt * k3b, self.mu_e, self.R_e, self.J2coeff, zonal_J, Jcoeffs=self.Jcoeffs)
 
         r_out = r0 + (dt / 6.0) * (k1a + 2.0 * k2a + 2.0 * k3a + k4a)
         v_out = v0 + (dt / 6.0) * (k1b + 2.0 * k2b + 2.0 * k3b + k4b)
@@ -829,7 +820,7 @@ class Orbital_State:
 
         return Orbital_State(self.ephem, j2000, r_out, v_out, S=None, B=None, rho=None, density_model=self.density_model, fast=False)
 
-    def propagate_jacobians(self, dt: float, J2_perturbation_on: bool = True, zonal_order: int = 2) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    def propagate_jacobians(self, dt: float, zonal_J: int = 2) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         r"""
         Propagate state transition Jacobians using first-order integration.
 
@@ -837,14 +828,11 @@ class Orbital_State:
             Time step in seconds.
         :type dt: float
 
-        :param J2_perturbation_on:
-            Enable J2 perturbation.
-        :type J2_perturbation_on: bool
-
-        :param zonal_order:
-            Highest zonal gravity harmonic degree to include (2 = J2 only,
-            up to 6 = J2..J6).
-        :type zonal_order: int
+        :param zonal_J:
+            Highest zonal harmonic degree to include. ``0`` disables zonals,
+            ``2`` includes only J2, and larger values include every zonal term
+            up to that degree.
+        :type zonal_J: int
 
         :return:
             State transition Jacobian blocks.
@@ -852,9 +840,8 @@ class Orbital_State:
 
         """
         dt = float(dt)
-        higher_zonals = self._higher_zonals(zonal_order)
         drd0__dr0, drd0__dv0, dvd0__dr0, dvd0__dv0 = self._orbit_dynamics_jacobians_raw(
-            self.R, self.mu_e, self.R_e, self.J2coeff, J2_perturbation_on, higher_zonals=higher_zonals
+            self.R, self.mu_e, self.R_e, self.J2coeff, zonal_J, Jcoeffs=self.Jcoeffs
         )
 
         dr1__dr0 = _I3 + dt * drd0__dr0
@@ -864,7 +851,7 @@ class Orbital_State:
 
         return dr1__dr0, dr1__dv0, dv1__dr0, dv1__dv0
 
-    def propagate_jacobians_rk4(self, dt: float, J2_perturbation_on: bool = True, zonal_order: int = 2) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    def propagate_jacobians_rk4(self, dt: float, zonal_J: int = 2) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         r"""
         Propagate state transition Jacobians using RK4 integration.
 
@@ -872,14 +859,11 @@ class Orbital_State:
             Time step in seconds.
         :type dt: float
 
-        :param J2_perturbation_on:
-            Enable J2 perturbation.
-        :type J2_perturbation_on: bool
-
-        :param zonal_order:
-            Highest zonal gravity harmonic degree to include (2 = J2 only,
-            up to 6 = J2..J6).
-        :type zonal_order: int
+        :param zonal_J:
+            Highest zonal harmonic degree to include. ``0`` disables zonals,
+            ``2`` includes only J2, and larger values include every zonal term
+            up to that degree.
+        :type zonal_J: int
 
         :return:
             State transition Jacobian blocks.
@@ -887,14 +871,13 @@ class Orbital_State:
 
         """
         dt = float(dt)
-        hz = self._higher_zonals(zonal_order)
 
         r0 = self.R
         v0 = self.V
 
-        rd0, vd0 = self._orbit_dynamics_raw(r0, v0, self.mu_e, self.R_e, self.J2coeff, J2_perturbation_on, higher_zonals=hz)
+        rd0, vd0 = self._orbit_dynamics_raw(r0, v0, self.mu_e, self.R_e, self.J2coeff, zonal_J, Jcoeffs=self.Jcoeffs)
         drd0__dr0, drd0__dv0, dvd0__dr0, dvd0__dv0 = self._orbit_dynamics_jacobians_raw(
-            r0, self.mu_e, self.R_e, self.J2coeff, J2_perturbation_on, higher_zonals=hz
+            r0, self.mu_e, self.R_e, self.J2coeff, zonal_J, Jcoeffs=self.Jcoeffs
         )
         dsd0__ds0 = np.block([[drd0__dr0, dvd0__dr0], [drd0__dv0, dvd0__dv0]])
 
@@ -902,9 +885,9 @@ class Orbital_State:
         v1 = v0 + vd0 * 0.5 * dt
         ds1__ds0 = _I6 + 0.5 * dt * dsd0__ds0
 
-        rd1, vd1 = self._orbit_dynamics_raw(r1, v1, self.mu_e, self.R_e, self.J2coeff, J2_perturbation_on, higher_zonals=hz)
+        rd1, vd1 = self._orbit_dynamics_raw(r1, v1, self.mu_e, self.R_e, self.J2coeff, zonal_J, Jcoeffs=self.Jcoeffs)
         drd1__dr1, drd1__dv1, dvd1__dr1, dvd1__dv1 = self._orbit_dynamics_jacobians_raw(
-            r1, self.mu_e, self.R_e, self.J2coeff, J2_perturbation_on, higher_zonals=hz
+            r1, self.mu_e, self.R_e, self.J2coeff, zonal_J, Jcoeffs=self.Jcoeffs
         )
         dsd1__ds1 = np.block([[drd1__dr1, dvd1__dr1], [drd1__dv1, dvd1__dv1]])
         dsd1__ds0 = ds1__ds0 @ dsd1__ds1
@@ -913,9 +896,9 @@ class Orbital_State:
         v2 = v0 + vd1 * 0.5 * dt
         ds2__ds0 = _I6 + 0.5 * dt * dsd1__ds0
 
-        rd2, vd2 = self._orbit_dynamics_raw(r2, v2, self.mu_e, self.R_e, self.J2coeff, J2_perturbation_on, higher_zonals=hz)
+        rd2, vd2 = self._orbit_dynamics_raw(r2, v2, self.mu_e, self.R_e, self.J2coeff, zonal_J, Jcoeffs=self.Jcoeffs)
         drd2__dr2, drd2__dv2, dvd2__dr2, dvd2__dv2 = self._orbit_dynamics_jacobians_raw(
-            r2, self.mu_e, self.R_e, self.J2coeff, J2_perturbation_on, higher_zonals=hz
+            r2, self.mu_e, self.R_e, self.J2coeff, zonal_J, Jcoeffs=self.Jcoeffs
         )
         dsd2__ds2 = np.block([[drd2__dr2, dvd2__dr2], [drd2__dv2, dvd2__dv2]])
         dsd2__ds0 = ds2__ds0 @ dsd2__ds2
@@ -924,9 +907,9 @@ class Orbital_State:
         v3 = v0 + vd2 * dt
         ds3__ds0 = _I6 + dt * dsd2__ds0
 
-        rd3, vd3 = self._orbit_dynamics_raw(r3, v3, self.mu_e, self.R_e, self.J2coeff, J2_perturbation_on, higher_zonals=hz)
+        rd3, vd3 = self._orbit_dynamics_raw(r3, v3, self.mu_e, self.R_e, self.J2coeff, zonal_J, Jcoeffs=self.Jcoeffs)
         drd3__dr3, drd3__dv3, dvd3__dr3, dvd3__dv3 = self._orbit_dynamics_jacobians_raw(
-            r3, self.mu_e, self.R_e, self.J2coeff, J2_perturbation_on, higher_zonals=hz
+            r3, self.mu_e, self.R_e, self.J2coeff, zonal_J, Jcoeffs=self.Jcoeffs
         )
         dsd3__ds3 = np.block([[drd3__dr3, dvd3__dr3], [drd3__dv3, dvd3__dv3]])
         dsd3__ds0 = ds3__ds0 @ dsd3__ds3

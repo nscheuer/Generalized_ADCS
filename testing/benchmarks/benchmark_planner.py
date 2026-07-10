@@ -13,6 +13,12 @@ Usage:
     python benchmark_planner.py --detailed   # Include detailed per-iteration timing
     python benchmark_planner.py --warmup 2   # Warmup runs before timing
 """
+
+import sys
+from pathlib import Path
+
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from __future__ import annotations
 
 import sys

@@ -179,7 +179,7 @@ class SALTRO(Controller):
         )
         jtime[-1] = t_end
 
-        sim_orbit = Orbit(os_0, t_end, dt=dt, use_J2=True, fast=True, verbose=False)
+        sim_orbit = Orbit(os_0, t_end, dt=dt, zonal_J=2, fast=True, verbose=False)
         q_goal = np.empty((4, jtime.size), dtype=np.float64)
         boresight = np.empty((3, jtime.size), dtype=np.float64)
 

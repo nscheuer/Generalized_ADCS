@@ -9,7 +9,7 @@ from tqdm import tqdm
 from skyfield import api, units, positionlib, framelib
 from datetime import timezone
 
-from ADCS.orbits.orbital_state import Orbital_State
+from ADCS.orbits.orbital_state import Orbital_State, _normalize_zonal_J
 from ADCS.orbits.universal_constants import TimeConstants, EarthConstants
 from ADCS.helpers.math_constants import MathConstants
 from ADCS.helpers.math_helpers import matrix_row_normalize
@@ -47,10 +47,6 @@ class Orbit:
         Propagation time step in seconds.
     :type dt: float or None
 
-    :param use_J2:
-        Enable or disable the J2 gravitational perturbation.
-    :type use_J2: bool
-
     :param fast:
         Backward-compatible parameter (ignored).
     :type fast: bool
@@ -59,11 +55,11 @@ class Orbit:
         Enable progress bar output during propagation.
     :type verbose: bool
 
-    :param zonal_order:
-        Highest zonal gravity harmonic degree to include in the propagated
-        dynamics (2 = J2 only, the default; up to 6 = J2..J6). Requires
-        ``use_J2``; ignored when ``use_J2`` is ``False``.
-    :type zonal_order: int
+    :param zonal_J:
+        Highest zonal harmonic degree to include in the propagated dynamics.
+        ``0`` disables zonals, ``2`` includes only J2, and larger values
+        include every zonal term up to that degree.
+    :type zonal_J: int
 
     :raises ValueError:
         If input arguments are inconsistent or unsupported.
@@ -75,10 +71,9 @@ class Orbit:
         os0: Union[Orbital_State, List[Orbital_State]],
         end_time: float = None,
         dt: float = None,
-        use_J2: bool = True,
         fast: bool = True,
         verbose: bool = True,
-        zonal_order: int = 2,
+        zonal_J: int = 2,
     ) -> None:
         r"""
         Initialize an orbit from an initial condition or a list of states.
@@ -95,10 +90,6 @@ class Orbit:
             Propagation time step in seconds.
         :type dt: float or None
 
-        :param use_J2:
-            Enable J2 perturbation during propagation.
-        :type use_J2: bool
-
         :param fast:
             Backward-compatible parameter (ignored).
         :type fast: bool
@@ -113,10 +104,9 @@ class Orbit:
 
         """
         _ = fast  # ignored
-        use_J2 = bool(use_J2)
-        # Remember the zonal order so node-to-node interpolation in get_os()
+        # Remember the zonal setting so node-to-node interpolation in get_os()
         # reuses the same gravity model the orbit was propagated with.
-        self._zonal_order = int(zonal_order) if use_J2 else 2
+        self._zonal_J = _normalize_zonal_J(zonal_J)
 
         if isinstance(os0, Orbital_State):
             start_time = float(os0.J2000)
@@ -156,8 +146,6 @@ class Orbit:
             R_e = float(getattr(os0, "R_e", EarthConstants.R_e))
             J2coeff = float(getattr(os0, "J2coeff", EarthConstants.J2coeff))
             Jcoeffs = np.asarray(getattr(os0, "Jcoeffs", EarthConstants.Jcoeffs), dtype=float)
-            # Higher (degree >= 3) zonal coefficients to apply, or None for J2-only.
-            higher_zonals = None if int(zonal_order) <= 2 else Jcoeffs[1 : int(zonal_order) - 1]
 
             for j in tqdm(range(1, N), desc="Propagating Orbit", unit="step", disable=not verbose):
                 dt_step = (times_arr[j] - times_arr[j - 1]) * TimeConstants.cent2sec
@@ -165,10 +153,10 @@ class Orbit:
                 r0 = R_hist[j - 1, :]
                 v0 = V_hist[j - 1, :]
 
-                k1r, k1v = Orbital_State._orbit_dynamics_raw(r0, v0, mu_e, R_e, J2coeff, use_J2, higher_zonals=higher_zonals)
-                k2r, k2v = Orbital_State._orbit_dynamics_raw(r0 + 0.5 * dt_step * k1r, v0 + 0.5 * dt_step * k1v, mu_e, R_e, J2coeff, use_J2, higher_zonals=higher_zonals)
-                k3r, k3v = Orbital_State._orbit_dynamics_raw(r0 + 0.5 * dt_step * k2r, v0 + 0.5 * dt_step * k2v, mu_e, R_e, J2coeff, use_J2, higher_zonals=higher_zonals)
-                k4r, k4v = Orbital_State._orbit_dynamics_raw(r0 + dt_step * k3r, v0 + dt_step * k3v, mu_e, R_e, J2coeff, use_J2, higher_zonals=higher_zonals)
+                k1r, k1v = Orbital_State._orbit_dynamics_raw(r0, v0, mu_e, R_e, J2coeff, self._zonal_J, Jcoeffs=Jcoeffs)
+                k2r, k2v = Orbital_State._orbit_dynamics_raw(r0 + 0.5 * dt_step * k1r, v0 + 0.5 * dt_step * k1v, mu_e, R_e, J2coeff, self._zonal_J, Jcoeffs=Jcoeffs)
+                k3r, k3v = Orbital_State._orbit_dynamics_raw(r0 + 0.5 * dt_step * k2r, v0 + 0.5 * dt_step * k2v, mu_e, R_e, J2coeff, self._zonal_J, Jcoeffs=Jcoeffs)
+                k4r, k4v = Orbital_State._orbit_dynamics_raw(r0 + dt_step * k3r, v0 + dt_step * k3v, mu_e, R_e, J2coeff, self._zonal_J, Jcoeffs=Jcoeffs)
 
                 R_hist[j, :] = r0 + (dt_step / 6.0) * (k1r + 2.0 * k2r + 2.0 * k3r + k4r)
                 V_hist[j, :] = v0 + (dt_step / 6.0) * (k1v + 2.0 * k2v + 2.0 * k3v + k4v)
@@ -411,7 +399,7 @@ class Orbit:
         # propagation recomputes R, V and rebuilds every frame transform
         # consistently at exactly the requested epoch (RK4-truncation accuracy).
         dt_sec = (t - t0) * TimeConstants.cent2sec
-        return self.states[t0].propagate_orbit_rk4(dt_sec, zonal_order=getattr(self, "_zonal_order", 2))
+        return self.states[t0].propagate_orbit_rk4(dt_sec, zonal_J=getattr(self, "_zonal_J", 2))
 
     def get_range(self, t_0: float, t_1: float, dt: float = None):
         r"""
@@ -466,7 +454,7 @@ class Orbit:
             newstates = [self.states[j] for j in self.times if (j <= t_1 and j >= t_0)]
             if len(newstates) == 0:
                 raise ValueError("there are no pre-created states in this time span")
-            return Orbit(newstates)
+            return Orbit(newstates, zonal_J=getattr(self, "_zonal_J", 2))
         ts = np.concatenate([np.arange(t_0, t_1, float(dt) / TimeConstants.cent2sec), [t_1]])
         return self.new_orbit_from_times(ts.tolist())
 
@@ -489,7 +477,7 @@ class Orbit:
         if not np.all([self.time_in_span(float(j)) for j in time_list]):
             raise ValueError("at least one time is not within this orbit span")
         newstates = [self.get_os(float(j)) for j in time_list]
-        return Orbit(newstates)
+        return Orbit(newstates, zonal_J=getattr(self, "_zonal_J", 2))
 
     def next_state(self, input: Orbital_State | float) -> Orbital_State:
         r"""
