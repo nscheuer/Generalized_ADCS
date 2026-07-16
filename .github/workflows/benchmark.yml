@@ -14,7 +14,7 @@ permissions:
   pull-requests: write
 
 jobs:
-  orbital_state:
+  benchmarks:
     runs-on: ubuntu-latest
 
     steps:
@@ -38,6 +38,13 @@ jobs:
           pip install git+https://github.com/jcrudy/choldate.git --no-build-isolation
           pip uninstall -y cmake
 
+      - name: ⏱️ Run Orbit Benchmarks
+        id: orbit_benchmark
+        continue-on-error: true
+        run: |
+          source .venv/bin/activate
+          python testing/benchmarks/benchmark_orbit.py --compare
+
       - name: ⏱️ Run Orbital State Benchmarks
         id: orbital_state_benchmark
         continue-on-error: true
@@ -50,9 +57,8 @@ jobs:
         run: |
           source .venv/bin/activate
           python testing/benchmarks/report_benchmarks.py \
-            --category orbital_state \
-            --current testing/artifacts/benchmarks/orbital_state_current.json \
-            --baseline testing/benchmarks/baselines/orbital_state.json \
+            --run-all \
+            --no-show \
             --plot testing/artifacts/benchmarks/benchmark_multipliers.png \
             --markdown testing/artifacts/benchmarks/pr_comment.md \
             --summary-json testing/artifacts/benchmarks/benchmark_summary.json
@@ -103,9 +109,9 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: orbital-state-benchmark-results
+          name: benchmark-results
           path: testing/artifacts/benchmarks/
 
       - name: 🚦 Fail On Benchmark Regression
-        if: always() && steps.orbital_state_benchmark.outcome == 'failure'
+        if: always() && (steps.orbit_benchmark.outcome == 'failure' || steps.orbital_state_benchmark.outcome == 'failure')
         run: exit 1

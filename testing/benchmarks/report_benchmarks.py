@@ -4,13 +4,12 @@ from __future__ import annotations
 
 import argparse
 import json
+import subprocess
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import quote
 
-import matplotlib
-
-matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.patches import Patch
 
@@ -19,6 +18,10 @@ GREEN = "#2da44e"
 YELLOW = "#bf8700"
 RED = "#cf222e"
 OUTLINE = "#24292f"
+REPO_ROOT = Path(__file__).resolve().parents[2]
+BENCHMARK_DIR = REPO_ROOT / "testing" / "benchmarks"
+BASELINE_DIR = BENCHMARK_DIR / "baselines"
+ARTIFACT_DIR = REPO_ROOT / "testing" / "artifacts" / "benchmarks"
 
 
 def rgba(hex_color: str, alpha: float) -> tuple[float, float, float, float]:
@@ -98,9 +101,7 @@ def category_stats(ratios: list[BenchmarkRatio]) -> dict[str, dict[str, float]]:
     return stats
 
 
-def write_plot(stats: dict[str, dict[str, float]], output_path: Path) -> None:
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-
+def _build_plot(stats: dict[str, dict[str, float]]) -> tuple[plt.Figure, plt.Axes]:
     categories = list(stats)
     highest_values = [stats[category]["highest"] for category in categories]
     average_values = [stats[category]["average"] for category in categories]
@@ -163,7 +164,19 @@ def write_plot(stats: dict[str, dict[str, float]], output_path: Path) -> None:
     )
 
     fig.tight_layout()
+    return fig, ax
+
+
+def write_plot(stats: dict[str, dict[str, float]], output_path: Path) -> None:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    fig, _ = _build_plot(stats)
     fig.savefig(output_path, dpi=90, pil_kwargs={"optimize": True})
+    plt.close(fig)
+
+
+def show_plot(stats: dict[str, dict[str, float]]) -> None:
+    fig, _ = _build_plot(stats)
+    plt.show()
     plt.close(fig)
 
 
@@ -284,27 +297,118 @@ def write_summary_json(ratios: list[BenchmarkRatio], output_path: Path) -> None:
     output_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
+def discover_benchmarks() -> list[tuple[str, Path, Path, Path]]:
+    specs = []
+    for script_path in sorted(BENCHMARK_DIR.glob("benchmark_*.py")):
+        if script_path.name == "report_benchmarks.py":
+            continue
+        category = script_path.stem.removeprefix("benchmark_")
+        baseline_path = BASELINE_DIR / f"{category}.json"
+        current_path = ARTIFACT_DIR / f"{category}_current.json"
+        if not baseline_path.exists():
+            continue
+        specs.append((category, script_path, current_path, baseline_path))
+    return specs
+
+
+def run_benchmark_script(script_path: Path, output_path: Path) -> None:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    command = [
+        sys.executable,
+        str(script_path),
+        "--samples",
+        "3",
+        "--output",
+        str(output_path),
+    ]
+    subprocess.run(command, check=True, cwd=REPO_ROOT)
+
+
+def collect_default_ratios() -> list[BenchmarkRatio]:
+    specs = discover_benchmarks()
+    if not specs:
+        raise SystemExit("No benchmark scripts with matching baselines found")
+
+    ratios: list[BenchmarkRatio] = []
+    for category, script_path, current_path, baseline_path in specs:
+        print(f"Running {script_path.relative_to(REPO_ROOT)}", flush=True)
+        run_benchmark_script(script_path, current_path)
+        ratios.extend(load_ratios(category, current_path, baseline_path))
+    return ratios
+
+
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Generate benchmark report artifacts.")
-    parser.add_argument("--category", required=True)
-    parser.add_argument("--current", type=Path, required=True)
-    parser.add_argument("--baseline", type=Path, required=True)
-    parser.add_argument("--plot", type=Path, required=True)
-    parser.add_argument("--markdown", type=Path, required=True)
-    parser.add_argument("--summary-json", type=Path, required=True)
+    parser = argparse.ArgumentParser(description="Run benchmarks and generate a combined report.")
+    parser.add_argument("--run-all", action="store_true", help="run and aggregate all benchmark scripts")
+    parser.add_argument("--category")
+    parser.add_argument("--current", type=Path)
+    parser.add_argument("--baseline", type=Path)
+    parser.add_argument("--plot", type=Path)
+    parser.add_argument("--markdown", type=Path)
+    parser.add_argument("--summary-json", type=Path)
+    parser.add_argument("--no-show", action="store_true", help="do not open the plot window in default mode")
     return parser.parse_args()
 
 
 def main() -> int:
     args = parse_args()
-    ratios = load_ratios(args.category, args.current, args.baseline)
+    single_category_mode = any(
+        value is not None
+        for value in (args.category, args.current, args.baseline, args.plot, args.markdown, args.summary_json)
+    ) and not args.run_all
+
+    if single_category_mode:
+        required = {
+            "--category": args.category,
+            "--current": args.current,
+            "--baseline": args.baseline,
+            "--plot": args.plot,
+            "--markdown": args.markdown,
+            "--summary-json": args.summary_json,
+        }
+        missing = [name for name, value in required.items() if value is None]
+        if missing:
+            raise SystemExit(f"Missing required arguments in manual mode: {', '.join(missing)}")
+
+        ratios = load_ratios(args.category, args.current, args.baseline)
+        if not ratios:
+            raise SystemExit("No benchmark ratios found")
+
+        stats = category_stats(ratios)
+        write_plot(stats, args.plot)
+        write_markdown(ratios, stats, args.markdown)
+        write_summary_json(ratios, args.summary_json)
+        return 0
+
+    ratios = collect_default_ratios() if args.run_all or not single_category_mode else []
     if not ratios:
         raise SystemExit("No benchmark ratios found")
 
     stats = category_stats(ratios)
-    write_plot(stats, args.plot)
-    write_markdown(ratios, stats, args.markdown)
-    write_summary_json(ratios, args.summary_json)
+    flagged = outside_green(ratios)
+
+    print("\nCombined benchmark summary")
+    for category, values in stats.items():
+        print(
+            f"  {category}: lowest {values['lowest']:.2f}x, "
+            f"average {values['average']:.2f}x, highest {values['highest']:.2f}x"
+        )
+    if flagged:
+        print("\nOutside green range:")
+        for item in flagged:
+            print(f"  {item.category}/{item.name}: {item.ratio:.2f}x")
+    else:
+        print("\nAll benchmark tests are within the green range.")
+
+    if args.plot is not None:
+        write_plot(stats, args.plot)
+    if args.markdown is not None:
+        write_markdown(ratios, stats, args.markdown)
+    if args.summary_json is not None:
+        write_summary_json(ratios, args.summary_json)
+
+    if not args.no_show:
+        show_plot(stats)
     return 0
 
 
