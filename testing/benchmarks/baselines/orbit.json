@@ -1,0 +1,65 @@
+{
+  "benchmarks": {
+    "construct_propagated_orbit_small": {
+      "loops": 8,
+      "max_regression": 1.5,
+      "normalized_seconds": 2.4907249307665627,
+      "seconds": 0.008829067250019307
+    },
+    "ecef_to_eci_orbit": {
+      "loops": 4096,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.0016774266300515846,
+      "seconds": 5.946105224530207e-06
+    },
+    "geocentric_to_ecef_orbit": {
+      "loops": 512,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.008976167848925817,
+      "seconds": 3.18185234373658e-05
+    },
+    "get_b_eci_orbit": {
+      "loops": 8192,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.0006862957018498655,
+      "seconds": 2.4327659912115607e-06
+    },
+    "get_os_exact_node": {
+      "loops": 2048,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.0030662802634465543,
+      "seconds": 1.0869283203041036e-05
+    },
+    "get_os_interpolated": {
+      "loops": 4,
+      "max_regression": 1.5,
+      "normalized_seconds": 2.2646616986811785,
+      "seconds": 0.008027723250052077
+    },
+    "get_range_precreated_states": {
+      "loops": 1024,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.005526599040069948,
+      "seconds": 1.95905673829877e-05
+    },
+    "get_vecs": {
+      "loops": 8192,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.0008462895864481986,
+      "seconds": 2.9999088134724516e-06
+    },
+    "new_orbit_from_times_small": {
+      "loops": 4,
+      "max_regression": 1.5,
+      "normalized_seconds": 2.2637457739368827,
+      "seconds": 0.008024476500054334
+    }
+  },
+  "calibration_loops": 16,
+  "calibration_seconds": 0.0035447781250184107,
+  "description": "Orbit fast benchmark results normalized by calibration_seconds.",
+  "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+  "processor": "x86_64",
+  "python": "3.12.3",
+  "schema_version": 1
+}
