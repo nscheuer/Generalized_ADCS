@@ -1,14 +1,14 @@
 # .github/workflows/ci.yml
 
-name: Run Pytest on All Branches
+name: Run Pytest
 
 on:
   push:
     branches:
-      - '**'
+      - main
   pull_request:
     branches:
-      - '**'
+      - main
 
 jobs:
   check_all_pytests:
