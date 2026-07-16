@@ -31,6 +31,16 @@ def rgba(hex_color: str, alpha: float) -> tuple[float, float, float, float]:
     )
 
 
+def css_rgba(hex_color: str, alpha: float) -> str:
+    value = hex_color.lstrip("#")
+    return (
+        f"rgba({int(value[0:2], 16)}, "
+        f"{int(value[2:4], 16)}, "
+        f"{int(value[4:6], 16)}, "
+        f"{alpha})"
+    )
+
+
 @dataclass(frozen=True)
 class BenchmarkRatio:
     category: str
@@ -170,28 +180,45 @@ def outside_green(ratios: list[BenchmarkRatio]) -> list[BenchmarkRatio]:
 
 def chart_url(stats: dict[str, dict[str, float]]) -> str:
     categories = list(stats)
-    values = [
-        {
-            "category": category,
-            "lowest": round(stats[category]["lowest"], 3),
-            "average": round(stats[category]["average"], 3),
-            "highest": round(stats[category]["highest"], 3),
-            "lowestColor": ratio_color(stats[category]["lowest"]),
-            "averageColor": ratio_color(stats[category]["average"]),
-            "highestColor": ratio_color(stats[category]["highest"]),
-        }
-        for category in categories
-    ]
-    max_value = max(value["highest"] for value in values)
+    lowest = [round(stats[category]["lowest"], 3) for category in categories]
+    average = [round(stats[category]["average"], 3) for category in categories]
+    highest = [round(stats[category]["highest"], 3) for category in categories]
+    max_value = max(highest)
 
     config = {
-        "type": "scatter",
-        "data": {"datasets": [{"data": [{"x": 0, "y": 0}], "pointRadius": 0}]},
+        "type": "bar",
+        "data": {
+            "labels": categories,
+            "datasets": [
+                {
+                    "label": "highest: top half",
+                    "data": highest,
+                    "backgroundColor": [css_rgba(ratio_color(stats[category]["highest"]), 0.28) for category in categories],
+                    "borderWidth": 0,
+                    "barThickness": 10,
+                },
+                {
+                    "label": "average",
+                    "data": average,
+                    "backgroundColor": "rgba(0,0,0,0)",
+                    "borderColor": [ratio_color(stats[category]["average"]) for category in categories],
+                    "borderWidth": 2,
+                    "barThickness": 22,
+                },
+                {
+                    "label": "lowest: bottom half",
+                    "data": lowest,
+                    "backgroundColor": [css_rgba(ratio_color(stats[category]["lowest"]), 0.28) for category in categories],
+                    "borderWidth": 0,
+                    "barThickness": 10,
+                },
+            ],
+        },
         "options": {
-            "benchmarkValues": values,
+            "indexAxis": "y",
             "plugins": {
-                "legend": {"display": False},
-                "title": {"display": False},
+                "legend": {"display": True, "position": "bottom"},
+                "title": {"display": True, "text": "Benchmark Multiplication Factors"},
             },
             "scales": {
                 "x": {
@@ -200,24 +227,13 @@ def chart_url(stats: dict[str, dict[str, float]]) -> str:
                     "title": {"display": True, "text": "calibrated multiplier vs baseline"},
                     "grid": {"color": "rgba(36, 41, 47, 0.12)"},
                 },
-                "y": {
-                    "min": -0.7,
-                    "max": len(categories) - 0.3,
-                    "ticks": {"display": False},
-                    "grid": {"display": False},
-                },
+                "y": {"grid": {"display": False}},
             },
         },
-        "plugins": [
-            {
-                "id": "benchmarkCategoryBars",
-                "beforeDatasetsDraw": "function(chart,args,opts){const ctx=chart.ctx;const values=chart.options.benchmarkValues;const x=chart.scales.x;const y=chart.scales.y;const left=x.getPixelForValue(0);const barH=30;ctx.save();ctx.font='12px sans-serif';ctx.textBaseline='middle';values.forEach(function(v,i){const cy=y.getPixelForValue(i);const avg=x.getPixelForValue(v.average)-left;const hi=x.getPixelForValue(v.highest)-left;const lo=x.getPixelForValue(v.lowest)-left;ctx.fillStyle=v.highestColor+'55';ctx.fillRect(left,cy-barH/2,hi,barH/2);ctx.fillStyle=v.lowestColor+'55';ctx.fillRect(left,cy,lo,barH/2);ctx.strokeStyle=v.averageColor;ctx.lineWidth=2;ctx.strokeRect(left,cy-barH/2,avg,barH);ctx.fillStyle='#24292f';ctx.textAlign='right';ctx.fillText(v.category,left-8,cy);});ctx.fillStyle='#24292f';ctx.font='bold 14px sans-serif';ctx.textAlign='center';ctx.fillText('Benchmark Multiplication Factors',chart.width/2,18);const legendY=chart.height-18;ctx.font='11px sans-serif';ctx.textAlign='left';ctx.strokeStyle='#24292f';ctx.lineWidth=2;ctx.strokeRect(150,legendY-6,18,12);ctx.fillStyle='#24292f';ctx.fillText('average',174,legendY);ctx.fillStyle='#24292f55';ctx.fillRect(250,legendY-6,18,6);ctx.fillStyle='#24292f';ctx.fillText('highest: top half',274,legendY);ctx.fillStyle='#24292f33';ctx.fillRect(390,legendY,18,6);ctx.fillStyle='#24292f';ctx.fillText('lowest: bottom half',414,legendY);ctx.restore();}",
-            }
-        ],
     }
     encoded = quote(json.dumps(config, separators=(",", ":")))
-    height = max(220, 120 + 48 * len(categories))
-    return f"https://quickchart.io/chart?width=720&height={height}&version=3&c={encoded}"
+    height = max(240, 150 + 54 * len(categories))
+    return f"https://quickchart.io/chart?width=720&height={height}&version=3&backgroundColor=white&c={encoded}"
 
 
 def write_markdown(ratios: list[BenchmarkRatio], stats: dict[str, dict[str, float]], output_path: Path) -> None:
