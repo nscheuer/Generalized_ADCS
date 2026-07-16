@@ -97,12 +97,14 @@ def category_stats(ratios: list[BenchmarkRatio]) -> dict[str, dict[str, float]]:
             "lowest": min(values),
             "average": sum(values) / len(values),
             "highest": max(values),
+            "count": len(values),
         }
     return stats
 
 
 def _build_plot(stats: dict[str, dict[str, float]]) -> tuple[plt.Figure, plt.Axes]:
     categories = list(stats)
+    category_labels = [f"{category} ({int(stats[category]['count'])})" for category in categories]
     highest_values = [stats[category]["highest"] for category in categories]
     average_values = [stats[category]["average"] for category in categories]
     lowest_values = [stats[category]["lowest"] for category in categories]
@@ -146,7 +148,7 @@ def _build_plot(stats: dict[str, dict[str, float]]) -> tuple[plt.Figure, plt.Axe
     ax.axvline(1.0, color="#57606a", linestyle="--", linewidth=1.0)
     ax.axvline(1.5, color=RED, linestyle=":", linewidth=1.0)
 
-    ax.set_yticks(y_positions, categories)
+    ax.set_yticks(y_positions, category_labels)
     ax.invert_yaxis()
     ax.set_xlabel("calibrated multiplier vs baseline")
     ax.set_title("Benchmark Multiplication Factors")
@@ -193,6 +195,7 @@ def outside_green(ratios: list[BenchmarkRatio]) -> list[BenchmarkRatio]:
 
 def chart_url(stats: dict[str, dict[str, float]]) -> str:
     categories = list(stats)
+    category_labels = [f"{category} ({int(stats[category]['count'])})" for category in categories]
     lowest = [round(stats[category]["lowest"], 3) for category in categories]
     average = [round(stats[category]["average"], 3) for category in categories]
     highest = [round(stats[category]["highest"], 3) for category in categories]
@@ -201,7 +204,7 @@ def chart_url(stats: dict[str, dict[str, float]]) -> str:
     config = {
         "type": "bar",
         "data": {
-            "labels": categories,
+            "labels": category_labels,
             "datasets": [
                 {
                     "label": "highest: top half",

@@ -130,6 +130,7 @@ def _make_benchmarks(orbit: Orbit) -> list[Benchmark]:
     sampled_times = [float(orbit.times[0]), interp_time, float(orbit.times[-1])]
     b_geo = np.vstack([state.geocentric for state in orbit.states.values()])
     b_ecef = orbit.geocentric_to_ecef_orbit(b_geo)
+    state_list = [*orbit.states.values()]
 
     return [
         Benchmark(
@@ -159,11 +160,30 @@ def _make_benchmarks(orbit: Orbit) -> list[Benchmark]:
             max_loops=1_024,
         ),
         Benchmark(
+            name="get_range_sampled_dt",
+            func=lambda: orbit.get_range(start_time, end_time, dt=60.0),
+            max_regression=1.50,
+            min_seconds=0.025,
+            max_loops=512,
+        ),
+        Benchmark(
             name="new_orbit_from_times_small",
             func=lambda: orbit.new_orbit_from_times(sampled_times),
             max_regression=1.50,
             min_seconds=0.020,
             max_loops=512,
+        ),
+        Benchmark(
+            name="construct_from_existing_states",
+            func=lambda: Orbit(state_list, zonal_J=2),
+            max_regression=1.50,
+            min_seconds=0.020,
+            max_loops=512,
+        ),
+        Benchmark(
+            name="next_state_exact_node",
+            func=lambda: orbit.next_state(exact_time),
+            max_regression=1.50,
         ),
         Benchmark(
             name="geocentric_to_ecef_orbit",

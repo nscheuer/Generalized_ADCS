@@ -1,25 +1,27 @@
-"""Fast Orbital_State performance checks.
+"""Fast simulate() performance checks.
 
 This module intentionally does not depend on pytest-benchmark.  It can be run
 directly in CI and compares each benchmark against a checked-in baseline after
 normalizing by a small CPU/Numpy calibration workload:
 
-    python testing/benchmarks/benchmark_orbital_state.py --compare
+    python testing/benchmarks/benchmark_simulate.py --compare
 
 To refresh the baseline after an intentional performance change:
 
-    python testing/benchmarks/benchmark_orbital_state.py --update-baseline
+    python testing/benchmarks/benchmark_simulate.py --update-baseline
 """
 
 from __future__ import annotations
 
 import argparse
+import io
 import json
 import os
 import platform
 import statistics
 import sys
 import time
+from contextlib import redirect_stderr, redirect_stdout
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
@@ -31,16 +33,25 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+from ADCS.CONOPS.goals import No_Goal
+from ADCS.controller import BDot, MTQ_w_RW
+from ADCS.estimators.attitude_estimators import UAKF
+from ADCS.helpers.math_constants import MathConstants
+from ADCS.helpers.math_helpers import random_n_unit_vec
 from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.orbital_state import Orbital_State
-from ADCS.orbits.universal_constants import EarthConstants
+from ADCS.satellite_hardware.actuators import MTQ, RW
+from ADCS.satellite_hardware.errors import Bias, Noise
+from ADCS.satellite_hardware.satellite import EstimatedSatellite, Satellite
+from ADCS.satellite_hardware.sensors import Gyro, MTM
+from ADCS.simulate import simulate
 
 
-BASELINE_PATH = REPO_ROOT / "testing" / "benchmarks" / "baselines" / "orbital_state.json"
-RESULT_PATH = REPO_ROOT / "testing" / "artifacts" / "benchmarks" / "orbital_state_current.json"
+BASELINE_PATH = REPO_ROOT / "testing" / "benchmarks" / "baselines" / "simulate.json"
+RESULT_PATH = REPO_ROOT / "testing" / "artifacts" / "benchmarks" / "simulate_current.json"
 
-DEFAULT_MIN_SECONDS = 0.025
-DEFAULT_MAX_LOOPS = 50_000
+DEFAULT_MIN_SECONDS = 0.030
+DEFAULT_MAX_LOOPS = 16
 
 
 @dataclass(frozen=True)
@@ -52,11 +63,139 @@ class Benchmark:
     max_loops: int = DEFAULT_MAX_LOOPS
 
 
-def _reference_state() -> Orbital_State:
-    ephem = Ephemeris()
-    r = np.array([7078.137, 0.0, 0.0])
-    v = np.array([0.0, np.sqrt(EarthConstants.mu_e / np.linalg.norm(r)), 0.0])
-    return Orbital_State(ephem=ephem, J2000=0.22, R=r, V=v, fast=True)
+def _build_reference_setup() -> dict[str, object]:
+    unit_vectors = MathConstants.unitvecs
+    np.random.seed(11)
+
+    actuators = [MTQ(axis=unit_vectors[index], max_torque=0.1) for index in range(3)]
+    actuators += [RW(axis=unit_vectors[index], max_torque=4.51, J=0.22, h=0.0, h_max=3.8) for index in range(3)]
+
+    sensors = [
+        *[
+            MTM(
+                axis=unit_vectors[index],
+                noise=Noise(noise=0.0, std_noise=1e-8),
+                bias=Bias(bias=1e-9, std_bias=1e-9),
+            )
+            for index in range(3)
+        ],
+        *[
+            Gyro(
+                axis=unit_vectors[index],
+                noise=Noise(noise=0.0, std_noise=1e-4),
+                bias=Bias(bias=2e-3, std_bias=4e-4 * np.pi / 180.0),
+            )
+            for index in range(3)
+        ],
+    ]
+
+    satellite = Satellite(
+        mass=4.0,
+        J_0=np.diagflat([3.4, 2.9, 1.3]),
+        actuators=actuators,
+        sensors=sensors,
+    )
+    estimated_satellite = EstimatedSatellite.from_satellite(satellite)
+
+    orbital_state = Orbital_State(
+        ephem=Ephemeris(),
+        J2000=0.22,
+        R=-7000.0 * np.array([0.0, np.sqrt(0.5), np.sqrt(0.5)]),
+        V=np.array([8.0, 0.0, 0.0]),
+        B=np.array([0.0, 0.1, 0.0]),
+        S=np.array([1.0e5 + 1.0, 0.0, 0.0]),
+        rho=5.0e-12,
+    )
+
+    state_length = satellite.state_len
+    initial_rate = random_n_unit_vec(3) * np.random.uniform(1.0, 2.0) * np.pi / 180.0
+    initial_quaternion = random_n_unit_vec(4)
+    x0 = np.concatenate([initial_rate, initial_quaternion, np.zeros(state_length - 7)])
+
+    x_hat0 = np.concatenate([np.zeros(3), [1.0, 0.0, 0.0, 0.0], np.zeros(state_length - 7)])
+    reduced_length = state_length - 1
+    covariance0 = np.diag(np.concatenate([[1e-3] * 3, [1e-2] * 3, [1e-4] * (reduced_length - 6)]))
+    process_noise0 = np.eye(reduced_length) * 1e-8
+
+    return {
+        "satellite": satellite,
+        "estimated_satellite": estimated_satellite,
+        "orbital_state": orbital_state,
+        "x0": x0,
+        "x_hat0": x_hat0,
+        "covariance0": covariance0,
+        "process_noise0": process_noise0,
+    }
+
+
+def _run_quietly(func: Callable[[], object]) -> object:
+    sink = io.StringIO()
+    with redirect_stdout(sink), redirect_stderr(sink):
+        return func()
+
+
+_REFERENCE = _build_reference_setup()
+
+
+def _simulate_open_loop_one_step() -> object:
+    return _run_quietly(
+        lambda: simulate(
+            x=np.array(_REFERENCE["x0"], copy=True),
+            satellite=_REFERENCE["satellite"],
+            os0=_REFERENCE["orbital_state"],
+            dt=1.0,
+            tf=1.0,
+        )
+    )
+
+
+def _simulate_bdot_one_step() -> object:
+    controller = BDot(est_sat=_REFERENCE["estimated_satellite"], gain=100.0)
+    return _run_quietly(
+        lambda: simulate(
+            x=np.array(_REFERENCE["x0"], copy=True),
+            satellite=_REFERENCE["satellite"],
+            est_satellite=_REFERENCE["estimated_satellite"],
+            controller=controller,
+            goal=No_Goal(),
+            os0=_REFERENCE["orbital_state"],
+            dt=1.0,
+            tf=1.0,
+        )
+    )
+
+
+def _simulate_uakf_mtq_rw_two_steps() -> object:
+    estimator = UAKF(
+        est_sat=_REFERENCE["estimated_satellite"],
+        J2000=_REFERENCE["orbital_state"].J2000,
+        x_hat=np.array(_REFERENCE["x_hat0"], copy=True),
+        P_hat=np.array(_REFERENCE["covariance0"], copy=True),
+        Q_hat=np.array(_REFERENCE["process_noise0"], copy=True),
+        dt=1.0,
+        cross_term=True,
+        quat_as_vec=False,
+    )
+    controller = MTQ_w_RW(
+        est_sat=_REFERENCE["estimated_satellite"],
+        p_gain=0.0,
+        d_gain=1.0,
+        c_gain=0.0,
+        h_target=np.zeros(3),
+    )
+    return _run_quietly(
+        lambda: simulate(
+            x=np.array(_REFERENCE["x0"], copy=True),
+            satellite=_REFERENCE["satellite"],
+            est_satellite=_REFERENCE["estimated_satellite"],
+            controller=controller,
+            estimator=estimator,
+            goal=No_Goal(),
+            os0=_REFERENCE["orbital_state"],
+            dt=1.0,
+            tf=2.0,
+        )
+    )
 
 
 def _warmup(benchmarks: list[Benchmark]) -> None:
@@ -65,7 +204,7 @@ def _warmup(benchmarks: list[Benchmark]) -> None:
         benchmark.func()
 
 
-def _calibration_work(iterations: int = 3_000) -> float:
+def _calibration_work(iterations: int = 2_000) -> float:
     """Small deterministic workload used to reduce hardware-to-hardware noise."""
     a = np.array(
         [
@@ -93,8 +232,6 @@ def _time_callable(func: Callable[[], object], min_seconds: float, max_loops: in
             result = func()
         elapsed = time.perf_counter() - start
 
-        # Keep the result reachable long enough that the call cannot be skipped
-        # by an unusually clever interpreter or future static optimizer.
         if result is None:
             raise RuntimeError("benchmark function returned None")
 
@@ -113,71 +250,42 @@ def _median_time(func: Callable[[], object], min_seconds: float, max_loops: int,
     return statistics.median(timings), loops_used
 
 
-def _make_benchmarks(state: Orbital_State) -> list[Benchmark]:
-    paired_state = state.propagate_orbit_rk4(dt=5.0, zonal_J=2, fast=True)
-    body_state = np.array([1.0e-3, -2.0e-3, 3.0e-3, 1.0, 0.0, 0.0, 0.0], dtype=float)
-
+def _make_benchmarks() -> list[Benchmark]:
     return [
         Benchmark(
-            name="copy",
-            func=state.copy,
+            name="simulate_open_loop_one_step",
+            func=_simulate_open_loop_one_step,
             max_regression=1.50,
         ),
         Benchmark(
-            name="average_half_step",
-            func=lambda: state.average(paired_state, ratio=0.5, fast=True),
+            name="simulate_bdot_one_step",
+            func=_simulate_bdot_one_step,
             max_regression=1.50,
         ),
         Benchmark(
-            name="orbit_dynamics_kepler",
-            func=lambda: state.orbit_dynamics(zonal_J=0),
+            name="simulate_uakf_mtq_rw_two_steps",
+            func=_simulate_uakf_mtq_rw_two_steps,
             max_regression=1.50,
-        ),
-        Benchmark(
-            name="orbit_dynamics_j2",
-            func=lambda: state.orbit_dynamics(zonal_J=2),
-            max_regression=1.50,
-        ),
-        Benchmark(
-            name="get_state_vector_cached",
-            func=lambda: state.get_state_vector(body_state),
-            max_regression=1.50,
-        ),
-        Benchmark(
-            name="ecef_to_eci",
-            func=lambda: state.ecef_to_eci(state.ECEF),
-            max_regression=1.50,
-        ),
-        Benchmark(
-            name="propagate_jacobians_rk4_j2",
-            func=lambda: state.propagate_jacobians_rk4(dt=5.0, zonal_J=2),
-            max_regression=1.50,
-        ),
-        Benchmark(
-            name="propagate_orbit_rk4_full_state",
-            func=lambda: state.propagate_orbit_rk4(dt=5.0, zonal_J=2, fast=True),
-            max_regression=1.50,
-            min_seconds=0.050,
-            max_loops=32,
+            min_seconds=0.040,
+            max_loops=4,
         ),
     ]
 
 
 def run_benchmarks(samples: int) -> dict:
-    state = _reference_state()
-    benchmarks = _make_benchmarks(state)
+    benchmarks = _make_benchmarks()
     _warmup(benchmarks)
 
     calibration_seconds, calibration_loops = _median_time(
         _calibration_work,
-        min_seconds=0.050,
+        min_seconds=0.040,
         max_loops=64,
         samples=samples,
     )
 
     results = {
         "schema_version": 1,
-        "description": "Orbital_State fast benchmark results normalized by calibration_seconds.",
+        "description": "simulate() fast benchmark results normalized by calibration_seconds.",
         "python": platform.python_version(),
         "platform": platform.platform(),
         "processor": platform.processor(),
@@ -246,7 +354,7 @@ def _color_ratio(ratio: float, use_color: bool) -> str:
 
 
 def print_summary(results: dict, baseline: dict | None = None, use_color: bool = True) -> None:
-    print("\nOrbital_State benchmarks")
+    print("\nsimulate() benchmarks")
     print(f"calibration: {results['calibration_seconds']:.6f} s")
     print("-" * 88)
     print(f"{'benchmark':36} {'time':>12} {'normalized':>14} {'vs baseline':>14}")
@@ -262,7 +370,7 @@ def print_summary(results: dict, baseline: dict | None = None, use_color: bool =
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Benchmark ADCS.orbits.orbital_state.Orbital_State.")
+    parser = argparse.ArgumentParser(description="Benchmark ADCS.simulate.simulate.")
     parser.add_argument("--compare", action="store_true", help="fail if calibrated timings regress versus baseline")
     parser.add_argument("--update-baseline", action="store_true", help="replace the checked-in baseline with this run")
     parser.add_argument("--samples", type=int, default=3, help="median sample count per benchmark")
