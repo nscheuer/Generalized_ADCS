@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 import argparse
-import base64
 import json
 from dataclasses import dataclass
 from pathlib import Path
+from urllib.parse import quote
 
 import matplotlib
 
@@ -134,16 +134,66 @@ def outside_green(ratios: list[BenchmarkRatio]) -> list[BenchmarkRatio]:
     )
 
 
-def write_markdown(ratios: list[BenchmarkRatio], plot_path: Path, output_path: Path) -> None:
+def chart_url(stats: dict[str, dict[str, float]]) -> str:
+    labels = []
+    values = []
+    colors = []
+    for category, category_stats_ in stats.items():
+        for metric in ("lowest", "average", "highest"):
+            value = category_stats_[metric]
+            labels.append(f"{category} {metric}")
+            values.append(round(value, 3))
+            colors.append(ratio_color(value))
+
+    config = {
+        "type": "bar",
+        "data": {
+            "labels": labels,
+            "datasets": [
+                {
+                    "data": values,
+                    "backgroundColor": colors,
+                    "borderWidth": 0,
+                    "barThickness": 22,
+                }
+            ],
+        },
+        "options": {
+            "indexAxis": "y",
+            "plugins": {
+                "legend": {"display": False},
+                "title": {"display": True, "text": "Benchmark Multiplication Factors"},
+                "datalabels": {
+                    "anchor": "end",
+                    "align": "right",
+                    "formatter": "function(value) { return value.toFixed(2) + 'x'; }",
+                    "color": "#24292f",
+                },
+            },
+            "scales": {
+                "x": {
+                    "min": 0,
+                    "max": max(1.6, max(values) * 1.15),
+                    "title": {"display": True, "text": "calibrated multiplier vs baseline"},
+                    "grid": {"color": "rgba(36, 41, 47, 0.12)"},
+                },
+                "y": {"grid": {"display": False}},
+            },
+        },
+    }
+    encoded = quote(json.dumps(config, separators=(",", ":")))
+    return f"https://quickchart.io/chart?width=640&height=220&version=3&c={encoded}"
+
+
+def write_markdown(ratios: list[BenchmarkRatio], stats: dict[str, dict[str, float]], output_path: Path) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    encoded_plot = base64.b64encode(plot_path.read_bytes()).decode("ascii")
     flagged = outside_green(ratios)
 
     lines = [
         "<!-- generalized-adcs-benchmark-report -->",
         "## Benchmark Report",
         "",
-        f'<img alt="Benchmark multiplication factors" src="data:image/png;base64,{encoded_plot}">',
+        f"![Benchmark multiplication factors]({chart_url(stats)})",
         "",
         "### Tests Outside Green Range",
         "",
@@ -202,7 +252,7 @@ def main() -> int:
 
     stats = category_stats(ratios)
     write_plot(stats, args.plot)
-    write_markdown(ratios, args.plot, args.markdown)
+    write_markdown(ratios, stats, args.markdown)
     write_summary_json(ratios, args.summary_json)
     return 0
 
