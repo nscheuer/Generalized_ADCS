@@ -38,26 +38,42 @@ jobs:
           pip install git+https://github.com/jcrudy/choldate.git --no-build-isolation
           pip uninstall -y cmake
 
-      - name: ⏱️ Run Orbit Benchmarks
-        id: orbit_benchmark
+      - name: ⏱️ Run Benchmarks
+        id: benchmarks
         continue-on-error: true
         run: |
           source .venv/bin/activate
-          python testing/benchmarks/benchmark_orbit.py --compare
+          shopt -s nullglob
+          scripts=(testing/benchmarks/benchmark_*.py)
+          if [ ${#scripts[@]} -eq 0 ]; then
+            echo "No benchmark scripts found."
+            exit 1
+          fi
 
-      - name: ⏱️ Run Orbital State Benchmarks
-        id: orbital_state_benchmark
-        continue-on-error: true
-        run: |
-          source .venv/bin/activate
-          python testing/benchmarks/benchmark_orbital_state.py --compare
+          status=0
+          for script in "${scripts[@]}"; do
+            if [ "$(basename "$script")" = "report_benchmarks.py" ]; then
+              continue
+            fi
+
+            echo "::group::$(basename "$script")"
+            python "$script" --compare
+            code=$?
+            echo "::endgroup::"
+
+            if [ $code -ne 0 ]; then
+              status=$code
+            fi
+          done
+
+          exit $status
 
       - name: 📊 Generate Benchmark Report
         if: always()
         run: |
           source .venv/bin/activate
           python testing/benchmarks/report_benchmarks.py \
-            --run-all \
+            --from-artifacts \
             --no-show \
             --plot testing/artifacts/benchmarks/benchmark_multipliers.png \
             --markdown testing/artifacts/benchmarks/pr_comment.md \
@@ -113,5 +129,5 @@ jobs:
           path: testing/artifacts/benchmarks/
 
       - name: 🚦 Fail On Benchmark Regression
-        if: always() && (steps.orbit_benchmark.outcome == 'failure' || steps.orbital_state_benchmark.outcome == 'failure')
+        if: always() && steps.benchmarks.outcome == 'failure'
         run: exit 1

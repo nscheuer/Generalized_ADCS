@@ -302,6 +302,7 @@ def write_summary_json(ratios: list[BenchmarkRatio], output_path: Path) -> None:
 
 def discover_benchmarks() -> list[tuple[str, Path, Path, Path]]:
     specs = []
+    missing_baselines: list[str] = []
     for script_path in sorted(BENCHMARK_DIR.glob("benchmark_*.py")):
         if script_path.name == "report_benchmarks.py":
             continue
@@ -309,8 +310,17 @@ def discover_benchmarks() -> list[tuple[str, Path, Path, Path]]:
         baseline_path = BASELINE_DIR / f"{category}.json"
         current_path = ARTIFACT_DIR / f"{category}_current.json"
         if not baseline_path.exists():
+            missing_baselines.append(f"{category} -> {baseline_path.relative_to(REPO_ROOT)}")
             continue
         specs.append((category, script_path, current_path, baseline_path))
+
+    if missing_baselines:
+        missing_lines = "\n".join(f"  - {entry}" for entry in missing_baselines)
+        raise SystemExit(
+            "Missing benchmark baselines for discovered benchmark scripts:\n"
+            f"{missing_lines}\n"
+            "Run the corresponding benchmark with --update-baseline and commit the new baseline."
+        )
     return specs
 
 
@@ -340,9 +350,40 @@ def collect_default_ratios() -> list[BenchmarkRatio]:
     return ratios
 
 
+def collect_artifact_ratios() -> list[BenchmarkRatio]:
+    specs = discover_benchmarks()
+    if not specs:
+        raise SystemExit("No benchmark scripts with matching baselines found")
+
+    ratios: list[BenchmarkRatio] = []
+    missing_current: list[str] = []
+    for category, script_path, current_path, baseline_path in specs:
+        if not current_path.exists():
+            missing_current.append(
+                f"{category} -> {current_path.relative_to(REPO_ROOT)} "
+                f"(expected from {script_path.relative_to(REPO_ROOT)})"
+            )
+            continue
+        ratios.extend(load_ratios(category, current_path, baseline_path))
+
+    if missing_current:
+        print("Skipping benchmarks without current result artifacts:", file=sys.stderr)
+        for entry in missing_current:
+            print(f"  - {entry}", file=sys.stderr)
+
+    if not ratios:
+        raise SystemExit("No benchmark ratios found in current benchmark artifacts")
+    return ratios
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run benchmarks and generate a combined report.")
     parser.add_argument("--run-all", action="store_true", help="run and aggregate all benchmark scripts")
+    parser.add_argument(
+        "--from-artifacts",
+        action="store_true",
+        help="aggregate all discovered benchmark categories from existing current result JSONs",
+    )
     parser.add_argument("--category")
     parser.add_argument("--current", type=Path)
     parser.add_argument("--baseline", type=Path)
@@ -358,7 +399,7 @@ def main() -> int:
     single_category_mode = any(
         value is not None
         for value in (args.category, args.current, args.baseline, args.plot, args.markdown, args.summary_json)
-    ) and not args.run_all
+    ) and not args.run_all and not args.from_artifacts
 
     if single_category_mode:
         required = {
@@ -383,7 +424,12 @@ def main() -> int:
         write_summary_json(ratios, args.summary_json)
         return 0
 
-    ratios = collect_default_ratios() if args.run_all or not single_category_mode else []
+    if args.run_all:
+        ratios = collect_default_ratios()
+    elif args.from_artifacts:
+        ratios = collect_artifact_ratios()
+    else:
+        ratios = collect_default_ratios()
     if not ratios:
         raise SystemExit("No benchmark ratios found")
 

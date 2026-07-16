@@ -1,0 +1,41 @@
+{
+  "benchmarks": {
+    "dynamics_core_mtq": {
+      "loops": 512,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.014484079017696425,
+      "seconds": 4.925258203059002e-05
+    },
+    "dynamics_core_plain": {
+      "loops": 8192,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.000849627576776542,
+      "seconds": 2.8891275634101987e-06
+    },
+    "dynamics_core_reaction_wheels": {
+      "loops": 2048,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.0055339912497631896,
+      "seconds": 1.881813525406173e-05
+    },
+    "dynamics_for_solver_full_stack": {
+      "loops": 128,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.06149162184066688,
+      "seconds": 0.00020910001562413072
+    },
+    "noiseless_rk4_full_stack": {
+      "loops": 64,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.19153159194374733,
+      "seconds": 0.0006512961874989287
+    }
+  },
+  "calibration_loops": 16,
+  "calibration_seconds": 0.0034004634999860173,
+  "description": "Satellite dynamics fast benchmark results normalized by calibration_seconds.",
+  "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+  "processor": "x86_64",
+  "python": "3.12.3",
+  "schema_version": 1
+}
