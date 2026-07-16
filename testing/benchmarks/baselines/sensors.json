@@ -1,0 +1,53 @@
+{
+  "benchmarks": {
+    "earth_horizon_reading": {
+      "loops": 1024,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.006103883483143736,
+      "seconds": 2.1233244140717034e-05
+    },
+    "gps_reading": {
+      "loops": 2048,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.0030808971491631185,
+      "seconds": 1.0717347656008513e-05
+    },
+    "gyro_clean_reading": {
+      "loops": 8192,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.00010959537444219444,
+      "seconds": 3.8124340817624613e-07
+    },
+    "mtm_clean_reading": {
+      "loops": 8192,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.00039716391304929336,
+      "seconds": 1.3815922851323492e-06
+    },
+    "star_tracker_quaternion_reading": {
+      "loops": 32,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.2540885845314336,
+      "seconds": 0.0008838840000180426
+    },
+    "star_tracker_reading": {
+      "loops": 32,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.25022404107178225,
+      "seconds": 0.0008704406249933072
+    },
+    "sunpair_clean_reading": {
+      "loops": 8192,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.0006404716056507308,
+      "seconds": 2.227973388668758e-06
+    }
+  },
+  "calibration_loops": 16,
+  "calibration_seconds": 0.0034786450625006182,
+  "description": "Sensors fast benchmark results normalized by calibration_seconds.",
+  "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+  "processor": "x86_64",
+  "python": "3.12.3",
+  "schema_version": 1
+}

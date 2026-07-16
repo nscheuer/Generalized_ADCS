@@ -1,0 +1,71 @@
+{
+  "benchmarks": {
+    "bdot_find_u_steady_state": {
+      "loops": 1024,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.001026474295122278,
+      "seconds": 3.4459130864306076e-06
+    },
+    "mtq_lovera_find_u": {
+      "loops": 512,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.016667847604684607,
+      "seconds": 5.5954595703511245e-05
+    },
+    "mtq_w_rw_find_u": {
+      "loops": 512,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.013802051537790964,
+      "seconds": 4.633400976494784e-05
+    },
+    "mtq_w_rw_lp_desat_find_u": {
+      "loops": 1024,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.009423103931239797,
+      "seconds": 3.1633716797152545e-05
+    },
+    "mtq_w_rw_lp_pointing_find_u": {
+      "loops": 32,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.18990027220080077,
+      "seconds": 0.0006375024062492685
+    },
+    "mtq_w_rw_qp_find_u": {
+      "loops": 256,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.08838531312362695,
+      "seconds": 0.00029671284374899187
+    },
+    "mtq_w_rw_qpc_find_u": {
+      "loops": 32,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.6384711719251596,
+      "seconds": 0.002143371906242919
+    },
+    "mtq_w_rw_qpg_find_u": {
+      "loops": 64,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.19851307810640226,
+      "seconds": 0.0006664159218843224
+    },
+    "mtq_w_rw_qpw_find_u": {
+      "loops": 64,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.21901961431418382,
+      "seconds": 0.000735257140618728
+    },
+    "mtq_wisniewski_find_u": {
+      "loops": 512,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.02081098639096525,
+      "seconds": 6.986326953040134e-05
+    }
+  },
+  "calibration_loops": 16,
+  "calibration_seconds": 0.00335703787499142,
+  "description": "Controllers fast benchmark results normalized by calibration_seconds.",
+  "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+  "processor": "x86_64",
+  "python": "3.12.3",
+  "schema_version": 1
+}

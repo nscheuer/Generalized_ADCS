@@ -1,0 +1,71 @@
+{
+  "benchmarks": {
+    "mtq_hessians": {
+      "loops": 2048,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.006554660203436816,
+      "seconds": 2.1819687499924356e-05
+    },
+    "mtq_jacobians": {
+      "loops": 2048,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.005432860931289926,
+      "seconds": 1.808535058600569e-05
+    },
+    "mtq_storage_torque": {
+      "loops": 8192,
+      "max_regression": 1.5,
+      "normalized_seconds": 3.255957318189182e-05,
+      "seconds": 1.0838696284931615e-07
+    },
+    "mtq_torque": {
+      "loops": 2048,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.004143561003562652,
+      "seconds": 1.3793423828012408e-05
+    },
+    "rw_dtorq__du": {
+      "loops": 8192,
+      "max_regression": 1.5,
+      "normalized_seconds": 3.0908796739295656e-05,
+      "seconds": 1.0289172358568521e-07
+    },
+    "rw_effective_command": {
+      "loops": 8192,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.0005217106647104957,
+      "seconds": 1.73671301273437e-06
+    },
+    "rw_measure_momentum": {
+      "loops": 8192,
+      "max_regression": 1.5,
+      "normalized_seconds": 1.4873892855912365e-05,
+      "seconds": 4.9513427691216805e-08
+    },
+    "rw_measure_momentum_noiseless": {
+      "loops": 8192,
+      "max_regression": 1.5,
+      "normalized_seconds": 5.10572021663931e-06,
+      "seconds": 1.699633789264965e-08
+    },
+    "rw_storage_torque": {
+      "loops": 8192,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.0005306731226035445,
+      "seconds": 1.7665479735695655e-06
+    },
+    "rw_torque": {
+      "loops": 8192,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.0006376071472748789,
+      "seconds": 2.1225186767059867e-06
+    }
+  },
+  "calibration_loops": 16,
+  "calibration_seconds": 0.0033288815625382995,
+  "description": "Actuators fast benchmark results normalized by calibration_seconds.",
+  "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+  "processor": "x86_64",
+  "python": "3.12.3",
+  "schema_version": 1
+}
