@@ -1,0 +1,29 @@
+{
+  "benchmarks": {
+    "orbit_dynamics_j2": {
+      "loops": 8192,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.0007482092012619598,
+      "seconds": 4.0061564941518135e-06
+    },
+    "propagate_jacobians_rk4_j2": {
+      "loops": 256,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.025633656061777723,
+      "seconds": 0.00013725096874983578
+    },
+    "propagate_orbit_rk4_full_state": {
+      "loops": 8,
+      "max_regression": 1.5,
+      "normalized_seconds": 1.5603568128358967,
+      "seconds": 0.00835466012499353
+    }
+  },
+  "calibration_loops": 16,
+  "calibration_seconds": 0.005354326687502464,
+  "description": "Orbital_State fast benchmark results normalized by calibration_seconds.",
+  "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+  "processor": "x86_64",
+  "python": "3.12.3",
+  "schema_version": 1
+}
