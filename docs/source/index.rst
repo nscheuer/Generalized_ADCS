@@ -16,30 +16,22 @@ Latest Release Notes
 .. raw:: html
 
    <div class="release-grid">
-     <a class="release-card release-card-featured" href="release_notes/0_1_6_benchmark.html">
-       <img src="_static/release_notes/0_1_6_benchmark_small.png" alt="Benchmark report preview">
+     <a class="release-card release-card-featured" href="release_notes/0_1_7_benchmark.html">
+       <img src="_static/release_notes/0_1_7_benchmark_small.png" alt="Benchmark report preview">
        <div class="release-card-copy">
-         <div class="release-card-kicker">Update 0.1.6</div>
+         <div class="release-card-kicker">Update 0.1.7</div>
          <h3>Benchmark</h3>
          <p>New performance benchmarks run on every pull request into <code>main</code> and compare results to catch regressions early.</p>
+         <span>Explore release note 0.1.7</span>
+       </div>
+     </a>
+     <a class="release-card" href="release_notes/0_1_6_remote_execution.html">
+       <img src="_static/release_notes/0_1_6_raspberry_pi.jpeg" alt="Remote execution on Raspberry Pi">
+       <div class="release-card-copy">
+         <div class="release-card-kicker">Update 0.1.6</div>
+         <h3>Remote Execution</h3>
+         <p>Selected ADCS components can run on a Raspberry Pi over XML-RPC while the main PC keeps the truth model and simulation loop local.</p>
          <span>Explore release note 0.1.6</span>
-       </div>
-     </a>
-     <a class="release-card" href="release_notes/0_1_5_bugfixes_and_optimizations.html">
-       <div class="release-card-copy">
-         <div class="release-card-kicker">Update 0.1.5</div>
-         <h3>Bugfixes and Optimizations</h3>
-         <p>Quality-of-life improvements, bug fixes, and test coverage expansions across the codebase.</p>
-         <span>Explore release note 0.1.5</span>
-       </div>
-     </a>
-     <a class="release-card" href="release_notes/0_1_0_saltro.html">
-       <img src="_static/release_notes/0_1_0_saltro_live.gif" alt="Trajectory optimization animation">
-       <div class="release-card-copy">
-         <div class="release-card-kicker">Update 0.1.0</div>
-         <h3>The age of trajectory optimization</h3>
-         <p>Trajectory Planner and SALTRO introduced aggressive retargeting maneuvers beyond simple point-to-point commands.</p>
-         <span>Explore release note 0.1.0</span>
        </div>
      </a>
    </div>
