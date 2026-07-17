@@ -8,7 +8,7 @@ Remote execution is useful when you want to emulate hardware-in-the-loop style
 architectures, separate heavy compute from visualization workflows, or prototype
 distributed ADCS pipelines before deployment.
 
-.. image:: ../_static/tutorials/tutorial_08_raspberry_pi_placeholder.jpeg
+.. image:: ../_static/tutorials/tutorial_08_raspberry_pi.jpeg
    :alt: Placeholder image of a Raspberry Pi remote execution setup.
    :width: 400px
    :align: center
@@ -88,7 +88,7 @@ Open a terminal on the Raspberry Pi and run:
 Expected startup output should include the bind host/port and the values to export
 on the main PC (for example, ``ADCS_REMOTE_HOST=<raspberry-pi-ip>``).
 
-.. image:: ../_static/tutorials/tutorial_08_server_terminal_placeholder.png
+.. image:: ../_static/tutorials/tutorial_08_server_terminal.png
    :alt: Placeholder terminal output from run_remote_universal.py on Raspberry Pi.
    :width: 900px
    :align: center
@@ -186,14 +186,14 @@ execution, while leaving environmental effects and propagation local.
 During execution, the Raspberry Pi terminal should show remote RPC activity while the
 main PC terminal prints simulation progress and remote timing statistics.
 
-.. image:: ../_static/tutorials/tutorial_08_dual_terminal_placeholder.png
+.. image:: ../_static/tutorials/tutorial_08_dual_terminal.png
    :alt: Placeholder image of main PC and Raspberry Pi terminals during simulation.
    :width: 900px
    :align: center
 
 Final timing statistics output on the main PC can be captured as documentation evidence.
 
-.. image:: ../_static/tutorials/tutorial_08_timing_terminal_placeholder.png
+.. image:: ../_static/tutorials/tutorial_08_timing_terminal.png
    :alt: Placeholder image of final timing statistics printed by simulate_remote.
    :width: 900px
    :align: center
@@ -201,7 +201,7 @@ Final timing statistics output on the main PC can be captured as documentation e
 Simulation Results
 ------------------
 
-.. image:: ../_static/tutorials/tutorial_08_plots_placeholder.png
+.. image:: ../_static/tutorials/tutorial_08_plots.png
    :alt: Placeholder image for final plotting windows from remote execution tutorial.
    :width: 900px
    :align: center

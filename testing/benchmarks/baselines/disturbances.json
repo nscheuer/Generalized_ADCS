@@ -63,8 +63,8 @@
     "srp_torque": {
       "loops": 8192,
       "max_regression": 1.5,
-      "normalized_seconds": 0.0011156351317582964,
-      "seconds": 3.77944250484763e-06
+      "normalized_seconds": 0.0006317082159221375,
+      "seconds": 2.141601440408536e-06
     },
     "srp_torque_qjac": {
       "loops": 1024,

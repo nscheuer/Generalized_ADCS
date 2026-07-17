@@ -6,7 +6,7 @@ for distributed simulation across two machines, such as a main PC and a
 Raspberry Pi. The primary use case is running selected ADCS components remotely
 while preserving environment and dynamics propagation on the main computer.
 
-.. image:: ../_static/tutorials/tutorial_08_raspberry_pi_placeholder.jpeg
+.. image:: ../_static/tutorials/tutorial_08_raspberry_pi.jpeg
    :alt: Raspberry Pi placeholder image for remote execution workflow.
    :width: 700px
    :align: center
@@ -32,7 +32,7 @@ The image below shows the intended dual-terminal workflow: one terminal on the
 Raspberry Pi running the remote server, and one terminal on the main PC running
 ``simulate_remote``.
 
-.. image:: ../_static/tutorials/tutorial_08_dual_terminal_placeholder.png
+.. image:: ../_static/tutorials/tutorial_08_dual_terminal.png
    :alt: Dual terminal placeholder image for main PC and Raspberry Pi execution.
    :width: 900px
    :align: center

@@ -39,8 +39,8 @@
     "propagate_jacobians_rk4_j2": {
       "loops": 256,
       "max_regression": 1.5,
-      "normalized_seconds": 0.02677397006781926,
-      "seconds": 0.00013650685546551244
+      "normalized_seconds": 0.026548437589246583,
+      "seconds": 0.00013541725000010274
     },
     "propagate_orbit_rk4_full_state": {
       "loops": 8,

@@ -5,6 +5,7 @@ Release Notes
   :maxdepth: 1
   :caption: Getting Started
   
+  0_1_6_benchmark
   0_1_5_bugfixes_and_optimizations
   0_1_4_numba_optimizations_2
   0_1_3_hardware_in_the_loop

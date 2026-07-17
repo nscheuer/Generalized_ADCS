@@ -27,8 +27,8 @@
     "mtq_w_rw_lp_pointing_find_u": {
       "loops": 32,
       "max_regression": 1.5,
-      "normalized_seconds": 0.18990027220080077,
-      "seconds": 0.0006375024062492685
+      "normalized_seconds": 0.18839564240232537,
+      "seconds": 0.000638298625005973
     },
     "mtq_w_rw_qp_find_u": {
       "loops": 256,
