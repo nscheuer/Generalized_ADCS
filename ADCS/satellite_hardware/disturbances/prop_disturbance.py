@@ -1,6 +1,8 @@
 __all__ = ["Prop_Disturbance"]
 
 import numpy as np
+
+from ADCS.state import State
 from typing import TYPE_CHECKING
 from ADCS.satellite_hardware.disturbances.disturbance import Disturbance
 from ADCS.satellite_hardware.errors.noise import Noise
@@ -123,7 +125,7 @@ class Prop_Disturbance(Disturbance):
         """
         self.current_torque = self.torque_nominal + self.noise.get_noise()
 
-    def torque(self, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+    def torque(self, x: State, os: Orbital_State) -> np.ndarray:
         r"""
         Return the **current propulsion disturbance torque**.
 

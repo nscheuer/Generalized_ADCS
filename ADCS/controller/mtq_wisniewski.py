@@ -2,6 +2,8 @@ __all__ = ["MTQ_Wisniewski"]
 
 import numpy as np
 
+from ADCS.state import EstimatedState, State
+
 from ADCS.CONOPS.goals import Goal, No_Goal
 from ADCS.controller import Controller
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
@@ -125,7 +127,7 @@ class MTQ_Wisniewski(Controller):
 
         self.mtq_umax = np.array([a.u_max for a in est_sat.actuators if isinstance(a, MTQ)], dtype=float)
         
-    def find_u(self, x_hat: np.ndarray, sens: np.ndarray, est_sat: EstimatedSatellite, os_hat: Orbital_State, goal: Goal | None = None) -> np.ndarray:
+    def find_u(self, x_hat: EstimatedState, sens: np.ndarray, est_sat: EstimatedSatellite, os_hat: Orbital_State, goal: Goal | None = None) -> np.ndarray:
         r"""
         Compute magnetic torquer command vector using sliding mode control.
 
@@ -189,12 +191,12 @@ class MTQ_Wisniewski(Controller):
         if goal is None:
             goal = No_Goal()
 
-        w = x_hat[0:3]
-        q = x_hat[3:7]
+        w = x_hat.w
+        q = x_hat.q
 
         n_rw = len([a for a in est_sat.actuators if isinstance(a, RW)])
-        if len(x_hat) >= 7 + n_rw:
-            h_rw_states = x_hat[7 : 7 + n_rw]
+        if x_hat.h.size >= n_rw:
+            h_rw_states = x_hat.h[:n_rw]
         else:
             h_rw_states = np.array([rw.h for rw in est_sat.actuators if isinstance(rw, RW)])
 

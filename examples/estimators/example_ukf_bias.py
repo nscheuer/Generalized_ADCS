@@ -51,7 +51,7 @@ def main() -> None:
         sensors=real_sensors,
         disturbances=[ADCS.disturbances.GG_Disturbance()],
     )
-    x_0 = np.array([0.001, 0.001, -0.002, 0.2588, 0.0, 0.9659, 0.0])
+    x_0 = ADCS.State.from_array(np.array([0.001, 0.001, -0.002, 0.2588, 0.0, 0.9659, 0.0]))
 
     est_sensors = [
         ADCS.MTM(
@@ -88,7 +88,7 @@ def main() -> None:
         sensors=est_sensors,
         disturbances=[ADCS.disturbances.GG_Disturbance()],
     )
-    x_hat = np.concatenate([np.array([0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0]), np.zeros(9)])
+    x_hat = ADCS.EstimatedState(w=np.zeros(3), q=[1.0, 0.0, 0.0, 0.0], sens_bias=np.zeros(9))
 
     P_hat = block_diag(
         np.eye(3) * (0.01) ** 2,

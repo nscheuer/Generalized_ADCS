@@ -5,7 +5,7 @@ import time
 from typing import List, Optional
 from ADCS.orbits.orbital_state import Orbital_State, Ephemeris
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
-from ADCS.estimators.estimator_helpers.estimator_helpers import EstimatedArray
+from ADCS.state import EstimatedState
 from ADCS.helpers.math_helpers import square_mat_sections, wahbas_svd
 
 class Attitude_Estimator():
@@ -82,7 +82,7 @@ class Attitude_Estimator():
       :func:`~ADCS.helpers.math_helpers.square_mat_sections`.
 
     """
-    def __init__(self, est_sat: EstimatedSatellite, J2000: float, x_hat: np.ndarray, P_hat: np.ndarray, Q_hat: np.ndarray, dt: float = 1, cross_term: bool = False, quat_as_vec: bool = False) -> None:
+    def __init__(self, est_sat: EstimatedSatellite, J2000: float, x_hat: EstimatedState, P_hat: np.ndarray, Q_hat: np.ndarray, dt: float = 1, cross_term: bool = False, quat_as_vec: bool = False) -> None:
         r"""
         Construct an attitude estimator and initialize its internal bookkeeping.
 
@@ -102,7 +102,7 @@ class Attitude_Estimator():
         :type J2000: float
         :param x_hat: Initial augmented state estimate :math:`\mathbf{x}_0` of length
             :math:`N = 7 + n_{RW} + n_{ab} + n_{sb} + n_{dp}`.
-        :type x_hat: numpy.ndarray
+        :type x_hat: ADCS.state.EstimatedState
         :param P_hat: Initial covariance matrix, reduced to :math:`(N-1)\times(N-1)`
             unless ``quat_as_vec=True`` (then :math:`N\times N`).
         :type P_hat: numpy.ndarray
@@ -131,13 +131,13 @@ class Attitude_Estimator():
 
         self.reset(J2000=J2000, x_hat=x_hat, P_hat=P_hat, Q_hat=Q_hat, dt=dt, cross_term=cross_term)
 
-    def reset(self, J2000: float, x_hat: np.ndarray, P_hat: np.ndarray, Q_hat: np.ndarray, dt: float = 1, cross_term: bool = False) -> None:
+    def reset(self, J2000: float, x_hat: EstimatedState, P_hat: np.ndarray, Q_hat: np.ndarray, dt: float = 1, cross_term: bool = False) -> None:
         r"""
         Reset the estimator state, covariance, and process noise.
 
         This method validates dimensional consistency between the full augmented
         state vector :math:`\mathbf{x}\in\mathbb{R}^N` and the covariance/process-noise
-        matrices, stores the result into :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray`
+        matrices, stores the result into :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedState`
         containers, and synchronizes the internal satellite model via
         :meth:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.match_estimate`.
 
@@ -168,7 +168,7 @@ class Attitude_Estimator():
 
         After validation, the reset procedure:
 
-        - creates :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray` instances
+        - creates :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedState` instances
           for :attr:`x0_hat` and :attr:`x_hat`,
         - sets :attr:`use` to all ``True`` (all states active),
         - calls :meth:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.match_estimate`
@@ -177,7 +177,7 @@ class Attitude_Estimator():
         :param J2000: Time in seconds since J2000 corresponding to the new reset.
         :type J2000: float
         :param x_hat: New augmented state estimate :math:`\mathbf{x}` of length :math:`N`.
-        :type x_hat: numpy.ndarray
+        :type x_hat: ADCS.state.EstimatedState
         :param P_hat: Covariance matrix, reduced or full depending on ``quat_as_vec``.
         :type P_hat: numpy.ndarray
         :param Q_hat: Process-noise covariance matrix, same shape convention as ``P_hat``.
@@ -193,31 +193,51 @@ class Attitude_Estimator():
         :rtype: None
 
         """
-        # Verify x_hat vector
+        if not isinstance(x_hat, EstimatedState):
+            raise TypeError(f"x_hat must be an EstimatedState, got {type(x_hat).__name__}")
         expected_x_hat_length = 7 + self.est_sat.number_RW + self.est_sat.act_bias_len + self.est_sat.att_sens_bias_len + self.est_sat.dist_param_len
-        if len(x_hat) != expected_x_hat_length:
+        if x_hat.augmented_size != expected_x_hat_length:
             raise ValueError("x_hat length does not match estimate length in EstimatedSatellite")
         
         # Verify P_hat matrix. It should be one shorter than x_hat, since x_hat uses quaternions, which are 3 DOF
         if self.quat_as_vec:
-            if P_hat.shape != (len(x_hat), len(x_hat)):
+            if P_hat.shape != (x_hat.augmented_size, x_hat.augmented_size):
                 raise ValueError("P_hat shape does not match MEKF x_hat")
-            if Q_hat.shape != (len(x_hat), len(x_hat)):
+            if Q_hat.shape != (x_hat.augmented_size, x_hat.augmented_size):
                 raise ValueError("Q_hat shape does not match MEKF x_hat")
         else:
-            if P_hat.shape != (len(x_hat) - 1, len(x_hat) - 1):
+            if P_hat.shape != (x_hat.augmented_size - 1, x_hat.augmented_size - 1):
                 raise ValueError("P_hat shape does not match MEKF x_hat")
-            if Q_hat.shape != (len(x_hat) - 1, len(x_hat) - 1):
+            if Q_hat.shape != (x_hat.augmented_size - 1, x_hat.augmented_size - 1):
                 raise ValueError("Q_hat shape does not match MEKF x_hat")
         
-        self.x0_hat = EstimatedArray(val=x_hat, cov=P_hat, int_cov=Q_hat)
+        self.x0_hat = x_hat.copy()
+        self.x0_hat.cov = np.array(P_hat, dtype=float, copy=True)
+        self.x0_hat.int_cov = np.array(Q_hat, dtype=float, copy=True)
         # Full estimated state
         self.x_hat = self.x0_hat.copy()
 
-        self.use = np.ones(self.x_hat.val.size).astype(bool)
+        self.use = np.ones(self.x_hat.augmented_size).astype(bool)
         self.state_len = len(self.use)
         # Update estimated satellite
         self.est_sat.match_estimate(est_state=self.x_hat, dt=dt)
+
+    def _from_augmented_array(
+        self,
+        value: np.ndarray,
+        *,
+        cov: np.ndarray | None = None,
+        int_cov: np.ndarray | None = None,
+    ) -> EstimatedState:
+        return EstimatedState.from_estimator_array(
+            value,
+            n_rw=self.est_sat.number_RW,
+            n_act_bias=self.est_sat.act_bias_len,
+            n_sens_bias=self.est_sat.att_sens_bias_len,
+            n_dist_param=self.est_sat.dist_param_len,
+            cov=self.x_hat.cov if cov is None else cov,
+            int_cov=self.x_hat.int_cov if int_cov is None else int_cov,
+        )
 
 
     def initialize_estimate(
@@ -295,7 +315,7 @@ class Attitude_Estimator():
 
         Satellite synchronization
         -------------------------
-        The updated augmented state is committed into :attr:`x_hat.val` and then
+        The updated augmented state is committed into :attr:`x_hat.as_estimator_array()` and then
         pushed to the internal satellite model via
         :meth:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.match_estimate`.
 
@@ -317,7 +337,7 @@ class Attitude_Estimator():
         :param q: Optional initial quaternion, shape ``(4,)``. If provided, Wahba's problem is skipped.
         :type q: numpy.ndarray or None
         :raises RuntimeError: If no valid vector measurements are available for Wahba initialization.
-        :return: Updated full augmented state vector (same length as :attr:`x_hat.val`).
+        :return: Updated full augmented state vector (same length as :attr:`x_hat.as_estimator_array()`).
         :rtype: numpy.ndarray
 
         """
@@ -374,7 +394,7 @@ class Attitude_Estimator():
         # ----------------------------------------------------------
         # Insert quaternion into full state
         # ----------------------------------------------------------
-        state = self.x_hat.val.copy()
+        state = self.x_hat.as_estimator_array()
         state[3:7] = q
 
         # ----------------------------------------------------------
@@ -401,7 +421,7 @@ class Attitude_Estimator():
         # ----------------------------------------------------------
         # Commit state back
         # ----------------------------------------------------------
-        self.x_hat.val = state
+        self.x_hat = self._from_augmented_array(state)
         self.est_sat.match_estimate(self.x_hat, dt=1.0)
 
         return state
@@ -419,7 +439,7 @@ class Attitude_Estimator():
         Delegation to subclass filter
         -----------------------------
         Subclasses must implement ``update_core`` and return an
-        :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray`
+        :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedState`
         containing:
 
         - ``val``: full augmented state :math:`\hat{\mathbf{x}}`,
@@ -484,14 +504,14 @@ class Attitude_Estimator():
         :type sensors: list[numpy.ndarray]
         :param os: Current orbital/environmental state used for propagation and prediction.
         :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
-        :return: Updated full augmented state estimate :math:`\hat{\mathbf{x}}` (stored in :attr:`x_hat.val`).
+        :return: Updated full augmented state estimate :math:`\hat{\mathbf{x}}` (stored in :attr:`x_hat.as_estimator_array()`).
         :rtype: numpy.ndarray
 
         """
         if self.prev_os.J2000 == 0:
             self.prev_os = os
 
-        x_hat: EstimatedArray = self.update_core(u=u, sensors=sensors, os=os)
+        x_hat: EstimatedState = self.update_core(u=u, sensors=sensors, os=os)
 
         self.prev_os = os
         oc = x_hat.cov
@@ -510,10 +530,20 @@ class Attitude_Estimator():
             oc[sb0:sb1,d0:] = 0
             oc[d0:,sb0:sb1] = 0
 
-        self.x_hat.set_indices(self.use, x_hat.val, oc, square_mat_sections(self.x_hat.int_cov, self.cov_use()),[3]*(not self.quat_as_vec))
+        current = self.x_hat.as_estimator_array()
+        updated = x_hat.as_estimator_array()
+        current[self.use] = updated[self.use]
+        cov_current = self.x_hat.cov.copy()
+        cov_mask = self.cov_use()
+        cov_current[np.ix_(cov_mask, cov_mask)] = oc
+        self.x_hat = self._from_augmented_array(
+            current,
+            cov=cov_current,
+            int_cov=self.x_hat.int_cov,
+        )
         self.est_sat.match_estimate(self.x_hat, self.dt)
 
-        return self.x_hat.val
+        return self.x_hat.copy()
 
 
     def cov_use(self) -> np.ndarray:

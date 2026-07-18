@@ -12,7 +12,7 @@ np.random.seed(42)
 
 # Main computer runs environmental dynamics, noise, and propagation locally.
 real_sat = ADCS.satellite_factory.create_beavercube2_cubesat(estimated=False)
-x_0 = np.array([0.0, 0.0, 0.0] + [1, 0, 0, 0] + [0.0])
+x_0 = ADCS.State.from_array(np.array([0.0, 0.0, 0.0] + [1, 0, 0, 0] + [0.0]))
 
 controller = ADCS.controller.MTQ_w_RW_LP(
     est_sat=real_sat,

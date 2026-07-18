@@ -21,6 +21,7 @@ from ADCS.satellite_hardware.sensors import MTM, Gyro, SunPair
 from ADCS.satellite_hardware.disturbances import GeometryFace, GG_Disturbance, Drag_Disturbance, GeometryConfig
 from ADCS.helpers.math_constants import MathConstants
 from ADCS.helpers.math_helpers import random_n_unit_vec, normalize
+from ADCS.state import EstimatedState, State
 from ADCS.flight_software.single_core.ttc_single_core import TTC_Single_Core
 from ADCS.flight_software.tasks.task import Task
 from ADCS.helpers.plotting.plot_estimator import plot_state_comparison, plot_error_and_sun, plot_sensor_data, plot_bias_comparison
@@ -228,8 +229,8 @@ def main():
     est_sat = create_estimated_satellite()
     P_est, Q_est = create_matrices(est_sat, dt=10)
 
-    x = np.array([0,0,0,1,0,0,0, 1, 1, 1], dtype=float)
-    x_hat = np.zeros(19); x_hat[3] = 1
+    x = State(w=np.zeros(3), q=[1, 0, 0, 0], h=np.ones(3))
+    x_hat = EstimatedState(w=np.zeros(3), q=[1, 0, 0, 0], h=np.zeros(3), sens_bias=np.zeros(9))
     J2000 = 0.22 + t0*TimeConstants.sec2cent
     ukf = SRUAKF(est_sat=est_sat, J2000=J2000, x_hat=x_hat, P_hat=P_est, Q_hat=Q_est, dt=10, cross_term=True, quat_as_vec=False)
 
@@ -289,7 +290,7 @@ def main():
         real_gyro_biases = np.concatenate([gyro.bias.bias for gyro in real_sat.sensors if isinstance(gyro, Gyro)])
         real_mtm_biases = np.concatenate([mtm.bias.bias for mtm in real_sat.sensors if isinstance(mtm, MTM)])
         real_sun_biases = np.concatenate([sun.bias.bias for sun in real_sat.sensors if isinstance(sun, SunPair)])
-        state_hist[ind,:] = np.concatenate([x, real_mtm_biases, real_gyro_biases, real_sun_biases])
+        state_hist[ind,:] = np.concatenate([x.as_array(), real_mtm_biases, real_gyro_biases, real_sun_biases])
         est_state_hist[ind,:] = core.memory["x_hat"]
         os_hist += [core.memory["orbital_state"]]
         sensor_hist[ind,:] = core.memory["sensor_readings"]
@@ -301,10 +302,9 @@ def main():
         t += dt
         prev_os = os.copy()
         os = orb.get_os(0.22+(t-t0)*TimeConstants.sec2cent)
-        out = solve_ivp(fun=real_sat.dynamics_for_solver, t_span=(0, dt), y0=x, method="RK45", args=(u, prev_os, os), rtol=1e-7, atol=1e-7)
+        out = solve_ivp(fun=real_sat.dynamics_for_solver, t_span=(0, dt), y0=x.as_array(), method="RK45", args=(u, prev_os, os), rtol=1e-7, atol=1e-7)
 
-        x = out.y[:, -1]
-        x[3:7] = normalize(x[3:7])
+        x = State.from_array(out.y[:, -1]).normalized()
 
     
     plot_state_comparison(time_hist, state_hist, est_state_hist)

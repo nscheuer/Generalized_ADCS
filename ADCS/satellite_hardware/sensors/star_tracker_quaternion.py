@@ -216,14 +216,14 @@ class StarTrackerQuaternion(Sensor):
             \mathbf{q}_{\text{clean}} = \mathbf{q}
 
         :param x: Full spacecraft state vector.
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
         :param os: Orbital state used for star visibility.
         :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
         :return: Attitude quaternion (scalar-first), or ``NaN`` if insufficient
                  stars are visible.
         :rtype: numpy.ndarray
         """
-        q = x[3:7].copy()
+        q = x.q.copy()
         stars = self._select_stars(q, os)
 
         if len(stars) < self.min_stars:
@@ -251,7 +251,7 @@ class StarTrackerQuaternion(Sensor):
         renormalized and the scalar component is enforced positive.
 
         :param x: Full spacecraft state vector.
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
         :param os: Orbital state.
         :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
         :param dmode: Error mode controlling bias and noise application.
@@ -292,7 +292,7 @@ class StarTrackerQuaternion(Sensor):
             = \mathbf{I}_{4 \times 4}
 
         :param x: Full spacecraft state vector.
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
         :param os: Orbital state.
         :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
         :return: Base-state Jacobian of shape ``(7, 4)``.
@@ -315,7 +315,7 @@ class StarTrackerQuaternion(Sensor):
         state, so the bias Jacobian is empty.
 
         :param x: Full spacecraft state vector (unused).
-        :type x: numpy.ndarray
+        :type x: ADCS.state.State
         :param os: Orbital state (unused).
         :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
         :return: Empty bias Jacobian of shape ``(0, 4)``.

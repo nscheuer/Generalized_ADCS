@@ -3,6 +3,8 @@ from __future__ import annotations
 __all__ = ["PlanAndTrackBase"]
 
 import numpy as np
+
+from ADCS.state import EstimatedState, State
 from typing import Tuple, Optional
 from numpy.typing import NDArray
 
@@ -378,7 +380,7 @@ class PlanAndTrackBase(Controller):
         self,
         t_start: float,
         duration: float,
-        x_0: np.ndarray,
+        x_0: State,
         os_0: Orbital_State,
         goals: GoalList,
         verbose: bool = False
@@ -458,7 +460,7 @@ class PlanAndTrackBase(Controller):
         :param duration: Planning horizon length in seconds.
         :type duration: float
         :param x_0: Initial state vector used to seed the optimizer.
-        :type x_0: numpy.ndarray
+        :type x_0: ADCS.state.State
         :param os_0: Initial orbital state used to seed environment propagation.
         :type os_0: :class:`~ADCS.orbits.orbital_state.Orbital_State`
         :param goals: Goal list used to compute inertial reference vectors along the
@@ -491,7 +493,7 @@ class PlanAndTrackBase(Controller):
         vecsPy = self._propagate_environment(os_0, t_start, t_end, dt_seconds, N, goals)
 
         # SANITIZE x_0: Force Float64, Copy, and C-Order
-        x_0_clean = np.copy(x_0.astype(np.float64).flatten(), order='C')
+        x_0_clean = np.copy(x_0.as_array().astype(np.float64), order='C')
 
         bdotOn = self.planner_settings.bdot_on
         if verbose:

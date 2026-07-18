@@ -3,6 +3,8 @@ from __future__ import annotations
 __all__ = ["Plan_and_Track_LQR_Disturbed"]
 
 import numpy as np
+
+from ADCS.state import EstimatedState, State
 from typing import Optional
 from numpy.typing import NDArray
 
@@ -293,7 +295,7 @@ class Plan_and_Track_LQR_Disturbed(PlanAndTrackBase):
         # Simple integrator: dist += gain * (w_actual - w_expected)
         # This assumes the disturbance manifests as angular velocity error
         x_ref = self.active_trajectory.get_state_at(current_time)
-        w_error = x_hat[0:3] - x_ref[0:3]
+        w_error = x_hat.w - x_ref.w
         self.dist_estimate += self.dist_gain * w_error * self.planner_settings.dt_tvlqr
 
         return np.clip(u, -self.planner_settings.umax, self.planner_settings.umax)
@@ -321,7 +323,7 @@ class Plan_and_Track_LQR_Disturbed(PlanAndTrackBase):
         self,
         t_start: float,
         duration: float,
-        x_0: np.ndarray,
+        x_0: State,
         os_0: Orbital_State,
         goals: GoalList,
         verbose: bool = False
@@ -349,7 +351,7 @@ class Plan_and_Track_LQR_Disturbed(PlanAndTrackBase):
         :param duration: Planning horizon length in seconds.
         :type duration: float
         :param x_0: Initial state vector used to seed the optimizer.
-        :type x_0: numpy.ndarray
+        :type x_0: ADCS.state.State
         :param os_0: Initial orbital state used to seed environment propagation.
         :type os_0: :class:`~ADCS.orbits.orbital_state.Orbital_State`
         :param goals: Goal list defining the pointing objectives.
@@ -368,7 +370,7 @@ class Plan_and_Track_LQR_Disturbed(PlanAndTrackBase):
         )
 
         # Create trajectory with disturbance estimation enabled
-        return Trajectory(
+        return Trajectory.from_arrays(
             lqr_times, Xset, Uset, Kset, Sset,
             use_disturbance_estimation=True
         )

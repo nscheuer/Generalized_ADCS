@@ -24,6 +24,7 @@ from ADCS.satellite_hardware.sensors import (
     SunSensor,
 )
 from ADCS.satellite_hardware.satellite import EstimatedSatellite, Satellite
+from ADCS.state import EstimatedState, State
 
 
 def seed(value: int = 0) -> None:
@@ -73,12 +74,10 @@ def make_state(
     w: np.ndarray | None = None,
     q: np.ndarray | None = None,
     h: np.ndarray | None = None,
-) -> np.ndarray:
+) -> State:
     omega = np.zeros(3) if w is None else np.asarray(w, dtype=float)
     quat = np.array([1.0, 0.0, 0.0, 0.0]) if q is None else normalize(np.asarray(q, dtype=float))
-    if h is None:
-        return np.concatenate([omega, quat])
-    return np.concatenate([omega, quat, np.asarray(h, dtype=float)])
+    return State(w=omega, q=quat, h=() if h is None else h)
 
 
 def quat_error_deg(q_true: np.ndarray, q_est: np.ndarray) -> float:
@@ -237,37 +236,37 @@ def full_state_cov(est_sat: EstimatedSatellite) -> np.ndarray:
     return np.array(block_diag(*parts))
 
 
-def make_estimate_guess(est_sat: EstimatedSatellite, *, with_rw: bool | None = None, with_bias: bool = False) -> np.ndarray:
+def make_estimate_guess(est_sat: EstimatedSatellite, *, with_rw: bool | None = None, with_bias: bool = False) -> EstimatedState:
     include_rw = est_sat.number_RW > 0 if with_rw is None else with_rw
     state = make_state(
         w=np.array([2.0e-3, -1.0e-3, 1.5e-3]),
         q=np.array([0.97, 0.15, -0.08, 0.16]),
         h=np.full(est_sat.number_RW, 0.2) if include_rw and est_sat.number_RW else None,
     )
-    pieces = [state]
-    if est_sat.act_bias_len:
-        pieces.append(np.zeros(est_sat.act_bias_len))
-    if est_sat.att_sens_bias_len:
-        pieces.append(np.zeros(est_sat.att_sens_bias_len))
-    if est_sat.dist_param_len:
-        pieces.append(np.zeros(est_sat.dist_param_len))
-    return np.concatenate(pieces)
+    return EstimatedState(
+        w=state.w,
+        q=state.q,
+        h=state.h,
+        act_bias=np.zeros(est_sat.act_bias_len),
+        sens_bias=np.zeros(est_sat.att_sens_bias_len),
+        dist_param=np.zeros(est_sat.dist_param_len),
+    )
 
 
 def make_ukf(
     est_sat: EstimatedSatellite,
     *,
-    x_hat: np.ndarray | None = None,
+    x_hat: EstimatedState | None = None,
     P_hat: np.ndarray | None = None,
     Q_hat: np.ndarray | None = None,
     dt: float = 5.0,
     cross_term: bool = False,
     quat_as_vec: bool = False,
 ) -> UAKF:
-    guess = make_estimate_guess(est_sat) if x_hat is None else np.asarray(x_hat, dtype=float)
+    guess = make_estimate_guess(est_sat) if x_hat is None else x_hat.copy()
     if quat_as_vec:
         P = full_state_cov(est_sat) if P_hat is None else np.asarray(P_hat, dtype=float)
-        Q = np.eye(guess.size) * 1.0e-6 if Q_hat is None else np.asarray(Q_hat, dtype=float)
+        Q = np.eye(guess.augmented_size) * 1.0e-6 if Q_hat is None else np.asarray(Q_hat, dtype=float)
     else:
         P = reduced_state_cov(est_sat) if P_hat is None else np.asarray(P_hat, dtype=float)
         Q = reduced_process_cov(est_sat, dt=dt) if Q_hat is None else np.asarray(Q_hat, dtype=float)
@@ -276,7 +275,7 @@ def make_ukf(
 
 def measurement_vector(
     sat: Satellite,
-    x: np.ndarray,
+    x: State,
     os: Orbital_State,
     *,
     noiseless: bool = True,
@@ -298,7 +297,7 @@ def run_sequence(
     real_sat: Satellite,
     ukf: UAKF,
     *,
-    x_true: np.ndarray,
+    x_true: State,
     os_sequence: list[Orbital_State],
     control: np.ndarray | None = None,
     measurement_hook=None,
@@ -326,10 +325,10 @@ def run_sequence(
             orbital_state1=os_sequence[index + 1],
             quat_as_vec=True,
         )
-        x[3:7] = normalize(x[3:7])
+        x = x.normalized()
     return SimulationResult(
-        truth=np.asarray(truth_hist),
-        estimate=np.asarray(est_hist),
+        truth=State.stack(truth_hist),
+        estimate=np.vstack([state.as_estimator_array() for state in est_hist]),
         measurements=np.asarray(meas_hist),
         covariances=cov_hist,
     )

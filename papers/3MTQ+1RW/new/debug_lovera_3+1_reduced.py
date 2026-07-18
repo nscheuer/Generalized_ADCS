@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 real_sat = ADCS.satellite_factory.create_beavercube2_cubesat(estimated=False)
-x_0 = np.array([-0.00874868,  0.00209214,  0.005936770] + [0.86698928, 0.29417644, 0.34385383, 0.20869681] + [-9.76622366e-05]) # w, q, h
+x_0 = ADCS.State.from_array(np.array([-0.00874868,  0.00209214,  0.005936770] + [0.86698928, 0.29417644, 0.34385383, 0.20869681] + [-9.76622366e-05])) # w, q, h
 
 controller = ADCS.controller.MTQ_Lovera(est_sat=real_sat, p_gain=0.0001, d_gain=0.001, eps=1.0)
 

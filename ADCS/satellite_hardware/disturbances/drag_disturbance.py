@@ -2,6 +2,8 @@ from __future__ import annotations
 __all__ = ["Drag_Disturbance"]
 
 import numpy as np
+
+from ADCS.state import State
 import time
 from numba import njit
 from typing import TYPE_CHECKING
@@ -169,7 +171,7 @@ class Drag_Disturbance(Disturbance):
         
         super().__init__()
 
-    def torque(self, sat: Satellite, x: np.ndarray, os: Orbital_State | Dict[str, np.ndarray]) -> np.ndarray:
+    def torque(self, sat: Satellite, x: State, os: Orbital_State | Dict[str, np.ndarray]) -> np.ndarray:
         r"""
         Compute the **aerodynamic drag torque** in the body frame.
 
@@ -241,7 +243,7 @@ class Drag_Disturbance(Disturbance):
         return _drag_torque_kernel(V_B, rho, sat.COM,
                                    self.normals, self.areas, self.centroids, self.CDs)
     
-    def torque_qjac(self, sat: Satellite, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+    def torque_qjac(self, sat: Satellite, x: State, os: Orbital_State) -> np.ndarray:
         r"""
         Compute the **Jacobian of drag torque with respect to the attitude quaternion**.
 
@@ -356,7 +358,7 @@ class Drag_Disturbance(Disturbance):
         # on every call) is removed.
         return -ct * (np.cross(dF__dq @ cents, V_B) + np.cross(F @ cents, dv_body__dq))
 
-    def torque_qqhess(self, sat: Satellite, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+    def torque_qqhess(self, sat: Satellite, x: State, os: Orbital_State) -> np.ndarray:
         r"""
         Compute the **Hessian of drag torque with respect to the attitude quaternion**.
 

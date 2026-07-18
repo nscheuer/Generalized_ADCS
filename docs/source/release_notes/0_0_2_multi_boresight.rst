@@ -48,7 +48,7 @@ Consider a satellite with multiple instruments pointing in different directions,
         sensors=mtms,
         boresight=boresights
     )
-    x_0 = np.array([0, 0, 0] + [1, 0, 0, 0] + [0, 0, 0])
+    x_0 = ADCS.State.from_array(np.array([0, 0, 0] + [1, 0, 0, 0] + [0, 0, 0]))
 
     controller = ADCS.controller.MTQ_w_RW(
         est_sat=real_sat,

@@ -20,7 +20,7 @@ sens += [ADCS.SunPair(axis, efficiency=0.3,noise=sun_noise) for axis in np.eye(3
 
 gg_dist = [ADCS.disturbances.GG_Disturbance()]
 satellite = ADCS.Satellite(mass=3000, J_0=np.diag([500, 1500, 1500]), sensors=sens, disturbances=gg_dist)
-x_0 = np.array([0.001, 0.001, -0.002] + [0.2588, 0, 0.9659, 0]) # w, q
+x_0 = ADCS.State.from_array(np.array([0.001, 0.001, -0.002] + [0.2588, 0, 0.9659, 0])) # w, q
 
 # Estimated Satellite
 est_gyro_noise = ADCS.Noise(std_noise=5e-7)
@@ -34,7 +34,7 @@ est_sens += [ADCS.SunPair(axis, efficiency=0.3, noise=est_sun_noise) for axis in
 
 est_gg_dist = [ADCS.disturbances.GG_Disturbance()]
 est_satellite = ADCS.EstimatedSatellite(mass=3200, J_0=np.diag([450, 1400, 1400]), sensors=est_sens, disturbances=est_gg_dist)
-x_hat = np.array([0, 0, 0] + [1, 0, 0, 0]) # w, q
+x_hat = ADCS.EstimatedState(w=np.zeros(3), q=[1, 0, 0, 0]) # w, q
 
 # Estimator
 P_hat = block_diag(

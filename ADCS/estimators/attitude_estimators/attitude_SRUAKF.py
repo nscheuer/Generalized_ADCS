@@ -9,7 +9,7 @@ import time
 # The external C-library wrapper for fast Cholesky updates
 from choldate import cholupdate, choldowndate
 
-from ADCS.estimators.estimator_helpers.estimator_helpers import EstimatedArray
+from ADCS.state import EstimatedState
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
 from ADCS.satellite_hardware.sensors import SunSensor, SunPair
 from ADCS.satellite_hardware.errors import ErrorMode
@@ -65,7 +65,7 @@ class SRUAKF(UAKF):
 
     See also:
     - :class:`~ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF`
-    - :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray`
+    - :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedState`
     - :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
 
     """
@@ -117,7 +117,7 @@ class SRUAKF(UAKF):
         :param J2000: Initial time in seconds since J2000.
         :type J2000: float
         :param x_hat: Initial full augmented state estimate.
-        :type x_hat: numpy.ndarray
+        :type x_hat: ADCS.state.EstimatedState
         :param P_hat: Initial reduced error-state covariance matrix.
         :type P_hat: numpy.ndarray
         :param Q_hat: Initial reduced process-noise covariance matrix.
@@ -490,7 +490,7 @@ class SRUAKF(UAKF):
         u: np.ndarray,
         sensors: np.ndarray,
         os: Orbital_State,
-    ) -> EstimatedArray:
+    ) -> EstimatedState:
         r"""
         Perform one SR-UKF predict/update cycle using QR factorization and Cholesky downdates.
 
@@ -503,7 +503,7 @@ class SRUAKF(UAKF):
         3. **Square-root covariance update**: apply sequential Cholesky downdates using
            :func:`choldate.choldowndate` via :meth:`weighted_cholupdate`.
 
-        The method returns an :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray`
+        The method returns an :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedState`
         containing the updated full state and a reconstructed covariance :math:`P^+`.
 
         Notation
@@ -672,7 +672,7 @@ class SRUAKF(UAKF):
             P^+ = S^{+\top} S^+,
 
         symmetrizes it, and returns it in the resulting
-        :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray`.
+        :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedState`.
 
         If ``quat_as_vec=True``, the quaternion is renormalized using
         :func:`~ADCS.helpers.math_helpers.normalize` and covariance is transformed
@@ -699,19 +699,19 @@ class SRUAKF(UAKF):
             - ``cov``: reconstructed reduced covariance :math:`P^+`,
             - ``int_cov``: unchanged (inherited from internal state).
 
-        :rtype: :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedArray`
+        :rtype: :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedState`
 
         """
         u = np.asarray(u, dtype=float).copy()
         os = os.copy()
-        state0 = self.x_hat.val.copy()
+        state0 = self.x_hat.as_estimator_array()
 
         # --- 1. Determine Active Sensors (Eclipse Check) ---
         mid_os = [self.prev_os.average(os, CG5.c[j]) for j in range(5)]
         
         # Nominal propagation
         dyn_state0 = self.est_sat.noiseless_rk4(
-            x=state0[:self.est_sat.state_len],
+            x=self.x_hat,
             u=u,
             dt=self.dt,
             orbital_state0=self.prev_os,
@@ -758,11 +758,12 @@ class SRUAKF(UAKF):
 
         # --- 3. Propagation Loop ---
         for j in range(num_sigma):
-            full_pre_statej, sens_noise_j, control_noise_j, int_noise_extra_j = pts[j]
+            full_pre_array_j, sens_noise_j, control_noise_j, int_noise_extra_j = pts[j]
+            full_pre_statej = self._from_augmented_array(full_pre_array_j)
             self.sat_match(satj, full_pre_statej)
 
             post_dyn_state_j = satj.noiseless_rk4(
-                x=full_pre_statej[:state_len],
+                x=full_pre_statej,
                 u=u + control_noise_j,
                 dt=self.dt,
                 orbital_state0=self.prev_os,
@@ -772,19 +773,20 @@ class SRUAKF(UAKF):
             )
 
             if j == 0:
-                post_quat = post_dyn_state_j[3:7].copy()
+                post_quat = post_dyn_state_j.q.copy()
 
             post_statej, post_full_statej = self.new_post_state(
-                full_pre_statej[state_len:],
-                post_dyn_state_j,
+                full_pre_array_j[state_len:],
+                post_dyn_state_j.as_array(),
                 int_noise_extra_j, 
                 post_quat,
             )
             post_pts[j, :] = post_statej.copy()
 
-            self.sat_match(satj, post_full_statej)
+            post_full_state_obj = self._from_augmented_array(post_full_statej)
+            self.sat_match(satj, post_full_state_obj)
             dmode = ErrorMode(add_bias=True, add_noise=False, update_bias=False, update_noise=False)
-            sensj = satj.sensor_readings(x=post_full_statej[:state_len],os=os, dmode=dmode)
+            sensj = satj.sensor_readings(x=post_full_state_obj,os=os, dmode=dmode)
             post_sens[j, :] = sensj[which_outputs] + sens_noise_j
 
         # --- 4. Time Update (QR Method) ---
@@ -877,5 +879,10 @@ class SRUAKF(UAKF):
             norm_jac = state_norm_jac(state_final)
             P_plus = norm_jac.T @ P_plus @ norm_jac
 
-        self.sat_match(satj, state_final)
-        return EstimatedArray(val=state_final, cov=P_plus)
+        result = self._from_augmented_array(
+            state_final,
+            cov=P_plus,
+            int_cov=self.x_hat.int_cov,
+        )
+        self.sat_match(satj, result)
+        return result

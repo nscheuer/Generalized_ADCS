@@ -1,0 +1,71 @@
+{
+  "benchmarks": {
+    "mtq_hessians": {
+      "loops": 1024,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.006759950242158839,
+      "seconds": 4.777273144518368e-05
+    },
+    "mtq_jacobians": {
+      "loops": 1024,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.005467031645541013,
+      "seconds": 3.863564453121526e-05
+    },
+    "mtq_storage_torque": {
+      "loops": 8192,
+      "max_regression": 1.5,
+      "normalized_seconds": 3.0450522916803657e-05,
+      "seconds": 2.151945800721311e-07
+    },
+    "mtq_torque": {
+      "loops": 1024,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.00469377753289974,
+      "seconds": 3.317103906241847e-05
+    },
+    "rw_dtorq__du": {
+      "loops": 8192,
+      "max_regression": 1.5,
+      "normalized_seconds": 2.9133076615849892e-05,
+      "seconds": 2.0588415527988957e-07
+    },
+    "rw_effective_command": {
+      "loops": 8192,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.0004728394600036779,
+      "seconds": 3.341567871101292e-06
+    },
+    "rw_measure_momentum": {
+      "loops": 8192,
+      "max_regression": 1.5,
+      "normalized_seconds": 1.6025910082496922e-05,
+      "seconds": 1.1325549317819927e-07
+    },
+    "rw_measure_momentum_noiseless": {
+      "loops": 8192,
+      "max_regression": 1.5,
+      "normalized_seconds": 5.113600690647243e-06,
+      "seconds": 3.613793944645671e-08
+    },
+    "rw_storage_torque": {
+      "loops": 8192,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.0005026977185094266,
+      "seconds": 3.552576904292115e-06
+    },
+    "rw_torque": {
+      "loops": 8192,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.0005837248894325767,
+      "seconds": 4.1251978759870855e-06
+    }
+  },
+  "calibration_loops": 8,
+  "calibration_seconds": 0.007067024125007038,
+  "description": "Actuators fast benchmark results normalized by calibration_seconds.",
+  "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+  "processor": "x86_64",
+  "python": "3.12.3",
+  "schema_version": 1
+}

@@ -31,6 +31,7 @@ from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.helpers.math_helpers import random_n_unit_vec, rot_mat, norm, normalize, limit
 from ADCS.helpers.math_constants import MathConstants
 from ADCS.estimators.attitude_estimators import UAKF, SRUAKF
+from ADCS.state import EstimatedState
 
 from ADCS.helpers.plotting.plot_estimator import plot_state_comparison, plot_error_and_sun, plot_sensor_data, plot_bias_comparison
 from ADCS.helpers.plotting.animate_estimator import animate_attitude
@@ -97,7 +98,7 @@ def run_ukf(verbose: bool = False, tf: float = 1000, dt: float = 10, real_orbit:
     q0 = random_n_unit_vec(4)
     print(q0)
 
-    x = np.concatenate([w0, q0])
+    x = State(w=w0, q=q0)
     ephem = Ephemeris()
     start_time = 0.22 - 1*TimeConstants.sec2cent
     end_time = 0.22 + (tf-t0)*TimeConstants.sec2cent
@@ -137,8 +138,7 @@ def run_ukf(verbose: bool = False, tf: float = 1000, dt: float = 10, real_orbit:
     est_sat = EstimatedSatellite(mass=est_sat_mass, J_0=est_sat_J, actuators=est_acts, sensors=est_mtms+est_gyros+est_suns, disturbances=est_dists)
 
     # Initial Estimated State
-    x_hat = np.zeros(16)
-    x_hat[3] = 1
+    x_hat = EstimatedState(w=np.zeros(3), q=[1, 0, 0, 0], sens_bias=np.zeros(9))
 
     # Create Covariance Matrices
     invJ = np.linalg.inv(est_sat.J_0)
@@ -194,17 +194,17 @@ def run_ukf(verbose: bool = False, tf: float = 1000, dt: float = 10, real_orbit:
 
         if verbose:
             # Full State Debug
-            print("Real State ", x[0:7])
-            print("Estimated State ", x_hat[0:7])
+            print("Real State ", x.as_array())
+            print("Estimated State ", x_hat.as_array())
             print("Real Gyro Bias ", [gyro.bias.bias for gyro in real_sat.attitude_sensors if isinstance(gyro, Gyro)])
-            print("Estimated Gyro Bias ", x_hat[7:10])
+            print("Estimated Gyro Bias ", x_hat.sens_bias[3:6])
             print("Real MTM Bias ", [mtm.bias.bias for mtm in real_sat.attitude_sensors if isinstance(mtm, MTM)])
-            print("Estimated MTM Bias ", x_hat[10:13])
+            print("Estimated MTM Bias ", x_hat.sens_bias[0:3])
 
             # Attitude Debug
-            quaternion_error_deg = (180.0/np.pi)*np.acos(-1 + 2*np.clip(np.dot(x_hat[3:7], x[3:7]), -1, 1)**2.0)
+            quaternion_error_deg = (180.0/np.pi)*np.acos(-1 + 2*np.clip(np.dot(x_hat.q, x.q), -1, 1)**2.0)
             print("Attitude Error (Degrees) ", quaternion_error_deg)
-            angular_velocity_error = norm(x_hat[0:3] - x[0:3])*180.0/np.pi
+            angular_velocity_error = norm(x_hat.w - x.w)*180.0/np.pi
             print("Angular Velocity Error ", angular_velocity_error)
             diagonal_covariances = np.diagonal(ukf.x_hat.cov)
             print("Attitude Covariance ", diagonal_covariances[3:6])
@@ -217,8 +217,8 @@ def run_ukf(verbose: bool = False, tf: float = 1000, dt: float = 10, real_orbit:
         real_gyro_biases = np.concatenate([gyro.bias.bias for gyro in real_sat.sensors if isinstance(gyro, Gyro)])
         real_mtm_biases = np.concatenate([mtm.bias.bias for mtm in real_sat.sensors if isinstance(mtm, MTM)])
         real_sun_biases = np.concatenate([sun.bias.bias for sun in real_sat.sensors if isinstance(sun, SunPair)])
-        state_hist[ind,:] = np.concatenate([x, real_mtm_biases, real_gyro_biases, real_sun_biases])
-        est_state_hist[ind,:] = x_hat
+        state_hist[ind,:] = np.concatenate([x.as_array(), real_mtm_biases, real_gyro_biases, real_sun_biases])
+        est_state_hist[ind,:] = x_hat.as_estimator_array()
         os_hist += [os]
         sensor_hist[ind,:] = noisy_sensor_readings
         clean_sensor_hist[ind,:] = clean_sensor_readings
@@ -231,10 +231,9 @@ def run_ukf(verbose: bool = False, tf: float = 1000, dt: float = 10, real_orbit:
         prev_os = os.copy()
         os = orb.get_os(0.22+(t-t0)*TimeConstants.sec2cent)
 
-        out = solve_ivp(fun=real_sat.dynamics_for_solver, t_span=(0, dt), y0=x, method="RK45", args=(u, prev_os, os), rtol=1e-7, atol=1e-7)
+        out = solve_ivp(fun=real_sat.dynamics_for_solver, t_span=(0, dt), y0=x.as_array(), method="RK45", args=(u, prev_os, os), rtol=1e-7, atol=1e-7)
 
-        x = out.y[:, -1]
-        x[3:7] = normalize(x[3:7])
+        x = State.from_array(out.y[:, -1]).normalized()
 
     return time_hist, state_hist, est_state_hist, os_hist, sensor_hist, clean_sensor_hist, u_hist, cov_hist
 

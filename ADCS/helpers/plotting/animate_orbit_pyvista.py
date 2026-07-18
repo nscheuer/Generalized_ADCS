@@ -20,6 +20,7 @@ from typing import List, Optional
 from ADCS.CONOPS.goals import Coordinate_Goal
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.universal_constants import EarthConstants
+from ADCS.state import State
 
 TEXTURE_ALIGNMENT_ANGLE = -180
 THIS_DIR = Path(__file__).resolve().parent
@@ -89,6 +90,9 @@ def animate_orbit_pyvista(
     # ---------------------------
     # Timeline smoothing setup
     # ---------------------------
+    state_hist = State.stack(state_hist)
+    if est_state_hist is not None:
+        est_state_hist = State.stack(est_state_hist)
     original_N = len(time_hist)
     target_N = max(original_N * 4, 1000)
 

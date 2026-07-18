@@ -36,6 +36,7 @@ from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.satellite_hardware.actuators import MTQ, RW
 from ADCS.satellite_hardware.errors import Bias, Noise
+from ADCS.state import State
 
 
 BASELINE_PATH = REPO_ROOT / "testing" / "benchmarks" / "baselines" / "actuators.json"
@@ -64,8 +65,8 @@ def _reference_case() -> dict[str, object]:
         fast=True,
     )
 
-    x = np.array([2.0e-3, -1.0e-3, 1.5e-3, 0.97, 0.15, -0.08, 0.16], dtype=float)
-    x[3:7] = x[3:7] / np.linalg.norm(x[3:7])
+    q = np.array([0.97, 0.15, -0.08, 0.16])
+    x = State(w=[2.0e-3, -1.0e-3, 1.5e-3], q=q / np.linalg.norm(q))
 
     mtq = MTQ(
         axis=MathConstants.unitvecs[0],

@@ -1,0 +1,41 @@
+{
+  "benchmarks": {
+    "act_torque_full_stack": {
+      "loops": 256,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.017807561056336407,
+      "seconds": 0.00012177966406223817
+    },
+    "dist_torques_no_disturbances": {
+      "loops": 8192,
+      "max_regression": 1.5,
+      "normalized_seconds": 3.9497528139059624e-05,
+      "seconds": 2.701097411850206e-07
+    },
+    "gps_like_accessor_group": {
+      "loops": 128,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.033143154146954464,
+      "seconds": 0.00022665440624969335
+    },
+    "noiseless_sensor_readings_full_stack": {
+      "loops": 256,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.017759896535838746,
+      "seconds": 0.00012145370312488524
+    },
+    "sensor_readings_full_stack": {
+      "loops": 128,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.03698966027555012,
+      "seconds": 0.0002529593125011331
+    }
+  },
+  "calibration_loops": 8,
+  "calibration_seconds": 0.006838649249999662,
+  "description": "Satellite fast benchmark results normalized by calibration_seconds.",
+  "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+  "processor": "x86_64",
+  "python": "3.12.3",
+  "schema_version": 1
+}

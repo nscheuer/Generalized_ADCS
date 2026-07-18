@@ -37,6 +37,7 @@ from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.satellite_hardware.actuators import MTQ, RW
 from ADCS.satellite_hardware.errors import Bias, Noise
 from ADCS.satellite_hardware.satellite import Satellite
+from ADCS.state import State
 
 
 BASELINE_PATH = REPO_ROOT / "testing" / "benchmarks" / "baselines" / "dynamics.json"
@@ -101,8 +102,8 @@ def _make_reference_case() -> dict[str, object]:
     sat_rw = Satellite(actuators=_make_rws())
     sat_full = Satellite(actuators=_make_mtqs() + _make_rws())
 
-    x_plain = np.hstack([np.array([0.01, 0.0, 0.0]), MathConstants.zeroquat])
-    x_rw = np.concatenate([0.01 * MathConstants.unitvecs[0], MathConstants.zeroquat, np.array([0.1, 0.0, 0.0])])
+    x_plain = State(w=np.array([0.01, 0.0, 0.0]), q=MathConstants.zeroquat)
+    x_rw = State(w=0.01 * MathConstants.unitvecs[0], q=MathConstants.zeroquat, h=np.array([0.1, 0.0, 0.0]))
 
     u_mtq = np.array([0.1, -0.2, 0.05])
     u_rw = np.array([0.005, -0.01, 0.002])
@@ -208,7 +209,7 @@ def _make_benchmarks() -> list[Benchmark]:
             name="dynamics_for_solver_full_stack",
             func=lambda: _REFERENCE["sat_full"].dynamics_for_solver(
                 0.5,
-                _REFERENCE["x_rw"],
+                _REFERENCE["x_rw"].as_array(),
                 _REFERENCE["u_full"],
                 _REFERENCE["os0"],
                 _REFERENCE["os1"],

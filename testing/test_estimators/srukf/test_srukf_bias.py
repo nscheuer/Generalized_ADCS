@@ -16,7 +16,7 @@ def test_match_estimate_synchronizes_gyro_biases_into_estimated_satellite():
     sensors = make_baseline_sensors(estimate_gyro_bias=True)
     _, est_sat = make_satellites(sensors=sensors, estimated_sensors=sensors)
     srukf = make_srukf(est_sat)
-    srukf.x_hat.val[7:10] = np.array([9.0e-4, -7.0e-4, 5.0e-4])
+    srukf.x_hat.sens_bias[:3] = np.array([9.0e-4, -7.0e-4, 5.0e-4])
     est_sat.match_estimate(srukf.x_hat, srukf.dt)
     gyro_biases = np.array([sensor.bias.bias.item() for sensor in est_sat.attitude_sensors[3:6]])
     assert np.allclose(gyro_biases, np.array([9.0e-4, -7.0e-4, 5.0e-4]))

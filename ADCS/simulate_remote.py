@@ -7,6 +7,8 @@ from typing import Optional
 
 import numpy as np
 
+from ADCS.state import State
+
 from ADCS.CONOPS.goals import Goal
 from ADCS.CONOPS.goallist import GoalList
 from ADCS.controller.controller import Controller
@@ -192,7 +194,7 @@ def _print_hil_timing_summary(
 
 
 def simulate_remote(
-    x: np.ndarray,
+    x: State,
     satellite: Satellite,
     os0: Orbital_State,
     *,
@@ -214,9 +216,9 @@ def simulate_remote(
     summary after completion.
 
     :param x:
-        Initial true satellite state vector.
+        Initial true satellite state.
     :type x:
-        numpy.ndarray
+        ADCS.state.State
 
     :param satellite:
         True satellite model used for dynamics and sensor generation.

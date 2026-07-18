@@ -20,7 +20,7 @@ acts = mtqs+rws
 mtms = [ADCS.MTM(axis=axes) for axes in np.eye(3)]
 
 real_sat = ADCS.Satellite(mass=4.0, J_0=np.diagflat([3.4, 2.9, 1.3]), actuators=acts, sensors=mtms, boresight=np.array([0, 0, 1]))
-x_0 = np.array([0, 0, 0] + [1, 0, 0, 0] + [0, 0, 0])
+x_0 = ADCS.State.from_array(np.array([0, 0, 0] + [1, 0, 0, 0] + [0, 0, 0]))
 
 controller = ADCS.controller.MTQ_w_RW(est_sat=real_sat, p_gain=0.1, d_gain=0.7, c_gain=0.1, h_target=np.array([0, 0, 0]))
 goal_timeline = {0.0: ADCS.goals.Fixed_Attitude_Goal(q_ref=np.array([0, 0, 0, 1])), 100.0: ADCS.goals.Coordinate_Goal(lat=33.75, lon=-84.3885, alt=0), 200.0: ADCS.goals.AntiVelocity_Goal(), 300.0: ADCS.goals.Sun_Goal()}

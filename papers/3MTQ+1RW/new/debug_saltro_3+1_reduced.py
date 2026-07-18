@@ -212,7 +212,7 @@ class QuaternionGoalErrorPlotSingle(Subplot):
         ax.grid(True)
 
 real_sat = create_clean_3_1_satellite()
-x_0 = np.array([0.01, 0.01, -0.01] + [1, 0, 0, 0] + [0.0])  # w, q, h
+x_0 = ADCS.State.from_array(np.array([0.01, 0.01, -0.01] + [1, 0, 0, 0] + [0.0]))  # w, q, h
 
 planner_settings = PlannerSettings(est_sat=real_sat)
 planner_settings.passes[0].dt = 5.0

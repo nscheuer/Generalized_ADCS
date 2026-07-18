@@ -19,6 +19,7 @@ from .satellite_hardware.satellite import EstimatedSatellite, Satellite
 from .satellite_hardware.sensors import GPS, Gyro, MTM, StarTracker, SunPair, SunSensor, StarTrackerQuaternion, EarthHorizonSensor
 from .simulate import simulate
 from .simulate_remote import simulate_remote
+from .state import EstimatedState, State
 
 __all__ = [
     "Satellite",
@@ -58,4 +59,6 @@ __all__ = [
     "Ephemeris",
     "orbits",
     "satellite_factory",
+    "State",
+    "EstimatedState",
 ]

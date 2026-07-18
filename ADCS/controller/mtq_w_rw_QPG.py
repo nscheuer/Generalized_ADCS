@@ -1,6 +1,8 @@
 __all__ = ["MTQ_w_RW_QPG"]
 
 import numpy as np
+
+from ADCS.state import EstimatedState, State
 import matplotlib.pyplot as plt
 from scipy.spatial import ConvexHull
 from scipy.optimize import lsq_linear
@@ -197,7 +199,7 @@ class MTQ_w_RW_QPG(MTQ_w_RW_LP):
 
     def find_u(
         self,
-        x_hat: np.ndarray,
+        x_hat: EstimatedState,
         sens: np.ndarray,
         est_sat: EstimatedSatellite,
         os_hat: Orbital_State,
@@ -231,7 +233,7 @@ class MTQ_w_RW_QPG(MTQ_w_RW_LP):
 
         :param x_hat: Estimated state vector containing angular rate, attitude quaternion, and
                       optionally wheel momentum states.
-        :type x_hat: numpy.ndarray
+        :type x_hat: ADCS.state.EstimatedState
         :param sens: Sensor measurement vector used to estimate body magnetic field through the
                      MTM readout model.
         :type sens: numpy.ndarray
@@ -248,8 +250,8 @@ class MTQ_w_RW_QPG(MTQ_w_RW_LP):
         if goal is None:
             goal = No_Goal()
 
-        w = x_hat[0:3]
-        q = x_hat[3:7]
+        w = x_hat.w
+        q = x_hat.q
 
         if isinstance(goal, No_Goal):
             k_w = self.d_gain
@@ -264,8 +266,8 @@ class MTQ_w_RW_QPG(MTQ_w_RW_LP):
 
             # --- 2. System Momentum Vector (Generic N-RW) ---
             # Calculate total vector momentum stored in all wheels
-            if self.n_rw > 0 and len(x_hat) >= 7 + self.n_rw:
-                h_rw_scalars = x_hat[7 : 7 + self.n_rw]
+            if self.n_rw > 0 and x_hat.h.size >= self.n_rw:
+                h_rw_scalars = x_hat.h[:self.n_rw]
                 h_sys = self.rw_axes @ h_rw_scalars # Matrix (3, N) @ Vec (N,) -> (3,)
             else:
                 h_sys = np.zeros(3)
@@ -327,8 +329,8 @@ class MTQ_w_RW_QPG(MTQ_w_RW_LP):
         else:
         
             n_rw = len([a for a in est_sat.actuators if isinstance(a, RW)])
-            if len(x_hat) >= 7 + n_rw:
-                h_rw_states = x_hat[7 : 7 + n_rw]
+            if x_hat.h.size >= n_rw:
+                h_rw_states = x_hat.h[:n_rw]
             else:
                 h_rw_states = np.array([rw.h for rw in est_sat.actuators if isinstance(rw, RW)])
 

@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "description": "Structured State and EstimatedState microbenchmarks.",
+  "python": "3.12.3",
+  "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+  "benchmarks": {
+    "construct": {
+      "seconds": 1.6584320678969533e-06
+    },
+    "field_access": {
+      "seconds": 6.23309783925885e-08
+    },
+    "copy": {
+      "seconds": 1.6424949340620998e-06
+    },
+    "physical_conversion": {
+      "seconds": 8.133861999493064e-07
+    },
+    "augmented_conversion": {
+      "seconds": 1.1270669250662557e-06
+    },
+    "stack_128": {
+      "seconds": 0.0001667143124990389
+    },
+    "rk4_propagation": {
+      "seconds": 5.630811132739666e-05
+    },
+    "estimator_manifold_update": {
+      "seconds": 4.478719970668621e-06
+    }
+  }
+}

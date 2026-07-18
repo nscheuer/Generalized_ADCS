@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 
 np.random.seed(42)
 real_sat = ADCS.satellite_factory.create_3_3_beavercube2_cubesat(estimated=False)
-x_0 = np.array([0.0, 0.0, 0.0] + [1, 0, 0, 0] + [-9.76622366e-05, -9.76622366e-05, -9.76622366e-05]) # w, q, h
+x_0 = ADCS.State.from_array(np.array([0.0, 0.0, 0.0] + [1, 0, 0, 0] + [-9.76622366e-05, -9.76622366e-05, -9.76622366e-05])) # w, q, h
 
 controller = ADCS.controller.MTQ_w_RW_LP(est_sat=real_sat, p_gain=0.00005, d_gain=0.002, c_gain=0.001, h_target=np.array([0.0, 0.0, 0.0]))
 os0 = ADCS.Orbital_State(ephem=ADCS.Ephemeris(),J2000=0.22, R=7000*np.array([0, np.sqrt(2)/2, np.sqrt(2)/2]), V=np.array([8, 0, 0]))

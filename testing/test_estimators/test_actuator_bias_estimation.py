@@ -7,6 +7,7 @@ from ADCS.satellite_hardware.actuators import MTQ
 from ADCS.satellite_hardware.errors import Bias, Noise
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
 from ADCS.satellite_hardware.sensors import Gyro
+from ADCS.state import EstimatedState
 
 
 UNIT_VECTORS = MathConstants.unitvecs
@@ -36,7 +37,7 @@ def make_estimated_satellite() -> EstimatedSatellite:
     )
 
 
-def build_filter(filter_type, estimated_satellite: EstimatedSatellite, x_hat: np.ndarray):
+def build_filter(filter_type, estimated_satellite: EstimatedSatellite, x_hat: EstimatedState):
     reduced_length = (
         estimated_satellite.state_len
         - 1
@@ -75,14 +76,7 @@ def test_estimated_satellite_tracks_actuator_bias_layout():
 @pytest.mark.parametrize("filter_type", [UAKF, SRUAKF])
 def test_filter_builds_with_actuator_bias_augmented_state(filter_type):
     estimated_satellite = make_estimated_satellite()
-    augmented_length = (
-        estimated_satellite.state_len
-        + estimated_satellite.act_bias_len
-        + estimated_satellite.att_sens_bias_len
-        + estimated_satellite.dist_param_len
-    )
-    x_hat = np.zeros(augmented_length)
-    x_hat[3] = 1.0
+    x_hat = EstimatedState(w=np.zeros(3), q=np.array([1.0, 0.0, 0.0, 0.0]), act_bias=np.zeros(3))
     filter_instance = build_filter(filter_type, estimated_satellite, x_hat)
     assert filter_instance is not None
 
@@ -90,17 +84,8 @@ def test_filter_builds_with_actuator_bias_augmented_state(filter_type):
 @pytest.mark.parametrize("filter_type", [UAKF, SRUAKF])
 def test_match_estimate_writes_actuator_bias_values(filter_type):
     estimated_satellite = make_estimated_satellite()
-    state_length = estimated_satellite.state_len
-    augmented_length = (
-        state_length
-        + estimated_satellite.act_bias_len
-        + estimated_satellite.att_sens_bias_len
-        + estimated_satellite.dist_param_len
-    )
-    x_hat = np.zeros(augmented_length)
-    x_hat[3] = 1.0
     expected_biases = np.array([2.0e-3, -1.0e-3, 3.0e-3])
-    x_hat[state_length : state_length + 3] = expected_biases
+    x_hat = EstimatedState(w=np.zeros(3), q=np.array([1.0, 0.0, 0.0, 0.0]), act_bias=expected_biases)
 
     build_filter(filter_type, estimated_satellite, x_hat)
     actual_biases = np.concatenate([np.atleast_1d(actuator.bias.bias) for actuator in estimated_satellite.actuators])

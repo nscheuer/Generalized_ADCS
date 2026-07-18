@@ -14,6 +14,7 @@ from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatel
 from ADCS.satellite_hardware.satellite.satellite import Satellite
 from ADCS.satellite_hardware.sensors import Gyro, MTM
 from ADCS.simulate import simulate
+from ADCS.state import EstimatedState, State
 
 UNIT_VECTORS = MathConstants.unitvecs
 
@@ -57,9 +58,9 @@ def gnc_run():
     state_length = real_satellite.state_len
     initial_rate = random_n_unit_vec(3) * np.random.uniform(1.0, 2.0) * np.pi / 180.0
     initial_quaternion = random_n_unit_vec(4)
-    x0 = np.concatenate([initial_rate, initial_quaternion, np.zeros(state_length - 7)])
+    x0 = State(w=initial_rate, q=initial_quaternion, h=np.zeros(state_length - 7))
 
-    x_hat0 = np.concatenate([np.zeros(3), [1.0, 0.0, 0.0, 0.0], np.zeros(state_length - 7)])
+    x_hat0 = EstimatedState(w=np.zeros(3), q=[1.0, 0.0, 0.0, 0.0], h=np.zeros(state_length - 7))
     reduced_length = state_length - 1
     covariance0 = np.diag(np.concatenate([[1e-3] * 3, [1e-2] * 3, [1e-4] * (reduced_length - 6)]))
     process_noise0 = np.eye(reduced_length) * 1e-8
@@ -100,8 +101,8 @@ def state_histories(gnc_run):
     result, x0 = gnc_run
     return (
         result,
-        np.asarray(result.state_hist, dtype=float),
-        np.asarray(result.est_state_hist, dtype=float),
+        State.stack(result.state_hist),
+        np.vstack([state.as_estimator_array() for state in result.est_state_hist]),
         np.asarray(result.control_hist, dtype=float),
         x0,
     )
@@ -148,6 +149,6 @@ def test_integrated_gnc_estimate_tracks_truth_in_second_half(gnc_run):
 
 def test_integrated_gnc_detumbles_true_rate_end_to_end(gnc_run):
     _, state_history, _, _, x0 = state_histories(gnc_run)
-    initial_rate_norm = float(np.linalg.norm(x0[0:3]))
+    initial_rate_norm = float(np.linalg.norm(x0.w))
     final_rate_norm = float(np.linalg.norm(np.mean(state_history[-5:, 0:3], axis=0)))
     assert final_rate_norm < initial_rate_norm

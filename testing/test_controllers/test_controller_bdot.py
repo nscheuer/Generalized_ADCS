@@ -16,6 +16,7 @@ from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.satellite_hardware.actuators import MTQ, RW
 from ADCS.satellite_hardware.satellite import Satellite
 from ADCS.satellite_hardware.sensors import MTM
+from ADCS.state import State
 
 
 @dataclass(frozen=True)
@@ -101,7 +102,7 @@ def run_bdot_simulation(
 
     w0 = _unit(rng.normal(size=3)) * rng.uniform(1.0, 2.0) * np.pi / 180.0
     q0 = _unit(rng.normal(size=4))
-    x = np.concatenate([w0, q0, np.zeros(3)]) if include_rw else np.concatenate([w0, q0])
+    x = State(w=w0, q=q0, h=np.zeros(3) if include_rw else np.empty(0))
     state_dim = 10 if include_rw else 7
 
     orbit = (
@@ -129,7 +130,7 @@ def run_bdot_simulation(
         u = controller.find_u(x_hat=x, sens=sens, est_sat=satellite, os_hat=os)
 
         time_hist[ind] = t
-        state_hist[ind, :] = x
+        state_hist[ind, :] = x.as_array()
         sensor_hist[ind, :] = sens
         u_hist[ind, :] = u
         os_hist.append(os)
@@ -140,14 +141,13 @@ def run_bdot_simulation(
         out = solve_ivp(
             fun=satellite.dynamics_for_solver,
             t_span=(0.0, dt),
-            y0=x,
+            y0=x.as_array(),
             method="RK45",
             args=(u, prev_os, next_os),
             rtol=1e-7,
             atol=1e-7,
         )
-        x = out.y[:, -1]
-        x[3:7] = normalize(x[3:7])
+        x = State.from_array(out.y[:, -1]).normalized()
         t = next_t
 
     return BDotRun(
@@ -181,15 +181,15 @@ def base_orbital_state() -> Orbital_State:
 
 
 @pytest.fixture
-def base_state() -> np.ndarray:
+def base_state() -> State:
     q = _unit(np.array([0.8, 0.2, -0.3, 0.4]))
     w = np.array([0.01, -0.02, 0.03])
-    return np.concatenate([w, q])
+    return State(w=w, q=q)
 
 
 def test_bdot_first_call_returns_zero_command(
     bdot_satellite: Satellite,
-    base_state: np.ndarray,
+    base_state: State,
     base_orbital_state: Orbital_State,
 ) -> None:
     controller = BDot(est_sat=bdot_satellite, gain=100.0)
@@ -207,7 +207,7 @@ def test_bdot_first_call_returns_zero_command(
 
 def test_bdot_second_call_matches_finite_difference_law(
     bdot_satellite: Satellite,
-    base_state: np.ndarray,
+    base_state: State,
     base_orbital_state: Orbital_State,
 ) -> None:
     controller = BDot(est_sat=bdot_satellite, gain=25.0)
@@ -232,7 +232,7 @@ def test_bdot_second_call_matches_finite_difference_law(
 
 def test_bdot_zero_time_step_returns_zero_derivative_command(
     bdot_satellite: Satellite,
-    base_state: np.ndarray,
+    base_state: State,
     base_orbital_state: Orbital_State,
 ) -> None:
     controller = BDot(est_sat=bdot_satellite, gain=100.0)
@@ -272,11 +272,11 @@ def test_bdot_command_is_saturated_to_mtq_limits(bdot_satellite: Satellite) -> N
 
 def test_bdot_with_reaction_wheels_only_commands_mtqs(
     bdot_satellite_with_rw: Satellite,
-    base_state: np.ndarray,
+    base_state: State,
     base_orbital_state: Orbital_State,
 ) -> None:
     controller = BDot(est_sat=bdot_satellite_with_rw, gain=50.0)
-    state_with_rw = np.concatenate([base_state, np.zeros(3)])
+    state_with_rw = State(w=base_state.w, q=base_state.q, h=np.zeros(3))
     os0 = base_orbital_state.copy()
     os1 = base_orbital_state.copy()
     os1.B = np.array([-2.0e-5, 1.0e-5, 2.5e-5])
@@ -294,7 +294,7 @@ def test_bdot_with_reaction_wheels_only_commands_mtqs(
 
 def test_bdot_reconstructs_body_field_from_mtm_measurements(
     bdot_satellite: Satellite,
-    base_state: np.ndarray,
+    base_state: State,
     base_orbital_state: Orbital_State,
 ) -> None:
     controller = BDot(est_sat=bdot_satellite, gain=10.0)
@@ -319,7 +319,7 @@ def test_bdot_full_convergence_loop() -> None:
 
     final_w = results.state_hist[-1, 0:3]
     q_final = results.state_hist[-1, 3:7]
-    final_b_body = results.os_hist[-1].get_state_vector(x=results.state_hist[-1])["b"]
+    final_b_body = results.os_hist[-1].get_state_vector(x=State.from_array(results.state_hist[-1]))["b"]
     b_unit = final_b_body / np.linalg.norm(final_b_body)
     w_perp = final_w - np.dot(final_w, b_unit) * b_unit
 

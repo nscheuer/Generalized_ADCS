@@ -3,6 +3,7 @@ import numpy as np
 from ADCS.helpers.math_constants import MathConstants
 from ADCS.helpers.math_helpers import normalize, rot_mat
 from ADCS.satellite_hardware.satellite import Satellite
+from ADCS.state import State
 
 from testing.test_satellite._helpers import expected_quat_dot, make_mtqs, make_orbital_state, make_rws
 
@@ -10,7 +11,7 @@ from testing.test_satellite._helpers import expected_quat_dot, make_mtqs, make_o
 def test_dynamics_core_matches_plain_quaternion_kinematics_at_identity():
     sat = Satellite()
     os = make_orbital_state()
-    x = np.hstack([np.array([0.01, 0.0, 0.0]), np.array([1.0, 0.0, 0.0, 0.0])])
+    x = State(w=[0.01, 0.0, 0.0], q=[1.0, 0.0, 0.0, 0.0])
 
     dx = sat.dynamics_core(x=x, u=np.array([]), orbital_state=os)
 
@@ -23,7 +24,7 @@ def test_dynamics_core_matches_plain_quaternion_kinematics_for_rotated_quaternio
     w = np.array([0.01, 0.0, 0.0])
     q = np.array([0.0, 0.0, 1.0, 0.0])
 
-    dx = sat.dynamics_core(x=np.hstack([w, q]), u=np.array([]), orbital_state=os)
+    dx = sat.dynamics_core(x=State(w=w, q=q), u=np.array([]), orbital_state=os)
 
     assert np.allclose(dx[3:], expected_quat_dot(w, q))
     assert np.allclose(dx[:3], np.zeros(3))
@@ -45,14 +46,14 @@ def test_dynamics_core_matches_closed_form_torque_free_rigid_body_case():
     expected_qdot = expected_quat_dot(w0, q0)
 
     sat = Satellite(J_0=J_body)
-    dx = sat.dynamics_core(x=np.concatenate([w0, q0]), u=np.array([]), orbital_state=make_orbital_state())
+    dx = sat.dynamics_core(x=State(w=w0, q=q0), u=np.array([]), orbital_state=make_orbital_state())
 
     assert np.allclose(dx, np.concatenate([expected_wdot, expected_qdot]))
 
 
 def test_mtq_dynamics_match_axis_aligned_cases():
     os = make_orbital_state(B=np.array([1.0e-5, 0.0, 0.0]))
-    x = np.hstack([np.array([0.01, 0.0, 0.0]), MathConstants.zeroquat])
+    x = State(w=[0.01, 0.0, 0.0], q=MathConstants.zeroquat)
     mtqs = make_mtqs()
 
     sat_x = Satellite(actuators=[mtqs[0]])
@@ -66,7 +67,7 @@ def test_mtq_dynamics_match_axis_aligned_cases():
 
 def test_mtq_dynamics_match_superposed_multi_axis_inputs():
     os = make_orbital_state(B=np.array([1.0e-5, 0.0, 0.0]))
-    x = np.hstack([np.array([0.01, 0.0, 0.0]), MathConstants.zeroquat])
+    x = State(w=[0.01, 0.0, 0.0], q=MathConstants.zeroquat)
     sat = Satellite(actuators=make_mtqs())
 
     assert np.allclose(sat.dynamics_core(x=x, u=np.array([1.0, 0.0, 0.0]), orbital_state=os), np.array([0.0, 0.0, 0.0, 0.0, 0.005, 0.0, 0.0]))
@@ -77,7 +78,7 @@ def test_mtq_dynamics_match_superposed_multi_axis_inputs():
 def test_reaction_wheel_dynamics_match_expected_storage_and_body_terms():
     sat = Satellite(actuators=make_rws())
     os = make_orbital_state()
-    x = np.concatenate([0.01 * MathConstants.unitvecs[0], MathConstants.zeroquat, np.array([0.1, 0.0, 0.0])])
+    x = State(w=0.01 * MathConstants.unitvecs[0], q=MathConstants.zeroquat, h=[0.1, 0.0, 0.0])
     u = np.array([0.021, -0.05, 0.0])
 
     dx = sat.dynamics_core(x=x, u=u, orbital_state=os)
@@ -102,7 +103,7 @@ def test_reaction_wheel_dynamics_match_expected_storage_and_body_terms():
 def test_dist_torques_and_act_torque_are_zero_without_disturbances_or_actuators():
     sat = Satellite()
     os = make_orbital_state()
-    x = np.hstack([np.zeros(3), MathConstants.zeroquat])
+    x = State(w=np.zeros(3), q=MathConstants.zeroquat)
 
     assert np.allclose(sat.dist_torques(x=x, os=os), np.zeros(3))
     assert np.allclose(sat.act_torque(x=x, u=np.array([]), os=os), np.zeros(3))

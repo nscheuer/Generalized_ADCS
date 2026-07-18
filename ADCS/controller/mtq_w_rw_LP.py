@@ -1,6 +1,8 @@
 __all__ = ["MTQ_w_RW_LP"]
 
 import numpy as np
+
+from ADCS.state import EstimatedState, State
 import matplotlib.pyplot as plt
 from scipy.spatial import ConvexHull
 from scipy.optimize import linprog
@@ -288,7 +290,7 @@ class MTQ_w_RW_LP(Controller):
 
     def find_u(
         self,
-        x_hat: np.ndarray,
+        x_hat: EstimatedState,
         sens: np.ndarray,
         est_sat: EstimatedSatellite,
         os_hat: Orbital_State,
@@ -305,10 +307,9 @@ class MTQ_w_RW_LP(Controller):
         ``est_sat.actuators`` and contains MTQ and RW command signals consistent with each
         actuator's ``u_max`` bounds.
 
-        :param x_hat: Estimated state vector. The first 3 elements are body rates
-            :math:`\boldsymbol{\omega}` and elements 3:7 are the attitude quaternion.
-            If present, elements 7:7+N_rw store RW scalar momentum states.
-        :type x_hat: numpy.ndarray
+        :param x_hat: Estimated state containing body rates in ``w``, the attitude
+            quaternion in ``q``, and reaction-wheel momentum in ``h``.
+        :type x_hat: ADCS.state.EstimatedState
         :param sens: Raw sensor vector used to estimate the body magnetic field via the MTM model.
         :type sens: numpy.ndarray
         :param est_sat: Estimated satellite object providing hardware configuration and inertia.
@@ -344,7 +345,7 @@ class MTQ_w_RW_LP(Controller):
         
     def find_u_pointing(
         self,
-        x_hat: np.ndarray,
+        x_hat: EstimatedState,
         sens: np.ndarray,
         est_sat: EstimatedSatellite,
         os_hat: Orbital_State,
@@ -437,7 +438,7 @@ class MTQ_w_RW_LP(Controller):
         clipping of RW and MTQ channels.
 
         :param x_hat: Estimated state vector containing body rates, quaternion, and optionally RW momentum states.
-        :type x_hat: numpy.ndarray
+        :type x_hat: ADCS.state.EstimatedState
         :param sens: Sensor vector used to estimate the body magnetic field from MTM measurements.
         :type sens: numpy.ndarray
         :param est_sat: Estimated satellite object containing actuators, inertia, and boresight configuration.
@@ -451,8 +452,8 @@ class MTQ_w_RW_LP(Controller):
         :rtype: numpy.ndarray
 
         """
-        w = x_hat[0:3]
-        q = x_hat[3:7]
+        w = x_hat.w
+        q = x_hat.q
 
         rws  = [a for a in est_sat.actuators if isinstance(a, RW)]
         mtqs = [a for a in est_sat.actuators if isinstance(a, MTQ)]
@@ -462,8 +463,8 @@ class MTQ_w_RW_LP(Controller):
         mtq_indices = [i for i, a in enumerate(est_sat.actuators) if isinstance(a, MTQ)]
 
         # Wheel scalar momentum states (N_rw,)
-        if n_rw > 0 and len(x_hat) >= 7 + n_rw:
-            h_rw_states = np.asarray(x_hat[7 : 7 + n_rw], float).reshape(n_rw,)
+        if n_rw > 0 and x_hat.h.size >= n_rw:
+            h_rw_states = np.asarray(x_hat.h[:n_rw], float).reshape(n_rw,)
         elif n_rw > 0:
             h_rw_states = np.array([rw.h for rw in rws], dtype=float).reshape(n_rw,)
         else:
@@ -605,7 +606,7 @@ class MTQ_w_RW_LP(Controller):
 
     def find_u_desaturate(
         self,
-        x_hat: np.ndarray,
+        x_hat: EstimatedState,
         sens: np.ndarray,
         est_sat: EstimatedSatellite,
         os_hat: Orbital_State,
@@ -694,7 +695,7 @@ class MTQ_w_RW_LP(Controller):
         the RW torque-to-command mapping built in the constructor and then saturated to bounds.
 
         :param x_hat: Estimated state vector containing body rates, quaternion, and optionally RW momentum states.
-        :type x_hat: numpy.ndarray
+        :type x_hat: ADCS.state.EstimatedState
         :param sens: Sensor vector used to estimate the body magnetic field from MTM measurements.
         :type sens: numpy.ndarray
         :param est_sat: Estimated satellite object providing actuators and inertia.
@@ -707,8 +708,8 @@ class MTQ_w_RW_LP(Controller):
         :rtype: numpy.ndarray
 
         """
-        w = x_hat[0:3]
-        q = x_hat[3:7]
+        w = x_hat.w
+        q = x_hat.q
 
         k_w = self.d_gain
         k_h = self.c_gain
@@ -724,8 +725,8 @@ class MTQ_w_RW_LP(Controller):
 
         # --- 2. System Momentum Vector (Generic N-RW) ---
         # Calculate total vector momentum stored in all wheels
-        if self.n_rw > 0 and len(x_hat) >= 7 + self.n_rw:
-            h_rw_scalars = x_hat[7 : 7 + self.n_rw]
+        if self.n_rw > 0 and x_hat.h.size >= self.n_rw:
+            h_rw_scalars = x_hat.h[:self.n_rw]
             h_sys = self.rw_axes @ h_rw_scalars # Matrix (3, N) @ Vec (N,) -> (3,)
         else:
             h_sys = np.zeros(3)

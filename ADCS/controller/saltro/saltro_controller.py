@@ -21,6 +21,8 @@ from typing import Optional
 
 import numpy as np
 
+from ADCS.state import EstimatedState, State
+
 from ADCS.CONOPS.goallist import GoalList
 from ADCS.CONOPS.goals import Goal
 from ADCS.controller import Controller
@@ -118,7 +120,7 @@ class SALTRO(Controller):
         self,
         t_start: float,
         duration: float,
-        x_0: np.ndarray,
+        x_0: State,
         os_0: Orbital_State,
         goals: GoalList,
         verbose: bool = False,
@@ -149,7 +151,7 @@ class SALTRO(Controller):
         :param duration: Planning horizon duration in seconds.
         :type duration: float
         :param x_0: Initial state vector.
-        :type x_0: numpy.ndarray
+        :type x_0: ADCS.state.State
         :param os_0: Initial orbital state.
         :type os_0: :class:`~ADCS.orbits.orbital_state.Orbital_State`
         :param goals: Goal timeline used for target generation.
@@ -237,7 +239,7 @@ class SALTRO(Controller):
 
         r0 = np.asarray(os_0.R, dtype=np.float64).reshape(3) * 1.0e3
         v0 = np.asarray(os_0.V, dtype=np.float64).reshape(3) * 1.0e3
-        x0_clean = np.asarray(x_0, dtype=np.float64).reshape(-1)
+        x0_clean = x_0.as_array().astype(np.float64, copy=True)
 
         ok, Xset, Uset_cpp, K_flat = saltro_py.trajOpt(
             cpp_settings,
@@ -284,13 +286,13 @@ class SALTRO(Controller):
             K_cpp_time[k, :, :] = K_flat[:, c0:c1]
         Kset = -K_cpp_time[:, cpp_to_py, :]
 
-        traj = Trajectory(times, Xset, Uset, Kset, np.zeros(n_out, dtype=np.float64))
+        traj = Trajectory.from_arrays(times, Xset, Uset, Kset, np.zeros(n_out, dtype=np.float64))
         self.active_trajectory = traj
         return traj
 
     def find_u(
         self,
-        x_hat: np.ndarray,
+        x_hat: EstimatedState,
         sens: np.ndarray,
         est_sat: EstimatedSatellite,
         os_hat: Orbital_State,
@@ -307,7 +309,7 @@ class SALTRO(Controller):
            u(t) = u_\mathrm{traj}(t, x_{\hat{}}).
 
         :param x_hat: Estimated state vector.
-        :type x_hat: numpy.ndarray
+        :type x_hat: ADCS.state.EstimatedState
         :param sens: Sensor vector (accepted for interface compatibility).
         :type sens: numpy.ndarray
         :param est_sat: Estimated satellite (accepted for interface compatibility).

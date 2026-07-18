@@ -19,6 +19,7 @@ from ADCS.estimators.attitude_estimators import Attitude_Estimator
 from ADCS.estimators.orbit_estimators import Orbit_Estimator
 from ADCS.orbits.orbit import Orbit
 from ADCS.orbits.orbital_state import Orbital_State
+from ADCS.state import EstimatedState, State
 from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.satellite_hardware.satellite import Satellite, EstimatedSatellite
@@ -123,7 +124,7 @@ def _orbit_seq_from_os0(os0: Orbital_State, dt: float, tf: float, zonal_J: int, 
 
 def _simulate_with_precomputed_orbit(
     *,
-    x: np.ndarray,
+    x: State,
     satellite: Satellite,
     est_satellite: Optional[EstimatedSatellite],
     controller: Optional[Controller],
@@ -136,9 +137,11 @@ def _simulate_with_precomputed_orbit(
     slot_id: int = -1,  # Added for UI tracking
     run_id: int = -1,   # Added for UI tracking
 ) -> RunResults:
-    if len(x) != satellite.state_len:
+    if not isinstance(x, State):
+        raise TypeError(f"x must be a State, got {type(x).__name__}")
+    if x.as_array().size != satellite.state_len:
         raise ValueError(
-            f"Initial state length {len(x)} does not match satellite state length {satellite.state_len}. "
+            f"Initial state length {x.as_array().size} does not match satellite state length {satellite.state_len}. "
             f"It must be 7 + N_rw."
         )
 
@@ -164,7 +167,7 @@ def _simulate_with_precomputed_orbit(
 
     x_hat = None
     if estimator is not None and est_satellite is not None:
-        x_hat = np.empty(est_satellite.state_len)
+        x_hat = None
 
     os_hat = None
 
@@ -225,14 +228,13 @@ def _simulate_with_precomputed_orbit(
         out = solve_ivp(
             fun=satellite.dynamics_for_solver,
             t_span=(0, dt),
-            y0=x,
+            y0=x.as_array(),
             method="RK45",
             args=(u, os_k, os_kp1),
             rtol=1e-7,
             atol=1e-7,
         )
-        x = out.y[:, -1]
-        x[3:7] = normalize(x[3:7])
+        x = State.from_array(out.y[:, -1]).normalized()
 
         target, w_target = active_goal.to_ref(os_for_gnc)
 
@@ -255,9 +257,9 @@ def _simulate_with_precomputed_orbit(
             ab0, ab1 = base, base + n_ab
             sb0, sb1 = ab1, ab1 + n_sb
 
-            if len(x_hat) >= sb1:
-                b_act_hat = np.asarray(x_hat[ab0:ab1], dtype=float).reshape(-1)
-                b_sens_hat = np.asarray(x_hat[sb0:sb1], dtype=float).reshape(-1)
+            if isinstance(x_hat, EstimatedState):
+                b_act_hat = x_hat.act_bias
+                b_sens_hat = x_hat.sens_bias
 
                 act_parts = []
                 ai = 0
@@ -344,7 +346,7 @@ def _simulate_mc_worker(cfg: Dict[str, Any]) -> Dict[str, Any]:
 
         ephem = _get_ephem()
 
-        x0 = np.asarray(cfg["x0"], dtype=float).copy()
+        x0 = State.from_dict(cfg["x0"])
         satellite: Satellite = cfg["satellite"]
         est_satellite = cfg.get("est_satellite")
         controller = cfg.get("controller")
@@ -406,7 +408,7 @@ def _simulate_mc_worker(cfg: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def simulate_mc(
-    x: np.ndarray,
+    x: State,
     satellite: Satellite,
     est_satellite: Optional[EstimatedSatellite] = None,
     controller: Optional[Controller] = None,
@@ -449,12 +451,11 @@ def simulate_mc(
     estimators, goal objects) must be picklable.
 
     :param x:
-        Base initial true satellite state vector. The length must match
-        ``satellite.state_len`` and is expected to follow the satellite state
-        convention (angular velocity, quaternion, reaction wheel states, etc.).
+        Base initial true satellite state. Its ``h`` length must match the
+        satellite's reaction-wheel count.
         Per-run overrides may be applied by ``mc_config``.
     :type x:
-        numpy.ndarray
+        ADCS.state.State
 
     :param satellite:
         The true satellite model, including dynamics, sensors, and actuators.
@@ -553,9 +554,11 @@ def simulate_mc(
     """
     if os0 is None:
         raise ValueError("os0 must be provided to simulate_mc().")
-    if len(x) != satellite.state_len:
+    if not isinstance(x, State):
+        raise TypeError(f"x must be a State, got {type(x).__name__}")
+    if x.as_array().size != satellite.state_len:
         raise ValueError(
-            f"Initial state length {len(x)} does not match satellite state length {satellite.state_len}. "
+            f"Initial state length {x.as_array().size} does not match satellite state length {satellite.state_len}. "
             f"It must be 7 + N_rw."
         )
 
@@ -571,7 +574,7 @@ def simulate_mc(
     if goal is not None:
         _picklable("goal", goal)
 
-    x_base = np.asarray(x, dtype=float).copy()
+    x_base = x.copy()
     os0_base_payload = _freeze_os0(os0)
 
     def _build_run_cfg(run_id: int) -> Dict[str, Any]:
@@ -598,19 +601,19 @@ def simulate_mc(
             v = getattr(mc_config, "w", None)
             if v is not None:
                 w = _as_1d_float(_sample(v, rng), 3, "mc_config.w")
-                x0_i[:3] = w
+                x0_i.w = w.copy()
                 applied["w"] = w
 
             v = getattr(mc_config, "q", None)
             if v is not None:
                 q = _as_1d_float(_sample(v, rng), 4, "mc_config.q")
-                x0_i[3:7] = q
+                x0_i.q = q.copy()
                 applied["q"] = q
 
             v = getattr(mc_config, "h", None)
             if v is not None:
-                h = _as_1d_float(_sample(v, rng), len(x0_i) - 7, "mc_config.h")
-                x0_i[7:] = h
+                h = _as_1d_float(_sample(v, rng), x0_i.h.size, "mc_config.h")
+                x0_i.h = h.copy()
                 applied["h"] = h
 
             v = getattr(mc_config, "goal", None)
@@ -660,7 +663,7 @@ def simulate_mc(
             "run_id": int(run_id),
             "seed": seed,
             "applied": applied,
-            "x0": x0_i,
+            "x0": x0_i.to_dict(),
             "dt": dt_i,
             "tf": tf_i,
             "goal": goal_i,

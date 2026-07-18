@@ -5,12 +5,13 @@ __all__ = ["Trajectory"]
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
-from typing import Dict, Optional, Tuple, Callable
+from typing import Dict, Optional, Tuple, Callable, Sequence
 from numpy.typing import NDArray
 
 from ADCS.helpers.math_helpers import quat_diff, quat_to_vec3
 from ADCS.helpers.simresults import SimulationResults, RunResults
 from ADCS.satellite_hardware.satellite import Satellite
+from ADCS.state import State
 
 class Trajectory:
     r"""
@@ -75,7 +76,7 @@ class Trajectory:
 
     # Class-level type annotations
     times: NDArray[np.float64]
-    states: NDArray[np.float64]
+    states: list[State]
     controls: NDArray[np.float64]
     gains: NDArray[np.float64]
     costs: NDArray[np.float64]
@@ -89,7 +90,7 @@ class Trajectory:
     def __init__(
         self,
         t: NDArray[np.float64],
-        x: NDArray[np.float64],
+        x: Sequence[State],
         u: NDArray[np.float64],
         K: NDArray[np.float64],
         S: NDArray[np.float64],
@@ -107,8 +108,8 @@ class Trajectory:
             use_disturbance_estimation: If True, gains have 3 extra columns for
                 disturbance estimation (KwDist mode, tracking_LQR_formulation=2)
         """
-        self.times = t
-        self.states = x
+        self.times = np.asarray(t, dtype=float)
+        self.states = [state.copy() for state in x]
         self.controls = u
         self.gains = K
         self.costs = S
@@ -117,15 +118,16 @@ class Trajectory:
         self.start_time = float(t[0])
         self.end_time = float(t[-1])
         self.n_steps = len(t)
+        if len(self.states) != self.n_steps:
+            raise ValueError(f"x must contain {self.n_steps} State objects, got {len(self.states)}")
+        if not all(isinstance(state, State) for state in self.states):
+            raise TypeError("x must be a sequence of State objects")
 
-        # Robust Dimension Detection
-        # Check if Axis 0 matches time steps (Row-Major: N x nx)
-        if x.shape[0] == self.n_steps:
-            self.state_dim = x.shape[1]
-            self._is_row_major = True
-        else:
-            self.state_dim = x.shape[0]
-            self._is_row_major = False
+        widths = {state.as_array().size for state in self.states}
+        if len(widths) != 1:
+            raise ValueError("all trajectory states must have the same dimension")
+        self.state_dim = widths.pop()
+        self._is_row_major = True
 
         # Same check for controls
         if u.shape[0] == self.n_steps or u.shape[0] == self.n_steps - 1:
@@ -136,6 +138,36 @@ class Trajectory:
         # Disturbance estimate for KwDist mode
         if use_disturbance_estimation:
             self._dist_estimate = np.zeros(3)
+
+    @classmethod
+    def from_arrays(
+        cls,
+        t: NDArray[np.float64],
+        x: NDArray[np.float64],
+        u: NDArray[np.float64],
+        K: NDArray[np.float64],
+        S: NDArray[np.float64],
+        use_disturbance_estimation: bool = False,
+    ) -> Trajectory:
+        """Construct from a native planner's state matrix boundary."""
+        times = np.asarray(t, dtype=float)
+        matrix = np.asarray(x, dtype=float)
+        if matrix.ndim != 2:
+            raise ValueError(f"native state trajectory must be 2D, got {matrix.shape}")
+        rows = matrix if matrix.shape[0] == times.size else matrix.T
+        if rows.shape[0] != times.size:
+            raise ValueError("native state trajectory does not match the time dimension")
+        controls = np.asarray(u, dtype=float)
+        if controls.ndim == 2 and controls.shape[0] not in (times.size, times.size - 1):
+            controls = controls.T
+        return cls(
+            times,
+            [State.from_array(row) for row in rows],
+            controls,
+            K,
+            S,
+            use_disturbance_estimation=use_disturbance_estimation,
+        )
 
     def is_valid_time(self, t: float) -> bool:
         r"""
@@ -156,7 +188,7 @@ class Trajectory:
         """
         return self.start_time <= t <= self.end_time
     
-    def get_state_at(self, t: float) -> np.ndarray:
+    def get_state_at(self, t: float) -> State:
         r"""
         Interpolate the reference state at a given time.
 
@@ -179,31 +211,21 @@ class Trajectory:
         idx = self._get_idx(t)
         dt = self.times[idx+1] - self.times[idx]
         
-        # Get raw states based on layout
-        if self._is_row_major:
-            x0 = self.states[idx, :]
-            x1 = self.states[idx+1, :]
-        else:
-            x0 = self.states[:, idx]
-            x1 = self.states[:, idx+1]
+        x0 = self.states[idx]
+        x1 = self.states[idx + 1]
 
-        if dt == 0: return x0
+        if dt == 0:
+            return x0.copy()
         alpha = (t - self.times[idx]) / dt
-
-        # Linear Interpolation
-        state_interp = (1 - alpha) * x0 + alpha * x1
-        
-        # Normalize Quaternion (indices 3:7) if state is large enough
-        if self.state_dim >= 7:
-            # Handle standard ADCS state vector: [w(3), q(4), h(3)]
-            q0 = x0[3:7]
-            q1 = x1[3:7]
-            # Simple lerp then normalize is sufficient for small steps
-            q_interp = (1 - alpha) * q0 + alpha * q1
-            if np.linalg.norm(q_interp) > 1e-9:
-                state_interp[3:7] = q_interp / np.linalg.norm(q_interp)
-            
-        return state_interp
+        q_interp = (1 - alpha) * x0.q + alpha * x1.q
+        q_norm = np.linalg.norm(q_interp)
+        if q_norm > 1e-9:
+            q_interp = q_interp / q_norm
+        return State(
+            w=(1 - alpha) * x0.w + alpha * x1.w,
+            q=q_interp,
+            h=(1 - alpha) * x0.h + alpha * x1.h,
+        )
     
     def get_control_at(self, t: float) -> np.ndarray:
         r"""
@@ -297,7 +319,7 @@ class Trajectory:
         else:
             return k_flat.reshape(self.ctrl_dim, self.state_dim - 1)
     
-    def compute_tracking_control(self, t: float, x_current: np.ndarray) -> np.ndarray:
+    def compute_tracking_control(self, t: float, x_current: State) -> np.ndarray:
         r"""
         Compute the tracking control input at a given time and state.
 
@@ -346,7 +368,7 @@ class Trajectory:
         else:
             return u_ref - K @ dx
 
-    def _state_diff(self, x_curr: np.ndarray, x_ref: np.ndarray) -> np.ndarray:
+    def _state_diff(self, x_curr: State, x_ref: State) -> np.ndarray:
         r"""
         Compute the reduced error state for TVLQR feedback.
 
@@ -389,17 +411,17 @@ class Trajectory:
         dx = np.zeros(error_dim)
 
         # 1. Angular Velocity Error (indices 0:3)
-        dx[0:3] = x_curr[0:3] - x_ref[0:3]
+        dx[0:3] = x_curr.w - x_ref.w
 
         # 2. Attitude Error (indices 3:6)
         # quat_diff returns q_ref^(-1) * q_curr
-        q_err = quat_diff(x_ref[3:7], x_curr[3:7])
+        q_err = quat_diff(x_ref.q, x_curr.q)
         # Match the C++ planner's reduced attitude error convention: 2×MRP.
         dx[3:6] = quat_to_vec3(q_err, 5)
 
         # 3. RW Momentum Error (indices 6:6+n_rw, from full state 7:7+n_rw)
         if n_rw > 0:
-            dx[6:6+n_rw] = x_curr[7:7+n_rw] - x_ref[7:7+n_rw]
+            dx[6:6+n_rw] = x_curr.h[:n_rw] - x_ref.h[:n_rw]
 
         return dx
 
@@ -463,7 +485,7 @@ class Trajectory:
         """
         return {
             "time": self.times,
-            "state": self.states,
+            "state": State.stack(self.states),
             "control": self.controls,
             "cost": self.costs
         }
@@ -534,16 +556,7 @@ class Trajectory:
         # We need quaternions (indices 3:7) for every time step.
         # Goal: quats shape (4, N_points)
         
-        # Check if Axis 0 is Time (N, nx)
-        if self.states.shape[0] == self.n_steps:
-            # Row-Major: Slice rows by stride, grab cols 3:7, Transpose to (4, N)
-            quats = self.states[::stride, 3:7].T
-        # Check if Axis 1 is Time (nx, N)
-        elif self.states.shape[1] == self.n_steps:
-            # Col-Major: Grab cols 3:7, slice cols by stride -> (4, N)
-            quats = self.states[3:7, ::stride]
-        else:
-            raise ValueError(f"State shape {self.states.shape} does not match n_steps={self.n_steps}")
+        quats = np.vstack([state.q for state in self.states[::stride]]).T
 
         times = self.times[::stride]
         
@@ -636,12 +649,8 @@ class Trajectory:
         time_s = (time_J2000 - time_J2000[0]) * 36525.0 * 86400.0
         N = len(time_J2000)
 
-        if self._is_row_major:
-            state_hist = np.asarray(self.states)
-            control_hist = np.asarray(self.controls)
-        else:
-            state_hist = np.asarray(self.states.T)
-            control_hist = np.asarray(self.controls.T)
+        state_hist = [state.copy() for state in self.states]
+        control_hist = np.asarray(self.controls)
 
         run = RunResults(
             satellite=satellite,

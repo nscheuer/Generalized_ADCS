@@ -11,6 +11,7 @@ from matplotlib.widgets import Button, RadioButtons
 from numpy.linalg import norm
 from typing import Callable, Tuple, List
 from ADCS.helpers.math_helpers import quat_to_euler
+from ADCS.state import State
 
 def plot_control(
     time: np.ndarray,
@@ -185,7 +186,7 @@ def plot_rw_momentum(
 
     """
     time = np.asarray(time)
-    state_hist = np.asarray(state_hist)
+    state_hist = State.stack(state_hist)
 
     if state_hist.ndim != 2:
         raise ValueError(
@@ -268,7 +269,7 @@ def plot_target_tracking(
     time: Optional[np.ndarray] = None,
 ) -> None:
     Th = np.asarray(boresight_hist, dtype=float)
-    X = np.asarray(state_hist, dtype=float)
+    X = State.stack(state_hist)
 
     # Normalize fixed body boresight
     v_bore_body = np.asarray(body_boresight, dtype=float).reshape(3)

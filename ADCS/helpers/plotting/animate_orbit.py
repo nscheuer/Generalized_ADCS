@@ -11,6 +11,7 @@ from ADCS.CONOPS.goals import Goal, ECI_Goal, Coordinate_Goal
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.universal_constants import EarthConstants
 from ADCS.helpers.math_helpers import rot_mat
+from ADCS.state import State
 
 def animate_orbit(
     time_hist: np.ndarray,
@@ -248,6 +249,9 @@ def animate_orbit(
 
     """
     time_hist = np.asarray(time_hist)
+    state_hist = State.stack(state_hist)
+    if est_state_hist is not None:
+        est_state_hist = State.stack(est_state_hist)
     N = len(time_hist)
 
     if len(os_hist) != N:

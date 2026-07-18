@@ -2,6 +2,8 @@ from __future__ import annotations
 __all__ = ["GG_Disturbance"]
 
 import numpy as np
+
+from ADCS.state import State
 from numba import njit
 from typing import TYPE_CHECKING
 from ADCS.satellite_hardware.disturbances.disturbance import Disturbance
@@ -97,7 +99,7 @@ class GG_Disturbance(Disturbance):
         """
         super().__init__()
 
-    def torque(self, sat: Satellite, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+    def torque(self, sat: Satellite, x: State, os: Orbital_State) -> np.ndarray:
         r"""
         Compute the **gravity-gradient torque** in the body frame.
 
@@ -149,7 +151,7 @@ class GG_Disturbance(Disturbance):
         vecs = os.get_state_vector(x=x)
         return _gg_torque_kernel(vecs["r"], sat.J_0, EarthConstants.mu_e)
     
-    def torque_qvac(self, sat: Satellite, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+    def torque_qvac(self, sat: Satellite, x: State, os: Orbital_State) -> np.ndarray:
         r"""
         Compute the **Jacobian of the gravity-gradient torque with respect to the
         attitude quaternion**.
@@ -247,7 +249,7 @@ class GG_Disturbance(Disturbance):
 
         return np.outer(dc__dq, vec_term) + const_term*dv__dq
 
-    def torque_qjac(self, sat: Satellite, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+    def torque_qjac(self, sat: Satellite, x: State, os: Orbital_State) -> np.ndarray:
         r"""
         Alias of :meth:`torque_qvac` so the gravity-gradient disturbance exposes
         the same ``torque_qjac`` quaternion-Jacobian entry point as every other
@@ -258,7 +260,7 @@ class GG_Disturbance(Disturbance):
         """
         return self.torque_qvac(sat=sat, x=x, os=os)
 
-    def torque__qqhess(self, sat: Satellite, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+    def torque__qqhess(self, sat: Satellite, x: State, os: Orbital_State) -> np.ndarray:
         r"""
         Compute the **Hessian of the gravity-gradient torque with respect to the
         attitude quaternion**.

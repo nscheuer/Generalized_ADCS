@@ -22,6 +22,7 @@ from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.satellite_hardware.actuators import MTQ, RW
 from ADCS.satellite_hardware.satellite import Satellite
 from ADCS.satellite_hardware.sensors import MTM
+from ADCS.state import State
 
 
 LAMBDA_S = np.diag([0.003, 0.003, 0.003])
@@ -181,18 +182,18 @@ def _build_scenario(name: str) -> tuple[np.ndarray, np.ndarray, np.ndarray, Goal
 def _expected_command(
     controller: MTQ_Wisniewski,
     satellite: Satellite,
-    x_hat: np.ndarray,
+    x_hat: State,
     sens: np.ndarray,
     os_hat: Orbital_State,
     goal: Goal | None,
 ) -> np.ndarray:
     active_goal = No_Goal() if goal is None else goal
-    w = x_hat[0:3]
-    q = x_hat[3:7]
+    w = x_hat.w
+    q = x_hat.q
 
     rw_actuators = [actuator for actuator in satellite.actuators if isinstance(actuator, RW)]
-    if len(x_hat) >= 7 + len(rw_actuators):
-        h_rw_states = x_hat[7 : 7 + len(rw_actuators)]
+    if x_hat.h.size >= len(rw_actuators):
+        h_rw_states = x_hat.h[: len(rw_actuators)]
     else:
         h_rw_states = np.array([actuator.h for actuator in rw_actuators], dtype=float)
 
@@ -252,11 +253,11 @@ def run_mtq_wisniewski_simulation(
     satellite = _make_satellite(include_rw=True, initial_rw_h=h0)
     controller = _make_controller(satellite)
     orbit = _make_real_orbit(horizon, dt)
-    x = np.concatenate([w0, q0, h0])
+    x = State(w=w0, q=q0, h=h0)
 
     steps = int(horizon / dt)
     time_hist = np.full(steps, np.nan)
-    state_hist = np.full((steps, len(x)), np.nan)
+    state_hist = np.full((steps, x.as_array().size), np.nan)
     sensor_hist = np.full((steps, len(satellite.sensors + satellite.rw_actuators)), np.nan)
     u_hist = np.full((steps, len(satellite.actuators)), np.nan)
     boresight_hist = np.full((steps, 4), np.nan)
@@ -271,7 +272,7 @@ def run_mtq_wisniewski_simulation(
         u = controller.find_u(x_hat=x, sens=sens, est_sat=satellite, os_hat=os_now, goal=goal)
 
         time_hist[index] = t
-        state_hist[index, :] = x
+        state_hist[index, :] = x.as_array()
         sensor_hist[index, :] = sens
         u_hist[index, :] = u
         boresight_hist[index, :] = goal.to_ref(os0=os_now)[0]
@@ -282,14 +283,13 @@ def run_mtq_wisniewski_simulation(
         out = solve_ivp(
             fun=satellite.dynamics_for_solver,
             t_span=(0.0, dt),
-            y0=x,
+            y0=x.as_array(),
             method="RK45",
             args=(u, os_now, os_next),
             rtol=1.0e-7,
             atol=1.0e-7,
         )
-        x = out.y[:, -1]
-        x[3:7] = normalize(x[3:7])
+        x = State.from_array(out.y[:, -1]).normalized()
         t = next_t
 
     return WisniewskiRun(
@@ -342,18 +342,18 @@ def base_orbital_state() -> Orbital_State:
 
 
 @pytest.fixture
-def no_rw_state() -> np.ndarray:
+def no_rw_state() -> State:
     q = normalize(np.array([0.9, 0.1, -0.2, 0.3]))
     w = np.array([0.03, -0.02, 0.01])
-    return np.concatenate([w, q])
+    return State(w=w, q=q)
 
 
 @pytest.fixture
-def rw_state() -> np.ndarray:
+def rw_state() -> State:
     q = normalize(np.array([0.8, -0.1, 0.2, 0.55]))
     w = np.array([0.025, -0.015, 0.02])
     h = np.array([0.006, -0.004, 0.003])
-    return np.concatenate([w, q, h])
+    return State(w=w, q=q, h=h)
 
 
 def test_mtq_wisniewski_none_goal_matches_no_goal(
@@ -501,7 +501,7 @@ def test_mtq_wisniewski_matches_eci_goal_alignment_law(
     base_orbital_state: Orbital_State,
 ) -> None:
     controller = _make_controller(wisniewski_satellite)
-    state = np.array([0.01, -0.015, 0.02, 1.0, 0.0, 0.0, 0.0])
+    state = State(w=[0.01, -0.015, 0.02], q=[1.0, 0.0, 0.0, 0.0])
     goal = ECI_Goal(np.array([1.0, 0.0, 0.0]))
     sens = wisniewski_satellite.sensor_readings(x=state, os=base_orbital_state)
 
@@ -530,7 +530,7 @@ def test_mtq_wisniewski_rotates_reference_rate_into_body_frame(
 ) -> None:
     controller = _make_controller(wisniewski_satellite)
     q = normalize(np.array([np.sqrt(0.5), 0.0, 0.0, np.sqrt(0.5)]))
-    state = np.concatenate([np.array([0.03, 0.02, -0.01]), q])
+    state = State(w=[0.03, 0.02, -0.01], q=q)
     goal = StaticGoal(q_err=np.zeros(3), w_ref_eci=np.array([0.04, 0.0, 0.0]))
     sens = wisniewski_satellite.sensor_readings(x=state, os=base_orbital_state)
 
@@ -579,7 +579,7 @@ def test_mtq_wisniewski_uses_rw_momentum_from_state_when_available(
     expected_from_actuators = _expected_command(
         controller,
         wisniewski_satellite_with_rw,
-        rw_state[:7],
+        State(w=rw_state.w, q=rw_state.q),
         sens,
         base_orbital_state,
         No_Goal(),
@@ -594,9 +594,9 @@ def test_mtq_wisniewski_falls_back_to_actuator_rw_momentum_without_rw_state(
     base_orbital_state: Orbital_State,
 ) -> None:
     controller = _make_controller(wisniewski_satellite_with_rw)
-    short_state = np.array([0.015, -0.01, 0.025, 1.0, 0.0, 0.0, 0.0])
+    short_state = State(w=[0.015, -0.01, 0.025], q=[1.0, 0.0, 0.0, 0.0])
     sens = wisniewski_satellite_with_rw.sensor_readings(
-        x=np.concatenate([short_state, np.zeros(3)]),
+        x=State(w=short_state.w, q=short_state.q, h=np.zeros(3)),
         os=base_orbital_state,
     )
 
@@ -624,7 +624,7 @@ def test_mtq_wisniewski_saturates_with_uniform_scaling(
 ) -> None:
     satellite = _make_satellite(include_rw=False, mtq_max_torque=0.01)
     controller = _make_controller(satellite)
-    state = np.array([4.0, -3.0, 2.0, 1.0, 0.0, 0.0, 0.0])
+    state = State(w=[4.0, -3.0, 2.0], q=[1.0, 0.0, 0.0, 0.0])
     goal = StaticGoal(q_err=np.array([0.8, -0.5, 0.75]), w_ref_eci=np.array([0.6, -0.1, 0.2]))
     sens = np.array([1.5e-5, -1.0e-5, 2.0e-5])
 

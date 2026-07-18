@@ -44,7 +44,7 @@ def test_sensor_family_builds_and_matches_covariance_dimensions(monkeypatch, fam
 
     assert sensors.size == expected_dim
     assert cov.shape == (expected_dim, expected_dim)
-    assert np.isfinite(ukf.x_hat.val).all()
+    assert np.isfinite(ukf.x_hat.as_estimator_array()).all()
 
 
 def test_rw_measurements_append_to_sensor_configuration_dimension():

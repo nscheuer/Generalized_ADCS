@@ -1,6 +1,7 @@
 import sys
 import os
 import numpy as np
+from ADCS.state import State
 from scipy.integrate import solve_ivp
 from typing import List, Union
 from tqdm import tqdm
@@ -40,7 +41,7 @@ def test_MTQ_w_RW_LP_align(verbose: bool = False, tf: float = 1000, dt: float = 
     w0 = np.array([-0.00874868,  0.00209214,  0.00593677])
     q0 = np.array([0.86698928, 0.29417644, 0.34385383, 0.20869681])
     h0 = np.array([rw_h0])
-    x = np.concatenate([w0, q0, h0])
+    x = State(w=w0, q=q0, h=h0)
 
     ephem = Ephemeris()
     start_time = 0.22 - 1*TimeConstants.sec2cent
@@ -88,7 +89,7 @@ def test_MTQ_w_RW_LP_align(verbose: bool = False, tf: float = 1000, dt: float = 
             print("u: ", u)
 
         time_hist[ind] = t
-        state_hist[ind,:] = x
+        state_hist[ind,:] = x.as_array()
         os_hist += [os]
         sensor_hist[ind,:] = sens
         u_hist[ind,:] = u
@@ -100,9 +101,8 @@ def test_MTQ_w_RW_LP_align(verbose: bool = False, tf: float = 1000, dt: float = 
         prev_os = os.copy()
         os = orb.get_os(0.22+(t-t0)*TimeConstants.sec2cent)
 
-        out = solve_ivp(fun=real_sat.dynamics_for_solver, t_span=(0, dt), y0=x, method="RK45", args=(u, prev_os, os), rtol=1e-7, atol=1e-7)
-        x = out.y[:, -1]
-        x[3:7] = normalize(x[3:7])
+        out = solve_ivp(fun=real_sat.dynamics_for_solver, t_span=(0, dt), y0=x.as_array(), method="RK45", args=(u, prev_os, os), rtol=1e-7, atol=1e-7)
+        x = State.from_array(out.y[:, -1]).normalized()
 
     return time_hist, state_hist, os_hist, sensor_hist, u_hist, boresight_hist
 

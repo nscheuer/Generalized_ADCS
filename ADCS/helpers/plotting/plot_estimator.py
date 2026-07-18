@@ -12,6 +12,7 @@ from matplotlib.widgets import Button, RadioButtons
 from numpy.linalg import norm
 from typing import Callable, Tuple, List, Optional
 from ADCS.helpers.math_helpers import quat_to_euler
+from ADCS.state import State
 
 
 def plot_state_comparison(
@@ -96,6 +97,9 @@ def plot_state_comparison(
         None
 
     """
+    state_hist = State.stack(state_hist)
+    if est_state_hist is not None:
+        est_state_hist = State.stack(est_state_hist)
     euler_real = np.array([quat_to_euler(q) for q in state_hist[:, 3:7]])
 
     if est_state_hist is not None:

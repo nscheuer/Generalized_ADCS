@@ -20,6 +20,7 @@ from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.satellite_hardware.satellite import Satellite, EstimatedSatellite
 from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.helpers.math_helpers import normalize
+from ADCS.state import EstimatedState, State
 
 from ADCS.helpers.simresults import SimulationResults, RunResults
 
@@ -31,7 +32,7 @@ def _supports_planning(controller: Controller) -> bool:
     )
 
 def simulate(
-    x: np.ndarray,
+    x: State,
     satellite: Satellite,
     est_satellite: Optional[EstimatedSatellite] = None,
     controller: Optional[Controller] = None,
@@ -57,11 +58,10 @@ def simulate(
     propagates the orbit using :class:`~ADCS.orbits.orbit.Orbit`.
 
     :param x:
-        Initial true satellite state vector. The length must match
-        ``satellite.state_len`` and is expected to follow the satellite state
-        convention (angular velocity, quaternion, reaction wheel states, etc.).
+        Initial true satellite state. Its ``h`` length must match the satellite's
+        reaction-wheel count.
     :type x:
-        numpy.ndarray
+        ADCS.state.State
 
     :param satellite:
         The true satellite model, including dynamics, sensors, and actuators.
@@ -124,9 +124,11 @@ def simulate(
         :class:`~ADCS.helpers.simresults.SimulationResults`
 
     """
-    if len(x) != satellite.state_len:
+    if not isinstance(x, State):
+        raise TypeError(f"x must be a State, got {type(x).__name__}")
+    if x.as_array().size != satellite.state_len:
         raise ValueError(
-            f"Initial state length {len(x)} does not match satellite state length "
+            f"Initial state length {x.as_array().size} does not match satellite state length "
             f"{satellite.state_len}. It must be 7 + N_rw."
         )
 
@@ -153,7 +155,7 @@ def simulate(
 
     x_hat = None
     if estimator is not None:
-        x_hat = np.empty(est_satellite.state_len)
+        x_hat = None
 
     os_hat = None
 
@@ -260,15 +262,14 @@ def simulate(
         out = solve_ivp(
             fun=satellite.dynamics_for_solver,
             t_span=(0, dt),
-            y0=x,
+            y0=x.as_array(),
             method="RK45",
             args=(u, os_k, os_kp1),
             rtol=1e-7,
             atol=1e-7,
         )
         dynamics_time_s = time.perf_counter() - dyn_t0
-        x = out.y[:, -1]
-        x[3:7] = normalize(x[3:7])
+        x = State.from_array(out.y[:, -1]).normalized()
 
         target, w_target = active_goal.to_ref(os_for_gnc) 
 
@@ -294,9 +295,9 @@ def simulate(
             sb0, sb1 = ab1, ab1 + int(n_sb)
 
             # Guard against unexpected shapes
-            if len(x_hat) >= sb1:
-                b_act_hat = np.asarray(x_hat[ab0:ab1], dtype=float).reshape(-1)
-                b_sens_hat = np.asarray(x_hat[sb0:sb1], dtype=float).reshape(-1)
+            if isinstance(x_hat, EstimatedState):
+                b_act_hat = x_hat.act_bias
+                b_sens_hat = x_hat.sens_bias
 
                 # Actuator biases: slice b_act_hat according to per-actuator bias dimension
                 act_parts = []

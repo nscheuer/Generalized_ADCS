@@ -12,7 +12,7 @@ est_gps = [ADCS.GPS(noise=gps_noise)]
 
 satellite = ADCS.Satellite(mass=28.9, J_0=np.diag([0.34, 0.27, 0.30]), sensors=gps)
 est_satellite = ADCS.EstimatedSatellite(mass=28.9, J_0=np.diag([0.34, 0.27, 0.30]), sensors=est_gps)
-x_0 = np.array([0.00023, 0.0, 0.000065, 1, 0, 0, 0])
+x_0 = ADCS.State.from_array(np.array([0.00023, 0.0, 0.000065, 1, 0, 0, 0]))
 
 os0 = ADCS.Orbital_State(ephem=ADCS.Ephemeris(),J2000=0.22, R=np.array([7000, 0, 0]), V=np.array([0, 7.5, 1]))
 est_os0 = ADCS.Orbital_State(ephem=ADCS.Ephemeris(),J2000=0.22, R=np.array([5000, 5, -5]), V=np.array([0.1, 4, 1.1]))

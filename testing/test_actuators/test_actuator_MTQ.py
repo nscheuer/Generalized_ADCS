@@ -12,6 +12,7 @@ from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.satellite_hardware.actuators import MTQ
 from ADCS.satellite_hardware.errors import Bias, Noise
 from ADCS.satellite_hardware.satellite import Satellite
+from ADCS.state import State
 
 
 @dataclass(frozen=True)
@@ -21,7 +22,7 @@ class MTQCase:
     u: float
     w: np.ndarray
     q: np.ndarray
-    x: np.ndarray
+    x: State
     b_eci: np.ndarray
     orbital_state: Orbital_State
 
@@ -51,7 +52,7 @@ def _make_case(seed: int = 0) -> MTQCase:
     axis_raw = 3.0 * _unit(rng.normal(size=3))
     q = _unit(rng.normal(size=4))
     w = 0.05 * _unit(rng.normal(size=3))
-    x = np.concatenate((w, q))
+    x = State(w=w, q=q)
     b_eci = 1e-5 * _unit(rng.normal(size=3))
     orbital_state = Orbital_State(
         ephem=Ephemeris(),
@@ -178,11 +179,11 @@ def _assert_zero_storage_api(mtq: MTQ, case: MTQCase, *, has_bias: bool) -> None
 def _projected_hessian_clean(mtq: MTQ, case: MTQCase, direction: np.ndarray) -> np.ndarray:
     def scalarized(values: np.ndarray) -> float:
         u = values[0]
-        x = np.asarray(values[1:])
+        x = State.from_array(values[1:])
         local = _make_mtq(case)
         return float(np.dot(local.torque(u=u, x=x, os=case.orbital_state), direction))
 
-    point = np.concatenate([[case.u], case.x])
+    point = np.concatenate([[case.u], case.x.as_array()])
     return np.array(nd.Hessian(scalarized)(point.tolist()))
 
 
@@ -190,11 +191,11 @@ def _projected_hessian_biased(mtq: MTQ, case: MTQCase, direction: np.ndarray, bi
     def scalarized(values: np.ndarray) -> float:
         u = values[0]
         b = values[1]
-        x = np.asarray(values[2:])
+        x = State.from_array(values[2:])
         local = _make_mtq(case, bias=Bias(bias=b, std_bias=0.0))
         return float(np.dot(local.torque(u=u, x=x, os=case.orbital_state), direction))
 
-    point = np.concatenate([[case.u], [bias_value], case.x])
+    point = np.concatenate([[case.u], [bias_value], case.x.as_array()])
     return np.array(nd.Hessian(scalarized)(point.tolist()))
 
 
@@ -267,7 +268,7 @@ def test_mtq_torque_axis_aligned_cases(axis: np.ndarray, expected: np.ndarray) -
         V=np.array([0.0, 8.0, 0.0]),
         B=1e-5 * np.array([1.0, 0.0, 0.0]),
     )
-    x = np.array([0.01, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0])
+    x = State(w=[0.01, 0.0, 0.0], q=[1.0, 0.0, 0.0, 0.0])
 
     np.testing.assert_allclose(mtq.torque(u=0.0, x=x, os=orbital_state), np.zeros(3))
     np.testing.assert_allclose(mtq.torque(u=1.0, x=x, os=orbital_state), expected)
@@ -324,7 +325,7 @@ def test_mtq_clean_jacobians_match_closed_form_and_finite_difference() -> None:
 
     numeric_du = np.array(nd.Jacobian(lambda value: mtq.torque(u=value, x=case.x, os=case.orbital_state))(case.u)).T
     numeric_dx = np.array(
-        nd.Jacobian(lambda value: mtq.torque(u=case.u, x=np.asarray(value), os=case.orbital_state))(case.x.tolist())
+        nd.Jacobian(lambda value: mtq.torque(u=case.u, x=State.from_array(value), os=case.orbital_state))(case.x.as_array().tolist())
     ).T
 
     np.testing.assert_allclose(mtq.dtorq__du(u=case.u, x=case.x, os=case.orbital_state), _torque_scale(case).reshape(1, 3))
@@ -358,7 +359,7 @@ def test_mtq_biased_jacobians_match_closed_form_and_finite_difference() -> None:
         )(bias_value)
     ).T
     numeric_dx = np.array(
-        nd.Jacobian(lambda value: mtq.torque(u=case.u, x=np.asarray(value), os=case.orbital_state))(case.x.tolist())
+        nd.Jacobian(lambda value: mtq.torque(u=case.u, x=State.from_array(value), os=case.orbital_state))(case.x.as_array().tolist())
     ).T
 
     expected_scale = _torque_scale(case).reshape(1, 3)

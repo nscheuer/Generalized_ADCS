@@ -44,7 +44,7 @@ def test_startracker_visible_measurement_update_runs(monkeypatch):
     monkeypatch.setattr(est_sat.attitude_sensors[-1], "reading", lambda x, os, dmode=None: np.array([0.0, 0.0, 1.0]))
     sensors = real_sat.noiseless_sensor_readings(make_state(), make_orbital_state())
     srukf.update(u=np.zeros(len(real_sat.actuators)), sensors=sensors, os=make_orbital_state())
-    assert np.isfinite(srukf.x_hat.val).all()
+    assert np.isfinite(srukf.x_hat.as_estimator_array()).all()
 
 
 def test_startracker_hidden_measurement_update_masks_dropouts(monkeypatch):
@@ -54,7 +54,7 @@ def test_startracker_hidden_measurement_update_masks_dropouts(monkeypatch):
     monkeypatch.setattr(est_sat.attitude_sensors[-1], "reading", lambda x, os, dmode=None: np.array([0.0, 0.0, 1.0]))
     sensors = real_sat.sensor_readings(make_state(), make_orbital_state())
     srukf.update(u=np.zeros(len(real_sat.actuators)), sensors=sensors, os=make_orbital_state())
-    assert np.isfinite(srukf.x_hat.val).all()
+    assert np.isfinite(srukf.x_hat.as_estimator_array()).all()
 
 
 
