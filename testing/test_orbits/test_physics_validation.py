@@ -49,7 +49,7 @@ def orbital_elements(R, V):
 def propagate(state, dt: float, steps: int, *, j2: bool = False):
     current = state
     for _ in range(steps):
-        current = state.__class__.propagate_orbit_rk4(current, dt, J2_perturbation_on=j2)
+        current = state.__class__.propagate_orbit_rk4(current, dt, zonal_J=2 if j2 else 0)
     return current
 
 
@@ -68,7 +68,7 @@ def test_two_body_specific_energy_is_conserved(R, V, name):
     current = state0
     max_drift = 0.0
     for _ in range(3 * 500):
-        current = state0.__class__.propagate_orbit_rk4(current, dt, J2_perturbation_on=False)
+        current = state0.__class__.propagate_orbit_rk4(current, dt, zonal_J=0)
         elements = orbital_elements(current.R, current.V)
         max_drift = max(max_drift, abs(elements["energy"] - elements0["energy"]) / abs(elements0["energy"]))
     assert max_drift < 1e-6, f"{name}: specific-energy drift {max_drift:.2e}"
@@ -89,7 +89,7 @@ def test_two_body_angular_momentum_is_conserved(R, V, name):
     current = state0
     max_drift = 0.0
     for _ in range(3 * 500):
-        current = state0.__class__.propagate_orbit_rk4(current, dt, J2_perturbation_on=False)
+        current = state0.__class__.propagate_orbit_rk4(current, dt, zonal_J=0)
         elements = orbital_elements(current.R, current.V)
         max_drift = max(max_drift, np.linalg.norm(elements["h"] - elements0["h"]) / np.linalg.norm(elements0["h"]))
     assert max_drift < 1e-7, f"{name}: |h| drift {max_drift:.2e}"
@@ -110,7 +110,7 @@ def test_two_body_eccentricity_vector_is_conserved(R, V, name):
     current = state0
     max_drift = 0.0
     for _ in range(3 * 500):
-        current = state0.__class__.propagate_orbit_rk4(current, dt, J2_perturbation_on=False)
+        current = state0.__class__.propagate_orbit_rk4(current, dt, zonal_J=0)
         elements = orbital_elements(current.R, current.V)
         max_drift = max(max_drift, np.linalg.norm(elements["e_vec"] - elements0["e_vec"]))
     assert max_drift < 1e-4, f"{name}: eccentricity-vector drift {max_drift:.2e}"

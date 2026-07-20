@@ -82,7 +82,7 @@ def _make_real_orbit(tf: float, dt: float) -> Orbit:
         R=7000.0 * np.array([0.0, np.sqrt(2) / 2, np.sqrt(2) / 2]),
         V=np.array([8.0, 0.0, 0.0]),
     )
-    return Orbit(os0=os0, end_time=end_date, dt=dt, use_J2=True, fast=False)
+    return Orbit(os0=os0, end_time=end_date, dt=dt, zonal_J=2, fast=False)
 
 
 def run_bdot_simulation(
@@ -328,7 +328,7 @@ def test_bdot_full_convergence_loop() -> None:
 
 
 def debug_plots(results: BDotRun) -> None:
-    from ADCS.helpers.plotting.animate_attitude import animate_attitude
+    from ADCS.helpers.plotting.animate_estimator import animate_attitude
     from ADCS.helpers.plotting.close_all_plots import create_close_all_button_window
     from ADCS.helpers.plotting.plot_controller import plot_control
     from ADCS.helpers.plotting.plot_estimator import plot_state_comparison

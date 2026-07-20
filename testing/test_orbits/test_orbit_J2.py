@@ -28,9 +28,9 @@ def run_orbit(method="rk4", use_j2=True, dt=60.0):
 
     for i in range(steps):
         if method == "rk4":
-            orbit = orbit.propagate_orbit_rk4(dt, J2_perturbation_on=use_j2, fast=True)
+            orbit = orbit.propagate_orbit_rk4(dt, zonal_J=2 if use_j2 else 0, fast=True)
         elif method == "euler":
-            orbit = orbit.propagate_orbit(dt, J2_perturbation_on=use_j2, fast=True)
+            orbit = orbit.propagate_orbit(dt, zonal_J=2 if use_j2 else 0, fast=True)
         else:
             raise ValueError(f"Unknown method: {method}")
         positions[i + 1] = orbit.R

@@ -144,7 +144,7 @@ def _make_real_orbit(tf: float, dt: float) -> Orbit:
         R=7000.0 * np.array([0.0, -np.sqrt(2.0) / 2.0, np.sqrt(2.0) / 2.0]),
         V=np.array([8.0, 0.0, 0.0]),
     )
-    return Orbit(os0=os0, end_time=end_time, dt=dt, use_J2=True, fast=False)
+    return Orbit(os0=os0, end_time=end_time, dt=dt, zonal_J=2, fast=False)
 
 
 def _build_scenario(name: str) -> tuple[np.ndarray, np.ndarray, np.ndarray, Goal, float]:

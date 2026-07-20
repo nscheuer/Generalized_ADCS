@@ -42,7 +42,7 @@ def make_truth_orbit(tf=200.0, dt=10.0):
         fast=True,
     )
     end_time = 0.22 + tf * TimeConstants.sec2cent
-    return Orbit(os0=os0, end_time=end_time, dt=dt, use_J2=True, fast=False, verbose=False)
+    return Orbit(os0=os0, end_time=end_time, dt=dt, zonal_J=2, fast=False, verbose=False)
 
 
 def run_orbit_ekf(tf=200.0, dt=10.0, noisy=True):
@@ -101,7 +101,7 @@ def test_orbit_ekf_without_measurements_returns_prediction():
 
     updated = ekf.update([], J2000=prev.os.J2000 + 10.0 * TimeConstants.sec2cent)
 
-    expected = prev.os.propagate_orbit_rk4(dt=10.0, J2_perturbation_on=True, fast=True)
+    expected = prev.os.propagate_orbit_rk4(dt=10.0, zonal_J=2, fast=True)
     assert np.allclose(updated.os.R, expected.R)
     assert np.allclose(updated.os.V, expected.V)
     assert updated.P.shape == (6, 6)
@@ -132,7 +132,7 @@ def test_orbit_ekf_update_reduces_measurement_error_for_clean_gps():
     truth = make_reference_orbital_state()
     ekf = make_estimator(dt=10.0)
 
-    pred = ekf.os_hat.os.propagate_orbit_rk4(dt=10.0, J2_perturbation_on=True, fast=True)
+    pred = ekf.os_hat.os.propagate_orbit_rk4(dt=10.0, zonal_J=2, fast=True)
     gps_meas = truth.clean_reading(None, truth) if hasattr(truth, "clean_reading") else None
     gps_sensor = GPS(noise=Noise(noise=np.zeros(6), std_noise=np.ones(6) * 0.01))
     gps_meas = gps_sensor.clean_reading(None, truth)

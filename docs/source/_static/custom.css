@@ -1,5 +1,68 @@
 /* Featured release box styling - Light mode */
 @media (prefers-color-scheme: light) {
+    .release-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 20px;
+        margin: 24px 0 32px;
+    }
+
+    .release-card {
+        display: flex;
+        flex-direction: column;
+        border: 2px solid #0066cc;
+        border-radius: 12px;
+        overflow: hidden;
+        text-decoration: none;
+        color: inherit;
+        background: linear-gradient(180deg, rgba(0, 102, 204, 0.08), rgba(0, 102, 204, 0.02));
+        box-shadow: 0 2px 8px rgba(0, 102, 204, 0.15);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .release-card-featured {
+        grid-column: 1 / -1;
+    }
+
+    .release-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 18px rgba(0, 102, 204, 0.2);
+    }
+
+    .release-card img {
+        width: 100%;
+        max-height: 280px;
+        object-fit: cover;
+        border-bottom: 1px solid rgba(0, 102, 204, 0.15);
+    }
+
+    .release-card-copy {
+        padding: 18px 20px 20px;
+    }
+
+    .release-card-kicker {
+        color: #0066cc;
+        font-size: 0.85rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 8px;
+    }
+
+    .release-card h3 {
+        margin: 0 0 10px;
+        color: #003d99;
+    }
+
+    .release-card p {
+        margin: 0 0 14px;
+    }
+
+    .release-card span {
+        font-weight: 600;
+        color: #0052a3;
+    }
+
     .featured-release-box {
         border: 2px solid #0066cc;
         border-radius: 8px;
@@ -37,6 +100,69 @@
 
 /* Featured release box styling - Dark mode */
 @media (prefers-color-scheme: dark) {
+    .release-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 20px;
+        margin: 24px 0 32px;
+    }
+
+    .release-card {
+        display: flex;
+        flex-direction: column;
+        border: 2px solid #4d9eff;
+        border-radius: 12px;
+        overflow: hidden;
+        text-decoration: none;
+        color: inherit;
+        background: linear-gradient(180deg, rgba(77, 158, 255, 0.16), rgba(77, 158, 255, 0.05));
+        box-shadow: 0 2px 8px rgba(77, 158, 255, 0.2);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .release-card-featured {
+        grid-column: 1 / -1;
+    }
+
+    .release-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 18px rgba(77, 158, 255, 0.32);
+    }
+
+    .release-card img {
+        width: 100%;
+        max-height: 280px;
+        object-fit: cover;
+        border-bottom: 1px solid rgba(77, 158, 255, 0.2);
+    }
+
+    .release-card-copy {
+        padding: 18px 20px 20px;
+    }
+
+    .release-card-kicker {
+        color: #80c0ff;
+        font-size: 0.85rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 8px;
+    }
+
+    .release-card h3 {
+        margin: 0 0 10px;
+        color: #c6e2ff;
+    }
+
+    .release-card p {
+        margin: 0 0 14px;
+    }
+
+    .release-card span {
+        font-weight: 600;
+        color: #80c0ff;
+    }
+
     .featured-release-box {
         border: 2px solid #4d9eff;
         border-radius: 8px;
@@ -69,5 +195,15 @@
     .featured-release-box a:hover {
         color: #80c0ff;
         text-decoration: underline;
+    }
+}
+
+@media (max-width: 800px) {
+    .release-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .release-card-featured {
+        grid-column: auto;
     }
 }
