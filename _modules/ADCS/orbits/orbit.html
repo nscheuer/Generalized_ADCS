@@ -11,7 +11,7 @@
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo-extensions.css?v=8dab3a3b" />
-    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=522cca6d" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=f2c5952d" />
     
     
 
@@ -228,6 +228,8 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_4_numba_optimizations_2.html">0.1.4 More Numba optimizations and 4x simulation speedup (2026-04-21)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_3_hardware_in_the_loop.html">0.1.3 Hardware-in-the-loop Remote Execution (2026-04-18)</a></li>
@@ -546,7 +548,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">skyfield</span><span class="w"> </span><span class="kn">import</span> <span class="n">api</span><span class="p">,</span> <span class="n">units</span><span class="p">,</span> <span class="n">positionlib</span><span class="p">,</span> <span class="n">framelib</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">timezone</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.orbits.orbital_state</span><span class="w"> </span><span class="kn">import</span> <span class="n">Orbital_State</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.orbits.orbital_state</span><span class="w"> </span><span class="kn">import</span> <span class="n">Orbital_State</span><span class="p">,</span> <span class="n">_normalize_zonal_J</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.orbits.universal_constants</span><span class="w"> </span><span class="kn">import</span> <span class="n">TimeConstants</span><span class="p">,</span> <span class="n">EarthConstants</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.helpers.math_constants</span><span class="w"> </span><span class="kn">import</span> <span class="n">MathConstants</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.helpers.math_helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">matrix_row_normalize</span>
@@ -586,10 +588,6 @@
 <span class="sd">        Propagation time step in seconds.</span>
 <span class="sd">    :type dt: float or None</span>
 
-<span class="sd">    :param use_J2:</span>
-<span class="sd">        Enable or disable the J2 gravitational perturbation.</span>
-<span class="sd">    :type use_J2: bool</span>
-
 <span class="sd">    :param fast:</span>
 <span class="sd">        Backward-compatible parameter (ignored).</span>
 <span class="sd">    :type fast: bool</span>
@@ -597,6 +595,12 @@
 <span class="sd">    :param verbose:</span>
 <span class="sd">        Enable progress bar output during propagation.</span>
 <span class="sd">    :type verbose: bool</span>
+
+<span class="sd">    :param zonal_J:</span>
+<span class="sd">        Highest zonal harmonic degree to include in the propagated dynamics.</span>
+<span class="sd">        ``0`` disables zonals, ``2`` includes only J2, and larger values</span>
+<span class="sd">        include every zonal term up to that degree.</span>
+<span class="sd">    :type zonal_J: int</span>
 
 <span class="sd">    :raises ValueError:</span>
 <span class="sd">        If input arguments are inconsistent or unsupported.</span>
@@ -608,9 +612,9 @@
         <span class="n">os0</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Orbital_State</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Orbital_State</span><span class="p">]],</span>
         <span class="n">end_time</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">use_J2</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">fast</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">zonal_J</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Initialize an orbit from an initial condition or a list of states.</span>
@@ -627,10 +631,6 @@
 <span class="sd">            Propagation time step in seconds.</span>
 <span class="sd">        :type dt: float or None</span>
 
-<span class="sd">        :param use_J2:</span>
-<span class="sd">            Enable J2 perturbation during propagation.</span>
-<span class="sd">        :type use_J2: bool</span>
-
 <span class="sd">        :param fast:</span>
 <span class="sd">            Backward-compatible parameter (ignored).</span>
 <span class="sd">        :type fast: bool</span>
@@ -645,7 +645,9 @@
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">_</span> <span class="o">=</span> <span class="n">fast</span>  <span class="c1"># ignored</span>
-        <span class="n">use_J2</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">use_J2</span><span class="p">)</span>
+        <span class="c1"># Remember the zonal setting so node-to-node interpolation in get_os()</span>
+        <span class="c1"># reuses the same gravity model the orbit was propagated with.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_zonal_J</span> <span class="o">=</span> <span class="n">_normalize_zonal_J</span><span class="p">(</span><span class="n">zonal_J</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">os0</span><span class="p">,</span> <span class="n">Orbital_State</span><span class="p">):</span>
             <span class="n">start_time</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">os0</span><span class="o">.</span><span class="n">J2000</span><span class="p">)</span>
@@ -684,6 +686,7 @@
             <span class="n">mu_e</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">os0</span><span class="p">,</span> <span class="s2">&quot;mu_e&quot;</span><span class="p">,</span> <span class="n">EarthConstants</span><span class="o">.</span><span class="n">mu_e</span><span class="p">))</span>
             <span class="n">R_e</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">os0</span><span class="p">,</span> <span class="s2">&quot;R_e&quot;</span><span class="p">,</span> <span class="n">EarthConstants</span><span class="o">.</span><span class="n">R_e</span><span class="p">))</span>
             <span class="n">J2coeff</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">os0</span><span class="p">,</span> <span class="s2">&quot;J2coeff&quot;</span><span class="p">,</span> <span class="n">EarthConstants</span><span class="o">.</span><span class="n">J2coeff</span><span class="p">))</span>
+            <span class="n">Jcoeffs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">os0</span><span class="p">,</span> <span class="s2">&quot;Jcoeffs&quot;</span><span class="p">,</span> <span class="n">EarthConstants</span><span class="o">.</span><span class="n">Jcoeffs</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
 
             <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">N</span><span class="p">),</span> <span class="n">desc</span><span class="o">=</span><span class="s2">&quot;Propagating Orbit&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s2">&quot;step&quot;</span><span class="p">,</span> <span class="n">disable</span><span class="o">=</span><span class="ow">not</span> <span class="n">verbose</span><span class="p">):</span>
                 <span class="n">dt_step</span> <span class="o">=</span> <span class="p">(</span><span class="n">times_arr</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">-</span> <span class="n">times_arr</span><span class="p">[</span><span class="n">j</span> <span class="o">-</span> <span class="mi">1</span><span class="p">])</span> <span class="o">*</span> <span class="n">TimeConstants</span><span class="o">.</span><span class="n">cent2sec</span>
@@ -691,10 +694,10 @@
                 <span class="n">r0</span> <span class="o">=</span> <span class="n">R_hist</span><span class="p">[</span><span class="n">j</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:]</span>
                 <span class="n">v0</span> <span class="o">=</span> <span class="n">V_hist</span><span class="p">[</span><span class="n">j</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:]</span>
 
-                <span class="n">k1r</span><span class="p">,</span> <span class="n">k1v</span> <span class="o">=</span> <span class="n">Orbital_State</span><span class="o">.</span><span class="n">_orbit_dynamics_raw</span><span class="p">(</span><span class="n">r0</span><span class="p">,</span> <span class="n">v0</span><span class="p">,</span> <span class="n">mu_e</span><span class="p">,</span> <span class="n">R_e</span><span class="p">,</span> <span class="n">J2coeff</span><span class="p">,</span> <span class="n">use_J2</span><span class="p">)</span>
-                <span class="n">k2r</span><span class="p">,</span> <span class="n">k2v</span> <span class="o">=</span> <span class="n">Orbital_State</span><span class="o">.</span><span class="n">_orbit_dynamics_raw</span><span class="p">(</span><span class="n">r0</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">dt_step</span> <span class="o">*</span> <span class="n">k1r</span><span class="p">,</span> <span class="n">v0</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">dt_step</span> <span class="o">*</span> <span class="n">k1v</span><span class="p">,</span> <span class="n">mu_e</span><span class="p">,</span> <span class="n">R_e</span><span class="p">,</span> <span class="n">J2coeff</span><span class="p">,</span> <span class="n">use_J2</span><span class="p">)</span>
-                <span class="n">k3r</span><span class="p">,</span> <span class="n">k3v</span> <span class="o">=</span> <span class="n">Orbital_State</span><span class="o">.</span><span class="n">_orbit_dynamics_raw</span><span class="p">(</span><span class="n">r0</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">dt_step</span> <span class="o">*</span> <span class="n">k2r</span><span class="p">,</span> <span class="n">v0</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">dt_step</span> <span class="o">*</span> <span class="n">k2v</span><span class="p">,</span> <span class="n">mu_e</span><span class="p">,</span> <span class="n">R_e</span><span class="p">,</span> <span class="n">J2coeff</span><span class="p">,</span> <span class="n">use_J2</span><span class="p">)</span>
-                <span class="n">k4r</span><span class="p">,</span> <span class="n">k4v</span> <span class="o">=</span> <span class="n">Orbital_State</span><span class="o">.</span><span class="n">_orbit_dynamics_raw</span><span class="p">(</span><span class="n">r0</span> <span class="o">+</span> <span class="n">dt_step</span> <span class="o">*</span> <span class="n">k3r</span><span class="p">,</span> <span class="n">v0</span> <span class="o">+</span> <span class="n">dt_step</span> <span class="o">*</span> <span class="n">k3v</span><span class="p">,</span> <span class="n">mu_e</span><span class="p">,</span> <span class="n">R_e</span><span class="p">,</span> <span class="n">J2coeff</span><span class="p">,</span> <span class="n">use_J2</span><span class="p">)</span>
+                <span class="n">k1r</span><span class="p">,</span> <span class="n">k1v</span> <span class="o">=</span> <span class="n">Orbital_State</span><span class="o">.</span><span class="n">_orbit_dynamics_raw</span><span class="p">(</span><span class="n">r0</span><span class="p">,</span> <span class="n">v0</span><span class="p">,</span> <span class="n">mu_e</span><span class="p">,</span> <span class="n">R_e</span><span class="p">,</span> <span class="n">J2coeff</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_zonal_J</span><span class="p">,</span> <span class="n">Jcoeffs</span><span class="o">=</span><span class="n">Jcoeffs</span><span class="p">)</span>
+                <span class="n">k2r</span><span class="p">,</span> <span class="n">k2v</span> <span class="o">=</span> <span class="n">Orbital_State</span><span class="o">.</span><span class="n">_orbit_dynamics_raw</span><span class="p">(</span><span class="n">r0</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">dt_step</span> <span class="o">*</span> <span class="n">k1r</span><span class="p">,</span> <span class="n">v0</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">dt_step</span> <span class="o">*</span> <span class="n">k1v</span><span class="p">,</span> <span class="n">mu_e</span><span class="p">,</span> <span class="n">R_e</span><span class="p">,</span> <span class="n">J2coeff</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_zonal_J</span><span class="p">,</span> <span class="n">Jcoeffs</span><span class="o">=</span><span class="n">Jcoeffs</span><span class="p">)</span>
+                <span class="n">k3r</span><span class="p">,</span> <span class="n">k3v</span> <span class="o">=</span> <span class="n">Orbital_State</span><span class="o">.</span><span class="n">_orbit_dynamics_raw</span><span class="p">(</span><span class="n">r0</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">dt_step</span> <span class="o">*</span> <span class="n">k2r</span><span class="p">,</span> <span class="n">v0</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">dt_step</span> <span class="o">*</span> <span class="n">k2v</span><span class="p">,</span> <span class="n">mu_e</span><span class="p">,</span> <span class="n">R_e</span><span class="p">,</span> <span class="n">J2coeff</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_zonal_J</span><span class="p">,</span> <span class="n">Jcoeffs</span><span class="o">=</span><span class="n">Jcoeffs</span><span class="p">)</span>
+                <span class="n">k4r</span><span class="p">,</span> <span class="n">k4v</span> <span class="o">=</span> <span class="n">Orbital_State</span><span class="o">.</span><span class="n">_orbit_dynamics_raw</span><span class="p">(</span><span class="n">r0</span> <span class="o">+</span> <span class="n">dt_step</span> <span class="o">*</span> <span class="n">k3r</span><span class="p">,</span> <span class="n">v0</span> <span class="o">+</span> <span class="n">dt_step</span> <span class="o">*</span> <span class="n">k3v</span><span class="p">,</span> <span class="n">mu_e</span><span class="p">,</span> <span class="n">R_e</span><span class="p">,</span> <span class="n">J2coeff</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_zonal_J</span><span class="p">,</span> <span class="n">Jcoeffs</span><span class="o">=</span><span class="n">Jcoeffs</span><span class="p">)</span>
 
                 <span class="n">R_hist</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">r0</span> <span class="o">+</span> <span class="p">(</span><span class="n">dt_step</span> <span class="o">/</span> <span class="mf">6.0</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">k1r</span> <span class="o">+</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">k2r</span> <span class="o">+</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">k3r</span> <span class="o">+</span> <span class="n">k4r</span><span class="p">)</span>
                 <span class="n">V_hist</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">v0</span> <span class="o">+</span> <span class="p">(</span><span class="n">dt_step</span> <span class="o">/</span> <span class="mf">6.0</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">k1v</span> <span class="o">+</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">k2v</span> <span class="o">+</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">k3v</span> <span class="o">+</span> <span class="n">k4v</span><span class="p">)</span>
@@ -840,6 +843,7 @@
                 <span class="n">st</span><span class="o">.</span><span class="n">mu_e</span> <span class="o">=</span> <span class="n">mu_e</span>
                 <span class="n">st</span><span class="o">.</span><span class="n">R_e</span> <span class="o">=</span> <span class="n">R_e</span>
                 <span class="n">st</span><span class="o">.</span><span class="n">J2coeff</span> <span class="o">=</span> <span class="n">J2coeff</span>
+                <span class="n">st</span><span class="o">.</span><span class="n">Jcoeffs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">Jcoeffs</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
                 <span class="n">st</span><span class="o">.</span><span class="n">TAI</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">TAI</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
                 <span class="n">st</span><span class="o">.</span><span class="n">datetime</span> <span class="o">=</span> <span class="n">dts</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
@@ -938,7 +942,7 @@
         <span class="c1"># propagation recomputes R, V and rebuilds every frame transform</span>
         <span class="c1"># consistently at exactly the requested epoch (RK4-truncation accuracy).</span>
         <span class="n">dt_sec</span> <span class="o">=</span> <span class="p">(</span><span class="n">t</span> <span class="o">-</span> <span class="n">t0</span><span class="p">)</span> <span class="o">*</span> <span class="n">TimeConstants</span><span class="o">.</span><span class="n">cent2sec</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="p">[</span><span class="n">t0</span><span class="p">]</span><span class="o">.</span><span class="n">propagate_orbit_rk4</span><span class="p">(</span><span class="n">dt_sec</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="p">[</span><span class="n">t0</span><span class="p">]</span><span class="o">.</span><span class="n">propagate_orbit_rk4</span><span class="p">(</span><span class="n">dt_sec</span><span class="p">,</span> <span class="n">zonal_J</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_zonal_J&quot;</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span></div>
 
 
 <div class="viewcode-block" id="Orbit.get_range">
@@ -996,7 +1000,7 @@
             <span class="n">newstates</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">times</span> <span class="k">if</span> <span class="p">(</span><span class="n">j</span> <span class="o">&lt;=</span> <span class="n">t_1</span> <span class="ow">and</span> <span class="n">j</span> <span class="o">&gt;=</span> <span class="n">t_0</span><span class="p">)]</span>
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">newstates</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;there are no pre-created states in this time span&quot;</span><span class="p">)</span>
-            <span class="k">return</span> <span class="n">Orbit</span><span class="p">(</span><span class="n">newstates</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">Orbit</span><span class="p">(</span><span class="n">newstates</span><span class="p">,</span> <span class="n">zonal_J</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_zonal_J&quot;</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
         <span class="n">ts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">t_0</span><span class="p">,</span> <span class="n">t_1</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span> <span class="o">/</span> <span class="n">TimeConstants</span><span class="o">.</span><span class="n">cent2sec</span><span class="p">),</span> <span class="p">[</span><span class="n">t_1</span><span class="p">]])</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">new_orbit_from_times</span><span class="p">(</span><span class="n">ts</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span></div>
 
@@ -1022,7 +1026,7 @@
         <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">time_in_span</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">j</span><span class="p">))</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">time_list</span><span class="p">]):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;at least one time is not within this orbit span&quot;</span><span class="p">)</span>
         <span class="n">newstates</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">get_os</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">j</span><span class="p">))</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">time_list</span><span class="p">]</span>
-        <span class="k">return</span> <span class="n">Orbit</span><span class="p">(</span><span class="n">newstates</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">Orbit</span><span class="p">(</span><span class="n">newstates</span><span class="p">,</span> <span class="n">zonal_J</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_zonal_J&quot;</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span></div>
 
 
 <div class="viewcode-block" id="Orbit.next_state">

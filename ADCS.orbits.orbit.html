@@ -12,7 +12,7 @@
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
-    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=522cca6d" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=f2c5952d" />
     
     
 
@@ -229,6 +229,8 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="release_notes/0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="release_notes/0_1_4_numba_optimizations_2.html">0.1.4 More Numba optimizations and 4x simulation speedup (2026-04-21)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="release_notes/0_1_3_hardware_in_the_loop.html">0.1.3 Hardware-in-the-loop Remote Execution (2026-04-18)</a></li>
@@ -545,7 +547,7 @@
 <span id="adcs-orbits-orbit-module"></span><h1>ADCS.orbits.orbit module<a class="headerlink" href="#module-ADCS.orbits.orbit" title="Link to this heading">¶</a></h1>
 <dl class="py class">
 <dt class="sig sig-object py" id="ADCS.orbits.orbit.Orbit">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">ADCS.orbits.orbit.</span></span><span class="sig-name descname"><span class="pre">Orbit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">os0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end_time</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_J2</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fast</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/orbits/orbit.html#Orbit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.orbits.orbit.Orbit" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">ADCS.orbits.orbit.</span></span><span class="sig-name descname"><span class="pre">Orbit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">os0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end_time</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fast</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">zonal_J</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ADCS/orbits/orbit.html#Orbit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ADCS.orbits.orbit.Orbit" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Time-ordered container and propagator for orbital states.</p>
 <p class="rubric">Notes</p>
@@ -579,12 +581,6 @@ objects.</p>
 <dt class="field-even">type dt<span class="colon">:</span></dt>
 <dd class="field-even"><p>float or None</p>
 </dd>
-<dt class="field-odd">param use_J2<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Enable or disable the J2 gravitational perturbation.</p>
-</dd>
-<dt class="field-even">type use_J2<span class="colon">:</span></dt>
-<dd class="field-even"><p>bool</p>
-</dd>
 <dt class="field-odd">param fast<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Backward-compatible parameter (ignored).</p>
 </dd>
@@ -596,6 +592,14 @@ objects.</p>
 </dd>
 <dt class="field-even">type verbose<span class="colon">:</span></dt>
 <dd class="field-even"><p>bool</p>
+</dd>
+<dt class="field-odd">param zonal_J<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Highest zonal harmonic degree to include in the propagated dynamics.
+<code class="docutils literal notranslate"><span class="pre">0</span></code> disables zonals, <code class="docutils literal notranslate"><span class="pre">2</span></code> includes only J2, and larger values
+include every zonal term up to that degree.</p>
+</dd>
+<dt class="field-even">type zonal_J<span class="colon">:</span></dt>
+<dd class="field-even"><p>int</p>
 </dd>
 <dt class="field-odd">raises ValueError<span class="colon">:</span></dt>
 <dd class="field-odd"><p>If input arguments are inconsistent or unsupported.</p>
@@ -801,9 +805,9 @@ directly.</p>
 <li><p><strong>os0</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a><em> | </em><em>List</em><em>[</em><a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a><em>]</em>)</p></li>
 <li><p><strong>end_time</strong> (<em>float</em>)</p></li>
 <li><p><strong>dt</strong> (<em>float</em>)</p></li>
-<li><p><strong>use_J2</strong> (<em>bool</em>)</p></li>
 <li><p><strong>fast</strong> (<em>bool</em>)</p></li>
 <li><p><strong>verbose</strong> (<em>bool</em>)</p></li>
+<li><p><strong>zonal_J</strong> (<em>int</em>)</p></li>
 </ul>
 </dd>
 </dl>

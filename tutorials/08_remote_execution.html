@@ -12,7 +12,7 @@
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=8dab3a3b" />
-    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=522cca6d" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=f2c5952d" />
     
     
 
@@ -229,6 +229,8 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../release_notes/0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../release_notes/0_1_4_numba_optimizations_2.html">0.1.4 More Numba optimizations and 4x simulation speedup (2026-04-21)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../release_notes/0_1_3_hardware_in_the_loop.html">0.1.3 Hardware-in-the-loop Remote Execution (2026-04-18)</a></li>
@@ -548,7 +550,7 @@
 <p>Remote execution is useful when you want to emulate hardware-in-the-loop style
 architectures, separate heavy compute from visualization workflows, or prototype
 distributed ADCS pipelines before deployment.</p>
-<a class="reference internal image-reference" href="../_images/tutorial_08_raspberry_pi_placeholder.jpeg"><img alt="Placeholder image of a Raspberry Pi remote execution setup." class="align-center" src="../_images/tutorial_08_raspberry_pi_placeholder.jpeg" style="width: 400px;" />
+<a class="reference internal image-reference" href="../_images/tutorial_08_raspberry_pi.jpeg"><img alt="Placeholder image of a Raspberry Pi remote execution setup." class="align-center" src="../_images/tutorial_08_raspberry_pi.jpeg" style="width: 400px;" />
 </a>
 <section id="remote-local-architecture">
 <h2>Remote/Local Architecture<a class="headerlink" href="#remote-local-architecture" title="Link to this heading">¶</a></h2>
@@ -634,7 +636,7 @@ python<span class="w"> </span>debug/debug_remote/run_remote_universal.py<span cl
 </div>
 <p>Expected startup output should include the bind host/port and the values to export
 on the main PC (for example, <code class="docutils literal notranslate"><span class="pre">ADCS_REMOTE_HOST=&lt;raspberry-pi-ip&gt;</span></code>).</p>
-<a class="reference internal image-reference" href="../_images/tutorial_08_server_terminal_placeholder.png"><img alt="Placeholder terminal output from run_remote_universal.py on Raspberry Pi." class="align-center" src="../_images/tutorial_08_server_terminal_placeholder.png" style="width: 900px;" />
+<a class="reference internal image-reference" href="../_images/tutorial_08_server_terminal.png"><img alt="Placeholder terminal output from run_remote_universal.py on Raspberry Pi." class="align-center" src="../_images/tutorial_08_server_terminal.png" style="width: 900px;" />
 </a>
 </section>
 <section id="run-client-simulation-on-main-pc">
@@ -723,15 +725,15 @@ execution, while leaving environmental effects and propagation local.</p>
 </div>
 <p>During execution, the Raspberry Pi terminal should show remote RPC activity while the
 main PC terminal prints simulation progress and remote timing statistics.</p>
-<a class="reference internal image-reference" href="../_images/tutorial_08_dual_terminal_placeholder.png"><img alt="Placeholder image of main PC and Raspberry Pi terminals during simulation." class="align-center" src="../_images/tutorial_08_dual_terminal_placeholder.png" style="width: 900px;" />
+<a class="reference internal image-reference" href="../_images/tutorial_08_dual_terminal.png"><img alt="Placeholder image of main PC and Raspberry Pi terminals during simulation." class="align-center" src="../_images/tutorial_08_dual_terminal.png" style="width: 900px;" />
 </a>
 <p>Final timing statistics output on the main PC can be captured as documentation evidence.</p>
-<a class="reference internal image-reference" href="../_images/tutorial_08_timing_terminal_placeholder.png"><img alt="Placeholder image of final timing statistics printed by simulate_remote." class="align-center" src="../_images/tutorial_08_timing_terminal_placeholder.png" style="width: 900px;" />
+<a class="reference internal image-reference" href="../_images/tutorial_08_timing_terminal.png"><img alt="Placeholder image of final timing statistics printed by simulate_remote." class="align-center" src="../_images/tutorial_08_timing_terminal.png" style="width: 900px;" />
 </a>
 </section>
 <section id="simulation-results">
 <h2>Simulation Results<a class="headerlink" href="#simulation-results" title="Link to this heading">¶</a></h2>
-<a class="reference internal image-reference" href="../_images/tutorial_08_plots_placeholder.png"><img alt="Placeholder image for final plotting windows from remote execution tutorial." class="align-center" src="../_images/tutorial_08_plots_placeholder.png" style="width: 900px;" />
+<a class="reference internal image-reference" href="../_images/tutorial_08_plots.png"><img alt="Placeholder image for final plotting windows from remote execution tutorial." class="align-center" src="../_images/tutorial_08_plots.png" style="width: 900px;" />
 </a>
 </section>
 <section id="how-to-shut-down">

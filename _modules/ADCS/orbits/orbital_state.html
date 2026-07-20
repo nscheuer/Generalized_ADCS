@@ -11,7 +11,7 @@
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo-extensions.css?v=8dab3a3b" />
-    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=522cca6d" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=f2c5952d" />
     
     
 
@@ -228,6 +228,8 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_4_numba_optimizations_2.html">0.1.4 More Numba optimizations and 4x simulation speedup (2026-04-21)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_3_hardware_in_the_loop.html">0.1.3 Hardware-in-the-loop Remote Execution (2026-04-18)</a></li>
@@ -553,6 +555,185 @@
 <span class="n">_I3</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
 <span class="n">_I6</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">6</span><span class="p">)</span>
 
+<span class="c1"># Unit vector along the ECI/ECEF z-axis (Earth spin axis), used by the zonal</span>
+<span class="c1"># gravity perturbation.</span>
+<span class="n">_ZHAT</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">])</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_normalize_zonal_J</span><span class="p">(</span><span class="n">zonal_J</span><span class="p">,</span> <span class="n">max_degree</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Validate and normalize the requested highest zonal harmonic degree.</span>
+
+<span class="sd">    ``zonal_J=0`` disables all zonal harmonics (pure two-body dynamics).</span>
+<span class="sd">    Positive values represent the highest degree included, so ``zonal_J=2``</span>
+<span class="sd">    means J2 only and ``zonal_J=6`` means J2 through J6.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">max_degree</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">max_degree</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">EarthConstants</span><span class="o">.</span><span class="n">Jcoeffs</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+
+    <span class="n">value</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">zonal_J</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">value</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="mi">0</span>
+    <span class="k">if</span> <span class="mi">2</span> <span class="o">&lt;=</span> <span class="n">value</span> <span class="o">&lt;=</span> <span class="nb">int</span><span class="p">(</span><span class="n">max_degree</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">value</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;zonal_J must be 0 or an integer from 2 through </span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">max_degree</span><span class="p">)</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="n">zonal_J</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_legendre_p_and_dp</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">max_degree</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Evaluate Legendre polynomials and their first derivatives at ``s``.</span>
+
+<span class="sd">    Uses the standard upward recurrences</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        n P_n = (2n-1)\, s\, P_{n-1} - (n-1) P_{n-2}, \qquad</span>
+<span class="sd">        P_n&#39; = n\, P_{n-1} + s\, P_{n-1}&#39;,</span>
+
+<span class="sd">    which are stable everywhere on :math:`s\in[-1,1]` (no division by</span>
+<span class="sd">    :math:`1-s^2`, so they hold over the poles) and are analytic in ``s``,</span>
+<span class="sd">    so the routine is safe for complex-step differentiation.</span>
+
+<span class="sd">    :param s:</span>
+<span class="sd">        Argument of the polynomials (``sin`` of geocentric latitude). May be a</span>
+<span class="sd">        real or complex scalar.</span>
+<span class="sd">    :type s: float or complex</span>
+
+<span class="sd">    :param max_degree:</span>
+<span class="sd">        Highest polynomial degree to evaluate.</span>
+<span class="sd">    :type max_degree: int</span>
+
+<span class="sd">    :return:</span>
+<span class="sd">        Tuple ``(P, dP)`` of lists indexed by degree ``0..max_degree``.</span>
+<span class="sd">    :rtype: tuple[list, list]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">P</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">max_degree</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">dP</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">max_degree</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">P</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">+</span> <span class="mf">0.0</span> <span class="o">*</span> <span class="n">s</span>  <span class="c1"># preserve dtype (float or complex) of s</span>
+    <span class="n">dP</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span> <span class="o">*</span> <span class="n">s</span>
+    <span class="k">if</span> <span class="n">max_degree</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">P</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">s</span>
+        <span class="n">dP</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">+</span> <span class="mf">0.0</span> <span class="o">*</span> <span class="n">s</span>
+    <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">max_degree</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="n">P</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="p">((</span><span class="mi">2</span> <span class="o">*</span> <span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">s</span> <span class="o">*</span> <span class="n">P</span><span class="p">[</span><span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="p">(</span><span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">P</span><span class="p">[</span><span class="n">n</span> <span class="o">-</span> <span class="mi">2</span><span class="p">])</span> <span class="o">/</span> <span class="n">n</span>
+        <span class="n">dP</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="n">n</span> <span class="o">*</span> <span class="n">P</span><span class="p">[</span><span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">s</span> <span class="o">*</span> <span class="n">dP</span><span class="p">[</span><span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">P</span><span class="p">,</span> <span class="n">dP</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_zonal_perturbation_accel</span><span class="p">(</span><span class="n">R</span><span class="p">,</span> <span class="n">mu_e</span><span class="p">,</span> <span class="n">R_e</span><span class="p">,</span> <span class="n">coeffs</span><span class="p">,</span> <span class="n">start_degree</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Perturbing acceleration from zonal gravity harmonics of degree ``&gt;= start_degree``.</span>
+
+<span class="sd">    The acceleration is the gradient of the zonal perturbing potential</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \Phi_n = -\frac{\mu}{r} J_n \left(\frac{R_e}{r}\right)^n P_n(z/r),</span>
+
+<span class="sd">    summed over degrees ``start_degree .. start_degree + len(coeffs) - 1``. For</span>
+<span class="sd">    ``start_degree == 2`` the degree-2 term equals the classical closed-form J2</span>
+<span class="sd">    acceleration exactly; this routine is used for the higher (degree ``&gt;= 3``)</span>
+<span class="sd">    harmonics while J2 keeps its dedicated closed form.</span>
+
+<span class="sd">    The implementation contains no non-analytic operations (no ``norm``/``abs``),</span>
+<span class="sd">    so passing a complex ``R`` yields exact complex-step derivatives.</span>
+
+<span class="sd">    :param R:</span>
+<span class="sd">        Position vector in ECI frame [km]. Real or complex.</span>
+<span class="sd">    :type R: numpy.ndarray</span>
+
+<span class="sd">    :param mu_e:</span>
+<span class="sd">        Earth gravitational parameter [km^3/s^2].</span>
+<span class="sd">    :type mu_e: float</span>
+
+<span class="sd">    :param R_e:</span>
+<span class="sd">        Earth reference radius [km].</span>
+<span class="sd">    :type R_e: float</span>
+
+<span class="sd">    :param coeffs:</span>
+<span class="sd">        Unnormalized zonal coefficients :math:`J_n` for the consecutive degrees</span>
+<span class="sd">        starting at ``start_degree``.</span>
+<span class="sd">    :type coeffs: sequence[float]</span>
+
+<span class="sd">    :param start_degree:</span>
+<span class="sd">        Degree of the first coefficient in ``coeffs``.</span>
+<span class="sd">    :type start_degree: int</span>
+
+<span class="sd">    :return:</span>
+<span class="sd">        Perturbing acceleration [km/s^2] with the same dtype as ``R``.</span>
+<span class="sd">    :rtype: numpy.ndarray</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">coeffs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">coeffs</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">coeffs</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">R</span><span class="o">.</span><span class="n">dtype</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">R</span><span class="p">,</span> <span class="s2">&quot;dtype&quot;</span><span class="p">)</span> <span class="k">else</span> <span class="nb">float</span><span class="p">)</span>
+
+    <span class="n">R</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">R</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+    <span class="n">z</span> <span class="o">=</span> <span class="n">R</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+    <span class="n">r2</span> <span class="o">=</span> <span class="n">R</span> <span class="o">@</span> <span class="n">R</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">r2</span><span class="p">)</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="n">z</span> <span class="o">/</span> <span class="n">r</span>
+
+    <span class="n">max_degree</span> <span class="o">=</span> <span class="n">start_degree</span> <span class="o">+</span> <span class="n">coeffs</span><span class="o">.</span><span class="n">size</span> <span class="o">-</span> <span class="mi">1</span>
+    <span class="n">P</span><span class="p">,</span> <span class="n">dP</span> <span class="o">=</span> <span class="n">_legendre_p_and_dp</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">max_degree</span><span class="p">)</span>
+
+    <span class="n">accel</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">R</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">coeffs</span><span class="o">.</span><span class="n">size</span><span class="p">):</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="n">start_degree</span> <span class="o">+</span> <span class="n">k</span>
+        <span class="n">Jn</span> <span class="o">=</span> <span class="n">coeffs</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">Jn</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="c1"># a_n = -mu * Jn * R_e^n * grad( r^-(n+1) * P_n(z/r) )</span>
+        <span class="c1">#     = c_n * (alpha_n * R + beta_n * zhat)</span>
+        <span class="n">c_n</span> <span class="o">=</span> <span class="o">-</span><span class="n">mu_e</span> <span class="o">*</span> <span class="n">Jn</span> <span class="o">*</span> <span class="n">R_e</span><span class="o">**</span><span class="n">n</span>
+        <span class="n">alpha_n</span> <span class="o">=</span> <span class="o">-</span><span class="p">(</span><span class="n">n</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">r</span> <span class="o">**</span> <span class="p">(</span><span class="o">-</span><span class="p">(</span><span class="n">n</span> <span class="o">+</span> <span class="mi">3</span><span class="p">))</span> <span class="o">*</span> <span class="n">P</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">-</span> <span class="n">z</span> <span class="o">*</span> <span class="n">r</span> <span class="o">**</span> <span class="p">(</span><span class="o">-</span><span class="p">(</span><span class="n">n</span> <span class="o">+</span> <span class="mi">4</span><span class="p">))</span> <span class="o">*</span> <span class="n">dP</span><span class="p">[</span><span class="n">n</span><span class="p">]</span>
+        <span class="n">beta_n</span> <span class="o">=</span> <span class="n">r</span> <span class="o">**</span> <span class="p">(</span><span class="o">-</span><span class="p">(</span><span class="n">n</span> <span class="o">+</span> <span class="mi">2</span><span class="p">))</span> <span class="o">*</span> <span class="n">dP</span><span class="p">[</span><span class="n">n</span><span class="p">]</span>
+        <span class="n">accel</span> <span class="o">=</span> <span class="n">accel</span> <span class="o">+</span> <span class="n">c_n</span> <span class="o">*</span> <span class="p">(</span><span class="n">alpha_n</span> <span class="o">*</span> <span class="n">R</span> <span class="o">+</span> <span class="n">beta_n</span> <span class="o">*</span> <span class="n">_ZHAT</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">accel</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_zonal_perturbation_accel_jac</span><span class="p">(</span><span class="n">R</span><span class="p">,</span> <span class="n">mu_e</span><span class="p">,</span> <span class="n">R_e</span><span class="p">,</span> <span class="n">coeffs</span><span class="p">,</span> <span class="n">start_degree</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Jacobian :math:`\partial a/\partial R` of :func:`_zonal_perturbation_accel`.</span>
+
+<span class="sd">    Computed by complex-step differentiation of the (analytic) acceleration,</span>
+<span class="sd">    which is accurate to machine precision and free of subtractive cancellation.</span>
+
+<span class="sd">    :param R:</span>
+<span class="sd">        Position vector in ECI frame [km].</span>
+<span class="sd">    :type R: numpy.ndarray</span>
+
+<span class="sd">    :param mu_e:</span>
+<span class="sd">        Earth gravitational parameter [km^3/s^2].</span>
+<span class="sd">    :type mu_e: float</span>
+
+<span class="sd">    :param R_e:</span>
+<span class="sd">        Earth reference radius [km].</span>
+<span class="sd">    :type R_e: float</span>
+
+<span class="sd">    :param coeffs:</span>
+<span class="sd">        Unnormalized zonal coefficients for consecutive degrees from ``start_degree``.</span>
+<span class="sd">    :type coeffs: sequence[float]</span>
+
+<span class="sd">    :param start_degree:</span>
+<span class="sd">        Degree of the first coefficient in ``coeffs``.</span>
+<span class="sd">    :type start_degree: int</span>
+
+<span class="sd">    :return:</span>
+<span class="sd">        3x3 Jacobian of the perturbing acceleration with respect to position.</span>
+<span class="sd">    :rtype: numpy.ndarray</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">coeffs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">coeffs</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">coeffs</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+
+    <span class="n">R0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">R</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+    <span class="n">h</span> <span class="o">=</span> <span class="mf">1e-30</span>
+    <span class="n">jac</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">):</span>
+        <span class="n">Rp</span> <span class="o">=</span> <span class="n">R0</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">Rp</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">Rp</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="n">j</span> <span class="o">*</span> <span class="n">h</span>
+        <span class="n">accel</span> <span class="o">=</span> <span class="n">_zonal_perturbation_accel</span><span class="p">(</span><span class="n">Rp</span><span class="p">,</span> <span class="n">mu_e</span><span class="p">,</span> <span class="n">R_e</span><span class="p">,</span> <span class="n">coeffs</span><span class="p">,</span> <span class="n">start_degree</span><span class="p">)</span>
+        <span class="n">jac</span><span class="p">[:,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">accel</span><span class="p">)</span><span class="o">.</span><span class="n">imag</span> <span class="o">/</span> <span class="n">h</span>
+    <span class="k">return</span> <span class="n">jac</span>
+
 
 <div class="viewcode-block" id="Orbital_State">
 <a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.helpers.simresults.Orbital_State">[docs]</a>
@@ -682,6 +863,10 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span> <span class="o">=</span> <span class="n">EarthConstants</span><span class="o">.</span><span class="n">mu_e</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">R_e</span> <span class="o">=</span> <span class="n">EarthConstants</span><span class="o">.</span><span class="n">R_e</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span> <span class="o">=</span> <span class="n">EarthConstants</span><span class="o">.</span><span class="n">J2coeff</span>
+        <span class="c1"># Unnormalized zonal harmonic coefficients [J2, J3, J4, J5, J6]; the</span>
+        <span class="c1"># higher (degree &gt;= 3) terms are only applied when propagation is asked</span>
+        <span class="c1"># for zonal_J &gt; 2.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Jcoeffs</span> <span class="o">=</span> <span class="n">EarthConstants</span><span class="o">.</span><span class="n">Jcoeffs</span>
 
         <span class="c1"># NOTE: j2000_to_tai() returns J2000*36525 + 2451545.0. JD 2451545.0 is</span>
         <span class="c1"># the J2000.0 epoch in TT (2000-01-01 12:00:00 TT), so this Julian date</span>
@@ -790,6 +975,7 @@
         <span class="n">out</span><span class="o">.</span><span class="n">mu_e</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span>
         <span class="n">out</span><span class="o">.</span><span class="n">R_e</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">R_e</span>
         <span class="n">out</span><span class="o">.</span><span class="n">J2coeff</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">Jcoeffs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Jcoeffs</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
         <span class="n">out</span><span class="o">.</span><span class="n">TAI</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">TAI</span><span class="p">)</span>
         <span class="n">out</span><span class="o">.</span><span class="n">sf_pos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sf_pos</span>  <span class="c1"># treated as immutable for practical purposes</span>
@@ -872,6 +1058,7 @@
         <span class="n">out</span><span class="o">.</span><span class="n">mu_e</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span>
         <span class="n">out</span><span class="o">.</span><span class="n">R_e</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">R_e</span>
         <span class="n">out</span><span class="o">.</span><span class="n">J2coeff</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">Jcoeffs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Jcoeffs</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
         <span class="n">out</span><span class="o">.</span><span class="n">TAI</span> <span class="o">=</span> <span class="n">a</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">TAI</span> <span class="o">+</span> <span class="n">b</span> <span class="o">*</span> <span class="n">os2</span><span class="o">.</span><span class="n">TAI</span>
         <span class="n">out</span><span class="o">.</span><span class="n">sf_pos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sf_pos</span>          <span class="c1"># approximate; only used by is_sunlit</span>
@@ -917,7 +1104,8 @@
         <span class="n">mu_e</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
         <span class="n">R_e</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
         <span class="n">J2coeff</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-        <span class="n">J2_perturbation_on</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">zonal_J</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
+        <span class="n">Jcoeffs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Compute raw orbital dynamics.</span>
@@ -942,9 +1130,16 @@
 <span class="sd">            Earth J2 coefficient.</span>
 <span class="sd">        :type J2coeff: float</span>
 
-<span class="sd">        :param J2_perturbation_on:</span>
-<span class="sd">            Enable J2 perturbation.</span>
-<span class="sd">        :type J2_perturbation_on: bool</span>
+<span class="sd">        :param zonal_J:</span>
+<span class="sd">            Highest zonal harmonic degree to include. ``0`` disables zonals,</span>
+<span class="sd">            ``2`` includes only J2, and larger values include every zonal term</span>
+<span class="sd">            up to that degree.</span>
+<span class="sd">        :type zonal_J: int</span>
+
+<span class="sd">        :param Jcoeffs:</span>
+<span class="sd">            Unnormalized zonal coefficients ``[J2, J3, ...]``. When omitted,</span>
+<span class="sd">            :data:`EarthConstants.Jcoeffs` is used.</span>
+<span class="sd">        :type Jcoeffs: numpy.ndarray or None</span>
 
 <span class="sd">        :return:</span>
 <span class="sd">            Tuple of position and velocity derivatives.</span>
@@ -953,6 +1148,8 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">R</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">R</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
         <span class="n">V</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">V</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+        <span class="n">zonal_J</span> <span class="o">=</span> <span class="n">_normalize_zonal_J</span><span class="p">(</span><span class="n">zonal_J</span><span class="p">)</span>
+        <span class="n">Jcoeffs</span> <span class="o">=</span> <span class="n">EarthConstants</span><span class="o">.</span><span class="n">Jcoeffs</span> <span class="k">if</span> <span class="n">Jcoeffs</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">Jcoeffs</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
 
         <span class="n">r2</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">R</span><span class="p">,</span> <span class="n">R</span><span class="p">))</span>
         <span class="n">rn</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">r2</span><span class="p">))</span>
@@ -960,13 +1157,17 @@
 
         <span class="n">v_dot</span> <span class="o">=</span> <span class="o">-</span><span class="n">mu_e</span> <span class="o">*</span> <span class="n">R</span> <span class="o">/</span> <span class="n">r3</span>
 
-        <span class="k">if</span> <span class="n">J2_perturbation_on</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">zonal_J</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">:</span>
             <span class="n">xk</span><span class="p">,</span> <span class="n">yk</span><span class="p">,</span> <span class="n">zk</span> <span class="o">=</span> <span class="n">R</span>
             <span class="n">z2</span> <span class="o">=</span> <span class="n">zk</span> <span class="o">*</span> <span class="n">zk</span>
             <span class="n">factor</span> <span class="o">=</span> <span class="mf">1.5</span> <span class="o">*</span> <span class="n">J2coeff</span> <span class="o">*</span> <span class="n">mu_e</span> <span class="o">*</span> <span class="n">R_e</span> <span class="o">*</span> <span class="n">R_e</span> <span class="o">/</span> <span class="p">(</span><span class="n">rn</span><span class="o">**</span><span class="mi">5</span><span class="p">)</span>
             <span class="n">common</span> <span class="o">=</span> <span class="mf">5.0</span> <span class="o">*</span> <span class="n">z2</span> <span class="o">/</span> <span class="n">r2</span>
             <span class="n">a_J2</span> <span class="o">=</span> <span class="n">factor</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">xk</span> <span class="o">*</span> <span class="p">(</span><span class="n">common</span> <span class="o">-</span> <span class="mf">1.0</span><span class="p">),</span> <span class="n">yk</span> <span class="o">*</span> <span class="p">(</span><span class="n">common</span> <span class="o">-</span> <span class="mf">1.0</span><span class="p">),</span> <span class="n">zk</span> <span class="o">*</span> <span class="p">(</span><span class="n">common</span> <span class="o">-</span> <span class="mf">3.0</span><span class="p">)],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
             <span class="n">v_dot</span> <span class="o">=</span> <span class="n">v_dot</span> <span class="o">+</span> <span class="n">a_J2</span>
+
+            <span class="n">higher_zonals</span> <span class="o">=</span> <span class="n">Jcoeffs</span><span class="p">[</span><span class="mi">1</span> <span class="p">:</span> <span class="n">zonal_J</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">higher_zonals</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">v_dot</span> <span class="o">=</span> <span class="n">v_dot</span> <span class="o">+</span> <span class="n">_zonal_perturbation_accel</span><span class="p">(</span><span class="n">R</span><span class="p">,</span> <span class="n">mu_e</span><span class="p">,</span> <span class="n">R_e</span><span class="p">,</span> <span class="n">higher_zonals</span><span class="p">,</span> <span class="n">start_degree</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
 
         <span class="n">r_dot</span> <span class="o">=</span> <span class="n">V</span>
         <span class="k">return</span> <span class="n">r_dot</span><span class="p">,</span> <span class="n">v_dot</span>
@@ -977,7 +1178,8 @@
         <span class="n">mu_e</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
         <span class="n">R_e</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
         <span class="n">J2coeff</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-        <span class="n">J2_perturbation_on</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">zonal_J</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
+        <span class="n">Jcoeffs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Compute Jacobians of orbital dynamics.</span>
@@ -998,9 +1200,16 @@
 <span class="sd">            Earth J2 coefficient.</span>
 <span class="sd">        :type J2coeff: float</span>
 
-<span class="sd">        :param J2_perturbation_on:</span>
-<span class="sd">            Enable J2 perturbation.</span>
-<span class="sd">        :type J2_perturbation_on: bool</span>
+<span class="sd">        :param zonal_J:</span>
+<span class="sd">            Highest zonal harmonic degree to include. ``0`` disables zonals,</span>
+<span class="sd">            ``2`` includes only J2, and larger values include every zonal term</span>
+<span class="sd">            up to that degree.</span>
+<span class="sd">        :type zonal_J: int</span>
+
+<span class="sd">        :param Jcoeffs:</span>
+<span class="sd">            Unnormalized zonal coefficients ``[J2, J3, ...]``. When omitted,</span>
+<span class="sd">            :data:`EarthConstants.Jcoeffs` is used.</span>
+<span class="sd">        :type Jcoeffs: numpy.ndarray or None</span>
 
 <span class="sd">        :return:</span>
 <span class="sd">            Partial derivatives of dynamics.</span>
@@ -1008,6 +1217,8 @@
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">R</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">R</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+        <span class="n">zonal_J</span> <span class="o">=</span> <span class="n">_normalize_zonal_J</span><span class="p">(</span><span class="n">zonal_J</span><span class="p">)</span>
+        <span class="n">Jcoeffs</span> <span class="o">=</span> <span class="n">EarthConstants</span><span class="o">.</span><span class="n">Jcoeffs</span> <span class="k">if</span> <span class="n">Jcoeffs</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">Jcoeffs</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
 
         <span class="n">rn</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">R</span><span class="p">))</span>
         <span class="n">nr</span> <span class="o">=</span> <span class="n">R</span> <span class="o">/</span> <span class="n">rn</span>
@@ -1019,7 +1230,7 @@
 
         <span class="n">dvd_dr</span> <span class="o">=</span> <span class="o">-</span><span class="n">mu_e</span> <span class="o">*</span> <span class="p">(</span><span class="n">_I3</span> <span class="o">-</span> <span class="mf">3.0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">nr</span><span class="p">,</span> <span class="n">nr</span><span class="p">))</span> <span class="o">/</span> <span class="n">rn</span><span class="o">**</span><span class="mi">3</span>
 
-        <span class="k">if</span> <span class="n">J2_perturbation_on</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">zonal_J</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">:</span>
             <span class="n">rn2</span> <span class="o">=</span> <span class="n">rn</span> <span class="o">*</span> <span class="n">rn</span>
             <span class="n">j2_mult</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diagflat</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">])</span> <span class="o">*</span> <span class="n">rn2</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span> <span class="o">*</span> <span class="mf">5.0</span> <span class="o">*</span> <span class="n">zk</span> <span class="o">*</span> <span class="n">zk</span><span class="p">)</span>
 
@@ -1032,47 +1243,61 @@
                 <span class="o">+</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="o">-</span><span class="mf">5.0</span> <span class="o">*</span> <span class="n">zk</span> <span class="o">*</span> <span class="n">unit_z</span> <span class="o">+</span> <span class="n">R</span><span class="p">,</span> <span class="n">R</span><span class="p">)</span> <span class="o">+</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">zk</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">R</span><span class="p">,</span> <span class="n">unit_z</span><span class="p">))</span>
             <span class="p">)</span>
 
+            <span class="n">higher_zonals</span> <span class="o">=</span> <span class="n">Jcoeffs</span><span class="p">[</span><span class="mi">1</span> <span class="p">:</span> <span class="n">zonal_J</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">higher_zonals</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">dvd_dr</span> <span class="o">+=</span> <span class="n">_zonal_perturbation_accel_jac</span><span class="p">(</span><span class="n">R</span><span class="p">,</span> <span class="n">mu_e</span><span class="p">,</span> <span class="n">R_e</span><span class="p">,</span> <span class="n">higher_zonals</span><span class="p">,</span> <span class="n">start_degree</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+
         <span class="k">return</span> <span class="n">drd_dr</span><span class="p">,</span> <span class="n">drd_dv</span><span class="p">,</span> <span class="n">dvd_dr</span><span class="p">,</span> <span class="n">dvd_dv</span>
 
 <div class="viewcode-block" id="Orbital_State.orbit_dynamics">
 <a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.helpers.simresults.Orbital_State.orbit_dynamics">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">orbit_dynamics</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">J2_perturbation_on</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">orbit_dynamics</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">zonal_J</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Compute translational orbital dynamics at the current state.</span>
 
-<span class="sd">        :param J2_perturbation_on:</span>
-<span class="sd">            Enable J2 perturbation.</span>
-<span class="sd">        :type J2_perturbation_on: bool</span>
+<span class="sd">        :param zonal_J:</span>
+<span class="sd">            Highest zonal harmonic degree to include. ``0`` disables zonals,</span>
+<span class="sd">            ``2`` includes only J2, and larger values include every zonal term</span>
+<span class="sd">            up to that degree.</span>
+<span class="sd">        :type zonal_J: int</span>
 
 <span class="sd">        :return:</span>
 <span class="sd">            Time derivatives of position and velocity.</span>
 <span class="sd">        :rtype: tuple[numpy.ndarray, numpy.ndarray]</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orbit_dynamics_raw</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">R</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">V</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span><span class="p">,</span> <span class="n">J2_perturbation_on</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orbit_dynamics_raw</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">R</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">V</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span><span class="p">,</span> <span class="n">zonal_J</span><span class="p">,</span>
+            <span class="n">Jcoeffs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">Jcoeffs</span><span class="p">,</span>
+        <span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Orbital_State.orbit_dynamics_jacobians">
 <a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.helpers.simresults.Orbital_State.orbit_dynamics_jacobians">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">orbit_dynamics_jacobians</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">J2_perturbation_on</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">orbit_dynamics_jacobians</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">zonal_J</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Compute Jacobians of the translational dynamics.</span>
 
-<span class="sd">        :param J2_perturbation_on:</span>
-<span class="sd">            Enable J2 perturbation.</span>
-<span class="sd">        :type J2_perturbation_on: bool</span>
+<span class="sd">        :param zonal_J:</span>
+<span class="sd">            Highest zonal harmonic degree to include. ``0`` disables zonals,</span>
+<span class="sd">            ``2`` includes only J2, and larger values include every zonal term</span>
+<span class="sd">            up to that degree.</span>
+<span class="sd">        :type zonal_J: int</span>
 
 <span class="sd">        :return:</span>
 <span class="sd">            Jacobian matrices of the dynamics.</span>
 <span class="sd">        :rtype: tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray, numpy.ndarray]</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orbit_dynamics_jacobians_raw</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">R</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span><span class="p">,</span> <span class="n">J2_perturbation_on</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orbit_dynamics_jacobians_raw</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">R</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span><span class="p">,</span> <span class="n">zonal_J</span><span class="p">,</span>
+            <span class="n">Jcoeffs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">Jcoeffs</span><span class="p">,</span>
+        <span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Orbital_State.propagate_orbit">
 <a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.helpers.simresults.Orbital_State.propagate_orbit">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">propagate_orbit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">J2_perturbation_on</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">fast</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">propagate_orbit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">fast</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">zonal_J</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">):</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Propagate the orbital state forward using first-order integration.</span>
 
@@ -1080,13 +1305,15 @@
 <span class="sd">            Time step in seconds.</span>
 <span class="sd">        :type dt: float</span>
 
-<span class="sd">        :param J2_perturbation_on:</span>
-<span class="sd">            Enable J2 perturbation.</span>
-<span class="sd">        :type J2_perturbation_on: bool</span>
-
 <span class="sd">        :param fast:</span>
 <span class="sd">            Backward-compatible parameter (ignored).</span>
 <span class="sd">        :type fast: bool</span>
+
+<span class="sd">        :param zonal_J:</span>
+<span class="sd">            Highest zonal harmonic degree to include. ``0`` disables zonals,</span>
+<span class="sd">            ``2`` includes only J2, and larger values include every zonal term</span>
+<span class="sd">            up to that degree.</span>
+<span class="sd">        :type zonal_J: int</span>
 
 <span class="sd">        :return:</span>
 <span class="sd">            Propagated orbital state.</span>
@@ -1097,7 +1324,9 @@
         <span class="n">r_ECI</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">R</span>
         <span class="n">v_ECI</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">V</span>
 
-        <span class="n">k1a</span><span class="p">,</span> <span class="n">k1b</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orbit_dynamics_raw</span><span class="p">(</span><span class="n">r_ECI</span><span class="p">,</span> <span class="n">v_ECI</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span><span class="p">,</span> <span class="n">J2_perturbation_on</span><span class="p">)</span>
+        <span class="n">k1a</span><span class="p">,</span> <span class="n">k1b</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orbit_dynamics_raw</span><span class="p">(</span>
+            <span class="n">r_ECI</span><span class="p">,</span> <span class="n">v_ECI</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span><span class="p">,</span> <span class="n">zonal_J</span><span class="p">,</span> <span class="n">Jcoeffs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">Jcoeffs</span>
+        <span class="p">)</span>
 
         <span class="n">r_out</span> <span class="o">=</span> <span class="n">r_ECI</span> <span class="o">+</span> <span class="n">k1a</span> <span class="o">*</span> <span class="nb">float</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span>
         <span class="n">v_out</span> <span class="o">=</span> <span class="n">v_ECI</span> <span class="o">+</span> <span class="n">k1b</span> <span class="o">*</span> <span class="nb">float</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span>
@@ -1108,7 +1337,7 @@
 
 <div class="viewcode-block" id="Orbital_State.propagate_orbit_rk4">
 <a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.helpers.simresults.Orbital_State.propagate_orbit_rk4">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">propagate_orbit_rk4</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">J2_perturbation_on</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">fast</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">propagate_orbit_rk4</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">fast</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">zonal_J</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">):</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Propagate the orbital state using fourth-order Runge–Kutta integration.</span>
 
@@ -1116,13 +1345,15 @@
 <span class="sd">            Time step in seconds.</span>
 <span class="sd">        :type dt: float</span>
 
-<span class="sd">        :param J2_perturbation_on:</span>
-<span class="sd">            Enable J2 perturbation.</span>
-<span class="sd">        :type J2_perturbation_on: bool</span>
-
 <span class="sd">        :param fast:</span>
 <span class="sd">            Backward-compatible parameter (ignored).</span>
 <span class="sd">        :type fast: bool</span>
+
+<span class="sd">        :param zonal_J:</span>
+<span class="sd">            Highest zonal harmonic degree to include. ``0`` disables zonals,</span>
+<span class="sd">            ``2`` includes only J2, and larger values include every zonal term</span>
+<span class="sd">            up to that degree.</span>
+<span class="sd">        :type zonal_J: int</span>
 
 <span class="sd">        :return:</span>
 <span class="sd">            Propagated orbital state.</span>
@@ -1135,10 +1366,10 @@
         <span class="n">r0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">R</span>
         <span class="n">v0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">V</span>
 
-        <span class="n">k1a</span><span class="p">,</span> <span class="n">k1b</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orbit_dynamics_raw</span><span class="p">(</span><span class="n">r0</span><span class="p">,</span> <span class="n">v0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span><span class="p">,</span> <span class="n">J2_perturbation_on</span><span class="p">)</span>
-        <span class="n">k2a</span><span class="p">,</span> <span class="n">k2b</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orbit_dynamics_raw</span><span class="p">(</span><span class="n">r0</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">k1a</span><span class="p">,</span> <span class="n">v0</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">k1b</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span><span class="p">,</span> <span class="n">J2_perturbation_on</span><span class="p">)</span>
-        <span class="n">k3a</span><span class="p">,</span> <span class="n">k3b</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orbit_dynamics_raw</span><span class="p">(</span><span class="n">r0</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">k2a</span><span class="p">,</span> <span class="n">v0</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">k2b</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span><span class="p">,</span> <span class="n">J2_perturbation_on</span><span class="p">)</span>
-        <span class="n">k4a</span><span class="p">,</span> <span class="n">k4b</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orbit_dynamics_raw</span><span class="p">(</span><span class="n">r0</span> <span class="o">+</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">k3a</span><span class="p">,</span> <span class="n">v0</span> <span class="o">+</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">k3b</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span><span class="p">,</span> <span class="n">J2_perturbation_on</span><span class="p">)</span>
+        <span class="n">k1a</span><span class="p">,</span> <span class="n">k1b</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orbit_dynamics_raw</span><span class="p">(</span><span class="n">r0</span><span class="p">,</span> <span class="n">v0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span><span class="p">,</span> <span class="n">zonal_J</span><span class="p">,</span> <span class="n">Jcoeffs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">Jcoeffs</span><span class="p">)</span>
+        <span class="n">k2a</span><span class="p">,</span> <span class="n">k2b</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orbit_dynamics_raw</span><span class="p">(</span><span class="n">r0</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">k1a</span><span class="p">,</span> <span class="n">v0</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">k1b</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span><span class="p">,</span> <span class="n">zonal_J</span><span class="p">,</span> <span class="n">Jcoeffs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">Jcoeffs</span><span class="p">)</span>
+        <span class="n">k3a</span><span class="p">,</span> <span class="n">k3b</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orbit_dynamics_raw</span><span class="p">(</span><span class="n">r0</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">k2a</span><span class="p">,</span> <span class="n">v0</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">k2b</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span><span class="p">,</span> <span class="n">zonal_J</span><span class="p">,</span> <span class="n">Jcoeffs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">Jcoeffs</span><span class="p">)</span>
+        <span class="n">k4a</span><span class="p">,</span> <span class="n">k4b</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orbit_dynamics_raw</span><span class="p">(</span><span class="n">r0</span> <span class="o">+</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">k3a</span><span class="p">,</span> <span class="n">v0</span> <span class="o">+</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">k3b</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span><span class="p">,</span> <span class="n">zonal_J</span><span class="p">,</span> <span class="n">Jcoeffs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">Jcoeffs</span><span class="p">)</span>
 
         <span class="n">r_out</span> <span class="o">=</span> <span class="n">r0</span> <span class="o">+</span> <span class="p">(</span><span class="n">dt</span> <span class="o">/</span> <span class="mf">6.0</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">k1a</span> <span class="o">+</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">k2a</span> <span class="o">+</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">k3a</span> <span class="o">+</span> <span class="n">k4a</span><span class="p">)</span>
         <span class="n">v_out</span> <span class="o">=</span> <span class="n">v0</span> <span class="o">+</span> <span class="p">(</span><span class="n">dt</span> <span class="o">/</span> <span class="mf">6.0</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">k1b</span> <span class="o">+</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">k2b</span> <span class="o">+</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">k3b</span> <span class="o">+</span> <span class="n">k4b</span><span class="p">)</span>
@@ -1150,7 +1381,7 @@
 
 <div class="viewcode-block" id="Orbital_State.propagate_jacobians">
 <a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.helpers.simresults.Orbital_State.propagate_jacobians">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">propagate_jacobians</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">J2_perturbation_on</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">propagate_jacobians</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">zonal_J</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Propagate state transition Jacobians using first-order integration.</span>
 
@@ -1158,9 +1389,11 @@
 <span class="sd">            Time step in seconds.</span>
 <span class="sd">        :type dt: float</span>
 
-<span class="sd">        :param J2_perturbation_on:</span>
-<span class="sd">            Enable J2 perturbation.</span>
-<span class="sd">        :type J2_perturbation_on: bool</span>
+<span class="sd">        :param zonal_J:</span>
+<span class="sd">            Highest zonal harmonic degree to include. ``0`` disables zonals,</span>
+<span class="sd">            ``2`` includes only J2, and larger values include every zonal term</span>
+<span class="sd">            up to that degree.</span>
+<span class="sd">        :type zonal_J: int</span>
 
 <span class="sd">        :return:</span>
 <span class="sd">            State transition Jacobian blocks.</span>
@@ -1169,7 +1402,7 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">dt</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span>
         <span class="n">drd0__dr0</span><span class="p">,</span> <span class="n">drd0__dv0</span><span class="p">,</span> <span class="n">dvd0__dr0</span><span class="p">,</span> <span class="n">dvd0__dv0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orbit_dynamics_jacobians_raw</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">R</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span><span class="p">,</span> <span class="n">J2_perturbation_on</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">R</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span><span class="p">,</span> <span class="n">zonal_J</span><span class="p">,</span> <span class="n">Jcoeffs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">Jcoeffs</span>
         <span class="p">)</span>
 
         <span class="n">dr1__dr0</span> <span class="o">=</span> <span class="n">_I3</span> <span class="o">+</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">drd0__dr0</span>
@@ -1182,7 +1415,7 @@
 
 <div class="viewcode-block" id="Orbital_State.propagate_jacobians_rk4">
 <a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.helpers.simresults.Orbital_State.propagate_jacobians_rk4">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">propagate_jacobians_rk4</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">J2_perturbation_on</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">propagate_jacobians_rk4</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">zonal_J</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Propagate state transition Jacobians using RK4 integration.</span>
 
@@ -1190,9 +1423,11 @@
 <span class="sd">            Time step in seconds.</span>
 <span class="sd">        :type dt: float</span>
 
-<span class="sd">        :param J2_perturbation_on:</span>
-<span class="sd">            Enable J2 perturbation.</span>
-<span class="sd">        :type J2_perturbation_on: bool</span>
+<span class="sd">        :param zonal_J:</span>
+<span class="sd">            Highest zonal harmonic degree to include. ``0`` disables zonals,</span>
+<span class="sd">            ``2`` includes only J2, and larger values include every zonal term</span>
+<span class="sd">            up to that degree.</span>
+<span class="sd">        :type zonal_J: int</span>
 
 <span class="sd">        :return:</span>
 <span class="sd">            State transition Jacobian blocks.</span>
@@ -1204,9 +1439,9 @@
         <span class="n">r0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">R</span>
         <span class="n">v0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">V</span>
 
-        <span class="n">rd0</span><span class="p">,</span> <span class="n">vd0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orbit_dynamics_raw</span><span class="p">(</span><span class="n">r0</span><span class="p">,</span> <span class="n">v0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span><span class="p">,</span> <span class="n">J2_perturbation_on</span><span class="p">)</span>
+        <span class="n">rd0</span><span class="p">,</span> <span class="n">vd0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orbit_dynamics_raw</span><span class="p">(</span><span class="n">r0</span><span class="p">,</span> <span class="n">v0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span><span class="p">,</span> <span class="n">zonal_J</span><span class="p">,</span> <span class="n">Jcoeffs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">Jcoeffs</span><span class="p">)</span>
         <span class="n">drd0__dr0</span><span class="p">,</span> <span class="n">drd0__dv0</span><span class="p">,</span> <span class="n">dvd0__dr0</span><span class="p">,</span> <span class="n">dvd0__dv0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orbit_dynamics_jacobians_raw</span><span class="p">(</span>
-            <span class="n">r0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span><span class="p">,</span> <span class="n">J2_perturbation_on</span>
+            <span class="n">r0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span><span class="p">,</span> <span class="n">zonal_J</span><span class="p">,</span> <span class="n">Jcoeffs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">Jcoeffs</span>
         <span class="p">)</span>
         <span class="n">dsd0__ds0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">block</span><span class="p">([[</span><span class="n">drd0__dr0</span><span class="p">,</span> <span class="n">dvd0__dr0</span><span class="p">],</span> <span class="p">[</span><span class="n">drd0__dv0</span><span class="p">,</span> <span class="n">dvd0__dv0</span><span class="p">]])</span>
 
@@ -1214,9 +1449,9 @@
         <span class="n">v1</span> <span class="o">=</span> <span class="n">v0</span> <span class="o">+</span> <span class="n">vd0</span> <span class="o">*</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">dt</span>
         <span class="n">ds1__ds0</span> <span class="o">=</span> <span class="n">_I6</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">dsd0__ds0</span>
 
-        <span class="n">rd1</span><span class="p">,</span> <span class="n">vd1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orbit_dynamics_raw</span><span class="p">(</span><span class="n">r1</span><span class="p">,</span> <span class="n">v1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span><span class="p">,</span> <span class="n">J2_perturbation_on</span><span class="p">)</span>
+        <span class="n">rd1</span><span class="p">,</span> <span class="n">vd1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orbit_dynamics_raw</span><span class="p">(</span><span class="n">r1</span><span class="p">,</span> <span class="n">v1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span><span class="p">,</span> <span class="n">zonal_J</span><span class="p">,</span> <span class="n">Jcoeffs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">Jcoeffs</span><span class="p">)</span>
         <span class="n">drd1__dr1</span><span class="p">,</span> <span class="n">drd1__dv1</span><span class="p">,</span> <span class="n">dvd1__dr1</span><span class="p">,</span> <span class="n">dvd1__dv1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orbit_dynamics_jacobians_raw</span><span class="p">(</span>
-            <span class="n">r1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span><span class="p">,</span> <span class="n">J2_perturbation_on</span>
+            <span class="n">r1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span><span class="p">,</span> <span class="n">zonal_J</span><span class="p">,</span> <span class="n">Jcoeffs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">Jcoeffs</span>
         <span class="p">)</span>
         <span class="n">dsd1__ds1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">block</span><span class="p">([[</span><span class="n">drd1__dr1</span><span class="p">,</span> <span class="n">dvd1__dr1</span><span class="p">],</span> <span class="p">[</span><span class="n">drd1__dv1</span><span class="p">,</span> <span class="n">dvd1__dv1</span><span class="p">]])</span>
         <span class="n">dsd1__ds0</span> <span class="o">=</span> <span class="n">ds1__ds0</span> <span class="o">@</span> <span class="n">dsd1__ds1</span>
@@ -1225,9 +1460,9 @@
         <span class="n">v2</span> <span class="o">=</span> <span class="n">v0</span> <span class="o">+</span> <span class="n">vd1</span> <span class="o">*</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">dt</span>
         <span class="n">ds2__ds0</span> <span class="o">=</span> <span class="n">_I6</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">dsd1__ds0</span>
 
-        <span class="n">rd2</span><span class="p">,</span> <span class="n">vd2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orbit_dynamics_raw</span><span class="p">(</span><span class="n">r2</span><span class="p">,</span> <span class="n">v2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span><span class="p">,</span> <span class="n">J2_perturbation_on</span><span class="p">)</span>
+        <span class="n">rd2</span><span class="p">,</span> <span class="n">vd2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orbit_dynamics_raw</span><span class="p">(</span><span class="n">r2</span><span class="p">,</span> <span class="n">v2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span><span class="p">,</span> <span class="n">zonal_J</span><span class="p">,</span> <span class="n">Jcoeffs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">Jcoeffs</span><span class="p">)</span>
         <span class="n">drd2__dr2</span><span class="p">,</span> <span class="n">drd2__dv2</span><span class="p">,</span> <span class="n">dvd2__dr2</span><span class="p">,</span> <span class="n">dvd2__dv2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orbit_dynamics_jacobians_raw</span><span class="p">(</span>
-            <span class="n">r2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span><span class="p">,</span> <span class="n">J2_perturbation_on</span>
+            <span class="n">r2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span><span class="p">,</span> <span class="n">zonal_J</span><span class="p">,</span> <span class="n">Jcoeffs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">Jcoeffs</span>
         <span class="p">)</span>
         <span class="n">dsd2__ds2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">block</span><span class="p">([[</span><span class="n">drd2__dr2</span><span class="p">,</span> <span class="n">dvd2__dr2</span><span class="p">],</span> <span class="p">[</span><span class="n">drd2__dv2</span><span class="p">,</span> <span class="n">dvd2__dv2</span><span class="p">]])</span>
         <span class="n">dsd2__ds0</span> <span class="o">=</span> <span class="n">ds2__ds0</span> <span class="o">@</span> <span class="n">dsd2__ds2</span>
@@ -1236,9 +1471,9 @@
         <span class="n">v3</span> <span class="o">=</span> <span class="n">v0</span> <span class="o">+</span> <span class="n">vd2</span> <span class="o">*</span> <span class="n">dt</span>
         <span class="n">ds3__ds0</span> <span class="o">=</span> <span class="n">_I6</span> <span class="o">+</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">dsd2__ds0</span>
 
-        <span class="n">rd3</span><span class="p">,</span> <span class="n">vd3</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orbit_dynamics_raw</span><span class="p">(</span><span class="n">r3</span><span class="p">,</span> <span class="n">v3</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span><span class="p">,</span> <span class="n">J2_perturbation_on</span><span class="p">)</span>
+        <span class="n">rd3</span><span class="p">,</span> <span class="n">vd3</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orbit_dynamics_raw</span><span class="p">(</span><span class="n">r3</span><span class="p">,</span> <span class="n">v3</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span><span class="p">,</span> <span class="n">zonal_J</span><span class="p">,</span> <span class="n">Jcoeffs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">Jcoeffs</span><span class="p">)</span>
         <span class="n">drd3__dr3</span><span class="p">,</span> <span class="n">drd3__dv3</span><span class="p">,</span> <span class="n">dvd3__dr3</span><span class="p">,</span> <span class="n">dvd3__dv3</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orbit_dynamics_jacobians_raw</span><span class="p">(</span>
-            <span class="n">r3</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span><span class="p">,</span> <span class="n">J2_perturbation_on</span>
+            <span class="n">r3</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span><span class="p">,</span> <span class="n">zonal_J</span><span class="p">,</span> <span class="n">Jcoeffs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">Jcoeffs</span>
         <span class="p">)</span>
         <span class="n">dsd3__ds3</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">block</span><span class="p">([[</span><span class="n">drd3__dr3</span><span class="p">,</span> <span class="n">dvd3__dr3</span><span class="p">],</span> <span class="p">[</span><span class="n">drd3__dv3</span><span class="p">,</span> <span class="n">dvd3__dv3</span><span class="p">]])</span>
         <span class="n">dsd3__ds0</span> <span class="o">=</span> <span class="n">ds3__ds0</span> <span class="o">@</span> <span class="n">dsd3__ds3</span>

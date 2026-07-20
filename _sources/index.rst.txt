@@ -13,20 +13,28 @@ environment without black-box solvers.
 Latest Release Notes
 ====================
 
-.. container:: featured-release-box
+.. raw:: html
 
-   .. image:: _static/release_notes/0_1_0_saltro_live.gif
-      :alt: Trajectory optimization animation
-      :width: 300px
-      :align: right
-
-   **The age of trajectory optimization is upon us!**
-
-   Generalized_ADCS now includes two optional add-ons:
-   :doc:`Trajectory Planner <installation/trajectory_planner_addon>` and :doc:`SALTRO <installation/saltro_addon>`.
-   Trajectory optimization enables more aggressive retargeting maneuvers than simple point-to-point commands.
-
-   :doc:`→ Explore release note 0.1.0 <release_notes/0_1_0_saltro>`
+   <div class="release-grid">
+     <a class="release-card release-card-featured" href="release_notes/0_1_7_benchmark.html">
+       <img src="_static/release_notes/0_1_7_benchmark_small.png" alt="Benchmark report preview">
+       <div class="release-card-copy">
+         <div class="release-card-kicker">Update 0.1.7</div>
+         <h3>Benchmark</h3>
+         <p>New performance benchmarks run on every pull request into <code>main</code> and compare results to catch regressions early.</p>
+         <span>Explore release note 0.1.7</span>
+       </div>
+     </a>
+     <a class="release-card" href="release_notes/0_1_6_remote_execution.html">
+       <img src="_static/release_notes/0_1_6_raspberry_pi.jpeg" alt="Remote execution on Raspberry Pi">
+       <div class="release-card-copy">
+         <div class="release-card-kicker">Update 0.1.6</div>
+         <h3>Remote Execution</h3>
+         <p>Selected ADCS components can run on a Raspberry Pi over XML-RPC while the main PC keeps the truth model and simulation loop local.</p>
+         <span>Explore release note 0.1.6</span>
+       </div>
+     </a>
+   </div>
 
 What you can do with Generalized ADCS
 -------------------------------------
