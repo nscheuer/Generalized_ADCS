@@ -74,7 +74,7 @@ following institutions. Points of contact are listed for collaboration inquiries
       <br><br>
       <strong>Tufts University</strong><br>
       CubeSat Team<br>
-      📧 <a href="mailto:William.Goldman@tufts.edu">William Goldman</a>
+      Email: <a href="mailto:William.Goldman@tufts.edu">William Goldman</a>
     </td>
     <td align="center" width="240">
       <a href="https://satellite.mit.edu/#/">
@@ -83,9 +83,8 @@ following institutions. Points of contact are listed for collaboration inquiries
       <br><br>
       <strong>MIT</strong><br>
       Satellite Team<br>
-      📧 <a href="mailto:Aleks.Garbuz@mit.edu">Aleks Garbuz</a>
+      Email: <a href="mailto:Aleks.Garbuz@mit.edu">Aleks Garbuz</a>
     </td>
-    <!-- Add new institutions here, 3 per row recommended -->
   </tr>
 </table>
 
