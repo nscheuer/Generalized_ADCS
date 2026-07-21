@@ -62,29 +62,34 @@ See the release paper:
 
 ## Used By
 
-Generalized ADCS is being used in coursework, research, and CubeSat development at the
-following institutions. Points of contact are listed for collaboration inquiries.
+<p align="center"><em>Institutions using Generalized ADCS in research, coursework, and CubeSat development.</em></p>
 
-<table>
+<table border="0" cellspacing="0" cellpadding="20" align="center">
   <tr>
-    <td align="center" width="240">
+    <td align="center" width="260">
       <a href="https://tufts-cubesat.vercel.app/">
-        <img src="https://brand.tufts.edu/sites/g/files/lrezom786/files/styles/large/public/2022-09/Tufts-logo-4c_5.jpg?itok=pQ14NYSX" alt="Tufts University Logo" height="70">
+        <img src="https://brand.tufts.edu/sites/g/files/lrezom786/files/styles/large/public/2022-09/Tufts-logo-4c_5.jpg?itok=pQ14NYSX"
+             alt="Tufts University Logo" height="72"
+             style="border-radius: 12px; padding: 8px; background: #ffffff;">
       </a>
-      <br><br>
-      <strong>Tufts University</strong><br>
-      CubeSat Team<br>
-      Email: <a href="mailto:William.Goldman@tufts.edu">William Goldman</a>
+      <br>
+      <sub><strong>Tufts University</strong></sub><br>
+      <sub>CubeSat Team</sub><br>
+      <sub>Email: <a href="mailto:William.Goldman@tufts.edu">William Goldman</a></sub>
     </td>
-    <td align="center" width="240">
+    <td align="center" width="260">
       <a href="https://satellite.mit.edu/#/">
-        <img src="https://brand.mit.edu/sites/default/files/styles/image_text_2x/public/2023-08/MIT-logo-red-textandimage.png?itok=RNoAwZvy" alt="MIT Logo" height="70">
+        <img src="https://brand.mit.edu/sites/default/files/styles/image_text_2x/public/2023-08/MIT-logo-red-textandimage.png?itok=RNoAwZvy"
+             alt="MIT Logo" height="72"
+             style="border-radius: 12px; padding: 8px; background: #ffffff;">
       </a>
-      <br><br>
-      <strong>MIT</strong><br>
-      Satellite Team<br>
-      Email: <a href="mailto:Aleks.Garbuz@mit.edu">Aleks Garbuz</a>
+      <br>
+      <sub><strong>MIT</strong></sub><br>
+      <sub>Satellite Team</sub><br>
+      <sub>Email: <a href="mailto:Aleks.Garbuz@mit.edu">Aleks Garbuz</a></sub>
     </td>
   </tr>
 </table>
+
+<p align="center"><sub>Want your team listed here? <a href="https://github.com/nscheuer/Generalized_ADCS/issues">Open an issue</a> or submit a PR.</sub></p>
 
