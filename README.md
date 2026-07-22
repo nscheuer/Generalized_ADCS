@@ -86,7 +86,7 @@ See the release paper:
       <br>
       <sub><strong>MIT</strong></sub><br>
       <sub>Satellite Team</sub><br>
-      <sub>Email: <a href="mailto:Aleks.Garbuz@mit.edu">Aleks Garbuz</a></sub>
+      <sub>Email: <a href="mailto:agarbuz@mit.edu">Aleks Garbuz</a></sub>
     </td>
   </tr>
 </table>
