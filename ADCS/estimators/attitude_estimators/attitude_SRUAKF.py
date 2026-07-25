@@ -437,28 +437,28 @@ class SRUAKF(UAKF):
 
         # --- BLOCK 3: CONTROL / PROCESS NOISE ---
         if L_q > 0:
-            # We compute Cholesky for Q on the fly (usually small 6x6)
-            # Ensure it is Upper Triangular for consistency if needed, 
-            # though usually standard Cholesky (Lower) is fine for noise blocks 
-            # as long as we take columns. 
+            # Square-root factor of the control/process-noise covariance.
+            # control_cov can be only positive-SEMI-definite (e.g. an actuator
+            # with zero process noise contributes a zero eigenvalue), so a plain
+            # Cholesky can raise LinAlgError. The previous behaviour silently
+            # `pass`-ed on failure, which skipped this block's 2*L_q sigma points
+            # while num_sigma = 2L+1 still counted them -- corrupting the
+            # sigma-point/weight alignment and raising an IndexError downstream.
+            # Fall back to a PSD-safe eigendecomposition factor so that exactly
+            # 2*L_q sigma points are always produced (perturbations in a
+            # zero-variance direction are simply the mean control).
             try:
                 # np.linalg.cholesky returns Lower.
-                L_mat_q = np.linalg.cholesky(control_cov) 
-                # Scaled offsets (columns of L_mat_q)
-                scaled_L_q = gamma * L_mat_q
-                
-                # Transpose to get rows for iteration if using similar logic to S
-                # or just use columns. Let's use standard: [ +Cols, -Cols ]
-                # We need shape (2*L_q, L_q)
-                q_offsets = np.hstack((scaled_L_q, -scaled_L_q)).T 
-                
-                # Append to pts: [mean_state, 0, modified_ctrl, 0]
-                for k in q_offsets:
-                    pts.append([pt0, zeros_sens, k, zeros_int])
-                    
+                L_mat_q = np.linalg.cholesky(control_cov)
             except np.linalg.LinAlgError:
-                # Fallback if Q is not positive definite (rare for process noise)
-                pass
+                w_q, V_q = np.linalg.eigh(control_cov)
+                L_mat_q = V_q @ np.diag(np.sqrt(np.clip(w_q, 0.0, None)))
+            # Scaled offsets, shape (2*L_q, L_q): [ +cols, -cols ]
+            scaled_L_q = gamma * L_mat_q
+            q_offsets = np.hstack((scaled_L_q, -scaled_L_q)).T
+            # Append to pts: [mean_state, 0, modified_ctrl, 0]
+            for k in q_offsets:
+                pts.append([pt0, zeros_sens, k, zeros_int])
 
         # --- BLOCK 4: INT NOISE (Skipped - assumed zero) ---
 
