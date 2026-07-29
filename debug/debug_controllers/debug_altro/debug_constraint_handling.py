@@ -139,7 +139,7 @@ def prepare_environment(setup):
 
     goals = GoalList({0.22: No_Goal(), 0.22 + 3 * TimeConstants.sec2cent: ECI_Goal(np.array([1, 1, 1]))})
 
-    E = np.zeros((3, N), dtype=np.float64, order="F")
+    E = np.zeros((4, N), dtype=np.float64, order="F")
     A = np.zeros((3, N), dtype=np.float64, order="F")
     p = np.zeros(N, dtype=np.float64)
 
@@ -147,8 +147,8 @@ def prepare_environment(setup):
         t = float(times[i])
         os_at_t = sim_orbit.get_os(t)
         g_vec, _ = goals.to_ref(t, os_at_t)
-        E[:, i] = np.asarray(g_vec, dtype=np.float64).reshape(3)
-        A[:, i] = real_sat.boresight
+        E[:, i] = np.asarray(g_vec, dtype=np.float64).reshape(4)
+        A[:, i] = real_sat.get_boresight()
 
     t_c = np.ascontiguousarray(times, dtype=np.float64)
     p = np.ascontiguousarray(p, dtype=np.float64)

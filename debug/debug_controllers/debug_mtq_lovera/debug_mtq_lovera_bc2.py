@@ -1,13 +1,12 @@
 import sys
 import os
 import numpy as np
-from ADCS.state import State
 from scipy.integrate import solve_ivp
 from typing import List, Union
 from tqdm import tqdm
 import pytest
 
-sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))
+sys.path.append(os.path.abspath(os.path.join(__file__, "../../../..")))
 from ADCS.CONOPS.goals import Goal, ECI_Goal, Coordinate_Goal
 from ADCS.controller import MTQ_Lovera
 from ADCS.orbits.ephemeris import Ephemeris
@@ -20,6 +19,7 @@ from ADCS.satellite_hardware.actuators import MTQ, RW
 from ADCS.satellite_factory.satellites.create_cubesats import create_beavercube2_cubesat
 from ADCS.helpers.math_constants import MathConstants
 from ADCS.helpers.math_helpers import random_n_unit_vec, normalize
+from ADCS.state import State
 
 from ADCS.helpers.plotting.animate_estimator import animate_attitude
 from ADCS.helpers.plotting.plot_estimator import plot_state_comparison
@@ -62,7 +62,7 @@ def test_MTQ_w_RW_LP_align(verbose: bool = False, tf: float = 1000, dt: float = 
         orb = Orbit(orbs)
 
     # Controller
-    controller = MTQ_Lovera(est_sat=real_sat, p_gain=0.001, d_gain=0.005, eps=1.0)
+    controller = MTQ_Lovera(est_sat=real_sat, p_gain=0.0000001, d_gain=0.0, eps=1.0)
 
     time_hist = np.nan*np.zeros(N)
     state_hist: List[State] = []
@@ -122,4 +122,4 @@ def plot_MTQ_w_RW_LP_align(verbose: bool = False, tf: float = 1000, dt: float = 
     create_close_all_button_window()
 
 if __name__ == "__main__":
-    plot_MTQ_w_RW_LP_align(verbose=False, tf = 4000, dt = 2, real_orbit=True)
+    plot_MTQ_w_RW_LP_align(verbose=False, tf = 1000, dt = 2, real_orbit=True)

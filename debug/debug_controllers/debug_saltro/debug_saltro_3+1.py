@@ -22,6 +22,7 @@ from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.controller.saltro.SALTRO_planner_settings import PlannerSettings
 from ADCS.controller.helpers.trajectory import Trajectory
+from ADCS.state import State
 
 from ADCS.satellite_hardware.satellite.satellite import Satellite
 from ADCS.satellite_hardware.sensors import MTM
@@ -118,9 +119,9 @@ def _configure_like_saltro_debug(planner_settings: PlannerSettings, dt: float) -
     cost.magic_control_weight = 0.0
     cost.rw_AM_weight = 0.0
     cost.rw_stic_weight = 0.0
-    cost.RWh_max_mult = 0.0
     cost.RWh_stiction_mult = 0.0
-    cost.RWh_ok_mult = 0.0
+    cost.RWh_knee_frac = 0.0
+    cost.RWh_desat_mult = 0.0
     cost.angle_N = 1e2
     cost.ang_vel_N = 1e1
     cost.ang_vel_mag_N = 0.0
@@ -170,9 +171,9 @@ def _configure_like_saltro_debug_cpp(cpp_settings, dt: float) -> None:
     cost.magic_control_weight = 0.0
     cost.rw_AM_weight = 0.0
     cost.rw_stic_weight = 0.0
-    cost.RWh_max_mult = 0.0
     cost.RWh_stiction_mult = 0.0
-    cost.RWh_ok_mult = 0.0
+    cost.RWh_knee_frac = 0.0
+    cost.RWh_desat_mult = 0.0
     cost.angle_N = 1e2
     cost.ang_vel_N = 1e1
     cost.ang_vel_mag_N = 0.0
@@ -335,7 +336,7 @@ def debug_saltro(
     for k in tqdm(range(n_out), desc="Simulating SALTRO open-loop"):
         os_k = orb.get_os(J2000=float(jtime[k]))
         os_hist.append(os_k)
-        sensor_hist[k, :] = real_sat.sensor_readings(x=state_hist[k, :], os=os_k)
+        sensor_hist[k, :] = real_sat.sensor_readings(x=State.from_array(state_hist[k, :]), os=os_k)
 
     if verbose:
         print("SALTRO trajOpt succeeded (open-loop)")
@@ -375,7 +376,7 @@ def debug_saltro_closed_loop(
     # Flip sign once at the interface, then apply debug attenuation.
     K_time *= -1.0
     S_dummy = np.zeros(n_ref, dtype=np.float64)
-    traj = Trajectory(
+    traj = Trajectory.from_arrays(
         t=np.asarray(np.linspace(t_start, t_start + tf * TimeConstants.sec2cent, n_ref), dtype=np.float64),
         x=np.asarray(X_ref, dtype=np.float64),
         u=np.asarray(U_ref, dtype=np.float64),
@@ -399,9 +400,9 @@ def debug_saltro_closed_loop(
     for k in tqdm(range(n_out), desc="Simulating SALTRO closed-loop"):
         os_k = orb.get_os(J2000=float(jtime[k]))
         os_hist.append(os_k)
-        sensor_hist[k, :] = real_sat.sensor_readings(x=state_hist[k, :], os=os_k)
+        sensor_hist[k, :] = real_sat.sensor_readings(x=State.from_array(state_hist[k, :]), os=os_k)
 
-        u_cmd = traj.compute_tracking_control(float(jtime[k]), state_hist[k, :])
+        u_cmd = traj.compute_tracking_control(float(jtime[k]), State.from_array(state_hist[k, :]))
         u_hist[k, :] = u_cmd
 
         if k < n_out - 1:

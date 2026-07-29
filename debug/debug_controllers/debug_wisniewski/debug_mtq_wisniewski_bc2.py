@@ -1,7 +1,6 @@
 import sys
 import os
 import numpy as np
-from ADCS.state import State
 from scipy.integrate import solve_ivp
 from typing import List, Union
 from tqdm import tqdm
@@ -21,6 +20,7 @@ from ADCS.satellite_hardware.actuators import MTQ, RW
 from ADCS.satellite_factory.satellites.create_cubesats import create_beavercube2_cubesat
 from ADCS.helpers.math_constants import MathConstants
 from ADCS.helpers.math_helpers import random_n_unit_vec, normalize
+from ADCS.state import State
 
 from ADCS.helpers.plotting.animate_estimator import animate_attitude
 from ADCS.helpers.plotting.plot_estimator import plot_state_comparison

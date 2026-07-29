@@ -7,6 +7,7 @@ from scipy.integrate import solve_ivp
 from tqdm import tqdm
 
 sys.path.append(os.path.abspath(os.path.join(__file__, "../../../..")))
+from ADCS.CONOPS.goals import ECI_Goal
 from ADCS.controller import MTQ_w_RW, BDot
 from ADCS.estimators.attitude_estimators.attitude_SRUAKF import SRUAKF
 from ADCS.orbits.orbit import Orbit
@@ -15,7 +16,7 @@ from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.satellite_hardware.satellite.satellite import Satellite
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
-from ADCS.satellite_hardware.errors import Noise, Bias
+from ADCS.satellite_hardware.errors import Noise, Bias, ErrorMode
 from ADCS.satellite_hardware.actuators import MTQ, RW
 from ADCS.satellite_hardware.sensors import MTM, Gyro, SunPair
 from ADCS.satellite_hardware.disturbances import GeometryFace, GG_Disturbance, Drag_Disturbance, GeometryConfig
@@ -145,6 +146,7 @@ def create_matrices(est_sat: EstimatedSatellite, dt: float) -> Tuple[np.ndarray,
     mtm_bsr = 1e-9
     gyro_bsr = 0.0004*np.pi/180.0
     sun_bsr = 0.00001
+    n_rw = est_sat.number_RW
     
     invJ = np.linalg.inv(est_sat.J_0)
     # Dynamics
@@ -161,12 +163,21 @@ def create_matrices(est_sat: EstimatedSatellite, dt: float) -> Tuple[np.ndarray,
     # Biases
     mult_mtm = 1
     mult_sun = 10.0
+    sigma_rw_momentum = 1e-4
+    Q_rw = np.eye(n_rw) * sigma_rw_momentum**2 * dt
     Q_mtm  = np.eye(3) * (mtm_bsr * mult_mtm)**2.0 * dt
     Q_gyro = np.eye(3) * (gyro_bsr)**2.0 * dt
     Q_sun  = np.eye(3) * (sun_bsr * mult_sun)**2.0 * dt
-    Q_est = block_diag(Q_dyn_block, Q_mtm, Q_gyro, Q_sun)
+    Q_est = block_diag(Q_dyn_block, Q_rw, Q_mtm, Q_gyro, Q_sun)
 
-    P_est = block_diag(np.eye(3)*(0.01)**2.0, np.eye(3)*3, 0.001*np.eye(3)*mtm_bsr**2.0, np.eye(3)*1000*gyro_bsr**2.0, np.eye(3)*100*sun_bsr**2.0)
+    P_est = block_diag(
+        np.eye(3) * (0.01)**2.0,
+        np.eye(3) * 3.0,
+        np.eye(n_rw) * (0.1)**2.0,
+        0.001 * np.eye(3) * mtm_bsr**2.0,
+        np.eye(3) * 1000 * gyro_bsr**2.0,
+        np.eye(3) * 100 * sun_bsr**2.0,
+    )
 
     return P_est, Q_est
 
@@ -209,9 +220,9 @@ def controller_task(t, memory):
     if memory["MODE_control"] == "MODE_BDOT":
         memory["control_u"] = memory["CONTROL_BDOT"].find_u(x_hat, sens, est_sat, os_hat)
     elif memory["MODE_control"] == "MODE_MTQ_W_RW":
-        memory["control_u"] = memory["CONTROL_MTQ_W_RW"].find_u(x_hat, sens, est_sat, os_hat)
+        memory["control_u"] = memory["CONTROL_MTQ_W_RW"].find_u(x_hat, sens, est_sat, os_hat, goal=memory["GOAL"])
     else:
-        memory["control_u"] = np.zeros(6)
+        memory["control_u"] = np.zeros(est_sat.control_len)
 
 def sensor_task(t, memory):
     memory["log"].append(f"{t:.2f}: SENS")
@@ -236,16 +247,18 @@ def main():
 
     bdot = BDot(est_sat=est_sat, gain=100)
     mtq_w_rw = MTQ_w_RW(est_sat=real_sat, p_gain=0.1, d_gain=0.7, c_gain=0.1, h_target=np.array([0, 0, 0]))
+    sensor_dim = len(real_sat.sensors + real_sat.rw_actuators)
 
     memory = {
         "log": [],
-        "sensor_readings": np.zeros(9),
-        "control_u": np.zeros(3),
+        "sensor_readings": np.zeros(sensor_dim),
+        "control_u": np.zeros(est_sat.control_len),
         "orbital_state": [],
         "x_hat": [],
         "ESTIMATOR": ukf,
         "CONTROL_BDOT": bdot,
         "CONTROL_MTQ_W_RW": mtq_w_rw,
+        "GOAL": ECI_Goal(np.array([1, 0, 0])),
         "MODE_control": "MODE_BDOT",
     }
 
@@ -262,8 +275,8 @@ def main():
     state_hist: List[State] = []
     est_state_hist: List[EstimatedState] = []
     os_hist: List[Orbital_State] = list()
-    sensor_hist: List[np.ndarray] = np.nan*np.zeros((N, 9))
-    clean_sensor_hist: List[np.ndarray] = np.nan*np.zeros((N, 9))
+    sensor_hist: List[np.ndarray] = np.nan*np.zeros((N, sensor_dim))
+    clean_sensor_hist: List[np.ndarray] = np.nan*np.zeros((N, sensor_dim))
     u_hist = np.nan*np.zeros((N, 6))
     real_mtm_bias_hist = np.nan*np.zeros((N, 3))
     est_mtm_bias_hist = np.nan*np.zeros((N, 3))
@@ -297,13 +310,13 @@ def main():
         real_mtm_biases = np.concatenate([mtm.bias.bias for mtm in real_sat.sensors if isinstance(mtm, MTM)])
         real_sun_biases = np.concatenate([sun.bias.bias for sun in real_sat.sensors if isinstance(sun, SunPair)])
         state_hist.append(x.copy())
-        est_state_hist.append(memory["estimator"].x_hat.copy())
+        est_state_hist.append(memory["ESTIMATOR"].x_hat.copy())
         real_mtm_bias_hist[ind,:] = real_mtm_biases
-        est_mtm_bias_hist[ind,:] = memory["estimator"].x_hat.sens_bias[0:3]
+        est_mtm_bias_hist[ind,:] = memory["ESTIMATOR"].x_hat.sens_bias[0:3]
         real_gyro_bias_hist[ind,:] = real_gyro_biases
-        est_gyro_bias_hist[ind,:] = memory["estimator"].x_hat.sens_bias[3:6]
+        est_gyro_bias_hist[ind,:] = memory["ESTIMATOR"].x_hat.sens_bias[3:6]
         real_sun_bias_hist[ind,:] = real_sun_biases
-        est_sun_bias_hist[ind,:] = memory["estimator"].x_hat.sens_bias[6:9]
+        est_sun_bias_hist[ind,:] = memory["ESTIMATOR"].x_hat.sens_bias[6:9]
         os_hist += [core.memory["orbital_state"]]
         sensor_hist[ind,:] = core.memory["sensor_readings"]
         clean_sensor_hist[ind,:] = clean_sensor_readings

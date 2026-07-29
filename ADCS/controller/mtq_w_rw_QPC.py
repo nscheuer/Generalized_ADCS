@@ -183,7 +183,7 @@ class MTQ_w_RW_QPC(MTQ_w_RW_LP):
         est_sat: EstimatedSatellite,
         os_hat: Orbital_State,
         goal: Goal | None = None,
-    ) -> tuple[np.ndarray, np.ndarray | None]:
+    ) -> np.ndarray:
         r"""
         Compute actuator commands for either detumble or goal-tracking operation.
 
@@ -210,9 +210,6 @@ class MTQ_w_RW_QPC(MTQ_w_RW_LP):
         :meth:`~ADCS.controller.MTQ_w_RW_QPC.allocate_max_torque_in_direction` to allocate the
         requested torque under actuator bounds and the energy gate constraint.
 
-        Returned torque is the internally formed desired body torque for the goal-tracking branch
-        and is not defined for the detumble branch in this implementation.
-
         :param x_hat: Estimated state vector containing angular rate, attitude quaternion, and
                       optionally wheel momentum states.
         :type x_hat: ADCS.state.EstimatedState
@@ -225,9 +222,8 @@ class MTQ_w_RW_QPC(MTQ_w_RW_LP):
         :type os_hat: :class:`~ADCS.orbits.orbital_state.Orbital_State`
         :param goal: Optional goal object providing desired pointing and reference rates.
         :type goal: :class:`~ADCS.CONOPS.goals.Goal` | None
-        :return: Tuple of commanded actuator vector and the desired torque used for allocation in
-                 the goal-tracking branch.
-        :rtype: tuple[numpy.ndarray, numpy.ndarray | None]
+        :return: Actuator command vector in ``est_sat.actuators`` ordering.
+        :rtype: numpy.ndarray
 
         """
         if goal is None:

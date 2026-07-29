@@ -369,16 +369,24 @@ class SRUAKF(UAKF):
 
         # Control/Process Noise Covariance
         control_cov = self.est_sat.control_cov()
-        L_q = control_cov.shape[0] if control_cov.size > 0 else 0
         
         # Sensor & Integration Covariances (Zeroed out in this architecture)
-        # We maintain their shapes for the list structure
-        sens_cov = self.est_sat.sensor_cov(which_sensors=which_sensors)
-        L_r = 0 # Explicitly treating as 0 contribution to L
-        L_int = 0
+        # We maintain their shapes for the list structure.
+        sens_cov = self.est_sat.sensor_cov(which_sensors=which_sensors) * 0.0
+        int_cov = self.x_hat.int_cov * 0.0
 
-        # Total Augmented Dimension
-        L = L_x + L_q + L_r + L_int
+        include_cov = self.determine_covariances_to_use(
+            self.x_hat.cov,
+            sens_cov,
+            control_cov,
+            int_cov,
+        )
+        covs = [self.x_hat.cov, sens_cov, control_cov, int_cov]
+
+        L_q = control_cov.shape[0] if include_cov[2] and control_cov.size > 0 else 0
+
+        # Total Augmented Dimension must match the blocks that actually generate points.
+        L = int(sum(include_cov[j] * covs[j].shape[0] for j in range(4)))
 
         # 2. Weights (Standard UKF)
         # -------------------------
@@ -406,7 +414,7 @@ class SRUAKF(UAKF):
         zeros_state = pt0 # Not used as zero, but as placeholder
         zeros_sens = np.zeros(sens_cov.shape[0], dtype=dtype) if sens_cov.size > 0 else np.zeros(0, dtype=dtype)
         zeros_ctrl = np.zeros(L_q, dtype=dtype) if L_q > 0 else np.zeros(0, dtype=dtype)
-        zeros_int  = np.zeros(self.x_hat.int_cov.shape[0], dtype=dtype) if self.x_hat.int_cov.size > 0 else np.zeros(0, dtype=dtype)
+        zeros_int  = np.zeros(int_cov.shape[0], dtype=dtype) if int_cov.size > 0 else np.zeros(0, dtype=dtype)
 
         # The mean point list [state, sens, ctrl, int]
         # Note: pt0 is the mean state
@@ -436,29 +444,18 @@ class SRUAKF(UAKF):
         # If L_r > 0, we would compute cholesky(sens_cov) here.
 
         # --- BLOCK 3: CONTROL / PROCESS NOISE ---
-        if L_q > 0:
-            # We compute Cholesky for Q on the fly (usually small 6x6)
-            # Ensure it is Upper Triangular for consistency if needed, 
-            # though usually standard Cholesky (Lower) is fine for noise blocks 
-            # as long as we take columns. 
+        if include_cov[2] and L_q > 0:
             try:
-                # np.linalg.cholesky returns Lower.
-                L_mat_q = np.linalg.cholesky(control_cov) 
-                # Scaled offsets (columns of L_mat_q)
-                scaled_L_q = gamma * L_mat_q
-                
-                # Transpose to get rows for iteration if using similar logic to S
-                # or just use columns. Let's use standard: [ +Cols, -Cols ]
-                # We need shape (2*L_q, L_q)
-                q_offsets = np.hstack((scaled_L_q, -scaled_L_q)).T 
-                
-                # Append to pts: [mean_state, 0, modified_ctrl, 0]
-                for k in q_offsets:
-                    pts.append([pt0, zeros_sens, k, zeros_int])
-                    
+                root_q = np.linalg.cholesky(control_cov)
             except np.linalg.LinAlgError:
-                # Fallback if Q is not positive definite (rare for process noise)
-                pass
+                eigvals, eigvecs = np.linalg.eigh(control_cov)
+                root_q = eigvecs @ np.diag(np.sqrt(np.clip(eigvals, 0.0, None)))
+
+            scaled_root_q = gamma * root_q
+            q_offsets = np.hstack((scaled_root_q, -scaled_root_q)).T
+
+            for k in q_offsets:
+                pts.append([pt0, zeros_sens, k, zeros_int])
 
         # --- BLOCK 4: INT NOISE (Skipped - assumed zero) ---
 

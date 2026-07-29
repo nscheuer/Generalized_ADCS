@@ -1,13 +1,12 @@
 import sys
 import os
 import numpy as np
-from ADCS.state import State
 from scipy.integrate import solve_ivp
 from typing import List, Union
 from tqdm import tqdm
 import pytest
 
-sys.path.append(os.path.abspath(os.path.join(__file__, "../..")))
+sys.path.append(os.path.abspath(os.path.join(__file__, "../../../..")))
 from ADCS.CONOPS.goals import Goal, ECI_Goal, Coordinate_Goal
 from ADCS.controller.mtq_w_rw_QPC import MTQ_w_RW_QPC
 from ADCS.orbits.ephemeris import Ephemeris
@@ -19,6 +18,7 @@ from ADCS.satellite_hardware.sensors import MTM
 from ADCS.satellite_hardware.actuators import MTQ, RW
 from ADCS.helpers.math_constants import MathConstants
 from ADCS.helpers.math_helpers import random_n_unit_vec, normalize
+from ADCS.state import State
 
 from ADCS.helpers.plotting.animate_estimator import animate_attitude
 from ADCS.helpers.plotting.plot_estimator import plot_state_comparison
@@ -96,7 +96,7 @@ def test_MTQ_w_RW_QP_align(verbose: bool = False, tf: float = 1000, dt: float = 
         os = orb.get_os(J2000=J2000)
 
         sens = real_sat.sensor_readings(x=x, os=os)
-        u,_ = controller.find_u(x_hat=x, sens=sens, est_sat=real_sat, os_hat=os, goal=goal)
+        u = controller.find_u(x_hat=x, sens=sens, est_sat=real_sat, os_hat=os, goal=goal)
 
         if verbose:
             print("u: ", u)

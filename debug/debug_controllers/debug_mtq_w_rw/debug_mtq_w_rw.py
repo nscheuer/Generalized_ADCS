@@ -1,7 +1,6 @@
 import sys
 import os
 import numpy as np
-from ADCS.state import State
 from scipy.integrate import solve_ivp
 from typing import List, Union
 from tqdm import tqdm
@@ -19,6 +18,7 @@ from ADCS.satellite_hardware.sensors import MTM
 from ADCS.satellite_hardware.actuators import MTQ, RW
 from ADCS.helpers.math_constants import MathConstants
 from ADCS.helpers.math_helpers import random_n_unit_vec, normalize
+from ADCS.state import State
 
 from ADCS.helpers.plotting.animate_estimator import animate_attitude
 from ADCS.helpers.plotting.plot_estimator import plot_state_comparison
@@ -86,8 +86,7 @@ def test_mtq_w_rw_align_to_eci(verbose: bool = False, tf: float = 1000, dt: floa
     ind = 0
     steps = int((tf - t0)/dt)
 
-    # goal = ECI_Goal(np.array([1, 0, 0]))
-    # goal = Coordinate_Goal(lat=38.7223, lon=-10, alt=0)
+    goal = ECI_Goal(np.array([1, 0, 0]))
 
     for step in tqdm(range(steps), desc="Simulating MTQ_w_RW"):
         J2000 = 0.22 + t*TimeConstants.sec2cent
