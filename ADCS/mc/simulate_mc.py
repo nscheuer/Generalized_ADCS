@@ -234,7 +234,8 @@ def _simulate_with_precomputed_orbit(
             rtol=1e-7,
             atol=1e-7,
         )
-        x = State.from_array(out.y[:, -1]).normalized()
+        x = State.from_array(out.y[:, -1])
+        x = x.normalized()
 
         target, w_target = active_goal.to_ref(os_for_gnc)
 

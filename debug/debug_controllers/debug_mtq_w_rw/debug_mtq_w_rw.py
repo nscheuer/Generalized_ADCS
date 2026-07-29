@@ -113,7 +113,8 @@ def test_mtq_w_rw_align_to_eci(verbose: bool = False, tf: float = 1000, dt: floa
         os = orb.get_os(0.22+(t-t0)*TimeConstants.sec2cent)
 
         out = solve_ivp(fun=real_sat.dynamics_for_solver, t_span=(0, dt), y0=x.as_array(), method="RK45", args=(u, prev_os, os), rtol=1e-7, atol=1e-7)
-        x = State.from_array(out.y[:, -1]).normalized()
+        x = State.from_array(out.y[:, -1])
+        x = x.normalized()
 
     return time_hist, state_hist, os_hist, sensor_hist, u_hist, boresight_hist
 

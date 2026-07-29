@@ -210,7 +210,8 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
                 rtol=1e-7,
                 atol=1e-7,
             )
-            x = State.from_array(out.y[:, -1]).normalized()
+            x = State.from_array(out.y[:, -1])
+            x = x.normalized()
 
         # Final UI update
         update_worker_progress(slot_id, run_id, steps, steps)

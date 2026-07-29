@@ -147,7 +147,8 @@ def run_bdot_simulation(
             rtol=1e-7,
             atol=1e-7,
         )
-        x = State.from_array(out.y[:, -1]).normalized()
+        x = State.from_array(out.y[:, -1])
+        x = x.normalized()
         t = next_t
 
     return BDotRun(

@@ -289,7 +289,8 @@ def run_mtq_wisniewski_simulation(
             rtol=1.0e-7,
             atol=1.0e-7,
         )
-        x = State.from_array(out.y[:, -1]).normalized()
+        x = State.from_array(out.y[:, -1])
+        x = x.normalized()
         t = next_t
 
     return WisniewskiRun(

@@ -233,7 +233,8 @@ def run_ukf(verbose: bool = False, tf: float = 1000, dt: float = 10, real_orbit:
 
         out = solve_ivp(fun=real_sat.dynamics_for_solver, t_span=(0, dt), y0=x.as_array(), method="RK45", args=(u, prev_os, os), rtol=1e-7, atol=1e-7)
 
-        x = State.from_array(out.y[:, -1]).normalized()
+        x = State.from_array(out.y[:, -1])
+        x = x.normalized()
 
     return time_hist, state_hist, est_state_hist, os_hist, sensor_hist, clean_sensor_hist, u_hist, cov_hist
 

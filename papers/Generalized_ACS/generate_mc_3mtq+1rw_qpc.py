@@ -141,7 +141,8 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
                 fun=sat_dynamics, t_span=(0, dt), y0=x.as_array(), method="RK45",
                 args=(u, prev_os, os_next), rtol=1e-6, atol=1e-6
             )
-            x = State.from_array(out.y[:, -1]).normalized()
+            x = State.from_array(out.y[:, -1])
+            x = x.normalized()
 
         # Final UI update
         update_worker_progress(slot_id, run_id, steps, steps)

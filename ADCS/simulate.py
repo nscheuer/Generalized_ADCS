@@ -269,7 +269,8 @@ def simulate(
             atol=1e-7,
         )
         dynamics_time_s = time.perf_counter() - dyn_t0
-        x = State.from_array(out.y[:, -1]).normalized()
+        x = State.from_array(out.y[:, -1])
+        x = x.normalized()
 
         target, w_target = active_goal.to_ref(os_for_gnc) 
 
