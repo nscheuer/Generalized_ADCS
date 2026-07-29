@@ -146,8 +146,8 @@ def plot_state_comparison(
 
 def plot_error_and_sun(
     time: np.ndarray,
-    state_hist: np.ndarray,
-    est_state_hist: np.ndarray,
+    state_hist: List[State],
+    est_state_hist: List[State],
     os_hist: List
 ) -> None:
     r"""
@@ -225,12 +225,12 @@ def plot_error_and_sun(
     :param state_hist:
         True spacecraft state history.
     :type state_hist:
-        numpy.ndarray
+        list[ADCS.state.State]
 
     :param est_state_hist:
         Estimated spacecraft state history.
     :type est_state_hist:
-        numpy.ndarray
+        list[ADCS.state.State]
 
     :param os_hist:
         List of orbital state objects providing sunlight information.
@@ -243,6 +243,9 @@ def plot_error_and_sun(
         None
 
     """
+    state_hist = State.stack(state_hist)
+    est_state_hist = State.stack(est_state_hist)
+
     # Allocate error arrays
     quat_err = np.zeros_like(time, dtype=float)
     omega_err = np.zeros_like(time, dtype=float)

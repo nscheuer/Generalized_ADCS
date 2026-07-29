@@ -259,14 +259,18 @@ def main():
     core = TTC_Single_Core(base_rate_hz=10.0, tasks=tasks, memory=memory, debug=False)
 
     time_hist = np.nan*np.zeros(N)
-    state_hist = np.nan*np.zeros((N, ukf.state_len))
-    est_state_hist = np.nan*np.zeros((N, ukf.state_len))
-    state_plot_hist: List[State] = []
-    est_state_plot_hist: List[State] = []
+    state_hist: List[State] = []
+    est_state_hist: List[EstimatedState] = []
     os_hist: List[Orbital_State] = list()
     sensor_hist: List[np.ndarray] = np.nan*np.zeros((N, 9))
     clean_sensor_hist: List[np.ndarray] = np.nan*np.zeros((N, 9))
     u_hist = np.nan*np.zeros((N, 6))
+    real_mtm_bias_hist = np.nan*np.zeros((N, 3))
+    est_mtm_bias_hist = np.nan*np.zeros((N, 3))
+    real_gyro_bias_hist = np.nan*np.zeros((N, 3))
+    est_gyro_bias_hist = np.nan*np.zeros((N, 3))
+    real_sun_bias_hist = np.nan*np.zeros((N, 3))
+    est_sun_bias_hist = np.nan*np.zeros((N, 3))
     cov_hist: List[np.ndarray] = list()
 
     t = t0
@@ -292,10 +296,14 @@ def main():
         real_gyro_biases = np.concatenate([gyro.bias.bias for gyro in real_sat.sensors if isinstance(gyro, Gyro)])
         real_mtm_biases = np.concatenate([mtm.bias.bias for mtm in real_sat.sensors if isinstance(mtm, MTM)])
         real_sun_biases = np.concatenate([sun.bias.bias for sun in real_sat.sensors if isinstance(sun, SunPair)])
-        state_hist[ind,:] = np.concatenate([x.as_array(), real_mtm_biases, real_gyro_biases, real_sun_biases])
-        est_state_hist[ind,:] = core.memory["x_hat"]
-        state_plot_hist.append(x.copy())
-        est_state_plot_hist.append(memory["estimator"].x_hat.copy())
+        state_hist.append(x.copy())
+        est_state_hist.append(memory["estimator"].x_hat.copy())
+        real_mtm_bias_hist[ind,:] = real_mtm_biases
+        est_mtm_bias_hist[ind,:] = memory["estimator"].x_hat.sens_bias[0:3]
+        real_gyro_bias_hist[ind,:] = real_gyro_biases
+        est_gyro_bias_hist[ind,:] = memory["estimator"].x_hat.sens_bias[3:6]
+        real_sun_bias_hist[ind,:] = real_sun_biases
+        est_sun_bias_hist[ind,:] = memory["estimator"].x_hat.sens_bias[6:9]
         os_hist += [core.memory["orbital_state"]]
         sensor_hist[ind,:] = core.memory["sensor_readings"]
         clean_sensor_hist[ind,:] = clean_sensor_readings
@@ -312,16 +320,16 @@ def main():
         x = x.normalized()
 
     
-    plot_state_comparison(time_hist, state_plot_hist, est_state_plot_hist)
+    plot_state_comparison(time_hist, state_hist, est_state_hist)
     plot_error_and_sun(time_hist, state_hist, est_state_hist, os_hist)
     plot_sensor_data(time_hist, sensor_hist, clean_sensor_hist)
-    plot_bias_comparison(time_hist, state_hist[:,10:13], est_state_hist[:,10:13], 
+    plot_bias_comparison(time_hist, real_gyro_bias_hist, est_gyro_bias_hist,
                         "Real vs Estimated Gyroscope Bias", "rad/s")
-    plot_bias_comparison(time_hist, state_hist[:,7:10], est_state_hist[:,7:10], 
+    plot_bias_comparison(time_hist, real_mtm_bias_hist, est_mtm_bias_hist,
                         "Real vs Estimated MTM Bias", "T/s")
-    plot_bias_comparison(time_hist, state_hist[:,13:16], est_state_hist[:,13:16], 
+    plot_bias_comparison(time_hist, real_sun_bias_hist, est_sun_bias_hist,
                         "Real vs Estimated Sun Bias", "W/s")
-    animate_attitude(time_hist, state_plot_hist, est_state_plot_hist, os_hist)
+    animate_attitude(time_hist, state_hist, est_state_hist, os_hist)
     animate_orbit_pyvista(time_hist=time_hist, state_hist=state_hist, os_hist=os_hist)
     create_close_all_button_window()
 
