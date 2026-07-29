@@ -48,9 +48,9 @@ def get_rotation_from_vectors(vec1, vec2):
 
 def animate_orbit_pyvista(
     time_hist: np.ndarray,
-    state_hist: np.ndarray,
+    state_hist: List[State],
     os_hist: List[Orbital_State],
-    est_state_hist: Optional[np.ndarray] = None,
+    est_state_hist: Optional[List[State]] = None,
     est_os_hist: Optional[List[Orbital_State]] = None,
     boresight_goal_hist: Optional[np.ndarray] = None,
     coord_goal: Optional[Coordinate_Goal] = None,

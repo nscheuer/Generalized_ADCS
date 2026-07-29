@@ -65,7 +65,7 @@ def test_MTQ_w_RW_LP_align(verbose: bool = False, tf: float = 1000, dt: float = 
     controller = MTQ_w_RW_LP(est_sat=real_sat, p_gain=0.00005, d_gain=0.002, c_gain=0.001, h_target=np.array([0.0, 0.0, 0.0]))
 
     time_hist = np.nan*np.zeros(N)
-    state_hist = np.nan*np.zeros((N, len(x)))
+    state_hist: List[State] = []
     os_hist: List[Orbital_State] = list()
     sensor_hist: np.ndarray = np.nan*np.zeros((N, len(real_sat.sensors + real_sat.rw_actuators)))
     u_hist = np.nan*np.zeros((N, len(real_sat.actuators)))
@@ -89,7 +89,7 @@ def test_MTQ_w_RW_LP_align(verbose: bool = False, tf: float = 1000, dt: float = 
             print("u: ", u)
 
         time_hist[ind] = t
-        state_hist[ind,:] = x.as_array()
+        state_hist.append(x.copy())
         os_hist += [os]
         sensor_hist[ind,:] = sens
         u_hist[ind,:] = u

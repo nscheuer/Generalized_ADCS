@@ -81,7 +81,7 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
     controller = Plan_and_Track_LQR(est_sat=real_sat, planner_settings=planner_settings)
 
     time_hist = np.nan*np.zeros(N)
-    state_hist = np.nan*np.zeros((N, len(x)))
+    state_hist: List[State] = []
     os_hist: List[Orbital_State] = list()
     sensor_hist: np.ndarray = np.nan*np.zeros((N, len(real_sat.sensors + real_sat.rw_actuators)))
     u_hist = np.nan*np.zeros((N, len(acts)))
@@ -117,7 +117,7 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
             print("u: ", u)
 
         time_hist[ind] = t
-        state_hist[ind,:] = x.as_array()
+        state_hist.append(x.copy())
         os_hist += [os]
         sensor_hist[ind,:] = sens
         u_hist[ind,:] = u

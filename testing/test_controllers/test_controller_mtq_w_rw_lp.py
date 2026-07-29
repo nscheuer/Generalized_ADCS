@@ -50,7 +50,7 @@ SCENARIO_DEFAULTS = {
 @dataclass(frozen=True)
 class MTQwRWLPRun:
     time_hist: np.ndarray
-    state_hist: np.ndarray
+    state_hist: list[State]
     os_hist: list[Orbital_State]
     sensor_hist: np.ndarray
     u_hist: np.ndarray
@@ -214,7 +214,7 @@ def run_mtq_w_rw_lp_simulation(
 
     steps = int(horizon / step)
     time_hist = np.full(steps, np.nan)
-    state_hist = np.full((steps, x.as_array().size), np.nan)
+    state_hist: list[State] = []
     sensor_hist = np.full((steps, len(satellite.sensors + satellite.rw_actuators)), np.nan)
     u_hist = np.full((steps, len(satellite.actuators)), np.nan)
     boresight_hist = np.full((steps, 4), np.nan)
@@ -228,7 +228,7 @@ def run_mtq_w_rw_lp_simulation(
         u = controller.find_u(x_hat=x, sens=sens, est_sat=satellite, os_hat=os_now, goal=goal)
 
         time_hist[index] = t
-        state_hist[index, :] = x.as_array()
+        state_hist.append(x.copy())
         sensor_hist[index, :] = sens
         u_hist[index, :] = u
         boresight_hist[index, :] = goal.to_ref(os0=os_now)[0]
@@ -272,9 +272,7 @@ def _quat_to_dcm_body_to_eci(q: np.ndarray) -> np.ndarray:
 
 
 def _final_pointing_error_deg(run: MTQwRWLPRun) -> float:
-    valid = np.where(np.isfinite(run.state_hist[:, 0]))[0]
-    last = valid[-1]
-    q = run.state_hist[last, 3:7]
+    q = run.state_hist[-1].q
     goal_eci = run.boresight_hist[last, 1:4]
     boresight_eci = _quat_to_dcm_body_to_eci(q) @ np.array([0.0, 0.0, 1.0])
     boresight_eci = boresight_eci / (np.linalg.norm(boresight_eci) + 1.0e-16)
@@ -288,8 +286,7 @@ def _final_control_effort(run: MTQwRWLPRun) -> float:
 
 
 def _final_rate_norm(run: MTQwRWLPRun) -> float:
-    valid = np.where(np.isfinite(run.state_hist[:, 0]))[0]
-    return float(np.linalg.norm(run.state_hist[valid[-1], 0:3]))
+    return float(np.linalg.norm(run.state_hist[-1].w))
 
 
 def _achieved_torque(

@@ -17,8 +17,8 @@ from ADCS.state import State
 
 def plot_state_comparison(
     time: np.ndarray,
-    state_hist: np.ndarray,
-    est_state_hist: Optional[np.ndarray] = None
+    state_hist: List[State],
+    est_state_hist: Optional[List[State]] = None
 ) -> None:
     r"""
     Plot angular velocity and Euler angle time histories, with optional estimation overlay.
@@ -83,13 +83,13 @@ def plot_state_comparison(
         True spacecraft state history. Columns ``[0:3]`` contain angular velocity
         and columns ``[3:7]`` contain attitude quaternions.
     :type state_hist:
-        numpy.ndarray
+        list[ADCS.state.State]
 
     :param est_state_hist:
         Optional estimated spacecraft state history with the same layout as
         ``state_hist``.
     :type est_state_hist:
-        numpy.ndarray or None
+        list[ADCS.state.State] or None
 
     :return:
         None. The function generates a Matplotlib figure.

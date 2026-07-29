@@ -172,6 +172,8 @@ def run_ukf(verbose: bool = False, tf: float = 1000, dt: float = 10, real_orbit:
     time_hist = np.nan*np.zeros(N)
     state_hist = np.nan*np.zeros((N, ukf.state_len))
     est_state_hist = np.nan*np.zeros((N, ukf.state_len))
+    state_plot_hist: List[State] = []
+    est_state_plot_hist: List[State] = []
     os_hist: List[Orbital_State] = list()
     sensor_hist: List[np.ndarray] = np.nan*np.zeros((N, 9))
     clean_sensor_hist: List[np.ndarray] = np.nan*np.zeros((N, 9))
@@ -219,6 +221,8 @@ def run_ukf(verbose: bool = False, tf: float = 1000, dt: float = 10, real_orbit:
         real_sun_biases = np.concatenate([sun.bias.bias for sun in real_sat.sensors if isinstance(sun, SunPair)])
         state_hist[ind,:] = np.concatenate([x.as_array(), real_mtm_biases, real_gyro_biases, real_sun_biases])
         est_state_hist[ind,:] = x_hat.as_estimator_array()
+        state_plot_hist.append(x.copy())
+        est_state_plot_hist.append(x_hat.copy())
         os_hist += [os]
         sensor_hist[ind,:] = noisy_sensor_readings
         clean_sensor_hist[ind,:] = clean_sensor_readings
@@ -236,15 +240,35 @@ def run_ukf(verbose: bool = False, tf: float = 1000, dt: float = 10, real_orbit:
         x = State.from_array(out.y[:, -1])
         x = x.normalized()
 
-    return time_hist, state_hist, est_state_hist, os_hist, sensor_hist, clean_sensor_hist, u_hist, cov_hist
+    return (
+        time_hist,
+        state_hist,
+        est_state_hist,
+        state_plot_hist,
+        est_state_plot_hist,
+        os_hist,
+        sensor_hist,
+        clean_sensor_hist,
+        u_hist,
+        cov_hist,
+    )
 
 
 def plot_ukf(verbose: bool = False, tf: float = 60, dt: float = 1, real_orbit: bool = False) -> None:
-    (time_hist, state_hist, est_state_hist, os_hist,
-     sensor_hist, clean_sensor_hist, u_hist, cov_hist) = run_ukf(
-         verbose=verbose, tf=tf, dt=dt, real_orbit=real_orbit)
+    (
+        time_hist,
+        state_hist,
+        est_state_hist,
+        state_plot_hist,
+        est_state_plot_hist,
+        os_hist,
+        sensor_hist,
+        clean_sensor_hist,
+        u_hist,
+        cov_hist,
+    ) = run_ukf(verbose=verbose, tf=tf, dt=dt, real_orbit=real_orbit)
 
-    plot_state_comparison(time_hist, state_hist, est_state_hist)
+    plot_state_comparison(time_hist, state_plot_hist, est_state_plot_hist)
     plot_error_and_sun(time_hist, state_hist, est_state_hist, os_hist)
     plot_sensor_data(time_hist, sensor_hist, clean_sensor_hist)
     plot_bias_comparison(time_hist, state_hist[:,10:13], est_state_hist[:,10:13], 
@@ -253,7 +277,7 @@ def plot_ukf(verbose: bool = False, tf: float = 60, dt: float = 1, real_orbit: b
                         "Real vs Estimated MTM Bias", "T/s")
     plot_bias_comparison(time_hist, state_hist[:,13:16], est_state_hist[:,13:16], 
                         "Real vs Estimated Sun Bias", "W/s")
-    animate_attitude(time_hist, state_hist, est_state_hist, os_hist)
+    animate_attitude(time_hist, state_plot_hist, est_state_plot_hist, os_hist)
     create_close_all_button_window()
     
 if __name__ == "__main__":

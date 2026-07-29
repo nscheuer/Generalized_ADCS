@@ -22,7 +22,7 @@ from ADCS.state import State
 @dataclass(frozen=True)
 class BDotRun:
     time_hist: np.ndarray
-    state_hist: np.ndarray
+    state_hist: list[State]
     os_hist: list[Orbital_State]
     sensor_hist: np.ndarray
     u_hist: np.ndarray
@@ -114,7 +114,7 @@ def run_bdot_simulation(
 
     steps = int(tf / dt)
     time_hist = np.full(steps, np.nan)
-    state_hist = np.full((steps, state_dim), np.nan)
+    state_hist: list[State] = []
     sensor_hist = np.full((steps, len(satellite.sensors + satellite.rw_actuators)), np.nan)
     u_hist = np.full((steps, len(satellite.actuators)), np.nan)
     os_hist: list[Orbital_State] = []
@@ -130,7 +130,7 @@ def run_bdot_simulation(
         u = controller.find_u(x_hat=x, sens=sens, est_sat=satellite, os_hat=os)
 
         time_hist[ind] = t
-        state_hist[ind, :] = x.as_array()
+        state_hist.append(x.copy())
         sensor_hist[ind, :] = sens
         u_hist[ind, :] = u
         os_hist.append(os)
@@ -318,9 +318,10 @@ def test_bdot_full_convergence_loop() -> None:
     final_u = np.mean(np.abs(results.u_hist[-10:, 0:3]), axis=0)
     np.testing.assert_array_less(final_u, 1e-3)
 
-    final_w = results.state_hist[-1, 0:3]
-    q_final = results.state_hist[-1, 3:7]
-    final_b_body = results.os_hist[-1].get_state_vector(x=State.from_array(results.state_hist[-1]))["b"]
+    final_state = results.state_hist[-1]
+    final_w = final_state.w
+    q_final = final_state.q
+    final_b_body = results.os_hist[-1].get_state_vector(x=final_state)["b"]
     b_unit = final_b_body / np.linalg.norm(final_b_body)
     w_perp = final_w - np.dot(final_w, b_unit) * b_unit
 

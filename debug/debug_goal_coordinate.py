@@ -48,7 +48,7 @@ def test_goal_coordinate_fixed_os(dt, tf, t0):
     x = State(w=w0, q=q0)
 
     time_hist = np.nan*np.zeros(N)
-    state_hist = np.nan*np.zeros((N, 7))
+    state_hist: List[State] = []
     os_hist: List[Orbital_State] = list()
     boresight_goal_hist = np.nan*np.zeros((N, 3))
 
@@ -66,7 +66,7 @@ def test_goal_coordinate_fixed_os(dt, tf, t0):
         u = np.array([])        
 
         time_hist[ind] = t
-        state_hist[ind,:] = x.as_array()
+        state_hist.append(x.copy())
         os_hist += [os]
         eci_goal, w_goal = goal.to_ref(os0=os)
         boresight_goal_hist[ind, :] = eci_goal
@@ -101,7 +101,7 @@ def test_goal_coordinate_real_os(dt, tf, t0):
     x = State(w=w0, q=q0)
 
     time_hist = np.nan*np.zeros(N)
-    state_hist = np.nan*np.zeros((N, 7))
+    state_hist: List[State] = []
     os_hist: List[Orbital_State] = list()
     boresight_goal_hist = np.nan*np.zeros((N, 3))
 
@@ -119,7 +119,7 @@ def test_goal_coordinate_real_os(dt, tf, t0):
         u = np.array([])        
 
         time_hist[ind] = t
-        state_hist[ind,:] = x.as_array()
+        state_hist.append(x.copy())
         os_hist += [os]
         eci_goal, w_goal = goal.to_ref(os0=os)
         boresight_goal_hist[ind, :] = eci_goal

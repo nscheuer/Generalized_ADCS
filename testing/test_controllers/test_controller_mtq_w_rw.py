@@ -42,7 +42,7 @@ SCENARIO_DEFAULTS = {
 @dataclass(frozen=True)
 class MTQwRWRun:
     time_hist: np.ndarray
-    state_hist: np.ndarray
+    state_hist: list[State]
     os_hist: list[Orbital_State]
     sensor_hist: np.ndarray
     u_hist: np.ndarray
@@ -213,7 +213,7 @@ def run_mtq_w_rw_simulation(
 
     steps = int(horizon / step)
     time_hist = np.full(steps, np.nan)
-    state_hist = np.full((steps, x.as_array().size), np.nan)
+    state_hist: list[State] = []
     sensor_hist = np.full((steps, len(satellite.sensors + satellite.rw_actuators)), np.nan)
     u_hist = np.full((steps, len(satellite.actuators)), np.nan)
     boresight_hist = np.full((steps, 4), np.nan)
@@ -227,7 +227,7 @@ def run_mtq_w_rw_simulation(
         u = controller.find_u(x_hat=x, sens=sens, est_sat=satellite, os_hat=os_now, goal=goal)
 
         time_hist[index] = t
-        state_hist[index, :] = x.as_array()
+        state_hist.append(x.copy())
         sensor_hist[index, :] = sens
         u_hist[index, :] = u
         boresight_hist[index, :] = goal.to_ref(os0=os_now)[0]
@@ -303,7 +303,7 @@ def _expected_command(
 
 
 def _final_rate_norm(run: MTQwRWRun) -> float:
-    return float(np.linalg.norm(run.state_hist[-1, 0:3]))
+    return float(np.linalg.norm(run.state_hist[-1].w))
 
 
 def _final_average_command(run: MTQwRWRun) -> float:
@@ -312,7 +312,7 @@ def _final_average_command(run: MTQwRWRun) -> float:
 
 def _final_alignment_error_deg(run: MTQwRWRun, target_vec_eci: np.ndarray) -> float:
     q_err_vec = vector_alignment_error(
-        q=run.state_hist[-1, 3:7],
+        q=run.state_hist[-1].q,
         eci_goal=target_vec_eci,
         body_boresight=np.array([0.0, 0.0, 1.0]),
     )
@@ -555,7 +555,7 @@ def test_mtq_w_rw_converges_in_representative_scenarios(
     if alignment_target is not None and alignment_tol_deg is not None:
         assert _final_alignment_error_deg(run, alignment_target) < alignment_tol_deg
     if momentum_index is not None and momentum_tol is not None:
-        assert abs(run.state_hist[-1, 7 + momentum_index]) < momentum_tol
+        assert abs(run.state_hist[-1].h[momentum_index]) < momentum_tol
 
 
 def debug_plots(run: MTQwRWRun) -> None:

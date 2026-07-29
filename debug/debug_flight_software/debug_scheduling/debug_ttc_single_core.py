@@ -261,6 +261,8 @@ def main():
     time_hist = np.nan*np.zeros(N)
     state_hist = np.nan*np.zeros((N, ukf.state_len))
     est_state_hist = np.nan*np.zeros((N, ukf.state_len))
+    state_plot_hist: List[State] = []
+    est_state_plot_hist: List[State] = []
     os_hist: List[Orbital_State] = list()
     sensor_hist: List[np.ndarray] = np.nan*np.zeros((N, 9))
     clean_sensor_hist: List[np.ndarray] = np.nan*np.zeros((N, 9))
@@ -292,6 +294,8 @@ def main():
         real_sun_biases = np.concatenate([sun.bias.bias for sun in real_sat.sensors if isinstance(sun, SunPair)])
         state_hist[ind,:] = np.concatenate([x.as_array(), real_mtm_biases, real_gyro_biases, real_sun_biases])
         est_state_hist[ind,:] = core.memory["x_hat"]
+        state_plot_hist.append(x.copy())
+        est_state_plot_hist.append(memory["estimator"].x_hat.copy())
         os_hist += [core.memory["orbital_state"]]
         sensor_hist[ind,:] = core.memory["sensor_readings"]
         clean_sensor_hist[ind,:] = clean_sensor_readings
@@ -308,7 +312,7 @@ def main():
         x = x.normalized()
 
     
-    plot_state_comparison(time_hist, state_hist, est_state_hist)
+    plot_state_comparison(time_hist, state_plot_hist, est_state_plot_hist)
     plot_error_and_sun(time_hist, state_hist, est_state_hist, os_hist)
     plot_sensor_data(time_hist, sensor_hist, clean_sensor_hist)
     plot_bias_comparison(time_hist, state_hist[:,10:13], est_state_hist[:,10:13], 
@@ -317,7 +321,7 @@ def main():
                         "Real vs Estimated MTM Bias", "T/s")
     plot_bias_comparison(time_hist, state_hist[:,13:16], est_state_hist[:,13:16], 
                         "Real vs Estimated Sun Bias", "W/s")
-    animate_attitude(time_hist, state_hist, est_state_hist, os_hist)
+    animate_attitude(time_hist, state_plot_hist, est_state_plot_hist, os_hist)
     animate_orbit_pyvista(time_hist=time_hist, state_hist=state_hist, os_hist=os_hist)
     create_close_all_button_window()
 

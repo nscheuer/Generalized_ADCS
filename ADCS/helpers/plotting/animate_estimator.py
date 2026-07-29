@@ -12,8 +12,8 @@ __all__ = ["animate_attitude"]
 
 def animate_attitude(
     time: np.ndarray,
-    state_hist: Optional[np.ndarray] = None,
-    est_state_hist: Optional[np.ndarray] = None,
+    state_hist: Optional[List[State]] = None,
+    est_state_hist: Optional[List[State]] = None,
     os_hist: Optional[List] = None,
     boresight_goal_hist: Optional[np.ndarray] = None,
 ) -> None:

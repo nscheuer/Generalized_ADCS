@@ -47,7 +47,7 @@ SCENARIO_NAMES = [
 @dataclass(frozen=True)
 class LoveraRun:
     time_hist: np.ndarray
-    state_hist: np.ndarray
+    state_hist: list[State]
     os_hist: list[Orbital_State]
     sensor_hist: np.ndarray
     u_hist: np.ndarray
@@ -246,7 +246,7 @@ def run_mtq_lovera_simulation(
 
     steps = int(horizon / dt)
     time_hist = np.full(steps, np.nan)
-    state_hist = np.full((steps, x.as_array().size), np.nan)
+    state_hist: list[State] = []
     sensor_hist = np.full((steps, len(satellite.sensors + satellite.rw_actuators)), np.nan)
     u_hist = np.full((steps, len(satellite.actuators)), np.nan)
     boresight_hist = np.full((steps, 4), np.nan)
@@ -261,7 +261,7 @@ def run_mtq_lovera_simulation(
         u = controller.find_u(x_hat=x, sens=sens, est_sat=satellite, os_hat=os_now, goal=goal)
 
         time_hist[index] = t
-        state_hist[index, :] = x.as_array()
+        state_hist.append(x.copy())
         sensor_hist[index, :] = sens
         u_hist[index, :] = u
         boresight_hist[index, :] = goal.to_ref(os0=os_now)[0]
@@ -294,18 +294,14 @@ def run_mtq_lovera_simulation(
 
 
 def _final_alignment_error_deg(run: LoveraRun) -> float:
-    valid = np.where(np.isfinite(run.state_hist[:, 0]))[0]
-    last = valid[-1]
-    q_final = run.state_hist[last, 3:7]
+    q_final = run.state_hist[-1].q
     goal_vec = run.boresight_hist[last, 1:4]
     err_vec = vector_alignment_error(q_final, goal_vec, np.array([0.0, 0.0, 1.0]))
     return np.degrees(np.linalg.norm(err_vec))
 
 
 def _final_rate_norm(run: LoveraRun) -> float:
-    valid = np.where(np.isfinite(run.state_hist[:, 0]))[0]
-    last = valid[-1]
-    return np.linalg.norm(run.state_hist[last, 0:3])
+    return np.linalg.norm(run.state_hist[-1].w)
 
 
 @pytest.fixture

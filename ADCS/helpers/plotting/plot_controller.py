@@ -111,7 +111,7 @@ def plot_control(
 
 def plot_rw_momentum(
     time: np.ndarray,
-    state_hist: np.ndarray,
+    state_hist: List[State],
     title: str = "Reaction Wheel Stored Momentum",
     units: str = "N·m·s"
 ) -> None:
@@ -263,7 +263,7 @@ def _quat_attitude_error_deg(q: np.ndarray, q_ref: np.ndarray) -> float:
 
 
 def plot_target_tracking(
-    state_hist: np.ndarray,
+    state_hist: List[State],
     boresight_hist: np.ndarray,
     body_boresight: np.ndarray,
     time: Optional[np.ndarray] = None,

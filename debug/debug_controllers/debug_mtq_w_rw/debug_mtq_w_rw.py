@@ -76,7 +76,7 @@ def test_mtq_w_rw_align_to_eci(verbose: bool = False, tf: float = 1000, dt: floa
     controller = MTQ_w_RW(est_sat=real_sat, p_gain=0.1, d_gain=0.7, c_gain=0.1, h_target=np.array([0, 0, 0]))
 
     time_hist = np.nan*np.zeros(N)
-    state_hist = np.nan*np.zeros((N, 10))
+    state_hist: List[State] = []
     os_hist: List[Orbital_State] = list()
     sensor_hist: np.ndarray = np.nan*np.zeros((N, len(real_sat.sensors + real_sat.rw_actuators)))
     u_hist = np.nan*np.zeros((N, len(acts)))
@@ -100,7 +100,7 @@ def test_mtq_w_rw_align_to_eci(verbose: bool = False, tf: float = 1000, dt: floa
             print("u: ", u)
 
         time_hist[ind] = t
-        state_hist[ind,:] = x.as_array()
+        state_hist.append(x.copy())
         os_hist += [os]
         sensor_hist[ind,:] = sens
         u_hist[ind,:] = u

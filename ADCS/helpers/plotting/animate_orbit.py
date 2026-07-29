@@ -15,9 +15,9 @@ from ADCS.state import State
 
 def animate_orbit(
     time_hist: np.ndarray,
-    state_hist: np.ndarray,
+    state_hist: List[State],
     os_hist: List[Orbital_State],
-    est_state_hist: Optional[np.ndarray] = None,
+    est_state_hist: Optional[List[State]] = None,
     est_os_hist: Optional[List[Orbital_State]] = None,
     boresight_goal_hist: Optional[np.ndarray] = None,
     coord_goal: Optional[Coordinate_Goal]=None,  # Expected: Coordinate_Goal instance (has .target_ecef)
