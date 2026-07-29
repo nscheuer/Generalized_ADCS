@@ -44,7 +44,7 @@ def test_MTQ_w_RW_LP_align(verbose: bool = False, tf: float = 1000, dt: float = 
     h0 = np.array([rw_h0])
     x = State(w=w0, q=q0, h=h0)
 
-    orb = create_random_circular_orbit(radius_km=7000, dt=dt, tf=tf, use_J2=True, fast=False)
+    orb = create_random_circular_orbit(radius_km=7000, dt=dt, tf=tf, zonal_J=2, fast=False)
 
     # Controller
     controller = MTQ_Wisniewski(est_sat=real_sat, lambda_s=np.diag([0.01, 0.01, 0.01]), lambda_q=np.diag([0.002, 0.002, 0.002]))

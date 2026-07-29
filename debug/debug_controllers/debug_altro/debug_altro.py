@@ -66,7 +66,7 @@ def debug_altro(verbose: bool = False, tf: float = 1000, dt: float = 1, real_orb
     if real_orbit:
         # Real Orbit Generation
         os0 = Orbital_State(ephem=ephem, J2000=start_time, R=R, V=V)
-        orb = Orbit(os0=os0, end_time=end_time, dt=dt, use_J2=True, fast=False)
+        orb = Orbit(os0=os0, end_time=end_time, dt=dt, zonal_J=2, fast=False)
     else:
         os0 = Orbital_State(ephem=ephem, J2000=0.22-1*TimeConstants.sec2cent, R=R, V=V, B=np.array([0, 0.1, 0]), S=np.array([1e5+1, 0, 0]), rho=5e-12)
         dur = int((tf-t0)/dt)+10

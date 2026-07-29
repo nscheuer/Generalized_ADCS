@@ -257,7 +257,7 @@ def _build_orbit(os0: Orbital_State, t_start: float, t_end: float, dt: float) ->
     end_time = t_end + 1 * TimeConstants.sec2cent
     orb_os0 = os0.copy()
     orb_os0.J2000 = start_time
-    return Orbit(os0=orb_os0, end_time=end_time, dt=max(1.0, float(dt)), use_J2=True, fast=False)
+    return Orbit(os0=orb_os0, end_time=end_time, dt=max(1.0, float(dt)), zonal_J=2, fast=False)
 
 
 def _goal_hist_from_knots(jtime_req: np.ndarray, vector_goal: np.ndarray, jtime: np.ndarray) -> np.ndarray:

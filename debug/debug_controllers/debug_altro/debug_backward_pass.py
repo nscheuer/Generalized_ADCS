@@ -71,7 +71,7 @@ def setup_and_prepare():
     t_start, t_end = 0.22, 0.22 + tf * TimeConstants.sec2cent
     N = int(np.ceil(tf / dt)) + 1
 
-    sim_orbit = Orbit(os0=os0, end_time=t_end + 10*dt*TimeConstants.sec2cent, dt=dt, use_J2=True, fast=False)
+    sim_orbit = Orbit(os0=os0, end_time=t_end + 10*dt*TimeConstants.sec2cent, dt=dt, zonal_J=2, fast=False)
     tp_orbit = sim_orbit.get_range(t_start, t_end, dt)
     orbit_data = tp_orbit.get_vecs()
     times = np.asarray(tp_orbit.times, dtype=np.float64)[:N]

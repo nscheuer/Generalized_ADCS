@@ -91,7 +91,7 @@ def test_goal_coordinate_real_os(dt, tf, t0):
     start_time = 0.22 - 1*TimeConstants.sec2cent
     end_time = 0.22 + (tf-t0)*TimeConstants.sec2cent
     os0 = Orbital_State(ephem=ephem, J2000=start_time, R=R, V=V)
-    orb = Orbit(os0=os0, end_time=end_time, dt=dt, use_J2=True, fast=False)
+    orb = Orbit(os0=os0, end_time=end_time, dt=dt, zonal_J=2, fast=False)
 
     real_sat = Satellite(mass=4.0, J_0=np.diagflat([3.4, 2.9, 1.3]), boresight=np.array([0, 0, 1]))
     
