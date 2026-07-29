@@ -218,7 +218,7 @@ class MTQ_Lovera(Controller):
 
         n_rw = len([a for a in est_sat.actuators if isinstance(a, RW)])
         if x_hat.h.size >= n_rw:
-            h_rw_states = x_hat.h[:n_rw]
+            h_rw_states = x_hat.h
         else:
             h_rw_states = np.array([rw.h for rw in est_sat.actuators if isinstance(rw, RW)])
 

@@ -193,7 +193,7 @@ def _expected_command(
 
     rw_actuators = [actuator for actuator in satellite.actuators if isinstance(actuator, RW)]
     if x_hat.h.size >= len(rw_actuators):
-        h_rw_states = x_hat.h[: len(rw_actuators)]
+        h_rw_states = x_hat.h
     else:
         h_rw_states = np.array([actuator.h for actuator in rw_actuators], dtype=float)
 

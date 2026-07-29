@@ -464,7 +464,7 @@ class MTQ_w_RW_LP(Controller):
 
         # Wheel scalar momentum states (N_rw,)
         if n_rw > 0 and x_hat.h.size >= n_rw:
-            h_rw_states = np.asarray(x_hat.h[:n_rw], float).reshape(n_rw,)
+            h_rw_states = np.asarray(x_hat.h, float).reshape(n_rw,)
         elif n_rw > 0:
             h_rw_states = np.array([rw.h for rw in rws], dtype=float).reshape(n_rw,)
         else:
@@ -726,7 +726,7 @@ class MTQ_w_RW_LP(Controller):
         # --- 2. System Momentum Vector (Generic N-RW) ---
         # Calculate total vector momentum stored in all wheels
         if self.n_rw > 0 and x_hat.h.size >= self.n_rw:
-            h_rw_scalars = x_hat.h[:self.n_rw]
+            h_rw_scalars = x_hat.h
             h_sys = self.rw_axes @ h_rw_scalars # Matrix (3, N) @ Vec (N,) -> (3,)
         else:
             h_sys = np.zeros(3)

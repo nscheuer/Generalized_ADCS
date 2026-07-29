@@ -421,7 +421,7 @@ class Trajectory:
 
         # 3. RW Momentum Error (indices 6:6+n_rw, from full state 7:7+n_rw)
         if n_rw > 0:
-            dx[6:6+n_rw] = x_curr.h[:n_rw] - x_ref.h[:n_rw]
+            dx[6:6+n_rw] = x_curr.h - x_ref.h
 
         return dx
 
