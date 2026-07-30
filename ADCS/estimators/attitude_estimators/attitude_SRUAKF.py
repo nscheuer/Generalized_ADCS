@@ -367,9 +367,21 @@ class SRUAKF(UAKF):
         # Use self.S directly later, but we need the dimension here.
         L_x = self.S.shape[0]
 
-        # Control/Process Noise Covariance
+        # Control/Process Noise Covariance.
+        # BUGFIX: a *present-but-zero* control covariance (actuators with no
+        # / zero noise -- very common) must NOT inflate L. The old
+        # `control_cov.shape[0] if control_cov.size > 0 else 0` counted a
+        # 3x3 of zeros into L/num_sigma, but the control block below then
+        # does cholesky(zeros) -> LinAlgError -> `except: pass`, appending
+        # NO control sigma points. Result: len(pts) = 1+2*L_x while
+        # num_sigma = 2*(L_x+L_q)+1 -> `pts[j]` IndexError in update_core
+        # (the SR-UKF crashed for any actuator config without explicit
+        # actuator noise). Mirror the plain UAKF's predicate
+        # (determine_covariances_to_use): the control block is "used" only
+        # if it is non-empty AND not identically zero.
         control_cov = self.est_sat.control_cov()
-        L_q = control_cov.shape[0] if control_cov.size > 0 else 0
+        _use_control = control_cov.size > 0 and not np.all(control_cov == 0)
+        L_q = control_cov.shape[0] if _use_control else 0
         
         # Sensor & Integration Covariances (Zeroed out in this architecture)
         # We maintain their shapes for the list structure
@@ -405,7 +417,16 @@ class SRUAKF(UAKF):
         dtype = pt0.dtype
         zeros_state = pt0 # Not used as zero, but as placeholder
         zeros_sens = np.zeros(sens_cov.shape[0], dtype=dtype) if sens_cov.size > 0 else np.zeros(0, dtype=dtype)
-        zeros_ctrl = np.zeros(L_q, dtype=dtype) if L_q > 0 else np.zeros(0, dtype=dtype)
+        # The per-sigma-point control-noise vector is added to the command
+        # (`u + control_noise_j` in update_core), so it must always be the
+        # actuator-command dimension (control_cov.shape[0]) whenever any
+        # actuators exist -- NOT L_q. L_q is 0 when control_cov is
+        # all-zero/unused (no control sigma OFFSETS), but the non-control
+        # sigma points still need a correctly-shaped zero control vector or
+        # `u (n_act,) + zeros (0,)` raises a broadcast ValueError. This
+        # mirrors the plain UAKF (zeros_control = control_cov[0,:]*0).
+        zeros_ctrl = (np.zeros(control_cov.shape[0], dtype=dtype)
+                      if control_cov.size > 0 else np.zeros(0, dtype=dtype))
         zeros_int  = np.zeros(self.x_hat.int_cov.shape[0], dtype=dtype) if self.x_hat.int_cov.size > 0 else np.zeros(0, dtype=dtype)
 
         # The mean point list [state, sens, ctrl, int]
