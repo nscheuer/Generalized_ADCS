@@ -8,6 +8,10 @@ from typing import Any, Iterable, Mapping
 import numpy as np
 
 
+# These duplicate quat_mult/quat_inv from ADCS.helpers.math_helpers, which
+# cannot be imported here: math_helpers -> ADCS.orbits.universal_constants
+# -> ADCS.orbits.__init__ -> orbit_factory -> orbital_state -> ADCS.state is
+# a circular import. This module must stay an import leaf.
 def _quat_conjugate(q: np.ndarray) -> np.ndarray:
     return np.array([q[0], -q[1], -q[2], -q[3]], dtype=float)
 
