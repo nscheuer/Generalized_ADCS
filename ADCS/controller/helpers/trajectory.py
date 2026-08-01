@@ -217,15 +217,10 @@ class Trajectory:
         if dt == 0:
             return x0.copy()
         alpha = (t - self.times[idx]) / dt
-        q_interp = (1 - alpha) * x0.q + alpha * x1.q
-        q_norm = np.linalg.norm(q_interp)
-        if q_norm > 1e-9:
-            q_interp = q_interp / q_norm
-        return State(
-            w=(1 - alpha) * x0.w + alpha * x1.w,
-            q=q_interp,
-            h=(1 - alpha) * x0.h + alpha * x1.h,
-        )
+        # Shortest-arc NLERP: solver output may flip quaternion sign between
+        # knots, and sign-blind lerp of antipodal representations collapses
+        # through the origin.
+        return x0.interpolate(x1, alpha, method="nlerp")
     
     def get_control_at(self, t: float) -> np.ndarray:
         r"""

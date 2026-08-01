@@ -8,6 +8,36 @@ from typing import Any, Iterable, Mapping
 import numpy as np
 
 
+def _quat_conjugate(q: np.ndarray) -> np.ndarray:
+    return np.array([q[0], -q[1], -q[2], -q[3]], dtype=float)
+
+
+def _quat_product(p: np.ndarray, q: np.ndarray) -> np.ndarray:
+    p0, pv = p[0], p[1:]
+    q0, qv = q[0], q[1:]
+    return np.concatenate(([p0 * q0 - pv @ qv], p0 * qv + q0 * pv + np.cross(pv, qv)))
+
+
+def _interpolate_quat(q0: np.ndarray, q1: np.ndarray, alpha: float, method: str) -> np.ndarray:
+    # q and -q represent the same rotation: flip to the shortest arc first, so
+    # antipodal representations never interpolate through the origin.
+    dot = float(q0 @ q1)
+    if dot < 0.0:
+        q1 = -q1
+        dot = -dot
+    if method == "nlerp" or dot > 1.0 - 1e-9:
+        blended = (1.0 - alpha) * q0 + alpha * q1
+    elif method == "slerp":
+        theta = np.arccos(min(dot, 1.0))
+        blended = (np.sin((1.0 - alpha) * theta) * q0 + np.sin(alpha * theta) * q1) / np.sin(theta)
+    else:
+        raise ValueError(f"method must be 'slerp' or 'nlerp', got {method!r}")
+    norm = float(np.linalg.norm(blended))
+    if not np.isfinite(norm) or norm == 0.0:
+        raise ValueError("interpolated quaternion has zero or non-finite norm")
+    return blended / norm
+
+
 def _vector(value: Any, *, name: str, size: int | None = None) -> np.ndarray:
     array = np.array(value, dtype=float, copy=True)
     if array.ndim != 1:
@@ -55,6 +85,59 @@ class State:
         if not np.isfinite(norm) or norm == 0.0:
             raise ValueError("q must have a finite, non-zero norm to normalize")
         return State(w=self.w, q=self.q / norm, h=self.h)
+
+    def interpolate(self, other: State, alpha: float, *, method: str = "slerp") -> State:
+        """Blend two states: linear on ``w``/``h``, SLERP or NLERP on ``q``.
+
+        Both methods are shortest-arc (sign-corrected), so antipodal quaternion
+        representations of nearby rotations interpolate correctly. ``alpha`` is
+        not clamped; values outside ``[0, 1]`` extrapolate.
+        """
+        if not isinstance(other, State):
+            raise TypeError(f"other must be a State, got {type(other).__name__}")
+        if self.h.size != other.h.size:
+            raise ValueError("states must have the same number of reaction-wheel states")
+        alpha = float(alpha)
+        return State(
+            w=(1.0 - alpha) * self.w + alpha * other.w,
+            q=_interpolate_quat(self.q, other.q, alpha, method),
+            h=(1.0 - alpha) * self.h + alpha * other.h,
+        )
+
+    def subtract(self, ref: State) -> np.ndarray:
+        """Manifold difference ``self ⊖ ref`` as a reduced error vector.
+
+        Returns ``[w - w_ref, 2·vec(q_ref⁻¹ ⊗ q), h - h_ref]`` (length
+        ``6 + n_rw``), with the error quaternion sign-corrected to the shortest
+        rotation so the attitude block is exactly inverted by
+        :meth:`add_error`. Note this is the plain quaternion-vector convention,
+        not the 2×MRP convention used by the TVLQR tracker.
+        """
+        if not isinstance(ref, State):
+            raise TypeError(f"ref must be a State, got {type(ref).__name__}")
+        if self.h.size != ref.h.size:
+            raise ValueError("states must have the same number of reaction-wheel states")
+        dq = _quat_product(_quat_conjugate(ref.q), self.q)
+        dq = dq / np.linalg.norm(dq)
+        if dq[0] < 0.0:
+            dq = -dq
+        return np.concatenate((self.w - ref.w, 2.0 * dq[1:], self.h - ref.h))
+
+    def add_error(self, delta: np.ndarray) -> State:
+        """Apply a reduced error vector (the inverse of :meth:`subtract`).
+
+        ``delta`` is ``[δw, δθ, δh]`` of length ``6 + n_rw``; the attitude block
+        ``δθ = 2·vec(dq)`` is retracted onto the quaternion manifold via
+        ``q ⊗ dq`` with ``dq = [√(1−|δθ/2|²), δθ/2]``.
+        """
+        delta = _vector(delta, name="delta", size=6 + self.h.size)
+        v = delta[3:6] / 2.0
+        vv = float(v @ v)
+        if vv > 1.0:
+            raise ValueError("attitude error block exceeds the unit-quaternion range (|δθ| > 2)")
+        dq = np.concatenate(([np.sqrt(1.0 - vv)], v))
+        q = _quat_product(self.q, dq)
+        return State(w=self.w + delta[:3], q=q / np.linalg.norm(q), h=self.h + delta[6:])
 
     def to_dict(self) -> dict[str, Any]:
         return {"w": self.w.tolist(), "q": self.q.tolist(), "h": self.h.tolist()}
@@ -182,6 +265,80 @@ class EstimatedState(State):
             raise ValueError("q must have a finite, non-zero norm to normalize")
         result = self.copy()
         result.q = result.q / norm
+        return result
+
+    def interpolate(self, other: State, alpha: float, *, method: str = "slerp") -> EstimatedState:
+        """Blend two estimated states (see :meth:`State.interpolate`).
+
+        Bias and disturbance blocks interpolate linearly. Covariances also
+        blend linearly — a convex combination of PSD matrices stays PSD, but
+        this is a convenience for plotting/resampling, not a geodesic
+        covariance interpolation.
+        """
+        if not isinstance(other, EstimatedState):
+            raise TypeError(f"other must be an EstimatedState, got {type(other).__name__}")
+        blocks = ("h", "act_bias", "sens_bias", "dist_param")
+        for name in blocks:
+            if getattr(self, name).size != getattr(other, name).size:
+                raise ValueError(f"states must have matching {name} sizes to interpolate")
+        if self.cov.shape != other.cov.shape:
+            raise ValueError("states must use the same covariance convention to interpolate")
+        alpha = float(alpha)
+
+        def lerp(a: np.ndarray, b: np.ndarray) -> np.ndarray:
+            return (1.0 - alpha) * a + alpha * b
+
+        return EstimatedState(
+            w=lerp(self.w, other.w),
+            q=_interpolate_quat(self.q, other.q, alpha, method),
+            h=lerp(self.h, other.h),
+            act_bias=lerp(self.act_bias, other.act_bias),
+            sens_bias=lerp(self.sens_bias, other.sens_bias),
+            dist_param=lerp(self.dist_param, other.dist_param),
+            cov=lerp(self.cov, other.cov),
+            int_cov=lerp(self.int_cov, other.int_cov),
+        )
+
+    def subtract(self, ref: State) -> np.ndarray:
+        """Manifold difference including bias/disturbance blocks.
+
+        Returns ``[δw, 2·vec(q_ref⁻¹ ⊗ q), δh, δact_bias, δsens_bias,
+        δdist_param]`` (length ``augmented_size − 1``); exact inverse of
+        :meth:`add_error`.
+        """
+        if not isinstance(ref, EstimatedState):
+            raise TypeError(f"ref must be an EstimatedState, got {type(ref).__name__}")
+        for name in ("act_bias", "sens_bias", "dist_param"):
+            if getattr(self, name).size != getattr(ref, name).size:
+                raise ValueError(f"states must have matching {name} sizes to subtract")
+        base = State.subtract(self, ref)
+        return np.concatenate(
+            (
+                base,
+                self.act_bias - ref.act_bias,
+                self.sens_bias - ref.sens_bias,
+                self.dist_param - ref.dist_param,
+            )
+        )
+
+    def add_error(self, delta: np.ndarray) -> EstimatedState:
+        """Apply a reduced error vector of length ``augmented_size − 1``.
+
+        The attitude block is retracted as in :meth:`State.add_error`; all
+        other blocks add linearly. Covariances are carried over unchanged.
+        """
+        delta = _vector(delta, name="delta", size=self.augmented_size - 1)
+        base = State.add_error(self, delta[: 6 + self.h.size])
+        i = 6 + self.h.size
+        result = self.copy()
+        result.w = base.w
+        result.q = base.q
+        result.h = base.h
+        result.act_bias = self.act_bias + delta[i : i + self.act_bias.size]
+        i += self.act_bias.size
+        result.sens_bias = self.sens_bias + delta[i : i + self.sens_bias.size]
+        i += self.sens_bias.size
+        result.dist_param = self.dist_param + delta[i:]
         return result
 
     def to_dict(self) -> dict[str, Any]:
