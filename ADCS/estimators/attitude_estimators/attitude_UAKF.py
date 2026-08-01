@@ -462,7 +462,19 @@ class UAKF(Attitude_Estimator):
 
             # Cholesky of scaled covariance
             chol_mat = self.scale * cov_j
-            mat = np.linalg.cholesky(chol_mat)  # (dim, dim)
+            if j == 0:
+                # State covariance must be positive definite; let a failure
+                # propagate rather than masking a diverged filter.
+                mat = np.linalg.cholesky(chol_mat)  # (dim, dim)
+            else:
+                # Noise blocks may be PSD-singular (e.g. rank-deficient
+                # actuator noise); mirror the SRUAKF eigh fallback instead of
+                # aborting the update.
+                try:
+                    mat = np.linalg.cholesky(chol_mat)
+                except np.linalg.LinAlgError:
+                    eigvals, eigvecs = np.linalg.eigh(chol_mat)
+                    mat = eigvecs @ np.diag(np.sqrt(np.clip(eigvals, 0.0, None)))
             # 2*dim sigma offsets: +columns and -columns
             offs = np.hstack((mat, -mat)).T  # (2*dim, dim)
             offsets[j] = offs

@@ -65,7 +65,29 @@ def test_make_pts_and_wts_zero_covariance_returns_mean_repeated():
     zero = np.zeros_like(make_srukf(est_sat).x_hat.cov)
     srukf = make_srukf(est_sat, P_hat=zero, Q_hat=zero)
     L, pts, _, _, sig0 = srukf.make_pts_and_wts(srukf.x_hat.as_estimator_array(), [True] * len(est_sat.attitude_sensors))
-    assert L == srukf.S.shape[0] + est_sat.control_cov().shape[0]
+    # All-zero control covariance is excluded from the augmented dimension, so
+    # L covers the state block only.
+    assert L == srukf.S.shape[0]
     assert np.allclose(sig0, np.repeat(srukf.x_hat.as_estimator_array()[None, :], 2 * L + 1, axis=0))
     state_rows = np.asarray([p[0] for p in pts])
     assert np.allclose(state_rows, np.repeat(srukf.x_hat.as_estimator_array()[None, :], len(pts), axis=0))
+
+
+def test_make_pts_and_wts_non_pd_control_cov_uses_eigh_fallback():
+    # A PSD-singular control covariance fails Cholesky; the eigh square-root
+    # fallback (added with the L-exclusion rework) must keep the update alive
+    # with the full 2L+1 point set instead of silently dropping the block or
+    # raising.
+    _, est_sat = make_satellites(sensors=make_baseline_sensors())
+    srukf = make_srukf(est_sat)
+    v = np.array([1.0, 2.0, 3.0])
+    singular = np.outer(v, v) * 1.0e-8  # rank 1: PSD but not PD
+    est_sat.control_cov = lambda: singular
+
+    L, pts, wts_m, wts_c, _ = srukf.make_pts_and_wts(srukf.x_hat.as_estimator_array(), [True] * len(est_sat.attitude_sensors))
+
+    assert L == srukf.S.shape[0] + 3
+    assert len(pts) == 2 * L + 1 == wts_m.size == wts_c.size
+    control_rows = np.asarray([p[2] for p in pts])
+    assert np.all(np.isfinite(control_rows))
+    assert np.any(np.abs(control_rows) > 0.0)

@@ -80,3 +80,40 @@ def test_make_pts_and_wts_zero_covariance_raises():
 
     with pytest.raises(np.linalg.LinAlgError):
         ukf.make_pts_and_wts(ukf.x_hat.as_estimator_array(), [True] * len(est_sat.attitude_sensors))
+
+
+def test_make_pts_and_wts_zero_control_cov_is_excluded_and_does_not_raise():
+    # Zero actuator noise must drop the control block from the augmented
+    # dimension entirely (previously L counted it while no points were
+    # generated, mismatching the weight vector length).
+    _, est_sat = make_satellites(sensors=make_baseline_sensors(), actuators=make_mtqs(std_noise=0.0), estimated_actuators=make_mtqs(std_noise=0.0))
+    ukf = make_ukf(est_sat)
+
+    L, pts, wts_m, wts_c, sig0 = ukf.make_pts_and_wts(ukf.x_hat.as_estimator_array(), [True] * len(est_sat.attitude_sensors))
+
+    assert L == ukf.x_hat.cov.shape[0]
+    assert len(pts) == 2 * L + 1 == wts_m.size == wts_c.size
+    assert all(np.allclose(p[2], 0.0) for p in pts)
+
+
+def test_make_pts_and_wts_non_pd_control_cov_uses_eigh_fallback():
+    # A PSD-singular control covariance (e.g. rank-deficient actuator noise)
+    # fails Cholesky; the eigh square-root fallback must keep the update alive
+    # with the full 2L+1 point set instead of raising.
+    _, est_sat = make_satellites(sensors=make_baseline_sensors(), actuators=make_mtqs(), estimated_actuators=make_mtqs())
+    ukf = make_ukf(est_sat)
+    v = np.array([1.0, 2.0, 3.0])
+    singular = np.outer(v, v) * 1.0e-8  # rank 1: PSD but not PD
+    est_sat.control_cov = lambda: singular
+
+    L, pts, wts_m, wts_c, _ = ukf.make_pts_and_wts(ukf.x_hat.as_estimator_array(), [True] * len(est_sat.attitude_sensors))
+
+    assert L == ukf.x_hat.cov.shape[0] + 3
+    assert len(pts) == 2 * L + 1 == wts_m.size
+    control_rows = np.asarray([p[2] for p in pts])
+    assert np.all(np.isfinite(control_rows))
+    assert np.any(np.abs(control_rows) > 0.0)
+    # The unscented transform must realize the requested covariance from the
+    # eigh-based square root: sum_i w_c,i * off_i off_i^T == control_cov.
+    realized = sum(w * np.outer(row, row) for w, row in zip(wts_c[1:], control_rows[1:]))
+    assert np.allclose(realized, singular, rtol=1e-9, atol=1e-20)
