@@ -273,7 +273,7 @@ def _quat_to_dcm_body_to_eci(q: np.ndarray) -> np.ndarray:
 
 def _final_pointing_error_deg(run: MTQwRWLPRun) -> float:
     q = run.state_hist[-1].q
-    goal_eci = run.boresight_hist[last, 1:4]
+    goal_eci = run.boresight_hist[len(run.state_hist) - 1, 1:4]
     boresight_eci = _quat_to_dcm_body_to_eci(q) @ np.array([0.0, 0.0, 1.0])
     boresight_eci = boresight_eci / (np.linalg.norm(boresight_eci) + 1.0e-16)
     goal_eci = goal_eci / (np.linalg.norm(goal_eci) + 1.0e-16)

@@ -295,7 +295,7 @@ def run_mtq_lovera_simulation(
 
 def _final_alignment_error_deg(run: LoveraRun) -> float:
     q_final = run.state_hist[-1].q
-    goal_vec = run.boresight_hist[last, 1:4]
+    goal_vec = run.boresight_hist[len(run.state_hist) - 1, 1:4]
     err_vec = vector_alignment_error(q_final, goal_vec, np.array([0.0, 0.0, 1.0]))
     return np.degrees(np.linalg.norm(err_vec))
 
