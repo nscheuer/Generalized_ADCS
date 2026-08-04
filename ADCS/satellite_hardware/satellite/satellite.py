@@ -130,7 +130,7 @@ class Satellite:
     :raises ValueError:
         If ``COM`` is not shape ``(3,)`` or ``J_0`` is not shape ``(3,3)``.
     """
-    def __init__(self, mass: float = 1.0, COM: np.ndarray = None, J_0: np.ndarray = None, disturbances: List[Disturbance] = [], sensors: List[Sensor] = [], actuators: List[Actuator] = [], boresight: dict[str, np.ndarray] | np.ndarray = None) -> None:
+    def __init__(self, mass: float = 1.0, COM: np.ndarray = None, J_0: np.ndarray = None, disturbances: List[Disturbance] = None, sensors: List[Sensor] = None, actuators: List[Actuator] = None, boresight: dict[str, np.ndarray] | np.ndarray = None) -> None:
         r"""
         Construct a :class:`~ADCS.satellite.Satellite`.
 
@@ -182,11 +182,17 @@ class Satellite:
             self.J_0 = np.asarray(J_0, dtype=float)
             if self.J_0.shape != (3, 3):
                 raise ValueError(f"J must be a numpy array of shape (3, 3), got {self.J_0.shape}")
+        # Default to fresh empty lists (never a shared mutable default) so that
+        # constructing many satellites in one process cannot alias hardware lists.
+        disturbances = [] if disturbances is None else disturbances
+        sensors = [] if sensors is None else sensors
+        actuators = [] if actuators is None else actuators
+
         self.disturbances = disturbances
         self.sensors = sensors
         self.attitude_sensors: List[Sensor] = [s for s in sensors if not isinstance(s, GPS)]
         self.GPS_sensors: List[GPS] = [s for s in sensors if isinstance(s, GPS)]
-        
+
         self.actuators = actuators
         self.rw_actuators: List[RW] = [s for s in actuators if isinstance(s, RW)]
         self.mtq_actuators: List[MTQ] = [s for s in actuators if not isinstance(s, RW)]
@@ -221,6 +227,46 @@ class Satellite:
         self.att_sens_bias_len = 0
         self.dist_param_len = 0
         self.update_J(J_0=J_0, COM=COM)
+
+    def set_rng(self, rng: "np.random.Generator | None") -> "Satellite":
+        r"""
+        Distribute a random generator to every stochastic hardware model.
+
+        Walks all sensors, actuators, and disturbances and assigns ``rng`` to
+        each component's ``bias``/``noise`` error model (when present). Sharing
+        one :class:`numpy.random.Generator` per satellite makes that satellite's
+        stochastic behavior independently reproducible — essential when many
+        satellites run in a single process (formation simulation). Passing
+        ``None`` reverts to the global ``np.random`` state.
+
+        :param rng: Per-satellite generator (or ``None`` for global ``np.random``).
+        :type rng: numpy.random.Generator | None
+        :return: ``self`` (for chaining).
+        :rtype: Satellite
+        """
+        components = list(self.sensors) + list(self.actuators) + list(self.disturbances)
+        for comp in components:
+            for err_name in ("bias", "noise"):
+                err = getattr(comp, err_name, None)
+                if err is not None and hasattr(err, "set_rng"):
+                    err.set_rng(rng)
+        return self
+
+    def seed(self, seed: int) -> "Satellite":
+        r"""
+        Seed this satellite's stochastic hardware with a dedicated generator.
+
+        Convenience wrapper around :meth:`set_rng` that builds a fresh
+        ``numpy.random.default_rng(seed)``. Two satellites seeded with different
+        values produce independent noise/bias realizations; the same seed
+        reproduces a run exactly.
+
+        :param seed: Seed for this satellite's ``numpy.random.default_rng``.
+        :type seed: int
+        :return: ``self`` (for chaining).
+        :rtype: Satellite
+        """
+        return self.set_rng(np.random.default_rng(seed))
 
     def get_boresight(self, name: str | None = None) -> np.ndarray:
         if name is None:

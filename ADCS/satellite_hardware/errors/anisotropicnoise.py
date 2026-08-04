@@ -12,11 +12,12 @@ class AnisotropicNoise(Noise):
         std_cross: float,
         std_roll: float,
         R_noise: Optional[NDArray[np.float64]] = None,
-        bounds: Sequence[Union[NDArray, float]] = (-np.array([np.inf]), np.array([np.inf]))
+        bounds: Sequence[Union[NDArray, float]] = (-np.array([np.inf]), np.array([np.inf])),
+        rng: Optional[np.random.Generator] = None
     ) -> None:
         std_aligned = np.array([std_cross, std_cross, std_roll])
 
-        super().__init__(noise=np.zeros(3), std_noise=std_aligned, bounds=bounds)
+        super().__init__(noise=np.zeros(3), std_noise=std_aligned, bounds=bounds, rng=rng)
 
         self.std_cross = std_cross
         self.std_roll = std_roll
@@ -35,7 +36,7 @@ class AnisotropicNoise(Noise):
         )
     
     def _update_noise(self) -> None:
-        noise_aligned = np.random.normal(loc=0.0, scale=self.std_noise)
+        noise_aligned = self._generator().normal(loc=0.0, scale=self.std_noise)
         
         self.noise = self._R_noise @ noise_aligned
         
