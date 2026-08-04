@@ -1,7 +1,7 @@
 """
 Wisniewski-style sliding mode attitude control law.
 
-Implements the control law from Wisniewski (2004):
+Implements the control law from Wisniewski (2004)::
 
     s = J @ w_err + Lambda_q @ q_err
     tau = cross(w, J @ w + h_rw)
@@ -14,7 +14,8 @@ frame-rotation-like term internally, so the pipeline compensation
 block should skip those terms.
 
 The law requires extra state beyond the standard error signals:
-omega_raw, h_rw_body are passed via **kwargs in compute().
+``omega_raw`` and ``h_rw_body`` are passed via keyword arguments to
+:meth:`compute`.
 """
 
 __all__ = ["SlidingMode_Law"]

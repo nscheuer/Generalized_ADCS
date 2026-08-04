@@ -120,11 +120,12 @@ def select_nearest_quaternion(
 ) -> np.ndarray:
     """Select the quaternion from the goal set nearest to q.
 
-    Finds beta that maximizes |q . f(beta)|, where:
+    Finds beta that maximizes ``|q . f(beta)|``, where::
+
         f(beta) = x_bar * cos(beta) + y_bar * sin(beta)
 
-    The inner product q . f(beta) = (q.x_bar) cos(beta) + (q.y_bar) sin(beta)
-    is maximized when beta = atan2(q.y_bar, q.x_bar).
+    The inner product ``q . f(beta) = (q.x_bar) cos(beta) + (q.y_bar)
+    sin(beta)`` is maximized when ``beta = atan2(q.y_bar, q.x_bar)``.
 
     Parameters
     ----------

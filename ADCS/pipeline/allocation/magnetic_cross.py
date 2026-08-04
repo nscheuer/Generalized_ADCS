@@ -2,7 +2,7 @@
 Magnetic cross-product torque allocation.
 
 Computes the magnetic dipole command that best approximates the
-desired torque using only magnetorquers:
+desired torque using only magnetorquers::
 
     m = (B x tau_des) / |B|^2
 

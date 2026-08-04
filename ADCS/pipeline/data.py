@@ -164,18 +164,21 @@ class CompensationInputs:
 class ActuatorGroup:
     """A group of actuators of the same type.
 
-    Attributes:
-        group_type: 'rw', 'mtq', 'thruster', 'custom'
-        axes: [3 x n] matrix of actuator torque axes in body frame
-        u_max: [n] vector of maximum command magnitudes
-        u_min: [n] vector of minimum command magnitudes (default -u_max)
-        indices: indices into the full actuator command vector
+    Fields are documented inline below rather than in an ``Attributes:``
+    block: autodoc already documents annotated dataclass fields, and doing
+    both makes Sphinx emit a duplicate-object warning (fatal under ``-W``).
     """
+
+    #: ``'rw'``, ``'mtq'``, ``'thruster'`` or ``'custom'``
     group_type: str
-    axes: np.ndarray                        # [3 x n]
-    u_max: np.ndarray                       # [n]
-    u_min: Optional[np.ndarray] = None      # [n], defaults to -u_max
-    indices: Optional[np.ndarray] = None    # indices into full u vector
+    #: ``[3 x n]`` matrix of actuator torque axes in the body frame
+    axes: np.ndarray
+    #: ``[n]`` vector of maximum command magnitudes
+    u_max: np.ndarray
+    #: ``[n]`` vector of minimum command magnitudes (defaults to ``-u_max``)
+    u_min: Optional[np.ndarray] = None
+    #: indices into the full actuator command vector
+    indices: Optional[np.ndarray] = None
 
     def __post_init__(self):
         if self.u_min is None:
@@ -216,22 +219,23 @@ class AllocationConfig:
 class DesaturationConfig:
     """Configuration for momentum management / wheel desaturation.
 
-    Attributes:
-        strategy: 'nullspace' (zero torque impact, overactuated only),
-                  'weighted' (augmented QP cost, trades pointing for desat),
-                  'scheduled' (add desat torque when MTQ authority is high).
-        k_desat: Desaturation gain (scales h_rw error into desired dump torque).
-        h_rw_target: Target RW momentum in body frame [3]. Default zeros.
-        w_desat: Weight on desaturation term in 'weighted' strategy.
-        authority_threshold: Minimum MTQ authority fraction [0,1] for
-            'scheduled' strategy to activate desaturation.
-        h_rw_threshold: Minimum RW momentum error norm to trigger desat.
+    Fields are documented inline below rather than in an ``Attributes:``
+    block, for the same reason as :class:`ActuatorGroup`.
     """
+
+    #: ``'nullspace'`` (zero torque impact, overactuated only),
+    #: ``'weighted'`` (augmented QP cost, trades pointing for desat), or
+    #: ``'scheduled'`` (add desat torque when MTQ authority is high)
     strategy: str = 'nullspace'
+    #: desaturation gain, scaling ``h_rw`` error into a desired dump torque
     k_desat: float = 0.01
+    #: target RW momentum in the body frame ``[3]``; defaults to zeros
     h_rw_target: Optional[np.ndarray] = None
+    #: weight on the desaturation term in the ``'weighted'`` strategy
     w_desat: float = 1.0
+    #: minimum MTQ authority fraction ``[0, 1]`` for ``'scheduled'`` to fire
     authority_threshold: float = 0.3
+    #: minimum RW momentum error norm to trigger desaturation
     h_rw_threshold: float = 0.0
 
     def __post_init__(self):

@@ -1,14 +1,14 @@
 """
 LP allocation: direction-preserving linear program.
 
-Maximizes torque magnitude along the desired direction:
+Maximizes torque magnitude along the desired direction::
 
     max   T_avail
     s.t.  B_tau @ u = T_avail * tau_hat
           u_min <= u <= u_max
           T_avail >= 0
 
-where tau_hat = tau_desired / ||tau_desired||.
+where ``tau_hat = tau_desired / ||tau_desired||``.
 
 Direction error is zero by construction. If the desired direction
 is unachievable (e.g., along B for MTQ-only), optionally projects

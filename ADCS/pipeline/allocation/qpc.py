@@ -1,7 +1,7 @@
 """
 QPC allocation: energy-constrained quadratic programming.
 
-Bounded least-squares with a Lyapunov-style power gate constraint:
+Bounded least-squares with a Lyapunov-style power gate constraint::
 
     min  ||B_tau @ u - tau_desired||^2
     s.t. u_min <= u <= u_max
