@@ -507,7 +507,163 @@ def vec3_to_quat(v3, mode):
         if np.abs(sq) > 0.0:
             q *= sq
         return q
-    
+
+
+def vec_mode_angle_gain(vec_mode: int) -> float:
+    r"""
+    Small-angle gain :math:`G` of the attitude-error parametrisation
+    ``vec_mode`` (the convention used by :func:`quat_to_vec3`/
+    :func:`vec3_to_quat`).
+
+    For a small body rotation by angle :math:`\phi` (rotation vector,
+    radians), ``quat_to_vec3`` of the corresponding quaternion satisfies
+
+    .. math::  \lVert\texttt{vec3}\rVert \;\approx\; G\,\lVert\boldsymbol{\phi}\rVert ,
+
+    so an attitude-error **covariance expressed in the vec3 parameter is NOT
+    the covariance of the physical attitude angle** — it differs by
+    :math:`G^2`. Typical values: :math:`G=0.25` for the MRP modes (0, 1),
+    :math:`G=0.5` for the 2x-MRP modes (5, 6) and the vector-part modes
+    (3, 4). ``G`` is computed numerically here so it is exact for whatever
+    mode/convention is configured.
+
+    :param vec_mode: Attitude-error parametrisation mode (see
+        :func:`quat_to_vec3`).
+    :type vec_mode: int
+    :return: Small-angle gain :math:`G` (dimensionless, ``vec3`` per radian).
+    :rtype: float
+    """
+    phi = 1e-7
+    dq = np.array([1.0, 0.5 * phi, 0.0, 0.0])  # small rotation about x by phi
+    v = quat_to_vec3(dq / np.linalg.norm(dq), vec_mode)
+    return float(np.linalg.norm(v)) / phi
+
+
+def attitude_cov_param_to_angle(cov: np.ndarray, vec_mode: int) -> np.ndarray:
+    r"""
+    Convert an attitude-error covariance from the ``vec_mode`` 3-parameter
+    space to physical rotation-vector (angle, rad\ :sup:`2`) space.
+
+    Near zero error the parametrisation is linear,
+    :math:`\texttt{vec3} \approx G\,\boldsymbol{\phi}` with
+    :math:`G=` :func:`vec_mode_angle_gain`, so the angle-space covariance is
+    the congruence with :math:`D=\operatorname{diag}(1/G)` on the attitude
+    indices: the attitude block scales by :math:`1/G^2` and any
+    attitude cross-covariances by :math:`1/G`.
+
+    **Contract:** estimator covariance attitude blocks (e.g.
+    ``EstimatedArray.cov[3:6, 3:6]`` for the reduced, non-``quat_as_vec``
+    representation) are in the ``vec_mode`` parameter — comparing them to a
+    physical attitude *angle* error without this conversion is wrong by
+    :math:`G^{-2}` (= 4 for ``vec_mode=6``).
+
+    :param cov: Either the ``(3, 3)`` attitude-error block, or a full
+        reduced covariance whose ``[3:6, 3:6]`` block is the attitude error
+        (rate at ``0:3``, attitude at ``3:6``).
+    :type cov: numpy.ndarray
+    :param vec_mode: Attitude-error parametrisation mode.
+    :type vec_mode: int
+    :return: Covariance in rotation-vector (rad\ :sup:`2`) space, same shape
+        as ``cov`` (only the attitude block / its cross terms are rescaled).
+    :rtype: numpy.ndarray
+    """
+    G = vec_mode_angle_gain(vec_mode)
+    cov = np.asarray(cov, dtype=float)
+    if cov.shape == (3, 3):
+        return cov / (G * G)
+    n = cov.shape[0]
+    d = np.ones(n)
+    d[3:6] = 1.0 / G
+    return (d[:, None] * d[None, :]) * cov
+
+
+def attitude_angle_covariance(cov: np.ndarray, vec_mode: int) -> np.ndarray:
+    r"""
+    **Canonical, robust accessor** for the attitude-error covariance in
+    physical rotation-vector (angle, rad\ :sup:`2`) space, including its
+    cross-covariances with the other (rate / bias / param) states.
+
+    Any consumer that needs the attitude covariance as an *angle* (plotting
+    3-sigma bounds, gain scheduling, NEES/consistency, Monte Carlo) MUST use
+    this instead of slicing ``cov[3:6, 3:6]`` directly — the raw block is in
+    the ``vec_mode`` parameter and is wrong by :math:`G^{-2}` (= 4 for
+    ``vec_mode=6``). Robust: validates, symmetrises input and output, applies
+    the exact small-angle congruence (:func:`attitude_cov_param_to_angle`).
+
+    :param cov: ``(3, 3)`` attitude block or a full reduced covariance
+        (rate ``0:3``, attitude ``3:6``); non-``quat_as_vec`` representation.
+    :type cov: numpy.ndarray
+    :param vec_mode: Attitude-error parametrisation mode.
+    :type vec_mode: int
+    :return: Covariance with the attitude block (and its cross terms) in
+        rad\ :sup:`2`; symmetric, same shape as ``cov``.
+    :rtype: numpy.ndarray
+    """
+    cov = np.asarray(cov, dtype=float)
+    if cov.ndim != 2 or cov.shape[0] != cov.shape[1]:
+        raise ValueError(f"cov must be square, got shape {cov.shape}")
+    if cov.shape != (3, 3) and cov.shape[0] < 6:
+        raise ValueError(
+            "full reduced covariance must have the attitude block at [3:6]"
+        )
+    sym = 0.5 * (cov + cov.T)
+    out = attitude_cov_param_to_angle(sym, vec_mode)
+    return 0.5 * (out + out.T)
+
+
+def _attitude_angle_block(cov: np.ndarray, vec_mode: int) -> np.ndarray:
+    """Return just the (3,3) angle-space attitude-error covariance (rad^2)."""
+    a = attitude_angle_covariance(cov, vec_mode)
+    return a if a.shape == (3, 3) else a[3:6, 3:6]
+
+
+def attitude_angle_sigma(cov: np.ndarray, vec_mode: int,
+                         k: float = 3.0) -> np.ndarray:
+    r"""
+    Robust per-axis :math:`k\sigma` attitude-error bound in **radians**
+    (default :math:`k=3`). This is what plot/telemetry code should use for
+    attitude error bars — never ``k*sqrt(cov[3:6,3:6])`` (that is the
+    ``vec_mode`` parameter, off by :math:`G^{-1}`).
+
+    Diagonal is clipped at 0 before the square root (robust to tiny negative
+    eigenvalues from finite-precision square-root filtering).
+
+    :return: ``(3,)`` array of :math:`k\sigma` angle bounds [rad].
+    :rtype: numpy.ndarray
+    """
+    blk = _attitude_angle_block(cov, vec_mode)
+    return float(k) * np.sqrt(np.clip(np.diag(blk), 0.0, None))
+
+
+def sample_attitude_error_rotvec(cov: np.ndarray, vec_mode: int,
+                                 rng: np.random.Generator = None,
+                                 size: int = 1) -> np.ndarray:
+    r"""
+    Draw zero-mean attitude-error **rotation vectors** (rad) consistent with
+    the filter covariance — the sanctioned sampler for Monte-Carlo /
+    consistency studies (correctly in angle space, not the ``vec_mode``
+    parameter).
+
+    Uses the symmetric eigendecomposition of the angle-space attitude block
+    with eigenvalues clipped at 0, so it is robust to a covariance that is
+    only positive *semi*-definite (common with square-root filters).
+
+    :param rng: optional ``numpy.random.Generator`` (default: fresh default).
+    :param size: number of samples.
+    :return: ``(size, 3)`` rotation-vector samples [rad] (drop the leading
+        axis if ``size == 1`` is desired by the caller).
+    :rtype: numpy.ndarray
+    """
+    if rng is None:
+        rng = np.random.default_rng()
+    blk = _attitude_angle_block(cov, vec_mode)
+    blk = 0.5 * (blk + blk.T)
+    w, V = np.linalg.eigh(blk)
+    w = np.clip(w, 0.0, None)
+    L = V @ np.diag(np.sqrt(w))
+    z = rng.standard_normal((int(size), 3))
+    return z @ L.T
+
 
 @njit(cache=True)
 def mrp_to_quat(mrp):

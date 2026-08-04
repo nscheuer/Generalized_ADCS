@@ -18,6 +18,18 @@ class EstimatedArray:
     :type val: np.ndarray
     :param cov: The covariance matrix :math:`P` representing uncertainty in ``val``.
                 Must be square and match the dimensions of ``val``.
+
+                .. warning::
+                   For a reduced attitude estimator (non-``quat_as_vec``) the
+                   attitude-error block ``cov[3:6, 3:6]`` is expressed in the
+                   estimator's ``vec_mode`` 3-parameter, **not** the physical
+                   attitude angle. It differs from an angle (rad\\ :sup:`2`)
+                   covariance by :math:`G^{-2}` (= 4 for ``vec_mode=6``).
+                   Do **not** read it (or ``sqrt`` of it) as an attitude angle
+                   uncertainty. Use the sanctioned converters
+                   :func:`~ADCS.helpers.math_helpers.attitude_angle_covariance`
+                   / ``attitude_angle_sigma`` /
+                   ``sample_attitude_error_rotvec``.
     :type cov: np.ndarray
     :param int_cov: The integrated process covariance :math:`Q_{int}` (e.g., accumulated process noise over time).
     :type int_cov: np.ndarray
