@@ -422,7 +422,15 @@ class RW(Actuator):
         :return: Jacobian :math:`\partial\boldsymbol{\tau}/\partial u`, shape ``(1,3)``.
         :rtype: numpy.ndarray
         """
-        return self.axis.reshape((1,3))
+        # The command is saturated to +/- u_max before mapping to torque
+        # (tau = axis * clip(u, -u_max, u_max) + bias + noise). The derivative
+        # of clip w.r.t. u is 1 strictly inside the limit and 0 outside, so the
+        # torque is INSENSITIVE to the commanded u once saturated. Returning
+        # `axis` unconditionally told planners/estimators the wheel still
+        # responds at full authority in saturation -- wrong. Subgradient: use
+        # the unsaturated value strictly inside |u| < u_max and 0 at/beyond it.
+        active = float(abs(u) < self.u_max)
+        return active * self.axis.reshape((1, 3))
 
     def dtorq__dh(self, u: float, x: np.ndarray, os: Orbital_State) -> np.ndarray:
         r"""
@@ -587,7 +595,11 @@ class RW(Actuator):
         :return: Jacobian :math:`\partial\boldsymbol{\tau}_{\mathrm{wheel}}/\partial u`, shape ``(1,1)``.
         :rtype: numpy.ndarray
         """
-        return -np.ones((1,1))
+        # storage_torque = -clip(u, -u_max, u_max) - bias - noise, so like
+        # dtorq__du its sensitivity to the commanded u vanishes in saturation
+        # (subgradient: -1 strictly inside |u| < u_max, 0 at/beyond u_max).
+        active = float(abs(u) < self.u_max)
+        return -active * np.ones((1, 1))
     
     def dstor_torq__dbias(self, u: float, x: np.ndarray, os: Orbital_State) -> np.ndarray:
         r"""
