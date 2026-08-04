@@ -141,7 +141,10 @@ class PipelineController(Controller):
 
         # --- Stage 1: Goal Formulation ---
         # Use existing Goal interface for error computation
-        q_err = goal.error(q=q, body_boresight=est_sat.boresight, os0=os_hat)
+        # est_sat.boresight is a {name: vector} dict on current main; a goal may
+        # name which one it wants (Goal.boresight_name), else the default is used.
+        boresight = est_sat.get_boresight(getattr(goal, "boresight_name", None))
+        q_err = goal.error(q=q, body_boresight=boresight, os0=os_hat)
         _, omega_ref_eci = goal.to_ref(os0=os_hat)
 
         gf_out = goal_formulation_step_legacy(
@@ -153,9 +156,13 @@ class PipelineController(Controller):
         )
 
         # --- Stage 2: Control Law ---
+        # The two error signals are passed POSITIONALLY on purpose: a user's
+        # own law should be free to name them q_err/w_err (or whatever suits
+        # its own notation) rather than having to match the framework's
+        # parameter names. Extra state stays keyword-only.
         tau_law = self.law.compute(
-            attitude_input=gf_out.attitude_output,
-            omega_input=gf_out.omega_output,
+            gf_out.attitude_output,
+            gf_out.omega_output,
             omega_raw=omega,
             h_rw_body=h_rw_body,
         )

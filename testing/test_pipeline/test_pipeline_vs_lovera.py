@@ -60,11 +60,11 @@ def make_orbit(tf_sec=500.0, dt=50.0):
     R0 = 7000 * np.array([0.0, -np.sqrt(2) / 2, np.sqrt(2) / 2])
     V0 = np.array([8.0, 0.0, 0.0])
     os0 = Orbital_State(ephem=ephem, J2000=start_J2000, R=R0, V=V0)
-    orbit = Orbit(os0=os0, end_time=end_J2000, dt=dt, use_J2=True, fast=False)
+    orbit = Orbit(os0=os0, end_time=end_J2000, dt=dt, zonal_J=2, fast=False)
     return orbit
 
 
-def test_single_step(sat, orbit, goal, x, t, gains, label=""):
+def _single_step(sat, orbit, goal, x, t, gains, label=""):
     """Compare MTQ_Lovera and PipelineController on a single step."""
     p_gain, d_gain, eps = gains
 
@@ -113,7 +113,7 @@ def main():
     print("\nTest 1: ECI goal, q=[1,0,0,0], w=[0,0,0]")
     x0 = np.concatenate([np.zeros(3), np.array([1, 0, 0, 0.0]), 0.005 * np.ones(3)])
     goal = ECI_Goal(normalize(np.array([1.0, 0.0, 0.0])))
-    all_pass &= test_single_step(sat, orbit, goal, x0, t=0.0, gains=gains,
+    all_pass &= _single_step(sat, orbit, goal, x0, t=0.0, gains=gains,
                                   label="identity quat, zero omega")
 
     # --- Test 2: ECI goal, rotated quaternion, nonzero omega ---
@@ -122,29 +122,29 @@ def main():
     w_rot = np.array([0.01, -0.005, 0.008])
     x1 = np.concatenate([w_rot, q_rot, 0.005 * np.ones(3)])
     goal_eci = ECI_Goal(normalize(np.array([-0.139, -0.370, -0.919])))
-    all_pass &= test_single_step(sat, orbit, goal_eci, x1, t=100.0, gains=gains,
+    all_pass &= _single_step(sat, orbit, goal_eci, x1, t=100.0, gains=gains,
                                   label="rotated quat, nonzero omega")
 
     # --- Test 3: No goal ---
     print("\nTest 3: No_Goal (zero error)")
-    all_pass &= test_single_step(sat, orbit, No_Goal(), x1, t=100.0, gains=gains,
+    all_pass &= _single_step(sat, orbit, No_Goal(), x1, t=100.0, gains=gains,
                                   label="no goal")
 
     # --- Test 4: Nadir goal ---
     print("\nTest 4: Nadir goal")
-    all_pass &= test_single_step(sat, orbit, Nadir_Goal(), x1, t=200.0, gains=gains,
+    all_pass &= _single_step(sat, orbit, Nadir_Goal(), x1, t=200.0, gains=gains,
                                   label="nadir goal")
 
     # --- Test 5: Large angular velocity (saturation test) ---
     print("\nTest 5: Large omega (saturation)")
     w_large = np.array([0.1, -0.08, 0.05])
     x2 = np.concatenate([w_large, q_rot, 0.01 * np.ones(3)])
-    all_pass &= test_single_step(sat, orbit, goal_eci, x2, t=50.0, gains=gains,
+    all_pass &= _single_step(sat, orbit, goal_eci, x2, t=50.0, gains=gains,
                                   label="large omega, saturation")
 
     # --- Test 6: Different time in orbit (different B field) ---
     print("\nTest 6: Different orbital position (t=300s)")
-    all_pass &= test_single_step(sat, orbit, goal_eci, x1, t=300.0, gains=gains,
+    all_pass &= _single_step(sat, orbit, goal_eci, x1, t=300.0, gains=gains,
                                   label="t=300s, different B field")
 
     # --- Summary ---
@@ -156,6 +156,15 @@ def main():
     print("=" * 60)
 
     return 0 if all_pass else 1
+
+
+def test_pipeline_matches_lovera():
+    """Pytest entry point: the pipeline must reproduce MTQ_Lovera bit-for-bit.
+
+    Without this, ``main()`` only ran when the file was executed directly, so
+    the parity check never fired under pytest or in CI.
+    """
+    assert main() == 0, "PipelineController output diverged from MTQ_Lovera"
 
 
 if __name__ == "__main__":

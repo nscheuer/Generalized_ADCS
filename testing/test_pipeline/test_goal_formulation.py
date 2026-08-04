@@ -13,8 +13,12 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
 from ADCS.helpers.math_helpers import (
-    normalize, rot_mat, quat_mult, quat_inv, quat_diff, norm,
+    normalize, rot_mat, quat_mult, quat_inv, quat_diff,
 )
+
+# ADCS.helpers.math_helpers.norm is an njit 1-D kernel; these checks also take
+# norms of 3x3 matrices, so use the NumPy version throughout.
+norm = np.linalg.norm
 from ADCS.pipeline.goal_formulation.quat_set import (
     compute_set_basis, select_nearest_quaternion, find_perpendicular,
 )
