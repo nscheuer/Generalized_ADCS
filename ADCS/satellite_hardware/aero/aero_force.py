@@ -1,6 +1,9 @@
 from __future__ import annotations
 __all__ = ["AeroModel", "panel_aero_force_body"]
 
+# finite speed-ratio (Storch 2002) companion model:
+# ADCS.satellite_hardware.aero.finite_s
+
 import numpy as np
 
 from ADCS.helpers.math_helpers import normalize
