@@ -42,6 +42,11 @@ html_theme = 'furo'
 html_static_path = ['_static']
 html_css_files = ['custom.css']
 
+# Canonical URL. Needed so that pages linked from print material (the SSC26
+# poster QR codes point at /ssc26/) resolve to absolute URLs in link previews
+# and search results rather than to relative paths.
+html_baseurl = 'https://nscheuer.github.io/Generalized_ADCS/'
+
 html_theme_options = {
     "sidebar_hide_name": False,
     "light_logo": "starlab_logo.svg",
