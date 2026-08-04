@@ -141,6 +141,16 @@ class RW(Actuator):
         self.h = h
         self.h_max = h_max
 
+        # Cache for one coherent stochastic realization per (step/state).
+        # ``torque()`` (body torque) and ``storage_torque()`` (wheel reaction)
+        # must be drawn from the SAME random sample so that the reaction is
+        # exactly equal and opposite to the applied torque (Newton's 3rd law /
+        # conservation of angular momentum). Without this, each method
+        # independently resamples bias/noise and angular momentum is created
+        # out of nothing every integration step.
+        self._eff_cmd_key = None
+        self._eff_cmd_val = None
+
         if h_meas_noise:
             self.h_meas_noise: Noise = h_meas_noise
         else:
@@ -183,25 +193,85 @@ class RW(Actuator):
         :return: Body torque vector :math:`\boldsymbol{\tau}_{\mathrm{RW}}` [N·m], shape ``(3,)``.
         :rtype: numpy.ndarray
         """
-        if abs(u) > self.u_max:
-            warnings.warn("requested torque exceeds actuation limit")
+        u_eff = self._effective_command(u=u, os=os, dmode=dmode)
+        return self.axis * u_eff
 
+    def _effective_command(self, u: float, os: Orbital_State, dmode: ErrorMode = None) -> float:
+        r"""
+        Compute the effective scalar motor torque :math:`u_{\mathrm{eff}} = u + b(t) + n(t)`.
+
+        This is the single point at which the stochastic realization (bias random
+        walk and additive noise) is drawn for a given integration step. The result
+        is cached, keyed by the orbital time tag, the commanded torque, and the
+        disturbance-mode flags. Both :meth:`torque` (body torque) and
+        :meth:`storage_torque` (wheel reaction torque) call this helper, so within
+        a single dynamics step they share exactly one random draw. The wheel
+        reaction is therefore *exactly* equal and opposite to the body torque,
+        conserving angular momentum (Newton's third law). The result is also
+        independent of the order in which :meth:`torque` and
+        :meth:`storage_torque` are called.
+
+        The commanded torque is saturated to the actuation limit
+        :math:`[-u_{\max}, u_{\max}]` (sign preserved; below-limit unchanged)
+        *before* bias and noise are added, since the motor physically cannot
+        command beyond its torque limit.
+
+        :param u: Commanded motor torque about the wheel axis [N·m].
+        :type u: float
+
+        :param os: Orbital state providing the time tag for bias evolution.
+        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
+
+        :param dmode: Disturbance mode toggles controlling inclusion and update of bias and noise.
+        :type dmode: :class:`~ADCS.satellite_hardware.errors.error_mode.ErrorMode` | None
+
+        :return: Effective scalar command :math:`u_{\mathrm{eff}}` [N·m].
+        :rtype: float
+        """
         if dmode is None:
             dmode = ErrorMode(add_bias=True, add_noise=True, update_bias=True, update_noise=True)
 
-        torque = u
+        if abs(u) > self.u_max:
+            warnings.warn("requested torque exceeds actuation limit")
 
-        if self.bias and dmode.add_bias:
-            torque += self.bias.get_bias(j2000=os.J2000)
-        if dmode.update_bias:
+        # Saturate the commanded torque to the physical actuation limit,
+        # preserving sign. Below-limit commands are unchanged. Keep the numpy
+        # scalar type (do NOT cast to Python float): storage_torque() returns
+        # -u_eff and the long-standing contract / callers expect a numpy scalar
+        # (e.g. ``.item()``); casting to float would change the public type.
+        u_cmd = np.clip(u, -self.u_max, self.u_max)
+
+        key = (
+            os.J2000,
+            u_cmd,
+            dmode.add_bias,
+            dmode.add_noise,
+            dmode.update_bias,
+            dmode.update_noise,
+        )
+        if self._eff_cmd_key == key:
+            # Same step/state: reuse the already-drawn realization so that the
+            # body torque and wheel reaction are exactly consistent.
+            return self._eff_cmd_val
+
+        command = u_cmd
+
+        # Evolve stochastic states first so this call uses values at the
+        # current step. Drawn exactly once per (step/state).
+        if self.bias and dmode.update_bias:
             self.bias._update_bias(j2000=os.J2000)
-
-        if self.noise and dmode.add_noise:
-            torque += self.noise.get_noise()
-        if dmode.update_noise:
+        if self.noise and dmode.update_noise:
             self.noise._update_noise()
 
-        return self.axis*torque
+        if self.bias and dmode.add_bias:
+            command += self.bias.get_bias(j2000=os.J2000)
+
+        if self.noise and dmode.add_noise:
+            command += self.noise.get_noise()
+
+        self._eff_cmd_key = key
+        self._eff_cmd_val = command
+        return command
 
     def storage_torque(self, u: float, x: np.ndarray, os: Orbital_State, dmode: ErrorMode = None) -> float:
         r"""
@@ -239,26 +309,11 @@ class RW(Actuator):
         :return: Internal wheel torque vector :math:`\boldsymbol{\tau}_{\mathrm{wheel}}` [N·m], shape ``(3,)``.
         :rtype: numpy.ndarray
         """
-
-        if abs(u) > self.u_max:
-            warnings.warn("RW Requested Torque exceeds actuation limit")
-
-        if dmode is None:
-            dmode = ErrorMode(add_bias=True, add_noise=True, update_bias=True, update_noise=True)
-        
-        command = u
-
-        if self.bias and dmode.add_bias:
-            command += self.bias.get_bias(j2000=os.J2000)
-        if dmode.update_bias:
-            self.bias._update_bias(os.J2000)
-
-        if self.noise and dmode.add_noise:
-            command += self.noise.get_noise()
-        if dmode.update_noise:
-            self.noise._update_noise()
-
-        return -command
+        # Share the SAME stochastic realization as torque() for this step so
+        # that the wheel reaction is exactly equal and opposite to the applied
+        # body torque (conservation of angular momentum / Newton's 3rd law).
+        u_eff = self._effective_command(u=u, os=os, dmode=dmode)
+        return -u_eff
     
 
     def measure_momentum(self):
@@ -305,15 +360,36 @@ class RW(Actuator):
 
             \mathbf{h} \leftarrow \mathbf{h}_{\text{new}}.
 
-        :param h: New wheel angular momentum [N·m·s].
-        :type h: float
+        :param h: New wheel angular momentum [N·m·s]. May be a scalar or a
+            vector (the single-axis wheel momentum is collinear with the spin
+            axis, but a vector interface is supported).
+        :type h: float | numpy.ndarray
 
         :return: ``None``.
         :rtype: NoneType
         """
-        if h > self.h_max:
+        h_arr = np.asarray(h, dtype=float)
+        # h_max is the saturation magnitude. Compare by magnitude so that
+        # negative saturation is detected as well as positive, and so a vector
+        # h does not raise (the previous ``h > self.h_max`` was sign-blind and
+        # broke on array input).
+        h_max_mag = np.max(np.abs(self.h_max))
+
+        if h_arr.ndim == 0:
+            magnitude = abs(float(h_arr))
+        else:
+            magnitude = float(np.linalg.norm(h_arr))
+
+        if magnitude > h_max_mag:
             warnings.warn("RW Angular Momentum exceeds saturation limit")
-        self.h = h
+            if magnitude > 0.0:
+                # Clamp stored momentum at +/- h_max, preserving direction/sign.
+                h_arr = h_arr * (h_max_mag / magnitude)
+
+        if np.ndim(h) == 0:
+            self.h = float(h_arr)
+        else:
+            self.h = h_arr
 
     def dtorq__du(self, u: float, x: np.ndarray, os: Orbital_State) -> np.ndarray:
         r"""

@@ -1,394 +1,692 @@
-import sys
-import os
-import numpy as np
-from scipy.integrate import solve_ivp
-from typing import List, Tuple, Optional, Dict
-from tqdm import tqdm
-import pytest
+from dataclasses import dataclass
 from functools import lru_cache
+import sys
+import warnings
 
-sys.path.append(os.path.abspath(os.path.join(__file__, "../../..")))
-from ADCS.CONOPS.goals import Goal, ECI_Goal, Coordinate_Goal, No_Goal
+import numpy as np
+import pytest
+from scipy.integrate import solve_ivp
+from tqdm import tqdm
+
+from ADCS.CONOPS.goals import Coordinate_Goal, ECI_Goal, Goal, No_Goal
 from ADCS.controller import MTQ_w_RW_LP
+from ADCS.helpers.math_constants import MathConstants
+from ADCS.helpers.math_helpers import normalize
+from ADCS.helpers.math_helpers import random_n_unit_vec
+from ADCS.helpers.math_helpers import rot_mat
 from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.orbit import Orbit
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.universal_constants import TimeConstants
-from ADCS.satellite_hardware.satellite.satellite import Satellite
-from ADCS.satellite_hardware.sensors import MTM
 from ADCS.satellite_hardware.actuators import MTQ, RW
-from ADCS.helpers.math_constants import MathConstants
-from ADCS.helpers.math_helpers import random_n_unit_vec, normalize
-
-from ADCS.helpers.plotting.animate_estimator import animate_attitude
-from ADCS.helpers.plotting.plot_estimator import plot_state_comparison
-from ADCS.helpers.plotting.close_all_plots import create_close_all_button_window
-from ADCS.helpers.plotting.plot_controller import (
-    plot_control,
-    plot_rw_momentum,
-    plot_target_tracking,
-)
-from ADCS.helpers.plotting.animate_orbit_pyvista import animate_orbit_pyvista
+from ADCS.satellite_hardware.satellite import Satellite
+from ADCS.satellite_hardware.sensors import MTM
 
 
-# ----------------------------
-# Scenario configs
-# ----------------------------
-POINTING_CFG: Dict[str, float] = dict(
-    p_gain=0.00005,
-    d_gain=0.001,
-    c_gain=0.0,
-    h_target=np.array([0.004, 0.0, 0.0]),
-)
+POINTING_CFG = {
+    "p_gain": 5.0e-5,
+    "d_gain": 1.0e-3,
+    "c_gain": 0.0,
+    "h_target": np.array([0.004, 0.0, 0.0]),
+}
+DESAT_CFG = {
+    "p_gain": 5.0e-5,
+    "d_gain": 5.0e-5,
+    "c_gain": 2.0e-2,
+    "h_target": np.array([0.002, 0.0, 0.0]),
+}
+CTRL_EFFORT_TOL = 0.01
 
-DESAT_CFG: Dict[str, float] = dict(
-    p_gain=0.00005,
-    d_gain=0.00005,
-    c_gain=0.02,
-    h_target=np.array([0.002, 0.0, 0.0]),
-)
+SCENARIO_DEFAULTS = {
+    "hold": (500.0, 2.0),
+    "easy_turn": (500.0, 2.0),
+    "hard_turn": (500.0, 2.0),
+    "ground_tracking": (500.0, 2.0),
+    "desat": (2500.0, 5.0),
+}
 
-CTRL_EFFORT_TOL = 0.01  # magnitude threshold at end (except ground tracking)
+
+@dataclass(frozen=True)
+class MTQwRWLPRun:
+    time_hist: np.ndarray
+    state_hist: np.ndarray
+    os_hist: list[Orbital_State]
+    sensor_hist: np.ndarray
+    u_hist: np.ndarray
+    boresight_hist: np.ndarray
+    goal: Goal
 
 
-# ----------------------------
-# Shared setup + utilities
-# ----------------------------
-def _make_satellite() -> Tuple[Satellite, np.ndarray, List]:
-    mtq_max_torque = 0.4
-    mtqs = [MTQ(axis=j, max_torque=mtq_max_torque) for j in MathConstants.unitvecs]
+class StaticGoal(Goal):
+    def __init__(
+        self,
+        *,
+        q_err: np.ndarray | None = None,
+        goal_vec_eci: np.ndarray | None = None,
+        w_ref_eci: np.ndarray | None = None,
+    ) -> None:
+        super().__init__()
+        self.q_err = np.zeros(3) if q_err is None else np.asarray(q_err, dtype=float)
+        self.goal_vec_eci = (
+            np.array([0.0, 0.0, 1.0])
+            if goal_vec_eci is None
+            else normalize(np.asarray(goal_vec_eci, dtype=float))
+        )
+        self.w_ref_eci = np.zeros(3) if w_ref_eci is None else np.asarray(w_ref_eci, dtype=float)
+        self.boresight_name = None
 
-    rw_max_torque = 7 * 0.001
-    rw_J = 0.001
-    rw_h0 = 5 * 0.001
-    rw_hmax = 16.2 * 0.001
+    def to_ref(self, os0: Orbital_State) -> tuple[np.ndarray, np.ndarray]:
+        goal = np.empty(4)
+        goal[0] = np.nan
+        goal[1:] = self.goal_vec_eci
+        return goal, self.w_ref_eci
 
-    rws = [
-        RW(axis=j, max_torque=rw_max_torque, J=rw_J, h=rw_h0, h_max=rw_hmax)
-        for j in MathConstants.unitvecs
-    ]
-    # Keep 1 RW: remove two
-    rws.pop()
-    rws.pop()
+    def error(self, q: np.ndarray, body_boresight: np.ndarray, os0: Orbital_State) -> np.ndarray:
+        return self.q_err.copy()
 
-    acts = mtqs + rws
-    mtms = [MTM(axis=j) for j in MathConstants.unitvecs]
 
-    sat = Satellite(
+def _unit(vec: np.ndarray) -> np.ndarray:
+    return vec / np.linalg.norm(vec)
+
+
+def _make_satellite(
+    *,
+    rw_axes: list[np.ndarray] | None = None,
+    mtq_max_torque: float = 0.4,
+    rw_max_torque: float = 7.0e-3,
+    rw_h: float | list[float] | np.ndarray = 5.0e-3,
+) -> Satellite:
+    mtqs = [MTQ(axis=axis, max_torque=mtq_max_torque) for axis in MathConstants.unitvecs]
+    actuators = list(mtqs)
+
+    axes = [MathConstants.unitvecs[0]] if rw_axes is None else rw_axes
+    rw_h_array = np.repeat(float(rw_h), len(axes)) if np.isscalar(rw_h) else np.asarray(rw_h, dtype=float)
+    for index, axis in enumerate(axes):
+        actuators.append(RW(axis=axis, max_torque=rw_max_torque, J=1.0e-3, h=rw_h_array[index], h_max=16.2e-3))
+
+    mtms = [MTM(axis=axis) for axis in MathConstants.unitvecs]
+    return Satellite(
         mass=1.2,
         J_0=np.diagflat([0.022, 0.022, 0.004]),
-        actuators=acts,
+        actuators=actuators,
         sensors=mtms,
-        boresight=np.array([0, 0, 1]),
+        boresight=np.array([0.0, 0.0, 1.0]),
     )
 
-    # Initial state
-    w0 = random_n_unit_vec(3) * np.random.uniform(1, 2) * np.pi / 180.0
-    w0 = np.array([0.0, 0.0, 0.0])
-    q0 = normalize(np.array([1.0, 0.0, 0.0, 0.0]))
-    h0 = np.array([rw_h0])
-    x0 = np.concatenate([w0, q0, h0])
 
-    return sat, x0, acts
+def _controller_cfg(goal: Goal) -> dict:
+    return DESAT_CFG if isinstance(goal, No_Goal) else POINTING_CFG
 
 
 def _make_controller(est_sat: Satellite, goal: Goal) -> MTQ_w_RW_LP:
-    cfg = DESAT_CFG if isinstance(goal, No_Goal) else POINTING_CFG
-    return MTQ_w_RW_LP(
-        est_sat=est_sat,
-        p_gain=cfg["p_gain"],
-        d_gain=cfg["d_gain"],
-        c_gain=cfg["c_gain"],
-        h_target=cfg["h_target"],
-    )
+    cfg = _controller_cfg(goal)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", UserWarning)
+        return MTQ_w_RW_LP(
+            est_sat=est_sat,
+            p_gain=cfg["p_gain"],
+            d_gain=cfg["d_gain"],
+            c_gain=cfg["c_gain"],
+            h_target=cfg["h_target"],
+        )
 
 
 @lru_cache(maxsize=16)
-def _get_real_orbit_cached(tf: float, dt: float) -> Orbit:
-    """
-    Cached real orbit propagation so that pytest runs don't propagate 4x.
-    Cache key is (tf, dt). If you vary those, you'll get a new propagation.
-    """
+def _make_real_orbit(tf: float, dt: float) -> Orbit:
     ephem = Ephemeris()
-    start_time = 0.22 - 1 * TimeConstants.sec2cent
+    start_time = 0.22 - TimeConstants.sec2cent
     end_time = 0.22 + tf * TimeConstants.sec2cent
-
-    R = 7000 * np.array([0.0, np.sqrt(2) / 2, np.sqrt(2) / 2])
-    V = np.array([8.0, 0.0, 0.0])
-
-    os0 = Orbital_State(ephem=ephem, J2000=start_time, R=R, V=V)
-    return Orbit(os0=os0, end_time=end_time, dt=dt, use_J2=True, fast=False)
+    os0 = Orbital_State(
+        ephem=ephem,
+        J2000=start_time,
+        R=7000.0 * np.array([0.0, np.sqrt(2.0) / 2.0, np.sqrt(2.0) / 2.0]),
+        V=np.array([8.0, 0.0, 0.0]),
+    )
+    return Orbit(os0=os0, end_time=end_time, dt=dt, zonal_J=2, fast=False)
 
 
 def _make_fake_orbit(tf: float, dt: float) -> Orbit:
     ephem = Ephemeris()
-    R = 7000 * np.array([0.0, np.sqrt(2) / 2, np.sqrt(2) / 2])
-    V = np.array([8.0, 0.0, 0.0])
-
     os0 = Orbital_State(
         ephem=ephem,
-        J2000=0.22 - 1 * TimeConstants.sec2cent,
-        R=R,
-        V=V,
+        J2000=0.22 - TimeConstants.sec2cent,
+        R=7000.0 * np.array([0.0, np.sqrt(2.0) / 2.0, np.sqrt(2.0) / 2.0]),
+        V=np.array([8.0, 0.0, 0.0]),
         B=np.array([0.0, 0.1, 0.0]),
-        S=np.array([1e5 + 1.0, 0.0, 0.0]),
-        rho=5e-12,
+        S=np.array([1.0e5 + 1.0, 0.0, 0.0]),
+        rho=5.0e-12,
     )
-
-    dur = int(tf / dt) + 10
-    orbs = [os0] * (dur + 10)
-    for j in range(dur):
-        orbs[j] = os0.copy()
-        orbs[j].J2000 = os0.J2000 + j * dt * TimeConstants.sec2cent
-    return Orbit(orbs)
-
-
-def _quat_to_dcm_body_to_eci(q: np.ndarray) -> np.ndarray:
-    """
-    Assumes scalar-first quaternion q = [q0, q1, q2, q3] and returns DCM for body->ECI.
-    """
-    q = normalize(q)
-    q0, q1, q2, q3 = q
-    return np.array([
-        [1 - 2*(q2*q2 + q3*q3),     2*(q1*q2 - q0*q3),     2*(q1*q3 + q0*q2)],
-        [    2*(q1*q2 + q0*q3), 1 - 2*(q1*q1 + q3*q3),     2*(q2*q3 - q0*q1)],
-        [    2*(q1*q3 - q0*q2),     2*(q2*q3 + q0*q1), 1 - 2*(q1*q1 + q2*q2)],
-    ])
+    count = int(tf / dt) + 20
+    orbit_states = []
+    for step in range(count):
+        current = os0.copy()
+        current.J2000 = os0.J2000 + step * dt * TimeConstants.sec2cent
+        orbit_states.append(current)
+    return Orbit(orbit_states)
 
 
-def _final_pointing_error_deg(
-    state_hist: np.ndarray,
-    boresight_goal_hist: np.ndarray,
-    body_boresight: np.ndarray = np.array([0.0, 0.0, 1.0]),
-) -> float:
-    valid = np.where(~np.isnan(state_hist[:, 0]))[0]
-    if len(valid) == 0:
-        return float("nan")
-    k = valid[-1]
-
-    q = state_hist[k, 3:7]
-    goal_eci = boresight_goal_hist[k, :]
-
-    R_b2i = _quat_to_dcm_body_to_eci(q)
-    boresight_eci = R_b2i @ body_boresight
-
-    boresight_eci = boresight_eci / (np.linalg.norm(boresight_eci) + 1e-16)
-    goal_eci = goal_eci / (np.linalg.norm(goal_eci) + 1e-16)
-
-    c = float(np.clip(np.dot(boresight_eci, goal_eci), -1.0, 1.0))
-    return float(np.degrees(np.arccos(c)))
+def _scenario_goal(name: str) -> Goal:
+    match name:
+        case "hold":
+            return ECI_Goal(np.array([0.0, 0.0, 1.0]))
+        case "easy_turn":
+            return ECI_Goal(np.array([0.0, 1.0, 0.0]))
+        case "hard_turn":
+            return ECI_Goal(np.array([1.0, 1.0, 1.0]))
+        case "ground_tracking":
+            return Coordinate_Goal(lat=40, lon=-40, alt=0)
+        case "desat":
+            return No_Goal()
+        case _:
+            raise ValueError(f"Unknown scenario '{name}'.")
 
 
-def _final_control_effort(u_hist: np.ndarray) -> float:
-    valid = np.where(~np.isnan(u_hist[:, 0]))[0]
-    if len(valid) == 0:
-        return float("nan")
-    k = valid[-1]
-    return float(np.linalg.norm(u_hist[k, :]))
-
-
-def simulate_MTQ_w_RW_LP(
-    goal: Goal,
-    verbose: bool = False,
-    tf: float = 1000,
-    dt: float = 10,
-    real_orbit: bool = True,
-    orbit: Optional[Orbit] = None,
-) -> Tuple[np.ndarray, np.ndarray, List[Orbital_State], np.ndarray, np.ndarray, np.ndarray]:
+def _initial_state() -> np.ndarray:
+    rng_state = np.random.get_state()
     np.random.seed(1)
-    t0 = 0.0
-    steps = int((tf - t0) / dt)
-    N = steps
+    try:
+        w0 = random_n_unit_vec(3) * np.random.uniform(1.0, 2.0) * np.pi / 180.0
+        w0 = np.zeros(3)
+        q0 = normalize(np.array([1.0, 0.0, 0.0, 0.0]))
+        return np.concatenate([w0, q0, np.array([5.0e-3])])
+    finally:
+        np.random.set_state(rng_state)
 
-    sat, x, acts = _make_satellite()
-    controller = _make_controller(est_sat=sat, goal=goal)
 
-    if orbit is None:
-        orbit = _get_real_orbit_cached(tf=tf, dt=dt) if real_orbit else _make_fake_orbit(tf=tf, dt=dt)
+def run_mtq_w_rw_lp_simulation(
+    scenario_name: str,
+    *,
+    tf: float | None = None,
+    dt: float | None = None,
+    real_orbit: bool = True,
+    progress: bool = False,
+) -> MTQwRWLPRun:
+    goal = _scenario_goal(scenario_name)
+    default_tf, default_dt = SCENARIO_DEFAULTS[scenario_name]
+    horizon = default_tf if tf is None else tf
+    step = default_dt if dt is None else dt
 
-    time_hist = np.nan * np.zeros(N)
-    state_hist = np.nan * np.zeros((N, len(x)))
-    os_hist: List[Orbital_State] = []
-    sensor_hist: np.ndarray = np.nan * np.zeros((N, len(sat.sensors + sat.rw_actuators)))
-    u_hist = np.nan * np.zeros((N, len(acts)))
-    boresight_hist = np.nan * np.zeros((N, 3))
+    satellite = _make_satellite()
+    controller = _make_controller(satellite, goal)
+    orbit = _make_real_orbit(horizon, step) if real_orbit else _make_fake_orbit(horizon, step)
+    x = _initial_state()
 
-    t = t0
-    ind = 0
+    steps = int(horizon / step)
+    time_hist = np.full(steps, np.nan)
+    state_hist = np.full((steps, len(x)), np.nan)
+    sensor_hist = np.full((steps, len(satellite.sensors + satellite.rw_actuators)), np.nan)
+    u_hist = np.full((steps, len(satellite.actuators)), np.nan)
+    boresight_hist = np.full((steps, 4), np.nan)
+    os_hist: list[Orbital_State] = []
 
-    for _ in tqdm(range(steps), desc="Simulating MTQ_w_RW_LP"):
-        J2000 = 0.22 + t * TimeConstants.sec2cent
-        os_now = orbit.get_os(J2000=J2000)
+    iterator = tqdm(range(steps), desc=f"Simulating {scenario_name}") if progress else range(steps)
+    t = 0.0
+    for index in iterator:
+        os_now = orbit.get_os(J2000=0.22 + t * TimeConstants.sec2cent)
+        sens = satellite.sensor_readings(x=x, os=os_now)
+        u = controller.find_u(x_hat=x, sens=sens, est_sat=satellite, os_hat=os_now, goal=goal)
 
-        sens = sat.sensor_readings(x=x, os=os_now)
-        u = controller.find_u(x_hat=x, sens=sens, est_sat=sat, os_hat=os_now, goal=goal)
-
-        if verbose:
-            print("u: ", u)
-
-        time_hist[ind] = t
-        state_hist[ind, :] = x
+        time_hist[index] = t
+        state_hist[index, :] = x
+        sensor_hist[index, :] = sens
+        u_hist[index, :] = u
+        boresight_hist[index, :] = goal.to_ref(os0=os_now)[0]
         os_hist.append(os_now)
-        sensor_hist[ind, :] = sens
-        u_hist[ind, :] = u
-        eci_goal, _w_goal = goal.to_ref(os0=os_now)
-        boresight_hist[ind, :] = eci_goal
 
-        # propagate dynamics
-        t_next = t + dt
-        os_prev = os_now.copy()
-        os_next = orbit.get_os(J2000=0.22 + t_next * TimeConstants.sec2cent)
-
+        next_t = t + step
+        os_next = orbit.get_os(J2000=0.22 + next_t * TimeConstants.sec2cent)
         out = solve_ivp(
-            fun=sat.dynamics_for_solver,
-            t_span=(0, dt),
+            fun=satellite.dynamics_for_solver,
+            t_span=(0.0, step),
             y0=x,
             method="RK45",
-            args=(u, os_prev, os_next),
-            rtol=1e-7,
-            atol=1e-7,
+            args=(u, os_now, os_next),
+            rtol=1.0e-7,
+            atol=1.0e-7,
         )
         x = out.y[:, -1]
         x[3:7] = normalize(x[3:7])
+        t = next_t
 
-        t = t_next
-        ind += 1
-
-    return time_hist, state_hist, os_hist, sensor_hist, u_hist, boresight_hist
-
-
-# ----------------------------
-# Pytest: convergence + final control effort checks
-# ----------------------------
-@pytest.mark.slow
-def test_mtq_w_rw_ps_1rw_hold_converges(tf: float = 500, dt: float = 2) -> None:
-    orbit = _get_real_orbit_cached(tf=tf, dt=dt)
-    goal = ECI_Goal(np.array([0.0, 0.0, 1.0]))
-    _, state_hist, _, _, u_hist, boresight_hist = simulate_MTQ_w_RW_LP(goal=goal, tf=tf, dt=dt, real_orbit=True, orbit=orbit)
-    err_deg = _final_pointing_error_deg(state_hist, boresight_hist)
-    assert err_deg <= 0.1, f"Final pointing error too large: {err_deg:.3f} deg"
-    u_end = _final_control_effort(u_hist)
-    assert u_end <= CTRL_EFFORT_TOL, f"Final control effort too large: {u_end:.4f} (tol={CTRL_EFFORT_TOL})"
-
-
-@pytest.mark.slow
-def test_mtq_w_rw_ps_1rw_easy_turn_converges(tf: float = 500, dt: float = 2) -> None:
-    orbit = _get_real_orbit_cached(tf=tf, dt=dt)
-    goal = ECI_Goal(np.array([0.0, 1.0, 0.0]))
-    _, state_hist, _, _, u_hist, boresight_hist = simulate_MTQ_w_RW_LP(goal=goal, tf=tf, dt=dt, real_orbit=True, orbit=orbit)
-    err_deg = _final_pointing_error_deg(state_hist, boresight_hist)
-    assert err_deg <= 0.5, f"Final pointing error too large: {err_deg:.3f} deg"
-    u_end = _final_control_effort(u_hist)
-    assert u_end <= CTRL_EFFORT_TOL, f"Final control effort too large: {u_end:.4f} (tol={CTRL_EFFORT_TOL})"
-
-
-@pytest.mark.slow
-def test_mtq_w_rw_ps_1rw_hard_turn_converges(tf: float = 500, dt: float = 2) -> None:
-    orbit = _get_real_orbit_cached(tf=tf, dt=dt)
-    goal = ECI_Goal(np.array([1.0, 1.0, 1.0]))
-    _, state_hist, _, _, u_hist, boresight_hist = simulate_MTQ_w_RW_LP(goal=goal, tf=tf, dt=dt, real_orbit=True, orbit=orbit)
-    err_deg = _final_pointing_error_deg(state_hist, boresight_hist)
-    assert err_deg <= 0.5, f"Final pointing error too large: {err_deg:.3f} deg"
-    u_end = _final_control_effort(u_hist)
-    assert u_end <= CTRL_EFFORT_TOL, f"Final control effort too large: {u_end:.4f} (tol={CTRL_EFFORT_TOL})"
-
-
-@pytest.mark.slow
-def test_mtq_w_rw_ps_1rw_ground_tracking_converges(tf: float = 500, dt: float = 2) -> None:
-    orbit = _get_real_orbit_cached(tf=tf, dt=dt)
-    goal = Coordinate_Goal(lat=9, lon=-70, alt=0)
-    _, state_hist, _, _, _u_hist, boresight_hist = simulate_MTQ_w_RW_LP(goal=goal, tf=tf, dt=dt, real_orbit=True, orbit=orbit)
-    err_deg = _final_pointing_error_deg(state_hist, boresight_hist)
-    assert err_deg <= 5.0, f"Final pointing error too large: {err_deg:.3f} deg"
-    # NOTE: no final control-effort check for ground tracking (tracking is time-varying)
-
-
-@pytest.mark.slow
-def test_mtq_w_rw_ps_1rw_desat_converges(tf: float = 2500, dt: float = 5) -> None:
-    orbit = _get_real_orbit_cached(tf=tf, dt=dt)
-    goal = No_Goal()
-    _, state_hist, _, _, u_hist, _boresight_hist = simulate_MTQ_w_RW_LP(goal=goal, tf=tf, dt=dt, real_orbit=True, orbit=orbit)
-    u_end = _final_control_effort(u_hist)
-    assert u_end <= CTRL_EFFORT_TOL, f"Final control effort too large: {u_end:.4f} (tol={CTRL_EFFORT_TOL})"
-    valid = np.where(~np.isnan(state_hist[:, 0]))[0]
-    assert len(valid) > 0, "No valid state history found"
-    k = valid[-1]
-    omega_final = state_hist[k, 0:3]
-    omega_norm = float(np.linalg.norm(omega_final))
-    assert omega_norm <= 1e-4, (
-        f"Final angular rate too large: ||ω|| = {omega_norm:.6e} rad/s (tol=1e-4)"
-    )
-
-
-# ----------------------------
-# Plot/debug entrypoints (still works with __main__)
-# ----------------------------
-def plot_scenario(
-    scenario: str,
-    verbose: bool = False,
-    tf: float = 500,
-    dt: float = 2,
-    real_orbit: bool = True,
-) -> None:
-    scenario = scenario.lower().strip()
-
-    if scenario in ("hold", "eci_hold", "align_z"):
-        goal = ECI_Goal(np.array([0.0, 0.0, 1.0]))
-    elif scenario in ("easy", "easy_turn", "turn_y"):
-        goal = ECI_Goal(np.array([0.0, 1.0, 0.0]))
-    elif scenario in ("hard", "hard_turn", "turn_diag"):
-        goal = ECI_Goal(np.array([1.0, 1.0, 1.0]))
-    elif scenario in ("ground", "ground_tracking", "coord"):
-        goal = Coordinate_Goal(lat=40, lon=-40, alt=0)
-    elif scenario in ("desat", "no_goal"):
-        goal = No_Goal()
-    else:
-        raise ValueError(f"Unknown scenario '{scenario}'. Try: hold, easy_turn, hard_turn, ground_tracking, desat")
-
-    orbit = _get_real_orbit_cached(tf=tf, dt=dt) if real_orbit else None
-    time_hist, state_hist, os_hist, _sensor_hist, u_hist, boresight_hist = simulate_MTQ_w_RW_LP(
-        goal=goal,
-        verbose=verbose,
-        tf=tf,
-        dt=dt,
-        real_orbit=real_orbit,
-        orbit=orbit,
-    )
-
-    animate_attitude(time=time_hist, state_hist=state_hist, os_hist=os_hist, boresight_goal_hist=boresight_hist)
-    plot_control(time=time_hist, u_hist=u_hist)
-    plot_state_comparison(time=time_hist, state_hist=state_hist)
-    plot_rw_momentum(time=time_hist, state_hist=state_hist)
-
-    coord_goal = goal if isinstance(goal, Coordinate_Goal) else None
-    animate_orbit_pyvista(
+    return MTQwRWLPRun(
         time_hist=time_hist,
         state_hist=state_hist,
         os_hist=os_hist,
-        boresight_goal_hist=boresight_hist,
-        coord_goal=coord_goal,
+        sensor_hist=sensor_hist,
+        u_hist=u_hist,
+        boresight_hist=boresight_hist,
+        goal=goal,
+    )
+
+
+def _quat_to_dcm_body_to_eci(q: np.ndarray) -> np.ndarray:
+    q0, q1, q2, q3 = normalize(q)
+    return np.array(
+        [
+            [1.0 - 2.0 * (q2 * q2 + q3 * q3), 2.0 * (q1 * q2 - q0 * q3), 2.0 * (q1 * q3 + q0 * q2)],
+            [2.0 * (q1 * q2 + q0 * q3), 1.0 - 2.0 * (q1 * q1 + q3 * q3), 2.0 * (q2 * q3 - q0 * q1)],
+            [2.0 * (q1 * q3 - q0 * q2), 2.0 * (q2 * q3 + q0 * q1), 1.0 - 2.0 * (q1 * q1 + q2 * q2)],
+        ]
+    )
+
+
+def _final_pointing_error_deg(run: MTQwRWLPRun) -> float:
+    valid = np.where(np.isfinite(run.state_hist[:, 0]))[0]
+    last = valid[-1]
+    q = run.state_hist[last, 3:7]
+    goal_eci = run.boresight_hist[last, 1:4]
+    boresight_eci = _quat_to_dcm_body_to_eci(q) @ np.array([0.0, 0.0, 1.0])
+    boresight_eci = boresight_eci / (np.linalg.norm(boresight_eci) + 1.0e-16)
+    goal_eci = goal_eci / (np.linalg.norm(goal_eci) + 1.0e-16)
+    return float(np.degrees(np.arccos(np.clip(np.dot(boresight_eci, goal_eci), -1.0, 1.0))))
+
+
+def _final_control_effort(run: MTQwRWLPRun) -> float:
+    valid = np.where(np.isfinite(run.u_hist[:, 0]))[0]
+    return float(np.linalg.norm(run.u_hist[valid[-1], :]))
+
+
+def _final_rate_norm(run: MTQwRWLPRun) -> float:
+    valid = np.where(np.isfinite(run.state_hist[:, 0]))[0]
+    return float(np.linalg.norm(run.state_hist[valid[-1], 0:3]))
+
+
+def _achieved_torque(
+    satellite: Satellite,
+    u_rw: np.ndarray,
+    u_mtq: np.ndarray,
+    b_body: np.ndarray,
+) -> np.ndarray:
+    rws = [actuator for actuator in satellite.actuators if isinstance(actuator, RW)]
+    mtqs = [actuator for actuator in satellite.actuators if isinstance(actuator, MTQ)]
+    tau_rw = sum(np.asarray(rw.axis, dtype=float) * u_rw[index] for index, rw in enumerate(rws)) if rws else np.zeros(3)
+    tau_mtq = sum(
+        np.cross(np.asarray(mtq.axis, dtype=float) * u_mtq[index], b_body)
+        for index, mtq in enumerate(mtqs)
+    ) if mtqs else np.zeros(3)
+    return tau_rw + tau_mtq
+
+
+@pytest.fixture
+def base_orbital_state() -> Orbital_State:
+    return Orbital_State(
+        ephem=Ephemeris(),
+        J2000=0.22,
+        R=np.array([7000.0, 0.0, 0.0]),
+        V=np.array([0.0, 8.0, 0.0]),
+        B=np.array([2.0e-5, -3.0e-5, 4.0e-5]),
+        S=np.array([1.0e5, 0.0, 0.0]),
+        rho=5.0e-12,
+    )
+
+
+@pytest.fixture
+def lp_satellite() -> Satellite:
+    return _make_satellite(rw_axes=[MathConstants.unitvecs[0]])
+
+
+@pytest.fixture
+def lp_controller(lp_satellite: Satellite) -> MTQ_w_RW_LP:
+    return _make_controller(lp_satellite, ECI_Goal(np.array([0.0, 0.0, 1.0])))
+
+
+@pytest.fixture
+def desat_controller(lp_satellite: Satellite) -> MTQ_w_RW_LP:
+    return _make_controller(lp_satellite, No_Goal())
+
+
+@pytest.fixture
+def base_state() -> np.ndarray:
+    q = normalize(np.array([0.85, 0.1, -0.15, 0.3]))
+    return np.concatenate([np.array([0.02, -0.015, 0.01]), q, np.array([0.006])])
+
+
+def test_mtq_w_rw_lp_none_goal_routes_to_desaturation(
+    lp_satellite: Satellite,
+    desat_controller: MTQ_w_RW_LP,
+    base_state: np.ndarray,
+    base_orbital_state: Orbital_State,
+) -> None:
+    sens = lp_satellite.sensor_readings(x=base_state, os=base_orbital_state)
+
+    command_none = desat_controller.find_u(
+        x_hat=base_state,
+        sens=sens,
+        est_sat=lp_satellite,
+        os_hat=base_orbital_state,
+        goal=None,
+    )
+    command_no_goal = desat_controller.find_u_desaturate(
+        x_hat=base_state,
+        sens=sens,
+        est_sat=lp_satellite,
+        os_hat=base_orbital_state,
+        goal=No_Goal(),
+    )
+
+    np.testing.assert_allclose(command_none, command_no_goal)
+
+
+def test_mtq_w_rw_lp_pointing_goal_routes_to_pointing_mode(
+    lp_satellite: Satellite,
+    lp_controller: MTQ_w_RW_LP,
+    base_state: np.ndarray,
+    base_orbital_state: Orbital_State,
+) -> None:
+    goal = ECI_Goal(np.array([1.0, 0.0, 0.0]))
+    sens = lp_satellite.sensor_readings(x=base_state, os=base_orbital_state)
+
+    command = lp_controller.find_u(
+        x_hat=base_state,
+        sens=sens,
+        est_sat=lp_satellite,
+        os_hat=base_orbital_state,
+        goal=goal,
+    )
+    expected = lp_controller.find_u_pointing(
+        x_hat=base_state,
+        sens=sens,
+        est_sat=lp_satellite,
+        os_hat=base_orbital_state,
+        goal=goal,
+    )
+
+    np.testing.assert_allclose(command, expected)
+
+
+def test_allocate_max_torque_returns_zero_for_zero_request(
+    lp_satellite: Satellite,
+    lp_controller: MTQ_w_RW_LP,
+    base_orbital_state: Orbital_State,
+) -> None:
+    u_rw, u_mtq, alpha = lp_controller.allocate_max_torque_in_direction(
+        np.zeros(3),
+        base_orbital_state.B,
+        lp_satellite,
+    )
+
+    np.testing.assert_allclose(u_rw, np.zeros(1))
+    np.testing.assert_allclose(u_mtq, np.zeros(3))
+    assert alpha == 1.0
+
+
+def test_allocate_max_torque_uses_rw_exactly_along_rw_axis(
+    lp_satellite: Satellite,
+    lp_controller: MTQ_w_RW_LP,
+) -> None:
+    tau_des = np.array([3.0e-3, 0.0, 0.0])
+    b_body = np.array([0.0, 0.0, 2.0e-5])
+
+    u_rw, u_mtq, alpha = lp_controller.allocate_max_torque_in_direction(tau_des, b_body, lp_satellite)
+    achieved = _achieved_torque(lp_satellite, u_rw, u_mtq, b_body)
+
+    np.testing.assert_allclose(achieved, tau_des, atol=1.0e-10)
+    np.testing.assert_array_less(np.abs(u_rw), lp_controller.rw_umax + 1.0e-12)
+    np.testing.assert_array_less(np.abs(u_mtq), lp_controller.mtq_umax + 1.0e-12)
+    assert alpha == 1.0
+
+
+def test_allocate_max_torque_scales_when_request_exceeds_rw_limit(
+    lp_satellite: Satellite,
+    lp_controller: MTQ_w_RW_LP,
+) -> None:
+    tau_des = np.array([2.0e-2, 0.0, 0.0])
+    b_body = np.array([0.0, 0.0, 2.0e-5])
+
+    u_rw, u_mtq, alpha = lp_controller.allocate_max_torque_in_direction(tau_des, b_body, lp_satellite)
+    achieved = _achieved_torque(lp_satellite, u_rw, u_mtq, b_body)
+
+    np.testing.assert_array_less(np.abs(u_rw), lp_controller.rw_umax + 1.0e-12)
+    np.testing.assert_array_less(np.abs(u_mtq), lp_controller.mtq_umax + 1.0e-12)
+    np.testing.assert_allclose(achieved, alpha * tau_des, atol=1.0e-10)
+    assert 0.0 < alpha < 1.0
+
+
+def test_allocate_max_torque_returns_zero_for_mtq_parallel_field_request(
+    base_orbital_state: Orbital_State,
+) -> None:
+    satellite = _make_satellite(rw_axes=[])
+    controller = _make_controller(satellite, ECI_Goal(np.array([0.0, 0.0, 1.0])))
+    b_body = np.array([0.0, 0.0, 1.0])
+    tau_des = np.array([0.0, 0.0, 2.0e-3])
+
+    u_rw, u_mtq, alpha = controller.allocate_max_torque_in_direction(tau_des, b_body, satellite)
+    achieved = _achieved_torque(satellite, u_rw, u_mtq, b_body)
+
+    np.testing.assert_allclose(u_rw, np.zeros(0))
+    np.testing.assert_allclose(achieved, np.zeros(3), atol=1.0e-12)
+    np.testing.assert_array_less(np.abs(u_mtq), controller.mtq_umax + 1.0e-12)
+    assert alpha == 0.0
+
+
+def test_allocate_max_torque_scales_perpendicular_mtq_request_to_available_torque(
+    lp_satellite: Satellite,
+    lp_controller: MTQ_w_RW_LP,
+) -> None:
+    tau_des = np.array([0.0, 1.5e-3, 0.0])
+    b_body = np.array([0.0, 0.0, 2.0e-5])
+
+    u_rw, u_mtq, alpha = lp_controller.allocate_max_torque_in_direction(tau_des, b_body, lp_satellite)
+    achieved = _achieved_torque(lp_satellite, u_rw, u_mtq, b_body)
+
+    np.testing.assert_allclose(achieved, alpha * tau_des, atol=1.0e-10)
+    np.testing.assert_array_less(np.abs(u_rw), lp_controller.rw_umax + 1.0e-12)
+    np.testing.assert_array_less(np.abs(u_mtq), lp_controller.mtq_umax + 1.0e-12)
+    assert 0.0 < alpha < 1.0
+
+
+def test_pointing_mode_matches_primary_allocation_when_secondary_gain_is_zero(
+    lp_satellite: Satellite,
+    lp_controller: MTQ_w_RW_LP,
+    base_state: np.ndarray,
+    base_orbital_state: Orbital_State,
+) -> None:
+    goal = StaticGoal(q_err=np.array([0.2, -0.1, 0.05]), w_ref_eci=np.array([0.01, 0.0, -0.02]))
+    sens = lp_satellite.sensor_readings(x=base_state, os=base_orbital_state)
+
+    command = lp_controller.find_u_pointing(
+        x_hat=base_state,
+        sens=sens,
+        est_sat=lp_satellite,
+        os_hat=base_orbital_state,
+        goal=goal,
+    )
+
+    w = base_state[0:3]
+    q = base_state[3:7]
+    h_rw_body = np.array([base_state[7], 0.0, 0.0])
+    w_ref_body = rot_mat(q).T @ goal.w_ref_eci
+    tau_pd = -lp_controller.p_gain * goal.q_err - lp_controller.d_gain * (w - w_ref_body)
+    tau_gyro = np.cross(w, lp_satellite.J_0 @ w + h_rw_body)
+    tau_des = tau_pd + tau_gyro
+    b_body = lp_controller.M_mtm_read @ sens
+    u_rw, u_mtq, _ = lp_controller.allocate_max_torque_in_direction(tau_des, b_body, lp_satellite)
+    expected = np.zeros(len(lp_satellite.actuators))
+    expected[lp_controller.rw_indices] = u_rw
+    expected[lp_controller.mtq_indices] = u_mtq
+
+    np.testing.assert_allclose(command, expected)
+
+
+def test_pointing_mode_with_zero_field_and_no_rws_achieves_zero_torque(
+    base_state: np.ndarray,
+    base_orbital_state: Orbital_State,
+) -> None:
+    satellite = _make_satellite(rw_axes=[])
+    controller = _make_controller(satellite, ECI_Goal(np.array([0.0, 0.0, 1.0])))
+    goal = ECI_Goal(np.array([0.0, 0.0, 1.0]))
+    zero_sens = np.zeros(len(satellite.sensors + satellite.rw_actuators))
+    command = controller.find_u_pointing(
+        x_hat=base_state[:7],
+        sens=zero_sens,
+        est_sat=satellite,
+        os_hat=base_orbital_state,
+        goal=goal,
+    )
+    achieved = _achieved_torque(satellite, np.zeros(0), command, np.zeros(3))
+
+    np.testing.assert_allclose(achieved, np.zeros(3), atol=1.0e-12)
+    np.testing.assert_array_less(np.abs(command), controller.mtq_umax + 1.0e-12)
+
+
+def test_desaturate_mode_zero_field_returns_zero_output(
+    lp_satellite: Satellite,
+    desat_controller: MTQ_w_RW_LP,
+    base_state: np.ndarray,
+    base_orbital_state: Orbital_State,
+) -> None:
+    command = desat_controller.find_u_desaturate(
+        x_hat=base_state,
+        sens=np.zeros(len(lp_satellite.sensors + lp_satellite.rw_actuators)),
+        est_sat=lp_satellite,
+        os_hat=base_orbital_state,
+        goal=No_Goal(),
+    )
+
+    np.testing.assert_allclose(command, np.zeros(len(lp_satellite.actuators)))
+
+
+def test_desaturate_mode_ignores_nan_sensor_values(
+    lp_satellite: Satellite,
+    desat_controller: MTQ_w_RW_LP,
+    base_state: np.ndarray,
+    base_orbital_state: Orbital_State,
+) -> None:
+    sens = lp_satellite.sensor_readings(x=base_state, os=base_orbital_state)
+    sens_with_nan = sens.copy()
+    sens_with_nan[0] = np.nan
+
+    command_nan = desat_controller.find_u_desaturate(
+        x_hat=base_state,
+        sens=sens_with_nan,
+        est_sat=lp_satellite,
+        os_hat=base_orbital_state,
+        goal=No_Goal(),
+    )
+    command_zeroed = desat_controller.find_u_desaturate(
+        x_hat=base_state,
+        sens=np.nan_to_num(sens_with_nan, nan=0.0),
+        est_sat=lp_satellite,
+        os_hat=base_orbital_state,
+        goal=No_Goal(),
+    )
+
+    np.testing.assert_allclose(command_nan, command_zeroed)
+
+
+def test_desaturate_mode_without_rw_state_uses_zero_rw_momentum(
+    lp_satellite: Satellite,
+    desat_controller: MTQ_w_RW_LP,
+    base_orbital_state: Orbital_State,
+) -> None:
+    short_state = np.array([0.02, -0.015, 0.01, 1.0, 0.0, 0.0, 0.0])
+    full_state = np.concatenate([short_state, np.array([0.0])])
+    sens = lp_satellite.sensor_readings(x=full_state, os=base_orbital_state)
+
+    command_short = desat_controller.find_u_desaturate(
+        x_hat=short_state,
+        sens=sens,
+        est_sat=lp_satellite,
+        os_hat=base_orbital_state,
+        goal=No_Goal(),
+    )
+    command_zero_momentum = desat_controller.find_u_desaturate(
+        x_hat=full_state,
+        sens=sens,
+        est_sat=lp_satellite,
+        os_hat=base_orbital_state,
+        goal=No_Goal(),
+    )
+
+    np.testing.assert_allclose(command_short, command_zero_momentum)
+
+
+def test_desaturate_mode_respects_rw_and_mtq_limits(
+    lp_satellite: Satellite,
+    desat_controller: MTQ_w_RW_LP,
+    base_orbital_state: Orbital_State,
+) -> None:
+    state = np.array([4.0, -3.0, 2.0, 1.0, 0.0, 0.0, 0.0, 0.02])
+    sens = np.array([5.0e-5, -3.0e-5, 2.0e-5, 0.0])
+
+    command = desat_controller.find_u_desaturate(
+        x_hat=state,
+        sens=sens,
+        est_sat=lp_satellite,
+        os_hat=base_orbital_state,
+        goal=No_Goal(),
+    )
+
+    np.testing.assert_array_less(np.abs(command[desat_controller.mtq_indices]), desat_controller.mtq_umax + 1.0e-12)
+    np.testing.assert_array_less(np.abs(command[desat_controller.rw_indices]), desat_controller.rw_umax + 1.0e-12)
+
+
+
+@pytest.mark.parametrize(
+    ("scenario_name", "pointing_tol_deg", "control_tol", "rate_tol"),
+    [
+        ("hold", 0.1, CTRL_EFFORT_TOL, None),
+        ("hard_turn", 0.5, CTRL_EFFORT_TOL, None),
+        ("ground_tracking", 5.0, None, None),
+        ("desat", None, CTRL_EFFORT_TOL, 1.0e-4),
+    ],
+)
+def test_mtq_w_rw_lp_converges_in_representative_scenarios(
+    scenario_name: str,
+    pointing_tol_deg: float | None,
+    control_tol: float | None,
+    rate_tol: float | None,
+) -> None:
+    run = run_mtq_w_rw_lp_simulation(scenario_name)
+
+    if pointing_tol_deg is not None:
+        assert _final_pointing_error_deg(run) <= pointing_tol_deg
+    if control_tol is not None:
+        assert _final_control_effort(run) <= control_tol
+    if rate_tol is not None:
+        assert _final_rate_norm(run) <= rate_tol
+
+
+def debug_plots(run: MTQwRWLPRun) -> None:
+    from ADCS.CONOPS.goals import Coordinate_Goal as CoordGoal
+    from ADCS.helpers.plotting.animate_estimator import animate_attitude
+    from ADCS.helpers.plotting.animate_orbit_pyvista import animate_orbit_pyvista
+    from ADCS.helpers.plotting.close_all_plots import create_close_all_button_window
+    from ADCS.helpers.plotting.plot_controller import plot_control, plot_rw_momentum, plot_target_tracking
+    from ADCS.helpers.plotting.plot_estimator import plot_state_comparison
+
+    animate_attitude(
+        time=run.time_hist,
+        state_hist=run.state_hist,
+        os_hist=run.os_hist,
+        boresight_goal_hist=run.boresight_hist,
+    )
+    plot_control(time=run.time_hist, u_hist=run.u_hist)
+    plot_state_comparison(time=run.time_hist, state_hist=run.state_hist)
+    plot_rw_momentum(time=run.time_hist, state_hist=run.state_hist)
+    animate_orbit_pyvista(
+        time_hist=run.time_hist,
+        state_hist=run.state_hist,
+        os_hist=run.os_hist,
+        boresight_goal_hist=run.boresight_hist,
+        coord_goal=run.goal if isinstance(run.goal, CoordGoal) else None,
     )
     plot_target_tracking(
-        state_hist=state_hist,
-        boresight_hist=boresight_hist,
+        state_hist=run.state_hist,
+        boresight_hist=run.boresight_hist,
         body_boresight=np.array([0.0, 0.0, 1.0]),
     )
     create_close_all_button_window()
 
 
+def main() -> None:
+    scenario_name = sys.argv[1] if len(sys.argv) > 1 else "desat"
+    if scenario_name not in SCENARIO_DEFAULTS:
+        raise SystemExit(f"Unknown scenario '{scenario_name}'. Available: {list(SCENARIO_DEFAULTS)}")
+
+    run = run_mtq_w_rw_lp_simulation(scenario_name, progress=True, real_orbit=True)
+    debug_plots(run)
+
+
 if __name__ == "__main__":
-    scenario = sys.argv[1] if len(sys.argv) > 1 else "desat"
-
-    # Default sim horizon depends on scenario
-    if scenario.lower().strip() in ("desat", "no_goal"):
-        tf_default, dt_default = 2500, 5
-    else:
-        tf_default, dt_default = 500, 2
-
-    plot_scenario(
-        scenario=scenario,
-        verbose=False,
-        tf=tf_default,
-        dt=dt_default,
-        real_orbit=True,
-    )
+    main()

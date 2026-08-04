@@ -31,7 +31,7 @@ from ADCS.helpers.plotting_mc.plot_controller_compare_mc import (
 from ADCS.helpers.plotting.close_all_plots import create_close_all_button_window
 
 # --- MC Runner Imports ---
-from ADCS.helpers.mc.monte_carlo_runner import (
+from ADCS.mc.monte_carlo_runner import (
     MonteCarloRunner,
     claim_worker_slot,
     release_worker_slot,
@@ -108,7 +108,7 @@ def run_single_sim(config: Dict[str, Any]) -> Dict[str, Any]:
         time_hist = np.zeros(N)
         state_hist = np.zeros((N, len(x)))
         u_hist = np.zeros((N, len(real_sat.actuators)))
-        boresight_hist = np.zeros((N, 3))
+        boresight_hist = np.zeros((N, 4))
         t = t0
         ind = 0
         steps = int((tf - t0) / dt)

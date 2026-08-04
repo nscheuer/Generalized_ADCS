@@ -8,6 +8,7 @@ import time
 
 import ADCS.orbits.universal_constants as uc
 from ADCS.helpers.math_helpers import *
+from ADCS.helpers.math_helpers import _quat_qdot, _wdot_no_rw_kernel, _wdot_rw_kernel, _rw_hdot_kernel
 from ADCS.satellite_hardware.disturbances import Disturbance, SRP_Disturbance, General_Disturbance, Prop_Disturbance
 from ADCS.satellite_hardware.sensors import Sensor, GPS, Gyro, MTM, SunPair, SunSensor
 from ADCS.satellite_hardware.actuators import Actuator, RW, MTQ
@@ -129,7 +130,7 @@ class Satellite:
     :raises ValueError:
         If ``COM`` is not shape ``(3,)`` or ``J_0`` is not shape ``(3,3)``.
     """
-    def __init__(self, mass: float = 1.0, COM: np.ndarray = None, J_0: np.ndarray = None, disturbances: List[Disturbance] = [], sensors: List[Sensor] = [], actuators: List[Actuator] = [], boresight: np.ndarray = np.array([0, 0, 1])) -> None:
+    def __init__(self, mass: float = 1.0, COM: np.ndarray = None, J_0: np.ndarray = None, disturbances: List[Disturbance] = [], sensors: List[Sensor] = [], actuators: List[Actuator] = [], boresight: dict[str, np.ndarray] | np.ndarray = None) -> None:
         r"""
         Construct a :class:`~ADCS.satellite.Satellite`.
 
@@ -158,7 +159,7 @@ class Satellite:
         :type actuators: list[:class:`~ADCS.satellite_hardware.actuators.Actuator`]
 
         :param boresight: Nominal body-frame boresight direction, shape ``(3,)``.
-        :type boresight: numpy.ndarray
+        :type boresight: dict[str, numpy.ndarray]
 
         :return: ``None``.
         :rtype: None
@@ -190,14 +191,47 @@ class Satellite:
         self.rw_actuators: List[RW] = [s for s in actuators if isinstance(s, RW)]
         self.mtq_actuators: List[MTQ] = [s for s in actuators if not isinstance(s, RW)]
         self.momentum_inds = np.array([j for j in range(len(self.actuators)) if isinstance(self.actuators[j], RW)])
-        self.boresight = boresight
-
+        
+        if boresight is None:
+            self.boresight: dict[str, np.ndarray] = {
+                "default": np.array([0, 0, 1], dtype=float)
+            }
+        elif isinstance(boresight, dict):
+            if len(boresight) == 0:
+                raise ValueError("Boresight dictionary cannot be empty")
+            self.boresight = {}
+            for name, vec in boresight.items():
+                vec = np.asarray(vec, dtype=float)
+                if vec.shape != (3,):
+                    raise ValueError(f"Boresight vector '{name}' must be shape (3,), got {vec.shape}")
+                self.boresight[str(name)] = normalize(vec)
+        else:
+            vec = np.asarray(boresight, dtype=float)
+            if vec.shape != (3,):
+                raise ValueError(f"Boresight vector must be shape (3,), got {vec.shape}")
+            self.boresight = {"default": normalize(vec)}
+            
         self.number_RW = sum([1 for j in self.actuators if isinstance(j,RW)])
 
         # Initialize state
         self.state_len = 7 + self.number_RW
         self.control_len = len(actuators)
+
+        self.act_bias_len = 0
+        self.att_sens_bias_len = 0
+        self.dist_param_len = 0
         self.update_J(J_0=J_0, COM=COM)
+
+    def get_boresight(self, name: str | None = None) -> np.ndarray:
+        if name is None:
+            name = list(self.boresight.keys())[0]
+
+        if name not in self.boresight:
+            raise KeyError(
+                f"Unknown boresight '{name}'. Available: {list(self.boresight.keys())}"
+            )
+
+        return self.boresight[name]
 
     def update_J(self, J_0: np.ndarray = None, COM: np.ndarray = None) -> None:
         r"""
@@ -598,8 +632,20 @@ class Satellite:
         w = x[0:3]
         q = x[3:7]
         h = x[7:]
-        J = self.J_0
+        # Gyroscopic w x (J w) term must use the inertia about the center of
+        # mass: that is the body the rotational EOM is written about, and it is
+        # what invJ_noRW is derived from (J_noRW = J_COM - sum RW). J_0 is the
+        # inertia about the reference origin and equals J_COM only when COM == 0;
+        # using J_0 here broke angular-momentum conservation for any non-zero
+        # COM offset (every pre-existing dynamics test used COM == 0).
+        J = self.J_COM
         invJ_noRW = self.invJ_noRW
+        if self.number_RW == 0:
+            RWjs = np.zeros(0, dtype=float)
+            RWaxes = np.zeros((0, 3), dtype=float)
+        else:
+            RWjs = np.array([self.actuators[j].J for j in self.momentum_inds])
+            RWaxes = np.vstack([self.actuators[j].axis for j in self.momentum_inds])
 
         if dmode is None:
             dmode = ErrorMode(add_bias=True, add_noise=True, update_bias=True, update_noise=True)
@@ -608,20 +654,18 @@ class Satellite:
         actuator_torque: np.ndarray = self.act_torque(x=x, u=u, os=orbital_state, dmode=dmode)
 
         # Dynamics
-        qdot = 0.5*w@Wmat(q).T
+        qdot = _quat_qdot(w, q)
         total_torque = disturbance_torque + actuator_torque
 
         # Reaction wheels
         if self.number_RW==0:
-            wdot = (-np.cross(w,w@J) + total_torque)@invJ_noRW
+            wdot = _wdot_no_rw_kernel(w, total_torque, J, invJ_noRW)
             result = np.concatenate([wdot,qdot])
         else:
-            RWjs = np.array([self.actuators[j].J for j in self.momentum_inds])
-            RWaxes = np.vstack([self.actuators[j].axis for j in self.momentum_inds])
             storage_torques = [self.actuators[j].storage_torque(u=u[j], x=x, os=orbital_state, dmode=dmode) for j in self.momentum_inds]
             u_RW = np.array(storage_torques)
-            wdot = (-np.cross(w,w@J + h@RWaxes) + total_torque)@invJ_noRW
-            RW_hdot = u_RW-wdot@RWaxes.T@np.diagflat(RWjs) #u_RW-wdot@RWaxes.T@np.diagflat(RWjs)
+            wdot = _wdot_rw_kernel(w, h, total_torque, J, invJ_noRW, RWaxes)
+            RW_hdot = _rw_hdot_kernel(u_RW, wdot, RWaxes, RWjs)
 
             result = np.concatenate([wdot,qdot,RW_hdot])
 
@@ -817,7 +861,7 @@ class Satellite:
         +----------------------+--------------------------+
         """
         ddist_torq__dx = np.zeros((self.state_len,3))
-        ddist_torq__dx[3:7,:] = sum([j.torque_qjac(self,vecs) for j in self.disturbances],np.zeros((4,3)))
+        ddist_torq__dx[3:7,:] = sum([j.torque_qjac(self,x,vecs["os"]) for j in self.disturbances],np.zeros((4,3)))
         ddist_torq__ddmp = np.zeros((0,3))
         return ddist_torq__dx,ddist_torq__ddmp
 
@@ -862,7 +906,7 @@ class Satellite:
         +----------------------------+-----------------------------------------+
         """
         dddist_torq__dxdx = np.zeros((self.state_len,self.state_len,3))
-        dddist_torq__dxdx[3:7,3:7,:] = sum([j.torque_qqhess(self,vecs) for j in self.disturbances],np.zeros((4,4,3)))
+        dddist_torq__dxdx[3:7,3:7,:] = sum([j.torque_qqhess(self,x,vecs["os"]) for j in self.disturbances],np.zeros((4,4,3)))
         dddist_torq__ddmpddmp = np.zeros((self.dist_param_len,self.dist_param_len,3))
         dddist_torq__dxddmp = np.zeros((self.state_len,self.dist_param_len,3))
         return dddist_torq__dxdx,dddist_torq__dxddmp,dddist_torq__ddmpddmp
@@ -931,7 +975,10 @@ class Satellite:
         w = x[0:3]
         q = x[3:7]
         RWhs = x[7:]
-        J = self.J_0
+        # Must match the inertia used in dynamics_core (J_COM, not J_0) so the
+        # analytic Jacobian stays the correct linearization of the dynamics for
+        # a non-zero COM offset. See dynamics_core for the rationale.
+        J = self.J_COM
         invJ_noRW = self.invJ_noRW
 
         rmat_ECI2B = rot_mat(q).T
@@ -981,6 +1028,28 @@ class Satellite:
     def dynamics_Hessians(self, x: np.ndarray, u: np.ndarray, orbital_state: Orbital_State) -> List[List[np.ndarray]]:
         r"""
         Compute second-order partial derivatives (Hessians) of the dynamics.
+
+        .. warning::
+           **Staged scaffolding for a one-step look-ahead MPC controller that
+           is not yet (re)implemented — currently NON-FUNCTIONAL and called
+           by nothing in the codebase.** Two known defects:
+
+           1. ``J = self.J`` referenced a non-existent attribute
+              (``AttributeError`` on every call). FIXED here to ``self.J_COM``
+              (consistent with the gyroscopic-inertia convention in
+              ``dynamics_core``/``dynJacCore``, PR #33), so the inertia
+              convention is already correct for the future MPC work.
+           2. The actuator second-derivative calls (``dtorq__dbasestate``,
+              ``ddstor_torq__*``) are invoked with a **stale signature**
+              (an extra ``self`` argument) — the method was written against
+              an older actuator API and was never updated. A full actuator
+              second-derivative API audit + finite-difference verification of
+              the returned ``[[ddxdot__dxdx, ddxdot__dxdu], […, ddxdot__dudu]]``
+              tensor is required **as part of the MPC re-implementation**
+              before this is used. Tracked by a strict-xfail guard,
+              ``testing/test_sat_dynamics_hessians.py``
+              (FD-verifies the tensor; flips to xpass — strict, so CI flags
+              it — when the MPC work makes this functional + FD-correct).
 
         Returns the second derivatives of the dynamics map
         :math:`\dot{\mathbf{x}} = f(\mathbf{x},\mathbf{u},\mathrm{os})` with respect to state and input:
@@ -1051,7 +1120,7 @@ class Satellite:
         q = x[3:7]#normalize(x[3:7,:])
         RWhs = x[7:]
         invJ_noRW = self.invJ_noRW
-        J = self.J
+        J = self.J_COM
 
         R = orbital_state.R
         V = orbital_state.V
@@ -1075,14 +1144,14 @@ class Satellite:
         vecs = {"b":B_B,"r":R_B,"s":S_B,"v":V_B,"rho":rho,"db":dB_B__dq,"ds":dS_B__dq,"dv":dV_B__dq,"dr":dR_B__dq,"ddb":ddB_B__dqdq,"dds":ddS_B__dqdq,"ddv":ddV_B__dqdq,"ddr":ddR_B__dqdq,"os":orbital_state}
         com = self.COM
 
-        dact_torq__dbase = sum([self.actuators[j].dtorq__dbasestate(u[j],self,x,vecs) for j in range(len(self.actuators))],np.zeros((7,3)))
-        ddact_torq__dbasedbase = sum([self.actuators[j].ddtorq__dbasestatedbasestate(u[j],self,x,vecs) for j in range(len(self.actuators))],np.zeros((7,7,3)))
-        dact_torq__du = np.vstack([self.actuators[j].dtorq__du(u[j],self,x,vecs) for j in range(len(self.actuators))])
+        dact_torq__dbase = sum([self.actuators[j].dtorq__dbasestate(u[j], x, orbital_state) for j in range(len(self.actuators))],np.zeros((7,3)))
+        ddact_torq__dbasedbase = sum([self.actuators[j].ddtorq__dbasestatedbasestate(u[j], x, orbital_state) for j in range(len(self.actuators))],np.zeros((7,7,3)))
+        dact_torq__du = np.vstack([self.actuators[j].dtorq__du(u[j], x, orbital_state) for j in range(len(self.actuators))])
         ddact_torq__dudu = np.zeros((self.control_len,self.control_len,3))
         ddact_torq__dudbase = np.zeros((self.control_len,7,3))
         for j in range(len(self.actuators)):
-            ddact_torq__dudu[j,j,:] = self.actuators[j].ddtorq__dudu(u[j],self,x,vecs)
-            ddact_torq__dudbase[j,:,:] = self.actuators[j].ddtorq__dudbasestate(u[j],self,x,vecs)
+            ddact_torq__dudu[j,j,:] = self.actuators[j].ddtorq__dudu(u[j], x, orbital_state)
+            ddact_torq__dudbase[j,:,:] = self.actuators[j].ddtorq__dudbasestate(u[j], x, orbital_state)
 
 
         ddxdot__dxdx = np.zeros((self.state_len,self.state_len,self.state_len))
@@ -1111,9 +1180,9 @@ class Satellite:
             ind = 0
             for ind in range(self.number_RW):
                 j = self.momentum_inds[ind]
-                ddact_torq__dudh[j,ind,:] = self.actuators[j].ddtorq__dudh(u[j],self,x,vecs)
-                ddact_torq__dhdh[ind,ind,:] = self.actuators[j].ddtorq__dhdh(u[j],self,x,vecs)
-                ddact_torq__dbasedh[:,ind,:] = np.squeeze(self.actuators[j].ddtorq__dbasestatedh(u[j],self,x,vecs))
+                ddact_torq__dudh[j,ind,:] = self.actuators[j].ddtorq__dudh(u[j], x, orbital_state)
+                ddact_torq__dhdh[ind,ind,:] = self.actuators[j].ddtorq__dhdh(u[j], x, orbital_state)
+                ddact_torq__dbasedh[:,ind,:] = np.squeeze(self.actuators[j].ddtorq__dbasestatedh(u[j], x, orbital_state))
 
             RWjs = np.array([self.actuators[j].J for j in self.momentum_inds])
             RWaxes = np.vstack([self.actuators[j].axis for j in self.momentum_inds])
@@ -1133,13 +1202,13 @@ class Satellite:
             ind = 0
             for ind in range(self.number_RW):
                 j = self.momentum_inds[ind]
-                ddxdot__dxdu[0:7,j,7+ind] += np.squeeze(np.transpose(self.actuators[j].ddstor_torq__dudbasestate(u[j],self,x,vecs),(1,0,2)))
-                ddxdot__dxdu[7+ind,j,7+ind] += np.transpose(self.actuators[j].ddstor_torq__dudh(u[j],self,x,vecs),(1,0,2))
-                ddxdot__dudu[j,j,7+ind] = self.actuators[j].ddstor_torq__dudu(u[j],self,x,vecs)
-                ddxdot__dxdx[0:7,0:7,7+ind] += np.squeeze(self.actuators[j].ddstor_torq__dbasestatedbasestate(u[j],self,x,vecs))
-                ddxdot__dxdx[7+ind,0:7,7+ind] += np.squeeze(np.transpose(self.actuators[j].ddstor_torq__dbasestatedh(u[j],self,x,vecs),(1,0,2)))
-                ddxdot__dxdx[0:7,7+ind,7+ind] += np.squeeze(self.actuators[j].ddstor_torq__dbasestatedh(u[j],self,x,vecs))
-                ddxdot__dxdx[7+ind,7+ind,7+ind] += np.squeeze(self.actuators[j].ddstor_torq__dhdh(u[j],self,x,vecs))
+                ddxdot__dxdu[0:7,j,7+ind] += np.squeeze(np.transpose(self.actuators[j].ddstor_torq__dudbasestate(u[j], x, orbital_state),(1,0,2)))
+                ddxdot__dxdu[7+ind,j,7+ind] += np.transpose(self.actuators[j].ddstor_torq__dudh(u[j], x, orbital_state),(1,0,2))
+                ddxdot__dudu[j,j,7+ind] = self.actuators[j].ddstor_torq__dudu(u[j], x, orbital_state)
+                ddxdot__dxdx[0:7,0:7,7+ind] += np.squeeze(self.actuators[j].ddstor_torq__dbasestatedbasestate(u[j], x, orbital_state))
+                ddxdot__dxdx[7+ind,0:7,7+ind] += np.squeeze(np.transpose(self.actuators[j].ddstor_torq__dbasestatedh(u[j], x, orbital_state),(1,0,2)))
+                ddxdot__dxdx[0:7,7+ind,7+ind] += np.squeeze(self.actuators[j].ddstor_torq__dbasestatedh(u[j], x, orbital_state))
+                ddxdot__dxdx[7+ind,7+ind,7+ind] += np.squeeze(self.actuators[j].ddstor_torq__dhdh(u[j], x, orbital_state))
 
             ddxdot__dxdu[:,:,7:] -= ddxdot__dxdu[:,:,0:3]@RWaxes.T@mRWjs
             ddxdot__dudu[:,:,7:] -= ddxdot__dudu[:,:,0:3]@RWaxes.T@mRWjs
@@ -1213,6 +1282,9 @@ class Satellite:
         :raises ValueError:
             If ``give_err_est=True`` while using the CG5 quaternion propagation variant.
         """
+        # Work on a private copy: the renormalisation below (and the RK stages)
+        # must not mutate the caller's input array.
+        x = np.array(x, dtype=float)
         x[3:7] = normalize(x[3:7])
         # Use no noise, no bias, no updates to either
         dmode = ErrorMode(add_bias=False, add_noise=False, update_bias=False, update_noise=False)
@@ -1324,8 +1396,10 @@ class Satellite:
         """
         sensor_readings: List[np.ndarray] = [np.atleast_1d(self.attitude_sensors[j].reading(x=x, os=os, dmode=dmode)) for j in range(len(self.attitude_sensors))]
         rw_readings: List[np.ndarray] = [np.atleast_1d(self.rw_actuators[j].measure_momentum()) for j in range(len(self.rw_actuators))]
+        combined_readings = sensor_readings + rw_readings
+        if not combined_readings:
+            return np.array([])
         return np.concatenate(sensor_readings + rw_readings)
-        # return np.array(sensor_readings)
     
     def noiseless_sensor_readings(self, x: np.ndarray, os: Orbital_State) -> np.ndarray:
         r"""

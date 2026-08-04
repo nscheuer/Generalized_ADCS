@@ -2,12 +2,57 @@ from __future__ import annotations
 __all__ = ["SRP_Disturbance"]
 
 import numpy as np
+from numba import njit
 from typing import TYPE_CHECKING
 from ADCS.satellite_hardware.disturbances.disturbance import Disturbance
 from ADCS.satellite_hardware.disturbances.helpers.geometry_config import GeometryConfig
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.helpers.math_helpers import normalize, normed_vec_jac, normed_vec_hess
 from ADCS.orbits.universal_constants import EarthConstants
+
+
+@njit(cache=True)
+def _srp_torque_kernel(S_B, R_B, COM, normals, areas, centroids,
+                       eta_s, eta_d, eta_a, solar_constant, c_light):
+    """SRP torque summed over geometry faces."""
+    diff = np.empty(3)
+    diff[0] = S_B[0] - R_B[0]
+    diff[1] = S_B[1] - R_B[1]
+    diff[2] = S_B[2] - R_B[2]
+    d_norm = np.sqrt(diff[0]**2 + diff[1]**2 + diff[2]**2)
+    inv_d = 1.0 / d_norm
+    sb0 = diff[0] * inv_d
+    sb1 = diff[1] * inv_d
+    sb2 = diff[2] * inv_d
+    nf = normals.shape[0]
+    t0 = 0.0
+    t1 = 0.0
+    t2 = 0.0
+    for i in range(nf):
+        cos_g = normals[i, 0]*sb0 + normals[i, 1]*sb1 + normals[i, 2]*sb2
+        if cos_g < 0.0:
+            cos_g = 0.0
+        A_cg = areas[i] * cos_g
+        c0 = centroids[i, 0] - COM[0]
+        c1 = centroids[i, 1] - COM[1]
+        c2 = centroids[i, 2] - COM[2]
+        ms = A_cg * (eta_a[i] + eta_d[i])
+        cs0 = c1*sb2 - c2*sb1
+        cs1 = c2*sb0 - c0*sb2
+        cs2 = c0*sb1 - c1*sb0
+        mn = A_cg * (2.0*eta_s[i]*cos_g + (2.0/3.0)*eta_d[i])
+        cn0 = c1*normals[i, 2] - c2*normals[i, 1]
+        cn1 = c2*normals[i, 0] - c0*normals[i, 2]
+        cn2 = c0*normals[i, 1] - c1*normals[i, 0]
+        t0 += ms*cs0 + mn*cn0
+        t1 += ms*cs1 + mn*cn1
+        t2 += ms*cs2 + mn*cn2
+    k = -(solar_constant / c_light)
+    out = np.empty(3)
+    out[0] = k * t0
+    out[1] = k * t1
+    out[2] = k * t2
+    return out
 
 
 if TYPE_CHECKING:
@@ -254,27 +299,16 @@ class SRP_Disturbance(Disturbance):
         :return: SRP disturbance torque in the body frame [N·m], shape ``(3,)``.
         :rtype: :class:`numpy.ndarray`
         """
+        if not os.is_sunlit():
+            return np.zeros(3)
+
         vecs = os.get_state_vector(x=x)
-
-        S_B = vecs["s"]
-        R_B = vecs["r"]
-
-        s_body = normalize(S_B - R_B)
-
-        cos_gamma = np.maximum(0, np.dot(self.normals, s_body))
-        proj_area = self.areas * cos_gamma
-        cents = self.centroids - sat.COM
-
-        m_s = proj_area * (self.eta_a + self.eta_d)
-        t_s = m_s @ np.cross(cents, s_body)
-
-        m_n = proj_area * (2 * self.eta_s * cos_gamma + (2 / 3) * self.eta_d)
-        t_n = m_n @ np.cross(cents, self.normals)
-
-        if os.is_sunlit():
-            return -(EarthConstants.solar_constant / EarthConstants.c) * (t_s + t_n)
-        else:
-            return np.zeros((3, 1))
+        return _srp_torque_kernel(
+            vecs["s"], vecs["r"], sat.COM,
+            self.normals, self.areas, self.centroids,
+            self.eta_s, self.eta_d, self.eta_a,
+            EarthConstants.solar_constant, EarthConstants.c,
+        )
 
     def torque_qjav(self, sat: Satellite, x: np.ndarray, os: Orbital_State) -> np.ndarray:
         r"""
@@ -397,12 +431,14 @@ class SRP_Disturbance(Disturbance):
         proj_area = self.areas * cos_gamma
         cents = self.centroids - sat.COM
 
-        dcos_gamma__dq = np.zeros_like(ds_body__dq @ self.normals.T)
-        for i in range(len(cos_gamma)):
-            if cos_gamma[i] > 0:
-                dcos_gamma__dq[i] = (ds_body__dq @ self.normals.T)[i]
-            else:
-                dcos_gamma__dq[i] = 0.0
+        # d(n_i . s_b)/dq for every face: (4, Nfaces) = [quat, face]. The
+        # Heaviside incidence mask is PER FACE (axis 1), not per quaternion
+        # component (axis 0); the old loop iterated range(Nfaces) but indexed
+        # dcos_gamma__dq[i] along the size-4 quaternion axis -- masking the
+        # wrong axis (and out of range for >4 faces).
+        normals_term = ds_body__dq @ self.normals.T
+        face_lit = (cos_gamma > 0.0)
+        dcos_gamma__dq = normals_term * face_lit[np.newaxis, :]
 
         dproj_area__dq = self.areas * dcos_gamma__dq
 
@@ -419,7 +455,20 @@ class SRP_Disturbance(Disturbance):
         if os.is_sunlit():
             return -(EarthConstants.solar_constant / EarthConstants.c) * (dt_s__dq + dt_n__dq)
         else:
-            return np.zeros((3, 1))
+            # Canonical Jacobian layout is (4,3) = [quat, torque-component];
+            # the eclipse return must match (was (3,1)).
+            return np.zeros((4, 3))
+
+    def torque_qjac(self, sat: Satellite, x: np.ndarray, os: Orbital_State) -> np.ndarray:
+        r"""
+        Alias of :meth:`torque_qjav` so SRP exposes the same ``torque_qjac``
+        quaternion-Jacobian entry point as every other disturbance (the
+        original method name ``torque_qjav`` was an inconsistent typo).
+
+        :return: Quaternion Jacobian of the SRP torque, shape ``(4,3)``.
+        :rtype: :class:`numpy.ndarray`
+        """
+        return self.torque_qjav(sat=sat, x=x, os=os)
 
     def torque_qqhess(self, sat: Satellite, x: np.ndarray, os: Orbital_State) -> np.ndarray:
         r"""

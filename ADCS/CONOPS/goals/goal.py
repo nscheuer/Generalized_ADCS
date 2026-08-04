@@ -59,6 +59,7 @@ class Goal:
 
         """
         self.b_hat = b_hat
+        self.boresight_name = None
 
     def to_ref(self, os0: Orbital_State) -> Tuple[np.ndarray, np.ndarray]:
         r"""

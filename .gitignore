@@ -53,6 +53,7 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 cover/
+testing/artifacts/
 
 # Translations
 *.mo
@@ -221,8 +222,3 @@ __marimo__/
 # Documentation .rst files
 docs/source/*.rst
 !docs/source/index.rst
-
-# All output files
-output_dir/*
-**/output/
-**/output_data/

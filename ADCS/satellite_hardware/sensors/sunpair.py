@@ -89,7 +89,9 @@ class SunPair(Sensor):
     * This is a **coarse Sun sensor**, intended for low-accuracy attitude
       determination.
     * The output dimension is scalar, so ``output_length = 1``.
-    * When the spacecraft is in eclipse, all Jacobians are identically zero.
+    * In eclipse the clean measurement and all Jacobians return ``NaN`` as the
+      "sensor invalid / occulted" sentinel; the UKF/SRUKF detect this
+      (``np.isnan``) and deactivate the sensor (it is *not* zero).
     """
 
     def __init__(
@@ -230,8 +232,9 @@ class SunPair(Sensor):
         with :math:`\varepsilon = 10^{-6}` and :math:`f(\cdot)` defined by
         :meth:`_clean_scalar`.
 
-        If the spacecraft is not sunlit, the clean measurement is identically
-        zero and all partial derivatives are zero.
+        If the spacecraft is not sunlit, the clean measurement is treated as
+        invalid and this method returns a ``NaN`` sentinel rather than a finite
+        Jacobian.
 
         :param x: Full 7-element ADCS state vector.
         :type x: numpy.ndarray
@@ -240,12 +243,15 @@ class SunPair(Sensor):
         :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
 
         :return: Jacobian of the clean measurement with respect to the base
-            state, with shape ``(7, 1)``.
+            state, with shape ``(7, 1)``. Returns ``NaN`` in eclipse.
         :rtype: numpy.ndarray
         """
-        # If dark, derivative is identically zero
+        # In eclipse clean_reading() returns NaN as the "sensor invalid /
+        # occulted" sentinel the UKF/SRUKF use to deactivate this sensor; the
+        # Jacobian must carry the SAME sentinel (finite zeros silently asserted
+        # a constant-0 measurement with zero sensitivity).
         if not os.is_sunlit():
-            return np.zeros((7, 1))
+            return np.full((7, 1), np.nan)
 
         eps = 1e-6
         grad = np.zeros(7)

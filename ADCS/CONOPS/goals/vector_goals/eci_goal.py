@@ -34,7 +34,7 @@ class ECI_Goal(Vector_Goal):
     :class:`~ADCS.goals.goal.Goal`
     :class:`~ADCS.orbits.orbital_state.Orbital_State`
     """
-    def __init__(self, eci_vector: np.ndarray) -> None:
+    def __init__(self, eci_vector: np.ndarray, boresight_name: str | None = None) -> None:
         r"""
         Initialize an inertial pointing goal.
 
@@ -43,8 +43,13 @@ class ECI_Goal(Vector_Goal):
         eci_vector : numpy.ndarray
             Desired pointing direction expressed in the ECI frame.
             The vector is assumed to be constant in inertial space.
+
+        boresight_name : str | None
+            Optional name of the boresight to use from the satellite's
+            boresight dictionary. If ``None``, the first available boresight
+            is selected.
         """
-        super().__init__()
+        super().__init__(boresight_name=boresight_name)
         self.eci_vector = normalize(eci_vector)
 
     def to_ref(self, os0: Orbital_State) -> Tuple[np.ndarray, np.ndarray]:
@@ -87,4 +92,9 @@ class ECI_Goal(Vector_Goal):
         """
         eci_vector = self.eci_vector
         w_ref = np.array([0, 0, 0])
-        return (eci_vector, w_ref)
+
+        r_ref = np.empty((4,))
+        r_ref[0] = np.nan
+        r_ref[1:] = eci_vector
+
+        return r_ref, w_ref

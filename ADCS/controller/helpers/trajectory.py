@@ -1,11 +1,6 @@
-"""
-Trajectory representation for ALTRO planner output.
-
-This module provides the Trajectory class for storing, interpolating, and
-visualizing planned trajectories from the ALTRO optimizer.
-"""
-
 from __future__ import annotations
+
+__all__ = ["Trajectory"]
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -14,7 +9,8 @@ from typing import Dict, Optional, Tuple, Callable
 from numpy.typing import NDArray
 
 from ADCS.helpers.math_helpers import quat_diff, quat_to_vec3
-
+from ADCS.helpers.simresults import SimulationResults, RunResults
+from ADCS.satellite_hardware.satellite import Satellite
 
 class Trajectory:
     r"""
@@ -398,8 +394,8 @@ class Trajectory:
         # 2. Attitude Error (indices 3:6)
         # quat_diff returns q_ref^(-1) * q_curr
         q_err = quat_diff(x_ref[3:7], x_curr[3:7])
-        # LQR assumes linearized error: d_theta = 2 * vector_part(q_err)
-        dx[3:6] = quat_to_vec3(q_err)
+        # Match the C++ planner's reduced attitude error convention: 2×MRP.
+        dx[3:6] = quat_to_vec3(q_err, 5)
 
         # 3. RW Momentum Error (indices 6:6+n_rw, from full state 7:7+n_rw)
         if n_rw > 0:
@@ -624,3 +620,60 @@ class Trajectory:
         ax.set_xlim3d([x_middle - plot_radius, x_middle + plot_radius])
         ax.set_ylim3d([y_middle - plot_radius, y_middle + plot_radius])
         ax.set_zlim3d([z_middle - plot_radius, z_middle + plot_radius])
+
+    
+    def to_simulation_results(
+        self,
+        satellite: Satellite,
+        target: Optional[np.ndarray] = None,
+        w_target: Optional[np.ndarray] = None,
+        boresight: Optional[np.ndarray] = None,
+        *,
+        include_cost: bool = False,
+    ) -> SimulationResults:
+
+        time_J2000 = np.asarray(self.times)
+        time_s = (time_J2000 - time_J2000[0]) * 36525.0 * 86400.0
+        N = len(time_J2000)
+
+        if self._is_row_major:
+            state_hist = np.asarray(self.states)
+            control_hist = np.asarray(self.controls)
+        else:
+            state_hist = np.asarray(self.states.T)
+            control_hist = np.asarray(self.controls.T)
+
+        run = RunResults(
+            satellite=satellite,
+            time_J2000=time_J2000,
+            time_s=time_s,
+            state_hist=state_hist,
+            control_hist=control_hist,
+        )
+
+        if target is not None:
+            target = np.asarray(target)
+            if target.ndim == 1:
+                run.target_hist = [target.copy() for _ in range(N)]
+            else:
+                run.target_hist = [target[k].copy() for k in range(N)]
+
+        if w_target is not None:
+            w_target = np.asarray(w_target)
+            if w_target.ndim == 1:
+                run.w_target_hist = [w_target.copy() for _ in range(N)]
+            else:
+                run.w_target_hist = [w_target[k].copy() for k in range(N)]
+
+        if boresight is not None:
+            boresight = np.asarray(boresight)
+            if boresight.ndim == 1:
+                run.boresight_hist = [boresight.copy() for _ in range(N)]
+            else:
+                run.boresight_hist = [boresight[k].copy() for k in range(N)]
+
+        if include_cost and self.costs is not None:
+            costs = np.asarray(self.costs)
+            run.target_hist = [np.array([costs[k]]) for k in range(N)]
+
+        return SimulationResults(runs=[run])

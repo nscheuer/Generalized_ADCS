@@ -35,5 +35,9 @@ class Zenith_Goal(Vector_Goal):
         r_hat = normalize(r)
         w_ref = np.cross(r, v) / np.dot(r, r)
 
-        return r_hat, w_ref
+        r_ref = np.empty((4,))
+        r_ref[0] = np.nan
+        r_ref[1:] = r_hat
+
+        return r_ref, w_ref
     

@@ -321,12 +321,8 @@ class MTQ_w_RW_QPC(MTQ_w_RW_LP):
             R_b2i = rot_mat(q)
             w_ref_body = R_b2i.T @ w_ref_eci
 
-            q_err = goal.error(q=q, body_boresight=est_sat.boresight, os0=os_hat)
-            q_err = vector_alignment_error(
-                q=q,
-                eci_goal=goal_vec_eci,
-                body_boresight=est_sat.boresight,
-            )
+            boresight = est_sat.get_boresight(goal.boresight_name)
+            q_err = goal.error(q=q, body_boresight=boresight, os0=os_hat)
             w_err = w - w_ref_body
             tau_pd = -self.p_gain * q_err - self.d_gain * w_err
 
@@ -363,7 +359,7 @@ class MTQ_w_RW_QPC(MTQ_w_RW_LP):
 
             # self.plot_torques(tau_des, b_body, est_sat)
 
-        return u_out, tau_des
+        return u_out
 
     def allocate_max_torque_in_direction(self, tau_des: np.ndarray, b_body: np.ndarray, est_sat: EstimatedSatellite, omega: np.ndarray, h: np.ndarray) -> tuple[np.ndarray, np.ndarray, float]:
         r"""

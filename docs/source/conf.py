@@ -17,7 +17,7 @@ extensions = [
     'myst_parser',
 ]
 
-autodoc_mock_imports = ["matplotlib", "mpl_toolkits", "pyvista", "vtk", "rich", "choldate", "trajectory_planner.build"]
+autodoc_mock_imports = ["saltro_py", "matplotlib", "mpl_toolkits", "pyvista", "vtk", "rich", "choldate", "trajectory_planner.build", "abc"]
 
 autosummary_generate = False
 autosummary_imported_members = False
@@ -40,12 +40,14 @@ exclude_patterns = []
 
 html_theme = 'furo'
 html_static_path = ['_static']
+html_css_files = ['custom.css']
 
 html_theme_options = {
     "sidebar_hide_name": False,
     "light_logo": "starlab_logo.svg",
     "dark_logo": "starlab_logo.svg",
     "top_of_page_button": "edit",
+    "navigation_with_keys": True,
 }
 
 html_sidebars = {
@@ -69,7 +71,7 @@ latex_elements = {
 ''',
 }
 
-suppress_warnings = ['ref.python']
+suppress_warnings = ['ref.python', 'toc.not_included']
 
 
 def autodoc_skip_reexports_on_package_pages(app, what, name, obj, skip, options):

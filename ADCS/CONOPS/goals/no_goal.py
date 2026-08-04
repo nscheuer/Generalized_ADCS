@@ -85,8 +85,7 @@ class No_Goal(Goal):
             Tuple[numpy.ndarray, numpy.ndarray]
 
         """
-        zeros = np.array([0, 0, 0])
-        return zeros, zeros
+        return np.array([0, 0, 0, 0]), np.array([0, 0, 0])
     
     def error(self, q: np.ndarray, body_boresight: np.ndarray, os0: Orbital_State) -> np.ndarray:
         r"""

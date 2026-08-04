@@ -1,0 +1,83 @@
+{
+  "benchmarks": {
+    "construct_from_existing_states": {
+      "loops": 512,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.004815762577268596,
+      "seconds": 1.6773316406926142e-05
+    },
+    "construct_propagated_orbit_small": {
+      "loops": 8,
+      "max_regression": 1.5,
+      "normalized_seconds": 2.4146423854010357,
+      "seconds": 0.008410207125052693
+    },
+    "ecef_to_eci_orbit": {
+      "loops": 4096,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.0016794006066325096,
+      "seconds": 5.849357666010135e-06
+    },
+    "geocentric_to_ecef_orbit": {
+      "loops": 512,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.009141576093176002,
+      "seconds": 3.184013867141289e-05
+    },
+    "get_b_eci_orbit": {
+      "loops": 8192,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.0006888496431877472,
+      "seconds": 2.3992655029392296e-06
+    },
+    "get_os_exact_node": {
+      "loops": 2048,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.0031283525811388394,
+      "seconds": 1.0896062011767071e-05
+    },
+    "get_os_interpolated": {
+      "loops": 4,
+      "max_regression": 1.5,
+      "normalized_seconds": 2.1675380679947756,
+      "seconds": 0.007549541999878784
+    },
+    "get_range_precreated_states": {
+      "loops": 1024,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.005461195498441723,
+      "seconds": 1.902136132869714e-05
+    },
+    "get_range_sampled_dt": {
+      "loops": 256,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.029627544528900634,
+      "seconds": 0.00010319283203230611
+    },
+    "get_vecs": {
+      "loops": 8192,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.0008288083679807668,
+      "seconds": 2.8867421875133914e-06
+    },
+    "new_orbit_from_times_small": {
+      "loops": 4,
+      "max_regression": 1.5,
+      "normalized_seconds": 2.2682291903298126,
+      "seconds": 0.007900249499925849
+    },
+    "next_state_exact_node": {
+      "loops": 8192,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.0010194312729144813,
+      "seconds": 3.550682373010261e-06
+    }
+  },
+  "calibration_loops": 16,
+  "calibration_seconds": 0.003483003187511713,
+  "description": "Orbit fast benchmark results normalized by calibration_seconds.",
+  "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+  "processor": "x86_64",
+  "python": "3.12.3",
+  "schema_version": 1
+}

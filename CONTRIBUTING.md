@@ -1,48 +1,70 @@
 # Contributing to Generalized ADCS
 
-Thank you for your interest in contributing to **Generalized ADCS**!  
-This project is a research-grade simulation framework for satellite attitude determination and control (ADCS). We welcome contributions from students, researchers, and industry engineers interested in spacecraft dynamics, estimation, and control.
+Thank you for your interest in **Generalized ADCS**. This project is a research-grade framework for satellite attitude determination and control (ADCS), and contributions from students, researchers, and industry engineers are welcome.
 
----
+## Code of Conduct
 
-## 🧭 Ways to Contribute
+By participating in this project, you agree to follow the standards in [CODE_OF_CONDUCT.md](https://github.com/nscheuer/Generalized_ADCS/blob/main/CODE_OF_CONDUCT.md).
+
+If you experience or witness unacceptable behavior, report it to the maintainers at **nscheuer@mit.edu**.
+
+If this project is not currently using a conduct email, open a GitHub issue and title it `Code of Conduct report` (avoid including sensitive personal details in public reports).
+
+## Ways to Contribute
 
 There are many ways you can help improve the project, including:
 
-- 🧠 Developing new controllers (LQR, MPC, adaptive control, etc.)
-- 📡 Adding new sensor models (star trackers, sun sensors, gyros, magnetometers)
-- 🔁 Implementing new estimators (EKF, UKF, Particle Filters)
-- 🎮 Creating new simulation scenarios or benchmark cases
-- 🧪 Expanding testing and validation coverage
-- 📖 Improving or adding documentation
-- 🐛 Fixing bugs and optimizing performance
-- 🖼 Enhancing visualization and animation tools
+- Developing new controllers (LQR, MPC, adaptive control, etc.)
+- Adding new sensor models (star trackers, sun sensors, gyros, magnetometers)
+- Implementing new estimators (EKF, UKF, Particle Filters)
+- Creating new simulation scenarios or benchmark cases
+- Expanding testing and validation coverage
+- Improving or adding documentation
+- Fixing bugs and optimizing performance
+- Enhancing visualization and animation tools
 
----
+## Places to Start
 
-## 🛠 Development Setup
+If you are new to the project, these are good first contributions:
 
-Development environment setup instructions are provided here:
+- Review and improve documentation for clarity, setup, and examples
+- Triage open issues (reproduce, label, and suggest scope)
+- Review open pull requests for test coverage and code clarity
+- Run and improve existing example scenarios in [examples](https://github.com/nscheuer/Generalized_ADCS/tree/main/examples)
 
-📘 **Installation Guide:**  
-[`documentation/installation_instructions/INSTALL.md`](/documentation/installation_instructions/INSTALL.md)
+## Development Setup
 
-Please follow these instructions to ensure your environment matches the project requirements before contributing.
+Before contributing, follow the installation instructions to ensure a compatible development environment:
 
----
+- [Installation Guide](https://nscheuer.github.io/Generalized_ADCS/installation/index.html)
 
-## ✅ Testing & Documentation Requirements
+## Testing & Documentation
 
-When submitting new features or making significant changes, please ensure that:
+For new features or significant changes, please ensure that:
 
-- ✅ Appropriate **test cases are added or updated** in the `testing/` directory  
-- ✅ All existing tests continue to pass  
-- ✅ The **Sphinx documentation builds successfully**
+- Relevant tests are added or updated
+- Existing tests pass locally before opening a pull request
+- Sphinx documentation builds without errors
+- User-facing behavior changes are documented
 
-Instructions for building the Sphinx documentation can be found here:
+Helpful guides:
 
-🛠 **Sphinx Build Guide:**  
-[`documentation/SPHINX.md`](/documentation/SPHINX.md)
+- [Sphinx Documentation](https://nscheuer.github.io/Generalized_ADCS/contributing/documentation.html)
+- [Testing Documentation](https://nscheuer.github.io/Generalized_ADCS/contributing/testing.html)
 
-⚙️ **Testing Guide:**
-['documentation/PYTEST.md'](/documentation/PYTEST.md)
+## License Terms for Contributions
+
+By submitting code, documentation, or other contributions to this repository, you agree that your contribution is provided under the same license as the project: the MIT License (see [LICENSE](https://github.com/nscheuer/Generalized_ADCS/blob/main/LICENSE)).
+
+## Becoming a Maintainer
+
+Long-term contributors may be invited to become maintainers based on:
+
+- Consistent, high-quality contributions over time
+- Constructive and respectful code reviews
+- Reliability in triaging issues and supporting releases
+- Alignment with project scope and standards
+
+Maintainer access is granted at the discretion of existing maintainers.
+
+### Thank you for your contributions!

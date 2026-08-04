@@ -4,11 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "Generalized_ADCS"
-version = "2025.0.0"
+version = "0.1.5"
 description = "Generalized Attitude Determination and Control System (ADCS) framework."
 authors = [
     { name = "Patrick McKeen" },
-    { name = "Niclas Scheuer" }
+    { name = "Niclas Scheuer" },
+    { name = "William Goldman" },
 ]
 readme = "README.md"
 requires-python = ">=3.10"
@@ -32,6 +33,7 @@ dependencies = [
     "matplotlib==3.10.7",
     "np==1.0.2",
     "numpy==2.2.6",
+    "numba==0.65.0",
     "numdifftools==0.9.41",
     "packaging==25.0",
     "pandas==2.3.3",
@@ -80,3 +82,13 @@ package-dir = {"" = "."}
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["ADCS*"]
+
+[tool.pytest.ini_options]
+addopts = [
+    "-ra",
+    "--tb=short",
+    "--durations=15",
+    "--durations-min=0.1",
+    "--junitxml=testing/artifacts/pytest.xml",
+]
+junit_family = "xunit2"

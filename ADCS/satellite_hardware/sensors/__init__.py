@@ -5,6 +5,8 @@ from .sunsensor import SunSensor
 from .sunpair import SunPair
 from .magnetometer import MTM
 from .star_tracker import StarTracker
+from .star_tracker_quaternion import StarTrackerQuaternion
+from .earth_horizon import EarthHorizonSensor
 
 __all__ = [
     "Sensor",
@@ -14,4 +16,6 @@ __all__ = [
     "Gyro",
     "MTM",
     "StarTracker",
+    "StarTrackerQuaternion",
+    "EarthHorizonSensor",
 ]

@@ -1,0 +1,59 @@
+{
+  "benchmarks": {
+    "orbit_ekf_predict_only": {
+      "loops": 4,
+      "max_regression": 1.5,
+      "normalized_seconds": 2.2707510675107394,
+      "seconds": 0.007460215000037351
+    },
+    "orbit_ekf_update_full": {
+      "loops": 2,
+      "max_regression": 1.5,
+      "normalized_seconds": 4.601881826818896,
+      "seconds": 0.015118798499770492
+    },
+    "orbit_gps_update_full": {
+      "loops": 2,
+      "max_regression": 1.5,
+      "normalized_seconds": 4.828048169391503,
+      "seconds": 0.016602219499873172
+    },
+    "orbit_gps_update_position_only": {
+      "loops": 2,
+      "max_regression": 1.5,
+      "normalized_seconds": 4.505335861246622,
+      "seconds": 0.015492508000079397
+    },
+    "srukf_update_baseline": {
+      "loops": 1,
+      "max_regression": 1.5,
+      "normalized_seconds": 9.583552108066,
+      "seconds": 0.03295498099942051
+    },
+    "srukf_update_reaction_wheels": {
+      "loops": 1,
+      "max_regression": 1.5,
+      "normalized_seconds": 20.14805949482119,
+      "seconds": 0.06928317500023695
+    },
+    "uakf_update_baseline": {
+      "loops": 1,
+      "max_regression": 1.5,
+      "normalized_seconds": 10.014523827339307,
+      "seconds": 0.032901229000344756
+    },
+    "uakf_update_reaction_wheels": {
+      "loops": 1,
+      "max_regression": 1.5,
+      "normalized_seconds": 16.11851152668092,
+      "seconds": 0.052954972999941674
+    }
+  },
+  "calibration_loops": 16,
+  "calibration_seconds": 0.003285351312513285,
+  "description": "Estimators fast benchmark results normalized by calibration_seconds.",
+  "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+  "processor": "x86_64",
+  "python": "3.12.3",
+  "schema_version": 1
+}

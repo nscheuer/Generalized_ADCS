@@ -6,9 +6,11 @@ import numpy as np
 from typing import Optional
 from numpy.typing import NDArray
 
+from ADCS.CONOPS.goals import Goal
 from ADCS.CONOPS.goallist import GoalList
 from ADCS.controller.plan_and_track_base import PlanAndTrackBase
-from ADCS.controller.helpers import PlannerSettings, Trajectory
+from ADCS.controller.helpers.trajectory import Trajectory
+from ADCS.controller.plan_and_track import PlannerSettings
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
 
@@ -69,7 +71,7 @@ class Plan_and_Track_Exact(PlanAndTrackBase):
     :param est_sat: Estimated satellite model with actuators and sensors.
     :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
     :param planner_settings: ALTRO trajectory planner configuration bundle.
-    :type planner_settings: :class:`~ADCS.controller.helpers.PlannerSettings`
+    :type planner_settings: :class:`~ADCS.controller.plan_and_track.PlannerSettings`
     :return: None.
     :rtype: None
 
@@ -96,7 +98,7 @@ class Plan_and_Track_Exact(PlanAndTrackBase):
         :param est_sat: Estimated satellite model with actuator and sensor models.
         :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
         :param planner_settings: ALTRO planner configuration settings.
-        :type planner_settings: :class:`~ADCS.controller.helpers.PlannerSettings`
+        :type planner_settings: :class:`~ADCS.controller.plan_and_track.PlannerSettings`
         :return: None.
         :rtype: None
 
@@ -111,8 +113,7 @@ class Plan_and_Track_Exact(PlanAndTrackBase):
         sens: NDArray[np.float64],
         est_sat: EstimatedSatellite,
         os_hat: Orbital_State,
-        goal_vector_eci: Optional[NDArray[np.float64]] = None,
-        w_ref: Optional[NDArray[np.float64]] = None
+        goal: Optional[Goal] = None,
     ) -> NDArray[np.float64]:
         r"""
         Return the planned open-loop control input at the current time.

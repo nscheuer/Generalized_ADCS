@@ -3,11 +3,35 @@ __all__ = ["Drag_Disturbance"]
 
 import numpy as np
 import time
+from numba import njit
 from typing import TYPE_CHECKING
 from ADCS.satellite_hardware.disturbances.disturbance import Disturbance
 from ADCS.satellite_hardware.disturbances.helpers.geometry_config import GeometryConfig
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.helpers.math_helpers import normalize
+
+
+@njit(cache=True)
+def _drag_torque_kernel(V_B, rho, COM, normals, areas, centroids, CDs):
+    """Aerodynamic drag torque summed over geometry faces."""
+    nf = normals.shape[0]
+    wx = 0.0
+    wy = 0.0
+    wz = 0.0
+    for i in range(nf):
+        v_proj = normals[i, 0]*V_B[0] + normals[i, 1]*V_B[1] + normals[i, 2]*V_B[2]
+        if v_proj < 0.0:
+            v_proj = 0.0
+        F = CDs[i] * areas[i] * v_proj
+        wx += F * (centroids[i, 0] - COM[0])
+        wy += F * (centroids[i, 1] - COM[1])
+        wz += F * (centroids[i, 2] - COM[2])
+    ct = -0.5 * rho
+    out = np.empty(3)
+    out[0] = ct * (wy*V_B[2] - wz*V_B[1])
+    out[1] = ct * (wz*V_B[0] - wx*V_B[2])
+    out[2] = ct * (wx*V_B[1] - wy*V_B[0])
+    return out
 
 if TYPE_CHECKING:
     from ADCS.satellite_hardware.satellite.satellite import Satellite
@@ -214,15 +238,8 @@ class Drag_Disturbance(Disturbance):
         V_B = vecs["v"]*1000.0 #m/s
         rho = vecs["rho"]
 
-        v_proj = np.maximum(0, np.dot(self.normals, V_B))
-        F = self.CDs*self.areas*v_proj
-        cents = self.centroids - sat.COM
-        ct = 0.5*rho
-        torque = -ct*np.cross(F@cents, V_B)
-
-        t1 = time.process_time()
-        
-        return torque
+        return _drag_torque_kernel(V_B, rho, sat.COM,
+                                   self.normals, self.areas, self.centroids, self.CDs)
     
     def torque_qjac(self, sat: Satellite, x: np.ndarray, os: Orbital_State) -> np.ndarray:
         r"""
@@ -309,31 +326,35 @@ class Drag_Disturbance(Disturbance):
         """
         vecs = os.get_state_vector(x=x)
 
-        V_B = vecs["v"]
+        # Velocity must be in m/s to match torque() (vecs["v"]*1000); drag is
+        # quadratic in V, so using km/s here made the Jacobian ~1e6 too small.
+        # dV_b/dq must carry the same unit scaling.
+        V_B = vecs["v"] * 1000.0          # m/s
         rho = vecs["rho"]
 
-        dv_body__dq = vecs["dv"]
-        ddv_body__dqdq = vecs["ddv"]
+        dv_body__dq = vecs["dv"] * 1000.0  # m/s, consistent with V_B
 
         cos_alpha = np.maximum(0, np.dot(self.normals, V_B))
         F = self.CDs * self.areas * cos_alpha
         cents = self.centroids - sat.COM
 
-        # Initialize derivative arrays
-        dcos_alpha__dq = np.zeros_like(dv_body__dq @ self.normals.T)
-
-        # Explicit conditional logic instead of inline boolean mask
+        # d(n_i . V_b)/dq for every face: shape (4, Nfaces) = [quat, face].
         normals_term = dv_body__dq @ self.normals.T
-        for i in range(len(cos_alpha)):
-            if cos_alpha[i] > 0:
-                dcos_alpha__dq[i] = normals_term[i]
-            else:
-                dcos_alpha__dq[i] = np.zeros_like(normals_term[i])
+        # The Heaviside incidence mask is PER FACE (axis 1), not per quaternion
+        # component (axis 0). The old loop iterated range(Nfaces) but indexed
+        # dcos_alpha__dq[i] along the size-4 quaternion axis, masking the wrong
+        # axis (and indexing out of range for >4 faces). Zero the columns whose
+        # face is in the wake (n_i . V_b <= 0).
+        face_lit = (cos_alpha > 0.0)
+        dcos_alpha__dq = normals_term * face_lit[np.newaxis, :]
 
         dF__dq = dcos_alpha__dq * self.CDs * self.areas
 
         ct = 0.5 * rho
-        return -ct * (np.cross(dF__dq @ cents, V_B) + np.cross(F @ cents, dv_body__dq)) * self.active
+        # Canonical Jacobian layout (4,3) = [quat, torque-component]. The
+        # spurious ``* self.active`` (attribute never defined -> AttributeError
+        # on every call) is removed.
+        return -ct * (np.cross(dF__dq @ cents, V_B) + np.cross(F @ cents, dv_body__dq))
 
     def torque_qqhess(self, sat: Satellite, x: np.ndarray, os: Orbital_State) -> np.ndarray:
         r"""

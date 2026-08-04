@@ -50,5 +50,9 @@ class PerpBField_Goal(Vector_Goal):
         # Approximate angular rate = orbital rate
         w_ref = np.cross(os0.R, os0.V) / np.dot(os0.R, os0.R)
 
-        return perp_hat, w_ref
+        r_ref = np.empty((4,))
+        r_ref[0] = np.nan
+        r_ref[1:] = perp_hat
+
+        return r_ref, w_ref
     

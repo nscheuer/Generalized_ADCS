@@ -171,6 +171,7 @@ class MTQ_w_RW_LP(Controller):
         :rtype: None
 
         """
+        self.est_sat = est_sat
         self.mtqs = [a for a in est_sat.actuators if isinstance(a, MTQ)]
         self.rws  = [a for a in est_sat.actuators if isinstance(a, RW)]
         
@@ -475,7 +476,8 @@ class MTQ_w_RW_LP(Controller):
         R_b2i = rot_mat(q)
         w_ref_body = R_b2i.T @ w_ref_eci
 
-        q_err = goal.error(q=q, body_boresight=est_sat.boresight, os0=os_hat)
+        boresight = est_sat.get_boresight(goal.boresight_name)
+        q_err = goal.error(q=q, body_boresight=boresight, os0=os_hat)
         w_err = w - w_ref_body
         tau_pd = -self.p_gain * q_err - self.d_gain * w_err
 
@@ -712,7 +714,9 @@ class MTQ_w_RW_LP(Controller):
         k_h = self.c_gain
 
         # --- 1. Magnetic Field (Body Frame) ---
-        b_body = np.asarray(self.M_mtm_read @ sens, float).reshape(3,)
+        sens_clean = np.asarray(sens, float).copy()
+        sens_clean[np.isnan(sens_clean)] = 0.0
+        b_body = np.asarray(self.M_mtm_read @ sens_clean, float).reshape(3,)
         b_norm = np.linalg.norm(b_body)
         if b_norm < 1e-9:
             return np.zeros(self.n_actuators)

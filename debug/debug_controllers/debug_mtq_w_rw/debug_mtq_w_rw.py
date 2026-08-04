@@ -79,7 +79,7 @@ def test_mtq_w_rw_align_to_eci(verbose: bool = False, tf: float = 1000, dt: floa
     os_hist: List[Orbital_State] = list()
     sensor_hist: np.ndarray = np.nan*np.zeros((N, len(real_sat.sensors + real_sat.rw_actuators)))
     u_hist = np.nan*np.zeros((N, len(acts)))
-    boresight_hist = np.nan*np.zeros((N, 3))
+    boresight_hist = np.nan*np.zeros((N, 4))
 
     t = t0
     ind = 0

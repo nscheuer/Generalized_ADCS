@@ -1,68 +1,43 @@
+# orbit.py
 __all__ = ["Orbit"]
 
 import numpy as np
-import ppigrf as ppigrf
+import ppigrf
 import warnings
 from typing import List, Union
 from tqdm import tqdm
-from ADCS.orbits.orbital_state import Orbital_State
-from ADCS.orbits.universal_constants import TimeConstants
+from skyfield import api, units, positionlib, framelib
+from datetime import timezone
+
+from ADCS.orbits.orbital_state import Orbital_State, _normalize_zonal_J
+from ADCS.orbits.universal_constants import TimeConstants, EarthConstants
 from ADCS.helpers.math_constants import MathConstants
 from ADCS.helpers.math_helpers import matrix_row_normalize
+from ADCS.orbits.density_model import DensityModel
+
 
 class Orbit:
     r"""
     Time-ordered container and propagator for orbital states.
 
-    This class represents an orbit as a discrete, time-indexed collection
-    of :class:`~ADCS.orbits.orbital_state.Orbital_State` objects. It supports
-    orbit propagation, interpolation, sub-sampling, coordinate-frame
-    transformations, and environment-related vector extraction
-    (e.g. geomagnetic field).
+    Notes
+    -----
+    The ``fast`` argument is accepted for backward compatibility but is ignored:
+    this implementation always computes real environment vectors (Sun and magnetic
+    field) and full frame transforms for each stored
+    :class:`~ADCS.orbits.orbital_state.Orbital_State`.
 
-    The class can be initialized in three distinct modes:
-
-    1. **Singleton orbit**  
-       A single orbital state with no propagation.
-
-    2. **Propagated orbit**  
-       A single initial state propagated forward in time using a
-       fourth-order Runge–Kutta (RK4) integrator.
-
-    3. **Predefined orbit**  
-       A list of already-computed orbital states.
-
-    Mathematical Background
-    -----------------------
-    Orbit propagation is performed by numerically integrating the
-    translational equations of motion:
-
-    .. math::
-
-        \ddot{\mathbf{r}} =
-        -\frac{\mu}{r^3}\mathbf{r}
-        + \mathbf{a}_{J_2},
-
-    where :math:`\mu` is Earth’s gravitational parameter and
-    :math:`\mathbf{a}_{J_2}` is the optional oblateness perturbation:
-
-    .. math::
-
-        \mathbf{a}_{J_2}
-        = \frac{3 J_2 \mu R_E^2}{2 r^5}
-        \begin{bmatrix}
-            x \left(5 \frac{z^2}{r^2} - 1\right) \\
-            y \left(5 \frac{z^2}{r^2} - 1\right) \\
-            z \left(5 \frac{z^2}{r^2} - 3\right)
-        \end{bmatrix}.
-
-    The resulting trajectory is sampled at discrete epochs
-    :math:`t_k` expressed in J2000 centuries.
+    Performance
+    -----------
+    For propagated orbits, this constructor propagates the translational dynamics
+    using pure NumPy and then batch-computes the expensive environment quantities
+    (Skyfield frames / Sun vector and ppigrf geomagnetic field) for the full time
+    array once, before constructing individual :class:`~ADCS.orbits.orbital_state.Orbital_State`
+    objects.
 
     :param os0:
         Initial orbital state or list of orbital states.
-    :type os0:
-        Orbital_State or list[Orbital_State]
+    :type os0: Orbital_State or list[Orbital_State]
 
     :param end_time:
         Final propagation time in J2000 centuries.
@@ -72,43 +47,40 @@ class Orbit:
         Propagation time step in seconds.
     :type dt: float or None
 
-    :param use_J2:
-        Enable or disable the J2 gravitational perturbation.
-    :type use_J2: bool
-
     :param fast:
-        Enable fast (approximate) propagation mode if supported
-        by :class:`~ADCS.orbits.orbital_state.Orbital_State`.
+        Backward-compatible parameter (ignored).
     :type fast: bool
 
     :param verbose:
         Enable progress bar output during propagation.
     :type verbose: bool
 
+    :param zonal_J:
+        Highest zonal harmonic degree to include in the propagated dynamics.
+        ``0`` disables zonals, ``2`` includes only J2, and larger values
+        include every zonal term up to that degree.
+    :type zonal_J: int
+
     :raises ValueError:
         If input arguments are inconsistent or unsupported.
 
     """
+
     def __init__(
         self,
         os0: Union[Orbital_State, List[Orbital_State]],
         end_time: float = None,
         dt: float = None,
-        use_J2: bool = True,
         fast: bool = True,
-        verbose: bool = True
+        verbose: bool = True,
+        zonal_J: int = 2,
     ) -> None:
         r"""
         Initialize an orbit from an initial condition or a list of states.
 
-        Depending on the inputs, this constructor either stores a single
-        orbital state, propagates it forward in time using RK4 integration,
-        or constructs an orbit from a provided list of orbital states.
-
         :param os0:
             Initial orbital state or list of orbital states.
-        :type os0:
-            Orbital_State or list[Orbital_State]
+        :type os0: Orbital_State or list[Orbital_State]
 
         :param end_time:
             Final propagation time in J2000 centuries.
@@ -118,12 +90,8 @@ class Orbit:
             Propagation time step in seconds.
         :type dt: float or None
 
-        :param use_J2:
-            Enable J2 perturbation during propagation.
-        :type use_J2: bool
-
         :param fast:
-            Enable fast propagation mode.
+            Backward-compatible parameter (ignored).
         :type fast: bool
 
         :param verbose:
@@ -135,14 +103,23 @@ class Orbit:
         :rtype: None
 
         """
+        _ = fast  # ignored
+        # Remember the zonal setting so node-to-node interpolation in get_os()
+        # reuses the same gravity model the orbit was propagated with.
+        self._zonal_J = _normalize_zonal_J(zonal_J)
 
         if isinstance(os0, Orbital_State):
+            start_time = float(os0.J2000)
 
-            start_time = os0.J2000
-            if end_time is None or dt is None or end_time == start_time:
-                self.states = {os0.J2000: os0.copy()}
-                self.times = np.array([os0.J2000])
+            # Singleton orbit
+            if end_time is None or dt is None or float(end_time) == start_time:
+                st = os0.copy()
+                self.states = {st.J2000: st}
+                self.times = np.array([st.J2000], dtype=float)
                 return
+
+            end_time = float(end_time)
+            dt = float(dt)
 
             duration = end_time - start_time
             l = np.floor(duration / (dt / TimeConstants.cent2sec))
@@ -152,80 +129,237 @@ class Orbit:
                 + [start_time + j * (dt / TimeConstants.cent2sec) for j in range(1 + int(l))]
                 + [end_time]
             )
-
-            # Remove duplicates and sort
             times = sorted(list(set(times)))
+            times[0] = start_time
 
-            # Storage for states
-            states0: List[Orbital_State] = [np.nan for _ in times]
-            states0[0] = os0.copy()
-            times[0] = os0.J2000
+            N = len(times)
+            times_arr = np.asarray(times, dtype=float)
 
-            for j in tqdm(range(1, len(times)), desc="Propagating Orbit", unit="step", disable=not verbose):
+            # --- Propagate translational dynamics (RK4) without constructing Orbital_State each step ---
+            R_hist = np.empty((N, 3), dtype=float)
+            V_hist = np.empty((N, 3), dtype=float)
 
-                dt_step = (times[j] - times[j - 1]) * TimeConstants.cent2sec
+            R_hist[0, :] = np.asarray(os0.R, dtype=float).reshape(3)
+            V_hist[0, :] = np.asarray(os0.V, dtype=float).reshape(3)
 
-                states0[j] = states0[j - 1].propagate_orbit_rk4(
-                    dt=dt_step,
-                    J2_perturbation_on=use_J2,
-                    fast=fast
-                )
+            mu_e = float(getattr(os0, "mu_e", EarthConstants.mu_e))
+            R_e = float(getattr(os0, "R_e", EarthConstants.R_e))
+            J2coeff = float(getattr(os0, "J2coeff", EarthConstants.J2coeff))
+            Jcoeffs = np.asarray(getattr(os0, "Jcoeffs", EarthConstants.Jcoeffs), dtype=float)
 
-            # Build time-indexed dictionary
-            self.states = {state.J2000: state for state in states0}
-            self.times = np.array(sorted(self.states.keys()))
+            for j in tqdm(range(1, N), desc="Propagating Orbit", unit="step", disable=not verbose):
+                dt_step = (times_arr[j] - times_arr[j - 1]) * TimeConstants.cent2sec
+
+                r0 = R_hist[j - 1, :]
+                v0 = V_hist[j - 1, :]
+
+                k1r, k1v = Orbital_State._orbit_dynamics_raw(r0, v0, mu_e, R_e, J2coeff, self._zonal_J, Jcoeffs=Jcoeffs)
+                k2r, k2v = Orbital_State._orbit_dynamics_raw(r0 + 0.5 * dt_step * k1r, v0 + 0.5 * dt_step * k1v, mu_e, R_e, J2coeff, self._zonal_J, Jcoeffs=Jcoeffs)
+                k3r, k3v = Orbital_State._orbit_dynamics_raw(r0 + 0.5 * dt_step * k2r, v0 + 0.5 * dt_step * k2v, mu_e, R_e, J2coeff, self._zonal_J, Jcoeffs=Jcoeffs)
+                k4r, k4v = Orbital_State._orbit_dynamics_raw(r0 + dt_step * k3r, v0 + dt_step * k3v, mu_e, R_e, J2coeff, self._zonal_J, Jcoeffs=Jcoeffs)
+
+                R_hist[j, :] = r0 + (dt_step / 6.0) * (k1r + 2.0 * k2r + 2.0 * k3r + k4r)
+                V_hist[j, :] = v0 + (dt_step / 6.0) * (k1v + 2.0 * k2v + 2.0 * k3v + k4v)
+
+            # --- Batch-compute environment and frame transforms once ---
+            ephem = os0.ephem
+            ts = ephem.ts
+
+            # 2451545.0 is the J2000.0 epoch in TT, so this is a TT Julian
+            # date and must use ts.tt_jd (ts.tai_jd mislabeled it as TAI ->
+            # constant ~32.184 s epoch error). Matches Orbital_State.__init__.
+            TAI = times_arr * 36525.0 + 2451545.0
+            t_sf = ts.tt_jd(TAI)
+
+            # Rotation matrices ECI->ECEF (vectorized)
+            R_eci2ecef_raw = framelib.itrs.rotation_at(t_sf)
+            R_eci2ecef_raw = np.asarray(R_eci2ecef_raw, dtype=float)
+
+            if R_eci2ecef_raw.ndim == 3 and R_eci2ecef_raw.shape[0] == 3 and R_eci2ecef_raw.shape[1] == 3:
+                R_eci2ecef = np.transpose(R_eci2ecef_raw, (2, 0, 1))  # (N,3,3)
+            elif R_eci2ecef_raw.ndim == 3 and R_eci2ecef_raw.shape[-2:] == (3, 3):
+                R_eci2ecef = R_eci2ecef_raw  # (N,3,3)
+            else:
+                # Fallback: treat as a single matrix (should not happen for multi-time)
+                R_eci2ecef = np.repeat(R_eci2ecef_raw.reshape(1, 3, 3), N, axis=0)
+
+            R_ecef2eci = np.transpose(R_eci2ecef, (0, 2, 1))
+
+            # ECEF positions
+            ECEF_hist = np.einsum("nij,nj->ni", R_eci2ecef, R_hist)
+
+            # Geocentric (r, theta, phi) from ECEF
+            r_ecef = np.linalg.norm(ECEF_hist, axis=1)
+            theta = np.arccos(ECEF_hist[:, 2] / r_ecef)
+            phi = np.arctan2(ECEF_hist[:, 1], ECEF_hist[:, 0])
+            geo_hist = np.stack([r_ecef, theta, phi], axis=1)
+
+            # Datetimes (naive UTC)
+            dts = []
+            for dt_i in t_sf.utc_datetime():
+                if getattr(dt_i, "tzinfo", None) is not None:
+                    dts.append(dt_i.astimezone(timezone.utc).replace(tzinfo=None))
+                else:
+                    dts.append(dt_i)
+
+            # Sun vector (ECI) in km (vectorized)
+            sun_icrf = ephem.earth.at(t_sf).observe(ephem.sun).apparent()
+            sun_km = np.asarray(sun_icrf.position.km, dtype=float)
+            if sun_km.ndim == 2 and sun_km.shape[0] == 3 and sun_km.shape[1] == N:
+                S_hist = sun_km.T
+            elif sun_km.ndim == 2 and sun_km.shape[0] == N and sun_km.shape[1] == 3:
+                S_hist = sun_km
+            else:
+                S_hist = np.reshape(sun_km, (N, 3))
+
+            # Magnetic field (IGRF) in geocentric components (vectorized call)
+            b_r, b_th, b_ph = ppigrf.igrf_gc(
+                geo_hist[:, 0],
+                geo_hist[:, 1] * 180.0 / np.pi,
+                geo_hist[:, 2] * 180.0 / np.pi,
+                dts,
+            )
+            b_r = np.asarray(b_r)
+            b_th = np.asarray(b_th)
+            b_ph = np.asarray(b_ph)
+
+            # ppigrf sometimes returns diagonal matrices when passed time lists; handle both
+            if b_r.ndim == 2 and b_r.shape[0] == b_r.shape[1] == N:
+                b_r = np.diagonal(b_r)
+            if b_th.ndim == 2 and b_th.shape[0] == b_th.shape[1] == N:
+                b_th = np.diagonal(b_th)
+            if b_ph.ndim == 2 and b_ph.shape[0] == b_ph.shape[1] == N:
+                b_ph = np.diagonal(b_ph)
+
+            b_r = np.asarray(b_r, dtype=float).reshape(N)
+            b_th = np.asarray(b_th, dtype=float).reshape(N)
+            b_ph = np.asarray(b_ph, dtype=float).reshape(N)
+
+            # Local basis for geocentric->ECEF conversion (vectorized, matches existing Orbit.geocentric_to_ecef_orbit)
+            n_ecef = ECEF_hist / r_ecef[:, None]
+            zhat = MathConstants.unitvecs[2].reshape(1, 3)
+            svec = np.cross(zhat, n_ecef)
+            svec = svec / np.linalg.norm(svec, axis=1)[:, None]
+            tvec = np.cross(svec, n_ecef)
+            tvec = tvec / np.linalg.norm(tvec, axis=1)[:, None]
+
+            # Convert to ECEF, then to ECI
+            b_ecef = b_r[:, None] * n_ecef + b_ph[:, None] * svec + b_th[:, None] * tvec
+            B_hist = np.einsum("nij,nj->ni", R_ecef2eci, b_ecef) * 1e-9
+
+            # Density model (reuse os0 model if present)
+            density_model = getattr(os0, "density_model", None)
+            if density_model is None:
+                density_model = DensityModel()
+
+            alt_core = np.linalg.norm(R_hist, axis=1) - EarthConstants.R_e
+            try:
+                rho_hist = np.asarray(density_model.interpolate(alt_core), dtype=float).reshape(N)
+            except Exception:
+                rho_hist = np.array([float(density_model.interpolate(float(h))) for h in alt_core], dtype=float)
+
+            # ENU transform (vectorized)
+            pos = units.Distance(km=[R_hist[:, 0], R_hist[:, 1], R_hist[:, 2]])
+            vel = units.Velocity(km_per_s=[V_hist[:, 0], V_hist[:, 1], V_hist[:, 2]])
+            sf_pos_vec = positionlib.ICRF(pos.au, velocity_au_per_d=vel.au_per_d, t=t_sf, center=399, target=0)
+            sf_geo_pos_vec = api.wgs84.geographic_position_of(sf_pos_vec)
+
+            lat = np.asarray(sf_geo_pos_vec.latitude.radians, dtype=float).reshape(N)
+            lon = np.asarray(sf_geo_pos_vec.longitude.radians, dtype=float).reshape(N)
+            elev = np.asarray(sf_geo_pos_vec.elevation.km, dtype=float).reshape(N)
+            LLA_hist = np.stack([lat, lon, elev], axis=1)
+
+            R_eci_to_ecef_geo_raw = sf_geo_pos_vec.rotation_at(t_sf)
+            R_eci_to_ecef_geo_raw = np.asarray(R_eci_to_ecef_geo_raw, dtype=float)
+            if R_eci_to_ecef_geo_raw.ndim == 3 and R_eci_to_ecef_geo_raw.shape[0] == 3 and R_eci_to_ecef_geo_raw.shape[1] == 3:
+                R_eci_to_ecef_geo = np.transpose(R_eci_to_ecef_geo_raw, (2, 0, 1))
+            elif R_eci_to_ecef_geo_raw.ndim == 3 and R_eci_to_ecef_geo_raw.shape[-2:] == (3, 3):
+                R_eci_to_ecef_geo = R_eci_to_ecef_geo_raw
+            else:
+                R_eci_to_ecef_geo = np.repeat(R_eci_to_ecef_geo_raw.reshape(1, 3, 3), N, axis=0)
+
+            R_ecef_to_enu = np.array([[0.0, 1.0, 0.0], [1.0, 0.0, 0.0], [0.0, 0.0, 1.0]], dtype=float)
+            ECI2ENU_hist = np.einsum("ij,njk->nik", R_ecef_to_enu, R_eci_to_ecef_geo)
+
+            # Sunlit flag (vectorized)
+            try:
+                sunlit_hist = np.asarray(sf_pos_vec.is_sunlit(ephem.planets), dtype=bool).reshape(N)
+            except Exception:
+                sunlit_hist = np.array([False] * N, dtype=bool)
+
+            # --- Construct Orbital_State objects cheaply without per-state skyfield/ppigrf calls ---
+            states0: List[Orbital_State] = [None] * N
+            for i in range(N):
+                st = Orbital_State.__new__(Orbital_State)
+
+                st.ephem = ephem
+                st.ts = ts
+
+                st.J2000 = float(times_arr[i])
+                st.R = R_hist[i, :].copy()
+                st.V = V_hist[i, :].copy()
+
+                st.mu_e = mu_e
+                st.R_e = R_e
+                st.J2coeff = J2coeff
+                st.Jcoeffs = np.array(Jcoeffs, dtype=float, copy=True)
+
+                st.TAI = float(TAI[i])
+                st.datetime = dts[i]
+
+                st._R_eci2ecef = R_eci2ecef[i, :, :].copy()
+                st._R_ecef2eci = R_ecef2eci[i, :, :].copy()
+
+                st.ECEF = ECEF_hist[i, :].copy()
+                st.geocentric = geo_hist[i, :].copy()
+
+                # Local basis
+                st._n_ecef = n_ecef[i, :].copy()
+                st._svec = svec[i, :].copy()
+                st._tvec = tvec[i, :].copy()
+                st._ecef_to_geo = np.vstack([st._n_ecef, st._tvec, st._svec])
+
+                # Environment
+                st.density_model = density_model
+                st.S = S_hist[i, :].copy()
+                st.B = B_hist[i, :].copy()
+                st.rho = float(rho_hist[i])
+
+                # Geographic + ENU
+                st.LLA = LLA_hist[i, :].copy()
+                st.ECI2ENUmat = ECI2ENU_hist[i, :, :].copy()
+                st.sf_geo_pos = None  # kept for compatibility; LLA/ECI2ENUmat are provided
+
+                # Provide a scalar sf_pos mainly for compatibility; heavy calls are avoided elsewhere
+                try:
+                    pos_i = units.Distance(km=st.R.tolist())
+                    vel_i = units.Velocity(km_per_s=st.V.tolist())
+                    st.sf_pos = positionlib.ICRF(pos_i.au, velocity_au_per_d=vel_i.au_per_d, t=t_sf[i], center=399, target=0)
+                except Exception:
+                    st.sf_pos = None
+
+                st._sunlit = bool(sunlit_hist[i])
+
+                st.vecs = None
+                st._last_x = None
+
+                states0[i] = st
+
+            self.states = {st.J2000: st for st in states0}
+            self.times = np.array(sorted(self.states.keys()), dtype=float)
 
         elif isinstance(os0, list) and all(isinstance(j, Orbital_State) for j in os0):
+            # Ensure uniqueness by time and copy states (copy is fast and does not recompute environment)
             unique_times = {j.J2000 for j in os0}
             self.states = {j.J2000: j.copy() for j in os0 if j.J2000 in unique_times}
-            self.times = np.array(sorted(self.states.keys()))
+            self.times = np.array(sorted(self.states.keys()), dtype=float)
 
         else:
             raise ValueError("Orbit must be initialized with Orbital_State or List[Orbital_State]")
 
-    def populate_environment(self, compute_B: bool = True, compute_S: bool = True, verbose: bool = False) -> None:
-        """
-        Populate B-field and sun vectors for all orbital states using fast batch methods.
-        
-        This is useful after creating an orbit with fast=True, which skips the expensive
-        per-timestep IGRF and sun computations. Call this method once to compute all
-        environment vectors efficiently using vectorized batch operations.
-        
-        Performance: ~100x faster than computing B/S individually at each timestep.
-        
-        Args:
-            compute_B: If True, compute magnetic field vectors using batch IGRF
-            compute_S: If True, compute sun vectors using batch skyfield
-            verbose: If True, print timing information
-        """
-        import time as time_module
-        
-        if compute_B:
-            if verbose:
-                t0 = time_module.perf_counter()
-            B_eci = self.get_b_eci_orbit()  # (N, 3) in Tesla
-            for i, t in enumerate(self.times):
-                self.states[t].B = B_eci[i]
-            if verbose:
-                print(f"  [populate_environment] B-field: {time_module.perf_counter()-t0:.3f}s")
-        
-        if compute_S:
-            if verbose:
-                t0 = time_module.perf_counter()
-            S_eci = self.get_sun_eci_orbit()  # (N, 3) in km
-            for i, t in enumerate(self.times):
-                self.states[t].S = S_eci[i]
-            if verbose:
-                print(f"  [populate_environment] Sun vectors: {time_module.perf_counter()-t0:.3f}s")
-        
     def get_os(self, J2000: float) -> Orbital_State:
         r"""
         Retrieve or interpolate the orbital state at a given epoch.
-
-        If an orbital state exists at the requested time, it is returned.
-        Otherwise, linear interpolation between the nearest neighboring
-        states is performed using the averaging method defined in
-        :class:`~ADCS.orbits.orbital_state.Orbital_State`.
 
         :param J2000:
             Requested epoch in J2000 centuries.
@@ -239,39 +373,37 @@ class Orbit:
             If the requested time lies outside the orbit span.
 
         """
-        t = J2000
-        if t>self.max_time():
+        t = float(J2000)
+        if t > self.max_time():
             raise ValueError("get_os() called with t > max_time")
-        if t<self.min_time():
+        if t < self.min_time():
             raise ValueError("get_os() called with t < min_time")
-        close = np.isclose(self.times, t, rtol=0.0, atol=1e-2/TimeConstants.cent2sec)
+
+        close = np.isclose(self.times, t, rtol=0.0, atol=1e-2 / TimeConstants.cent2sec)
         if np.any(close):
             inds = np.flatnonzero(close)
             if len(inds) == 1:
-                ind = inds[0]
+                ind = int(inds[0])
                 return self.states[self.times[ind]].copy()
-            elif len(inds) > 1:
-                warnings.warn("get_os() has more than one match!")
-                close_times = self.times[inds]
-                inds2 = np.argmin(np.abs(np.array(close_times) - t))
-                if np.isscalar(inds2):
-                    ind = int(inds2)
-                else:
-                    ind = int(inds2[0])
-                return self.states[close_times[ind]].copy()
+            warnings.warn("get_os() has more than one match!")
+            close_times = self.times[inds]
+            ind2 = int(np.argmin(np.abs(close_times - t)))
+            return self.states[close_times[ind2]].copy()
 
-        i0 = np.flatnonzero(self.times<t)[-1]
-        i1 = np.flatnonzero(self.times>t)[0]
+        i0 = np.flatnonzero(self.times < t)[-1]
         t0 = self.times[i0]
-        t1 = self.times[i1]
-        return self.states[t0].average(self.states[t1],ratio = (t-t0)/(t1-t0))
+        # RK4-propagate from the nearest preceding node rather than linearly
+        # blending the two bracketing nodes (and their rotation matrices).
+        # Linear interpolation of a curved orbit produced ~95 km position
+        # error at mid-node epochs and non-orthonormal blended frame matrices;
+        # propagation recomputes R, V and rebuilds every frame transform
+        # consistently at exactly the requested epoch (RK4-truncation accuracy).
+        dt_sec = (t - t0) * TimeConstants.cent2sec
+        return self.states[t0].propagate_orbit_rk4(dt_sec, zonal_J=getattr(self, "_zonal_J", 2))
 
     def get_range(self, t_0: float, t_1: float, dt: float = None):
         r"""
         Extract a sub-orbit over a specified time interval.
-
-        This method returns either an existing subset of orbital states
-        or a newly interpolated orbit sampled at a specified time step.
 
         :param t_0:
             Start time in J2000 centuries.
@@ -287,48 +419,48 @@ class Orbit:
 
         :return:
             New orbit or orbital state(s) within the given time range.
-        :rtype:
-            Orbit or Orbital_State
+        :rtype: Orbit or Orbital_State
 
         :raises ValueError:
             If the time bounds are invalid or outside the orbit span.
 
         """
-        if t_1<t_0:
-            raise ValueError('times are in wrong order')
+        t_0 = float(t_0)
+        t_1 = float(t_1)
 
-        if t_1==t_0:
+        if t_1 < t_0:
+            raise ValueError("times are in wrong order")
+
+        if t_1 == t_0:
             if dt is not None:
                 return self.get_os(t_0)
-            elif t_0 in self.times:
+            if t_0 in self.times:
                 return self.get_os(t_0)
-            raise ValueError('times are equal, no matching time exactly. Try again with a specified dt or a wider time bracket. (or use the get_os() method)')
-        if t_0>self.max_time():
-            raise ValueError('first orbital state is not within this orbit (too far in future)')
-        if t_0<self.min_time():
-            raise ValueError('first orbital state is not within this orbit (too far in past)')
-        if t_1>self.max_time():
-            raise ValueError('last orbital state is not within this orbit (too far in future)')
-        if t_1<self.min_time():
-            raise ValueError('last orbital state is not within this orbit (too far in past)')
+            raise ValueError(
+                "times are equal, no matching time exactly. Try again with a specified dt or a wider time bracket. "
+                "(or use the get_os() method)"
+            )
+
+        if t_0 > self.max_time():
+            raise ValueError("first orbital state is not within this orbit (too far in future)")
+        if t_0 < self.min_time():
+            raise ValueError("first orbital state is not within this orbit (too far in past)")
+        if t_1 > self.max_time():
+            raise ValueError("last orbital state is not within this orbit (too far in future)")
+        if t_1 < self.min_time():
+            raise ValueError("last orbital state is not within this orbit (too far in past)")
 
         if dt is None:
-            newstates = [self.states[j] for j in self.times if (j<=t_1 and j>=t_0)]
-            if len(newstates)==0:
-                raise ValueError('there are no pre-created states in this time span')
-            orbit_out = Orbit(newstates)
-            return orbit_out
-        else:
-            ts = np.concatenate([np.arange(t_0,t_1,dt/TimeConstants.cent2sec),[t_1]])
-            # ts = np.unique(ts)
-            return self.new_orbit_from_times(ts)
-        
+            newstates = [self.states[j] for j in self.times if (j <= t_1 and j >= t_0)]
+            if len(newstates) == 0:
+                raise ValueError("there are no pre-created states in this time span")
+            return Orbit(newstates, zonal_J=getattr(self, "_zonal_J", 2))
+        ts = np.concatenate([np.arange(t_0, t_1, float(dt) / TimeConstants.cent2sec), [t_1]])
+        return self.new_orbit_from_times(ts.tolist())
+
     def new_orbit_from_times(self, time_list: List[float]):
         r"""
         Construct a new orbit sampled at specific epochs.
-
-        For each requested time, the orbital state is obtained using
-        :meth:`~ADCS.orbits.orbit.Orbit.get_os`.
 
         :param time_list:
             List of epochs in J2000 centuries.
@@ -342,20 +474,18 @@ class Orbit:
             If any requested time lies outside the orbit span.
 
         """
-        if not np.all([self.time_in_span(j) for j in time_list]):
-            print(self.max_time(), self.min_time(),min(time_list),max(time_list))
-            raise ValueError('at least one time is not within this orbit span')
-        newstates = [self.get_os(j) for j in time_list]
-        return Orbit(newstates)
-    
+        if not np.all([self.time_in_span(float(j)) for j in time_list]):
+            raise ValueError("at least one time is not within this orbit span")
+        newstates = [self.get_os(float(j)) for j in time_list]
+        return Orbit(newstates, zonal_J=getattr(self, "_zonal_J", 2))
+
     def next_state(self, input: Orbital_State | float) -> Orbital_State:
         r"""
         Return the next available orbital state after a given time.
 
         :param input:
             Reference time or orbital state.
-        :type input:
-            Orbital_State or float
+        :type input: Orbital_State or float
 
         :return:
             Next orbital state in chronological order.
@@ -365,22 +495,21 @@ class Orbit:
             If the input time lies outside the orbit span.
 
         """
-        if isinstance(input,Orbital_State):
-            t = input.J2000
-        elif isinstance(input,float):
-            t = input
+        if isinstance(input, Orbital_State):
+            t = float(input.J2000)
+        elif isinstance(input, float):
+            t = float(input)
         else:
             raise ValueError("Must be j2000 time or orbital state")
 
-        if t>self.max_time():
-            raise ValueError('this orbital state is not within this orbit (too far in future)')
-        if t<self.min_time():
-            raise ValueError('this orbital state is not within this orbit (too far in past)')
+        if t > self.max_time():
+            raise ValueError("this orbital state is not within this orbit (too far in future)")
+        if t < self.min_time():
+            raise ValueError("this orbital state is not within this orbit (too far in past)")
 
-        ind = np.flatnonzero(self.times>=t)[0]
-
+        ind = int(np.flatnonzero(self.times >= t)[0])
         return self.states[self.times[ind]]
-    
+
     def min_time(self) -> float:
         r"""
         Return the earliest epoch in the orbit.
@@ -390,7 +519,7 @@ class Orbit:
         :rtype: float
 
         """
-        return np.amin(self.times)
+        return float(np.amin(self.times))
 
     def max_time(self) -> float:
         r"""
@@ -401,9 +530,9 @@ class Orbit:
         :rtype: float
 
         """
-        return np.amax(self.times)
+        return float(np.amax(self.times))
 
-    def time_in_span(self,t) -> bool:
+    def time_in_span(self, t) -> bool:
         r"""
         Check whether a time lies within the orbit span.
 
@@ -416,17 +545,15 @@ class Orbit:
         :rtype: bool
 
         """
-        return t<=self.max_time() and t>=self.min_time()
-    
+        t = float(t)
+        return t <= self.max_time() and t >= self.min_time()
+
     def geocentric_to_ecef_orbit(self, b_vec: np.ndarray) -> np.ndarray:
         r"""
         Convert geocentric spherical vectors to ECEF coordinates along the orbit.
 
-        This method applies a local orthonormal frame transformation defined
-        by the orbit geometry.
-
         :param b_vec:
-            Geocentric vector components :math:`(b_r, b_\theta, b_\phi)`.
+            Geocentric vector components (b_r, b_theta, b_phi).
         :type b_vec: numpy.ndarray
 
         :return:
@@ -437,7 +564,11 @@ class Orbit:
         ecef_mat = np.vstack([self.states[j].ECEF for j in self.times])
         n_ecef = matrix_row_normalize(ecef_mat)
         svec = matrix_row_normalize(np.cross(MathConstants.unitvecs[2], n_ecef))
-        return b_vec[:,0:1]*n_ecef + svec*b_vec[:,2:] + matrix_row_normalize(np.cross(svec,n_ecef))*b_vec[:,1:2]
+        return (
+            b_vec[:, 0:1] * n_ecef
+            + svec * b_vec[:, 2:3]
+            + matrix_row_normalize(np.cross(svec, n_ecef)) * b_vec[:, 1:2]
+        )
 
     def ecef_to_eci_orbit(self, b_ecef_vec: np.ndarray) -> np.ndarray:
         r"""
@@ -452,70 +583,47 @@ class Orbit:
         :rtype: numpy.ndarray
 
         """
-        return np.stack([self.states[self.times[j]].ecef_to_eci(b_ecef_vec[j,:]) for j in range(len(self.times))])
+        return np.stack([self.states[self.times[j]].ecef_to_eci(b_ecef_vec[j, :]) for j in range(len(self.times))])
 
     def get_b_eci_orbit(self) -> np.ndarray:
         r"""
         Compute the geomagnetic field in the ECI frame along the orbit.
 
-        The magnetic field is evaluated using the IGRF model in geocentric
-        coordinates and transformed into the inertial frame.
+        If per-state magnetic field vectors are already available, they are returned
+        directly.
 
         :return:
             Geomagnetic field vectors in ECI coordinates [Tesla].
         :rtype: numpy.ndarray
 
         """
+        try:
+            return np.vstack([self.states[j].B for j in self.times])
+        except Exception:
+            # Fallback to legacy computation if any state is missing B
+            geos = np.vstack([self.states[j].geocentric for j in self.times])
+            dts = [self.states[j].datetime for j in self.times]
+            b_r, b_th, b_ph = ppigrf.igrf_gc(geos[:, 0], geos[:, 1] * 180.0 / np.pi, geos[:, 2] * 180.0 / np.pi, dts)
+            b_r = np.asarray(b_r)
+            b_th = np.asarray(b_th)
+            b_ph = np.asarray(b_ph)
+            if b_r.ndim == 2:
+                b_r = np.diagonal(b_r)
+            if b_th.ndim == 2:
+                b_th = np.diagonal(b_th)
+            if b_ph.ndim == 2:
+                b_ph = np.diagonal(b_ph)
+            b_ecef = self.geocentric_to_ecef_orbit(np.vstack([b_r, b_th, b_ph]).T)
+            b_eci = self.ecef_to_eci_orbit(b_ecef)
+            return b_eci * 1e-9
 
-        geos = np.vstack([self.states[j].geocentric for j in self.times])
-        dts = [self.states[j].datetime for j in self.times]
-        # IGRF expects radius in km, theta and phi in degrees
-        # geos[:,0] is already in km (same units as R input to Orbital_State)
-        b_r, b_th, b_ph = ppigrf.igrf_gc(geos[:,0], geos[:,1]*180.0/np.pi, geos[:,2]*180.0/np.pi, dts)
-        b_r = np.diagonal(b_r)
-        b_th = np.diagonal(b_th)
-        b_ph = np.diagonal(b_ph)
-
-        b_ecef = self.geocentric_to_ecef_orbit(np.atleast_2d(np.squeeze(np.stack([b_r, b_th, b_ph])).T))
-        b_eci = self.ecef_to_eci_orbit(b_ecef)
-        return b_eci*1e-9
-
-    def get_sun_eci_orbit(self) -> np.ndarray:
-        """Compute sun vectors for all timesteps using vectorized skyfield calls.
-        
-        Returns:
-            np.ndarray: (N, 3) array of sun vectors in ECI frame [km]
-        """
-        from skyfield import api, positionlib
-        
-        # Get reference state for ephemeris access
-        ref_state = self.states[self.times[0]]
-        ephem = ref_state.ephem
-        
-        # Build array of TAI times
-        tai_times = np.array([self.states[t].TAI for t in self.times])
-        
-        # Create skyfield time objects (vectorized)
-        ts = ephem.ts
-        t_sf = ts.tai_jd(tai_times)
-        
-        # Compute sun positions for all times at once
-        sun_icrf = ephem.earth.at(t_sf).observe(ephem.sun).apparent()
-        sun_eci = sun_icrf.position.km.T  # (N, 3)
-        
-        return sun_eci
-    
     def get_vecs(self) -> List[List[np.ndarray]]:
         r"""
         Return commonly used orbit-related vectors.
 
-        The returned lists contain position, velocity, magnetic field,
-        Sun vector, and atmospheric density values for each epoch.
-
         :return:
-            Lists of vectors ``[R, V, B, S, rho]`` over the orbit.
-        :rtype:
-            list[list[numpy.ndarray]]
+            Lists of vectors [R, V, B, S, rho] over the orbit.
+        :rtype: list[list[numpy.ndarray]]
 
         """
         R = [self.states[j].R for j in self.times]
@@ -523,4 +631,4 @@ class Orbit:
         B = [self.states[j].B for j in self.times]
         S = [self.states[j].S for j in self.times]
         rho = [self.states[j].rho for j in self.times]
-        return [R,V,B,S,rho]
+        return [R, V, B, S, rho]

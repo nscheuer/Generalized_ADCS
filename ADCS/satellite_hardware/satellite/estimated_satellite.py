@@ -1,4 +1,5 @@
 __all__ = ["EstimatedSatellite"]
+import copy
 import numpy as np
 
 from typing import List, Dict, Union, Tuple, Any, Optional
@@ -74,7 +75,7 @@ class EstimatedSatellite(Satellite):
         :meth:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.match_estimate`.
     """
 
-    def __init__(self, mass: float = 1.0, COM: np.ndarray = None, J_0: np.ndarray = None, disturbances: List[Disturbance] = [], sensors: List[Sensor] = [], actuators: List[Actuator] = [], boresight: np.ndarray = np.array([0, 0, 1])) -> None:
+    def __init__(self, mass: float = 1.0, COM: np.ndarray = None, J_0: np.ndarray = None, disturbances: List[Disturbance] = [], sensors: List[Sensor] = [], actuators: List[Actuator] = [], boresight: dict[str, np.ndarray] | np.ndarray = None) -> None:
         r"""
         Construct an estimator-augmented satellite.
 
@@ -112,8 +113,8 @@ class EstimatedSatellite(Satellite):
         :param actuators: Actuator model list.
         :type actuators: list[:class:`~ADCS.satellite_hardware.actuators.Actuator`]
 
-        :param boresight: Body-frame boresight direction, shape ``(3,)``.
-        :type boresight: numpy.ndarray
+        :param boresight: Named boresight vectors dict or single vector, shape ``(3,)``.
+        :type boresight: dict[str, numpy.ndarray] | numpy.ndarray | None
 
         :return: ``None``.
         :rtype: None
@@ -127,6 +128,39 @@ class EstimatedSatellite(Satellite):
         self.att_sens_bias_len = sum([self.attitude_sensors[j].output_length for j in self.att_sens_bias_inds]) # Number of sensors with bias
         self.dist_param_inds = [j for j in range(len(self.disturbances)) if self.disturbances[j].estimate_dist] # Indices with sensor disturbaces
         self.dist_param_len = sum([self.disturbances[j].estimated_vector_length for j in self.dist_param_inds]) # Number of sensors with bias
+
+
+    @classmethod
+    def from_satellite(cls, sat: Satellite) -> "EstimatedSatellite":
+        """
+        Create an EstimatedSatellite by cloning a Satellite.
+
+        The sensor / actuator / disturbance objects MUST be deep-copied, not
+        shared by reference: they carry mutable state (``Bias``/``Noise``
+        evolution, reaction-wheel momentum and the shared
+        ``_effective_command`` cache, disturbance parameters). When the
+        estimated satellite is used by an estimator (e.g. inside
+        :func:`~ADCS.simulate.simulate`, which auto-builds it via this
+        method), the filter repeatedly evaluates ``sensor_readings`` /
+        ``noiseless_rk4`` / actuator torques on its sigma points; if those
+        objects were the *same* instances as the true satellite's, the
+        filter's internal predictions would silently corrupt the truth's
+        sensor/actuator/disturbance state (and vice versa) within and across
+        timesteps. Deep-copying makes the estimate model independent of the
+        plant, as the "cloning" contract promises.
+        """
+        est = cls(
+            mass=sat.mass,
+            COM=sat.COM.copy(),
+            J_0=sat.J_0.copy(),
+            disturbances=copy.deepcopy(sat.disturbances),
+            sensors=copy.deepcopy(sat.sensors),
+            actuators=copy.deepcopy(sat.actuators),
+            boresight=sat.boresight.copy(),
+        )
+
+        return est
+
 
     def match_estimate(self, est_state: EstimatedArray, dt: float) -> None:
         r"""
@@ -278,7 +312,21 @@ class EstimatedSatellite(Satellite):
         ind = 0
         for j in self.dist_param_inds:
             dist = self.disturbances[j]
-            if dist.active:  # Only update active ones
+            # WARNING: disturbance-parameter estimation is API-rotted dead
+            # scaffolding. This block references a `dist.active` /
+            # `dist.main_param` / `dist.std` interface that NO disturbance
+            # class implements (only Drag defines `active`; none define
+            # `main_param`/`std`), and `estimate_dist=True` is used nowhere
+            # in the codebase or tests. Same dead-scaffolding family as the
+            # rotted analytic Jacobians (PR #44 dynamics_Hessians / PR #47
+            # dynJacCore). The `getattr(..., True)` below fixes the one
+            # trivial, isolated sub-defect (the bare `dist.active` crashed
+            # for every non-Drag disturbance); the deeper `main_param`/`std`
+            # rot is NOT resurrected here (out of proportion -- there is no
+            # disturbance-param API or consumer to verify against) and is
+            # tracked by a strict-xfail guard:
+            # testing/test_estimators/test_disturbance_param_estimation.py.
+            if getattr(dist, "active", True):  # Only update active ones
                 l = dist.main_param.size
                 dist.main_param = dist_param[ind : ind + l]
                 dist.std = np.sqrt(dist_param_ic[ind : ind + l, ind : ind + l])
@@ -360,10 +408,10 @@ class EstimatedSatellite(Satellite):
         +--------------------+------------------------------------+
         """
         ddist_torq__dx = np.zeros((self.state_len,3))
-        ddist_torq__dx[3:7,:] = sum([j.torque_qjac(self,vecs) for j in self.disturbances],np.zeros((4,3)))
+        ddist_torq__dx[3:7,:] = sum([j.torque_qjac(self,x,vecs["os"]) for j in self.disturbances],np.zeros((4,3)))
         ddist_torq__ddmp = np.zeros((0,3))
         if self.dist_param_len>0:
-            ddist_torq__ddmp = np.vstack([self.disturbances[j].torque_valjac(self,vecs) for j in self.dist_param_inds])
+            ddist_torq__ddmp = np.vstack([self.disturbances[j].torque_valjac(self,x,vecs["os"]) for j in self.dist_param_inds])
         return ddist_torq__dx,ddist_torq__ddmp
 
     def dist_torque_hess(self, x: np.ndarray, vecs: Dict[str, np.ndarray]) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -441,14 +489,14 @@ class EstimatedSatellite(Satellite):
         +---------------------------+-----------------------------------------+
         """
         dddist_torq__dxdx = np.zeros((self.state_len,self.state_len,3))
-        dddist_torq__dxdx[3:7,3:7,:] = sum([j.torque_qqhess(self,vecs) for j in self.disturbances],np.zeros((4,4,3)))
+        dddist_torq__dxdx[3:7,3:7,:] = sum([j.torque_qqhess(self,x,vecs["os"]) for j in self.disturbances],np.zeros((4,4,3)))
         dddist_torq__ddmpddmp = np.zeros((self.dist_param_len,self.dist_param_len,3))
         dddist_torq__dxddmp = np.zeros((self.state_len,self.dist_param_len,3))
         ind = 0
         for j in self.dist_param_inds:
             l = self.disturbances[j].main_param.size
-            dddist_torq__ddmpddmp[ind:ind+l,ind:ind+l,:] = self.disturbances[j].torque_valvalhess(self,vecs)
-            dddist_torq__dxddmp[3:7,ind:ind+l,:] = self.disturbances[j].torque_qvalhess(self,vecs)
+            dddist_torq__ddmpddmp[ind:ind+l,ind:ind+l,:] = self.disturbances[j].torque_valvalhess(self,x,vecs["os"])
+            dddist_torq__dxddmp[3:7,ind:ind+l,:] = self.disturbances[j].torque_qvalhess(self,x,vecs["os"])
             ind += l
         return dddist_torq__dxdx,dddist_torq__dxddmp,dddist_torq__ddmpddmp
     
@@ -535,9 +583,12 @@ class EstimatedSatellite(Satellite):
         rho = orbital_state.rho # Atmospheric density [kg/m^3]
 
         w = x[0:3]
-        q = x[4:7]
+        q = x[3:7]   # PR #47's q-slice fix folded into Stage B revival
         RWhs = x[7:]
-        J = self.J_0
+        # Must match the inertia used in dynamics_core (J_COM, not J_0) so the
+        # estimated-model Jacobian remains the correct linearization when COM
+        # is offset from the reference origin.
+        J = self.J_COM
         invJ_noRW = self.invJ_noRW
 
         rmat_ECI2B = rot_mat(q).T
@@ -554,8 +605,8 @@ class EstimatedSatellite(Satellite):
         com = self.COM
 
         ddist_torq__dx,ddist_torq__ddmp = self.dist_torques_jacobian(x,vecs)
-        dact_torq__dbase = sum([self.actuators[j].dtorq__dbasestate(u[j],self,x,vecs) for j in range(len(self.actuators))],np.zeros((7,3)))
-        dact_torq__du = np.vstack([self.actuators[j].dtorq__du(u[j],self,x,vecs) for j in range(len(self.actuators))])
+        dact_torq__dbase = sum([self.actuators[j].dtorq__dbasestate(u[j],x,orbital_state) for j in range(len(self.actuators))],np.zeros((7,3)))
+        dact_torq__du = np.vstack([self.actuators[j].dtorq__du(u[j],x,orbital_state) for j in range(len(self.actuators))])
 
         dxdot__dx = np.zeros((self.state_len,self.state_len))
         dxdot__du = np.zeros((self.control_len,self.state_len))
@@ -571,22 +622,23 @@ class EstimatedSatellite(Satellite):
 
         # Reaction Wheels
         if self.number_RW>0:
-            dact_torq__dh = np.vstack([self.actuators[j].dtorq__dh(u[j],self,x,vecs) for j in range(len(self.actuators))])
+            dact_torq__dh = np.vstack([self.actuators[j].dtorq__dh(u[j],x,orbital_state) for j in range(len(self.actuators))])
             RWjs = np.array([rw.J for rw in self.rw_actuators])
             RWaxes = np.vstack([rw.axis for rw in self.rw_actuators])
             mRWjs = np.diagflat(RWjs)
             dxdot__dx[0:3,0:3] += -skewsym(RWhs@RWaxes)@invJ_noRW
             dxdot__dx[7:,0:3] += (dact_torq__dh+np.cross(RWaxes,w))@invJ_noRW
-            dxdot__du[:,7:] = block_diag(*[self.actuators[j].dstor_torq__du(u[j],self,x,vecs) for j in range(len(self.actuators))])
+            dxdot__du[:,7:] = block_diag(*[self.actuators[j].dstor_torq__du(u[j],x,orbital_state) for j in range(len(self.actuators))])
             dxdot__du[:,7:] -= dxdot__du[:,0:3]@RWaxes.T@mRWjs
-            dxdot__dx[0:7,7:] = np.hstack([act.dstor_torq__dbasestate(u[j],self,x,vecs) for act in self.actuators])
-            dxdot__dx[7:,7:] = np.diagflat([rw.dstor_torq__dh(u[j],self,x,vecs) for rw in self.rw_actuators])
+            
+            dxdot__dx[0:7,7:] = np.hstack([act.dstor_torq__dbasestate(u[j],x,orbital_state) for j,act in enumerate(self.actuators)])
+            dxdot__dx[7:,7:] = np.diagflat([rw.dstor_torq__dh(u[self.momentum_inds[i]],x,orbital_state) for i,rw in enumerate(self.rw_actuators)])
             dxdot__dx[:,7:] -= dxdot__dx[:,0:3]@RWaxes.T@mRWjs
         dxdot__dab = np.zeros((self.act_bias_len,self.state_len))
         dxdot__dsb = np.zeros((self.att_sens_bias_len,self.state_len))
         dxdot__ddmp = np.zeros((self.dist_param_len,self.state_len))
         if self.act_bias_len>0:
-            dact_torq__dab = np.vstack([self.actuators[j].dtorq__dbias(u[j],self,x,vecs) for j in self.act_bias_inds])
+            dact_torq__dab = np.vstack([self.actuators[j].dtorq__dbias(u[j],x,orbital_state) for j in self.act_bias_inds])
         else:
             dact_torq__dab = np.zeros((0,3))
 
@@ -595,7 +647,7 @@ class EstimatedSatellite(Satellite):
         dxdot__ddmp[:,0:3] = ddist_torq__ddmp@invJ_noRW
 
         if self.number_RW>0:
-            dxdot__dab[:,7:] = block_diag(*[self.actuators[j].dstor_torq__dbias(u[j],self,x,vecs).T for j in self.act_bias_inds]).T
+            dxdot__dab[:,7:] = block_diag(*[self.actuators[j].dstor_torq__dbias(u[j],x,orbital_state).T for j in self.act_bias_inds]).T
             dxdot__dab[:,7:] -= dxdot__dab[:,0:3]@RWaxes.T@mRWjs
             dxdot__ddmp[:,7:] -= dxdot__ddmp[:,0:3]@RWaxes.T@mRWjs
 
@@ -699,7 +751,9 @@ class EstimatedSatellite(Satellite):
         q = x[3:7]#normalize(x[3:7,:])
         RWhs = x[7:]
         invJ_noRW = self.invJ_noRW
-        J = self.J
+        # Match the COM-based rotational dynamics and avoid relying on the
+        # undefined self.J attribute.
+        J = self.J_COM
 
         R = orbital_state.R
         V = orbital_state.V
@@ -723,14 +777,14 @@ class EstimatedSatellite(Satellite):
         vecs = {"b":B_B,"r":R_B,"s":S_B,"v":V_B,"rho":rho,"db":dB_B__dq,"ds":dS_B__dq,"dv":dV_B__dq,"dr":dR_B__dq,"ddb":ddB_B__dqdq,"dds":ddS_B__dqdq,"ddv":ddV_B__dqdq,"ddr":ddR_B__dqdq,"os":orbital_state}
         com = self.COM
 
-        dact_torq__dbase = sum([self.actuators[j].dtorq__dbasestate(u[j],self,x,vecs) for j in range(len(self.actuators))],np.zeros((7,3)))
-        ddact_torq__dbasedbase = sum([self.actuators[j].ddtorq__dbasestatedbasestate(u[j],self,x,vecs) for j in range(len(self.actuators))],np.zeros((7,7,3)))
-        dact_torq__du = np.vstack([self.actuators[j].dtorq__du(u[j],self,x,vecs) for j in range(len(self.actuators))])
+        dact_torq__dbase = sum([self.actuators[j].dtorq__dbasestate(u[j],x,orbital_state) for j in range(len(self.actuators))],np.zeros((7,3)))
+        ddact_torq__dbasedbase = sum([self.actuators[j].ddtorq__dbasestatedbasestate(u[j],x,orbital_state) for j in range(len(self.actuators))],np.zeros((7,7,3)))
+        dact_torq__du = np.vstack([self.actuators[j].dtorq__du(u[j],x,orbital_state) for j in range(len(self.actuators))])
         ddact_torq__dudu = np.zeros((self.control_len,self.control_len,3))
         ddact_torq__dudbase = np.zeros((self.control_len,7,3))
         for j in range(len(self.actuators)):
-            ddact_torq__dudu[j,j,:] = self.actuators[j].ddtorq__dudu(u[j],self,x,vecs)
-            ddact_torq__dudbase[j,:,:] = self.actuators[j].ddtorq__dudbasestate(u[j],self,x,vecs)
+            ddact_torq__dudu[j,j,:] = self.actuators[j].ddtorq__dudu(u[j],x,orbital_state)
+            ddact_torq__dudbase[j,:,:] = self.actuators[j].ddtorq__dudbasestate(u[j],x,orbital_state)
 
 
         ddxdot__dxdx = np.zeros((self.state_len,self.state_len,self.state_len))
@@ -759,9 +813,9 @@ class EstimatedSatellite(Satellite):
             ind = 0
             for ind in range(self.number_RW):
                 j = self.momentum_inds[ind]
-                ddact_torq__dudh[j,ind,:] = self.actuators[j].ddtorq__dudh(u[j],self,x,vecs)
-                ddact_torq__dhdh[ind,ind,:] = self.actuators[j].ddtorq__dhdh(u[j],self,x,vecs)
-                ddact_torq__dbasedh[:,ind,:] = np.squeeze(self.actuators[j].ddtorq__dbasestatedh(u[j],self,x,vecs))
+                ddact_torq__dudh[j,ind,:] = self.actuators[j].ddtorq__dudh(u[j],x,orbital_state)
+                ddact_torq__dhdh[ind,ind,:] = self.actuators[j].ddtorq__dhdh(u[j],x,orbital_state)
+                ddact_torq__dbasedh[:,ind,:] = np.squeeze(self.actuators[j].ddtorq__dbasestatedh(u[j],x,orbital_state))
 
             RWjs = np.array([self.actuators[j].J for j in self.momentum_inds])
             RWaxes = np.vstack([self.actuators[j].axis for j in self.momentum_inds])
@@ -781,13 +835,13 @@ class EstimatedSatellite(Satellite):
             ind = 0
             for ind in range(self.number_RW):
                 j = self.momentum_inds[ind]
-                ddxdot__dxdu[0:7,j,7+ind] += np.squeeze(np.transpose(self.actuators[j].ddstor_torq__dudbasestate(u[j],self,x,vecs),(1,0,2)))
-                ddxdot__dxdu[7+ind,j,7+ind] += np.transpose(self.actuators[j].ddstor_torq__dudh(u[j],self,x,vecs),(1,0,2))
-                ddxdot__dudu[j,j,7+ind] = self.actuators[j].ddstor_torq__dudu(u[j],self,x,vecs)
-                ddxdot__dxdx[0:7,0:7,7+ind] += np.squeeze(self.actuators[j].ddstor_torq__dbasestatedbasestate(u[j],self,x,vecs))
-                ddxdot__dxdx[7+ind,0:7,7+ind] += np.squeeze(np.transpose(self.actuators[j].ddstor_torq__dbasestatedh(u[j],self,x,vecs),(1,0,2)))
-                ddxdot__dxdx[0:7,7+ind,7+ind] += np.squeeze(self.actuators[j].ddstor_torq__dbasestatedh(u[j],self,x,vecs))
-                ddxdot__dxdx[7+ind,7+ind,7+ind] += np.squeeze(self.actuators[j].ddstor_torq__dhdh(u[j],self,x,vecs))
+                ddxdot__dxdu[0:7,j,7+ind] += np.squeeze(np.transpose(self.actuators[j].ddstor_torq__dudbasestate(u[j],x,orbital_state),(1,0,2)))
+                ddxdot__dxdu[7+ind,j,7+ind] += np.transpose(self.actuators[j].ddstor_torq__dudh(u[j],x,orbital_state),(1,0,2))
+                ddxdot__dudu[j,j,7+ind] = self.actuators[j].ddstor_torq__dudu(u[j],x,orbital_state)
+                ddxdot__dxdx[0:7,0:7,7+ind] += np.squeeze(self.actuators[j].ddstor_torq__dbasestatedbasestate(u[j],x,orbital_state))
+                ddxdot__dxdx[7+ind,0:7,7+ind] += np.squeeze(np.transpose(self.actuators[j].ddstor_torq__dbasestatedh(u[j],x,orbital_state),(1,0,2)))
+                ddxdot__dxdx[0:7,7+ind,7+ind] += np.squeeze(self.actuators[j].ddstor_torq__dbasestatedh(u[j],x,orbital_state))
+                ddxdot__dxdx[7+ind,7+ind,7+ind] += np.squeeze(self.actuators[j].ddstor_torq__dhdh(u[j],x,orbital_state))
 
             ddxdot__dxdu[:,:,7:] -= ddxdot__dxdu[:,:,0:3]@RWaxes.T@mRWjs
             ddxdot__dudu[:,:,7:] -= ddxdot__dudu[:,:,0:3]@RWaxes.T@mRWjs

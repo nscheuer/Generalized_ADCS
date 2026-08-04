@@ -78,9 +78,9 @@ class Orbit_EKF(Orbit_Estimator):
         :param dt: Time step.
         """
         if P_hat.shape != (6, 6):
-            raise ValueError(f"P must be 6×6, got {self.P.shape}")
+            raise ValueError(f"P must be 6×6, got {P_hat.shape}")
         if Q_hat.shape != (6, 6):
-            raise ValueError(f"Q must be 6×6, got {self.Q.shape}")
+            raise ValueError(f"Q must be 6×6, got {Q_hat.shape}")
         self.os_hat = EstimatedOrbital_State(os=os_hat, P=P_hat, Q=Q_hat)
 
         gps_sensors = self.est_sat.GPS_sensors
@@ -130,7 +130,7 @@ class Orbit_EKF(Orbit_Estimator):
 
         os_pred: Orbital_State = os0.propagate_orbit_rk4(
             dt=self.dt,
-            J2_perturbation_on=True,
+            zonal_J=2,
             fast=True,
         )
         r_pred, v_pred = os_pred.R, os_pred.V
@@ -138,7 +138,7 @@ class Orbit_EKF(Orbit_Estimator):
 
         # Dynamics Jacobian Fk
         dr_dr0, dr_dv0, dv_dr0, dv_dv0 = os0.orbit_dynamics_jacobians(
-            J2_perturbation_on=True
+            zonal_J=2
         )
         Fk = np.block([
             [dr_dr0, dr_dv0],
@@ -200,7 +200,18 @@ class Orbit_EKF(Orbit_Estimator):
         H = np.vstack([H_i for _ in range(n_sens)])            # (m_total × 6)
 
         # --- 5. Measurement noise covariance R (already built in reset) ---
-        R = self.R
+        if m_i == 3:
+            n_gps = len(self.est_sat.GPS_sensors)
+            if self.R.shape == (6 * n_gps, 6 * n_gps):
+                blocks = []
+                for i in range(n_sens):
+                    start = 6 * i
+                    blocks.append(self.R[start : start + 3, start : start + 3])
+                R = block_diag(*blocks)
+            else:
+                R = self.R
+        else:
+            R = self.R
         if R.shape != (m_total, m_total):
             raise ValueError(f"R must be {m_total}×{m_total}, got {R.shape}")
 

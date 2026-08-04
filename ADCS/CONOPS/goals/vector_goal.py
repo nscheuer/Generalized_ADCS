@@ -42,12 +42,20 @@ class Vector_Goal(Goal):
     :class:`~ADCS.goals.attitude_goal.Attitude_Goal`
 
     """
-    def __init__(self) -> None:
+    def __init__(self, boresight_name: str | None = None) -> None:
         r"""
         Initialize a vector-alignment goal.
 
-        This constructor performs no initialization beyond invoking the
-        base :class:`~ADCS.goals.goal.Goal` constructor.
+        This constructor stores the optional boresight name to be used
+        when computing the error with respect to the satellite's boresight
+        dictionary.
+
+        :param boresight_name:
+            Optional name of the boresight to use from the satellite's
+            boresight dictionary. If ``None``, the first available boresight
+            is selected.
+        :type boresight_name:
+            str | None
 
         :return:
             None
@@ -56,6 +64,7 @@ class Vector_Goal(Goal):
 
         """
         super().__init__()
+        self.boresight_name = boresight_name
 
     def to_ref(self, os0: Orbital_State) -> Tuple[np.ndarray, np.ndarray]:
         r"""
@@ -158,21 +167,21 @@ class Vector_Goal(Goal):
 
         v_bore = normalize(body_boresight)
         R_b2i = rot_mat(q)                    # q: body -> ECI (Hamilton)
-        v_goal_body = normalize(R_b2i.T @ eci_goal)
+        v_goal_body = normalize(R_b2i.T @ eci_goal[1:4])
 
         dot = np.dot(v_bore, v_goal_body)
 
         if dot < -0.9999:
             # 180° case: pick any orthogonal axis
-            # For 180° rotation, q = [0, axis] and error vector = axis (magnitude 1)
             axis = np.cross(v_bore, [1.0, 0.0, 0.0])
             if norm(axis) < 1e-3:
                 axis = np.cross(v_bore, [0.0, 1.0, 0.0])
-            return normalize(axis)
+            q_err_full = np.concatenate([[0.0], normalize(axis)])
         else:
             # NOTE: goal × bore, not bore × goal
             cross = np.cross(v_goal_body, v_bore)
             q_err_full = normalize(np.concatenate([[1.0 + dot], cross]))
 
-            q_err_vec = q_err_full[1:4] * np.sign(q_err_full[0])
-            return q_err_vec
+        sign = 1.0 if q_err_full[0] >= 0.0 else -1.0
+        q_err_vec = q_err_full[1:4] * sign
+        return q_err_vec
