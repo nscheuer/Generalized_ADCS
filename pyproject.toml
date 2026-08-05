@@ -102,8 +102,13 @@ dev = [
 ]
 
 [project.urls]
-Repository = "https://github.com/nscheuer/Generalized_ADCS"
+# PyPI renders these as sidebar links and gives several of them dedicated
+# icons; only Repository and Documentation were present for 0.1.5.
+Homepage = "https://nscheuer.github.io/Generalized_ADCS/"
 Documentation = "https://nscheuer.github.io/Generalized_ADCS/"
+Repository = "https://github.com/nscheuer/Generalized_ADCS"
+Issues = "https://github.com/nscheuer/Generalized_ADCS/issues"
+Changelog = "https://nscheuer.github.io/Generalized_ADCS/release_notes/index.html"
 
 [tool.setuptools]
 package-dir = {"" = "."}
@@ -111,6 +116,17 @@ package-dir = {"" = "."}
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["ADCS*"]
+
+# Without this, setuptools ships ONLY .py files: the 0.1.5 wheel contained no
+# data files at all, so the Earth textures were missing and the orbit
+# animation silently lost its texture.
+#
+# de421.bsp (16 MB) is deliberately NOT shipped -- Ephemeris() downloads it on
+# first use, and a 16 MB payload on every install is a poor trade for a file
+# most users never touch. Pass `Ephemeris(filepath=...)` to point at an
+# existing copy.
+[tool.setuptools.package-data]
+"*" = ["textures/*.jpg"]
 
 [tool.pytest.ini_options]
 addopts = [
