@@ -3,8 +3,9 @@ name: Build and Deploy Sphinx Docs
 on:
   push:
     branches: [ main ]
+  # Runs on every PR regardless of base -- see the note in ci.yml.
+  # Deployment stays gated on main by the `if:` on the deploy step.
   pull_request:
-    branches: [ main ]
 jobs:
   build:
     runs-on: ubuntu-latest

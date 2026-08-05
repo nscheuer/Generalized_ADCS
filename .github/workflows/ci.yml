@@ -6,9 +6,10 @@ on:
   push:
     branches:
       - main
+  # No base-branch filter: this repo stacks PRs (12 open PRs currently
+  # target another PR's branch), and a `branches: [main]` filter means
+  # every one of them merges without ever having been tested.
   pull_request:
-    branches:
-      - main
 
 jobs:
   check_all_pytests:
