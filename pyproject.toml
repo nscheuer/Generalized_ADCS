@@ -1,5 +1,6 @@
 [build-system]
-requires = ["setuptools>=61.0"]
+# >=77 for PEP 639 SPDX license metadata (`license = "MIT"` + license-files).
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -12,13 +13,42 @@ name = "Generalized_ADCS"
 version = "0.1.8"
 description = "Generalized Attitude Determination and Control System (ADCS) framework."
 authors = [
-    { name = "Patrick McKeen" },
-    { name = "Niclas Scheuer" },
+    { name = "Patrick McKeen", email = "pmckeen@mit.edu" },
+    { name = "Niclas Scheuer", email = "nscheuer@ethz.ch" },
     { name = "William Goldman" },
 ]
 readme = "README.md"
 requires-python = ">=3.10"
-license = { text = "MIT" }
+# PEP 639 SPDX form. The old `{ text = "MIT" }` table is deprecated and emits
+# no License-Expression, which is why the 0.1.5 listing showed no license facet.
+license = "MIT"
+license-files = ["LICENSE"]
+
+keywords = [
+    "ADCS", "attitude control", "attitude determination", "spacecraft",
+    "satellite", "cubesat", "smallsat", "aerospace", "GNC", "magnetorquer",
+    "reaction wheel", "control allocation", "Kalman filter", "orbit",
+]
+
+# Without these the PyPI page carries no facets at all, so the project is
+# invisible to searches filtered by Python version, licence, audience or topic.
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Education",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Astronomy",
+    "Topic :: Scientific/Engineering :: Physics",
+    # requires-python is >=3.10 and unbounded, but only 3.12 is exercised in
+    # CI; 3.13+ is unlisted rather than claimed, since numba tends to lag new
+    # Python releases.
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Operating System :: OS Independent",
+    "Natural Language :: English",
+]
 
 # Runtime dependencies.
 #
