@@ -1,0 +1,34 @@
+========================================================================================
+Campaign D -- wheel-axis geometry and sigma duty
+m_max = 0.2 A m^2, tau_w = 2.0 mN m, h_max = 15 mN m s, T_orbit = 5554 s
+accumulation to beat: 1.522 mN m s / orbit
+========================================================================================
+
+wheel axis       inc   profile  med sig  restore%      tau*  cap[mNms]   margin
+----------------------------------------------------------------------------------------
+boresight         97     nadir    0.898     91.7%     0.115     19.469     12.8x
+boresight         97  inertial    0.674     80.3%     0.198     26.532     17.4x
+boresight         45     nadir    0.811     89.2%     0.155     22.127     14.5x
+boresight         45  inertial    0.352     54.7%     0.237     39.569     26.0x
+boresight          5     nadir    0.274     42.2%     0.393     34.680     22.8x
+boresight          5  inertial    0.946    100.0%     0.117     14.857      9.8x
+orbit_normal      97     nadir    0.197     35.6%     0.256     49.507     32.5x
+orbit_normal      97  inertial    0.180     31.7%     0.248     48.244     31.7x
+orbit_normal      45     nadir    0.506     81.7%     0.232     32.176     21.1x
+orbit_normal      45  inertial    0.548     66.1%     0.233     29.653     19.5x
+orbit_normal       5     nadir    0.951    100.0%     0.119     14.752      9.7x
+orbit_normal       5  inertial    0.172     27.8%     0.382     35.885     23.6x
+45deg             97     nadir    0.411     82.8%     0.234     31.892     20.9x
+45deg             97  inertial    0.303     50.6%     0.208     44.443     29.2x
+45deg             45     nadir    0.478     55.3%     0.233     33.872     22.2x
+45deg             45  inertial    0.609     77.2%     0.181     31.739     20.8x
+45deg              5     nadir    0.849    100.0%     0.219     18.962     12.5x
+45deg              5  inertial    0.637     90.0%     0.263     25.705     16.9x
+
+========================================================================================
+Worst-case margin: 9.7x (orbit_normal, 5 deg, nadir)
+Dumping is authority-limited, not geometry-limited: the wheel could push 2000 uN m,
+the magnetorquers about 10.7 uN m.
+========================================================================================
+
+wrote /Users/patrickmckeen/ADCS_wt/iac-1rw/papers/IAC_1RW/output_data/D_sigma_duty_20260805_164532.json + fig_D_sigma_duty.{png,pdf}
