@@ -82,7 +82,7 @@ class Attitude_Estimator():
       :func:`~ADCS.helpers.math_helpers.square_mat_sections`.
 
     """
-    def __init__(self, est_sat: EstimatedSatellite, J2000: float, x_hat: np.ndarray, P_hat: np.ndarray, Q_hat: np.ndarray, dt: float = 1, cross_term: bool = False, quat_as_vec: bool = False) -> None:
+    def __init__(self, est_sat: EstimatedSatellite, J2000: float, x_hat: np.ndarray, P_hat: np.ndarray, Q_hat: np.ndarray, dt: float = 1, cross_term: bool = False, quat_as_vec: bool = False, ephem: Optional[Ephemeris] = None) -> None:
         r"""
         Construct an attitude estimator and initialize its internal bookkeeping.
 
@@ -116,6 +116,10 @@ class Attitude_Estimator():
         :param quat_as_vec: If ``True``, store covariance and process noise in the full
             quaternion space (no reduction).
         :type quat_as_vec: bool
+        :param ephem: Optional planetary ephemeris. If ``None``, one is constructed,
+            which may download a 16 MB kernel on first use. Pass an existing
+            instance to share it between objects or to avoid the download.
+        :type ephem: ~ADCS.orbits.ephemeris.Ephemeris or None
         :return: ``None``.
         :rtype: None
 
@@ -126,7 +130,11 @@ class Attitude_Estimator():
         self.dt = dt
         self.len_before_sens_bias = self.est_sat.state_len + self.est_sat.act_bias_len
 
-        ephem = Ephemeris()
+        # Constructing an Ephemeris can download a 16 MB kernel, so allow one
+        # to be injected -- matching Orbital_State's `ephem=None` convention.
+        # Without this the caller had no way to share a single ephemeris, nor
+        # to point at one on a machine that cannot reach the network.
+        ephem = Ephemeris() if ephem is None else ephem
         self.prev_os = Orbital_State(ephem=ephem, J2000=0, R=np.array([1,0,0]), V=np.array([0,1,0]))
 
         self.reset(J2000=J2000, x_hat=x_hat, P_hat=P_hat, Q_hat=Q_hat, dt=dt, cross_term=cross_term)

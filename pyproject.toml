@@ -78,8 +78,14 @@ viz = [
     "pyvista>=0.44",
 ]
 
-# Toolchain for building the optional C++ add-ons (SALTRO, trajectory
-# planner). Not needed to import or use the pure-Python framework.
+# Build toolchain for the optional C++ add-ons (SALTRO, trajectory planner).
+#
+# SOURCE CHECKOUT ONLY. This installs the compilers/bindings, but the add-ons
+# themselves live in the SALTRO and OldPlanner git submodules, which are NOT
+# part of the distribution -- so `pip install "generalized-adcs[cpp]"` gives a
+# pip user the toolchain and nothing to build with it. Useful only alongside a
+# clone of the repository. Neither add-on is needed for the pure-Python
+# framework; both are guarded optional imports.
 cpp = [
     "cmake>=3.27",
     "Cython>=3.0",

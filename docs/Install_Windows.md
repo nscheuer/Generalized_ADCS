@@ -30,9 +30,7 @@ python -m venv venv
 In the same terminal, run:
 ```powershell
 pip install -r requirements.txt
-pip install git+https://github.com/jcrudy/choldate.git --no-build-isolation
 ```
-The reason choldate has to be installed with --no-build-isolation is that its compilation depends on pip having access to Cython.
 
 ## Build trajectory_planner
 `trajectory_planner` installation is documented in one canonical page:

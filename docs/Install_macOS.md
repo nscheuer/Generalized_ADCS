@@ -38,10 +38,9 @@ Install Python dependencies using pip:
 ```bash
 pip install --upgrade pip wheel setuptools
 pip install -r requirements.txt
-pip install git+https://github.com/jcrudy/choldate.git --no-build-isolation
 pip install -e . --no-deps --no-build-isolation
 ```
-`choldate` must be installed with `--no-build-isolation` because its compilation depends on pip having access to Cython (already installed from `requirements.txt`). The final line registers the `ADCS` package itself in editable mode.
+The final line registers the `ADCS` package itself in editable mode.
 
 ## Build trajectory_planner
 `trajectory_planner` installation is documented in one canonical page:
