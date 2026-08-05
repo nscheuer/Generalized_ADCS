@@ -1,0 +1,20 @@
+.. Shared analytics snippet for the /ssc26 pages.
+..
+.. Included by index.rst, code.rst and contact.rst via `.. include::`.
+.. The .txt extension keeps Sphinx from building it as a standalone page.
+..
+.. GoatCounter is cookieless and stores no personal data, so these pages need
+.. no consent banner -- which matters here, because a consent modal on a QR
+.. landing page suppresses the exact funnel we are trying to measure.
+..
+.. Tracking is scoped to the three /ssc26 pages ONLY. The rest of the docs
+.. site is deliberately left untracked.
+..
+.. SETUP: create a site at https://www.goatcounter.com/ and replace
+.. GOATCOUNTER_CODE below with your site code (both occurrences are in this
+.. one file). Until then the beacon 404s harmlessly and the page is fine.
+
+.. raw:: html
+
+   <script data-goatcounter="https://GOATCOUNTER_CODE.goatcounter.com/count"
+           async src="//gc.zgo.at/count.js"></script>
