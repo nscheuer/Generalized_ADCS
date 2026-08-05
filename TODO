@@ -6,3 +6,32 @@
 
 Controllers
 - All current controllers do gyroscopic precession compensation, but no disturbance torque compensation
+Packaging / PyPI (deferred from the 0.1.8 install-hygiene work, 2026-08-05)
+- Ship py.typed (PEP 561). Currently absent, so every downstream type checker
+  must discard our annotations. Blocked on cleaning the annotations first:
+  ~240 mypy errors across the package, incl. ~54 implicit-Optional defaults
+  (`def f(x: int = None)`). Shipping the marker before that pushes our errors
+  into users' type checking. Fix the annotations, then add the marker.
+- requirements.txt is a stale `pip freeze` that contradicts pyproject.toml. It
+  still pins the junk `np==1.0.2`, and it is what CI and every install doc
+  actually use -- so the pyproject dependency set is never exercised. Either
+  regenerate it from pyproject or delete it and have CI install `.[dev]`.
+- Six install documents still tell users to
+  `pip install git+https://github.com/jcrudy/choldate.git --no-build-isolation`.
+  That dependency was removed in 0.1.8 (vendored as
+  ADCS/helpers/cholesky_update.py); the docs should stop mentioning it.
+- The `cpp` extra advertises the C++ add-ons, but a pip user can never obtain
+  them: neither SALTRO nor OldPlanner sources ship in the distribution. Either
+  document it as a source-checkout-only extra or drop it.
+- Add a TestPyPI dry-run to the release process. `twine check` only validates
+  metadata rendering; it does not catch a wheel that installs but cannot
+  import (which is how 0.1.5 shipped without cholesky_update.py). The wheel
+  smoke-test job in .github/workflows/publish.yml covers most of this now.
+- Decide whether to yank 0.1.5 (PEP 592). Its SRUAKF hard-fails at first use
+  because it lazily imports choldate, which has no PyPI release. Yanking keeps
+  it installable by exact pin but removes it from resolution. Left un-yanked
+  for now since 0.1.5 works for everything except the SRUAKF.
+- AttitudeEstimator.__init__ hard-codes `Ephemeris()` (attitude_estimator.py),
+  so the documented `filepath=` escape hatch cannot reach it. Add an `ephem`
+  parameter so callers can inject one. Less urgent since 0.1.8 resolves the
+  ephemeris from a user cache rather than site-packages.
