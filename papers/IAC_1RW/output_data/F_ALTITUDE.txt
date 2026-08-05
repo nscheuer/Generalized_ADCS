@@ -1,0 +1,19 @@
+============================================================================================
+Campaign F -- altitude scaling and the momentum-boundary altitude
+boresight-mounted wheel, nadir-locked, inc 97.0 deg, tau_allow = 2.5 uN m
+============================================================================================
+
+ alt[km]    T[s]   rho[kg/m3]   B[uT]  accum[mNms]  cap[mNms]   margin  orbits->sat
+--------------------------------------------------------------------------------------------
+     300    5431    2.300e-11   38.82       9.2659     19.213      2.1          1.6
+     400    5554    3.290e-12   37.11       1.5219     19.462     12.8          9.9
+     500    5677    6.150e-13   35.62       1.3307     19.719     14.8         11.3
+     600    5801    1.370e-13   34.21       1.3627     19.982     14.7         11.0
+     800    6052    1.210e-14   31.49       1.3134     20.485     15.6         11.4
+
+--------------------------------------------------------------------------------------------
+MOMENTUM BOUNDARY BINDS AT ~270 km (margin = 1 for the boresight mounting).
+Above it the architecture is agility- and accuracy-limited, not momentum-limited.
+============================================================================================
+
+wrote /Users/patrickmckeen/ADCS_wt/iac-1rw/papers/IAC_1RW/output_data/F_altitude_20260805_171157.json
