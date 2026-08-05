@@ -8,6 +8,12 @@ from .create_star_tracker import (
     create_bct_nst_quaternion,
     create_generic_star_tracker_quaternion,
 )
+from .create_iac_sensors import (
+    create_iac_gyro,
+    create_iac_magnetometer,
+    create_iac_star_tracker,
+    IAC_SENSOR_SPEC,
+)
 from .create_earth_horizon import (
     create_generic_earth_horizon,
     create_irst_horizon_sensor,
@@ -22,6 +28,10 @@ __all__ = [
     "create_generic_star_tracker",
     "create_bct_nst_quaternion",
     "create_generic_star_tracker_quaternion",
+    "create_iac_gyro",
+    "create_iac_magnetometer",
+    "create_iac_star_tracker",
+    "IAC_SENSOR_SPEC",
     "create_generic_earth_horizon",
     "create_irst_horizon_sensor",
 ]

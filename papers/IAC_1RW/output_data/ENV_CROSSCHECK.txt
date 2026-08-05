@@ -1,0 +1,54 @@
+==============================================================================
+IAC 6U -- Campaign §2 environment cross-check
+400 km circular, inc 97.0 deg, T_orbit = 5553.6 s, m_res = 0.05 A m^2, cp-cg = 2 cm on [0 0 1]
+==============================================================================
+
+Peak over orbit positions x attitudes -- the spec's 'predicted peak' column.
+
+source       peak [uN m]   predicted    ratio   verdict
+------------------------------------------------------------------------------
+dipole            2.4978      1.5000     1.67   OK
+drag              0.2917      0.2000     1.46   OK
+gg                0.1627      0.1500     1.08   OK
+srp               0.0088      0.0080     1.10   OK
+
+------------------------------------------------------------------------------
+Residual dipole: cyclic or secular?  (body frame -- what a body-fixed wheel sees)
+------------------------------------------------------------------------------
+  orbit-mean |tau|      =   0.2660 uN m
+  peak |tau|            =   2.2268 uN m
+  secular fraction      =    0.119   (NOT purely cyclic)
+
+------------------------------------------------------------------------------
+Per-orbit secular momentum accumulation vs h_max (15 mN m s)
+------------------------------------------------------------------------------
+  dipole     1.4772 mN m s/orbit   =   9.85% of h_max
+  drag       1.4183 mN m s/orbit   =   9.46% of h_max
+  gg         0.0000 mN m s/orbit   =   0.00% of h_max
+  srp        0.0261 mN m s/orbit   =   0.17% of h_max
+  TOTAL      1.5224 mN m s/orbit   =  10.15% of h_max
+
+  -> saturation from rest in ~9.9 orbits.
+     CONFIRMS the audit: a one-orbit horizon is structurally blind to
+     momentum saturation. Campaign E's saturation-line points must run
+     multi-orbit (or be computed analytically); Campaign C reaches it only
+     because it pre-loads h_0.
+
+------------------------------------------------------------------------------
+Drag secular content: ram-locked (nadir) vs inertial hold   [§IV-A claim]
+------------------------------------------------------------------------------
+  nadir-locked    peak  0.2554 uN m   orbit-mean  0.2554 uN m   secular fraction  1.000
+  inertial hold   peak  0.2623 uN m   orbit-mean  0.0000 uN m   secular fraction  0.000
+  (the claim is that the ram-locked case retains a much larger secular fraction)
+
+------------------------------------------------------------------------------
+cp-cg offset check: uniform box with COM at the geometric centre
+------------------------------------------------------------------------------
+  COM at centre: max |tau_drag| over 300 attitudes = 9.870e-23 N m
+  COM at centre: max |tau_srp | over 300 attitudes = 1.477e-24 N m
+  with the 2 cm offset: drag peak 0.2917 uN m, SRP peak 0.0088 uN m
+  -> the offset is the entire source of both torques.
+
+==============================================================================
+GATE PASSED -- simulated budget agrees with the hand calculations within 2x.
+==============================================================================
