@@ -153,10 +153,21 @@ def create_iac_star_tracker(
     if boresight is None:
         boresight = np.array([0.0, 0.0, 1.0])
     s = IAC_SENSOR_SPEC
+
+    # The estimator needs a measurement-noise covariance shaped like the *output* (4, a
+    # quaternion), even though the anisotropic model does not draw its perturbation from it.
+    # A quaternion component is a half-angle, so sigma_q ~ sigma_angle / 2; the isotropic
+    # value the filter is given is the RMS over the three body axes, which neither
+    # understates the roll term (6x worse than cross) nor pretends the filter knows the
+    # anisotropy. Slightly conservative on the two cross axes, slightly optimistic on roll.
+    sigma_rms = np.sqrt((2.0 * s["st_sigma_cross_rad"] ** 2
+                         + s["st_sigma_roll_rad"] ** 2) / 3.0)
+    st_noise = Noise(noise=np.zeros(4), std_noise=np.full(4, sigma_rms / 2.0))
     if permissive:
         return StarTrackerQuaternion(
             sample_time=s["st_sample_time_s"],
             boresight=boresight,
+            noise=st_noise,
             fov=np.deg2rad(179.0),
             sun_exclusion=0.0,
             min_stars=0,
@@ -165,12 +176,25 @@ def create_iac_star_tracker(
             sigma_cross=s["st_sigma_cross_rad"],
             sigma_roll=s["st_sigma_roll_rad"],
         )
+    # min_stars=0 is deliberate, and it is the honest choice here.
+    #
+    # ``StarCatalog`` ships **30** stars. A 20-degree FOV subtends 0.76% of the sky, so the
+    # expected count inside it is 0.23 -- requiring 2 makes the tracker unavailable ~98% of
+    # the time. That is an artifact of a toy catalog, not physics: a real tracker works from
+    # a catalog of 10^4-10^5 stars and is star-starved essentially never. Gating on this
+    # catalog would put a fictitious 2% availability into the paper.
+    #
+    # So star density is not modelled as a constraint; the availability drivers that *are*
+    # physical are kept and are the ones the campaign reports: the sun keep-out, the
+    # Earth-limb keep-out, and the slew-rate limit. The FOV is opened up for the same
+    # reason -- it only feeds star selection, not the keep-outs.
     return StarTrackerQuaternion(
         sample_time=s["st_sample_time_s"],
         boresight=boresight,
-        fov=s["st_fov_rad"],
+        noise=st_noise,
+        fov=np.deg2rad(179.0),
         sun_exclusion=s["st_sun_exclusion_rad"],
-        min_stars=2,
+        min_stars=0,
         earth_limb_exclusion=s["st_earth_limb_exclusion_rad"],
         max_rate=s["st_max_rate_rad_per_s"],
         sigma_cross=s["st_sigma_cross_rad"],

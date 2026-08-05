@@ -308,7 +308,13 @@ def create_iac_6u_bus(
     if unknown_s:
         raise ValueError(f"unknown sensor(s): {sorted(unknown_s)}")
     if "mtm" in wanted_s:
-        sens_list += create_iac_magnetometer(estimate_bias=estimated)
+        # Magnetometer bias is deliberately NOT an estimator state. The campaign spec quotes
+        # 100 nT "post-calibration", i.e. bias already removed on the ground, so carrying it
+        # would double-count. It also matters numerically: a magnetometer-bias variance of
+        # ~1e-14 T^2 sitting in the same covariance as an attitude variance of ~1e-2 rad^2
+        # spans twelve orders of magnitude, and the UKF covariance update goes singular
+        # within a few hundred steps. Gyro bias, which is real and drifting, is estimated.
+        sens_list += create_iac_magnetometer(estimate_bias=False)
     if "gyro" in wanted_s:
         sens_list += create_iac_gyro(estimate_bias=estimated)
     if "star_tracker" in wanted_s:

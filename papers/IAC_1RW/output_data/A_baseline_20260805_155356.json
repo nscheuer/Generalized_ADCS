@@ -1,0 +1,57 @@
+{
+  "task": "A_baseline",
+  "timestamp": "20260805_155356",
+  "n_trials": 4,
+  "tf_s": 600.0,
+  "gains": [
+    5e-05,
+    0.001,
+    0.001
+  ],
+  "horizons_s": [
+    1000.0,
+    5553.6234130312205
+  ],
+  "cells": {
+    "0rw_reduced_pd": {
+      "cell": {
+        "n_rw": 0,
+        "task": "reduced",
+        "controller": "pd"
+      },
+      "n_completed": 4,
+      "wall_s": 33.89828586578369,
+      "horizons": {}
+    },
+    "0rw_full_pd": {
+      "cell": {
+        "n_rw": 0,
+        "task": "full",
+        "controller": "pd"
+      },
+      "n_completed": 4,
+      "wall_s": 34.66437292098999,
+      "horizons": {}
+    },
+    "1rw_reduced_pd": {
+      "cell": {
+        "n_rw": 1,
+        "task": "reduced",
+        "controller": "pd"
+      },
+      "n_completed": 4,
+      "wall_s": 36.64602088928223,
+      "horizons": {}
+    },
+    "1rw_full_pd": {
+      "cell": {
+        "n_rw": 1,
+        "task": "full",
+        "controller": "pd"
+      },
+      "n_completed": 4,
+      "wall_s": 34.93773794174194,
+      "horizons": {}
+    }
+  }
+}

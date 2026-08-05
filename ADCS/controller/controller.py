@@ -131,18 +131,25 @@ class Controller():
         current_idx = 0
         
         for sens in sensors:
-            # Get the sensing axis (or axes) for this sensor
-            # shape is (3, N_outputs), usually (3,1)
-            axis = np.asarray(sens.axis, dtype=float).reshape(3, -1) 
-            n_outputs = axis.shape[1]
-            
-            # If this is the sensor we want, record its axis and indices
+            # Only sensors of the requested type need a sensing axis. Every other sensor is
+            # here purely to keep `current_idx` aligned with the full measurement vector, and
+            # for that we need its output width, not its geometry.
+            #
+            # Reading `sens.axis` unconditionally used to raise AttributeError for any
+            # axis-less sensor -- star trackers, GPS, horizon sensors -- which made every
+            # controller in the library unusable on a bus carrying one, even when the
+            # requested type was present and perfectly well formed.
             if isinstance(sens, sensor_type):
+                # shape is (3, N_outputs), usually (3,1)
+                axis = np.asarray(sens.axis, dtype=float).reshape(3, -1)
+                n_outputs = axis.shape[1]
                 # Append each column of the axis matrix individually
                 for i in range(n_outputs):
                     active_cols.append(axis[:, i])
                     active_indices.append(current_idx + i)
-            
+            else:
+                n_outputs = int(getattr(sens, "output_length", 1))
+
             # Always increment the index counter so the full 'y' vector alignment is preserved
             current_idx += n_outputs
 
