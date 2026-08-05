@@ -1,5 +1,5 @@
 from __future__ import annotations 
-__all__ = ["SRP_Disturbance"]
+__all__ = ["SRP_Disturbance", "srp_force_body"]
 
 import numpy as np
 from numba import njit
@@ -52,6 +52,48 @@ def _srp_torque_kernel(S_B, R_B, COM, normals, areas, centroids,
     out[0] = k * t0
     out[1] = k * t1
     out[2] = k * t2
+    return out
+
+
+@njit(cache=True)
+def _srp_force_kernel(S_B, R_B, normals, areas,
+                      eta_s, eta_d, eta_a, solar_constant, c_light):
+    """SRP FORCE summed over geometry faces, body frame [N].
+
+    Identical per-face optics to :func:`_srp_torque_kernel` -- the same
+    ``m_s``/``m_n`` multipliers and the same one-sided ``cos^+`` clipping --
+    but the per-face forces are summed directly instead of being crossed into
+    moments. The torque kernel already computes these forces internally and
+    discards them; this exposes them.
+    """
+    diff = np.empty(3)
+    diff[0] = S_B[0] - R_B[0]
+    diff[1] = S_B[1] - R_B[1]
+    diff[2] = S_B[2] - R_B[2]
+    d_norm = np.sqrt(diff[0]**2 + diff[1]**2 + diff[2]**2)
+    inv_d = 1.0 / d_norm
+    sb0 = diff[0] * inv_d
+    sb1 = diff[1] * inv_d
+    sb2 = diff[2] * inv_d
+    nf = normals.shape[0]
+    f0 = 0.0
+    f1 = 0.0
+    f2 = 0.0
+    for i in range(nf):
+        cos_g = normals[i, 0]*sb0 + normals[i, 1]*sb1 + normals[i, 2]*sb2
+        if cos_g < 0.0:
+            cos_g = 0.0
+        A_cg = areas[i] * cos_g
+        ms = A_cg * (eta_a[i] + eta_d[i])
+        mn = A_cg * (2.0*eta_s[i]*cos_g + (2.0/3.0)*eta_d[i])
+        f0 += ms*sb0 + mn*normals[i, 0]
+        f1 += ms*sb1 + mn*normals[i, 1]
+        f2 += ms*sb2 + mn*normals[i, 2]
+    k = -(solar_constant / c_light)
+    out = np.empty(3)
+    out[0] = k * f0
+    out[1] = k * f1
+    out[2] = k * f2
     return out
 
 
@@ -606,3 +648,57 @@ class SRP_Disturbance(Disturbance):
             return -(EarthConstants.solar_constant / EarthConstants.c) * (ddt_s__dqdq + ddt_n__dqdq)
         else:
             return np.zeros((3, 4, 4))
+
+
+def srp_force_body(S_B, R_B, config: GeometryConfig) -> np.ndarray:
+    r"""
+    Net **SRP force** in the body frame [N], for a spacecraft described by a
+    :class:`GeometryConfig`.
+
+    Companion to :class:`SRP_Disturbance`, which returns only the torque. The
+    per-face optics are shared with the torque path (:func:`_srp_torque_kernel`
+    and :func:`_srp_force_kernel` use the same ``m_s``/``m_n`` multipliers and
+    the same one-sided ``cos^+`` clipping), so force and torque are guaranteed
+    consistent by construction:
+
+    .. math::
+
+        \mathbf{F} = -\frac{S_0}{c}\sum_i
+            \Big[ m_{s,i}\,\hat{\mathbf{s}}_b + m_{n,i}\,\hat{\mathbf{n}}_i \Big],
+        \qquad
+        m_{s,i} = A_i \cos^+\gamma_i (\eta_{a,i} + \eta_{d,i}),
+        \quad
+        m_{n,i} = A_i \cos^+\gamma_i
+                  \big(2\eta_{s,i}\cos^+\gamma_i + \tfrac{2}{3}\eta_{d,i}\big).
+
+    **Why this exists.** The aerodynamic path already offers both a force
+    (:func:`~ADCS.satellite_hardware.aero.aero_force.panel_aero_force_body`)
+    and a torque
+    (:class:`~ADCS.satellite_hardware.disturbances.drag_disturbance.Drag_Disturbance`),
+    but SRP offered torque only -- so an orbit propagator could couple to
+    aerodynamic force and not to solar pressure, even though the force was
+    already being computed inside the torque kernel and thrown away. For a
+    high-area, low-mass spacecraft (a solar-array-dominated bus, a sail, a
+    formation-flying plate) SRP is not a small orbital term: at 650 km it is
+    comparable to drag at solar mid and can exceed it by two orders of
+    magnitude at solar minimum near feather.
+
+    **Eclipse is NOT applied here** -- gate the result on
+    :meth:`~ADCS.orbits.orbital_state.Orbital_State.is_sunlit`, exactly as
+    :meth:`SRP_Disturbance.torque` does.
+
+    :param S_B: Sun position in the body frame, shape ``(3,)``.
+    :param R_B: Spacecraft position in the body frame, shape ``(3,)``.
+    :param config: Face geometry (normals, areas, optical coefficients).
+    :return: Net SRP force in the body frame [N], shape ``(3,)``.
+    """
+    params = config.params
+    normals = np.array([p["normal"] for p in params], dtype=float)
+    areas = np.array([p["area"] for p in params], dtype=float)
+    eta_s = np.array([p["eta_s"] for p in params], dtype=float)
+    eta_d = np.array([p["eta_d"] for p in params], dtype=float)
+    eta_a = np.array([p["eta_a"] for p in params], dtype=float)
+    return _srp_force_kernel(
+        np.asarray(S_B, dtype=float), np.asarray(R_B, dtype=float),
+        normals, areas, eta_s, eta_d, eta_a,
+        EarthConstants.solar_constant, EarthConstants.c)
