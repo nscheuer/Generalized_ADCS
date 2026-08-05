@@ -32,7 +32,7 @@ Packaging / PyPI (deferred from the 0.1.8 install-hygiene work, 2026-08-05)
   metadata rendering; it does not catch a wheel that installs but cannot
   import (which is how 0.1.5 shipped without cholesky_update.py). The wheel
   smoke-test job in .github/workflows/publish.yml covers most of this now.
-- Decide whether to yank 0.1.5 (PEP 592). Its SRUAKF hard-fails at first use
-  because it lazily imports choldate, which has no PyPI release. Yanking keeps
-  it installable by exact pin but removes it from resolution. Left un-yanked
-  for now since 0.1.5 works for everything except the SRUAKF.
+- 0.1.5 will NOT be yanked (decided 2026-08-05). It installs and imports fine;
+  only the SRUAKF fails, and once 0.1.8 is published pip resolves to that
+  anyway. Yanking would mainly have affected people pinning ==0.1.5, who are
+  exactly the people yanking does not help.
