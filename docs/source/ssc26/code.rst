@@ -2,6 +2,8 @@
 
 .. _ssc26-code:
 
+.. include:: _analytics.txt
+
 ==================
 SSC26 · The code
 ==================

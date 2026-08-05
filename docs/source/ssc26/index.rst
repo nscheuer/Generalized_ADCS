@@ -2,6 +2,8 @@
 
 .. _ssc26:
 
+.. include:: _analytics.txt
+
 ==========================================================
 Test any published attitude control law on your bus.
 ==========================================================
