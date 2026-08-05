@@ -32,7 +32,6 @@ jobs:
         run: |
           source .venv/bin/activate
           pip install -r requirements.txt
-          pip install git+https://github.com/jcrudy/choldate.git --no-build-isolation
           pip uninstall -y cmake
           
       - name: 🧪 Run Pytest
