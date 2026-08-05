@@ -52,7 +52,7 @@ CONTROLLERS = ("pd", "planner")
 KP, KD, KC = 5e-5, 1e-3, 1e-3
 
 SCALES = {
-    "fast":  {"num_runs": 4,   "tf": 600.0},
+    "fast":  {"num_runs": 4,   "tf": 1100.0},   # > 1000 s so the metrics path is exercised
     "paper": {"num_runs": 100, "tf": T_ORBIT},
 }
 

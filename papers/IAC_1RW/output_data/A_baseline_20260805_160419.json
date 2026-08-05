@@ -1,0 +1,153 @@
+{
+  "task": "A_baseline",
+  "timestamp": "20260805_160419",
+  "n_trials": 4,
+  "tf_s": 1100.0,
+  "gains": [
+    5e-05,
+    0.001,
+    0.001
+  ],
+  "horizons_s": [
+    1000.0,
+    5553.6234130312205
+  ],
+  "cells": {
+    "0rw_reduced_pd": {
+      "cell": {
+        "n_rw": 0,
+        "task": "reduced",
+        "controller": "pd"
+      },
+      "n_completed": 4,
+      "wall_s": 56.09252309799194,
+      "horizons": {
+        "1000": {
+          "n": 4,
+          "horizon_s": 1000.0,
+          "conv_pct_5deg": 0.0,
+          "conv_pct_1deg": 0.0,
+          "mean_final_deg": 138.02224844634495,
+          "median_final_deg": 139.70792604174818,
+          "p95_final_deg": 156.7682016926342,
+          "median_held_p95_deg": 153.85679183802634,
+          "median_acquire_5deg_s": NaN,
+          "median_acquire_1deg_s": NaN,
+          "acquired_5deg_frac": 0.0,
+          "median_peak_h_frac": null,
+          "median_final_h_frac": null,
+          "mean_mtq_duty": 0.6798666920266794,
+          "mean_tracker_available": 0.39485514485514484,
+          "finals_deg": [
+            114.09063971446044,
+            132.92868539466537,
+            146.487166688831,
+            158.582501987423
+          ]
+        }
+      }
+    },
+    "0rw_full_pd": {
+      "cell": {
+        "n_rw": 0,
+        "task": "full",
+        "controller": "pd"
+      },
+      "n_completed": 4,
+      "wall_s": 61.50199580192566,
+      "horizons": {
+        "1000": {
+          "n": 4,
+          "horizon_s": 1000.0,
+          "conv_pct_5deg": 0.0,
+          "conv_pct_1deg": 0.0,
+          "mean_final_deg": 130.90896378374867,
+          "median_final_deg": 132.1017411454499,
+          "p95_final_deg": 172.20042133924412,
+          "median_held_p95_deg": 152.84639183030757,
+          "median_acquire_5deg_s": NaN,
+          "median_acquire_1deg_s": NaN,
+          "acquired_5deg_frac": 0.0,
+          "median_peak_h_frac": null,
+          "median_final_h_frac": null,
+          "mean_mtq_duty": 0.6815465727211143,
+          "mean_tracker_available": 0.3983516483516484,
+          "finals_deg": [
+            80.90962557286025,
+            127.82957456626873,
+            178.52274727123466,
+            136.37390772463107
+          ]
+        }
+      }
+    },
+    "1rw_reduced_pd": {
+      "cell": {
+        "n_rw": 1,
+        "task": "reduced",
+        "controller": "pd"
+      },
+      "n_completed": 4,
+      "wall_s": 69.3056869506836,
+      "horizons": {
+        "1000": {
+          "n": 4,
+          "horizon_s": 1000.0,
+          "conv_pct_5deg": 25.0,
+          "conv_pct_1deg": 0.0,
+          "mean_final_deg": 32.121366417037265,
+          "median_final_deg": 30.79147562365207,
+          "p95_final_deg": 61.721530696572515,
+          "median_held_p95_deg": 51.317541119346345,
+          "median_acquire_5deg_s": 630.0,
+          "median_acquire_1deg_s": NaN,
+          "acquired_5deg_frac": 0.25,
+          "median_peak_h_frac": 0.09226204366098617,
+          "median_final_h_frac": 0.06250829207547828,
+          "mean_mtq_duty": 0.8364922522879861,
+          "mean_tracker_available": 0.4742757242757243,
+          "finals_deg": [
+            14.070680771232682,
+            64.2290472060727,
+            47.51227047607146,
+            2.673467214772217
+          ]
+        }
+      }
+    },
+    "1rw_full_pd": {
+      "cell": {
+        "n_rw": 1,
+        "task": "full",
+        "controller": "pd"
+      },
+      "n_completed": 4,
+      "wall_s": 56.135884046554565,
+      "horizons": {
+        "1000": {
+          "n": 4,
+          "horizon_s": 1000.0,
+          "conv_pct_5deg": 0.0,
+          "conv_pct_1deg": 0.0,
+          "mean_final_deg": 66.18046163835238,
+          "median_final_deg": 57.390578672360476,
+          "p95_final_deg": 131.6326730285145,
+          "median_held_p95_deg": 145.7405552529899,
+          "median_acquire_5deg_s": NaN,
+          "median_acquire_1deg_s": NaN,
+          "acquired_5deg_frac": 0.0,
+          "median_peak_h_frac": 0.13321225899109024,
+          "median_final_h_frac": 0.03591707236313181,
+          "mean_mtq_duty": 0.8316460664074132,
+          "mean_tracker_available": 0.3309190809190809,
+          "finals_deg": [
+            7.5593886401205515,
+            142.38130056856804,
+            44.057373709843155,
+            70.72378363487779
+          ]
+        }
+      }
+    }
+  }
+}

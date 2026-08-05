@@ -52,6 +52,26 @@
       "n_completed": 4,
       "wall_s": 34.93773794174194,
       "horizons": {}
+    },
+    "3rw_reduced_pd": {
+      "cell": {
+        "n_rw": 3,
+        "task": "reduced",
+        "controller": "pd"
+      },
+      "n_completed": 4,
+      "wall_s": 49.48655986785889,
+      "horizons": {}
+    },
+    "3rw_full_pd": {
+      "cell": {
+        "n_rw": 3,
+        "task": "full",
+        "controller": "pd"
+      },
+      "n_completed": 4,
+      "wall_s": 73.50777912139893,
+      "horizons": {}
     }
   }
 }
