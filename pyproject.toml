@@ -4,7 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "Generalized_ADCS"
-version = "0.1.5"
+# NOTE: this had drifted. docs/source/release_notes/ documents releases through
+# 0.1.7 (remote execution, benchmarks) while pyproject still said 0.1.5, so the
+# first PyPI upload went out as 0.1.5 -- two behind the documented state, and
+# built before the choldate removal. PyPI versions are immutable, so this moves
+# forward past the documented 0.1.7 rather than trying to reuse a number.
+version = "0.1.8"
 description = "Generalized Attitude Determination and Control System (ADCS) framework."
 authors = [
     { name = "Patrick McKeen" },
