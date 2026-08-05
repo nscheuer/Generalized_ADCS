@@ -15,49 +15,42 @@ readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
 
-# Runtime dependencies (from your cleaned list)
+# Runtime dependencies.
+#
+# This list is exactly what ``import ADCS`` needs, with compatible ranges
+# rather than exact pins so the package can be installed into an existing
+# environment. Transitive dependencies (matplotlib's contourpy/pillow/...,
+# skyfield's sgp4/jplephem/certifi, ...) are resolved by pip and are
+# deliberately NOT restated here.
+#
+# For bit-reproducible paper campaigns use the exact pins instead:
+#     pip install -r requirements-repro.txt
 dependencies = [
-    "asciichartpy==1.5.25",
-    "certifi==2025.10.5",
-    "cmake==4.1.2",
-    "colorama==0.4.6",
-    "contourpy==1.3.2",
-    "cycler==0.12.1",
-    "Cython==3.1.5",
-    "dill==0.4.0",
-    "fonttools==4.60.1",
-    "importlib_resources==6.5.2",
-    "iniconfig==2.3.0",
-    "jplephem==2.23",
-    "kiwisolver==1.4.9",
-    "matplotlib==3.10.7",
-    "np==1.0.2",
-    "numpy==2.2.6",
-    "numba==0.65.0",
-    "numdifftools==0.9.41",
-    "packaging==25.0",
-    "pandas==2.3.3",
-    "pillow==12.0.0",
-    "pluggy==1.6.0",
-    "ppigrf==2.1.0",
-    "pybind11==3.0.1",
-    "Pygments==2.19.2",
-    "pyparsing==3.2.5",
-    "pytest==8.4.2",
-    "python-dateutil==2.9.0.post0",
-    "pytz==2025.2",
-    "PyYAML==6.0.3",
-    "scipy==1.15.3",
-    "sgp4==2.25",
-    "six==1.17.0",
-    "skyfield==1.53",
-    "squaternion==2025.3.2",
-    "tqdm==4.67.1",
-    "tzdata==2025.2"
+    "numpy>=1.26",
+    "scipy>=1.10",
+    "matplotlib>=3.7",
+    "numba>=0.59",
+    "ppigrf>=2.0",
+    "skyfield>=1.45",
+    "tqdm>=4.60",
+    "rich>=13.0",
 ]
 
 # Optional extras
 [project.optional-dependencies]
+# 3-D orbit animation helpers (ADCS/helpers/plotting/animate_orbit_pyvista.py).
+viz = [
+    "pyvista>=0.44",
+]
+
+# Toolchain for building the optional C++ add-ons (SALTRO, trajectory
+# planner). Not needed to import or use the pure-Python framework.
+cpp = [
+    "cmake>=3.27",
+    "Cython>=3.0",
+    "pybind11>=2.12",
+]
+
 docs = [
     "sphinx>=7.2",
     "sphinx-autodoc-typehints",
@@ -68,6 +61,7 @@ docs = [
 
 dev = [
     "pytest",
+    "numdifftools",
     "black",
     "ruff",
 ]
