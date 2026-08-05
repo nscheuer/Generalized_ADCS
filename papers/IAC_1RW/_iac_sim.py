@@ -358,6 +358,7 @@ def cell_metrics(runs: List[Dict[str, Any]], horizon_s: float,
     """
     finals, held_p95, acq5, acq1 = [], [], [], []
     h_peak, h_final, duty, avail = [], [], [], []
+    dip_frac, dip_sec_frac = [], []
 
     for r in runs:
         if r is None:
@@ -388,6 +389,31 @@ def cell_metrics(runs: List[Dict[str, Any]], horizon_s: float,
             duty.append(float(np.mean(m)))
         avail.append(float(np.mean(r["tracker_available"][:k])))
 
+        # Residual-dipole cancellation quality, as a FRACTION of the original dipole.
+        #
+        # This is what Section IV-A's momentum argument turns on. If the estimate leaves,
+        # say, a quarter of the dipole standing, the leftover torque sits at the same order
+        # as drag -- and the claim that the momentum boundary is a drag story then rests
+        # entirely on the residual being *cyclic* while drag is secular, which has to be
+        # written down rather than assumed. So report both the magnitude and the split.
+        dip = r.get("dipole_est")
+        if dip is not None and dip.shape[0] >= k and np.isfinite(dip[:k]).any():
+            m_true = np.asarray(IAC_6U.m_res_dir, float)
+            m_true = IAC_6U.m_res * m_true / np.linalg.norm(m_true)
+            # Use the held interval: the early transient is the filter converging, not the
+            # steady cancellation quality the paper quotes.
+            seg = dip[int((1.0 - hold_frac) * k):k]
+            seg = seg[np.isfinite(seg).all(axis=1)]
+            if seg.size:
+                err = seg - m_true                       # per-step residual dipole vector
+                dip_frac.append(float(np.linalg.norm(err, axis=1).mean()
+                                      / np.linalg.norm(m_true)))
+                # Secular part = the orbit-mean of the residual (what a body-fixed wheel
+                # actually integrates); the rest is cyclic and averages out.
+                sec = np.linalg.norm(err.mean(axis=0))
+                rms = float(np.sqrt((np.linalg.norm(err, axis=1) ** 2).mean()))
+                dip_sec_frac.append(float(sec / rms) if rms > 0 else float("nan"))
+
     finals = np.asarray(finals)
     if finals.size == 0:
         return {"n": 0}
@@ -412,5 +438,10 @@ def cell_metrics(runs: List[Dict[str, Any]], horizon_s: float,
         "median_final_h_frac": _nanmed(h_final) if h_final else None,
         "mean_mtq_duty": _nanmed(duty) if duty else None,
         "mean_tracker_available": float(np.mean(avail)) if avail else None,
+        # Fraction of the original residual dipole still standing after cancellation, and
+        # how much of that leftover is secular (the part a body-fixed wheel integrates)
+        # rather than cyclic.
+        "median_dipole_residual_frac": _nanmed(dip_frac) if dip_frac else None,
+        "median_dipole_residual_secular_frac": _nanmed(dip_sec_frac) if dip_sec_frac else None,
         "finals_deg": finals.tolist(),
     }

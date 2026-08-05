@@ -56,9 +56,29 @@ SCALES = {
     "paper": {"num_runs": 100, "tf": T_ORBIT},
 }
 
+#: Trials are weighted by what carries the argument, not spread uniformly.
+#:
+#: A convergence fraction at n=30 has sigma ~ 5.5% near p=0.9, so +/-11% at 2 sigma -- that
+#: cannot resolve a planner-vs-PD gap the companion paper puts at 4 points, and the headline
+#: claim would rest on a number too noisy to defend. The 3+1 cells are where the argument
+#: lives and get the full count; 3+0 and 3+3 are context (nobody will contest that three
+#: wheels converge, or that magnetorquers alone struggle on full attitude) and get fewer.
+#:
+#: The planner cells are ~10-100x the cost of PD, so this allocation is what makes the
+#: comparison affordable at all.
+TRIALS_FULL = 100      # 3MTQ+1RW, both tasks
+TRIALS_CONTEXT = 30    # 3MTQ+0RW and 3MTQ+3RW
+
 
 def scale() -> Dict[str, Any]:
     return SCALES[os.environ.get("A_SCALE", "paper")]
+
+
+def trials_for(cell: Dict[str, Any], default: int) -> int:
+    """Full count on the cells that carry the argument, reduced on the context cells."""
+    if default < TRIALS_CONTEXT:          # fast/smoke scale: honour it verbatim
+        return default
+    return TRIALS_FULL if cell["n_rw"] == 1 else TRIALS_CONTEXT
 
 
 def make_pd(sat, config):
@@ -125,18 +145,21 @@ def main() -> int:
     cells = cells_to_run()
 
     print("=" * 82)
-    print(f"Campaign A -- baseline grid: {len(cells)} cells x {n} trials, tf = {tf:.0f} s")
+    alloc = ", ".join(f"{c['n_rw']}rw/{c['task'][:3]}={trials_for(c, n)}" for c in cells)
+    print(f"Campaign A -- baseline grid: {len(cells)} cells, tf = {tf:.0f} s")
+    print(f"trials per cell: {alloc}")
     print(f"horizons reported: {', '.join(f'{h:.0f} s' for h in HORIZONS_S)}")
     print("=" * 82)
 
     results: Dict[str, Any] = {}
     for cell in cells:
         key = f"{cell['n_rw']}rw_{cell['task']}_{cell['controller']}"
+        n_cell = trials_for(cell, n)
         cfgs = [dict(make_config(rid, n_rw=cell["n_rw"], task=cell["task"],
                                  tf=tf, dt=1.0, seed=rid),
                      controller=cell["controller"])
-                for rid in range(n)]
-        print(f"\n[{key}] running {n} trials...")
+                for rid in range(n_cell)]
+        print(f"\n[{key}] running {n_cell} trials...")
         t0 = time.time()
         runner = MonteCarloRunner(sim_func=_worker,
                                   config_generator=lambda i, _c=cfgs: _c[i],
@@ -155,14 +178,63 @@ def main() -> int:
                   f"held-p95 {m['median_held_p95_deg']:7.2f} deg")
         results[key] = {"cell": cell, "n_completed": len(runs),
                         "wall_s": el, "horizons": per_h}
-        print(f"  ({len(runs)}/{n} completed in {el/60:.1f} min)")
+        print(f"  ({len(runs)}/{n_cell} completed in {el/60:.1f} min)")
 
         # Checkpoint after every cell: this campaign runs for hours and a crash in cell 9
         # should not cost cells 1-8.
         with open(f"{OUT}/A_baseline_{ts}.json", "w") as f:
             json.dump({"task": "A_baseline", "timestamp": ts, "n_trials": n,
+                       "trials_full": TRIALS_FULL, "trials_context": TRIALS_CONTEXT,
                        "tf_s": tf, "gains": [KP, KD, KC],
                        "horizons_s": list(HORIZONS_S), "cells": results}, f, indent=2)
+
+    # ---- paired planner-vs-PD deltas -----------------------------------------------
+    #
+    # Report these, not the difference of two independent convergence proportions. The seeds
+    # are paired by construction, so the per-trial error difference and the win fraction have
+    # far lower variance than a difference of proportions -- at n=30 that is the difference
+    # between a defensible claim and a shrug. Median and mean final error are continuous and
+    # hold up much better than a threshold-crossing fraction.
+    paired: Dict[str, Any] = {}
+    for n_rw in N_RW:
+        for task in TASKS:
+            kp = f"{n_rw}rw_{task}_pd"
+            kq = f"{n_rw}rw_{task}_planner"
+            if kp not in results or kq not in results:
+                continue
+            for hk in (f"{h:.0f}" for h in HORIZONS_S):
+                mp = results[kp]["horizons"].get(hk)
+                mq = results[kq]["horizons"].get(hk)
+                if not mp or not mq or not mp.get("n") or not mq.get("n"):
+                    continue
+                a = np.asarray(mp["finals_deg"], float)
+                b = np.asarray(mq["finals_deg"], float)
+                m = min(a.size, b.size)          # paired by seed = by index
+                if m < 2:
+                    continue
+                d = a[:m] - b[:m]                # positive => planner better
+                sem = float(np.std(d, ddof=1) / np.sqrt(m))
+                paired[f"{n_rw}rw_{task}@{hk}"] = {
+                    "n_paired": int(m),
+                    "median_delta_deg": float(np.median(d)),
+                    "mean_delta_deg": float(np.mean(d)),
+                    "sem_delta_deg": sem,
+                    "planner_win_frac": float(np.mean(d > 0.0)),
+                    "pd_median_deg": float(np.median(a[:m])),
+                    "planner_median_deg": float(np.median(b[:m])),
+                }
+
+    if paired:
+        print("\n" + "=" * 82)
+        print("Paired planner-vs-PD (positive delta = planner better; same seeds)")
+        print(f"{'cell@horizon':<24}{'n':>5}{'med d':>9}{'mean d':>9}{'SEM':>8}"
+              f"{'win frac':>10}{'PD med':>9}{'plan med':>10}")
+        print("-" * 82)
+        for k, v in paired.items():
+            print(f"{k:<24}{v['n_paired']:>5}{v['median_delta_deg']:>9.2f}"
+                  f"{v['mean_delta_deg']:>9.2f}{v['sem_delta_deg']:>8.2f}"
+                  f"{v['planner_win_frac']:>10.2f}{v['pd_median_deg']:>9.2f}"
+                  f"{v['planner_median_deg']:>10.2f}")
 
     # ---- summary table -------------------------------------------------------------
     print("\n" + "=" * 82)
@@ -187,6 +259,12 @@ def main() -> int:
                   f"{(f'{du:.3f}' if du is not None else '-'):>10}"
                   f"{(f'{tr:.3f}' if tr is not None else '-'):>11}")
     print("=" * 82)
+    with open(f"{OUT}/A_baseline_{ts}.json", "w") as f:
+        json.dump({"task": "A_baseline", "timestamp": ts, "n_trials": n,
+                   "trials_full": TRIALS_FULL, "trials_context": TRIALS_CONTEXT,
+                   "tf_s": tf, "gains": [KP, KD, KC],
+                   "horizons_s": list(HORIZONS_S), "cells": results,
+                   "paired_planner_vs_pd": paired}, f, indent=2)
     print(f"\nwrote {OUT}/A_baseline_{ts}.json")
     return 0
 

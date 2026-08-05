@@ -148,6 +148,74 @@
           ]
         }
       }
+    },
+    "3rw_reduced_pd": {
+      "cell": {
+        "n_rw": 3,
+        "task": "reduced",
+        "controller": "pd"
+      },
+      "n_completed": 4,
+      "wall_s": 77.53732776641846,
+      "horizons": {
+        "1000": {
+          "n": 4,
+          "horizon_s": 1000.0,
+          "conv_pct_5deg": 75.0,
+          "conv_pct_1deg": 0.0,
+          "mean_final_deg": 2.881651932568734,
+          "median_final_deg": 2.3651882320128115,
+          "p95_final_deg": 5.142272733502211,
+          "median_held_p95_deg": 4.898695943221775,
+          "median_acquire_5deg_s": 744.0,
+          "median_acquire_1deg_s": NaN,
+          "acquired_5deg_frac": 0.75,
+          "median_peak_h_frac": 0.11414925532316667,
+          "median_final_h_frac": 0.0665197421255866,
+          "mean_mtq_duty": 0.07570211294706031,
+          "mean_tracker_available": 0.5884115884115884,
+          "finals_deg": [
+            5.474323138356665,
+            3.260653772660311,
+            1.4697226913653123,
+            1.321908127892649
+          ]
+        }
+      }
+    },
+    "3rw_full_pd": {
+      "cell": {
+        "n_rw": 3,
+        "task": "full",
+        "controller": "pd"
+      },
+      "n_completed": 4,
+      "wall_s": 81.62157416343689,
+      "horizons": {
+        "1000": {
+          "n": 4,
+          "horizon_s": 1000.0,
+          "conv_pct_5deg": 75.0,
+          "conv_pct_1deg": 0.0,
+          "mean_final_deg": 5.5870419875781625,
+          "median_final_deg": 4.719174606606757,
+          "p95_final_deg": 8.94103904824466,
+          "median_held_p95_deg": 8.47616811567989,
+          "median_acquire_5deg_s": 881.0,
+          "median_acquire_1deg_s": NaN,
+          "acquired_5deg_frac": 0.75,
+          "median_peak_h_frac": 0.15149509568964015,
+          "median_final_h_frac": 0.045668117658661286,
+          "mean_mtq_duty": 0.07020821185225828,
+          "mean_tracker_available": 0.5367132867132867,
+          "finals_deg": [
+            9.673000344167795,
+            3.236818392931344,
+            4.793258371346904,
+            4.645090841866608
+          ]
+        }
+      }
     }
   }
 }
