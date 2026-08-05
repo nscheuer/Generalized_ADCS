@@ -1,0 +1,136 @@
+{
+  "task": "B_equal_torque_planner",
+  "timestamp": "20260805_193303",
+  "equal_torque": {
+    "m_max": 31.971591556400362,
+    "median_peak_Nm": 0.0019999999999999996,
+    "min_peak_Nm": 0.001225692004172121,
+    "max_peak_Nm": 0.002758187346610778,
+    "naive_m_max": 53.88794856702921
+  },
+  "median_field_T": 3.7114049674989475e-05,
+  "thetas_rad": [
+    0.1,
+    0.5
+  ],
+  "m_scales": [
+    1.0
+  ],
+  "n_axes": 1,
+  "t_max_s": 2776.8117065156102,
+  "T_orbit_s": 5553.6234130312205,
+  "diagnostic": {
+    "3+1|1.0": {
+      "n_total": 2,
+      "n_done": 2,
+      "median_orbits": 0.11830114344058543,
+      "median_s": 657.0,
+      "fit": {
+        "slope": NaN,
+        "intercept": NaN,
+        "r2": NaN,
+        "n": 2
+      }
+    },
+    "3+0|1.0": {
+      "n_total": 2,
+      "n_done": 1,
+      "median_orbits": 0.08697024700426599,
+      "median_s": 483.0,
+      "fit": {
+        "slope": NaN,
+        "intercept": NaN,
+        "r2": NaN,
+        "n": 1
+      }
+    }
+  },
+  "families": {
+    "3+1|along-field": {
+      "fit": {
+        "slope": NaN,
+        "intercept": NaN,
+        "r2": NaN,
+        "n": 0
+      },
+      "n_total": 0
+    },
+    "3+1|cross-field": {
+      "fit": {
+        "slope": NaN,
+        "intercept": NaN,
+        "r2": NaN,
+        "n": 0
+      },
+      "n_total": 0
+    },
+    "3+0|along-field": {
+      "fit": {
+        "slope": NaN,
+        "intercept": NaN,
+        "r2": NaN,
+        "n": 0
+      },
+      "n_total": 0
+    },
+    "3+0|cross-field": {
+      "fit": {
+        "slope": NaN,
+        "intercept": NaN,
+        "r2": NaN,
+        "n": 0
+      },
+      "n_total": 0
+    }
+  },
+  "raw": [
+    {
+      "run_id": 0,
+      "bus": "3+1",
+      "theta": 0.1,
+      "m_scale": 1.0,
+      "alignment": 0.3105376737373193,
+      "t_done_s": 411.0,
+      "completed": true,
+      "t_done_orbits": 0.07400573813406486,
+      "n_plans": 1,
+      "n_fallback": 0
+    },
+    {
+      "run_id": 2,
+      "bus": "3+0",
+      "theta": 0.1,
+      "m_scale": 1.0,
+      "alignment": 0.3105376737373193,
+      "t_done_s": 483.0,
+      "completed": true,
+      "t_done_orbits": 0.08697024700426599,
+      "n_plans": 1,
+      "n_fallback": 0
+    },
+    {
+      "run_id": 1,
+      "bus": "3+1",
+      "theta": 0.5,
+      "m_scale": 1.0,
+      "alignment": 0.4343819770369355,
+      "t_done_s": 903.0,
+      "completed": true,
+      "t_done_orbits": 0.162596548747106,
+      "n_plans": 2,
+      "n_fallback": 0
+    },
+    {
+      "run_id": 3,
+      "bus": "3+0",
+      "theta": 0.5,
+      "m_scale": 1.0,
+      "alignment": 0.4343819770369355,
+      "t_done_s": NaN,
+      "completed": false,
+      "t_done_orbits": NaN,
+      "n_plans": 6,
+      "n_fallback": 0
+    }
+  ]
+}
