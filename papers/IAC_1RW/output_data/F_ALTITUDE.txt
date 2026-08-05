@@ -1,19 +1,43 @@
-============================================================================================
+====================================================================================================
 Campaign F -- altitude scaling and the momentum-boundary altitude
-boresight-mounted wheel, nadir-locked, inc 97.0 deg, tau_allow = 2.5 uN m
-============================================================================================
+boresight-mounted wheel, nadir-locked, inc 97.0 deg, tau_allow = 2.5 uN m, 6 orbits fitted
+====================================================================================================
 
- alt[km]    T[s]   rho[kg/m3]   B[uT]  accum[mNms]  cap[mNms]   margin  orbits->sat
---------------------------------------------------------------------------------------------
-     300    5431    2.300e-11   38.82       9.2659     19.213      2.1          1.6
-     400    5554    3.290e-12   37.11       1.5219     19.462     12.8          9.9
-     500    5677    6.150e-13   35.62       1.3307     19.719     14.8         11.3
-     600    5801    1.370e-13   34.21       1.3627     19.982     14.7         11.0
-     800    6052    1.210e-14   31.49       1.3134     20.485     15.6         11.4
+### m_res=0.05 A m^2 (reference bus)
+ alt[km]   rho[kg/m3]   B[uT]   SECULAR     drag   dipole   CYCLIC  wheel%      cap  margin  orb->sat
+----------------------------------------------------------------------------------------------------
+     300    2.300e-11   39.05    9.7214   9.8419   1.3235    2.431   16.2%    19.21     2.0       1.5
+     400    3.290e-12   37.43    1.7550   1.4183   1.2901    2.365   15.8%    19.46    11.1       8.5
+     500    6.150e-13   35.92    1.2294   0.2671   1.2571    2.298   15.3%    19.72    16.0      12.2
+     600    1.370e-13   34.46    1.2001   0.0599   1.2243    2.232   14.9%    19.98    16.6      12.5
+     800    1.210e-14   31.80    1.1412   0.0054   1.1596    2.122   14.1%    20.49    18.0      13.1
+  -> margin reaches unity at ~270 km
 
---------------------------------------------------------------------------------------------
-MOMENTUM BOUNDARY BINDS AT ~270 km (margin = 1 for the boresight mounting).
-Above it the architecture is agility- and accuracy-limited, not momentum-limited.
-============================================================================================
+### m_res=0.1 A m^2 (labelled sensitivity)
+ alt[km]   rho[kg/m3]   B[uT]   SECULAR     drag   dipole   CYCLIC  wheel%      cap  margin  orb->sat
+----------------------------------------------------------------------------------------------------
+     300    2.300e-11   39.05    9.7802   9.8419   2.6470    4.862   32.4%    19.21     2.0       1.5
+     400    3.290e-12   37.43    2.7344   1.4183   2.5803    4.728   31.5%    19.46     7.1       5.5
+     500    6.150e-13   35.92    2.4721   0.2671   2.5142    4.596   30.6%    19.72     8.0       6.1
+     600    1.370e-13   34.46    2.4237   0.0599   2.4486    4.464   29.8%    19.98     8.2       6.2
+     800    1.210e-14   31.80    2.3006   0.0054   2.3191    4.244   28.3%    20.49     8.9       6.5
+  -> margin reaches unity at ~269 km
 
-wrote /Users/patrickmckeen/ADCS_wt/iac-1rw/papers/IAC_1RW/output_data/F_altitude_20260805_171157.json
+====================================================================================================
+Profile comparison at 400 km (m_res = 0.05): does drag's character flip?
+profile        drag secular   drag cyclic   sec/cyc   total secular  along a_hat  orb->sat(a)
+----------------------------------------------------------------------------------------------------
+nadir                1.4183        0.0000       inf          1.7550       0.9942         15.1
+inertial             0.0011        0.2215      0.00          3.4082       1.0894         13.8
+
+  ram-locked drag secular is 1327.3x the inertial-hold value -> EO IS the harder momentum problem
+
+====================================================================================================
+SECULAR sets the dumping cadence; CYCLIC permanently reserves wheel range.
+Summing them into one 'accumulation' column conflates two costs with different
+remedies -- dumping cadence vs wheel sizing.
+  m_res=0.05: momentum boundary binds at ~270 km
+  m_res=0.1: momentum boundary binds at ~269 km
+====================================================================================================
+
+wrote /Users/patrickmckeen/ADCS_wt/iac-1rw/papers/IAC_1RW/output_data/F_altitude_20260805_173149.json
