@@ -226,9 +226,16 @@ def create_iac_6u_bus(
     :returns: :class:`Satellite` or :class:`EstimatedSatellite`.
     """
     if st_axes is None:
-        # Two trackers, 120 deg apart, both canted well off the payload boresight (+z).
-        st_axes = [np.array([np.sin(np.deg2rad(60.0)), 0.0, -np.cos(np.deg2rad(60.0))]),
-                   np.array([-np.sin(np.deg2rad(60.0)), 0.0, -np.cos(np.deg2rad(60.0))])]
+        # Two trackers on the +x/-x faces: perpendicular to the payload boresight and 180 deg
+        # from each other. Because the Earth keep-out is a 95.2 deg cone -- larger than a
+        # hemisphere -- an opposed pair is the configuration that maximises coverage, since
+        # the cone can never contain both. Measured over random attitudes:
+        #   1 tracker (any axis)   0.455      2 canted 120 deg   0.785
+        #   2 opposed (+x/-x)      0.909      3 orthogonal       0.838
+        # At 0.909 the mean outage is 505 s, which the upgraded gyro carries with 0.098 deg
+        # of drift. The +-x faces are also the 6U's largest (0.2 x 0.3 m), so this is where
+        # trackers would physically go.
+        st_axes = [np.array([1.0, 0.0, 0.0]), np.array([-1.0, 0.0, 0.0])]
 
     if authority_scale <= 0.0:
         raise ValueError(f"authority_scale must be positive, got {authority_scale}")

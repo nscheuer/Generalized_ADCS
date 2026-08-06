@@ -64,6 +64,19 @@ HORIZONS_S = (1000.0, T_ORBIT)
 INIT_ATT_ERR_DEG = 10.0
 INIT_RATE_ERR_DPS = 0.05
 
+#: Initial body rate, deg/s. Lowered from U(0.1, 1.0): this campaign starts from an
+#: already-detumbled, operating spacecraft re-targeting between observations, not from a
+#: dispenser release. The old spread also drove the star tracker through its 2 deg/s rate
+#: limit during acquisition, which cost availability exactly when the filter needed it.
+INIT_RATE_DPS_RANGE = (0.05, 0.3)
+
+#: Baseline stored wheel momentum as a fraction of h_max. A real momentum-biased bus does not
+#: fly its wheel at zero -- it sits at a working point so the wheel can accept momentum in
+#: either direction and so the stored momentum provides gyroscopic stiffness about the two
+#: axes the single wheel cannot actuate. Campaign C varies this deliberately; every other
+#: campaign now starts here rather than at rest.
+BASELINE_H_FRAC = 1.0 / 3.0
+
 _CACHED_ORBIT = None
 _CACHED_KEY = None
 
@@ -95,7 +108,7 @@ def make_config(run_id: int, *, n_rw: int, task: str, tf: float = T_ORBIT,
     rng = np.random.default_rng(seed=s)
 
     q0 = normalize(rng.standard_normal(4))
-    rate_dps = rng.uniform(0.1, 1.0)
+    rate_dps = rng.uniform(*INIT_RATE_DPS_RANGE)
     w0 = normalize(rng.standard_normal(3)) * rate_dps * np.pi / 180.0
     goal_vec = normalize(rng.standard_normal(3))
     q_goal = normalize(rng.standard_normal(4))
@@ -103,7 +116,8 @@ def make_config(run_id: int, *, n_rw: int, task: str, tf: float = T_ORBIT,
     phase = rng.uniform(0.0, 360.0)
     field_seed = int(rng.integers(0, 2 ** 31 - 1))
 
-    h0 = np.zeros(n_rw)
+    # Baseline momentum bias along each wheel axis (Campaign C overrides this).
+    h0 = np.full(n_rw, BASELINE_H_FRAC * IAC_6U.h_max)
 
     cfg = {
         "run_id": run_id, "seed": s, "n_rw": n_rw, "task": task,
@@ -266,6 +280,11 @@ def simulate(config: Dict[str, Any],
         est_hist = np.full((steps, len(x)), np.nan)
         dip_hist = np.full((steps, 3), np.nan)
         avail_hist = np.zeros(steps, dtype=bool)
+        # Eclipse per step. At 400 km SSO the spacecraft is in shadow for roughly a third of
+        # the orbit; without a tracker fix that leaves magnetometer + gyro propagation, so a
+        # bad-trial/eclipse correlation is a real sensor-suite finding rather than a bug and
+        # has to be checkable per trial.
+        eclipse_hist = np.zeros(steps, dtype=bool)
 
         trackers = [s for s in sat.sensors if hasattr(s, "available")]
         n_mtq = len(sat.mtq_actuators)
@@ -280,7 +299,16 @@ def simulate(config: Dict[str, Any],
             J2000 = EPOCH + t * sec2cent
             os_k = orb.get_os(J2000=J2000)
             sens = sat.sensor_readings(x=x, os=os_k)
-            avail_hist[i] = all(bool(tr.available) for tr in trackers) if trackers else True
+            # ANY tracker with a fix counts -- the pair exists precisely so one can cover
+            # while the other is blinded.
+            avail_hist[i] = any(bool(tr.available) for tr in trackers) if trackers else True
+            R_e = EarthConstants.R_e
+            Rk = np.asarray(os_k.R, float); Sk = np.asarray(getattr(os_k, "S", None), float)
+            if Sk is not None and Sk.size == 3 and np.linalg.norm(Sk) > 0:
+                s_hat = Sk / np.linalg.norm(Sk)
+                proj = float(Rk @ s_hat)
+                eclipse_hist[i] = (proj < 0.0 and
+                                   float(np.linalg.norm(Rk - proj * s_hat)) < R_e)
 
             # The GNC chain believes a slightly wrong field; the plant integrates the true one.
             os_gnc = wrap_os_for_gnc(os_k, field_err)
@@ -315,6 +343,7 @@ def simulate(config: Dict[str, Any],
             "run_id": run_id, "config": config,
             "time": t_hist, "state": state_hist, "u": u_hist,
             "est": est_hist, "dipole_est": dip_hist, "tracker_available": avail_hist,
+            "eclipse": eclipse_hist,
             "n_mtq": n_mtq, "m_max": m_max,
         }
     finally:
@@ -367,7 +396,7 @@ def cell_metrics(runs: List[Dict[str, Any]], horizon_s: float,
     finals, held_p95, acq5, acq1 = [], [], [], []
     h_peak, h_final, duty, avail = [], [], [], []
     dip_frac, dip_sec_frac = [], []
-    est_med, est_p95 = [], []
+    est_med, est_p95, ecl = [], [], []
 
     for r in runs:
         if r is None:
@@ -397,6 +426,8 @@ def cell_metrics(runs: List[Dict[str, Any]], horizon_s: float,
             m = np.linalg.norm(r["u"][:k, :n_mtq], axis=1) / (r["m_max"] * np.sqrt(n_mtq))
             duty.append(float(np.mean(m)))
         avail.append(float(np.mean(r["tracker_available"][:k])))
+        e_hist = r.get("eclipse")
+        ecl.append(float(np.mean(e_hist[:k])) if e_hist is not None else float("nan"))
 
         # ESTIMATED-attitude error, over the held interval, reported for EVERY cell.
         #
@@ -473,4 +504,9 @@ def cell_metrics(runs: List[Dict[str, Any]], horizon_s: float,
         "median_dipole_residual_frac": _nanmed(dip_frac) if dip_frac else None,
         "median_dipole_residual_secular_frac": _nanmed(dip_sec_frac) if dip_sec_frac else None,
         "finals_deg": finals.tolist(),
+        # Per-trial, so error-vs-availability and error-vs-eclipse correlations can be done
+        # from disk without re-running anything.
+        "per_trial_tracker_avail": avail,
+        "per_trial_eclipse_frac": ecl,
+        "per_trial_est_att_err_deg": est_med,
     }
