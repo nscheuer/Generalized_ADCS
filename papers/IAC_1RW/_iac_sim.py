@@ -31,7 +31,7 @@ from scipy.integrate import solve_ivp
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
-from ADCS.CONOPS.goals import ECI_Goal, Fixed_Attitude_Goal
+from ADCS.CONOPS.goals import ECI_Goal, Fixed_Attitude_Goal, Nadir_Goal
 from ADCS.estimators.attitude_estimators import UAKF
 from ADCS.helpers.math_helpers import normalize, quat_mult
 from ADCS.mc.monte_carlo_runner import (
@@ -69,6 +69,11 @@ INIT_RATE_ERR_DPS = 0.05
 #: dispenser release. The old spread also drove the star tracker through its 2 deg/s rate
 #: limit during acquisition, which cost availability exactly when the filter needed it.
 INIT_RATE_DPS_RANGE = (0.05, 0.3)
+
+#: Star-tracker mounting for the nadir-staring profile: anti-parallel to the payload
+#: boresight, so it stares at zenith. Fixed at build time -- the controller never knows the
+#: tracker exists, which is what keeps control and estimation separable.
+ST_AXES_NADIR = [np.array([0.0, 0.0, -1.0])]
 
 #: Baseline stored wheel momentum as a fraction of h_max. A real momentum-biased bus does not
 #: fly its wheel at zero -- it sits at a working point so the wheel can accept momentum in
@@ -132,9 +137,22 @@ def make_config(run_id: int, *, n_rw: int, task: str, tf: float = T_ORBIT,
 
 
 def build_goal(config: Dict[str, Any]):
-    """``task='full'`` -> 3-axis attitude; ``task='reduced'`` -> boresight-to-inertial."""
-    if config["task"] == "full":
+    """Task -> goal.
+
+    ``"nadir"``    Earth-staring, the mission the paper actually motivates. Also the profile
+                   that makes a single star tracker work: mounted anti-parallel to the payload
+                   it points at zenith permanently, 180 deg from nadir, so the 95.2 deg Earth
+                   keep-out can never fire. Availability 0.84-1.00 by RAAN against 0.456 for an
+                   inertial stare -- from mounting alone, with no coupling between control and
+                   estimation.
+    ``"reduced"``  boresight to a fixed inertial direction.
+    ``"full"``     3-axis attitude.
+    """
+    task = config["task"]
+    if task == "full":
         return Fixed_Attitude_Goal(np.asarray(config["goal_quat"], float))
+    if task == "nadir":
+        return Nadir_Goal()
     return ECI_Goal(np.asarray(config["goal_vec"], float))
 
 
@@ -150,6 +168,40 @@ def _get_orbit(config, dt, tf):
                               dt=dt, zonal_J=2, fast=False, verbose=False)
         _CACHED_KEY = key
     return _CACHED_ORBIT
+
+
+def _dist_prior(est_sat):
+    """Initial variance per estimable disturbance parameter, on its own physical scale."""
+    from ADCS.satellite_hardware.disturbances import Dipole_Disturbance
+    out = []
+    for j in est_sat.dist_param_inds:
+        d = est_sat.disturbances[j]
+        n = int(np.size(d.main_param))
+        if isinstance(d, Dipole_Disturbance):
+            out.append([(0.5 * IAC_6U.m_res) ** 2] * n)   # 50% of the dipole, loose
+        else:
+            out.append([(1e-6) ** 2] * n)                 # lumped torque, ~1 uN m scale
+    return [np.concatenate(out)] if out else [np.zeros(0)]
+
+
+def _dist_process(est_sat):
+    """Process noise per estimable disturbance parameter.
+
+    Must not be starved: an over-tight Q collapses P_dist and the filter stops learning the
+    disturbance entirely (the recorded P2.6 failure, where the measurement/disturbance
+    cross-covariance fell to ~1e-10 and the estimate froze). Sized so each parameter can
+    move by ~0.1% of its own scale per step.
+    """
+    from ADCS.satellite_hardware.disturbances import Dipole_Disturbance
+    out = []
+    for j in est_sat.dist_param_inds:
+        d = est_sat.disturbances[j]
+        n = int(np.size(d.main_param))
+        if isinstance(d, Dipole_Disturbance):
+            out.append([(1e-3 * IAC_6U.m_res) ** 2] * n)
+        else:
+            out.append([(1e-3 * 1e-6) ** 2] * n)
+    return [np.concatenate(out)] if out else [np.zeros(0)]
 
 
 def make_estimator(est_sat, config, dt):
@@ -198,7 +250,10 @@ def make_estimator(est_sat, config, dt):
         [np.deg2rad(INIT_ATT_ERR_DEG) ** 2] * 3,       # attitude [rad]^2
         [max((0.01 * IAC_6U.h_max) ** 2, 1e-12)] * n_rw,   # wheel momentum, at tach sigma
         [(1e-4) ** 2] * n_bias,                        # gyro bias [rad/s]^2
-        [(0.5 * IAC_6U.m_res) ** 2] * n_dist,          # dipole: 50% prior, deliberately loose
+        # Disturbance params are HETEROGENEOUS: the dipole is in A m^2 (~0.05) and the
+        # lumped torque in N m (~1e-6). One shared variance would be wrong by ~1e9, so each
+        # estimable disturbance gets a prior on its own scale.
+        *_dist_prior(est_sat),
     ])
     q_diag = np.concatenate([
         [1e-12] * 3,
@@ -216,7 +271,7 @@ def make_estimator(est_sat, config, dt):
         # filter simply stops learning the dipole (recorded failure mode from the P2.6 leak
         # work, where the measurement/dipole cross-covariance fell to ~1e-10 and the estimate
         # froze). Sized so the dipole can move by ~1% of its magnitude over an orbit.
-        [(1e-3 * IAC_6U.m_res) ** 2] * n_dist,
+        *_dist_process(est_sat),
     ])
     assert p_diag.size == reduced, (p_diag.size, reduced)
 
@@ -285,6 +340,9 @@ def simulate(config: Dict[str, Any],
         # bad-trial/eclipse correlation is a real sensor-suite finding rather than a bug and
         # has to be checkable per trial.
         eclipse_hist = np.zeros(steps, dtype=bool)
+        # Nadir direction per step. The pointing metric for a nadir-staring task needs the
+        # target direction at each instant, and it is not recoverable from the state alone.
+        nadir_hist = np.zeros((steps, 3))
 
         trackers = [s for s in sat.sensors if hasattr(s, "available")]
         n_mtq = len(sat.mtq_actuators)
@@ -303,7 +361,8 @@ def simulate(config: Dict[str, Any],
             # while the other is blinded.
             avail_hist[i] = any(bool(tr.available) for tr in trackers) if trackers else True
             R_e = EarthConstants.R_e
-            Rk = np.asarray(os_k.R, float); Sk = np.asarray(getattr(os_k, "S", None), float)
+            Rk = np.asarray(os_k.R, float)
+            nadir_hist[i] = -Rk / np.linalg.norm(Rk); Sk = np.asarray(getattr(os_k, "S", None), float)
             if Sk is not None and Sk.size == 3 and np.linalg.norm(Sk) > 0:
                 s_hat = Sk / np.linalg.norm(Sk)
                 proj = float(Rk @ s_hat)
@@ -343,7 +402,7 @@ def simulate(config: Dict[str, Any],
             "run_id": run_id, "config": config,
             "time": t_hist, "state": state_hist, "u": u_hist,
             "est": est_hist, "dipole_est": dip_hist, "tracker_available": avail_hist,
-            "eclipse": eclipse_hist,
+            "eclipse": eclipse_hist, "nadir_eci": nadir_hist,
             "n_mtq": n_mtq, "m_max": m_max,
         }
     finally:
@@ -353,6 +412,36 @@ def simulate(config: Dict[str, Any],
 # ----------------------------------------------------------------------------------------
 # Metrics
 # ----------------------------------------------------------------------------------------
+
+def boresight_knowledge_series(run: Dict[str, Any]) -> np.ndarray:
+    """Knowledge error PROJECTED ONTO THE BORESIGHT [deg] -- commensurable with pointing.
+
+    The full 3-axis attitude error ``2 arccos|q_hat . q|`` is **not** comparable with a
+    boresight pointing error: it counts the roll component, which is exactly where a star
+    tracker is ~6x worse and where gyro roll drift accumulates, and which does not move the
+    boresight at all. Comparing them directly made pointing look 30% *better* than knowledge
+    in the one-tracker cell, which is impossible for a loop closed on the estimate.
+
+    This returns the angle between the estimated and true boresight directions in ECI, which
+    is the part of the knowledge error the pointing metric can actually see.
+    """
+    b = np.asarray(IAC_6U.boresight, float)
+    q_t = run["state"][:, 3:7]
+    q_e = run["est"][:, 3:7]
+
+    def _rot(q, v):
+        w, xyz = q[:, 0], q[:, 1:]
+        t = 2.0 * np.cross(xyz, v)
+        return v + w[:, None] * t + np.cross(xyz, t)
+
+    bt, be = _rot(q_t, b), _rot(q_e, b)
+    nt = np.linalg.norm(bt, axis=1); ne = np.linalg.norm(be, axis=1)
+    ok = np.isfinite(ne) & (ne > 0) & (nt > 0)
+    out = np.full(q_t.shape[0], np.nan)
+    cos = np.sum(bt[ok] * be[ok], axis=1) / (nt[ok] * ne[ok])
+    out[ok] = np.rad2deg(np.arccos(np.clip(cos, -1.0, 1.0)))
+    return out
+
 
 def error_series(run: Dict[str, Any]) -> np.ndarray:
     """Pointing error [deg]: 3-axis attitude error for 'full', boresight angle for 'reduced'."""
@@ -364,13 +453,22 @@ def error_series(run: Dict[str, Any]) -> np.ndarray:
         return np.rad2deg(2.0 * np.arccos(np.clip(np.abs(q @ qr), 0.0, 1.0)))
 
     # Reduced attitude: angle between the body boresight in ECI and the target direction.
+    # For a nadir-staring task the target MOVES -- it is the instantaneous nadir, not a fixed
+    # inertial vector. Scoring nadir-staring against cfg["goal_vec"] compares the boresight
+    # with a random fixed direction and reports ~69 deg for a spacecraft that is tracking
+    # perfectly.
     b = np.asarray(IAC_6U.boresight, float)
-    tgt = normalize(np.asarray(cfg["goal_vec"], float))
     w, xq, yq, zq = q[:, 0], q[:, 1], q[:, 2], q[:, 3]
     # Rotate the body boresight into ECI:  v = q (x) b (x) q*
     t = 2.0 * np.cross(np.column_stack([xq, yq, zq]), b)
     b_eci = b + w[:, None] * t + np.cross(np.column_stack([xq, yq, zq]), t)
-    cosang = np.clip(b_eci @ tgt, -1.0, 1.0)
+
+    if cfg["task"] == "nadir":
+        tgt = run["nadir_eci"][:q.shape[0]]
+        cosang = np.clip(np.sum(b_eci * tgt, axis=1), -1.0, 1.0)
+    else:
+        tgt = normalize(np.asarray(cfg["goal_vec"], float))
+        cosang = np.clip(b_eci @ tgt, -1.0, 1.0)
     return np.rad2deg(np.arccos(cosang))
 
 
@@ -397,6 +495,7 @@ def cell_metrics(runs: List[Dict[str, Any]], horizon_s: float,
     h_peak, h_final, duty, avail = [], [], [], []
     dip_frac, dip_sec_frac = [], []
     est_med, est_p95, ecl = [], [], []
+    est_bore_med, est_bore_p95 = [], []
 
     for r in runs:
         if r is None:
@@ -445,6 +544,15 @@ def cell_metrics(runs: List[Dict[str, Any]], horizon_s: float,
                 ang = np.rad2deg(2.0 * np.arccos(np.clip(dots, 0.0, 1.0)))
                 est_med.append(float(np.median(ang)))
                 est_p95.append(float(np.percentile(ang, 95)))
+        # Boresight-projected knowledge: the only version comparable with pointing error.
+        try:
+            bk = boresight_knowledge_series(r)[h0:k]
+            bk = bk[np.isfinite(bk)]
+            if bk.size:
+                est_bore_med.append(float(np.median(bk)))
+                est_bore_p95.append(float(np.percentile(bk, 95)))
+        except Exception:
+            pass
 
         # Residual-dipole cancellation quality, as a FRACTION of the original dipole.
         #
@@ -498,6 +606,10 @@ def cell_metrics(runs: List[Dict[str, Any]], horizon_s: float,
         # Knowledge floor. Compare against the convergence thresholds before trusting them.
         "median_est_att_err_deg": _nanmed(est_med) if est_med else None,
         "p95_est_att_err_deg": _nanmed(est_p95) if est_p95 else None,
+        # Commensurable with the pointing metric -- use THESE for any knowledge-vs-control
+        # decomposition. The 3-axis numbers above include roll, which pointing cannot see.
+        "median_bore_knowledge_deg": _nanmed(est_bore_med) if est_bore_med else None,
+        "p95_bore_knowledge_deg": _nanmed(est_bore_p95) if est_bore_p95 else None,
         # Fraction of the original residual dipole still standing after cancellation, and
         # how much of that leftover is secular (the part a body-fixed wheel integrates)
         # rather than cyclic.

@@ -52,6 +52,7 @@ import numpy as np
 from ADCS.satellite_hardware.actuators import MTQ, RW
 from ADCS.satellite_hardware.disturbances import (
     Dipole_Disturbance,
+    General_Disturbance,
     Drag_Disturbance,
     GeometryConfig,
     GeometryFace,
@@ -87,8 +88,11 @@ class _IAC6U:
     #: body boresight -- +z, the minor axis
     boresight: tuple = (0.0, 0.0, 1.0)
 
-    #: per-axis magnetorquer dipole limit [A m^2]
-    m_max: float = 0.2
+    #: per-axis magnetorquer dipole limit [A m^2]. Raised from 0.2: a 6U flying a real
+    #: imaging payload carries larger rods than an academic 3U, and 0.2 left only ~7 uN m of
+    #: transverse authority -- less than the gyroscopic torque from a modest momentum bias,
+    #: and only ~3x the residual-dipole disturbance it has to cancel.
+    m_max: float = 0.6
     #: reaction-wheel torque limit [N m] -- Blue Canyon RWP050 / Rocket Lab RW-0.06 class.
     #: Was 2.0 mN m / 15 mN m s, a CubeWheel-Small-Plus-class part appropriate to an academic
     #: 3U. A 6U flying a real imaging payload with a sub-degree budget carries this instead.
@@ -235,6 +239,19 @@ def create_iac_6u_bus(
         # At 0.909 the mean outage is 505 s, which the upgraded gyro carries with 0.098 deg
         # of drift. The +-x faces are also the 6U's largest (0.2 x 0.3 m), so this is where
         # trackers would physically go.
+        #
+        # DECISION (2026-08-06): two trackers on ALL configurations, including nadir-staring.
+        # The pair is what makes the estimate good enough that the campaign measures actuation
+        # rather than estimation, and using one bus everywhere keeps the cells comparable.
+        #
+        # Measured, and worth stating in the paper: a mission staring at a PRESCRIBED
+        # direction needs only one. With the payload on nadir and a single tracker mounted
+        # anti-parallel (staring at zenith), the Earth keep-out can never fire -- availability
+        # 0.994 and knowledge 0.0046 deg on ONE tracker, matching the pair. Availability there
+        # comes from the mission profile, not from hardware, and involves no coupling between
+        # control and estimation. The campaign still flies two so that the inertial-pointing
+        # cells -- where a single tracker is blind 55% of the orbit -- are not measuring their
+        # own sensor suite.
         st_axes = [np.array([1.0, 0.0, 0.0]), np.array([-1.0, 0.0, 0.0])]
 
     if authority_scale <= 0.0:
@@ -296,7 +313,7 @@ def create_iac_6u_bus(
     geom = GeometryConfig(faces)
     dist_list = []
     wanted = {d.lower() for d in disturbances}
-    unknown = wanted - {"gg", "drag", "srp", "dipole"}
+    unknown = wanted - {"gg", "drag", "srp", "dipole", "general"}
     if unknown:
         raise ValueError(f"unknown disturbance(s): {sorted(unknown)}")
     if "gg" in wanted:
@@ -318,6 +335,13 @@ def create_iac_6u_bus(
         raise ValueError(
             "estimate_dipole=True requires 'dipole' in disturbances"
         )
+    if "general" in wanted:
+        # Estimable lumped torque, carried on the ESTIMATED bus only. The dipole is
+        # structured (m x B) and cancels exactly; drag, gravity gradient and SRP have no
+        # actuator sharing their structure, so the filter lumps their slowly-varying
+        # remainder into one body-frame vector that the controller can feed forward. Without
+        # this, ~0.45 uN m of the budget is unmodelled and sets its own PD floor.
+        dist_list.append(General_Disturbance(torque_init=np.zeros(3), estimate_dist=True))
 
     # --- Sensors ---------------------------------------------------------------------
     sens_list = []

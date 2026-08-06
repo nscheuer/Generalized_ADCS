@@ -49,7 +49,19 @@ OUT = os.path.join(os.path.dirname(__file__), "output_data")
 
 #: Stored momentum as a fraction of h_max. Torque and momentum LIMITS are identical across
 #: all four -- only the stored value changes, which is what makes this a stiffness ablation.
-BIAS_LEVELS = (0.0, 0.25, 0.50, 0.75)
+# Re-cut from the spec's {0, 0.25, 0.50, 0.75}. Every one of those is above the ceiling
+# derived below, so the original sweep would have sampled only the unstable region and
+# reported "all bias is harmful" -- a null that is an artifact of the sampling, not a result.
+#
+#   h <= tau_mtq / omega_slew
+#
+# Dumping and slewing both need the magnetorquers to absorb the gyroscopic torque
+# omega x h during a manoeuvre. At m_max = 0.6 A m^2 and 37 uT the transverse authority is
+# ~31 uN m, so at a 0.005 rad/s slew the ceiling is ~6.3 mN m s -- 42% of the original
+# wheel's h_max, 13% of the big one's. It is RATE-DEPENDENT: a bus that slews faster can
+# carry less bias. That ceiling is a design rule a three-wheel bus simply does not have,
+# and this sweep is cut to bracket it rather than sit above it.
+BIAS_LEVELS = (0.0, 0.02, 0.05, 0.10, 0.15, 0.30)
 
 KP, KD, KC = 5e-5, 1e-3, 1e-3
 
@@ -110,6 +122,11 @@ def main() -> int:
           f"n={n}, tf={tf:.0f} s")
     print(f"h_max = {IAC_6U.h_max*1e3:.0f} mN m s (FIXED across all levels; "
           f"only stored momentum varies)")
+    tau_mtq = np.sqrt(2.0) * IAC_6U.m_max * 37e-6
+    for w_dps in (0.1, 0.3, 1.0):
+        w = np.deg2rad(w_dps)
+        print(f"  predicted ceiling h <= tau_mtq/omega at {w_dps:.1f} deg/s: "
+              f"{tau_mtq/w*1e3:6.2f} mN m s = {tau_mtq/w/IAC_6U.h_max:5.2f} h_max")
     print("=" * 88)
 
     results: Dict[str, Any] = {}
