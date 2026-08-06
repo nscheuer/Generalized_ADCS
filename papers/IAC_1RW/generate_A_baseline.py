@@ -173,9 +173,16 @@ def main() -> int:
                 continue
             m = cell_metrics(runs, h)
             per_h[f"{h:.0f}"] = m
+            ee = m.get("median_est_att_err_deg")
+            tr = m.get("mean_tracker_available")
             print(f"  t={h:6.0f}s  conv5 {m['conv_pct_5deg']:5.1f}%  "
                   f"conv1 {m['conv_pct_1deg']:5.1f}%  median {m['median_final_deg']:7.2f} deg  "
-                  f"held-p95 {m['median_held_p95_deg']:7.2f} deg")
+                  f"held-p95 {m['median_held_p95_deg']:7.2f} deg  "
+                  f"KNOWLEDGE {('%.3f' % ee) if ee is not None else '-':>7} deg  "
+                  f"trk {('%.2f' % tr) if tr is not None else '-'}")
+            if ee is not None and ee > 1.0:
+                print(f"           ^ knowledge floor {ee:.2f} deg exceeds the 1 deg "
+                      f"threshold -- conv1 for this cell measures the FILTER, not actuation")
         results[key] = {"cell": cell, "n_completed": len(runs),
                         "wall_s": el, "horizons": per_h}
         print(f"  ({len(runs)}/{n_cell} completed in {el/60:.1f} min)")
@@ -244,20 +251,24 @@ def main() -> int:
             continue
         print(f"\nHorizon {h:.0f} s")
         print(f"{'cell':<22}{'conv@5':>9}{'conv@1':>9}{'median':>10}{'held p95':>10}"
-              f"{'h/hmax':>9}{'MTQ duty':>10}{'trk avail':>11}")
+              f"{'know':>8}{'h peak':>8}{'h end':>8}{'duty':>7}{'trk':>6}")
         print("-" * 82)
         for key, v in results.items():
             m = v["horizons"].get(hk)
             if not m or not m.get("n"):
                 continue
             hp = m.get("median_peak_h_frac")
+            hf = m.get("median_final_h_frac")
             du = m.get("mean_mtq_duty")
             tr = m.get("mean_tracker_available")
+            ee = m.get("median_est_att_err_deg")
             print(f"{key:<22}{m['conv_pct_5deg']:>8.1f}%{m['conv_pct_1deg']:>8.1f}%"
                   f"{m['median_final_deg']:>10.2f}{m['median_held_p95_deg']:>10.2f}"
-                  f"{(f'{hp:.3f}' if hp is not None else '-'):>9}"
-                  f"{(f'{du:.3f}' if du is not None else '-'):>10}"
-                  f"{(f'{tr:.3f}' if tr is not None else '-'):>11}")
+                  f"{(f'{ee:.2f}' if ee is not None else '-'):>8}"
+                  f"{(f'{hp:.3f}' if hp is not None else '-'):>8}"
+                  f"{(f'{hf:.3f}' if hf is not None else '-'):>8}"
+                  f"{(f'{du:.2f}' if du is not None else '-'):>7}"
+                  f"{(f'{tr:.2f}' if tr is not None else '-'):>6}")
     print("=" * 82)
     with open(f"{OUT}/A_baseline_{ts}.json", "w") as f:
         json.dump({"task": "A_baseline", "timestamp": ts, "n_trials": n,

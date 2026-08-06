@@ -10,10 +10,10 @@ Spec (campaign §3) and how each line maps onto the repo's error models:
 ============  ========================================  ==========================================
 Element       Spec                                      Model
 ============  ========================================  ==========================================
-Star tracker  10" cross-boresight, 60" about boresight   anisotropic small-rotation perturbation
+Star tracker  5" cross-boresight, 30" about boresight    anisotropic small-rotation perturbation
               4 Hz, rate limit ~2 deg/s                  ``max_rate``
               30 deg sun, 25 deg Earth-limb exclusion    ``sun_exclusion`` / ``earth_limb_exclusion``
-Gyro          ARW 1 deg/sqrt(hr), bias instab. 5 deg/hr  white ``Noise`` + random-walk ``Bias``
+Gyro          ARW 0.15 deg/sqrt(hr), bias inst. 0.3/hr  white ``Noise`` + random-walk ``Bias``
 Magnetometer  100 nT (1 sigma) post-calibration          white ``Noise``
 ============  ========================================  ==========================================
 
@@ -21,13 +21,13 @@ Magnetometer  100 nT (1 sigma) post-calibration          white ``Noise``
 
 *Gyro angle random walk.* ARW is an integrated-angle spec; the repo adds white noise to each
 rate sample. For a sample interval ``dt`` the equivalent per-sample rate sigma is
-``sigma = ARW / sqrt(dt)``. At ARW = 1 deg/sqrt(hr) = (1/60) deg/sqrt(s) and ``dt = 1`` s
-this is 0.0167 deg/s = 2.91e-4 rad/s. Pass the campaign's control interval as ``dt``.
+``sigma = ARW / sqrt(dt)``. At ARW = 0.15 deg/sqrt(hr) and ``dt = 1`` s
+this is 0.0025 deg/s = 4.36e-5 rad/s. Pass the campaign's control interval as ``dt``.
 
 *Gyro bias instability.* Allan bias instability is a floor on a log-log Allan plot; the repo
 models bias as a per-step random walk, and the two are not the same statistic. The mapping
 used here is deliberately simple and stated rather than hidden: the **initial** bias is drawn
-with 1-sigma equal to the quoted instability (5 deg/hr = 2.42e-5 rad/s), and the random-walk
+with 1-sigma equal to the quoted instability (0.3 deg/hr = 1.45e-6 rad/s), and the random-walk
 step is sized so the bias wanders by about that much over one orbit,
 ``std_bias = BI / sqrt(T_orbit / dt)``. That reproduces the right order of magnitude of
 in-run drift over the horizons this campaign uses without over-claiming an Allan-variance
@@ -57,12 +57,22 @@ _ARCSEC = _DEG / 3600.0
 _HR = 3600.0
 
 #: Campaign §3 sensing table, in SI, in one place.
+# Class: a well-funded small mission, not an academic cubesat. The earlier values were
+# ICM-20948-class MEMS and a generic tracker; on a bus with a sub-degree pointing budget they
+# are not what anyone would fly, and the gyro in particular set the whole knowledge floor.
+#
+#   gyro         Sensonor STIM377H class (tactical-grade MEMS): ARW 0.15 deg/sqrt(hr),
+#                bias instability 0.3 deg/hr. Was 1.0 / 5.0 -- a 17x better bias floor,
+#                which is the number that matters during star-tracker outages.
+#   star tracker Blue Canyon NST / Terma class: 5 arcsec cross-boresight, 30 arcsec roll.
+#                Was 10 / 60.
+#   magnetometer unchanged at 100 nT -- already a post-calibration figure and never the limit.
 IAC_SENSOR_SPEC = {
     "mtm_sigma_T": 100e-9,                     # 100 nT, 1 sigma
-    "gyro_arw_rad_per_sqrt_s": (1.0 * _DEG) / np.sqrt(_HR),   # 1 deg/sqrt(hr)
-    "gyro_bias_instab_rad_per_s": 5.0 * _DEG / _HR,           # 5 deg/hr
-    "st_sigma_cross_rad": 10.0 * _ARCSEC,
-    "st_sigma_roll_rad": 60.0 * _ARCSEC,
+    "gyro_arw_rad_per_sqrt_s": (0.15 * _DEG) / np.sqrt(_HR),  # 0.15 deg/sqrt(hr)
+    "gyro_bias_instab_rad_per_s": 0.3 * _DEG / _HR,           # 0.3 deg/hr
+    "st_sigma_cross_rad": 5.0 * _ARCSEC,
+    "st_sigma_roll_rad": 30.0 * _ARCSEC,
     "st_sample_time_s": 0.25,                  # 4 Hz
     "st_max_rate_rad_per_s": 2.0 * _DEG,       # ~2 deg/s
     "st_sun_exclusion_rad": 30.0 * _DEG,
@@ -103,15 +113,15 @@ def create_iac_gyro(
     dt: float = 1.0,
     T_orbit: float = _T_ORBIT_REF,
 ) -> List[Gyro]:
-    """Three-axis MEMS gyro: ARW 1 deg/sqrt(hr), bias instability 5 deg/hr.
+    """Three-axis tactical-grade MEMS gyro: ARW 0.15 deg/sqrt(hr), bias instability 0.3 deg/hr.
 
     :param dt: Sample interval [s]. Sets the white-noise sigma via ``ARW / sqrt(dt)``.
     :param T_orbit: Horizon [s] over which the bias random walk is sized to reach the
         quoted bias instability. See the module docstring.
 
     ``estimate_bias`` defaults to ``True`` here (unlike the repo's stock factories): the
-    campaign's filter carries gyro bias in the augmented state, and a MEMS-class bias left
-    unestimated would dominate the attitude solution.
+    campaign's filter carries gyro bias in the augmented state, and a drifting bias left
+    unestimated dominates the attitude solution during star-tracker outages.
     """
     if axes is None:
         axes = np.eye(3)
@@ -137,7 +147,7 @@ def create_iac_star_tracker(
 ) -> StarTrackerQuaternion:
     """Campaign-grade quaternion star tracker.
 
-    10" cross-boresight / 60" about boresight, 4 Hz, ~2 deg/s rate limit, 30 deg sun and
+    5" cross-boresight / 30" about boresight, 4 Hz, ~2 deg/s rate limit, 30 deg sun and
     25 deg Earth-limb keep-outs. Availability is not continuous by design -- that is the
     point. Log ``tracker.available`` per step and report the per-trial mean; the exclusion
     angles and the rate limit interact directly with the agility boundary.

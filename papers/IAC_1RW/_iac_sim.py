@@ -44,6 +44,7 @@ from ADCS.orbits.orbit import Orbit
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.universal_constants import EarthConstants, TimeConstants
 from ADCS.satellite_factory import create_iac_6u_bus, IAC_6U
+from ADCS.satellite_factory.sensors import IAC_SENSOR_SPEC
 
 from papers.IAC_1RW._field_error import FieldErrorModel, wrap_os_for_gnc
 
@@ -189,7 +190,14 @@ def make_estimator(est_sat, config, dt):
         [1e-12] * 3,
         [1e-12] * 3,
         [1e-14] * n_rw,
-        [1e-16] * n_bias,
+        # Gyro-bias process noise must MATCH the truth random walk, not be guessed.
+        # create_iac_gyro drifts the bias by BI/sqrt(T_orbit/dt) per step so it reaches the
+        # quoted bias instability over one orbit. A filter given a tighter Q than that is too
+        # confident to track its own sensor: at 1e-16 it allowed 0.154 deg/hr against a truth
+        # of 5 deg/hr -- 1058x too small in variance -- so the bias ran away and dragged the
+        # attitude estimate to multi-degree error no matter how good the star tracker was.
+        [(IAC_SENSOR_SPEC["gyro_bias_instab_rad_per_s"]
+          / np.sqrt(T_ORBIT / dt)) ** 2] * n_bias,
         # Dipole process noise must not be starved: an over-tight Q collapses P_dist and the
         # filter simply stops learning the dipole (recorded failure mode from the P2.6 leak
         # work, where the measurement/dipole cross-covariance fell to ~1e-10 and the estimate
@@ -359,6 +367,7 @@ def cell_metrics(runs: List[Dict[str, Any]], horizon_s: float,
     finals, held_p95, acq5, acq1 = [], [], [], []
     h_peak, h_final, duty, avail = [], [], [], []
     dip_frac, dip_sec_frac = [], []
+    est_med, est_p95 = [], []
 
     for r in runs:
         if r is None:
@@ -388,6 +397,23 @@ def cell_metrics(runs: List[Dict[str, Any]], horizon_s: float,
             m = np.linalg.norm(r["u"][:k, :n_mtq], axis=1) / (r["m_max"] * np.sqrt(n_mtq))
             duty.append(float(np.mean(m)))
         avail.append(float(np.mean(r["tracker_available"][:k])))
+
+        # ESTIMATED-attitude error, over the held interval, reported for EVERY cell.
+        #
+        # A pointing threshold below the knowledge floor measures the filter, not the
+        # actuators: the controller cannot point better than it can be told where it is. If
+        # this is comparable to the convergence threshold, the cell is not evidence about
+        # the architecture and either the threshold rises or the sensor model needs work.
+        est = r.get("est")
+        if est is not None and est.shape[0] >= k:
+            q_t = r["state"][h0:k, 3:7]
+            q_e = est[h0:k, 3:7]
+            good = np.isfinite(q_e).all(axis=1)
+            if good.any():
+                dots = np.abs(np.sum(q_t[good] * q_e[good], axis=1))
+                ang = np.rad2deg(2.0 * np.arccos(np.clip(dots, 0.0, 1.0)))
+                est_med.append(float(np.median(ang)))
+                est_p95.append(float(np.percentile(ang, 95)))
 
         # Residual-dipole cancellation quality, as a FRACTION of the original dipole.
         #
@@ -438,6 +464,9 @@ def cell_metrics(runs: List[Dict[str, Any]], horizon_s: float,
         "median_final_h_frac": _nanmed(h_final) if h_final else None,
         "mean_mtq_duty": _nanmed(duty) if duty else None,
         "mean_tracker_available": float(np.mean(avail)) if avail else None,
+        # Knowledge floor. Compare against the convergence thresholds before trusting them.
+        "median_est_att_err_deg": _nanmed(est_med) if est_med else None,
+        "p95_est_att_err_deg": _nanmed(est_p95) if est_p95 else None,
         # Fraction of the original residual dipole still standing after cancellation, and
         # how much of that leftover is secular (the part a body-fixed wheel integrates)
         # rather than cyclic.

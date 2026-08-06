@@ -14,7 +14,7 @@ Mass                    12 kg
 Inertia (about COM)     ``diag(0.13, 0.10, 0.05)`` kg m^2 -- uniform-box estimate
 Boresight               body ``+z`` -- the *minor* axis
 Magnetorquers           3, principal body axes, ``m_max = 0.2`` A m^2
-Reaction wheel (1RW)    axis ``+z`` (boresight-aligned), 2.0 mN m, 15 mN m s
+Reaction wheel (1RW)    axis ``+z`` (boresight-aligned), 7.0 mN m, 50 mN m s
 Residual dipole         0.05 A m^2 along ``[1,1,1]/sqrt(3)`` (0.1 = sensitivity case)
 cp-cg offset            2 cm on ``+x``
 ======================  ===========================================================
@@ -37,7 +37,7 @@ Three details in here are load-bearing and easy to get wrong:
    disturbance-to-authority ratio, and the storage side of the saturation condition is
    ``tau_sec * T_orbit <= h_max`` -- which contains neither ``m_max`` nor ``tau_w``. Scaling
    only the torques would leave the saturation boundary stationary while the sweep ran. One
-   scalar moves all three and holds the wheel time constant ``h_max/tau_w = 7.5`` s fixed.
+   scalar moves all three and holds the wheel time constant ``h_max/tau_w`` fixed.
 """
 
 from __future__ import annotations
@@ -89,12 +89,14 @@ class _IAC6U:
 
     #: per-axis magnetorquer dipole limit [A m^2]
     m_max: float = 0.2
-    #: reaction-wheel torque limit [N m]
-    tau_w: float = 2.0e-3
+    #: reaction-wheel torque limit [N m] -- Blue Canyon RWP050 / Rocket Lab RW-0.06 class.
+    #: Was 2.0 mN m / 15 mN m s, a CubeWheel-Small-Plus-class part appropriate to an academic
+    #: 3U. A 6U flying a real imaging payload with a sub-degree budget carries this instead.
+    tau_w: float = 7.0e-3
     #: reaction-wheel momentum limit [N m s]
-    h_max: float = 15.0e-3
-    #: rotor inertia [kg m^2]
-    J_rw: float = 1.0e-5
+    h_max: float = 50.0e-3
+    #: rotor inertia [kg m^2] -- h_max at roughly 6000 rpm
+    J_rw: float = 8.0e-5
 
     #: residual dipole magnitude [A m^2] (0.1 is the labelled sensitivity case)
     m_res: float = 0.05
@@ -187,6 +189,7 @@ def create_iac_6u_bus(
     disturbances: Sequence[str] = ("gg", "drag", "srp", "dipole"),
     estimate_dipole: bool = True,
     sensors: Sequence[str] = ("mtm", "gyro", "star_tracker"),
+    st_axes: Optional[Sequence[np.ndarray]] = None,
     estimated: bool = False,
     J_com: Optional[np.ndarray] = None,
     mass: Optional[float] = None,
@@ -213,12 +216,20 @@ def create_iac_6u_bus(
     :param estimate_dipole: Carry the residual dipole as an augmented estimator state.
         Requires ``"dipole"`` in ``disturbances``.
     :param sensors: Any of ``"mtm"``, ``"gyro"``, ``"star_tracker"``, ``"sun"``.
+    :param st_axes: Star-tracker boresights in the body frame. Default is a pair canted
+        120 degrees apart and away from the payload boresight -- see the note at the
+        construction site. Pass a single-element list for a one-tracker bus.
     :param estimated: Return an :class:`EstimatedSatellite` (the filter's model) rather than
         the truth plant.
     :param J_com: Override the inertia **about the COM** (Campaign R matches genACS).
     :param mass: Override the mass [kg].
     :returns: :class:`Satellite` or :class:`EstimatedSatellite`.
     """
+    if st_axes is None:
+        # Two trackers, 120 deg apart, both canted well off the payload boresight (+z).
+        st_axes = [np.array([np.sin(np.deg2rad(60.0)), 0.0, -np.cos(np.deg2rad(60.0))]),
+                   np.array([-np.sin(np.deg2rad(60.0)), 0.0, -np.cos(np.deg2rad(60.0))])]
+
     if authority_scale <= 0.0:
         raise ValueError(f"authority_scale must be positive, got {authority_scale}")
 
@@ -318,9 +329,21 @@ def create_iac_6u_bus(
     if "gyro" in wanted_s:
         sens_list += create_iac_gyro(estimate_bias=estimated)
     if "star_tracker" in wanted_s:
-        sens_list.append(
-            create_iac_star_tracker(boresight=np.asarray(IAC_6U.boresight, float))
-        )
+        # Star trackers get their OWN mounting, canted away from the payload boresight.
+        #
+        # Co-mounting them was a design error worth recording. At 400 km the Earth subtends
+        # 70.2 deg, so with a 25 deg limb margin the keep-out is a 95.2 deg cone about nadir
+        # -- larger than a hemisphere. A tracker pointed wherever the payload points is then
+        # blinded whenever the payload looks anywhere near the Earth, which for a random
+        # inertial target is 54.5% of the time. Measured availability was 0.45 against a
+        # predicted 0.455.
+        #
+        # That availability is not recoverable by moving one tracker: ANY single axis sees
+        # the same 45.5% averaged over attitude. Two canted 120 deg apart reach 78.5%, which
+        # is why LEO spacecraft with real pointing budgets carry more than one.
+        for st_axis in st_axes:
+            sens_list.append(create_iac_star_tracker(
+                boresight=np.asarray(st_axis, float) / np.linalg.norm(st_axis)))
     if "sun" in wanted_s:
         sens_list += create_Clydespace_3U_array(axis=_UV[0], estimate_bias=estimated)
         sens_list += create_Clydespace_3U_array(axis=_UV[1], estimate_bias=estimated)
