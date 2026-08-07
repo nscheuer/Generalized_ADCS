@@ -151,6 +151,10 @@ class State:
 
     @staticmethod
     def stack(states: Iterable[State]) -> np.ndarray:
+        states = list(states)
+        bad = [type(state).__name__ for state in states if not isinstance(state, State)]
+        if bad:
+            raise TypeError(f"State.stack expects State objects, got {bad[0]}")
         rows = [state.as_array() for state in states]
         if not rows:
             return np.empty((0, 0), dtype=float)

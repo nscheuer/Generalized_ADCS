@@ -99,6 +99,11 @@ def test_state_stack_requires_matching_widths():
         State.stack([states[0], State(w=np.zeros(3), q=[1, 0, 0, 0])])
 
 
+def test_state_stack_rejects_non_state_inputs_with_helpful_typeerror():
+    with pytest.raises(TypeError, match="State.stack expects State objects"):
+        State.stack([np.zeros(7)])
+
+
 @pytest.mark.parametrize("full_covariance", [False, True])
 def test_estimated_state_augmented_roundtrip_supports_covariance_modes(full_covariance):
     value = np.arange(13.0)

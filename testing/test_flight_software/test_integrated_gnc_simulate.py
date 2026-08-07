@@ -23,6 +23,7 @@ UNIT_VECTORS = MathConstants.unitvecs
 class CapturingController(Controller):
     def __init__(self):
         self.received_state = None
+        self.calls = 0
 
     def find_u(
         self,
@@ -34,6 +35,7 @@ class CapturingController(Controller):
         **kwargs,
     ) -> np.ndarray:
         self.received_state = x_hat
+        self.calls += 1
         return np.zeros(est_sat.control_len)
 
 
@@ -140,6 +142,7 @@ def test_estimatorless_simulation_passes_state_to_controller():
         tf=1.0,
     )[0]
 
+    assert controller.calls == 1
     assert isinstance(controller.received_state, State)
     assert not isinstance(controller.received_state, EstimatorState)
     assert result.est_state_hist is None

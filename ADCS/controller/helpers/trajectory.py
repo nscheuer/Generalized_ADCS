@@ -109,19 +109,19 @@ class Trajectory:
                 disturbance estimation (KwDist mode, tracking_LQR_formulation=2)
         """
         self.times = np.asarray(t, dtype=float)
-        self.states = [state.copy() for state in x]
         self.controls = u
         self.gains = K
         self.costs = S
         self.use_disturbance_estimation = use_disturbance_estimation
 
-        self.start_time = float(t[0])
-        self.end_time = float(t[-1])
-        self.n_steps = len(t)
-        if len(self.states) != self.n_steps:
-            raise ValueError(f"x must contain {self.n_steps} State objects, got {len(self.states)}")
-        if not all(isinstance(state, State) for state in self.states):
+        self.start_time = float(self.times[0])
+        self.end_time = float(self.times[-1])
+        self.n_steps = len(self.times)
+        if len(x) != self.n_steps:
+            raise ValueError(f"x must contain {self.n_steps} State objects, got {len(x)}")
+        if not all(isinstance(state, State) for state in x):
             raise TypeError("x must be a sequence of State objects")
+        self.states = [state.copy() for state in x]
 
         widths = {state.as_array().size for state in self.states}
         if len(widths) != 1:

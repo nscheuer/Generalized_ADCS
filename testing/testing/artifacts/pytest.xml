@@ -1,14 +1,14 @@
 <?xml version='1.0' encoding='utf-8'?>
 <testsuites name="pytest tests">
-  <testsuite name="pytest" errors="0" failures="0" skipped="1" tests="7" time="1.686" timestamp="2026-08-07T18:29:46.126677+02:00" hostname="Nics-P14s">
-    <testcase classname="testing.test_satellite.test_estimated_satellite_match_estimate" name="test_match_estimate_rejects_non_estimator_state" time="0.170" />
-    <testcase classname="testing.test_satellite.test_estimated_satellite_match_estimate" name="test_match_estimate_rejects_wrong_augmented_size" time="0.002" />
-    <testcase classname="testing.test_satellite.test_estimated_satellite_match_estimate" name="test_match_estimate_rejects_wrong_wheel_state_count_after_size_check" time="0.001" />
-    <testcase classname="testing.test_satellite.test_estimated_satellite_match_estimate" name="test_match_estimate_rejects_wrong_actuator_bias_count_after_size_check" time="0.001" />
-    <testcase classname="testing.test_satellite.test_estimated_satellite_match_estimate" name="test_match_estimate_rejects_wrong_sensor_bias_count_after_size_check" time="0.001" />
-    <testcase classname="testing.test_satellite.test_estimated_satellite_match_estimate" name="test_match_estimate_rejects_wrong_disturbance_parameter_count_after_size_check" time="0.001">
-      <skipped type="pytest.xfail" message="dist_param length check is unreachable after augmented_size validation" />
-    </testcase>
-    <testcase classname="testing.test_satellite.test_estimated_satellite_match_estimate" name="test_match_estimate_uses_full_size_integrated_covariance_without_index_shift" time="0.002" />
+  <testsuite name="pytest" errors="0" failures="0" skipped="0" tests="9" time="2.504" timestamp="2026-08-07T18:33:00.106582+02:00" hostname="Nics-P14s">
+    <testcase classname="testing.test_helpers.test_state" name="test_state_stack_rejects_non_state_inputs_with_helpful_typeerror" time="0.001" />
+    <testcase classname="testing.test_helpers.test_plotting_state_contract" name="test_plot_helpers_accept_state_lists_with_agg_backend" time="0.300" />
+    <testcase classname="testing.test_controllers.test_trajectory_interpolation" name="test_get_state_at_interpolates_shortest_arc_across_sign_flip" time="0.001" />
+    <testcase classname="testing.test_controllers.test_trajectory_interpolation" name="test_get_state_at_renormalizes_mid_interval_quaternion" time="0.000" />
+    <testcase classname="testing.test_controllers.test_trajectory_interpolation" name="test_get_state_at_endpoints_and_linear_blocks" time="0.001" />
+    <testcase classname="testing.test_controllers.test_trajectory_interpolation" name="test_get_state_at_copies_do_not_alias_internal_states" time="0.000" />
+    <testcase classname="testing.test_controllers.test_trajectory_interpolation" name="test_trajectory_rejects_non_state_sequence_with_typeerror" time="0.000" />
+    <testcase classname="testing.test_controllers.test_trajectory_interpolation" name="test_trajectory_rejects_mixed_state_widths" time="0.000" />
+    <testcase classname="testing.test_flight_software.test_integrated_gnc_simulate" name="test_estimatorless_simulation_passes_state_to_controller" time="0.623" />
   </testsuite>
 </testsuites>
