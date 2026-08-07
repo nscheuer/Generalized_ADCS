@@ -8,46 +8,21 @@ from typing import Any, Iterable, Mapping
 import numpy as np
 
 
-# These duplicate quat_mult/quat_inv from ADCS.helpers.math_helpers, which
-# cannot be imported here: math_helpers -> ADCS.orbits.universal_constants
-# -> ADCS.orbits.__init__ -> orbit_factory -> orbital_state -> ADCS.state is
-# a circular import. This module must stay an import leaf.
-def _quat_conjugate(q: np.ndarray) -> np.ndarray:
-    return np.array([q[0], -q[1], -q[2], -q[3]], dtype=float)
-
-
-def _quat_product(p: np.ndarray, q: np.ndarray) -> np.ndarray:
-    p0, pv = p[0], p[1:]
-    q0, qv = q[0], q[1:]
-    return np.concatenate(([p0 * q0 - pv @ qv], p0 * qv + q0 * pv + np.cross(pv, qv)))
-
-
-def _interpolate_quat(q0: np.ndarray, q1: np.ndarray, alpha: float, method: str) -> np.ndarray:
-    # q and -q represent the same rotation: flip to the shortest arc first, so
-    # antipodal representations never interpolate through the origin.
-    dot = float(q0 @ q1)
-    if dot < 0.0:
-        q1 = -q1
-        dot = -dot
-    if method == "nlerp" or dot > 1.0 - 1e-9:
-        blended = (1.0 - alpha) * q0 + alpha * q1
-    elif method == "slerp":
-        theta = np.arccos(min(dot, 1.0))
-        blended = (np.sin((1.0 - alpha) * theta) * q0 + np.sin(alpha * theta) * q1) / np.sin(theta)
-    else:
-        raise ValueError(f"method must be 'slerp' or 'nlerp', got {method!r}")
-    norm = float(np.linalg.norm(blended))
-    if not np.isfinite(norm) or norm == 0.0:
-        raise ValueError("interpolated quaternion has zero or non-finite norm")
-    return blended / norm
-
-
 def _vector(value: Any, *, name: str, size: int | None = None) -> np.ndarray:
     array = np.array(value, dtype=float, copy=True)
     if array.ndim != 1:
         raise ValueError(f"{name} must be one-dimensional, got shape {array.shape}")
     if size is not None and array.shape != (size,):
         raise ValueError(f"{name} must have shape ({size},), got {array.shape}")
+    return array
+
+
+def _square_matrix(value: Any, *, name: str) -> np.ndarray | None:
+    if value is None:
+        return None
+    array = np.array(value, dtype=float, copy=True)
+    if array.ndim != 2 or array.shape[0] != array.shape[1]:
+        raise ValueError(f"{name} must be square, got shape {array.shape}")
     return array
 
 
@@ -62,6 +37,15 @@ class State:
     w: np.ndarray
     q: np.ndarray
     h: np.ndarray = field(default_factory=lambda: np.empty(0, dtype=float))
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        if name == "w":
+            value = _vector(value, name=name, size=3)
+        elif name == "q":
+            value = _vector(value, name=name, size=4)
+        elif name == "h":
+            value = _vector(value, name=name)
+        object.__setattr__(self, name, value)
 
     def __post_init__(self) -> None:
         self.w = _vector(self.w, name="w", size=3)
@@ -111,9 +95,11 @@ class State:
         if self.h.size != other.h.size:
             raise ValueError("states must have the same number of reaction-wheel states")
         alpha = float(alpha)
+        from ADCS.helpers.math_helpers import interpolate_quat
+
         return State(
             w=(1.0 - alpha) * self.w + alpha * other.w,
-            q=_interpolate_quat(self.q, other.q, alpha, method),
+            q=interpolate_quat(self.q, other.q, alpha, method),
             h=(1.0 - alpha) * self.h + alpha * other.h,
         )
 
@@ -130,7 +116,9 @@ class State:
             raise TypeError(f"ref must be a State, got {type(ref).__name__}")
         if self.h.size != ref.h.size:
             raise ValueError("states must have the same number of reaction-wheel states")
-        dq = _quat_product(_quat_conjugate(ref.q), self.q)
+        from ADCS.helpers.math_helpers import quat_inv, quat_mult
+
+        dq = quat_mult(quat_inv(ref.q), self.q)
         dq = dq / np.linalg.norm(dq)
         if dq[0] < 0.0:
             dq = -dq
@@ -149,7 +137,9 @@ class State:
         if vv > 1.0:
             raise ValueError("attitude error block exceeds the unit-quaternion range (|δθ| > 2)")
         dq = np.concatenate(([np.sqrt(1.0 - vv)], v))
-        q = _quat_product(self.q, dq)
+        from ADCS.helpers.math_helpers import quat_mult
+
+        q = quat_mult(self.q, dq)
         return State(w=self.w + delta[:3], q=q / np.linalg.norm(q), h=self.h + delta[6:])
 
     def to_dict(self) -> dict[str, Any]:
@@ -180,6 +170,23 @@ class EstimatorState(State):
     cov: np.ndarray | None = None
     int_cov: np.ndarray | None = None
 
+    def __setattr__(self, name: str, value: Any) -> None:
+        vector_sizes = {
+            "w": 3,
+            "q": 4,
+            "h": None,
+            "act_bias": None,
+            "sens_bias": None,
+            "dist_param": None,
+        }
+        if name in vector_sizes:
+            value = _vector(value, name=name, size=vector_sizes[name])
+            self._validate_existing_covariances_for_vector_assignment(name, value)
+        elif name in ("cov", "int_cov"):
+            value = _square_matrix(value, name=name)
+            self._validate_covariance_assignment(name, value)
+        object.__setattr__(self, name, value)
+
     def __post_init__(self) -> None:
         State.__post_init__(self)
         self.act_bias = _vector(self.act_bias, name="act_bias")
@@ -207,6 +214,68 @@ class EstimatorState(State):
         if self.int_cov.shape != self.cov.shape:
             raise ValueError(
                 f"int_cov must match cov shape {self.cov.shape}, got {self.int_cov.shape}"
+            )
+
+    def _allowed_covariance_shapes(
+        self,
+        *,
+        replacing_name: str | None = None,
+        replacing_value: np.ndarray | None = None,
+    ) -> set[tuple[int, int]] | None:
+        sizes = {}
+        for name in ("h", "act_bias", "sens_bias", "dist_param"):
+            if replacing_name == name:
+                sizes[name] = replacing_value.size
+                continue
+            try:
+                sizes[name] = getattr(self, name).size
+            except AttributeError:
+                return None
+        augmented_size = (
+            7 + sizes["h"] + sizes["act_bias"] + sizes["sens_bias"] + sizes["dist_param"]
+        )
+        return {(augmented_size - 1, augmented_size - 1), (augmented_size, augmented_size)}
+
+    def _validate_existing_covariances_for_vector_assignment(
+        self,
+        name: str,
+        value: np.ndarray,
+    ) -> None:
+        allowed = self._allowed_covariance_shapes(replacing_name=name, replacing_value=value)
+        if allowed is None:
+            return
+        for cov_name in ("cov", "int_cov"):
+            try:
+                cov = getattr(self, cov_name)
+            except AttributeError:
+                continue
+            if cov is not None and cov.shape not in allowed:
+                raise ValueError(
+                    f"{name} assignment would make {cov_name} shape {cov.shape} "
+                    f"incompatible with expected covariance shapes {sorted(allowed)}"
+                )
+
+    def _validate_covariance_assignment(
+        self,
+        name: str,
+        value: np.ndarray | None,
+    ) -> None:
+        if value is None:
+            return
+        allowed = self._allowed_covariance_shapes()
+        if allowed is not None and value.shape not in allowed:
+            raise ValueError(
+                f"{name} must use reduced- or full-quaternion coordinates; "
+                f"expected one of {sorted(allowed)}, got {value.shape}"
+            )
+        other_name = "int_cov" if name == "cov" else "cov"
+        try:
+            other = getattr(self, other_name)
+        except AttributeError:
+            return
+        if other is not None and other.shape != value.shape:
+            raise ValueError(
+                f"{name} must match {other_name} shape {other.shape}, got {value.shape}"
             )
 
     def __eq__(self, other: object) -> bool:
@@ -311,13 +380,14 @@ class EstimatorState(State):
         if self.cov.shape != other.cov.shape:
             raise ValueError("states must use the same covariance convention to interpolate")
         alpha = float(alpha)
+        from ADCS.helpers.math_helpers import interpolate_quat
 
         def lerp(a: np.ndarray, b: np.ndarray) -> np.ndarray:
             return (1.0 - alpha) * a + alpha * b
 
         return EstimatorState(
             w=lerp(self.w, other.w),
-            q=_interpolate_quat(self.q, other.q, alpha, method),
+            q=interpolate_quat(self.q, other.q, alpha, method),
             h=lerp(self.h, other.h),
             act_bias=lerp(self.act_bias, other.act_bias),
             sens_bias=lerp(self.sens_bias, other.sens_bias),

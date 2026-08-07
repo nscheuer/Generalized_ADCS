@@ -29,6 +29,21 @@ def test_state_rejects_invalid_component_shapes(kwargs, message):
         State(**kwargs)
 
 
+def test_state_assignment_validates_component_shapes_and_copies_values():
+    state = State(w=np.zeros(3), q=[1.0, 0.0, 0.0, 0.0])
+    source = np.array([0.1, 0.2])
+
+    state.h = source
+    source[:] = -1.0
+
+    np.testing.assert_array_equal(state.h, [0.1, 0.2])
+    with pytest.raises(ValueError, match="q must have shape"):
+        state.q = [1.0, 0.0, 0.0]
+    np.testing.assert_array_equal(state.q, [1.0, 0.0, 0.0, 0.0])
+    with pytest.raises(ValueError, match="w must be one-dimensional"):
+        state.w = [[0.0, 0.0, 0.0]]
+
+
 def test_state_has_no_array_or_indexing_facade():
     state = State(w=np.zeros(3), q=np.array([1, 0, 0, 0]))
     with pytest.raises(TypeError):
@@ -106,6 +121,48 @@ def test_estimated_state_augmented_roundtrip_supports_covariance_modes(full_cova
 def test_estimated_state_rejects_wrong_covariance_dimension():
     with pytest.raises(ValueError, match="reduced- or full-quaternion"):
         EstimatorState(w=np.zeros(3), q=[1, 0, 0, 0], cov=np.eye(2))
+
+
+def test_estimated_state_assignment_validates_estimator_blocks():
+    state = EstimatorState(
+        w=np.zeros(3),
+        q=[1.0, 0.0, 0.0, 0.0],
+        h=[0.1],
+        act_bias=[0.2],
+        sens_bias=[0.3],
+        dist_param=[0.4],
+    )
+    source = np.array([0.5])
+
+    state.act_bias = source
+    source[:] = -1.0
+
+    np.testing.assert_array_equal(state.act_bias, [0.5])
+    with pytest.raises(ValueError, match="sens_bias must be one-dimensional"):
+        state.sens_bias = [[0.1]]
+    np.testing.assert_array_equal(state.sens_bias, [0.3])
+
+
+def test_estimated_state_assignment_validates_covariance_shapes():
+    state = EstimatorState(
+        w=np.zeros(3),
+        q=[1.0, 0.0, 0.0, 0.0],
+        h=[0.1],
+        act_bias=[0.2],
+    )
+
+    state.cov = np.eye(8)
+    state.int_cov = np.eye(8) * 2.0
+
+    np.testing.assert_array_equal(state.cov, np.eye(8))
+    np.testing.assert_array_equal(state.int_cov, np.eye(8) * 2.0)
+    with pytest.raises(ValueError, match="cov must be square"):
+        state.cov = np.ones((8, 7))
+    with pytest.raises(ValueError, match="int_cov must match cov shape"):
+        state.int_cov = np.eye(9)
+    with pytest.raises(ValueError, match="h assignment would make cov shape"):
+        state.h = [0.1, 0.2]
+    np.testing.assert_array_equal(state.h, [0.1])
 
 
 def test_estimated_state_equality_includes_bias_and_covariance_blocks():
