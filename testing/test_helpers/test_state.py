@@ -37,6 +37,30 @@ def test_state_has_no_array_or_indexing_facade():
         np.asarray(state, dtype=float)
 
 
+def test_state_equality_uses_array_values():
+    state = State(w=[1.0, 2.0, 3.0], q=[1.0, 0.0, 0.0, 0.0], h=[0.1, 0.2])
+    same = State(
+        w=np.array([1.0, 2.0, 3.0]),
+        q=np.array([1.0, 0.0, 0.0, 0.0]),
+        h=np.array([0.1, 0.2]),
+    )
+    different_value = State(w=[1.0, 2.0, 4.0], q=[1.0, 0.0, 0.0, 0.0], h=[0.1, 0.2])
+    different_shape = State(w=[1.0, 2.0, 3.0], q=[1.0, 0.0, 0.0, 0.0], h=[0.1])
+
+    assert state == same
+    assert state != different_value
+    assert state != different_shape
+    assert state != object()
+
+
+def test_state_and_estimated_state_are_not_equal():
+    state = State(w=np.zeros(3), q=[1.0, 0.0, 0.0, 0.0])
+    estimated = EstimatorState(w=np.zeros(3), q=[1.0, 0.0, 0.0, 0.0])
+
+    assert state != estimated
+    assert estimated != state
+
+
 def test_satellite_rejects_raw_state_vectors():
     satellite = Satellite()
     with pytest.raises(TypeError, match="x must be a State"):
@@ -82,6 +106,30 @@ def test_estimated_state_augmented_roundtrip_supports_covariance_modes(full_cova
 def test_estimated_state_rejects_wrong_covariance_dimension():
     with pytest.raises(ValueError, match="reduced- or full-quaternion"):
         EstimatorState(w=np.zeros(3), q=[1, 0, 0, 0], cov=np.eye(2))
+
+
+def test_estimated_state_equality_includes_bias_and_covariance_blocks():
+    kwargs = dict(
+        w=[1.0, 2.0, 3.0],
+        q=[1.0, 0.0, 0.0, 0.0],
+        h=[0.1],
+        act_bias=[0.2],
+        sens_bias=[0.3, 0.4],
+        dist_param=[0.5],
+        cov=np.eye(11),
+        int_cov=np.eye(11) * 2.0,
+    )
+    state = EstimatorState(**kwargs)
+    same = EstimatorState(**kwargs)
+    different_bias = EstimatorState(**{**kwargs, "act_bias": [0.25]})
+    different_cov = EstimatorState(**{**kwargs, "cov": np.eye(11) * 3.0})
+    different_int_cov = EstimatorState(**{**kwargs, "int_cov": np.eye(11) * 4.0})
+
+    assert state == same
+    assert state != different_bias
+    assert state != different_cov
+    assert state != different_int_cov
+    assert state != object()
 
 
 def test_state_dict_roundtrip_preserves_subclass_and_data():

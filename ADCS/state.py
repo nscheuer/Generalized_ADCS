@@ -51,7 +51,7 @@ def _vector(value: Any, *, name: str, size: int | None = None) -> np.ndarray:
     return array
 
 
-@dataclass(slots=True)
+@dataclass(slots=True, eq=False)
 class State:
     """Physical spacecraft state ``[w, q, h]``.
 
@@ -67,6 +67,15 @@ class State:
         self.w = _vector(self.w, name="w", size=3)
         self.q = _vector(self.q, name="q", size=4)
         self.h = _vector(self.h, name="h")
+
+    def __eq__(self, other: object) -> bool:
+        if type(other) is not State:
+            return NotImplemented
+        return (
+            np.array_equal(self.w, other.w)
+            and np.array_equal(self.q, other.q)
+            and np.array_equal(self.h, other.h)
+        )
 
     @classmethod
     def from_array(cls, value: Any) -> State:
@@ -161,7 +170,7 @@ class State:
         return np.vstack(rows)
 
 
-@dataclass(slots=True)
+@dataclass(slots=True, eq=False)
 class EstimatorState(State):
     """Physical state plus estimated parameters and uncertainty."""
 
@@ -199,6 +208,20 @@ class EstimatorState(State):
             raise ValueError(
                 f"int_cov must match cov shape {self.cov.shape}, got {self.int_cov.shape}"
             )
+
+    def __eq__(self, other: object) -> bool:
+        if type(other) is not EstimatorState:
+            return NotImplemented
+        return (
+            np.array_equal(self.w, other.w)
+            and np.array_equal(self.q, other.q)
+            and np.array_equal(self.h, other.h)
+            and np.array_equal(self.act_bias, other.act_bias)
+            and np.array_equal(self.sens_bias, other.sens_bias)
+            and np.array_equal(self.dist_param, other.dist_param)
+            and np.array_equal(self.cov, other.cov)
+            and np.array_equal(self.int_cov, other.int_cov)
+        )
 
     @property
     def augmented_size(self) -> int:
