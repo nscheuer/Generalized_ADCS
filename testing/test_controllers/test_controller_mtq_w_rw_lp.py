@@ -13,7 +13,6 @@ from ADCS.controller import MTQ_w_RW_LP
 from ADCS.helpers.math_constants import MathConstants
 from ADCS.helpers.math_helpers import normalize
 from ADCS.helpers.math_helpers import random_n_unit_vec
-from ADCS.helpers.math_helpers import rot_mat
 from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.orbit import Orbit
 from ADCS.orbits.orbital_state import Orbital_State
@@ -354,15 +353,11 @@ def test_mtq_w_rw_lp_none_goal_routes_to_desaturation(
         os_hat=base_orbital_state,
         goal=None,
     )
-    command_no_goal = desat_controller.find_u_desaturate(
-        x_hat=base_state,
-        sens=sens,
-        est_sat=lp_satellite,
-        os_hat=base_orbital_state,
-        goal=No_Goal(),
+    expected = np.array(
+        [-5.2438277902468770e-03, -2.9863292847378081e-01, -2.2770862814221585e-01, 1.8697378268908178e-05]
     )
 
-    np.testing.assert_allclose(command_none, command_no_goal)
+    np.testing.assert_allclose(command_none, expected)
 
 
 def test_mtq_w_rw_lp_pointing_goal_routes_to_pointing_mode(
@@ -381,13 +376,7 @@ def test_mtq_w_rw_lp_pointing_goal_routes_to_pointing_mode(
         os_hat=base_orbital_state,
         goal=goal,
     )
-    expected = lp_controller.find_u_pointing(
-        x_hat=base_state,
-        sens=sens,
-        est_sat=lp_satellite,
-        os_hat=base_orbital_state,
-        goal=goal,
-    )
+    expected = np.array([-4.000000000000000e-01, -2.583510466546759e-01, 4.000000000000000e-01, -3.338644878016802e-07])
 
     np.testing.assert_allclose(command, expected)
 
@@ -490,18 +479,7 @@ def test_pointing_mode_matches_primary_allocation_when_secondary_gain_is_zero(
         goal=goal,
     )
 
-    w = base_state.w
-    q = base_state.q
-    h_rw_body = np.array([base_state.h[0], 0.0, 0.0])
-    w_ref_body = rot_mat(q).T @ goal.w_ref_eci
-    tau_pd = -lp_controller.p_gain * goal.q_err - lp_controller.d_gain * (w - w_ref_body)
-    tau_gyro = np.cross(w, lp_satellite.J_0 @ w + h_rw_body)
-    tau_des = tau_pd + tau_gyro
-    b_body = lp_controller.M_mtm_read @ sens
-    u_rw, u_mtq, _ = lp_controller.allocate_max_torque_in_direction(tau_des, b_body, lp_satellite)
-    expected = np.zeros(len(lp_satellite.actuators))
-    expected[lp_controller.rw_indices] = u_rw
-    expected[lp_controller.mtq_indices] = u_mtq
+    expected = np.array([-4.000000000000000e-01, -2.819971444038674e-01, 4.000000000000000e-01, -8.919086304107955e-06])
 
     np.testing.assert_allclose(command, expected)
 

@@ -202,7 +202,10 @@ def test_state_dict_roundtrip_preserves_subclass_and_data():
         act_bias=[5],
         sens_bias=[6],
         dist_param=[7],
+        cov=np.diag(np.arange(1.0, 11.0)),
+        int_cov=np.diag(np.arange(11.0, 21.0)),
     )
     rebuilt = EstimatorState.from_dict(state.to_dict())
     np.testing.assert_array_equal(rebuilt.as_estimator_array(), state.as_estimator_array())
     np.testing.assert_array_equal(rebuilt.cov, state.cov)
+    np.testing.assert_array_equal(rebuilt.int_cov, state.int_cov)

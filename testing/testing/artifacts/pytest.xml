@@ -1,14 +1,9 @@
 <?xml version='1.0' encoding='utf-8'?>
 <testsuites name="pytest tests">
-  <testsuite name="pytest" errors="0" failures="0" skipped="0" tests="9" time="2.504" timestamp="2026-08-07T18:33:00.106582+02:00" hostname="Nics-P14s">
-    <testcase classname="testing.test_helpers.test_state" name="test_state_stack_rejects_non_state_inputs_with_helpful_typeerror" time="0.001" />
-    <testcase classname="testing.test_helpers.test_plotting_state_contract" name="test_plot_helpers_accept_state_lists_with_agg_backend" time="0.300" />
-    <testcase classname="testing.test_controllers.test_trajectory_interpolation" name="test_get_state_at_interpolates_shortest_arc_across_sign_flip" time="0.001" />
-    <testcase classname="testing.test_controllers.test_trajectory_interpolation" name="test_get_state_at_renormalizes_mid_interval_quaternion" time="0.000" />
-    <testcase classname="testing.test_controllers.test_trajectory_interpolation" name="test_get_state_at_endpoints_and_linear_blocks" time="0.001" />
-    <testcase classname="testing.test_controllers.test_trajectory_interpolation" name="test_get_state_at_copies_do_not_alias_internal_states" time="0.000" />
-    <testcase classname="testing.test_controllers.test_trajectory_interpolation" name="test_trajectory_rejects_non_state_sequence_with_typeerror" time="0.000" />
-    <testcase classname="testing.test_controllers.test_trajectory_interpolation" name="test_trajectory_rejects_mixed_state_widths" time="0.000" />
-    <testcase classname="testing.test_flight_software.test_integrated_gnc_simulate" name="test_estimatorless_simulation_passes_state_to_controller" time="0.623" />
+  <testsuite name="pytest" errors="0" failures="0" skipped="0" tests="4" time="1.355" timestamp="2026-08-07T18:40:52.238532+02:00" hostname="Nics-P14s">
+    <testcase classname="testing.test_controllers.test_controller_mtq_w_rw" name="test_mtq_w_rw_cleans_nan_sensor_values" time="0.014" />
+    <testcase classname="testing.test_controllers.test_controller_mtq_w_rw" name="test_mtq_w_rw_matches_pointing_and_dump_allocation_math" time="0.006" />
+    <testcase classname="testing.test_controllers.test_controller_mtq_w_rw" name="test_mtq_w_rw_no_goal_matches_rate_damping_and_dump_math" time="0.005" />
+    <testcase classname="testing.test_controllers.test_controller_mtq_w_rw" name="test_mtq_w_rw_includes_gyroscopic_compensation" time="0.004" />
   </testsuite>
 </testsuites>

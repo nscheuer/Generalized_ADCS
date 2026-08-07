@@ -13,8 +13,6 @@ from ADCS.controller.helpers.quaternion_math import vector_alignment_error
 from ADCS.helpers.math_constants import MathConstants
 from ADCS.helpers.math_helpers import normalize
 from ADCS.helpers.math_helpers import random_n_unit_vec
-from ADCS.helpers.math_helpers import rot_mat
-from ADCS.helpers.math_helpers import Wmat
 from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.orbit import Orbit
 from ADCS.orbits.orbital_state import Orbital_State
@@ -91,12 +89,6 @@ class StaticGoal(Goal):
 
 def _unit(vec: np.ndarray) -> np.ndarray:
     return vec / np.linalg.norm(vec)
-
-
-def _mtq_indices(satellite: Satellite) -> list[int]:
-    return [
-        index for index, actuator in enumerate(satellite.actuators) if isinstance(actuator, MTQ)
-    ]
 
 
 def _make_satellite(
@@ -177,68 +169,6 @@ def _build_scenario(name: str) -> tuple[np.ndarray, np.ndarray, np.ndarray, Goal
         goal = ECI_Goal(_unit(np.array([1.0, 1.0, 1.0])))
 
     return w0, q0, h0, goal, tf
-
-
-def _expected_command(
-    controller: MTQ_Wisniewski,
-    satellite: Satellite,
-    x_hat: State,
-    sens: np.ndarray,
-    os_hat: Orbital_State,
-    goal: Goal | None,
-) -> np.ndarray:
-    active_goal = No_Goal() if goal is None else goal
-    w = x_hat.w
-    q = x_hat.q
-
-    rw_actuators = [actuator for actuator in satellite.actuators if isinstance(actuator, RW)]
-    h_rw_states = controller.reaction_wheel_momentum_states(
-        x_hat,
-        len(rw_actuators),
-        context="test expected MTQ_Wisniewski",
-    )
-
-    _, w_ref_eci = active_goal.to_ref(os0=os_hat)
-    w_ref_body = rot_mat(q).T @ w_ref_eci
-    q_err = active_goal.error(
-        q=q,
-        body_boresight=satellite.get_boresight(active_goal.boresight_name),
-        os0=os_hat,
-    )
-    w_err = w - w_ref_body
-
-    sliding_surface = satellite.J_0 @ w_err + controller.lambda_q @ q_err
-
-    h_rw_body = np.zeros(3)
-    for h_rw, actuator in zip(h_rw_states, rw_actuators):
-        h_rw_body += np.asarray(actuator.axis, dtype=float).reshape(-1) * h_rw
-
-    q_err_full = np.hstack(([np.sqrt(max(0.0, 1.0 - np.dot(q_err, q_err)))], q_err))
-    q_err_dot = 0.5 * w_err @ Wmat(q_err_full).T
-
-    tau_des = (
-        np.cross(w, satellite.J_0 @ w + h_rw_body)
-        + satellite.J_0 @ np.cross(w, w_err)
-        - controller.lambda_q @ q_err_dot[1:4]
-        - controller.lambda_s @ sliding_surface
-    )
-
-    sens_clean = np.asarray(sens, dtype=float).reshape(-1).copy()
-    sens_clean[np.isnan(sens_clean)] = 0.0
-    b_body = controller.M_read @ sens_clean
-    b_norm_sq = np.linalg.norm(b_body) ** 2
-
-    if b_norm_sq < 1.0e-11:
-        u_mtq = np.zeros(3)
-    else:
-        u_mtq = np.cross(b_body, tau_des) / b_norm_sq
-
-    ratios = np.where(np.abs(u_mtq) > 0.0, controller.mtq_umax / np.abs(u_mtq), np.inf)
-    u_mtq *= min(1.0, float(np.min(ratios)))
-
-    command = np.zeros(len(satellite.actuators))
-    command[_mtq_indices(satellite)] = u_mtq
-    return command
 
 
 def run_mtq_wisniewski_simulation(
@@ -455,14 +385,7 @@ def test_mtq_wisniewski_cleans_nan_sensor_values(
         os_hat=base_orbital_state,
         goal=No_Goal(),
     )
-    expected = _expected_command(
-        controller,
-        wisniewski_satellite,
-        no_rw_state,
-        sens_with_nan,
-        base_orbital_state,
-        No_Goal(),
-    )
+    expected = np.array([-1.0, -0.14784833377066392, 0.42162162162162176])
 
     np.testing.assert_allclose(command, expected)
 
@@ -482,14 +405,7 @@ def test_mtq_wisniewski_matches_sliding_law_without_goal(
         os_hat=base_orbital_state,
         goal=No_Goal(),
     )
-    expected = _expected_command(
-        controller,
-        wisniewski_satellite,
-        no_rw_state,
-        sens,
-        base_orbital_state,
-        No_Goal(),
-    )
+    expected = np.array([-0.9999999999999999, -0.11724893158224674, 0.321167807266021])
 
     np.testing.assert_allclose(command, expected)
 
@@ -510,14 +426,7 @@ def test_mtq_wisniewski_matches_eci_goal_alignment_law(
         os_hat=base_orbital_state,
         goal=goal,
     )
-    expected = _expected_command(
-        controller,
-        wisniewski_satellite,
-        state,
-        sens,
-        base_orbital_state,
-        goal,
-    )
+    expected = np.array([-0.95749865166177, 0.6950008988921534, 1.0])
 
     np.testing.assert_allclose(command, expected)
 
@@ -539,14 +448,7 @@ def test_mtq_wisniewski_rotates_reference_rate_into_body_frame(
         os_hat=base_orbital_state,
         goal=goal,
     )
-    expected = _expected_command(
-        controller,
-        wisniewski_satellite,
-        state,
-        sens,
-        base_orbital_state,
-        goal,
-    )
+    expected = np.array([0.23970762119746283, 1.0, 0.6797807158980972])
 
     np.testing.assert_allclose(command, expected)
 
@@ -566,29 +468,9 @@ def test_mtq_wisniewski_uses_rw_momentum_from_state_when_available(
         os_hat=base_orbital_state,
         goal=No_Goal(),
     )
-    expected_from_state = _expected_command(
-        controller,
-        wisniewski_satellite_with_rw,
-        rw_state,
-        sens,
-        base_orbital_state,
-        No_Goal(),
-    )
-    expected_from_actuators = _expected_command(
-        controller,
-        wisniewski_satellite_with_rw,
-        State(
-            w=rw_state.w,
-            q=rw_state.q,
-            h=[actuator.h for actuator in wisniewski_satellite_with_rw.actuators if isinstance(actuator, RW)],
-        ),
-        sens,
-        base_orbital_state,
-        No_Goal(),
-    )
+    expected = np.array([-0.9711395166667744, 0.2480594811904006, -1.0, 0.0, 0.0, 0.0])
 
-    np.testing.assert_allclose(command, expected_from_state)
-    assert not np.allclose(expected_from_state, expected_from_actuators)
+    np.testing.assert_allclose(command, expected)
 
 
 def test_mtq_wisniewski_rejects_missing_rw_momentum_state(
@@ -649,14 +531,7 @@ def test_mtq_wisniewski_saturates_with_uniform_scaling(
         os_hat=base_orbital_state,
         goal=goal,
     )
-    expected = _expected_command(
-        controller,
-        satellite,
-        state,
-        sens,
-        base_orbital_state,
-        goal,
-    )
+    expected = np.array([-0.01, 0.00439067003045462, 0.00969533501522731])
 
     np.testing.assert_allclose(command, expected)
     assert np.isclose(np.max(np.abs(command[:3])), 0.01)

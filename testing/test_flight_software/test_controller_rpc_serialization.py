@@ -89,6 +89,8 @@ def test_estimated_orbital_state_payload_roundtrip_and_safe(os0):
             act_bias=[0.01],
             sens_bias=[0.02, 0.03],
             dist_param=[0.04],
+            cov=np.diag(np.arange(1.0, 12.0)),
+            int_cov=np.diag(np.arange(21.0, 32.0)),
         ),
     ],
 )
@@ -100,4 +102,8 @@ def test_state_payload_roundtrip_is_versioned_and_safe(state):
     assert type(restored) is type(state)
     np.testing.assert_allclose(restored.as_array(), state.as_array())
     if isinstance(state, EstimatorState):
+        assert "cov" in payload
+        assert "int_cov" in payload
         np.testing.assert_allclose(restored.as_estimator_array(), state.as_estimator_array())
+        np.testing.assert_allclose(restored.cov, state.cov)
+        np.testing.assert_allclose(restored.int_cov, state.int_cov)

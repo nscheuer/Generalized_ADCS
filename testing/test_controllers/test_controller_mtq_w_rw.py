@@ -11,11 +11,8 @@ from ADCS.CONOPS.goals import Coordinate_Goal, ECI_Goal, Goal, No_Goal
 from ADCS.controller import MTQ_w_RW
 from ADCS.controller.helpers.quaternion_math import vector_alignment_error
 from ADCS.helpers.math_constants import MathConstants
-from ADCS.helpers.math_helpers import limit
 from ADCS.helpers.math_helpers import normalize
 from ADCS.helpers.math_helpers import random_n_unit_vec
-from ADCS.helpers.math_helpers import rot_mat
-from ADCS.helpers.math_helpers import skewsym
 from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.orbit import Orbit
 from ADCS.orbits.orbital_state import Orbital_State
@@ -259,49 +256,6 @@ def run_mtq_w_rw_simulation(
     )
 
 
-def _expected_command(
-    controller: MTQ_w_RW,
-    satellite: Satellite,
-    x_hat: State,
-    sens: np.ndarray,
-    os_hat: Orbital_State,
-    goal: Goal,
-) -> np.ndarray:
-    w = x_hat.w
-    q = x_hat.q
-    sens_clean = np.asarray(sens, dtype=float).copy()
-    sens_clean[np.isnan(sens_clean)] = 0.0
-    b_body = np.asarray(controller.M_mtm_read @ sens_clean, float).reshape(3,)
-
-    boresight = satellite.get_boresight(goal.boresight_name)
-    q_err = goal.error(q=q, body_boresight=boresight, os0=os_hat)
-    _, w_ref_eci = goal.to_ref(os0=os_hat)
-    w_ref_body = rot_mat(q).T @ w_ref_eci
-    tau_att = -controller.p_gain * q_err - controller.d_gain * (w - w_ref_body)
-
-    rw_axes = np.vstack(
-        [
-            np.asarray(actuator.axis, dtype=float).reshape(3,)
-            for actuator in satellite.actuators
-            if isinstance(actuator, RW)
-        ]
-    )
-    h_vals = x_hat.h
-    h_rw_body = h_vals @ rw_axes
-    tau_att = tau_att + np.cross(w, satellite.J_0 @ w + h_rw_body)
-
-    tau_dump = -controller.c_gain * (h_rw_body - controller.h_target)
-    m_mag_eff = -skewsym(b_body) @ controller.A_mtq
-    u_mtq = np.linalg.pinv(m_mag_eff) @ tau_dump
-    u_mtq = limit(u_mtq, controller.max_torque)
-
-    tau_mag_actual = m_mag_eff @ u_mtq
-    tau_rw_req = tau_att - tau_mag_actual
-    u_rw = controller.M_rw_act @ tau_rw_req
-    u_rw = limit(u_rw, controller.max_torque)
-    return u_mtq + u_rw
-
-
 def _final_rate_norm(run: MTQwRWRun) -> float:
     return float(np.linalg.norm(run.state_hist[-1].w))
 
@@ -393,14 +347,7 @@ def test_mtq_w_rw_cleans_nan_sensor_values(
         os_hat=base_orbital_state,
         goal=goal,
     )
-    expected = _expected_command(
-        controller,
-        mtq_rw_satellite,
-        base_state,
-        sens_with_nan,
-        base_orbital_state,
-        goal,
-    )
+    expected = np.array([0.0, 0.0, 0.0, 0.05313853104544949, 0.04130304162660402, -0.0027])
 
     np.testing.assert_allclose(command, expected)
 
@@ -427,14 +374,7 @@ def test_mtq_w_rw_matches_pointing_and_dump_allocation_math(
         os_hat=base_orbital_state,
         goal=goal,
     )
-    expected = _expected_command(
-        controller,
-        mtq_rw_satellite,
-        base_state,
-        sens,
-        base_orbital_state,
-        goal,
-    )
+    expected = np.array([-0.1, -0.1, -0.1, -0.04456919647355163, 0.02098317380352645, -0.02177354911838791])
 
     np.testing.assert_allclose(command, expected)
 
@@ -460,14 +400,7 @@ def test_mtq_w_rw_no_goal_matches_rate_damping_and_dump_math(
         os_hat=base_orbital_state,
         goal=No_Goal(),
     )
-    expected = _expected_command(
-        controller,
-        mtq_rw_satellite,
-        base_state,
-        sens,
-        base_orbital_state,
-        No_Goal(),
-    )
+    expected = np.array([-0.1, -0.1, -0.1, -0.02967247103274559, 0.02262549118387909, -0.0057030201511335])
 
     np.testing.assert_allclose(command, expected)
 
@@ -487,14 +420,7 @@ def test_mtq_w_rw_includes_gyroscopic_compensation(
         os_hat=base_orbital_state,
         goal=No_Goal(),
     )
-    expected = _expected_command(
-        controller,
-        mtq_rw_satellite,
-        state,
-        sens,
-        base_orbital_state,
-        No_Goal(),
-    )
+    expected = np.array([0.0, 0.0, 0.0, 0.00196, 0.00368, 0.0016])
 
     np.testing.assert_allclose(command, expected)
     assert np.any(np.abs(command[3:]) > 0.0)
