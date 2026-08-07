@@ -51,7 +51,7 @@ class Controller():
         pass
 
 
-    def find_u(self, x_hat: EstimatorState, sens: np.ndarray, est_sat: EstimatedSatellite, os_hat: Orbital_State, goal: Goal | None, **kwargs) -> np.ndarray:
+    def find_u(self, x_hat: State | EstimatorState, sens: np.ndarray, est_sat: EstimatedSatellite, os_hat: Orbital_State, goal: Goal | None, **kwargs) -> np.ndarray:
         r"""
         Computes actuator command inputs that satisfy the control objective.
 
@@ -76,7 +76,7 @@ class Controller():
         where :math:`A^{\dagger}` denotes an actuator allocation pseudoinverse.
 
         :param x_hat: Estimated spacecraft state vector
-        :type x_hat: ADCS.state.EstimatorState
+        :type x_hat: ADCS.state.State | ADCS.state.EstimatorState
         :param sens: Flattened sensor measurement vector
         :type sens: numpy.ndarray
         :param est_sat: Estimated satellite model providing hardware properties

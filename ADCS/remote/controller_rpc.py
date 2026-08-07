@@ -660,13 +660,13 @@ class RemoteControllerProxy:
         """
         return self._base.ping()
 
-    def find_u(self, x_hat: np.ndarray, sens: np.ndarray, est_sat: Any, os_hat: Orbital_State, goal: Goal | None = None) -> np.ndarray:
+    def find_u(self, x_hat: State | EstimatorState, sens: np.ndarray, est_sat: Any, os_hat: Orbital_State, goal: Goal | None = None) -> np.ndarray:
         """Execute remote controller command synthesis.
 
         :param x_hat:
-            Estimated state vector for controller input.
+            State estimate for controller input.
         :type x_hat:
-            numpy.ndarray
+            ADCS.state.State or ADCS.state.EstimatorState
 
         :param sens:
             Sensor measurement vector for controller input.

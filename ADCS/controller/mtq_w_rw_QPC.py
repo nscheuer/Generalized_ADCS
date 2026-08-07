@@ -178,7 +178,7 @@ class MTQ_w_RW_QPC(MTQ_w_RW_LP):
 
     def find_u(
         self,
-        x_hat: EstimatorState,
+        x_hat: State | EstimatorState,
         sens: np.ndarray,
         est_sat: EstimatedSatellite,
         os_hat: Orbital_State,
@@ -212,7 +212,7 @@ class MTQ_w_RW_QPC(MTQ_w_RW_LP):
 
         :param x_hat: Estimated state vector containing angular rate, attitude quaternion, and
                       optionally wheel momentum states.
-        :type x_hat: ADCS.state.EstimatorState
+        :type x_hat: ADCS.state.State | ADCS.state.EstimatorState
         :param sens: Sensor measurement vector used to estimate body magnetic field through the
                      MTM readout model.
         :type sens: numpy.ndarray

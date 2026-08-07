@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 from ADCS.CONOPS.goals import No_Goal
+from ADCS.controller import Controller
 from ADCS.controller import MTQ_w_RW
 from ADCS.estimators.attitude_estimators import UAKF
 from ADCS.helpers.math_constants import MathConstants
@@ -17,6 +18,23 @@ from ADCS.simulate import simulate
 from ADCS.state import EstimatorState, State
 
 UNIT_VECTORS = MathConstants.unitvecs
+
+
+class CapturingController(Controller):
+    def __init__(self):
+        self.received_state = None
+
+    def find_u(
+        self,
+        x_hat: State | EstimatorState,
+        sens: np.ndarray,
+        est_sat: EstimatedSatellite,
+        os_hat: Orbital_State,
+        goal: No_Goal | None = None,
+        **kwargs,
+    ) -> np.ndarray:
+        self.received_state = x_hat
+        return np.zeros(est_sat.control_len)
 
 
 @pytest.fixture(scope="module")
@@ -95,6 +113,36 @@ def gnc_run():
         tf=100.0,
     )[0]
     return result, x0
+
+
+def test_estimatorless_simulation_passes_state_to_controller():
+    satellite = Satellite()
+    est_satellite = EstimatedSatellite.from_satellite(satellite)
+    controller = CapturingController()
+    orbital_state = Orbital_State(
+        ephem=Ephemeris(),
+        J2000=0.22,
+        R=[7000.0, 0.0, 0.0],
+        V=[0.0, 7.5, 0.0],
+        fast=True,
+    )
+    x0 = State(w=np.zeros(3), q=[1.0, 0.0, 0.0, 0.0])
+
+    result = simulate(
+        x=x0,
+        satellite=satellite,
+        est_satellite=est_satellite,
+        controller=controller,
+        estimator=None,
+        goal=No_Goal(),
+        os0=orbital_state,
+        dt=1.0,
+        tf=1.0,
+    )[0]
+
+    assert isinstance(controller.received_state, State)
+    assert not isinstance(controller.received_state, EstimatorState)
+    assert result.est_state_hist is None
 
 
 def state_histories(gnc_run):

@@ -210,7 +210,7 @@ class Plan_and_Track_LQR_Disturbed(PlanAndTrackBase):
 
     def find_u(
         self,
-        x_hat: NDArray[np.float64],
+        x_hat: State | EstimatorState,
         sens: NDArray[np.float64],
         est_sat: EstimatedSatellite,
         os_hat: Orbital_State,
@@ -258,8 +258,8 @@ class Plan_and_Track_LQR_Disturbed(PlanAndTrackBase):
         time lies outside the trajectory’s valid time window, as determined by
         :meth:`~ADCS.controller.helpers.Trajectory.is_valid_time`.
 
-        :param x_hat: Estimated state vector.
-        :type x_hat: numpy.typing.NDArray[numpy.float64]
+        :param x_hat: Current spacecraft state.
+        :type x_hat: ADCS.state.State | ADCS.state.EstimatorState
         :param sens: Sensor measurement vector. Not directly used.
         :type sens: numpy.typing.NDArray[numpy.float64]
         :param est_sat: Estimated satellite model.

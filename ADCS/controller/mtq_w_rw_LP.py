@@ -290,7 +290,7 @@ class MTQ_w_RW_LP(Controller):
 
     def find_u(
         self,
-        x_hat: EstimatorState,
+        x_hat: State | EstimatorState,
         sens: np.ndarray,
         est_sat: EstimatedSatellite,
         os_hat: Orbital_State,
@@ -309,7 +309,7 @@ class MTQ_w_RW_LP(Controller):
 
         :param x_hat: Estimated state containing body rates in ``w``, the attitude
             quaternion in ``q``, and reaction-wheel momentum in ``h``.
-        :type x_hat: ADCS.state.EstimatorState
+        :type x_hat: ADCS.state.State | ADCS.state.EstimatorState
         :param sens: Raw sensor vector used to estimate the body magnetic field via the MTM model.
         :type sens: numpy.ndarray
         :param est_sat: Estimated satellite object providing hardware configuration and inertia.
@@ -345,7 +345,7 @@ class MTQ_w_RW_LP(Controller):
         
     def find_u_pointing(
         self,
-        x_hat: EstimatorState,
+        x_hat: State | EstimatorState,
         sens: np.ndarray,
         est_sat: EstimatedSatellite,
         os_hat: Orbital_State,
@@ -438,7 +438,7 @@ class MTQ_w_RW_LP(Controller):
         clipping of RW and MTQ channels.
 
         :param x_hat: Estimated state vector containing body rates, quaternion, and optionally RW momentum states.
-        :type x_hat: ADCS.state.EstimatorState
+        :type x_hat: ADCS.state.State | ADCS.state.EstimatorState
         :param sens: Sensor vector used to estimate the body magnetic field from MTM measurements.
         :type sens: numpy.ndarray
         :param est_sat: Estimated satellite object containing actuators, inertia, and boresight configuration.
@@ -606,7 +606,7 @@ class MTQ_w_RW_LP(Controller):
 
     def find_u_desaturate(
         self,
-        x_hat: EstimatorState,
+        x_hat: State | EstimatorState,
         sens: np.ndarray,
         est_sat: EstimatedSatellite,
         os_hat: Orbital_State,
@@ -695,7 +695,7 @@ class MTQ_w_RW_LP(Controller):
         the RW torque-to-command mapping built in the constructor and then saturated to bounds.
 
         :param x_hat: Estimated state vector containing body rates, quaternion, and optionally RW momentum states.
-        :type x_hat: ADCS.state.EstimatorState
+        :type x_hat: ADCS.state.State | ADCS.state.EstimatorState
         :param sens: Sensor vector used to estimate the body magnetic field from MTM measurements.
         :type sens: numpy.ndarray
         :param est_sat: Estimated satellite object providing actuators and inertia.

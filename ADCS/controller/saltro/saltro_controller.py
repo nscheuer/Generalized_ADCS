@@ -292,7 +292,7 @@ class SALTRO(Controller):
 
     def find_u(
         self,
-        x_hat: EstimatorState,
+        x_hat: State | EstimatorState,
         sens: np.ndarray,
         est_sat: EstimatedSatellite,
         os_hat: Orbital_State,
@@ -308,8 +308,8 @@ class SALTRO(Controller):
 
            u(t) = u_\mathrm{traj}(t, x_{\hat{}}).
 
-        :param x_hat: Estimated state vector.
-        :type x_hat: ADCS.state.EstimatorState
+        :param x_hat: Current spacecraft state.
+        :type x_hat: ADCS.state.State | ADCS.state.EstimatorState
         :param sens: Sensor vector (accepted for interface compatibility).
         :type sens: numpy.ndarray
         :param est_sat: Estimated satellite (accepted for interface compatibility).

@@ -127,7 +127,7 @@ class MTQ_Wisniewski(Controller):
 
         self.mtq_umax = np.array([a.u_max for a in est_sat.actuators if isinstance(a, MTQ)], dtype=float)
         
-    def find_u(self, x_hat: EstimatorState, sens: np.ndarray, est_sat: EstimatedSatellite, os_hat: Orbital_State, goal: Goal | None = None) -> np.ndarray:
+    def find_u(self, x_hat: State | EstimatorState, sens: np.ndarray, est_sat: EstimatedSatellite, os_hat: Orbital_State, goal: Goal | None = None) -> np.ndarray:
         r"""
         Compute magnetic torquer command vector using sliding mode control.
 
@@ -168,7 +168,7 @@ class MTQ_Wisniewski(Controller):
 
         Parameters
         ----------
-        x_hat : numpy.ndarray
+        x_hat : ADCS.state.State or ADCS.state.EstimatorState
             Estimated spacecraft state vector containing angular rates,
             attitude quaternion, and optional reaction wheel momentum states.
         sens : numpy.ndarray

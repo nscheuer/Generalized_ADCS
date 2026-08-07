@@ -161,7 +161,7 @@ class MTQ_w_RW(Controller):
         self.n_actuators = len(est_sat.actuators)
 
 
-    def find_u(self, x_hat: EstimatorState, sens: np.ndarray, est_sat: EstimatedSatellite, os_hat: Orbital_State, goal: Goal | None = None) -> np.ndarray:
+    def find_u(self, x_hat: State | EstimatorState, sens: np.ndarray, est_sat: EstimatedSatellite, os_hat: Orbital_State, goal: Goal | None = None) -> np.ndarray:
         r"""
         Compute actuator command vector for reaction wheels and magnetic torquers.
 
@@ -202,7 +202,7 @@ class MTQ_w_RW(Controller):
 
         Parameters
         ----------
-        x_hat : numpy.ndarray
+        x_hat : ADCS.state.State or ADCS.state.EstimatorState
             Estimated spacecraft state vector containing angular rates,
             quaternion attitude, and reaction wheel momentum states.
         sens : numpy.ndarray

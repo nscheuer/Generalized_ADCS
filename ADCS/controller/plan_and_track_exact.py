@@ -111,7 +111,7 @@ class Plan_and_Track_Exact(PlanAndTrackBase):
 
     def find_u(
         self,
-        x_hat: NDArray[np.float64],
+        x_hat: State | EstimatorState,
         sens: NDArray[np.float64],
         est_sat: EstimatedSatellite,
         os_hat: Orbital_State,
@@ -150,8 +150,8 @@ class Plan_and_Track_Exact(PlanAndTrackBase):
         :class:`~ADCS.controller.Controller` interface but are not used for control
         computation in the open-loop variant.
 
-        :param x_hat: Estimated state vector. Not used in open-loop execution.
-        :type x_hat: numpy.typing.NDArray[numpy.float64]
+        :param x_hat: Current spacecraft state. Not used in open-loop execution.
+        :type x_hat: ADCS.state.State | ADCS.state.EstimatorState
         :param sens: Sensor measurement vector. Not used in open-loop execution.
         :type sens: numpy.typing.NDArray[numpy.float64]
         :param est_sat: Estimated satellite model. Not used in open-loop execution.
