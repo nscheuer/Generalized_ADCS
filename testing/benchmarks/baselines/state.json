@@ -1,0 +1,59 @@
+{
+  "benchmarks": {
+    "augmented_conversion": {
+      "loops": 32768,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.00033687941444422384,
+      "seconds": 1.082359954884815e-06
+    },
+    "construct": {
+      "loops": 16384,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.0004898418836356603,
+      "seconds": 1.5738131103892883e-06
+    },
+    "copy": {
+      "loops": 16384,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.0004978920494819679,
+      "seconds": 1.5996774902493627e-06
+    },
+    "estimator_manifold_update": {
+      "loops": 8192,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.0013615368026410012,
+      "seconds": 4.374481933577812e-06
+    },
+    "field_access": {
+      "loops": 65536,
+      "max_regression": 1.5,
+      "normalized_seconds": 1.7427122941663788e-05,
+      "seconds": 5.599160765590305e-08
+    },
+    "physical_conversion": {
+      "loops": 32768,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.00024358317986500103,
+      "seconds": 7.826084594819704e-07
+    },
+    "rk4_propagation": {
+      "loops": 512,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.01727328746252667,
+      "seconds": 5.549734960652586e-05
+    },
+    "stack_128": {
+      "loops": 256,
+      "max_regression": 1.5,
+      "normalized_seconds": 0.04948862621236893,
+      "seconds": 0.0001590020195294528
+    }
+  },
+  "calibration_loops": 8,
+  "calibration_seconds": 0.003212900249991435,
+  "description": "Structured State and EstimatorState microbenchmarks.",
+  "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+  "processor": "x86_64",
+  "python": "3.12.3",
+  "schema_version": 1
+}
