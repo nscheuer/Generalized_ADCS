@@ -1,15 +1,14 @@
 <?xml version='1.0' encoding='utf-8'?>
 <testsuites name="pytest tests">
-  <testsuite name="pytest" errors="0" failures="0" skipped="0" tests="10" time="1.464" timestamp="2026-08-07T18:26:17.067227+02:00" hostname="Nics-P14s">
-    <testcase classname="testing.test_controllers.test_controller_mtq_w_rw_lp" name="test_desaturate_mode_rejects_missing_rw_momentum_state" time="0.014" />
-    <testcase classname="testing.test_controllers.test_controller_mtq_w_rw_lp" name="test_pointing_mode_rejects_extra_rw_momentum_state" time="0.005" />
-    <testcase classname="testing.test_controllers.test_controller_mtq_lovera" name="test_mtq_lovera_rejects_missing_rw_momentum_state" time="0.007" />
-    <testcase classname="testing.test_controllers.test_controller_mtq_lovera" name="test_mtq_lovera_rejects_extra_rw_momentum_state" time="0.004" />
-    <testcase classname="testing.test_controllers.test_controller_mtq_wisniewski" name="test_mtq_wisniewski_rejects_missing_rw_momentum_state" time="0.004" />
-    <testcase classname="testing.test_controllers.test_controller_mtq_wisniewski" name="test_mtq_wisniewski_rejects_extra_rw_momentum_state" time="0.005" />
-    <testcase classname="testing.test_controllers.test_controller_mtq_w_rw_qpc" name="test_qpc_find_u_rejects_rw_momentum_size_mismatch[h0]" time="0.004" />
-    <testcase classname="testing.test_controllers.test_controller_mtq_w_rw_qpc" name="test_qpc_find_u_rejects_rw_momentum_size_mismatch[h1]" time="0.004" />
-    <testcase classname="testing.test_controllers.test_controller_mtq_w_rw_qpg" name="test_qpg_find_u_rejects_rw_momentum_size_mismatch[goal0-h0]" time="0.007" />
-    <testcase classname="testing.test_controllers.test_controller_mtq_w_rw_qpg" name="test_qpg_find_u_rejects_rw_momentum_size_mismatch[goal1-h1]" time="0.008" />
+  <testsuite name="pytest" errors="0" failures="0" skipped="1" tests="7" time="1.686" timestamp="2026-08-07T18:29:46.126677+02:00" hostname="Nics-P14s">
+    <testcase classname="testing.test_satellite.test_estimated_satellite_match_estimate" name="test_match_estimate_rejects_non_estimator_state" time="0.170" />
+    <testcase classname="testing.test_satellite.test_estimated_satellite_match_estimate" name="test_match_estimate_rejects_wrong_augmented_size" time="0.002" />
+    <testcase classname="testing.test_satellite.test_estimated_satellite_match_estimate" name="test_match_estimate_rejects_wrong_wheel_state_count_after_size_check" time="0.001" />
+    <testcase classname="testing.test_satellite.test_estimated_satellite_match_estimate" name="test_match_estimate_rejects_wrong_actuator_bias_count_after_size_check" time="0.001" />
+    <testcase classname="testing.test_satellite.test_estimated_satellite_match_estimate" name="test_match_estimate_rejects_wrong_sensor_bias_count_after_size_check" time="0.001" />
+    <testcase classname="testing.test_satellite.test_estimated_satellite_match_estimate" name="test_match_estimate_rejects_wrong_disturbance_parameter_count_after_size_check" time="0.001">
+      <skipped type="pytest.xfail" message="dist_param length check is unreachable after augmented_size validation" />
+    </testcase>
+    <testcase classname="testing.test_satellite.test_estimated_satellite_match_estimate" name="test_match_estimate_uses_full_size_integrated_covariance_without_index_shift" time="0.002" />
   </testsuite>
 </testsuites>
