@@ -8,7 +8,7 @@ from ADCS.satellite_hardware.disturbances import Dipole_Disturbance, GG_Disturba
 from ADCS.satellite_hardware.errors import Bias, Noise
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
 from ADCS.satellite_hardware.sensors import Gyro
-from ADCS.state import EstimatedState, State
+from ADCS.state import EstimatorState, State
 
 
 UNIT_VECTORS = MathConstants.unitvecs
@@ -32,7 +32,7 @@ def make_estimated_satellite() -> EstimatedSatellite:
     )
 
 
-def build_filter(filter_type, estimated_satellite: EstimatedSatellite, x_hat: EstimatedState):
+def build_filter(filter_type, estimated_satellite: EstimatedSatellite, x_hat: EstimatorState):
     reduced_length = (
         estimated_satellite.state_len
         - 1
@@ -83,7 +83,7 @@ def test_estimated_satellite_tracks_disturbance_parameter_length():
 @pytest.mark.parametrize("filter_type", [UAKF, SRUAKF])
 def test_filter_builds_with_disturbance_parameter_augmented_state(filter_type):
     estimated_satellite = make_estimated_satellite()
-    x_hat = EstimatedState(
+    x_hat = EstimatorState(
         w=np.zeros(3),
         q=np.array([1.0, 0.0, 0.0, 0.0]),
         sens_bias=np.zeros(3),
@@ -97,7 +97,7 @@ def test_filter_builds_with_disturbance_parameter_augmented_state(filter_type):
 def test_match_estimate_writes_disturbance_parameters(filter_type):
     estimated_satellite = make_estimated_satellite()
     expected = np.array([1.0e-6, -2.0e-6, 3.0e-6])
-    x_hat = EstimatedState(
+    x_hat = EstimatorState(
         w=np.zeros(3),
         q=np.array([1.0, 0.0, 0.0, 0.0]),
         sens_bias=np.zeros(3),

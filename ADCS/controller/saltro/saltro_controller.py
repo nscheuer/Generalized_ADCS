@@ -21,7 +21,7 @@ from typing import Optional
 
 import numpy as np
 
-from ADCS.state import EstimatedState, State
+from ADCS.state import EstimatorState, State
 
 from ADCS.CONOPS.goallist import GoalList
 from ADCS.CONOPS.goals import Goal
@@ -292,7 +292,7 @@ class SALTRO(Controller):
 
     def find_u(
         self,
-        x_hat: EstimatedState,
+        x_hat: EstimatorState,
         sens: np.ndarray,
         est_sat: EstimatedSatellite,
         os_hat: Orbital_State,
@@ -309,7 +309,7 @@ class SALTRO(Controller):
            u(t) = u_\mathrm{traj}(t, x_{\hat{}}).
 
         :param x_hat: Estimated state vector.
-        :type x_hat: ADCS.state.EstimatedState
+        :type x_hat: ADCS.state.EstimatorState
         :param sens: Sensor vector (accepted for interface compatibility).
         :type sens: numpy.ndarray
         :param est_sat: Estimated satellite (accepted for interface compatibility).

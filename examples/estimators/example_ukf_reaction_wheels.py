@@ -70,7 +70,7 @@ def main() -> None:
         sensors=est_sensors,
         disturbances=[ADCS.disturbances.GG_Disturbance()],
     )
-    x_hat = ADCS.EstimatedState(w=np.zeros(3), q=[1.0, 0.0, 0.0, 0.0], h=np.zeros(3))
+    x_hat = ADCS.EstimatorState(w=np.zeros(3), q=[1.0, 0.0, 0.0, 0.0], h=np.zeros(3))
 
     P_hat = block_diag(
         np.eye(3) * (0.01) ** 2,

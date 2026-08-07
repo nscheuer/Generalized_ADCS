@@ -3,14 +3,14 @@ from __future__ import annotations
 import numpy as np
 
 from ADCS.estimators.attitude_estimators import SRUAKF
-from ADCS.state import EstimatedState
+from ADCS.state import EstimatorState
 from testing.test_estimators.ukf.helpers import *  # noqa: F401,F403
 
 
 def make_srukf(
     est_sat,
     *,
-    x_hat: EstimatedState | None = None,
+    x_hat: EstimatorState | None = None,
     P_hat: np.ndarray | None = None,
     Q_hat: np.ndarray | None = None,
     dt: float = 5.0,

@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from ADCS.state import EstimatedState
+from ADCS.state import EstimatorState
 from testing.test_estimators.ukf.helpers import (
     make_baseline_sensors,
     make_mtqs,

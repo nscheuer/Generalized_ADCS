@@ -24,7 +24,7 @@ from ADCS.satellite_hardware.sensors import (
     SunSensor,
 )
 from ADCS.satellite_hardware.satellite import EstimatedSatellite, Satellite
-from ADCS.state import EstimatedState, State
+from ADCS.state import EstimatorState, State
 
 
 def seed(value: int = 0) -> None:
@@ -236,14 +236,14 @@ def full_state_cov(est_sat: EstimatedSatellite) -> np.ndarray:
     return np.array(block_diag(*parts))
 
 
-def make_estimate_guess(est_sat: EstimatedSatellite, *, with_rw: bool | None = None, with_bias: bool = False) -> EstimatedState:
+def make_estimate_guess(est_sat: EstimatedSatellite, *, with_rw: bool | None = None, with_bias: bool = False) -> EstimatorState:
     include_rw = est_sat.number_RW > 0 if with_rw is None else with_rw
     state = make_state(
         w=np.array([2.0e-3, -1.0e-3, 1.5e-3]),
         q=np.array([0.97, 0.15, -0.08, 0.16]),
         h=np.full(est_sat.number_RW, 0.2) if include_rw and est_sat.number_RW else None,
     )
-    return EstimatedState(
+    return EstimatorState(
         w=state.w,
         q=state.q,
         h=state.h,
@@ -256,7 +256,7 @@ def make_estimate_guess(est_sat: EstimatedSatellite, *, with_rw: bool | None = N
 def make_ukf(
     est_sat: EstimatedSatellite,
     *,
-    x_hat: EstimatedState | None = None,
+    x_hat: EstimatorState | None = None,
     P_hat: np.ndarray | None = None,
     Q_hat: np.ndarray | None = None,
     dt: float = 5.0,

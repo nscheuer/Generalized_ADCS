@@ -5,7 +5,7 @@ import time
 from typing import List, Optional
 from ADCS.orbits.orbital_state import Orbital_State, Ephemeris
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
-from ADCS.state import EstimatedState
+from ADCS.state import EstimatorState
 from ADCS.helpers.math_helpers import square_mat_sections, wahbas_svd
 
 class Attitude_Estimator():
@@ -82,7 +82,7 @@ class Attitude_Estimator():
       :func:`~ADCS.helpers.math_helpers.square_mat_sections`.
 
     """
-    def __init__(self, est_sat: EstimatedSatellite, J2000: float, x_hat: EstimatedState, P_hat: np.ndarray, Q_hat: np.ndarray, dt: float = 1, cross_term: bool = False, quat_as_vec: bool = False) -> None:
+    def __init__(self, est_sat: EstimatedSatellite, J2000: float, x_hat: EstimatorState, P_hat: np.ndarray, Q_hat: np.ndarray, dt: float = 1, cross_term: bool = False, quat_as_vec: bool = False) -> None:
         r"""
         Construct an attitude estimator and initialize its internal bookkeeping.
 
@@ -102,7 +102,7 @@ class Attitude_Estimator():
         :type J2000: float
         :param x_hat: Initial augmented state estimate :math:`\mathbf{x}_0` of length
             :math:`N = 7 + n_{RW} + n_{ab} + n_{sb} + n_{dp}`.
-        :type x_hat: ADCS.state.EstimatedState
+        :type x_hat: ADCS.state.EstimatorState
         :param P_hat: Initial covariance matrix, reduced to :math:`(N-1)\times(N-1)`
             unless ``quat_as_vec=True`` (then :math:`N\times N`).
         :type P_hat: numpy.ndarray
@@ -131,13 +131,13 @@ class Attitude_Estimator():
 
         self.reset(J2000=J2000, x_hat=x_hat, P_hat=P_hat, Q_hat=Q_hat, dt=dt, cross_term=cross_term)
 
-    def reset(self, J2000: float, x_hat: EstimatedState, P_hat: np.ndarray, Q_hat: np.ndarray, dt: float = 1, cross_term: bool = False) -> None:
+    def reset(self, J2000: float, x_hat: EstimatorState, P_hat: np.ndarray, Q_hat: np.ndarray, dt: float = 1, cross_term: bool = False) -> None:
         r"""
         Reset the estimator state, covariance, and process noise.
 
         This method validates dimensional consistency between the full augmented
         state vector :math:`\mathbf{x}\in\mathbb{R}^N` and the covariance/process-noise
-        matrices, stores the result into :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedState`
+        matrices, stores the result into :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatorState`
         containers, and synchronizes the internal satellite model via
         :meth:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.match_estimate`.
 
@@ -168,7 +168,7 @@ class Attitude_Estimator():
 
         After validation, the reset procedure:
 
-        - creates :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedState` instances
+        - creates :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatorState` instances
           for :attr:`x0_hat` and :attr:`x_hat`,
         - sets :attr:`use` to all ``True`` (all states active),
         - calls :meth:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.match_estimate`
@@ -177,7 +177,7 @@ class Attitude_Estimator():
         :param J2000: Time in seconds since J2000 corresponding to the new reset.
         :type J2000: float
         :param x_hat: New augmented state estimate :math:`\mathbf{x}` of length :math:`N`.
-        :type x_hat: ADCS.state.EstimatedState
+        :type x_hat: ADCS.state.EstimatorState
         :param P_hat: Covariance matrix, reduced or full depending on ``quat_as_vec``.
         :type P_hat: numpy.ndarray
         :param Q_hat: Process-noise covariance matrix, same shape convention as ``P_hat``.
@@ -193,8 +193,8 @@ class Attitude_Estimator():
         :rtype: None
 
         """
-        if not isinstance(x_hat, EstimatedState):
-            raise TypeError(f"x_hat must be an EstimatedState, got {type(x_hat).__name__}")
+        if not isinstance(x_hat, EstimatorState):
+            raise TypeError(f"x_hat must be an EstimatorState, got {type(x_hat).__name__}")
         expected_x_hat_length = 7 + self.est_sat.number_RW + self.est_sat.act_bias_len + self.est_sat.att_sens_bias_len + self.est_sat.dist_param_len
         if x_hat.augmented_size != expected_x_hat_length:
             raise ValueError("x_hat length does not match estimate length in EstimatedSatellite")
@@ -228,8 +228,8 @@ class Attitude_Estimator():
         *,
         cov: np.ndarray | None = None,
         int_cov: np.ndarray | None = None,
-    ) -> EstimatedState:
-        return EstimatedState.from_estimator_array(
+    ) -> EstimatorState:
+        return EstimatorState.from_estimator_array(
             value,
             n_rw=self.est_sat.number_RW,
             n_act_bias=self.est_sat.act_bias_len,
@@ -439,7 +439,7 @@ class Attitude_Estimator():
         Delegation to subclass filter
         -----------------------------
         Subclasses must implement ``update_core`` and return an
-        :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedState`
+        :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatorState`
         containing:
 
         - ``val``: full augmented state :math:`\hat{\mathbf{x}}`,
@@ -511,7 +511,7 @@ class Attitude_Estimator():
         if self.prev_os.J2000 == 0:
             self.prev_os = os
 
-        x_hat: EstimatedState = self.update_core(u=u, sensors=sensors, os=os)
+        x_hat: EstimatorState = self.update_core(u=u, sensors=sensors, os=os)
 
         self.prev_os = os
         oc = x_hat.cov

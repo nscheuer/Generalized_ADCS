@@ -14,7 +14,7 @@ from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatel
 from ADCS.satellite_hardware.satellite.satellite import Satellite
 from ADCS.satellite_hardware.sensors import Gyro, MTM
 from ADCS.simulate import simulate
-from ADCS.state import EstimatedState, State
+from ADCS.state import EstimatorState, State
 
 UNIT_VECTORS = MathConstants.unitvecs
 
@@ -60,7 +60,7 @@ def gnc_run():
     initial_quaternion = random_n_unit_vec(4)
     x0 = State(w=initial_rate, q=initial_quaternion, h=np.zeros(state_length - 7))
 
-    x_hat0 = EstimatedState(w=np.zeros(3), q=[1.0, 0.0, 0.0, 0.0], h=np.zeros(state_length - 7))
+    x_hat0 = EstimatorState(w=np.zeros(3), q=[1.0, 0.0, 0.0, 0.0], h=np.zeros(state_length - 7))
     reduced_length = state_length - 1
     covariance0 = np.diag(np.concatenate([[1e-3] * 3, [1e-2] * 3, [1e-4] * (reduced_length - 6)]))
     process_noise0 = np.eye(reduced_length) * 1e-8

@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from ADCS.state import EstimatedState, State
+from ADCS.state import EstimatorState, State
 
 
 def _unit(q):
@@ -96,9 +96,9 @@ def test_subtract_is_sign_invariant_in_representation():
 def test_subtract_add_error_roundtrip_estimated_state():
     rng = np.random.default_rng(11)
     kwargs = dict(h=rng.normal(size=1), act_bias=rng.normal(size=2), sens_bias=rng.normal(size=3), dist_param=rng.normal(size=1))
-    e1 = EstimatedState(w=rng.normal(size=3), q=_unit(rng.normal(size=4)), **kwargs)
+    e1 = EstimatorState(w=rng.normal(size=3), q=_unit(rng.normal(size=4)), **kwargs)
     kwargs2 = dict(h=rng.normal(size=1), act_bias=rng.normal(size=2), sens_bias=rng.normal(size=3), dist_param=rng.normal(size=1))
-    e2 = EstimatedState(w=rng.normal(size=3), q=_unit(rng.normal(size=4)), **kwargs2)
+    e2 = EstimatorState(w=rng.normal(size=3), q=_unit(rng.normal(size=4)), **kwargs2)
 
     err = e1.subtract(e2)
     assert err.shape == (e1.augmented_size - 1,)
@@ -118,8 +118,8 @@ def test_subtract_add_error_roundtrip_estimated_state():
 def test_estimated_interpolate_blends_blocks_and_covariance():
     cov1 = np.eye(9) * 2.0
     cov2 = np.eye(9) * 4.0
-    e1 = EstimatedState(w=np.zeros(3), q=[1.0, 0.0, 0.0, 0.0], h=[0.0], sens_bias=[0.0, 0.0], cov=cov1)
-    e2 = EstimatedState(w=[2.0, 2.0, 2.0], q=[1.0, 0.0, 0.0, 0.0], h=[1.0], sens_bias=[2.0, 4.0], cov=cov2)
+    e1 = EstimatorState(w=np.zeros(3), q=[1.0, 0.0, 0.0, 0.0], h=[0.0], sens_bias=[0.0, 0.0], cov=cov1)
+    e2 = EstimatorState(w=[2.0, 2.0, 2.0], q=[1.0, 0.0, 0.0, 0.0], h=[1.0], sens_bias=[2.0, 4.0], cov=cov2)
 
     mid = e1.interpolate(e2, 0.5)
 
@@ -130,8 +130,8 @@ def test_estimated_interpolate_blends_blocks_and_covariance():
 
 
 def test_estimated_interpolate_rejects_mismatched_layouts():
-    e1 = EstimatedState(w=np.zeros(3), q=[1.0, 0.0, 0.0, 0.0], sens_bias=[0.0])
-    e2 = EstimatedState(w=np.zeros(3), q=[1.0, 0.0, 0.0, 0.0], sens_bias=[0.0, 0.0])
+    e1 = EstimatorState(w=np.zeros(3), q=[1.0, 0.0, 0.0, 0.0], sens_bias=[0.0])
+    e2 = EstimatorState(w=np.zeros(3), q=[1.0, 0.0, 0.0, 0.0], sens_bias=[0.0, 0.0])
     with pytest.raises(ValueError):
         e1.interpolate(e2, 0.5)
     with pytest.raises(TypeError):

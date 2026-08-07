@@ -15,7 +15,7 @@ from ADCS.satellite_hardware.disturbances import Disturbance, SRP_Disturbance, G
 from ADCS.satellite_hardware.sensors import Sensor, GPS
 from ADCS.satellite_hardware.actuators import Actuator, RW
 from ADCS.orbits.orbital_state import Orbital_State
-from ADCS.state import EstimatedState
+from ADCS.state import EstimatorState
 
 class EstimatedSatellite(Satellite):
     r"""
@@ -164,7 +164,7 @@ class EstimatedSatellite(Satellite):
         return est
 
 
-    def match_estimate(self, est_state: EstimatedState, dt: float) -> None:
+    def match_estimate(self, est_state: EstimatorState, dt: float) -> None:
         r"""
         Synchronize the satellite instance with the estimator output.
 
@@ -233,7 +233,7 @@ class EstimatedSatellite(Satellite):
 
         :param est_state: Estimator output container providing
             ``val`` (state vector), ``cov`` (covariance), and ``int_cov`` (integrated covariance).
-        :type est_state: :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedState`
+        :type est_state: :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatorState`
 
         :param dt: Estimator propagation step (s). Used by some pipelines to normalize integrated covariance.
             (The current implementation partitions ``int_cov`` directly.)
@@ -246,8 +246,8 @@ class EstimatedSatellite(Satellite):
             If ``est_state.as_estimator_array()`` does not have length
             ``self.state_len + self.act_bias_len + self.att_sens_bias_len + self.dist_param_len``.
         """
-        if not isinstance(est_state, EstimatedState):
-            raise TypeError(f"est_state must be an EstimatedState, got {type(est_state).__name__}")
+        if not isinstance(est_state, EstimatorState):
+            raise TypeError(f"est_state must be an EstimatorState, got {type(est_state).__name__}")
         int_cov = est_state.int_cov
 
         # Dimension checks

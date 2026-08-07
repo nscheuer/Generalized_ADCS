@@ -35,7 +35,7 @@ os0 = ADCS.Orbital_State(ephem=ADCS.Ephemeris(), J2000=0.25, R=R_iss, V=V_iss)
 # ── Estimator (SRUAKF) ───────────────────────────────────────────────
 # State: [omega(3), quat(4), h_rw(1), act_bias(4), sens_bias(8)] = 20
 # P_hat, Q_hat: (N-1)x(N-1) = 19x19  (quat(4) → MRP(3))
-x_hat = ADCS.EstimatedState(
+x_hat = ADCS.EstimatorState(
     w=np.zeros(3), q=[1.0, 0.0, 0.0, 0.0], h=np.zeros(1),
     act_bias=np.zeros(4), sens_bias=np.zeros(8),
 )

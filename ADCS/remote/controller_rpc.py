@@ -28,7 +28,7 @@ from ADCS.estimators.attitude_estimators import Attitude_Estimator
 from ADCS.estimators.estimator_helpers import EstimatedOrbital_State
 from ADCS.estimators.orbit_estimators import Orbit_Estimator
 from ADCS.orbits.orbital_state import Ephemeris, Orbital_State
-from ADCS.state import EstimatedState, State
+from ADCS.state import EstimatorState, State
 
 
 class ComponentLocation(str, Enum):
@@ -131,7 +131,7 @@ def _xmlrpc_safe(value: Any) -> Any:
 def _state_to_payload(state: State) -> dict[str, Any]:
     return _xmlrpc_safe({
         "schema_version": 1,
-        "kind": "estimated" if isinstance(state, EstimatedState) else "physical",
+        "kind": "estimated" if isinstance(state, EstimatorState) else "physical",
         **state.to_dict(),
     })
 
@@ -140,7 +140,7 @@ def _state_from_payload(payload: dict[str, Any]) -> State:
     if payload.get("schema_version") != 1:
         raise ValueError(f"Unsupported state payload schema {payload.get('schema_version')!r}")
     if payload.get("kind") == "estimated":
-        return EstimatedState.from_dict(payload)
+        return EstimatorState.from_dict(payload)
     if payload.get("kind") == "physical":
         return State.from_dict(payload)
     raise ValueError(f"Unsupported state payload kind {payload.get('kind')!r}")

@@ -40,7 +40,7 @@ control and estimation workflows.
 - ✅ Designed for underactuated and overactuated systems
 
 Spacecraft attitude states are represented by `ADCS.State` (`w`, `q`, and
-reaction-wheel momentum `h`). Estimators use `ADCS.EstimatedState` for the
+reaction-wheel momentum `h`). Estimators use `ADCS.EstimatorState` for the
 physical state, estimated parameters, and covariance. Explicit `from_array()`
 and `as_array()` conversions preserve the established numerical ordering at
 SciPy and native-planner boundaries.

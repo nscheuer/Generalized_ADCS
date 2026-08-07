@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from ADCS import EstimatedState, State
+from ADCS import EstimatorState, State
 from ADCS.satellite_hardware.satellite import Satellite
 
 
@@ -64,7 +64,7 @@ def test_state_stack_requires_matching_widths():
 def test_estimated_state_augmented_roundtrip_supports_covariance_modes(full_covariance):
     value = np.arange(13.0)
     cov_size = value.size if full_covariance else value.size - 1
-    state = EstimatedState.from_estimator_array(
+    state = EstimatorState.from_estimator_array(
         value,
         n_rw=2,
         n_act_bias=1,
@@ -81,11 +81,11 @@ def test_estimated_state_augmented_roundtrip_supports_covariance_modes(full_cova
 
 def test_estimated_state_rejects_wrong_covariance_dimension():
     with pytest.raises(ValueError, match="reduced- or full-quaternion"):
-        EstimatedState(w=np.zeros(3), q=[1, 0, 0, 0], cov=np.eye(2))
+        EstimatorState(w=np.zeros(3), q=[1, 0, 0, 0], cov=np.eye(2))
 
 
 def test_state_dict_roundtrip_preserves_subclass_and_data():
-    state = EstimatedState(
+    state = EstimatorState(
         w=[1, 2, 3],
         q=[1, 0, 0, 0],
         h=[4],
@@ -93,6 +93,6 @@ def test_state_dict_roundtrip_preserves_subclass_and_data():
         sens_bias=[6],
         dist_param=[7],
     )
-    rebuilt = EstimatedState.from_dict(state.to_dict())
+    rebuilt = EstimatorState.from_dict(state.to_dict())
     np.testing.assert_array_equal(rebuilt.as_estimator_array(), state.as_estimator_array())
     np.testing.assert_array_equal(rebuilt.cov, state.cov)

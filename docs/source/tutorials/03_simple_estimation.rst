@@ -86,7 +86,7 @@ Consider the TRMM (Tropical Rainfall Measuring Mission) satellite, launched by N
 
   est_gg_dist = [ADCS.disturbances.GG_Disturbance()]
   est_satellite = ADCS.EstimatedSatellite(mass=3200, J_0=np.diag([450, 1400, 1400]), sensors=est_sens, disturbances=est_gg_dist)
-  x_hat = ADCS.EstimatedState(w=np.zeros(3), q=[1, 0, 0, 0]) # w, q
+  x_hat = ADCS.EstimatorState(w=np.zeros(3), q=[1, 0, 0, 0]) # w, q
 
   # Estimator
   P_hat = block_diag(

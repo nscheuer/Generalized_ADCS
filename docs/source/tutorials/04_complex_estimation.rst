@@ -94,7 +94,7 @@ This time, sensors will have biases that must be actively estimated and accounte
 
     est_dist_gg = [ADCS.disturbances.GG_Disturbance()]
     est_satellite = ADCS.EstimatedSatellite(mass=3000, J_0=np.diag([500, 1500, 1500]), sensors=est_sens, disturbances=est_dist_gg)
-    x_hat = ADCS.EstimatedState(w=np.zeros(3), q=[1, 0, 0, 0], sens_bias=np.zeros(9)) # w, q, sensor biases
+    x_hat = ADCS.EstimatorState(w=np.zeros(3), q=[1, 0, 0, 0], sens_bias=np.zeros(9)) # w, q, sensor biases
 
     # Estimator
     P_hat = block_diag(

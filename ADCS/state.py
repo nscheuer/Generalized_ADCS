@@ -162,7 +162,7 @@ class State:
 
 
 @dataclass(slots=True)
-class EstimatedState(State):
+class EstimatorState(State):
     """Physical state plus estimated parameters and uncertainty."""
 
     act_bias: np.ndarray = field(default_factory=lambda: np.empty(0, dtype=float))
@@ -219,7 +219,7 @@ class EstimatedState(State):
         n_dist_param: int = 0,
         cov: Any = None,
         int_cov: Any = None,
-    ) -> EstimatedState:
+    ) -> EstimatorState:
         array = _vector(value, name="estimated state")
         lengths = (n_rw, n_act_bias, n_sens_bias, n_dist_param)
         if any(length < 0 for length in lengths):
@@ -251,8 +251,8 @@ class EstimatedState(State):
             (self.w, self.q, self.h, self.act_bias, self.sens_bias, self.dist_param)
         )
 
-    def copy(self) -> EstimatedState:
-        return EstimatedState(
+    def copy(self) -> EstimatorState:
+        return EstimatorState(
             w=self.w,
             q=self.q,
             h=self.h,
@@ -263,7 +263,7 @@ class EstimatedState(State):
             int_cov=self.int_cov,
         )
 
-    def normalized(self) -> EstimatedState:
+    def normalized(self) -> EstimatorState:
         norm = float(np.linalg.norm(self.q))
         if not np.isfinite(norm) or norm == 0.0:
             raise ValueError("q must have a finite, non-zero norm to normalize")
@@ -271,7 +271,7 @@ class EstimatedState(State):
         result.q = result.q / norm
         return result
 
-    def interpolate(self, other: State, alpha: float, *, method: str = "slerp") -> EstimatedState:
+    def interpolate(self, other: State, alpha: float, *, method: str = "slerp") -> EstimatorState:
         """Blend two estimated states (see :meth:`State.interpolate`).
 
         Bias and disturbance blocks interpolate linearly. Covariances also
@@ -279,8 +279,8 @@ class EstimatedState(State):
         this is a convenience for plotting/resampling, not a geodesic
         covariance interpolation.
         """
-        if not isinstance(other, EstimatedState):
-            raise TypeError(f"other must be an EstimatedState, got {type(other).__name__}")
+        if not isinstance(other, EstimatorState):
+            raise TypeError(f"other must be an EstimatorState, got {type(other).__name__}")
         blocks = ("h", "act_bias", "sens_bias", "dist_param")
         for name in blocks:
             if getattr(self, name).size != getattr(other, name).size:
@@ -292,7 +292,7 @@ class EstimatedState(State):
         def lerp(a: np.ndarray, b: np.ndarray) -> np.ndarray:
             return (1.0 - alpha) * a + alpha * b
 
-        return EstimatedState(
+        return EstimatorState(
             w=lerp(self.w, other.w),
             q=_interpolate_quat(self.q, other.q, alpha, method),
             h=lerp(self.h, other.h),
@@ -310,8 +310,8 @@ class EstimatedState(State):
         δdist_param]`` (length ``augmented_size − 1``); exact inverse of
         :meth:`add_error`.
         """
-        if not isinstance(ref, EstimatedState):
-            raise TypeError(f"ref must be an EstimatedState, got {type(ref).__name__}")
+        if not isinstance(ref, EstimatorState):
+            raise TypeError(f"ref must be an EstimatorState, got {type(ref).__name__}")
         for name in ("act_bias", "sens_bias", "dist_param"):
             if getattr(self, name).size != getattr(ref, name).size:
                 raise ValueError(f"states must have matching {name} sizes to subtract")
@@ -325,7 +325,7 @@ class EstimatedState(State):
             )
         )
 
-    def add_error(self, delta: np.ndarray) -> EstimatedState:
+    def add_error(self, delta: np.ndarray) -> EstimatorState:
         """Apply a reduced error vector of length ``augmented_size − 1``.
 
         The attitude block is retracted as in :meth:`State.add_error`; all
@@ -358,7 +358,7 @@ class EstimatedState(State):
         }
 
     @classmethod
-    def from_dict(cls, payload: Mapping[str, Any]) -> EstimatedState:
+    def from_dict(cls, payload: Mapping[str, Any]) -> EstimatorState:
         return cls(
             w=payload["w"],
             q=payload["q"],

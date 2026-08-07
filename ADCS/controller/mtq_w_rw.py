@@ -2,7 +2,7 @@ __all__ = ["MTQ_w_RW"]
 
 import numpy as np
 
-from ADCS.state import EstimatedState, State
+from ADCS.state import EstimatorState, State
 from typing import List
 
 from ADCS.CONOPS.goals import Goal
@@ -102,7 +102,7 @@ class MTQ_w_RW(Controller):
 
     Notes
     -----
-    Reaction wheel momentum is read from ``EstimatedState.h``; its ordering
+    Reaction wheel momentum is read from ``EstimatorState.h``; its ordering
     matches the internal reaction-wheel actuator ordering.
 
     References
@@ -161,7 +161,7 @@ class MTQ_w_RW(Controller):
         self.n_actuators = len(est_sat.actuators)
 
 
-    def find_u(self, x_hat: EstimatedState, sens: np.ndarray, est_sat: EstimatedSatellite, os_hat: Orbital_State, goal: Goal | None = None) -> np.ndarray:
+    def find_u(self, x_hat: EstimatorState, sens: np.ndarray, est_sat: EstimatedSatellite, os_hat: Orbital_State, goal: Goal | None = None) -> np.ndarray:
         r"""
         Compute actuator command vector for reaction wheels and magnetic torquers.
 

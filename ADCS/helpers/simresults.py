@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Optional, Iterator, Union
 
 from ADCS.satellite_hardware.satellite import Satellite, EstimatedSatellite
 from ADCS.orbits.orbital_state import Orbital_State
-from ADCS.state import EstimatedState, State
+from ADCS.state import EstimatorState, State
 
 __all__ = ["RunResults", "SimulationResults"]
 
@@ -27,7 +27,7 @@ class RunResults:
     est_os_hist: Optional[List[Orbital_State]] = None
     os_cov_hist: Optional[List[np.ndarray]] = None
     state_hist: Optional[List[State]] = None
-    est_state_hist: Optional[List[EstimatedState]] = None
+    est_state_hist: Optional[List[EstimatorState]] = None
     state_cov_hist: Optional[List[np.ndarray]] = None
     sensor_bias: Optional[np.ndarray] = None
     est_sensor_bias: Optional[np.ndarray] = None
@@ -96,13 +96,13 @@ class RunResults:
                 covariances = []
             converted = []
             for index, item in enumerate(data["est_state_hist"]):
-                if isinstance(item, EstimatedState):
+                if isinstance(item, EstimatorState):
                     converted.append(item)
                 elif isinstance(item, dict):
-                    converted.append(EstimatedState.from_dict(item))
+                    converted.append(EstimatorState.from_dict(item))
                 else:
                     cov = covariances[index] if index < len(covariances) else None
-                    converted.append(EstimatedState.from_estimator_array(
+                    converted.append(EstimatorState.from_estimator_array(
                         item,
                         n_rw=getattr(est_sat, "number_RW", 0),
                         n_act_bias=getattr(est_sat, "act_bias_len", 0),

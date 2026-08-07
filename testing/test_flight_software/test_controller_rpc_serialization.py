@@ -14,7 +14,7 @@ from ADCS.CONOPS.goals import ECI_Goal, No_Goal
 from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.estimators.estimator_helpers import EstimatedOrbital_State
-from ADCS.state import EstimatedState, State
+from ADCS.state import EstimatorState, State
 
 
 @pytest.fixture(scope="module")
@@ -82,7 +82,7 @@ def test_estimated_orbital_state_payload_roundtrip_and_safe(os0):
     "state",
     [
         State(w=[0.1, -0.2, 0.3], q=[1.0, 0.0, 0.0, 0.0], h=[0.4]),
-        EstimatedState(
+        EstimatorState(
             w=[0.1, -0.2, 0.3],
             q=[1.0, 0.0, 0.0, 0.0],
             h=[0.4],
@@ -99,5 +99,5 @@ def test_state_payload_roundtrip_is_versioned_and_safe(state):
     restored = rpc._state_from_payload(payload)
     assert type(restored) is type(state)
     np.testing.assert_allclose(restored.as_array(), state.as_array())
-    if isinstance(state, EstimatedState):
+    if isinstance(state, EstimatorState):
         np.testing.assert_allclose(restored.as_estimator_array(), state.as_estimator_array())

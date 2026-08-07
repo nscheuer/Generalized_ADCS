@@ -31,7 +31,7 @@ from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.helpers.math_helpers import random_n_unit_vec, rot_mat, norm, normalize, limit
 from ADCS.helpers.math_constants import MathConstants
 from ADCS.estimators.attitude_estimators import UAKF, SRUAKF
-from ADCS.state import State, EstimatedState
+from ADCS.state import State, EstimatorState
 
 from ADCS.helpers.plotting.plot_estimator import plot_state_comparison, plot_error_and_sun, plot_sensor_data, plot_bias_comparison
 from ADCS.helpers.plotting.animate_estimator import animate_attitude
@@ -138,7 +138,7 @@ def run_ukf(verbose: bool = False, tf: float = 1000, dt: float = 10, real_orbit:
     est_sat = EstimatedSatellite(mass=est_sat_mass, J_0=est_sat_J, actuators=est_acts, sensors=est_mtms+est_gyros+est_suns, disturbances=est_dists)
 
     # Initial Estimated State
-    x_hat = EstimatedState(w=np.zeros(3), q=[1, 0, 0, 0], sens_bias=np.zeros(9))
+    x_hat = EstimatorState(w=np.zeros(3), q=[1, 0, 0, 0], sens_bias=np.zeros(9))
 
     # Create Covariance Matrices
     invJ = np.linalg.inv(est_sat.J_0)
@@ -171,7 +171,7 @@ def run_ukf(verbose: bool = False, tf: float = 1000, dt: float = 10, real_orbit:
     # Create history vectors
     time_hist = np.nan*np.zeros(N)
     state_hist: List[State] = []
-    est_state_hist: List[EstimatedState] = []
+    est_state_hist: List[EstimatorState] = []
     os_hist: List[Orbital_State] = list()
     sensor_hist: List[np.ndarray] = np.nan*np.zeros((N, 9))
     clean_sensor_hist: List[np.ndarray] = np.nan*np.zeros((N, 9))

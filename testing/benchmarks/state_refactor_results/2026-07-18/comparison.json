@@ -1018,7 +1018,7 @@
         "seconds": 0.0001667143124990389
       }
     },
-    "description": "Structured State and EstimatedState microbenchmarks.",
+    "description": "Structured State and EstimatorState microbenchmarks.",
     "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
     "python": "3.12.3",
     "schema_version": 1

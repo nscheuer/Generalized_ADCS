@@ -2,7 +2,7 @@ __all__ = ["MTQ_Lovera"]
 
 import numpy as np
 
-from ADCS.state import EstimatedState, State
+from ADCS.state import EstimatorState, State
 
 from ADCS.CONOPS.goals import Goal, No_Goal
 from ADCS.controller import Controller
@@ -184,7 +184,7 @@ class MTQ_Lovera(Controller):
 
         self.mtq_umax = np.array([a.u_max for a in est_sat.actuators if isinstance(a, MTQ)], dtype=float)
         
-    def find_u(self, x_hat: EstimatedState, sens: np.ndarray, est_sat: EstimatedSatellite, os_hat: Orbital_State, goal: Goal | None = None) -> np.ndarray:
+    def find_u(self, x_hat: EstimatorState, sens: np.ndarray, est_sat: EstimatedSatellite, os_hat: Orbital_State, goal: Goal | None = None) -> np.ndarray:
         r"""
         Computes magnetorquer actuator commands using the Lovera–Astolfi control law.
 
@@ -197,7 +197,7 @@ class MTQ_Lovera(Controller):
         actuators; all other actuator commands are set to zero.
 
         :param x_hat: Estimated state vector containing angular velocity and attitude
-        :type x_hat: ADCS.state.EstimatedState
+        :type x_hat: ADCS.state.EstimatorState
         :param sens: Raw sensor measurement vector
         :type sens: numpy.ndarray
         :param est_sat: Estimated satellite object providing hardware properties

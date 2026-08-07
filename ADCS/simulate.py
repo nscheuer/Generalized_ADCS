@@ -20,7 +20,7 @@ from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.satellite_hardware.satellite import Satellite, EstimatedSatellite
 from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.helpers.math_helpers import normalize
-from ADCS.state import EstimatedState, State
+from ADCS.state import EstimatorState, State
 
 from ADCS.helpers.simresults import SimulationResults, RunResults
 
@@ -296,7 +296,7 @@ def simulate(
             sb0, sb1 = ab1, ab1 + int(n_sb)
 
             # Guard against unexpected shapes
-            if isinstance(x_hat, EstimatedState):
+            if isinstance(x_hat, EstimatorState):
                 b_act_hat = x_hat.act_bias
                 b_sens_hat = x_hat.sens_bias
 

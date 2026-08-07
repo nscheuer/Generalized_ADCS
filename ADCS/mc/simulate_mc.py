@@ -19,7 +19,7 @@ from ADCS.estimators.attitude_estimators import Attitude_Estimator
 from ADCS.estimators.orbit_estimators import Orbit_Estimator
 from ADCS.orbits.orbit import Orbit
 from ADCS.orbits.orbital_state import Orbital_State
-from ADCS.state import EstimatedState, State
+from ADCS.state import EstimatorState, State
 from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.satellite_hardware.satellite import Satellite, EstimatedSatellite
@@ -258,7 +258,7 @@ def _simulate_with_precomputed_orbit(
             ab0, ab1 = base, base + n_ab
             sb0, sb1 = ab1, ab1 + n_sb
 
-            if isinstance(x_hat, EstimatedState):
+            if isinstance(x_hat, EstimatorState):
                 b_act_hat = x_hat.act_bias
                 b_sens_hat = x_hat.sens_bias
 

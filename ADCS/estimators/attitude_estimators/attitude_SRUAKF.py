@@ -9,7 +9,7 @@ import time
 # The external C-library wrapper for fast Cholesky updates
 from choldate import cholupdate, choldowndate
 
-from ADCS.state import EstimatedState
+from ADCS.state import EstimatorState
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
 from ADCS.satellite_hardware.sensors import SunSensor, SunPair
 from ADCS.satellite_hardware.errors import ErrorMode
@@ -65,7 +65,7 @@ class SRUAKF(UAKF):
 
     See also:
     - :class:`~ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF`
-    - :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedState`
+    - :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatorState`
     - :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
 
     """
@@ -117,7 +117,7 @@ class SRUAKF(UAKF):
         :param J2000: Initial time in seconds since J2000.
         :type J2000: float
         :param x_hat: Initial full augmented state estimate.
-        :type x_hat: ADCS.state.EstimatedState
+        :type x_hat: ADCS.state.EstimatorState
         :param P_hat: Initial reduced error-state covariance matrix.
         :type P_hat: numpy.ndarray
         :param Q_hat: Initial reduced process-noise covariance matrix.
@@ -487,7 +487,7 @@ class SRUAKF(UAKF):
         u: np.ndarray,
         sensors: np.ndarray,
         os: Orbital_State,
-    ) -> EstimatedState:
+    ) -> EstimatorState:
         r"""
         Perform one SR-UKF predict/update cycle using QR factorization and Cholesky downdates.
 
@@ -500,7 +500,7 @@ class SRUAKF(UAKF):
         3. **Square-root covariance update**: apply sequential Cholesky downdates using
            :func:`choldate.choldowndate` via :meth:`weighted_cholupdate`.
 
-        The method returns an :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedState`
+        The method returns an :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatorState`
         containing the updated full state and a reconstructed covariance :math:`P^+`.
 
         Notation
@@ -669,7 +669,7 @@ class SRUAKF(UAKF):
             P^+ = S^{+\top} S^+,
 
         symmetrizes it, and returns it in the resulting
-        :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedState`.
+        :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatorState`.
 
         If ``quat_as_vec=True``, the quaternion is renormalized using
         :func:`~ADCS.helpers.math_helpers.normalize` and covariance is transformed
@@ -696,7 +696,7 @@ class SRUAKF(UAKF):
             - ``cov``: reconstructed reduced covariance :math:`P^+`,
             - ``int_cov``: unchanged (inherited from internal state).
 
-        :rtype: :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedState`
+        :rtype: :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatorState`
 
         """
         u = np.asarray(u, dtype=float).copy()

@@ -4,7 +4,7 @@ __all__ = ["Plan_and_Track_Exact"]
 
 import numpy as np
 
-from ADCS.state import EstimatedState, State
+from ADCS.state import EstimatorState, State
 from typing import Optional
 from numpy.typing import NDArray
 

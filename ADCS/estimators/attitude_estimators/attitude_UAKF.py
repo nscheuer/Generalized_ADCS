@@ -7,7 +7,7 @@ from typing import List
 import time
 
 from ADCS.estimators.attitude_estimators.attitude_estimator import Attitude_Estimator
-from ADCS.state import EstimatedState, State
+from ADCS.state import EstimatorState, State
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
 from ADCS.satellite_hardware.errors import ErrorMode
 from ADCS.orbits.orbital_state import Orbital_State
@@ -193,7 +193,7 @@ class UAKF(Attitude_Estimator):
         :param J2000: Initial time in seconds since J2000.
         :type J2000: float
         :param x_hat: Initial full augmented state estimate.
-        :type x_hat: ADCS.state.EstimatedState
+        :type x_hat: ADCS.state.EstimatorState
         :param P_hat: Initial covariance matrix (reduced error-state unless ``quat_as_vec=True``).
         :type P_hat: numpy.ndarray
         :param Q_hat: Initial process-noise covariance matrix (same convention as ``P_hat``).
@@ -752,14 +752,14 @@ class UAKF(Attitude_Estimator):
         return post_state, full_state
 
 
-    def sat_match(self, est_sat: EstimatedSatellite, state: EstimatedState) -> None:
+    def sat_match(self, est_sat: EstimatedSatellite, state: EstimatorState) -> None:
         r"""
         Synchronize an :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
         instance with a raw full state vector.
 
         Sigma-point propagation and measurement prediction require the satellite model
         to reflect the sigma point's specific biases/parameters and attitude. This method
-        constructs an :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedState`
+        constructs an :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatorState`
         compatible container, inserts the provided raw state entries at indices defined by
         :attr:`use`, and then updates the satellite model via
         :meth:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.match_estimate`.
@@ -772,8 +772,8 @@ class UAKF(Attitude_Estimator):
         :rtype: None
 
         """
-        if not isinstance(state, EstimatedState):
-            raise TypeError(f"state must be an EstimatedState, got {type(state).__name__}")
+        if not isinstance(state, EstimatorState):
+            raise TypeError(f"state must be an EstimatorState, got {type(state).__name__}")
         est_sat.match_estimate(state, self.dt)
 
 
@@ -782,7 +782,7 @@ class UAKF(Attitude_Estimator):
         u: np.ndarray,
         sensors: np.ndarray,   # was effectively used as a NumPy array already
         os: Orbital_State,
-    ) -> EstimatedState:
+    ) -> EstimatorState:
         r"""
         Perform one UKF predict/update cycle in reduced error-state coordinates.
 
@@ -894,7 +894,7 @@ class UAKF(Attitude_Estimator):
         :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
         :raises numpy.linalg.LinAlgError: If the measurement covariance matrix is singular during gain computation.
         :return: Updated estimate container with updated full state and reduced covariance.
-        :rtype: :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedState`
+        :rtype: :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatorState`
 
         """
         u = np.asarray(u, dtype=float).copy()

@@ -45,7 +45,7 @@ What you can do with Generalized ADCS
 - Visualize pointing performance and control effort
 
 Spacecraft states use :class:`ADCS.State`, with named ``w``, ``q``, and ``h``
-arrays. Estimator inputs and outputs use :class:`ADCS.EstimatedState`, which
+arrays. Estimator inputs and outputs use :class:`ADCS.EstimatorState`, which
 adds named bias and disturbance parameters plus covariance matrices. Use
 ``from_array`` and ``as_array`` only at numerical-library boundaries; state
 objects intentionally do not support NumPy indexing or implicit conversion.

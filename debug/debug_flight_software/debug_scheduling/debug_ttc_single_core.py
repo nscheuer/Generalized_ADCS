@@ -22,7 +22,7 @@ from ADCS.satellite_hardware.sensors import MTM, Gyro, SunPair
 from ADCS.satellite_hardware.disturbances import GeometryFace, GG_Disturbance, Drag_Disturbance, GeometryConfig
 from ADCS.helpers.math_constants import MathConstants
 from ADCS.helpers.math_helpers import random_n_unit_vec, normalize
-from ADCS.state import EstimatedState, State
+from ADCS.state import EstimatorState, State
 from ADCS.flight_software.single_core.ttc_single_core import TTC_Single_Core
 from ADCS.flight_software.tasks.task import Task
 from ADCS.helpers.plotting.plot_estimator import plot_state_comparison, plot_error_and_sun, plot_sensor_data, plot_bias_comparison
@@ -241,7 +241,7 @@ def main():
     P_est, Q_est = create_matrices(est_sat, dt=10)
 
     x = State(w=np.zeros(3), q=[1, 0, 0, 0], h=np.ones(3))
-    x_hat = EstimatedState(w=np.zeros(3), q=[1, 0, 0, 0], h=np.zeros(3), sens_bias=np.zeros(9))
+    x_hat = EstimatorState(w=np.zeros(3), q=[1, 0, 0, 0], h=np.zeros(3), sens_bias=np.zeros(9))
     J2000 = 0.22 + t0*TimeConstants.sec2cent
     ukf = SRUAKF(est_sat=est_sat, J2000=J2000, x_hat=x_hat, P_hat=P_est, Q_hat=Q_est, dt=10, cross_term=True, quat_as_vec=False)
 
@@ -273,7 +273,7 @@ def main():
 
     time_hist = np.nan*np.zeros(N)
     state_hist: List[State] = []
-    est_state_hist: List[EstimatedState] = []
+    est_state_hist: List[EstimatorState] = []
     os_hist: List[Orbital_State] = list()
     sensor_hist: List[np.ndarray] = np.nan*np.zeros((N, sensor_dim))
     clean_sensor_hist: List[np.ndarray] = np.nan*np.zeros((N, sensor_dim))

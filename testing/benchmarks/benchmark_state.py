@@ -20,7 +20,7 @@ if str(REPO_ROOT) not in sys.path:
 from ADCS.orbits.ephemeris import Ephemeris
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.satellite_hardware.satellite import Satellite
-from ADCS.state import EstimatedState, State
+from ADCS.state import EstimatorState, State
 from testing.test_estimators.ukf.helpers import make_baseline_sensors, make_satellites, make_ukf
 
 
@@ -44,7 +44,7 @@ def _time(func: Callable[[], object], samples: int) -> float:
 
 def run_benchmarks(samples: int) -> dict:
     state = State(w=[0.01, -0.02, 0.03], q=[1.0, 0.0, 0.0, 0.0], h=[0.1, 0.2, 0.3])
-    estimated = EstimatedState(
+    estimated = EstimatorState(
         w=state.w,
         q=state.q,
         h=state.h,
@@ -85,7 +85,7 @@ def run_benchmarks(samples: int) -> dict:
     }
     return {
         "schema_version": 1,
-        "description": "Structured State and EstimatedState microbenchmarks.",
+        "description": "Structured State and EstimatorState microbenchmarks.",
         "python": platform.python_version(),
         "platform": platform.platform(),
         "benchmarks": {name: {"seconds": _time(func, samples)} for name, func in cases.items()},
