@@ -572,7 +572,7 @@ def test_desaturate_mode_ignores_nan_sensor_values(
     np.testing.assert_allclose(command_nan, command_zeroed)
 
 
-def test_desaturate_mode_without_rw_state_uses_zero_rw_momentum(
+def test_desaturate_mode_rejects_missing_rw_momentum_state(
     lp_satellite: Satellite,
     desat_controller: MTQ_w_RW_LP,
     base_orbital_state: Orbital_State,
@@ -581,22 +581,35 @@ def test_desaturate_mode_without_rw_state_uses_zero_rw_momentum(
     full_state = State(w=short_state.w, q=short_state.q, h=[0.0])
     sens = lp_satellite.sensor_readings(x=full_state, os=base_orbital_state)
 
-    command_short = desat_controller.find_u_desaturate(
-        x_hat=short_state,
-        sens=sens,
-        est_sat=lp_satellite,
-        os_hat=base_orbital_state,
-        goal=No_Goal(),
-    )
-    command_zero_momentum = desat_controller.find_u_desaturate(
-        x_hat=full_state,
-        sens=sens,
-        est_sat=lp_satellite,
-        os_hat=base_orbital_state,
-        goal=No_Goal(),
+    with pytest.raises(ValueError, match="exactly 1 reaction-wheel momentum states, got 0"):
+        desat_controller.find_u_desaturate(
+            x_hat=short_state,
+            sens=sens,
+            est_sat=lp_satellite,
+            os_hat=base_orbital_state,
+            goal=No_Goal(),
+        )
+
+
+def test_pointing_mode_rejects_extra_rw_momentum_state(
+    lp_satellite: Satellite,
+    lp_controller: MTQ_w_RW_LP,
+    base_orbital_state: Orbital_State,
+) -> None:
+    state = State(w=[0.02, -0.015, 0.01], q=[1.0, 0.0, 0.0, 0.0], h=[0.0, 0.1])
+    sens = lp_satellite.sensor_readings(
+        x=State(w=state.w, q=state.q, h=[0.0]),
+        os=base_orbital_state,
     )
 
-    np.testing.assert_allclose(command_short, command_zero_momentum)
+    with pytest.raises(ValueError, match="exactly 1 reaction-wheel momentum states, got 2"):
+        lp_controller.find_u_pointing(
+            x_hat=state,
+            sens=sens,
+            est_sat=lp_satellite,
+            os_hat=base_orbital_state,
+            goal=StaticGoal(),
+        )
 
 
 def test_desaturate_mode_respects_rw_and_mtq_limits(

@@ -1,10 +1,15 @@
 <?xml version='1.0' encoding='utf-8'?>
 <testsuites name="pytest tests">
-  <testsuite name="pytest" errors="0" failures="0" skipped="0" tests="5" time="1.788" timestamp="2026-08-07T18:14:55.439454+02:00" hostname="Nics-P14s">
-    <testcase classname="testing.test_flight_software.test_controller_rpc_serialization" name="test_goal_payload_roundtrip_and_safe" time="0.495" />
-    <testcase classname="testing.test_flight_software.test_controller_rpc_serialization" name="test_orbital_state_payload_roundtrip_and_safe" time="0.005" />
-    <testcase classname="testing.test_flight_software.test_controller_rpc_serialization" name="test_estimated_orbital_state_payload_roundtrip_and_safe" time="0.001" />
-    <testcase classname="testing.test_flight_software.test_controller_rpc_serialization" name="test_state_payload_roundtrip_is_versioned_and_safe[state0]" time="0.001" />
-    <testcase classname="testing.test_flight_software.test_controller_rpc_serialization" name="test_state_payload_roundtrip_is_versioned_and_safe[state1]" time="0.001" />
+  <testsuite name="pytest" errors="0" failures="0" skipped="0" tests="10" time="1.464" timestamp="2026-08-07T18:26:17.067227+02:00" hostname="Nics-P14s">
+    <testcase classname="testing.test_controllers.test_controller_mtq_w_rw_lp" name="test_desaturate_mode_rejects_missing_rw_momentum_state" time="0.014" />
+    <testcase classname="testing.test_controllers.test_controller_mtq_w_rw_lp" name="test_pointing_mode_rejects_extra_rw_momentum_state" time="0.005" />
+    <testcase classname="testing.test_controllers.test_controller_mtq_lovera" name="test_mtq_lovera_rejects_missing_rw_momentum_state" time="0.007" />
+    <testcase classname="testing.test_controllers.test_controller_mtq_lovera" name="test_mtq_lovera_rejects_extra_rw_momentum_state" time="0.004" />
+    <testcase classname="testing.test_controllers.test_controller_mtq_wisniewski" name="test_mtq_wisniewski_rejects_missing_rw_momentum_state" time="0.004" />
+    <testcase classname="testing.test_controllers.test_controller_mtq_wisniewski" name="test_mtq_wisniewski_rejects_extra_rw_momentum_state" time="0.005" />
+    <testcase classname="testing.test_controllers.test_controller_mtq_w_rw_qpc" name="test_qpc_find_u_rejects_rw_momentum_size_mismatch[h0]" time="0.004" />
+    <testcase classname="testing.test_controllers.test_controller_mtq_w_rw_qpc" name="test_qpc_find_u_rejects_rw_momentum_size_mismatch[h1]" time="0.004" />
+    <testcase classname="testing.test_controllers.test_controller_mtq_w_rw_qpg" name="test_qpg_find_u_rejects_rw_momentum_size_mismatch[goal0-h0]" time="0.007" />
+    <testcase classname="testing.test_controllers.test_controller_mtq_w_rw_qpg" name="test_qpg_find_u_rejects_rw_momentum_size_mismatch[goal1-h1]" time="0.008" />
   </testsuite>
 </testsuites>

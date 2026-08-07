@@ -217,10 +217,11 @@ class MTQ_Lovera(Controller):
         q = x_hat.q
 
         n_rw = len([a for a in est_sat.actuators if isinstance(a, RW)])
-        if x_hat.h.size >= n_rw:
-            h_rw_states = x_hat.h
-        else:
-            h_rw_states = np.array([rw.h for rw in est_sat.actuators if isinstance(rw, RW)])
+        h_rw_states = self.reaction_wheel_momentum_states(
+            x_hat,
+            n_rw,
+            context=f"{type(self).__name__}.find_u",
+        )
 
         goal_vec_eci, w_ref_eci = goal.to_ref(os0=os_hat)
         R_b2i = rot_mat(q)

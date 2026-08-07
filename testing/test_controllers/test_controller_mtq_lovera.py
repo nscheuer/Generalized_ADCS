@@ -189,10 +189,11 @@ def _expected_command(
     q = x_hat.q
 
     rw_actuators = [actuator for actuator in satellite.actuators if isinstance(actuator, RW)]
-    if x_hat.h.size >= len(rw_actuators):
-        h_rw_states = x_hat.h
-    else:
-        h_rw_states = np.array([actuator.h for actuator in rw_actuators], dtype=float)
+    h_rw_states = controller.reaction_wheel_momentum_states(
+        x_hat,
+        len(rw_actuators),
+        context="test expected MTQ_Lovera",
+    )
 
     _, w_ref_eci = active_goal.to_ref(os0=os_hat)
     w_ref_body = rot_mat(q).T @ w_ref_eci
@@ -565,7 +566,11 @@ def test_mtq_lovera_uses_rw_momentum_from_state_when_available(
     expected_from_actuators = _expected_command(
         controller,
         lovera_satellite_with_rw,
-        State(w=rw_state.w, q=rw_state.q),
+        State(
+            w=rw_state.w,
+            q=rw_state.q,
+            h=[actuator.h for actuator in lovera_satellite_with_rw.actuators if isinstance(actuator, RW)],
+        ),
         sens,
         base_orbital_state,
         No_Goal(),
@@ -575,7 +580,7 @@ def test_mtq_lovera_uses_rw_momentum_from_state_when_available(
     assert not np.allclose(expected_from_state, expected_from_actuators)
 
 
-def test_mtq_lovera_falls_back_to_actuator_rw_momentum_without_rw_state(
+def test_mtq_lovera_rejects_missing_rw_momentum_state(
     lovera_satellite_with_rw: Satellite,
     base_orbital_state: Orbital_State,
 ) -> None:
@@ -586,23 +591,35 @@ def test_mtq_lovera_falls_back_to_actuator_rw_momentum_without_rw_state(
         os=base_orbital_state,
     )
 
-    command = controller.find_u(
-        x_hat=short_state,
-        sens=sens,
-        est_sat=lovera_satellite_with_rw,
-        os_hat=base_orbital_state,
-        goal=No_Goal(),
-    )
-    expected = _expected_command(
-        controller,
-        lovera_satellite_with_rw,
-        short_state,
-        sens,
-        base_orbital_state,
-        No_Goal(),
+    with pytest.raises(ValueError, match="exactly 3 reaction-wheel momentum states, got 0"):
+        controller.find_u(
+            x_hat=short_state,
+            sens=sens,
+            est_sat=lovera_satellite_with_rw,
+            os_hat=base_orbital_state,
+            goal=No_Goal(),
+        )
+
+
+def test_mtq_lovera_rejects_extra_rw_momentum_state(
+    lovera_satellite_with_rw: Satellite,
+    base_orbital_state: Orbital_State,
+) -> None:
+    controller = _make_controller(lovera_satellite_with_rw)
+    state = State(w=[0.015, -0.01, 0.025], q=[1.0, 0.0, 0.0, 0.0], h=[0.0, 0.0, 0.0, 0.0])
+    sens = lovera_satellite_with_rw.sensor_readings(
+        x=State(w=state.w, q=state.q, h=np.zeros(3)),
+        os=base_orbital_state,
     )
 
-    np.testing.assert_allclose(command, expected)
+    with pytest.raises(ValueError, match="exactly 3 reaction-wheel momentum states, got 4"):
+        controller.find_u(
+            x_hat=state,
+            sens=sens,
+            est_sat=lovera_satellite_with_rw,
+            os_hat=base_orbital_state,
+            goal=No_Goal(),
+        )
 
 
 def test_mtq_lovera_saturates_with_uniform_scaling(

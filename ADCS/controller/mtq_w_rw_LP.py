@@ -462,13 +462,11 @@ class MTQ_w_RW_LP(Controller):
         rw_indices  = [i for i, a in enumerate(est_sat.actuators) if isinstance(a, RW)]
         mtq_indices = [i for i, a in enumerate(est_sat.actuators) if isinstance(a, MTQ)]
 
-        # Wheel scalar momentum states (N_rw,)
-        if n_rw > 0 and x_hat.h.size == n_rw:
-            h_rw_states = np.asarray(x_hat.h, float).reshape(n_rw,)
-        elif n_rw > 0:
-            h_rw_states = np.array([rw.h for rw in rws], dtype=float).reshape(n_rw,)
-        else:
-            h_rw_states = np.zeros(0)
+        h_rw_states = self.reaction_wheel_momentum_states(
+            x_hat,
+            n_rw,
+            context=f"{type(self).__name__}.find_u",
+        )
 
         # -------------------------
         # 1) Pointing torque request (PD + gyro)
@@ -725,11 +723,12 @@ class MTQ_w_RW_LP(Controller):
 
         # --- 2. System Momentum Vector (Generic N-RW) ---
         # Calculate total vector momentum stored in all wheels
-        if self.n_rw > 0 and x_hat.h.size == self.n_rw:
-            h_rw_scalars = x_hat.h
-            h_sys = self.rw_axes @ h_rw_scalars # Matrix (3, N) @ Vec (N,) -> (3,)
-        else:
-            h_sys = np.zeros(3)
+        h_rw_scalars = self.reaction_wheel_momentum_states(
+            x_hat,
+            self.n_rw,
+            context=f"{type(self).__name__}.find_u_desaturate",
+        )
+        h_sys = self.rw_axes @ h_rw_scalars if self.n_rw > 0 else np.zeros(3)
 
         # --- 3. Rate Damping (Perpendicular to B) ---
         # "Magnetic B-dot" logic: dampen rates only in the plane where MTQs can act
