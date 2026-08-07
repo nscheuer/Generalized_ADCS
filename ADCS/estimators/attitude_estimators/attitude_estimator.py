@@ -88,7 +88,7 @@ class Attitude_Estimator():
 
         This initializer stores the satellite model reference, prepares a
         placeholder previous orbital state, and delegates all estimate/covariance
-        initialization and validation to :meth:`~ADCS.estimators.attitude_estimator.Attitude_Estimator.reset`.
+        initialization and validation to :meth:`~ADCS.estimators.attitude_estimators.attitude_estimator.Attitude_Estimator.reset`.
 
         Internally, a previous orbital state is created using
         :class:`~ADCS.orbits.orbital_state.Ephemeris` and
@@ -111,7 +111,7 @@ class Attitude_Estimator():
         :param dt: Estimator propagation time step :math:`\Delta t` in seconds.
         :type dt: float
         :param cross_term: If ``False``, certain cross-covariance blocks are zeroed
-            in :meth:`~ADCS.estimators.attitude_estimator.Attitude_Estimator.update`.
+            in :meth:`~ADCS.estimators.attitude_estimators.attitude_estimator.Attitude_Estimator.update`.
         :type cross_term: bool
         :param quat_as_vec: If ``True``, store covariance and process noise in the full
             quaternion space (no reduction).
@@ -137,7 +137,7 @@ class Attitude_Estimator():
 
         This method validates dimensional consistency between the full augmented
         state vector :math:`\mathbf{x}\in\mathbb{R}^N` and the covariance/process-noise
-        matrices, stores the result into :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatorState`
+        matrices, stores the result into :class:`~ADCS.state.EstimatorState`
         containers, and synchronizes the internal satellite model via
         :meth:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.match_estimate`.
 
@@ -168,7 +168,7 @@ class Attitude_Estimator():
 
         After validation, the reset procedure:
 
-        - creates :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatorState` instances
+        - creates :class:`~ADCS.state.EstimatorState` instances
           for :attr:`x0_hat` and :attr:`x_hat`,
         - sets :attr:`use` to all ``True`` (all states active),
         - calls :meth:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.match_estimate`
@@ -185,7 +185,7 @@ class Attitude_Estimator():
         :param dt: Propagation time step :math:`\Delta t` in seconds used for satellite model synchronization.
         :type dt: float
         :param cross_term: Whether the estimator should preserve cross-covariance blocks
-            between bias/parameter groups in :meth:`~ADCS.estimators.attitude_estimator.Attitude_Estimator.update`.
+            between bias/parameter groups in :meth:`~ADCS.estimators.attitude_estimators.attitude_estimator.Attitude_Estimator.update`.
         :type cross_term: bool
         :raises ValueError: If ``x_hat`` length is inconsistent with the satellite model.
         :raises ValueError: If ``P_hat`` or ``Q_hat`` shapes do not match the required convention.
@@ -427,7 +427,7 @@ class Attitude_Estimator():
         return state
 
 
-    def update(self, u: np.ndarray, sensors: List[np.ndarray], os: Orbital_State) -> np.ndarray:
+    def update(self, u: np.ndarray, sensors: List[np.ndarray], os: Orbital_State) -> EstimatorState:
         r"""
         High-level estimator update wrapper.
 
@@ -439,10 +439,10 @@ class Attitude_Estimator():
         Delegation to subclass filter
         -----------------------------
         Subclasses must implement ``update_core`` and return an
-        :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatorState`
+        :class:`~ADCS.state.EstimatorState`
         containing:
 
-        - ``val``: full augmented state :math:`\hat{\mathbf{x}}`,
+        - full augmented state :math:`\hat{\mathbf{x}}`,
         - ``cov``: covariance in reduced coordinates (unless ``quat_as_vec=True``),
         - ``int_cov``: process-noise covariance (often unchanged).
 
@@ -493,7 +493,7 @@ class Attitude_Estimator():
         -----------------------
         The new estimate is written back into :attr:`x_hat` using a mask over the
         reduced covariance space returned by
-        :meth:`~ADCS.estimators.attitude_estimator.Attitude_Estimator.cov_use`.
+        :meth:`~ADCS.estimators.attitude_estimators.attitude_estimator.Attitude_Estimator.cov_use`.
         Subselection and reinsertion of covariance/process-noise blocks relies on
         :func:`~ADCS.helpers.math_helpers.square_mat_sections`.
 
@@ -504,8 +504,8 @@ class Attitude_Estimator():
         :type sensors: list[numpy.ndarray]
         :param os: Current orbital/environmental state used for propagation and prediction.
         :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
-        :return: Updated full augmented state estimate :math:`\hat{\mathbf{x}}` (stored in :attr:`x_hat.as_estimator_array()`).
-        :rtype: numpy.ndarray
+        :return: Updated estimator state container.
+        :rtype: :class:`~ADCS.state.EstimatorState`
 
         """
         if self.prev_os.J2000 == 0:

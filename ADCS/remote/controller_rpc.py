@@ -743,7 +743,7 @@ class RemoteAttitudeEstimatorProxy:
         """
         return self._base.ping()
 
-    def update(self, u: np.ndarray, sensors: list[np.ndarray], os: Orbital_State) -> np.ndarray:
+    def update(self, u: np.ndarray, sensors: list[np.ndarray], os: Orbital_State) -> EstimatorState:
         """Execute one remote attitude-estimator update.
 
         :param u:
@@ -762,9 +762,9 @@ class RemoteAttitudeEstimatorProxy:
             :class:`~ADCS.orbits.orbital_state.Orbital_State`
 
         :return:
-            Updated attitude-state estimate vector.
+            Updated attitude estimator state.
         :rtype:
-            numpy.ndarray
+            :class:`~ADCS.state.EstimatorState`
         """
         payload = {
             "component": "attitude_estimator",

@@ -231,9 +231,9 @@ class EstimatedSatellite(Satellite):
         be dimension-shifted by one element in some configurations (e.g., quaternion handling). The method
         applies an index adjustment ``adj`` when ``int_cov`` is off-by-one.
 
-        :param est_state: Estimator output container providing
-            ``val`` (state vector), ``cov`` (covariance), and ``int_cov`` (integrated covariance).
-        :type est_state: :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatorState`
+        :param est_state: Estimator output container providing the attitude state,
+            bias/parameter blocks, covariance, and integrated covariance.
+        :type est_state: :class:`~ADCS.state.EstimatorState`
 
         :param dt: Estimator propagation step (s). Used by some pipelines to normalize integrated covariance.
             (The current implementation partitions ``int_cov`` directly.)

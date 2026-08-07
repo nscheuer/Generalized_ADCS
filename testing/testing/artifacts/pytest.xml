@@ -1,34 +1,10 @@
 <?xml version='1.0' encoding='utf-8'?>
 <testsuites name="pytest tests">
-  <testsuite name="pytest" errors="0" failures="0" skipped="0" tests="29" time="2.063" timestamp="2026-08-07T18:11:12.112929+02:00" hostname="Nics-P14s">
-    <testcase classname="testing.test_helpers.test_state" name="test_state_roundtrip_owns_input_arrays" time="0.001" />
-    <testcase classname="testing.test_helpers.test_state" name="test_state_rejects_invalid_component_shapes[kwargs0-w must have shape]" time="0.001" />
-    <testcase classname="testing.test_helpers.test_state" name="test_state_rejects_invalid_component_shapes[kwargs1-q must have shape]" time="0.000" />
-    <testcase classname="testing.test_helpers.test_state" name="test_state_rejects_invalid_component_shapes[kwargs2-h must be one-dimensional]" time="0.001" />
-    <testcase classname="testing.test_helpers.test_state" name="test_state_assignment_validates_component_shapes_and_copies_values" time="0.001" />
-    <testcase classname="testing.test_helpers.test_state" name="test_state_has_no_array_or_indexing_facade" time="0.000" />
-    <testcase classname="testing.test_helpers.test_state" name="test_state_equality_uses_array_values" time="0.001" />
-    <testcase classname="testing.test_helpers.test_state" name="test_state_and_estimated_state_are_not_equal" time="0.000" />
-    <testcase classname="testing.test_helpers.test_state" name="test_satellite_rejects_raw_state_vectors" time="0.001" />
-    <testcase classname="testing.test_helpers.test_state" name="test_state_normalized_does_not_mutate_original" time="0.000" />
-    <testcase classname="testing.test_helpers.test_state" name="test_state_stack_requires_matching_widths" time="0.000" />
-    <testcase classname="testing.test_helpers.test_state" name="test_estimated_state_augmented_roundtrip_supports_covariance_modes[False]" time="0.001" />
-    <testcase classname="testing.test_helpers.test_state" name="test_estimated_state_augmented_roundtrip_supports_covariance_modes[True]" time="0.000" />
-    <testcase classname="testing.test_helpers.test_state" name="test_estimated_state_rejects_wrong_covariance_dimension" time="0.000" />
-    <testcase classname="testing.test_helpers.test_state" name="test_estimated_state_assignment_validates_estimator_blocks" time="0.001" />
-    <testcase classname="testing.test_helpers.test_state" name="test_estimated_state_assignment_validates_covariance_shapes" time="0.001" />
-    <testcase classname="testing.test_helpers.test_state" name="test_estimated_state_equality_includes_bias_and_covariance_blocks" time="0.001" />
-    <testcase classname="testing.test_helpers.test_state" name="test_state_dict_roundtrip_preserves_subclass_and_data" time="0.000" />
-    <testcase classname="testing.test_helpers.test_state_ops" name="test_interpolate_slerp_matches_exact_geodesic" time="0.000" />
-    <testcase classname="testing.test_helpers.test_state_ops" name="test_interpolate_corrects_antipodal_quaternion_sign[slerp]" time="0.000" />
-    <testcase classname="testing.test_helpers.test_state_ops" name="test_interpolate_corrects_antipodal_quaternion_sign[nlerp]" time="0.000" />
-    <testcase classname="testing.test_helpers.test_state_ops" name="test_interpolate_endpoints_and_validation" time="0.000" />
-    <testcase classname="testing.test_helpers.test_state_ops" name="test_subtract_small_angle_matches_rotation_vector" time="0.754" />
-    <testcase classname="testing.test_helpers.test_state_ops" name="test_subtract_add_error_roundtrip_state" time="0.001" />
-    <testcase classname="testing.test_helpers.test_state_ops" name="test_subtract_is_sign_invariant_in_representation" time="0.000" />
-    <testcase classname="testing.test_helpers.test_state_ops" name="test_subtract_add_error_roundtrip_estimated_state" time="0.001" />
-    <testcase classname="testing.test_helpers.test_state_ops" name="test_estimated_interpolate_blends_blocks_and_covariance" time="0.001" />
-    <testcase classname="testing.test_helpers.test_state_ops" name="test_estimated_interpolate_rejects_mismatched_layouts" time="0.000" />
-    <testcase classname="testing.test_helpers.test_state_ops" name="test_add_error_rejects_out_of_range_attitude_block" time="0.000" />
+  <testsuite name="pytest" errors="0" failures="0" skipped="0" tests="5" time="1.788" timestamp="2026-08-07T18:14:55.439454+02:00" hostname="Nics-P14s">
+    <testcase classname="testing.test_flight_software.test_controller_rpc_serialization" name="test_goal_payload_roundtrip_and_safe" time="0.495" />
+    <testcase classname="testing.test_flight_software.test_controller_rpc_serialization" name="test_orbital_state_payload_roundtrip_and_safe" time="0.005" />
+    <testcase classname="testing.test_flight_software.test_controller_rpc_serialization" name="test_estimated_orbital_state_payload_roundtrip_and_safe" time="0.001" />
+    <testcase classname="testing.test_flight_software.test_controller_rpc_serialization" name="test_state_payload_roundtrip_is_versioned_and_safe[state0]" time="0.001" />
+    <testcase classname="testing.test_flight_software.test_controller_rpc_serialization" name="test_state_payload_roundtrip_is_versioned_and_safe[state1]" time="0.001" />
   </testsuite>
 </testsuites>

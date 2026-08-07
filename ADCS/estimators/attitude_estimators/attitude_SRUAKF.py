@@ -65,7 +65,7 @@ class SRUAKF(UAKF):
 
     See also:
     - :class:`~ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF`
-    - :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatorState`
+    - :class:`~ADCS.state.EstimatorState`
     - :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
 
     """
@@ -500,7 +500,7 @@ class SRUAKF(UAKF):
         3. **Square-root covariance update**: apply sequential Cholesky downdates using
            :func:`choldate.choldowndate` via :meth:`weighted_cholupdate`.
 
-        The method returns an :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatorState`
+        The method returns an :class:`~ADCS.state.EstimatorState`
         containing the updated full state and a reconstructed covariance :math:`P^+`.
 
         Notation
@@ -669,7 +669,7 @@ class SRUAKF(UAKF):
             P^+ = S^{+\top} S^+,
 
         symmetrizes it, and returns it in the resulting
-        :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatorState`.
+        :class:`~ADCS.state.EstimatorState`.
 
         If ``quat_as_vec=True``, the quaternion is renormalized using
         :func:`~ADCS.helpers.math_helpers.normalize` and covariance is transformed
@@ -692,11 +692,11 @@ class SRUAKF(UAKF):
             during triangular solves.
         :return: Updated estimate container with fields:
 
-            - ``val``: updated full augmented state,
+            - full augmented state,
             - ``cov``: reconstructed reduced covariance :math:`P^+`,
             - ``int_cov``: unchanged (inherited from internal state).
 
-        :rtype: :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatorState`
+        :rtype: :class:`~ADCS.state.EstimatorState`
 
         """
         u = np.asarray(u, dtype=float).copy()

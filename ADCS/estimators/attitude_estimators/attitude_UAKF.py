@@ -755,19 +755,17 @@ class UAKF(Attitude_Estimator):
     def sat_match(self, est_sat: EstimatedSatellite, state: EstimatorState) -> None:
         r"""
         Synchronize an :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
-        instance with a raw full state vector.
+        instance with an estimator state.
 
         Sigma-point propagation and measurement prediction require the satellite model
         to reflect the sigma point's specific biases/parameters and attitude. This method
-        constructs an :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatorState`
-        compatible container, inserts the provided raw state entries at indices defined by
-        :attr:`use`, and then updates the satellite model via
+        applies the provided :class:`~ADCS.state.EstimatorState` to the satellite model via
         :meth:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.match_estimate`.
 
         :param est_sat: Satellite model instance to be updated for sigma-point propagation.
         :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`
-        :param state: Full augmented state vector to apply.
-        :type state: numpy.ndarray
+        :param state: Estimator state to apply.
+        :type state: :class:`~ADCS.state.EstimatorState`
         :return: ``None``.
         :rtype: None
 
@@ -894,7 +892,7 @@ class UAKF(Attitude_Estimator):
         :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`
         :raises numpy.linalg.LinAlgError: If the measurement covariance matrix is singular during gain computation.
         :return: Updated estimate container with updated full state and reduced covariance.
-        :rtype: :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatorState`
+        :rtype: :class:`~ADCS.state.EstimatorState`
 
         """
         u = np.asarray(u, dtype=float).copy()
