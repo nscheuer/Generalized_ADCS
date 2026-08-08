@@ -47,11 +47,6 @@ class State:
             value = _vector(value, name=name)
         object.__setattr__(self, name, value)
 
-    def __post_init__(self) -> None:
-        self.w = _vector(self.w, name="w", size=3)
-        self.q = _vector(self.q, name="q", size=4)
-        self.h = _vector(self.h, name="h")
-
     def __eq__(self, other: object) -> bool:
         if type(other) is not State:
             return NotImplemented
@@ -74,7 +69,11 @@ class State:
         return np.concatenate((self.w, self.q, self.h))
 
     def copy(self) -> State:
-        return State(w=self.w, q=self.q, h=self.h)
+        result = object.__new__(State)
+        object.__setattr__(result, "w", self.w.copy())
+        object.__setattr__(result, "q", self.q.copy())
+        object.__setattr__(result, "h", self.h.copy())
+        return result
 
     def normalized(self) -> State:
         """Return a copy with a unit quaternion, without changing this state."""
@@ -192,7 +191,6 @@ class EstimatorState(State):
         object.__setattr__(self, name, value)
 
     def __post_init__(self) -> None:
-        State.__post_init__(self)
         self.act_bias = _vector(self.act_bias, name="act_bias")
         self.sens_bias = _vector(self.sens_bias, name="sens_bias")
         self.dist_param = _vector(self.dist_param, name="dist_param")
