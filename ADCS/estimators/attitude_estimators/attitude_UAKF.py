@@ -990,19 +990,22 @@ class UAKF(Attitude_Estimator):
             sensj = satj.sensor_readings(x=post_full_state_obj,os=os, dmode=dmode)
             post_sens[j, :] = sensj[which_outputs] + sens_noise_j
 
-        # Predicted reduced error state
+        # Predicted state in the covariance coordinate convention.
         state1 = np.dot(wts_m, post_pts)
-        dquat1 = vec3_to_quat(state1[3:6], self.vec_mode)
-        quat1 = quat_mult(post_quat, dquat1)
-
-        pred_dyn_state = np.concatenate(
-            (
-                state1[0:3],
-                quat1,
-                state1[6 : state_len - 1],
-                state1[state_len - 1 :],
+        if not self.quat_as_vec:
+            dquat1 = vec3_to_quat(state1[3:6], self.vec_mode)
+            quat1 = quat_mult(post_quat, dquat1)
+            pred_dyn_state = np.concatenate(
+                (
+                    state1[0:3],
+                    quat1,
+                    state1[6 : state_len - 1],
+                    state1[state_len - 1 :],
+                )
             )
-        )
+        else:
+            state1[3:7] = normalize(state1[3:7])
+            pred_dyn_state = state1.copy()
 
         # Predicted measurement
         sens1 = wts_m @ post_sens

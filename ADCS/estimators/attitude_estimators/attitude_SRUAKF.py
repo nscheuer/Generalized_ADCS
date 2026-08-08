@@ -788,8 +788,11 @@ class SRUAKF(UAKF):
 
         # --- 4. Time Update (QR Method) ---
         state1 = wts_m @ post_pts
-        dquat1 = vec3_to_quat(state1[3:6], self.vec_mode)
-        quat1 = quat_mult(post_quat, dquat1)
+        if not self.quat_as_vec:
+            dquat1 = vec3_to_quat(state1[3:6], self.vec_mode)
+            quat1 = quat_mult(post_quat, dquat1)
+        else:
+            state1[3:7] = normalize(state1[3:7])
         
         # State deviations
         pts_diff = post_pts - state1

@@ -211,9 +211,15 @@ class Attitude_Estimator():
             if Q_hat.shape != (x_hat.augmented_size - 1, x_hat.augmented_size - 1):
                 raise ValueError("Q_hat shape does not match MEKF x_hat")
         
-        self.x0_hat = x_hat.copy()
-        self.x0_hat.cov = np.array(P_hat, dtype=float, copy=True)
-        self.x0_hat.int_cov = np.array(Q_hat, dtype=float, copy=True)
+        self.x0_hat = EstimatorState.from_estimator_array(
+            x_hat.as_estimator_array(),
+            n_rw=self.est_sat.number_RW,
+            n_act_bias=self.est_sat.act_bias_len,
+            n_sens_bias=self.est_sat.att_sens_bias_len,
+            n_dist_param=self.est_sat.dist_param_len,
+            cov=P_hat,
+            int_cov=Q_hat,
+        )
         # Full estimated state
         self.x_hat = self.x0_hat.copy()
 
@@ -582,6 +588,6 @@ class Attitude_Estimator():
         :rtype: numpy.ndarray
 
         """
-        res = self.use.copy()
-        res = np.delete(res, 3)
-        return res
+        if self.quat_as_vec:
+            return self.use.copy()
+        return np.delete(self.use, 3)
