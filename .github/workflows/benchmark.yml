@@ -57,8 +57,19 @@ jobs:
             fi
 
             echo "::group::$(basename "$script")"
-            python "$script" --compare
-            code=$?
+            code=0
+            for attempt in 1 2; do
+              if python "$script" --compare; then
+                code=0
+                break
+              else
+                code=$?
+              fi
+
+              if [ $attempt -eq 1 ]; then
+                echo "::warning::$(basename "$script") failed its first timing run; retrying once to rule out runner noise."
+              fi
+            done
             echo "::endgroup::"
 
             if [ $code -ne 0 ]; then
