@@ -246,13 +246,12 @@ class MTQ_w_RW(Controller):
         tau_att = -self.p_gain*q_err_vec - self.d_gain*w_err
 
         # Momentum Management
-        h_vals = x_hat.h
         rw_axes   = np.vstack([
             np.asarray(rw.axis, float).reshape(3,)
             for rw in est_sat.actuators
             if isinstance(rw, RW)
         ])
-        h_vals    = x_hat.h
+        h_vals    = est_sat.RWhs_from_state(x_hat)
         h_rw_body = h_vals @ rw_axes
 
         # Gyroscopic Compensation
@@ -280,7 +279,6 @@ class MTQ_w_RW(Controller):
         u_total = u_mtq+u_rw
 
         return u_total
-
 
 
 

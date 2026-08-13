@@ -1,9 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<testsuites name="pytest tests">
-  <testsuite name="pytest" errors="0" failures="0" skipped="0" tests="4" time="1.355" timestamp="2026-08-07T18:40:52.238532+02:00" hostname="Nics-P14s">
-    <testcase classname="testing.test_controllers.test_controller_mtq_w_rw" name="test_mtq_w_rw_cleans_nan_sensor_values" time="0.014" />
-    <testcase classname="testing.test_controllers.test_controller_mtq_w_rw" name="test_mtq_w_rw_matches_pointing_and_dump_allocation_math" time="0.006" />
-    <testcase classname="testing.test_controllers.test_controller_mtq_w_rw" name="test_mtq_w_rw_no_goal_matches_rate_damping_and_dump_math" time="0.005" />
-    <testcase classname="testing.test_controllers.test_controller_mtq_w_rw" name="test_mtq_w_rw_includes_gyroscopic_compensation" time="0.004" />
-  </testsuite>
-</testsuites>
