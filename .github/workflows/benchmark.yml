@@ -46,11 +46,13 @@ jobs:
           shopt -s nullglob
           scripts=(testing/benchmarks/benchmark_*.py)
           if [ ${#scripts[@]} -eq 0 ]; then
-            echo "No benchmark scripts found."
+            echo "failed_categories=benchmark-discovery" >> "$GITHUB_OUTPUT"
+            echo "::error title=No benchmarks discovered::No files matched testing/benchmarks/benchmark_*.py."
             exit 1
           fi
 
           status=0
+          failed_categories=()
           for script in "${scripts[@]}"; do
             if [ "$(basename "$script")" = "report_benchmarks.py" ]; then
               continue
@@ -74,9 +76,13 @@ jobs:
 
             if [ $code -ne 0 ]; then
               status=$code
+              category=$(basename "$script" .py)
+              failed_categories+=("${category#benchmark_}")
             fi
           done
 
+          failed_csv=$(IFS=,; echo "${failed_categories[*]}")
+          echo "failed_categories=$failed_csv" >> "$GITHUB_OUTPUT"
           exit $status
 
       - name: 📊 Generate Benchmark Report
@@ -141,4 +147,14 @@ jobs:
 
       - name: 🚦 Fail On Benchmark Regression
         if: always() && steps.benchmarks.outcome == 'failure'
-        run: exit 1
+        env:
+          FAILED_CATEGORIES: ${{ steps.benchmarks.outputs.failed_categories }}
+        run: |
+          if [ -z "$FAILED_CATEGORIES" ]; then
+            FAILED_CATEGORIES="unknown (inspect the Run Benchmarks step for an unexpected error)"
+          fi
+
+          echo "::error title=Benchmark gate failed::Failed categories: $FAILED_CATEGORIES. See the Benchmark Step Summary, PR benchmark report, or benchmark-results artifact for measured ratios."
+          echo "Benchmark gate failed for: $FAILED_CATEGORIES" >&2
+          echo "Detailed ratios are available in the Benchmark Step Summary and benchmark-results artifact." >&2
+          exit 1
