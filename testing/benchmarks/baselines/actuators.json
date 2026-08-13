@@ -1,71 +1,71 @@
 {
   "benchmarks": {
     "mtq_hessians": {
-      "loops": 2048,
+      "loops": 512,
       "max_regression": 1.5,
-      "normalized_seconds": 0.006554660203436816,
-      "seconds": 2.1819687499924356e-05
+      "normalized_seconds": 0.006241594901719646,
+      "seconds": 5.53182031249877e-05
     },
     "mtq_jacobians": {
-      "loops": 2048,
+      "loops": 1024,
       "max_regression": 1.5,
-      "normalized_seconds": 0.005432860931289926,
-      "seconds": 1.808535058600569e-05
+      "normalized_seconds": 0.005377798413525473,
+      "seconds": 4.766252050780739e-05
     },
     "mtq_storage_torque": {
       "loops": 8192,
       "max_regression": 1.5,
-      "normalized_seconds": 3.255957318189182e-05,
-      "seconds": 1.0838696284931615e-07
+      "normalized_seconds": 3.412426675795052e-05,
+      "seconds": 3.024376220711611e-07
     },
     "mtq_torque": {
-      "loops": 2048,
+      "loops": 1024,
       "max_regression": 1.5,
-      "normalized_seconds": 0.004143561003562652,
-      "seconds": 1.3793423828012408e-05
+      "normalized_seconds": 0.00412735691469598,
+      "seconds": 3.658006835938199e-05
     },
     "rw_dtorq__du": {
       "loops": 8192,
       "max_regression": 1.5,
-      "normalized_seconds": 3.0908796739295656e-05,
-      "seconds": 1.0289172358568521e-07
+      "normalized_seconds": 3.0770939875245115e-05,
+      "seconds": 2.7271765136449577e-07
     },
     "rw_effective_command": {
       "loops": 8192,
       "max_regression": 1.5,
-      "normalized_seconds": 0.0005217106647104957,
-      "seconds": 1.73671301273437e-06
+      "normalized_seconds": 0.0005473326648115815,
+      "seconds": 4.850917114253284e-06
     },
     "rw_measure_momentum": {
       "loops": 8192,
       "max_regression": 1.5,
-      "normalized_seconds": 1.4873892855912365e-05,
-      "seconds": 4.9513427691216805e-08
+      "normalized_seconds": 1.778094052216971e-05,
+      "seconds": 1.5758947753685693e-07
     },
     "rw_measure_momentum_noiseless": {
       "loops": 8192,
       "max_regression": 1.5,
-      "normalized_seconds": 5.10572021663931e-06,
-      "seconds": 1.699633789264965e-08
+      "normalized_seconds": 5.4817541091068516e-06,
+      "seconds": 4.8583862308215764e-08
     },
     "rw_storage_torque": {
-      "loops": 8192,
+      "loops": 4096,
       "max_regression": 1.5,
-      "normalized_seconds": 0.0005306731226035445,
-      "seconds": 1.7665479735695655e-06
+      "normalized_seconds": 0.0005605440421932699,
+      "seconds": 4.9680073242186484e-06
     },
     "rw_torque": {
-      "loops": 8192,
+      "loops": 4096,
       "max_regression": 1.5,
-      "normalized_seconds": 0.0006376071472748789,
-      "seconds": 2.1225186767059867e-06
+      "normalized_seconds": 0.0006667218091750454,
+      "seconds": 5.909042968751943e-06
     }
   },
-  "calibration_loops": 16,
-  "calibration_seconds": 0.0033288815625382995,
+  "calibration_loops": 8,
+  "calibration_seconds": 0.008862831374997882,
   "description": "Actuators fast benchmark results normalized by calibration_seconds.",
-  "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+  "platform": "Linux-6.17.0-1020-azure-x86_64-with-glibc2.39",
   "processor": "x86_64",
-  "python": "3.12.3",
+  "python": "3.12.13",
   "schema_version": 1
 }
