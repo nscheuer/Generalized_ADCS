@@ -196,6 +196,7 @@ class AllocationConfig:
         'qpw'            : Direction-weighted QP (penalize perp error more)
         'qpc'            : Energy-constrained QP (Lyapunov power gate)
         'pseudoinverse'  : Moore-Penrose pinv + clip
+        'clipping'       : alias for 'pseudoinverse'
     """
     method: str = 'lp'
 

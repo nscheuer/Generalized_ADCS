@@ -627,3 +627,54 @@ class TestAllocationResult:
                 config, B_body_nominal, 3,
             )
             assert result.alpha >= 0.0, f"{method}: alpha < 0"
+
+
+# ---------------------------------------------------------------------------
+# 'clipping' is the paper's and the poster's name for pinv + clip
+# ---------------------------------------------------------------------------
+
+def test_clipping_is_an_accepted_alias_for_pseudoinverse():
+    """The paper and poster say "clipping"; the API must accept that word.
+
+    pseudoinverse IS the clipping allocator -- np.linalg.pinv followed by
+    np.clip to the actuator bounds -- so this is a spelling, not a second
+    algorithm. Asserted on the numbers, not just that it runs.
+    """
+    import numpy as np
+    from ADCS.pipeline.allocation import allocation_step
+    from ADCS.pipeline.data import AllocationConfig, ActuatorGroup
+
+    groups = [
+        ActuatorGroup(group_type='rw',
+                      axes=np.eye(3),
+                      u_max=np.array([0.01, 0.01, 0.01]),
+                      indices=np.array([0, 1, 2])),
+    ]
+    B_body = np.array([1e-5, 2e-5, -1e-5])
+    rng = np.random.default_rng(4)
+    for _ in range(20):
+        tau = rng.normal(size=3) * 0.02      # large enough to hit the bounds
+        a = allocation_step(tau_desired=tau, actuator_groups=groups,
+                            alloc_config=AllocationConfig(method='pseudoinverse'),
+                            B_body=B_body, n_actuators=3)
+        b = allocation_step(tau_desired=tau, actuator_groups=groups,
+                            alloc_config=AllocationConfig(method='clipping'),
+                            B_body=B_body, n_actuators=3)
+        assert np.array_equal(a.u, b.u)
+        assert np.array_equal(a.tau_achieved, b.tau_achieved)
+        assert a.alpha == b.alpha and a.feasible == b.feasible
+
+
+def test_unknown_allocation_method_names_the_valid_ones():
+    import numpy as np
+    import pytest
+    from ADCS.pipeline.allocation import allocation_step
+    from ADCS.pipeline.data import AllocationConfig, ActuatorGroup
+
+    groups = [ActuatorGroup(group_type='rw', axes=np.eye(3),
+                            u_max=np.ones(3) * 0.01, indices=np.arange(3))]
+    with pytest.raises(ValueError, match="clipping"):
+        allocation_step(tau_desired=np.array([1e-4, 0, 0]),
+                        actuator_groups=groups,
+                        alloc_config=AllocationConfig(method='nope'),
+                        B_body=np.array([1e-5, 0, 0]), n_actuators=3)

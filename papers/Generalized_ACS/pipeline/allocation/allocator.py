@@ -8,7 +8,7 @@ Supported methods:
     - qp             : Bounded least-squares QP
     - qpw            : Direction-weighted QP
     - qpc            : Energy-constrained QP
-    - pseudoinverse  : Moore-Penrose pinv + clip
+    - pseudoinverse  : Moore-Penrose pinv + clip (aka 'clipping')
 
 Momentum management (desaturation):
     - nullspace  : Post-allocation nullspace projection (zero torque impact)
@@ -234,13 +234,20 @@ def _route_to_solver(
             n_actuators, group_indices, alloc_config,
             omega=omega,
         )
-    elif method == 'pseudoinverse':
+    elif method in ('pseudoinverse', 'clipping'):
+        # 'clipping' is an accepted spelling of the same allocator: it is
+        # literally pinv followed by np.clip to the actuator bounds. The paper
+        # and the poster both call this one "clipping", so accept that name
+        # rather than making the documentation and the API disagree.
         return allocate_pseudoinverse(
             tau_desired, B_tau, u_min, u_max,
             n_actuators, group_indices,
         )
     else:
-        raise ValueError(f"Unknown allocation method: {method}")
+        raise ValueError(
+            f"Unknown allocation method: {method!r}. Available: 'lp', 'qp', "
+            "'qpw', 'qpc', 'pseudoinverse' (aka 'clipping'), 'magnetic_cross'."
+        )
 
 
 def _solve_weighted_desat(
