@@ -77,11 +77,70 @@ Repository = "https://github.com/nscheuer/Generalized_ADCS"
 Documentation = "https://nscheuer.github.io/Generalized_ADCS/"
 
 [tool.setuptools]
-package-dir = {"" = "."}
+# The generalized-control pipeline lives with the paper it belongs to, under
+# papers/Generalized_ACS/pipeline/, but is still shipped and imported as
+# ADCS.pipeline. Mapping it here keeps the source layout paper-centric without
+# taking the adapter out of the installed package -- the poster, the landing
+# page and the Colab notebook all depend on `pip install generalized-adcs`
+# providing it.
+package-dir = { "" = ".", "ADCS.pipeline" = "papers/Generalized_ACS/pipeline" }
 
-[tool.setuptools.packages.find]
-where = ["."]
-include = ["ADCS*"]
+# Explicit rather than `packages.find`, because find cannot discover
+# ADCS.pipeline -- it is not under ADCS/ -- and setuptools will not merge a
+# find directive with an extra entry. testing/test_packaging.py asserts this
+# list still matches what is on disk, so adding a subpackage and forgetting to
+# list it here fails CI instead of silently shipping a broken wheel.
+packages = [
+    "ADCS",
+    "ADCS.CONOPS",
+    "ADCS.CONOPS.goallist",
+    "ADCS.CONOPS.goals",
+    "ADCS.CONOPS.goals.attitude_goals",
+    "ADCS.CONOPS.goals.vector_goals",
+    "ADCS.controller",
+    "ADCS.controller.helpers",
+    "ADCS.controller.neo_planner",
+    "ADCS.controller.plan_and_track",
+    "ADCS.controller.saltro",
+    "ADCS.environment",
+    "ADCS.estimators",
+    "ADCS.estimators.attitude_estimators",
+    "ADCS.estimators.estimator_helpers",
+    "ADCS.estimators.orbit_estimators",
+    "ADCS.flight_software",
+    "ADCS.flight_software.single_core",
+    "ADCS.flight_software.tasks",
+    "ADCS.helpers",
+    "ADCS.helpers.plot",
+    "ADCS.helpers.plot.control",
+    "ADCS.helpers.plot.orbit",
+    "ADCS.helpers.plot.sensors",
+    "ADCS.helpers.plot.states",
+    "ADCS.helpers.plotting",
+    "ADCS.helpers.plotting_mc",
+    "ADCS.helpers.save_and_load",
+    "ADCS.mc",
+    "ADCS.orbits",
+    "ADCS.orbits.helpers",
+    "ADCS.remote",
+    "ADCS.satellite_factory",
+    "ADCS.satellite_factory.actuators",
+    "ADCS.satellite_factory.satellites",
+    "ADCS.satellite_factory.sensors",
+    "ADCS.satellite_hardware",
+    "ADCS.satellite_hardware.actuators",
+    "ADCS.satellite_hardware.disturbances",
+    "ADCS.satellite_hardware.disturbances.helpers",
+    "ADCS.satellite_hardware.errors",
+    "ADCS.satellite_hardware.errors.helpers",
+    "ADCS.satellite_hardware.satellite",
+    "ADCS.satellite_hardware.sensors",
+    "ADCS.pipeline",
+    "ADCS.pipeline.allocation",
+    "ADCS.pipeline.compensation",
+    "ADCS.pipeline.control_law",
+    "ADCS.pipeline.goal_formulation",
+]
 
 [tool.pytest.ini_options]
 addopts = [

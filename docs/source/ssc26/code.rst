@@ -31,6 +31,13 @@ library cannot drift apart.
 Where each stage lives
 ======================
 
+.. note::
+
+   The source lives under ``papers/Generalized_ACS/`` because it is the
+   artifact of that paper, but it installs and imports as ``ADCS.pipeline`` --
+   so ``pip install generalized-adcs`` gives you the adapter, and the code on
+   the poster runs unchanged.
+
 .. list-table::
    :header-rows: 1
    :widths: 18 82
@@ -38,20 +45,20 @@ Where each stage lives
    * - Stage
      - Module
    * - 1 · Goal formulation
-     - ``ADCS/pipeline/goal_formulation/`` — ``attitude_error.py``,
+     - ``papers/Generalized_ACS/pipeline/goal_formulation/`` — ``attitude_error.py``,
        ``quat_set.py`` (reduced → full lift), ``omega_ref.py``,
        ``world_vectors.py``, ``conventions.py``
    * - 2 · Control law
-     - ``ADCS/pipeline/control_law/`` — ``law_interface.py`` (the contract),
+     - ``papers/Generalized_ACS/pipeline/control_law/`` — ``law_interface.py`` (the contract),
        ``pd_law.py``, ``sliding_mode_law.py``
    * - 4 · Compensation
-     - ``ADCS/pipeline/compensation/`` — ``gyroscopic.py``,
+     - ``papers/Generalized_ACS/pipeline/compensation/`` — ``gyroscopic.py``,
        ``frame_rotation.py``, ``disturbance_ff.py``, ``damping_injection.py``
    * - 5 · Allocation
-     - ``ADCS/pipeline/allocation/`` — ``lp.py``, ``qp.py``, ``qpw.py``,
+     - ``papers/Generalized_ACS/pipeline/allocation/`` — ``lp.py``, ``qp.py``, ``qpw.py``,
        ``qpc.py``, ``pseudoinverse.py``, ``magnetic_cross.py``, ``momentum.py``
    * - Orchestration
-     - ``ADCS/pipeline/pipeline_controller.py``, ``ADCS/pipeline/data.py``
+     - ``papers/Generalized_ACS/pipeline/pipeline_controller.py``, ``papers/Generalized_ACS/pipeline/data.py``
 
 ``PipelineController`` subclasses the framework's ``Controller``, so it drops
 into ``ADCS.simulate`` and ``ADCS.mc.monte_carlo_runner.MonteCarloRunner``
