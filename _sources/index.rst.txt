@@ -16,22 +16,22 @@ Latest Release Notes
 .. raw:: html
 
    <div class="release-grid">
-     <a class="release-card release-card-featured" href="release_notes/0_1_7_benchmark.html">
+     <a class="release-card release-card-featured" href="ssc26/index.html">
+       <img src="_static/release_notes/0_1_8_smallsat_logo.png" alt="SmallSat 2026 logo">
+       <div class="release-card-copy">
+         <div class="release-card-kicker">Update 0.1.8</div>
+         <h3>Generalized ACS Pipeline</h3>
+         <p>Use smart actuator selection, torque compensation, control law transformation and goal selection to maximize the performance of your control law.</p>
+         <span>Explore update 0.1.8</span>
+       </div>
+     </a>
+     <a class="release-card" href="release_notes/0_1_7_benchmark.html">
        <img src="_static/release_notes/0_1_7_benchmark_small.png" alt="Benchmark report preview">
        <div class="release-card-copy">
          <div class="release-card-kicker">Update 0.1.7</div>
          <h3>Benchmark</h3>
          <p>New performance benchmarks run on every pull request into <code>main</code> and compare results to catch regressions early.</p>
          <span>Explore release note 0.1.7</span>
-       </div>
-     </a>
-     <a class="release-card" href="release_notes/0_1_6_remote_execution.html">
-       <img src="_static/release_notes/0_1_6_raspberry_pi.jpeg" alt="Remote execution on Raspberry Pi">
-       <div class="release-card-copy">
-         <div class="release-card-kicker">Update 0.1.6</div>
-         <h3>Remote Execution</h3>
-         <p>Selected ADCS components can run on a Raspberry Pi over XML-RPC while the main PC keeps the truth model and simulation loop local.</p>
-         <span>Explore release note 0.1.6</span>
        </div>
      </a>
    </div>
