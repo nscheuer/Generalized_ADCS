@@ -1,7 +1,7 @@
 __all__ = ["Orbit_Estimator"]
 
 import numpy as np
-from typing import Optional, List
+from typing import Optional, List, Sequence
 from abc import ABC, abstractmethod
 
 from ADCS.estimators.estimator_helpers import EstimatedOrbital_State
@@ -89,7 +89,7 @@ class Orbit_Estimator(ABC):
         self.os_hat: Optional[EstimatedOrbital_State] = None
 
     @abstractmethod
-    def update(self, GPS_measurements: List[np.ndarray], J2000: float) -> EstimatedOrbital_State:
+    def update(self, GPS_measurements: Sequence[np.ndarray], J2000: float) -> EstimatedOrbital_State:
         r"""
         Propagate and update the orbital state estimate using sensor measurements.
 

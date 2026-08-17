@@ -3,7 +3,7 @@ __all__ = ["BDot"]
 import numpy as np
 
 from ADCS.state import EstimatorState, State
-from typing import List
+from typing import List, Optional
 
 from ADCS.CONOPS.goals import Goal
 from ADCS.controller.controller import Controller
@@ -133,7 +133,7 @@ class BDot(Controller):
         self.n_actuators = len(est_sat.actuators)
 
 
-    def find_u(self, x_hat: State | EstimatorState, sens: np.ndarray, est_sat: EstimatedSatellite, os_hat: Orbital_State, goal: Goal = None) -> np.ndarray:
+    def find_u(self, x_hat: State | EstimatorState, sens: np.ndarray, est_sat: EstimatedSatellite, os_hat: Orbital_State, goal: Optional[Goal] = None) -> np.ndarray:
         r"""
         Computes the B-Dot control command.
 

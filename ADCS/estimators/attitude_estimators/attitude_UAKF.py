@@ -3,7 +3,7 @@ __all__ = ["UAKF"]
 import numpy as np
 import copy
 import scipy
-from typing import List, Optional
+from typing import List, Optional, Sequence
 import time
 
 from ADCS.estimators.attitude_estimators.attitude_estimator import Attitude_Estimator
@@ -329,7 +329,7 @@ class UAKF(Attitude_Estimator):
         return np.array(mask, dtype=bool)
 
 
-    def make_pts_and_wts(self, pt0: np.ndarray, which_sensors: List[bool]):
+    def make_pts_and_wts(self, pt0: np.ndarray, which_sensors: Sequence[bool]):
         r"""
         Build augmented sigma points and Unscented Transform weights.
 

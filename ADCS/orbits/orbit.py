@@ -4,7 +4,7 @@ __all__ = ["Orbit"]
 import numpy as np
 import ppigrf
 import warnings
-from typing import List, Union
+from typing import List, Union, Optional, Sequence
 from tqdm import tqdm
 from skyfield import api, units, positionlib, framelib
 from datetime import timezone
@@ -68,9 +68,9 @@ class Orbit:
 
     def __init__(
         self,
-        os0: Union[Orbital_State, List[Orbital_State]],
-        end_time: float = None,
-        dt: float = None,
+        os0: Union[Orbital_State, Sequence[Orbital_State]],
+        end_time: Optional[float] = None,
+        dt: Optional[float] = None,
         fast: bool = True,
         verbose: bool = True,
         zonal_J: int = 2,
@@ -401,7 +401,7 @@ class Orbit:
         dt_sec = (t - t0) * TimeConstants.cent2sec
         return self.states[t0].propagate_orbit_rk4(dt_sec, zonal_J=getattr(self, "_zonal_J", 2))
 
-    def get_range(self, t_0: float, t_1: float, dt: float = None):
+    def get_range(self, t_0: float, t_1: float, dt: Optional[float] = None):
         r"""
         Extract a sub-orbit over a specified time interval.
 
@@ -458,7 +458,7 @@ class Orbit:
         ts = np.concatenate([np.arange(t_0, t_1, float(dt) / TimeConstants.cent2sec), [t_1]])
         return self.new_orbit_from_times(ts.tolist())
 
-    def new_orbit_from_times(self, time_list: List[float]):
+    def new_orbit_from_times(self, time_list: Sequence[float]):
         r"""
         Construct a new orbit sampled at specific epochs.
 

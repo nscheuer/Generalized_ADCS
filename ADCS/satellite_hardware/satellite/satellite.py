@@ -2,7 +2,7 @@ __all__ = ["Satellite"]
 
 import numpy as np
 
-from typing import List, Dict, Union, Tuple, Any
+from typing import List, Dict, Union, Tuple, Any, Optional, Sequence
 from scipy.linalg import block_diag
 import time
 
@@ -131,7 +131,7 @@ class Satellite:
     :raises ValueError:
         If ``COM`` is not shape ``(3,)`` or ``J_0`` is not shape ``(3,3)``.
     """
-    def __init__(self, mass: float = 1.0, COM: np.ndarray = None, J_0: np.ndarray = None, disturbances: List[Disturbance] = [], sensors: List[Sensor] = [], actuators: List[Actuator] = [], boresight: dict[str, np.ndarray] | np.ndarray = None) -> None:
+    def __init__(self, mass: float = 1.0, COM: Optional[np.ndarray] = None, J_0: Optional[np.ndarray] = None, disturbances: Sequence[Disturbance] = [], sensors: Sequence[Sensor] = [], actuators: Sequence[Actuator] = [], boresight: Optional[dict[str, np.ndarray] | np.ndarray] = None) -> None:
         r"""
         Construct a :class:`~ADCS.satellite.Satellite`.
 
@@ -234,7 +234,7 @@ class Satellite:
 
         return self.boresight[name]
 
-    def update_J(self, J_0: np.ndarray = None, COM: np.ndarray = None) -> None:
+    def update_J(self, J_0: Optional[np.ndarray] = None, COM: Optional[np.ndarray] = None) -> None:
         r"""
         Update inertia matrices and cached inverses.
 
@@ -546,7 +546,7 @@ class Satellite:
             raise TypeError(f"state must be a State, got {type(state).__name__}")
         return state.h
     
-    def dynamics_core(self, x: State, u: np.ndarray, orbital_state: Orbital_State, dmode: ErrorMode = None, verbose: bool = False) -> np.ndarray:
+    def dynamics_core(self, x: State, u: np.ndarray, orbital_state: Orbital_State, dmode: Optional[ErrorMode] = None, verbose: bool = False) -> np.ndarray:
         r"""
         Continuous-time attitude dynamics :math:`\dot{\mathbf{x}} = f(\mathbf{x},\mathbf{u},\mathrm{os})`.
 
@@ -748,7 +748,7 @@ class Satellite:
         return x_dot
     
 
-    def dist_torques(self, x: State, os: Orbital_State, dmode: ErrorMode = None) -> np.ndarray:
+    def dist_torques(self, x: State, os: Orbital_State, dmode: Optional[ErrorMode] = None) -> np.ndarray:
         r"""
         Compute the total disturbance torque.
 
@@ -786,7 +786,7 @@ class Satellite:
 
         return torque_total
     
-    def act_torque(self, x: State, u: np.ndarray, os: Orbital_State, dmode: ErrorMode = None) -> np.ndarray:
+    def act_torque(self, x: State, u: np.ndarray, os: Orbital_State, dmode: Optional[ErrorMode] = None) -> np.ndarray:
         r"""
         Compute the total actuator torque.
 
@@ -1223,7 +1223,7 @@ class Satellite:
         return [[ddxdot__dxdx,ddxdot__dxdu],[ddxdot__dxdu.T,ddxdot__dudu]]
 
 
-    def noiseless_rk4(self, x: State, u: np.ndarray, dt: float, orbital_state0: Orbital_State, orbital_state1: Orbital_State, verbose: bool=False,mid_orbital_state: Orbital_State = None, quat_as_vec: bool = True, give_err_est = False) -> State:
+    def noiseless_rk4(self, x: State, u: np.ndarray, dt: float, orbital_state0: Orbital_State, orbital_state1: Orbital_State, verbose: bool=False,mid_orbital_state: Optional[Orbital_State] = None, quat_as_vec: bool = True, give_err_est = False) -> State:
         r"""
         Propagate the state forward one step using RK4 (and optional embedded error estimate).
 
@@ -1366,7 +1366,7 @@ class Satellite:
     
 
         
-    def sensor_readings(self, x: State, os: Orbital_State, dmode: ErrorMode = None) -> np.ndarray:
+    def sensor_readings(self, x: State, os: Orbital_State, dmode: Optional[ErrorMode] = None) -> np.ndarray:
         r"""
         Compute concatenated sensor readings (attitude sensors + wheel momentum measurements).
 

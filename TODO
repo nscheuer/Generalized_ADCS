@@ -7,22 +7,10 @@
 Controllers
 - All current controllers do gyroscopic precession compensation, but no disturbance torque compensation
 Packaging / PyPI (deferred from the 0.1.8 install-hygiene work, 2026-08-05)
-- Ship py.typed (PEP 561). Currently absent, so downstream type checkers must
-  discard our annotations. The blocker is NOT our ~458 internal mypy errors --
-  measured: mypy does not report errors from site-packages, so zero of them
-  reach a user (verified by installing a py.typed build and type-checking a
-  small program against it). The blocker is that our *signatures* would then
-  become authoritative, and some are wrong in ways that produce FALSE errors in
-  correct user code. Two mechanical classes, both pure widenings with no
-  runtime effect:
-    * 79 implicit-Optional params (`x: np.ndarray = None` should be
-      `Optional[np.ndarray] = None`); modern mypy reads the declared type as
-      non-optional, so passing None is flagged.
-    * 31 invariant `List[X]` params on public functions; `list` is invariant,
-      so `Satellite(actuators=[MTQ(...), ...])` -- the README's own example --
-      is reported as an error. Should be `Sequence[X]` where the body only
-      reads. Check for mutation before converting.
-  Fix those ~110 signatures, then add the marker and a mypy CI gate.
+- py.typed shipped in 0.1.8 with the ~150 signature corrections it required.
+  Two residual public-API questions are tracked in issue #122 (README actuator
+  list needs an explicit `list[Actuator]`; and whether controllers really
+  require EstimatedSatellite or should annotate Satellite).
 - requirements.txt is still a hand-maintained pinned environment that can drift
   from pyproject.toml (the junk `np==1.0.2` is gone and the file now documents
   its role, but nothing enforces consistency). CI installs it and never runs

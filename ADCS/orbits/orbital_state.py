@@ -261,10 +261,10 @@ class Orbital_State:
         J2000: float,
         R: np.ndarray,
         V: np.ndarray,
-        S: np.ndarray = None,
-        B: np.ndarray = None,
-        rho: float = None,
-        density_model: DensityModel = None,
+        S: Optional[np.ndarray] = None,
+        B: Optional[np.ndarray] = None,
+        rho: Optional[float] = None,
+        density_model: Optional[DensityModel] = None,
         fast: bool = False,
     ) -> None:
         r"""
@@ -559,7 +559,7 @@ class Orbital_State:
         R_e: float,
         J2coeff: float,
         zonal_J: int = 2,
-        Jcoeffs: np.ndarray = None,
+        Jcoeffs: Optional[np.ndarray] = None,
     ) -> Tuple[np.ndarray, np.ndarray]:
         r"""
         Compute raw orbital dynamics.
@@ -633,7 +633,7 @@ class Orbital_State:
         R_e: float,
         J2coeff: float,
         zonal_J: int = 2,
-        Jcoeffs: np.ndarray = None,
+        Jcoeffs: Optional[np.ndarray] = None,
     ):
         r"""
         Compute Jacobians of orbital dynamics.

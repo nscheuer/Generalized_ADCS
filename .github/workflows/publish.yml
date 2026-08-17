@@ -96,8 +96,40 @@ jobs:
 
           # the estimator that used to need choldate
           from ADCS.estimators.attitude_estimators.attitude_SRUAKF import SRUAKF
+
+          # PEP 561 marker must travel with the wheel, or downstream type
+          # checkers silently discard every annotation we ship
+          assert os.path.exists(os.path.join(root, "py.typed")), "py.typed missing"
           print("wheel smoke test: OK")
           PY
+
+      # Our annotations become authoritative for users the moment py.typed
+      # ships, so a wrong signature turns into a false error in THEIR code.
+      # Type-check a representative program against the installed wheel.
+      - name: Type-check a user program against the wheel
+        run: |
+          python -m pip install mypy
+          cd "$(mktemp -d)"
+          cat > user_code.py <<'PY'
+          import numpy as np
+          import ADCS
+          from ADCS.satellite_hardware.satellite import EstimatedSatellite
+
+          acts: list[ADCS.Actuator] = [
+              ADCS.RW(axis=np.array([1, 0, 0]), max_torque=0.0023,
+                      J=5.7e-6, h=0.0, h_max=0.0036)
+          ]
+          acts += [ADCS.MTQ(axis, max_torque=0.2) for axis in np.eye(3)]
+          sens = [ADCS.MTM(axis) for axis in np.eye(3)]
+          satellite = ADCS.Satellite(mass=10, J_0=np.diag([0.03, 0.03, 0.01]),
+                                     actuators=acts, sensors=sens,
+                                     boresight=np.array([0, 0, 1]))
+          est = EstimatedSatellite.from_satellite(satellite)
+          ctrl = ADCS.controller.MTQ_w_RW_LP(est_sat=est, p_gain=5e-5, d_gain=2e-3,
+                                             c_gain=1e-3, h_target=np.zeros(3))
+          gyro = ADCS.Gyro(axis=np.array([1.0, 0, 0]), bias=None, noise=None)
+          PY
+          mypy user_code.py --ignore-missing-imports
 
   publish:
     name: Publish to PyPI

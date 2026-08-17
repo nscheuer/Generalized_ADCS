@@ -7,6 +7,7 @@ from ADCS.state import State
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.satellite_hardware.errors import Noise, Bias
 from ADCS.satellite_hardware.errors import ErrorMode
+from typing import Optional
 
 class Sensor:
     r"""
@@ -91,7 +92,7 @@ class Sensor:
     * Bias and noise updates are controlled via
       :class:`~ADCS.satellite_hardware.errors.ErrorMode`.
     """
-    def __init__(self, sample_time: float = 0.1, output_length: int = 1, bias: Bias = None, noise: Noise = None, estimate_bias: bool = False):
+    def __init__(self, sample_time: float = 0.1, output_length: int = 1, bias: Optional[Bias] = None, noise: Optional[Noise] = None, estimate_bias: bool = False):
         r"""
         Initialize a generic sensor model.
 
@@ -120,7 +121,7 @@ class Sensor:
         self.output_length = output_length
         self.estimate_bias = estimate_bias
 
-    def reading(self, x: State, os: Orbital_State, dmode: ErrorMode = None) -> np.ndarray:
+    def reading(self, x: State, os: Orbital_State, dmode: Optional[ErrorMode] = None) -> np.ndarray:
         r"""
         Compute the full sensor measurement including bias and noise.
 

@@ -1,7 +1,7 @@
 __all__ = ["Orbit_GPS"]
 
 import numpy as np
-from typing import List, Optional
+from typing import List, Optional, Sequence
 from scipy.linalg import block_diag
 
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
@@ -150,7 +150,7 @@ class Orbit_GPS(Orbit_Estimator):
 
     def update(
         self,
-        GPS_measurements: List[np.ndarray],
+        GPS_measurements: Sequence[np.ndarray],
         J2000: float
     ) -> EstimatedOrbital_State:
         r"""

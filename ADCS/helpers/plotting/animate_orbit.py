@@ -6,7 +6,7 @@ from matplotlib.animation import FuncAnimation
 from matplotlib.widgets import Button, RadioButtons
 from mpl_toolkits.mplot3d import Axes3D  # noqa: F401  # needed for 3D projection
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Sequence
 
 # Anchor the texture to this file, not to the process working directory. The
 # previous CWD-relative literal meant animate_orbit() raised FileNotFoundError
@@ -23,10 +23,10 @@ from ADCS.state import State
 
 def animate_orbit(
     time_hist: np.ndarray,
-    state_hist: List[State],
-    os_hist: List[Orbital_State],
-    est_state_hist: Optional[List[State]] = None,
-    est_os_hist: Optional[List[Orbital_State]] = None,
+    state_hist: Sequence[State],
+    os_hist: Sequence[Orbital_State],
+    est_state_hist: Optional[Sequence[State]] = None,
+    est_os_hist: Optional[Sequence[Orbital_State]] = None,
     boresight_goal_hist: Optional[np.ndarray] = None,
     coord_goal: Optional[Coordinate_Goal]=None,  # Expected: Coordinate_Goal instance (has .target_ecef)
     texture_path: Optional[Union[str, Path]] = None,

@@ -39,7 +39,7 @@ def simulate(
     estimator: Optional[Attitude_Estimator] = None,
     orbit_estimator: Optional[Orbit_Estimator] = None,
     goal: Optional[Goal | GoalList] = None,
-    os0: Orbital_State = None,
+    os0: Optional[Orbital_State] = None,
     dt: float = 1.0,
     tf: float = 500.0,
 ) -> SimulationResults:

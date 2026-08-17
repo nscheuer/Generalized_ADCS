@@ -10,6 +10,7 @@ from scipy.linalg import block_diag
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.satellite_hardware.errors import Noise, Bias
 from ADCS.helpers.math_constants import MathConstants
+from typing import Optional
 
 class GPS(Sensor):
     r"""
@@ -81,7 +82,7 @@ class GPS(Sensor):
     * Velocity is transformed from ECI to ECEF using
       :meth:`~ADCS.orbits.orbital_state.Orbital_State.eci_to_ecef`.
     """
-    def __init__(self, sample_time: float = 0.1, bias: Bias = None, noise: Noise = None, estimate_bias: bool = False):
+    def __init__(self, sample_time: float = 0.1, bias: Optional[Bias] = None, noise: Optional[Noise] = None, estimate_bias: bool = False):
         r"""
         Initialize the GPS sensor model.
 

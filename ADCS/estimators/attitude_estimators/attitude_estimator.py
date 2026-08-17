@@ -2,7 +2,7 @@ __all__ = ["Attitude_Estimator"]
 
 import numpy as np
 import time
-from typing import List, Optional
+from typing import List, Optional, Sequence
 from ADCS.orbits.orbital_state import Orbital_State, Ephemeris
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
 from ADCS.state import EstimatorState
@@ -441,7 +441,7 @@ class Attitude_Estimator():
         return state
 
 
-    def update(self, u: np.ndarray, sensors: List[np.ndarray], os: Orbital_State) -> EstimatorState:
+    def update(self, u: np.ndarray, sensors: Sequence[np.ndarray], os: Orbital_State) -> EstimatorState:
         r"""
         High-level estimator update wrapper.
 

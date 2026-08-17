@@ -1,13 +1,13 @@
 __all__ = ['create_isis_magnetorquer_board']
 
 import numpy as np
-from typing import Optional, List
+from typing import Optional, List, Sequence
 
 from ADCS.satellite_hardware.actuators import MTQ
 from ADCS.satellite_hardware.errors import Bias, Noise
 from ADCS.helpers.math_helpers import random_n_unit_vec
 
-def create_isis_magnetorquer_board(axes: np.ndarray = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]]), bias: List[Bias] | None = None, noise: List[Noise] | None = None, estimate_bias: bool = False) -> List[MTQ]:
+def create_isis_magnetorquer_board(axes: np.ndarray = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]]), bias: Sequence[Bias] | None = None, noise: Sequence[Noise] | None = None, estimate_bias: bool = False) -> List[MTQ]:
     # https://satsearch.co/products/isis-isis-magnetorquer-board-i-mtq
     if bias is None:
         e_bias = random_n_unit_vec(3)*np.random.uniform(0.01, 0.15)

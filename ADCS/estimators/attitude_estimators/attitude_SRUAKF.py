@@ -3,7 +3,7 @@ __all__ = ["SRUAKF"]
 import numpy as np
 import scipy.linalg
 import copy
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Sequence
 import time
 
 # Rank-1 Cholesky update/downdate. Formerly the external `choldate` package,
@@ -268,7 +268,7 @@ class SRUAKF(UAKF):
                 
         return mat
 
-    def make_pts_and_wts(self, pt0: np.ndarray, which_sensors: List[bool]):
+    def make_pts_and_wts(self, pt0: np.ndarray, which_sensors: Sequence[bool]):
         r"""
         Generate augmented sigma points using the stored square root covariance.
 

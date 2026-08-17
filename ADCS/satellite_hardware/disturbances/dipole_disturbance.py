@@ -3,7 +3,7 @@ __all__ = ["Dipole_Disturbance"]
 import numpy as np
 
 from ADCS.state import State
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 from ADCS.satellite_hardware.disturbances.disturbance import Disturbance
 from ADCS.satellite_hardware.errors.noise import Noise
 from ADCS.orbits.orbital_state import Orbital_State
@@ -62,7 +62,7 @@ class Dipole_Disturbance(Disturbance):
     :type estimate_dist: bool
     """
 
-    def __init__(self, dipole_torque: np.ndarray, noise: Noise = None, estimate_dist: bool = False):
+    def __init__(self, dipole_torque: np.ndarray, noise: Optional[Noise] = None, estimate_dist: bool = False):
         r"""
         Initialize the magnetic dipole disturbance model.
 
@@ -157,7 +157,7 @@ class Dipole_Disturbance(Disturbance):
         B_B = vecs["b"]
         return np.cross(self.current_torque, B_B)
 
-    def torque_qjac(self, sat=None, x: State = None, os: Orbital_State = None) -> np.ndarray:
+    def torque_qjac(self, sat=None, x: Optional[State] = None, os: Optional[Orbital_State] = None) -> np.ndarray:
         r"""
         Jacobian of the disturbance torque with respect to the attitude quaternion.
 
@@ -190,7 +190,7 @@ class Dipole_Disturbance(Disturbance):
         db_body__dq = vecs["db"]
         return np.cross(self.current_torque, db_body__dq)
 
-    def torque_qqhess(self, sat=None, x: State = None, os: Orbital_State = None) -> np.ndarray:
+    def torque_qqhess(self, sat=None, x: Optional[State] = None, os: Optional[Orbital_State] = None) -> np.ndarray:
         r"""
         Hessian of the disturbance torque with respect to the attitude quaternion.
 
@@ -223,7 +223,7 @@ class Dipole_Disturbance(Disturbance):
         ddb_body__dqdq = vecs["ddb"]
         return np.cross(self.current_torque, ddb_body__dqdq)
 
-    def torque_valjac(self, sat=None, x: State = None, os: Orbital_State = None) -> np.ndarray:
+    def torque_valjac(self, sat=None, x: Optional[State] = None, os: Optional[Orbital_State] = None) -> np.ndarray:
         r"""
         Jacobian of the disturbance torque with respect to the dipole vector.
 
@@ -257,7 +257,7 @@ class Dipole_Disturbance(Disturbance):
         B_B = vecs["b"]
         return np.cross(np.eye(3), B_B)
 
-    def torque_qvalhess(self, sat=None, x: State = None, os: Orbital_State = None) -> np.ndarray:
+    def torque_qvalhess(self, sat=None, x: Optional[State] = None, os: Optional[Orbital_State] = None) -> np.ndarray:
         r"""
         Mixed second derivative of the disturbance torque with respect to quaternion
         and dipole vector.
@@ -290,7 +290,7 @@ class Dipole_Disturbance(Disturbance):
         db_body__dq = vecs["db"]
         return np.cross(np.expand_dims(np.eye(3), 0), np.expand_dims(db_body__dq, 1))
 
-    def torque_valvalhess(self, sat=None, x: State = None, os: Orbital_State = None) -> np.ndarray:
+    def torque_valvalhess(self, sat=None, x: Optional[State] = None, os: Optional[Orbital_State] = None) -> np.ndarray:
         r"""
         Second derivative of the disturbance torque with respect to the
         estimated parameter twice. The dipole torque is linear in the

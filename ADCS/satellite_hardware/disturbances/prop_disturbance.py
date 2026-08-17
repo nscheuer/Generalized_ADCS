@@ -3,7 +3,7 @@ __all__ = ["Prop_Disturbance"]
 import numpy as np
 
 from ADCS.state import State
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 from ADCS.satellite_hardware.disturbances.disturbance import Disturbance
 from ADCS.satellite_hardware.errors.noise import Noise
 from ADCS.orbits.orbital_state import Orbital_State
@@ -68,7 +68,7 @@ class Prop_Disturbance(Disturbance):
     :type noise: :class:`~ADCS.satellite_hardware.errors.noise.Noise`
     """
 
-    def __init__(self, torque_nominal: np.ndarray, noise: Noise = None, estimate_dist: bool = False):
+    def __init__(self, torque_nominal: np.ndarray, noise: Optional[Noise] = None, estimate_dist: bool = False):
         r"""
         Initialize the propulsion disturbance model.
 

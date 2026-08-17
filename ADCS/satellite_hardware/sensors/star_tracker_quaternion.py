@@ -83,8 +83,8 @@ class StarTrackerQuaternion(Sensor):
     def __init__(
         self,
         sample_time: float = 0.1,
-        bias: Bias = None,
-        noise: Noise = None,
+        bias: Optional[Bias] = None,
+        noise: Optional[Noise] = None,
         estimate_bias: bool = False,
         boresight: np.ndarray = np.array([0.0, 0.0, 1.0]),
         fov: float = np.deg2rad(20.0),

@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import Sequence
 
 __all__ = ["TargetPlot", "TargetHistogram"]
 
@@ -130,7 +131,7 @@ class TargetPlot(Subplot):
         time: str = "time_s",
         title: str = "Target Tracking",
         units: str = "deg",
-        modes: list[str] | None = None,
+        modes: Sequence[str] | None = None,
         sample_index: int = -1,
     ):
         self.time = time
