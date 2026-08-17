@@ -125,7 +125,7 @@ def plot_h_tracking_mc(
 
         if not colors:
             color_num = h_hist.shape[1]
-            cmap = cm.get_cmap('tab10')
+            cmap = plt.get_cmap('tab10')
 
             # Generate a list of M colors (RGBA tuples)
             # We select colors evenly spaced across the colormap

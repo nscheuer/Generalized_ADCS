@@ -17,7 +17,7 @@ from ADCS.state import EstimatorState
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
 from ADCS.satellite_hardware.sensors import SunSensor, SunPair
 from ADCS.satellite_hardware.errors import ErrorMode
-from ADCS.orbits.orbital_state import Orbital_State
+from ADCS.orbits.orbital_state import Orbital_State, Ephemeris
 from ADCS.orbits.universal_constants import CG5
 from ADCS.helpers.math_helpers import (
     vec3_to_quat,
@@ -83,6 +83,7 @@ class SRUAKF(UAKF):
         dt: float = 1.0,
         cross_term: bool = False,
         quat_as_vec: bool = False,
+        ephem: Optional[Ephemeris] = None,
     ) -> None:
         r"""
         Initialize the SR-UKF and compute initial square-root factors.
@@ -145,6 +146,7 @@ class SRUAKF(UAKF):
             dt=dt,
             cross_term=cross_term,
             quat_as_vec=quat_as_vec,
+            ephem=ephem,
         )
 
         try:

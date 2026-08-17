@@ -3,14 +3,14 @@ __all__ = ["UAKF"]
 import numpy as np
 import copy
 import scipy
-from typing import List
+from typing import List, Optional
 import time
 
 from ADCS.estimators.attitude_estimators.attitude_estimator import Attitude_Estimator
 from ADCS.state import EstimatorState, State
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
 from ADCS.satellite_hardware.errors import ErrorMode
-from ADCS.orbits.orbital_state import Orbital_State
+from ADCS.orbits.orbital_state import Orbital_State, Ephemeris
 from ADCS.orbits.universal_constants import CG5
 from ADCS.helpers.math_helpers import (
     quat_to_vec3,
@@ -171,6 +171,7 @@ class UAKF(Attitude_Estimator):
         cross_term: bool = False,
         quat_as_vec: bool = False,
         ut_alpha: float = 1e-3,
+        ephem: Optional[Ephemeris] = None,
     ) -> None:
         r"""
         Initialize the UKF estimator and store UKF scaling parameters.
@@ -217,6 +218,7 @@ class UAKF(Attitude_Estimator):
             dt=dt,
             cross_term=cross_term,
             quat_as_vec=quat_as_vec,
+            ephem=ephem,
         )
         # UKF tuning parameters.
         #

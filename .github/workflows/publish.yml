@@ -1,0 +1,117 @@
+# Publish to PyPI on a version tag, via Trusted Publishing (OIDC).
+#
+# Why this exists: 0.1.5 was uploaded by hand with `twine upload dist/*` from a
+# working tree whose dist/ still held a stale build. The artifact that reached
+# PyPI corresponded to no commit in the repository, and PyPI versions are
+# immutable. This workflow builds from a clean checkout of the tag, smoke-tests
+# the built wheel in an isolated environment, and only then publishes.
+#
+# SETUP (once, on pypi.org -> generalized-adcs -> Publishing -> Add a pending
+# publisher):
+#     Owner:              nscheuer
+#     Repository name:    Generalized_ADCS
+#     Workflow name:      publish.yml
+#     Environment name:   pypi
+# No API token is stored anywhere after that; GitHub mints a short-lived OIDC
+# token per run, so there is no long-lived credential to leak or rotate.
+
+name: Publish to PyPI
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:        # manual re-run without moving a tag
+
+jobs:
+  build:
+    name: Build distributions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0    # so the tag and its history are present
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build sdist and wheel
+        run: |
+          python -m pip install --upgrade pip build
+          rm -rf dist build *.egg-info   # never publish a stale artifact
+          python -m build
+
+      - name: Check metadata renders on PyPI
+        run: |
+          python -m pip install --upgrade twine
+          twine check --strict dist/*
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  smoke-test:
+    name: Install the built wheel and import it
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Deliberately does NOT check out the repo: this must exercise the wheel
+      # exactly as a user receives it, with no source tree on sys.path to mask
+      # a missing module or data file. This is the check that would have caught
+      # 0.1.5 shipping without ADCS/helpers/cholesky_update.py.
+      - name: Import from the wheel alone
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install dist/*.whl
+          cd "$(mktemp -d)"
+          python - <<'PY'
+          import ADCS, os
+          print("version:", ADCS.__version__)
+
+          # the module that 0.1.5 shipped without
+          from ADCS.helpers.cholesky_update import cholupdate, choldowndate
+          import numpy as np
+          A = np.diag([4.0, 3.0, 2.0])
+          R = np.linalg.cholesky(A).T.copy(order="C")
+          x = np.array([0.3, -0.2, 0.5])
+          cholupdate(R, x)
+          assert np.allclose(R.T @ R, A + np.outer(x, x)), "cholupdate is wrong"
+
+          # package data must travel with the wheel
+          root = os.path.dirname(ADCS.__file__)
+          for rel in ("helpers/plot/orbit/textures/2k_earth_daymap.jpg",
+                      "helpers/plotting/textures/2k_earth_daymap.jpg"):
+              assert os.path.exists(os.path.join(root, rel)), f"missing data file: {rel}"
+
+          # the estimator that used to need choldate
+          from ADCS.estimators.attitude_estimators.attitude_SRUAKF import SRUAKF
+          print("wheel smoke test: OK")
+          PY
+
+  publish:
+    name: Publish to PyPI
+    needs: smoke-test
+    runs-on: ubuntu-latest
+    environment: pypi          # attach approval/branch rules here if wanted
+    permissions:
+      id-token: write          # required for Trusted Publishing; no token stored
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      # Emits PEP 740 provenance attestations by default, so users can verify
+      # the artifact was built by this workflow from this repository.
+      - uses: pypa/gh-action-pypi-publish@release/v1

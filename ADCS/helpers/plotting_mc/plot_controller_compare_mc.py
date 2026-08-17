@@ -127,8 +127,8 @@ def plot_h_tracking_mc_compare(
     plt.figure(figsize=(10, 6))
 
     # Color maps
-    cmap_A = cm.get_cmap("tab10")
-    cmap_B = cm.get_cmap("Dark2")
+    cmap_A = plt.get_cmap("tab10")
+    cmap_B = plt.get_cmap("Dark2")
 
     def _plot_set(results, cmap, alpha, label_prefix):
         colors = None

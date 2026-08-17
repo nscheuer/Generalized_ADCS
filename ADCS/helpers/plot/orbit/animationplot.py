@@ -544,7 +544,7 @@ class AnimationPlot(Subplot):
         earth_actor = pl.add_mesh(earth_mesh, texture=tex, smooth_shading=True, specular=0.2)
 
         n_runs = len(per)
-        cmap = plt.cm.get_cmap("tab10", max(10, n_runs))
+        cmap = plt.get_cmap("tab10", max(10, n_runs))
         run_colors = [tuple(cmap(i)[:3]) for i in range(n_runs)]
 
         if self.show_true_orbit:

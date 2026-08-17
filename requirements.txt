@@ -1,3 +1,14 @@
+# Pinned development / CI environment.
+#
+# This is NOT the package's dependency set -- that lives in pyproject.toml as
+# compatible ranges, and is what `pip install generalized-adcs` resolves. This
+# file pins an exact environment for CI and for contributors who want a
+# known-good set, and additionally carries docs and C++-add-on build tooling
+# that the runtime package does not need.
+#
+# Keep it consistent with pyproject.toml: the two silently drifting apart is
+# how `rich` ended up undeclared, which made `pip install .` produce a package
+# that could not be imported (fixed in 0.1.8).
 asciichartpy==1.5.25
 certifi==2025.10.5
 cmake==4.1.2
@@ -14,7 +25,6 @@ jplephem==2.23
 kiwisolver==1.4.9
 matplotlib==3.10.7
 myst-parser==5.0.0
-np==1.0.2
 numpy==2.2.6
 numba==0.65.0
 numdifftools==0.9.41
