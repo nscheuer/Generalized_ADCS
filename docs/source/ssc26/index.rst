@@ -146,6 +146,8 @@ August 2026.
 Where to go next
 ================
 
+- :doc:`run` — run it in your browser, no install
+- :doc:`paper` — the paper and how to cite it
 - :doc:`code` — the repository, and where each stage lives
 - :doc:`contact` — questions, collaboration, bug reports
 - :doc:`../installation/index` — full installation guide
