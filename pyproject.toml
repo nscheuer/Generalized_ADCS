@@ -66,6 +66,10 @@ docs = [
     "furo",
 ]
 
+poster = [
+    "qrcode[pil]",
+]
+
 dev = [
     "pytest",
     "black",
