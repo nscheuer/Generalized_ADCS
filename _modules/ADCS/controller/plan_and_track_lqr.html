@@ -228,6 +228,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_8_installable.html">0.1.8 Installable from PyPI (2026-08-05)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
@@ -541,7 +542,7 @@
           <h1>Source code for ADCS.controller.plan_and_track_lqr</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Plan_and_Track_LQR&quot;</span><span class="p">]</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"Plan_and_Track_LQR"</span><span class="p">]</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
@@ -561,7 +562,7 @@
 <div class="viewcode-block" id="Plan_and_Track_LQR">
 <a class="viewcode-back" href="../../../ADCS.controller.plan_and_track_lqr.html#ADCS.controller.plan_and_track_lqr.Plan_and_Track_LQR">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">Plan_and_Track_LQR</span><span class="p">(</span><span class="n">PlanAndTrackBase</span><span class="p">):</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Plan-and-Track controller using ALTRO planning with TVLQR feedback tracking.</span>
 
 <span class="sd">    This controller plans an optimal attitude trajectory using the ALTRO</span>
@@ -623,10 +624,10 @@
 <span class="sd">    :return: None.</span>
 <span class="sd">    :rtype: None</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">est_sat</span><span class="p">:</span> <span class="n">EstimatedSatellite</span><span class="p">,</span> <span class="n">planner_settings</span><span class="p">:</span> <span class="n">PlannerSettings</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Construct the Plan-and-Track LQR controller.</span>
 
 <span class="sd">        This initializes the underlying C++ ALTRO planner using the standard TVLQR</span>
@@ -651,7 +652,7 @@
 <span class="sd">        :return: None.</span>
 <span class="sd">        :rtype: None</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="c1"># tracking_lqr_formulation=0 is standard TVLQR</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_init_planner</span><span class="p">(</span><span class="n">est_sat</span><span class="p">,</span> <span class="n">planner_settings</span><span class="p">,</span> <span class="n">tracking_lqr_formulation</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 
@@ -665,7 +666,7 @@
         <span class="n">os_hat</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span>
         <span class="n">goal</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Goal</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">]:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Compute the TVLQR tracking control input at the current time.</span>
 
 <span class="sd">        This method evaluates the time-varying LQR feedback law associated with the</span>
@@ -718,16 +719,16 @@
 <span class="sd">        :return: Control vector computed by TVLQR tracking.</span>
 <span class="sd">        :rtype: numpy.typing.NDArray[numpy.float64]</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
 
         <span class="n">current_time</span> <span class="o">=</span> <span class="n">os_hat</span><span class="o">.</span><span class="n">J2000</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">active_trajectory</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Plan_and_Track_LQR: No active trajectory set at t=</span><span class="si">{</span><span class="n">current_time</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Plan_and_Track_LQR: No active trajectory set at t=</span><span class="si">{</span><span class="n">current_time</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">active_trajectory</span><span class="o">.</span><span class="n">is_valid_time</span><span class="p">(</span><span class="n">current_time</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Plan_and_Track_LQR: Active trajectory expired or not started. &quot;</span>
-                                <span class="sa">f</span><span class="s2">&quot;Current: </span><span class="si">{</span><span class="n">current_time</span><span class="si">}</span><span class="s2">, Traj: [</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">active_trajectory</span><span class="o">.</span><span class="n">start_time</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">active_trajectory</span><span class="o">.</span><span class="n">end_time</span><span class="si">}</span><span class="s2">]&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Plan_and_Track_LQR: Active trajectory expired or not started. "</span>
+                                <span class="sa">f</span><span class="s2">"Current: </span><span class="si">{</span><span class="n">current_time</span><span class="si">}</span><span class="s2">, Traj: [</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">active_trajectory</span><span class="o">.</span><span class="n">start_time</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">active_trajectory</span><span class="o">.</span><span class="n">end_time</span><span class="si">}</span><span class="s2">]"</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">active_trajectory</span><span class="o">.</span><span class="n">compute_tracking_control</span><span class="p">(</span><span class="n">current_time</span><span class="p">,</span> <span class="n">x_hat</span><span class="p">)</span></div>
 
@@ -743,7 +744,7 @@
         <span class="n">goals</span><span class="p">:</span> <span class="n">GoalList</span><span class="p">,</span>
         <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Trajectory</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Plan an optimal trajectory using ALTRO and prepare it for TVLQR tracking.</span>
 
 <span class="sd">        This method invokes the shared planning routine provided by</span>
@@ -780,7 +781,7 @@
 <span class="sd">        :return: Planned trajectory with nominal states, controls, and TVLQR gains.</span>
 <span class="sd">        :rtype: :class:`~ADCS.controller.helpers.Trajectory`</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">lqr_times</span><span class="p">,</span> <span class="n">Xset</span><span class="p">,</span> <span class="n">Uset</span><span class="p">,</span> <span class="n">Kset</span><span class="p">,</span> <span class="n">Sset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_trajectory_common</span><span class="p">(</span>
             <span class="n">t_start</span><span class="p">,</span> <span class="n">duration</span><span class="p">,</span> <span class="n">x_0</span><span class="p">,</span> <span class="n">os_0</span><span class="p">,</span> <span class="n">goals</span><span class="p">,</span> <span class="n">verbose</span>
         <span class="p">)</span>

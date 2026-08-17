@@ -229,6 +229,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../release_notes/0_1_8_installable.html">0.1.8 Installable from PyPI (2026-08-05)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../release_notes/0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
@@ -612,17 +613,17 @@ Initialise it first if needed:</p>
 <span class="n">mkdir</span> <span class="n">build</span>
 <span class="nb">cd </span><span class="n">build</span>
 
-<span class="nv">$CMAKE_EXE</span> <span class="p">=</span> <span class="s2">&quot;C:\Program Files\CMake\bin\cmake.exe&quot;</span>
-<span class="nv">$VCPKG_ROOT</span> <span class="p">=</span> <span class="s2">&quot;$env:USERPROFILE\vcpkg&quot;</span>
-<span class="nv">$PYTHON_VENV</span> <span class="p">=</span> <span class="s2">&quot;..\..\venv\Scripts\python.exe&quot;</span>
+<span class="nv">$CMAKE_EXE</span> <span class="p">=</span> <span class="s2">"C:\Program Files\CMake\bin\cmake.exe"</span>
+<span class="nv">$VCPKG_ROOT</span> <span class="p">=</span> <span class="s2">"$env:USERPROFILE\vcpkg"</span>
+<span class="nv">$PYTHON_VENV</span> <span class="p">=</span> <span class="s2">"..\..\venv\Scripts\python.exe"</span>
 </pre></div>
 </div>
 <p>Configure the build:</p>
 <div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="p">&amp;</span> <span class="nv">$CMAKE_EXE</span> <span class="p">..</span> <span class="p">`</span>
   <span class="n">-A</span> <span class="n">x64</span> <span class="p">`</span>
-  <span class="n">-DCMAKE_TOOLCHAIN_FILE</span><span class="p">=</span><span class="s2">&quot;$VCPKG_ROOT\scripts\buildsystems\vcpkg.cmake&quot;</span> <span class="p">`</span>
+  <span class="n">-DCMAKE_TOOLCHAIN_FILE</span><span class="p">=</span><span class="s2">"$VCPKG_ROOT\scripts\buildsystems\vcpkg.cmake"</span> <span class="p">`</span>
   <span class="n">-DVCPKG_TARGET_TRIPLET</span><span class="p">=</span><span class="n">x64-windows</span> <span class="p">`</span>
-  <span class="n">-DPython3_EXECUTABLE</span><span class="p">=</span><span class="s2">&quot;$PYTHON_VENV&quot;</span>
+  <span class="n">-DPython3_EXECUTABLE</span><span class="p">=</span><span class="s2">"$PYTHON_VENV"</span>
 </pre></div>
 </div>
 <p>Build the project:</p>

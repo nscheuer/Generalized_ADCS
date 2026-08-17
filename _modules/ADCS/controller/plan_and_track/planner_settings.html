@@ -228,6 +228,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../../release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_8_installable.html">0.1.8 Installable from PyPI (2026-08-05)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
@@ -541,7 +542,7 @@
           <h1>Source code for ADCS.controller.plan_and_track.planner_settings</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;PlannerSettings&quot;</span><span class="p">]</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"PlannerSettings"</span><span class="p">]</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Optional</span>
@@ -555,7 +556,7 @@
 <div class="viewcode-block" id="PlannerSettings">
 <a class="viewcode-back" href="../../../../ADCS.controller.plan_and_track.planner_settings.html#ADCS.controller.plan_and_track.planner_settings.PlannerSettings">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">PlannerSettings</span><span class="p">:</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Container class for all configuration parameters required by the trajectory planner.</span>
 
 <span class="sd">    This class aggregates physical parameters, solver configurations, actuator limits,</span>
@@ -716,7 +717,7 @@
 <span class="sd">    :type include_gendist:</span>
 <span class="sd">        bool</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
             <span class="bp">self</span><span class="p">,</span> 
             <span class="n">est_sat</span><span class="p">:</span> <span class="n">EstimatedSatellite</span><span class="p">,</span> 
@@ -843,7 +844,7 @@
 <div class="viewcode-block" id="PlannerSettings.systemSettings">
 <a class="viewcode-back" href="../../../../ADCS.controller.plan_and_track.planner_settings.html#ADCS.controller.plan_and_track.planner_settings.PlannerSettings.systemSettings">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">systemSettings</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">],</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Return system-level configuration parameters for the C++ planner.</span>
 
 <span class="sd">        These parameters define the rigid-body dynamics discretization and numerical</span>
@@ -865,7 +866,7 @@
 <span class="sd">        :rtype:</span>
 <span class="sd">            Tuple[numpy.ndarray, float, float, float, float, float]</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">J_est</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt_tp</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt_tvlqr</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">eps</span><span class="p">,</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">tvlqr_len</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tvlqr_overlap</span><span class="p">)</span></div>
 
@@ -873,7 +874,7 @@
 <div class="viewcode-block" id="PlannerSettings.mainAlilqrSettings">
 <a class="viewcode-back" href="../../../../ADCS.controller.plan_and_track.planner_settings.html#ADCS.controller.plan_and_track.planner_settings.PlannerSettings.mainAlilqrSettings">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">mainAlilqrSettings</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tuple</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">]:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Return solver settings for the first augmented Lagrangian iLQR pass.</span>
 
 <span class="sd">        The first pass prioritizes global exploration with a low penalty parameter</span>
@@ -887,7 +888,7 @@
 <span class="sd">        :rtype:</span>
 <span class="sd">            Tuple[Tuple, Tuple, Tuple, Tuple]</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">pass1</span><span class="o">.</span><span class="n">line_search</span><span class="o">.</span><span class="n">to_tuple</span><span class="p">(),</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">pass1</span><span class="o">.</span><span class="n">aug_lag</span><span class="o">.</span><span class="n">to_tuple</span><span class="p">(),</span>
@@ -899,7 +900,7 @@
 <div class="viewcode-block" id="PlannerSettings.secondAlilqrSettings">
 <a class="viewcode-back" href="../../../../ADCS.controller.plan_and_track.planner_settings.html#ADCS.controller.plan_and_track.planner_settings.PlannerSettings.secondAlilqrSettings">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">secondAlilqrSettings</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tuple</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">]:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Return solver settings for the second augmented Lagrangian iLQR pass.</span>
 
 <span class="sd">        The second pass increases constraint penalties to enforce feasibility</span>
@@ -912,7 +913,7 @@
 <span class="sd">        :rtype:</span>
 <span class="sd">            Tuple[Tuple, Tuple, Tuple, Tuple]</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">pass2</span><span class="o">.</span><span class="n">line_search</span><span class="o">.</span><span class="n">to_tuple</span><span class="p">(),</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">pass2</span><span class="o">.</span><span class="n">aug_lag</span><span class="o">.</span><span class="n">to_tuple</span><span class="p">(),</span>
@@ -924,7 +925,7 @@
 <div class="viewcode-block" id="PlannerSettings.initTrajSettings">
 <a class="viewcode-back" href="../../../../ADCS.controller.plan_and_track.planner_settings.html#ADCS.controller.plan_and_track.planner_settings.PlannerSettings.initTrajSettings">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">initTrajSettings</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">]:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Return initial trajectory generation parameters.</span>
 
 <span class="sd">        These settings define how the initial guess trajectory is constructed</span>
@@ -936,14 +937,14 @@
 <span class="sd">        :rtype:</span>
 <span class="sd">            Tuple[float, float, Tuple, Tuple]</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">init_traj</span><span class="o">.</span><span class="n">to_tuple</span><span class="p">()</span></div>
 
 
 <div class="viewcode-block" id="PlannerSettings.optMainCostSettings">
 <a class="viewcode-back" href="../../../../ADCS.controller.plan_and_track.planner_settings.html#ADCS.controller.plan_and_track.planner_settings.PlannerSettings.optMainCostSettings">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">optMainCostSettings</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Return cost weights for the main optimization pass.</span>
 
 <span class="sd">        The running and terminal costs are defined as</span>
@@ -961,14 +962,14 @@
 <span class="sd">        :rtype:</span>
 <span class="sd">            Tuple</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cost_main</span><span class="o">.</span><span class="n">to_tuple</span><span class="p">()</span></div>
 
 
 <div class="viewcode-block" id="PlannerSettings.optSecondCostSettings">
 <a class="viewcode-back" href="../../../../ADCS.controller.plan_and_track.planner_settings.html#ADCS.controller.plan_and_track.planner_settings.PlannerSettings.optSecondCostSettings">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">optSecondCostSettings</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Return cost weights for the second optimization pass.</span>
 
 <span class="sd">        These weights may differ from the main pass to emphasize constraint</span>
@@ -980,14 +981,14 @@
 <span class="sd">        :rtype:</span>
 <span class="sd">            Tuple</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cost_second</span><span class="o">.</span><span class="n">to_tuple</span><span class="p">()</span></div>
 
 
 <div class="viewcode-block" id="PlannerSettings.optTVLQRCostSettings">
 <a class="viewcode-back" href="../../../../ADCS.controller.plan_and_track.planner_settings.html#ADCS.controller.plan_and_track.planner_settings.PlannerSettings.optTVLQRCostSettings">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">optTVLQRCostSettings</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tracking_LQR_formulation</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Return cost weights for the time-varying LQR controller.</span>
 
 <span class="sd">        The TVLQR controller minimizes a quadratic tracking cost</span>
@@ -1013,14 +1014,14 @@
 <span class="sd">        :rtype:</span>
 <span class="sd">            Tuple</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cost_tvlqr</span><span class="o">.</span><span class="n">to_tuple</span><span class="p">(</span><span class="n">tracking_LQR_formulation</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="PlannerSettings.planner_disturbance_settings">
 <a class="viewcode-back" href="../../../../ADCS.controller.plan_and_track.planner_settings.html#ADCS.controller.plan_and_track.planner_settings.PlannerSettings.planner_disturbance_settings">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">planner_disturbance_settings</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">NDArray</span><span class="p">,</span> <span class="n">NDArray</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="n">NDArray</span><span class="p">,</span> <span class="n">NDArray</span><span class="p">,</span> <span class="n">NDArray</span><span class="p">]:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Return disturbance configuration parameters for the C++ planner.</span>
 
 <span class="sd">        Disturbance torques are modeled as additive inputs</span>
@@ -1044,7 +1045,7 @@
 <span class="sd">            Tuple[Tuple[bool, ...], numpy.ndarray, numpy.ndarray, int,</span>
 <span class="sd">                numpy.ndarray, numpy.ndarray, numpy.ndarray]</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="p">(</span>
             <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">plan_for_aero</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">plan_for_prop</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">plan_for_srp</span><span class="p">,</span> 
              <span class="bp">self</span><span class="o">.</span><span class="n">plan_for_gg</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">plan_for_resdipole</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">plan_for_gendist</span><span class="p">),</span>

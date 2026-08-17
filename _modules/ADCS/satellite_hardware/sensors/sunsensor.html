@@ -228,6 +228,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../../release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_8_installable.html">0.1.8 Installable from PyPI (2026-08-05)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
@@ -539,7 +540,7 @@
         </div>
         <article role="main" id="furo-main-content">
           <h1>Source code for ADCS.satellite_hardware.sensors.sunsensor</h1><div class="highlight"><pre>
-<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;SunSensor&quot;</span><span class="p">]</span>
+<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"SunSensor"</span><span class="p">]</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">.sensor</span><span class="w"> </span><span class="kn">import</span> <span class="n">Sensor</span>
 
@@ -556,7 +557,7 @@
 <div class="viewcode-block" id="SunSensor">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.sensors.sunsensor.html#ADCS.satellite_hardware.sensors.sunsensor.SunSensor">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">SunSensor</span><span class="p">(</span><span class="n">Sensor</span><span class="p">):</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Single-axis coarse Sun sensor model.</span>
 
 <span class="sd">    This class implements a **single-axis coarse Sun sensor** that measures the</span>
@@ -631,13 +632,13 @@
 <span class="sd">      determination.</span>
 <span class="sd">    * The sensor output is scalar, so ``output_length = 1``.</span>
 <span class="sd">    * In eclipse (``os.is_sunlit() == False``) the clean measurement and all</span>
-<span class="sd">      Jacobians return ``NaN`` as the &quot;sensor invalid / occulted&quot; sentinel;</span>
+<span class="sd">      Jacobians return ``NaN`` as the "sensor invalid / occulted" sentinel;</span>
 <span class="sd">      the UKF/SRUKF detect this (``np.isnan``) and deactivate the sensor for</span>
 <span class="sd">      that step. (It is *not* zero -- a zero would be fed to the filter as a</span>
 <span class="sd">      real measurement.)</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axis</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">efficiency</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">sample_time</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span> <span class="n">bias</span><span class="p">:</span> <span class="n">Bias</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">noise</span><span class="p">:</span> <span class="n">Noise</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">estimate_bias</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Initialize a single-axis coarse Sun sensor.</span>
 
 <span class="sd">        :param axis: Body-frame sensor axis. This vector is normalized internally.</span>
@@ -657,7 +658,7 @@
 
 <span class="sd">        :return: None</span>
 <span class="sd">        :rtype: None</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">axis</span> <span class="o">=</span> <span class="n">normalize</span><span class="p">(</span><span class="n">axis</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">efficiency</span> <span class="o">=</span> <span class="n">efficiency</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">attitude_sensor</span> <span class="o">=</span> <span class="kc">False</span>
@@ -666,7 +667,7 @@
 <div class="viewcode-block" id="SunSensor.clean_reading">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.sensors.sunsensor.html#ADCS.satellite_hardware.sensors.sunsensor.SunSensor.clean_reading">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">clean_reading</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Compute the clean (noise- and bias-free) Sun sensor measurement.</span>
 
 <span class="sd">        The Sun direction is computed from the orbital state as</span>
@@ -711,9 +712,9 @@
 <span class="sd">        :return: Clean Sun sensor measurement of shape ``(1,)``. If the spacecraft</span>
 <span class="sd">            is not sunlit, the value is defined to be ``NaN``.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">vecs</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">get_state_vector</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">)</span>
-        <span class="n">sun_dir</span> <span class="o">=</span> <span class="n">normalize</span><span class="p">(</span><span class="n">vecs</span><span class="p">[</span><span class="s2">&quot;s&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">&quot;r&quot;</span><span class="p">])</span>
+        <span class="n">sun_dir</span> <span class="o">=</span> <span class="n">normalize</span><span class="p">(</span><span class="n">vecs</span><span class="p">[</span><span class="s2">"s"</span><span class="p">]</span> <span class="o">-</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">"r"</span><span class="p">])</span>
 
         <span class="c1"># Compute illumination</span>
         <span class="n">projection</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">axis</span><span class="p">,</span> <span class="n">sun_dir</span><span class="p">)</span>
@@ -729,7 +730,7 @@
 <div class="viewcode-block" id="SunSensor.bias_jac">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.sensors.sunsensor.html#ADCS.satellite_hardware.sensors.sunsensor.SunSensor.bias_jac">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">bias_jac</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Jacobian of the measurement with respect to the Sun sensor bias.</span>
 
 <span class="sd">        If a bias model is present, the measurement equation is</span>
@@ -754,7 +755,7 @@
 <span class="sd">        :return: A ``(1,1)`` array containing ``1`` if a bias exists, otherwise a</span>
 <span class="sd">            ``(0,1)`` empty array.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bias</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">))</span>
@@ -765,7 +766,7 @@
 <div class="viewcode-block" id="SunSensor.basestate_jac">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.sensors.sunsensor.html#ADCS.satellite_hardware.sensors.sunsensor.SunSensor.basestate_jac">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">basestate_jac</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Jacobian of the clean Sun sensor measurement with respect to the base</span>
 <span class="sd">        ADCS state.</span>
 
@@ -829,22 +830,22 @@
 <span class="sd">            state, with shape ``(7, 1)``. The Jacobian is zero if the Sun is</span>
 <span class="sd">            behind the sensor, and ``NaN`` if the spacecraft is in eclipse.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">vecs</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">get_state_vector</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">)</span>
-        <span class="n">sunvec</span> <span class="o">=</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">&quot;s&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">&quot;r&quot;</span><span class="p">]</span>
+        <span class="n">sunvec</span> <span class="o">=</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">"s"</span><span class="p">]</span> <span class="o">-</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">"r"</span><span class="p">]</span>
         <span class="n">ns</span> <span class="o">=</span> <span class="n">normalize</span><span class="p">(</span><span class="n">sunvec</span><span class="p">)</span>
 
-        <span class="n">dns__dq</span> <span class="o">=</span> <span class="n">normed_vec_jac</span><span class="p">(</span><span class="n">sunvec</span><span class="p">,</span><span class="n">vecs</span><span class="p">[</span><span class="s2">&quot;ds&quot;</span><span class="p">]</span><span class="o">-</span><span class="n">vecs</span><span class="p">[</span><span class="s2">&quot;dr&quot;</span><span class="p">])</span>
+        <span class="n">dns__dq</span> <span class="o">=</span> <span class="n">normed_vec_jac</span><span class="p">(</span><span class="n">sunvec</span><span class="p">,</span><span class="n">vecs</span><span class="p">[</span><span class="s2">"ds"</span><span class="p">]</span><span class="o">-</span><span class="n">vecs</span><span class="p">[</span><span class="s2">"dr"</span><span class="p">])</span>
         <span class="n">cos_incidence</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">ns</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">axis</span><span class="p">)</span>
         <span class="n">dcos_incidence__dq</span> <span class="o">=</span> <span class="p">(</span><span class="n">cos_incidence</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">dns__dq</span><span class="nd">@self</span><span class="o">.</span><span class="n">axis</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">is_sunlit</span><span class="p">():</span>
             <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">3</span><span class="p">,</span><span class="mi">1</span><span class="p">)),</span><span class="bp">self</span><span class="o">.</span><span class="n">efficiency</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">dcos_incidence__dq</span><span class="p">,</span><span class="mi">1</span><span class="p">)])</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="c1"># In eclipse clean_reading() returns NaN as the &quot;sensor invalid /</span>
-            <span class="c1"># occulted&quot; sentinel that the UKF/SRUKF use (np.isnan check) to</span>
+            <span class="c1"># In eclipse clean_reading() returns NaN as the "sensor invalid /</span>
+            <span class="c1"># occulted" sentinel that the UKF/SRUKF use (np.isnan check) to</span>
             <span class="c1"># deactivate this sensor. The Jacobian must carry the SAME sentinel</span>
             <span class="c1"># for a consistent contract: returning finite zeros silently</span>
-            <span class="c1"># asserted &quot;constant 0 measurement, zero sensitivity&quot;, which would</span>
+            <span class="c1"># asserted "constant 0 measurement, zero sensitivity", which would</span>
             <span class="c1"># bias the filter toward believing the eclipse reading is exactly 0</span>
             <span class="c1"># if it were ever used without the active mask.</span>
             <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="mi">7</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span></div>

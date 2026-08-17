@@ -228,6 +228,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_8_installable.html">0.1.8 Installable from PyPI (2026-08-05)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
@@ -620,7 +621,7 @@
 <div class="viewcode-block" id="rot_mat">
 <a class="viewcode-back" href="../../../ADCS.helpers.math_helpers.html#ADCS.controller.helpers.quaternion_math.rot_mat">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">rot_mat</span><span class="p">(</span><span class="n">q</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Construct the direction cosine matrix (DCM) corresponding to a quaternion</span>
 <span class="sd">    using the **Hamilton quaternion convention**.</span>
 
@@ -655,7 +656,7 @@
 <span class="sd">    :return: Direction cosine matrix mapping body-frame vectors to inertial frame.</span>
 <span class="sd">    :rtype: numpy.ndarray</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">q0</span><span class="p">,</span> <span class="n">q1</span><span class="p">,</span> <span class="n">q2</span><span class="p">,</span> <span class="n">q3</span> <span class="o">=</span> <span class="n">q</span>
     <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>
         <span class="p">[</span><span class="n">q0</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">q1</span><span class="o">**</span><span class="mi">2</span> <span class="o">-</span> <span class="n">q2</span><span class="o">**</span><span class="mi">2</span> <span class="o">-</span> <span class="n">q3</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">q1</span> <span class="o">*</span> <span class="n">q2</span> <span class="o">-</span> <span class="n">q0</span> <span class="o">*</span> <span class="n">q3</span><span class="p">),</span> <span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">q1</span> <span class="o">*</span> <span class="n">q3</span> <span class="o">+</span> <span class="n">q0</span> <span class="o">*</span> <span class="n">q2</span><span class="p">)],</span>
@@ -669,7 +670,7 @@
 <a class="viewcode-back" href="../../../ADCS.helpers.math_helpers.html#ADCS.controller.helpers.quaternion_math.Wmat">[docs]</a>
 <span class="nd">@njit</span><span class="p">(</span><span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">Wmat</span><span class="p">(</span><span class="n">q</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Compute the quaternion kinematic matrix used in first-order quaternion</span>
 <span class="sd">    propagation.</span>
 
@@ -699,7 +700,7 @@
 <span class="sd">    :return: Quaternion kinematic matrix.</span>
 <span class="sd">    :rtype: numpy.ndarray</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">W</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">4</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
     <span class="n">qv</span> <span class="o">=</span> <span class="n">q</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="mi">4</span><span class="p">]</span>
     <span class="n">W</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="o">-</span><span class="n">qv</span>
@@ -711,7 +712,7 @@
 <div class="viewcode-block" id="drotmatTvecdq">
 <a class="viewcode-back" href="../../../ADCS.helpers.math_helpers.html#ADCS.controller.helpers.quaternion_math.drotmatTvecdq">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">drotmatTvecdq</span><span class="p">(</span><span class="n">q</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Compute the Jacobian of a rotated vector with respect to the quaternion.</span>
 
 <span class="sd">    This function evaluates</span>
@@ -746,7 +747,7 @@
 <span class="sd">    :return: Jacobian of the rotated vector with respect to the quaternion.</span>
 <span class="sd">    :rtype: numpy.ndarray</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="n">qv</span> <span class="o">=</span> <span class="n">q</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
     <span class="k">return</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span>
@@ -761,7 +762,7 @@
 <a class="viewcode-back" href="../../../ADCS.helpers.math_helpers.html#ADCS.controller.helpers.quaternion_math.skewsym">[docs]</a>
 <span class="nd">@njit</span><span class="p">(</span><span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">skewsym</span><span class="p">(</span><span class="n">v</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Construct the skew-symmetric matrix associated with a 3D vector.</span>
 
 <span class="sd">    The skew-symmetric operator satisfies</span>
@@ -786,7 +787,7 @@
 <span class="sd">    :return: Skew-symmetric cross-product matrix.</span>
 <span class="sd">    :rtype: numpy.ndarray</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>
         <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="n">v</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">v</span><span class="p">[</span><span class="mi">1</span><span class="p">]],</span>
         <span class="p">[</span><span class="n">v</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">]],</span>
@@ -798,7 +799,7 @@
 <div class="viewcode-block" id="ddrotmatTvecdqdq">
 <a class="viewcode-back" href="../../../ADCS.helpers.math_helpers.html#ADCS.controller.helpers.quaternion_math.ddrotmatTvecdqdq">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">ddrotmatTvecdqdq</span><span class="p">(</span><span class="n">q</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Compute the Hessian of a rotated vector with respect to the quaternion.</span>
 
 <span class="sd">    This function evaluates the second derivative tensor</span>
@@ -820,7 +821,7 @@
 <span class="sd">    :return: Hessian tensor of the rotated vector with respect to the quaternion.</span>
 <span class="sd">    :rtype: numpy.ndarray</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">qv</span> <span class="o">=</span> <span class="n">q</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
     <span class="n">output</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
     <span class="n">output</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="n">v</span><span class="p">,</span> <span class="o">-</span><span class="n">skewsym</span><span class="p">(</span><span class="n">v</span><span class="p">)])</span>
@@ -834,7 +835,7 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_normalize_legacy</span><span class="p">(</span><span class="n">v</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Normalize a vector to unit length.</span>
 
 <span class="sd">    Parameters</span>
@@ -850,7 +851,7 @@
 <span class="sd">    Notes</span>
 <span class="sd">    -----</span>
 <span class="sd">    - If :math:`\|v\| = 0`, the vector is returned unchanged.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">sn</span> <span class="o">=</span> <span class="n">norm</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">sn</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">v</span>
@@ -861,7 +862,7 @@
 <a class="viewcode-back" href="../../../ADCS.helpers.math_helpers.html#ADCS.controller.helpers.quaternion_math.norm">[docs]</a>
 <span class="nd">@njit</span><span class="p">(</span><span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">norm</span><span class="p">(</span><span class="n">v</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Compute the Euclidean norm of a vector.</span>
 
 <span class="sd">    Parameters</span>
@@ -873,7 +874,7 @@
 <span class="sd">    -------</span>
 <span class="sd">    n : float</span>
 <span class="sd">        Euclidean norm (magnitude) of the vector.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">total</span> <span class="o">=</span> <span class="mf">0.0</span>
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
         <span class="n">total</span> <span class="o">+=</span> <span class="n">v</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="n">v</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
@@ -885,7 +886,7 @@
 <a class="viewcode-back" href="../../../ADCS.helpers.math_helpers.html#ADCS.controller.helpers.quaternion_math.quat_to_mrp">[docs]</a>
 <span class="nd">@njit</span><span class="p">(</span><span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">quat_to_mrp</span><span class="p">(</span><span class="n">quat</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Convert a quaternion to **Modified Rodrigues parameters (MRP)**.</span>
 
 <span class="sd">    .. math::</span>
@@ -904,7 +905,7 @@
 <span class="sd">    -------</span>
 <span class="sd">    sigma : numpy.ndarray, shape (3,)</span>
 <span class="sd">        Modified Rodrigues parameters.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">out</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
     <span class="n">scale</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">quat</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
     <span class="n">out</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">quat</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">scale</span>
@@ -918,7 +919,7 @@
 <a class="viewcode-back" href="../../../ADCS.helpers.math_helpers.html#ADCS.controller.helpers.quaternion_math.quat_to_cayley">[docs]</a>
 <span class="nd">@njit</span><span class="p">(</span><span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">quat_to_cayley</span><span class="p">(</span><span class="n">quat</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Convert a quaternion to **Cayley parameters**.</span>
 
 <span class="sd">    .. math::</span>
@@ -937,7 +938,7 @@
 <span class="sd">    Notes</span>
 <span class="sd">    -----</span>
 <span class="sd">    - Ensures nonzero scalar part by applying a numerical epsilon if needed.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">q</span> <span class="o">=</span> <span class="n">quat</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
     <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">&lt;</span> <span class="n">num_eps</span><span class="p">:</span>
         <span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">num_eps</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sign</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
@@ -954,7 +955,7 @@
 <a class="viewcode-back" href="../../../ADCS.helpers.math_helpers.html#ADCS.controller.helpers.quaternion_math.quat_to_vec3">[docs]</a>
 <span class="nd">@njit</span><span class="p">(</span><span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">quat_to_vec3</span><span class="p">(</span><span class="n">quat</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">mode</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Convert a quaternion to a 3D attitude parameter vector according to mode.</span>
 
 <span class="sd">    Parameters</span>
@@ -976,7 +977,7 @@
 <span class="sd">    -------</span>
 <span class="sd">    v : numpy.ndarray, shape (3,)</span>
 <span class="sd">        Equivalent attitude parameter vector.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">q</span> <span class="o">=</span> <span class="n">quat</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="mi">6</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
@@ -1012,7 +1013,7 @@
 <a class="viewcode-back" href="../../../ADCS.helpers.math_helpers.html#ADCS.controller.helpers.quaternion_math.vec3_to_quat">[docs]</a>
 <span class="nd">@njit</span><span class="p">(</span><span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">vec3_to_quat</span><span class="p">(</span><span class="n">v3</span><span class="p">,</span> <span class="n">mode</span><span class="p">):</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Convert a 3-element attitude parameter vector into a quaternion according</span>
 <span class="sd">    to a specified representation mode.</span>
 
@@ -1044,7 +1045,7 @@
 <span class="sd">    :return: Quaternion in Hamilton convention.</span>
 <span class="sd">    :rtype: numpy.ndarray</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="mi">6</span><span class="p">:</span>
         <span class="n">q</span> <span class="o">=</span> <span class="n">mrp_to_quat</span><span class="p">(</span><span class="n">v3</span> <span class="o">/</span> <span class="mf">2.0</span><span class="p">)</span>
         <span class="n">sq</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sign</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
@@ -1084,7 +1085,7 @@
 <a class="viewcode-back" href="../../../ADCS.helpers.math_helpers.html#ADCS.controller.helpers.quaternion_math.mrp_to_quat">[docs]</a>
 <span class="nd">@njit</span><span class="p">(</span><span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">mrp_to_quat</span><span class="p">(</span><span class="n">mrp</span><span class="p">):</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Convert Modified Rodrigues Parameters (MRP) to a quaternion.</span>
 
 <span class="sd">    The mapping is defined using the rotation angle</span>
@@ -1117,7 +1118,7 @@
 <span class="sd">    :return: Equivalent quaternion.</span>
 <span class="sd">    :rtype: numpy.ndarray</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">out</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
     <span class="n">s2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">mrp</span><span class="p">,</span> <span class="n">mrp</span><span class="p">)</span>
     <span class="n">denom</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">+</span> <span class="n">s2</span>
@@ -1133,7 +1134,7 @@
 <a class="viewcode-back" href="../../../ADCS.helpers.math_helpers.html#ADCS.controller.helpers.quaternion_math.cayley_to_quat">[docs]</a>
 <span class="nd">@njit</span><span class="p">(</span><span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">cayley_to_quat</span><span class="p">(</span><span class="n">cly</span><span class="p">):</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Convert Cayley parameters to a quaternion.</span>
 
 <span class="sd">    Cayley parameters :math:`\mathbf{p}` are related to the quaternion by</span>
@@ -1155,7 +1156,7 @@
 <span class="sd">    :return: Quaternion corresponding to the Cayley parameters.</span>
 <span class="sd">    :rtype: numpy.ndarray</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">out</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
     <span class="n">denom</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">norm</span><span class="p">(</span><span class="n">cly</span><span class="p">)</span> <span class="o">**</span> <span class="mf">2.0</span><span class="p">)</span>
     <span class="n">out</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">denom</span>
@@ -1181,7 +1182,7 @@
 <div class="viewcode-block" id="quat_mult">
 <a class="viewcode-back" href="../../../ADCS.helpers.math_helpers.html#ADCS.controller.helpers.quaternion_math.quat_mult">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">quat_mult</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">q</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="o">*</span><span class="n">extra</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Compute the Hamilton product of one or more quaternions.</span>
 
 <span class="sd">    Given two quaternions :math:`\mathbf{p}` and :math:`\mathbf{q}`, the Hamilton</span>
@@ -1208,7 +1209,7 @@
 <span class="sd">    :return: Resulting quaternion product.</span>
 <span class="sd">    :rtype: numpy.ndarray</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">result</span> <span class="o">=</span> <span class="n">_quat_mult_2</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">q</span><span class="p">)</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">extra</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">_quat_mult_2</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">extra</span><span class="p">)</span>
@@ -1221,7 +1222,7 @@
                     <span class="n">result</span> <span class="o">=</span> <span class="n">_quat_mult_2</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">))</span>
                 <span class="k">return</span> <span class="n">result</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;These do not all appear to be quaternions.&quot;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"These do not all appear to be quaternions."</span><span class="p">)</span>
         <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">extra</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">_quat_mult_2</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">extra</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">))</span>
     <span class="k">return</span> <span class="n">result</span></div>
@@ -1234,27 +1235,27 @@
     <span class="n">q0</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
     <span class="n">q1</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
     <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-    <span class="n">method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;slerp&quot;</span><span class="p">,</span>
+    <span class="n">method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"slerp"</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Interpolate between two quaternion representations using the shortest arc.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Interpolate between two quaternion representations using the shortest arc."""</span>
     <span class="n">q0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">q0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
     <span class="n">q1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">q1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
     <span class="n">dot</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">q0</span> <span class="o">@</span> <span class="n">q1</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">dot</span> <span class="o">&lt;</span> <span class="mf">0.0</span><span class="p">:</span>
         <span class="n">q1</span> <span class="o">=</span> <span class="o">-</span><span class="n">q1</span>
         <span class="n">dot</span> <span class="o">=</span> <span class="o">-</span><span class="n">dot</span>
-    <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">&quot;nlerp&quot;</span> <span class="ow">or</span> <span class="n">dot</span> <span class="o">&gt;</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="mf">1e-9</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">"nlerp"</span> <span class="ow">or</span> <span class="n">dot</span> <span class="o">&gt;</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="mf">1e-9</span><span class="p">:</span>
         <span class="n">blended</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">alpha</span><span class="p">)</span> <span class="o">*</span> <span class="n">q0</span> <span class="o">+</span> <span class="n">alpha</span> <span class="o">*</span> <span class="n">q1</span>
-    <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">&quot;slerp&quot;</span><span class="p">:</span>
+    <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">"slerp"</span><span class="p">:</span>
         <span class="n">theta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arccos</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">dot</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">))</span>
         <span class="n">blended</span> <span class="o">=</span> <span class="p">(</span>
             <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">((</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">alpha</span><span class="p">)</span> <span class="o">*</span> <span class="n">theta</span><span class="p">)</span> <span class="o">*</span> <span class="n">q0</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">alpha</span> <span class="o">*</span> <span class="n">theta</span><span class="p">)</span> <span class="o">*</span> <span class="n">q1</span>
         <span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;method must be &#39;slerp&#39; or &#39;nlerp&#39;, got </span><span class="si">{</span><span class="n">method</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"method must be 'slerp' or 'nlerp', got </span><span class="si">{</span><span class="n">method</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
     <span class="n">norm</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">blended</span><span class="p">))</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">norm</span><span class="p">)</span> <span class="ow">or</span> <span class="n">norm</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;interpolated quaternion has zero or non-finite norm&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"interpolated quaternion has zero or non-finite norm"</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">blended</span> <span class="o">/</span> <span class="n">norm</span></div>
 
 
@@ -1263,7 +1264,7 @@
 <a class="viewcode-back" href="../../../ADCS.helpers.math_helpers.html#ADCS.controller.helpers.quaternion_math.rot_exp">[docs]</a>
 <span class="nd">@njit</span><span class="p">(</span><span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">rot_exp</span><span class="p">(</span><span class="n">v</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Compute the exponential map :math:`\exp(\frac{\phi}{2}\hat{\mathbf{u}})`</span>
 <span class="sd">    to obtain a quaternion from a rotation vector.</span>
 
@@ -1280,9 +1281,9 @@
 <span class="sd">    Notes</span>
 <span class="sd">    -----</span>
 <span class="sd">    - For :math:`\|\boldsymbol{\phi}\| = 0`, returns identity quaternion.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">if</span> <span class="n">v</span><span class="o">.</span><span class="n">size</span> <span class="o">!=</span> <span class="mi">3</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;rot_exp expects a 3-element rotation vector&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"rot_exp expects a 3-element rotation vector"</span><span class="p">)</span>
     <span class="n">phi</span> <span class="o">=</span> <span class="n">norm</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">phi</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
@@ -1302,7 +1303,7 @@
 <a class="viewcode-back" href="../../../ADCS.helpers.math_helpers.html#ADCS.controller.helpers.quaternion_math.quat_inv">[docs]</a>
 <span class="nd">@njit</span><span class="p">(</span><span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">quat_inv</span><span class="p">(</span><span class="n">q</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Compute the inverse of a quaternion.</span>
 
 <span class="sd">    For a quaternion :math:`\mathbf{q}`, the inverse is</span>
@@ -1319,7 +1320,7 @@
 <span class="sd">    :type q: numpy.ndarray</span>
 <span class="sd">    :return: Inverse quaternion.</span>
 <span class="sd">    :rtype: numpy.ndarray</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">q0</span> <span class="o">=</span> <span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">qv0</span> <span class="o">=</span> <span class="n">q</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
     <span class="n">qv1</span> <span class="o">=</span> <span class="n">q</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
@@ -1342,7 +1343,7 @@
 <a class="viewcode-back" href="../../../ADCS.helpers.math_helpers.html#ADCS.controller.helpers.quaternion_math.normalize">[docs]</a>
 <span class="nd">@njit</span><span class="p">(</span><span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">normalize</span><span class="p">(</span><span class="n">v</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Normalize a vector to unit length.</span>
 
 <span class="sd">    Parameters</span>
@@ -1356,7 +1357,7 @@
 <span class="sd">        Normalized vector</span>
 <span class="sd">        :math:`\hat{\mathbf{v}} = \frac{\mathbf{v}}{\|\mathbf{v}\|}`.</span>
 <span class="sd">        If :math:`\|\mathbf{v}\|=0`, the zero vector is returned unchanged.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="n">sn</span> <span class="o">=</span> <span class="n">norm</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
     <span class="n">out</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
@@ -1387,7 +1388,7 @@
 <div class="viewcode-block" id="normed_vec_jac">
 <a class="viewcode-back" href="../../../ADCS.helpers.math_helpers.html#ADCS.controller.helpers.quaternion_math.normed_vec_jac">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">normed_vec_jac</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">dv</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Compute the Jacobian of the normalized vector :math:`\hat{\mathbf{v}}`.</span>
 
 <span class="sd">    .. math::</span>
@@ -1408,7 +1409,7 @@
 <span class="sd">    ndarray</span>
 <span class="sd">        The Jacobian :math:`\partial \hat{\mathbf{v}}/\partial \mathbf{v}`</span>
 <span class="sd">        (or ``dv @ dndv`` if ``dv`` is supplied).</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">if</span> <span class="n">dv</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">_normed_vec_jac</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">_normed_vec_jac_with_dv</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">dv</span><span class="p">)</span></div>
@@ -1418,7 +1419,7 @@
 <div class="viewcode-block" id="normed_vec_hess">
 <a class="viewcode-back" href="../../../ADCS.helpers.math_helpers.html#ADCS.controller.helpers.quaternion_math.normed_vec_hess">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">normed_vec_hess</span><span class="p">(</span><span class="n">v</span><span class="p">,</span><span class="n">dv</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span><span class="n">ddv</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Compute the Hessian of the normalized vector :math:`\hat{\mathbf{v}}`.</span>
 
 <span class="sd">    The second derivative tensor satisfies</span>
@@ -1446,7 +1447,7 @@
 <span class="sd">    ndarray</span>
 <span class="sd">        The Hessian tensor :math:`\partial^2 \hat{\mathbf{v}}/\partial \mathbf{v}^2`</span>
 <span class="sd">        or its propagated form using ``dv``/``ddv``.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">l</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">size</span>
     <span class="n">normv</span> <span class="o">=</span> <span class="n">norm</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
     <span class="n">dndv</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">l</span><span class="p">)</span><span class="o">/</span><span class="n">normv</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">v</span><span class="p">,</span><span class="n">v</span><span class="p">)</span><span class="o">/</span><span class="n">normv</span><span class="o">**</span><span class="mi">3</span>
@@ -1455,11 +1456,11 @@
     <span class="n">ddndvdv</span> <span class="o">=</span> <span class="n">tmp</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">tmp</span><span class="p">,(</span><span class="mi">2</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">))</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">tmp</span><span class="p">,(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">0</span><span class="p">))</span>
     <span class="k">if</span> <span class="n">dv</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">ddv</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;if jacobian of v is none, hessian must also be none&#39;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">'if jacobian of v is none, hessian must also be none'</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">ddndvdv</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">ddv</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;if jacobian of v is provided, hessian must also be provided&#39;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">'if jacobian of v is provided, hessian must also be provided'</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">dv</span><span class="p">,</span><span class="n">dv</span><span class="nd">@ddndvdv</span><span class="p">,([</span><span class="mi">1</span><span class="p">],[</span><span class="mi">0</span><span class="p">]))</span> <span class="o">+</span> <span class="n">ddv</span><span class="nd">@dndv</span></div>
 
 
@@ -1467,7 +1468,7 @@
 <div class="viewcode-block" id="random_n_unit_vec">
 <a class="viewcode-back" href="../../../ADCS.helpers.math_helpers.html#ADCS.controller.helpers.quaternion_math.random_n_unit_vec">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">random_n_unit_vec</span><span class="p">(</span><span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Generate a random unit-norm vector in :math:`\mathbb{R}^n`.</span>
 
 <span class="sd">    The components are sampled from a standard normal distribution and normalized:</span>
@@ -1486,7 +1487,7 @@
 <span class="sd">    ndarray</span>
 <span class="sd">        A random unit vector :math:`\mathbf{v}\in\mathbb{R}^n`</span>
 <span class="sd">        with :math:`\|\mathbf{v}\|=1`.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">return</span> <span class="n">normalize</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">()</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">)]))</span></div>
 
 
@@ -1508,7 +1509,7 @@
 <div class="viewcode-block" id="vec_norm_jac">
 <a class="viewcode-back" href="../../../ADCS.helpers.math_helpers.html#ADCS.controller.helpers.quaternion_math.vec_norm_jac">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">vec_norm_jac</span><span class="p">(</span><span class="n">v</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">dv</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Compute the Jacobian of the Euclidean norm of a vector.</span>
 
 <span class="sd">    For :math:`n = \|\mathbf{v}\|`, the gradient is</span>
@@ -1527,7 +1528,7 @@
 <span class="sd">    :return: Jacobian of the vector norm.</span>
 <span class="sd">    :rtype: numpy.ndarray</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">if</span> <span class="n">dv</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">_vec_norm_jac</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">_vec_norm_jac_with_dv</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">dv</span><span class="p">)</span></div>
@@ -1551,7 +1552,7 @@
 <div class="viewcode-block" id="vec_norm_hess">
 <a class="viewcode-back" href="../../../ADCS.helpers.math_helpers.html#ADCS.controller.helpers.quaternion_math.vec_norm_hess">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">vec_norm_hess</span><span class="p">(</span><span class="n">v</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">dv</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ddv</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Compute the Hessian of the Euclidean norm of a vector.</span>
 
 <span class="sd">    The second derivative of :math:`\|\mathbf{v}\|` is</span>
@@ -1573,21 +1574,21 @@
 <span class="sd">    :return: Hessian of the vector norm.</span>
 <span class="sd">    :rtype: numpy.ndarray</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">if</span> <span class="n">dv</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">ddv</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;If Jacobian of v is None, Hessian must also be None&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"If Jacobian of v is None, Hessian must also be None"</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">_vec_norm_hess</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">ddv</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;If Jacobian of v is provided, Hessian must also be provided&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"If Jacobian of v is provided, Hessian must also be provided"</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">_vec_norm_hess_with_chain</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">dv</span><span class="p">,</span> <span class="n">ddv</span><span class="p">)</span></div>
 
     
 <div class="viewcode-block" id="matrix_row_normalize">
 <a class="viewcode-back" href="../../../ADCS.helpers.math_helpers.html#ADCS.controller.helpers.quaternion_math.matrix_row_normalize">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">matrix_row_normalize</span><span class="p">(</span><span class="n">m</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Normalize each row of a matrix to unit Euclidean norm.</span>
 
 <span class="sd">    Each row :math:`\mathbf{m}_i` is transformed as</span>
@@ -1604,14 +1605,14 @@
 <span class="sd">    :return: Row-normalized matrix.</span>
 <span class="sd">    :rtype: numpy.ndarray</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">return</span> <span class="n">m</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">matrix_row_norm</span><span class="p">(</span><span class="n">m</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="matrix_row_norm">
 <a class="viewcode-back" href="../../../ADCS.helpers.math_helpers.html#ADCS.controller.helpers.quaternion_math.matrix_row_norm">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">matrix_row_norm</span><span class="p">(</span><span class="n">m</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Compute the Euclidean norm of each row of a matrix.</span>
 
 <span class="sd">    The output vector satisfies</span>
@@ -1627,19 +1628,19 @@
 <span class="sd">    :return: Vector of row norms.</span>
 <span class="sd">    :rtype: numpy.ndarray</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Not a 2D matrix&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Not a 2D matrix"</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="nb">ord</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="wahbas_svd">
 <a class="viewcode-back" href="../../../ADCS.helpers.math_helpers.html#ADCS.controller.helpers.quaternion_math.wahbas_svd">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">wahbas_svd</span><span class="p">(</span><span class="n">weights</span><span class="p">,</span> <span class="n">body</span><span class="p">,</span> <span class="n">inertial</span><span class="p">):</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Solve Wahba&#39;s attitude determination problem using singular value decomposition.</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">    Solve Wahba's attitude determination problem using singular value decomposition.</span>
 
-<span class="sd">    Wahba&#39;s problem minimizes the cost function</span>
+<span class="sd">    Wahba's problem minimizes the cost function</span>
 
 <span class="sd">    .. math::</span>
 
@@ -1668,7 +1669,7 @@
 <span class="sd">    :return: Optimal attitude quaternion.</span>
 <span class="sd">    :rtype: numpy.ndarray</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="c1"># Build attitude profile matrix B</span>
     <span class="n">B</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">3</span><span class="p">,</span><span class="mi">3</span><span class="p">))</span>
@@ -1719,7 +1720,7 @@
 <a class="viewcode-back" href="../../../ADCS.helpers.math_helpers.html#ADCS.controller.helpers.quaternion_math.square_mat_sections">[docs]</a>
 <span class="nd">@njit</span><span class="p">(</span><span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">square_mat_sections</span><span class="p">(</span><span class="n">mat</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">vals</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Extract a square submatrix from a matrix using index selection.</span>
 
 <span class="sd">    The returned matrix is formed by selecting rows and columns specified</span>
@@ -1738,7 +1739,7 @@
 <span class="sd">    :return: Square submatrix.</span>
 <span class="sd">    :rtype: numpy.ndarray</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="n">tmp</span> <span class="o">=</span> <span class="n">mat</span><span class="p">[</span><span class="n">vals</span><span class="p">,:]</span>
     <span class="k">return</span> <span class="n">tmp</span><span class="p">[:,</span><span class="n">vals</span><span class="p">]</span></div>
@@ -1748,7 +1749,7 @@
 <a class="viewcode-back" href="../../../ADCS.helpers.math_helpers.html#ADCS.controller.helpers.quaternion_math.state_norm_jac">[docs]</a>
 <span class="nd">@njit</span><span class="p">(</span><span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">state_norm_jac</span><span class="p">(</span><span class="n">xk</span><span class="p">):</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Construct the Jacobian of a state vector with quaternion normalization.</span>
 
 <span class="sd">    The Jacobian is identity except for the quaternion components, which are</span>
@@ -1765,7 +1766,7 @@
 <span class="sd">    :return: State normalization Jacobian.</span>
 <span class="sd">    :rtype: numpy.ndarray</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">l</span> <span class="o">=</span> <span class="n">xk</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">q</span> <span class="o">=</span> <span class="n">xk</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">7</span><span class="p">]</span>
     <span class="n">out</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">l</span><span class="p">)</span>
@@ -1777,7 +1778,7 @@
 <a class="viewcode-back" href="../../../ADCS.helpers.math_helpers.html#ADCS.controller.helpers.quaternion_math.quat_diff">[docs]</a>
 <span class="nd">@njit</span><span class="p">(</span><span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">quat_diff</span><span class="p">(</span><span class="n">q0</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">q1</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Compute the relative quaternion between two attitudes.</span>
 
 <span class="sd">    The quaternion error is defined as</span>
@@ -1797,7 +1798,7 @@
 <span class="sd">    :return: Relative quaternion mapping ``q0`` to ``q1``.</span>
 <span class="sd">    :rtype: numpy.ndarray</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">q0</span> <span class="o">=</span> <span class="n">normalize</span><span class="p">(</span><span class="n">q0</span><span class="p">)</span>
     <span class="n">q1</span> <span class="o">=</span> <span class="n">normalize</span><span class="p">(</span><span class="n">q1</span><span class="p">)</span>
     <span class="n">q_err</span> <span class="o">=</span> <span class="n">_quat_mult_2</span><span class="p">(</span><span class="n">quat_inv</span><span class="p">(</span><span class="n">q0</span><span class="p">),</span> <span class="n">q1</span><span class="p">)</span>
@@ -1809,7 +1810,7 @@
 <div class="viewcode-block" id="limit">
 <a class="viewcode-back" href="../../../ADCS.helpers.math_helpers.html#ADCS.controller.helpers.quaternion_math.limit">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">limit</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">umax</span><span class="p">):</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Apply element-wise saturation limits to a control vector.</span>
 
 <span class="sd">    The saturation rule depends on the type of ``umax``:</span>
@@ -1831,7 +1832,7 @@
 <span class="sd">    :return: Saturated output.</span>
 <span class="sd">    :rtype: numpy.ndarray</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">u</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">u</span><span class="p">)</span>
 
     <span class="c1"># CASE 1: umax is a scalar → symmetric clip</span>
@@ -1842,7 +1843,7 @@
     <span class="c1"># CASE 2: umax is a tuple/list → may be (umin, umax)</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">umax</span><span class="p">,</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">)):</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">umax</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;When umax is tuple/list, must be (umin, umax).&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"When umax is tuple/list, must be (umin, umax)."</span><span class="p">)</span>
         <span class="n">umin</span><span class="p">,</span> <span class="n">umax_val</span> <span class="o">=</span> <span class="n">umax</span>
         <span class="n">umin</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">umin</span><span class="p">)</span>
         <span class="n">umax_val</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">umax_val</span><span class="p">)</span>
@@ -1857,7 +1858,7 @@
 <div class="viewcode-block" id="quat_to_euler">
 <a class="viewcode-back" href="../../../ADCS.helpers.math_helpers.html#ADCS.controller.helpers.quaternion_math.quat_to_euler">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">quat_to_euler</span><span class="p">(</span><span class="n">q</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Convert a quaternion to 3-2-1 (yaw-pitch-roll) Euler angles.</span>
 
 <span class="sd">    The conversion is performed via the corresponding direction cosine matrix</span>
@@ -1878,7 +1879,7 @@
 <span class="sd">    :return: Euler angles ``[roll, pitch, yaw]`` in degrees.</span>
 <span class="sd">    :rtype: numpy.ndarray</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">R</span> <span class="o">=</span> <span class="n">rot_mat</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
     <span class="n">roll</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arctan2</span><span class="p">(</span><span class="n">R</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">R</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
     <span class="n">pitch</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">arcsin</span><span class="p">(</span><span class="n">R</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
@@ -1891,7 +1892,7 @@
 <a class="viewcode-back" href="../../../ADCS.helpers.math_helpers.html#ADCS.controller.helpers.quaternion_math.dcm_to_quat">[docs]</a>
 <span class="nd">@njit</span><span class="p">(</span><span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">dcm_to_quat</span><span class="p">(</span><span class="n">R</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Convert a direction cosine matrix to a quaternion using a numerically</span>
 <span class="sd">    stable algorithm.</span>
 
@@ -1902,7 +1903,7 @@
 <span class="sd">        \mathrm{tr}(\mathbf{R}) = R_{11} + R_{22} + R_{33}</span>
 
 <span class="sd">    and selects the computation branch that maximizes numerical stability</span>
-<span class="sd">    (Sheppard&#39;s method).</span>
+<span class="sd">    (Sheppard's method).</span>
 
 <span class="sd">    The resulting quaternion follows the Hamilton convention with scalar-first</span>
 <span class="sd">    ordering.</span>
@@ -1912,7 +1913,7 @@
 <span class="sd">    :return: Unit quaternion corresponding to the rotation matrix.</span>
 <span class="sd">    :rtype: numpy.ndarray</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">tr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">trace</span><span class="p">(</span><span class="n">R</span><span class="p">)</span>
     <span class="n">out</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
 

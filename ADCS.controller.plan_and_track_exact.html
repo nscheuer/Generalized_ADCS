@@ -229,6 +229,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="release_notes/0_1_8_installable.html">0.1.8 Installable from PyPI (2026-08-05)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="release_notes/0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
@@ -789,14 +790,14 @@ computation in the open-loop variant.</p>
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>x_hat</strong> (<a class="reference internal" href="ADCS.state.html#ADCS.state.State" title="ADCS.state.State"><em>State</em></a><em> | </em><a class="reference internal" href="ADCS.state.html#ADCS.state.EstimatorState" title="ADCS.state.EstimatorState"><em>EstimatorState</em></a>)</p></li>
-<li><p><strong>sens</strong> (<em>ndarray</em><em>[</em><em>tuple</em><em>[</em><em>int</em><em>, </em><em>...</em><em>]</em><em>, </em><em>dtype</em><em>[</em><em>float64</em><em>]</em><em>]</em>)</p></li>
+<li><p><strong>sens</strong> (<em>NDArray</em><em>[</em><em>float64</em><em>]</em>)</p></li>
 <li><p><strong>est_sat</strong> (<a class="reference internal" href="ADCS.satellite_hardware.satellite.estimated_satellite.html#ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite" title="ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite"><em>EstimatedSatellite</em></a>)</p></li>
 <li><p><strong>os_hat</strong> (<a class="reference internal" href="ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State" title="ADCS.orbits.orbital_state.Orbital_State"><em>Orbital_State</em></a>)</p></li>
 <li><p><strong>goal</strong> (<a class="reference internal" href="ADCS.CONOPS.goals.goal.html#ADCS.CONOPS.goals.goal.Goal" title="ADCS.CONOPS.goals.goal.Goal"><em>Goal</em></a><em> | </em><em>None</em>)</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p><em>ndarray</em>[tuple[int, …], <em>dtype</em>[<em>float64</em>]]</p>
+<dd class="field-even"><p><em>NDArray</em>[<em>float64</em>]</p>
 </dd>
 </dl>
 </dd></dl>

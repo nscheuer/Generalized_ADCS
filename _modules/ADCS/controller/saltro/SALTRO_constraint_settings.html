@@ -228,6 +228,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../../release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_8_installable.html">0.1.8 Installable from PyPI (2026-08-05)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
@@ -539,15 +540,15 @@
         </div>
         <article role="main" id="furo-main-content">
           <h1>Source code for ADCS.controller.saltro.SALTRO_constraint_settings</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;Constraint configuration for SALTRO planner settings.</span>
+<span></span><span class="sd">"""Constraint configuration for SALTRO planner settings.</span>
 
 <span class="sd">This module defines Python-side configuration containers that are converted</span>
 <span class="sd">into SALTRO C++ constraint structs.</span>
-<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">"""</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;ConstraintConfig&quot;</span><span class="p">]</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"ConstraintConfig"</span><span class="p">]</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">List</span>
@@ -557,26 +558,26 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.satellite.estimated_satellite</span><span class="w"> </span><span class="kn">import</span> <span class="n">EstimatedSatellite</span>
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_get_saltro_py</span><span class="p">():</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Import and return the ``saltro_py`` binding module.</span>
+<span class="w">    </span><span class="sd">"""Import and return the ``saltro_py`` binding module.</span>
 
 <span class="sd">    The loader appends ``SALTRO/build`` to ``sys.path`` if needed.</span>
 
 <span class="sd">    :return: Imported ``saltro_py`` module.</span>
 <span class="sd">    :rtype: module</span>
 <span class="sd">    :raises ImportError: If the SALTRO Python extension is not available.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
     <span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
 
-    <span class="n">parent_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">),</span> <span class="s2">&quot;../../..&quot;</span><span class="p">))</span>
-    <span class="n">build_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parent_dir</span><span class="p">,</span> <span class="s2">&quot;SALTRO&quot;</span><span class="p">,</span> <span class="s2">&quot;build&quot;</span><span class="p">)</span>
+    <span class="n">parent_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">),</span> <span class="s2">"../../.."</span><span class="p">))</span>
+    <span class="n">build_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parent_dir</span><span class="p">,</span> <span class="s2">"SALTRO"</span><span class="p">,</span> <span class="s2">"build"</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">build_dir</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="p">:</span>
         <span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">build_dir</span><span class="p">)</span>
 
     <span class="k">try</span><span class="p">:</span>
         <span class="kn">import</span><span class="w"> </span><span class="nn">saltro_py</span>
     <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;saltro_py not available (expected in </span><span class="si">{</span><span class="n">build_dir</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
+        <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"saltro_py not available (expected in </span><span class="si">{</span><span class="n">build_dir</span><span class="si">}</span><span class="s2">)"</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
 
     <span class="k">return</span> <span class="n">saltro_py</span>
 
@@ -584,7 +585,7 @@
 <a class="viewcode-back" href="../../../../ADCS.controller.saltro.SALTRO_constraint_settings.html#ADCS.controller.saltro.SALTRO_constraint_settings.ConstraintConfig">[docs]</a>
 <span class="nd">@dataclass</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">ConstraintConfig</span><span class="p">:</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Constraint settings for SALTRO optimization.</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""Constraint settings for SALTRO optimization.</span>
 
 <span class="sd">    The class stores control and state-like bounds enforced by the optimizer,</span>
 <span class="sd">    including actuator limits, maximum angular velocity, and sun-angle limits.</span>
@@ -597,7 +598,7 @@
 <span class="sd">    :type wmax: float</span>
 <span class="sd">    :param sun_limit_angle: Minimum sun-avoidance angle (rad).</span>
 <span class="sd">    :type sun_limit_angle: float</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="n">est_sat</span><span class="p">:</span> <span class="n">InitVar</span><span class="p">[</span><span class="n">EstimatedSatellite</span><span class="p">]</span>
 
@@ -608,23 +609,23 @@
     <span class="n">sun_limit_angle</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">20</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mf">180.0</span>
     
     <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">est_sat</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize derived actuator limits from the estimated satellite.</span>
+<span class="w">        </span><span class="sd">"""Initialize derived actuator limits from the estimated satellite.</span>
 
 <span class="sd">        :param est_sat: Estimated satellite model containing actuators.</span>
 <span class="sd">        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`</span>
 <span class="sd">        :return: None</span>
 <span class="sd">        :rtype: None</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">u_max</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">control_limit_scale</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">act</span><span class="o">.</span><span class="n">u_max</span> <span class="k">for</span> <span class="n">act</span> <span class="ow">in</span> <span class="n">est_sat</span><span class="o">.</span><span class="n">actuators</span><span class="p">])</span>
 
 <div class="viewcode-block" id="ConstraintConfig.to_cpp">
 <a class="viewcode-back" href="../../../../ADCS.controller.saltro.SALTRO_constraint_settings.html#ADCS.controller.saltro.SALTRO_constraint_settings.ConstraintConfig.to_cpp">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">to_cpp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert Python constraints to the SALTRO C++ ``ConstraintConfig``.</span>
+<span class="w">        </span><span class="sd">"""Convert Python constraints to the SALTRO C++ ``ConstraintConfig``.</span>
 
 <span class="sd">        :return: C++ constraints object.</span>
 <span class="sd">        :rtype: Any</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">saltro_py</span> <span class="o">=</span> <span class="n">_get_saltro_py</span><span class="p">()</span>
         <span class="n">cpp_constraints</span> <span class="o">=</span> <span class="n">saltro_py</span><span class="o">.</span><span class="n">ConstraintConfig</span><span class="p">()</span>
         <span class="n">cpp_constraints</span><span class="o">.</span><span class="n">control_limit_scale</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">control_limit_scale</span>

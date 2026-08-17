@@ -228,6 +228,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../../release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_8_installable.html">0.1.8 Installable from PyPI (2026-08-05)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
@@ -539,7 +540,7 @@
         </div>
         <article role="main" id="furo-main-content">
           <h1>Source code for ADCS.estimators.attitude_estimators.attitude_SRUAKF</h1><div class="highlight"><pre>
-<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;SRUAKF&quot;</span><span class="p">]</span>
+<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"SRUAKF"</span><span class="p">]</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">scipy.linalg</span>
@@ -558,7 +559,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.satellite.estimated_satellite</span><span class="w"> </span><span class="kn">import</span> <span class="n">EstimatedSatellite</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.sensors</span><span class="w"> </span><span class="kn">import</span> <span class="n">SunSensor</span><span class="p">,</span> <span class="n">SunPair</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.errors</span><span class="w"> </span><span class="kn">import</span> <span class="n">ErrorMode</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.orbits.orbital_state</span><span class="w"> </span><span class="kn">import</span> <span class="n">Orbital_State</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.orbits.orbital_state</span><span class="w"> </span><span class="kn">import</span> <span class="n">Orbital_State</span><span class="p">,</span> <span class="n">Ephemeris</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.orbits.universal_constants</span><span class="w"> </span><span class="kn">import</span> <span class="n">CG5</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.helpers.math_helpers</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">vec3_to_quat</span><span class="p">,</span>
@@ -573,7 +574,7 @@
 <div class="viewcode-block" id="SRUAKF">
 <a class="viewcode-back" href="../../../../ADCS.estimators.attitude_estimators.attitude_SRUAKF.html#ADCS.estimators.attitude_estimators.attitude_SRUAKF.SRUAKF">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">SRUAKF</span><span class="p">(</span><span class="n">UAKF</span><span class="p">):</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Square Root Unscented Kalman Filter (SR-UKF) using ``choldate`` rank-1 updates.</span>
 
 <span class="sd">    This class implements a numerically stable Square Root UKF (SR-UKF) for</span>
@@ -615,7 +616,7 @@
 <span class="sd">    - :class:`~ADCS.state.EstimatorState`</span>
 <span class="sd">    - :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">est_sat</span><span class="p">:</span> <span class="n">EstimatedSatellite</span><span class="p">,</span>
@@ -626,8 +627,9 @@
         <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
         <span class="n">cross_term</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">quat_as_vec</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">ephem</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Ephemeris</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Initialize the SR-UKF and compute initial square-root factors.</span>
 
 <span class="sd">        This constructor delegates base initialization to</span>
@@ -678,7 +680,7 @@
 <span class="sd">        :return: ``None``.</span>
 <span class="sd">        :rtype: None</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
             <span class="n">est_sat</span><span class="o">=</span><span class="n">est_sat</span><span class="p">,</span>
             <span class="n">J2000</span><span class="o">=</span><span class="n">J2000</span><span class="p">,</span>
@@ -688,6 +690,7 @@
             <span class="n">dt</span><span class="o">=</span><span class="n">dt</span><span class="p">,</span>
             <span class="n">cross_term</span><span class="o">=</span><span class="n">cross_term</span><span class="p">,</span>
             <span class="n">quat_as_vec</span><span class="o">=</span><span class="n">quat_as_vec</span><span class="p">,</span>
+            <span class="n">ephem</span><span class="o">=</span><span class="n">ephem</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="k">try</span><span class="p">:</span>
@@ -715,7 +718,7 @@
 <div class="viewcode-block" id="SRUAKF.weighted_cholupdate">
 <a class="viewcode-back" href="../../../../ADCS.estimators.attitude_estimators.attitude_SRUAKF.html#ADCS.estimators.attitude_estimators.attitude_SRUAKF.SRUAKF.weighted_cholupdate">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">weighted_cholupdate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mat</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">vec</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">wt</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Perform a weighted rank-1 Cholesky update/downdate using ``choldate``.</span>
 
 <span class="sd">        This method updates an **upper-triangular** Cholesky factor :math:`S`</span>
@@ -774,14 +777,14 @@
 <span class="sd">        :return: Updated upper-triangular Cholesky factor :math:`S_{\text{new}}`.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">mat</span> <span class="o">=</span> <span class="n">mat</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
         <span class="n">vec</span> <span class="o">=</span> <span class="n">vec</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
         <span class="n">s</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">vec</span><span class="p">)</span>
         
         <span class="c1"># Validation</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;weighted_cholupdate: Can only handle vectors and matrices&#39;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">'weighted_cholupdate: Can only handle vectors and matrices'</span><span class="p">)</span>
         
         <span class="c1"># Handle Matrix Case (Update using multiple vectors)</span>
         <span class="c1"># Check if 2D array and not a single row/col vector</span>
@@ -798,7 +801,7 @@
             <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">rr</span><span class="p">):</span>
                 <span class="n">mat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">weighted_cholupdate</span><span class="p">(</span><span class="n">mat</span><span class="p">,</span> <span class="n">vec</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="p">:],</span> <span class="n">wt</span><span class="p">)</span>
                 <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">mat</span><span class="p">))</span> <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isinf</span><span class="p">(</span><span class="n">mat</span><span class="p">)):</span>
-                    <span class="k">raise</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">LinAlgError</span><span class="p">(</span><span class="s1">&#39;NAN encountered in weighted_cholupdate&#39;</span><span class="p">)</span>
+                    <span class="k">raise</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">LinAlgError</span><span class="p">(</span><span class="s1">'NAN encountered in weighted_cholupdate'</span><span class="p">)</span>
         
         <span class="c1"># Handle Vector Case</span>
         <span class="k">else</span><span class="p">:</span>
@@ -815,7 +818,7 @@
 <div class="viewcode-block" id="SRUAKF.make_pts_and_wts">
 <a class="viewcode-back" href="../../../../ADCS.estimators.attitude_estimators.attitude_SRUAKF.html#ADCS.estimators.attitude_estimators.attitude_SRUAKF.SRUAKF.make_pts_and_wts">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">make_pts_and_wts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pt0</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">which_sensors</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">bool</span><span class="p">]):</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Generate augmented sigma points using the stored square root covariance.</span>
 
 <span class="sd">        This method generates sigma points for a UKF-style estimator, while</span>
@@ -912,7 +915,7 @@
 
 <span class="sd">        :rtype: tuple[int, list, numpy.ndarray, numpy.ndarray, numpy.ndarray]</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="c1"># 1. Setup Covariances &amp; Dimensions</span>
         <span class="c1"># ---------------------------------</span>
         <span class="c1"># State Covariance (Error State)</span>
@@ -959,7 +962,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">wts_m</span> <span class="o">=</span> <span class="n">wts_m</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">wts_c</span> <span class="o">=</span> <span class="n">wts_c</span>
 
-        <span class="c1"># 3. Construct &quot;Zeros&quot; for the list structure</span>
+        <span class="c1"># 3. Construct "Zeros" for the list structure</span>
         <span class="c1"># -------------------------------------------</span>
         <span class="c1"># Ensure we return valid numpy arrays even if empty</span>
         <span class="n">dtype</span> <span class="o">=</span> <span class="n">pt0</span><span class="o">.</span><span class="n">dtype</span>
@@ -1015,7 +1018,7 @@
         <span class="c1"># -------------------------------------------------</span>
         <span class="c1"># sig0 is a (2L+1, state_dim) array used for fast vectorized operations</span>
         <span class="c1"># on the state part of the sigma points.</span>
-        <span class="c1"># It must align with &#39;pts&#39;. </span>
+        <span class="c1"># It must align with 'pts'. </span>
         <span class="c1"># Structure: [Mean, State_Pts, Mean_Repeated_for_Noise_Pts]</span>
         
         <span class="n">sig0_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">pt0</span><span class="p">]</span>
@@ -1043,7 +1046,7 @@
         <span class="n">sensors</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
         <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EstimatorState</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Perform one SR-UKF predict/update cycle using QR factorization and Cholesky downdates.</span>
 
 <span class="sd">        This method executes a full SR-UKF cycle in square-root form:</span>
@@ -1253,7 +1256,7 @@
 
 <span class="sd">        :rtype: :class:`~ADCS.state.EstimatorState`</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">u</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
         <span class="n">os</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
         <span class="n">state0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_hat</span><span class="o">.</span><span class="n">as_estimator_array</span><span class="p">()</span>
@@ -1357,7 +1360,7 @@
         <span class="n">to_qr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">([</span><span class="n">pts_diff</span><span class="p">[</span><span class="mi">1</span><span class="p">:,</span> <span class="p">:]</span><span class="o">.</span><span class="n">T</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">wts_c</span><span class="p">[</span><span class="mi">1</span><span class="p">:]),</span> <span class="bp">self</span><span class="o">.</span><span class="n">S_Q</span><span class="o">.</span><span class="n">T</span><span class="p">])</span>
         <span class="c1"># Note: using S_Q.T implies S_Q was Upper, so S_Q.T is Lower. </span>
         
-        <span class="n">srcov1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">qr</span><span class="p">(</span><span class="n">to_qr</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;r&#39;</span><span class="p">)</span>
+        <span class="n">srcov1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">qr</span><span class="p">(</span><span class="n">to_qr</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">'r'</span><span class="p">)</span>
         
         <span class="c1"># Handle index 0 (negative weight)</span>
         <span class="n">srcov1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">weighted_cholupdate</span><span class="p">(</span><span class="n">srcov1</span><span class="p">,</span> <span class="n">pts_diff</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:],</span> <span class="n">wts_c</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
@@ -1376,7 +1379,7 @@
 
         <span class="c1"># Measurement QR</span>
         <span class="n">to_qr_sens</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">([</span><span class="n">sens_diff</span><span class="p">[</span><span class="mi">1</span><span class="p">:,</span> <span class="p">:]</span><span class="o">.</span><span class="n">T</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">wts_c</span><span class="p">[</span><span class="mi">1</span><span class="p">:]),</span> <span class="n">S_R</span><span class="o">.</span><span class="n">T</span><span class="p">])</span>
-        <span class="n">srcov_sens</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">qr</span><span class="p">(</span><span class="n">to_qr_sens</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;r&#39;</span><span class="p">)</span>
+        <span class="n">srcov_sens</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">qr</span><span class="p">(</span><span class="n">to_qr_sens</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">'r'</span><span class="p">)</span>
         
         <span class="c1"># Handle index 0</span>
         <span class="n">srcov_sens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">weighted_cholupdate</span><span class="p">(</span><span class="n">srcov_sens</span><span class="p">,</span> <span class="n">sens_diff</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:],</span> <span class="n">wts_c</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
@@ -1386,10 +1389,10 @@
         <span class="n">covyx</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">([</span><span class="n">wts_c</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">sens_diff</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="p">:],</span> <span class="n">pts_diff</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="p">:])</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_sigma</span><span class="p">)])</span>
         
         <span class="k">try</span><span class="p">:</span>
-            <span class="n">t1</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">solve_triangular</span><span class="p">(</span><span class="n">srcov_sens</span><span class="p">,</span> <span class="n">covyx</span><span class="p">,</span> <span class="n">lower</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">trans</span><span class="o">=</span><span class="s1">&#39;T&#39;</span><span class="p">)</span>
+            <span class="n">t1</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">solve_triangular</span><span class="p">(</span><span class="n">srcov_sens</span><span class="p">,</span> <span class="n">covyx</span><span class="p">,</span> <span class="n">lower</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">trans</span><span class="o">=</span><span class="s1">'T'</span><span class="p">)</span>
             <span class="n">Kk</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">solve_triangular</span><span class="p">(</span><span class="n">srcov_sens</span><span class="p">,</span> <span class="n">t1</span><span class="p">,</span> <span class="n">lower</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
         <span class="k">except</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">LinAlgError</span><span class="p">:</span>
-             <span class="k">raise</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">LinAlgError</span><span class="p">(</span><span class="s1">&#39;SRUAKF: Singular Matrix in Update&#39;</span><span class="p">)</span>
+             <span class="k">raise</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">LinAlgError</span><span class="p">(</span><span class="s1">'SRUAKF: Singular Matrix in Update'</span><span class="p">)</span>
 
         <span class="c1"># --- 7. State Update ---</span>
         <span class="c1"># Note: Kk here is (n_meas, n_state).</span>

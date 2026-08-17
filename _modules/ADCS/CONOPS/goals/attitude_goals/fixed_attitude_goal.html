@@ -228,6 +228,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../../../release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../../release_notes/0_1_8_installable.html">0.1.8 Installable from PyPI (2026-08-05)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../../release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../../release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../../release_notes/0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
@@ -539,7 +540,7 @@
         </div>
         <article role="main" id="furo-main-content">
           <h1>Source code for ADCS.CONOPS.goals.attitude_goals.fixed_attitude_goal</h1><div class="highlight"><pre>
-<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Fixed_Attitude_Goal&quot;</span><span class="p">]</span>
+<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"Fixed_Attitude_Goal"</span><span class="p">]</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tuple</span>
@@ -551,7 +552,7 @@
 <div class="viewcode-block" id="Fixed_Attitude_Goal">
 <a class="viewcode-back" href="../../../../../ADCS.CONOPS.goals.attitude_goals.fixed_attitude_goal.html#ADCS.CONOPS.goals.attitude_goals.fixed_attitude_goal.Fixed_Attitude_Goal">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">Fixed_Attitude_Goal</span><span class="p">(</span><span class="n">Attitude_Goal</span><span class="p">):</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Fixed inertial attitude goal.</span>
 
 <span class="sd">    This class implements a concrete attitude goal that commands a</span>
@@ -588,9 +589,9 @@
 <span class="sd">    :class:`~ADCS.CONOPS.goals.Attitude_Goal`</span>
 <span class="sd">    :class:`~ADCS.goals.goal.Goal`</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">q_ref</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Initialize a fixed attitude goal.</span>
 
 <span class="sd">        The provided quaternion is normalized to ensure it represents a</span>
@@ -606,14 +607,14 @@
 <span class="sd">        :rtype:</span>
 <span class="sd">            None</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">q_ref</span> <span class="o">=</span> <span class="n">normalize</span><span class="p">(</span><span class="n">q_ref</span><span class="p">)</span>
 
 <div class="viewcode-block" id="Fixed_Attitude_Goal.to_ref">
 <a class="viewcode-back" href="../../../../../ADCS.CONOPS.goals.attitude_goals.fixed_attitude_goal.html#ADCS.CONOPS.goals.attitude_goals.fixed_attitude_goal.Fixed_Attitude_Goal.to_ref">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">to_ref</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">os0</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Return the fixed reference attitude and zero angular velocity.</span>
 
 <span class="sd">        This method ignores the orbital state and always returns the</span>
@@ -635,7 +636,7 @@
 <span class="sd">        :rtype:</span>
 <span class="sd">            Tuple[numpy.ndarray, numpy.ndarray]</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">q_ref</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span></div>
 </div>
 

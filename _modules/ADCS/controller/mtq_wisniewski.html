@@ -228,6 +228,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_8_installable.html">0.1.8 Installable from PyPI (2026-08-05)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
@@ -539,7 +540,7 @@
         </div>
         <article role="main" id="furo-main-content">
           <h1>Source code for ADCS.controller.mtq_wisniewski</h1><div class="highlight"><pre>
-<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;MTQ_Wisniewski&quot;</span><span class="p">]</span>
+<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"MTQ_Wisniewski"</span><span class="p">]</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
@@ -556,7 +557,7 @@
 <div class="viewcode-block" id="MTQ_Wisniewski">
 <a class="viewcode-back" href="../../../ADCS.controller.mtq_wisniewski.html#ADCS.controller.mtq_wisniewski.MTQ_Wisniewski">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">MTQ_Wisniewski</span><span class="p">(</span><span class="n">Controller</span><span class="p">):</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Sliding mode magnetic attitude controller based on Wisniewski (1998).</span>
 
 <span class="sd">    This controller implements a sliding mode control law for spacecraft</span>
@@ -638,9 +639,9 @@
 <span class="sd">    Sliding Mode Attitude Control for Magnetic Actuated Satellite,</span>
 <span class="sd">    IFAC Proceedings Volumes, Vol. 31, No. 18, 1998.</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">est_sat</span><span class="p">:</span> <span class="n">EstimatedSatellite</span><span class="p">,</span> <span class="n">lambda_s</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">lambda_q</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Initialize the Wisniewski sliding mode magnetic controller.</span>
 
 <span class="sd">        This method stores the sliding surface gain matrices, constructs</span>
@@ -662,7 +663,7 @@
 <span class="sd">        -------</span>
 <span class="sd">        None</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">lambda_s</span> <span class="o">=</span> <span class="n">lambda_s</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">lambda_q</span> <span class="o">=</span> <span class="n">lambda_q</span>
 
@@ -673,7 +674,7 @@
 <div class="viewcode-block" id="MTQ_Wisniewski.find_u">
 <a class="viewcode-back" href="../../../ADCS.controller.mtq_wisniewski.html#ADCS.controller.mtq_wisniewski.MTQ_Wisniewski.find_u">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">find_u</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_hat</span><span class="p">:</span> <span class="n">State</span> <span class="o">|</span> <span class="n">EstimatorState</span><span class="p">,</span> <span class="n">sens</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">est_sat</span><span class="p">:</span> <span class="n">EstimatedSatellite</span><span class="p">,</span> <span class="n">os_hat</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span> <span class="n">goal</span><span class="p">:</span> <span class="n">Goal</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Compute magnetic torquer command vector using sliding mode control.</span>
 
 <span class="sd">        This method evaluates the estimated spacecraft state and sensor</span>
@@ -732,7 +733,7 @@
 <span class="sd">            Actuator command vector containing magnetic torquer commands</span>
 <span class="sd">            ordered according to ``est_sat.actuators``.</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">if</span> <span class="n">goal</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">goal</span> <span class="o">=</span> <span class="n">No_Goal</span><span class="p">()</span>
 
@@ -743,7 +744,7 @@
         <span class="n">h_rw_states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reaction_wheel_momentum_states</span><span class="p">(</span>
             <span class="n">x_hat</span><span class="p">,</span>
             <span class="n">n_rw</span><span class="p">,</span>
-            <span class="n">context</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">.find_u&quot;</span><span class="p">,</span>
+            <span class="n">context</span><span class="o">=</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">.find_u"</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="n">goal_vec_eci</span><span class="p">,</span> <span class="n">w_ref_eci</span> <span class="o">=</span> <span class="n">goal</span><span class="o">.</span><span class="n">to_ref</span><span class="p">(</span><span class="n">os0</span><span class="o">=</span><span class="n">os_hat</span><span class="p">)</span>

@@ -228,6 +228,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../../release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_8_installable.html">0.1.8 Installable from PyPI (2026-08-05)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
@@ -539,7 +540,7 @@
         </div>
         <article role="main" id="furo-main-content">
           <h1>Source code for ADCS.estimators.orbit_estimators.orbit_GPS</h1><div class="highlight"><pre>
-<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Orbit_GPS&quot;</span><span class="p">]</span>
+<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"Orbit_GPS"</span><span class="p">]</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
@@ -553,7 +554,7 @@
 <div class="viewcode-block" id="Orbit_GPS">
 <a class="viewcode-back" href="../../../../ADCS.estimators.orbit_estimators.orbit_GPS.html#ADCS.estimators.orbit_estimators.orbit_GPS.Orbit_GPS">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">Orbit_GPS</span><span class="p">(</span><span class="n">Orbit_Estimator</span><span class="p">):</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Pass-through GPS-based orbit estimator.</span>
 
 <span class="sd">    This estimator directly converts raw GPS measurements into an inertial</span>
@@ -596,14 +597,14 @@
 <span class="sd">    :inherits:</span>
 <span class="sd">        :class:`~ADCS.estimators.orbit_estimators.Orbit_Estimator`</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> 
         <span class="n">est_sat</span><span class="p">:</span> <span class="n">EstimatedSatellite</span><span class="p">,</span> 
         <span class="n">J2000</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
         <span class="n">os_template</span><span class="p">:</span> <span class="n">Orbital_State</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Initialize the GPS pass-through orbit estimator.</span>
 
 <span class="sd">        This constructor configures the estimator with a satellite hardware</span>
@@ -638,7 +639,7 @@
 <span class="sd">        :rtype:</span>
 <span class="sd">            None</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">est_sat</span><span class="o">=</span><span class="n">est_sat</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">reset</span><span class="p">(</span><span class="n">est_sat</span><span class="o">=</span><span class="n">est_sat</span><span class="p">,</span> <span class="n">os_template</span><span class="o">=</span><span class="n">os_template</span><span class="p">)</span>
 
@@ -649,7 +650,7 @@
         <span class="n">est_sat</span><span class="p">:</span> <span class="n">EstimatedSatellite</span><span class="p">,</span> 
         <span class="n">os_template</span><span class="p">:</span> <span class="n">Orbital_State</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Reset the estimator configuration and noise parameters.</span>
 
 <span class="sd">        This method reinitializes the estimator by extracting GPS sensor noise</span>
@@ -679,13 +680,13 @@
 <span class="sd">        :rtype:</span>
 <span class="sd">            None</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">est_sat</span> <span class="o">=</span> <span class="n">est_sat</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">os_template</span> <span class="o">=</span> <span class="n">os_template</span>
         
         <span class="n">gps_sensors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">est_sat</span><span class="o">.</span><span class="n">GPS_sensors</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">gps_sensors</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Orbit_GPS requires at least one GPS sensor.&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Orbit_GPS requires at least one GPS sensor."</span><span class="p">)</span>
             
         <span class="n">blocks</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">gps</span> <span class="ow">in</span> <span class="n">gps_sensors</span><span class="p">:</span>
@@ -701,7 +702,7 @@
         <span class="n">GPS_measurements</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span>
         <span class="n">J2000</span><span class="p">:</span> <span class="nb">float</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EstimatedOrbital_State</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Update the orbital state estimate using GPS measurements.</span>
 
 <span class="sd">        This method converts the most recent GPS measurement into an inertial</span>
@@ -755,7 +756,7 @@
 <span class="sd">        :raises ValueError:</span>
 <span class="sd">            If the GPS measurement vector does not have length 3 or 6.</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         
         <span class="k">if</span> <span class="ow">not</span> <span class="n">GPS_measurements</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">os_hat</span>
@@ -788,7 +789,7 @@
             <span class="c1"># (gps.noise.std_noise), NOT a scalar. The old</span>
             <span class="c1"># `np.diag([std_pos]*3 + [std_vel]*3)**2` built a ragged list and</span>
             <span class="c1"># collapsed to a 1-D array -&gt; EstimatedOrbital_State rejected it</span>
-            <span class="c1"># (&quot;P must be 6x6&quot;), so Orbit_GPS was dead-on-arrival for every</span>
+            <span class="c1"># ("P must be 6x6"), so Orbit_GPS was dead-on-arrival for every</span>
             <span class="c1"># real measurement. Build the 6x6 measurement covariance</span>
             <span class="c1"># explicitly: diag(sigma_r^2 x3, sigma_v^2 x3).</span>
             <span class="n">std_pos</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gps_std</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
@@ -813,7 +814,7 @@
             <span class="n">P</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">std</span><span class="p">[:</span><span class="mi">6</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
             
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unknown GPS measurement size: </span><span class="si">{</span><span class="n">m</span><span class="o">.</span><span class="n">size</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Unknown GPS measurement size: </span><span class="si">{</span><span class="n">m</span><span class="o">.</span><span class="n">size</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 
         <span class="c1"># 3. Create the new State</span>
         <span class="n">new_os</span> <span class="o">=</span> <span class="n">Orbital_State</span><span class="p">(</span>

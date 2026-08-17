@@ -228,6 +228,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../../release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_8_installable.html">0.1.8 Installable from PyPI (2026-08-05)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
@@ -539,7 +540,7 @@
         </div>
         <article role="main" id="furo-main-content">
           <h1>Source code for ADCS.controller.saltro.saltro_controller</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span></span><span class="sd">"""</span>
 <span class="sd">SALTRO-based trajectory planning and tracking controller.</span>
 
 <span class="sd">This module provides a controller wrapper around the ``saltro_py`` backend,</span>
@@ -552,9 +553,9 @@
 
 <span class="sd">The implementation is designed to match the ADCS ``Controller`` interface while</span>
 <span class="sd">delegating optimization to the SALTRO C++ backend.</span>
-<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">"""</span>
 
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;SALTRO&quot;</span><span class="p">]</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"SALTRO"</span><span class="p">]</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
@@ -578,7 +579,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.satellite.estimated_satellite</span><span class="w"> </span><span class="kn">import</span> <span class="n">EstimatedSatellite</span>
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_ensure_saltro_path</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Ensure the SALTRO build directory is available on ``sys.path``.</span>
+<span class="w">    </span><span class="sd">"""Ensure the SALTRO build directory is available on ``sys.path``.</span>
 
 <span class="sd">    The Python bindings for SALTRO are generated in ``SALTRO/build``. This</span>
 <span class="sd">    helper appends that directory to ``sys.path`` if it is not already present</span>
@@ -586,10 +587,10 @@
 
 <span class="sd">    :return: Absolute path to the SALTRO build directory.</span>
 <span class="sd">    :rtype: str</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">current_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="vm">__file__</span><span class="p">))</span>
-    <span class="n">parent_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">current_dir</span><span class="p">,</span> <span class="s2">&quot;../..&quot;</span><span class="p">))</span>
-    <span class="n">saltro_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parent_dir</span><span class="p">,</span> <span class="s2">&quot;SALTRO&quot;</span><span class="p">,</span> <span class="s2">&quot;build&quot;</span><span class="p">)</span>
+    <span class="n">parent_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">current_dir</span><span class="p">,</span> <span class="s2">"../.."</span><span class="p">))</span>
+    <span class="n">saltro_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parent_dir</span><span class="p">,</span> <span class="s2">"SALTRO"</span><span class="p">,</span> <span class="s2">"build"</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">saltro_path</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="p">:</span>
         <span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">saltro_path</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">saltro_path</span>
@@ -601,7 +602,7 @@
 <div class="viewcode-block" id="SALTRO">
 <a class="viewcode-back" href="../../../../ADCS.controller.saltro.saltro_controller.html#ADCS.controller.saltro.saltro_controller.SALTRO">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">SALTRO</span><span class="p">(</span><span class="n">Controller</span><span class="p">):</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    SALTRO trajectory planning and tracking controller.</span>
 
 <span class="sd">    This controller computes an optimized trajectory using the ``saltro_py``</span>
@@ -632,10 +633,10 @@
 <span class="sd">    :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`</span>
 <span class="sd">    :param planner_settings: SALTRO planner settings bundle.</span>
 <span class="sd">    :type planner_settings: :class:`~ADCS.controller.saltro.SALTRO_planner_settings.PlannerSettings`</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">est_sat</span><span class="p">:</span> <span class="n">EstimatedSatellite</span><span class="p">,</span> <span class="n">planner_settings</span><span class="p">:</span> <span class="n">PlannerSettings</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Construct the SALTRO controller with no active trajectory.</span>
+<span class="w">        </span><span class="sd">"""Construct the SALTRO controller with no active trajectory.</span>
 
 <span class="sd">        :param est_sat: Estimated satellite model used by the planner.</span>
 <span class="sd">        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`</span>
@@ -643,7 +644,7 @@
 <span class="sd">        :type planner_settings: :class:`~ADCS.controller.saltro.SALTRO_planner_settings.PlannerSettings`</span>
 <span class="sd">        :return: None</span>
 <span class="sd">        :rtype: None</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">est_sat</span> <span class="o">=</span> <span class="n">est_sat</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">planner_settings</span> <span class="o">=</span> <span class="n">planner_settings</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">active_trajectory</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Trajectory</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
@@ -651,14 +652,14 @@
 <div class="viewcode-block" id="SALTRO.set_active_trajectory">
 <a class="viewcode-back" href="../../../../ADCS.controller.saltro.saltro_controller.html#ADCS.controller.saltro.saltro_controller.SALTRO.set_active_trajectory">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">set_active_trajectory</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">traj</span><span class="p">:</span> <span class="n">Trajectory</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set the trajectory used by :meth:`find_u` for runtime tracking.</span>
+<span class="w">        </span><span class="sd">"""Set the trajectory used by :meth:`find_u` for runtime tracking.</span>
 
 <span class="sd">        :param traj: Active trajectory object containing times, states,</span>
 <span class="sd">            controls, and gains.</span>
 <span class="sd">        :type traj: :class:`~ADCS.controller.helpers.trajectory.Trajectory`</span>
 <span class="sd">        :return: None</span>
 <span class="sd">        :rtype: None</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">active_trajectory</span> <span class="o">=</span> <span class="n">traj</span></div>
 
 
@@ -673,7 +674,7 @@
         <span class="n">goals</span><span class="p">:</span> <span class="n">GoalList</span><span class="p">,</span>
         <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Trajectory</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Compute an optimized trajectory using the SALTRO backend.</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""Compute an optimized trajectory using the SALTRO backend.</span>
 
 <span class="sd">        The method performs the following pipeline:</span>
 
@@ -711,16 +712,16 @@
 <span class="sd">        :raises ValueError: If pass configuration or target format is invalid.</span>
 <span class="sd">        :raises RuntimeError: If SALTRO optimization fails.</span>
 <span class="sd">        :raises ImportError: If ``saltro_py`` cannot be imported.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;SALTRO planning: start=</span><span class="si">{</span><span class="n">t_start</span><span class="si">:</span><span class="s2">.8f</span><span class="si">}</span><span class="s2"> centuries, duration=</span><span class="si">{</span><span class="n">duration</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2"> s&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"SALTRO planning: start=</span><span class="si">{</span><span class="n">t_start</span><span class="si">:</span><span class="s2">.8f</span><span class="si">}</span><span class="s2"> centuries, duration=</span><span class="si">{</span><span class="n">duration</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2"> s"</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="ow">not</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">planner_settings</span><span class="p">,</span> <span class="s2">&quot;passes&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;SALTRO planner_settings.passes cannot be empty&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">planner_settings</span><span class="p">,</span> <span class="s2">"passes"</span><span class="p">,</span> <span class="kc">None</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"SALTRO planner_settings.passes cannot be empty"</span><span class="p">)</span>
 
         <span class="n">dt</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">planner_settings</span><span class="o">.</span><span class="n">passes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">dt</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">dt</span> <span class="o">&lt;=</span> <span class="mf">0.0</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;SALTRO pass dt must be &gt; 0, got </span><span class="si">{</span><span class="n">dt</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"SALTRO pass dt must be &gt; 0, got </span><span class="si">{</span><span class="n">dt</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
         <span class="n">t_end</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">t_start</span> <span class="o">+</span> <span class="n">duration</span> <span class="o">*</span> <span class="n">TimeConstants</span><span class="o">.</span><span class="n">sec2cent</span><span class="p">)</span>
         <span class="n">n_steps</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">duration</span> <span class="o">/</span> <span class="n">dt</span><span class="p">)))</span>
         <span class="n">jtime</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span>
@@ -735,21 +736,21 @@
 
         <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">t_k</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">jtime</span><span class="p">):</span>
             <span class="n">os_at_t</span> <span class="o">=</span> <span class="n">sim_orbit</span><span class="o">.</span><span class="n">get_os</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">t_k</span><span class="p">))</span>
-            <span class="n">active_goal</span> <span class="o">=</span> <span class="n">goals</span><span class="o">.</span><span class="n">get_active_goal</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">t_k</span><span class="p">),</span> <span class="n">time_units</span><span class="o">=</span><span class="s2">&quot;centuries&quot;</span><span class="p">)</span>
+            <span class="n">active_goal</span> <span class="o">=</span> <span class="n">goals</span><span class="o">.</span><span class="n">get_active_goal</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">t_k</span><span class="p">),</span> <span class="n">time_units</span><span class="o">=</span><span class="s2">"centuries"</span><span class="p">)</span>
             <span class="n">target_ref</span><span class="p">,</span> <span class="n">_w_ref</span> <span class="o">=</span> <span class="n">active_goal</span><span class="o">.</span><span class="n">to_ref</span><span class="p">(</span><span class="n">os_at_t</span><span class="p">)</span>
             <span class="n">target_ref</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">target_ref</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
 
             <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">target_ref</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
                 <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">target_ref</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="mi">4</span><span class="p">])</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
-                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;SALTRO vector-goal target must be [nan, x, y, z] with finite x/y/z&quot;</span><span class="p">)</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"SALTRO vector-goal target must be [nan, x, y, z] with finite x/y/z"</span><span class="p">)</span>
                 <span class="n">q_goal</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">target_ref</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">q_ref</span> <span class="o">=</span> <span class="n">normalize</span><span class="p">(</span><span class="n">target_ref</span><span class="p">)</span>
                 <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">q_ref</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span> <span class="ow">or</span> <span class="n">q_ref</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="p">(</span><span class="mi">4</span><span class="p">,):</span>
-                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;SALTRO goal must be a finite quaternion or vector-goal [nan, x, y, z]&quot;</span><span class="p">)</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"SALTRO goal must be a finite quaternion or vector-goal [nan, x, y, z]"</span><span class="p">)</span>
                 <span class="n">q_goal</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">q_ref</span>
 
-            <span class="n">boresight_name</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">active_goal</span><span class="p">,</span> <span class="s2">&quot;boresight_name&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="n">boresight_name</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">active_goal</span><span class="p">,</span> <span class="s2">"boresight_name"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
             <span class="k">try</span><span class="p">:</span>
                 <span class="n">body_boresight</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">est_sat</span><span class="o">.</span><span class="n">get_boresight</span><span class="p">(</span><span class="n">boresight_name</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span>
@@ -800,7 +801,7 @@
             <span class="n">boresight</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">ok</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;SALTRO trajOpt returned ok=False&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">"SALTRO trajOpt returned ok=False"</span><span class="p">)</span>
 
         <span class="n">Xset</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">Xset</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
         <span class="n">Uset_cpp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">Uset_cpp</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
@@ -819,12 +820,12 @@
         <span class="k">elif</span> <span class="n">Uset_cpp</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">cpp_to_py</span><span class="o">.</span><span class="n">size</span><span class="p">:</span>
             <span class="n">Uset</span> <span class="o">=</span> <span class="n">Uset_cpp</span><span class="p">[:,</span> <span class="n">cpp_to_py</span><span class="p">]</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unexpected SALTRO control shape </span><span class="si">{</span><span class="n">Uset_cpp</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Unexpected SALTRO control shape </span><span class="si">{</span><span class="n">Uset_cpp</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 
         <span class="n">n_red</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">cpp_sat</span><span class="o">.</span><span class="n">reducedStateDim</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">K_flat</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="n">n_red</span> <span class="o">*</span> <span class="n">n_out</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;Unexpected SALTRO gain shape </span><span class="si">{</span><span class="n">K_flat</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">, expected second dim </span><span class="si">{</span><span class="n">n_red</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">n_out</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="sa">f</span><span class="s2">"Unexpected SALTRO gain shape </span><span class="si">{</span><span class="n">K_flat</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">, expected second dim </span><span class="si">{</span><span class="n">n_red</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">n_out</span><span class="si">}</span><span class="s2">"</span>
             <span class="p">)</span>
 
         <span class="n">K_cpp_time</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n_out</span><span class="p">,</span> <span class="n">K_flat</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">n_red</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
@@ -850,7 +851,7 @@
         <span class="n">goal</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Goal</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Compute control input from the active trajectory at current time.</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""Compute control input from the active trajectory at current time.</span>
 
 <span class="sd">        The control command is generated by evaluating trajectory tracking at</span>
 <span class="sd">        :math:`t = \mathrm{os\_hat.J2000}`:</span>
@@ -873,7 +874,7 @@
 <span class="sd">        :rtype: numpy.ndarray</span>
 <span class="sd">        :raises RuntimeError: If no active trajectory is set or time is outside</span>
 <span class="sd">            trajectory validity interval.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">_</span> <span class="o">=</span> <span class="n">sens</span>
         <span class="n">_</span> <span class="o">=</span> <span class="n">est_sat</span>
         <span class="n">_</span> <span class="o">=</span> <span class="n">goal</span>
@@ -882,12 +883,12 @@
         <span class="n">current_time</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">os_hat</span><span class="o">.</span><span class="n">J2000</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">active_trajectory</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;SALTRO: No active trajectory set at t=</span><span class="si">{</span><span class="n">current_time</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"SALTRO: No active trajectory set at t=</span><span class="si">{</span><span class="n">current_time</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">active_trajectory</span><span class="o">.</span><span class="n">is_valid_time</span><span class="p">(</span><span class="n">current_time</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
-                <span class="s2">&quot;SALTRO: Active trajectory expired or not started. &quot;</span>
-                <span class="sa">f</span><span class="s2">&quot;Current: </span><span class="si">{</span><span class="n">current_time</span><span class="si">}</span><span class="s2">, Traj: [</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">active_trajectory</span><span class="o">.</span><span class="n">start_time</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">active_trajectory</span><span class="o">.</span><span class="n">end_time</span><span class="si">}</span><span class="s2">]&quot;</span>
+                <span class="s2">"SALTRO: Active trajectory expired or not started. "</span>
+                <span class="sa">f</span><span class="s2">"Current: </span><span class="si">{</span><span class="n">current_time</span><span class="si">}</span><span class="s2">, Traj: [</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">active_trajectory</span><span class="o">.</span><span class="n">start_time</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">active_trajectory</span><span class="o">.</span><span class="n">end_time</span><span class="si">}</span><span class="s2">]"</span>
             <span class="p">)</span>
 
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">active_trajectory</span><span class="o">.</span><span class="n">compute_tracking_control</span><span class="p">(</span><span class="n">current_time</span><span class="p">,</span> <span class="n">x_hat</span><span class="p">)</span></div>

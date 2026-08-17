@@ -228,6 +228,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../../release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_8_installable.html">0.1.8 Installable from PyPI (2026-08-05)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
@@ -539,7 +540,7 @@
         </div>
         <article role="main" id="furo-main-content">
           <h1>Source code for ADCS.CONOPS.goals.goal</h1><div class="highlight"><pre>
-<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Goal&quot;</span><span class="p">]</span>
+<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"Goal"</span><span class="p">]</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tuple</span>
@@ -549,7 +550,7 @@
 <div class="viewcode-block" id="Goal">
 <a class="viewcode-back" href="../../../../ADCS.mc.mcconfig.html#ADCS.CONOPS.goals.goal.Goal">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">Goal</span><span class="p">:</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Base class for guidance and pointing goals.</span>
 
 <span class="sd">    This class defines the abstract interface for all guidance and</span>
@@ -580,9 +581,9 @@
 <span class="sd">    :class:`~ADCS.goals.coordinate_goal.Coordinate_Goal`</span>
 <span class="sd">    :class:`~ADCS.goals.goal_list.GoalList`</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Initialize a goal instance.</span>
 
 <span class="sd">        This constructor performs no initialization. It exists to</span>
@@ -594,13 +595,13 @@
 <span class="sd">        :rtype:</span>
 <span class="sd">            None</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">boresight_name</span> <span class="o">=</span> <span class="kc">None</span>
 
 <div class="viewcode-block" id="Goal.to_ref">
 <a class="viewcode-back" href="../../../../ADCS.mc.mcconfig.html#ADCS.CONOPS.goals.goal.Goal.to_ref">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">to_ref</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">os0</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Generate inertial reference vectors from the current orbital state.</span>
 
 <span class="sd">        This method defines the primary mapping implemented by a goal.</span>
@@ -628,14 +629,14 @@
 <span class="sd">        :rtype:</span>
 <span class="sd">            Tuple[numpy.ndarray, numpy.ndarray]</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Use a subclass of Goal&quot;</span><span class="p">)</span></div>
+<span class="sd">        """</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">"Use a subclass of Goal"</span><span class="p">)</span></div>
 
     
 <div class="viewcode-block" id="Goal.error">
 <a class="viewcode-back" href="../../../../ADCS.mc.mcconfig.html#ADCS.CONOPS.goals.goal.Goal.error">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">error</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">q</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">body_boresight</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">os0</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Compute the pointing or attitude error associated with the goal.</span>
 
 <span class="sd">        This method computes an error quantity suitable for use by a</span>
@@ -681,8 +682,8 @@
 <span class="sd">        :rtype:</span>
 <span class="sd">            numpy.ndarray</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Use a subclass of Goal&quot;</span><span class="p">)</span></div>
+<span class="sd">        """</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">"Use a subclass of Goal"</span><span class="p">)</span></div>
 </div>
 
 </pre></div>

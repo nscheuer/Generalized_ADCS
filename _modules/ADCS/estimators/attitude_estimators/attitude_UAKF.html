@@ -228,6 +228,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../../release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_8_installable.html">0.1.8 Installable from PyPI (2026-08-05)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
@@ -539,19 +540,19 @@
         </div>
         <article role="main" id="furo-main-content">
           <h1>Source code for ADCS.estimators.attitude_estimators.attitude_UAKF</h1><div class="highlight"><pre>
-<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;UAKF&quot;</span><span class="p">]</span>
+<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"UAKF"</span><span class="p">]</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">copy</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">scipy</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.estimators.attitude_estimators.attitude_estimator</span><span class="w"> </span><span class="kn">import</span> <span class="n">Attitude_Estimator</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.state</span><span class="w"> </span><span class="kn">import</span> <span class="n">EstimatorState</span><span class="p">,</span> <span class="n">State</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.satellite.estimated_satellite</span><span class="w"> </span><span class="kn">import</span> <span class="n">EstimatedSatellite</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.satellite_hardware.errors</span><span class="w"> </span><span class="kn">import</span> <span class="n">ErrorMode</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.orbits.orbital_state</span><span class="w"> </span><span class="kn">import</span> <span class="n">Orbital_State</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.orbits.orbital_state</span><span class="w"> </span><span class="kn">import</span> <span class="n">Orbital_State</span><span class="p">,</span> <span class="n">Ephemeris</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.orbits.universal_constants</span><span class="w"> </span><span class="kn">import</span> <span class="n">CG5</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.helpers.math_helpers</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">quat_to_vec3</span><span class="p">,</span>
@@ -567,7 +568,7 @@
 <div class="viewcode-block" id="UAKF">
 <a class="viewcode-back" href="../../../../ADCS.estimators.attitude_estimators.attitude_UAKF.html#ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">UAKF</span><span class="p">(</span><span class="n">Attitude_Estimator</span><span class="p">):</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Unscented Kalman Filter (UKF) with an error-state attitude representation.</span>
 
 <span class="sd">    This class implements an Unscented Kalman Filter (UKF) for spacecraft attitude</span>
@@ -702,7 +703,7 @@
 <span class="sd">    the quaternion is renormalized via :func:`~ADCS.helpers.math_helpers.normalize`,</span>
 <span class="sd">    and covariance is transformed using :func:`~ADCS.helpers.math_helpers.state_norm_jac`.</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">est_sat</span><span class="p">:</span> <span class="n">EstimatedSatellite</span><span class="p">,</span>
@@ -714,8 +715,9 @@
         <span class="n">cross_term</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">quat_as_vec</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">ut_alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-3</span><span class="p">,</span>
+        <span class="n">ephem</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Ephemeris</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Initialize the UKF estimator and store UKF scaling parameters.</span>
 
 <span class="sd">        This constructor initializes the base estimator bookkeeping via</span>
@@ -750,7 +752,7 @@
 <span class="sd">        :return: ``None``.</span>
 <span class="sd">        :rtype: None</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
             <span class="n">est_sat</span><span class="o">=</span><span class="n">est_sat</span><span class="p">,</span>
             <span class="n">J2000</span><span class="o">=</span><span class="n">J2000</span><span class="p">,</span>
@@ -760,13 +762,14 @@
             <span class="n">dt</span><span class="o">=</span><span class="n">dt</span><span class="p">,</span>
             <span class="n">cross_term</span><span class="o">=</span><span class="n">cross_term</span><span class="p">,</span>
             <span class="n">quat_as_vec</span><span class="o">=</span><span class="n">quat_as_vec</span><span class="p">,</span>
+            <span class="n">ephem</span><span class="o">=</span><span class="n">ephem</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="c1"># UKF tuning parameters.</span>
         <span class="c1">#</span>
         <span class="c1"># alpha controls the unscented sigma-point spread:</span>
         <span class="c1">#   lambda = alpha^2 (L + kappa) - L,   gamma = sqrt(L + lambda).</span>
         <span class="c1">#</span>
-        <span class="c1"># alpha = 1e-3 (the textbook &quot;default&quot;) gives gamma ~ alpha*sqrt(L)</span>
+        <span class="c1"># alpha = 1e-3 (the textbook "default") gives gamma ~ alpha*sqrt(L)</span>
         <span class="c1"># ~ 2.4e-3 with covariance weights ~ +/-1e6 -- the UT degenerates to a</span>
         <span class="c1"># local (EKF-grade) linearisation and *under*-estimates the attitude</span>
         <span class="c1"># covariance (attitude NEES ~263 vs consistent 3). alpha = 1 gives</span>
@@ -791,12 +794,12 @@
 <div class="viewcode-block" id="UAKF.determine_covariances_to_use">
 <a class="viewcode-back" href="../../../../ADCS.estimators.attitude_estimators.attitude_UAKF.html#ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF.determine_covariances_to_use">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">determine_covariances_to_use</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state_cov</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">sens_cov</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">control_cov</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">int_cov</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">bool</span><span class="p">]:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Determine which covariance blocks are included in sigma-point augmentation.</span>
 
 <span class="sd">        The UKF may be implemented with an **augmented state** that includes</span>
 <span class="sd">        process noise and/or measurement noise as additional random variables.</span>
-<span class="sd">        This method encodes the estimator&#39;s policy for which covariance blocks</span>
+<span class="sd">        This method encodes the estimator's policy for which covariance blocks</span>
 <span class="sd">        contribute to the augmented dimension :math:`L` used in sigma point</span>
 <span class="sd">        generation.</span>
 
@@ -821,7 +824,7 @@
 <span class="sd">            ``[state, sensor, control, process]`` covariance blocks.</span>
 <span class="sd">        :rtype: list[bool]</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">use_state_cov</span> <span class="o">=</span> <span class="kc">True</span>
         <span class="n">use_sens_cov</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="n">use_control_cov</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">control_cov</span><span class="p">)</span><span class="o">&gt;</span><span class="mi">0</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">control_cov</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span>
@@ -833,7 +836,7 @@
     <span class="c1"># Sensor mask expansion</span>
     <span class="c1"># ------------------------------------------------------------------ #</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_expand_sensor_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">which_sensors</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">bool</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Expand a per-sensor activity mask into a per-output activity mask.</span>
 
 <span class="sd">        Some attitude sensors produce multi-dimensional outputs (e.g., a 3-vector),</span>
@@ -853,7 +856,7 @@
 <span class="sd">             \underbrace{m_2,\ldots,m_2}_{d_2},</span>
 <span class="sd">             \ldots].</span>
 
-<span class="sd">        Reaction wheel actuator &quot;sensors&quot; are appended as scalar outputs</span>
+<span class="sd">        Reaction wheel actuator "sensors" are appended as scalar outputs</span>
 <span class="sd">        (:math:`d=1` each) following the attitude sensors.</span>
 
 <span class="sd">        :param which_sensors: Boolean mask indicating which sensors are active (one bool per sensor entry).</span>
@@ -861,7 +864,7 @@
 <span class="sd">        :return: Boolean mask with one element per stacked measurement output dimension.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">mask</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">sensor</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">est_sat</span><span class="o">.</span><span class="n">attitude_sensors</span><span class="p">):</span>
             <span class="n">output_len</span> <span class="o">=</span> <span class="n">sensor</span><span class="o">.</span><span class="n">output_length</span>
@@ -876,7 +879,7 @@
 <div class="viewcode-block" id="UAKF.make_pts_and_wts">
 <a class="viewcode-back" href="../../../../ADCS.estimators.attitude_estimators.attitude_UAKF.html#ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF.make_pts_and_wts">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">make_pts_and_wts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pt0</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">which_sensors</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">bool</span><span class="p">]):</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Build augmented sigma points and Unscented Transform weights.</span>
 
 <span class="sd">        This method constructs sigma points in an augmented space comprised of</span>
@@ -973,7 +976,7 @@
 
 <span class="sd">        :rtype: tuple[int, list, numpy.ndarray, numpy.ndarray, numpy.ndarray]</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="c1"># Copy covariances (same shapes/values as original)</span>
         <span class="n">state_cov</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_hat</span><span class="o">.</span><span class="n">cov</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
         <span class="n">int_cov</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_hat</span><span class="o">.</span><span class="n">int_cov</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span> <span class="o">*</span> <span class="mf">0.0</span>
@@ -1081,7 +1084,7 @@
         <span class="n">rest_state</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
         <span class="n">quatref</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Reassemble the reduced error-state vector from propagated dynamics and static components.</span>
 
 <span class="sd">        This helper constructs a reduced state representation used internally by</span>
@@ -1127,10 +1130,10 @@
 <span class="sd">        :type rest_state: numpy.ndarray</span>
 <span class="sd">        :param quatref: Reference quaternion used to compute the attitude error (ignored if ``quat_as_vec=True``).</span>
 <span class="sd">        :type quatref: numpy.ndarray</span>
-<span class="sd">        :return: Reduced error-state vector consistent with the estimator&#39;s internal representation.</span>
+<span class="sd">        :return: Reduced error-state vector consistent with the estimator's internal representation.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">quat_as_vec</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">dynstate</span><span class="p">,</span> <span class="n">rest_state</span><span class="p">))</span>
         <span class="k">else</span><span class="p">:</span>
@@ -1143,10 +1146,10 @@
 <div class="viewcode-block" id="UAKF.add_to_state">
 <a class="viewcode-back" href="../../../../ADCS.estimators.attitude_estimators.attitude_UAKF.html#ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF.add_to_state">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">add_to_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">add</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Apply an error perturbation to a base state on the attitude manifold.</span>
 
-<span class="sd">        This method implements the sigma-point &quot;addition&quot; operator. In Euclidean</span>
+<span class="sd">        This method implements the sigma-point "addition" operator. In Euclidean</span>
 <span class="sd">        state components, it is additive. For quaternion attitude, it is</span>
 <span class="sd">        **multiplicative** when ``quat_as_vec=False``.</span>
 
@@ -1196,7 +1199,7 @@
 <span class="sd">        :return: Updated state vector(s) after applying the perturbation on the manifold.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">add</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">add</span><span class="p">)</span>
         <span class="n">state</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
 
@@ -1243,7 +1246,7 @@
         <span class="n">int_err</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
         <span class="n">quatref</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
     <span class="p">):</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Construct posterior reduced and full states after propagation with integration error.</span>
 
 <span class="sd">        This helper reconstructs, for a given sigma point, both:</span>
@@ -1261,7 +1264,7 @@
 <span class="sd">        - a tail portion applied additively to the remaining bias/parameter states.</span>
 
 <span class="sd">        If ``state_len`` is the satellite dynamic-state length (including quaternion),</span>
-<span class="sd">        the reduced &quot;head length&quot; used is</span>
+<span class="sd">        the reduced "head length" used is</span>
 
 <span class="sd">        .. math::</span>
 
@@ -1289,7 +1292,7 @@
 <span class="sd">            error-state vector and ``full_state`` is the full augmented state vector.</span>
 <span class="sd">        :rtype: tuple[numpy.ndarray, numpy.ndarray]</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="c1"># integration error is in reduced error-state coordinates</span>
         <span class="n">state_len</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">est_sat</span><span class="o">.</span><span class="n">state_len</span>
         <span class="n">head_len</span> <span class="o">=</span> <span class="n">state_len</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">quat_as_vec</span>
@@ -1304,7 +1307,7 @@
         <span class="p">)</span>
         <span class="n">s0len</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">post_state</span><span class="o">.</span><span class="n">size</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">quat_as_vec</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">post_state</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
         <span class="n">s0len</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">7</span><span class="p">]</span> <span class="o">=</span> <span class="n">quatref</span>
-        <span class="c1"># These are &quot;backwards&quot; on purpose (same as original code)</span>
+        <span class="c1"># These are "backwards" on purpose (same as original code)</span>
         <span class="n">full_state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_to_state</span><span class="p">(</span><span class="n">s0len</span><span class="p">,</span> <span class="n">post_state</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">post_state</span><span class="p">,</span> <span class="n">full_state</span></div>
 
@@ -1313,12 +1316,12 @@
 <div class="viewcode-block" id="UAKF.sat_match">
 <a class="viewcode-back" href="../../../../ADCS.estimators.attitude_estimators.attitude_UAKF.html#ADCS.estimators.attitude_estimators.attitude_UAKF.UAKF.sat_match">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">sat_match</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">est_sat</span><span class="p">:</span> <span class="n">EstimatedSatellite</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="n">EstimatorState</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Synchronize an :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`</span>
 <span class="sd">        instance with an estimator state.</span>
 
 <span class="sd">        Sigma-point propagation and measurement prediction require the satellite model</span>
-<span class="sd">        to reflect the sigma point&#39;s specific biases/parameters and attitude. This method</span>
+<span class="sd">        to reflect the sigma point's specific biases/parameters and attitude. This method</span>
 <span class="sd">        applies the provided :class:`~ADCS.state.EstimatorState` to the satellite model via</span>
 <span class="sd">        :meth:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.match_estimate`.</span>
 
@@ -1329,9 +1332,9 @@
 <span class="sd">        :return: ``None``.</span>
 <span class="sd">        :rtype: None</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">EstimatorState</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;state must be an EstimatorState, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">state</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"state must be an EstimatorState, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">state</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
         <span class="n">est_sat</span><span class="o">.</span><span class="n">match_estimate</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="p">)</span></div>
 
 
@@ -1344,7 +1347,7 @@
         <span class="n">sensors</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>   <span class="c1"># was effectively used as a NumPy array already</span>
         <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EstimatorState</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Perform one UKF predict/update cycle in reduced error-state coordinates.</span>
 
 <span class="sd">        This method implements a complete UKF step:</span>
@@ -1457,7 +1460,7 @@
 <span class="sd">        :return: Updated estimate container with updated full state and reduced covariance.</span>
 <span class="sd">        :rtype: :class:`~ADCS.state.EstimatorState`</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">u</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
         <span class="n">os</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
         <span class="n">state0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_hat</span><span class="o">.</span><span class="n">as_estimator_array</span><span class="p">()</span>
@@ -1592,7 +1595,7 @@
         <span class="k">try</span><span class="p">:</span>
             <span class="n">Kk</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">covyy</span><span class="p">,</span> <span class="n">covyx</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">LinAlgError</span><span class="p">(</span><span class="s2">&quot;Matrix is singular. (probably)&quot;</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
+            <span class="k">raise</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">LinAlgError</span><span class="p">(</span><span class="s2">"Matrix is singular. (probably)"</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
 
         <span class="c1"># Innovation (same as original: residual @ Kk, where Kk is m x n)</span>
         <span class="n">y_meas</span> <span class="o">=</span> <span class="n">sensors</span><span class="p">[</span><span class="n">which_outputs</span><span class="p">]</span>

@@ -228,6 +228,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../../release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_8_installable.html">0.1.8 Installable from PyPI (2026-08-05)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
@@ -556,29 +557,29 @@
 <span class="c1">#</span>
 <span class="c1">#     // PyPlanner.cpp</span>
 <span class="c1">#     PYBIND11_MODULE(tplaunch, m) {</span>
-<span class="c1">#         py::module_::import(&quot;trajectory_planner.build.pysat&quot;);</span>
+<span class="c1">#         py::module_::import("trajectory_planner.build.pysat");</span>
 <span class="c1">#         ...</span>
 <span class="c1">#</span>
 <span class="c1"># That import bootstraps the ``Satellite`` type registration in</span>
-<span class="c1"># pybind11&#39;s process-wide type table *before* ``tplaunch``&#39;s own</span>
+<span class="c1"># pybind11's process-wide type table *before* ``tplaunch``'s own</span>
 <span class="c1"># bindings reference the type. If ``tplaunch`` is loaded under a</span>
 <span class="c1"># different qualified name, the hard-coded import fails silently and</span>
-<span class="c1"># the next ``import pysat`` triggers a ``generic_type: type &quot;Satellite&quot;</span>
+<span class="c1"># the next ``import pysat`` triggers a ``generic_type: type "Satellite"</span>
 <span class="c1"># is already registered`` clash from pybind11.</span>
 <span class="c1">#</span>
 <span class="c1"># We now ship the actual ``.so`` files in the OldPlanner submodule</span>
-<span class="c1"># (``OldPlanner/build/``), but to keep PyPlanner.cpp&#39;s ABI contract</span>
-<span class="c1"># intact we *load* them under the historical qualified names. That&#39;s</span>
+<span class="c1"># (``OldPlanner/build/``), but to keep PyPlanner.cpp's ABI contract</span>
+<span class="c1"># intact we *load* them under the historical qualified names. That's</span>
 <span class="c1"># what the constants and ``_load_so_under_qualname`` calls below</span>
 <span class="c1"># encode.</span>
-<span class="n">_LEGACY_TP_PKG</span> <span class="o">=</span> <span class="s2">&quot;trajectory_planner.build&quot;</span>
-<span class="n">_TP_MODULE_NAME</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_LEGACY_TP_PKG</span><span class="si">}</span><span class="s2">.tplaunch&quot;</span>
-<span class="n">_PYSAT_MODULE_NAME</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_LEGACY_TP_PKG</span><span class="si">}</span><span class="s2">.pysat&quot;</span>
+<span class="n">_LEGACY_TP_PKG</span> <span class="o">=</span> <span class="s2">"trajectory_planner.build"</span>
+<span class="n">_TP_MODULE_NAME</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">_LEGACY_TP_PKG</span><span class="si">}</span><span class="s2">.tplaunch"</span>
+<span class="n">_PYSAT_MODULE_NAME</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">_LEGACY_TP_PKG</span><span class="si">}</span><span class="s2">.pysat"</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_repo_root</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
     <span class="n">current_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="vm">__file__</span><span class="p">))</span>
-    <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">current_dir</span><span class="p">,</span> <span class="s2">&quot;../../..&quot;</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">current_dir</span><span class="p">,</span> <span class="s2">"../../.."</span><span class="p">))</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_ensure_path</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -589,20 +590,20 @@
 <div class="viewcode-block" id="trajectory_planner_build_path">
 <a class="viewcode-back" href="../../../../ADCS.controller.helpers.optional_dependencies.html#ADCS.controller.helpers.optional_dependencies.trajectory_planner_build_path">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">trajectory_planner_build_path</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Path to the compiled ``tplaunch`` / ``pysat`` pybind modules.</span>
+<span class="w">    </span><span class="sd">"""Path to the compiled ``tplaunch`` / ``pysat`` pybind modules.</span>
 
 <span class="sd">    The trajectory-planner add-on lives in the ``OldPlanner`` submodule</span>
 <span class="sd">    (https://github.com/patrickmckeen/OldPlanner), built out-of-tree</span>
 <span class="sd">    into ``OldPlanner/build/``.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_repo_root</span><span class="p">(),</span> <span class="s2">&quot;OldPlanner&quot;</span><span class="p">,</span> <span class="s2">&quot;build&quot;</span><span class="p">)</span></div>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_repo_root</span><span class="p">(),</span> <span class="s2">"OldPlanner"</span><span class="p">,</span> <span class="s2">"build"</span><span class="p">)</span></div>
 
 
 
 <div class="viewcode-block" id="saltro_build_path">
 <a class="viewcode-back" href="../../../../ADCS.controller.helpers.optional_dependencies.html#ADCS.controller.helpers.optional_dependencies.saltro_build_path">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">saltro_build_path</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-    <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_repo_root</span><span class="p">(),</span> <span class="s2">&quot;SALTRO&quot;</span><span class="p">,</span> <span class="s2">&quot;build&quot;</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_repo_root</span><span class="p">(),</span> <span class="s2">"SALTRO"</span><span class="p">,</span> <span class="s2">"build"</span><span class="p">)</span></div>
 
 
 
@@ -611,9 +612,9 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">trajectory_planner_missing_reason</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
     <span class="n">build_path</span> <span class="o">=</span> <span class="n">trajectory_planner_build_path</span><span class="p">()</span>
     <span class="k">return</span> <span class="p">(</span>
-        <span class="s2">&quot;Optional add-on trajectory_planner (OldPlanner) is not available. &quot;</span>
-        <span class="sa">f</span><span class="s2">&quot;Initialise the submodule and build the C++ bindings into &quot;</span>
-        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">build_path</span><span class="si">}</span><span class="s2">. See docs/Install_Trajectory_Planner.md.&quot;</span>
+        <span class="s2">"Optional add-on trajectory_planner (OldPlanner) is not available. "</span>
+        <span class="sa">f</span><span class="s2">"Initialise the submodule and build the C++ bindings into "</span>
+        <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">build_path</span><span class="si">}</span><span class="s2">. See docs/Install_Trajectory_Planner.md."</span>
     <span class="p">)</span></div>
 
 
@@ -623,27 +624,27 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">saltro_missing_reason</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
     <span class="n">build_path</span> <span class="o">=</span> <span class="n">saltro_build_path</span><span class="p">()</span>
     <span class="k">return</span> <span class="p">(</span>
-        <span class="s2">&quot;Optional add-on saltro_py is not available. &quot;</span>
-        <span class="sa">f</span><span class="s2">&quot;Build SALTRO into </span><span class="si">{</span><span class="n">build_path</span><span class="si">}</span><span class="s2">. &quot;</span>
-        <span class="s2">&quot;See docs/Install_SALTRO.md.&quot;</span>
+        <span class="s2">"Optional add-on saltro_py is not available. "</span>
+        <span class="sa">f</span><span class="s2">"Build SALTRO into </span><span class="si">{</span><span class="n">build_path</span><span class="si">}</span><span class="s2">. "</span>
+        <span class="s2">"See docs/Install_SALTRO.md."</span>
     <span class="p">)</span></div>
 
 
 
-<span class="c1"># trajectory_planner&#39;s `pysat` and `SALTRO`&#39;s `saltro_py` are independently</span>
+<span class="c1"># trajectory_planner's `pysat` and `SALTRO`'s `saltro_py` are independently</span>
 <span class="c1"># built pybind11 extensions that BOTH register a C++ type named `Satellite`.</span>
 <span class="c1"># pybind11 keeps a single process-global type registry, so the second of the</span>
-<span class="c1"># two to import raises `generic_type: type &quot;Satellite&quot; is already registered!`.</span>
+<span class="c1"># two to import raises `generic_type: type "Satellite" is already registered!`.</span>
 <span class="c1"># This is NOT a missing/unbuilt extension -- rebuilding does not help -- so it</span>
 <span class="c1"># must NOT be reported via *_missing_reason() (which tells the user to build</span>
 <span class="c1"># the add-on and read the install docs, sending them down a dead end).</span>
-<span class="n">_PYBIND_CLASH_MARKER</span> <span class="o">=</span> <span class="s2">&quot;already registered&quot;</span>
+<span class="n">_PYBIND_CLASH_MARKER</span> <span class="o">=</span> <span class="s2">"already registered"</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_is_pybind_registry_clash</span><span class="p">(</span><span class="n">exc</span><span class="p">:</span> <span class="ne">BaseException</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;True iff ``exc`` (or any exception in its cause/context chain) is the</span>
+<span class="w">    </span><span class="sd">"""True iff ``exc`` (or any exception in its cause/context chain) is the</span>
 <span class="sd">    pybind11 process-global type-registry clash between ``pysat`` and</span>
-<span class="sd">    ``saltro_py`` (both register a C++ ``Satellite``).&quot;&quot;&quot;</span>
+<span class="sd">    ``saltro_py`` (both register a C++ ``Satellite``)."""</span>
     <span class="n">seen</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
     <span class="n">cur</span><span class="p">:</span> <span class="ne">BaseException</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">exc</span>
     <span class="k">while</span> <span class="n">cur</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">id</span><span class="p">(</span><span class="n">cur</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">seen</span><span class="p">:</span>
@@ -658,44 +659,44 @@
 <a class="viewcode-back" href="../../../../ADCS.controller.helpers.optional_dependencies.html#ADCS.controller.helpers.optional_dependencies.planner_extension_clash_reason">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">planner_extension_clash_reason</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
     <span class="k">return</span> <span class="p">(</span>
-        <span class="s2">&quot;trajectory_planner (pysat/tplaunch) and saltro_py each register a C++ &quot;</span>
-        <span class="s2">&quot;`Satellite` type via pybind11, which keeps a single process-global &quot;</span>
-        <span class="s2">&quot;type registry. They CANNOT be imported into the same Python process: &quot;</span>
-        <span class="s2">&quot;whichever loads second raises &quot;</span>
-        <span class="s1">&#39;`generic_type: type &quot;Satellite&quot; is already registered!`. This is NOT &#39;</span>
-        <span class="s2">&quot;a missing or unbuilt extension -- rebuilding will not help. Use only &quot;</span>
-        <span class="s2">&quot;one planner family per process (e.g. run the SALTRO and &quot;</span>
-        <span class="s2">&quot;plan_and_track controllers in separate processes / Monte-Carlo runs).&quot;</span>
+        <span class="s2">"trajectory_planner (pysat/tplaunch) and saltro_py each register a C++ "</span>
+        <span class="s2">"`Satellite` type via pybind11, which keeps a single process-global "</span>
+        <span class="s2">"type registry. They CANNOT be imported into the same Python process: "</span>
+        <span class="s2">"whichever loads second raises "</span>
+        <span class="s1">'`generic_type: type "Satellite" is already registered!`. This is NOT '</span>
+        <span class="s2">"a missing or unbuilt extension -- rebuilding will not help. Use only "</span>
+        <span class="s2">"one planner family per process (e.g. run the SALTRO and "</span>
+        <span class="s2">"plan_and_track controllers in separate processes / Monte-Carlo runs)."</span>
     <span class="p">)</span></div>
 
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_so_filename</span><span class="p">(</span><span class="n">stem</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the platform-specific filename for a compiled pybind module.</span>
+<span class="w">    </span><span class="sd">"""Return the platform-specific filename for a compiled pybind module.</span>
 
 <span class="sd">    pybind11 emits e.g. ``tplaunch.cpython-312-darwin.so`` /</span>
 <span class="sd">    ``tplaunch.cpython-312-x86_64-linux-gnu.so`` -- match by stem.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">build_dir</span> <span class="o">=</span> <span class="n">trajectory_planner_build_path</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">build_dir</span><span class="p">):</span>
         <span class="k">for</span> <span class="n">fname</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">build_dir</span><span class="p">):</span>
-            <span class="k">if</span> <span class="n">fname</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">stem</span> <span class="o">+</span> <span class="s2">&quot;.&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">fname</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.so&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">fname</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.pyd&quot;</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="n">fname</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">stem</span> <span class="o">+</span> <span class="s2">"."</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">fname</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">".so"</span><span class="p">)</span> <span class="ow">or</span> <span class="n">fname</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">".pyd"</span><span class="p">)):</span>
                 <span class="k">return</span> <span class="n">fname</span>
-    <span class="k">return</span> <span class="n">stem</span> <span class="o">+</span> <span class="s2">&quot;.so&quot;</span>
+    <span class="k">return</span> <span class="n">stem</span> <span class="o">+</span> <span class="s2">".so"</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_ensure_parent_namespace_modules</span><span class="p">(</span><span class="n">qualname</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Insert dummy parent ``ModuleType`` entries into ``sys.modules``.</span>
+<span class="w">    </span><span class="sd">"""Insert dummy parent ``ModuleType`` entries into ``sys.modules``.</span>
 
-<span class="sd">    For ``qualname == &quot;trajectory_planner.build.pysat&quot;`` this seeds</span>
-<span class="sd">    ``sys.modules[&quot;trajectory_planner&quot;]`` and</span>
-<span class="sd">    ``sys.modules[&quot;trajectory_planner.build&quot;]`` with stub module</span>
-<span class="sd">    objects, so that pybind11&#39;s internal lookup of the parent module</span>
+<span class="sd">    For ``qualname == "trajectory_planner.build.pysat"`` this seeds</span>
+<span class="sd">    ``sys.modules["trajectory_planner"]`` and</span>
+<span class="sd">    ``sys.modules["trajectory_planner.build"]`` with stub module</span>
+<span class="sd">    objects, so that pybind11's internal lookup of the parent module</span>
 <span class="sd">    name succeeds when loading the compiled extension.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">parts</span> <span class="o">=</span> <span class="n">qualname</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)</span>
+<span class="sd">    """</span>
+    <span class="n">parts</span> <span class="o">=</span> <span class="n">qualname</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"."</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">parts</span><span class="p">)):</span>
-        <span class="n">parent</span> <span class="o">=</span> <span class="s2">&quot;.&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parts</span><span class="p">[:</span><span class="n">i</span><span class="p">])</span>
+        <span class="n">parent</span> <span class="o">=</span> <span class="s2">"."</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parts</span><span class="p">[:</span><span class="n">i</span><span class="p">])</span>
         <span class="k">if</span> <span class="n">parent</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">sys</span><span class="o">.</span><span class="n">modules</span><span class="p">:</span>
             <span class="n">stub</span> <span class="o">=</span> <span class="n">ModuleType</span><span class="p">(</span><span class="n">parent</span><span class="p">)</span>
             <span class="n">stub</span><span class="o">.</span><span class="n">__path__</span> <span class="o">=</span> <span class="p">[]</span>
@@ -703,16 +704,16 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_load_so_under_qualname</span><span class="p">(</span><span class="n">qualname</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">so_filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ModuleType</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Load a compiled pybind11 module under a chosen qualified name.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Load a compiled pybind11 module under a chosen qualified name."""</span>
     <span class="k">if</span> <span class="n">qualname</span> <span class="ow">in</span> <span class="n">sys</span><span class="o">.</span><span class="n">modules</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">sys</span><span class="o">.</span><span class="n">modules</span><span class="p">[</span><span class="n">qualname</span><span class="p">]</span>
     <span class="n">so_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">trajectory_planner_build_path</span><span class="p">(),</span> <span class="n">so_filename</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">so_path</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Compiled module not found: </span><span class="si">{</span><span class="n">so_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Compiled module not found: </span><span class="si">{</span><span class="n">so_path</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
     <span class="n">_ensure_parent_namespace_modules</span><span class="p">(</span><span class="n">qualname</span><span class="p">)</span>
     <span class="n">spec</span> <span class="o">=</span> <span class="n">importlib</span><span class="o">.</span><span class="n">util</span><span class="o">.</span><span class="n">spec_from_file_location</span><span class="p">(</span><span class="n">qualname</span><span class="p">,</span> <span class="n">so_path</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">spec</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">spec</span><span class="o">.</span><span class="n">loader</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Could not build import spec for </span><span class="si">{</span><span class="n">so_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Could not build import spec for </span><span class="si">{</span><span class="n">so_path</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
     <span class="n">module</span> <span class="o">=</span> <span class="n">importlib</span><span class="o">.</span><span class="n">util</span><span class="o">.</span><span class="n">module_from_spec</span><span class="p">(</span><span class="n">spec</span><span class="p">)</span>
     <span class="n">sys</span><span class="o">.</span><span class="n">modules</span><span class="p">[</span><span class="n">qualname</span><span class="p">]</span> <span class="o">=</span> <span class="n">module</span>
     <span class="k">try</span><span class="p">:</span>
@@ -726,21 +727,21 @@
 <div class="viewcode-block" id="get_trajectory_planner_modules">
 <a class="viewcode-back" href="../../../../ADCS.controller.helpers.optional_dependencies.html#ADCS.controller.helpers.optional_dependencies.get_trajectory_planner_modules">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">get_trajectory_planner_modules</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">ModuleType</span><span class="p">,</span> <span class="n">ModuleType</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return ``(tplaunch, pysat)`` from the OldPlanner submodule build dir.</span>
+<span class="w">    </span><span class="sd">"""Return ``(tplaunch, pysat)`` from the OldPlanner submodule build dir.</span>
 
 <span class="sd">    Load order matters: ``pysat`` must be loaded first so its</span>
-<span class="sd">    ``Satellite`` type binding is registered in pybind11&#39;s global</span>
-<span class="sd">    type table before ``tplaunch``&#39;s PYBIND11_MODULE runs (which</span>
-<span class="sd">    internally does ``py::module_::import(&quot;trajectory_planner.build.pysat&quot;)``</span>
+<span class="sd">    ``Satellite`` type binding is registered in pybind11's global</span>
+<span class="sd">    type table before ``tplaunch``'s PYBIND11_MODULE runs (which</span>
+<span class="sd">    internally does ``py::module_::import("trajectory_planner.build.pysat")``</span>
 <span class="sd">    and would otherwise either re-register or fail).</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">try</span><span class="p">:</span>
-        <span class="n">pysat</span> <span class="o">=</span> <span class="n">_load_so_under_qualname</span><span class="p">(</span><span class="n">_PYSAT_MODULE_NAME</span><span class="p">,</span> <span class="n">_so_filename</span><span class="p">(</span><span class="s2">&quot;pysat&quot;</span><span class="p">))</span>
-        <span class="n">tplaunch</span> <span class="o">=</span> <span class="n">_load_so_under_qualname</span><span class="p">(</span><span class="n">_TP_MODULE_NAME</span><span class="p">,</span> <span class="n">_so_filename</span><span class="p">(</span><span class="s2">&quot;tplaunch&quot;</span><span class="p">))</span>
+        <span class="n">pysat</span> <span class="o">=</span> <span class="n">_load_so_under_qualname</span><span class="p">(</span><span class="n">_PYSAT_MODULE_NAME</span><span class="p">,</span> <span class="n">_so_filename</span><span class="p">(</span><span class="s2">"pysat"</span><span class="p">))</span>
+        <span class="n">tplaunch</span> <span class="o">=</span> <span class="n">_load_so_under_qualname</span><span class="p">(</span><span class="n">_TP_MODULE_NAME</span><span class="p">,</span> <span class="n">_so_filename</span><span class="p">(</span><span class="s2">"tplaunch"</span><span class="p">))</span>
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">_is_pybind_registry_clash</span><span class="p">(</span><span class="n">exc</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="n">planner_extension_clash_reason</span><span class="p">())</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
-        <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">trajectory_planner_missing_reason</span><span class="p">()</span><span class="si">}</span><span class="s2"> Original error: </span><span class="si">{</span><span class="n">exc</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
+        <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">trajectory_planner_missing_reason</span><span class="p">()</span><span class="si">}</span><span class="s2"> Original error: </span><span class="si">{</span><span class="n">exc</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
 
     <span class="k">return</span> <span class="n">tplaunch</span><span class="p">,</span> <span class="n">pysat</span></div>
 
@@ -762,11 +763,11 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">get_saltro_module</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">ModuleType</span><span class="p">:</span>
     <span class="n">_ensure_path</span><span class="p">(</span><span class="n">saltro_build_path</span><span class="p">())</span>
     <span class="k">try</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">import_module</span><span class="p">(</span><span class="s2">&quot;saltro_py&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">import_module</span><span class="p">(</span><span class="s2">"saltro_py"</span><span class="p">)</span>
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">_is_pybind_registry_clash</span><span class="p">(</span><span class="n">exc</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="n">planner_extension_clash_reason</span><span class="p">())</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
-        <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">saltro_missing_reason</span><span class="p">()</span><span class="si">}</span><span class="s2"> Original error: </span><span class="si">{</span><span class="n">exc</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span></div>
+        <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">saltro_missing_reason</span><span class="p">()</span><span class="si">}</span><span class="s2"> Original error: </span><span class="si">{</span><span class="n">exc</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span></div>
 
 
 

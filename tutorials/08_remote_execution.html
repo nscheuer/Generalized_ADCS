@@ -229,6 +229,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../release_notes/0_1_8_installable.html">0.1.8 Installable from PyPI (2026-08-05)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../release_notes/0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
@@ -657,7 +658,7 @@ python<span class="w"> </span>examples/tutorials/08_remote_execution.py
 execution, while leaving environmental effects and propagation local.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
-<span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="vm">__file__</span><span class="p">,</span> <span class="s2">&quot;../../..&quot;</span><span class="p">)))</span>
+<span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="vm">__file__</span><span class="p">,</span> <span class="s2">"../../.."</span><span class="p">)))</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">ADCS</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">ADCS</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
@@ -683,8 +684,8 @@ execution, while leaving environmental effects and propagation local.</p>
 
 <span class="n">goal</span> <span class="o">=</span> <span class="n">ADCS</span><span class="o">.</span><span class="n">goals</span><span class="o">.</span><span class="n">ECI_Goal</span><span class="p">(</span><span class="n">eci_vector</span><span class="o">=</span><span class="n">ADCS</span><span class="o">.</span><span class="n">helpers</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">])))</span>
 
-<span class="n">remote_host</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;ADCS_REMOTE_HOST&quot;</span><span class="p">,</span> <span class="s2">&quot;127.0.0.1&quot;</span><span class="p">)</span>
-<span class="n">remote_port</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;ADCS_REMOTE_PORT&quot;</span><span class="p">,</span> <span class="s2">&quot;5000&quot;</span><span class="p">))</span>
+<span class="n">remote_host</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">"ADCS_REMOTE_HOST"</span><span class="p">,</span> <span class="s2">"127.0.0.1"</span><span class="p">)</span>
+<span class="n">remote_port</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">"ADCS_REMOTE_PORT"</span><span class="p">,</span> <span class="s2">"5000"</span><span class="p">))</span>
 
 <span class="n">results</span> <span class="o">=</span> <span class="n">ADCS</span><span class="o">.</span><span class="n">simulate_remote</span><span class="p">(</span>
     <span class="n">x</span><span class="o">=</span><span class="n">x_0</span><span class="p">,</span>
@@ -707,19 +708,19 @@ execution, while leaving environmental effects and propagation local.</p>
 
 <span class="n">ADCS</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
     <span class="n">results</span><span class="p">,</span>
-    <span class="n">ADCS</span><span class="o">.</span><span class="n">plots</span><span class="o">.</span><span class="n">AttitudePlot</span><span class="p">(</span><span class="n">sources</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;real&quot;</span><span class="p">,</span> <span class="s2">&quot;reference&quot;</span><span class="p">]),</span>
+    <span class="n">ADCS</span><span class="o">.</span><span class="n">plots</span><span class="o">.</span><span class="n">AttitudePlot</span><span class="p">(</span><span class="n">sources</span><span class="o">=</span><span class="p">[</span><span class="s2">"real"</span><span class="p">,</span> <span class="s2">"reference"</span><span class="p">]),</span>
     <span class="n">layout</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
-    <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Tutorial 08: Remote Controller Execution&quot;</span><span class="p">,</span>
+    <span class="n">title</span><span class="o">=</span><span class="s2">"Tutorial 08: Remote Controller Execution"</span><span class="p">,</span>
 <span class="p">)</span>
 
 <span class="n">ADCS</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
     <span class="n">results</span><span class="p">,</span>
-    <span class="n">ADCS</span><span class="o">.</span><span class="n">plots</span><span class="o">.</span><span class="n">AngularVelocityPlotCombined</span><span class="p">(</span><span class="n">sources</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;real&quot;</span><span class="p">]),</span>
-    <span class="n">ADCS</span><span class="o">.</span><span class="n">plots</span><span class="o">.</span><span class="n">ControlPlotCombined</span><span class="p">(</span><span class="n">title</span><span class="o">=</span><span class="s2">&quot;Magnetorquer Commands&quot;</span><span class="p">,</span> <span class="n">units</span><span class="o">=</span><span class="s2">&quot;Am²&quot;</span><span class="p">),</span>
+    <span class="n">ADCS</span><span class="o">.</span><span class="n">plots</span><span class="o">.</span><span class="n">AngularVelocityPlotCombined</span><span class="p">(</span><span class="n">sources</span><span class="o">=</span><span class="p">[</span><span class="s2">"real"</span><span class="p">]),</span>
+    <span class="n">ADCS</span><span class="o">.</span><span class="n">plots</span><span class="o">.</span><span class="n">ControlPlotCombined</span><span class="p">(</span><span class="n">title</span><span class="o">=</span><span class="s2">"Magnetorquer Commands"</span><span class="p">,</span> <span class="n">units</span><span class="o">=</span><span class="s2">"Am²"</span><span class="p">),</span>
     <span class="n">ADCS</span><span class="o">.</span><span class="n">plots</span><span class="o">.</span><span class="n">TargetHistogram</span><span class="p">(</span><span class="n">bin_width</span><span class="o">=</span><span class="mf">5.0</span><span class="p">),</span>
-    <span class="n">ADCS</span><span class="o">.</span><span class="n">plots</span><span class="o">.</span><span class="n">TargetPlot</span><span class="p">(</span><span class="n">modes</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;real_target&quot;</span><span class="p">],</span> <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Target Tracking&quot;</span><span class="p">),</span>
+    <span class="n">ADCS</span><span class="o">.</span><span class="n">plots</span><span class="o">.</span><span class="n">TargetPlot</span><span class="p">(</span><span class="n">modes</span><span class="o">=</span><span class="p">[</span><span class="s2">"real_target"</span><span class="p">],</span> <span class="n">title</span><span class="o">=</span><span class="s2">"Target Tracking"</span><span class="p">),</span>
     <span class="n">layout</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>
-    <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Tutorial 08: Remote Controller Execution&quot;</span><span class="p">,</span>
+    <span class="n">title</span><span class="o">=</span><span class="s2">"Tutorial 08: Remote Controller Execution"</span><span class="p">,</span>
 <span class="p">)</span>
 
 <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>

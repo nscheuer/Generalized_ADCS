@@ -228,6 +228,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../../release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_8_installable.html">0.1.8 Installable from PyPI (2026-08-05)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
@@ -539,16 +540,16 @@
         </div>
         <article role="main" id="furo-main-content">
           <h1>Source code for ADCS.controller.saltro.SALTRO_planner_settings</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;Top-level SALTRO planner configuration.</span>
+<span></span><span class="sd">"""Top-level SALTRO planner configuration.</span>
 
 <span class="sd">This module defines Python-side configuration objects that map to the SALTRO</span>
 <span class="sd">planner C++ API, including disturbance modeling, constraints, pass settings,</span>
 <span class="sd">and TVLQR gain-generation options.</span>
-<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">"""</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;PlannerSettings&quot;</span><span class="p">]</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"PlannerSettings"</span><span class="p">]</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">List</span>
@@ -562,45 +563,45 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">.SALTRO_constraint_settings</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConstraintConfig</span>
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_get_saltro_py</span><span class="p">():</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Import and return the ``saltro_py`` binding module.</span>
+<span class="w">    </span><span class="sd">"""Import and return the ``saltro_py`` binding module.</span>
 
 <span class="sd">    The loader appends ``SALTRO/build`` to ``sys.path`` if needed.</span>
 
 <span class="sd">    :return: Imported ``saltro_py`` module.</span>
 <span class="sd">    :rtype: module</span>
 <span class="sd">    :raises ImportError: If the SALTRO Python extension is not available.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
     <span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
 
-    <span class="n">parent_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">),</span> <span class="s2">&quot;../../..&quot;</span><span class="p">))</span>
-    <span class="n">build_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parent_dir</span><span class="p">,</span> <span class="s2">&quot;SALTRO&quot;</span><span class="p">,</span> <span class="s2">&quot;build&quot;</span><span class="p">)</span>
+    <span class="n">parent_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">),</span> <span class="s2">"../../.."</span><span class="p">))</span>
+    <span class="n">build_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parent_dir</span><span class="p">,</span> <span class="s2">"SALTRO"</span><span class="p">,</span> <span class="s2">"build"</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">build_dir</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="p">:</span>
         <span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">build_dir</span><span class="p">)</span>
 
     <span class="k">try</span><span class="p">:</span>
         <span class="kn">import</span><span class="w"> </span><span class="nn">saltro_py</span>
     <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;saltro_py not available (expected in </span><span class="si">{</span><span class="n">build_dir</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
+        <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"saltro_py not available (expected in </span><span class="si">{</span><span class="n">build_dir</span><span class="si">}</span><span class="s2">)"</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
 
     <span class="k">return</span> <span class="n">saltro_py</span>
 
 <span class="nd">@dataclass</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">InitTrajConfig</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Initial-trajectory generation settings.</span>
+<span class="w">    </span><span class="sd">"""Initial-trajectory generation settings.</span>
 
 <span class="sd">    :param initcontroller: Initial controller selection index used by SALTRO.</span>
 <span class="sd">    :type initcontroller: int</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="n">initcontroller</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">to_cpp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert Python settings to SALTRO C++ ``InitTrajConfig``.</span>
+<span class="w">        </span><span class="sd">"""Convert Python settings to SALTRO C++ ``InitTrajConfig``.</span>
 
 <span class="sd">        :return: C++ init-trajectory config object.</span>
 <span class="sd">        :rtype: Any</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">saltro_py</span> <span class="o">=</span> <span class="n">_get_saltro_py</span><span class="p">()</span>
         <span class="n">cpp_init</span> <span class="o">=</span> <span class="n">saltro_py</span><span class="o">.</span><span class="n">InitTrajConfig</span><span class="p">()</span>
         <span class="n">cpp_init</span><span class="o">.</span><span class="n">initcontroller</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">initcontroller</span>
@@ -609,35 +610,35 @@
 
 <span class="nd">@dataclass</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">TVLQRSettings</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;TVLQR gain-generation configuration.</span>
+<span class="w">    </span><span class="sd">"""TVLQR gain-generation configuration.</span>
 
 <span class="sd">    :param tvlqr_len: TVLQR horizon length in seconds.</span>
 <span class="sd">    :type tvlqr_len: float</span>
 <span class="sd">    :param tvlqr_overlap: Overlap between successive TVLQR windows in seconds.</span>
 <span class="sd">    :type tvlqr_overlap: float</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="n">dt_tvlqr</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
     <span class="n">tvlqr_len</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span>  <span class="mf">100.0</span>
     <span class="n">tvlqr_overlap</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">15.0</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize derived TVLQR fields.</span>
+<span class="w">        </span><span class="sd">"""Initialize derived TVLQR fields.</span>
 
 <span class="sd">        ``dt_tvlqr`` is set during planner setup based on pass timestep and</span>
 <span class="sd">        trajectory discretization, so it starts at ``0.0``.</span>
 
 <span class="sd">        :return: None</span>
 <span class="sd">        :rtype: None</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">dt_tvlqr</span> <span class="o">=</span> <span class="mf">0.0</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">to_cpp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert Python settings to SALTRO C++ ``TVLQRSettings``.</span>
+<span class="w">        </span><span class="sd">"""Convert Python settings to SALTRO C++ ``TVLQRSettings``.</span>
 
 <span class="sd">        :return: C++ TVLQR settings object.</span>
 <span class="sd">        :rtype: Any</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">saltro_py</span> <span class="o">=</span> <span class="n">_get_saltro_py</span><span class="p">()</span>
         <span class="n">cpp_tvlqr</span> <span class="o">=</span> <span class="n">saltro_py</span><span class="o">.</span><span class="n">TVLQRSettings</span><span class="p">()</span>
         <span class="n">cpp_tvlqr</span><span class="o">.</span><span class="n">dt_tvlqr</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dt_tvlqr</span><span class="p">)</span>
@@ -647,14 +648,14 @@
     
 <span class="nd">@dataclass</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">DisturbanceConfig</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Disturbance-model configuration for trajectory optimization.</span>
+<span class="w">    </span><span class="sd">"""Disturbance-model configuration for trajectory optimization.</span>
 
 <span class="sd">    The configuration controls which disturbances are included during planning</span>
 <span class="sd">    and stores associated model coefficients and fixed torques.</span>
 
 <span class="sd">    :param est_sat: Estimated satellite used to initialize disturbance terms.</span>
 <span class="sd">    :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="n">est_sat</span><span class="p">:</span> <span class="n">InitVar</span><span class="p">[</span><span class="n">EstimatedSatellite</span><span class="p">]</span>
 
@@ -675,13 +676,13 @@
     <span class="n">J_est</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">est_sat</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize disturbance vectors from the estimated satellite model.</span>
+<span class="w">        </span><span class="sd">"""Initialize disturbance vectors from the estimated satellite model.</span>
 
 <span class="sd">        :param est_sat: Estimated satellite containing disturbance instances.</span>
 <span class="sd">        :type est_sat: :class:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite`</span>
 <span class="sd">        :return: None</span>
 <span class="sd">        :rtype: None</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">res_dipole</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">([</span><span class="n">j</span><span class="o">.</span><span class="n">current_torque</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">j</span><span class="p">,</span> <span class="n">Dipole_Disturbance</span><span class="p">)</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">est_sat</span><span class="o">.</span><span class="n">disturbances</span><span class="p">],</span> <span class="n">start</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">3</span><span class="p">))</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">3</span><span class="p">,))</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">prop_torque</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">([</span><span class="n">j</span><span class="o">.</span><span class="n">current_torque</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">j</span><span class="p">,</span> <span class="n">Prop_Disturbance</span><span class="p">)</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">est_sat</span><span class="o">.</span><span class="n">disturbances</span><span class="p">],</span> <span class="n">start</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">3</span><span class="p">))</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">3</span><span class="p">,))</span>
 
@@ -689,11 +690,11 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">J_est</span> <span class="o">=</span> <span class="n">est_sat</span><span class="o">.</span><span class="n">J_0</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">to_cpp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert Python settings to SALTRO C++ ``DisturbanceConfig``.</span>
+<span class="w">        </span><span class="sd">"""Convert Python settings to SALTRO C++ ``DisturbanceConfig``.</span>
 
 <span class="sd">        :return: C++ disturbance config object.</span>
 <span class="sd">        :rtype: Any</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">saltro_py</span> <span class="o">=</span> <span class="n">_get_saltro_py</span><span class="p">()</span>
         <span class="n">cpp_dist</span> <span class="o">=</span> <span class="n">saltro_py</span><span class="o">.</span><span class="n">DisturbanceConfig</span><span class="p">()</span>
         <span class="n">cpp_dist</span><span class="o">.</span><span class="n">plan_for_aero</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">plan_for_aero</span><span class="p">)</span>
@@ -715,7 +716,7 @@
 <a class="viewcode-back" href="../../../../ADCS.controller.saltro.SALTRO_planner_settings.html#ADCS.controller.saltro.SALTRO_planner_settings.PlannerSettings">[docs]</a>
 <span class="nd">@dataclass</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">PlannerSettings</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Top-level configuration for SALTRO trajectory planning.</span>
+<span class="w">    </span><span class="sd">"""Top-level configuration for SALTRO trajectory planning.</span>
 
 <span class="sd">    This class aggregates constraints, disturbance assumptions, initial-guess</span>
 <span class="sd">    generation, TVLQR settings, and one or more optimization passes.</span>
@@ -729,7 +730,7 @@
 <span class="sd">    :type tvlqr: :class:`TVLQRSettings`</span>
 <span class="sd">    :param passes: Ordered list of SALTRO optimization passes.</span>
 <span class="sd">    :type passes: list[:class:`PassConfig`]</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="n">est_sat</span><span class="p">:</span> <span class="n">EstimatedSatellite</span>
 
@@ -749,18 +750,18 @@
     <span class="n">passes</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">PassConfig</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="p">[</span><span class="n">PassConfig</span><span class="p">()])</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize dependent constraint and disturbance configurations.</span>
+<span class="w">        </span><span class="sd">"""Initialize dependent constraint and disturbance configurations.</span>
 
 <span class="sd">        :return: None</span>
 <span class="sd">        :rtype: None</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">disturbances</span> <span class="o">=</span> <span class="n">DisturbanceConfig</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">est_sat</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">constraints</span> <span class="o">=</span> <span class="n">ConstraintConfig</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">est_sat</span><span class="p">)</span>
 
 <div class="viewcode-block" id="PlannerSettings.to_cpp">
 <a class="viewcode-back" href="../../../../ADCS.controller.saltro.SALTRO_planner_settings.html#ADCS.controller.saltro.SALTRO_planner_settings.PlannerSettings.to_cpp">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">to_cpp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert Python planner settings to SALTRO C++ ``PlannerSettings``.</span>
+<span class="w">        </span><span class="sd">"""Convert Python planner settings to SALTRO C++ ``PlannerSettings``.</span>
 
 <span class="sd">        The conversion copies constraints, disturbance settings, initial</span>
 <span class="sd">        trajectory settings, TVLQR settings, and pass configurations. Passes are</span>
@@ -768,7 +769,7 @@
 
 <span class="sd">        :return: C++ planner settings object.</span>
 <span class="sd">        :rtype: Any</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">saltro_py</span> <span class="o">=</span> <span class="n">_get_saltro_py</span><span class="p">()</span>
         
         <span class="n">cpp_settings</span> <span class="o">=</span> <span class="n">saltro_py</span><span class="o">.</span><span class="n">PlannerSettings</span><span class="p">()</span>

@@ -228,6 +228,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../../release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_8_installable.html">0.1.8 Installable from PyPI (2026-08-05)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
@@ -542,8 +543,8 @@
 <span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
-    <span class="s2">&quot;create_generic_earth_horizon&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;create_irst_horizon_sensor&quot;</span><span class="p">,</span>
+    <span class="s2">"create_generic_earth_horizon"</span><span class="p">,</span>
+    <span class="s2">"create_irst_horizon_sensor"</span><span class="p">,</span>
 <span class="p">]</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
@@ -560,7 +561,7 @@
     <span class="n">fov_deg</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">90.0</span><span class="p">,</span>
     <span class="n">noise_deg</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EarthHorizonSensor</span><span class="p">:</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Create a generic Earth horizon sensor with configurable parameters.</span>
 
 <span class="sd">    :param boresight: Sensor boresight in the body frame. Default nadir-pointing.</span>
@@ -571,7 +572,7 @@
 <span class="sd">    :type noise_deg: float</span>
 <span class="sd">    :return: Configured Earth horizon sensor.</span>
 <span class="sd">    :rtype: :class:`~ADCS.satellite_hardware.sensors.earth_horizon.EarthHorizonSensor`</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">noise_rad</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">noise_deg</span><span class="p">)</span>
     <span class="n">noise</span> <span class="o">=</span> <span class="n">Noise</span><span class="p">(</span>
         <span class="n">noise</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span>
@@ -590,7 +591,7 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">create_irst_horizon_sensor</span><span class="p">(</span>
     <span class="n">boresight</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.0</span><span class="p">]),</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EarthHorizonSensor</span><span class="p">:</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Create an infrared scanning telescope (IRST) Earth horizon sensor.</span>
 
 <span class="sd">    Typical performance for a miniaturized IR horizon sensor:</span>
@@ -602,7 +603,7 @@
 <span class="sd">    :type boresight: numpy.ndarray</span>
 <span class="sd">    :return: Configured IRST horizon sensor.</span>
 <span class="sd">    :rtype: :class:`~ADCS.satellite_hardware.sensors.earth_horizon.EarthHorizonSensor`</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">noise_rad</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="mf">0.25</span><span class="p">)</span>
     <span class="n">noise</span> <span class="o">=</span> <span class="n">Noise</span><span class="p">(</span>
         <span class="n">noise</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span>

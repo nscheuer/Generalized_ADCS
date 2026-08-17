@@ -228,6 +228,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../../release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_8_installable.html">0.1.8 Installable from PyPI (2026-08-05)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
@@ -539,7 +540,7 @@
         </div>
         <article role="main" id="furo-main-content">
           <h1>Source code for ADCS.satellite_hardware.sensors.sensor</h1><div class="highlight"><pre>
-<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Sensor&quot;</span><span class="p">]</span>
+<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"Sensor"</span><span class="p">]</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
@@ -552,7 +553,7 @@
 <div class="viewcode-block" id="Sensor">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.sensors.sensor.html#ADCS.satellite_hardware.sensors.sensor.Sensor">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">Sensor</span><span class="p">:</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Base class for all Attitude Determination and Control System (ADCS) sensor models.</span>
 
 <span class="sd">    This class defines a **unified measurement interface** for all onboard sensors</span>
@@ -633,9 +634,9 @@
 <span class="sd">    * This class does **not** assume any specific state ordering.</span>
 <span class="sd">    * Bias and noise updates are controlled via</span>
 <span class="sd">      :class:`~ADCS.satellite_hardware.errors.ErrorMode`.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample_time</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span> <span class="n">output_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">bias</span><span class="p">:</span> <span class="n">Bias</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">noise</span><span class="p">:</span> <span class="n">Noise</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">estimate_bias</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Initialize a generic sensor model.</span>
 
 <span class="sd">        :param sample_time: Sampling period of the sensor in seconds.</span>
@@ -650,7 +651,7 @@
 <span class="sd">        :type estimate_bias: bool</span>
 <span class="sd">        :return: None</span>
 <span class="sd">        :rtype: None</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">if</span> <span class="n">bias</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">bias</span> <span class="o">=</span> <span class="n">bias</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
         <span class="k">else</span><span class="p">:</span>
@@ -666,7 +667,7 @@
 <div class="viewcode-block" id="Sensor.reading">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.sensors.sensor.html#ADCS.satellite_hardware.sensors.sensor.Sensor.reading">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">reading</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span> <span class="n">dmode</span><span class="p">:</span> <span class="n">ErrorMode</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Compute the full sensor measurement including bias and noise.</span>
 
 <span class="sd">        This method evaluates the complete sensor pipeline:</span>
@@ -707,14 +708,14 @@
 <span class="sd">        :return: Sensor measurement vector.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">if</span> <span class="n">dmode</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">dmode</span> <span class="o">=</span> <span class="n">ErrorMode</span><span class="p">(</span><span class="n">add_bias</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">add_noise</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">update_bias</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">update_noise</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
         <span class="n">reading</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">clean_reading</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">os</span><span class="o">=</span><span class="n">os</span><span class="p">)</span>
         <span class="c1"># Evolve the stochastic states FIRST so this reading uses the noise/bias</span>
         <span class="c1"># realization for the current step. Previously get_noise()/get_bias()</span>
-        <span class="c1"># were added before _update_*(), so every sensor&#39;s first measurement</span>
+        <span class="c1"># were added before _update_*(), so every sensor's first measurement</span>
         <span class="c1"># used the initial (zero) noise sample -- i.e. the first reading was</span>
         <span class="c1"># noise-free and bias diffusion lagged by one step.</span>
         <span class="k">if</span> <span class="n">dmode</span><span class="o">.</span><span class="n">update_bias</span><span class="p">:</span>
@@ -733,7 +734,7 @@
 <div class="viewcode-block" id="Sensor.basestate_jac">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.sensors.sensor.html#ADCS.satellite_hardware.sensors.sensor.Sensor.basestate_jac">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">basestate_jac</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Jacobian of the clean sensor measurement with respect to the base states.</span>
 
 <span class="sd">        This method returns the Jacobian</span>
@@ -758,14 +759,14 @@
 <span class="sd">        :return: Jacobian matrix of shape ``(output_length, N_base_states)``.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">7</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_length</span><span class="p">))</span></div>
 
     
 <div class="viewcode-block" id="Sensor.bias_jac">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.sensors.sensor.html#ADCS.satellite_hardware.sensors.sensor.Sensor.bias_jac">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">bias_jac</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Jacobian of the measurement with respect to the sensor bias state.</span>
 
 <span class="sd">        If the measurement model is</span>
@@ -795,7 +796,7 @@
 <span class="sd">                 model exists; otherwise an empty matrix.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bias</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">output_length</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>

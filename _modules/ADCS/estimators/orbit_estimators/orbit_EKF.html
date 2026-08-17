@@ -228,6 +228,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../../release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_8_installable.html">0.1.8 Installable from PyPI (2026-08-05)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
@@ -539,7 +540,7 @@
         </div>
         <article role="main" id="furo-main-content">
           <h1>Source code for ADCS.estimators.orbit_estimators.orbit_EKF</h1><div class="highlight"><pre>
-<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Orbit_EKF&quot;</span><span class="p">]</span>
+<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"Orbit_EKF"</span><span class="p">]</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span>
@@ -553,11 +554,11 @@
 <div class="viewcode-block" id="Orbit_EKF">
 <a class="viewcode-back" href="../../../../ADCS.estimators.orbit_estimators.orbit_EKF.html#ADCS.estimators.orbit_estimators.orbit_EKF.Orbit_EKF">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">Orbit_EKF</span><span class="p">(</span><span class="n">Orbit_Estimator</span><span class="p">):</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Extended Kalman Filter (EKF) for Satellite Orbit Determination.</span>
 
 <span class="sd">    This class implements a continuous-discrete Extended Kalman Filter to estimate </span>
-<span class="sd">    the satellite&#39;s state vector :math:`\mathbf{x} \in \mathbb{R}^6` (ECI Position and Velocity).</span>
+<span class="sd">    the satellite's state vector :math:`\mathbf{x} \in \mathbb{R}^6` (ECI Position and Velocity).</span>
 
 <span class="sd">    The filter linearizes the non-linear orbital dynamics :math:`f(\mathbf{x}, t)` </span>
 <span class="sd">    (including J2 perturbations) to propagate the error covariance matrix :math:`\mathbf{P}`.</span>
@@ -567,7 +568,7 @@
 <span class="sd">        R (np.ndarray): Measurement noise covariance matrix :math:`\mathbf{R}`.</span>
 <span class="sd">        os_hat (EstimatedOrbital_State): Current state estimate :math:`\hat{\mathbf{x}}` </span>
 <span class="sd">            and covariance :math:`\mathbf{P}`.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">est_sat</span><span class="p">:</span> <span class="n">EstimatedSatellite</span><span class="p">,</span>
@@ -577,7 +578,7 @@
         <span class="n">Q_hat</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
         <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Initialize the Orbit EKF.</span>
 
 <span class="sd">        :param est_sat: Satellite object with GPS sensors.</span>
@@ -587,10 +588,10 @@
 <span class="sd">        :param Q_hat: Process noise covariance matrix :math:`\mathbf{Q}` (6x6).</span>
 <span class="sd">        :param dt: Propagation time step [s].</span>
 <span class="sd">        :raises ValueError: If the satellite has no GPS sensors.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">est_sat</span><span class="o">=</span><span class="n">est_sat</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="n">dt</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">est_sat</span><span class="o">.</span><span class="n">GPS_sensors</span><span class="p">:</span>
-            <span class="k">return</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Satellite must have at least one GPS sensor!&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Satellite must have at least one GPS sensor!"</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">reset</span><span class="p">(</span><span class="n">est_sat</span><span class="o">=</span><span class="n">est_sat</span><span class="p">,</span> <span class="n">J2000</span><span class="o">=</span><span class="n">J2000</span><span class="p">,</span> <span class="n">os_hat</span><span class="o">=</span><span class="n">os_hat</span><span class="p">,</span> <span class="n">P_hat</span><span class="o">=</span><span class="n">P_hat</span><span class="p">,</span> <span class="n">Q_hat</span><span class="o">=</span><span class="n">Q_hat</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="n">dt</span><span class="p">)</span>
 
@@ -605,7 +606,7 @@
         <span class="n">Q_hat</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
         <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Reset the filter state and matrices.</span>
 
 <span class="sd">        Initializes the estimate :math:`\hat{\mathbf{x}}` and constructs the measurement </span>
@@ -621,11 +622,11 @@
 <span class="sd">        :param P_hat: Initial covariance :math:`\mathbf{P}` (must be 6x6).</span>
 <span class="sd">        :param Q_hat: Process noise :math:`\mathbf{Q}` (must be 6x6).</span>
 <span class="sd">        :param dt: Time step.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">if</span> <span class="n">P_hat</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="mi">6</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;P must be 6×6, got </span><span class="si">{</span><span class="n">P_hat</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"P must be 6×6, got </span><span class="si">{</span><span class="n">P_hat</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">Q_hat</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="mi">6</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Q must be 6×6, got </span><span class="si">{</span><span class="n">Q_hat</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Q must be 6×6, got </span><span class="si">{</span><span class="n">Q_hat</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">os_hat</span> <span class="o">=</span> <span class="n">EstimatedOrbital_State</span><span class="p">(</span><span class="n">os</span><span class="o">=</span><span class="n">os_hat</span><span class="p">,</span> <span class="n">P</span><span class="o">=</span><span class="n">P_hat</span><span class="p">,</span> <span class="n">Q</span><span class="o">=</span><span class="n">Q_hat</span><span class="p">)</span>
 
         <span class="n">gps_sensors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">est_sat</span><span class="o">.</span><span class="n">GPS_sensors</span>
@@ -646,7 +647,7 @@
         <span class="n">GPS_measurements</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span>
         <span class="n">J2000</span><span class="p">:</span> <span class="nb">float</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EstimatedOrbital_State</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Perform the EKF Time Update and Measurement Update steps.</span>
 
 <span class="sd">        1. Time Update (Prediction):</span>
@@ -671,7 +672,7 @@
 <span class="sd">        :param GPS_measurements: List of sensor measurements (Position or PV) in ECEF frame.</span>
 <span class="sd">        :param J2000: Current epoch time [s].</span>
 <span class="sd">        :return: The updated :class:`~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedOrbital_State`.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
 
         <span class="c1"># --- 1. Propagate the orbital state ---</span>
         <span class="n">os0</span><span class="p">:</span> <span class="n">Orbital_State</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">os_hat</span><span class="o">.</span><span class="n">os</span>
@@ -722,7 +723,7 @@
                 <span class="n">v_eci</span>  <span class="o">=</span> <span class="n">os_pred</span><span class="o">.</span><span class="n">ecef_to_eci</span><span class="p">(</span><span class="n">v_ecef</span><span class="p">)</span>
                 <span class="n">z_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">([</span><span class="n">r_eci</span><span class="p">,</span> <span class="n">v_eci</span><span class="p">]))</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;GPS measurement must have length 3 or 6, got </span><span class="si">{</span><span class="n">m</span><span class="o">.</span><span class="n">size</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"GPS measurement must have length 3 or 6, got </span><span class="si">{</span><span class="n">m</span><span class="o">.</span><span class="n">size</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 
         <span class="n">z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">z_list</span><span class="p">)</span>
         <span class="n">m_i</span> <span class="o">=</span> <span class="n">z_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">size</span>        <span class="c1"># 3 or 6</span>
@@ -742,7 +743,7 @@
             <span class="n">H_i</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">6</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="c1"># should be unreachable because of the earlier check</span>
-            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Unexpected measurement dimension&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">"Unexpected measurement dimension"</span><span class="p">)</span>
 
         <span class="n">h</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">h_single</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_sens</span><span class="p">)])</span>  <span class="c1"># (m_total,)</span>
         <span class="n">H</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="n">H_i</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_sens</span><span class="p">)])</span>            <span class="c1"># (m_total × 6)</span>
@@ -761,7 +762,7 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="n">R</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">R</span>
         <span class="k">if</span> <span class="n">R</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="p">(</span><span class="n">m_total</span><span class="p">,</span> <span class="n">m_total</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;R must be </span><span class="si">{</span><span class="n">m_total</span><span class="si">}</span><span class="s2">×</span><span class="si">{</span><span class="n">m_total</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="n">R</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"R must be </span><span class="si">{</span><span class="n">m_total</span><span class="si">}</span><span class="s2">×</span><span class="si">{</span><span class="n">m_total</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="n">R</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 
         <span class="c1"># --- 6. EKF update ---</span>
         <span class="n">y</span> <span class="o">=</span> <span class="n">z</span> <span class="o">-</span> <span class="n">h</span>                          <span class="c1"># innovation</span>

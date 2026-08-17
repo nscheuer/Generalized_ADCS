@@ -228,6 +228,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../../../release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../../release_notes/0_1_8_installable.html">0.1.8 Installable from PyPI (2026-08-05)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../../release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../../release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../../release_notes/0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
@@ -539,7 +540,7 @@
         </div>
         <article role="main" id="furo-main-content">
           <h1>Source code for ADCS.satellite_hardware.disturbances.helpers.geometry_config</h1><div class="highlight"><pre>
-<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;GeometryFace&quot;</span><span class="p">,</span> <span class="s2">&quot;GeometryConfig&quot;</span><span class="p">]</span>
+<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"GeometryFace"</span><span class="p">,</span> <span class="s2">"GeometryConfig"</span><span class="p">]</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Any</span>
@@ -559,38 +560,38 @@
 <div class="viewcode-block" id="GeometryFace.from_dict">
 <a class="viewcode-back" href="../../../../../ADCS.satellite_hardware.disturbances.helpers.geometry_config.html#ADCS.satellite_hardware.disturbances.helpers.geometry_config.GeometryFace.from_dict">[docs]</a>
     <span class="nd">@classmethod</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">from_dict</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="s2">&quot;GeometryFace&quot;</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_dict</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="s2">"GeometryFace"</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Create a GeometryFace from a dictionary.</span>
 
-<span class="sd">        Accepts either &#39;CD&#39; or &#39;CD&#39; for drag coefficient, and defaults</span>
+<span class="sd">        Accepts either 'CD' or 'CD' for drag coefficient, and defaults</span>
 <span class="sd">        unspecified eta/CD values to 0.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
-            <span class="n">area</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;area&quot;</span><span class="p">],</span>
-            <span class="n">centroid</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;centroid&quot;</span><span class="p">]),</span>
-            <span class="n">normal</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;normal&quot;</span><span class="p">]),</span>
-            <span class="n">eta_s</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;eta_s&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
-            <span class="n">eta_d</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;eta_d&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
-            <span class="n">eta_a</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;eta_a&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
-            <span class="n">CD</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;CD&quot;</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;CD&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)),</span>
+            <span class="n">area</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s2">"area"</span><span class="p">],</span>
+            <span class="n">centroid</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s2">"centroid"</span><span class="p">]),</span>
+            <span class="n">normal</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s2">"normal"</span><span class="p">]),</span>
+            <span class="n">eta_s</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"eta_s"</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+            <span class="n">eta_d</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"eta_d"</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+            <span class="n">eta_a</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"eta_a"</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+            <span class="n">CD</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"CD"</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"CD"</span><span class="p">,</span> <span class="mi">0</span><span class="p">)),</span>
         <span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="GeometryFace.to_dict">
 <a class="viewcode-back" href="../../../../../ADCS.satellite_hardware.disturbances.helpers.geometry_config.html#ADCS.satellite_hardware.disturbances.helpers.geometry_config.GeometryFace.to_dict">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Convert this GeometryFace to a dictionary representation.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="p">{</span>
-            <span class="s2">&quot;area&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">area</span><span class="p">,</span>
-            <span class="s2">&quot;centroid&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">centroid</span><span class="p">),</span>
-            <span class="s2">&quot;normal&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">normal</span><span class="p">),</span>
-            <span class="s2">&quot;eta_s&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">eta_s</span><span class="p">,</span>
-            <span class="s2">&quot;eta_d&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">eta_d</span><span class="p">,</span>
-            <span class="s2">&quot;eta_a&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">eta_a</span><span class="p">,</span>
-            <span class="s2">&quot;CD&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">CD</span><span class="p">,</span>
+            <span class="s2">"area"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">area</span><span class="p">,</span>
+            <span class="s2">"centroid"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">centroid</span><span class="p">),</span>
+            <span class="s2">"normal"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">normal</span><span class="p">),</span>
+            <span class="s2">"eta_s"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">eta_s</span><span class="p">,</span>
+            <span class="s2">"eta_d"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">eta_d</span><span class="p">,</span>
+            <span class="s2">"eta_a"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">eta_a</span><span class="p">,</span>
+            <span class="s2">"CD"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">CD</span><span class="p">,</span>
         <span class="p">}</span></div>
 </div>
 
@@ -600,7 +601,7 @@
 <div class="viewcode-block" id="GeometryConfig">
 <a class="viewcode-back" href="../../../../../ADCS.satellite_hardware.disturbances.helpers.geometry_config.html#ADCS.satellite_hardware.disturbances.helpers.geometry_config.GeometryConfig">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">GeometryConfig</span><span class="p">:</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    **Satellite Geometry Configuration**</span>
 
 <span class="sd">    The :class:`GeometryConfig` class defines the geometric and aerodynamic</span>
@@ -645,10 +646,10 @@
 <span class="sd">    geometry : list[dict[str, any]]</span>
 <span class="sd">        List of dictionaries defining geometry parameters for all satellite surfaces.</span>
 <span class="sd">        Each entry must include the keys listed above.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">geometry_faces</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">GeometryFace</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Initialize a :class:`GeometryConfig` instance.</span>
 
 <span class="sd">        Parameters</span>
@@ -656,20 +657,20 @@
 <span class="sd">        geometry : list[dict[str, any]]</span>
 <span class="sd">            List of dictionaries describing each surface element.</span>
 <span class="sd">            See :ref:`Structure of a Geometry Entry &lt;geometry_entry&gt;` above.</span>
-<span class="sd">        &quot;&quot;&quot;</span> 
+<span class="sd">        """</span> 
         <span class="bp">self</span><span class="o">.</span><span class="n">faces</span> <span class="o">=</span> <span class="n">geometry_faces</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">faces</span><span class="p">:</span>
-            <span class="c1"># prefer &#39;CD&#39; (lowercase) in params for back-compat</span>
-            <span class="n">cd_val</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s2">&quot;CD&quot;</span><span class="p">,</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s2">&quot;CD&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+            <span class="c1"># prefer 'CD' (lowercase) in params for back-compat</span>
+            <span class="n">cd_val</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s2">"CD"</span><span class="p">,</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s2">"CD"</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
-                <span class="s2">&quot;area&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">area</span><span class="p">),</span>
-                <span class="s2">&quot;centroid&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">centroid</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">),</span>
-                <span class="s2">&quot;normal&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">normal</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">),</span>
-                <span class="s2">&quot;eta_s&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s2">&quot;eta_s&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)),</span>
-                <span class="s2">&quot;eta_d&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s2">&quot;eta_d&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)),</span>
-                <span class="s2">&quot;eta_a&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s2">&quot;eta_a&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)),</span>
-                <span class="s2">&quot;CD&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">cd_val</span><span class="p">),</span>
+                <span class="s2">"area"</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">area</span><span class="p">),</span>
+                <span class="s2">"centroid"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">centroid</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">),</span>
+                <span class="s2">"normal"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">normal</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">),</span>
+                <span class="s2">"eta_s"</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s2">"eta_s"</span><span class="p">,</span> <span class="mi">0</span><span class="p">)),</span>
+                <span class="s2">"eta_d"</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s2">"eta_d"</span><span class="p">,</span> <span class="mi">0</span><span class="p">)),</span>
+                <span class="s2">"eta_a"</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s2">"eta_a"</span><span class="p">,</span> <span class="mi">0</span><span class="p">)),</span>
+                <span class="s2">"CD"</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">cd_val</span><span class="p">),</span>
             <span class="p">})</span></div>
 
 </pre></div>

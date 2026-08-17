@@ -228,6 +228,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_8_installable.html">0.1.8 Installable from PyPI (2026-08-05)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
@@ -541,7 +542,7 @@
           <h1>Source code for ADCS.mc.simulate_mc</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;simulate_mc&quot;</span><span class="p">]</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"simulate_mc"</span><span class="p">]</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
@@ -575,7 +576,7 @@
 
 <span class="nd">@contextmanager</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">suppress_output</span><span class="p">():</span>
-    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">devnull</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">devnull</span><span class="p">:</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">devnull</span><span class="p">,</span> <span class="s2">"w"</span><span class="p">)</span> <span class="k">as</span> <span class="n">devnull</span><span class="p">:</span>
         <span class="n">old_stdout</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span>
         <span class="n">old_stderr</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span>
         <span class="k">try</span><span class="p">:</span>
@@ -591,7 +592,7 @@
     <span class="k">try</span><span class="p">:</span>
         <span class="n">pickle</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> is not picklable: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> is not picklable: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_is_sampler</span><span class="p">(</span><span class="n">v</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
@@ -616,7 +617,7 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">_as_1d_float</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">n</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
     <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">n</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">a</span><span class="o">.</span><span class="n">size</span> <span class="o">!=</span> <span class="n">n</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> must have length </span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="n">a</span><span class="o">.</span><span class="n">size</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> must have length </span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="n">a</span><span class="o">.</span><span class="n">size</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">a</span>
 
 
@@ -679,16 +680,16 @@
     <span class="n">run_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>   <span class="c1"># Added for UI tracking</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RunResults</span><span class="p">:</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">State</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;x must be a State, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"x must be a State, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">as_array</span><span class="p">()</span><span class="o">.</span><span class="n">size</span> <span class="o">!=</span> <span class="n">satellite</span><span class="o">.</span><span class="n">state_len</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">&quot;Initial state length </span><span class="si">{</span><span class="n">x</span><span class="o">.</span><span class="n">as_array</span><span class="p">()</span><span class="o">.</span><span class="n">size</span><span class="si">}</span><span class="s2"> does not match satellite state length </span><span class="si">{</span><span class="n">satellite</span><span class="o">.</span><span class="n">state_len</span><span class="si">}</span><span class="s2">. &quot;</span>
-            <span class="sa">f</span><span class="s2">&quot;It must be 7 + N_rw.&quot;</span>
+            <span class="sa">f</span><span class="s2">"Initial state length </span><span class="si">{</span><span class="n">x</span><span class="o">.</span><span class="n">as_array</span><span class="p">()</span><span class="o">.</span><span class="n">size</span><span class="si">}</span><span class="s2"> does not match satellite state length </span><span class="si">{</span><span class="n">satellite</span><span class="o">.</span><span class="n">state_len</span><span class="si">}</span><span class="s2">. "</span>
+            <span class="sa">f</span><span class="s2">"It must be 7 + N_rw."</span>
         <span class="p">)</span>
 
     <span class="n">N</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">tf</span> <span class="o">/</span> <span class="n">dt</span><span class="p">)</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">os_seq</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">N</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;precomputed orbit must have at least </span><span class="si">{</span><span class="n">N</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s2"> states, got </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">os_seq</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"precomputed orbit must have at least </span><span class="si">{</span><span class="n">N</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s2"> states, got </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">os_seq</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 
     <span class="n">os0</span> <span class="o">=</span> <span class="n">os_seq</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="k">if</span> <span class="n">goal</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -698,7 +699,7 @@
     <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">goal</span><span class="p">,</span> <span class="n">GoalList</span><span class="p">):</span>
         <span class="n">goal_list</span> <span class="o">=</span> <span class="n">goal</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;goal must be None, a Goal, or a GoalList.&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"goal must be None, a Goal, or a GoalList."</span><span class="p">)</span>
 
     <span class="n">u</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">satellite</span><span class="o">.</span><span class="n">control_len</span><span class="p">)</span>
 
@@ -712,7 +713,7 @@
 
     <span class="n">os_hat</span> <span class="o">=</span> <span class="kc">None</span>
 
-    <span class="k">if</span> <span class="n">controller</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">controller</span><span class="p">,</span> <span class="s2">&quot;calculate_trajectory&quot;</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">controller</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">controller</span><span class="p">,</span> <span class="s2">"calculate_trajectory"</span><span class="p">):</span>
         <span class="n">trajectory</span> <span class="o">=</span> <span class="n">controller</span><span class="o">.</span><span class="n">calculate_trajectory</span><span class="p">(</span>
             <span class="n">t_start</span><span class="o">=</span><span class="n">os0</span><span class="o">.</span><span class="n">J2000</span><span class="p">,</span>
             <span class="n">duration</span><span class="o">=</span><span class="n">tf</span><span class="p">,</span>
@@ -751,13 +752,13 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="n">x_for_ctrl</span> <span class="o">=</span> <span class="n">x</span>
 
-        <span class="n">active_goal</span> <span class="o">=</span> <span class="n">goal_list</span><span class="o">.</span><span class="n">get_active_goal</span><span class="p">(</span><span class="n">J2000_k</span><span class="p">,</span> <span class="n">time_units</span><span class="o">=</span><span class="s2">&quot;centuries&quot;</span><span class="p">)</span>
+        <span class="n">active_goal</span> <span class="o">=</span> <span class="n">goal_list</span><span class="o">.</span><span class="n">get_active_goal</span><span class="p">(</span><span class="n">J2000_k</span><span class="p">,</span> <span class="n">time_units</span><span class="o">=</span><span class="s2">"centuries"</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">controller</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">u</span> <span class="o">=</span> <span class="n">controller</span><span class="o">.</span><span class="n">find_u</span><span class="p">(</span>
                 <span class="n">x_hat</span><span class="o">=</span><span class="n">x_for_ctrl</span><span class="p">,</span>
                 <span class="c1"># Use noiseless sensors for control if required by logic, </span>
-                <span class="c1"># but standard practice is &#39;sens&#39; (y)</span>
+                <span class="c1"># but standard practice is 'sens' (y)</span>
                 <span class="n">sens</span><span class="o">=</span><span class="n">y</span><span class="p">,</span>
                 <span class="n">est_sat</span><span class="o">=</span><span class="n">est_satellite</span><span class="p">,</span>
                 <span class="n">os_hat</span><span class="o">=</span><span class="n">os_for_gnc</span><span class="p">,</span>
@@ -770,7 +771,7 @@
             <span class="n">fun</span><span class="o">=</span><span class="n">satellite</span><span class="o">.</span><span class="n">dynamics_for_solver</span><span class="p">,</span>
             <span class="n">t_span</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dt</span><span class="p">),</span>
             <span class="n">y0</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">as_array</span><span class="p">(),</span>
-            <span class="n">method</span><span class="o">=</span><span class="s2">&quot;RK45&quot;</span><span class="p">,</span>
+            <span class="n">method</span><span class="o">=</span><span class="s2">"RK45"</span><span class="p">,</span>
             <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">os_k</span><span class="p">,</span> <span class="n">os_kp1</span><span class="p">),</span>
             <span class="n">rtol</span><span class="o">=</span><span class="mf">1e-7</span><span class="p">,</span>
             <span class="n">atol</span><span class="o">=</span><span class="mf">1e-7</span><span class="p">,</span>
@@ -791,9 +792,9 @@
         <span class="n">est_sens_bias_snapshot</span> <span class="o">=</span> <span class="kc">None</span>
 
         <span class="k">if</span> <span class="n">estimator</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">x_hat</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">est_satellite</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">n_rw</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">est_satellite</span><span class="p">,</span> <span class="s2">&quot;number_RW&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
-            <span class="n">n_ab</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">est_satellite</span><span class="p">,</span> <span class="s2">&quot;act_bias_len&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
-            <span class="n">n_sb</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">est_satellite</span><span class="p">,</span> <span class="s2">&quot;att_sens_bias_len&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+            <span class="n">n_rw</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">est_satellite</span><span class="p">,</span> <span class="s2">"number_RW"</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+            <span class="n">n_ab</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">est_satellite</span><span class="p">,</span> <span class="s2">"act_bias_len"</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+            <span class="n">n_sb</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">est_satellite</span><span class="p">,</span> <span class="s2">"att_sens_bias_len"</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
 
             <span class="n">base</span> <span class="o">=</span> <span class="mi">7</span> <span class="o">+</span> <span class="n">n_rw</span>
             <span class="n">ab0</span><span class="p">,</span> <span class="n">ab1</span> <span class="o">=</span> <span class="n">base</span><span class="p">,</span> <span class="n">base</span> <span class="o">+</span> <span class="n">n_ab</span>
@@ -805,8 +806,8 @@
 
                 <span class="n">act_parts</span> <span class="o">=</span> <span class="p">[]</span>
                 <span class="n">ai</span> <span class="o">=</span> <span class="mi">0</span>
-                <span class="k">for</span> <span class="n">act</span> <span class="ow">in</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">satellite</span><span class="p">,</span> <span class="s2">&quot;actuators&quot;</span><span class="p">,</span> <span class="p">[])</span> <span class="ow">or</span> <span class="p">[]:</span>
-                    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">act</span><span class="p">,</span> <span class="s2">&quot;bias&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">bool</span><span class="p">(</span><span class="n">act</span><span class="o">.</span><span class="n">bias</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">act</span> <span class="ow">in</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">satellite</span><span class="p">,</span> <span class="s2">"actuators"</span><span class="p">,</span> <span class="p">[])</span> <span class="ow">or</span> <span class="p">[]:</span>
+                    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">act</span><span class="p">,</span> <span class="s2">"bias"</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">bool</span><span class="p">(</span><span class="n">act</span><span class="o">.</span><span class="n">bias</span><span class="p">):</span>
                         <span class="n">dim</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="n">act</span><span class="o">.</span><span class="n">bias</span><span class="o">.</span><span class="n">bias</span><span class="p">)</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
                         <span class="n">act_parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">b_act_hat</span><span class="p">[</span><span class="n">ai</span><span class="p">:</span><span class="n">ai</span> <span class="o">+</span> <span class="n">dim</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">())</span>
                         <span class="n">ai</span> <span class="o">+=</span> <span class="n">dim</span>
@@ -818,8 +819,8 @@
 
                 <span class="n">sens_parts</span> <span class="o">=</span> <span class="p">[]</span>
                 <span class="n">si</span> <span class="o">=</span> <span class="mi">0</span>
-                <span class="k">for</span> <span class="n">sens</span> <span class="ow">in</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">satellite</span><span class="p">,</span> <span class="s2">&quot;sensors&quot;</span><span class="p">,</span> <span class="p">[])</span> <span class="ow">or</span> <span class="p">[]:</span>
-                    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">sens</span><span class="p">,</span> <span class="s2">&quot;bias&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">bool</span><span class="p">(</span><span class="n">sens</span><span class="o">.</span><span class="n">bias</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">sens</span> <span class="ow">in</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">satellite</span><span class="p">,</span> <span class="s2">"sensors"</span><span class="p">,</span> <span class="p">[])</span> <span class="ow">or</span> <span class="p">[]:</span>
+                    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">sens</span><span class="p">,</span> <span class="s2">"bias"</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">bool</span><span class="p">(</span><span class="n">sens</span><span class="o">.</span><span class="n">bias</span><span class="p">):</span>
                         <span class="n">dim</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="n">sens</span><span class="o">.</span><span class="n">bias</span><span class="o">.</span><span class="n">bias</span><span class="p">)</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
                         <span class="n">sens_parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">b_sens_hat</span><span class="p">[</span><span class="n">si</span><span class="p">:</span><span class="n">si</span> <span class="o">+</span> <span class="n">dim</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">())</span>
                         <span class="n">si</span> <span class="o">+=</span> <span class="n">dim</span>
@@ -835,17 +836,17 @@
             <span class="n">time_s</span><span class="o">=</span><span class="n">k</span> <span class="o">*</span> <span class="n">dt</span><span class="p">,</span>
             <span class="n">os</span><span class="o">=</span><span class="n">os_k</span><span class="p">,</span>
             <span class="n">est_os</span><span class="o">=</span><span class="n">os_hat</span><span class="p">,</span>
-            <span class="n">os_cov</span><span class="o">=</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">orbit_estimator</span><span class="p">,</span> <span class="s2">&quot;os_hat&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span> <span class="s2">&quot;P&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="k">if</span> <span class="n">orbit_estimator</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">),</span>
+            <span class="n">os_cov</span><span class="o">=</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">orbit_estimator</span><span class="p">,</span> <span class="s2">"os_hat"</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span> <span class="s2">"P"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="k">if</span> <span class="n">orbit_estimator</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">),</span>
             <span class="n">state</span><span class="o">=</span><span class="n">x</span><span class="p">,</span>
             <span class="n">est_state</span><span class="o">=</span><span class="n">x_hat</span><span class="p">,</span>
-            <span class="n">state_cov</span><span class="o">=</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">estimator</span><span class="p">,</span> <span class="s2">&quot;x_hat&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span> <span class="s2">&quot;cov&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="k">if</span> <span class="n">estimator</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">),</span>
+            <span class="n">state_cov</span><span class="o">=</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">estimator</span><span class="p">,</span> <span class="s2">"x_hat"</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span> <span class="s2">"cov"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="k">if</span> <span class="n">estimator</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">),</span>
             <span class="n">actuator_bias</span><span class="o">=</span><span class="p">(</span>
                 <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="n">act</span><span class="o">.</span><span class="n">bias</span><span class="o">.</span><span class="n">bias</span><span class="p">)</span> <span class="k">for</span> <span class="n">act</span> <span class="ow">in</span> <span class="n">satellite</span><span class="o">.</span><span class="n">actuators</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">)</span>
-                <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">satellite</span><span class="p">,</span> <span class="s2">&quot;actuators&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span>
+                <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">satellite</span><span class="p">,</span> <span class="s2">"actuators"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span>
             <span class="p">),</span>
             <span class="n">sensor_bias</span><span class="o">=</span><span class="p">(</span>
                 <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="n">sens</span><span class="o">.</span><span class="n">bias</span><span class="o">.</span><span class="n">bias</span><span class="p">)</span> <span class="k">for</span> <span class="n">sens</span> <span class="ow">in</span> <span class="n">satellite</span><span class="o">.</span><span class="n">sensors</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">)</span>
-                <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">satellite</span><span class="p">,</span> <span class="s2">&quot;sensors&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span>
+                <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">satellite</span><span class="p">,</span> <span class="s2">"sensors"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span>
             <span class="p">),</span>
             <span class="n">est_actuator_bias</span><span class="o">=</span><span class="n">est_act_bias_snapshot</span><span class="p">,</span>
             <span class="n">est_sensor_bias</span><span class="o">=</span><span class="n">est_sens_bias_snapshot</span><span class="p">,</span>
@@ -878,8 +879,8 @@
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_simulate_mc_worker</span><span class="p">(</span><span class="n">cfg</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
     <span class="n">slot_id</span> <span class="o">=</span> <span class="n">claim_worker_slot</span><span class="p">()</span>
-    <span class="n">run_id</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">cfg</span><span class="p">[</span><span class="s2">&quot;run_id&quot;</span><span class="p">])</span>
-    <span class="n">seed</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">cfg</span><span class="p">[</span><span class="s2">&quot;seed&quot;</span><span class="p">])</span>
+    <span class="n">run_id</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">cfg</span><span class="p">[</span><span class="s2">"run_id"</span><span class="p">])</span>
+    <span class="n">seed</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">cfg</span><span class="p">[</span><span class="s2">"seed"</span><span class="p">])</span>
 
     <span class="k">try</span><span class="p">:</span>
         <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
@@ -888,27 +889,27 @@
 
         <span class="n">ephem</span> <span class="o">=</span> <span class="n">_get_ephem</span><span class="p">()</span>
 
-        <span class="n">x0</span> <span class="o">=</span> <span class="n">State</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">cfg</span><span class="p">[</span><span class="s2">&quot;x0&quot;</span><span class="p">])</span>
-        <span class="n">satellite</span><span class="p">:</span> <span class="n">Satellite</span> <span class="o">=</span> <span class="n">cfg</span><span class="p">[</span><span class="s2">&quot;satellite&quot;</span><span class="p">]</span>
-        <span class="n">est_satellite</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;est_satellite&quot;</span><span class="p">)</span>
-        <span class="n">controller</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;controller&quot;</span><span class="p">)</span>
-        <span class="n">estimator</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;estimator&quot;</span><span class="p">)</span>
-        <span class="n">orbit_estimator</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;orbit_estimator&quot;</span><span class="p">)</span>
-        <span class="n">goal</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;goal&quot;</span><span class="p">)</span>
-        <span class="n">dt</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">cfg</span><span class="p">[</span><span class="s2">&quot;dt&quot;</span><span class="p">])</span>
-        <span class="n">tf</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">cfg</span><span class="p">[</span><span class="s2">&quot;tf&quot;</span><span class="p">])</span>
+        <span class="n">x0</span> <span class="o">=</span> <span class="n">State</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">cfg</span><span class="p">[</span><span class="s2">"x0"</span><span class="p">])</span>
+        <span class="n">satellite</span><span class="p">:</span> <span class="n">Satellite</span> <span class="o">=</span> <span class="n">cfg</span><span class="p">[</span><span class="s2">"satellite"</span><span class="p">]</span>
+        <span class="n">est_satellite</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"est_satellite"</span><span class="p">)</span>
+        <span class="n">controller</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"controller"</span><span class="p">)</span>
+        <span class="n">estimator</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"estimator"</span><span class="p">)</span>
+        <span class="n">orbit_estimator</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"orbit_estimator"</span><span class="p">)</span>
+        <span class="n">goal</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"goal"</span><span class="p">)</span>
+        <span class="n">dt</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">cfg</span><span class="p">[</span><span class="s2">"dt"</span><span class="p">])</span>
+        <span class="n">tf</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">cfg</span><span class="p">[</span><span class="s2">"tf"</span><span class="p">])</span>
 
-        <span class="n">orbit_mode</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;orbit_mode&quot;</span><span class="p">,</span> <span class="s2">&quot;os0&quot;</span><span class="p">)</span>
-        <span class="n">zonal_J</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;orbit_zonal_J&quot;</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
-        <span class="n">fast</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;orbit_fast&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">))</span>
+        <span class="n">orbit_mode</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"orbit_mode"</span><span class="p">,</span> <span class="s2">"os0"</span><span class="p">)</span>
+        <span class="n">zonal_J</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"orbit_zonal_J"</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+        <span class="n">fast</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"orbit_fast"</span><span class="p">,</span> <span class="kc">False</span><span class="p">))</span>
 
-        <span class="k">if</span> <span class="n">orbit_mode</span> <span class="o">==</span> <span class="s2">&quot;seq&quot;</span><span class="p">:</span>
-            <span class="n">os_seq_payload</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;orbit_os_seq&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">orbit_mode</span> <span class="o">==</span> <span class="s2">"seq"</span><span class="p">:</span>
+            <span class="n">os_seq_payload</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"orbit_os_seq"</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">os_seq_payload</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;orbit_mode=&#39;seq&#39; requires orbit_os_seq&quot;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"orbit_mode='seq' requires orbit_os_seq"</span><span class="p">)</span>
             <span class="n">os_seq</span> <span class="o">=</span> <span class="n">_thaw_os_hist</span><span class="p">(</span><span class="n">os_seq_payload</span><span class="p">,</span> <span class="n">ephem</span><span class="o">=</span><span class="n">ephem</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">os0_payload</span> <span class="o">=</span> <span class="n">cfg</span><span class="p">[</span><span class="s2">&quot;os0_payload&quot;</span><span class="p">]</span>
+            <span class="n">os0_payload</span> <span class="o">=</span> <span class="n">cfg</span><span class="p">[</span><span class="s2">"os0_payload"</span><span class="p">]</span>
             <span class="n">key</span> <span class="o">=</span> <span class="n">_cache_key</span><span class="p">(</span><span class="n">os0_payload</span><span class="o">=</span><span class="n">os0_payload</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="n">dt</span><span class="p">,</span> <span class="n">tf</span><span class="o">=</span><span class="n">tf</span><span class="p">,</span> <span class="n">zonal_J</span><span class="o">=</span><span class="n">zonal_J</span><span class="p">,</span> <span class="n">fast</span><span class="o">=</span><span class="n">fast</span><span class="p">,</span> <span class="n">slot_id</span><span class="o">=</span><span class="n">slot_id</span><span class="p">)</span>
             <span class="n">os_seq</span> <span class="o">=</span> <span class="n">_ORBIT_CACHE</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">os_seq</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -939,10 +940,10 @@
         <span class="n">update_worker_progress</span><span class="p">(</span><span class="n">slot_id</span><span class="p">,</span> <span class="n">run_id</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="p">{</span>
-            <span class="s2">&quot;run_id&quot;</span><span class="p">:</span> <span class="n">run_id</span><span class="p">,</span>
-            <span class="s2">&quot;seed&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">cfg</span><span class="p">[</span><span class="s2">&quot;seed&quot;</span><span class="p">]),</span>
-            <span class="s2">&quot;applied&quot;</span><span class="p">:</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;applied&quot;</span><span class="p">,</span> <span class="p">{}),</span>
-            <span class="s2">&quot;results&quot;</span><span class="p">:</span> <span class="n">sim_results</span><span class="p">,</span>
+            <span class="s2">"run_id"</span><span class="p">:</span> <span class="n">run_id</span><span class="p">,</span>
+            <span class="s2">"seed"</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">cfg</span><span class="p">[</span><span class="s2">"seed"</span><span class="p">]),</span>
+            <span class="s2">"applied"</span><span class="p">:</span> <span class="n">cfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"applied"</span><span class="p">,</span> <span class="p">{}),</span>
+            <span class="s2">"results"</span><span class="p">:</span> <span class="n">sim_results</span><span class="p">,</span>
         <span class="p">}</span>
 
     <span class="k">finally</span><span class="p">:</span>
@@ -962,12 +963,12 @@
     <span class="n">os0</span><span class="p">:</span> <span class="n">Orbital_State</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
     <span class="n">tf</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">500.0</span><span class="p">,</span>
-    <span class="n">mc_config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="s2">&quot;MCConfig&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">mc_config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="s2">"MCConfig"</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">num_runs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
     <span class="n">max_workers</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">base_seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SimulationResults</span><span class="p">:</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Run a Monte Carlo ensemble of ADCS simulations using parallel workers.</span>
 
 <span class="sd">    This function generates ``num_runs`` independent simulation configurations by</span>
@@ -996,7 +997,7 @@
 
 <span class="sd">    :param x:</span>
 <span class="sd">        Base initial true satellite state. Its ``h`` length must match the</span>
-<span class="sd">        satellite&#39;s reaction-wheel count.</span>
+<span class="sd">        satellite's reaction-wheel count.</span>
 <span class="sd">        Per-run overrides may be applied by ``mc_config``.</span>
 <span class="sd">    :type x:</span>
 <span class="sd">        ADCS.state.State</span>
@@ -1095,28 +1096,28 @@
 <span class="sd">    :rtype:</span>
 <span class="sd">        :class:`~ADCS.helpers.simresults.SimulationResults`</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">if</span> <span class="n">os0</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;os0 must be provided to simulate_mc().&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"os0 must be provided to simulate_mc()."</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">State</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;x must be a State, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"x must be a State, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">as_array</span><span class="p">()</span><span class="o">.</span><span class="n">size</span> <span class="o">!=</span> <span class="n">satellite</span><span class="o">.</span><span class="n">state_len</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">&quot;Initial state length </span><span class="si">{</span><span class="n">x</span><span class="o">.</span><span class="n">as_array</span><span class="p">()</span><span class="o">.</span><span class="n">size</span><span class="si">}</span><span class="s2"> does not match satellite state length </span><span class="si">{</span><span class="n">satellite</span><span class="o">.</span><span class="n">state_len</span><span class="si">}</span><span class="s2">. &quot;</span>
-            <span class="sa">f</span><span class="s2">&quot;It must be 7 + N_rw.&quot;</span>
+            <span class="sa">f</span><span class="s2">"Initial state length </span><span class="si">{</span><span class="n">x</span><span class="o">.</span><span class="n">as_array</span><span class="p">()</span><span class="o">.</span><span class="n">size</span><span class="si">}</span><span class="s2"> does not match satellite state length </span><span class="si">{</span><span class="n">satellite</span><span class="o">.</span><span class="n">state_len</span><span class="si">}</span><span class="s2">. "</span>
+            <span class="sa">f</span><span class="s2">"It must be 7 + N_rw."</span>
         <span class="p">)</span>
 
-    <span class="n">_picklable</span><span class="p">(</span><span class="s2">&quot;satellite&quot;</span><span class="p">,</span> <span class="n">satellite</span><span class="p">)</span>
+    <span class="n">_picklable</span><span class="p">(</span><span class="s2">"satellite"</span><span class="p">,</span> <span class="n">satellite</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">est_satellite</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">_picklable</span><span class="p">(</span><span class="s2">&quot;est_satellite&quot;</span><span class="p">,</span> <span class="n">est_satellite</span><span class="p">)</span>
+        <span class="n">_picklable</span><span class="p">(</span><span class="s2">"est_satellite"</span><span class="p">,</span> <span class="n">est_satellite</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">controller</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">_picklable</span><span class="p">(</span><span class="s2">&quot;controller&quot;</span><span class="p">,</span> <span class="n">controller</span><span class="p">)</span>
+        <span class="n">_picklable</span><span class="p">(</span><span class="s2">"controller"</span><span class="p">,</span> <span class="n">controller</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">estimator</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">_picklable</span><span class="p">(</span><span class="s2">&quot;estimator&quot;</span><span class="p">,</span> <span class="n">estimator</span><span class="p">)</span>
+        <span class="n">_picklable</span><span class="p">(</span><span class="s2">"estimator"</span><span class="p">,</span> <span class="n">estimator</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">orbit_estimator</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">_picklable</span><span class="p">(</span><span class="s2">&quot;orbit_estimator&quot;</span><span class="p">,</span> <span class="n">orbit_estimator</span><span class="p">)</span>
+        <span class="n">_picklable</span><span class="p">(</span><span class="s2">"orbit_estimator"</span><span class="p">,</span> <span class="n">orbit_estimator</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">goal</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">_picklable</span><span class="p">(</span><span class="s2">&quot;goal&quot;</span><span class="p">,</span> <span class="n">goal</span><span class="p">)</span>
+        <span class="n">_picklable</span><span class="p">(</span><span class="s2">"goal"</span><span class="p">,</span> <span class="n">goal</span><span class="p">)</span>
 
     <span class="n">x_base</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
     <span class="n">os0_base_payload</span> <span class="o">=</span> <span class="n">_freeze_os0</span><span class="p">(</span><span class="n">os0</span><span class="p">)</span>
@@ -1132,98 +1133,98 @@
         <span class="n">applied</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
 
         <span class="k">if</span> <span class="n">mc_config</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">v</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">mc_config</span><span class="p">,</span> <span class="s2">&quot;dt&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="n">v</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">mc_config</span><span class="p">,</span> <span class="s2">"dt"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">dt_i</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">_sample</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">rng</span><span class="p">))</span>
-                <span class="n">applied</span><span class="p">[</span><span class="s2">&quot;dt&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">dt_i</span>
+                <span class="n">applied</span><span class="p">[</span><span class="s2">"dt"</span><span class="p">]</span> <span class="o">=</span> <span class="n">dt_i</span>
 
-            <span class="n">v</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">mc_config</span><span class="p">,</span> <span class="s2">&quot;tf&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="n">v</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">mc_config</span><span class="p">,</span> <span class="s2">"tf"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">tf_i</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">_sample</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">rng</span><span class="p">))</span>
-                <span class="n">applied</span><span class="p">[</span><span class="s2">&quot;tf&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf_i</span>
+                <span class="n">applied</span><span class="p">[</span><span class="s2">"tf"</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf_i</span>
 
-            <span class="n">v</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">mc_config</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="n">v</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">mc_config</span><span class="p">,</span> <span class="s2">"w"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">w</span> <span class="o">=</span> <span class="n">_as_1d_float</span><span class="p">(</span><span class="n">_sample</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">rng</span><span class="p">),</span> <span class="mi">3</span><span class="p">,</span> <span class="s2">&quot;mc_config.w&quot;</span><span class="p">)</span>
+                <span class="n">w</span> <span class="o">=</span> <span class="n">_as_1d_float</span><span class="p">(</span><span class="n">_sample</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">rng</span><span class="p">),</span> <span class="mi">3</span><span class="p">,</span> <span class="s2">"mc_config.w"</span><span class="p">)</span>
                 <span class="n">x0_i</span><span class="o">.</span><span class="n">w</span> <span class="o">=</span> <span class="n">w</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-                <span class="n">applied</span><span class="p">[</span><span class="s2">&quot;w&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">w</span>
+                <span class="n">applied</span><span class="p">[</span><span class="s2">"w"</span><span class="p">]</span> <span class="o">=</span> <span class="n">w</span>
 
-            <span class="n">v</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">mc_config</span><span class="p">,</span> <span class="s2">&quot;q&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="n">v</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">mc_config</span><span class="p">,</span> <span class="s2">"q"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">q</span> <span class="o">=</span> <span class="n">_as_1d_float</span><span class="p">(</span><span class="n">_sample</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">rng</span><span class="p">),</span> <span class="mi">4</span><span class="p">,</span> <span class="s2">&quot;mc_config.q&quot;</span><span class="p">)</span>
+                <span class="n">q</span> <span class="o">=</span> <span class="n">_as_1d_float</span><span class="p">(</span><span class="n">_sample</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">rng</span><span class="p">),</span> <span class="mi">4</span><span class="p">,</span> <span class="s2">"mc_config.q"</span><span class="p">)</span>
                 <span class="n">x0_i</span><span class="o">.</span><span class="n">q</span> <span class="o">=</span> <span class="n">q</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-                <span class="n">applied</span><span class="p">[</span><span class="s2">&quot;q&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">q</span>
+                <span class="n">applied</span><span class="p">[</span><span class="s2">"q"</span><span class="p">]</span> <span class="o">=</span> <span class="n">q</span>
 
-            <span class="n">v</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">mc_config</span><span class="p">,</span> <span class="s2">&quot;h&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="n">v</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">mc_config</span><span class="p">,</span> <span class="s2">"h"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">h</span> <span class="o">=</span> <span class="n">_as_1d_float</span><span class="p">(</span><span class="n">_sample</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">rng</span><span class="p">),</span> <span class="n">x0_i</span><span class="o">.</span><span class="n">h</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="s2">&quot;mc_config.h&quot;</span><span class="p">)</span>
+                <span class="n">h</span> <span class="o">=</span> <span class="n">_as_1d_float</span><span class="p">(</span><span class="n">_sample</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">rng</span><span class="p">),</span> <span class="n">x0_i</span><span class="o">.</span><span class="n">h</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="s2">"mc_config.h"</span><span class="p">)</span>
                 <span class="n">x0_i</span><span class="o">.</span><span class="n">h</span> <span class="o">=</span> <span class="n">h</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-                <span class="n">applied</span><span class="p">[</span><span class="s2">&quot;h&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">h</span>
+                <span class="n">applied</span><span class="p">[</span><span class="s2">"h"</span><span class="p">]</span> <span class="o">=</span> <span class="n">h</span>
 
-            <span class="n">v</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">mc_config</span><span class="p">,</span> <span class="s2">&quot;goal&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="n">v</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">mc_config</span><span class="p">,</span> <span class="s2">"goal"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">goal_i</span> <span class="o">=</span> <span class="n">_sample</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">rng</span><span class="p">)</span>
-                <span class="n">applied</span><span class="p">[</span><span class="s2">&quot;goal&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">goal_i</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span> <span class="k">if</span> <span class="n">goal_i</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
+                <span class="n">applied</span><span class="p">[</span><span class="s2">"goal"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">goal_i</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span> <span class="k">if</span> <span class="n">goal_i</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
 
         <span class="k">if</span> <span class="n">goal_i</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">_picklable</span><span class="p">(</span><span class="s2">&quot;goal(run)&quot;</span><span class="p">,</span> <span class="n">goal_i</span><span class="p">)</span>
+            <span class="n">_picklable</span><span class="p">(</span><span class="s2">"goal(run)"</span><span class="p">,</span> <span class="n">goal_i</span><span class="p">)</span>
 
-        <span class="n">orbit_mode</span> <span class="o">=</span> <span class="s2">&quot;os0&quot;</span>
+        <span class="n">orbit_mode</span> <span class="o">=</span> <span class="s2">"os0"</span>
         <span class="n">os0_payload</span> <span class="o">=</span> <span class="n">os0_base_payload</span>
         <span class="n">orbit_os_seq</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span>
 
         <span class="n">orbit_override</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="n">mc_config</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">orbit_override</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">mc_config</span><span class="p">,</span> <span class="s2">&quot;orbit&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="n">orbit_override</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">mc_config</span><span class="p">,</span> <span class="s2">"orbit"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">orbit_override</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">orbit_override</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">mc_config</span><span class="p">,</span> <span class="s2">&quot;os0&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+                <span class="n">orbit_override</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">mc_config</span><span class="p">,</span> <span class="s2">"os0"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">orbit_override</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">ov</span> <span class="o">=</span> <span class="n">_sample</span><span class="p">(</span><span class="n">orbit_override</span><span class="p">,</span> <span class="n">rng</span><span class="p">)</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ov</span><span class="p">,</span> <span class="n">Orbit</span><span class="p">):</span>
                 <span class="k">with</span> <span class="n">suppress_output</span><span class="p">():</span>
-                    <span class="n">orbit_os_seq</span> <span class="o">=</span> <span class="n">_orbit_seq_from_orbit_obj</span><span class="p">(</span><span class="n">ov</span><span class="p">,</span> <span class="n">start_J2000</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">os0_payload</span><span class="p">[</span><span class="s2">&quot;J2000&quot;</span><span class="p">]),</span> <span class="n">dt</span><span class="o">=</span><span class="n">dt_i</span><span class="p">,</span> <span class="n">tf</span><span class="o">=</span><span class="n">tf_i</span><span class="p">)</span>
-                <span class="n">orbit_mode</span> <span class="o">=</span> <span class="s2">&quot;seq&quot;</span>
+                    <span class="n">orbit_os_seq</span> <span class="o">=</span> <span class="n">_orbit_seq_from_orbit_obj</span><span class="p">(</span><span class="n">ov</span><span class="p">,</span> <span class="n">start_J2000</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">os0_payload</span><span class="p">[</span><span class="s2">"J2000"</span><span class="p">]),</span> <span class="n">dt</span><span class="o">=</span><span class="n">dt_i</span><span class="p">,</span> <span class="n">tf</span><span class="o">=</span><span class="n">tf_i</span><span class="p">)</span>
+                <span class="n">orbit_mode</span> <span class="o">=</span> <span class="s2">"seq"</span>
             <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ov</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
                 <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ov</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;orbit override list is empty&quot;</span><span class="p">)</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"orbit override list is empty"</span><span class="p">)</span>
                 <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ov</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">dict</span><span class="p">):</span>
                     <span class="n">orbit_os_seq</span> <span class="o">=</span> <span class="n">ov</span>
                 <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ov</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">Orbital_State</span><span class="p">):</span>
                     <span class="n">orbit_os_seq</span> <span class="o">=</span> <span class="p">[</span><span class="n">os_i</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span> <span class="k">for</span> <span class="n">os_i</span> <span class="ow">in</span> <span class="n">ov</span><span class="p">]</span>
                 <span class="k">else</span><span class="p">:</span>
-                    <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;orbit override list must contain dict or Orbital_State&quot;</span><span class="p">)</span>
-                <span class="n">orbit_mode</span> <span class="o">=</span> <span class="s2">&quot;seq&quot;</span>
+                    <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">"orbit override list must contain dict or Orbital_State"</span><span class="p">)</span>
+                <span class="n">orbit_mode</span> <span class="o">=</span> <span class="s2">"seq"</span>
             <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ov</span><span class="p">,</span> <span class="n">Orbital_State</span><span class="p">):</span>
                 <span class="n">os0_payload</span> <span class="o">=</span> <span class="n">ov</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
-                <span class="n">orbit_mode</span> <span class="o">=</span> <span class="s2">&quot;os0&quot;</span>
-            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ov</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">and</span> <span class="s2">&quot;J2000&quot;</span> <span class="ow">in</span> <span class="n">ov</span> <span class="ow">and</span> <span class="s2">&quot;R&quot;</span> <span class="ow">in</span> <span class="n">ov</span> <span class="ow">and</span> <span class="s2">&quot;V&quot;</span> <span class="ow">in</span> <span class="n">ov</span><span class="p">:</span>
+                <span class="n">orbit_mode</span> <span class="o">=</span> <span class="s2">"os0"</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ov</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">and</span> <span class="s2">"J2000"</span> <span class="ow">in</span> <span class="n">ov</span> <span class="ow">and</span> <span class="s2">"R"</span> <span class="ow">in</span> <span class="n">ov</span> <span class="ow">and</span> <span class="s2">"V"</span> <span class="ow">in</span> <span class="n">ov</span><span class="p">:</span>
                 <span class="n">os0_payload</span> <span class="o">=</span> <span class="n">ov</span>
-                <span class="n">orbit_mode</span> <span class="o">=</span> <span class="s2">&quot;os0&quot;</span>
+                <span class="n">orbit_mode</span> <span class="o">=</span> <span class="s2">"os0"</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;orbit/os0 override must be Orbit, Orbital_State, list, or Orbital_State dict&quot;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">"orbit/os0 override must be Orbit, Orbital_State, list, or Orbital_State dict"</span><span class="p">)</span>
 
         <span class="n">cfg</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s2">&quot;run_id&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">run_id</span><span class="p">),</span>
-            <span class="s2">&quot;seed&quot;</span><span class="p">:</span> <span class="n">seed</span><span class="p">,</span>
-            <span class="s2">&quot;applied&quot;</span><span class="p">:</span> <span class="n">applied</span><span class="p">,</span>
-            <span class="s2">&quot;x0&quot;</span><span class="p">:</span> <span class="n">x0_i</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(),</span>
-            <span class="s2">&quot;dt&quot;</span><span class="p">:</span> <span class="n">dt_i</span><span class="p">,</span>
-            <span class="s2">&quot;tf&quot;</span><span class="p">:</span> <span class="n">tf_i</span><span class="p">,</span>
-            <span class="s2">&quot;goal&quot;</span><span class="p">:</span> <span class="n">goal_i</span><span class="p">,</span>
-            <span class="s2">&quot;orbit_mode&quot;</span><span class="p">:</span> <span class="n">orbit_mode</span><span class="p">,</span>
-            <span class="s2">&quot;os0_payload&quot;</span><span class="p">:</span> <span class="n">os0_payload</span><span class="p">,</span>
-            <span class="s2">&quot;orbit_zonal_J&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
-            <span class="s2">&quot;orbit_fast&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
-            <span class="s2">&quot;satellite&quot;</span><span class="p">:</span> <span class="n">satellite</span><span class="p">,</span>
-            <span class="s2">&quot;est_satellite&quot;</span><span class="p">:</span> <span class="n">est_satellite</span><span class="p">,</span>
-            <span class="s2">&quot;controller&quot;</span><span class="p">:</span> <span class="n">controller</span><span class="p">,</span>
-            <span class="s2">&quot;estimator&quot;</span><span class="p">:</span> <span class="n">estimator</span><span class="p">,</span>
-            <span class="s2">&quot;orbit_estimator&quot;</span><span class="p">:</span> <span class="n">orbit_estimator</span><span class="p">,</span>
+            <span class="s2">"run_id"</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">run_id</span><span class="p">),</span>
+            <span class="s2">"seed"</span><span class="p">:</span> <span class="n">seed</span><span class="p">,</span>
+            <span class="s2">"applied"</span><span class="p">:</span> <span class="n">applied</span><span class="p">,</span>
+            <span class="s2">"x0"</span><span class="p">:</span> <span class="n">x0_i</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(),</span>
+            <span class="s2">"dt"</span><span class="p">:</span> <span class="n">dt_i</span><span class="p">,</span>
+            <span class="s2">"tf"</span><span class="p">:</span> <span class="n">tf_i</span><span class="p">,</span>
+            <span class="s2">"goal"</span><span class="p">:</span> <span class="n">goal_i</span><span class="p">,</span>
+            <span class="s2">"orbit_mode"</span><span class="p">:</span> <span class="n">orbit_mode</span><span class="p">,</span>
+            <span class="s2">"os0_payload"</span><span class="p">:</span> <span class="n">os0_payload</span><span class="p">,</span>
+            <span class="s2">"orbit_zonal_J"</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+            <span class="s2">"orbit_fast"</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="s2">"satellite"</span><span class="p">:</span> <span class="n">satellite</span><span class="p">,</span>
+            <span class="s2">"est_satellite"</span><span class="p">:</span> <span class="n">est_satellite</span><span class="p">,</span>
+            <span class="s2">"controller"</span><span class="p">:</span> <span class="n">controller</span><span class="p">,</span>
+            <span class="s2">"estimator"</span><span class="p">:</span> <span class="n">estimator</span><span class="p">,</span>
+            <span class="s2">"orbit_estimator"</span><span class="p">:</span> <span class="n">orbit_estimator</span><span class="p">,</span>
         <span class="p">}</span>
 
-        <span class="k">if</span> <span class="n">orbit_mode</span> <span class="o">==</span> <span class="s2">&quot;seq&quot;</span><span class="p">:</span>
-            <span class="n">cfg</span><span class="p">[</span><span class="s2">&quot;orbit_os_seq&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">orbit_os_seq</span>
+        <span class="k">if</span> <span class="n">orbit_mode</span> <span class="o">==</span> <span class="s2">"seq"</span><span class="p">:</span>
+            <span class="n">cfg</span><span class="p">[</span><span class="s2">"orbit_os_seq"</span><span class="p">]</span> <span class="o">=</span> <span class="n">orbit_os_seq</span>
 
         <span class="k">return</span> <span class="n">cfg</span>
 
@@ -1237,18 +1238,18 @@
     <span class="n">raw</span> <span class="o">=</span> <span class="n">runner</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
     <span class="n">cleaned</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[</span>
         <span class="n">r</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">raw</span>
-        <span class="k">if</span> <span class="n">r</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">and</span> <span class="n">r</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;results&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">r</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">and</span> <span class="n">r</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"results"</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
     <span class="p">]</span>
 
     <span class="n">ephem</span> <span class="o">=</span> <span class="n">Ephemeris</span><span class="p">()</span>
     <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">cleaned</span><span class="p">:</span>
-        <span class="n">res</span> <span class="o">=</span> <span class="n">item</span><span class="p">[</span><span class="s2">&quot;results&quot;</span><span class="p">]</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">item</span><span class="p">[</span><span class="s2">"results"</span><span class="p">]</span>
         <span class="n">res</span><span class="o">.</span><span class="n">os_hist</span> <span class="o">=</span> <span class="n">_thaw_os_hist</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">os_hist</span><span class="p">,</span> <span class="n">ephem</span><span class="o">=</span><span class="n">ephem</span><span class="p">)</span>
         <span class="n">res</span><span class="o">.</span><span class="n">est_os_hist</span> <span class="o">=</span> <span class="n">_thaw_os_hist</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">est_os_hist</span><span class="p">,</span> <span class="n">ephem</span><span class="o">=</span><span class="n">ephem</span><span class="p">)</span>
 
-    <span class="n">runs</span> <span class="o">=</span> <span class="p">[</span><span class="n">entry</span><span class="p">[</span><span class="s2">&quot;results&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">cleaned</span><span class="p">]</span>
-    <span class="n">configs</span> <span class="o">=</span> <span class="p">[</span><span class="n">entry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;applied&quot;</span><span class="p">,</span> <span class="p">{})</span> <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">cleaned</span><span class="p">]</span>
-    <span class="n">run_ids</span> <span class="o">=</span> <span class="p">[</span><span class="n">entry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;run_id&quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">cleaned</span><span class="p">]</span>
+    <span class="n">runs</span> <span class="o">=</span> <span class="p">[</span><span class="n">entry</span><span class="p">[</span><span class="s2">"results"</span><span class="p">]</span> <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">cleaned</span><span class="p">]</span>
+    <span class="n">configs</span> <span class="o">=</span> <span class="p">[</span><span class="n">entry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"applied"</span><span class="p">,</span> <span class="p">{})</span> <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">cleaned</span><span class="p">]</span>
+    <span class="n">run_ids</span> <span class="o">=</span> <span class="p">[</span><span class="n">entry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"run_id"</span><span class="p">)</span> <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">cleaned</span><span class="p">]</span>
 
     <span class="k">return</span> <span class="n">SimulationResults</span><span class="p">(</span><span class="n">runs</span><span class="o">=</span><span class="n">runs</span><span class="p">,</span> <span class="n">configs</span><span class="o">=</span><span class="n">configs</span><span class="p">,</span> <span class="n">run_ids</span><span class="o">=</span><span class="n">run_ids</span><span class="p">)</span></div>
 

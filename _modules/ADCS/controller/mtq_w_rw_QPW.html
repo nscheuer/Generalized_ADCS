@@ -228,6 +228,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_8_installable.html">0.1.8 Installable from PyPI (2026-08-05)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
@@ -539,7 +540,7 @@
         </div>
         <article role="main" id="furo-main-content">
           <h1>Source code for ADCS.controller.mtq_w_rw_QPW</h1><div class="highlight"><pre>
-<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;MTQ_w_RW_QPW&quot;</span><span class="p">]</span>
+<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"MTQ_w_RW_QPW"</span><span class="p">]</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
@@ -561,7 +562,7 @@
 <div class="viewcode-block" id="MTQ_w_RW_QPW">
 <a class="viewcode-back" href="../../../ADCS.controller.mtq_w_rw_QPW.html#ADCS.controller.mtq_w_rw_QPW.MTQ_w_RW_QPW">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">MTQ_w_RW_QPW</span><span class="p">(</span><span class="n">MTQ_w_RW_LP</span><span class="p">):</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Weighted Quadratic–Programming Torque Allocation for Mixed RW–MTQ ADCS.</span>
 
 <span class="sd">    This controller implements a weighted bounded least-squares (WLS) torque allocator for a</span>
@@ -718,9 +719,9 @@
 <span class="sd">    :param h_target: Target wheel momentum vector used by the parent mixed-actuation controller.</span>
 <span class="sd">    :type h_target: numpy.ndarray | list</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">est_sat</span><span class="p">:</span> <span class="n">EstimatedSatellite</span><span class="p">,</span> <span class="n">p_gain</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">d_gain</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">c_gain</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">h_target</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="nb">list</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">3</span><span class="p">))</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Initialize the direction-weighted QP torque allocator.</span>
 
 <span class="sd">        This initializer delegates base controller initialization to</span>
@@ -740,13 +741,13 @@
 <span class="sd">        :return: None.</span>
 <span class="sd">        :rtype: NoneType</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">est_sat</span><span class="o">=</span><span class="n">est_sat</span><span class="p">,</span> <span class="n">p_gain</span><span class="o">=</span><span class="n">p_gain</span><span class="p">,</span> <span class="n">d_gain</span><span class="o">=</span><span class="n">d_gain</span><span class="p">,</span> <span class="n">c_gain</span><span class="o">=</span><span class="n">c_gain</span><span class="p">,</span> <span class="n">h_target</span><span class="o">=</span><span class="n">h_target</span><span class="p">)</span>
 
 <div class="viewcode-block" id="MTQ_w_RW_QPW.allocate_max_torque_in_direction">
 <a class="viewcode-back" href="../../../ADCS.controller.mtq_w_rw_QPW.html#ADCS.controller.mtq_w_rw_QPW.MTQ_w_RW_QPW.allocate_max_torque_in_direction">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">allocate_max_torque_in_direction</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tau_des</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">b_body</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">est_sat</span><span class="p">:</span> <span class="n">EstimatedSatellite</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Allocate bounded RW and MTQ commands using direction-weighted least squares.</span>
 
 <span class="sd">        The method builds the combined actuator influence matrix</span>
@@ -824,7 +825,7 @@
 <span class="sd">        :return: Tuple of RW commands, MTQ commands, and effectiveness scalar :math:`\alpha`.</span>
 <span class="sd">        :rtype: tuple[numpy.ndarray, numpy.ndarray, float]</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">tau_des</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">tau_des</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">3</span><span class="p">,)</span>
         <span class="n">t_mag</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">tau_des</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">t_mag</span> <span class="o">&lt;</span> <span class="mf">1e-9</span><span class="p">:</span>
@@ -883,7 +884,7 @@
         <span class="n">A_w</span> <span class="o">=</span> <span class="n">W</span> <span class="o">@</span> <span class="n">A_total</span>
         <span class="n">b_w</span> <span class="o">=</span> <span class="n">W</span> <span class="o">@</span> <span class="n">tau_des</span>
 
-        <span class="n">res</span> <span class="o">=</span> <span class="n">lsq_linear</span><span class="p">(</span><span class="n">A_w</span><span class="p">,</span> <span class="n">b_w</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="p">(</span><span class="n">lb</span><span class="p">,</span> <span class="n">ub</span><span class="p">),</span> <span class="n">method</span><span class="o">=</span><span class="s2">&quot;trf&quot;</span><span class="p">)</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">lsq_linear</span><span class="p">(</span><span class="n">A_w</span><span class="p">,</span> <span class="n">b_w</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="p">(</span><span class="n">lb</span><span class="p">,</span> <span class="n">ub</span><span class="p">),</span> <span class="n">method</span><span class="o">=</span><span class="s2">"trf"</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="n">res</span><span class="o">.</span><span class="n">success</span><span class="p">:</span>
             <span class="c1"># fall back: best effort (still keep shape)</span>
@@ -891,7 +892,7 @@
 
         <span class="n">u_sol</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">x</span>  <span class="c1"># length n_act</span>
 
-        <span class="c1"># 4) Compute alpha as &quot;how much of tau_des magnitude you achieved along its direction&quot;</span>
+        <span class="c1"># 4) Compute alpha as "how much of tau_des magnitude you achieved along its direction"</span>
         <span class="n">tau_ach</span> <span class="o">=</span> <span class="n">A_total</span> <span class="o">@</span> <span class="n">u_sol</span>
         <span class="n">tau_hat</span> <span class="o">=</span> <span class="n">tau_des</span> <span class="o">/</span> <span class="p">(</span><span class="n">t_mag</span> <span class="o">+</span> <span class="mf">1e-12</span><span class="p">)</span>
         <span class="n">T_along</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">tau_ach</span><span class="p">,</span> <span class="n">tau_hat</span><span class="p">))</span>          <span class="c1"># signed magnitude along desired direction</span>

@@ -228,6 +228,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_8_installable.html">0.1.8 Installable from PyPI (2026-08-05)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
@@ -539,7 +540,7 @@
         </div>
         <article role="main" id="furo-main-content">
           <h1>Source code for ADCS.mc.monte_carlo_runner</h1><div class="highlight"><pre>
-<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;MonteCarloRunner&quot;</span><span class="p">,</span> <span class="s2">&quot;claim_worker_slot&quot;</span><span class="p">,</span> <span class="s2">&quot;release_worker_slot&quot;</span><span class="p">,</span> <span class="s2">&quot;update_worker_progress&quot;</span><span class="p">]</span>
+<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"MonteCarloRunner"</span><span class="p">,</span> <span class="s2">"claim_worker_slot"</span><span class="p">,</span> <span class="s2">"release_worker_slot"</span><span class="p">,</span> <span class="s2">"update_worker_progress"</span><span class="p">]</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">multiprocessing</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">queue</span>
@@ -558,7 +559,7 @@
 <span class="n">_WORKER_SLOT_Q</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">multiprocessing</span><span class="o">.</span><span class="n">Queue</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_worker_init</span><span class="p">(</span><span class="n">progress_q</span><span class="p">,</span> <span class="n">slot_q</span><span class="p">):</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Initialize per-process global state for worker processes.</span>
 
 <span class="sd">    This initializer is executed **once per worker process** when the</span>
@@ -585,7 +586,7 @@
 <span class="sd">    :return: None</span>
 <span class="sd">    :rtype: None</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">global</span> <span class="n">_WORKER_PROGRESS_Q</span><span class="p">,</span> <span class="n">_WORKER_SLOT_Q</span>
     <span class="n">_WORKER_PROGRESS_Q</span> <span class="o">=</span> <span class="n">progress_q</span>
     <span class="n">_WORKER_SLOT_Q</span> <span class="o">=</span> <span class="n">slot_q</span>
@@ -593,7 +594,7 @@
 <div class="viewcode-block" id="claim_worker_slot">
 <a class="viewcode-back" href="../../../ADCS.mc.monte_carlo_runner.html#ADCS.mc.monte_carlo_runner.claim_worker_slot">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">claim_worker_slot</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Claim an exclusive UI slot identifier for the calling worker.</span>
 
 <span class="sd">    Each worker retrieves a unique integer token from the shared slot queue</span>
@@ -613,7 +614,7 @@
 <span class="sd">    :return: Allocated slot identifier, or ``-1`` if unavailable.</span>
 <span class="sd">    :rtype: int</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">if</span> <span class="n">_WORKER_SLOT_Q</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="o">-</span><span class="mi">1</span>
     <span class="k">return</span> <span class="n">_WORKER_SLOT_Q</span><span class="o">.</span><span class="n">get</span><span class="p">()</span></div>
@@ -622,7 +623,7 @@
 <div class="viewcode-block" id="release_worker_slot">
 <a class="viewcode-back" href="../../../ADCS.mc.monte_carlo_runner.html#ADCS.mc.monte_carlo_runner.release_worker_slot">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">release_worker_slot</span><span class="p">(</span><span class="n">slot_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Release a previously claimed UI slot back to the pool.</span>
 
 <span class="sd">    This function returns the given slot identifier to the shared slot queue</span>
@@ -643,7 +644,7 @@
 <span class="sd">    :return: None</span>
 <span class="sd">    :rtype: None</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">if</span> <span class="n">_WORKER_SLOT_Q</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">slot_id</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
         <span class="n">_WORKER_SLOT_Q</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">slot_id</span><span class="p">)</span></div>
 
@@ -651,7 +652,7 @@
 <div class="viewcode-block" id="update_worker_progress">
 <a class="viewcode-back" href="../../../ADCS.mc.monte_carlo_runner.html#ADCS.mc.monte_carlo_runner.update_worker_progress">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">update_worker_progress</span><span class="p">(</span><span class="n">slot_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">run_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">step</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">total</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Send a progress update from a worker to the main dashboard.</span>
 
 <span class="sd">    This function emits a tuple describing the current simulation state into</span>
@@ -692,7 +693,7 @@
 <span class="sd">    :return: None</span>
 <span class="sd">    :rtype: None</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">if</span> <span class="n">_WORKER_PROGRESS_Q</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">slot_id</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
         <span class="n">_WORKER_PROGRESS_Q</span><span class="o">.</span><span class="n">put</span><span class="p">((</span><span class="n">slot_id</span><span class="p">,</span> <span class="n">run_id</span><span class="p">,</span> <span class="n">step</span><span class="p">,</span> <span class="n">total</span><span class="p">))</span></div>
 
@@ -700,7 +701,7 @@
 <div class="viewcode-block" id="MonteCarloRunner">
 <a class="viewcode-back" href="../../../ADCS.mc.monte_carlo_runner.html#ADCS.mc.monte_carlo_runner.MonteCarloRunner">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">MonteCarloRunner</span><span class="p">:</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Parallel Monte Carlo simulation orchestrator with live Rich dashboard.</span>
 
 <span class="sd">    This class manages the execution of :math:`N` independent Monte Carlo</span>
@@ -733,7 +734,7 @@
 <span class="sd">    :param max_workers: Maximum number of worker processes.</span>
 <span class="sd">    :type max_workers: int</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> 
                  <span class="n">sim_func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span> 
                  <span class="n">config_generator</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">int</span><span class="p">],</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span> 
@@ -747,7 +748,7 @@
 <div class="viewcode-block" id="MonteCarloRunner.run">
 <a class="viewcode-back" href="../../../ADCS.mc.monte_carlo_runner.html#ADCS.mc.monte_carlo_runner.MonteCarloRunner.run">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Execute the Monte Carlo campaign and render the live dashboard.</span>
 
 <span class="sd">        This method performs the full simulation lifecycle:</span>
@@ -779,7 +780,7 @@
 <span class="sd">        :return: List of simulation results in submission order.</span>
 <span class="sd">        :rtype: List[Dict[str, Any]]</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">manager</span> <span class="o">=</span> <span class="n">multiprocessing</span><span class="o">.</span><span class="n">Manager</span><span class="p">()</span>
         <span class="n">progress_q</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">Queue</span><span class="p">()</span>
         <span class="n">slot_q</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">Queue</span><span class="p">()</span>
@@ -791,37 +792,37 @@
         <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
 
         <span class="n">job_progress</span> <span class="o">=</span> <span class="n">Progress</span><span class="p">(</span>
-            <span class="s2">&quot;</span><span class="si">{task.description}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="s2">"</span><span class="si">{task.description}</span><span class="s2">"</span><span class="p">,</span>
             <span class="n">BarColumn</span><span class="p">(</span><span class="n">bar_width</span><span class="o">=</span><span class="kc">None</span><span class="p">),</span>
-            <span class="s2">&quot;</span><span class="si">{task.percentage:&gt;3.0f}</span><span class="s2">%&quot;</span><span class="p">,</span>
+            <span class="s2">"</span><span class="si">{task.percentage:&gt;3.0f}</span><span class="s2">%"</span><span class="p">,</span>
             <span class="n">TimeRemainingColumn</span><span class="p">(),</span>
             <span class="n">expand</span><span class="o">=</span><span class="kc">True</span>
         <span class="p">)</span>
 
         <span class="n">slot_task_ids</span> <span class="o">=</span> <span class="p">{}</span> 
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_workers</span><span class="p">):</span>
-            <span class="n">tid</span> <span class="o">=</span> <span class="n">job_progress</span><span class="o">.</span><span class="n">add_task</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[dim]Core </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2"> Idle[/dim]&quot;</span><span class="p">,</span> <span class="n">total</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">visible</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="n">tid</span> <span class="o">=</span> <span class="n">job_progress</span><span class="o">.</span><span class="n">add_task</span><span class="p">(</span><span class="sa">f</span><span class="s2">"[dim]Core </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2"> Idle[/dim]"</span><span class="p">,</span> <span class="n">total</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">visible</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
             <span class="n">slot_task_ids</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">tid</span>
 
         <span class="n">overall_progress</span> <span class="o">=</span> <span class="n">Progress</span><span class="p">(</span>
-            <span class="n">TextColumn</span><span class="p">(</span><span class="s2">&quot;[bold blue]Total Progress&quot;</span><span class="p">),</span>
+            <span class="n">TextColumn</span><span class="p">(</span><span class="s2">"[bold blue]Total Progress"</span><span class="p">),</span>
             <span class="n">BarColumn</span><span class="p">(</span><span class="n">bar_width</span><span class="o">=</span><span class="mi">40</span><span class="p">),</span>
-            <span class="s2">&quot;</span><span class="si">{task.completed}</span><span class="s2">/</span><span class="si">{task.total}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="s2">"</span><span class="si">{task.completed}</span><span class="s2">/</span><span class="si">{task.total}</span><span class="s2">"</span><span class="p">,</span>
             <span class="n">TimeRemainingColumn</span><span class="p">()</span>
         <span class="p">)</span>
-        <span class="n">overall_task</span> <span class="o">=</span> <span class="n">overall_progress</span><span class="o">.</span><span class="n">add_task</span><span class="p">(</span><span class="s2">&quot;Campaign&quot;</span><span class="p">,</span> <span class="n">total</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">num_runs</span><span class="p">)</span>
+        <span class="n">overall_task</span> <span class="o">=</span> <span class="n">overall_progress</span><span class="o">.</span><span class="n">add_task</span><span class="p">(</span><span class="s2">"Campaign"</span><span class="p">,</span> <span class="n">total</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">num_runs</span><span class="p">)</span>
 
         <span class="n">dashboard</span> <span class="o">=</span> <span class="n">Group</span><span class="p">(</span>
-            <span class="n">Panel</span><span class="p">(</span><span class="n">job_progress</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Active Cores (</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">max_workers</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">,</span> <span class="n">border_style</span><span class="o">=</span><span class="s2">&quot;blue&quot;</span><span class="p">),</span>
+            <span class="n">Panel</span><span class="p">(</span><span class="n">job_progress</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="sa">f</span><span class="s2">"Active Cores (</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">max_workers</span><span class="si">}</span><span class="s2">)"</span><span class="p">,</span> <span class="n">border_style</span><span class="o">=</span><span class="s2">"blue"</span><span class="p">),</span>
             <span class="n">overall_progress</span>
         <span class="p">)</span>
 
-        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Starting Monte Carlo: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">num_runs</span><span class="si">}</span><span class="s2"> runs on </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">max_workers</span><span class="si">}</span><span class="s2"> cores.&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Starting Monte Carlo: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">num_runs</span><span class="si">}</span><span class="s2"> runs on </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">max_workers</span><span class="si">}</span><span class="s2"> cores."</span><span class="p">)</span>
 
         <span class="k">with</span> <span class="n">Live</span><span class="p">(</span><span class="n">dashboard</span><span class="p">,</span> <span class="n">refresh_per_second</span><span class="o">=</span><span class="mi">10</span><span class="p">):</span>
             <span class="k">with</span> <span class="n">ProcessPoolExecutor</span><span class="p">(</span><span class="n">max_workers</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">max_workers</span><span class="p">,</span> <span class="n">initializer</span><span class="o">=</span><span class="n">_worker_init</span><span class="p">,</span> <span class="n">initargs</span><span class="o">=</span><span class="p">(</span><span class="n">progress_q</span><span class="p">,</span> <span class="n">slot_q</span><span class="p">))</span> <span class="k">as</span> <span class="n">executor</span><span class="p">:</span>
                 
-                <span class="n">futures</span> <span class="o">=</span> <span class="p">{</span><span class="n">executor</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sim_func</span><span class="p">,</span> <span class="n">cfg</span><span class="p">):</span> <span class="n">cfg</span><span class="p">[</span><span class="s2">&quot;run_id&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">cfg</span> <span class="ow">in</span> <span class="n">configs</span><span class="p">}</span>
+                <span class="n">futures</span> <span class="o">=</span> <span class="p">{</span><span class="n">executor</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sim_func</span><span class="p">,</span> <span class="n">cfg</span><span class="p">):</span> <span class="n">cfg</span><span class="p">[</span><span class="s2">"run_id"</span><span class="p">]</span> <span class="k">for</span> <span class="n">cfg</span> <span class="ow">in</span> <span class="n">configs</span><span class="p">}</span>
                 
                 <span class="n">completed_count</span> <span class="o">=</span> <span class="mi">0</span>
                 <span class="k">while</span> <span class="n">completed_count</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_runs</span><span class="p">:</span>
@@ -835,7 +836,7 @@
                                     <span class="n">completed</span><span class="o">=</span><span class="n">step</span><span class="p">,</span> 
                                     <span class="n">total</span><span class="o">=</span><span class="n">total_steps</span><span class="p">,</span> 
                                     <span class="n">visible</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-                                    <span class="n">description</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;[bold green]Run </span><span class="si">{</span><span class="n">run_id</span><span class="si">}</span><span class="s2">[/]&quot;</span>
+                                    <span class="n">description</span><span class="o">=</span><span class="sa">f</span><span class="s2">"[bold green]Run </span><span class="si">{</span><span class="n">run_id</span><span class="si">}</span><span class="s2">[/]"</span>
                                 <span class="p">)</span>
                         <span class="k">except</span> <span class="n">queue</span><span class="o">.</span><span class="n">Empty</span><span class="p">:</span>
                             <span class="k">break</span>
@@ -845,7 +846,7 @@
                         <span class="k">try</span><span class="p">:</span>
                             <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">result</span><span class="p">())</span>
                         <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-                            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">[!] Error in run: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">[!] Error in run: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
                             <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
                         
                         <span class="k">del</span> <span class="n">futures</span><span class="p">[</span><span class="n">f</span><span class="p">]</span>

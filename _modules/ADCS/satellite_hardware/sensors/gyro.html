@@ -228,6 +228,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../../release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_8_installable.html">0.1.8 Installable from PyPI (2026-08-05)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
@@ -539,7 +540,7 @@
         </div>
         <article role="main" id="furo-main-content">
           <h1>Source code for ADCS.satellite_hardware.sensors.gyro</h1><div class="highlight"><pre>
-<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Gyro&quot;</span><span class="p">]</span>
+<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"Gyro"</span><span class="p">]</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">.sensor</span><span class="w"> </span><span class="kn">import</span> <span class="n">Sensor</span>
 
@@ -556,7 +557,7 @@
 <div class="viewcode-block" id="Gyro">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.sensors.gyro.html#ADCS.satellite_hardware.sensors.gyro.Gyro">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">Gyro</span><span class="p">(</span><span class="n">Sensor</span><span class="p">):</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Single–axis gyroscope sensor model.</span>
 
 <span class="sd">    This class implements a body–fixed **single–axis angular rate sensor** that</span>
@@ -629,11 +630,11 @@
 <span class="sd">    * This sensor measures **angular rate only** and is not an attitude sensor.</span>
 <span class="sd">    * The angular velocity is assumed to occupy the first three elements of the</span>
 <span class="sd">      system state vector.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axis</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">sample_time</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span> <span class="n">bias</span><span class="p">:</span> <span class="n">Bias</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">noise</span><span class="p">:</span> <span class="n">Noise</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">estimate_bias</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Initialize the single–axis gyroscope sensor.</span>
 
 <span class="sd">        :param axis: Body–frame measurement axis, shape ``(3,)``.</span>
@@ -649,7 +650,7 @@
 <span class="sd">        :type estimate_bias: bool</span>
 <span class="sd">        :return: None</span>
 <span class="sd">        :rtype: None</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">axis</span> <span class="o">=</span> <span class="n">normalize</span><span class="p">(</span><span class="n">axis</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">attitude_sensor</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">sample_time</span><span class="o">=</span><span class="n">sample_time</span><span class="p">,</span> <span class="n">output_length</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="n">bias</span><span class="p">,</span> <span class="n">noise</span><span class="o">=</span><span class="n">noise</span><span class="p">,</span> <span class="n">estimate_bias</span><span class="o">=</span><span class="n">estimate_bias</span><span class="p">)</span>
@@ -657,7 +658,7 @@
 <div class="viewcode-block" id="Gyro.clean_reading">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.sensors.gyro.html#ADCS.satellite_hardware.sensors.gyro.Gyro.clean_reading">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">clean_reading</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Compute the clean (bias– and noise–free) gyroscope measurement.</span>
 
 <span class="sd">        The angular velocity is extracted from the system state vector as</span>
@@ -683,14 +684,14 @@
 <span class="sd">        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
 <span class="sd">        :return: Clean single–axis angular rate measurement.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">w</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">axis</span><span class="p">)</span></div>
 
     
 <div class="viewcode-block" id="Gyro.bias_jac">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.sensors.gyro.html#ADCS.satellite_hardware.sensors.gyro.Gyro.bias_jac">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">bias_jac</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Jacobian of the gyroscope measurement with respect to the bias state.</span>
 
 <span class="sd">        When a bias model is present, the measurement equation is</span>
@@ -722,7 +723,7 @@
 <span class="sd">        :return: ``(1, 1)`` matrix containing ``1`` if a bias model exists;</span>
 <span class="sd">                 otherwise a ``(0, 1)`` empty matrix.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bias</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">))</span>
         <span class="k">else</span><span class="p">:</span>
@@ -732,7 +733,7 @@
 <div class="viewcode-block" id="Gyro.basestate_jac">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.sensors.gyro.html#ADCS.satellite_hardware.sensors.gyro.Gyro.basestate_jac">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">basestate_jac</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Jacobian of the clean gyroscope measurement with respect to the</span>
 <span class="sd">        base (non-bias) system states.</span>
 
@@ -773,7 +774,7 @@
 <span class="sd">        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
 <span class="sd">        :return: Base–state Jacobian matrix of shape ``(7, 1)``.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">axis</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">)),</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">4</span><span class="p">,</span><span class="mi">1</span><span class="p">))])</span></div>
 </div>
 

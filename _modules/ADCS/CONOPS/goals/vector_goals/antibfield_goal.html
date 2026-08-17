@@ -228,6 +228,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../../../release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../../release_notes/0_1_8_installable.html">0.1.8 Installable from PyPI (2026-08-05)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../../release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../../release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../../release_notes/0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
@@ -539,7 +540,7 @@
         </div>
         <article role="main" id="furo-main-content">
           <h1>Source code for ADCS.CONOPS.goals.vector_goals.antibfield_goal</h1><div class="highlight"><pre>
-<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;AntiBField_Goal&quot;</span><span class="p">]</span>
+<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"AntiBField_Goal"</span><span class="p">]</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tuple</span>
@@ -551,7 +552,7 @@
 <div class="viewcode-block" id="AntiBField_Goal">
 <a class="viewcode-back" href="../../../../../ADCS.CONOPS.goals.vector_goals.antibfield_goal.html#ADCS.CONOPS.goals.vector_goals.antibfield_goal.AntiBField_Goal">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">AntiBField_Goal</span><span class="p">(</span><span class="n">Vector_Goal</span><span class="p">):</span> 
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Anti-magnetic field (anti B-field) vector goal.</span>
 
 <span class="sd">    This goal commands alignment opposite the local geomagnetic field direction expressed</span>
@@ -573,7 +574,7 @@
 
 <span class="sd">    If :math:`\dot{\mathbf{B}}_{ECI}` is not available, :math:`\boldsymbol{\omega}_{ref}` may</span>
 <span class="sd">    be set to :math:`\mathbf{0}`.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 <div class="viewcode-block" id="AntiBField_Goal.to_ref">
 <a class="viewcode-back" href="../../../../../ADCS.CONOPS.goals.vector_goals.antibfield_goal.html#ADCS.CONOPS.goals.vector_goals.antibfield_goal.AntiBField_Goal.to_ref">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">to_ref</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">os0</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>

@@ -228,6 +228,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_8_installable.html">0.1.8 Installable from PyPI (2026-08-05)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
@@ -539,7 +540,7 @@
         </div>
         <article role="main" id="furo-main-content">
           <h1>Source code for ADCS.controller.controller</h1><div class="highlight"><pre>
-<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Controller&quot;</span><span class="p">]</span>
+<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"Controller"</span><span class="p">]</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
@@ -555,7 +556,7 @@
 <div class="viewcode-block" id="Controller">
 <a class="viewcode-back" href="../../../ADCS.controller.controller.html#ADCS.controller.controller.Controller">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">Controller</span><span class="p">():</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Base abstract controller class for all ADCS control law implementations.</span>
 
 <span class="sd">    This class defines the common interface and shared utility methods required</span>
@@ -572,9 +573,9 @@
 <span class="sd">    Any concrete controller must override</span>
 <span class="sd">    :meth:`~ADCS.controller.controller.Controller.find_u`.</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">est_sat</span><span class="p">:</span> <span class="n">EstimatedSatellite</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Initializes the base controller.</span>
 
 <span class="sd">        This constructor provides a common initialization entry point for all</span>
@@ -590,14 +591,14 @@
 <span class="sd">        :return: None</span>
 <span class="sd">        :rtype: None</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">pass</span>
 
 <div class="viewcode-block" id="Controller.reaction_wheel_momentum_states">
 <a class="viewcode-back" href="../../../ADCS.controller.controller.html#ADCS.controller.controller.Controller.reaction_wheel_momentum_states">[docs]</a>
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">reaction_wheel_momentum_states</span><span class="p">(</span><span class="n">x_hat</span><span class="p">:</span> <span class="n">State</span> <span class="o">|</span> <span class="n">EstimatorState</span><span class="p">,</span> <span class="n">n_rw</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;controller&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">reaction_wheel_momentum_states</span><span class="p">(</span><span class="n">x_hat</span><span class="p">:</span> <span class="n">State</span> <span class="o">|</span> <span class="n">EstimatorState</span><span class="p">,</span> <span class="n">n_rw</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"controller"</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Return reaction-wheel momentum states with strict layout validation.</span>
 
 <span class="sd">        Controllers expect one scalar wheel-momentum state per reaction wheel,</span>
@@ -616,14 +617,14 @@
 <span class="sd">        :rtype: numpy.ndarray</span>
 <span class="sd">        :raises ValueError: If ``x_hat.h`` does not contain exactly ``n_rw`` entries.</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">if</span> <span class="n">n_rw</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;n_rw must be non-negative, got </span><span class="si">{</span><span class="n">n_rw</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"n_rw must be non-negative, got </span><span class="si">{</span><span class="n">n_rw</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
         <span class="n">h</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">x_hat</span><span class="o">.</span><span class="n">h</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">h</span><span class="o">.</span><span class="n">size</span> <span class="o">!=</span> <span class="n">n_rw</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">context</span><span class="si">}</span><span class="s2"> expected x_hat.h to contain exactly </span><span class="si">{</span><span class="n">n_rw</span><span class="si">}</span><span class="s2"> &quot;</span>
-                <span class="sa">f</span><span class="s2">&quot;reaction-wheel momentum states, got </span><span class="si">{</span><span class="n">h</span><span class="o">.</span><span class="n">size</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">context</span><span class="si">}</span><span class="s2"> expected x_hat.h to contain exactly </span><span class="si">{</span><span class="n">n_rw</span><span class="si">}</span><span class="s2"> "</span>
+                <span class="sa">f</span><span class="s2">"reaction-wheel momentum states, got </span><span class="si">{</span><span class="n">h</span><span class="o">.</span><span class="n">size</span><span class="si">}</span><span class="s2">"</span>
             <span class="p">)</span>
         <span class="k">return</span> <span class="n">h</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span></div>
 
@@ -632,7 +633,7 @@
 <div class="viewcode-block" id="Controller.find_u">
 <a class="viewcode-back" href="../../../ADCS.controller.controller.html#ADCS.controller.controller.Controller.find_u">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">find_u</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_hat</span><span class="p">:</span> <span class="n">State</span> <span class="o">|</span> <span class="n">EstimatorState</span><span class="p">,</span> <span class="n">sens</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">est_sat</span><span class="p">:</span> <span class="n">EstimatedSatellite</span><span class="p">,</span> <span class="n">os_hat</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span> <span class="n">goal</span><span class="p">:</span> <span class="n">Goal</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Computes actuator command inputs that satisfy the control objective.</span>
 
 <span class="sd">        This method defines the primary controller interface and must be</span>
@@ -670,9 +671,9 @@
 <span class="sd">        :return: Actuator command vector</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
-            <span class="s2">&quot;find_u() must be implemented in child controller classes.&quot;</span>
+            <span class="s2">"find_u() must be implemented in child controller classes."</span>
         <span class="p">)</span></div>
 
 
@@ -680,7 +681,7 @@
 <div class="viewcode-block" id="Controller.build_sensor_matrix_pinv">
 <a class="viewcode-back" href="../../../ADCS.controller.controller.html#ADCS.controller.controller.Controller.build_sensor_matrix_pinv">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">build_sensor_matrix_pinv</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sensors</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Sensor</span><span class="p">],</span> <span class="n">sensor_type</span><span class="p">:</span> <span class="n">Type</span><span class="p">[</span><span class="n">Sensor</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Constructs a sensor reconstruction matrix using a Moore–Penrose</span>
 <span class="sd">        pseudoinverse.</span>
 
@@ -705,9 +706,9 @@
 <span class="sd">        :return: Reconstruction matrix and corresponding measurement indices</span>
 <span class="sd">        :rtype: tuple[numpy.ndarray, list[int]]</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">sensor_type</span><span class="p">,</span> <span class="n">Sensor</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;sensor_type must be a subclass of Sensor, got </span><span class="si">{</span><span class="n">sensor_type</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"sensor_type must be a subclass of Sensor, got </span><span class="si">{</span><span class="n">sensor_type</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
         
         <span class="c1"># 1. Collect axes for the target sensor type and track indices</span>
         <span class="n">active_cols</span> <span class="o">=</span> <span class="p">[]</span>
@@ -728,11 +729,11 @@
                     <span class="n">active_cols</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">axis</span><span class="p">[:,</span> <span class="n">i</span><span class="p">])</span>
                     <span class="n">active_indices</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">current_idx</span> <span class="o">+</span> <span class="n">i</span><span class="p">)</span>
             
-            <span class="c1"># Always increment the index counter so the full &#39;y&#39; vector alignment is preserved</span>
+            <span class="c1"># Always increment the index counter so the full 'y' vector alignment is preserved</span>
             <span class="n">current_idx</span> <span class="o">+=</span> <span class="n">n_outputs</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="n">active_cols</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No sensors of type </span><span class="si">{</span><span class="n">sensor_type</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2"> found.&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"No sensors of type </span><span class="si">{</span><span class="n">sensor_type</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2"> found."</span><span class="p">)</span>
 
         <span class="c1"># 2. Compute the Pinv for ONLY the active sensors</span>
         <span class="c1"># A_sub shape: (3, N_active)</span>
@@ -742,11 +743,11 @@
         <span class="n">M_sub</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">pinv</span><span class="p">(</span><span class="n">A_sub</span><span class="p">)</span>
 
         <span class="c1"># 3. Create the full matrix (3, N_total) filled with zeros</span>
-        <span class="c1"># current_idx now holds the total length of &#39;y&#39;</span>
+        <span class="c1"># current_idx now holds the total length of 'y'</span>
         <span class="n">M_full</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">3</span><span class="p">,</span> <span class="n">current_idx</span><span class="p">))</span>
 
         <span class="c1"># 4. Slot the computed inverse into the correct columns</span>
-        <span class="c1"># This ensures M_full @ y only &quot;sees&quot; the relevant values</span>
+        <span class="c1"># This ensures M_full @ y only "sees" the relevant values</span>
         <span class="n">M_full</span><span class="p">[:,</span> <span class="n">active_indices</span><span class="p">]</span> <span class="o">=</span> <span class="n">M_sub</span>
 
         <span class="k">return</span> <span class="n">M_full</span><span class="p">,</span> <span class="n">active_indices</span></div>
@@ -756,7 +757,7 @@
 <div class="viewcode-block" id="Controller.build_torque_to_u_matrix_pinv">
 <a class="viewcode-back" href="../../../ADCS.controller.controller.html#ADCS.controller.controller.Controller.build_torque_to_u_matrix_pinv">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">build_torque_to_u_matrix_pinv</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">actuators</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Actuator</span><span class="p">],</span> <span class="n">actuator_type</span><span class="p">:</span> <span class="n">Type</span><span class="p">[</span><span class="n">Actuator</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Builds an actuator allocation matrix mapping desired body torque to</span>
 <span class="sd">        actuator command space.</span>
 
@@ -778,9 +779,9 @@
 <span class="sd">        :return: Allocation matrix and actuator command indices</span>
 <span class="sd">        :rtype: tuple[numpy.ndarray, list[int]]</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">actuator_type</span><span class="p">,</span> <span class="n">Actuator</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;actuator_type must be a subclass of Actuator, got </span><span class="si">{</span><span class="n">actuator_type</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"actuator_type must be a subclass of Actuator, got </span><span class="si">{</span><span class="n">actuator_type</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
         
         <span class="n">active_cols</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">active_indices</span> <span class="o">=</span> <span class="p">[]</span>
@@ -821,7 +822,7 @@
 <div class="viewcode-block" id="Controller.build_u_to_torque_matrix_pinv">
 <a class="viewcode-back" href="../../../ADCS.controller.controller.html#ADCS.controller.controller.Controller.build_u_to_torque_matrix_pinv">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">build_u_to_torque_matrix_pinv</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">actuators</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Actuator</span><span class="p">],</span> <span class="n">actuator_type</span><span class="p">:</span> <span class="n">Type</span><span class="p">[</span><span class="n">Actuator</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Builds the forward mapping matrix from actuator commands to body-frame</span>
 <span class="sd">        torque directions.</span>
 
@@ -850,9 +851,9 @@
 <span class="sd">        :return: Forward torque mapping matrix</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">actuator_type</span><span class="p">,</span> <span class="n">Actuator</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;actuator_type must be a subclass of Actuator, got </span><span class="si">{</span><span class="n">actuator_type</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"actuator_type must be a subclass of Actuator, got </span><span class="si">{</span><span class="n">actuator_type</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 
         <span class="n">cols</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">act</span> <span class="ow">in</span> <span class="n">actuators</span><span class="p">:</span>
@@ -864,7 +865,7 @@
                 <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_inputs</span><span class="p">):</span>
                     <span class="n">cols</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">axis</span><span class="p">[:,</span> <span class="n">i</span><span class="p">])</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="c1"># Non-target actuator: Append zeros to maintain alignment with the full &#39;u&#39; vector</span>
+                <span class="c1"># Non-target actuator: Append zeros to maintain alignment with the full 'u' vector</span>
                 <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_inputs</span><span class="p">):</span>
                     <span class="n">cols</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">3</span><span class="p">))</span>
         
@@ -878,7 +879,7 @@
 <div class="viewcode-block" id="Controller.find_max_torque">
 <a class="viewcode-back" href="../../../ADCS.controller.controller.html#ADCS.controller.controller.Controller.find_max_torque">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">find_max_torque</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">actuators</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Actuator</span><span class="p">],</span> <span class="n">actuator_type</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Type</span><span class="p">[</span><span class="n">Actuator</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Extracts maximum allowable actuator command magnitudes.</span>
 
 <span class="sd">        This method returns a vector of actuator saturation limits. These values</span>
@@ -895,19 +896,19 @@
 <span class="sd">        :return: Vector of maximum actuator command values</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">if</span> <span class="n">actuator_type</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="c1"># Return limits for all actuators in order</span>
             <span class="n">max_u_limits</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">act</span><span class="o">.</span><span class="n">u_max</span> <span class="k">for</span> <span class="n">act</span> <span class="ow">in</span> <span class="n">actuators</span><span class="p">])</span>
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">max_u_limits</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
                 <span class="c1"># Only raise an error if the list of actuators itself is empty</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;The actuator list is empty.&quot;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"The actuator list is empty."</span><span class="p">)</span>
             <span class="k">return</span> <span class="n">max_u_limits</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="c1"># Original logic: return limits only for the specified type</span>
             <span class="n">max_torque</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">act</span><span class="o">.</span><span class="n">u_max</span> <span class="k">for</span> <span class="n">act</span> <span class="ow">in</span> <span class="n">actuators</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">act</span><span class="p">,</span> <span class="n">actuator_type</span><span class="p">)])</span>
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">max_torque</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No actuators of type </span><span class="si">{</span><span class="n">actuator_type</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2"> found to determine max input limit (u_max).&quot;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"No actuators of type </span><span class="si">{</span><span class="n">actuator_type</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2"> found to determine max input limit (u_max)."</span><span class="p">)</span>
             <span class="k">return</span> <span class="n">max_torque</span></div>
 </div>
 

@@ -62,7 +62,4 @@ Install Python dependencies:
 .. code-block:: bash
 
    pip install -r requirements.txt
-   pip install git+https://github.com/jcrudy/choldate.git --no-build-isolation
 
-The ``--no-build-isolation`` flag is required because ``choldate`` depends on
-Cython during compilation.

@@ -228,6 +228,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_8_installable.html">0.1.8 Installable from PyPI (2026-08-05)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
@@ -540,7 +541,7 @@
         <article role="main" id="furo-main-content">
           <h1>Source code for ADCS.orbits.orbit</h1><div class="highlight"><pre>
 <span></span><span class="c1"># orbit.py</span>
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Orbit&quot;</span><span class="p">]</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"Orbit"</span><span class="p">]</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">ppigrf</span>
@@ -560,7 +561,7 @@
 <div class="viewcode-block" id="Orbit">
 <a class="viewcode-back" href="../../../ADCS.orbits.orbit.html#ADCS.mc.mcconfig.Orbit">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">Orbit</span><span class="p">:</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Time-ordered container and propagator for orbital states.</span>
 
 <span class="sd">    Notes</span>
@@ -607,7 +608,7 @@
 <span class="sd">    :raises ValueError:</span>
 <span class="sd">        If input arguments are inconsistent or unsupported.</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -618,7 +619,7 @@
         <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">zonal_J</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Initialize an orbit from an initial condition or a list of states.</span>
 
 <span class="sd">        :param os0:</span>
@@ -645,7 +646,7 @@
 <span class="sd">            ``None``</span>
 <span class="sd">        :rtype: None</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">_</span> <span class="o">=</span> <span class="n">fast</span>  <span class="c1"># ignored</span>
         <span class="c1"># Remember the zonal setting so node-to-node interpolation in get_os()</span>
         <span class="c1"># reuses the same gravity model the orbit was propagated with.</span>
@@ -685,12 +686,12 @@
             <span class="n">R_hist</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">os0</span><span class="o">.</span><span class="n">R</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
             <span class="n">V_hist</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">os0</span><span class="o">.</span><span class="n">V</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
 
-            <span class="n">mu_e</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">os0</span><span class="p">,</span> <span class="s2">&quot;mu_e&quot;</span><span class="p">,</span> <span class="n">EarthConstants</span><span class="o">.</span><span class="n">mu_e</span><span class="p">))</span>
-            <span class="n">R_e</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">os0</span><span class="p">,</span> <span class="s2">&quot;R_e&quot;</span><span class="p">,</span> <span class="n">EarthConstants</span><span class="o">.</span><span class="n">R_e</span><span class="p">))</span>
-            <span class="n">J2coeff</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">os0</span><span class="p">,</span> <span class="s2">&quot;J2coeff&quot;</span><span class="p">,</span> <span class="n">EarthConstants</span><span class="o">.</span><span class="n">J2coeff</span><span class="p">))</span>
-            <span class="n">Jcoeffs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">os0</span><span class="p">,</span> <span class="s2">&quot;Jcoeffs&quot;</span><span class="p">,</span> <span class="n">EarthConstants</span><span class="o">.</span><span class="n">Jcoeffs</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+            <span class="n">mu_e</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">os0</span><span class="p">,</span> <span class="s2">"mu_e"</span><span class="p">,</span> <span class="n">EarthConstants</span><span class="o">.</span><span class="n">mu_e</span><span class="p">))</span>
+            <span class="n">R_e</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">os0</span><span class="p">,</span> <span class="s2">"R_e"</span><span class="p">,</span> <span class="n">EarthConstants</span><span class="o">.</span><span class="n">R_e</span><span class="p">))</span>
+            <span class="n">J2coeff</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">os0</span><span class="p">,</span> <span class="s2">"J2coeff"</span><span class="p">,</span> <span class="n">EarthConstants</span><span class="o">.</span><span class="n">J2coeff</span><span class="p">))</span>
+            <span class="n">Jcoeffs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">os0</span><span class="p">,</span> <span class="s2">"Jcoeffs"</span><span class="p">,</span> <span class="n">EarthConstants</span><span class="o">.</span><span class="n">Jcoeffs</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
 
-            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">N</span><span class="p">),</span> <span class="n">desc</span><span class="o">=</span><span class="s2">&quot;Propagating Orbit&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s2">&quot;step&quot;</span><span class="p">,</span> <span class="n">disable</span><span class="o">=</span><span class="ow">not</span> <span class="n">verbose</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">N</span><span class="p">),</span> <span class="n">desc</span><span class="o">=</span><span class="s2">"Propagating Orbit"</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s2">"step"</span><span class="p">,</span> <span class="n">disable</span><span class="o">=</span><span class="ow">not</span> <span class="n">verbose</span><span class="p">):</span>
                 <span class="n">dt_step</span> <span class="o">=</span> <span class="p">(</span><span class="n">times_arr</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">-</span> <span class="n">times_arr</span><span class="p">[</span><span class="n">j</span> <span class="o">-</span> <span class="mi">1</span><span class="p">])</span> <span class="o">*</span> <span class="n">TimeConstants</span><span class="o">.</span><span class="n">cent2sec</span>
 
                 <span class="n">r0</span> <span class="o">=</span> <span class="n">R_hist</span><span class="p">[</span><span class="n">j</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:]</span>
@@ -729,7 +730,7 @@
             <span class="n">R_ecef2eci</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">R_eci2ecef</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
 
             <span class="c1"># ECEF positions</span>
-            <span class="n">ECEF_hist</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;nij,nj-&gt;ni&quot;</span><span class="p">,</span> <span class="n">R_eci2ecef</span><span class="p">,</span> <span class="n">R_hist</span><span class="p">)</span>
+            <span class="n">ECEF_hist</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">"nij,nj-&gt;ni"</span><span class="p">,</span> <span class="n">R_eci2ecef</span><span class="p">,</span> <span class="n">R_hist</span><span class="p">)</span>
 
             <span class="c1"># Geocentric (r, theta, phi) from ECEF</span>
             <span class="n">r_ecef</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">ECEF_hist</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
@@ -740,7 +741,7 @@
             <span class="c1"># Datetimes (naive UTC)</span>
             <span class="n">dts</span> <span class="o">=</span> <span class="p">[]</span>
             <span class="k">for</span> <span class="n">dt_i</span> <span class="ow">in</span> <span class="n">t_sf</span><span class="o">.</span><span class="n">utc_datetime</span><span class="p">():</span>
-                <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">dt_i</span><span class="p">,</span> <span class="s2">&quot;tzinfo&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">dt_i</span><span class="p">,</span> <span class="s2">"tzinfo"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                     <span class="n">dts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dt_i</span><span class="o">.</span><span class="n">astimezone</span><span class="p">(</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">tzinfo</span><span class="o">=</span><span class="kc">None</span><span class="p">))</span>
                 <span class="k">else</span><span class="p">:</span>
                     <span class="n">dts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dt_i</span><span class="p">)</span>
@@ -788,10 +789,10 @@
 
             <span class="c1"># Convert to ECEF, then to ECI</span>
             <span class="n">b_ecef</span> <span class="o">=</span> <span class="n">b_r</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">n_ecef</span> <span class="o">+</span> <span class="n">b_ph</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">svec</span> <span class="o">+</span> <span class="n">b_th</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">tvec</span>
-            <span class="n">B_hist</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;nij,nj-&gt;ni&quot;</span><span class="p">,</span> <span class="n">R_ecef2eci</span><span class="p">,</span> <span class="n">b_ecef</span><span class="p">)</span> <span class="o">*</span> <span class="mf">1e-9</span>
+            <span class="n">B_hist</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">"nij,nj-&gt;ni"</span><span class="p">,</span> <span class="n">R_ecef2eci</span><span class="p">,</span> <span class="n">b_ecef</span><span class="p">)</span> <span class="o">*</span> <span class="mf">1e-9</span>
 
             <span class="c1"># Density model (reuse os0 model if present)</span>
-            <span class="n">density_model</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">os0</span><span class="p">,</span> <span class="s2">&quot;density_model&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="n">density_model</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">os0</span><span class="p">,</span> <span class="s2">"density_model"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">density_model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">density_model</span> <span class="o">=</span> <span class="n">DensityModel</span><span class="p">()</span>
 
@@ -822,7 +823,7 @@
                 <span class="n">R_eci_to_ecef_geo</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">R_eci_to_ecef_geo_raw</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">N</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 
             <span class="n">R_ecef_to_enu</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
-            <span class="n">ECI2ENU_hist</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;ij,njk-&gt;nik&quot;</span><span class="p">,</span> <span class="n">R_ecef_to_enu</span><span class="p">,</span> <span class="n">R_eci_to_ecef_geo</span><span class="p">)</span>
+            <span class="n">ECI2ENU_hist</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">"ij,njk-&gt;nik"</span><span class="p">,</span> <span class="n">R_ecef_to_enu</span><span class="p">,</span> <span class="n">R_eci_to_ecef_geo</span><span class="p">)</span>
 
             <span class="c1"># Sunlit flag (vectorized)</span>
             <span class="k">try</span><span class="p">:</span>
@@ -898,12 +899,12 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">times</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="o">.</span><span class="n">keys</span><span class="p">()),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
 
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Orbit must be initialized with Orbital_State or List[Orbital_State]&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Orbit must be initialized with Orbital_State or List[Orbital_State]"</span><span class="p">)</span>
 
 <div class="viewcode-block" id="Orbit.get_os">
 <a class="viewcode-back" href="../../../ADCS.orbits.orbit.html#ADCS.mc.mcconfig.Orbit.get_os">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_os</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">J2000</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Orbital_State</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Retrieve or interpolate the orbital state at a given epoch.</span>
 
 <span class="sd">        :param J2000:</span>
@@ -917,12 +918,12 @@
 <span class="sd">        :raises ValueError:</span>
 <span class="sd">            If the requested time lies outside the orbit span.</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">t</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">J2000</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">t</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_time</span><span class="p">():</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;get_os() called with t &gt; max_time&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"get_os() called with t &gt; max_time"</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">t</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_time</span><span class="p">():</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;get_os() called with t &lt; min_time&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"get_os() called with t &lt; min_time"</span><span class="p">)</span>
 
         <span class="n">close</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">isclose</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">rtol</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-2</span> <span class="o">/</span> <span class="n">TimeConstants</span><span class="o">.</span><span class="n">cent2sec</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">close</span><span class="p">):</span>
@@ -930,7 +931,7 @@
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">inds</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
                 <span class="n">ind</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">inds</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
                 <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="p">[</span><span class="n">ind</span><span class="p">]]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;get_os() has more than one match!&quot;</span><span class="p">)</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">"get_os() has more than one match!"</span><span class="p">)</span>
             <span class="n">close_times</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="p">[</span><span class="n">inds</span><span class="p">]</span>
             <span class="n">ind2</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">close_times</span> <span class="o">-</span> <span class="n">t</span><span class="p">)))</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="p">[</span><span class="n">close_times</span><span class="p">[</span><span class="n">ind2</span><span class="p">]]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
@@ -944,13 +945,13 @@
         <span class="c1"># propagation recomputes R, V and rebuilds every frame transform</span>
         <span class="c1"># consistently at exactly the requested epoch (RK4-truncation accuracy).</span>
         <span class="n">dt_sec</span> <span class="o">=</span> <span class="p">(</span><span class="n">t</span> <span class="o">-</span> <span class="n">t0</span><span class="p">)</span> <span class="o">*</span> <span class="n">TimeConstants</span><span class="o">.</span><span class="n">cent2sec</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="p">[</span><span class="n">t0</span><span class="p">]</span><span class="o">.</span><span class="n">propagate_orbit_rk4</span><span class="p">(</span><span class="n">dt_sec</span><span class="p">,</span> <span class="n">zonal_J</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_zonal_J&quot;</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="p">[</span><span class="n">t0</span><span class="p">]</span><span class="o">.</span><span class="n">propagate_orbit_rk4</span><span class="p">(</span><span class="n">dt_sec</span><span class="p">,</span> <span class="n">zonal_J</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">"_zonal_J"</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span></div>
 
 
 <div class="viewcode-block" id="Orbit.get_range">
 <a class="viewcode-back" href="../../../ADCS.orbits.orbit.html#ADCS.mc.mcconfig.Orbit.get_range">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_range</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t_0</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">t_1</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Extract a sub-orbit over a specified time interval.</span>
 
 <span class="sd">        :param t_0:</span>
@@ -972,12 +973,12 @@
 <span class="sd">        :raises ValueError:</span>
 <span class="sd">            If the time bounds are invalid or outside the orbit span.</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">t_0</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">t_0</span><span class="p">)</span>
         <span class="n">t_1</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">t_1</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">t_1</span> <span class="o">&lt;</span> <span class="n">t_0</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;times are in wrong order&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"times are in wrong order"</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">t_1</span> <span class="o">==</span> <span class="n">t_0</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">dt</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -985,24 +986,24 @@
             <span class="k">if</span> <span class="n">t_0</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="p">:</span>
                 <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_os</span><span class="p">(</span><span class="n">t_0</span><span class="p">)</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s2">&quot;times are equal, no matching time exactly. Try again with a specified dt or a wider time bracket. &quot;</span>
-                <span class="s2">&quot;(or use the get_os() method)&quot;</span>
+                <span class="s2">"times are equal, no matching time exactly. Try again with a specified dt or a wider time bracket. "</span>
+                <span class="s2">"(or use the get_os() method)"</span>
             <span class="p">)</span>
 
         <span class="k">if</span> <span class="n">t_0</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_time</span><span class="p">():</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;first orbital state is not within this orbit (too far in future)&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"first orbital state is not within this orbit (too far in future)"</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">t_0</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_time</span><span class="p">():</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;first orbital state is not within this orbit (too far in past)&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"first orbital state is not within this orbit (too far in past)"</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">t_1</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_time</span><span class="p">():</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;last orbital state is not within this orbit (too far in future)&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"last orbital state is not within this orbit (too far in future)"</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">t_1</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_time</span><span class="p">():</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;last orbital state is not within this orbit (too far in past)&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"last orbital state is not within this orbit (too far in past)"</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">dt</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">newstates</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">times</span> <span class="k">if</span> <span class="p">(</span><span class="n">j</span> <span class="o">&lt;=</span> <span class="n">t_1</span> <span class="ow">and</span> <span class="n">j</span> <span class="o">&gt;=</span> <span class="n">t_0</span><span class="p">)]</span>
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">newstates</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;there are no pre-created states in this time span&quot;</span><span class="p">)</span>
-            <span class="k">return</span> <span class="n">Orbit</span><span class="p">(</span><span class="n">newstates</span><span class="p">,</span> <span class="n">zonal_J</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_zonal_J&quot;</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"there are no pre-created states in this time span"</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">Orbit</span><span class="p">(</span><span class="n">newstates</span><span class="p">,</span> <span class="n">zonal_J</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">"_zonal_J"</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
         <span class="n">ts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">t_0</span><span class="p">,</span> <span class="n">t_1</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span> <span class="o">/</span> <span class="n">TimeConstants</span><span class="o">.</span><span class="n">cent2sec</span><span class="p">),</span> <span class="p">[</span><span class="n">t_1</span><span class="p">]])</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">new_orbit_from_times</span><span class="p">(</span><span class="n">ts</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span></div>
 
@@ -1010,7 +1011,7 @@
 <div class="viewcode-block" id="Orbit.new_orbit_from_times">
 <a class="viewcode-back" href="../../../ADCS.orbits.orbit.html#ADCS.mc.mcconfig.Orbit.new_orbit_from_times">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">new_orbit_from_times</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">time_list</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]):</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Construct a new orbit sampled at specific epochs.</span>
 
 <span class="sd">        :param time_list:</span>
@@ -1024,17 +1025,17 @@
 <span class="sd">        :raises ValueError:</span>
 <span class="sd">            If any requested time lies outside the orbit span.</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">time_in_span</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">j</span><span class="p">))</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">time_list</span><span class="p">]):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;at least one time is not within this orbit span&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"at least one time is not within this orbit span"</span><span class="p">)</span>
         <span class="n">newstates</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">get_os</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">j</span><span class="p">))</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">time_list</span><span class="p">]</span>
-        <span class="k">return</span> <span class="n">Orbit</span><span class="p">(</span><span class="n">newstates</span><span class="p">,</span> <span class="n">zonal_J</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_zonal_J&quot;</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span></div>
+        <span class="k">return</span> <span class="n">Orbit</span><span class="p">(</span><span class="n">newstates</span><span class="p">,</span> <span class="n">zonal_J</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">"_zonal_J"</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span></div>
 
 
 <div class="viewcode-block" id="Orbit.next_state">
 <a class="viewcode-back" href="../../../ADCS.orbits.orbit.html#ADCS.mc.mcconfig.Orbit.next_state">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">next_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">:</span> <span class="n">Orbital_State</span> <span class="o">|</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Orbital_State</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Return the next available orbital state after a given time.</span>
 
 <span class="sd">        :param input:</span>
@@ -1048,18 +1049,18 @@
 <span class="sd">        :raises ValueError:</span>
 <span class="sd">            If the input time lies outside the orbit span.</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="n">Orbital_State</span><span class="p">):</span>
             <span class="n">t</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="nb">input</span><span class="o">.</span><span class="n">J2000</span><span class="p">)</span>
         <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
             <span class="n">t</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="nb">input</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Must be j2000 time or orbital state&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Must be j2000 time or orbital state"</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">t</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_time</span><span class="p">():</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;this orbital state is not within this orbit (too far in future)&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"this orbital state is not within this orbit (too far in future)"</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">t</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_time</span><span class="p">():</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;this orbital state is not within this orbit (too far in past)&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"this orbital state is not within this orbit (too far in past)"</span><span class="p">)</span>
 
         <span class="n">ind</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">times</span> <span class="o">&gt;=</span> <span class="n">t</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="p">[</span><span class="n">ind</span><span class="p">]]</span></div>
@@ -1068,35 +1069,35 @@
 <div class="viewcode-block" id="Orbit.min_time">
 <a class="viewcode-back" href="../../../ADCS.orbits.orbit.html#ADCS.mc.mcconfig.Orbit.min_time">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">min_time</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Return the earliest epoch in the orbit.</span>
 
 <span class="sd">        :return:</span>
 <span class="sd">            Minimum J2000 time.</span>
 <span class="sd">        :rtype: float</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">amin</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="p">))</span></div>
 
 
 <div class="viewcode-block" id="Orbit.max_time">
 <a class="viewcode-back" href="../../../ADCS.orbits.orbit.html#ADCS.mc.mcconfig.Orbit.max_time">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">max_time</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Return the latest epoch in the orbit.</span>
 
 <span class="sd">        :return:</span>
 <span class="sd">            Maximum J2000 time.</span>
 <span class="sd">        :rtype: float</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">amax</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="p">))</span></div>
 
 
 <div class="viewcode-block" id="Orbit.time_in_span">
 <a class="viewcode-back" href="../../../ADCS.orbits.orbit.html#ADCS.mc.mcconfig.Orbit.time_in_span">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">time_in_span</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Check whether a time lies within the orbit span.</span>
 
 <span class="sd">        :param t:</span>
@@ -1107,7 +1108,7 @@
 <span class="sd">            ``True`` if the time is within the orbit span.</span>
 <span class="sd">        :rtype: bool</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">t</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">t</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_time</span><span class="p">()</span> <span class="ow">and</span> <span class="n">t</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_time</span><span class="p">()</span></div>
 
@@ -1115,7 +1116,7 @@
 <div class="viewcode-block" id="Orbit.geocentric_to_ecef_orbit">
 <a class="viewcode-back" href="../../../ADCS.orbits.orbit.html#ADCS.mc.mcconfig.Orbit.geocentric_to_ecef_orbit">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">geocentric_to_ecef_orbit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">b_vec</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Convert geocentric spherical vectors to ECEF coordinates along the orbit.</span>
 
 <span class="sd">        :param b_vec:</span>
@@ -1126,7 +1127,7 @@
 <span class="sd">            Vectors expressed in the ECEF frame.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">ecef_mat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">ECEF</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="p">])</span>
         <span class="n">n_ecef</span> <span class="o">=</span> <span class="n">matrix_row_normalize</span><span class="p">(</span><span class="n">ecef_mat</span><span class="p">)</span>
         <span class="n">svec</span> <span class="o">=</span> <span class="n">matrix_row_normalize</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">MathConstants</span><span class="o">.</span><span class="n">unitvecs</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">n_ecef</span><span class="p">))</span>
@@ -1140,7 +1141,7 @@
 <div class="viewcode-block" id="Orbit.ecef_to_eci_orbit">
 <a class="viewcode-back" href="../../../ADCS.orbits.orbit.html#ADCS.mc.mcconfig.Orbit.ecef_to_eci_orbit">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">ecef_to_eci_orbit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">b_ecef_vec</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Convert ECEF vectors to ECI coordinates along the orbit.</span>
 
 <span class="sd">        :param b_ecef_vec:</span>
@@ -1151,14 +1152,14 @@
 <span class="sd">            Vectors expressed in the ECI frame.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="p">[</span><span class="n">j</span><span class="p">]]</span><span class="o">.</span><span class="n">ecef_to_eci</span><span class="p">(</span><span class="n">b_ecef_vec</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="p">:])</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="p">))])</span></div>
 
 
 <div class="viewcode-block" id="Orbit.get_b_eci_orbit">
 <a class="viewcode-back" href="../../../ADCS.orbits.orbit.html#ADCS.mc.mcconfig.Orbit.get_b_eci_orbit">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_b_eci_orbit</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Compute the geomagnetic field in the ECI frame along the orbit.</span>
 
 <span class="sd">        If per-state magnetic field vectors are already available, they are returned</span>
@@ -1168,7 +1169,7 @@
 <span class="sd">            Geomagnetic field vectors in ECI coordinates [Tesla].</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">B</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="p">])</span>
         <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
@@ -1193,14 +1194,14 @@
 <div class="viewcode-block" id="Orbit.get_vecs">
 <a class="viewcode-back" href="../../../ADCS.orbits.orbit.html#ADCS.mc.mcconfig.Orbit.get_vecs">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_vecs</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]]:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Return commonly used orbit-related vectors.</span>
 
 <span class="sd">        :return:</span>
 <span class="sd">            Lists of vectors [R, V, B, S, rho] over the orbit.</span>
 <span class="sd">        :rtype: list[list[numpy.ndarray]]</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">R</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">R</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="p">]</span>
         <span class="n">V</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">V</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="p">]</span>
         <span class="n">B</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">states</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">B</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="p">]</span>

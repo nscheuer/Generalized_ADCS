@@ -5,6 +5,7 @@ Release Notes
   :maxdepth: 1
   :caption: Getting Started
   
+  0_1_8_installable
   0_1_7_benchmark
   0_1_6_remote_execution
   0_1_5_bugfixes_and_optimizations

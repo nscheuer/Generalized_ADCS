@@ -228,6 +228,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../../release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_8_installable.html">0.1.8 Installable from PyPI (2026-08-05)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
@@ -539,7 +540,7 @@
         </div>
         <article role="main" id="furo-main-content">
           <h1>Source code for ADCS.controller.helpers.quaternion_math</h1><div class="highlight"><pre>
-<span></span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span></span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">quaternion_math.py</span>
 <span class="sd">===================</span>
 
@@ -551,7 +552,7 @@
 <span class="sd">All functions are standalone and compatible with onboard estimator</span>
 <span class="sd">and simulator modules.</span>
 
-<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">"""</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
@@ -566,7 +567,7 @@
     <span class="n">eci_goal</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">],</span>
     <span class="n">body_boresight</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">]</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">]:</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Compute a minimal vector attitude error aligning a body boresight to an inertial goal.</span>
 
 <span class="sd">    The function returns a 3D error vector suitable for feedback control. The error</span>
@@ -612,7 +613,7 @@
 <span class="sd">    :rtype:</span>
 <span class="sd">        numpy.ndarray</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">v_bore</span> <span class="o">=</span> <span class="n">normalize</span><span class="p">(</span><span class="n">body_boresight</span><span class="p">)</span>
     <span class="n">R_b2i</span> <span class="o">=</span> <span class="n">rot_mat</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>                    <span class="c1"># q: body -&gt; ECI (Hamilton)</span>
     <span class="n">v_goal_body</span> <span class="o">=</span> <span class="n">normalize</span><span class="p">(</span><span class="n">R_b2i</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">eci_goal</span><span class="p">)</span>

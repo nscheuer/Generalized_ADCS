@@ -228,6 +228,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../../release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_8_installable.html">0.1.8 Installable from PyPI (2026-08-05)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
@@ -541,7 +542,7 @@
           <h1>Source code for ADCS.controller.plan_and_track.build_csat</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;build_cpp_satellite&quot;</span><span class="p">,</span> <span class="s2">&quot;get_cpp_to_python_control_permutation&quot;</span><span class="p">,</span> <span class="s2">&quot;reorder_controls_cpp_to_python&quot;</span><span class="p">]</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"build_cpp_satellite"</span><span class="p">,</span> <span class="s2">"get_cpp_to_python_control_permutation"</span><span class="p">,</span> <span class="s2">"reorder_controls_cpp_to_python"</span><span class="p">]</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">TYPE_CHECKING</span>
@@ -557,7 +558,7 @@
 <div class="viewcode-block" id="get_cpp_to_python_control_permutation">
 <a class="viewcode-back" href="../../../../ADCS.controller.plan_and_track.build_csat.html#ADCS.controller.plan_and_track.build_csat.get_cpp_to_python_control_permutation">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">get_cpp_to_python_control_permutation</span><span class="p">(</span><span class="n">actuators</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Actuator</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">intp</span><span class="p">],</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">intp</span><span class="p">]]:</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Compute the permutation between C++ planner control ordering and Python actuator ordering.</span>
 
 <span class="sd">    The C++ trajectory planner outputs control vectors in a fixed, type-based order:</span>
@@ -600,7 +601,7 @@
 <span class="sd">    :rtype:</span>
 <span class="sd">        Tuple[numpy.ndarray, numpy.ndarray]</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="c1"># Find indices of each actuator type in Python ordering</span>
     <span class="n">mtq_py_indices</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">act</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">actuators</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">act</span><span class="p">,</span> <span class="n">MTQ</span><span class="p">)]</span>
     <span class="n">rw_py_indices</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">act</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">actuators</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">act</span><span class="p">,</span> <span class="n">RW</span><span class="p">)]</span>
@@ -614,7 +615,7 @@
     <span class="n">n_rw</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">rw_py_indices</span><span class="p">)</span>
     <span class="n">n_total</span> <span class="o">=</span> <span class="n">n_mtq</span> <span class="o">+</span> <span class="n">n_rw</span>
 
-    <span class="c1"># Build cpp_to_py: for each C++ index, what&#39;s the corresponding Python index?</span>
+    <span class="c1"># Build cpp_to_py: for each C++ index, what's the corresponding Python index?</span>
     <span class="n">cpp_to_py</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_total</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
 
     <span class="c1"># First n_mtq C++ indices map to MTQ positions in Python</span>
@@ -638,7 +639,7 @@
 <div class="viewcode-block" id="reorder_controls_cpp_to_python">
 <a class="viewcode-back" href="../../../../ADCS.controller.plan_and_track.build_csat.html#ADCS.controller.plan_and_track.build_csat.reorder_controls_cpp_to_python">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">reorder_controls_cpp_to_python</span><span class="p">(</span><span class="n">Uset</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">],</span> <span class="n">actuators</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Actuator</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">]:</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Reorder a control matrix from C++ planner ordering to Python actuator ordering.</span>
 
 <span class="sd">    The C++ planner outputs control trajectories using the ordering described in</span>
@@ -684,11 +685,11 @@
 <span class="sd">    :rtype:</span>
 <span class="sd">        numpy.ndarray</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">cpp_to_py</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">get_cpp_to_python_control_permutation</span><span class="p">(</span><span class="n">actuators</span><span class="p">)</span>
     <span class="n">n_ctrl</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">cpp_to_py</span><span class="p">)</span>
 
-    <span class="c1"># Detect layout: if first dimension equals n_ctrl, it&#39;s col-major (n_ctrl x N)</span>
+    <span class="c1"># Detect layout: if first dimension equals n_ctrl, it's col-major (n_ctrl x N)</span>
     <span class="k">if</span> <span class="n">Uset</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">n_ctrl</span><span class="p">:</span>
         <span class="c1"># Column-major: controls are rows</span>
         <span class="k">return</span> <span class="n">Uset</span><span class="p">[</span><span class="n">cpp_to_py</span><span class="p">,</span> <span class="p">:]</span>
@@ -696,12 +697,12 @@
         <span class="c1"># Row-major: controls are columns</span>
         <span class="k">return</span> <span class="n">Uset</span><span class="p">[:,</span> <span class="n">cpp_to_py</span><span class="p">]</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Uset shape </span><span class="si">{</span><span class="n">Uset</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2"> doesn&#39;t match n_controls=</span><span class="si">{</span><span class="n">n_ctrl</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Uset shape </span><span class="si">{</span><span class="n">Uset</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2"> doesn't match n_controls=</span><span class="si">{</span><span class="n">n_ctrl</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span></div>
 
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">reorder_gains_cpp_to_python</span><span class="p">(</span><span class="n">Kset</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">],</span> <span class="n">actuators</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Actuator</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">]:</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Reorder a feedback gain tensor from C++ planner ordering to Python actuator ordering.</span>
 
 <span class="sd">    The feedback law implemented by the planner is</span>
@@ -749,7 +750,7 @@
 <span class="sd">    :rtype:</span>
 <span class="sd">        numpy.ndarray</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">cpp_to_py</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">get_cpp_to_python_control_permutation</span><span class="p">(</span><span class="n">actuators</span><span class="p">)</span>
     <span class="n">n_ctrl</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">cpp_to_py</span><span class="p">)</span>
 
@@ -772,7 +773,7 @@
 <div class="viewcode-block" id="build_cpp_satellite">
 <a class="viewcode-back" href="../../../../ADCS.controller.plan_and_track.build_csat.html#ADCS.controller.plan_and_track.build_csat.build_cpp_satellite">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">build_cpp_satellite</span><span class="p">(</span><span class="n">est_sat</span><span class="p">:</span> <span class="n">EstimatedSatellite</span><span class="p">,</span> <span class="n">planner_settings</span><span class="p">:</span> <span class="n">PlannerSettings</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pysat</span><span class="o">.</span><span class="n">Satellite</span><span class="p">:</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Construct a C++ planner-compatible satellite model from a Python estimated satellite.</span>
 
 <span class="sd">    This function converts an instance of</span>
@@ -806,7 +807,7 @@
 <span class="sd">    :rtype:</span>
 <span class="sd">        :class:`~pysat.Satellite`</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">_</span><span class="p">,</span> <span class="n">pysat</span> <span class="o">=</span> <span class="n">get_trajectory_planner_modules</span><span class="p">()</span>
     <span class="n">csat</span> <span class="o">=</span> <span class="n">pysat</span><span class="o">.</span><span class="n">Satellite</span><span class="p">()</span>
     <span class="n">csat</span><span class="o">.</span><span class="n">change_Jcom</span><span class="p">(</span><span class="n">est_sat</span><span class="o">.</span><span class="n">J_0</span><span class="p">)</span>
@@ -836,7 +837,7 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">add_actuator</span><span class="p">(</span><span class="n">act</span><span class="p">:</span> <span class="n">Actuator</span><span class="p">,</span> <span class="n">csat</span><span class="p">:</span> <span class="n">pysat</span><span class="o">.</span><span class="n">Satellite</span><span class="p">,</span> <span class="n">planner_settings</span><span class="p">:</span> <span class="n">PlannerSettings</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Add a single actuator to a C++ planner satellite model.</span>
 
 <span class="sd">    This function translates a Python actuator object into its corresponding</span>
@@ -873,7 +874,7 @@
 <span class="sd">    :rtype:</span>
 <span class="sd">        None</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">act</span><span class="p">,</span> <span class="n">MTQ</span><span class="p">):</span>
         <span class="n">csat</span><span class="o">.</span><span class="n">add_MTQ</span><span class="p">(</span><span class="n">act</span><span class="o">.</span><span class="n">axis</span><span class="p">,</span> <span class="n">act</span><span class="o">.</span><span class="n">u_max</span><span class="p">,</span> <span class="n">planner_settings</span><span class="o">.</span><span class="n">mtq_control_weight</span><span class="p">)</span>
     <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">act</span><span class="p">,</span> <span class="n">RW</span><span class="p">):</span>
@@ -889,7 +890,7 @@
             <span class="n">act</span><span class="o">.</span><span class="n">h_max</span> <span class="o">*</span> <span class="n">planner_settings</span><span class="o">.</span><span class="n">RWh_stiction_mult</span>
         <span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unknown actuator received: </span><span class="si">{</span><span class="n">act</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Unknown actuator received: </span><span class="si">{</span><span class="n">act</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 </pre></div>
         </article>
       </div>

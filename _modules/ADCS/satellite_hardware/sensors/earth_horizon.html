@@ -228,6 +228,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../../release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_8_installable.html">0.1.8 Installable from PyPI (2026-08-05)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
@@ -539,7 +540,7 @@
         </div>
         <article role="main" id="furo-main-content">
           <h1>Source code for ADCS.satellite_hardware.sensors.earth_horizon</h1><div class="highlight"><pre>
-<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;EarthHorizonSensor&quot;</span><span class="p">]</span>
+<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"EarthHorizonSensor"</span><span class="p">]</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span>
@@ -556,11 +557,11 @@
 <div class="viewcode-block" id="EarthHorizonSensor">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.sensors.earth_horizon.html#ADCS.satellite_hardware.sensors.earth_horizon.EarthHorizonSensor">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">EarthHorizonSensor</span><span class="p">(</span><span class="n">Sensor</span><span class="p">):</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Earth horizon crossing sensor model.</span>
 
 <span class="sd">    This class implements a **scanning horizon sensor** that determines the</span>
-<span class="sd">    spacecraft nadir direction by detecting transitions across the Earth&#39;s</span>
+<span class="sd">    spacecraft nadir direction by detecting transitions across the Earth's</span>
 <span class="sd">    limb.  The sensor output is a unit vector pointing toward the Earth</span>
 <span class="sd">    center expressed in the spacecraft body frame.</span>
 
@@ -642,7 +643,7 @@
 <span class="sd">    --------</span>
 <span class="sd">    :class:`~ADCS.satellite_hardware.sensors.sensor.Sensor`</span>
 <span class="sd">    :class:`~ADCS.satellite_hardware.sensors.star_tracker.StarTracker`</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="n">output_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span>
 
@@ -655,7 +656,7 @@
         <span class="n">boresight</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.0</span><span class="p">]),</span>
         <span class="n">fov</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="mf">90.0</span><span class="p">),</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Initialize the Earth horizon sensor.</span>
 
 <span class="sd">        :param sample_time: Sampling period [s].</span>
@@ -676,11 +677,11 @@
 <span class="sd">        :type fov: float</span>
 <span class="sd">        :return: None</span>
 <span class="sd">        :rtype: None</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">boresight</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">boresight</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
         <span class="n">norm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">boresight</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">norm</span> <span class="o">&lt;</span> <span class="mf">1e-6</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Boresight vector cannot be zero.&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Boresight vector cannot be zero."</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">boresight</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">boresight</span> <span class="o">/</span> <span class="n">norm</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">fov</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">fov</span><span class="p">)</span>
@@ -699,22 +700,22 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">earth_angular_radius</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Earth angular radius from the last measurement [rad].</span>
 
 <span class="sd">        Computed as :math:`\rho = \arcsin(R_\oplus / \|\mathbf{r}\|)`.</span>
 <span class="sd">        Returns ``None`` if no measurement has been taken.</span>
 
 <span class="sd">        :rtype: float or None</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_earth_angular_radius</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_earth_angular_radius&quot;</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span>
+<span class="sd">        """</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_earth_angular_radius</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">"_earth_angular_radius"</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span>
 
 <div class="viewcode-block" id="EarthHorizonSensor.clean_reading">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.sensors.earth_horizon.html#ADCS.satellite_hardware.sensors.earth_horizon.EarthHorizonSensor.clean_reading">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">clean_reading</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">],</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">]:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Compute the noise-free nadir direction measurement.</span>
 
 <span class="sd">        The nadir direction is computed from the orbital position and</span>
@@ -736,7 +737,7 @@
 <span class="sd">        :return: Nadir unit vector in body frame, or ``NaN`` if Earth is</span>
 <span class="sd">                 outside the sensor FOV.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">q</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">q</span>
         <span class="n">r_sat</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">R</span>  <span class="c1"># ECI position [km]</span>
         <span class="n">r_norm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">r_sat</span><span class="p">)</span>
@@ -772,7 +773,7 @@
         <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span>
         <span class="n">dmode</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ErrorMode</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">]:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Compute the full nadir measurement including bias and noise.</span>
 
 <span class="sd">        After the base class applies bias and noise, the output is</span>
@@ -786,7 +787,7 @@
 <span class="sd">        :type dmode: :class:`~ADCS.satellite_hardware.errors.ErrorMode` or None</span>
 <span class="sd">        :return: Normalized nadir direction in body frame.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">measurement</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">reading</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">os</span><span class="p">,</span> <span class="n">dmode</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">measurement</span><span class="p">)):</span>
@@ -802,7 +803,7 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">basestate_jac</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">],</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">]:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Jacobian of the nadir measurement w.r.t. the base state.</span>
 
 <span class="sd">        The measurement depends only on the attitude quaternion (the orbital</span>
@@ -828,7 +829,7 @@
 <span class="sd">        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
 <span class="sd">        :return: Base-state Jacobian of shape ``(7, 3)``.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nadir_eci</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">7</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_length</span><span class="p">))</span>
 
@@ -845,7 +846,7 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">bias_jac</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">],</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">]:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Jacobian of the measurement w.r.t. bias states.</span>
 
 <span class="sd">        If ``estimate_bias`` is ``True``, the bias Jacobian is the identity.</span>
@@ -857,7 +858,7 @@
 <span class="sd">        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
 <span class="sd">        :return: Bias Jacobian.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">estimate_bias</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">output_length</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_length</span><span class="p">))</span></div>

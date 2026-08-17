@@ -228,6 +228,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../../release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_8_installable.html">0.1.8 Installable from PyPI (2026-08-05)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
@@ -539,7 +540,7 @@
         </div>
         <article role="main" id="furo-main-content">
           <h1>Source code for ADCS.satellite_hardware.actuators.reaction_wheel</h1><div class="highlight"><pre>
-<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;RW&quot;</span><span class="p">]</span>
+<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"RW"</span><span class="p">]</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
@@ -554,7 +555,7 @@
 <div class="viewcode-block" id="RW">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.reaction_wheel.html#ADCS.satellite_hardware.actuators.reaction_wheel.RW">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">RW</span><span class="p">(</span><span class="n">Actuator</span><span class="p">):</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    **Reaction Wheel (RW) Actuator Model**</span>
 
 <span class="sd">    This class models a single-axis reaction wheel used for spacecraft attitude control.</span>
@@ -620,7 +621,7 @@
 <span class="sd">    - Noise model: :class:`~ADCS.satellite_hardware.errors.noise.Noise`.</span>
 <span class="sd">    - Disturbance toggles: :class:`~ADCS.satellite_hardware.errors.error_mode.ErrorMode`.</span>
 <span class="sd">    - Orbital state (for time-tagging): :class:`~ADCS.orbits.orbital_state.Orbital_State`.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -634,7 +635,7 @@
         <span class="n">h_meas_noise</span><span class="p">:</span> <span class="n">Noise</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">estimate_bias</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Construct a reaction wheel actuator model.</span>
 
 <span class="sd">        The wheel is defined by its body-frame spin axis :math:`\mathbf{a}`, motor torque limit</span>
@@ -681,7 +682,7 @@
 
 <span class="sd">        :return: ``None``.</span>
 <span class="sd">        :rtype: NoneType</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">J</span> <span class="o">=</span> <span class="n">J</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">h</span> <span class="o">=</span> <span class="n">h</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">h_max</span> <span class="o">=</span> <span class="n">h_max</span>
@@ -689,7 +690,7 @@
         <span class="c1"># Cache for one coherent stochastic realization per (step/state).</span>
         <span class="c1"># ``torque()`` (body torque) and ``storage_torque()`` (wheel reaction)</span>
         <span class="c1"># must be drawn from the SAME random sample so that the reaction is</span>
-        <span class="c1"># exactly equal and opposite to the applied torque (Newton&#39;s 3rd law /</span>
+        <span class="c1"># exactly equal and opposite to the applied torque (Newton's 3rd law /</span>
         <span class="c1"># conservation of angular momentum). Without this, each method</span>
         <span class="c1"># independently resamples bias/noise and angular momentum is created</span>
         <span class="c1"># out of nothing every integration step.</span>
@@ -705,7 +706,7 @@
 <div class="viewcode-block" id="RW.torque">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.reaction_wheel.html#ADCS.satellite_hardware.actuators.reaction_wheel.RW.torque">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">torque</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span> <span class="n">dmode</span><span class="p">:</span> <span class="n">ErrorMode</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Compute the reaction-wheel torque vector applied to the spacecraft body.</span>
 
 <span class="sd">        The commanded scalar motor torque :math:`u` is mapped onto the wheel axis :math:`\mathbf{a}` to</span>
@@ -739,13 +740,13 @@
 
 <span class="sd">        :return: Body torque vector :math:`\boldsymbol{\tau}_{\mathrm{RW}}` [N·m], shape ``(3,)``.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">u_eff</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_effective_command</span><span class="p">(</span><span class="n">u</span><span class="o">=</span><span class="n">u</span><span class="p">,</span> <span class="n">os</span><span class="o">=</span><span class="n">os</span><span class="p">,</span> <span class="n">dmode</span><span class="o">=</span><span class="n">dmode</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">axis</span> <span class="o">*</span> <span class="n">u_eff</span></div>
 
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_effective_command</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span> <span class="n">dmode</span><span class="p">:</span> <span class="n">ErrorMode</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Compute the effective scalar motor torque :math:`u_{\mathrm{eff}} = u + b(t) + n(t)`.</span>
 
 <span class="sd">        This is the single point at which the stochastic realization (bias random</span>
@@ -755,7 +756,7 @@
 <span class="sd">        :meth:`storage_torque` (wheel reaction torque) call this helper, so within</span>
 <span class="sd">        a single dynamics step they share exactly one random draw. The wheel</span>
 <span class="sd">        reaction is therefore *exactly* equal and opposite to the body torque,</span>
-<span class="sd">        conserving angular momentum (Newton&#39;s third law). The result is also</span>
+<span class="sd">        conserving angular momentum (Newton's third law). The result is also</span>
 <span class="sd">        independent of the order in which :meth:`torque` and</span>
 <span class="sd">        :meth:`storage_torque` are called.</span>
 
@@ -775,12 +776,12 @@
 
 <span class="sd">        :return: Effective scalar command :math:`u_{\mathrm{eff}}` [N·m].</span>
 <span class="sd">        :rtype: float</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">if</span> <span class="n">dmode</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">dmode</span> <span class="o">=</span> <span class="n">ErrorMode</span><span class="p">(</span><span class="n">add_bias</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">add_noise</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">update_bias</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">update_noise</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">u</span><span class="p">)</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">u_max</span><span class="p">:</span>
-            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;requested torque exceeds actuation limit&quot;</span><span class="p">)</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">"requested torque exceeds actuation limit"</span><span class="p">)</span>
 
         <span class="c1"># Saturate the commanded torque to the physical actuation limit,</span>
         <span class="c1"># preserving sign. Below-limit commands are unchanged. Keep the numpy</span>
@@ -824,7 +825,7 @@
 <div class="viewcode-block" id="RW.storage_torque">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.reaction_wheel.html#ADCS.satellite_hardware.actuators.reaction_wheel.RW.storage_torque">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">storage_torque</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span> <span class="n">dmode</span><span class="p">:</span> <span class="n">ErrorMode</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Compute the internal torque acting on the wheel (equal and opposite to the body torque).</span>
 
 <span class="sd">        The wheel experiences the opposite torque to that applied to the spacecraft body. Using the same</span>
@@ -858,10 +859,10 @@
 
 <span class="sd">        :return: Internal wheel torque vector :math:`\boldsymbol{\tau}_{\mathrm{wheel}}` [N·m], shape ``(3,)``.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="c1"># Share the SAME stochastic realization as torque() for this step so</span>
         <span class="c1"># that the wheel reaction is exactly equal and opposite to the applied</span>
-        <span class="c1"># body torque (conservation of angular momentum / Newton&#39;s 3rd law).</span>
+        <span class="c1"># body torque (conservation of angular momentum / Newton's 3rd law).</span>
         <span class="n">u_eff</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_effective_command</span><span class="p">(</span><span class="n">u</span><span class="o">=</span><span class="n">u</span><span class="p">,</span> <span class="n">os</span><span class="o">=</span><span class="n">os</span><span class="p">,</span> <span class="n">dmode</span><span class="o">=</span><span class="n">dmode</span><span class="p">)</span>
         <span class="k">return</span> <span class="o">-</span><span class="n">u_eff</span></div>
 
@@ -870,7 +871,7 @@
 <div class="viewcode-block" id="RW.measure_momentum">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.reaction_wheel.html#ADCS.satellite_hardware.actuators.reaction_wheel.RW.measure_momentum">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">measure_momentum</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Measure the wheel angular momentum with additive measurement noise.</span>
 
 <span class="sd">        The measurement model is</span>
@@ -884,14 +885,14 @@
 
 <span class="sd">        :return: Noisy wheel momentum measurement :math:`\tilde{\mathbf{h}}` [N·m·s], shape ``(3,)``.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">h</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">h_meas_noise</span><span class="o">.</span><span class="n">get_noise</span><span class="p">()</span></div>
 
     
 <div class="viewcode-block" id="RW.measure_momentum_noiseless">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.reaction_wheel.html#ADCS.satellite_hardware.actuators.reaction_wheel.RW.measure_momentum_noiseless">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">measure_momentum_noiseless</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Measure the wheel angular momentum without measurement noise.</span>
 
 <span class="sd">        This returns the stored wheel momentum state directly:</span>
@@ -902,14 +903,14 @@
 
 <span class="sd">        :return: Noiseless wheel momentum :math:`\mathbf{h}` [N·m·s], shape ``(3,)``.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">h</span></div>
 
         
 <div class="viewcode-block" id="RW.update_momentum">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.reaction_wheel.html#ADCS.satellite_hardware.actuators.reaction_wheel.RW.update_momentum">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">update_momentum</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">h</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Update the stored wheel angular momentum.</span>
 
 <span class="sd">        This method overwrites the internal momentum state :math:`\mathbf{h}`. If the provided value</span>
@@ -926,7 +927,7 @@
 
 <span class="sd">        :return: ``None``.</span>
 <span class="sd">        :rtype: NoneType</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">h_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
         <span class="c1"># h_max is the saturation magnitude. Compare by magnitude so that</span>
         <span class="c1"># negative saturation is detected as well as positive, and so a vector</span>
@@ -940,7 +941,7 @@
             <span class="n">magnitude</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">h_arr</span><span class="p">))</span>
 
         <span class="k">if</span> <span class="n">magnitude</span> <span class="o">&gt;</span> <span class="n">h_max_mag</span><span class="p">:</span>
-            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;RW Angular Momentum exceeds saturation limit&quot;</span><span class="p">)</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">"RW Angular Momentum exceeds saturation limit"</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">magnitude</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
                 <span class="c1"># Clamp stored momentum at +/- h_max, preserving direction/sign.</span>
                 <span class="n">h_arr</span> <span class="o">=</span> <span class="n">h_arr</span> <span class="o">*</span> <span class="p">(</span><span class="n">h_max_mag</span> <span class="o">/</span> <span class="n">magnitude</span><span class="p">)</span>
@@ -954,7 +955,7 @@
 <div class="viewcode-block" id="RW.dtorq__du">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.reaction_wheel.html#ADCS.satellite_hardware.actuators.reaction_wheel.RW.dtorq__du">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">dtorq__du</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Jacobian :math:`\partial\boldsymbol{\tau}/\partial u`.</span>
 
 <span class="sd">        The body torque is</span>
@@ -983,14 +984,14 @@
 
 <span class="sd">        :return: Jacobian :math:`\partial\boldsymbol{\tau}/\partial u`, shape ``(1,3)``.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">axis</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span><span class="mi">3</span><span class="p">))</span></div>
 
 
 <div class="viewcode-block" id="RW.dtorq__dh">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.reaction_wheel.html#ADCS.satellite_hardware.actuators.reaction_wheel.RW.dtorq__dh">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">dtorq__dh</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Jacobian :math:`\partial\boldsymbol{\tau}/\partial \mathbf{h}`.</span>
 
 <span class="sd">        In this model, the applied body torque :math:`\boldsymbol{\tau}` depends on the commanded torque</span>
@@ -1012,14 +1013,14 @@
 
 <span class="sd">        :return: Zero Jacobian :math:`\partial\boldsymbol{\tau}/\partial \mathbf{h}`, shape ``(1,3)``.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span><span class="mi">3</span><span class="p">))</span></div>
 
     
 <div class="viewcode-block" id="RW.ddtorq__dudh">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.reaction_wheel.html#ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddtorq__dudh">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">ddtorq__dudh</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Second derivative :math:`\partial^2\boldsymbol{\tau}/\partial u\,\partial \mathbf{h}`.</span>
 
 <span class="sd">        The torque does not depend on :math:`\mathbf{h}`, so the mixed second derivative is identically zero:</span>
@@ -1039,14 +1040,14 @@
 
 <span class="sd">        :return: Zero tensor, shape ``(1,1,3)``.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span></div>
 
     
 <div class="viewcode-block" id="RW.ddtorq__dbiasdh">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.reaction_wheel.html#ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddtorq__dbiasdh">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">ddtorq__dbiasdh</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Second derivative :math:`\partial^2\boldsymbol{\tau}/\partial b\,\partial \mathbf{h}`.</span>
 
 <span class="sd">        The torque does not depend on :math:`\mathbf{h}`, so the mixed derivative with respect to bias and</span>
@@ -1070,7 +1071,7 @@
 
 <span class="sd">        :return: Zero tensor if a bias model exists; otherwise an empty tensor consistent with no bias state.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bias</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ddtorq__dudh</span><span class="p">(</span><span class="n">u</span><span class="o">=</span><span class="n">u</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">os</span><span class="o">=</span><span class="n">os</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
@@ -1080,7 +1081,7 @@
 <div class="viewcode-block" id="RW.ddtorq__dbasestatedh">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.reaction_wheel.html#ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddtorq__dbasestatedh">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">ddtorq__dbasestatedh</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Second derivative :math:`\partial^2\boldsymbol{\tau}/\partial \mathbf{x}_{\mathrm{base}}\,\partial \mathbf{h}`.</span>
 
 <span class="sd">        The torque model :math:`\boldsymbol{\tau}=\mathbf{a}\,u_{\mathrm{eff}}` does not depend on the spacecraft</span>
@@ -1102,14 +1103,14 @@
 
 <span class="sd">        :return: Zero tensor, shape ``(7,1,3)``.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">7</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span></div>
 
     
 <div class="viewcode-block" id="RW.ddtorq__dhdh">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.reaction_wheel.html#ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddtorq__dhdh">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">ddtorq__dhdh</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Second derivative :math:`\partial^2\boldsymbol{\tau}/\partial \mathbf{h}^2`.</span>
 
 <span class="sd">        The torque does not depend on the stored wheel momentum :math:`\mathbf{h}`, so:</span>
@@ -1129,14 +1130,14 @@
 
 <span class="sd">        :return: Zero tensor, shape ``(1,1,3)``.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span></div>
 
     
 <div class="viewcode-block" id="RW.dstor_torq__du">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.reaction_wheel.html#ADCS.satellite_hardware.actuators.reaction_wheel.RW.dstor_torq__du">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">dstor_torq__du</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Jacobian :math:`\partial\boldsymbol{\tau}_{\mathrm{wheel}}/\partial u`.</span>
 
 <span class="sd">        The internal wheel torque is</span>
@@ -1166,14 +1167,14 @@
 
 <span class="sd">        :return: Jacobian :math:`\partial\boldsymbol{\tau}_{\mathrm{wheel}}/\partial u`, shape ``(1,1)``.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">))</span></div>
 
     
 <div class="viewcode-block" id="RW.dstor_torq__dbias">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.reaction_wheel.html#ADCS.satellite_hardware.actuators.reaction_wheel.RW.dstor_torq__dbias">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">dstor_torq__dbias</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Jacobian :math:`\partial\boldsymbol{\tau}_{\mathrm{wheel}}/\partial b`.</span>
 
 <span class="sd">        The bias :math:`b` enters the effective command linearly through :math:`u_{\mathrm{eff}} = u + b + n`,</span>
@@ -1198,7 +1199,7 @@
 
 <span class="sd">        :return: ``(1,1)`` matrix equal to :math:`-1` if a bias model exists; otherwise an empty array with shape ``(0,1)``.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bias</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dstor_torq__du</span><span class="p">(</span><span class="n">u</span><span class="o">=</span><span class="n">u</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">os</span><span class="o">=</span><span class="n">os</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
@@ -1208,7 +1209,7 @@
 <div class="viewcode-block" id="RW.dstor_torq__dbasestate">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.reaction_wheel.html#ADCS.satellite_hardware.actuators.reaction_wheel.RW.dstor_torq__dbasestate">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">dstor_torq__dbasestate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Jacobian :math:`\partial\boldsymbol{\tau}_{\mathrm{wheel}}/\partial \mathbf{x}_{\mathrm{base}}`.</span>
 
 <span class="sd">        The internal wheel torque depends only on the commanded torque (and optional bias/noise), not on the spacecraft</span>
@@ -1229,14 +1230,14 @@
 
 <span class="sd">        :return: Zero Jacobian, shape ``(7,1)``.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">7</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span></div>
 
     
 <div class="viewcode-block" id="RW.dstor_torq__dh">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.reaction_wheel.html#ADCS.satellite_hardware.actuators.reaction_wheel.RW.dstor_torq__dh">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">dstor_torq__dh</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Jacobian :math:`\partial\boldsymbol{\tau}_{\mathrm{wheel}}/\partial \mathbf{h}`.</span>
 
 <span class="sd">        The internal wheel torque does not depend on the stored momentum :math:`\mathbf{h}` in this actuator model,</span>
@@ -1257,14 +1258,14 @@
 
 <span class="sd">        :return: Zero Jacobian, shape ``(1,1)``.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span></div>
 
     
 <div class="viewcode-block" id="RW.ddstor_torq__dudu">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.reaction_wheel.html#ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddstor_torq__dudu">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">ddstor_torq__dudu</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Second derivative :math:`\partial^2\boldsymbol{\tau}_{\mathrm{wheel}}/\partial u^2`.</span>
 
 <span class="sd">        The internal wheel torque depends linearly on :math:`u`:</span>
@@ -1290,14 +1291,14 @@
 
 <span class="sd">        :return: Zero tensor, shape ``(1,1,1)``.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span></div>
 
     
 <div class="viewcode-block" id="RW.ddstor_torq__dudbias">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.reaction_wheel.html#ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddstor_torq__dudbias">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">ddstor_torq__dudbias</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Second derivative :math:`\partial^2\boldsymbol{\tau}_{\mathrm{wheel}}/\partial u\,\partial b`.</span>
 
 <span class="sd">        The bias :math:`b` enters linearly through :math:`(u+b)`, so the mixed second derivative is zero:</span>
@@ -1317,7 +1318,7 @@
 
 <span class="sd">        :return: Zero tensor if a bias model exists; otherwise an empty tensor consistent with no bias state.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bias</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ddstor_torq__dudu</span><span class="p">(</span><span class="n">u</span><span class="o">=</span><span class="n">u</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">os</span><span class="o">=</span><span class="n">os</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
@@ -1327,7 +1328,7 @@
 <div class="viewcode-block" id="RW.ddstor_torq__dudbasestate">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.reaction_wheel.html#ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddstor_torq__dudbasestate">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">ddstor_torq__dudbasestate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Second derivative :math:`\partial^2\boldsymbol{\tau}_{\mathrm{wheel}}/\partial u\,\partial \mathbf{x}_{\mathrm{base}}`.</span>
 
 <span class="sd">        The internal wheel torque does not depend on the base state :math:`\mathbf{x}_{\mathrm{base}}`, and is linear in</span>
@@ -1348,14 +1349,14 @@
 
 <span class="sd">        :return: Zero tensor, shape ``(1,7,1)``.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span></div>
 
     
 <div class="viewcode-block" id="RW.ddstor_torq__dudh">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.reaction_wheel.html#ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddstor_torq__dudh">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">ddstor_torq__dudh</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Second derivative :math:`\partial^2\boldsymbol{\tau}_{\mathrm{wheel}}/\partial u\,\partial \mathbf{h}`.</span>
 
 <span class="sd">        The internal wheel torque does not depend on :math:`\mathbf{h}`, hence:</span>
@@ -1375,14 +1376,14 @@
 
 <span class="sd">        :return: Zero tensor, shape ``(1,1,1)``.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span></div>
 
     
 <div class="viewcode-block" id="RW.ddstor_torq__dbiasdbias">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.reaction_wheel.html#ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddstor_torq__dbiasdbias">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">ddstor_torq__dbiasdbias</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Second derivative :math:`\partial^2\boldsymbol{\tau}_{\mathrm{wheel}}/\partial b^2`.</span>
 
 <span class="sd">        The bias :math:`b` enters the internal torque linearly through :math:`(u+b)`, so:</span>
@@ -1402,7 +1403,7 @@
 
 <span class="sd">        :return: Zero tensor if a bias model exists; otherwise an empty tensor consistent with no bias state.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bias</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ddstor_torq__dudu</span><span class="p">(</span><span class="n">u</span><span class="o">=</span><span class="n">u</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">os</span><span class="o">=</span><span class="n">os</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
@@ -1412,7 +1413,7 @@
 <div class="viewcode-block" id="RW.ddstor_torq__dbiasdbasestate">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.reaction_wheel.html#ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddstor_torq__dbiasdbasestate">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">ddstor_torq__dbiasdbasestate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Second derivative :math:`\partial^2\boldsymbol{\tau}_{\mathrm{wheel}}/\partial b\,\partial \mathbf{x}_{\mathrm{base}}`.</span>
 
 <span class="sd">        The internal wheel torque is independent of the base state and linear in :math:`b`, hence:</span>
@@ -1432,7 +1433,7 @@
 
 <span class="sd">        :return: Zero tensor if a bias model exists; otherwise an empty tensor consistent with no bias state.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bias</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ddstor_torq__dudbasestate</span><span class="p">(</span><span class="n">u</span><span class="o">=</span><span class="n">u</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">os</span><span class="o">=</span><span class="n">os</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
@@ -1442,7 +1443,7 @@
 <div class="viewcode-block" id="RW.ddstor_torq__dbiasdh">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.reaction_wheel.html#ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddstor_torq__dbiasdh">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">ddstor_torq__dbiasdh</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Second derivative :math:`\partial^2\boldsymbol{\tau}_{\mathrm{wheel}}/\partial b\,\partial \mathbf{h}`.</span>
 
 <span class="sd">        The internal wheel torque does not depend on :math:`\mathbf{h}`, so:</span>
@@ -1462,7 +1463,7 @@
 
 <span class="sd">        :return: Zero tensor if a bias model exists; otherwise an empty tensor consistent with no bias state.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bias</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ddstor_torq__dudh</span><span class="p">(</span><span class="n">u</span><span class="o">=</span><span class="n">u</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">os</span><span class="o">=</span><span class="n">os</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
@@ -1472,7 +1473,7 @@
 <div class="viewcode-block" id="RW.ddstor_torq__dbasestatedbasestate">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.reaction_wheel.html#ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddstor_torq__dbasestatedbasestate">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">ddstor_torq__dbasestatedbasestate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Second derivative :math:`\partial^2\boldsymbol{\tau}_{\mathrm{wheel}}/\partial \mathbf{x}_{\mathrm{base}}^2`.</span>
 
 <span class="sd">        The internal wheel torque is independent of the base state :math:`\mathbf{x}_{\mathrm{base}}`, so:</span>
@@ -1492,14 +1493,14 @@
 
 <span class="sd">        :return: Zero tensor, shape ``(7,7,1)``.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">7</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span></div>
 
     
 <div class="viewcode-block" id="RW.ddstor_torq__dbasestatedh">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.reaction_wheel.html#ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddstor_torq__dbasestatedh">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">ddstor_torq__dbasestatedh</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Second derivative :math:`\partial^2\boldsymbol{\tau}_{\mathrm{wheel}}/\partial \mathbf{x}_{\mathrm{base}}\,\partial \mathbf{h}`.</span>
 
 <span class="sd">        The internal wheel torque does not depend on :math:`\mathbf{x}_{\mathrm{base}}` nor :math:`\mathbf{h}`, hence:</span>
@@ -1519,14 +1520,14 @@
 
 <span class="sd">        :return: Zero tensor, shape ``(7,1,1)``.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">7</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span></div>
 
     
 <div class="viewcode-block" id="RW.ddstor_torq__dhdh">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.reaction_wheel.html#ADCS.satellite_hardware.actuators.reaction_wheel.RW.ddstor_torq__dhdh">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">ddstor_torq__dhdh</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Second derivative :math:`\partial^2\boldsymbol{\tau}_{\mathrm{wheel}}/\partial \mathbf{h}^2`.</span>
 
 <span class="sd">        The internal wheel torque is independent of the stored momentum :math:`\mathbf{h}`, so:</span>
@@ -1546,7 +1547,7 @@
 
 <span class="sd">        :return: Zero tensor, shape ``(1,1,1)``.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span></div>
 </div>
 

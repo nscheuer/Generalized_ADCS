@@ -228,6 +228,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../../release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_8_installable.html">0.1.8 Installable from PyPI (2026-08-05)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
@@ -539,16 +540,16 @@
         </div>
         <article role="main" id="furo-main-content">
           <h1>Source code for ADCS.controller.saltro.SALTRO_pass_settings</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;Pass-level SALTRO optimization settings.</span>
+<span></span><span class="sd">"""Pass-level SALTRO optimization settings.</span>
 
 <span class="sd">This module defines Python configuration dataclasses for solver costs,</span>
 <span class="sd">regularization, line search, and loop limits, with helpers to convert each</span>
 <span class="sd">configuration block to the corresponding SALTRO C++ struct.</span>
-<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">"""</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;PassConfig&quot;</span><span class="p">]</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"PassConfig"</span><span class="p">]</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">List</span>
@@ -556,32 +557,32 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_get_saltro_py</span><span class="p">():</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Import and return the ``saltro_py`` binding module.</span>
+<span class="w">    </span><span class="sd">"""Import and return the ``saltro_py`` binding module.</span>
 
 <span class="sd">    The loader appends ``SALTRO/build`` to ``sys.path`` if needed.</span>
 
 <span class="sd">    :return: Imported ``saltro_py`` module.</span>
 <span class="sd">    :rtype: module</span>
 <span class="sd">    :raises ImportError: If the SALTRO Python extension is not available.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
     <span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
 
-    <span class="n">parent_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">),</span> <span class="s2">&quot;../../..&quot;</span><span class="p">))</span>
-    <span class="n">build_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parent_dir</span><span class="p">,</span> <span class="s2">&quot;SALTRO&quot;</span><span class="p">,</span> <span class="s2">&quot;build&quot;</span><span class="p">)</span>
+    <span class="n">parent_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">),</span> <span class="s2">"../../.."</span><span class="p">))</span>
+    <span class="n">build_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parent_dir</span><span class="p">,</span> <span class="s2">"SALTRO"</span><span class="p">,</span> <span class="s2">"build"</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">build_dir</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="p">:</span>
         <span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">build_dir</span><span class="p">)</span>
 
     <span class="k">try</span><span class="p">:</span>
         <span class="kn">import</span><span class="w"> </span><span class="nn">saltro_py</span>
     <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;saltro_py not available (expected in </span><span class="si">{</span><span class="n">build_dir</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
+        <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"saltro_py not available (expected in </span><span class="si">{</span><span class="n">build_dir</span><span class="si">}</span><span class="s2">)"</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
 
     <span class="k">return</span> <span class="n">saltro_py</span>
 
 <span class="nd">@dataclass</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">CostConfig</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Running and terminal cost weights for one optimization pass.</span>
+<span class="w">    </span><span class="sd">"""Running and terminal cost weights for one optimization pass.</span>
 
 <span class="sd">    :param angle: Running attitude error cost weight.</span>
 <span class="sd">    :type angle: float</span>
@@ -593,7 +594,7 @@
 <span class="sd">    :type angle_N: float</span>
 <span class="sd">    :param ang_vel_N: Terminal angular velocity error cost weight.</span>
 <span class="sd">    :type ang_vel_N: float</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="c1"># Running costs</span>
     <span class="n">angle</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e2</span>
@@ -623,11 +624,11 @@
     <span class="n">use_cost_hess</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">to_cpp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert Python costs to SALTRO C++ ``CostConfig``.</span>
+<span class="w">        </span><span class="sd">"""Convert Python costs to SALTRO C++ ``CostConfig``.</span>
 
 <span class="sd">        :return: C++ cost config object.</span>
 <span class="sd">        :rtype: Any</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">saltro_py</span> <span class="o">=</span> <span class="n">_get_saltro_py</span><span class="p">()</span>
         <span class="n">cpp_cost</span> <span class="o">=</span> <span class="n">saltro_py</span><span class="o">.</span><span class="n">CostConfig</span><span class="p">()</span>
         <span class="n">cpp_cost</span><span class="o">.</span><span class="n">angle</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">angle</span>
@@ -654,7 +655,7 @@
 
 <span class="nd">@dataclass</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">AugLagConfig</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Augmented-Lagrangian outer-loop settings.</span>
+<span class="w">    </span><span class="sd">"""Augmented-Lagrangian outer-loop settings.</span>
 
 <span class="sd">    :param max_outer_iters: Maximum number of outer iterations.</span>
 <span class="sd">    :type max_outer_iters: int</span>
@@ -664,7 +665,7 @@
 <span class="sd">    :type penalty_max: float</span>
 <span class="sd">    :param constraint_tol: Constraint satisfaction tolerance.</span>
 <span class="sd">    :type constraint_tol: float</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="n">max_outer_iters</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">30</span>
 
@@ -679,11 +680,11 @@
     <span class="n">total_cost_tol</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-2</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">to_cpp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert Python settings to SALTRO C++ ``AugLagConfig``.</span>
+<span class="w">        </span><span class="sd">"""Convert Python settings to SALTRO C++ ``AugLagConfig``.</span>
 
 <span class="sd">        :return: C++ augmented-Lagrangian config object.</span>
 <span class="sd">        :rtype: Any</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">saltro_py</span> <span class="o">=</span> <span class="n">_get_saltro_py</span><span class="p">()</span>
         <span class="n">cpp_auglag</span> <span class="o">=</span> <span class="n">saltro_py</span><span class="o">.</span><span class="n">AugLagConfig</span><span class="p">()</span>
         <span class="n">cpp_auglag</span><span class="o">.</span><span class="n">max_outer_iters</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_outer_iters</span>
@@ -698,7 +699,7 @@
 
 <span class="nd">@dataclass</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">ILQRConfig</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;iLQR middle-loop settings.</span>
+<span class="w">    </span><span class="sd">"""iLQR middle-loop settings.</span>
 
 <span class="sd">    :param max_iters: Maximum iLQR iterations.</span>
 <span class="sd">    :type max_iters: int</span>
@@ -706,7 +707,7 @@
 <span class="sd">    :type grad_tol: float</span>
 <span class="sd">    :param cost_tol: Relative/absolute cost change tolerance.</span>
 <span class="sd">    :type cost_tol: float</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="n">max_iters</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">20</span>
     <span class="n">grad_tol</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-3</span>
@@ -717,11 +718,11 @@
     <span class="n">state_bound</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">10.0</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">to_cpp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert Python settings to SALTRO C++ ``ILQRConfig``.</span>
+<span class="w">        </span><span class="sd">"""Convert Python settings to SALTRO C++ ``ILQRConfig``.</span>
 
 <span class="sd">        :return: C++ iLQR config object.</span>
 <span class="sd">        :rtype: Any</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">saltro_py</span> <span class="o">=</span> <span class="n">_get_saltro_py</span><span class="p">()</span>
         <span class="n">cpp_ilqr</span> <span class="o">=</span> <span class="n">saltro_py</span><span class="o">.</span><span class="n">ILQRConfig</span><span class="p">()</span>
         <span class="n">cpp_ilqr</span><span class="o">.</span><span class="n">max_iters</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_iters</span>
@@ -734,7 +735,7 @@
 
 <span class="nd">@dataclass</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">RegularizationConfig</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Regularization settings for iLQR backward passes.</span>
+<span class="w">    </span><span class="sd">"""Regularization settings for iLQR backward passes.</span>
 
 <span class="sd">    :param reg_init: Initial regularization value.</span>
 <span class="sd">    :type reg_init: float</span>
@@ -742,7 +743,7 @@
 <span class="sd">    :type reg_min: float</span>
 <span class="sd">    :param reg_max: Upper bound on regularization.</span>
 <span class="sd">    :type reg_max: float</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="n">reg_init</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-6</span>
     <span class="n">reg_min</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-8</span>
@@ -757,11 +758,11 @@
     <span class="n">use_constraint_hess</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">to_cpp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert Python settings to SALTRO C++ ``RegularizationConfig``.</span>
+<span class="w">        </span><span class="sd">"""Convert Python settings to SALTRO C++ ``RegularizationConfig``.</span>
 
 <span class="sd">        :return: C++ regularization config object.</span>
 <span class="sd">        :rtype: Any</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">saltro_py</span> <span class="o">=</span> <span class="n">_get_saltro_py</span><span class="p">()</span>
         <span class="n">cpp_reg</span> <span class="o">=</span> <span class="n">saltro_py</span><span class="o">.</span><span class="n">RegularizationConfig</span><span class="p">()</span>
         <span class="n">cpp_reg</span><span class="o">.</span><span class="n">reg_init</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reg_init</span>
@@ -777,7 +778,7 @@
 
 <span class="nd">@dataclass</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">LineSearchConfig</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Line-search settings for iLQR forward rollout.</span>
+<span class="w">    </span><span class="sd">"""Line-search settings for iLQR forward rollout.</span>
 
 <span class="sd">    :param max_iters: Maximum line-search iterations.</span>
 <span class="sd">    :type max_iters: int</span>
@@ -785,18 +786,18 @@
 <span class="sd">    :type beta1: float</span>
 <span class="sd">    :param beta2: Maximum step scaling factor.</span>
 <span class="sd">    :type beta2: float</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="n">max_iters</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">24</span>
     <span class="n">beta1</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-10</span>
     <span class="n">beta2</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">5000.0</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">to_cpp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert Python settings to SALTRO C++ ``LineSearchConfig``.</span>
+<span class="w">        </span><span class="sd">"""Convert Python settings to SALTRO C++ ``LineSearchConfig``.</span>
 
 <span class="sd">        :return: C++ line-search config object.</span>
 <span class="sd">        :rtype: Any</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">saltro_py</span> <span class="o">=</span> <span class="n">_get_saltro_py</span><span class="p">()</span>
         <span class="n">cpp_ls</span> <span class="o">=</span> <span class="n">saltro_py</span><span class="o">.</span><span class="n">LineSearchConfig</span><span class="p">()</span>
         <span class="n">cpp_ls</span><span class="o">.</span><span class="n">max_iters</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_iters</span>
@@ -808,7 +809,7 @@
 <a class="viewcode-back" href="../../../../ADCS.controller.saltro.SALTRO_pass_settings.html#ADCS.controller.saltro.SALTRO_pass_settings.PassConfig">[docs]</a>
 <span class="nd">@dataclass</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">PassConfig</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Composite settings for one SALTRO optimization pass.</span>
+<span class="w">    </span><span class="sd">"""Composite settings for one SALTRO optimization pass.</span>
 
 <span class="sd">    A pass bundles cost, augmented-Lagrangian, iLQR, regularization, and</span>
 <span class="sd">    line-search configuration with a fixed planning timestep ``dt``.</span>
@@ -825,7 +826,7 @@
 <span class="sd">    :type linesearch: :class:`LineSearchConfig`</span>
 <span class="sd">    :param dt: Planner timestep in seconds.</span>
 <span class="sd">    :type dt: float</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="c1"># Cost Function</span>
     <span class="n">cost</span><span class="p">:</span> <span class="n">CostConfig</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="n">CostConfig</span><span class="p">)</span>
@@ -846,11 +847,11 @@
 <div class="viewcode-block" id="PassConfig.to_cpp">
 <a class="viewcode-back" href="../../../../ADCS.controller.saltro.SALTRO_pass_settings.html#ADCS.controller.saltro.SALTRO_pass_settings.PassConfig.to_cpp">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">to_cpp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert Python settings to SALTRO C++ ``PassConfig``.</span>
+<span class="w">        </span><span class="sd">"""Convert Python settings to SALTRO C++ ``PassConfig``.</span>
 
 <span class="sd">        :return: C++ pass config object.</span>
 <span class="sd">        :rtype: Any</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">saltro_py</span> <span class="o">=</span> <span class="n">_get_saltro_py</span><span class="p">()</span>
         <span class="n">cpp_pass</span> <span class="o">=</span> <span class="n">saltro_py</span><span class="o">.</span><span class="n">PassConfig</span><span class="p">()</span>
         <span class="n">cpp_pass</span><span class="o">.</span><span class="n">cost</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cost</span><span class="o">.</span><span class="n">to_cpp</span><span class="p">()</span>

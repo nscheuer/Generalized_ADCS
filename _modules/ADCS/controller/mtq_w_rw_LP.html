@@ -228,6 +228,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_8_installable.html">0.1.8 Installable from PyPI (2026-08-05)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
@@ -539,7 +540,7 @@
         </div>
         <article role="main" id="furo-main-content">
           <h1>Source code for ADCS.controller.mtq_w_rw_LP</h1><div class="highlight"><pre>
-<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;MTQ_w_RW_LP&quot;</span><span class="p">]</span>
+<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"MTQ_w_RW_LP"</span><span class="p">]</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
@@ -564,7 +565,7 @@
 <div class="viewcode-block" id="MTQ_w_RW_LP">
 <a class="viewcode-back" href="../../../ADCS.controller.mtq_w_rw_LP.html#ADCS.controller.mtq_w_rw_LP.MTQ_w_RW_LP">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">MTQ_w_RW_LP</span><span class="p">(</span><span class="n">Controller</span><span class="p">):</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Linear–Programming–Based Torque Allocation for Mixed RW–MTQ ADCS.</span>
 
 <span class="sd">    This controller allocates attitude control effort between reaction wheels (RWs) and</span>
@@ -678,9 +679,9 @@
 <span class="sd">    In desaturation mode (:class:`~ADCS.CONOPS.goals.No_Goal`), the controller uses MTQ-only logic</span>
 <span class="sd">    (B-dot style) with optional RW coordination to reduce rates and dump wheel momentum while</span>
 <span class="sd">    respecting actuator limits.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">est_sat</span><span class="p">:</span> <span class="n">EstimatedSatellite</span><span class="p">,</span> <span class="n">p_gain</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">d_gain</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">c_gain</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">h_target</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="nb">list</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">3</span><span class="p">))</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Construct the LP-based mixed RW–MTQ controller.</span>
 
 <span class="sd">        The constructor inspects the satellite hardware configuration in</span>
@@ -715,7 +716,7 @@
 <span class="sd">        :return: None</span>
 <span class="sd">        :rtype: None</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">est_sat</span> <span class="o">=</span> <span class="n">est_sat</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">mtqs</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">est_sat</span><span class="o">.</span><span class="n">actuators</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">MTQ</span><span class="p">)]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">rws</span>  <span class="o">=</span> <span class="p">[</span><span class="n">a</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">est_sat</span><span class="o">.</span><span class="n">actuators</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">RW</span><span class="p">)]</span>
@@ -756,7 +757,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_warnings</span><span class="p">()</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_warnings</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Emit configuration warnings and normalize the momentum target.</span>
 
 <span class="sd">        This method evaluates:</span>
@@ -774,7 +775,7 @@
 <span class="sd">        :return: None</span>
 <span class="sd">        :rtype: None</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">rank_mtq</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_mtq</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
             <span class="n">mtq_axes_mat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">axis</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">3</span><span class="p">,)</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">mtqs</span><span class="p">])</span>
@@ -786,25 +787,25 @@
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_rw</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_mtq</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">[Controller Config] </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_rw</span><span class="si">}</span><span class="s2"> RWs detected but 0 MTQs.</span><span class="se">\n</span><span class="s2">&quot;</span>
-                <span class="s2">&quot;  -&gt; CRITICAL: Momentum desaturation is NOT possible.</span><span class="se">\n</span><span class="s2">&quot;</span>
-                <span class="s2">&quot;  -&gt; Reaction wheels will eventually saturate and loss of control will occur.&quot;</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">[Controller Config] </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_rw</span><span class="si">}</span><span class="s2"> RWs detected but 0 MTQs.</span><span class="se">\n</span><span class="s2">"</span>
+                <span class="s2">"  -&gt; CRITICAL: Momentum desaturation is NOT possible.</span><span class="se">\n</span><span class="s2">"</span>
+                <span class="s2">"  -&gt; Reaction wheels will eventually saturate and loss of control will occur."</span><span class="p">,</span>
                 <span class="ne">UserWarning</span>
             <span class="p">)</span>
 
         <span class="k">elif</span> <span class="n">rank_mtq</span> <span class="o">&gt;=</span> <span class="mi">2</span> <span class="ow">and</span> <span class="p">(</span><span class="mi">1</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_rw</span> <span class="o">&lt;=</span> <span class="mi">2</span><span class="p">):</span>
             <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">[Controller Config] </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_rw</span><span class="si">}</span><span class="s2"> RWs (Rank </span><span class="si">{</span><span class="n">rank_rw</span><span class="si">}</span><span class="s2">) and Rank </span><span class="si">{</span><span class="n">rank_mtq</span><span class="si">}</span><span class="s2"> MTQs.</span><span class="se">\n</span><span class="s2">&quot;</span>
-                <span class="s2">&quot;  -&gt; LIMITATION: Torque-free desaturation (maintaining pointing while dumping) is NOT possible.</span><span class="se">\n</span><span class="s2">&quot;</span>
-                <span class="s2">&quot;  -&gt; ACTION: You must use &#39;No_Goal&#39; mode to desaturate. This uses B-dot and will temporarily tumble the satellite.&quot;</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">[Controller Config] </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_rw</span><span class="si">}</span><span class="s2"> RWs (Rank </span><span class="si">{</span><span class="n">rank_rw</span><span class="si">}</span><span class="s2">) and Rank </span><span class="si">{</span><span class="n">rank_mtq</span><span class="si">}</span><span class="s2"> MTQs.</span><span class="se">\n</span><span class="s2">"</span>
+                <span class="s2">"  -&gt; LIMITATION: Torque-free desaturation (maintaining pointing while dumping) is NOT possible.</span><span class="se">\n</span><span class="s2">"</span>
+                <span class="s2">"  -&gt; ACTION: You must use 'No_Goal' mode to desaturate. This uses B-dot and will temporarily tumble the satellite."</span><span class="p">,</span>
                 <span class="ne">UserWarning</span>
             <span class="p">)</span>
 
         <span class="k">elif</span> <span class="n">rank_mtq</span> <span class="o">==</span> <span class="mi">3</span> <span class="ow">and</span> <span class="n">rank_rw</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
             <span class="nb">print</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">[Controller Config] Verified: Rank 3 RWs + Rank 3 MTQs.</span><span class="se">\n</span><span class="s2">&quot;</span>
-                <span class="s2">&quot;  -&gt; Full 3-axis control with simultaneous momentum management is enabled.</span><span class="se">\n</span><span class="s2">&quot;</span>
-                <span class="s2">&quot;  -&gt; The &#39;MTQ_w_RW&#39; controller logic is optimal for this configuration.&quot;</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">[Controller Config] Verified: Rank 3 RWs + Rank 3 MTQs.</span><span class="se">\n</span><span class="s2">"</span>
+                <span class="s2">"  -&gt; Full 3-axis control with simultaneous momentum management is enabled.</span><span class="se">\n</span><span class="s2">"</span>
+                <span class="s2">"  -&gt; The 'MTQ_w_RW' controller logic is optimal for this configuration."</span>
             <span class="p">)</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_rw</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
@@ -814,18 +815,18 @@
             <span class="n">diff</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">h_target</span> <span class="o">-</span> <span class="n">h_achievable</span>
             <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">diff</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mf">1e-6</span><span class="p">:</span>
                 <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">[Controller Config] Requested h_target </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">h_target</span><span class="si">}</span><span class="s2"> is not fully achievable &quot;</span>
-                    <span class="sa">f</span><span class="s2">&quot;with the current RW configuration (Rank </span><span class="si">{</span><span class="n">rank_rw</span><span class="si">}</span><span class="s2">).</span><span class="se">\n</span><span class="s2">&quot;</span>
-                    <span class="sa">f</span><span class="s2">&quot;  -&gt; Projected target to achievable subspace: </span><span class="si">{</span><span class="n">h_achievable</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
-                    <span class="sa">f</span><span class="s2">&quot;  -&gt; IGNORING unachievable component: </span><span class="si">{</span><span class="n">diff</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                    <span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">[Controller Config] Requested h_target </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">h_target</span><span class="si">}</span><span class="s2"> is not fully achievable "</span>
+                    <span class="sa">f</span><span class="s2">"with the current RW configuration (Rank </span><span class="si">{</span><span class="n">rank_rw</span><span class="si">}</span><span class="s2">).</span><span class="se">\n</span><span class="s2">"</span>
+                    <span class="sa">f</span><span class="s2">"  -&gt; Projected target to achievable subspace: </span><span class="si">{</span><span class="n">h_achievable</span><span class="si">}</span><span class="se">\n</span><span class="s2">"</span>
+                    <span class="sa">f</span><span class="s2">"  -&gt; IGNORING unachievable component: </span><span class="si">{</span><span class="n">diff</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
                     <span class="ne">UserWarning</span>
                 <span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">h_target</span> <span class="o">=</span> <span class="n">h_achievable</span>
 
         <span class="k">elif</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">h_target</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mf">1e-6</span><span class="p">:</span>
             <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">[Controller Config] Non-zero h_target </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">h_target</span><span class="si">}</span><span class="s2"> requested with 0 RWs.</span><span class="se">\n</span><span class="s2">&quot;</span>
-                <span class="s2">&quot;  -&gt; Target cannot be stored. Resetting h_target to [0, 0, 0].&quot;</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">[Controller Config] Non-zero h_target </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">h_target</span><span class="si">}</span><span class="s2"> requested with 0 RWs.</span><span class="se">\n</span><span class="s2">"</span>
+                <span class="s2">"  -&gt; Target cannot be stored. Resetting h_target to [0, 0, 0]."</span><span class="p">,</span>
                 <span class="ne">UserWarning</span>
             <span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">h_target</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
@@ -841,7 +842,7 @@
         <span class="n">os_hat</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span>
         <span class="n">goal</span><span class="p">:</span> <span class="n">Goal</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Compute actuator commands for either pointing or desaturation mode.</span>
 
 <span class="sd">        If ``goal`` is :class:`~ADCS.CONOPS.goals.No_Goal` (or ``None``), this method routes</span>
@@ -850,7 +851,7 @@
 
 <span class="sd">        The returned vector is ordered in the same actuator ordering as</span>
 <span class="sd">        ``est_sat.actuators`` and contains MTQ and RW command signals consistent with each</span>
-<span class="sd">        actuator&#39;s ``u_max`` bounds.</span>
+<span class="sd">        actuator's ``u_max`` bounds.</span>
 
 <span class="sd">        :param x_hat: Estimated state containing body rates in ``w``, the attitude</span>
 <span class="sd">            quaternion in ``q``, and reaction-wheel momentum in ``h``.</span>
@@ -866,7 +867,7 @@
 <span class="sd">        :return: Actuator command vector in ``est_sat.actuators`` ordering.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">if</span> <span class="n">goal</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">goal</span> <span class="o">=</span> <span class="n">No_Goal</span><span class="p">()</span>
 
@@ -899,7 +900,7 @@
         <span class="n">os_hat</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span>
         <span class="n">goal</span><span class="p">:</span> <span class="n">Goal</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Compute actuator commands for pointing with LP allocation and torque-free desaturation.</span>
 
 <span class="sd">        This method performs two stages:</span>
@@ -999,7 +1000,7 @@
 <span class="sd">            desaturation contribution that fits within remaining authority.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">w</span> <span class="o">=</span> <span class="n">x_hat</span><span class="o">.</span><span class="n">w</span>
         <span class="n">q</span> <span class="o">=</span> <span class="n">x_hat</span><span class="o">.</span><span class="n">q</span>
 
@@ -1013,7 +1014,7 @@
         <span class="n">h_rw_states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reaction_wheel_momentum_states</span><span class="p">(</span>
             <span class="n">x_hat</span><span class="p">,</span>
             <span class="n">n_rw</span><span class="p">,</span>
-            <span class="n">context</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">.find_u&quot;</span><span class="p">,</span>
+            <span class="n">context</span><span class="o">=</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">.find_u"</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="c1"># -------------------------</span>
@@ -1078,7 +1079,7 @@
         <span class="c1"># Current stored wheel momentum vector (3,) is h_rw_body already</span>
         <span class="c1"># self.h_target is BODY (3,)</span>
         <span class="n">h_err_body</span> <span class="o">=</span> <span class="n">h_rw_body</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">h_target</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">3</span><span class="p">,)</span>
-        <span class="c1"># Desired torque to reduce this momentum error (Hogan &amp; Schaub &quot;dump&quot; direction)</span>
+        <span class="c1"># Desired torque to reduce this momentum error (Hogan &amp; Schaub "dump" direction)</span>
         <span class="n">tau_dump_des</span> <span class="o">=</span> <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">c_gain</span> <span class="o">*</span> <span class="n">h_err_body</span>
 
         <span class="c1"># MTQs can only produce torque perpendicular to B: project into achievable plane</span>
@@ -1101,7 +1102,7 @@
         <span class="n">u_mtq_sec</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">pinv</span><span class="p">(</span><span class="n">M_mag_eff</span><span class="p">)</span> <span class="o">@</span> <span class="n">tau_mtq_sec</span>                                 <span class="c1"># (n_mtq,)</span>
 
         <span class="c1"># ---- 4c) Use ONLY leftover authority around u_out, scale coupled (RW+MTQ together) ----</span>
-        <span class="c1"># Build stacked vectors in the same ordering as u_out&#39;s RW/MTQ slots</span>
+        <span class="c1"># Build stacked vectors in the same ordering as u_out's RW/MTQ slots</span>
         <span class="n">u_star_rw</span>  <span class="o">=</span> <span class="n">u_out</span><span class="p">[</span><span class="n">rw_indices</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
         <span class="n">u_star_mtq</span> <span class="o">=</span> <span class="n">u_out</span><span class="p">[</span><span class="n">mtq_indices</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
 
@@ -1161,7 +1162,7 @@
         <span class="n">os_hat</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span>
         <span class="n">goal</span><span class="p">:</span> <span class="n">Goal</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>    
     <span class="p">):</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Compute actuator commands for desaturation mode (No_Goal).</span>
 
 <span class="sd">        This mode prioritizes:</span>
@@ -1256,7 +1257,7 @@
 <span class="sd">        :return: Actuator command vector in ``est_sat.actuators`` ordering for desaturation mode.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">w</span> <span class="o">=</span> <span class="n">x_hat</span><span class="o">.</span><span class="n">w</span>
         <span class="n">q</span> <span class="o">=</span> <span class="n">x_hat</span><span class="o">.</span><span class="n">q</span>
 
@@ -1277,12 +1278,12 @@
         <span class="n">h_rw_scalars</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reaction_wheel_momentum_states</span><span class="p">(</span>
             <span class="n">x_hat</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">n_rw</span><span class="p">,</span>
-            <span class="n">context</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">.find_u_desaturate&quot;</span><span class="p">,</span>
+            <span class="n">context</span><span class="o">=</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">.find_u_desaturate"</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">h_sys</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rw_axes</span> <span class="o">@</span> <span class="n">h_rw_scalars</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_rw</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
 
         <span class="c1"># --- 3. Rate Damping (Perpendicular to B) ---</span>
-        <span class="c1"># &quot;Magnetic B-dot&quot; logic: dampen rates only in the plane where MTQs can act</span>
+        <span class="c1"># "Magnetic B-dot" logic: dampen rates only in the plane where MTQs can act</span>
         <span class="n">w_perp</span> <span class="o">=</span> <span class="n">w</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">b_hat</span><span class="p">)</span> <span class="o">*</span> <span class="n">b_hat</span>
         <span class="n">tau_bdot_perp</span> <span class="o">=</span> <span class="o">-</span><span class="n">k_w</span> <span class="o">*</span> <span class="n">w_perp</span>
 
@@ -1344,7 +1345,7 @@
 <div class="viewcode-block" id="MTQ_w_RW_LP.allocate_max_torque_in_direction">
 <a class="viewcode-back" href="../../../ADCS.controller.mtq_w_rw_LP.html#ADCS.controller.mtq_w_rw_LP.MTQ_w_RW_LP.allocate_max_torque_in_direction">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">allocate_max_torque_in_direction</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tau_des</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">b_body</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">est_sat</span><span class="p">:</span> <span class="n">EstimatedSatellite</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>    
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Solve the LP to maximize feasible torque colinear with a desired torque direction.</span>
 
 <span class="sd">        This method implements the normalized LP:</span>
@@ -1401,7 +1402,7 @@
 <span class="sd">            ``u_mtq_cmd`` has shape ``(N_mtq,)``, and ``alpha`` is the achievable torque fraction.</span>
 <span class="sd">        :rtype: tuple[numpy.ndarray, numpy.ndarray, float]</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">t_mag</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">tau_des</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">t_mag</span> <span class="o">&lt;</span> <span class="mf">1e-9</span><span class="p">:</span>
             <span class="c1"># Re-calculate indices just to return correct shaped zeros</span>
@@ -1463,7 +1464,7 @@
 
         <span class="c1"># 3. Solve with HiGHS</span>
         <span class="c1"># -----------------------------------------------------</span>
-        <span class="n">res</span> <span class="o">=</span> <span class="n">linprog</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">A_eq</span><span class="o">=</span><span class="n">A_eq</span><span class="p">,</span> <span class="n">b_eq</span><span class="o">=</span><span class="n">b_eq</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="n">bounds</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;highs&#39;</span><span class="p">)</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">linprog</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">A_eq</span><span class="o">=</span><span class="n">A_eq</span><span class="p">,</span> <span class="n">b_eq</span><span class="o">=</span><span class="n">b_eq</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="n">bounds</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">'highs'</span><span class="p">)</span>
 
         <span class="n">n_rw</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">rws</span><span class="p">)</span>
         <span class="n">n_mtq</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">mtqs</span><span class="p">)</span>
@@ -1499,7 +1500,7 @@
 <div class="viewcode-block" id="MTQ_w_RW_LP.plot_torques">
 <a class="viewcode-back" href="../../../ADCS.controller.mtq_w_rw_LP.html#ADCS.controller.mtq_w_rw_LP.MTQ_w_RW_LP.plot_torques">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">plot_torques</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tau_des</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">b_body</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">est_sat</span><span class="p">:</span> <span class="n">EstimatedSatellite</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Plot achievable torque envelopes and the allocated torque vectors in 3D.</span>
 
 <span class="sd">        This method:</span>
@@ -1541,7 +1542,7 @@
 <span class="sd">        :return: None</span>
 <span class="sd">        :rtype: None</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="c1"># --- Solve allocation ---</span>
         <span class="n">u_rw</span><span class="p">,</span> <span class="n">u_mtq</span><span class="p">,</span> <span class="n">alpha</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">allocate_max_torque_in_direction</span><span class="p">(</span><span class="n">tau_des</span><span class="p">,</span> <span class="n">b_body</span><span class="p">,</span> <span class="n">est_sat</span><span class="p">)</span>
 
@@ -1573,27 +1574,27 @@
 
         <span class="c1"># --- Figure ---</span>
         <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">8</span><span class="p">))</span>
-        <span class="n">ax</span>  <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="mi">111</span><span class="p">,</span> <span class="n">projection</span><span class="o">=</span><span class="s2">&quot;3d&quot;</span><span class="p">)</span>
+        <span class="n">ax</span>  <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="mi">111</span><span class="p">,</span> <span class="n">projection</span><span class="o">=</span><span class="s2">"3d"</span><span class="p">)</span>
         <span class="n">ax</span><span class="o">.</span><span class="n">set_box_aspect</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
 
         <span class="c1"># --- Hulls ---</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">rw_pts</span><span class="p">):</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">plot_capacity</span><span class="p">(</span><span class="n">ax</span><span class="p">,</span> <span class="n">rw_pts</span><span class="p">,</span> <span class="n">face_color</span><span class="o">=</span><span class="s2">&quot;gray&quot;</span><span class="p">,</span> <span class="n">edge_color</span><span class="o">=</span><span class="s2">&quot;black&quot;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.25</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">plot_capacity</span><span class="p">(</span><span class="n">ax</span><span class="p">,</span> <span class="n">rw_pts</span><span class="p">,</span> <span class="n">face_color</span><span class="o">=</span><span class="s2">"gray"</span><span class="p">,</span> <span class="n">edge_color</span><span class="o">=</span><span class="s2">"black"</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.25</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">mtq_pts</span><span class="p">):</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">plot_capacity</span><span class="p">(</span><span class="n">ax</span><span class="p">,</span> <span class="n">mtq_pts</span><span class="p">,</span> <span class="n">face_color</span><span class="o">=</span><span class="s2">&quot;royalblue&quot;</span><span class="p">,</span> <span class="n">edge_color</span><span class="o">=</span><span class="s2">&quot;navy&quot;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.25</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">plot_capacity</span><span class="p">(</span><span class="n">ax</span><span class="p">,</span> <span class="n">mtq_pts</span><span class="p">,</span> <span class="n">face_color</span><span class="o">=</span><span class="s2">"royalblue"</span><span class="p">,</span> <span class="n">edge_color</span><span class="o">=</span><span class="s2">"navy"</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.25</span><span class="p">)</span>
 
         <span class="c1"># --- Vectors ---</span>
-        <span class="k">def</span><span class="w"> </span><span class="nf">vec</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">lbl</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s2">&quot;-&quot;</span><span class="p">):</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">vec</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">lbl</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s2">"-"</span><span class="p">):</span>
             <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">]],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">v</span><span class="p">[</span><span class="mi">1</span><span class="p">]],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">v</span><span class="p">[</span><span class="mi">2</span><span class="p">]],</span>
                     <span class="n">color</span><span class="o">=</span><span class="n">c</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">2.5</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="n">ls</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">lbl</span><span class="p">,</span> <span class="n">clip_on</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
-        <span class="n">vec</span><span class="p">(</span><span class="n">tau_rw</span><span class="p">,</span>  <span class="s2">&quot;purple&quot;</span><span class="p">,</span>     <span class="s2">&quot;RW Allocation&quot;</span><span class="p">)</span>
-        <span class="n">vec</span><span class="p">(</span><span class="n">tau_mtq</span><span class="p">,</span> <span class="s2">&quot;royalblue&quot;</span><span class="p">,</span>  <span class="s2">&quot;MTQ Allocation&quot;</span><span class="p">)</span>
-        <span class="n">vec</span><span class="p">(</span><span class="n">tau_tot</span><span class="p">,</span> <span class="s2">&quot;limegreen&quot;</span><span class="p">,</span>  <span class="sa">r</span><span class="s2">&quot;$\tau_</span><span class="si">{achieved}</span><span class="s2">$&quot;</span><span class="p">)</span>
+        <span class="n">vec</span><span class="p">(</span><span class="n">tau_rw</span><span class="p">,</span>  <span class="s2">"purple"</span><span class="p">,</span>     <span class="s2">"RW Allocation"</span><span class="p">)</span>
+        <span class="n">vec</span><span class="p">(</span><span class="n">tau_mtq</span><span class="p">,</span> <span class="s2">"royalblue"</span><span class="p">,</span>  <span class="s2">"MTQ Allocation"</span><span class="p">)</span>
+        <span class="n">vec</span><span class="p">(</span><span class="n">tau_tot</span><span class="p">,</span> <span class="s2">"limegreen"</span><span class="p">,</span>  <span class="sa">r</span><span class="s2">"$\tau_</span><span class="si">{achieved}</span><span class="s2">$"</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">tau_des</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mf">1e-9</span><span class="p">:</span>
-            <span class="n">vec</span><span class="p">(</span><span class="n">tau_des</span><span class="p">,</span> <span class="s2">&quot;red&quot;</span><span class="p">,</span> <span class="sa">r</span><span class="s2">&quot;$\tau_</span><span class="si">{des}</span><span class="s2">$&quot;</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s2">&quot;--&quot;</span><span class="p">)</span>
+            <span class="n">vec</span><span class="p">(</span><span class="n">tau_des</span><span class="p">,</span> <span class="s2">"red"</span><span class="p">,</span> <span class="sa">r</span><span class="s2">"$\tau_</span><span class="si">{des}</span><span class="s2">$"</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s2">"--"</span><span class="p">)</span>
 
         <span class="c1"># --- Axis focus: MTQ hull ---</span>
         <span class="n">focus_pts</span> <span class="o">=</span> <span class="n">mtq_pts</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">mtq_pts</span><span class="p">)</span> <span class="k">else</span> <span class="n">rw_pts</span>
@@ -1607,22 +1608,22 @@
         <span class="n">ax</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="o">-</span><span class="n">lim</span><span class="p">,</span> <span class="n">lim</span><span class="p">)</span>
         <span class="n">ax</span><span class="o">.</span><span class="n">set_zlim</span><span class="p">(</span><span class="o">-</span><span class="n">lim</span><span class="p">,</span> <span class="n">lim</span><span class="p">)</span>
 
-        <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;X [Nm]&quot;</span><span class="p">)</span>
-        <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;Y [Nm]&quot;</span><span class="p">)</span>
-        <span class="n">ax</span><span class="o">.</span><span class="n">set_zlabel</span><span class="p">(</span><span class="s2">&quot;Z [Nm]&quot;</span><span class="p">)</span>
-        <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Torque Allocation (α = </span><span class="si">{</span><span class="n">alpha</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">)</span><span class="se">\n</span><span class="s2">Scroll to zoom&quot;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">"X [Nm]"</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">"Y [Nm]"</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_zlabel</span><span class="p">(</span><span class="s2">"Z [Nm]"</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Torque Allocation (α = </span><span class="si">{</span><span class="n">alpha</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">)</span><span class="se">\n</span><span class="s2">Scroll to zoom"</span><span class="p">)</span>
         <span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
 
         <span class="c1"># --- Scroll zoom ---</span>
         <span class="k">def</span><span class="w"> </span><span class="nf">on_scroll</span><span class="p">(</span><span class="n">event</span><span class="p">):</span>
-            <span class="n">s</span> <span class="o">=</span> <span class="mf">0.85</span> <span class="k">if</span> <span class="n">event</span><span class="o">.</span><span class="n">button</span> <span class="o">==</span> <span class="s2">&quot;up&quot;</span> <span class="k">else</span> <span class="mf">1.15</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="mf">0.85</span> <span class="k">if</span> <span class="n">event</span><span class="o">.</span><span class="n">button</span> <span class="o">==</span> <span class="s2">"up"</span> <span class="k">else</span> <span class="mf">1.15</span>
             <span class="k">for</span> <span class="n">setter</span> <span class="ow">in</span> <span class="p">(</span><span class="n">ax</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">,</span> <span class="n">ax</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">,</span> <span class="n">ax</span><span class="o">.</span><span class="n">set_zlim</span><span class="p">):</span>
                 <span class="n">lo</span><span class="p">,</span> <span class="n">hi</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">get_xlim</span><span class="p">()</span>
                 <span class="n">span</span> <span class="o">=</span> <span class="p">(</span><span class="n">hi</span> <span class="o">-</span> <span class="n">lo</span><span class="p">)</span> <span class="o">*</span> <span class="n">s</span> <span class="o">/</span> <span class="mi">2</span>
                 <span class="n">setter</span><span class="p">(</span><span class="o">-</span><span class="n">span</span><span class="p">,</span> <span class="n">span</span><span class="p">)</span>
             <span class="n">fig</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">draw_idle</span><span class="p">()</span>
 
-        <span class="n">fig</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">mpl_connect</span><span class="p">(</span><span class="s2">&quot;scroll_event&quot;</span><span class="p">,</span> <span class="n">on_scroll</span><span class="p">)</span>
+        <span class="n">fig</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">mpl_connect</span><span class="p">(</span><span class="s2">"scroll_event"</span><span class="p">,</span> <span class="n">on_scroll</span><span class="p">)</span>
         <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></div>
 
 
@@ -1633,7 +1634,7 @@
                   <span class="n">face_color</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
                   <span class="n">edge_color</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
                   <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.25</span><span class="p">):</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Plot a convex capacity set (line, polygon, or 3D hull) from a point cloud.</span>
 
 <span class="sd">        The method determines the intrinsic rank (dimension) of the point set by SVD and renders:</span>
@@ -1667,7 +1668,7 @@
 <span class="sd">        :return: None</span>
 <span class="sd">        :rtype: None</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         
         <span class="n">pts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">pts</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
@@ -1685,7 +1686,7 @@
                     <span class="n">color</span><span class="o">=</span><span class="n">edge_color</span><span class="p">,</span>
                     <span class="n">linewidth</span><span class="o">=</span><span class="mf">4.5</span><span class="p">,</span>
                     <span class="n">alpha</span><span class="o">=</span><span class="n">alpha</span><span class="p">,</span>
-                    <span class="n">solid_capstyle</span><span class="o">=</span><span class="s2">&quot;round&quot;</span><span class="p">,</span>
+                    <span class="n">solid_capstyle</span><span class="o">=</span><span class="s2">"round"</span><span class="p">,</span>
                     <span class="n">clip_on</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
             <span class="k">return</span>
 
@@ -1705,12 +1706,12 @@
             <span class="k">return</span>
 
         <span class="c1"># --- 3D: Volume hull ---</span>
-        <span class="n">hull</span> <span class="o">=</span> <span class="n">ConvexHull</span><span class="p">(</span><span class="n">pts</span><span class="p">,</span> <span class="n">qhull_options</span><span class="o">=</span><span class="s2">&quot;QJ&quot;</span><span class="p">)</span>
+        <span class="n">hull</span> <span class="o">=</span> <span class="n">ConvexHull</span><span class="p">(</span><span class="n">pts</span><span class="p">,</span> <span class="n">qhull_options</span><span class="o">=</span><span class="s2">"QJ"</span><span class="p">)</span>
 
         <span class="n">faces</span> <span class="o">=</span> <span class="p">[</span><span class="n">pts</span><span class="p">[</span><span class="n">s</span><span class="p">]</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">hull</span><span class="o">.</span><span class="n">simplices</span><span class="p">]</span>
         <span class="n">poly</span> <span class="o">=</span> <span class="n">Poly3DCollection</span><span class="p">(</span><span class="n">faces</span><span class="p">,</span>
                                 <span class="n">facecolor</span><span class="o">=</span><span class="n">face_color</span><span class="p">,</span>
-                                <span class="n">edgecolor</span><span class="o">=</span><span class="s2">&quot;none&quot;</span><span class="p">,</span>
+                                <span class="n">edgecolor</span><span class="o">=</span><span class="s2">"none"</span><span class="p">,</span>
                                 <span class="n">alpha</span><span class="o">=</span><span class="n">alpha</span><span class="p">)</span>
         <span class="n">poly</span><span class="o">.</span><span class="n">set_clip_on</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
         <span class="n">ax</span><span class="o">.</span><span class="n">add_collection3d</span><span class="p">(</span><span class="n">poly</span><span class="p">)</span>

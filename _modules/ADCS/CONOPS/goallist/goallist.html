@@ -228,6 +228,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../../release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_8_installable.html">0.1.8 Installable from PyPI (2026-08-05)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
@@ -541,7 +542,7 @@
           <h1>Source code for ADCS.CONOPS.goallist.goallist</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;GoalList&quot;</span><span class="p">]</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"GoalList"</span><span class="p">]</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">bisect</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Literal</span>
@@ -552,13 +553,13 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.orbits.orbital_state</span><span class="w"> </span><span class="kn">import</span> <span class="n">Orbital_State</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.orbits.universal_constants</span><span class="w"> </span><span class="kn">import</span> <span class="n">TimeConstants</span>
 
-<span class="n">_TimeUnits</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;centuries&quot;</span><span class="p">,</span> <span class="s2">&quot;seconds&quot;</span><span class="p">]</span>
+<span class="n">_TimeUnits</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"centuries"</span><span class="p">,</span> <span class="s2">"seconds"</span><span class="p">]</span>
 
 
 <div class="viewcode-block" id="GoalList">
 <a class="viewcode-back" href="../../../../ADCS.CONOPS.goallist.goallist.html#ADCS.CONOPS.goallist.goallist.GoalList">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">GoalList</span><span class="p">:</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Timeline-based container for attitude or mission goals.</span>
 
 <span class="sd">    This class implements a piecewise-constant goal selection function</span>
@@ -620,16 +621,16 @@
 <span class="sd">    :class:`~ADCS.goals.goal.Goal`</span>
 <span class="sd">    :class:`~ADCS.goals.no_goal.No_Goal`</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">goal_timeline</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="n">Goal</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
-        <span class="n">time_units</span><span class="p">:</span> <span class="n">_TimeUnits</span> <span class="o">=</span> <span class="s2">&quot;centuries&quot;</span><span class="p">,</span>
+        <span class="n">time_units</span><span class="p">:</span> <span class="n">_TimeUnits</span> <span class="o">=</span> <span class="s2">"centuries"</span><span class="p">,</span>
         <span class="n">start_juliantime</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Initialize a goal timeline.</span>
 
 <span class="sd">        The input mapping is sorted in ascending order of activation</span>
@@ -638,12 +639,12 @@
 <span class="sd">        Two initialization standards are supported:</span>
 
 <span class="sd">        **A) Julian-centuries mode** (default)</span>
-<span class="sd">            - ``time_units=&quot;centuries&quot;``</span>
+<span class="sd">            - ``time_units="centuries"``</span>
 <span class="sd">            - ``goal_timeline`` keys are interpreted as Julian centuries.</span>
 <span class="sd">            - ``start_juliantime`` must be ``None``.</span>
 
 <span class="sd">        **B) Seconds mode**</span>
-<span class="sd">            - ``time_units=&quot;seconds&quot;``</span>
+<span class="sd">            - ``time_units="seconds"``</span>
 <span class="sd">            - ``goal_timeline`` keys are interpreted as seconds.</span>
 <span class="sd">            - ``start_juliantime`` must be provided (Julian centuries).</span>
 <span class="sd">            - Internal activation times are computed via</span>
@@ -675,15 +676,15 @@
 <span class="sd">            Dict[float, Goal] or None</span>
 
 <span class="sd">        :param time_units:</span>
-<span class="sd">            Default time unit for inputs to this instance. Use ``&quot;centuries&quot;``</span>
-<span class="sd">            for direct Julian-centuries inputs, or ``&quot;seconds&quot;`` for seconds</span>
+<span class="sd">            Default time unit for inputs to this instance. Use ``"centuries"``</span>
+<span class="sd">            for direct Julian-centuries inputs, or ``"seconds"`` for seconds</span>
 <span class="sd">            relative to ``start_juliantime``.</span>
 <span class="sd">        :type time_units:</span>
-<span class="sd">            Literal[&quot;centuries&quot;,&quot;seconds&quot;]</span>
+<span class="sd">            Literal["centuries","seconds"]</span>
 
 <span class="sd">        :param start_juliantime:</span>
-<span class="sd">            Start epoch in Julian centuries, required when ``time_units=&quot;seconds&quot;``.</span>
-<span class="sd">            Also required when calling methods with ``time_units=&quot;seconds&quot;``.</span>
+<span class="sd">            Start epoch in Julian centuries, required when ``time_units="seconds"``.</span>
+<span class="sd">            Also required when calling methods with ``time_units="seconds"``.</span>
 <span class="sd">        :type start_juliantime:</span>
 <span class="sd">            float or None</span>
 
@@ -692,10 +693,10 @@
 <span class="sd">        :rtype:</span>
 <span class="sd">            None</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">time_units</span><span class="p">:</span> <span class="n">_TimeUnits</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">time_units</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>  <span class="c1"># type: ignore[assignment]</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_units</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;centuries&quot;</span><span class="p">,</span> <span class="s2">&quot;seconds&quot;</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;time_units must be one of: &#39;centuries&#39;, &#39;seconds&#39;&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_units</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"centuries"</span><span class="p">,</span> <span class="s2">"seconds"</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"time_units must be one of: 'centuries', 'seconds'"</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">start_juliantime</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">start_juliantime</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">start_juliantime</span><span class="p">)</span>
@@ -706,8 +707,8 @@
         <span class="c1"># - centuries default mode: start_juliantime may be None or provided (allowed),</span>
         <span class="c1">#   since it can be useful later for seconds-based method calls.</span>
         <span class="c1"># - seconds default mode: start_juliantime must be provided.</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_units</span> <span class="o">==</span> <span class="s2">&quot;seconds&quot;</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">start_juliantime</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;start_juliantime is required when time_units=&#39;seconds&#39;.&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_units</span> <span class="o">==</span> <span class="s2">"seconds"</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">start_juliantime</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"start_juliantime is required when time_units='seconds'."</span><span class="p">)</span>
 
         <span class="c1"># Internal storage is ALWAYS in Julian centuries.</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
@@ -720,15 +721,15 @@
                     <span class="n">_</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
                 <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
                     <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
-                        <span class="sa">f</span><span class="s2">&quot;Goal timeline time key </span><span class="si">{</span><span class="n">k</span><span class="si">!r}</span><span class="s2"> is not a float-like value.&quot;</span>
+                        <span class="sa">f</span><span class="s2">"Goal timeline time key </span><span class="si">{</span><span class="n">k</span><span class="si">!r}</span><span class="s2"> is not a float-like value."</span>
                     <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
                 <span class="k">if</span> <span class="n">g</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Goal timeline contains None goal at time </span><span class="si">{</span><span class="n">k</span><span class="si">!r}</span><span class="s2">.&quot;</span><span class="p">)</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Goal timeline contains None goal at time </span><span class="si">{</span><span class="n">k</span><span class="si">!r}</span><span class="s2">."</span><span class="p">)</span>
 
             <span class="n">sorted_items</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">items</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">kv</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">kv</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
 
-            <span class="c1"># Interpret keys according to the constructor&#39;s default time_units.</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_units</span> <span class="o">==</span> <span class="s2">&quot;centuries&quot;</span><span class="p">:</span>
+            <span class="c1"># Interpret keys according to the constructor's default time_units.</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_units</span> <span class="o">==</span> <span class="s2">"centuries"</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">times</span> <span class="o">=</span> <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span><span class="p">,</span> <span class="n">_g</span> <span class="ow">in</span> <span class="n">sorted_items</span><span class="p">]</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">goals</span> <span class="o">=</span> <span class="p">[</span><span class="n">g</span> <span class="k">for</span> <span class="n">_t</span><span class="p">,</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">sorted_items</span><span class="p">]</span>
             <span class="k">else</span><span class="p">:</span>
@@ -743,18 +744,18 @@
 <div class="viewcode-block" id="GoalList.add_goal">
 <a class="viewcode-back" href="../../../../ADCS.CONOPS.goallist.goallist.html#ADCS.CONOPS.goallist.goallist.GoalList.add_goal">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">add_goal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">time</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">goal</span><span class="p">:</span> <span class="n">Goal</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">time_units</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">_TimeUnits</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Insert or update a goal at a given activation time.</span>
 
 <span class="sd">        The method maintains the strict ordering of activation times in the</span>
 <span class="sd">        *internal Julian-centuries timeline*.</span>
 
-<span class="sd">        By default, the instance&#39;s ``time_units`` is used to interpret ``time``.</span>
+<span class="sd">        By default, the instance's ``time_units`` is used to interpret ``time``.</span>
 <span class="sd">        Alternatively, ``time_units`` may be provided per-call to override the</span>
 <span class="sd">        interpretation.</span>
 
-<span class="sd">        - If ``time_units=&quot;centuries&quot;``: ``time`` is interpreted as a Julian-centuries value.</span>
-<span class="sd">        - If ``time_units=&quot;seconds&quot;``: ``time`` is interpreted as seconds relative to</span>
+<span class="sd">        - If ``time_units="centuries"``: ``time`` is interpreted as a Julian-centuries value.</span>
+<span class="sd">        - If ``time_units="seconds"``: ``time`` is interpreted as seconds relative to</span>
 <span class="sd">          ``start_juliantime`` and is converted internally.</span>
 
 <span class="sd">        Given an insertion time :math:`T` (in Julian centuries), the new goal is</span>
@@ -785,19 +786,19 @@
 <span class="sd">            Goal</span>
 
 <span class="sd">        :param time_units:</span>
-<span class="sd">            Optional per-call override of time units. Must be ``&quot;centuries&quot;`` or ``&quot;seconds&quot;``.</span>
+<span class="sd">            Optional per-call override of time units. Must be ``"centuries"`` or ``"seconds"``.</span>
 <span class="sd">            If omitted, the instance default ``self.time_units`` is used.</span>
 <span class="sd">        :type time_units:</span>
-<span class="sd">            Literal[&quot;centuries&quot;,&quot;seconds&quot;] or None</span>
+<span class="sd">            Literal["centuries","seconds"] or None</span>
 
 <span class="sd">        :return:</span>
 <span class="sd">            None</span>
 <span class="sd">        :rtype:</span>
 <span class="sd">            None</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">if</span> <span class="n">goal</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;goal must not be None&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"goal must not be None"</span><span class="p">)</span>
 
         <span class="n">T</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_to_centuries</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">time</span><span class="p">),</span> <span class="n">time_units</span><span class="o">=</span><span class="n">time_units</span><span class="p">)</span>
 
@@ -815,7 +816,7 @@
 <div class="viewcode-block" id="GoalList.get_active_goal">
 <a class="viewcode-back" href="../../../../ADCS.CONOPS.goallist.goallist.html#ADCS.CONOPS.goallist.goallist.GoalList.get_active_goal">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_active_goal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">time_units</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">_TimeUnits</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Goal</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Return the goal active at a given time.</span>
 
 <span class="sd">        This method evaluates the piecewise-constant mapping</span>
@@ -833,12 +834,12 @@
 
 <span class="sd">        where :math:`N` is the number of defined goals.</span>
 
-<span class="sd">        By default, the instance&#39;s ``time_units`` is used to interpret ``t``.</span>
+<span class="sd">        By default, the instance's ``time_units`` is used to interpret ``t``.</span>
 <span class="sd">        Alternatively, ``time_units`` may be provided per-call to override the</span>
 <span class="sd">        interpretation.</span>
 
-<span class="sd">        - If ``time_units=&quot;centuries&quot;``: ``t`` is a Julian-centuries value.</span>
-<span class="sd">        - If ``time_units=&quot;seconds&quot;``: ``t`` is seconds relative to</span>
+<span class="sd">        - If ``time_units="centuries"``: ``t`` is a Julian-centuries value.</span>
+<span class="sd">        - If ``time_units="seconds"``: ``t`` is seconds relative to</span>
 <span class="sd">          ``start_juliantime`` and is converted internally.</span>
 
 <span class="sd">        If the timeline is empty, a</span>
@@ -852,17 +853,17 @@
 <span class="sd">            float</span>
 
 <span class="sd">        :param time_units:</span>
-<span class="sd">            Optional per-call override of time units. Must be ``&quot;centuries&quot;`` or ``&quot;seconds&quot;``.</span>
+<span class="sd">            Optional per-call override of time units. Must be ``"centuries"`` or ``"seconds"``.</span>
 <span class="sd">            If omitted, the instance default ``self.time_units`` is used.</span>
 <span class="sd">        :type time_units:</span>
-<span class="sd">            Literal[&quot;centuries&quot;,&quot;seconds&quot;] or None</span>
+<span class="sd">            Literal["centuries","seconds"] or None</span>
 
 <span class="sd">        :return:</span>
 <span class="sd">            The active goal at time ``t``.</span>
 <span class="sd">        :rtype:</span>
 <span class="sd">            Goal</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">No_Goal</span><span class="p">()</span>
 
@@ -883,7 +884,7 @@
         <span class="o">*</span><span class="p">,</span>
         <span class="n">time_units</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">_TimeUnits</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Compute the reference definition associated with the active goal.</span>
 
 <span class="sd">        This method first determines the active goal :math:`G(T)` for the</span>
@@ -906,7 +907,7 @@
 <span class="sd">            ``GoalList`` does not modify ``os0``. The time argument ``t`` is</span>
 <span class="sd">            used only to select which goal is active.</span>
 
-<span class="sd">        By default, the instance&#39;s ``time_units`` is used to interpret ``t``.</span>
+<span class="sd">        By default, the instance's ``time_units`` is used to interpret ``t``.</span>
 <span class="sd">        Alternatively, ``time_units`` may be provided per-call to override the</span>
 <span class="sd">        interpretation.</span>
 
@@ -921,17 +922,17 @@
 <span class="sd">            Orbital_State</span>
 
 <span class="sd">        :param time_units:</span>
-<span class="sd">            Optional per-call override of time units. Must be ``&quot;centuries&quot;`` or ``&quot;seconds&quot;``.</span>
+<span class="sd">            Optional per-call override of time units. Must be ``"centuries"`` or ``"seconds"``.</span>
 <span class="sd">            If omitted, the instance default ``self.time_units`` is used.</span>
 <span class="sd">        :type time_units:</span>
-<span class="sd">            Literal[&quot;centuries&quot;,&quot;seconds&quot;] or None</span>
+<span class="sd">            Literal["centuries","seconds"] or None</span>
 
 <span class="sd">        :return:</span>
 <span class="sd">            Reference definition produced by the active goal.</span>
 <span class="sd">        :rtype:</span>
 <span class="sd">            Tuple[numpy.ndarray, numpy.ndarray]</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">active_goal</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_active_goal</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">time_units</span><span class="o">=</span><span class="n">time_units</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">active_goal</span><span class="o">.</span><span class="n">to_ref</span><span class="p">(</span><span class="n">os0</span><span class="p">)</span></div>
 
@@ -939,15 +940,15 @@
     <span class="c1"># ---------------- Internals ----------------</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_to_centuries</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">time_units</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">_TimeUnits</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Convert a time value to Julian centuries (internal representation),</span>
 <span class="sd">        using either the per-call override or the instance default.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">units</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_units</span> <span class="k">if</span> <span class="n">time_units</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">str</span><span class="p">(</span><span class="n">time_units</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
-        <span class="k">if</span> <span class="n">units</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;centuries&quot;</span><span class="p">,</span> <span class="s2">&quot;seconds&quot;</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;time_units must be one of: &#39;centuries&#39;, &#39;seconds&#39;&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">units</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"centuries"</span><span class="p">,</span> <span class="s2">"seconds"</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"time_units must be one of: 'centuries', 'seconds'"</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="n">units</span> <span class="o">==</span> <span class="s2">&quot;centuries&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">units</span> <span class="o">==</span> <span class="s2">"centuries"</span><span class="p">:</span>
             <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
 
         <span class="c1"># seconds mode</span>
@@ -955,34 +956,34 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sec_to_cent</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">))</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_sec_to_cent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t_sec</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Convert seconds relative to start_juliantime into absolute Julian centuries.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="c1"># start_juliantime is validated by _require_start_juliantime_for_seconds</span>
         <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">start_juliantime</span><span class="p">)</span> <span class="o">+</span> <span class="nb">float</span><span class="p">(</span><span class="n">t_sec</span><span class="p">)</span> <span class="o">*</span> <span class="nb">float</span><span class="p">(</span><span class="n">TimeConstants</span><span class="o">.</span><span class="n">sec2cent</span><span class="p">)</span>  <span class="c1"># type: ignore[arg-type]</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_require_start_juliantime_for_seconds</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Ensure start_juliantime is available for seconds-&gt;centuries conversion.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">start_juliantime</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s2">&quot;start_juliantime must be provided to use time_units=&#39;seconds&#39; &quot;</span>
-                <span class="s2">&quot;(either in the constructor or before calling with time_units=&#39;seconds&#39;).&quot;</span>
+                <span class="s2">"start_juliantime must be provided to use time_units='seconds' "</span>
+                <span class="s2">"(either in the constructor or before calling with time_units='seconds')."</span>
             <span class="p">)</span>
 
     <span class="nd">@staticmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_assert_strictly_increasing</span><span class="p">(</span><span class="n">times</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Ensure internal activation times are strictly increasing.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">times</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
             <span class="k">return</span>
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">times</span><span class="p">)):</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">times</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">times</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]):</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                    <span class="s2">&quot;Goal activation times must be strictly increasing after conversion &quot;</span>
-                    <span class="sa">f</span><span class="s2">&quot;(found times[</span><span class="si">{</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="si">}</span><span class="s2">]=</span><span class="si">{</span><span class="n">times</span><span class="p">[</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="si">!r}</span><span class="s2">, times[</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">]=</span><span class="si">{</span><span class="n">times</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="si">!r}</span><span class="s2">).&quot;</span>
+                    <span class="s2">"Goal activation times must be strictly increasing after conversion "</span>
+                    <span class="sa">f</span><span class="s2">"(found times[</span><span class="si">{</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="si">}</span><span class="s2">]=</span><span class="si">{</span><span class="n">times</span><span class="p">[</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="si">!r}</span><span class="s2">, times[</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">]=</span><span class="si">{</span><span class="n">times</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="si">!r}</span><span class="s2">)."</span>
                 <span class="p">)</span></div>
 
 </pre></div>

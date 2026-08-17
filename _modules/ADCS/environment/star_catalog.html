@@ -228,6 +228,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_8_installable.html">0.1.8 Installable from PyPI (2026-08-05)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
@@ -539,7 +540,7 @@
         </div>
         <article role="main" id="furo-main-content">
           <h1>Source code for ADCS.environment.star_catalog</h1><div class="highlight"><pre>
-<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;NavigationStar&quot;</span><span class="p">,</span> <span class="s2">&quot;StarCatalog&quot;</span><span class="p">]</span>
+<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"NavigationStar"</span><span class="p">,</span> <span class="s2">"StarCatalog"</span><span class="p">]</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
@@ -552,7 +553,7 @@
 <a class="viewcode-back" href="../../../ADCS.environment.star_catalog.html#ADCS.environment.star_catalog.NavigationStar">[docs]</a>
 <span class="nd">@dataclass</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">NavigationStar</span><span class="p">:</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    **Navigation Star Definition**</span>
 
 <span class="sd">    This class defines a single **navigation star** used by attitude</span>
@@ -631,7 +632,7 @@
 <span class="sd">    - Vallado, D. A., *Fundamentals of Astrodynamics and Applications*,</span>
 <span class="sd">      4th ed., Section 2.3.</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">hip_id</span><span class="p">:</span> <span class="nb">int</span>
     <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">ra_rad</span><span class="p">:</span> <span class="nb">float</span>
@@ -644,7 +645,7 @@
 <div class="viewcode-block" id="StarCatalog">
 <a class="viewcode-back" href="../../../ADCS.environment.star_catalog.html#ADCS.environment.star_catalog.StarCatalog">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">StarCatalog</span><span class="p">:</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    **Navigation Star Catalog**</span>
 
 <span class="sd">    This class provides a curated catalog of bright navigation stars and</span>
@@ -704,12 +705,12 @@
 <span class="sd">    - :class:`~ADCS.environment.NavigationStar`</span>
 <span class="sd">    - :class:`~ADCS.satellite_hardware.sensors.star_tracker.StarTracker`</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">R_EARTH</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">EarthConstants</span><span class="o">.</span><span class="n">R_e</span>
     <span class="n">R_MOON</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">EarthConstants</span><span class="o">.</span><span class="n">R_moon</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Initialize the navigation star catalog.</span>
 
 <span class="sd">        This constructor populates the internal catalog with a predefined list</span>
@@ -737,11 +738,11 @@
 <span class="sd">        :return: None</span>
 <span class="sd">        :rtype: None</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_stars</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">NavigationStar</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_init_catalog</span><span class="p">()</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_init_catalog</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">NavigationStar</span><span class="p">]:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Construct the internal navigation star list.</span>
 
 <span class="sd">        This method defines the catalog contents using a hard-coded list of</span>
@@ -781,41 +782,41 @@
 <span class="sd">        - Hipparcos Catalog, ESA (1997)</span>
 <span class="sd">        - Vallado (2013), Section 2.3</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">catalog_data</span> <span class="o">=</span> <span class="p">[</span>
             <span class="c1"># Brightest stars (Vmag &lt; 1.0)</span>
-            <span class="p">(</span><span class="mi">32349</span><span class="p">,</span> <span class="s2">&quot;Sirius&quot;</span><span class="p">,</span> <span class="mf">101.287</span><span class="p">,</span> <span class="o">-</span><span class="mf">16.716</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.46</span><span class="p">),</span>
-            <span class="p">(</span><span class="mi">30438</span><span class="p">,</span> <span class="s2">&quot;Canopus&quot;</span><span class="p">,</span> <span class="mf">95.988</span><span class="p">,</span> <span class="o">-</span><span class="mf">52.696</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.72</span><span class="p">),</span>
-            <span class="p">(</span><span class="mi">71683</span><span class="p">,</span> <span class="s2">&quot;Alpha Centauri&quot;</span><span class="p">,</span> <span class="mf">219.902</span><span class="p">,</span> <span class="o">-</span><span class="mf">60.834</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.27</span><span class="p">),</span>
-            <span class="p">(</span><span class="mi">69673</span><span class="p">,</span> <span class="s2">&quot;Arcturus&quot;</span><span class="p">,</span> <span class="mf">213.915</span><span class="p">,</span> <span class="mf">19.182</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.05</span><span class="p">),</span>
-            <span class="p">(</span><span class="mi">91262</span><span class="p">,</span> <span class="s2">&quot;Vega&quot;</span><span class="p">,</span> <span class="mf">279.235</span><span class="p">,</span> <span class="mf">38.784</span><span class="p">,</span> <span class="mf">0.03</span><span class="p">),</span>
-            <span class="p">(</span><span class="mi">24436</span><span class="p">,</span> <span class="s2">&quot;Capella&quot;</span><span class="p">,</span> <span class="mf">79.172</span><span class="p">,</span> <span class="mf">45.998</span><span class="p">,</span> <span class="mf">0.08</span><span class="p">),</span>
-            <span class="p">(</span><span class="mi">24608</span><span class="p">,</span> <span class="s2">&quot;Rigel&quot;</span><span class="p">,</span> <span class="mf">78.634</span><span class="p">,</span> <span class="o">-</span><span class="mf">8.202</span><span class="p">,</span> <span class="mf">0.13</span><span class="p">),</span>
-            <span class="p">(</span><span class="mi">37279</span><span class="p">,</span> <span class="s2">&quot;Procyon&quot;</span><span class="p">,</span> <span class="mf">114.826</span><span class="p">,</span> <span class="mf">5.225</span><span class="p">,</span> <span class="mf">0.34</span><span class="p">),</span>
-            <span class="p">(</span><span class="mi">27989</span><span class="p">,</span> <span class="s2">&quot;Betelgeuse&quot;</span><span class="p">,</span> <span class="mf">88.793</span><span class="p">,</span> <span class="mf">7.407</span><span class="p">,</span> <span class="mf">0.42</span><span class="p">),</span>
-            <span class="p">(</span><span class="mi">7588</span><span class="p">,</span> <span class="s2">&quot;Achernar&quot;</span><span class="p">,</span> <span class="mf">24.429</span><span class="p">,</span> <span class="o">-</span><span class="mf">57.237</span><span class="p">,</span> <span class="mf">0.46</span><span class="p">),</span>
-            <span class="p">(</span><span class="mi">68702</span><span class="p">,</span> <span class="s2">&quot;Hadar&quot;</span><span class="p">,</span> <span class="mf">210.956</span><span class="p">,</span> <span class="o">-</span><span class="mf">60.373</span><span class="p">,</span> <span class="mf">0.61</span><span class="p">),</span>
-            <span class="p">(</span><span class="mi">97649</span><span class="p">,</span> <span class="s2">&quot;Altair&quot;</span><span class="p">,</span> <span class="mf">297.696</span><span class="p">,</span> <span class="mf">8.868</span><span class="p">,</span> <span class="mf">0.76</span><span class="p">),</span>
-            <span class="p">(</span><span class="mi">21421</span><span class="p">,</span> <span class="s2">&quot;Aldebaran&quot;</span><span class="p">,</span> <span class="mf">68.980</span><span class="p">,</span> <span class="mf">16.509</span><span class="p">,</span> <span class="mf">0.85</span><span class="p">),</span>
-            <span class="p">(</span><span class="mi">65474</span><span class="p">,</span> <span class="s2">&quot;Spica&quot;</span><span class="p">,</span> <span class="mf">201.298</span><span class="p">,</span> <span class="o">-</span><span class="mf">11.161</span><span class="p">,</span> <span class="mf">0.97</span><span class="p">),</span>
+            <span class="p">(</span><span class="mi">32349</span><span class="p">,</span> <span class="s2">"Sirius"</span><span class="p">,</span> <span class="mf">101.287</span><span class="p">,</span> <span class="o">-</span><span class="mf">16.716</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.46</span><span class="p">),</span>
+            <span class="p">(</span><span class="mi">30438</span><span class="p">,</span> <span class="s2">"Canopus"</span><span class="p">,</span> <span class="mf">95.988</span><span class="p">,</span> <span class="o">-</span><span class="mf">52.696</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.72</span><span class="p">),</span>
+            <span class="p">(</span><span class="mi">71683</span><span class="p">,</span> <span class="s2">"Alpha Centauri"</span><span class="p">,</span> <span class="mf">219.902</span><span class="p">,</span> <span class="o">-</span><span class="mf">60.834</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.27</span><span class="p">),</span>
+            <span class="p">(</span><span class="mi">69673</span><span class="p">,</span> <span class="s2">"Arcturus"</span><span class="p">,</span> <span class="mf">213.915</span><span class="p">,</span> <span class="mf">19.182</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.05</span><span class="p">),</span>
+            <span class="p">(</span><span class="mi">91262</span><span class="p">,</span> <span class="s2">"Vega"</span><span class="p">,</span> <span class="mf">279.235</span><span class="p">,</span> <span class="mf">38.784</span><span class="p">,</span> <span class="mf">0.03</span><span class="p">),</span>
+            <span class="p">(</span><span class="mi">24436</span><span class="p">,</span> <span class="s2">"Capella"</span><span class="p">,</span> <span class="mf">79.172</span><span class="p">,</span> <span class="mf">45.998</span><span class="p">,</span> <span class="mf">0.08</span><span class="p">),</span>
+            <span class="p">(</span><span class="mi">24608</span><span class="p">,</span> <span class="s2">"Rigel"</span><span class="p">,</span> <span class="mf">78.634</span><span class="p">,</span> <span class="o">-</span><span class="mf">8.202</span><span class="p">,</span> <span class="mf">0.13</span><span class="p">),</span>
+            <span class="p">(</span><span class="mi">37279</span><span class="p">,</span> <span class="s2">"Procyon"</span><span class="p">,</span> <span class="mf">114.826</span><span class="p">,</span> <span class="mf">5.225</span><span class="p">,</span> <span class="mf">0.34</span><span class="p">),</span>
+            <span class="p">(</span><span class="mi">27989</span><span class="p">,</span> <span class="s2">"Betelgeuse"</span><span class="p">,</span> <span class="mf">88.793</span><span class="p">,</span> <span class="mf">7.407</span><span class="p">,</span> <span class="mf">0.42</span><span class="p">),</span>
+            <span class="p">(</span><span class="mi">7588</span><span class="p">,</span> <span class="s2">"Achernar"</span><span class="p">,</span> <span class="mf">24.429</span><span class="p">,</span> <span class="o">-</span><span class="mf">57.237</span><span class="p">,</span> <span class="mf">0.46</span><span class="p">),</span>
+            <span class="p">(</span><span class="mi">68702</span><span class="p">,</span> <span class="s2">"Hadar"</span><span class="p">,</span> <span class="mf">210.956</span><span class="p">,</span> <span class="o">-</span><span class="mf">60.373</span><span class="p">,</span> <span class="mf">0.61</span><span class="p">),</span>
+            <span class="p">(</span><span class="mi">97649</span><span class="p">,</span> <span class="s2">"Altair"</span><span class="p">,</span> <span class="mf">297.696</span><span class="p">,</span> <span class="mf">8.868</span><span class="p">,</span> <span class="mf">0.76</span><span class="p">),</span>
+            <span class="p">(</span><span class="mi">21421</span><span class="p">,</span> <span class="s2">"Aldebaran"</span><span class="p">,</span> <span class="mf">68.980</span><span class="p">,</span> <span class="mf">16.509</span><span class="p">,</span> <span class="mf">0.85</span><span class="p">),</span>
+            <span class="p">(</span><span class="mi">65474</span><span class="p">,</span> <span class="s2">"Spica"</span><span class="p">,</span> <span class="mf">201.298</span><span class="p">,</span> <span class="o">-</span><span class="mf">11.161</span><span class="p">,</span> <span class="mf">0.97</span><span class="p">),</span>
             <span class="c1"># Bright stars (1.0 &lt;= Vmag &lt; 2.0)</span>
-            <span class="p">(</span><span class="mi">80763</span><span class="p">,</span> <span class="s2">&quot;Antares&quot;</span><span class="p">,</span> <span class="mf">247.352</span><span class="p">,</span> <span class="o">-</span><span class="mf">26.432</span><span class="p">,</span> <span class="mf">1.09</span><span class="p">),</span>
-            <span class="p">(</span><span class="mi">37826</span><span class="p">,</span> <span class="s2">&quot;Pollux&quot;</span><span class="p">,</span> <span class="mf">116.329</span><span class="p">,</span> <span class="mf">28.026</span><span class="p">,</span> <span class="mf">1.14</span><span class="p">),</span>
-            <span class="p">(</span><span class="mi">113368</span><span class="p">,</span> <span class="s2">&quot;Fomalhaut&quot;</span><span class="p">,</span> <span class="mf">344.413</span><span class="p">,</span> <span class="o">-</span><span class="mf">29.622</span><span class="p">,</span> <span class="mf">1.16</span><span class="p">),</span>
-            <span class="p">(</span><span class="mi">49669</span><span class="p">,</span> <span class="s2">&quot;Deneb&quot;</span><span class="p">,</span> <span class="mf">310.358</span><span class="p">,</span> <span class="mf">45.280</span><span class="p">,</span> <span class="mf">1.25</span><span class="p">),</span>
-            <span class="p">(</span><span class="mi">62434</span><span class="p">,</span> <span class="s2">&quot;Mimosa&quot;</span><span class="p">,</span> <span class="mf">191.930</span><span class="p">,</span> <span class="o">-</span><span class="mf">59.689</span><span class="p">,</span> <span class="mf">1.25</span><span class="p">),</span>
-            <span class="p">(</span><span class="mi">60718</span><span class="p">,</span> <span class="s2">&quot;Acrux&quot;</span><span class="p">,</span> <span class="mf">186.650</span><span class="p">,</span> <span class="o">-</span><span class="mf">63.099</span><span class="p">,</span> <span class="mf">1.33</span><span class="p">),</span>
-            <span class="p">(</span><span class="mi">25336</span><span class="p">,</span> <span class="s2">&quot;Bellatrix&quot;</span><span class="p">,</span> <span class="mf">81.283</span><span class="p">,</span> <span class="mf">6.350</span><span class="p">,</span> <span class="mf">1.64</span><span class="p">),</span>
-            <span class="p">(</span><span class="mi">25930</span><span class="p">,</span> <span class="s2">&quot;Alnilam&quot;</span><span class="p">,</span> <span class="mf">84.053</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.202</span><span class="p">,</span> <span class="mf">1.69</span><span class="p">),</span>
-            <span class="p">(</span><span class="mi">26311</span><span class="p">,</span> <span class="s2">&quot;Alnitak&quot;</span><span class="p">,</span> <span class="mf">85.190</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.943</span><span class="p">,</span> <span class="mf">1.77</span><span class="p">),</span>
-            <span class="p">(</span><span class="mi">9884</span><span class="p">,</span> <span class="s2">&quot;Mirfak&quot;</span><span class="p">,</span> <span class="mf">51.081</span><span class="p">,</span> <span class="mf">49.861</span><span class="p">,</span> <span class="mf">1.79</span><span class="p">),</span>
+            <span class="p">(</span><span class="mi">80763</span><span class="p">,</span> <span class="s2">"Antares"</span><span class="p">,</span> <span class="mf">247.352</span><span class="p">,</span> <span class="o">-</span><span class="mf">26.432</span><span class="p">,</span> <span class="mf">1.09</span><span class="p">),</span>
+            <span class="p">(</span><span class="mi">37826</span><span class="p">,</span> <span class="s2">"Pollux"</span><span class="p">,</span> <span class="mf">116.329</span><span class="p">,</span> <span class="mf">28.026</span><span class="p">,</span> <span class="mf">1.14</span><span class="p">),</span>
+            <span class="p">(</span><span class="mi">113368</span><span class="p">,</span> <span class="s2">"Fomalhaut"</span><span class="p">,</span> <span class="mf">344.413</span><span class="p">,</span> <span class="o">-</span><span class="mf">29.622</span><span class="p">,</span> <span class="mf">1.16</span><span class="p">),</span>
+            <span class="p">(</span><span class="mi">49669</span><span class="p">,</span> <span class="s2">"Deneb"</span><span class="p">,</span> <span class="mf">310.358</span><span class="p">,</span> <span class="mf">45.280</span><span class="p">,</span> <span class="mf">1.25</span><span class="p">),</span>
+            <span class="p">(</span><span class="mi">62434</span><span class="p">,</span> <span class="s2">"Mimosa"</span><span class="p">,</span> <span class="mf">191.930</span><span class="p">,</span> <span class="o">-</span><span class="mf">59.689</span><span class="p">,</span> <span class="mf">1.25</span><span class="p">),</span>
+            <span class="p">(</span><span class="mi">60718</span><span class="p">,</span> <span class="s2">"Acrux"</span><span class="p">,</span> <span class="mf">186.650</span><span class="p">,</span> <span class="o">-</span><span class="mf">63.099</span><span class="p">,</span> <span class="mf">1.33</span><span class="p">),</span>
+            <span class="p">(</span><span class="mi">25336</span><span class="p">,</span> <span class="s2">"Bellatrix"</span><span class="p">,</span> <span class="mf">81.283</span><span class="p">,</span> <span class="mf">6.350</span><span class="p">,</span> <span class="mf">1.64</span><span class="p">),</span>
+            <span class="p">(</span><span class="mi">25930</span><span class="p">,</span> <span class="s2">"Alnilam"</span><span class="p">,</span> <span class="mf">84.053</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.202</span><span class="p">,</span> <span class="mf">1.69</span><span class="p">),</span>
+            <span class="p">(</span><span class="mi">26311</span><span class="p">,</span> <span class="s2">"Alnitak"</span><span class="p">,</span> <span class="mf">85.190</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.943</span><span class="p">,</span> <span class="mf">1.77</span><span class="p">),</span>
+            <span class="p">(</span><span class="mi">9884</span><span class="p">,</span> <span class="s2">"Mirfak"</span><span class="p">,</span> <span class="mf">51.081</span><span class="p">,</span> <span class="mf">49.861</span><span class="p">,</span> <span class="mf">1.79</span><span class="p">),</span>
             <span class="c1"># Navigation stars (2.0 &lt;= Vmag &lt; 2.5)</span>
-            <span class="p">(</span><span class="mi">11767</span><span class="p">,</span> <span class="s2">&quot;Polaris&quot;</span><span class="p">,</span> <span class="mf">37.954</span><span class="p">,</span> <span class="mf">89.264</span><span class="p">,</span> <span class="mf">2.02</span><span class="p">),</span>
-            <span class="p">(</span><span class="mi">5447</span><span class="p">,</span> <span class="s2">&quot;Mirach&quot;</span><span class="p">,</span> <span class="mf">17.433</span><span class="p">,</span> <span class="mf">35.621</span><span class="p">,</span> <span class="mf">2.05</span><span class="p">),</span>
-            <span class="p">(</span><span class="mi">677</span><span class="p">,</span> <span class="s2">&quot;Alpheratz&quot;</span><span class="p">,</span> <span class="mf">2.097</span><span class="p">,</span> <span class="mf">29.091</span><span class="p">,</span> <span class="mf">2.06</span><span class="p">),</span>
-            <span class="p">(</span><span class="mi">28360</span><span class="p">,</span> <span class="s2">&quot;Saiph&quot;</span><span class="p">,</span> <span class="mf">86.939</span><span class="p">,</span> <span class="o">-</span><span class="mf">9.670</span><span class="p">,</span> <span class="mf">2.07</span><span class="p">),</span>
-            <span class="p">(</span><span class="mi">3179</span><span class="p">,</span> <span class="s2">&quot;Schedar&quot;</span><span class="p">,</span> <span class="mf">10.127</span><span class="p">,</span> <span class="mf">56.537</span><span class="p">,</span> <span class="mf">2.23</span><span class="p">),</span>
-            <span class="p">(</span><span class="mi">746</span><span class="p">,</span> <span class="s2">&quot;Caph&quot;</span><span class="p">,</span> <span class="mf">2.295</span><span class="p">,</span> <span class="mf">59.150</span><span class="p">,</span> <span class="mf">2.27</span><span class="p">),</span>
+            <span class="p">(</span><span class="mi">11767</span><span class="p">,</span> <span class="s2">"Polaris"</span><span class="p">,</span> <span class="mf">37.954</span><span class="p">,</span> <span class="mf">89.264</span><span class="p">,</span> <span class="mf">2.02</span><span class="p">),</span>
+            <span class="p">(</span><span class="mi">5447</span><span class="p">,</span> <span class="s2">"Mirach"</span><span class="p">,</span> <span class="mf">17.433</span><span class="p">,</span> <span class="mf">35.621</span><span class="p">,</span> <span class="mf">2.05</span><span class="p">),</span>
+            <span class="p">(</span><span class="mi">677</span><span class="p">,</span> <span class="s2">"Alpheratz"</span><span class="p">,</span> <span class="mf">2.097</span><span class="p">,</span> <span class="mf">29.091</span><span class="p">,</span> <span class="mf">2.06</span><span class="p">),</span>
+            <span class="p">(</span><span class="mi">28360</span><span class="p">,</span> <span class="s2">"Saiph"</span><span class="p">,</span> <span class="mf">86.939</span><span class="p">,</span> <span class="o">-</span><span class="mf">9.670</span><span class="p">,</span> <span class="mf">2.07</span><span class="p">),</span>
+            <span class="p">(</span><span class="mi">3179</span><span class="p">,</span> <span class="s2">"Schedar"</span><span class="p">,</span> <span class="mf">10.127</span><span class="p">,</span> <span class="mf">56.537</span><span class="p">,</span> <span class="mf">2.23</span><span class="p">),</span>
+            <span class="p">(</span><span class="mi">746</span><span class="p">,</span> <span class="s2">"Caph"</span><span class="p">,</span> <span class="mf">2.295</span><span class="p">,</span> <span class="mf">59.150</span><span class="p">,</span> <span class="mf">2.27</span><span class="p">),</span>
         <span class="p">]</span>
 
         <span class="n">stars</span> <span class="o">=</span> <span class="p">[]</span>
@@ -837,7 +838,7 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">stars</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">NavigationStar</span><span class="p">]:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Return the list of navigation stars in the catalog.</span>
 
 <span class="sd">        This property provides read-only access to the internally stored list</span>
@@ -846,7 +847,7 @@
 <span class="sd">        :return: List of navigation stars.</span>
 <span class="sd">        :rtype: list[~ADCS.environment.NavigationStar]</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stars</span>
 
 <div class="viewcode-block" id="StarCatalog.get_visible_stars">
@@ -860,7 +861,7 @@
         <span class="n">moon_eci</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">sun_exclusion_rad</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="mf">25.0</span><span class="p">)</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">NavigationStar</span><span class="p">]:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Determine which navigation stars are visible to a star tracker.</span>
 
 <span class="sd">        This method applies a sequence of geometric visibility checks to every</span>
@@ -944,7 +945,7 @@
 <span class="sd">        - Vallado (2013), Section 5.3 — Earth occlusion geometry</span>
 <span class="sd">        - Liebe (2002), Section IV-A — Star tracker Sun exclusion</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">visible</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">half_fov</span> <span class="o">=</span> <span class="n">fov_rad</span> <span class="o">/</span> <span class="mf">2.0</span>
 

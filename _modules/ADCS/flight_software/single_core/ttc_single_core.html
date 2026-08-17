@@ -228,6 +228,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../../release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_8_installable.html">0.1.8 Installable from PyPI (2026-08-05)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
@@ -539,7 +540,7 @@
         </div>
         <article role="main" id="furo-main-content">
           <h1>Source code for ADCS.flight_software.single_core.ttc_single_core</h1><div class="highlight"><pre>
-<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;TTC_Single_Core&quot;</span><span class="p">]</span>
+<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"TTC_Single_Core"</span><span class="p">]</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
@@ -550,7 +551,7 @@
 
 <span class="nd">@dataclass</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">FrameEvent</span><span class="p">:</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Record of a single task execution attempt within one scheduler base frame.</span>
 
 <span class="sd">    This data structure represents **one accounting event** in the</span>
@@ -606,10 +607,10 @@
 
 <span class="sd">    :param note:</span>
 <span class="sd">        Human-readable annotation describing the outcome</span>
-<span class="sd">        (e.g. ``&quot;OK&quot;``, ``&quot;MISS_NO_BUDGET&quot;``).</span>
+<span class="sd">        (e.g. ``"OK"``, ``"MISS_NO_BUDGET"``).</span>
 <span class="sd">    :type note: str</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">t_fsw</span><span class="p">:</span> <span class="nb">float</span>
     <span class="n">task</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">released</span><span class="p">:</span> <span class="nb">bool</span>
@@ -624,7 +625,7 @@
 <div class="viewcode-block" id="TTC_Single_Core">
 <a class="viewcode-back" href="../../../../ADCS.flight_software.single_core.ttc_single_core.html#ADCS.flight_software.single_core.ttc_single_core.TTC_Single_Core">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">TTC_Single_Core</span><span class="p">:</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Single-core time-triggered cooperative scheduler with WCET-based accounting.</span>
 
 <span class="sd">    This class models a **deterministic, non-preemptive, fixed-priority**</span>
@@ -663,10 +664,10 @@
 <span class="sd">    Tasks are instances of :class:`~ADCS.flight_software.tasks.task.Task` and</span>
 <span class="sd">    communicate via a shared memory dictionary.</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">base_rate_hz</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">tasks</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Task</span><span class="p">],</span> <span class="n">memory</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">debug</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Initialize the time-triggered single-core scheduler.</span>
 
 <span class="sd">        This constructor configures the base frame rate, task set, and shared</span>
@@ -696,7 +697,7 @@
 <span class="sd">            If ``True``, enables verbose runtime logging.</span>
 <span class="sd">        :type debug: bool</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">base_rate_hz</span> <span class="o">=</span> <span class="n">base_rate_hz</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">base_dt</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">base_rate_hz</span>
 
@@ -715,7 +716,7 @@
 <div class="viewcode-block" id="TTC_Single_Core.step">
 <a class="viewcode-back" href="../../../../ADCS.flight_software.single_core.ttc_single_core.html#ADCS.flight_software.single_core.ttc_single_core.TTC_Single_Core.step">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">step</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Advance the scheduler by exactly one base frame.</span>
 
 <span class="sd">        This method performs one **deterministic scheduling cycle**:</span>
@@ -742,12 +743,12 @@
 <span class="sd">        :rtype:</span>
 <span class="sd">            None</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">cpu_budget</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">base_dt</span>
         <span class="n">frame_start</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">t_fsw</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">[t = </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">t_fsw</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">s] FRAME START (budget=</span><span class="si">{</span><span class="n">cpu_budget</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">s)&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">[t = </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">t_fsw</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">s] FRAME START (budget=</span><span class="si">{</span><span class="n">cpu_budget</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">s)"</span><span class="p">)</span>
 
         <span class="k">for</span> <span class="n">task</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span><span class="p">:</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">task</span><span class="o">.</span><span class="n">enabled</span><span class="p">:</span>
@@ -759,9 +760,9 @@
 
             <span class="k">if</span> <span class="n">cpu_budget</span> <span class="o">&lt;</span> <span class="n">task</span><span class="o">.</span><span class="n">wcet</span><span class="p">:</span>
                 <span class="c1"># Not enough CPU budget: skip task this frame (but release is NOT consumed)</span>
-                <span class="c1"># This is consistent with many TTC implementations that only &quot;consume&quot; a release on execution.</span>
+                <span class="c1"># This is consistent with many TTC implementations that only "consume" a release on execution.</span>
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span><span class="p">:</span>
-                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  MISS_NO_BUDGET: </span><span class="si">{</span><span class="n">task</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> (need=</span><span class="si">{</span><span class="n">task</span><span class="o">.</span><span class="n">wcet</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">s have=</span><span class="si">{</span><span class="n">cpu_budget</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">s)&quot;</span><span class="p">)</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  MISS_NO_BUDGET: </span><span class="si">{</span><span class="n">task</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> (need=</span><span class="si">{</span><span class="n">task</span><span class="o">.</span><span class="n">wcet</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">s have=</span><span class="si">{</span><span class="n">cpu_budget</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">s)"</span><span class="p">)</span>
 
                 <span class="bp">self</span><span class="o">.</span><span class="n">_trace</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
                     <span class="n">FrameEvent</span><span class="p">(</span>
@@ -773,7 +774,7 @@
                         <span class="n">wcet</span><span class="o">=</span><span class="n">task</span><span class="o">.</span><span class="n">wcet</span><span class="p">,</span>
                         <span class="n">cpu_budget_before</span><span class="o">=</span><span class="n">cpu_budget</span><span class="p">,</span>
                         <span class="n">cpu_budget_after</span><span class="o">=</span><span class="n">cpu_budget</span><span class="p">,</span>
-                        <span class="n">note</span><span class="o">=</span><span class="s2">&quot;MISS_NO_BUDGET&quot;</span><span class="p">,</span>
+                        <span class="n">note</span><span class="o">=</span><span class="s2">"MISS_NO_BUDGET"</span><span class="p">,</span>
                     <span class="p">)</span>
                 <span class="p">)</span>
                 <span class="k">continue</span>
@@ -781,7 +782,7 @@
             <span class="c1"># Run task</span>
             <span class="n">budget_before</span> <span class="o">=</span> <span class="n">cpu_budget</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span><span class="p">:</span>
-                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  RUN: </span><span class="si">{</span><span class="n">task</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> (wcet=</span><span class="si">{</span><span class="n">task</span><span class="o">.</span><span class="n">wcet</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">s)&quot;</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  RUN: </span><span class="si">{</span><span class="n">task</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> (wcet=</span><span class="si">{</span><span class="n">task</span><span class="o">.</span><span class="n">wcet</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">s)"</span><span class="p">)</span>
 
             <span class="n">task</span><span class="o">.</span><span class="n">callback</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">t_fsw</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">memory</span><span class="p">)</span>
             <span class="n">task</span><span class="o">.</span><span class="n">exec_count</span> <span class="o">+=</span> <span class="mi">1</span>
@@ -799,7 +800,7 @@
                     <span class="n">wcet</span><span class="o">=</span><span class="n">task</span><span class="o">.</span><span class="n">wcet</span><span class="p">,</span>
                     <span class="n">cpu_budget_before</span><span class="o">=</span><span class="n">budget_before</span><span class="p">,</span>
                     <span class="n">cpu_budget_after</span><span class="o">=</span><span class="n">cpu_budget</span><span class="p">,</span>
-                    <span class="n">note</span><span class="o">=</span><span class="s2">&quot;OK&quot;</span><span class="p">,</span>
+                    <span class="n">note</span><span class="o">=</span><span class="s2">"OK"</span><span class="p">,</span>
                 <span class="p">)</span>
             <span class="p">)</span>
 
@@ -815,10 +816,10 @@
 <div class="viewcode-block" id="TTC_Single_Core.base_utilization_wcet">
 <a class="viewcode-back" href="../../../../ADCS.flight_software.single_core.ttc_single_core.html#ADCS.flight_software.single_core.ttc_single_core.TTC_Single_Core.base_utilization_wcet">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">base_utilization_wcet</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Compute total system utilization using WCET-based analysis.</span>
 
-<span class="sd">        Utilization is defined as the sum of each enabled task&#39;s WCET divided by</span>
+<span class="sd">        Utilization is defined as the sum of each enabled task's WCET divided by</span>
 <span class="sd">        its period:</span>
 
 <span class="sd">        .. math::</span>
@@ -838,7 +839,7 @@
 <span class="sd">        :rtype:</span>
 <span class="sd">            float</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="nb">sum</span><span class="p">((</span><span class="n">t</span><span class="o">.</span><span class="n">wcet</span> <span class="o">/</span> <span class="n">t</span><span class="o">.</span><span class="n">period</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span> <span class="k">if</span> <span class="n">t</span><span class="o">.</span><span class="n">enabled</span><span class="p">)</span></div>
 
 
@@ -846,7 +847,7 @@
 <div class="viewcode-block" id="TTC_Single_Core.frame_budget_feasible_wcet">
 <a class="viewcode-back" href="../../../../ADCS.flight_software.single_core.ttc_single_core.html#ADCS.flight_software.single_core.ttc_single_core.TTC_Single_Core.frame_budget_feasible_wcet">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">frame_budget_feasible_wcet</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Perform a conservative per-frame feasibility check.</span>
 
 <span class="sd">        This method assumes **all enabled tasks are released simultaneously** and</span>
@@ -864,7 +865,7 @@
 <span class="sd">        :rtype:</span>
 <span class="sd">            bool</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">sum_wcet</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">wcet</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span> <span class="k">if</span> <span class="n">t</span><span class="o">.</span><span class="n">enabled</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">sum_wcet</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">base_dt</span> <span class="o">+</span> <span class="mf">1e-12</span></div>
 
@@ -873,7 +874,7 @@
 <div class="viewcode-block" id="TTC_Single_Core.hyperperiod_s">
 <a class="viewcode-back" href="../../../../ADCS.flight_software.single_core.ttc_single_core.html#ADCS.flight_software.single_core.ttc_single_core.TTC_Single_Core.hyperperiod_s">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">hyperperiod_s</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">max_den</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10_000</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Compute the approximate hyperperiod of all enabled tasks.</span>
 
 <span class="sd">        The hyperperiod is the least common multiple (LCM) of all task periods.</span>
@@ -895,7 +896,7 @@
 <span class="sd">        :rtype:</span>
 <span class="sd">            float</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="kn">from</span><span class="w"> </span><span class="nn">fractions</span><span class="w"> </span><span class="kn">import</span> <span class="n">Fraction</span>
 
         <span class="n">periods</span> <span class="o">=</span> <span class="p">[</span><span class="n">Fraction</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">period</span><span class="p">)</span><span class="o">.</span><span class="n">limit_denominator</span><span class="p">(</span><span class="n">max_den</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span> <span class="k">if</span> <span class="n">t</span><span class="o">.</span><span class="n">enabled</span><span class="p">]</span>
@@ -917,7 +918,7 @@
 <div class="viewcode-block" id="TTC_Single_Core.reset_trace">
 <a class="viewcode-back" href="../../../../ADCS.flight_software.single_core.ttc_single_core.html#ADCS.flight_software.single_core.ttc_single_core.TTC_Single_Core.reset_trace">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">reset_trace</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Clear all recorded instrumentation data.</span>
 
 <span class="sd">        This method removes:</span>
@@ -933,7 +934,7 @@
 <span class="sd">        :rtype:</span>
 <span class="sd">            None</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_trace</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_frame_slack</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span></div>
 
@@ -942,7 +943,7 @@
 <div class="viewcode-block" id="TTC_Single_Core.simulate">
 <a class="viewcode-back" href="../../../../ADCS.flight_software.single_core.ttc_single_core.html#ADCS.flight_software.single_core.ttc_single_core.TTC_Single_Core.simulate">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">simulate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">duration_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">reset_trace</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Simulate scheduler execution for a given logical duration.</span>
 
 <span class="sd">        The scheduler is stepped repeatedly until the specified duration is</span>
@@ -967,7 +968,7 @@
 <span class="sd">        :rtype:</span>
 <span class="sd">            None</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">if</span> <span class="n">reset_trace</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">reset_trace</span><span class="p">()</span>
 
@@ -979,7 +980,7 @@
 <div class="viewcode-block" id="TTC_Single_Core.stats">
 <a class="viewcode-back" href="../../../../ADCS.flight_software.single_core.ttc_single_core.html#ADCS.flight_software.single_core.ttc_single_core.TTC_Single_Core.stats">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">stats</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Compute per-task execution statistics from the recorded trace.</span>
 
 <span class="sd">        Statistics are derived from all recorded</span>
@@ -1006,7 +1007,7 @@
 <span class="sd">        :rtype:</span>
 <span class="sd">            dict[str, dict[str, float]]</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">by_task</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">FrameEvent</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trace</span><span class="p">:</span>
             <span class="n">by_task</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">task</span><span class="p">,</span> <span class="p">[])</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
@@ -1017,10 +1018,10 @@
             <span class="n">runs</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="mi">1</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">events</span> <span class="k">if</span> <span class="n">e</span><span class="o">.</span><span class="n">ran</span><span class="p">)</span>
             <span class="n">misses</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="mi">1</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">events</span> <span class="k">if</span> <span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">released</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">e</span><span class="o">.</span><span class="n">ran</span><span class="p">))</span>
             <span class="n">out</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
-                <span class="s2">&quot;attempts&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">attempts</span><span class="p">),</span>
-                <span class="s2">&quot;runs&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">runs</span><span class="p">),</span>
-                <span class="s2">&quot;misses&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">misses</span><span class="p">),</span>
-                <span class="s2">&quot;run_rate&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">runs</span><span class="p">)</span> <span class="o">/</span> <span class="nb">max</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">attempts</span><span class="p">)),</span>
+                <span class="s2">"attempts"</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">attempts</span><span class="p">),</span>
+                <span class="s2">"runs"</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">runs</span><span class="p">),</span>
+                <span class="s2">"misses"</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">misses</span><span class="p">),</span>
+                <span class="s2">"run_rate"</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">runs</span><span class="p">)</span> <span class="o">/</span> <span class="nb">max</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">attempts</span><span class="p">)),</span>
             <span class="p">}</span>
         <span class="k">return</span> <span class="n">out</span></div>
 
@@ -1029,7 +1030,7 @@
 <div class="viewcode-block" id="TTC_Single_Core.slack_stats">
 <a class="viewcode-back" href="../../../../ADCS.flight_software.single_core.ttc_single_core.html#ADCS.flight_software.single_core.ttc_single_core.TTC_Single_Core.slack_stats">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">slack_stats</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Compute slack statistics over all recorded base frames.</span>
 
 <span class="sd">        Slack is defined as the unused CPU budget at the end of a base frame:</span>
@@ -1045,18 +1046,18 @@
 <span class="sd">        :rtype:</span>
 <span class="sd">            dict[str, float]</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_frame_slack</span><span class="p">:</span>
-            <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;mean_slack_s&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s2">&quot;min_slack_s&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">}</span>
+            <span class="k">return</span> <span class="p">{</span><span class="s2">"mean_slack_s"</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s2">"min_slack_s"</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">}</span>
         <span class="n">slacks</span> <span class="o">=</span> <span class="p">[</span><span class="n">s</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_frame_slack</span><span class="p">]</span>
         <span class="k">return</span> <span class="p">{</span>
-            <span class="s2">&quot;mean_slack_s&quot;</span><span class="p">:</span> <span class="nb">sum</span><span class="p">(</span><span class="n">slacks</span><span class="p">)</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">slacks</span><span class="p">),</span>
-            <span class="s2">&quot;min_slack_s&quot;</span><span class="p">:</span> <span class="nb">min</span><span class="p">(</span><span class="n">slacks</span><span class="p">),</span>
+            <span class="s2">"mean_slack_s"</span><span class="p">:</span> <span class="nb">sum</span><span class="p">(</span><span class="n">slacks</span><span class="p">)</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">slacks</span><span class="p">),</span>
+            <span class="s2">"min_slack_s"</span><span class="p">:</span> <span class="nb">min</span><span class="p">(</span><span class="n">slacks</span><span class="p">),</span>
         <span class="p">}</span></div>
 
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_frame_slack_lookup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">frame_t</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Retrieve the recorded slack value for a specific frame start time.</span>
 
 <span class="sd">        This helper is primarily used by visualization utilities to annotate</span>
@@ -1072,7 +1073,7 @@
 <span class="sd">        :rtype:</span>
 <span class="sd">            float</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">for</span> <span class="n">t</span><span class="p">,</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_frame_slack</span><span class="p">:</span>
             <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">t</span> <span class="o">-</span> <span class="n">frame_t</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">1e-12</span><span class="p">:</span>
                 <span class="k">return</span> <span class="n">s</span>
@@ -1082,11 +1083,11 @@
 <div class="viewcode-block" id="TTC_Single_Core.gantt_ascii">
 <a class="viewcode-back" href="../../../../ADCS.flight_software.single_core.ttc_single_core.html#ADCS.flight_software.single_core.ttc_single_core.TTC_Single_Core.gantt_ascii">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">gantt_ascii</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t0</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">t1</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">width</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">80</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Generate an ASCII Gantt-style timeline of task execution.</span>
 
 <span class="sd">        Each line in the output corresponds to one base frame and shows how</span>
-<span class="sd">        the frame&#39;s CPU budget was consumed by tasks, in execution order.</span>
+<span class="sd">        the frame's CPU budget was consumed by tasks, in execution order.</span>
 <span class="sd">        Tasks are represented by the first letter of their name.</span>
 
 <span class="sd">        The horizontal axis is normalized to the base frame duration</span>
@@ -1109,7 +1110,7 @@
 <span class="sd">        :rtype:</span>
 <span class="sd">            str</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">frames</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">FrameEvent</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trace</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">t0</span> <span class="o">&lt;=</span> <span class="n">e</span><span class="o">.</span><span class="n">t_fsw</span> <span class="o">&lt;=</span> <span class="n">t1</span> <span class="ow">and</span> <span class="n">e</span><span class="o">.</span><span class="n">ran</span><span class="p">:</span>
@@ -1117,7 +1118,7 @@
 
         <span class="n">lines</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">frame_t</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">frames</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
-            <span class="n">line</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot; &quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">width</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="p">[</span><span class="s2">" "</span><span class="p">]</span> <span class="o">*</span> <span class="n">width</span>
             <span class="n">cursor</span> <span class="o">=</span> <span class="mf">0.0</span>
             <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">frames</span><span class="p">[</span><span class="n">frame_t</span><span class="p">],</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">task</span><span class="p">):</span>
                 <span class="n">dur_frac</span> <span class="o">=</span> <span class="n">e</span><span class="o">.</span><span class="n">charged_time</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">base_dt</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">base_dt</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="mf">0.0</span>
@@ -1128,15 +1129,15 @@
                     <span class="n">line</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">ch</span>
                 <span class="n">cursor</span> <span class="o">+=</span> <span class="n">e</span><span class="o">.</span><span class="n">charged_time</span>
 
-            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">frame_t</span><span class="si">:</span><span class="s2">8.3f</span><span class="si">}</span><span class="s2"> |</span><span class="si">{</span><span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">line</span><span class="p">)</span><span class="si">}</span><span class="s2">| slack=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_frame_slack_lookup</span><span class="p">(</span><span class="n">frame_t</span><span class="p">)</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">s&quot;</span><span class="p">)</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">frame_t</span><span class="si">:</span><span class="s2">8.3f</span><span class="si">}</span><span class="s2"> |</span><span class="si">{</span><span class="s1">''</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">line</span><span class="p">)</span><span class="si">}</span><span class="s2">| slack=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_frame_slack_lookup</span><span class="p">(</span><span class="n">frame_t</span><span class="p">)</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">s"</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="TTC_Single_Core.timeline_dot">
 <a class="viewcode-back" href="../../../../ADCS.flight_software.single_core.ttc_single_core.html#ADCS.flight_software.single_core.ttc_single_core.TTC_Single_Core.timeline_dot">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">timeline_dot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t0</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">t1</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Generate a Graphviz DOT representation of the execution timeline.</span>
 
 <span class="sd">        Each base frame is represented as a node containing:</span>
@@ -1161,32 +1162,32 @@
 <span class="sd">        :rtype:</span>
 <span class="sd">            str</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">frames</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">FrameEvent</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trace</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">t0</span> <span class="o">&lt;=</span> <span class="n">e</span><span class="o">.</span><span class="n">t_fsw</span> <span class="o">&lt;=</span> <span class="n">t1</span> <span class="ow">and</span> <span class="n">e</span><span class="o">.</span><span class="n">ran</span><span class="p">:</span>
                 <span class="n">frames</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">t_fsw</span><span class="p">,</span> <span class="p">[])</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
 
         <span class="n">out</span> <span class="o">=</span> <span class="p">[</span>
-            <span class="s2">&quot;digraph schedule {&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;  rankdir=LR;&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;  node [shape=record, fontname=Helvetica];&quot;</span><span class="p">,</span>
+            <span class="s2">"digraph schedule {"</span><span class="p">,</span>
+            <span class="s2">"  rankdir=LR;"</span><span class="p">,</span>
+            <span class="s2">"  node [shape=record, fontname=Helvetica];"</span><span class="p">,</span>
         <span class="p">]</span>
 
         <span class="n">prev</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">ft</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">frames</span><span class="o">.</span><span class="n">keys</span><span class="p">())):</span>
             <span class="n">events</span> <span class="o">=</span> <span class="n">frames</span><span class="p">[</span><span class="n">ft</span><span class="p">]</span>
-            <span class="n">fields</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">e</span><span class="o">.</span><span class="n">task</span><span class="si">}</span><span class="se">\\</span><span class="s2">n</span><span class="si">{</span><span class="n">e</span><span class="o">.</span><span class="n">charged_time</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">s&quot;</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">events</span><span class="p">]</span>
+            <span class="n">fields</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">e</span><span class="o">.</span><span class="n">task</span><span class="si">}</span><span class="se">\\</span><span class="s2">n</span><span class="si">{</span><span class="n">e</span><span class="o">.</span><span class="n">charged_time</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">s"</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">events</span><span class="p">]</span>
             <span class="n">slack</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_frame_slack_lookup</span><span class="p">(</span><span class="n">ft</span><span class="p">)</span>
-            <span class="n">label</span> <span class="o">=</span> <span class="s2">&quot; | &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">fields</span><span class="p">)</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot; | slack</span><span class="se">\\</span><span class="s2">n</span><span class="si">{</span><span class="n">slack</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">s&quot;</span>
-            <span class="n">node_name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;frame_</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span>
-            <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;  </span><span class="si">{</span><span class="n">node_name</span><span class="si">}</span><span class="s1"> [label=&quot;</span><span class="se">{{</span><span class="s1">t=</span><span class="si">{</span><span class="n">ft</span><span class="si">:</span><span class="s1">.3f</span><span class="si">}</span><span class="s1">s | </span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="se">}}</span><span class="s1">&quot;];&#39;</span><span class="p">)</span>
+            <span class="n">label</span> <span class="o">=</span> <span class="s2">" | "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">fields</span><span class="p">)</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">" | slack</span><span class="se">\\</span><span class="s2">n</span><span class="si">{</span><span class="n">slack</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">s"</span>
+            <span class="n">node_name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"frame_</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">"</span>
+            <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s1">'  </span><span class="si">{</span><span class="n">node_name</span><span class="si">}</span><span class="s1"> [label="</span><span class="se">{{</span><span class="s1">t=</span><span class="si">{</span><span class="n">ft</span><span class="si">:</span><span class="s1">.3f</span><span class="si">}</span><span class="s1">s | </span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="se">}}</span><span class="s1">"];'</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">prev</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  </span><span class="si">{</span><span class="n">prev</span><span class="si">}</span><span class="s2"> -&gt; </span><span class="si">{</span><span class="n">node_name</span><span class="si">}</span><span class="s2">;&quot;</span><span class="p">)</span>
+                <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  </span><span class="si">{</span><span class="n">prev</span><span class="si">}</span><span class="s2"> -&gt; </span><span class="si">{</span><span class="n">node_name</span><span class="si">}</span><span class="s2">;"</span><span class="p">)</span>
             <span class="n">prev</span> <span class="o">=</span> <span class="n">node_name</span>
 
-        <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;}&quot;</span><span class="p">)</span>
-        <span class="k">return</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">out</span><span class="p">)</span></div>
+        <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"}"</span><span class="p">)</span>
+        <span class="k">return</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">out</span><span class="p">)</span></div>
 
 
     <span class="c1"># ---------------------------</span>
@@ -1195,7 +1196,7 @@
 <div class="viewcode-block" id="TTC_Single_Core.report">
 <a class="viewcode-back" href="../../../../ADCS.flight_software.single_core.ttc_single_core.html#ADCS.flight_software.single_core.ttc_single_core.TTC_Single_Core.report">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">report</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Generate a human-readable schedulability and execution report.</span>
 
 <span class="sd">        The report summarizes:</span>
@@ -1214,35 +1215,35 @@
 <span class="sd">        :rtype:</span>
 <span class="sd">            str</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">U</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">base_utilization_wcet</span><span class="p">()</span>
         <span class="n">slack</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">slack_stats</span><span class="p">()</span>
         <span class="n">hp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hyperperiod_s</span><span class="p">()</span>
 
         <span class="n">lines</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;=== TTC Single-Core Schedulability Report (WCET-accounted) ===&quot;</span><span class="p">)</span>
-        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Base rate: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">base_rate_hz</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2"> Hz  (base_dt=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">base_dt</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2"> s)&quot;</span><span class="p">)</span>
-        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Enabled tasks: </span><span class="si">{</span><span class="nb">sum</span><span class="p">(</span><span class="mi">1</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="bp">self</span><span class="o">.</span><span class="n">tasks</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">t</span><span class="o">.</span><span class="n">enabled</span><span class="p">)</span><span class="si">}</span><span class="s2"> / </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tasks</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Utilization (WCET): U = sum(C/T) = </span><span class="si">{</span><span class="n">U</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Hyperperiod (approx): </span><span class="si">{</span><span class="n">hp</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2"> s&quot;</span><span class="p">)</span>
-        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Mean slack: </span><span class="si">{</span><span class="n">slack</span><span class="p">[</span><span class="s1">&#39;mean_slack_s&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2"> s, Min slack: </span><span class="si">{</span><span class="n">slack</span><span class="p">[</span><span class="s1">&#39;min_slack_s&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2"> s&quot;</span><span class="p">)</span>
-        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Frame-feasible (sum WCET &lt;= base_dt): </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">frame_budget_feasible_wcet</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"=== TTC Single-Core Schedulability Report (WCET-accounted) ==="</span><span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Base rate: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">base_rate_hz</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2"> Hz  (base_dt=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">base_dt</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2"> s)"</span><span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Enabled tasks: </span><span class="si">{</span><span class="nb">sum</span><span class="p">(</span><span class="mi">1</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="bp">self</span><span class="o">.</span><span class="n">tasks</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">t</span><span class="o">.</span><span class="n">enabled</span><span class="p">)</span><span class="si">}</span><span class="s2"> / </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tasks</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Utilization (WCET): U = sum(C/T) = </span><span class="si">{</span><span class="n">U</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Hyperperiod (approx): </span><span class="si">{</span><span class="n">hp</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2"> s"</span><span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Mean slack: </span><span class="si">{</span><span class="n">slack</span><span class="p">[</span><span class="s1">'mean_slack_s'</span><span class="p">]</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2"> s, Min slack: </span><span class="si">{</span><span class="n">slack</span><span class="p">[</span><span class="s1">'min_slack_s'</span><span class="p">]</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2"> s"</span><span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Frame-feasible (sum WCET &lt;= base_dt): </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">frame_budget_feasible_wcet</span><span class="p">()</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 
         <span class="n">st</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stats</span><span class="p">()</span>
         <span class="k">if</span> <span class="n">st</span><span class="p">:</span>
-            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Per-task trace stats (from last simulation):&quot;</span><span class="p">)</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">Per-task trace stats (from last simulation):"</span><span class="p">)</span>
             <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
                 <span class="n">d</span> <span class="o">=</span> <span class="n">st</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
                 <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">&quot;  - </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">: attempts=</span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="s1">&#39;attempts&#39;</span><span class="p">])</span><span class="si">}</span><span class="s2"> &quot;</span>
-                    <span class="sa">f</span><span class="s2">&quot;runs=</span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="s1">&#39;runs&#39;</span><span class="p">])</span><span class="si">}</span><span class="s2"> &quot;</span>
-                    <span class="sa">f</span><span class="s2">&quot;misses=</span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="s1">&#39;misses&#39;</span><span class="p">])</span><span class="si">}</span><span class="s2"> &quot;</span>
-                    <span class="sa">f</span><span class="s2">&quot;run_rate=</span><span class="si">{</span><span class="n">d</span><span class="p">[</span><span class="s1">&#39;run_rate&#39;</span><span class="p">]</span><span class="o">*</span><span class="mi">100</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">%&quot;</span>
+                    <span class="sa">f</span><span class="s2">"  - </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">: attempts=</span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="s1">'attempts'</span><span class="p">])</span><span class="si">}</span><span class="s2"> "</span>
+                    <span class="sa">f</span><span class="s2">"runs=</span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="s1">'runs'</span><span class="p">])</span><span class="si">}</span><span class="s2"> "</span>
+                    <span class="sa">f</span><span class="s2">"misses=</span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="s1">'misses'</span><span class="p">])</span><span class="si">}</span><span class="s2"> "</span>
+                    <span class="sa">f</span><span class="s2">"run_rate=</span><span class="si">{</span><span class="n">d</span><span class="p">[</span><span class="s1">'run_rate'</span><span class="p">]</span><span class="o">*</span><span class="mi">100</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">%"</span>
                 <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">(No trace data yet. Run simulate(...) first.)&quot;</span><span class="p">)</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">(No trace data yet. Run simulate(...) first.)"</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span></div>
 </div>
 
 </pre></div>

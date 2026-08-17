@@ -228,6 +228,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_8_installable.html">0.1.8 Installable from PyPI (2026-08-05)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
@@ -539,7 +540,7 @@
         </div>
         <article role="main" id="furo-main-content">
           <h1>Source code for ADCS.controller.mtq_w_rw_QPC</h1><div class="highlight"><pre>
-<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;MTQ_w_RW_QPC&quot;</span><span class="p">]</span>
+<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"MTQ_w_RW_QPC"</span><span class="p">]</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
@@ -564,7 +565,7 @@
 <div class="viewcode-block" id="MTQ_w_RW_QPC">
 <a class="viewcode-back" href="../../../ADCS.controller.mtq_w_rw_QPC.html#ADCS.controller.mtq_w_rw_QPC.MTQ_w_RW_QPC">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">MTQ_w_RW_QPC</span><span class="p">(</span><span class="n">MTQ_w_RW_LP</span><span class="p">):</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Constrained Quadratic–Programming Torque Allocation for Mixed RW–MTQ ADCS.</span>
 
 <span class="sd">    This controller performs constrained torque allocation for a spacecraft equipped with</span>
@@ -692,9 +693,9 @@
 <span class="sd">    :param h_target: Target wheel momentum vector used by the parent mixed-actuation controller.</span>
 <span class="sd">    :type h_target: numpy.ndarray | list</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">est_sat</span><span class="p">:</span> <span class="n">EstimatedSatellite</span><span class="p">,</span> <span class="n">p_gain</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">d_gain</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">c_gain</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">h_target</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="nb">list</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">3</span><span class="p">))</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Initialize the constrained QP torque allocator.</span>
 
 <span class="sd">        The initializer delegates to :class:`~ADCS.controller.MTQ_w_RW_LP` to construct actuator</span>
@@ -716,7 +717,7 @@
 <span class="sd">        :return: None.</span>
 <span class="sd">        :rtype: NoneType</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">est_sat</span><span class="o">=</span><span class="n">est_sat</span><span class="p">,</span> <span class="n">p_gain</span><span class="o">=</span><span class="n">p_gain</span><span class="p">,</span> <span class="n">d_gain</span><span class="o">=</span><span class="n">d_gain</span><span class="p">,</span> <span class="n">c_gain</span><span class="o">=</span><span class="n">c_gain</span><span class="p">,</span> <span class="n">h_target</span><span class="o">=</span><span class="n">h_target</span><span class="p">)</span>
 
 <div class="viewcode-block" id="MTQ_w_RW_QPC.find_u">
@@ -729,7 +730,7 @@
         <span class="n">os_hat</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span>
         <span class="n">goal</span><span class="p">:</span> <span class="n">Goal</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Compute actuator commands for either detumble or goal-tracking operation.</span>
 
 <span class="sd">        This method computes a commanded actuator vector based on the estimated state, sensor</span>
@@ -770,7 +771,7 @@
 <span class="sd">        :return: Actuator command vector in ``est_sat.actuators`` ordering.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">if</span> <span class="n">goal</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">goal</span> <span class="o">=</span> <span class="n">No_Goal</span><span class="p">()</span>
 
@@ -781,7 +782,7 @@
         <span class="n">h_rw_scalars</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reaction_wheel_momentum_states</span><span class="p">(</span>
             <span class="n">x_hat</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">n_rw</span><span class="p">,</span>
-            <span class="n">context</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">.find_u&quot;</span><span class="p">,</span>
+            <span class="n">context</span><span class="o">=</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">.find_u"</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">h_sys</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rw_axes</span> <span class="o">@</span> <span class="n">h_rw_scalars</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_rw</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
 
@@ -799,7 +800,7 @@
             <span class="c1"># --- 2. System Momentum Vector (Generic N-RW) ---</span>
 
             <span class="c1"># --- 3. Rate Damping (Perpendicular to B) ---</span>
-            <span class="c1"># &quot;Magnetic B-dot&quot; logic: dampen rates only in the plane where MTQs can act</span>
+            <span class="c1"># "Magnetic B-dot" logic: dampen rates only in the plane where MTQs can act</span>
             <span class="n">w_perp</span> <span class="o">=</span> <span class="n">w</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">b_hat</span><span class="p">)</span> <span class="o">*</span> <span class="n">b_hat</span>
             <span class="n">tau_bdot_perp</span> <span class="o">=</span> <span class="o">-</span><span class="n">k_w</span> <span class="o">*</span> <span class="n">w_perp</span>
 
@@ -859,7 +860,7 @@
             <span class="n">h_rw_states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reaction_wheel_momentum_states</span><span class="p">(</span>
                 <span class="n">x_hat</span><span class="p">,</span>
                 <span class="n">n_rw</span><span class="p">,</span>
-                <span class="n">context</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">.find_u&quot;</span><span class="p">,</span>
+                <span class="n">context</span><span class="o">=</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">.find_u"</span><span class="p">,</span>
             <span class="p">)</span>
 
             <span class="n">goal_vec_eci</span><span class="p">,</span> <span class="n">w_ref_eci</span> <span class="o">=</span> <span class="n">goal</span><span class="o">.</span><span class="n">to_ref</span><span class="p">(</span><span class="n">os0</span><span class="o">=</span><span class="n">os_hat</span><span class="p">)</span>
@@ -910,7 +911,7 @@
 <div class="viewcode-block" id="MTQ_w_RW_QPC.allocate_max_torque_in_direction">
 <a class="viewcode-back" href="../../../ADCS.controller.mtq_w_rw_QPC.html#ADCS.controller.mtq_w_rw_QPC.MTQ_w_RW_QPC.allocate_max_torque_in_direction">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">allocate_max_torque_in_direction</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tau_des</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">b_body</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">est_sat</span><span class="p">:</span> <span class="n">EstimatedSatellite</span><span class="p">,</span> <span class="n">omega</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">h</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Allocate bounded RW and MTQ commands with a linear power constraint.</span>
 
 <span class="sd">        This method constructs the combined actuator mapping</span>
@@ -977,7 +978,7 @@
 <span class="sd">        :return: Tuple of RW commands, MTQ commands, and effectiveness scalar :math:`\alpha`.</span>
 <span class="sd">        :rtype: tuple[numpy.ndarray, numpy.ndarray, float]</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">tau_des</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">tau_des</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">3</span><span class="p">,)</span>
         <span class="n">t_mag</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">tau_des</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">t_mag</span> <span class="o">&lt;</span> <span class="mf">1e-9</span><span class="p">:</span>
@@ -1057,7 +1058,7 @@
             <span class="n">ub_constraint</span> <span class="o">=</span> <span class="n">taudes_dot_omega</span> <span class="c1"># logsumexp([0,taudes_dot_omega])#max(0,np.dot(omega,tau_des))</span>
 
 
-            <span class="n">lb_constraint</span> <span class="o">=</span> <span class="mf">0.0</span>  <span class="c1"># Don&#39;t brake</span>
+            <span class="n">lb_constraint</span> <span class="o">=</span> <span class="mf">0.0</span>  <span class="c1"># Don't brake</span>
             <span class="c1"># lin_ineq = LinearConstraint(omega@A_total, lb=lb_constraint*SCALE,ub=ub_constraint*SCALE)  # a @ u &lt;= s</span>
 
             <span class="c1"># Reasonable starting point</span>
@@ -1066,28 +1067,28 @@
 
             <span class="n">bounds</span> <span class="o">=</span> <span class="n">Bounds</span><span class="p">(</span><span class="n">lb</span><span class="o">*</span><span class="n">SCALE</span><span class="p">,</span> <span class="n">ub</span><span class="o">*</span><span class="n">SCALE</span><span class="p">)</span>
             <span class="c1"># C = omega @ A_total - (J_rw_inv @ h).T @ Irw</span>
-            <span class="c1"># res = lsq_linear(A_c, b_c, bounds=(lb, ub), method=&quot;trf&quot;)</span>
+            <span class="c1"># res = lsq_linear(A_c, b_c, bounds=(lb, ub), method="trf")</span>
 
             <span class="c1"># print(J_rw_inv,h)</span>
             <span class="n">res</span> <span class="o">=</span> <span class="n">minimize</span><span class="p">(</span>
                 <span class="n">fun</span><span class="p">,</span> <span class="n">u0</span><span class="p">,</span> <span class="n">jac</span><span class="o">=</span><span class="n">jac</span><span class="p">,</span>
-                <span class="n">method</span><span class="o">=</span><span class="s2">&quot;SLSQP&quot;</span><span class="p">,</span>
+                <span class="n">method</span><span class="o">=</span><span class="s2">"SLSQP"</span><span class="p">,</span>
                 <span class="n">constraints</span><span class="o">=</span><span class="p">[</span>
                                 <span class="p">{</span>
-                                    <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;ineq&quot;</span><span class="p">,</span>
-                                    <span class="s2">&quot;fun&quot;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">u</span><span class="p">,</span> <span class="n">C</span><span class="o">=</span><span class="n">C</span><span class="p">,</span><span class="n">ub_constraint</span><span class="o">=</span><span class="n">ub_constraint</span><span class="p">,</span><span class="n">SCALE</span><span class="o">=</span><span class="n">SCALE</span><span class="p">:</span> <span class="n">ub_constraint</span><span class="o">*</span><span class="n">SCALE</span> <span class="o">-</span> <span class="p">(</span><span class="n">C</span><span class="o">@</span> <span class="n">u</span><span class="p">),</span>
-                                    <span class="s2">&quot;jac&quot;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">u</span><span class="p">,</span> <span class="n">C</span><span class="o">=</span><span class="n">C</span><span class="p">:</span> <span class="o">-</span><span class="n">C</span>
+                                    <span class="s2">"type"</span><span class="p">:</span> <span class="s2">"ineq"</span><span class="p">,</span>
+                                    <span class="s2">"fun"</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">u</span><span class="p">,</span> <span class="n">C</span><span class="o">=</span><span class="n">C</span><span class="p">,</span><span class="n">ub_constraint</span><span class="o">=</span><span class="n">ub_constraint</span><span class="p">,</span><span class="n">SCALE</span><span class="o">=</span><span class="n">SCALE</span><span class="p">:</span> <span class="n">ub_constraint</span><span class="o">*</span><span class="n">SCALE</span> <span class="o">-</span> <span class="p">(</span><span class="n">C</span><span class="o">@</span> <span class="n">u</span><span class="p">),</span>
+                                    <span class="s2">"jac"</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">u</span><span class="p">,</span> <span class="n">C</span><span class="o">=</span><span class="n">C</span><span class="p">:</span> <span class="o">-</span><span class="n">C</span>
                                 <span class="p">}</span>
                                 <span class="c1"># {</span>
-                                    <span class="c1"># &quot;type&quot;: &quot;ineq&quot;,</span>
-                                    <span class="c1"># &quot;fun&quot;: lambda u: ub_constraint*SCALE - (omega @ A_total @ u),</span>
-                                    <span class="c1"># &quot;jac&quot;: lambda u: -omega @ A_total</span>
+                                    <span class="c1"># "type": "ineq",</span>
+                                    <span class="c1"># "fun": lambda u: ub_constraint*SCALE - (omega @ A_total @ u),</span>
+                                    <span class="c1"># "jac": lambda u: -omega @ A_total</span>
                                 <span class="c1"># }</span>
                                 <span class="c1"># ,</span>
                                 <span class="c1"># {</span>
-                                    <span class="c1"># &quot;type&quot;: &quot;ineq&quot;,</span>
-                                    <span class="c1"># &quot;fun&quot;: lambda u,C=C,lb_constraint=lb_constraint,SCALE=SCALE: (C @ u) - lb_constraint*SCALE,</span>
-                                    <span class="c1"># &quot;jac&quot;: lambda u,C=C: C</span>
+                                    <span class="c1"># "type": "ineq",</span>
+                                    <span class="c1"># "fun": lambda u,C=C,lb_constraint=lb_constraint,SCALE=SCALE: (C @ u) - lb_constraint*SCALE,</span>
+                                    <span class="c1"># "jac": lambda u,C=C: C</span>
                                 <span class="c1"># }</span>
                             <span class="p">],</span>
                 <span class="n">bounds</span><span class="o">=</span><span class="n">bounds</span><span class="p">,</span>
@@ -1101,15 +1102,15 @@
             <span class="c1"># print(u0/SCALE)</span>
             <span class="c1"># print(u_sol)</span>
 
-            <span class="c1"># print(f&quot;energy_qp={energy_qp:.6e}, energy_des={taudes_dot_omega:.6e},||tau_qp||={np.linalg.norm(tau_qp):.6e}, ||tau_des||={np.linalg.norm(tau_des):.6e}&quot;)</span>
-            <span class="c1"># print(f&quot;QP better on energy: {energy_qp &lt;= energy_lp + 1e-9}&quot;)</span>
-            <span class="c1"># print(f&quot;QP better on tracking: {np.linalg.norm(tau_qp - tau_des) &lt;= np.linalg.norm(tau_lp/SCALE - tau_des) + 1e-9}&quot;)</span>
+            <span class="c1"># print(f"energy_qp={energy_qp:.6e}, energy_des={taudes_dot_omega:.6e},||tau_qp||={np.linalg.norm(tau_qp):.6e}, ||tau_des||={np.linalg.norm(tau_des):.6e}")</span>
+            <span class="c1"># print(f"QP better on energy: {energy_qp &lt;= energy_lp + 1e-9}")</span>
+            <span class="c1"># print(f"QP better on tracking: {np.linalg.norm(tau_qp - tau_des) &lt;= np.linalg.norm(tau_lp/SCALE - tau_des) + 1e-9}")</span>
 
         <span class="k">else</span><span class="p">:</span>
 
-            <span class="n">ub_constraint</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">taudes_dot_omega</span><span class="p">)</span><span class="c1">#0.0 #don&#39;t accelerate</span>
+            <span class="n">ub_constraint</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">taudes_dot_omega</span><span class="p">)</span><span class="c1">#0.0 #don't accelerate</span>
 
-            <span class="n">lb_constraint</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">taudes_dot_omega</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span><span class="c1">#taudes_dot_omega # Don&#39;t brake more than expected</span>
+            <span class="n">lb_constraint</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">taudes_dot_omega</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span><span class="c1">#taudes_dot_omega # Don't brake more than expected</span>
             <span class="c1"># lin_ineq = LinearConstraint(omega@A_total,ub=ub_constraint)  # a @ u &lt;= s</span>
 
             <span class="c1"># def fun(u):</span>
@@ -1138,31 +1139,31 @@
 
             <span class="n">res</span> <span class="o">=</span> <span class="n">minimize</span><span class="p">(</span>
                 <span class="n">fun</span><span class="p">,</span> <span class="n">u0</span><span class="p">,</span> <span class="n">jac</span><span class="o">=</span><span class="n">jac</span><span class="p">,</span>
-                <span class="n">method</span><span class="o">=</span><span class="s2">&quot;SLSQP&quot;</span><span class="p">,</span>
+                <span class="n">method</span><span class="o">=</span><span class="s2">"SLSQP"</span><span class="p">,</span>
                 <span class="n">constraints</span><span class="o">=</span><span class="p">[</span>
-                            <span class="p">{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;ineq&quot;</span><span class="p">,</span> <span class="s2">&quot;fun&quot;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">u</span><span class="p">:</span> <span class="n">ub_constraint</span><span class="o">*</span><span class="n">SCALE</span> <span class="o">-</span> <span class="p">(</span><span class="n">omega</span> <span class="o">@</span> <span class="n">A_total</span> <span class="o">@</span> <span class="n">u</span><span class="p">),</span> <span class="s2">&quot;jac&quot;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">u</span><span class="p">:</span> <span class="o">-</span><span class="n">omega</span> <span class="o">@</span> <span class="n">A_total</span><span class="p">},</span>
-                             <span class="c1"># {&quot;type&quot;: &quot;ineq&quot;, &quot;fun&quot;: lambda u: -lb_constraint*SCALE + (omega @ A_total @ u), &quot;jac&quot;: lambda u: omega @ A_total}</span>
+                            <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"ineq"</span><span class="p">,</span> <span class="s2">"fun"</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">u</span><span class="p">:</span> <span class="n">ub_constraint</span><span class="o">*</span><span class="n">SCALE</span> <span class="o">-</span> <span class="p">(</span><span class="n">omega</span> <span class="o">@</span> <span class="n">A_total</span> <span class="o">@</span> <span class="n">u</span><span class="p">),</span> <span class="s2">"jac"</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">u</span><span class="p">:</span> <span class="o">-</span><span class="n">omega</span> <span class="o">@</span> <span class="n">A_total</span><span class="p">},</span>
+                             <span class="c1"># {"type": "ineq", "fun": lambda u: -lb_constraint*SCALE + (omega @ A_total @ u), "jac": lambda u: omega @ A_total}</span>
                              <span class="p">],</span>
-                <span class="c1"># constraints={&quot;type&quot;: &quot;ineq&quot;, &quot;fun&quot;: lambda u: ub_constraint*SCALE - (C @ u), &quot;jac&quot;: lambda u: -C},</span>
+                <span class="c1"># constraints={"type": "ineq", "fun": lambda u: ub_constraint*SCALE - (C @ u), "jac": lambda u: -C},</span>
                 <span class="n">bounds</span><span class="o">=</span><span class="n">bounds</span><span class="p">,</span>
                 <span class="n">options</span><span class="o">=</span><span class="p">{}</span>
             <span class="p">)</span>
 
-            <span class="c1"># res = lsq_linear(A_total, tau_des*SCALE, bounds=(lb*SCALE, ub*SCALE), method=&quot;trf&quot;)</span>
+            <span class="c1"># res = lsq_linear(A_total, tau_des*SCALE, bounds=(lb*SCALE, ub*SCALE), method="trf")</span>
 
             <span class="n">u_sol</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">x</span><span class="o">/</span><span class="n">SCALE</span>
             <span class="n">tau_qp</span> <span class="o">=</span> <span class="n">A_total</span> <span class="o">@</span> <span class="n">u_sol</span>
             <span class="n">energy_qp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">omega</span><span class="p">,</span> <span class="n">tau_qp</span><span class="p">)</span>
 
-            <span class="c1"># print(f&quot;energy_qp={energy_qp:.6e}, energy_des={taudes_dot_omega:.6e},||tau_qp||={np.linalg.norm(tau_qp):.6e}, ||tau_des||={np.linalg.norm(tau_des):.6e}&quot;)</span>
-            <span class="c1"># print(f&quot;QP better on energy: {energy_qp &lt;= energy_lp + 1e-9}&quot;)</span>
-            <span class="c1"># print(f&quot;QP better on tracking: {np.linalg.norm(tau_qp - tau_des) &lt;= np.linalg.norm(tau_lp - tau_des) + 1e-9}&quot;)</span>
+            <span class="c1"># print(f"energy_qp={energy_qp:.6e}, energy_des={taudes_dot_omega:.6e},||tau_qp||={np.linalg.norm(tau_qp):.6e}, ||tau_des||={np.linalg.norm(tau_des):.6e}")</span>
+            <span class="c1"># print(f"QP better on energy: {energy_qp &lt;= energy_lp + 1e-9}")</span>
+            <span class="c1"># print(f"QP better on tracking: {np.linalg.norm(tau_qp - tau_des) &lt;= np.linalg.norm(tau_lp - tau_des) + 1e-9}")</span>
 
 
         <span class="n">u_sol</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">x</span><span class="o">/</span><span class="n">SCALE</span>
 
 
-        <span class="n">res_uncon</span> <span class="o">=</span> <span class="n">lsq_linear</span><span class="p">(</span><span class="n">A_total</span><span class="p">,</span> <span class="n">tau_des</span><span class="o">*</span><span class="n">SCALE</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="p">(</span><span class="n">lb</span><span class="o">*</span><span class="n">SCALE</span><span class="p">,</span> <span class="n">ub</span><span class="o">*</span><span class="n">SCALE</span><span class="p">),</span> <span class="n">method</span><span class="o">=</span><span class="s2">&quot;trf&quot;</span><span class="p">)</span>
+        <span class="n">res_uncon</span> <span class="o">=</span> <span class="n">lsq_linear</span><span class="p">(</span><span class="n">A_total</span><span class="p">,</span> <span class="n">tau_des</span><span class="o">*</span><span class="n">SCALE</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="p">(</span><span class="n">lb</span><span class="o">*</span><span class="n">SCALE</span><span class="p">,</span> <span class="n">ub</span><span class="o">*</span><span class="n">SCALE</span><span class="p">),</span> <span class="n">method</span><span class="o">=</span><span class="s2">"trf"</span><span class="p">)</span>
 
         <span class="n">u_sol_uncon</span> <span class="o">=</span> <span class="n">res_uncon</span><span class="o">.</span><span class="n">x</span><span class="o">/</span><span class="n">SCALE</span>
         <span class="n">tau_uncon</span> <span class="o">=</span> <span class="n">A_total</span> <span class="o">@</span> <span class="n">u_sol_uncon</span>
@@ -1170,10 +1171,10 @@
         <span class="n">constrained_energy</span> <span class="o">=</span> <span class="n">omega</span> <span class="o">@</span> <span class="n">A_total</span> <span class="o">@</span> <span class="n">u_sol</span>
 
         <span class="k">if</span> <span class="n">unconstrained_energy</span> <span class="o">&gt;</span> <span class="mf">1e-9</span> <span class="ow">and</span> <span class="n">constrained_energy</span> <span class="o">&lt;</span> <span class="n">unconstrained_energy</span> <span class="o">-</span> <span class="mf">1e-9</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Constraint active: wanted </span><span class="si">{</span><span class="n">unconstrained_energy</span><span class="si">:</span><span class="s2">.2e</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="n">constrained_energy</span><span class="si">:</span><span class="s2">.2e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Constraint active: wanted </span><span class="si">{</span><span class="n">unconstrained_energy</span><span class="si">:</span><span class="s2">.2e</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="n">constrained_energy</span><span class="si">:</span><span class="s2">.2e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="n">res</span><span class="o">.</span><span class="n">success</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;QP failed: </span><span class="si">{</span><span class="n">res</span><span class="o">.</span><span class="n">message</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"QP failed: </span><span class="si">{</span><span class="n">res</span><span class="o">.</span><span class="n">message</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
             <span class="n">_</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">u_sol_SCALED</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">solve_lp_scaling</span><span class="p">(</span><span class="n">tau_des</span><span class="o">*</span><span class="n">SCALE</span><span class="p">,</span> <span class="n">A_total</span><span class="p">,</span> <span class="n">lb</span><span class="o">*</span><span class="n">SCALE</span><span class="p">,</span> <span class="n">ub</span><span class="o">*</span><span class="n">SCALE</span><span class="p">)</span>
             <span class="n">u_sol</span> <span class="o">=</span> <span class="n">u_sol_SCALED</span><span class="o">/</span><span class="n">SCALE</span>
 
@@ -1193,7 +1194,7 @@
 <div class="viewcode-block" id="MTQ_w_RW_QPC.solve_lp_scaling">
 <a class="viewcode-back" href="../../../ADCS.controller.mtq_w_rw_QPC.html#ADCS.controller.mtq_w_rw_QPC.MTQ_w_RW_QPC.solve_lp_scaling">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">solve_lp_scaling</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tau_des</span><span class="p">,</span> <span class="n">A_total</span><span class="p">,</span> <span class="n">lb</span><span class="p">,</span> <span class="n">ub</span><span class="p">):</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Compute the maximum feasible scaling of a desired torque direction under box bounds.</span>
 
 <span class="sd">        This method solves a linear program that finds the largest scalar</span>
@@ -1246,7 +1247,7 @@
 <span class="sd">        :return: Tuple containing the achievable torque vector, the scaling factor, and the actuator command vector.</span>
 <span class="sd">        :rtype: tuple[numpy.ndarray, float, numpy.ndarray]</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">t_mag</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">tau_des</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">t_mag</span> <span class="o">&lt;</span> <span class="mf">1e-12</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">lb</span><span class="p">))</span>
@@ -1266,7 +1267,7 @@
         <span class="c1"># Bounds: lb ≤ u ≤ ub, 0 ≤ T_available</span>
         <span class="n">bounds</span> <span class="o">=</span> <span class="p">[(</span><span class="n">lb</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">ub</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_act</span><span class="p">)]</span> <span class="o">+</span> <span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="kc">None</span><span class="p">)]</span>
 
-        <span class="n">res</span> <span class="o">=</span> <span class="n">linprog</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">A_eq</span><span class="o">=</span><span class="n">A_eq</span><span class="p">,</span> <span class="n">b_eq</span><span class="o">=</span><span class="n">b_eq</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="n">bounds</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;highs&#39;</span><span class="p">)</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">linprog</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">A_eq</span><span class="o">=</span><span class="n">A_eq</span><span class="p">,</span> <span class="n">b_eq</span><span class="o">=</span><span class="n">b_eq</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="n">bounds</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">'highs'</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">res</span><span class="o">.</span><span class="n">success</span><span class="p">:</span>
             <span class="n">u_lp</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">x</span><span class="p">[:</span><span class="n">n_act</span><span class="p">]</span>
@@ -1284,7 +1285,7 @@
             <span class="k">return</span> <span class="n">tau_lp</span><span class="p">,</span> <span class="n">lambda_star</span><span class="p">,</span> <span class="n">u_lp</span>
         <span class="k">else</span><span class="p">:</span>
 
-            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;LP failed: </span><span class="si">{</span><span class="n">res</span><span class="o">.</span><span class="n">message</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"LP failed: </span><span class="si">{</span><span class="n">res</span><span class="o">.</span><span class="n">message</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
             <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_act</span><span class="p">)</span></div>
 </div>
 

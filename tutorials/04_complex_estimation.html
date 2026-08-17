@@ -229,6 +229,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../release_notes/0_1_8_installable.html">0.1.8 Installable from PyPI (2026-08-05)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../release_notes/0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
@@ -692,21 +693,21 @@ and an attitude represented by quaternion
 
 <span class="n">ADCS</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
     <span class="n">results</span><span class="p">,</span>
-    <span class="n">ADCS</span><span class="o">.</span><span class="n">plots</span><span class="o">.</span><span class="n">AttitudePlot</span><span class="p">(</span><span class="n">sources</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;real&quot;</span><span class="p">,</span> <span class="s2">&quot;estimated&quot;</span><span class="p">]),</span>
+    <span class="n">ADCS</span><span class="o">.</span><span class="n">plots</span><span class="o">.</span><span class="n">AttitudePlot</span><span class="p">(</span><span class="n">sources</span><span class="o">=</span><span class="p">[</span><span class="s2">"real"</span><span class="p">,</span> <span class="s2">"estimated"</span><span class="p">]),</span>
     <span class="n">layout</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">),</span>
-    <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Estimator Convergence&quot;</span><span class="p">,</span>
+    <span class="n">title</span><span class="o">=</span><span class="s2">"Estimator Convergence"</span><span class="p">,</span>
 <span class="p">)</span>
 
 <span class="n">ADCS</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
     <span class="n">results</span><span class="p">,</span>
-    <span class="n">ADCS</span><span class="o">.</span><span class="n">plots</span><span class="o">.</span><span class="n">QuaternionPlot</span><span class="p">(</span><span class="n">sources</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;real&quot;</span><span class="p">,</span> <span class="s2">&quot;estimated&quot;</span><span class="p">]),</span>
-    <span class="n">ADCS</span><span class="o">.</span><span class="n">plots</span><span class="o">.</span><span class="n">AngularVelocityPlotCombined</span><span class="p">(</span><span class="n">sources</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;real&quot;</span><span class="p">,</span> <span class="s2">&quot;estimated&quot;</span><span class="p">]),</span>
-    <span class="n">ADCS</span><span class="o">.</span><span class="n">plots</span><span class="o">.</span><span class="n">TargetPlot</span><span class="p">(</span><span class="n">modes</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;real_est&quot;</span><span class="p">]),</span>
-    <span class="n">ADCS</span><span class="o">.</span><span class="n">plots</span><span class="o">.</span><span class="n">SensorsPlot</span><span class="p">(</span><span class="n">title</span><span class="o">=</span><span class="s2">&quot;All Sensor Readings&quot;</span><span class="p">,</span> <span class="n">sources</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;real&quot;</span><span class="p">,</span> <span class="s2">&quot;clean&quot;</span><span class="p">]),</span>
-    <span class="n">ADCS</span><span class="o">.</span><span class="n">plots</span><span class="o">.</span><span class="n">BiasPlot</span><span class="p">(</span><span class="n">sources</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;real&quot;</span><span class="p">,</span><span class="s2">&quot;estimated&quot;</span><span class="p">]),</span>
+    <span class="n">ADCS</span><span class="o">.</span><span class="n">plots</span><span class="o">.</span><span class="n">QuaternionPlot</span><span class="p">(</span><span class="n">sources</span><span class="o">=</span><span class="p">[</span><span class="s2">"real"</span><span class="p">,</span> <span class="s2">"estimated"</span><span class="p">]),</span>
+    <span class="n">ADCS</span><span class="o">.</span><span class="n">plots</span><span class="o">.</span><span class="n">AngularVelocityPlotCombined</span><span class="p">(</span><span class="n">sources</span><span class="o">=</span><span class="p">[</span><span class="s2">"real"</span><span class="p">,</span> <span class="s2">"estimated"</span><span class="p">]),</span>
+    <span class="n">ADCS</span><span class="o">.</span><span class="n">plots</span><span class="o">.</span><span class="n">TargetPlot</span><span class="p">(</span><span class="n">modes</span><span class="o">=</span><span class="p">[</span><span class="s2">"real_est"</span><span class="p">]),</span>
+    <span class="n">ADCS</span><span class="o">.</span><span class="n">plots</span><span class="o">.</span><span class="n">SensorsPlot</span><span class="p">(</span><span class="n">title</span><span class="o">=</span><span class="s2">"All Sensor Readings"</span><span class="p">,</span> <span class="n">sources</span><span class="o">=</span><span class="p">[</span><span class="s2">"real"</span><span class="p">,</span> <span class="s2">"clean"</span><span class="p">]),</span>
+    <span class="n">ADCS</span><span class="o">.</span><span class="n">plots</span><span class="o">.</span><span class="n">BiasPlot</span><span class="p">(</span><span class="n">sources</span><span class="o">=</span><span class="p">[</span><span class="s2">"real"</span><span class="p">,</span><span class="s2">"estimated"</span><span class="p">]),</span>
     <span class="n">ADCS</span><span class="o">.</span><span class="n">plots</span><span class="o">.</span><span class="n">IlluminationPlot</span><span class="p">(),</span>
     <span class="n">layout</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">),</span>
-    <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Estimator Convergence&quot;</span><span class="p">,</span>
+    <span class="n">title</span><span class="o">=</span><span class="s2">"Estimator Convergence"</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
 </pre></div>

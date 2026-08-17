@@ -228,6 +228,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../../release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_8_installable.html">0.1.8 Installable from PyPI (2026-08-05)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
@@ -539,7 +540,7 @@
         </div>
         <article role="main" id="furo-main-content">
           <h1>Source code for ADCS.estimators.estimator_helpers.estimator_helpers</h1><div class="highlight"><pre>
-<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;EstimatedOrbital_State&quot;</span><span class="p">]</span>
+<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"EstimatedOrbital_State"</span><span class="p">]</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
@@ -551,7 +552,7 @@
 <a class="viewcode-back" href="../../../../ADCS.estimators.estimator_helpers.estimator_helpers.html#ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedOrbital_State">[docs]</a>
 <span class="nd">@dataclass</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">EstimatedOrbital_State</span><span class="p">:</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    A container for an Orbital State and its associated estimation uncertainty.</span>
 
 <span class="sd">    This class wraps the physical :class:`~ADCS.orbits.orbital_state.Orbital_State` with</span>
@@ -564,7 +565,7 @@
 <span class="sd">    :type P: np.ndarray</span>
 <span class="sd">    :param Q: The :math:`6 \times 6` process noise covariance matrix.</span>
 <span class="sd">    :type Q: np.ndarray</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span>
     <span class="n">P</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="kc">None</span><span class="p">)</span>
     <span class="n">Q</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="kc">None</span><span class="p">)</span>
@@ -580,15 +581,15 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">Q</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Q</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">P</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="mi">6</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;P must be 6x6, got </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">P</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"P must be 6x6, got </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">P</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">Q</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="mi">6</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Q must be 6x6, got </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">Q</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Q must be 6x6, got </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">Q</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
         
 
 <div class="viewcode-block" id="EstimatedOrbital_State.pull_indices">
 <a class="viewcode-back" href="../../../../ADCS.estimators.estimator_helpers.estimator_helpers.html#ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedOrbital_State.pull_indices">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">pull_indices</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inds_mask</span><span class="p">,</span> <span class="n">cov_missing_inds</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Extracts a partial state estimate based on indices mapping to [R, V].</span>
 
 <span class="sd">        The mapping is linear: indices 0-2 correspond to Position (R), and 3-5 to Velocity (V).</span>
@@ -600,7 +601,7 @@
 <span class="sd">        :return: A new EstimatedOrbital_State containing the subset of state and covariance.</span>
 <span class="sd">                 Note: The underlying Orbital_State will have 0.0 in unselected components.</span>
 <span class="sd">        :rtype: ~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedOrbital_State</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">inds_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">inds_mask</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">cov_missing_inds</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -635,7 +636,7 @@
 <div class="viewcode-block" id="EstimatedOrbital_State.set_indices">
 <a class="viewcode-back" href="../../../../ADCS.estimators.estimator_helpers.estimator_helpers.html#ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedOrbital_State.set_indices">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">set_indices</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inds_mask</span><span class="p">,</span> <span class="n">val</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">Q</span><span class="p">,</span> <span class="n">cov_missing_inds</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Inserts values and covariance blocks back into the full 6-state estimate.</span>
 
 <span class="sd">        :param inds_mask: Indices in the full 6-element vector where data should be inserted.</span>
@@ -648,7 +649,7 @@
 <span class="sd">        :type Q: np.ndarray</span>
 <span class="sd">        :param cov_missing_inds: Indices to exclude from covariance insertion (optional).</span>
 <span class="sd">        :type cov_missing_inds: list or np.ndarray, optional</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
 
         <span class="n">inds_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">inds_mask</span><span class="p">)</span>
 
@@ -672,12 +673,12 @@
 <div class="viewcode-block" id="EstimatedOrbital_State.copy">
 <a class="viewcode-back" href="../../../../ADCS.estimators.estimator_helpers.estimator_helpers.html#ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedOrbital_State.copy">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Creates a deep copy of the EstimatedOrbital_State.</span>
 
 <span class="sd">        :return: A new instance with deep-copied state and matrices.</span>
 <span class="sd">        :rtype: ~ADCS.estimators.estimator_helpers.estimator_helpers.EstimatedOrbital_State</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="n">EstimatedOrbital_State</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">os</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">P</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span>

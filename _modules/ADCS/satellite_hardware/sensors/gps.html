@@ -228,6 +228,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../../release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_8_installable.html">0.1.8 Installable from PyPI (2026-08-05)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
@@ -539,7 +540,7 @@
         </div>
         <article role="main" id="furo-main-content">
           <h1>Source code for ADCS.satellite_hardware.sensors.gps</h1><div class="highlight"><pre>
-<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;GPS&quot;</span><span class="p">]</span>
+<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"GPS"</span><span class="p">]</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">.sensor</span><span class="w"> </span><span class="kn">import</span> <span class="n">Sensor</span>
 
@@ -555,7 +556,7 @@
 <div class="viewcode-block" id="GPS">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.sensors.gps.html#ADCS.satellite_hardware.sensors.gps.GPS">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">GPS</span><span class="p">(</span><span class="n">Sensor</span><span class="p">):</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Global Positioning System (GPS) position–velocity sensor model.</span>
 
 <span class="sd">    This class implements a GPS receiver that provides a **6-element measurement**</span>
@@ -623,9 +624,9 @@
 <span class="sd">    * Position is taken directly from the orbital state in ECEF coordinates.</span>
 <span class="sd">    * Velocity is transformed from ECI to ECEF using</span>
 <span class="sd">      :meth:`~ADCS.orbits.orbital_state.Orbital_State.eci_to_ecef`.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample_time</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span> <span class="n">bias</span><span class="p">:</span> <span class="n">Bias</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">noise</span><span class="p">:</span> <span class="n">Noise</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">estimate_bias</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Initialize the GPS sensor model.</span>
 
 <span class="sd">        :param sample_time: Sampling period of the GPS sensor in seconds.</span>
@@ -638,7 +639,7 @@
 <span class="sd">        :type estimate_bias: bool</span>
 <span class="sd">        :return: None</span>
 <span class="sd">        :rtype: None</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">attitude_sensor</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="k">if</span> <span class="n">bias</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">bias</span> <span class="o">=</span> <span class="n">bias</span>
@@ -653,7 +654,7 @@
 <div class="viewcode-block" id="GPS.clean_reading">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.sensors.gps.html#ADCS.satellite_hardware.sensors.gps.GPS.clean_reading">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">clean_reading</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Compute the clean GPS measurement (position and velocity in ECEF).</span>
 
 <span class="sd">        This method constructs the ideal GPS output using the orbital state:</span>
@@ -683,7 +684,7 @@
 <span class="sd">        :return: Clean GPS measurement vector ``[r_ECEF, v_ECEF]``.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">ecef</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">ECEF</span>
         <span class="n">v</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">V</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">ecef</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">eci_to_ecef</span><span class="p">(</span><span class="n">v</span><span class="p">)])</span></div>
@@ -692,7 +693,7 @@
 <div class="viewcode-block" id="GPS.bias_jac">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.sensors.gps.html#ADCS.satellite_hardware.sensors.gps.GPS.bias_jac">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">bias_jac</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Jacobian of the GPS measurement with respect to the GPS bias state.</span>
 
 <span class="sd">        The GPS measurement is modeled as</span>
@@ -723,7 +724,7 @@
 <span class="sd">                 otherwise an empty ``0 × 6`` matrix.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bias</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">6</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
@@ -733,7 +734,7 @@
 <div class="viewcode-block" id="GPS.orbitRV_jac">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.sensors.gps.html#ADCS.satellite_hardware.sensors.gps.GPS.orbitRV_jac">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">orbitRV_jac</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Jacobian of the GPS measurement with respect to orbital position and</span>
 <span class="sd">        velocity states in the ECI frame.</span>
 
@@ -775,7 +776,7 @@
 <span class="sd">        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
 <span class="sd">        :return: Block-diagonal Jacobian matrix of shape ``6 × 6``.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">mat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">os</span><span class="o">.</span><span class="n">eci_to_ecef</span><span class="p">(</span><span class="n">j</span><span class="p">)</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">MathConstants</span><span class="o">.</span><span class="n">unitvecs</span><span class="p">])</span><span class="o">.</span><span class="n">T</span>
         <span class="k">return</span> <span class="n">block_diag</span><span class="p">(</span><span class="n">mat</span><span class="p">,</span> <span class="n">mat</span><span class="p">)</span></div>
 </div>

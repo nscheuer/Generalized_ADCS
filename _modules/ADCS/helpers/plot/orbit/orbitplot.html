@@ -228,6 +228,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../../../release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../../release_notes/0_1_8_installable.html">0.1.8 Installable from PyPI (2026-08-05)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../../release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../../release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../../release_notes/0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
@@ -539,7 +540,7 @@
         </div>
         <article role="main" id="furo-main-content">
           <h1>Source code for ADCS.helpers.plot.orbit.orbitplot</h1><div class="highlight"><pre>
-<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;OrbitPlot&quot;</span><span class="p">]</span>
+<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"OrbitPlot"</span><span class="p">]</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
@@ -551,32 +552,32 @@
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_normalize_orbit_sources</span><span class="p">(</span><span class="n">sources</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">sources</span><span class="p">:</span>  <span class="c1"># None or []</span>
-        <span class="k">return</span> <span class="p">[</span><span class="s2">&quot;real&quot;</span><span class="p">]</span>
-    <span class="n">allowed</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;real&quot;</span><span class="p">,</span> <span class="s2">&quot;estimated&quot;</span><span class="p">}</span>
+        <span class="k">return</span> <span class="p">[</span><span class="s2">"real"</span><span class="p">]</span>
+    <span class="n">allowed</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"real"</span><span class="p">,</span> <span class="s2">"estimated"</span><span class="p">}</span>
     <span class="n">out</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">sources</span><span class="p">:</span>
         <span class="n">s2</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">s</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
         <span class="k">if</span> <span class="n">s2</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">allowed</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid sources </span><span class="si">{</span><span class="n">s2</span><span class="si">!r}</span><span class="s2">. Allowed: </span><span class="si">{</span><span class="nb">sorted</span><span class="p">(</span><span class="n">allowed</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Invalid sources </span><span class="si">{</span><span class="n">s2</span><span class="si">!r}</span><span class="s2">. Allowed: </span><span class="si">{</span><span class="nb">sorted</span><span class="p">(</span><span class="n">allowed</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">s2</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">out</span><span class="p">:</span>
             <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">s2</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">out</span>
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_get_R_series</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">source</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Return Nx3 ECI position history for a given source.</span>
 
 <span class="sd">    - real      -&gt; sim.os_hist[*].R</span>
 <span class="sd">    - estimated -&gt; sim.est_os_hist[*].os.R</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="n">source</span> <span class="o">==</span> <span class="s2">&quot;real&quot;</span><span class="p">:</span>
-        <span class="n">hist</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="s2">&quot;os_hist&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">source</span> <span class="o">==</span> <span class="s2">"real"</span><span class="p">:</span>
+        <span class="n">hist</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="s2">"os_hist"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
         <span class="n">get_R</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">os</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">R</span>
-    <span class="k">elif</span> <span class="n">source</span> <span class="o">==</span> <span class="s2">&quot;estimated&quot;</span><span class="p">:</span>
-        <span class="n">hist</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="s2">&quot;est_os_hist&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">source</span> <span class="o">==</span> <span class="s2">"estimated"</span><span class="p">:</span>
+        <span class="n">hist</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="s2">"est_os_hist"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
         <span class="n">get_R</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">os</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">os</span><span class="o">.</span><span class="n">R</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unknown source: </span><span class="si">{</span><span class="n">source</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Unknown source: </span><span class="si">{</span><span class="n">source</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">hist</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">hist</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
         <span class="k">return</span> <span class="kc">None</span>
@@ -595,18 +596,18 @@
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_source_style_orbit3d</span><span class="p">(</span><span class="n">source</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
     <span class="k">return</span> <span class="p">{</span>
-        <span class="s2">&quot;linestyle&quot;</span><span class="p">:</span> <span class="s2">&quot;-&quot;</span> <span class="k">if</span> <span class="n">source</span> <span class="o">==</span> <span class="s2">&quot;real&quot;</span> <span class="k">else</span> <span class="s2">&quot;--&quot;</span>
+        <span class="s2">"linestyle"</span><span class="p">:</span> <span class="s2">"-"</span> <span class="k">if</span> <span class="n">source</span> <span class="o">==</span> <span class="s2">"real"</span> <span class="k">else</span> <span class="s2">"--"</span>
     <span class="p">}</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_source_suffix_orbit3d</span><span class="p">(</span><span class="n">source</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-    <span class="k">return</span> <span class="s2">&quot; (real)&quot;</span> <span class="k">if</span> <span class="n">source</span> <span class="o">==</span> <span class="s2">&quot;real&quot;</span> <span class="k">else</span> <span class="s2">&quot; (est)&quot;</span>
+    <span class="k">return</span> <span class="s2">" (real)"</span> <span class="k">if</span> <span class="n">source</span> <span class="o">==</span> <span class="s2">"real"</span> <span class="k">else</span> <span class="s2">" (est)"</span>
 
 
 <div class="viewcode-block" id="OrbitPlot">
 <a class="viewcode-back" href="../../../../../ADCS.helpers.plot.orbit.orbitplot.html#ADCS.helpers.plot.orbit.orbitplot.OrbitPlot">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">OrbitPlot</span><span class="p">(</span><span class="n">Subplot</span><span class="p">):</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Three-dimensional visualization of spacecraft orbit trajectories in ECI.</span>
 
 <span class="sd">    This class renders one or more spacecraft orbits in a 3D Earth-centered</span>
@@ -649,22 +650,22 @@
 <span class="sd">    :type linewidth:</span>
 <span class="sd">        float</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
-        <span class="n">sources</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>  <span class="c1"># [&quot;real&quot;, &quot;estimated&quot;]</span>
-        <span class="n">title</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;Orbit (ECI)&quot;</span><span class="p">,</span>
+        <span class="n">sources</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>  <span class="c1"># ["real", "estimated"]</span>
+        <span class="n">title</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"Orbit (ECI)"</span><span class="p">,</span>
         <span class="n">orbit_colors</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">earth_color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;tab:blue&quot;</span><span class="p">,</span>
+        <span class="n">earth_color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"tab:blue"</span><span class="p">,</span>
         <span class="n">earth_alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.3</span><span class="p">,</span>
         <span class="n">linewidth</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.0</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">sources</span> <span class="o">=</span> <span class="n">_normalize_orbit_sources</span><span class="p">(</span><span class="n">sources</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">title</span> <span class="o">=</span> <span class="n">title</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">orbit_colors</span> <span class="o">=</span> <span class="n">orbit_colors</span> <span class="ow">or</span> <span class="p">{</span>
-            <span class="s2">&quot;real&quot;</span><span class="p">:</span> <span class="s2">&quot;tab:red&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;estimated&quot;</span><span class="p">:</span> <span class="s2">&quot;tab:orange&quot;</span><span class="p">,</span>
+            <span class="s2">"real"</span><span class="p">:</span> <span class="s2">"tab:red"</span><span class="p">,</span>
+            <span class="s2">"estimated"</span><span class="p">:</span> <span class="s2">"tab:orange"</span><span class="p">,</span>
         <span class="p">}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">earth_color</span> <span class="o">=</span> <span class="n">earth_color</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">earth_alpha</span> <span class="o">=</span> <span class="n">earth_alpha</span>
@@ -674,13 +675,13 @@
 <a class="viewcode-back" href="../../../../../ADCS.helpers.plot.orbit.orbitplot.html#ADCS.helpers.plot.orbit.orbitplot.OrbitPlot.plot">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ax</span><span class="p">,</span> <span class="n">sim</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="c1"># Accept SimulationResults or MCSimulationResults</span>
-        <span class="n">runs</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="s2">&quot;runs&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">runs</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="s2">"runs"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">runs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">runs</span> <span class="o">=</span> <span class="p">[</span><span class="n">sim</span><span class="p">]</span>
 
         <span class="n">fig</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">figure</span>
         <span class="n">fig</span><span class="o">.</span><span class="n">delaxes</span><span class="p">(</span><span class="n">ax</span><span class="p">)</span>
-        <span class="n">ax3d</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="n">ax</span><span class="o">.</span><span class="n">get_subplotspec</span><span class="p">(),</span> <span class="n">projection</span><span class="o">=</span><span class="s2">&quot;3d&quot;</span><span class="p">)</span>
+        <span class="n">ax3d</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="n">ax</span><span class="o">.</span><span class="n">get_subplotspec</span><span class="p">(),</span> <span class="n">projection</span><span class="o">=</span><span class="s2">"3d"</span><span class="p">)</span>
 
         <span class="n">plotted_any</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="n">all_R</span> <span class="o">=</span> <span class="p">[]</span>
@@ -700,7 +701,7 @@
                     <span class="n">R</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span>
                     <span class="n">R</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span>
                     <span class="n">R</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">],</span>
-                    <span class="n">color</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">orbit_colors</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="s2">&quot;k&quot;</span><span class="p">),</span>
+                    <span class="n">color</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">orbit_colors</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="s2">"k"</span><span class="p">),</span>
                     <span class="n">linewidth</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">linewidth</span><span class="p">,</span>
                     <span class="n">alpha</span><span class="o">=</span><span class="n">alpha</span><span class="p">,</span>
                     <span class="n">label</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>  <span class="c1"># avoid legend spam</span>
@@ -715,10 +716,10 @@
             <span class="n">ax3d</span><span class="o">.</span><span class="n">text2D</span><span class="p">(</span>
                 <span class="mf">0.5</span><span class="p">,</span>
                 <span class="mf">0.5</span><span class="p">,</span>
-                <span class="s2">&quot;No orbit history available&quot;</span><span class="p">,</span>
+                <span class="s2">"No orbit history available"</span><span class="p">,</span>
                 <span class="n">transform</span><span class="o">=</span><span class="n">ax3d</span><span class="o">.</span><span class="n">transAxes</span><span class="p">,</span>
-                <span class="n">ha</span><span class="o">=</span><span class="s2">&quot;center&quot;</span><span class="p">,</span>
-                <span class="n">va</span><span class="o">=</span><span class="s2">&quot;center&quot;</span><span class="p">,</span>
+                <span class="n">ha</span><span class="o">=</span><span class="s2">"center"</span><span class="p">,</span>
+                <span class="n">va</span><span class="o">=</span><span class="s2">"center"</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="k">return</span>
 
@@ -752,9 +753,9 @@
         <span class="n">ax3d</span><span class="o">.</span><span class="n">set_zlim</span><span class="p">(</span><span class="o">-</span><span class="n">lim</span><span class="p">,</span> <span class="n">lim</span><span class="p">)</span>
         <span class="n">ax3d</span><span class="o">.</span><span class="n">set_box_aspect</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
 
-        <span class="n">ax3d</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;X [km]&quot;</span><span class="p">)</span>
-        <span class="n">ax3d</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;Y [km]&quot;</span><span class="p">)</span>
-        <span class="n">ax3d</span><span class="o">.</span><span class="n">set_zlabel</span><span class="p">(</span><span class="s2">&quot;Z [km]&quot;</span><span class="p">)</span>
+        <span class="n">ax3d</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">"X [km]"</span><span class="p">)</span>
+        <span class="n">ax3d</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">"Y [km]"</span><span class="p">)</span>
+        <span class="n">ax3d</span><span class="o">.</span><span class="n">set_zlabel</span><span class="p">(</span><span class="s2">"Z [km]"</span><span class="p">)</span>
         <span class="n">ax3d</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">title</span><span class="p">)</span>
 
         <span class="c1"># --- Clean legend (one entry per source) ---</span>
@@ -764,12 +765,12 @@
             <span class="n">handles</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
                 <span class="n">plt</span><span class="o">.</span><span class="n">Line2D</span><span class="p">(</span>
                     <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span>
-                    <span class="n">color</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">orbit_colors</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="s2">&quot;k&quot;</span><span class="p">),</span>
-                    <span class="n">linestyle</span><span class="o">=</span><span class="n">_source_style_orbit3d</span><span class="p">(</span><span class="n">source</span><span class="p">)[</span><span class="s2">&quot;linestyle&quot;</span><span class="p">],</span>
+                    <span class="n">color</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">orbit_colors</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="s2">"k"</span><span class="p">),</span>
+                    <span class="n">linestyle</span><span class="o">=</span><span class="n">_source_style_orbit3d</span><span class="p">(</span><span class="n">source</span><span class="p">)[</span><span class="s2">"linestyle"</span><span class="p">],</span>
                     <span class="n">linewidth</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">linewidth</span><span class="p">,</span>
                 <span class="p">)</span>
             <span class="p">)</span>
-            <span class="n">labels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;Orbit&quot;</span> <span class="o">+</span> <span class="n">_source_suffix_orbit3d</span><span class="p">(</span><span class="n">source</span><span class="p">))</span>
+            <span class="n">labels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"Orbit"</span> <span class="o">+</span> <span class="n">_source_suffix_orbit3d</span><span class="p">(</span><span class="n">source</span><span class="p">))</span>
 
         <span class="n">ax3d</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">handles</span><span class="p">,</span> <span class="n">labels</span><span class="p">)</span></div>
 </div>

@@ -228,6 +228,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_8_installable.html">0.1.8 Installable from PyPI (2026-08-05)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
@@ -542,14 +543,14 @@
 <span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
-    <span class="s2">&quot;ComponentLocation&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;RemoteSimulationConfig&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;RemoteControllerProxy&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;RemoteAttitudeEstimatorProxy&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;RemoteOrbitEstimatorProxy&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;serve_remote_components&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;serve_remote_component&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;serve_remote_controller&quot;</span><span class="p">,</span>
+    <span class="s2">"ComponentLocation"</span><span class="p">,</span>
+    <span class="s2">"RemoteSimulationConfig"</span><span class="p">,</span>
+    <span class="s2">"RemoteControllerProxy"</span><span class="p">,</span>
+    <span class="s2">"RemoteAttitudeEstimatorProxy"</span><span class="p">,</span>
+    <span class="s2">"RemoteOrbitEstimatorProxy"</span><span class="p">,</span>
+    <span class="s2">"serve_remote_components"</span><span class="p">,</span>
+    <span class="s2">"serve_remote_component"</span><span class="p">,</span>
+    <span class="s2">"serve_remote_controller"</span><span class="p">,</span>
 <span class="p">]</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
@@ -575,8 +576,8 @@
 <div class="viewcode-block" id="ComponentLocation">
 <a class="viewcode-back" href="../../../ADCS.remote.controller_rpc.html#ADCS.remote.controller_rpc.ComponentLocation">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">ComponentLocation</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">Enum</span><span class="p">):</span>
-    <span class="n">LOCAL</span> <span class="o">=</span> <span class="s2">&quot;local&quot;</span>
-    <span class="n">REMOTE</span> <span class="o">=</span> <span class="s2">&quot;remote&quot;</span></div>
+    <span class="n">LOCAL</span> <span class="o">=</span> <span class="s2">"local"</span>
+    <span class="n">REMOTE</span> <span class="o">=</span> <span class="s2">"remote"</span></div>
 
 
 
@@ -587,16 +588,16 @@
     <span class="n">controller</span><span class="p">:</span> <span class="n">ComponentLocation</span> <span class="o">=</span> <span class="n">ComponentLocation</span><span class="o">.</span><span class="n">REMOTE</span>
     <span class="n">estimator</span><span class="p">:</span> <span class="n">ComponentLocation</span> <span class="o">=</span> <span class="n">ComponentLocation</span><span class="o">.</span><span class="n">LOCAL</span>
     <span class="n">orbit_estimator</span><span class="p">:</span> <span class="n">ComponentLocation</span> <span class="o">=</span> <span class="n">ComponentLocation</span><span class="o">.</span><span class="n">LOCAL</span>
-    <span class="n">host</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;10.77.0.4&quot;</span>
+    <span class="n">host</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"10.77.0.4"</span>
     <span class="n">port</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5000</span>
     <span class="n">timeout_s</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.25</span>
     <span class="n">retries</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="n">fallback</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;raise&quot;</span></div>
+    <span class="n">fallback</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"raise"</span></div>
 
 
 
 <span class="k">class</span><span class="w"> </span><span class="nc">_TimeoutTransport</span><span class="p">(</span><span class="n">Transport</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;XML-RPC transport with per-connection timeout enforcement.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""XML-RPC transport with per-connection timeout enforcement."""</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">timeout_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
@@ -607,7 +608,7 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_goal_to_payload</span><span class="p">(</span><span class="n">goal</span><span class="p">:</span> <span class="n">Goal</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Serialize a goal object into an XML-RPC-safe dictionary.</span>
+<span class="w">    </span><span class="sd">"""Serialize a goal object into an XML-RPC-safe dictionary.</span>
 
 <span class="sd">    Only goal types currently used by the remote controller path are supported.</span>
 <span class="sd">    The payload is intentionally explicit (with a ``kind`` tag) so the receiver</span>
@@ -625,25 +626,25 @@
 
 <span class="sd">    :raises NotImplementedError:</span>
 <span class="sd">        If the goal type is not supported by the remote transport format.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="k">if</span> <span class="n">goal</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">goal</span><span class="p">,</span> <span class="n">No_Goal</span><span class="p">):</span>
-        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;kind&quot;</span><span class="p">:</span> <span class="s2">&quot;No_Goal&quot;</span><span class="p">}</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">"kind"</span><span class="p">:</span> <span class="s2">"No_Goal"</span><span class="p">}</span>
 
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">goal</span><span class="p">,</span> <span class="n">ECI_Goal</span><span class="p">):</span>
         <span class="k">return</span> <span class="p">{</span>
-            <span class="s2">&quot;kind&quot;</span><span class="p">:</span> <span class="s2">&quot;ECI_Goal&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;eci_vector&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">goal</span><span class="o">.</span><span class="n">eci_vector</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span>
-            <span class="s2">&quot;boresight_name&quot;</span><span class="p">:</span> <span class="n">goal</span><span class="o">.</span><span class="n">boresight_name</span><span class="p">,</span>
+            <span class="s2">"kind"</span><span class="p">:</span> <span class="s2">"ECI_Goal"</span><span class="p">,</span>
+            <span class="s2">"eci_vector"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">goal</span><span class="o">.</span><span class="n">eci_vector</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span>
+            <span class="s2">"boresight_name"</span><span class="p">:</span> <span class="n">goal</span><span class="o">.</span><span class="n">boresight_name</span><span class="p">,</span>
         <span class="p">}</span>
 
     <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
-        <span class="sa">f</span><span class="s2">&quot;Remote controller RPC only supports No_Goal and ECI_Goal for now, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">goal</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">.&quot;</span>
+        <span class="sa">f</span><span class="s2">"Remote controller RPC only supports No_Goal and ECI_Goal for now, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">goal</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">."</span>
     <span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_xmlrpc_safe</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Recursively convert ADCS/NumPy objects into XML-RPC-safe primitives.</span>
+<span class="w">    </span><span class="sd">"""Recursively convert ADCS/NumPy objects into XML-RPC-safe primitives.</span>
 
 <span class="sd">    XML-RPC transports only basic Python scalar/list/dict types. This helper</span>
 <span class="sd">    normalizes NumPy arrays/scalars and ADCS container objects so request and</span>
@@ -658,7 +659,7 @@
 <span class="sd">        A transport-safe representation of ``value``.</span>
 <span class="sd">    :rtype:</span>
 <span class="sd">        Any</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">EstimatedOrbital_State</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">_estimated_orbital_state_to_payload</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
@@ -677,24 +678,24 @@
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_state_to_payload</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="n">State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
     <span class="k">return</span> <span class="n">_xmlrpc_safe</span><span class="p">({</span>
-        <span class="s2">&quot;schema_version&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
-        <span class="s2">&quot;kind&quot;</span><span class="p">:</span> <span class="s2">&quot;estimated&quot;</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">EstimatorState</span><span class="p">)</span> <span class="k">else</span> <span class="s2">&quot;physical&quot;</span><span class="p">,</span>
+        <span class="s2">"schema_version"</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="s2">"kind"</span><span class="p">:</span> <span class="s2">"estimated"</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">EstimatorState</span><span class="p">)</span> <span class="k">else</span> <span class="s2">"physical"</span><span class="p">,</span>
         <span class="o">**</span><span class="n">state</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(),</span>
     <span class="p">})</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_state_from_payload</span><span class="p">(</span><span class="n">payload</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">State</span><span class="p">:</span>
-    <span class="k">if</span> <span class="n">payload</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;schema_version&quot;</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unsupported state payload schema </span><span class="si">{</span><span class="n">payload</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;schema_version&#39;</span><span class="p">)</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">payload</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;kind&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;estimated&quot;</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">payload</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"schema_version"</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Unsupported state payload schema </span><span class="si">{</span><span class="n">payload</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">'schema_version'</span><span class="p">)</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">payload</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"kind"</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"estimated"</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">EstimatorState</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">payload</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">payload</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;kind&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;physical&quot;</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">payload</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"kind"</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"physical"</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">State</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">payload</span><span class="p">)</span>
-    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unsupported state payload kind </span><span class="si">{</span><span class="n">payload</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;kind&#39;</span><span class="p">)</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Unsupported state payload kind </span><span class="si">{</span><span class="n">payload</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">'kind'</span><span class="p">)</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_goal_from_payload</span><span class="p">(</span><span class="n">payload</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Goal</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Deserialize a goal payload back into an ADCS goal object.</span>
+<span class="w">    </span><span class="sd">"""Deserialize a goal payload back into an ADCS goal object.</span>
 
 <span class="sd">    :param payload:</span>
 <span class="sd">        Goal payload produced by :func:`_goal_to_payload`.</span>
@@ -708,34 +709,34 @@
 
 <span class="sd">    :raises NotImplementedError:</span>
 <span class="sd">        If the payload encodes an unsupported goal ``kind``.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
-    <span class="n">kind</span> <span class="o">=</span> <span class="n">payload</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;kind&quot;</span><span class="p">,</span> <span class="s2">&quot;No_Goal&quot;</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;No_Goal&quot;</span><span class="p">:</span>
+    <span class="n">kind</span> <span class="o">=</span> <span class="n">payload</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"kind"</span><span class="p">,</span> <span class="s2">"No_Goal"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">kind</span> <span class="o">==</span> <span class="s2">"No_Goal"</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">No_Goal</span><span class="p">()</span>
-    <span class="k">if</span> <span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;ECI_Goal&quot;</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">kind</span> <span class="o">==</span> <span class="s2">"ECI_Goal"</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">ECI_Goal</span><span class="p">(</span>
-            <span class="n">eci_vector</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">payload</span><span class="p">[</span><span class="s2">&quot;eci_vector&quot;</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span>
-            <span class="n">boresight_name</span><span class="o">=</span><span class="n">payload</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;boresight_name&quot;</span><span class="p">),</span>
+            <span class="n">eci_vector</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">payload</span><span class="p">[</span><span class="s2">"eci_vector"</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span>
+            <span class="n">boresight_name</span><span class="o">=</span><span class="n">payload</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"boresight_name"</span><span class="p">),</span>
         <span class="p">)</span>
-    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unsupported remote goal kind: </span><span class="si">{</span><span class="n">kind</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Unsupported remote goal kind: </span><span class="si">{</span><span class="n">kind</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_print_remote_marker</span><span class="p">(</span><span class="n">marker</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Print a compact per-call marker in the server terminal.</span>
+<span class="w">    </span><span class="sd">"""Print a compact per-call marker in the server terminal.</span>
 
 <span class="sd">    :param marker:</span>
 <span class="sd">        Single-character marker identifying the RPC type (for example ``C``,</span>
 <span class="sd">        ``A``, or ``O``).</span>
 <span class="sd">    :type marker:</span>
 <span class="sd">        str</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
-    <span class="nb">print</span><span class="p">(</span><span class="n">marker</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">flush</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">marker</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s2">""</span><span class="p">,</span> <span class="n">flush</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_os_to_payload</span><span class="p">(</span><span class="n">os0</span><span class="p">:</span> <span class="n">Orbital_State</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Serialize an orbital state for XML-RPC transport.</span>
+<span class="w">    </span><span class="sd">"""Serialize an orbital state for XML-RPC transport.</span>
 
 <span class="sd">    :param os0:</span>
 <span class="sd">        Orbital state to serialize.</span>
@@ -747,13 +748,13 @@
 <span class="sd">        orbital-state fields.</span>
 <span class="sd">    :rtype:</span>
 <span class="sd">        dict[str, Any] or None</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="k">return</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">os0</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">_xmlrpc_safe</span><span class="p">(</span><span class="n">os0</span><span class="o">.</span><span class="n">to_dict</span><span class="p">())</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_os_from_payload</span><span class="p">(</span><span class="n">payload</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Orbital_State</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Deserialize an orbital-state payload using a cached ephemeris.</span>
+<span class="w">    </span><span class="sd">"""Deserialize an orbital-state payload using a cached ephemeris.</span>
 
 <span class="sd">    :param payload:</span>
 <span class="sd">        Orbital-state dictionary payload, or ``None``.</span>
@@ -764,7 +765,7 @@
 <span class="sd">        Reconstructed orbital state object, or ``None``.</span>
 <span class="sd">    :rtype:</span>
 <span class="sd">        :class:`~ADCS.orbits.orbital_state.Orbital_State` or None</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="k">if</span> <span class="n">payload</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="kc">None</span>
@@ -774,7 +775,7 @@
 
 <span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">_shared_ephemeris</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Ephemeris</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return a process-wide cached ephemeris instance.</span>
+<span class="w">    </span><span class="sd">"""Return a process-wide cached ephemeris instance.</span>
 
 <span class="sd">    Reusing the same ephemeris instance avoids repeated file loading and reduces</span>
 <span class="sd">    per-request overhead during high-rate RPC deserialization.</span>
@@ -783,13 +784,13 @@
 <span class="sd">        Cached ephemeris object.</span>
 <span class="sd">    :rtype:</span>
 <span class="sd">        :class:`~ADCS.orbits.orbital_state.Ephemeris`</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="k">return</span> <span class="n">Ephemeris</span><span class="p">()</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_estimated_orbital_state_to_payload</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="n">EstimatedOrbital_State</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Serialize an estimated orbital state into an XML-RPC-safe dictionary.</span>
+<span class="w">    </span><span class="sd">"""Serialize an estimated orbital state into an XML-RPC-safe dictionary.</span>
 
 <span class="sd">    :param state:</span>
 <span class="sd">        Estimated orbital state bundle to serialize.</span>
@@ -801,19 +802,19 @@
 <span class="sd">        or ``None`` if ``state`` is ``None``.</span>
 <span class="sd">    :rtype:</span>
 <span class="sd">        dict[str, Any] or None</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="k">if</span> <span class="n">state</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="kc">None</span>
     <span class="k">return</span> <span class="p">{</span>
-        <span class="s2">&quot;os&quot;</span><span class="p">:</span> <span class="n">_os_to_payload</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">os</span><span class="p">),</span>
-        <span class="s2">&quot;P&quot;</span><span class="p">:</span> <span class="n">_xmlrpc_safe</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">P</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)),</span>
-        <span class="s2">&quot;Q&quot;</span><span class="p">:</span> <span class="n">_xmlrpc_safe</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">Q</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)),</span>
+        <span class="s2">"os"</span><span class="p">:</span> <span class="n">_os_to_payload</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">os</span><span class="p">),</span>
+        <span class="s2">"P"</span><span class="p">:</span> <span class="n">_xmlrpc_safe</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">P</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)),</span>
+        <span class="s2">"Q"</span><span class="p">:</span> <span class="n">_xmlrpc_safe</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">Q</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)),</span>
     <span class="p">}</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_estimated_orbital_state_from_payload</span><span class="p">(</span><span class="n">payload</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EstimatedOrbital_State</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Deserialize an estimated orbital-state payload.</span>
+<span class="w">    </span><span class="sd">"""Deserialize an estimated orbital-state payload.</span>
 
 <span class="sd">    :param payload:</span>
 <span class="sd">        Payload generated by :func:`_estimated_orbital_state_to_payload`.</span>
@@ -824,35 +825,35 @@
 <span class="sd">        Reconstructed estimated orbital-state bundle.</span>
 <span class="sd">    :rtype:</span>
 <span class="sd">        :class:`~ADCS.estimators.estimator_helpers.EstimatedOrbital_State` or None</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="k">if</span> <span class="n">payload</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="kc">None</span>
     <span class="k">return</span> <span class="n">EstimatedOrbital_State</span><span class="p">(</span>
-        <span class="n">os</span><span class="o">=</span><span class="n">_os_from_payload</span><span class="p">(</span><span class="n">payload</span><span class="p">[</span><span class="s2">&quot;os&quot;</span><span class="p">]),</span>
-        <span class="n">P</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">payload</span><span class="p">[</span><span class="s2">&quot;P&quot;</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">),</span>
-        <span class="n">Q</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">payload</span><span class="p">[</span><span class="s2">&quot;Q&quot;</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">),</span>
+        <span class="n">os</span><span class="o">=</span><span class="n">_os_from_payload</span><span class="p">(</span><span class="n">payload</span><span class="p">[</span><span class="s2">"os"</span><span class="p">]),</span>
+        <span class="n">P</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">payload</span><span class="p">[</span><span class="s2">"P"</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">),</span>
+        <span class="n">Q</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">payload</span><span class="p">[</span><span class="s2">"Q"</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">),</span>
     <span class="p">)</span>
 
 
 <span class="k">class</span><span class="w"> </span><span class="nc">RemoteControllerService</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Server-side RPC endpoint for controller `find_u` evaluation.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Server-side RPC endpoint for controller `find_u` evaluation."""</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">controller</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">controller</span> <span class="o">=</span> <span class="n">controller</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">ping</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return service liveness for preflight health checks.</span>
+<span class="w">        </span><span class="sd">"""Return service liveness for preflight health checks.</span>
 
 <span class="sd">        :return:</span>
 <span class="sd">            ``True`` when the XML-RPC service is reachable.</span>
 <span class="sd">        :rtype:</span>
 <span class="sd">            bool</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="kc">True</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">find_u</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">payload</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Evaluate controller command generation for one simulation step.</span>
+<span class="w">        </span><span class="sd">"""Evaluate controller command generation for one simulation step.</span>
 
 <span class="sd">        :param payload:</span>
 <span class="sd">            Request payload containing serialized controller inputs.</span>
@@ -864,13 +865,13 @@
 <span class="sd">            server compute duration in seconds.</span>
 <span class="sd">        :rtype:</span>
 <span class="sd">            dict[str, Any]</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">_print_remote_marker</span><span class="p">(</span><span class="s2">&quot;C&quot;</span><span class="p">)</span>
+<span class="sd">        """</span>
+        <span class="n">_print_remote_marker</span><span class="p">(</span><span class="s2">"C"</span><span class="p">)</span>
         <span class="n">start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
-        <span class="n">x_hat</span> <span class="o">=</span> <span class="n">_state_from_payload</span><span class="p">(</span><span class="n">payload</span><span class="p">[</span><span class="s2">&quot;x_hat&quot;</span><span class="p">])</span>
-        <span class="n">sens</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">payload</span><span class="p">[</span><span class="s2">&quot;sens&quot;</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
-        <span class="n">os_hat</span> <span class="o">=</span> <span class="n">_os_from_payload</span><span class="p">(</span><span class="n">payload</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;os_hat&quot;</span><span class="p">))</span>
-        <span class="n">goal</span> <span class="o">=</span> <span class="n">_goal_from_payload</span><span class="p">(</span><span class="n">payload</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;goal&quot;</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;kind&quot;</span><span class="p">:</span> <span class="s2">&quot;No_Goal&quot;</span><span class="p">}))</span>
+        <span class="n">x_hat</span> <span class="o">=</span> <span class="n">_state_from_payload</span><span class="p">(</span><span class="n">payload</span><span class="p">[</span><span class="s2">"x_hat"</span><span class="p">])</span>
+        <span class="n">sens</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">payload</span><span class="p">[</span><span class="s2">"sens"</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+        <span class="n">os_hat</span> <span class="o">=</span> <span class="n">_os_from_payload</span><span class="p">(</span><span class="n">payload</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"os_hat"</span><span class="p">))</span>
+        <span class="n">goal</span> <span class="o">=</span> <span class="n">_goal_from_payload</span><span class="p">(</span><span class="n">payload</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"goal"</span><span class="p">,</span> <span class="p">{</span><span class="s2">"kind"</span><span class="p">:</span> <span class="s2">"No_Goal"</span><span class="p">}))</span>
 
         <span class="n">u</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">controller</span><span class="o">.</span><span class="n">find_u</span><span class="p">(</span>
             <span class="n">x_hat</span><span class="o">=</span><span class="n">x_hat</span><span class="p">,</span>
@@ -881,29 +882,29 @@
         <span class="p">)</span>
         <span class="n">end</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
         <span class="k">return</span> <span class="p">{</span>
-            <span class="s2">&quot;u&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span>
-            <span class="s2">&quot;server_compute_s&quot;</span><span class="p">:</span> <span class="n">end</span> <span class="o">-</span> <span class="n">start</span><span class="p">,</span>
+            <span class="s2">"u"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span>
+            <span class="s2">"server_compute_s"</span><span class="p">:</span> <span class="n">end</span> <span class="o">-</span> <span class="n">start</span><span class="p">,</span>
         <span class="p">}</span>
 
 
 <span class="k">class</span><span class="w"> </span><span class="nc">RemoteAttitudeEstimatorService</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Server-side RPC endpoint for attitude-estimator `update` calls.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Server-side RPC endpoint for attitude-estimator `update` calls."""</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">estimator</span><span class="p">:</span> <span class="n">Attitude_Estimator</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">estimator</span> <span class="o">=</span> <span class="n">estimator</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">ping</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return service liveness for preflight health checks.</span>
+<span class="w">        </span><span class="sd">"""Return service liveness for preflight health checks.</span>
 
 <span class="sd">        :return:</span>
 <span class="sd">            ``True`` when the XML-RPC service is reachable.</span>
 <span class="sd">        :rtype:</span>
 <span class="sd">            bool</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="kc">True</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">payload</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Run one remote attitude-estimator update.</span>
+<span class="w">        </span><span class="sd">"""Run one remote attitude-estimator update.</span>
 
 <span class="sd">        :param payload:</span>
 <span class="sd">            Request payload containing control input, sensor readings, and</span>
@@ -916,39 +917,39 @@
 <span class="sd">            server compute duration in seconds.</span>
 <span class="sd">        :rtype:</span>
 <span class="sd">            dict[str, Any]</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">_print_remote_marker</span><span class="p">(</span><span class="s2">&quot;A&quot;</span><span class="p">)</span>
+<span class="sd">        """</span>
+        <span class="n">_print_remote_marker</span><span class="p">(</span><span class="s2">"A"</span><span class="p">)</span>
         <span class="n">start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
-        <span class="n">u</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">payload</span><span class="p">[</span><span class="s2">&quot;u&quot;</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
-        <span class="n">sensors</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">sensor</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span> <span class="k">for</span> <span class="n">sensor</span> <span class="ow">in</span> <span class="n">payload</span><span class="p">[</span><span class="s2">&quot;sensors&quot;</span><span class="p">]]</span>
-        <span class="n">os_hat</span> <span class="o">=</span> <span class="n">_os_from_payload</span><span class="p">(</span><span class="n">payload</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;os&quot;</span><span class="p">))</span>
+        <span class="n">u</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">payload</span><span class="p">[</span><span class="s2">"u"</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+        <span class="n">sensors</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">sensor</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span> <span class="k">for</span> <span class="n">sensor</span> <span class="ow">in</span> <span class="n">payload</span><span class="p">[</span><span class="s2">"sensors"</span><span class="p">]]</span>
+        <span class="n">os_hat</span> <span class="o">=</span> <span class="n">_os_from_payload</span><span class="p">(</span><span class="n">payload</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"os"</span><span class="p">))</span>
 
         <span class="n">x_hat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">estimator</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">u</span><span class="o">=</span><span class="n">u</span><span class="p">,</span> <span class="n">sensors</span><span class="o">=</span><span class="n">sensors</span><span class="p">,</span> <span class="n">os</span><span class="o">=</span><span class="n">os_hat</span><span class="p">)</span>
         <span class="n">end</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
         <span class="k">return</span> <span class="p">{</span>
-            <span class="s2">&quot;x_hat&quot;</span><span class="p">:</span> <span class="n">_state_to_payload</span><span class="p">(</span><span class="n">x_hat</span><span class="p">),</span>
-            <span class="s2">&quot;server_compute_s&quot;</span><span class="p">:</span> <span class="n">end</span> <span class="o">-</span> <span class="n">start</span><span class="p">,</span>
+            <span class="s2">"x_hat"</span><span class="p">:</span> <span class="n">_state_to_payload</span><span class="p">(</span><span class="n">x_hat</span><span class="p">),</span>
+            <span class="s2">"server_compute_s"</span><span class="p">:</span> <span class="n">end</span> <span class="o">-</span> <span class="n">start</span><span class="p">,</span>
         <span class="p">}</span>
 
 
 <span class="k">class</span><span class="w"> </span><span class="nc">RemoteOrbitEstimatorService</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Server-side RPC endpoint for orbit-estimator `update` calls.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Server-side RPC endpoint for orbit-estimator `update` calls."""</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">estimator</span><span class="p">:</span> <span class="n">Orbit_Estimator</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">estimator</span> <span class="o">=</span> <span class="n">estimator</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">ping</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return service liveness for preflight health checks.</span>
+<span class="w">        </span><span class="sd">"""Return service liveness for preflight health checks.</span>
 
 <span class="sd">        :return:</span>
 <span class="sd">            ``True`` when the XML-RPC service is reachable.</span>
 <span class="sd">        :rtype:</span>
 <span class="sd">            bool</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="kc">True</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">payload</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Run one remote orbit-estimator update.</span>
+<span class="w">        </span><span class="sd">"""Run one remote orbit-estimator update.</span>
 
 <span class="sd">        :param payload:</span>
 <span class="sd">            Request payload containing GPS measurements and current J2000 time.</span>
@@ -960,22 +961,22 @@
 <span class="sd">            server compute duration in seconds.</span>
 <span class="sd">        :rtype:</span>
 <span class="sd">            dict[str, Any]</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">_print_remote_marker</span><span class="p">(</span><span class="s2">&quot;O&quot;</span><span class="p">)</span>
+<span class="sd">        """</span>
+        <span class="n">_print_remote_marker</span><span class="p">(</span><span class="s2">"O"</span><span class="p">)</span>
         <span class="n">start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
-        <span class="n">gps_measurements</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">measurement</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span> <span class="k">for</span> <span class="n">measurement</span> <span class="ow">in</span> <span class="n">payload</span><span class="p">[</span><span class="s2">&quot;GPS_measurements&quot;</span><span class="p">]]</span>
-        <span class="n">J2000</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">payload</span><span class="p">[</span><span class="s2">&quot;J2000&quot;</span><span class="p">])</span>
+        <span class="n">gps_measurements</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">measurement</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span> <span class="k">for</span> <span class="n">measurement</span> <span class="ow">in</span> <span class="n">payload</span><span class="p">[</span><span class="s2">"GPS_measurements"</span><span class="p">]]</span>
+        <span class="n">J2000</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">payload</span><span class="p">[</span><span class="s2">"J2000"</span><span class="p">])</span>
 
         <span class="n">os_hat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">estimator</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">GPS_measurements</span><span class="o">=</span><span class="n">gps_measurements</span><span class="p">,</span> <span class="n">J2000</span><span class="o">=</span><span class="n">J2000</span><span class="p">)</span>
         <span class="n">end</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
         <span class="k">return</span> <span class="p">{</span>
-            <span class="s2">&quot;os_hat&quot;</span><span class="p">:</span> <span class="n">_estimated_orbital_state_to_payload</span><span class="p">(</span><span class="n">os_hat</span><span class="p">),</span>
-            <span class="s2">&quot;server_compute_s&quot;</span><span class="p">:</span> <span class="n">end</span> <span class="o">-</span> <span class="n">start</span><span class="p">,</span>
+            <span class="s2">"os_hat"</span><span class="p">:</span> <span class="n">_estimated_orbital_state_to_payload</span><span class="p">(</span><span class="n">os_hat</span><span class="p">),</span>
+            <span class="s2">"server_compute_s"</span><span class="p">:</span> <span class="n">end</span> <span class="o">-</span> <span class="n">start</span><span class="p">,</span>
         <span class="p">}</span>
 
 
 <span class="k">class</span><span class="w"> </span><span class="nc">RemoteCompositeService</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Unified RPC service that can host controller and estimator components together.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Unified RPC service that can host controller and estimator components together."""</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -988,17 +989,17 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">orbit_estimator</span> <span class="o">=</span> <span class="n">orbit_estimator</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">ping</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return service liveness for preflight health checks.</span>
+<span class="w">        </span><span class="sd">"""Return service liveness for preflight health checks.</span>
 
 <span class="sd">        :return:</span>
 <span class="sd">            ``True`` when the XML-RPC service is reachable.</span>
 <span class="sd">        :rtype:</span>
 <span class="sd">            bool</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="kc">True</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">find_u</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">payload</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Dispatch a remote controller ``find_u`` request.</span>
+<span class="w">        </span><span class="sd">"""Dispatch a remote controller ``find_u`` request.</span>
 
 <span class="sd">        :param payload:</span>
 <span class="sd">            Request payload containing controller inputs.</span>
@@ -1013,16 +1014,16 @@
 
 <span class="sd">        :raises RuntimeError:</span>
 <span class="sd">            If no remote controller was configured on this server.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">controller</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;No remote controller is configured on this server.&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">"No remote controller is configured on this server."</span><span class="p">)</span>
 
-        <span class="n">_print_remote_marker</span><span class="p">(</span><span class="s2">&quot;C&quot;</span><span class="p">)</span>
+        <span class="n">_print_remote_marker</span><span class="p">(</span><span class="s2">"C"</span><span class="p">)</span>
         <span class="n">start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
-        <span class="n">x_hat</span> <span class="o">=</span> <span class="n">_state_from_payload</span><span class="p">(</span><span class="n">payload</span><span class="p">[</span><span class="s2">&quot;x_hat&quot;</span><span class="p">])</span>
-        <span class="n">sens</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">payload</span><span class="p">[</span><span class="s2">&quot;sens&quot;</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
-        <span class="n">os_hat</span> <span class="o">=</span> <span class="n">_os_from_payload</span><span class="p">(</span><span class="n">payload</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;os_hat&quot;</span><span class="p">))</span>
-        <span class="n">goal</span> <span class="o">=</span> <span class="n">_goal_from_payload</span><span class="p">(</span><span class="n">payload</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;goal&quot;</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;kind&quot;</span><span class="p">:</span> <span class="s2">&quot;No_Goal&quot;</span><span class="p">}))</span>
+        <span class="n">x_hat</span> <span class="o">=</span> <span class="n">_state_from_payload</span><span class="p">(</span><span class="n">payload</span><span class="p">[</span><span class="s2">"x_hat"</span><span class="p">])</span>
+        <span class="n">sens</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">payload</span><span class="p">[</span><span class="s2">"sens"</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+        <span class="n">os_hat</span> <span class="o">=</span> <span class="n">_os_from_payload</span><span class="p">(</span><span class="n">payload</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"os_hat"</span><span class="p">))</span>
+        <span class="n">goal</span> <span class="o">=</span> <span class="n">_goal_from_payload</span><span class="p">(</span><span class="n">payload</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"goal"</span><span class="p">,</span> <span class="p">{</span><span class="s2">"kind"</span><span class="p">:</span> <span class="s2">"No_Goal"</span><span class="p">}))</span>
 
         <span class="n">u</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">controller</span><span class="o">.</span><span class="n">find_u</span><span class="p">(</span>
             <span class="n">x_hat</span><span class="o">=</span><span class="n">x_hat</span><span class="p">,</span>
@@ -1033,12 +1034,12 @@
         <span class="p">)</span>
         <span class="n">end</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
         <span class="k">return</span> <span class="p">{</span>
-            <span class="s2">&quot;u&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span>
-            <span class="s2">&quot;server_compute_s&quot;</span><span class="p">:</span> <span class="n">end</span> <span class="o">-</span> <span class="n">start</span><span class="p">,</span>
+            <span class="s2">"u"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span>
+            <span class="s2">"server_compute_s"</span><span class="p">:</span> <span class="n">end</span> <span class="o">-</span> <span class="n">start</span><span class="p">,</span>
         <span class="p">}</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">payload</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Dispatch a remote estimator update request.</span>
+<span class="w">        </span><span class="sd">"""Dispatch a remote estimator update request.</span>
 
 <span class="sd">        The request is routed to the orbit estimator or attitude estimator based</span>
 <span class="sd">        on the explicit ``component`` field, or inferred payload keys for legacy</span>
@@ -1058,47 +1059,47 @@
 <span class="sd">            If the requested estimator component is not configured.</span>
 <span class="sd">        :raises ValueError:</span>
 <span class="sd">            If payload does not identify a supported estimator request type.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">component</span> <span class="o">=</span> <span class="n">payload</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;component&quot;</span><span class="p">)</span>
+<span class="sd">        """</span>
+        <span class="n">component</span> <span class="o">=</span> <span class="n">payload</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"component"</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="n">component</span> <span class="o">==</span> <span class="s2">&quot;orbit_estimator&quot;</span> <span class="ow">or</span> <span class="p">(</span><span class="n">component</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="s2">&quot;GPS_measurements&quot;</span> <span class="ow">in</span> <span class="n">payload</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">component</span> <span class="o">==</span> <span class="s2">"orbit_estimator"</span> <span class="ow">or</span> <span class="p">(</span><span class="n">component</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="s2">"GPS_measurements"</span> <span class="ow">in</span> <span class="n">payload</span><span class="p">):</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">orbit_estimator</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;No remote orbit estimator is configured on this server.&quot;</span><span class="p">)</span>
-            <span class="n">_print_remote_marker</span><span class="p">(</span><span class="s2">&quot;O&quot;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">"No remote orbit estimator is configured on this server."</span><span class="p">)</span>
+            <span class="n">_print_remote_marker</span><span class="p">(</span><span class="s2">"O"</span><span class="p">)</span>
             <span class="n">start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
-            <span class="n">gps_measurements</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">measurement</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span> <span class="k">for</span> <span class="n">measurement</span> <span class="ow">in</span> <span class="n">payload</span><span class="p">[</span><span class="s2">&quot;GPS_measurements&quot;</span><span class="p">]]</span>
-            <span class="n">J2000</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">payload</span><span class="p">[</span><span class="s2">&quot;J2000&quot;</span><span class="p">])</span>
+            <span class="n">gps_measurements</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">measurement</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span> <span class="k">for</span> <span class="n">measurement</span> <span class="ow">in</span> <span class="n">payload</span><span class="p">[</span><span class="s2">"GPS_measurements"</span><span class="p">]]</span>
+            <span class="n">J2000</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">payload</span><span class="p">[</span><span class="s2">"J2000"</span><span class="p">])</span>
 
             <span class="n">os_hat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">orbit_estimator</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">GPS_measurements</span><span class="o">=</span><span class="n">gps_measurements</span><span class="p">,</span> <span class="n">J2000</span><span class="o">=</span><span class="n">J2000</span><span class="p">)</span>
             <span class="n">end</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
             <span class="k">return</span> <span class="p">{</span>
-                <span class="s2">&quot;os_hat&quot;</span><span class="p">:</span> <span class="n">_estimated_orbital_state_to_payload</span><span class="p">(</span><span class="n">os_hat</span><span class="p">),</span>
-                <span class="s2">&quot;server_compute_s&quot;</span><span class="p">:</span> <span class="n">end</span> <span class="o">-</span> <span class="n">start</span><span class="p">,</span>
+                <span class="s2">"os_hat"</span><span class="p">:</span> <span class="n">_estimated_orbital_state_to_payload</span><span class="p">(</span><span class="n">os_hat</span><span class="p">),</span>
+                <span class="s2">"server_compute_s"</span><span class="p">:</span> <span class="n">end</span> <span class="o">-</span> <span class="n">start</span><span class="p">,</span>
             <span class="p">}</span>
 
-        <span class="k">if</span> <span class="n">component</span> <span class="o">==</span> <span class="s2">&quot;attitude_estimator&quot;</span> <span class="ow">or</span> <span class="p">(</span><span class="n">component</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="s2">&quot;sensors&quot;</span> <span class="ow">in</span> <span class="n">payload</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">component</span> <span class="o">==</span> <span class="s2">"attitude_estimator"</span> <span class="ow">or</span> <span class="p">(</span><span class="n">component</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="s2">"sensors"</span> <span class="ow">in</span> <span class="n">payload</span><span class="p">):</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">estimator</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;No remote attitude estimator is configured on this server.&quot;</span><span class="p">)</span>
-            <span class="n">_print_remote_marker</span><span class="p">(</span><span class="s2">&quot;A&quot;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">"No remote attitude estimator is configured on this server."</span><span class="p">)</span>
+            <span class="n">_print_remote_marker</span><span class="p">(</span><span class="s2">"A"</span><span class="p">)</span>
             <span class="n">start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
-            <span class="n">u</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">payload</span><span class="p">[</span><span class="s2">&quot;u&quot;</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
-            <span class="n">sensors</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">sensor</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span> <span class="k">for</span> <span class="n">sensor</span> <span class="ow">in</span> <span class="n">payload</span><span class="p">[</span><span class="s2">&quot;sensors&quot;</span><span class="p">]]</span>
-            <span class="n">os_hat</span> <span class="o">=</span> <span class="n">_os_from_payload</span><span class="p">(</span><span class="n">payload</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;os&quot;</span><span class="p">))</span>
+            <span class="n">u</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">payload</span><span class="p">[</span><span class="s2">"u"</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+            <span class="n">sensors</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">sensor</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span> <span class="k">for</span> <span class="n">sensor</span> <span class="ow">in</span> <span class="n">payload</span><span class="p">[</span><span class="s2">"sensors"</span><span class="p">]]</span>
+            <span class="n">os_hat</span> <span class="o">=</span> <span class="n">_os_from_payload</span><span class="p">(</span><span class="n">payload</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"os"</span><span class="p">))</span>
 
             <span class="n">x_hat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">estimator</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">u</span><span class="o">=</span><span class="n">u</span><span class="p">,</span> <span class="n">sensors</span><span class="o">=</span><span class="n">sensors</span><span class="p">,</span> <span class="n">os</span><span class="o">=</span><span class="n">os_hat</span><span class="p">)</span>
             <span class="n">end</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
             <span class="k">return</span> <span class="p">{</span>
-                <span class="s2">&quot;x_hat&quot;</span><span class="p">:</span> <span class="n">_state_to_payload</span><span class="p">(</span><span class="n">x_hat</span><span class="p">),</span>
-                <span class="s2">&quot;server_compute_s&quot;</span><span class="p">:</span> <span class="n">end</span> <span class="o">-</span> <span class="n">start</span><span class="p">,</span>
+                <span class="s2">"x_hat"</span><span class="p">:</span> <span class="n">_state_to_payload</span><span class="p">(</span><span class="n">x_hat</span><span class="p">),</span>
+                <span class="s2">"server_compute_s"</span><span class="p">:</span> <span class="n">end</span> <span class="o">-</span> <span class="n">start</span><span class="p">,</span>
             <span class="p">}</span>
 
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-            <span class="s2">&quot;Remote update payload did not identify an orbit estimator or attitude estimator request.&quot;</span>
+            <span class="s2">"Remote update payload did not identify an orbit estimator or attitude estimator request."</span>
         <span class="p">)</span>
 
 
 <span class="k">class</span><span class="w"> </span><span class="nc">_RemoteProxyBase</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Shared client-side RPC wrapper with retry and timing bookkeeping.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Shared client-side RPC wrapper with retry and timing bookkeeping."""</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">host</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">port</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">timeout_s</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.25</span><span class="p">,</span> <span class="n">retries</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">host</span> <span class="o">=</span> <span class="n">host</span>
@@ -1110,23 +1111,23 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">roundtrip_hist</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">server_hist</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_proxy</span> <span class="o">=</span> <span class="n">ServerProxy</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">&quot;http://</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">host</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">port</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">"http://</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">host</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">port</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
             <span class="n">allow_none</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
             <span class="n">transport</span><span class="o">=</span><span class="n">_TimeoutTransport</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">timeout_s</span><span class="p">),</span>
         <span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">ping</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Ping the remote XML-RPC endpoint.</span>
+<span class="w">        </span><span class="sd">"""Ping the remote XML-RPC endpoint.</span>
 
 <span class="sd">        :return:</span>
 <span class="sd">            ``True`` if the remote endpoint responds to health checks.</span>
 <span class="sd">        :rtype:</span>
 <span class="sd">            bool</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_proxy</span><span class="o">.</span><span class="n">ping</span><span class="p">())</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_call</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">method_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">payload</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Perform an RPC call with retry and timing bookkeeping.</span>
+<span class="w">        </span><span class="sd">"""Perform an RPC call with retry and timing bookkeeping.</span>
 
 <span class="sd">        :param method_name:</span>
 <span class="sd">            Remote method name to invoke on the XML-RPC server.</span>
@@ -1145,7 +1146,7 @@
 
 <span class="sd">        :raises RuntimeError:</span>
 <span class="sd">            If all retries fail and no response is received.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
         <span class="n">response</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="n">last_error</span><span class="p">:</span> <span class="ne">Exception</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
@@ -1157,11 +1158,11 @@
             <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>  <span class="c1"># pragma: no cover - network failure path</span>
                 <span class="n">last_error</span> <span class="o">=</span> <span class="n">exc</span>
         <span class="k">if</span> <span class="n">response</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Remote call </span><span class="si">{</span><span class="n">method_name</span><span class="si">}</span><span class="s2"> failed for </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">host</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">port</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">last_error</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Remote call </span><span class="si">{</span><span class="n">method_name</span><span class="si">}</span><span class="s2"> failed for </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">host</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">port</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">last_error</span>
 
         <span class="n">end</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">last_roundtrip_s</span> <span class="o">=</span> <span class="n">end</span> <span class="o">-</span> <span class="n">start</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">last_server_s</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">response</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;server_compute_s&quot;</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;nan&quot;</span><span class="p">)))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_server_s</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">response</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"server_compute_s"</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="s2">"nan"</span><span class="p">)))</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">roundtrip_hist</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">last_roundtrip_s</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">server_hist</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">last_server_s</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">response</span>
@@ -1170,7 +1171,7 @@
 <div class="viewcode-block" id="RemoteControllerProxy">
 <a class="viewcode-back" href="../../../ADCS.remote.controller_rpc.html#ADCS.remote.controller_rpc.RemoteControllerProxy">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">RemoteControllerProxy</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Client-side proxy exposing controller-compatible `find_u` calls.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Client-side proxy exposing controller-compatible `find_u` calls."""</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">host</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">port</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">timeout_s</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.25</span><span class="p">,</span> <span class="n">retries</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_base</span> <span class="o">=</span> <span class="n">_RemoteProxyBase</span><span class="p">(</span><span class="n">host</span><span class="o">=</span><span class="n">host</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="n">port</span><span class="p">,</span> <span class="n">timeout_s</span><span class="o">=</span><span class="n">timeout_s</span><span class="p">,</span> <span class="n">retries</span><span class="o">=</span><span class="n">retries</span><span class="p">)</span>
@@ -1202,20 +1203,20 @@
 <div class="viewcode-block" id="RemoteControllerProxy.ping">
 <a class="viewcode-back" href="../../../ADCS.remote.controller_rpc.html#ADCS.remote.controller_rpc.RemoteControllerProxy.ping">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">ping</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Ping the remote server used by this controller proxy.</span>
+<span class="w">        </span><span class="sd">"""Ping the remote server used by this controller proxy.</span>
 
 <span class="sd">        :return:</span>
 <span class="sd">            ``True`` if the remote endpoint responds.</span>
 <span class="sd">        :rtype:</span>
 <span class="sd">            bool</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_base</span><span class="o">.</span><span class="n">ping</span><span class="p">()</span></div>
 
 
 <div class="viewcode-block" id="RemoteControllerProxy.find_u">
 <a class="viewcode-back" href="../../../ADCS.remote.controller_rpc.html#ADCS.remote.controller_rpc.RemoteControllerProxy.find_u">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">find_u</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_hat</span><span class="p">:</span> <span class="n">State</span> <span class="o">|</span> <span class="n">EstimatorState</span><span class="p">,</span> <span class="n">sens</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">est_sat</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">os_hat</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span> <span class="n">goal</span><span class="p">:</span> <span class="n">Goal</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Execute remote controller command synthesis.</span>
+<span class="w">        </span><span class="sd">"""Execute remote controller command synthesis.</span>
 
 <span class="sd">        :param x_hat:</span>
 <span class="sd">            State estimate for controller input.</span>
@@ -1246,15 +1247,15 @@
 <span class="sd">            Control command vector from the remote controller.</span>
 <span class="sd">        :rtype:</span>
 <span class="sd">            numpy.ndarray</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">payload</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s2">&quot;x_hat&quot;</span><span class="p">:</span> <span class="n">_state_to_payload</span><span class="p">(</span><span class="n">x_hat</span><span class="p">),</span>
-            <span class="s2">&quot;sens&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">sens</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span>
-            <span class="s2">&quot;os_hat&quot;</span><span class="p">:</span> <span class="n">_os_to_payload</span><span class="p">(</span><span class="n">os_hat</span><span class="p">),</span>
-            <span class="s2">&quot;goal&quot;</span><span class="p">:</span> <span class="n">_goal_to_payload</span><span class="p">(</span><span class="n">goal</span><span class="p">),</span>
+            <span class="s2">"x_hat"</span><span class="p">:</span> <span class="n">_state_to_payload</span><span class="p">(</span><span class="n">x_hat</span><span class="p">),</span>
+            <span class="s2">"sens"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">sens</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span>
+            <span class="s2">"os_hat"</span><span class="p">:</span> <span class="n">_os_to_payload</span><span class="p">(</span><span class="n">os_hat</span><span class="p">),</span>
+            <span class="s2">"goal"</span><span class="p">:</span> <span class="n">_goal_to_payload</span><span class="p">(</span><span class="n">goal</span><span class="p">),</span>
         <span class="p">}</span>
-        <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_base</span><span class="o">.</span><span class="n">_call</span><span class="p">(</span><span class="s2">&quot;find_u&quot;</span><span class="p">,</span> <span class="n">payload</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">response</span><span class="p">[</span><span class="s2">&quot;u&quot;</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span></div>
+        <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_base</span><span class="o">.</span><span class="n">_call</span><span class="p">(</span><span class="s2">"find_u"</span><span class="p">,</span> <span class="n">payload</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">response</span><span class="p">[</span><span class="s2">"u"</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span></div>
 </div>
 
 
@@ -1262,7 +1263,7 @@
 <div class="viewcode-block" id="RemoteAttitudeEstimatorProxy">
 <a class="viewcode-back" href="../../../ADCS.remote.controller_rpc.html#ADCS.remote.controller_rpc.RemoteAttitudeEstimatorProxy">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">RemoteAttitudeEstimatorProxy</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Client-side proxy exposing attitude-estimator-compatible `update` calls.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Client-side proxy exposing attitude-estimator-compatible `update` calls."""</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">host</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">port</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">timeout_s</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.25</span><span class="p">,</span> <span class="n">retries</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_base</span> <span class="o">=</span> <span class="n">_RemoteProxyBase</span><span class="p">(</span><span class="n">host</span><span class="o">=</span><span class="n">host</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="n">port</span><span class="p">,</span> <span class="n">timeout_s</span><span class="o">=</span><span class="n">timeout_s</span><span class="p">,</span> <span class="n">retries</span><span class="o">=</span><span class="n">retries</span><span class="p">)</span>
@@ -1294,20 +1295,20 @@
 <div class="viewcode-block" id="RemoteAttitudeEstimatorProxy.ping">
 <a class="viewcode-back" href="../../../ADCS.remote.controller_rpc.html#ADCS.remote.controller_rpc.RemoteAttitudeEstimatorProxy.ping">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">ping</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Ping the remote server used by this attitude-estimator proxy.</span>
+<span class="w">        </span><span class="sd">"""Ping the remote server used by this attitude-estimator proxy.</span>
 
 <span class="sd">        :return:</span>
 <span class="sd">            ``True`` if the remote endpoint responds.</span>
 <span class="sd">        :rtype:</span>
 <span class="sd">            bool</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_base</span><span class="o">.</span><span class="n">ping</span><span class="p">()</span></div>
 
 
 <div class="viewcode-block" id="RemoteAttitudeEstimatorProxy.update">
 <a class="viewcode-back" href="../../../ADCS.remote.controller_rpc.html#ADCS.remote.controller_rpc.RemoteAttitudeEstimatorProxy.update">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">sensors</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EstimatorState</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Execute one remote attitude-estimator update.</span>
+<span class="w">        </span><span class="sd">"""Execute one remote attitude-estimator update.</span>
 
 <span class="sd">        :param u:</span>
 <span class="sd">            Applied control command vector.</span>
@@ -1328,15 +1329,15 @@
 <span class="sd">            Updated attitude estimator state.</span>
 <span class="sd">        :rtype:</span>
 <span class="sd">            :class:`~ADCS.state.EstimatorState`</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">payload</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;attitude_estimator&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;u&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span>
-            <span class="s2">&quot;sensors&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">_xmlrpc_safe</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">sensor</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">))</span> <span class="k">for</span> <span class="n">sensor</span> <span class="ow">in</span> <span class="n">sensors</span><span class="p">],</span>
-            <span class="s2">&quot;os&quot;</span><span class="p">:</span> <span class="n">_os_to_payload</span><span class="p">(</span><span class="n">os</span><span class="p">),</span>
+            <span class="s2">"component"</span><span class="p">:</span> <span class="s2">"attitude_estimator"</span><span class="p">,</span>
+            <span class="s2">"u"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span>
+            <span class="s2">"sensors"</span><span class="p">:</span> <span class="p">[</span><span class="n">_xmlrpc_safe</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">sensor</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">))</span> <span class="k">for</span> <span class="n">sensor</span> <span class="ow">in</span> <span class="n">sensors</span><span class="p">],</span>
+            <span class="s2">"os"</span><span class="p">:</span> <span class="n">_os_to_payload</span><span class="p">(</span><span class="n">os</span><span class="p">),</span>
         <span class="p">}</span>
-        <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_base</span><span class="o">.</span><span class="n">_call</span><span class="p">(</span><span class="s2">&quot;update&quot;</span><span class="p">,</span> <span class="n">payload</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">_state_from_payload</span><span class="p">(</span><span class="n">response</span><span class="p">[</span><span class="s2">&quot;x_hat&quot;</span><span class="p">])</span></div>
+        <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_base</span><span class="o">.</span><span class="n">_call</span><span class="p">(</span><span class="s2">"update"</span><span class="p">,</span> <span class="n">payload</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">_state_from_payload</span><span class="p">(</span><span class="n">response</span><span class="p">[</span><span class="s2">"x_hat"</span><span class="p">])</span></div>
 </div>
 
 
@@ -1344,7 +1345,7 @@
 <div class="viewcode-block" id="RemoteOrbitEstimatorProxy">
 <a class="viewcode-back" href="../../../ADCS.remote.controller_rpc.html#ADCS.remote.controller_rpc.RemoteOrbitEstimatorProxy">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">RemoteOrbitEstimatorProxy</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Client-side proxy exposing orbit-estimator-compatible `update` calls.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Client-side proxy exposing orbit-estimator-compatible `update` calls."""</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">host</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">port</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">timeout_s</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.25</span><span class="p">,</span> <span class="n">retries</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_base</span> <span class="o">=</span> <span class="n">_RemoteProxyBase</span><span class="p">(</span><span class="n">host</span><span class="o">=</span><span class="n">host</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="n">port</span><span class="p">,</span> <span class="n">timeout_s</span><span class="o">=</span><span class="n">timeout_s</span><span class="p">,</span> <span class="n">retries</span><span class="o">=</span><span class="n">retries</span><span class="p">)</span>
@@ -1376,20 +1377,20 @@
 <div class="viewcode-block" id="RemoteOrbitEstimatorProxy.ping">
 <a class="viewcode-back" href="../../../ADCS.remote.controller_rpc.html#ADCS.remote.controller_rpc.RemoteOrbitEstimatorProxy.ping">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">ping</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Ping the remote server used by this orbit-estimator proxy.</span>
+<span class="w">        </span><span class="sd">"""Ping the remote server used by this orbit-estimator proxy.</span>
 
 <span class="sd">        :return:</span>
 <span class="sd">            ``True`` if the remote endpoint responds.</span>
 <span class="sd">        :rtype:</span>
 <span class="sd">            bool</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_base</span><span class="o">.</span><span class="n">ping</span><span class="p">()</span></div>
 
 
 <div class="viewcode-block" id="RemoteOrbitEstimatorProxy.update">
 <a class="viewcode-back" href="../../../ADCS.remote.controller_rpc.html#ADCS.remote.controller_rpc.RemoteOrbitEstimatorProxy.update">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">GPS_measurements</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span> <span class="n">J2000</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EstimatedOrbital_State</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Execute one remote orbit-estimator update.</span>
+<span class="w">        </span><span class="sd">"""Execute one remote orbit-estimator update.</span>
 
 <span class="sd">        :param GPS_measurements:</span>
 <span class="sd">            List of GPS measurement vectors.</span>
@@ -1405,14 +1406,14 @@
 <span class="sd">            Updated estimated orbital state.</span>
 <span class="sd">        :rtype:</span>
 <span class="sd">            :class:`~ADCS.estimators.estimator_helpers.EstimatedOrbital_State`</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">payload</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s2">&quot;component&quot;</span><span class="p">:</span> <span class="s2">&quot;orbit_estimator&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;GPS_measurements&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">_xmlrpc_safe</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">measurement</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">))</span> <span class="k">for</span> <span class="n">measurement</span> <span class="ow">in</span> <span class="n">GPS_measurements</span><span class="p">],</span>
-            <span class="s2">&quot;J2000&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">J2000</span><span class="p">),</span>
+            <span class="s2">"component"</span><span class="p">:</span> <span class="s2">"orbit_estimator"</span><span class="p">,</span>
+            <span class="s2">"GPS_measurements"</span><span class="p">:</span> <span class="p">[</span><span class="n">_xmlrpc_safe</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">measurement</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">))</span> <span class="k">for</span> <span class="n">measurement</span> <span class="ow">in</span> <span class="n">GPS_measurements</span><span class="p">],</span>
+            <span class="s2">"J2000"</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">J2000</span><span class="p">),</span>
         <span class="p">}</span>
-        <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_base</span><span class="o">.</span><span class="n">_call</span><span class="p">(</span><span class="s2">&quot;update&quot;</span><span class="p">,</span> <span class="n">payload</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">_estimated_orbital_state_from_payload</span><span class="p">(</span><span class="n">response</span><span class="p">[</span><span class="s2">&quot;os_hat&quot;</span><span class="p">])</span></div>
+        <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_base</span><span class="o">.</span><span class="n">_call</span><span class="p">(</span><span class="s2">"update"</span><span class="p">,</span> <span class="n">payload</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">_estimated_orbital_state_from_payload</span><span class="p">(</span><span class="n">response</span><span class="p">[</span><span class="s2">"os_hat"</span><span class="p">])</span></div>
 </div>
 
 
@@ -1424,10 +1425,10 @@
     <span class="n">controller</span><span class="p">:</span> <span class="n">Controller</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">estimator</span><span class="p">:</span> <span class="n">Attitude_Estimator</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">orbit_estimator</span><span class="p">:</span> <span class="n">Orbit_Estimator</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">host</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;0.0.0.0&quot;</span><span class="p">,</span>
+    <span class="n">host</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"0.0.0.0"</span><span class="p">,</span>
     <span class="n">port</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5000</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Serve any combination of ADCS components over a single XML-RPC endpoint.</span>
+<span class="w">    </span><span class="sd">"""Serve any combination of ADCS components over a single XML-RPC endpoint.</span>
 
 <span class="sd">    :param controller:</span>
 <span class="sd">        Optional controller component handling ``find_u`` requests.</span>
@@ -1456,10 +1457,10 @@
 
 <span class="sd">    :raises ValueError:</span>
 <span class="sd">        If no components are provided.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="k">if</span> <span class="n">controller</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">estimator</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">orbit_estimator</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;At least one remote component must be provided.&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"At least one remote component must be provided."</span><span class="p">)</span>
 
     <span class="n">service</span> <span class="o">=</span> <span class="n">RemoteCompositeService</span><span class="p">(</span>
         <span class="n">controller</span><span class="o">=</span><span class="n">controller</span><span class="p">,</span>
@@ -1470,11 +1471,11 @@
     <span class="n">server</span><span class="o">.</span><span class="n">register_introspection_functions</span><span class="p">()</span>
     <span class="n">server</span><span class="o">.</span><span class="n">register_instance</span><span class="p">(</span><span class="n">service</span><span class="p">,</span> <span class="n">allow_dotted_names</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
     <span class="nb">print</span><span class="p">(</span>
-        <span class="s2">&quot;[RemoteCompositeService] listening on &quot;</span>
-        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">host</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">port</span><span class="si">}</span><span class="s2"> &quot;</span>
-        <span class="sa">f</span><span class="s2">&quot;(controller=</span><span class="si">{</span><span class="s1">&#39;yes&#39;</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">controller</span><span class="w"> </span><span class="ow">is</span><span class="w"> </span><span class="ow">not</span><span class="w"> </span><span class="kc">None</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">&#39;no&#39;</span><span class="si">}</span><span class="s2">, &quot;</span>
-        <span class="sa">f</span><span class="s2">&quot;attitude_estimator=</span><span class="si">{</span><span class="s1">&#39;yes&#39;</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">estimator</span><span class="w"> </span><span class="ow">is</span><span class="w"> </span><span class="ow">not</span><span class="w"> </span><span class="kc">None</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">&#39;no&#39;</span><span class="si">}</span><span class="s2">, &quot;</span>
-        <span class="sa">f</span><span class="s2">&quot;orbit_estimator=</span><span class="si">{</span><span class="s1">&#39;yes&#39;</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">orbit_estimator</span><span class="w"> </span><span class="ow">is</span><span class="w"> </span><span class="ow">not</span><span class="w"> </span><span class="kc">None</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">&#39;no&#39;</span><span class="si">}</span><span class="s2">)&quot;</span>
+        <span class="s2">"[RemoteCompositeService] listening on "</span>
+        <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">host</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">port</span><span class="si">}</span><span class="s2"> "</span>
+        <span class="sa">f</span><span class="s2">"(controller=</span><span class="si">{</span><span class="s1">'yes'</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">controller</span><span class="w"> </span><span class="ow">is</span><span class="w"> </span><span class="ow">not</span><span class="w"> </span><span class="kc">None</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">'no'</span><span class="si">}</span><span class="s2">, "</span>
+        <span class="sa">f</span><span class="s2">"attitude_estimator=</span><span class="si">{</span><span class="s1">'yes'</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">estimator</span><span class="w"> </span><span class="ow">is</span><span class="w"> </span><span class="ow">not</span><span class="w"> </span><span class="kc">None</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">'no'</span><span class="si">}</span><span class="s2">, "</span>
+        <span class="sa">f</span><span class="s2">"orbit_estimator=</span><span class="si">{</span><span class="s1">'yes'</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">orbit_estimator</span><span class="w"> </span><span class="ow">is</span><span class="w"> </span><span class="ow">not</span><span class="w"> </span><span class="kc">None</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">'no'</span><span class="si">}</span><span class="s2">)"</span>
     <span class="p">)</span>
     <span class="n">server</span><span class="o">.</span><span class="n">serve_forever</span><span class="p">()</span></div>
 
@@ -1482,8 +1483,8 @@
 
 <div class="viewcode-block" id="serve_remote_component">
 <a class="viewcode-back" href="../../../ADCS.remote.controller_rpc.html#ADCS.remote.controller_rpc.serve_remote_component">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">serve_remote_component</span><span class="p">(</span><span class="n">component</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">host</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;0.0.0.0&quot;</span><span class="p">,</span> <span class="n">port</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5000</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Serve one ADCS component by dispatching to the composite helper.</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">serve_remote_component</span><span class="p">(</span><span class="n">component</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">host</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"0.0.0.0"</span><span class="p">,</span> <span class="n">port</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5000</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Serve one ADCS component by dispatching to the composite helper.</span>
 
 <span class="sd">    :param component:</span>
 <span class="sd">        Component instance to serve.</span>
@@ -1502,7 +1503,7 @@
 
 <span class="sd">    :raises TypeError:</span>
 <span class="sd">        If ``component`` is not one of the supported ADCS component classes.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">component</span><span class="p">,</span> <span class="n">Controller</span><span class="p">):</span>
         <span class="n">serve_remote_components</span><span class="p">(</span><span class="n">controller</span><span class="o">=</span><span class="n">component</span><span class="p">,</span> <span class="n">host</span><span class="o">=</span><span class="n">host</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="n">port</span><span class="p">)</span>
@@ -1515,15 +1516,15 @@
         <span class="k">return</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
-            <span class="s2">&quot;Unsupported remote component type. Expected a Controller, Attitude_Estimator, or Orbit_Estimator.&quot;</span>
+            <span class="s2">"Unsupported remote component type. Expected a Controller, Attitude_Estimator, or Orbit_Estimator."</span>
         <span class="p">)</span></div>
 
 
 
 <div class="viewcode-block" id="serve_remote_controller">
 <a class="viewcode-back" href="../../../ADCS.remote.controller_rpc.html#ADCS.remote.controller_rpc.serve_remote_controller">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">serve_remote_controller</span><span class="p">(</span><span class="n">controller</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">host</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;0.0.0.0&quot;</span><span class="p">,</span> <span class="n">port</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5000</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Backward-compatible controller-only server entry point.</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">serve_remote_controller</span><span class="p">(</span><span class="n">controller</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">host</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"0.0.0.0"</span><span class="p">,</span> <span class="n">port</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5000</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Backward-compatible controller-only server entry point.</span>
 
 <span class="sd">    :param controller:</span>
 <span class="sd">        Controller instance to serve.</span>
@@ -1539,7 +1540,7 @@
 <span class="sd">        Bind port for the server.</span>
 <span class="sd">    :type port:</span>
 <span class="sd">        int</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="n">serve_remote_component</span><span class="p">(</span><span class="n">controller</span><span class="p">,</span> <span class="n">host</span><span class="o">=</span><span class="n">host</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="n">port</span><span class="p">)</span></div>
 

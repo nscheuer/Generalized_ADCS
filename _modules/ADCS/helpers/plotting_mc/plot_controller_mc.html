@@ -228,6 +228,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../../release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_8_installable.html">0.1.8 Installable from PyPI (2026-08-05)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
@@ -540,9 +541,9 @@
         <article role="main" id="furo-main-content">
           <h1>Source code for ADCS.helpers.plotting_mc.plot_controller_mc</h1><div class="highlight"><pre>
 <span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
-    <span class="s2">&quot;plot_h_tracking_mc&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;plot_target_tracking_mc&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;plot_convergence_histogram_mc&quot;</span><span class="p">,</span>
+    <span class="s2">"plot_h_tracking_mc"</span><span class="p">,</span>
+    <span class="s2">"plot_target_tracking_mc"</span><span class="p">,</span>
+    <span class="s2">"plot_convergence_histogram_mc"</span><span class="p">,</span>
 <span class="p">]</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
@@ -551,13 +552,13 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.cm</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">cm</span>
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_rot_mat_vec</span><span class="p">(</span><span class="n">q</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Vectorized conversion of Scalar-First Quaternions (w, x, y, z) </span>
 <span class="sd">    to Rotation Matrices (Body -&gt; Inertial).</span>
 <span class="sd">    </span>
 <span class="sd">    Input: q shape (N, 4)</span>
 <span class="sd">    Output: R shape (N, 3, 3)</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">w</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span> <span class="o">=</span> <span class="n">q</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">q</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">q</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">],</span> <span class="n">q</span><span class="p">[:,</span> <span class="mi">3</span><span class="p">]</span>
     
     <span class="c1"># Formula for Rotation Matrix from Quaternion (Hamilton/Scalar First)</span>
@@ -582,9 +583,9 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">plot_h_tracking_mc</span><span class="p">(</span>
     <span class="n">full_results</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
     <span class="n">body_boresight</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]),</span>
-    <span class="n">title</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;Monte Carlo Target Stored Angular Momentum&quot;</span>
+    <span class="n">title</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"Monte Carlo Target Stored Angular Momentum"</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Plot stored reaction wheel angular momentum for multiple Monte Carlo runs.</span>
 
 <span class="sd">    This function overlays reaction wheel stored angular momentum histories</span>
@@ -598,8 +599,8 @@
 
 <span class="sd">    Each Monte Carlo result dictionary is expected to contain:</span>
 
-<span class="sd">    * ``&quot;time&quot;`` — time history</span>
-<span class="sd">    * ``&quot;state&quot;`` — state history with reaction wheel momentum stored from</span>
+<span class="sd">    * ``"time"`` — time history</span>
+<span class="sd">    * ``"state"`` — state history with reaction wheel momentum stored from</span>
 <span class="sd">      index 7 onward</span>
 
 <span class="sd">    The reaction wheel momentum vector is assumed to be</span>
@@ -637,10 +638,10 @@
 <span class="sd">    :rtype:</span>
 <span class="sd">        None</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     
     <span class="k">if</span> <span class="ow">not</span> <span class="n">full_results</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;[plot_h_tracking_mc] Warning: No results to plot.&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"[plot_h_tracking_mc] Warning: No results to plot."</span><span class="p">)</span>
         <span class="k">return</span>
 
     <span class="c1"># Normalize the fixed body vector once</span>
@@ -653,13 +654,13 @@
     <span class="k">for</span> <span class="n">run_idx</span><span class="p">,</span> <span class="n">res</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">full_results</span><span class="p">):</span>
         
         <span class="c1"># --- Validation Checks ---</span>
-        <span class="k">if</span> <span class="s2">&quot;state&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">res</span> <span class="ow">or</span> <span class="s2">&quot;time&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">res</span><span class="p">:</span>
+        <span class="k">if</span> <span class="s2">"state"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">res</span> <span class="ow">or</span> <span class="s2">"time"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">res</span><span class="p">:</span>
              <span class="c1"># Skip malformed runs or raise error</span>
              <span class="k">continue</span>
         
-        <span class="n">state</span> <span class="o">=</span> <span class="n">res</span><span class="p">[</span><span class="s2">&quot;state&quot;</span><span class="p">]</span>       <span class="c1"># Shape (N, 7+)</span>
-        <span class="n">goal</span> <span class="o">=</span> <span class="n">res</span><span class="p">[</span><span class="s2">&quot;boresight_goal&quot;</span><span class="p">]</span> <span class="c1"># Shape (N, 3) ECI</span>
-        <span class="n">time</span> <span class="o">=</span> <span class="n">res</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">]</span>         <span class="c1"># Shape (N,)</span>
+        <span class="n">state</span> <span class="o">=</span> <span class="n">res</span><span class="p">[</span><span class="s2">"state"</span><span class="p">]</span>       <span class="c1"># Shape (N, 7+)</span>
+        <span class="n">goal</span> <span class="o">=</span> <span class="n">res</span><span class="p">[</span><span class="s2">"boresight_goal"</span><span class="p">]</span> <span class="c1"># Shape (N, 3) ECI</span>
+        <span class="n">time</span> <span class="o">=</span> <span class="n">res</span><span class="p">[</span><span class="s2">"time"</span><span class="p">]</span>         <span class="c1"># Shape (N,)</span>
         
         <span class="c1"># --- Calculation ---</span>
         
@@ -668,7 +669,7 @@
 
         <span class="k">if</span> <span class="ow">not</span> <span class="n">colors</span><span class="p">:</span>
             <span class="n">color_num</span> <span class="o">=</span> <span class="n">h_hist</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-            <span class="n">cmap</span> <span class="o">=</span> <span class="n">cm</span><span class="o">.</span><span class="n">get_cmap</span><span class="p">(</span><span class="s1">&#39;tab10&#39;</span><span class="p">)</span>
+            <span class="n">cmap</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">get_cmap</span><span class="p">(</span><span class="s1">'tab10'</span><span class="p">)</span>
 
             <span class="c1"># Generate a list of M colors (RGBA tuples)</span>
             <span class="c1"># We select colors evenly spaced across the colormap</span>
@@ -681,14 +682,14 @@
         <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">color_num</span><span class="p">):</span>
             <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">time</span><span class="p">,</span> <span class="n">h_hist</span><span class="p">[:,</span><span class="n">j</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="n">colors</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">1.5</span><span class="p">)</span>
 
-    <span class="c1"># Add a dummy line for the legend so it&#39;s not transparent</span>
+    <span class="c1"># Add a dummy line for the legend so it's not transparent</span>
     <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">color_num</span><span class="p">):</span>
-        <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">([],</span> <span class="p">[],</span> <span class="n">color</span><span class="o">=</span><span class="n">colors</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;MC RWh of RW &#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">j</span><span class="p">))</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">([],</span> <span class="p">[],</span> <span class="n">color</span><span class="o">=</span><span class="n">colors</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s1">'MC RWh of RW '</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">j</span><span class="p">))</span>
     
-    <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Time [s]&quot;</span><span class="p">)</span>
-    <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Stored Angular Momentum&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">"Time [s]"</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">"Stored Angular Momentum"</span><span class="p">)</span>
     <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="n">title</span><span class="p">)</span>
-    <span class="n">plt</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="n">which</span><span class="o">=</span><span class="s1">&#39;both&#39;</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;--&#39;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.6</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="n">which</span><span class="o">=</span><span class="s1">'both'</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">'--'</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.6</span><span class="p">)</span>
     <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
     <span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span></div>
 
@@ -699,9 +700,9 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">plot_target_tracking_mc</span><span class="p">(</span>
     <span class="n">full_results</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
     <span class="n">body_boresight</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]),</span>
-    <span class="n">title</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;Monte Carlo Target Tracking Error&quot;</span>
+    <span class="n">title</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"Monte Carlo Target Tracking Error"</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Plot angular target tracking error for multiple Monte Carlo runs.</span>
 
 <span class="sd">    This function computes and overlays the instantaneous angular tracking</span>
@@ -761,10 +762,10 @@
 <span class="sd">    :rtype:</span>
 <span class="sd">        None</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     
     <span class="k">if</span> <span class="ow">not</span> <span class="n">full_results</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;[plot_target_tracking_mc] Warning: No results to plot.&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"[plot_target_tracking_mc] Warning: No results to plot."</span><span class="p">)</span>
         <span class="k">return</span>
 
     <span class="c1"># Normalize the fixed body vector once</span>
@@ -776,19 +777,19 @@
     <span class="k">for</span> <span class="n">run_idx</span><span class="p">,</span> <span class="n">res</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">full_results</span><span class="p">):</span>
         
         <span class="c1"># --- Validation Checks ---</span>
-        <span class="k">if</span> <span class="s2">&quot;state&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">res</span> <span class="ow">or</span> <span class="s2">&quot;boresight_goal&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">res</span> <span class="ow">or</span> <span class="s2">&quot;time&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">res</span><span class="p">:</span>
+        <span class="k">if</span> <span class="s2">"state"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">res</span> <span class="ow">or</span> <span class="s2">"boresight_goal"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">res</span> <span class="ow">or</span> <span class="s2">"time"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">res</span><span class="p">:</span>
              <span class="c1"># Skip malformed runs or raise error</span>
              <span class="k">continue</span>
         
-        <span class="n">state</span> <span class="o">=</span> <span class="n">res</span><span class="p">[</span><span class="s2">&quot;state&quot;</span><span class="p">]</span>       <span class="c1"># Shape (N, 7+)</span>
-        <span class="n">goal_raw</span> <span class="o">=</span> <span class="n">res</span><span class="p">[</span><span class="s2">&quot;boresight_goal&quot;</span><span class="p">]</span>
+        <span class="n">state</span> <span class="o">=</span> <span class="n">res</span><span class="p">[</span><span class="s2">"state"</span><span class="p">]</span>       <span class="c1"># Shape (N, 7+)</span>
+        <span class="n">goal_raw</span> <span class="o">=</span> <span class="n">res</span><span class="p">[</span><span class="s2">"boresight_goal"</span><span class="p">]</span>
         <span class="k">if</span> <span class="n">goal_raw</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
             <span class="n">goal</span> <span class="o">=</span> <span class="n">goal_raw</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:</span><span class="mi">4</span><span class="p">]</span>
         <span class="k">elif</span> <span class="n">goal_raw</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
             <span class="n">goal</span> <span class="o">=</span> <span class="n">goal_raw</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unexpected boresight_goal shape: </span><span class="si">{</span><span class="n">goal_raw</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="n">time</span> <span class="o">=</span> <span class="n">res</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">]</span>         <span class="c1"># Shape (N,)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Unexpected boresight_goal shape: </span><span class="si">{</span><span class="n">goal_raw</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="n">time</span> <span class="o">=</span> <span class="n">res</span><span class="p">[</span><span class="s2">"time"</span><span class="p">]</span>         <span class="c1"># Shape (N,)</span>
         
         <span class="c1"># --- Calculation ---</span>
         
@@ -800,7 +801,7 @@
         
         <span class="c1"># 3. Rotate Body Boresight to ECI</span>
         <span class="c1"># (N,3,3) @ (3,) -&gt; (N,3)</span>
-        <span class="n">v_bore_eci</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;nij,j-&gt;ni&#39;</span><span class="p">,</span> <span class="n">R_b2i</span><span class="p">,</span> <span class="n">v_bore_body</span><span class="p">)</span>
+        <span class="n">v_bore_eci</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">'nij,j-&gt;ni'</span><span class="p">,</span> <span class="n">R_b2i</span><span class="p">,</span> <span class="n">v_bore_body</span><span class="p">)</span>
         
         <span class="c1"># 4. Normalize Vectors (Row-wise)</span>
         <span class="n">v_bore_eci_norm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">v_bore_eci</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -816,15 +817,15 @@
         <span class="n">error_deg</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">rad2deg</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arccos</span><span class="p">(</span><span class="n">dot_prod</span><span class="p">))</span>
         
         <span class="c1"># --- Plotting ---</span>
-        <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">time</span><span class="p">,</span> <span class="n">error_deg</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;tab:blue&#39;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">1.5</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">time</span><span class="p">,</span> <span class="n">error_deg</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">'tab:blue'</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">1.5</span><span class="p">)</span>
 
-    <span class="c1"># Add a dummy line for the legend so it&#39;s not transparent</span>
-    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">([],</span> <span class="p">[],</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;tab:blue&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;MC Runs&#39;</span><span class="p">)</span>
+    <span class="c1"># Add a dummy line for the legend so it's not transparent</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">([],</span> <span class="p">[],</span> <span class="n">color</span><span class="o">=</span><span class="s1">'tab:blue'</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">'MC Runs'</span><span class="p">)</span>
     
-    <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Time [s]&quot;</span><span class="p">)</span>
-    <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Tracking Error [deg]&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">"Time [s]"</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">"Tracking Error [deg]"</span><span class="p">)</span>
     <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="n">title</span><span class="p">)</span>
-    <span class="n">plt</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="n">which</span><span class="o">=</span><span class="s1">&#39;both&#39;</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;--&#39;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.6</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="n">which</span><span class="o">=</span><span class="s1">'both'</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">'--'</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.6</span><span class="p">)</span>
     <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
     <span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span></div>
 
@@ -835,12 +836,12 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">plot_convergence_histogram_mc</span><span class="p">(</span>
     <span class="n">full_results</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
     <span class="n">body_boresight</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">]),</span>
-    <span class="n">title</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;Monte Carlo Convergence Error (Final Timestep)&quot;</span><span class="p">,</span>
+    <span class="n">title</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"Monte Carlo Convergence Error (Final Timestep)"</span><span class="p">,</span>
     <span class="n">bin_width_deg</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">5.0</span><span class="p">,</span>
     <span class="n">under_thresh_deg</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
     <span class="n">show_stats_box</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]:</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Plot and analyze the distribution of final-timestep tracking error</span>
 <span class="sd">    across Monte Carlo simulations.</span>
 
@@ -932,34 +933,34 @@
 <span class="sd">    :rtype:</span>
 <span class="sd">        tuple of numpy.ndarray and dict</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="k">if</span> <span class="ow">not</span> <span class="n">full_results</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;[plot_convergence_histogram_mc] Warning: No results to plot.&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"[plot_convergence_histogram_mc] Warning: No results to plot."</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([]),</span> <span class="p">{</span>
-            <span class="s2">&quot;pct_under_thresh&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
-            <span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
-            <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
-            <span class="s2">&quot;mean&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
-            <span class="s2">&quot;median&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
-            <span class="s2">&quot;n&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+            <span class="s2">"pct_under_thresh"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+            <span class="s2">"min"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+            <span class="s2">"max"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+            <span class="s2">"mean"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+            <span class="s2">"median"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+            <span class="s2">"n"</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
         <span class="p">}</span>
 
     <span class="n">v_bore_body</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">body_boresight</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
     <span class="n">nb</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">v_bore_body</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">nb</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;body_boresight must be non-zero.&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"body_boresight must be non-zero."</span><span class="p">)</span>
     <span class="n">v_bore_body</span> <span class="o">=</span> <span class="n">v_bore_body</span> <span class="o">/</span> <span class="n">nb</span>
 
     <span class="n">errors</span> <span class="o">=</span> <span class="p">[]</span>
 
     <span class="k">for</span> <span class="n">res</span> <span class="ow">in</span> <span class="n">full_results</span><span class="p">:</span>
         <span class="c1"># --- Validation ---</span>
-        <span class="k">if</span> <span class="p">(</span><span class="s2">&quot;state&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">res</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="s2">&quot;boresight_goal&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">res</span><span class="p">):</span>
+        <span class="k">if</span> <span class="p">(</span><span class="s2">"state"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">res</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="s2">"boresight_goal"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">res</span><span class="p">):</span>
             <span class="k">continue</span>
 
-        <span class="n">state</span> <span class="o">=</span> <span class="n">res</span><span class="p">[</span><span class="s2">&quot;state&quot;</span><span class="p">]</span>
-        <span class="n">goal</span> <span class="o">=</span> <span class="n">res</span><span class="p">[</span><span class="s2">&quot;boresight_goal&quot;</span><span class="p">]</span>
+        <span class="n">state</span> <span class="o">=</span> <span class="n">res</span><span class="p">[</span><span class="s2">"state"</span><span class="p">]</span>
+        <span class="n">goal</span> <span class="o">=</span> <span class="n">res</span><span class="p">[</span><span class="s2">"boresight_goal"</span><span class="p">]</span>
 
         <span class="k">if</span> <span class="n">state</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">goal</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">continue</span>
@@ -1009,25 +1010,25 @@
     <span class="n">errors_deg</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">errors</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">errors_deg</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;[plot_convergence_histogram_mc] Warning: No valid runs after filtering.&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"[plot_convergence_histogram_mc] Warning: No valid runs after filtering."</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">errors_deg</span><span class="p">,</span> <span class="p">{</span>
-            <span class="s2">&quot;pct_under_thresh&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
-            <span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
-            <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
-            <span class="s2">&quot;mean&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
-            <span class="s2">&quot;median&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
-            <span class="s2">&quot;n&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+            <span class="s2">"pct_under_thresh"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+            <span class="s2">"min"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+            <span class="s2">"max"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+            <span class="s2">"mean"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+            <span class="s2">"median"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+            <span class="s2">"n"</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
         <span class="p">}</span>
 
     <span class="c1"># --- Stats ---</span>
     <span class="n">pct_under</span> <span class="o">=</span> <span class="mf">100.0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">errors_deg</span> <span class="o">&lt;</span> <span class="n">under_thresh_deg</span><span class="p">)</span>
     <span class="n">stats</span> <span class="o">=</span> <span class="p">{</span>
-        <span class="s2">&quot;pct_under_thresh&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">pct_under</span><span class="p">),</span>
-        <span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">errors_deg</span><span class="p">)),</span>
-        <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">errors_deg</span><span class="p">)),</span>
-        <span class="s2">&quot;mean&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">errors_deg</span><span class="p">)),</span>
-        <span class="s2">&quot;median&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">errors_deg</span><span class="p">)),</span>
-        <span class="s2">&quot;n&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">errors_deg</span><span class="o">.</span><span class="n">size</span><span class="p">),</span>
+        <span class="s2">"pct_under_thresh"</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">pct_under</span><span class="p">),</span>
+        <span class="s2">"min"</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">errors_deg</span><span class="p">)),</span>
+        <span class="s2">"max"</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">errors_deg</span><span class="p">)),</span>
+        <span class="s2">"mean"</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">errors_deg</span><span class="p">)),</span>
+        <span class="s2">"median"</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">errors_deg</span><span class="p">)),</span>
+        <span class="s2">"n"</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">errors_deg</span><span class="o">.</span><span class="n">size</span><span class="p">),</span>
     <span class="p">}</span>
 
     <span class="c1"># --- Histogram bins (5 deg default) ---</span>
@@ -1036,26 +1037,26 @@
     <span class="n">bins</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">max_edge</span> <span class="o">+</span> <span class="n">bin_width_deg</span><span class="p">,</span> <span class="n">bin_width_deg</span><span class="p">)</span>
 
     <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">6</span><span class="p">))</span>
-    <span class="n">plt</span><span class="o">.</span><span class="n">hist</span><span class="p">(</span><span class="n">errors_deg</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="n">bins</span><span class="p">,</span> <span class="n">edgecolor</span><span class="o">=</span><span class="s2">&quot;black&quot;</span><span class="p">)</span>
-    <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Final Tracking Error [deg]&quot;</span><span class="p">)</span>
-    <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Count&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">hist</span><span class="p">(</span><span class="n">errors_deg</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="n">bins</span><span class="p">,</span> <span class="n">edgecolor</span><span class="o">=</span><span class="s2">"black"</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">"Final Tracking Error [deg]"</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">"Count"</span><span class="p">)</span>
     <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="n">title</span><span class="p">)</span>
-    <span class="n">plt</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="n">which</span><span class="o">=</span><span class="s2">&quot;both&quot;</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s2">&quot;--&quot;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.6</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="n">which</span><span class="o">=</span><span class="s2">"both"</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s2">"--"</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.6</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">show_stats_box</span><span class="p">:</span>
         <span class="n">txt</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="sa">f</span><span class="s2">&quot;N = </span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;n&#39;</span><span class="p">])</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
-            <span class="sa">f</span><span class="s2">&quot;% &lt; </span><span class="si">{</span><span class="n">under_thresh_deg</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">°: </span><span class="si">{</span><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;pct_under_thresh&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">%</span><span class="se">\n</span><span class="s2">&quot;</span>
-            <span class="sa">f</span><span class="s2">&quot;min: </span><span class="si">{</span><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;min&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">°</span><span class="se">\n</span><span class="s2">&quot;</span>
-            <span class="sa">f</span><span class="s2">&quot;max: </span><span class="si">{</span><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;max&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">°</span><span class="se">\n</span><span class="s2">&quot;</span>
-            <span class="sa">f</span><span class="s2">&quot;mean: </span><span class="si">{</span><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;mean&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">°</span><span class="se">\n</span><span class="s2">&quot;</span>
-            <span class="sa">f</span><span class="s2">&quot;median: </span><span class="si">{</span><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;median&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">°&quot;</span>
+            <span class="sa">f</span><span class="s2">"N = </span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">stats</span><span class="p">[</span><span class="s1">'n'</span><span class="p">])</span><span class="si">}</span><span class="se">\n</span><span class="s2">"</span>
+            <span class="sa">f</span><span class="s2">"% &lt; </span><span class="si">{</span><span class="n">under_thresh_deg</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">°: </span><span class="si">{</span><span class="n">stats</span><span class="p">[</span><span class="s1">'pct_under_thresh'</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">%</span><span class="se">\n</span><span class="s2">"</span>
+            <span class="sa">f</span><span class="s2">"min: </span><span class="si">{</span><span class="n">stats</span><span class="p">[</span><span class="s1">'min'</span><span class="p">]</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">°</span><span class="se">\n</span><span class="s2">"</span>
+            <span class="sa">f</span><span class="s2">"max: </span><span class="si">{</span><span class="n">stats</span><span class="p">[</span><span class="s1">'max'</span><span class="p">]</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">°</span><span class="se">\n</span><span class="s2">"</span>
+            <span class="sa">f</span><span class="s2">"mean: </span><span class="si">{</span><span class="n">stats</span><span class="p">[</span><span class="s1">'mean'</span><span class="p">]</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">°</span><span class="se">\n</span><span class="s2">"</span>
+            <span class="sa">f</span><span class="s2">"median: </span><span class="si">{</span><span class="n">stats</span><span class="p">[</span><span class="s1">'median'</span><span class="p">]</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">°"</span>
         <span class="p">)</span>
         <span class="n">plt</span><span class="o">.</span><span class="n">gca</span><span class="p">()</span><span class="o">.</span><span class="n">text</span><span class="p">(</span>
             <span class="mf">0.98</span><span class="p">,</span> <span class="mf">0.98</span><span class="p">,</span> <span class="n">txt</span><span class="p">,</span>
             <span class="n">transform</span><span class="o">=</span><span class="n">plt</span><span class="o">.</span><span class="n">gca</span><span class="p">()</span><span class="o">.</span><span class="n">transAxes</span><span class="p">,</span>
-            <span class="n">ha</span><span class="o">=</span><span class="s2">&quot;right&quot;</span><span class="p">,</span> <span class="n">va</span><span class="o">=</span><span class="s2">&quot;top&quot;</span><span class="p">,</span>
-            <span class="n">bbox</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">boxstyle</span><span class="o">=</span><span class="s2">&quot;round&quot;</span><span class="p">,</span> <span class="n">facecolor</span><span class="o">=</span><span class="s2">&quot;white&quot;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.85</span><span class="p">),</span>
+            <span class="n">ha</span><span class="o">=</span><span class="s2">"right"</span><span class="p">,</span> <span class="n">va</span><span class="o">=</span><span class="s2">"top"</span><span class="p">,</span>
+            <span class="n">bbox</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">boxstyle</span><span class="o">=</span><span class="s2">"round"</span><span class="p">,</span> <span class="n">facecolor</span><span class="o">=</span><span class="s2">"white"</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.85</span><span class="p">),</span>
         <span class="p">)</span>
 
     <span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>

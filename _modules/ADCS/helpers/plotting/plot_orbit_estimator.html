@@ -228,6 +228,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../../release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_8_installable.html">0.1.8 Installable from PyPI (2026-08-05)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
@@ -540,7 +541,7 @@
         <article role="main" id="furo-main-content">
           <h1>Source code for ADCS.helpers.plotting.plot_orbit_estimator</h1><div class="highlight"><pre>
 <span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
-    <span class="s2">&quot;plot_gps_error&quot;</span>
+    <span class="s2">"plot_gps_error"</span>
 <span class="p">]</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
@@ -549,7 +550,7 @@
 <div class="viewcode-block" id="plot_gps_error">
 <a class="viewcode-back" href="../../../../ADCS.helpers.plotting.plot_orbit_estimator.html#ADCS.helpers.plotting.plot_orbit_estimator.plot_gps_error">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">plot_gps_error</span><span class="p">(</span><span class="n">time_hist</span><span class="p">,</span> <span class="n">true_hist</span><span class="p">,</span> <span class="n">est_hist</span><span class="p">):</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Plot true, estimated, and error time histories for GPS-based position and velocity.</span>
 
 <span class="sd">    This function generates a 3×2 grid of subplots comparing true and estimated</span>
@@ -639,18 +640,18 @@
 <span class="sd">    :rtype:</span>
 <span class="sd">        None</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">14</span><span class="p">,</span> <span class="mi">10</span><span class="p">))</span>
     <span class="n">axes</span> <span class="o">=</span> <span class="n">axes</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
 
     <span class="n">labels</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="s2">&quot;Position X (km)&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;Position Y (km)&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;Position Z (km)&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;Velocity X (km/s)&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;Velocity Y (km/s)&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;Velocity Z (km/s)&quot;</span><span class="p">,</span>
+        <span class="s2">"Position X (km)"</span><span class="p">,</span>
+        <span class="s2">"Position Y (km)"</span><span class="p">,</span>
+        <span class="s2">"Position Z (km)"</span><span class="p">,</span>
+        <span class="s2">"Velocity X (km/s)"</span><span class="p">,</span>
+        <span class="s2">"Velocity Y (km/s)"</span><span class="p">,</span>
+        <span class="s2">"Velocity Z (km/s)"</span><span class="p">,</span>
     <span class="p">]</span>
 
     <span class="c1"># Convert m to km for nicer plotting</span>
@@ -670,14 +671,14 @@
 
     <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">ax</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">axes</span><span class="p">):</span>
         <span class="n">true_i</span><span class="p">,</span> <span class="n">est_i</span> <span class="o">=</span> <span class="n">data_pairs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-        <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">time_hist</span><span class="p">,</span> <span class="n">true_i</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;True&quot;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
-        <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">time_hist</span><span class="p">,</span> <span class="n">est_i</span><span class="p">,</span> <span class="s2">&quot;--&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Estimated&quot;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">time_hist</span><span class="p">,</span> <span class="n">true_i</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">"True"</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">time_hist</span><span class="p">,</span> <span class="n">est_i</span><span class="p">,</span> <span class="s2">"--"</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">"Estimated"</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
 
         <span class="c1"># Error</span>
-        <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">time_hist</span><span class="p">,</span> <span class="n">est_i</span> <span class="o">-</span> <span class="n">true_i</span><span class="p">,</span> <span class="s2">&quot;k:&quot;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.6</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Error&quot;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">time_hist</span><span class="p">,</span> <span class="n">est_i</span> <span class="o">-</span> <span class="n">true_i</span><span class="p">,</span> <span class="s2">"k:"</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.6</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">"Error"</span><span class="p">)</span>
 
         <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="n">labels</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
-        <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;Time (s)&quot;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">"Time (s)"</span><span class="p">)</span>
         <span class="n">ax</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
         <span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
 

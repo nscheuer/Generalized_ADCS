@@ -228,6 +228,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../../release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_8_installable.html">0.1.8 Installable from PyPI (2026-08-05)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
@@ -541,7 +542,7 @@
           <h1>Source code for ADCS.controller.plan_and_track.planner_subsettings</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;LineSearchConfig&quot;</span><span class="p">,</span> <span class="s2">&quot;AugLagConfig&quot;</span><span class="p">,</span> <span class="s2">&quot;RegularizationConfig&quot;</span><span class="p">,</span> <span class="s2">&quot;ConvergenceConfig&quot;</span><span class="p">,</span> <span class="s2">&quot;SolverPassConfig&quot;</span><span class="p">,</span> <span class="s2">&quot;CostWeights&quot;</span><span class="p">,</span> <span class="s2">&quot;InitTrajConfig&quot;</span><span class="p">]</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"LineSearchConfig"</span><span class="p">,</span> <span class="s2">"AugLagConfig"</span><span class="p">,</span> <span class="s2">"RegularizationConfig"</span><span class="p">,</span> <span class="s2">"ConvergenceConfig"</span><span class="p">,</span> <span class="s2">"SolverPassConfig"</span><span class="p">,</span> <span class="s2">"CostWeights"</span><span class="p">,</span> <span class="s2">"InitTrajConfig"</span><span class="p">]</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
@@ -552,7 +553,7 @@
 <a class="viewcode-back" href="../../../../ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.LineSearchConfig">[docs]</a>
 <span class="nd">@dataclass</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">LineSearchConfig</span><span class="p">:</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Configuration for backtracking line search in the iLQR forward pass.</span>
 
 <span class="sd">    During the forward rollout, a step size :math:`\alpha` is chosen to ensure</span>
@@ -590,7 +591,7 @@
 <span class="sd">    :type beta2:</span>
 <span class="sd">        float</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">max_iters</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">20</span>
     <span class="n">beta1</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-10</span>
     <span class="n">beta2</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">500.0</span>
@@ -606,7 +607,7 @@
 <a class="viewcode-back" href="../../../../ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.AugLagConfig">[docs]</a>
 <span class="nd">@dataclass</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">AugLagConfig</span><span class="p">:</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Configuration for augmented Lagrangian constraint handling.</span>
 
 <span class="sd">    The augmented Lagrangian formulation transforms a constrained problem</span>
@@ -655,7 +656,7 @@
 <span class="sd">    :type penalty_scale:</span>
 <span class="sd">        float</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">lag_mult_init</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
     <span class="n">lag_mult_max</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e20</span>
     <span class="n">penalty_init</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-1</span>
@@ -673,7 +674,7 @@
 <a class="viewcode-back" href="../../../../ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.RegularizationConfig">[docs]</a>
 <span class="nd">@dataclass</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">RegularizationConfig</span><span class="p">:</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Configuration for Levenberg–Marquardt regularization in the backward pass.</span>
 
 <span class="sd">    To compute feedback gains, the control Hessian :math:`\mathbf{Q}_{uu}`</span>
@@ -741,7 +742,7 @@
 <span class="sd">    :type use_constraint_hess:</span>
 <span class="sd">        int</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">reg_init</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-2</span>
     <span class="n">reg_min</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-8</span>
     <span class="n">reg_max</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e30</span>
@@ -765,7 +766,7 @@
 <a class="viewcode-back" href="../../../../ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.ConvergenceConfig">[docs]</a>
 <span class="nd">@dataclass</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">ConvergenceConfig</span><span class="p">:</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Configuration for convergence criteria and iteration limits.</span>
 
 <span class="sd">    The optimization uses nested iterations:</span>
@@ -836,7 +837,7 @@
 <span class="sd">    :type xmax_val:</span>
 <span class="sd">        float</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">max_outer_iter</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">30</span>
     <span class="n">max_inner_iter</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">250</span>
     <span class="n">max_total_iter</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">7000</span>
@@ -864,7 +865,7 @@
 <a class="viewcode-back" href="../../../../ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.SolverPassConfig">[docs]</a>
 <span class="nd">@dataclass</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">SolverPassConfig</span><span class="p">:</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Aggregate configuration for a single optimization pass.</span>
 
 <span class="sd">    This class bundles line search, augmented Lagrangian, convergence,</span>
@@ -894,7 +895,7 @@
 <span class="sd">    :type regularization:</span>
 <span class="sd">        :class:`~ADCS.controller.plan_and_track.planner_subsettings.RegularizationConfig`</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">line_search</span><span class="p">:</span> <span class="n">LineSearchConfig</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="n">LineSearchConfig</span><span class="p">)</span>
     <span class="n">aug_lag</span><span class="p">:</span> <span class="n">AugLagConfig</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="n">AugLagConfig</span><span class="p">)</span>
     <span class="n">convergence</span><span class="p">:</span> <span class="n">ConvergenceConfig</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="n">ConvergenceConfig</span><span class="p">)</span>
@@ -905,7 +906,7 @@
 <a class="viewcode-back" href="../../../../ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.CostWeights">[docs]</a>
 <span class="nd">@dataclass</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">CostWeights</span><span class="p">:</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Cost function weights for trajectory optimization.</span>
 
 <span class="sd">    The discrete-time cost function minimized by the planner is</span>
@@ -999,7 +1000,7 @@
 <span class="sd">    :type use_full_cost_hessian:</span>
 <span class="sd">        bool</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">angle</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e3</span>
     <span class="n">ang_vel</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e4</span>
     <span class="n">control_mult</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span>
@@ -1025,19 +1026,19 @@
     <span class="c1"># Hessian computation mode:</span>
     <span class="c1">#   False (0): Gauss-Newton approximation - always PSD, numerically stable</span>
     <span class="c1">#   True (1):  Full Newton - includes second derivative terms (dphi*ddphi for angle,</span>
-    <span class="c1">#              smoothstep*smoothstep&#39;&#39; for stiction), may be indefinite but can</span>
+    <span class="c1">#              smoothstep*smoothstep'' for stiction), may be indefinite but can</span>
     <span class="c1">#              converge faster when the problem is well-behaved</span>
     <span class="n">use_full_cost_hessian</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
 
 <div class="viewcode-block" id="CostWeights.to_tuple">
 <a class="viewcode-back" href="../../../../ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.CostWeights.to_tuple">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">to_tuple</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tracking_formulation</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert to tuple for C++ interface.</span>
+<span class="w">        </span><span class="sd">"""Convert to tuple for C++ interface.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            tracking_formulation: If provided, returns TVLQR cost settings format.</span>
 <span class="sd">                                  If None, returns main/second pass format.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="c1"># Base tuple: running costs then terminal costs</span>
         <span class="c1"># Note: control_mag was removed as it was unused in C++</span>
         <span class="n">base</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">angle</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ang_vel</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">control_mult</span><span class="p">,</span>
@@ -1058,7 +1059,7 @@
 <a class="viewcode-back" href="../../../../ADCS.controller.plan_and_track.planner_subsettings.html#ADCS.controller.plan_and_track.planner_subsettings.InitTrajConfig">[docs]</a>
 <span class="nd">@dataclass</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">InitTrajConfig</span><span class="p">:</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Configuration for initial trajectory generation.</span>
 
 <span class="sd">    The initial guess trajectory may use B-dot detumbling and heuristic</span>
@@ -1089,7 +1090,7 @@
 <span class="sd">    :type low_settings:</span>
 <span class="sd">        tuple</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">bdot_gain</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1000.0</span>
     <span class="n">hl_angle_limit</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">10.0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mf">180.0</span>
     

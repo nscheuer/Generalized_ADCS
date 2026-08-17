@@ -228,6 +228,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../../release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_8_installable.html">0.1.8 Installable from PyPI (2026-08-05)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
@@ -539,7 +540,7 @@
         </div>
         <article role="main" id="furo-main-content">
           <h1>Source code for ADCS.satellite_hardware.disturbances.prop_disturbance</h1><div class="highlight"><pre>
-<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Prop_Disturbance&quot;</span><span class="p">]</span>
+<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"Prop_Disturbance"</span><span class="p">]</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
@@ -554,7 +555,7 @@
 <div class="viewcode-block" id="Prop_Disturbance">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.disturbances.prop_disturbance.html#ADCS.satellite_hardware.disturbances.prop_disturbance.Prop_Disturbance">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">Prop_Disturbance</span><span class="p">(</span><span class="n">Disturbance</span><span class="p">):</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    **Propulsion-Induced Disturbance Torque Model**</span>
 
 <span class="sd">    This class models **propulsion-related disturbance torques** acting on a spacecraft.</span>
@@ -609,10 +610,10 @@
 <span class="sd">    :type torque_nominal: :class:`numpy.ndarray`</span>
 <span class="sd">    :param noise: Noise model providing stochastic torque perturbations.</span>
 <span class="sd">    :type noise: :class:`~ADCS.satellite_hardware.errors.noise.Noise`</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">torque_nominal</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">noise</span><span class="p">:</span> <span class="n">Noise</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">estimate_dist</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Initialize the propulsion disturbance model.</span>
 
 <span class="sd">        This constructor sets the nominal propulsion disturbance torque and optionally</span>
@@ -635,7 +636,7 @@
 <span class="sd">        :type estimate_dist: :class:`bool`</span>
 <span class="sd">        :return: None</span>
 <span class="sd">        :rtype: None</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">torque_nominal</span> <span class="o">=</span> <span class="n">torque_nominal</span>
         <span class="k">if</span> <span class="n">noise</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">noise</span> <span class="o">=</span> <span class="n">noise</span>
@@ -647,7 +648,7 @@
 <div class="viewcode-block" id="Prop_Disturbance.update">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.disturbances.prop_disturbance.html#ADCS.satellite_hardware.disturbances.prop_disturbance.Prop_Disturbance.update">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Update the current propulsion disturbance torque.</span>
 
 <span class="sd">        This method draws a new noise realization from the noise model and updates</span>
@@ -667,14 +668,14 @@
 
 <span class="sd">        :return: None</span>
 <span class="sd">        :rtype: None</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">current_torque</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">torque_nominal</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">noise</span><span class="o">.</span><span class="n">get_noise</span><span class="p">()</span></div>
 
 
 <div class="viewcode-block" id="Prop_Disturbance.torque">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.disturbances.prop_disturbance.html#ADCS.satellite_hardware.disturbances.prop_disturbance.Prop_Disturbance.torque">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">torque</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Return the **current propulsion disturbance torque**.</span>
 
 <span class="sd">        This method simply returns the internally stored disturbance torque that</span>
@@ -695,14 +696,14 @@
 <span class="sd">        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
 <span class="sd">        :return: Current propulsion disturbance torque [N·m], shape ``(3,)``.</span>
 <span class="sd">        :rtype: :class:`numpy.ndarray`</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_torque</span></div>
 
 
 <div class="viewcode-block" id="Prop_Disturbance.torque_qjac">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.disturbances.prop_disturbance.html#ADCS.satellite_hardware.disturbances.prop_disturbance.Prop_Disturbance.torque_qjac">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">torque_qjac</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Compute the **Jacobian of the propulsion disturbance torque** with respect</span>
 <span class="sd">        to the attitude quaternion.</span>
 
@@ -717,7 +718,7 @@
 
 <span class="sd">        :return: Quaternion Jacobian matrix of zeros, shape ``(4, 3)``.</span>
 <span class="sd">        :rtype: :class:`numpy.ndarray`</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="c1"># Accept the generic (sat, x, os) call signature used for every other</span>
         <span class="c1"># disturbance (the no-arg signature raised TypeError when a planner or</span>
         <span class="c1"># estimator iterated torque_qjac uniformly). Canonical layout (4,3).</span>
@@ -727,7 +728,7 @@
 <div class="viewcode-block" id="Prop_Disturbance.torque_qqhess">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.disturbances.prop_disturbance.html#ADCS.satellite_hardware.disturbances.prop_disturbance.Prop_Disturbance.torque_qqhess">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">torque_qqhess</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Lowercase alias of :meth:`torque_qqHess` so the propulsion disturbance</span>
 <span class="sd">        exposes the same ``torque_qqhess`` entry point as every other</span>
 <span class="sd">        disturbance (generic estimator/planner iteration uses the lowercase</span>
@@ -735,14 +736,14 @@
 
 <span class="sd">        :return: Quaternion Hessian tensor of zeros, shape ``(4, 4, 3)``.</span>
 <span class="sd">        :rtype: :class:`numpy.ndarray`</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span></div>
 
 
 <div class="viewcode-block" id="Prop_Disturbance.torque_qqHess">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.disturbances.prop_disturbance.html#ADCS.satellite_hardware.disturbances.prop_disturbance.Prop_Disturbance.torque_qqHess">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">torque_qqHess</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Compute the **Hessian of the propulsion disturbance torque** with respect</span>
 <span class="sd">        to the attitude quaternion.</span>
 
@@ -757,7 +758,7 @@
 
 <span class="sd">        :return: Quaternion Hessian tensor of zeros, shape ``(3, 4, 4)``.</span>
 <span class="sd">        :rtype: :class:`numpy.ndarray`</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span></div>
 </div>
 

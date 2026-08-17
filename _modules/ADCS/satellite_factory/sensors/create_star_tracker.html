@@ -228,6 +228,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../../release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_8_installable.html">0.1.8 Installable from PyPI (2026-08-05)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
@@ -542,11 +543,11 @@
 <span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
-    <span class="s2">&quot;create_bct_nst&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;create_terma_t1&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;create_generic_star_tracker&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;create_bct_nst_quaternion&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;create_generic_star_tracker_quaternion&quot;</span><span class="p">,</span>
+    <span class="s2">"create_bct_nst"</span><span class="p">,</span>
+    <span class="s2">"create_terma_t1"</span><span class="p">,</span>
+    <span class="s2">"create_generic_star_tracker"</span><span class="p">,</span>
+    <span class="s2">"create_bct_nst_quaternion"</span><span class="p">,</span>
+    <span class="s2">"create_generic_star_tracker_quaternion"</span><span class="p">,</span>
 <span class="p">]</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
@@ -615,7 +616,7 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">create_bct_nst_quaternion</span><span class="p">(</span>
     <span class="n">boresight</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">]),</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StarTrackerQuaternion</span><span class="p">:</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Create a BCT Nano Star Tracker in quaternion output mode.</span>
 
 <span class="sd">    Uses the same noise specification as the BCT NST vector tracker</span>
@@ -627,7 +628,7 @@
 <span class="sd">    :type boresight: numpy.ndarray</span>
 <span class="sd">    :return: Quaternion star tracker with BCT NST noise parameters.</span>
 <span class="sd">    :rtype: :class:`~ADCS.satellite_hardware.sensors.star_tracker_quaternion.StarTrackerQuaternion`</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">cross_rad</span> <span class="o">=</span> <span class="mf">6.0</span> <span class="o">*</span> <span class="n">_ARCSEC2RAD</span>
     <span class="n">noise</span> <span class="o">=</span> <span class="n">Noise</span><span class="p">(</span>
         <span class="n">noise</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">4</span><span class="p">),</span>
@@ -651,7 +652,7 @@
     <span class="n">sun_exclusion_deg</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">35.0</span><span class="p">,</span>
     <span class="n">min_stars</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StarTrackerQuaternion</span><span class="p">:</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Create a configurable quaternion-output star tracker.</span>
 
 <span class="sd">    :param boresight: Sensor boresight in the body frame.</span>
@@ -666,7 +667,7 @@
 <span class="sd">    :type min_stars: int</span>
 <span class="sd">    :return: Configured quaternion star tracker.</span>
 <span class="sd">    :rtype: :class:`~ADCS.satellite_hardware.sensors.star_tracker_quaternion.StarTrackerQuaternion`</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">noise_rad</span> <span class="o">=</span> <span class="n">noise_arcsec</span> <span class="o">*</span> <span class="n">_ARCSEC2RAD</span>
     <span class="n">noise</span> <span class="o">=</span> <span class="n">Noise</span><span class="p">(</span>
         <span class="n">noise</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">4</span><span class="p">),</span>

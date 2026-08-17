@@ -228,6 +228,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../../../release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../../release_notes/0_1_8_installable.html">0.1.8 Installable from PyPI (2026-08-05)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../../release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../../release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../../release_notes/0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
@@ -539,7 +540,7 @@
         </div>
         <article role="main" id="furo-main-content">
           <h1>Source code for ADCS.helpers.plot.orbit.orbitpositionplot</h1><div class="highlight"><pre>
-<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;OrbitPositionPlot&quot;</span><span class="p">]</span>
+<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"OrbitPositionPlot"</span><span class="p">]</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.gridspec</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">gridspec</span>
@@ -549,27 +550,27 @@
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_normalize_orbit_sources</span><span class="p">(</span><span class="n">sources</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">sources</span><span class="p">:</span>  <span class="c1"># None or []a</span>
-        <span class="k">return</span> <span class="p">[</span><span class="s2">&quot;real&quot;</span><span class="p">]</span>
-    <span class="n">allowed</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;real&quot;</span><span class="p">,</span> <span class="s2">&quot;estimated&quot;</span><span class="p">}</span>
+        <span class="k">return</span> <span class="p">[</span><span class="s2">"real"</span><span class="p">]</span>
+    <span class="n">allowed</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"real"</span><span class="p">,</span> <span class="s2">"estimated"</span><span class="p">}</span>
     <span class="n">out</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">sources</span><span class="p">:</span>
         <span class="n">s2</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">s</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
         <span class="k">if</span> <span class="n">s2</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">allowed</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid sources </span><span class="si">{</span><span class="n">s2</span><span class="si">!r}</span><span class="s2">. Allowed: </span><span class="si">{</span><span class="nb">sorted</span><span class="p">(</span><span class="n">allowed</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Invalid sources </span><span class="si">{</span><span class="n">s2</span><span class="si">!r}</span><span class="s2">. Allowed: </span><span class="si">{</span><span class="nb">sorted</span><span class="p">(</span><span class="n">allowed</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">s2</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">out</span><span class="p">:</span>
             <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">s2</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">out</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_get_R_series</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">source</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-    <span class="k">if</span> <span class="n">source</span> <span class="o">==</span> <span class="s2">&quot;real&quot;</span><span class="p">:</span>
-        <span class="n">hist</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="s2">&quot;os_hist&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">source</span> <span class="o">==</span> <span class="s2">"real"</span><span class="p">:</span>
+        <span class="n">hist</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="s2">"os_hist"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
         <span class="n">get_R</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">os</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">R</span>
-    <span class="k">elif</span> <span class="n">source</span> <span class="o">==</span> <span class="s2">&quot;estimated&quot;</span><span class="p">:</span>
-        <span class="n">hist</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="s2">&quot;est_os_hist&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">source</span> <span class="o">==</span> <span class="s2">"estimated"</span><span class="p">:</span>
+        <span class="n">hist</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="s2">"est_os_hist"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
         <span class="n">get_R</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">os</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">os</span><span class="o">.</span><span class="n">R</span>  <span class="c1"># unwrap EstimatedOrbital_State</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unknown source: </span><span class="si">{</span><span class="n">source</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Unknown source: </span><span class="si">{</span><span class="n">source</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">hist</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">hist</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
         <span class="k">return</span> <span class="kc">None</span>
@@ -587,17 +588,17 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_source_style_orbit</span><span class="p">(</span><span class="n">source</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-    <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;linestyle&quot;</span><span class="p">:</span> <span class="s2">&quot;-&quot;</span> <span class="k">if</span> <span class="n">source</span> <span class="o">==</span> <span class="s2">&quot;real&quot;</span> <span class="k">else</span> <span class="s2">&quot;--&quot;</span><span class="p">}</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s2">"linestyle"</span><span class="p">:</span> <span class="s2">"-"</span> <span class="k">if</span> <span class="n">source</span> <span class="o">==</span> <span class="s2">"real"</span> <span class="k">else</span> <span class="s2">"--"</span><span class="p">}</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_source_suffix_orbit</span><span class="p">(</span><span class="n">source</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-    <span class="k">return</span> <span class="s2">&quot; (real)&quot;</span> <span class="k">if</span> <span class="n">source</span> <span class="o">==</span> <span class="s2">&quot;real&quot;</span> <span class="k">else</span> <span class="s2">&quot; (est)&quot;</span>
+    <span class="k">return</span> <span class="s2">" (real)"</span> <span class="k">if</span> <span class="n">source</span> <span class="o">==</span> <span class="s2">"real"</span> <span class="k">else</span> <span class="s2">" (est)"</span>
 
 
 <div class="viewcode-block" id="OrbitPositionPlot">
 <a class="viewcode-back" href="../../../../../ADCS.helpers.plot.orbit.orbitpositionplot.html#ADCS.helpers.plot.orbit.orbitpositionplot.OrbitPositionPlot">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">OrbitPositionPlot</span><span class="p">(</span><span class="n">Subplot</span><span class="p">):</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Multi-panel visualization of spacecraft position components in ECI.</span>
 
 <span class="sd">    This class plots the Cartesian position components and the position magnitude</span>
@@ -644,16 +645,16 @@
 <span class="sd">    :type log_y:</span>
 <span class="sd">        bool</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
-        <span class="n">sources</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>  <span class="c1"># [&quot;real&quot;,&quot;estimated&quot;]</span>
-        <span class="n">time</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;time_s&quot;</span><span class="p">,</span>
-        <span class="n">title</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;Orbit Position (ECI)&quot;</span><span class="p">,</span>
-        <span class="n">units</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;km&quot;</span><span class="p">,</span>
-        <span class="n">colors</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;tab:blue&quot;</span><span class="p">,</span> <span class="s2">&quot;tab:orange&quot;</span><span class="p">,</span> <span class="s2">&quot;tab:green&quot;</span><span class="p">),</span>
-        <span class="n">mag_color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;tab:red&quot;</span><span class="p">,</span>
+        <span class="n">sources</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>  <span class="c1"># ["real","estimated"]</span>
+        <span class="n">time</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"time_s"</span><span class="p">,</span>
+        <span class="n">title</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"Orbit Position (ECI)"</span><span class="p">,</span>
+        <span class="n">units</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"km"</span><span class="p">,</span>
+        <span class="n">colors</span><span class="o">=</span><span class="p">(</span><span class="s2">"tab:blue"</span><span class="p">,</span> <span class="s2">"tab:orange"</span><span class="p">,</span> <span class="s2">"tab:green"</span><span class="p">),</span>
+        <span class="n">mag_color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"tab:red"</span><span class="p">,</span>
         <span class="n">log_y</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">sources</span> <span class="o">=</span> <span class="n">_normalize_orbit_sources</span><span class="p">(</span><span class="n">sources</span><span class="p">)</span>
@@ -676,10 +677,10 @@
         <span class="n">ax_ry</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">figure</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="n">gs</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
         <span class="n">ax_rz</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">figure</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="n">gs</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
 
-        <span class="n">labels</span> <span class="o">=</span> <span class="p">[</span><span class="sa">r</span><span class="s2">&quot;$r_x$&quot;</span><span class="p">,</span> <span class="sa">r</span><span class="s2">&quot;$r_y$&quot;</span><span class="p">,</span> <span class="sa">r</span><span class="s2">&quot;$r_z$&quot;</span><span class="p">]</span>
+        <span class="n">labels</span> <span class="o">=</span> <span class="p">[</span><span class="sa">r</span><span class="s2">"$r_x$"</span><span class="p">,</span> <span class="sa">r</span><span class="s2">"$r_y$"</span><span class="p">,</span> <span class="sa">r</span><span class="s2">"$r_z$"</span><span class="p">]</span>
         <span class="n">axes</span> <span class="o">=</span> <span class="p">[</span><span class="n">ax_rx</span><span class="p">,</span> <span class="n">ax_ry</span><span class="p">,</span> <span class="n">ax_rz</span><span class="p">]</span>
 
-        <span class="n">runs</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="s2">&quot;runs&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">runs</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="s2">"runs"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">runs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">runs</span> <span class="o">=</span> <span class="p">[</span><span class="n">sim</span><span class="p">]</span>
 
@@ -711,10 +712,10 @@
                         <span class="n">label</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                         <span class="o">**</span><span class="n">style</span><span class="p">,</span>
                     <span class="p">)</span>
-                    <span class="n">ax_i</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">labels</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="si">}</span><span class="s2"> [</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">units</span><span class="si">}</span><span class="s2">]&quot;</span><span class="p">)</span>
+                    <span class="n">ax_i</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">labels</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="si">}</span><span class="s2"> [</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">units</span><span class="si">}</span><span class="s2">]"</span><span class="p">)</span>
                     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">log_y</span><span class="p">:</span>
-                        <span class="n">ax_i</span><span class="o">.</span><span class="n">set_yscale</span><span class="p">(</span><span class="s2">&quot;log&quot;</span><span class="p">)</span>
-                    <span class="n">ax_i</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="n">which</span><span class="o">=</span><span class="s2">&quot;both&quot;</span><span class="p">)</span>
+                        <span class="n">ax_i</span><span class="o">.</span><span class="n">set_yscale</span><span class="p">(</span><span class="s2">"log"</span><span class="p">)</span>
+                    <span class="n">ax_i</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="n">which</span><span class="o">=</span><span class="s2">"both"</span><span class="p">)</span>
 
                 <span class="n">ax_rmag</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
                     <span class="n">t</span><span class="p">,</span>
@@ -724,18 +725,18 @@
                     <span class="n">label</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                     <span class="o">**</span><span class="n">style</span><span class="p">,</span>
                 <span class="p">)</span>
-                <span class="n">ax_rmag</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;$</span><span class="se">\\</span><span class="s2">|r</span><span class="se">\\</span><span class="s2">|$ [</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">units</span><span class="si">}</span><span class="s2">]&quot;</span><span class="p">)</span>
+                <span class="n">ax_rmag</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">f</span><span class="s2">"$</span><span class="se">\\</span><span class="s2">|r</span><span class="se">\\</span><span class="s2">|$ [</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">units</span><span class="si">}</span><span class="s2">]"</span><span class="p">)</span>
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">log_y</span><span class="p">:</span>
-                    <span class="n">ax_rmag</span><span class="o">.</span><span class="n">set_yscale</span><span class="p">(</span><span class="s2">&quot;log&quot;</span><span class="p">)</span>
-                <span class="n">ax_rmag</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="n">which</span><span class="o">=</span><span class="s2">&quot;both&quot;</span><span class="p">)</span>
+                    <span class="n">ax_rmag</span><span class="o">.</span><span class="n">set_yscale</span><span class="p">(</span><span class="s2">"log"</span><span class="p">)</span>
+                <span class="n">ax_rmag</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="n">which</span><span class="o">=</span><span class="s2">"both"</span><span class="p">)</span>
 
                 <span class="n">plotted_any</span> <span class="o">=</span> <span class="kc">True</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="n">plotted_any</span><span class="p">:</span>
             <span class="n">ax_text</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">figure</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="n">ax</span><span class="o">.</span><span class="n">get_subplotspec</span><span class="p">())</span>
-            <span class="n">ax_text</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">&quot;off&quot;</span><span class="p">)</span>
-            <span class="n">ax_text</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">title</span><span class="p">,</span> <span class="n">loc</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">,</span> <span class="n">pad</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
-            <span class="n">ax_text</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="s2">&quot;No orbit history available&quot;</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s2">&quot;center&quot;</span><span class="p">,</span> <span class="n">va</span><span class="o">=</span><span class="s2">&quot;center&quot;</span><span class="p">)</span>
+            <span class="n">ax_text</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">"off"</span><span class="p">)</span>
+            <span class="n">ax_text</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">title</span><span class="p">,</span> <span class="n">loc</span><span class="o">=</span><span class="s2">"left"</span><span class="p">,</span> <span class="n">pad</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+            <span class="n">ax_text</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="s2">"No orbit history available"</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s2">"center"</span><span class="p">,</span> <span class="n">va</span><span class="o">=</span><span class="s2">"center"</span><span class="p">)</span>
             <span class="k">return</span>
 
         <span class="c1"># Clean legends: one entry per source per axis (not per run)</span>
@@ -763,19 +764,19 @@
                     <span class="o">**</span><span class="n">_source_style_orbit</span><span class="p">(</span><span class="n">source</span><span class="p">),</span>
                 <span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
             <span class="p">)</span>
-            <span class="n">labs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;$\|r\|$&quot;</span> <span class="o">+</span> <span class="n">_source_suffix_orbit</span><span class="p">(</span><span class="n">source</span><span class="p">))</span>
+            <span class="n">labs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">r</span><span class="s2">"$\|r\|$"</span> <span class="o">+</span> <span class="n">_source_suffix_orbit</span><span class="p">(</span><span class="n">source</span><span class="p">))</span>
         <span class="n">ax_rmag</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">handles</span><span class="p">,</span> <span class="n">labs</span><span class="p">)</span>
 
-        <span class="n">ax_ry</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;Time [s]&quot;</span> <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">runs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">time</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="s2">&quot;Sample&quot;</span><span class="p">)</span>
-        <span class="n">ax_rz</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;Time [s]&quot;</span> <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">runs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">time</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="s2">&quot;Sample&quot;</span><span class="p">)</span>
-        <span class="n">ax_rx</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">title</span><span class="p">,</span> <span class="n">loc</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">,</span> <span class="n">pad</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span></div>
+        <span class="n">ax_ry</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">"Time [s]"</span> <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">runs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">time</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="s2">"Sample"</span><span class="p">)</span>
+        <span class="n">ax_rz</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">"Time [s]"</span> <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">runs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">time</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="s2">"Sample"</span><span class="p">)</span>
+        <span class="n">ax_rx</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">title</span><span class="p">,</span> <span class="n">loc</span><span class="o">=</span><span class="s2">"left"</span><span class="p">,</span> <span class="n">pad</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span></div>
 </div>
 
 
 
 
 <span class="k">class</span><span class="w"> </span><span class="nc">OrbitPositionPlotSingle</span><span class="p">(</span><span class="n">Subplot</span><span class="p">):</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Single-component visualization of spacecraft position in ECI.</span>
 
 <span class="sd">    This class plots one selected position component or the position magnitude</span>
@@ -826,21 +827,21 @@
 <span class="sd">    :type labels:</span>
 <span class="sd">        dict[str, str] or None</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
         <span class="n">component</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-        <span class="n">sources</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>  <span class="c1"># [&quot;real&quot;,&quot;estimated&quot;]</span>
-        <span class="n">time</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;time_s&quot;</span><span class="p">,</span>
+        <span class="n">sources</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>  <span class="c1"># ["real","estimated"]</span>
+        <span class="n">time</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"time_s"</span><span class="p">,</span>
         <span class="n">title</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">units</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;km&quot;</span><span class="p">,</span>
+        <span class="n">units</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"km"</span><span class="p">,</span>
         <span class="n">color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">log_y</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">labels</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="k">if</span> <span class="n">component</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="s2">&quot;y&quot;</span><span class="p">,</span> <span class="s2">&quot;z&quot;</span><span class="p">,</span> <span class="s2">&quot;m&quot;</span><span class="p">}:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;component must be one of &#39;x&#39;, &#39;y&#39;, &#39;z&#39;, or &#39;m&#39;&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">component</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">"x"</span><span class="p">,</span> <span class="s2">"y"</span><span class="p">,</span> <span class="s2">"z"</span><span class="p">,</span> <span class="s2">"m"</span><span class="p">}:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"component must be one of 'x', 'y', 'z', or 'm'"</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">component</span> <span class="o">=</span> <span class="n">component</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">sources</span> <span class="o">=</span> <span class="n">_normalize_orbit_sources</span><span class="p">(</span><span class="n">sources</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">time</span> <span class="o">=</span> <span class="n">time</span>
@@ -848,23 +849,23 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">color</span> <span class="o">=</span> <span class="n">color</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">log_y</span> <span class="o">=</span> <span class="n">log_y</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">labels</span> <span class="o">=</span> <span class="n">labels</span> <span class="ow">or</span> <span class="p">{</span>
-            <span class="s2">&quot;x&quot;</span><span class="p">:</span> <span class="sa">r</span><span class="s2">&quot;$r_x$&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;y&quot;</span><span class="p">:</span> <span class="sa">r</span><span class="s2">&quot;$r_y$&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;z&quot;</span><span class="p">:</span> <span class="sa">r</span><span class="s2">&quot;$r_z$&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;m&quot;</span><span class="p">:</span> <span class="sa">r</span><span class="s2">&quot;$\|r\|$&quot;</span><span class="p">,</span>
+            <span class="s2">"x"</span><span class="p">:</span> <span class="sa">r</span><span class="s2">"$r_x$"</span><span class="p">,</span>
+            <span class="s2">"y"</span><span class="p">:</span> <span class="sa">r</span><span class="s2">"$r_y$"</span><span class="p">,</span>
+            <span class="s2">"z"</span><span class="p">:</span> <span class="sa">r</span><span class="s2">"$r_z$"</span><span class="p">,</span>
+            <span class="s2">"m"</span><span class="p">:</span> <span class="sa">r</span><span class="s2">"$\|r\|$"</span><span class="p">,</span>
         <span class="p">}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">title</span> <span class="o">=</span> <span class="n">title</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ax</span><span class="p">,</span> <span class="n">sim</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">runs</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="s2">&quot;runs&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">runs</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="s2">"runs"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">runs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">runs</span> <span class="o">=</span> <span class="p">[</span><span class="n">sim</span><span class="p">]</span>
 
         <span class="n">alpha</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.15</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">runs</span><span class="p">))</span>
         <span class="n">plotted_any</span> <span class="o">=</span> <span class="kc">False</span>
 
-        <span class="n">default_title</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">title</span> <span class="ow">or</span> <span class="s2">&quot;Orbit Position (ECI)&quot;</span>
-        <span class="n">t_label</span> <span class="o">=</span> <span class="s2">&quot;Time [s]&quot;</span>
+        <span class="n">default_title</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">title</span> <span class="ow">or</span> <span class="s2">"Orbit Position (ECI)"</span>
+        <span class="n">t_label</span> <span class="o">=</span> <span class="s2">"Time [s]"</span>
 
         <span class="k">for</span> <span class="n">run</span> <span class="ow">in</span> <span class="n">runs</span><span class="p">:</span>
             <span class="n">t0</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">run</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">time</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
@@ -877,42 +878,42 @@
                 <span class="n">N</span> <span class="o">=</span> <span class="n">R</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
                 <span class="k">if</span> <span class="n">t0</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                     <span class="n">t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">t0</span><span class="p">)[:</span><span class="n">N</span><span class="p">]</span>
-                    <span class="n">t_label</span> <span class="o">=</span> <span class="s2">&quot;Time [s]&quot;</span>
+                    <span class="n">t_label</span> <span class="o">=</span> <span class="s2">"Time [s]"</span>
                 <span class="k">else</span><span class="p">:</span>
                     <span class="n">t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">N</span><span class="p">)</span>
-                    <span class="n">t_label</span> <span class="o">=</span> <span class="s2">&quot;Sample&quot;</span>
+                    <span class="n">t_label</span> <span class="o">=</span> <span class="s2">"Sample"</span>
 
                 <span class="n">style</span> <span class="o">=</span> <span class="n">_source_style_orbit</span><span class="p">(</span><span class="n">source</span><span class="p">)</span>
                 <span class="n">suf</span> <span class="o">=</span> <span class="n">_source_suffix_orbit</span><span class="p">(</span><span class="n">source</span><span class="p">)</span>
 
-                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">component</span> <span class="o">==</span> <span class="s2">&quot;x&quot;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">component</span> <span class="o">==</span> <span class="s2">"x"</span><span class="p">:</span>
                     <span class="n">y</span> <span class="o">=</span> <span class="n">R</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span>
-                    <span class="n">label</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">labels</span><span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">suf</span>
-                    <span class="n">base_color</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">color</span> <span class="ow">or</span> <span class="s2">&quot;tab:blue&quot;</span>
-                    <span class="n">title</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">title</span> <span class="ow">or</span> <span class="s2">&quot;Orbit Position $r_x$ (ECI)&quot;</span>
-                <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">component</span> <span class="o">==</span> <span class="s2">&quot;y&quot;</span><span class="p">:</span>
+                    <span class="n">label</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">labels</span><span class="p">[</span><span class="s2">"x"</span><span class="p">]</span> <span class="o">+</span> <span class="n">suf</span>
+                    <span class="n">base_color</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">color</span> <span class="ow">or</span> <span class="s2">"tab:blue"</span>
+                    <span class="n">title</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">title</span> <span class="ow">or</span> <span class="s2">"Orbit Position $r_x$ (ECI)"</span>
+                <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">component</span> <span class="o">==</span> <span class="s2">"y"</span><span class="p">:</span>
                     <span class="n">y</span> <span class="o">=</span> <span class="n">R</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span>
-                    <span class="n">label</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">labels</span><span class="p">[</span><span class="s2">&quot;y&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">suf</span>
-                    <span class="n">base_color</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">color</span> <span class="ow">or</span> <span class="s2">&quot;tab:orange&quot;</span>
-                    <span class="n">title</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">title</span> <span class="ow">or</span> <span class="s2">&quot;Orbit Position $r_y$ (ECI)&quot;</span>
-                <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">component</span> <span class="o">==</span> <span class="s2">&quot;z&quot;</span><span class="p">:</span>
+                    <span class="n">label</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">labels</span><span class="p">[</span><span class="s2">"y"</span><span class="p">]</span> <span class="o">+</span> <span class="n">suf</span>
+                    <span class="n">base_color</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">color</span> <span class="ow">or</span> <span class="s2">"tab:orange"</span>
+                    <span class="n">title</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">title</span> <span class="ow">or</span> <span class="s2">"Orbit Position $r_y$ (ECI)"</span>
+                <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">component</span> <span class="o">==</span> <span class="s2">"z"</span><span class="p">:</span>
                     <span class="n">y</span> <span class="o">=</span> <span class="n">R</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]</span>
-                    <span class="n">label</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">labels</span><span class="p">[</span><span class="s2">&quot;z&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">suf</span>
-                    <span class="n">base_color</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">color</span> <span class="ow">or</span> <span class="s2">&quot;tab:green&quot;</span>
-                    <span class="n">title</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">title</span> <span class="ow">or</span> <span class="s2">&quot;Orbit Position $r_z$ (ECI)&quot;</span>
+                    <span class="n">label</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">labels</span><span class="p">[</span><span class="s2">"z"</span><span class="p">]</span> <span class="o">+</span> <span class="n">suf</span>
+                    <span class="n">base_color</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">color</span> <span class="ow">or</span> <span class="s2">"tab:green"</span>
+                    <span class="n">title</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">title</span> <span class="ow">or</span> <span class="s2">"Orbit Position $r_z$ (ECI)"</span>
                 <span class="k">else</span><span class="p">:</span>
                     <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">R</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-                    <span class="n">label</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">labels</span><span class="p">[</span><span class="s2">&quot;m&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">suf</span>
-                    <span class="n">base_color</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">color</span> <span class="ow">or</span> <span class="s2">&quot;tab:red&quot;</span>
-                    <span class="n">title</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">title</span> <span class="ow">or</span> <span class="s2">&quot;Orbit Position $</span><span class="se">\\</span><span class="s2">|r</span><span class="se">\\</span><span class="s2">|$ (ECI)&quot;</span>
+                    <span class="n">label</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">labels</span><span class="p">[</span><span class="s2">"m"</span><span class="p">]</span> <span class="o">+</span> <span class="n">suf</span>
+                    <span class="n">base_color</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">color</span> <span class="ow">or</span> <span class="s2">"tab:red"</span>
+                    <span class="n">title</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">title</span> <span class="ow">or</span> <span class="s2">"Orbit Position $</span><span class="se">\\</span><span class="s2">|r</span><span class="se">\\</span><span class="s2">|$ (ECI)"</span>
 
                 <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">base_color</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="n">alpha</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">style</span><span class="p">)</span>
                 <span class="n">plotted_any</span> <span class="o">=</span> <span class="kc">True</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="n">plotted_any</span><span class="p">:</span>
-            <span class="n">ax</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">&quot;off&quot;</span><span class="p">)</span>
-            <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="n">default_title</span><span class="p">,</span> <span class="n">loc</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">,</span> <span class="n">pad</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
-            <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="s2">&quot;No orbit history available&quot;</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s2">&quot;center&quot;</span><span class="p">,</span> <span class="n">va</span><span class="o">=</span><span class="s2">&quot;center&quot;</span><span class="p">)</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">"off"</span><span class="p">)</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="n">default_title</span><span class="p">,</span> <span class="n">loc</span><span class="o">=</span><span class="s2">"left"</span><span class="p">,</span> <span class="n">pad</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="s2">"No orbit history available"</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s2">"center"</span><span class="p">,</span> <span class="n">va</span><span class="o">=</span><span class="s2">"center"</span><span class="p">)</span>
             <span class="k">return</span>
 
         <span class="c1"># Clean legend: one entry per source</span>
@@ -921,34 +922,34 @@
             <span class="n">suf</span> <span class="o">=</span> <span class="n">_source_suffix_orbit</span><span class="p">(</span><span class="n">source</span><span class="p">)</span>
             <span class="n">style</span> <span class="o">=</span> <span class="n">_source_style_orbit</span><span class="p">(</span><span class="n">source</span><span class="p">)</span>
 
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">component</span> <span class="o">==</span> <span class="s2">&quot;x&quot;</span><span class="p">:</span>
-                <span class="n">base_color</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">color</span> <span class="ow">or</span> <span class="s2">&quot;tab:blue&quot;</span>
-                <span class="n">lab</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">labels</span><span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">suf</span>
-            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">component</span> <span class="o">==</span> <span class="s2">&quot;y&quot;</span><span class="p">:</span>
-                <span class="n">base_color</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">color</span> <span class="ow">or</span> <span class="s2">&quot;tab:orange&quot;</span>
-                <span class="n">lab</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">labels</span><span class="p">[</span><span class="s2">&quot;y&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">suf</span>
-            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">component</span> <span class="o">==</span> <span class="s2">&quot;z&quot;</span><span class="p">:</span>
-                <span class="n">base_color</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">color</span> <span class="ow">or</span> <span class="s2">&quot;tab:green&quot;</span>
-                <span class="n">lab</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">labels</span><span class="p">[</span><span class="s2">&quot;z&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">suf</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">component</span> <span class="o">==</span> <span class="s2">"x"</span><span class="p">:</span>
+                <span class="n">base_color</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">color</span> <span class="ow">or</span> <span class="s2">"tab:blue"</span>
+                <span class="n">lab</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">labels</span><span class="p">[</span><span class="s2">"x"</span><span class="p">]</span> <span class="o">+</span> <span class="n">suf</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">component</span> <span class="o">==</span> <span class="s2">"y"</span><span class="p">:</span>
+                <span class="n">base_color</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">color</span> <span class="ow">or</span> <span class="s2">"tab:orange"</span>
+                <span class="n">lab</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">labels</span><span class="p">[</span><span class="s2">"y"</span><span class="p">]</span> <span class="o">+</span> <span class="n">suf</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">component</span> <span class="o">==</span> <span class="s2">"z"</span><span class="p">:</span>
+                <span class="n">base_color</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">color</span> <span class="ow">or</span> <span class="s2">"tab:green"</span>
+                <span class="n">lab</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">labels</span><span class="p">[</span><span class="s2">"z"</span><span class="p">]</span> <span class="o">+</span> <span class="n">suf</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">base_color</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">color</span> <span class="ow">or</span> <span class="s2">&quot;tab:red&quot;</span>
-                <span class="n">lab</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">labels</span><span class="p">[</span><span class="s2">&quot;m&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">suf</span>
+                <span class="n">base_color</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">color</span> <span class="ow">or</span> <span class="s2">"tab:red"</span>
+                <span class="n">lab</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">labels</span><span class="p">[</span><span class="s2">"m"</span><span class="p">]</span> <span class="o">+</span> <span class="n">suf</span>
 
             <span class="n">handles</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">([],</span> <span class="p">[],</span> <span class="n">color</span><span class="o">=</span><span class="n">base_color</span><span class="p">,</span> <span class="o">**</span><span class="n">style</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
             <span class="n">labs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">lab</span><span class="p">)</span>
 
         <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="n">t_label</span><span class="p">)</span>
-        <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">labels</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">component</span><span class="p">]</span><span class="si">}</span><span class="s2"> [</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">units</span><span class="si">}</span><span class="s2">]&quot;</span><span class="p">)</span>
-        <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">title</span> <span class="ow">or</span> <span class="n">default_title</span><span class="p">,</span> <span class="n">loc</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">,</span> <span class="n">pad</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">labels</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">component</span><span class="p">]</span><span class="si">}</span><span class="s2"> [</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">units</span><span class="si">}</span><span class="s2">]"</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">title</span> <span class="ow">or</span> <span class="n">default_title</span><span class="p">,</span> <span class="n">loc</span><span class="o">=</span><span class="s2">"left"</span><span class="p">,</span> <span class="n">pad</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">log_y</span><span class="p">:</span>
-            <span class="n">ax</span><span class="o">.</span><span class="n">set_yscale</span><span class="p">(</span><span class="s2">&quot;log&quot;</span><span class="p">)</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">set_yscale</span><span class="p">(</span><span class="s2">"log"</span><span class="p">)</span>
         <span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">handles</span><span class="p">,</span> <span class="n">labs</span><span class="p">)</span>
-        <span class="n">ax</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="n">which</span><span class="o">=</span><span class="s2">&quot;both&quot;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="n">which</span><span class="o">=</span><span class="s2">"both"</span><span class="p">)</span>
 
 
 
 <span class="k">class</span><span class="w"> </span><span class="nc">OrbitPositionPlotCombined</span><span class="p">(</span><span class="n">Subplot</span><span class="p">):</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Combined plot of all spacecraft position components in ECI.</span>
 
 <span class="sd">    This class overlays the x, y, and z position components on a single set of</span>
@@ -994,15 +995,15 @@
 <span class="sd">    :type labels:</span>
 <span class="sd">        list[str] or None</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
-        <span class="n">sources</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>  <span class="c1"># [&quot;real&quot;,&quot;estimated&quot;]</span>
-        <span class="n">time</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;time_s&quot;</span><span class="p">,</span>
-        <span class="n">title</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;Orbit Position (ECI)&quot;</span><span class="p">,</span>
-        <span class="n">units</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;km&quot;</span><span class="p">,</span>
-        <span class="n">colors</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;tab:blue&quot;</span><span class="p">,</span> <span class="s2">&quot;tab:orange&quot;</span><span class="p">,</span> <span class="s2">&quot;tab:green&quot;</span><span class="p">),</span>
+        <span class="n">sources</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>  <span class="c1"># ["real","estimated"]</span>
+        <span class="n">time</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"time_s"</span><span class="p">,</span>
+        <span class="n">title</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"Orbit Position (ECI)"</span><span class="p">,</span>
+        <span class="n">units</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"km"</span><span class="p">,</span>
+        <span class="n">colors</span><span class="o">=</span><span class="p">(</span><span class="s2">"tab:blue"</span><span class="p">,</span> <span class="s2">"tab:orange"</span><span class="p">,</span> <span class="s2">"tab:green"</span><span class="p">),</span>
         <span class="n">log_y</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">labels</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
@@ -1012,16 +1013,16 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="n">units</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">colors</span> <span class="o">=</span> <span class="n">colors</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">log_y</span> <span class="o">=</span> <span class="n">log_y</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">labels</span> <span class="o">=</span> <span class="n">labels</span> <span class="ow">or</span> <span class="p">[</span><span class="sa">r</span><span class="s2">&quot;$r_x$&quot;</span><span class="p">,</span> <span class="sa">r</span><span class="s2">&quot;$r_y$&quot;</span><span class="p">,</span> <span class="sa">r</span><span class="s2">&quot;$r_z$&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">labels</span> <span class="o">=</span> <span class="n">labels</span> <span class="ow">or</span> <span class="p">[</span><span class="sa">r</span><span class="s2">"$r_x$"</span><span class="p">,</span> <span class="sa">r</span><span class="s2">"$r_y$"</span><span class="p">,</span> <span class="sa">r</span><span class="s2">"$r_z$"</span><span class="p">]</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ax</span><span class="p">,</span> <span class="n">sim</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">runs</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="s2">&quot;runs&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">runs</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="s2">"runs"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">runs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">runs</span> <span class="o">=</span> <span class="p">[</span><span class="n">sim</span><span class="p">]</span>
 
         <span class="n">alpha</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.15</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">runs</span><span class="p">))</span>
         <span class="n">plotted_any</span> <span class="o">=</span> <span class="kc">False</span>
-        <span class="n">t_label</span> <span class="o">=</span> <span class="s2">&quot;Time [s]&quot;</span>
+        <span class="n">t_label</span> <span class="o">=</span> <span class="s2">"Time [s]"</span>
 
         <span class="k">for</span> <span class="n">run</span> <span class="ow">in</span> <span class="n">runs</span><span class="p">:</span>
             <span class="n">t0</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">run</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">time</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
@@ -1034,10 +1035,10 @@
                 <span class="n">N</span> <span class="o">=</span> <span class="n">R</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
                 <span class="k">if</span> <span class="n">t0</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                     <span class="n">t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">t0</span><span class="p">)[:</span><span class="n">N</span><span class="p">]</span>
-                    <span class="n">t_label</span> <span class="o">=</span> <span class="s2">&quot;Time [s]&quot;</span>
+                    <span class="n">t_label</span> <span class="o">=</span> <span class="s2">"Time [s]"</span>
                 <span class="k">else</span><span class="p">:</span>
                     <span class="n">t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">N</span><span class="p">)</span>
-                    <span class="n">t_label</span> <span class="o">=</span> <span class="s2">&quot;Sample&quot;</span>
+                    <span class="n">t_label</span> <span class="o">=</span> <span class="s2">"Sample"</span>
 
                 <span class="n">style</span> <span class="o">=</span> <span class="n">_source_style_orbit</span><span class="p">(</span><span class="n">source</span><span class="p">)</span>
                 <span class="n">suf</span> <span class="o">=</span> <span class="n">_source_suffix_orbit</span><span class="p">(</span><span class="n">source</span><span class="p">)</span>
@@ -1055,9 +1056,9 @@
                 <span class="n">plotted_any</span> <span class="o">=</span> <span class="kc">True</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="n">plotted_any</span><span class="p">:</span>
-            <span class="n">ax</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">&quot;off&quot;</span><span class="p">)</span>
-            <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">title</span><span class="p">,</span> <span class="n">loc</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">,</span> <span class="n">pad</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
-            <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="s2">&quot;No orbit history available&quot;</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s2">&quot;center&quot;</span><span class="p">,</span> <span class="n">va</span><span class="o">=</span><span class="s2">&quot;center&quot;</span><span class="p">)</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">"off"</span><span class="p">)</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">title</span><span class="p">,</span> <span class="n">loc</span><span class="o">=</span><span class="s2">"left"</span><span class="p">,</span> <span class="n">pad</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="s2">"No orbit history available"</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s2">"center"</span><span class="p">,</span> <span class="n">va</span><span class="o">=</span><span class="s2">"center"</span><span class="p">)</span>
             <span class="k">return</span>
 
         <span class="c1"># Clean legend: one entry per component per source</span>
@@ -1070,12 +1071,12 @@
                 <span class="n">labs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">labels</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">suf</span><span class="p">)</span>
 
         <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="n">t_label</span><span class="p">)</span>
-        <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Position [</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">units</span><span class="si">}</span><span class="s2">]&quot;</span><span class="p">)</span>
-        <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">title</span><span class="p">,</span> <span class="n">loc</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">,</span> <span class="n">pad</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Position [</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">units</span><span class="si">}</span><span class="s2">]"</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">title</span><span class="p">,</span> <span class="n">loc</span><span class="o">=</span><span class="s2">"left"</span><span class="p">,</span> <span class="n">pad</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">log_y</span><span class="p">:</span>
-            <span class="n">ax</span><span class="o">.</span><span class="n">set_yscale</span><span class="p">(</span><span class="s2">&quot;log&quot;</span><span class="p">)</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">set_yscale</span><span class="p">(</span><span class="s2">"log"</span><span class="p">)</span>
         <span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">handles</span><span class="p">,</span> <span class="n">labs</span><span class="p">)</span>
-        <span class="n">ax</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="n">which</span><span class="o">=</span><span class="s2">&quot;both&quot;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="n">which</span><span class="o">=</span><span class="s2">"both"</span><span class="p">)</span>
 </pre></div>
         </article>
       </div>

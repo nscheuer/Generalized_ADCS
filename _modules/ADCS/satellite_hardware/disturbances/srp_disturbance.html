@@ -228,6 +228,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../../release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_8_installable.html">0.1.8 Installable from PyPI (2026-08-05)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
@@ -540,7 +541,7 @@
         <article role="main" id="furo-main-content">
           <h1>Source code for ADCS.satellite_hardware.disturbances.srp_disturbance</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span> 
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;SRP_Disturbance&quot;</span><span class="p">]</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"SRP_Disturbance"</span><span class="p">]</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
@@ -557,7 +558,7 @@
 <span class="nd">@njit</span><span class="p">(</span><span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">_srp_torque_kernel</span><span class="p">(</span><span class="n">S_B</span><span class="p">,</span> <span class="n">R_B</span><span class="p">,</span> <span class="n">COM</span><span class="p">,</span> <span class="n">normals</span><span class="p">,</span> <span class="n">areas</span><span class="p">,</span> <span class="n">centroids</span><span class="p">,</span>
                        <span class="n">eta_s</span><span class="p">,</span> <span class="n">eta_d</span><span class="p">,</span> <span class="n">eta_a</span><span class="p">,</span> <span class="n">solar_constant</span><span class="p">,</span> <span class="n">c_light</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;SRP torque summed over geometry faces.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""SRP torque summed over geometry faces."""</span>
     <span class="n">diff</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
     <span class="n">diff</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">S_B</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">R_B</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">diff</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">S_B</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">R_B</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
@@ -604,7 +605,7 @@
 <div class="viewcode-block" id="SRP_Disturbance">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.disturbances.srp_disturbance.html#ADCS.satellite_hardware.disturbances.srp_disturbance.SRP_Disturbance">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">SRP_Disturbance</span><span class="p">(</span><span class="n">Disturbance</span><span class="p">):</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    **Solar Radiation Pressure (SRP) Disturbance Torque Model**</span>
 
 <span class="sd">    This class models the disturbance torque caused by **solar radiation pressure (SRP)**,</span>
@@ -728,10 +729,10 @@
 
 <span class="sd">    :param config: Surface geometry and optical coefficients for each face.</span>
 <span class="sd">    :type config: :class:`~ADCS.satellite_hardware.disturbances.helpers.geometry_config.GeometryConfig`</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">GeometryConfig</span><span class="p">):</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Initialize the SRP disturbance model.</span>
 
 <span class="sd">        This constructor reads per-face geometry and optical parameters from the</span>
@@ -760,24 +761,24 @@
 <span class="sd">        :type config: :class:`~ADCS.satellite_hardware.disturbances.helpers.geometry_config.GeometryConfig`</span>
 <span class="sd">        :return: None</span>
 <span class="sd">        :rtype: None</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="n">config</span>
         <span class="n">params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">params</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">numfaces</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">areas</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">p</span><span class="p">[</span><span class="s2">&quot;area&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">params</span><span class="p">])</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">centroids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="n">p</span><span class="p">[</span><span class="s2">&quot;centroid&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">params</span><span class="p">])</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">normals</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="n">normalize</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s2">&quot;normal&quot;</span><span class="p">])</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">params</span><span class="p">])</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">eta_s</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">p</span><span class="p">[</span><span class="s2">&quot;eta_s&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">params</span><span class="p">])</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">eta_d</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">p</span><span class="p">[</span><span class="s2">&quot;eta_d&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">params</span><span class="p">])</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">eta_a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">p</span><span class="p">[</span><span class="s2">&quot;eta_a&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">params</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">areas</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">p</span><span class="p">[</span><span class="s2">"area"</span><span class="p">]</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">params</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">centroids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="n">p</span><span class="p">[</span><span class="s2">"centroid"</span><span class="p">]</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">params</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">normals</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="n">normalize</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s2">"normal"</span><span class="p">])</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">params</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eta_s</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">p</span><span class="p">[</span><span class="s2">"eta_s"</span><span class="p">]</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">params</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eta_d</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">p</span><span class="p">[</span><span class="s2">"eta_d"</span><span class="p">]</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">params</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eta_a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">p</span><span class="p">[</span><span class="s2">"eta_a"</span><span class="p">]</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">params</span><span class="p">])</span>
 
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
 <div class="viewcode-block" id="SRP_Disturbance.torque">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.disturbances.srp_disturbance.html#ADCS.satellite_hardware.disturbances.srp_disturbance.SRP_Disturbance.torque">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">torque</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sat</span><span class="p">:</span> <span class="n">Satellite</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Compute the **SRP torque** in the body frame.</span>
 
 <span class="sd">        This method obtains the Sun and spacecraft position vectors in the body frame via:</span>
@@ -786,8 +787,8 @@
 
 <span class="sd">        using keys:</span>
 
-<span class="sd">        - ``&quot;s&quot;`` : :math:`\mathbf{S}_B`</span>
-<span class="sd">        - ``&quot;r&quot;`` : :math:`\mathbf{R}_B`</span>
+<span class="sd">        - ``"s"`` : :math:`\mathbf{S}_B`</span>
+<span class="sd">        - ``"r"`` : :math:`\mathbf{R}_B`</span>
 
 <span class="sd">        The unit Sun-look direction is:</span>
 
@@ -841,17 +842,17 @@
 <span class="sd">        :type sat: :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`</span>
 <span class="sd">        :param x: Full spacecraft state containing the attitude quaternion used by the orbital-state mapping.</span>
 <span class="sd">        :type x: :class:`numpy.ndarray`</span>
-<span class="sd">        :param os: Orbital state provider supplying ``&quot;s&quot;``, ``&quot;r&quot;``, and illumination status.</span>
+<span class="sd">        :param os: Orbital state provider supplying ``"s"``, ``"r"``, and illumination status.</span>
 <span class="sd">        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
 <span class="sd">        :return: SRP disturbance torque in the body frame [N·m], shape ``(3,)``.</span>
 <span class="sd">        :rtype: :class:`numpy.ndarray`</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">is_sunlit</span><span class="p">():</span>
             <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
 
         <span class="n">vecs</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">get_state_vector</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">_srp_torque_kernel</span><span class="p">(</span>
-            <span class="n">vecs</span><span class="p">[</span><span class="s2">&quot;s&quot;</span><span class="p">],</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">&quot;r&quot;</span><span class="p">],</span> <span class="n">sat</span><span class="o">.</span><span class="n">COM</span><span class="p">,</span>
+            <span class="n">vecs</span><span class="p">[</span><span class="s2">"s"</span><span class="p">],</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">"r"</span><span class="p">],</span> <span class="n">sat</span><span class="o">.</span><span class="n">COM</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">normals</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">areas</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">centroids</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">eta_s</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">eta_d</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">eta_a</span><span class="p">,</span>
             <span class="n">EarthConstants</span><span class="o">.</span><span class="n">solar_constant</span><span class="p">,</span> <span class="n">EarthConstants</span><span class="o">.</span><span class="n">c</span><span class="p">,</span>
@@ -861,7 +862,7 @@
 <div class="viewcode-block" id="SRP_Disturbance.torque_qjav">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.disturbances.srp_disturbance.html#ADCS.satellite_hardware.disturbances.srp_disturbance.SRP_Disturbance.torque_qjav">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">torque_qjav</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sat</span><span class="p">:</span> <span class="n">Satellite</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Compute the **Jacobian of SRP torque** with respect to the attitude quaternion.</span>
 
 <span class="sd">        Let :math:`\mathbf{q}` denote the attitude quaternion inside :math:`x`. The SRP torque</span>
@@ -960,18 +961,18 @@
 <span class="sd">        :type x: :class:`numpy.ndarray`</span>
 <span class="sd">        :param os: Orbital state provider supplying vectors and quaternion derivatives via</span>
 <span class="sd">                   :meth:`~ADCS.orbits.orbital_state.Orbital_State.get_state_vector`</span>
-<span class="sd">                   (typically ``&quot;s&quot;``, ``&quot;r&quot;``, ``&quot;ds&quot;``, ``&quot;dr&quot;``).</span>
+<span class="sd">                   (typically ``"s"``, ``"r"``, ``"ds"``, ``"dr"``).</span>
 <span class="sd">        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
 <span class="sd">        :return: Quaternion Jacobian ``∂T_SRP/∂q``, shape ``(3, 4)``.</span>
 <span class="sd">        :rtype: :class:`numpy.ndarray`</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="c1"># (Implementation same as in your code; mathematical explanation retained)</span>
         <span class="n">vecs</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">get_state_vector</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">)</span>
-        <span class="n">S_B</span> <span class="o">=</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">&quot;s&quot;</span><span class="p">]</span>
-        <span class="n">R_B</span> <span class="o">=</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">&quot;r&quot;</span><span class="p">]</span>
+        <span class="n">S_B</span> <span class="o">=</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">"s"</span><span class="p">]</span>
+        <span class="n">R_B</span> <span class="o">=</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">"r"</span><span class="p">]</span>
 
         <span class="n">s_body</span> <span class="o">=</span> <span class="n">normalize</span><span class="p">(</span><span class="n">S_B</span> <span class="o">-</span> <span class="n">R_B</span><span class="p">)</span>
-        <span class="n">ds_body__dq</span> <span class="o">=</span> <span class="n">normed_vec_jac</span><span class="p">(</span><span class="n">S_B</span> <span class="o">-</span> <span class="n">R_B</span><span class="p">,</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">&quot;ds&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">&quot;dr&quot;</span><span class="p">])</span>
+        <span class="n">ds_body__dq</span> <span class="o">=</span> <span class="n">normed_vec_jac</span><span class="p">(</span><span class="n">S_B</span> <span class="o">-</span> <span class="n">R_B</span><span class="p">,</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">"ds"</span><span class="p">]</span> <span class="o">-</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">"dr"</span><span class="p">])</span>
 
         <span class="n">cos_gamma</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">normals</span><span class="p">,</span> <span class="n">s_body</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">cos_gamma</span><span class="p">)):</span>
@@ -1013,21 +1014,21 @@
 <div class="viewcode-block" id="SRP_Disturbance.torque_qjac">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.disturbances.srp_disturbance.html#ADCS.satellite_hardware.disturbances.srp_disturbance.SRP_Disturbance.torque_qjac">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">torque_qjac</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sat</span><span class="p">:</span> <span class="n">Satellite</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Alias of :meth:`torque_qjav` so SRP exposes the same ``torque_qjac``</span>
 <span class="sd">        quaternion-Jacobian entry point as every other disturbance (the</span>
 <span class="sd">        original method name ``torque_qjav`` was an inconsistent typo).</span>
 
 <span class="sd">        :return: Quaternion Jacobian of the SRP torque, shape ``(4,3)``.</span>
 <span class="sd">        :rtype: :class:`numpy.ndarray`</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">torque_qjav</span><span class="p">(</span><span class="n">sat</span><span class="o">=</span><span class="n">sat</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">os</span><span class="o">=</span><span class="n">os</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="SRP_Disturbance.torque_qqhess">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.disturbances.srp_disturbance.html#ADCS.satellite_hardware.disturbances.srp_disturbance.SRP_Disturbance.torque_qqhess">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">torque_qqhess</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sat</span><span class="p">:</span> <span class="n">Satellite</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Compute the **Hessian of SRP torque** with respect to the attitude quaternion.</span>
 
 <span class="sd">        This method returns the second derivative tensor:</span>
@@ -1110,20 +1111,20 @@
 <span class="sd">        :type x: :class:`numpy.ndarray`</span>
 <span class="sd">        :param os: Orbital state provider supplying vectors and quaternion derivatives up to second order via</span>
 <span class="sd">                   :meth:`~ADCS.orbits.orbital_state.Orbital_State.get_state_vector`</span>
-<span class="sd">                   (typically ``&quot;s&quot;``, ``&quot;r&quot;``, ``&quot;ds&quot;``, ``&quot;dr&quot;``, ``&quot;dds&quot;``, ``&quot;ddr&quot;``).</span>
+<span class="sd">                   (typically ``"s"``, ``"r"``, ``"ds"``, ``"dr"``, ``"dds"``, ``"ddr"``).</span>
 <span class="sd">        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
 <span class="sd">        :return: Quaternion Hessian tensor ``∂²T_SRP/∂q²``, shape ``(3, 4, 4)``.</span>
 <span class="sd">        :rtype: :class:`numpy.ndarray`</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="c1"># (Implementation as in your original code)</span>
         <span class="n">vecs</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">get_state_vector</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">)</span>
 
-        <span class="n">S_B</span> <span class="o">=</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">&quot;s&quot;</span><span class="p">]</span>
-        <span class="n">R_B</span> <span class="o">=</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">&quot;r&quot;</span><span class="p">]</span>
+        <span class="n">S_B</span> <span class="o">=</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">"s"</span><span class="p">]</span>
+        <span class="n">R_B</span> <span class="o">=</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">"r"</span><span class="p">]</span>
 
         <span class="n">s_body</span> <span class="o">=</span> <span class="n">normalize</span><span class="p">(</span><span class="n">S_B</span> <span class="o">-</span> <span class="n">R_B</span><span class="p">)</span>
-        <span class="n">ds_body__dq</span> <span class="o">=</span> <span class="n">normed_vec_jac</span><span class="p">(</span><span class="n">S_B</span> <span class="o">-</span> <span class="n">R_B</span><span class="p">,</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">&quot;ds&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">&quot;dr&quot;</span><span class="p">])</span>
-        <span class="n">dds_body__dqdq</span> <span class="o">=</span> <span class="n">normed_vec_hess</span><span class="p">(</span><span class="n">S_B</span> <span class="o">-</span> <span class="n">R_B</span><span class="p">,</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">&quot;ds&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">&quot;dr&quot;</span><span class="p">],</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">&quot;dds&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">&quot;ddr&quot;</span><span class="p">])</span>
+        <span class="n">ds_body__dq</span> <span class="o">=</span> <span class="n">normed_vec_jac</span><span class="p">(</span><span class="n">S_B</span> <span class="o">-</span> <span class="n">R_B</span><span class="p">,</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">"ds"</span><span class="p">]</span> <span class="o">-</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">"dr"</span><span class="p">])</span>
+        <span class="n">dds_body__dqdq</span> <span class="o">=</span> <span class="n">normed_vec_hess</span><span class="p">(</span><span class="n">S_B</span> <span class="o">-</span> <span class="n">R_B</span><span class="p">,</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">"ds"</span><span class="p">]</span> <span class="o">-</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">"dr"</span><span class="p">],</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">"dds"</span><span class="p">]</span> <span class="o">-</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">"ddr"</span><span class="p">])</span>
 
         <span class="n">cos_gamma</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">normals</span><span class="p">,</span> <span class="n">s_body</span><span class="p">))</span>
         <span class="n">proj_area</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">areas</span> <span class="o">*</span> <span class="n">cos_gamma</span>

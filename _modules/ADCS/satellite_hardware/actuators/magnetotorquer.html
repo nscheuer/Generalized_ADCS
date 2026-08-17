@@ -228,6 +228,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../../release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_8_installable.html">0.1.8 Installable from PyPI (2026-08-05)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
@@ -539,7 +540,7 @@
         </div>
         <article role="main" id="furo-main-content">
           <h1>Source code for ADCS.satellite_hardware.actuators.magnetotorquer</h1><div class="highlight"><pre>
-<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;MTQ&quot;</span><span class="p">]</span>
+<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"MTQ"</span><span class="p">]</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
@@ -557,7 +558,7 @@
 
 <span class="nd">@njit</span><span class="p">(</span><span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">_mtq_torque_kernel</span><span class="p">(</span><span class="n">b_body</span><span class="p">,</span> <span class="n">axis</span><span class="p">,</span> <span class="n">u</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Magnetorquer torque: -(B x a) * u.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Magnetorquer torque: -(B x a) * u."""</span>
     <span class="n">out</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
     <span class="n">out</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="p">(</span><span class="n">b_body</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">axis</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="n">b_body</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">*</span><span class="n">axis</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">*</span> <span class="n">u</span>
     <span class="n">out</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="p">(</span><span class="n">b_body</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">*</span><span class="n">axis</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">b_body</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">axis</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span> <span class="o">*</span> <span class="n">u</span>
@@ -567,7 +568,7 @@
 <div class="viewcode-block" id="MTQ">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.magnetotorquer.html#ADCS.satellite_hardware.actuators.magnetotorquer.MTQ">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">MTQ</span><span class="p">(</span><span class="n">Actuator</span><span class="p">):</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    **Magnetorquer (MTQ) actuator model**</span>
 
 <span class="sd">    This class models a single-axis magnetorquer that generates body torque from the</span>
@@ -613,7 +614,7 @@
 <span class="sd">       * - Symbol</span>
 <span class="sd">         - Meaning</span>
 <span class="sd">       * - :math:`\mathbf{B}_{\mathcal{B}}`</span>
-<span class="sd">         - Earth&#39;s magnetic field expressed in the body frame [T]</span>
+<span class="sd">         - Earth's magnetic field expressed in the body frame [T]</span>
 <span class="sd">       * - :math:`\mathbf{m}`</span>
 <span class="sd">         - Magnetic dipole moment vector [A·m²]</span>
 <span class="sd">       * - :math:`\mathbf{a}`</span>
@@ -654,9 +655,9 @@
 <span class="sd">    :param noise: Noise model representing stochastic actuation uncertainty.</span>
 <span class="sd">    :type noise: :class:`~ADCS.satellite_hardware.errors.noise.Noise` | None</span>
 
-<span class="sd">    :param estimate_bias: If ``True``, includes this actuator&#39;s bias term in the estimator state vector.</span>
+<span class="sd">    :param estimate_bias: If ``True``, includes this actuator's bias term in the estimator state vector.</span>
 <span class="sd">    :type estimate_bias: bool</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -666,7 +667,7 @@
         <span class="n">noise</span><span class="p">:</span> <span class="n">Noise</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">estimate_bias</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Initialize a magnetorquer actuator model.</span>
 
 <span class="sd">        This constructor configures the physical axis, saturation limits, and optional</span>
@@ -691,7 +692,7 @@
 
 <span class="sd">        :return: None</span>
 <span class="sd">        :rtype: None</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">,</span> <span class="n">u_max</span><span class="o">=</span><span class="n">max_torque</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="n">bias</span><span class="p">,</span> <span class="n">noise</span><span class="o">=</span><span class="n">noise</span><span class="p">,</span> <span class="n">estimate_bias</span><span class="o">=</span><span class="n">estimate_bias</span><span class="p">)</span>
 
 <div class="viewcode-block" id="MTQ.torque">
@@ -703,7 +704,7 @@
         <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span> <span class="o">|</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span>
         <span class="n">dmode</span><span class="p">:</span> <span class="n">ErrorMode</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Compute the torque generated by the magnetorquer.</span>
 
 <span class="sd">        The applied body-frame torque is given by:</span>
@@ -735,9 +736,9 @@
 
 <span class="sd">        :return: Body-frame torque vector.</span>
 <span class="sd">        :rtype: numpy.ndarray, shape ``(3,)``</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">u</span><span class="p">)</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">u_max</span><span class="p">):</span>
-            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;requested torque exceeds actuation limit&quot;</span><span class="p">)</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">"requested torque exceeds actuation limit"</span><span class="p">)</span>
             <span class="c1"># Saturate the commanded dipole to the physical actuation limit,</span>
             <span class="c1"># preserving sign. Below-limit commands are unchanged. Works for</span>
             <span class="c1"># scalar commands and array-valued finite-difference probes alike.</span>
@@ -746,7 +747,7 @@
                 <span class="n">u</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">u</span><span class="p">)</span>
 
         <span class="n">vecs</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">get_state_vector</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">)</span>
-        <span class="n">b_body</span> <span class="o">=</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">&quot;b&quot;</span><span class="p">]</span>
+        <span class="n">b_body</span> <span class="o">=</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">"b"</span><span class="p">]</span>
 
         <span class="k">if</span> <span class="n">dmode</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">dmode</span> <span class="o">=</span> <span class="n">ErrorMode</span><span class="p">(</span><span class="n">add_bias</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">add_noise</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">update_bias</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">update_noise</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -775,7 +776,7 @@
 <div class="viewcode-block" id="MTQ.storage_torque">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.magnetotorquer.html#ADCS.satellite_hardware.actuators.magnetotorquer.MTQ.storage_torque">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">storage_torque</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span> <span class="n">dmode</span><span class="p">:</span> <span class="n">ErrorMode</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Storage torque contribution of the actuator.</span>
 
 <span class="sd">        Magnetorquers do **not** store angular momentum. Consequently, this method</span>
@@ -795,7 +796,7 @@
 
 <span class="sd">        :return: Empty storage-torque vector.</span>
 <span class="sd">        :rtype: numpy.ndarray, shape ``(0,)``</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">0</span><span class="p">,))</span></div>
 
 
@@ -807,7 +808,7 @@
         <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span>
         <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Compute first-order derivatives (Jacobians) of the torque.</span>
 
 <span class="sd">        Let :math:`\mathbf{a}=\texttt{self.axis}` and let :math:`b` be the (optional) scalar bias.</span>
@@ -839,7 +840,7 @@
 
 <span class="sd">            \frac{\partial\boldsymbol{\tau}}{\partial\boldsymbol{\omega}} = \mathbf{0}_{3\times 3}.</span>
 
-<span class="sd">        With :math:`D_{\mathbf{q}}\mathbf{B}_{\mathcal{B}}(\mathbf{q})\in\mathbb{R}^{4\times 3}` (provided as ``&quot;db&quot;``),</span>
+<span class="sd">        With :math:`D_{\mathbf{q}}\mathbf{B}_{\mathcal{B}}(\mathbf{q})\in\mathbb{R}^{4\times 3}` (provided as ``"db"``),</span>
 <span class="sd">        the quaternion Jacobian is</span>
 
 <span class="sd">        .. math::</span>
@@ -877,10 +878,10 @@
 <span class="sd">            * ``dT_dx`` has shape ``(7,3)`` and equals :math:`\partial\boldsymbol{\tau}/\partial \mathbf{x}`.</span>
 
 <span class="sd">        :rtype: tuple[numpy.ndarray, numpy.ndarray]</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">vecs</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">get_state_vector</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">)</span>
-        <span class="n">b_body</span> <span class="o">=</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">&quot;b&quot;</span><span class="p">]</span>
-        <span class="n">db_body__dq</span> <span class="o">=</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">&quot;db&quot;</span><span class="p">]</span>
+        <span class="n">b_body</span> <span class="o">=</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">"b"</span><span class="p">]</span>
+        <span class="n">db_body__dq</span> <span class="o">=</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">"db"</span><span class="p">]</span>
 
         <span class="n">dtorq__du</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">b_body</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">axis</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
 
@@ -900,7 +901,7 @@
         <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span>
         <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Compute second-order derivatives (Hessians) of the torque.</span>
 
 <span class="sd">        Using the noise-free model</span>
@@ -912,8 +913,8 @@
 
 <span class="sd">        and defining</span>
 
-<span class="sd">        * :math:`D_{\mathbf{q}}\mathbf{B}_{\mathcal{B}}(\mathbf{q})\in\mathbb{R}^{4\times 3}` (provided as ``&quot;db&quot;``),</span>
-<span class="sd">        * :math:`D^2_{\mathbf{q}\mathbf{q}}\mathbf{B}_{\mathcal{B}}(\mathbf{q})\in\mathbb{R}^{4\times 4\times 3}` (provided as ``&quot;ddb&quot;``),</span>
+<span class="sd">        * :math:`D_{\mathbf{q}}\mathbf{B}_{\mathcal{B}}(\mathbf{q})\in\mathbb{R}^{4\times 3}` (provided as ``"db"``),</span>
+<span class="sd">        * :math:`D^2_{\mathbf{q}\mathbf{q}}\mathbf{B}_{\mathcal{B}}(\mathbf{q})\in\mathbb{R}^{4\times 4\times 3}` (provided as ``"ddb"``),</span>
 
 <span class="sd">        the only nonzero second derivatives involve the quaternion.</span>
 
@@ -972,10 +973,10 @@
 <span class="sd">            * ``ddT_dx2`` has shape ``(7,7,3)`` and equals :math:`\partial^2\boldsymbol{\tau}/(\partial\mathbf{x}\,\partial\mathbf{x})`.</span>
 
 <span class="sd">        :rtype: tuple[numpy.ndarray, numpy.ndarray]</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">vecs</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">get_state_vector</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">)</span>
-        <span class="n">db_body__dq</span> <span class="o">=</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">&quot;db&quot;</span><span class="p">]</span>
-        <span class="n">ddb_body__dqdq</span> <span class="o">=</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">&quot;ddb&quot;</span><span class="p">]</span>
+        <span class="n">db_body__dq</span> <span class="o">=</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">"db"</span><span class="p">]</span>
+        <span class="n">ddb_body__dqdq</span> <span class="o">=</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">"ddb"</span><span class="p">]</span>
 
         <span class="n">ddtorq__dudbasestate</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span>
             <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">)),</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">db_body__dq</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">axis</span><span class="p">)]</span>
@@ -994,7 +995,7 @@
 <div class="viewcode-block" id="MTQ.dtorq__du">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.magnetotorquer.html#ADCS.satellite_hardware.actuators.magnetotorquer.MTQ.dtorq__du">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">dtorq__du</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        First derivative of torque with respect to the control input.</span>
 
 <span class="sd">        .. math::</span>
@@ -1014,16 +1015,16 @@
 
 <span class="sd">        :return: Row Jacobian of torque w.r.t. control input.</span>
 <span class="sd">        :rtype: numpy.ndarray, shape ``(1,3)``</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">vecs</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">get_state_vector</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">)</span>
-        <span class="n">b_body</span> <span class="o">=</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">&quot;b&quot;</span><span class="p">]</span>
+        <span class="n">b_body</span> <span class="o">=</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">"b"</span><span class="p">]</span>
         <span class="k">return</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">b_body</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">axis</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span></div>
 
 
 <div class="viewcode-block" id="MTQ.dtorq__dbasestate">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.magnetotorquer.html#ADCS.satellite_hardware.actuators.magnetotorquer.MTQ.dtorq__dbasestate">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">dtorq__dbasestate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        First derivative of torque with respect to the base spacecraft state.</span>
 
 <span class="sd">        The torque does not depend on angular velocity, and depends on attitude only</span>
@@ -1041,9 +1042,9 @@
 
 <span class="sd">        :return: Jacobian of torque w.r.t. base state.</span>
 <span class="sd">        :rtype: numpy.ndarray, shape ``(7,3)``</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">vecs</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">get_state_vector</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">)</span>
-        <span class="n">db_body__dq</span> <span class="o">=</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">&quot;db&quot;</span><span class="p">]</span>
+        <span class="n">db_body__dq</span> <span class="o">=</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">"db"</span><span class="p">]</span>
 
         <span class="n">biased_command</span> <span class="o">=</span> <span class="n">u</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">bias</span><span class="o">.</span><span class="n">get_bias</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">J2000</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span>
@@ -1054,7 +1055,7 @@
 <div class="viewcode-block" id="MTQ.ddtorq__dudbasestate">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.magnetotorquer.html#ADCS.satellite_hardware.actuators.magnetotorquer.MTQ.ddtorq__dudbasestate">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">ddtorq__dudbasestate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Mixed second derivative :math:`\partial^2\boldsymbol{\tau}/(\partial u\,\partial\mathbf{x})`.</span>
 
 <span class="sd">        With</span>
@@ -1079,15 +1080,15 @@
 <span class="sd">        :param x: Spacecraft base state.</span>
 <span class="sd">        :type x: ADCS.state.State</span>
 
-<span class="sd">        :param os: Orbital state providing ``&quot;db&quot;`` via :meth:`~ADCS.orbits.orbital_state.Orbital_State.get_state_vector`.</span>
+<span class="sd">        :param os: Orbital state providing ``"db"`` via :meth:`~ADCS.orbits.orbital_state.Orbital_State.get_state_vector`.</span>
 <span class="sd">        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
 
 <span class="sd">        :return: Mixed Hessian tensor stacked by :math:`(\boldsymbol{\omega},\mathbf{q})` with a leading singleton</span>
 <span class="sd">            control dimension.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">vecs</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">get_state_vector</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">)</span>
-        <span class="n">db_body__dq</span> <span class="o">=</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">&quot;db&quot;</span><span class="p">]</span>
+        <span class="n">db_body__dq</span> <span class="o">=</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">"db"</span><span class="p">]</span>
 
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span>
             <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">)),</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">db_body__dq</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">axis</span><span class="p">)]</span>
@@ -1097,7 +1098,7 @@
 <div class="viewcode-block" id="MTQ.ddtorq__dbasestatedbasestate">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.magnetotorquer.html#ADCS.satellite_hardware.actuators.magnetotorquer.MTQ.ddtorq__dbasestatedbasestate">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">ddtorq__dbasestatedbasestate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Base-state Hessian :math:`\partial^2\boldsymbol{\tau}/(\partial\mathbf{x}\,\partial\mathbf{x})`.</span>
 
 <span class="sd">        With the noise-free model</span>
@@ -1108,7 +1109,7 @@
 <span class="sd">            = -(\mathbf{B}_{\mathcal{B}}(\mathbf{q}) \times \mathbf{a})\,(u+b),</span>
 
 <span class="sd">        all second derivatives involving :math:`\boldsymbol{\omega}` vanish. The only nonzero block is the</span>
-<span class="sd">        quaternion–quaternion block, using :math:`D^2_{\mathbf{q}\mathbf{q}}\mathbf{B}_{\mathcal{B}}(\mathbf{q})` (``&quot;ddb&quot;``):</span>
+<span class="sd">        quaternion–quaternion block, using :math:`D^2_{\mathbf{q}\mathbf{q}}\mathbf{B}_{\mathcal{B}}(\mathbf{q})` (``"ddb"``):</span>
 
 <span class="sd">        .. math::</span>
 
@@ -1121,14 +1122,14 @@
 <span class="sd">        :param x: Spacecraft base state.</span>
 <span class="sd">        :type x: ADCS.state.State</span>
 
-<span class="sd">        :param os: Orbital state providing ``&quot;ddb&quot;`` via :meth:`~ADCS.orbits.orbital_state.Orbital_State.get_state_vector`.</span>
+<span class="sd">        :param os: Orbital state providing ``"ddb"`` via :meth:`~ADCS.orbits.orbital_state.Orbital_State.get_state_vector`.</span>
 <span class="sd">        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
 
 <span class="sd">        :return: Base-state Hessian tensor (only the quaternion block is nonzero).</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">vecs</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">get_state_vector</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">)</span>
-        <span class="n">ddb_body__dqdq</span> <span class="o">=</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">&quot;ddb&quot;</span><span class="p">]</span>
+        <span class="n">ddb_body__dqdq</span> <span class="o">=</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">"ddb"</span><span class="p">]</span>
 
         <span class="n">biased_command</span> <span class="o">=</span> <span class="n">u</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">bias</span><span class="o">.</span><span class="n">get_bias</span><span class="p">(</span><span class="n">j2000</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">J2000</span><span class="p">)</span>
         <span class="n">ddtorq__dbasestatedbasestate</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">7</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
@@ -1142,7 +1143,7 @@
 <div class="viewcode-block" id="MTQ.ddtorq__dbiasdbias">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.magnetotorquer.html#ADCS.satellite_hardware.actuators.magnetotorquer.MTQ.ddtorq__dbiasdbias">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">ddtorq__dbiasdbias</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Second derivative :math:`\partial^2\boldsymbol{\tau}/\partial b^2`.</span>
 
 <span class="sd">        The bias :math:`b` enters the torque linearly through :math:`(u+b)`, so:</span>
@@ -1162,7 +1163,7 @@
 
 <span class="sd">        :return: Zero tensor if a bias model exists; otherwise an empty tensor consistent with no bias state.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bias</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ddtorq__dudu</span><span class="p">(</span><span class="n">u</span><span class="o">=</span><span class="n">u</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">os</span><span class="o">=</span><span class="n">os</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
@@ -1172,7 +1173,7 @@
 <div class="viewcode-block" id="MTQ.ddtorq__dbiasdbasestate">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.magnetotorquer.html#ADCS.satellite_hardware.actuators.magnetotorquer.MTQ.ddtorq__dbiasdbasestate">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">ddtorq__dbiasdbasestate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Mixed second derivative :math:`\partial^2\boldsymbol{\tau}/(\partial b\,\partial\mathbf{x})`.</span>
 
 <span class="sd">        Since :math:`b` enters identically to :math:`u` in :math:`(u+b)`, the mixed derivative equals the</span>
@@ -1199,7 +1200,7 @@
 
 <span class="sd">        :return: Mixed Hessian tensor if a bias model exists; otherwise an empty tensor consistent with no bias state.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bias</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ddtorq__dudbasestate</span><span class="p">(</span><span class="n">u</span><span class="o">=</span><span class="n">u</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">os</span><span class="o">=</span><span class="n">os</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
@@ -1209,7 +1210,7 @@
 <div class="viewcode-block" id="MTQ.ddtorq__dudh">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.magnetotorquer.html#ADCS.satellite_hardware.actuators.magnetotorquer.MTQ.ddtorq__dudh">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">ddtorq__dudh</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Mixed second derivative :math:`\partial^2\boldsymbol{\tau}/(\partial u\,\partial\mathbf{h})`.</span>
 
 <span class="sd">        This actuator has no momentum-storage state :math:`\mathbf{h}` in the model, so all derivatives</span>
@@ -1232,7 +1233,7 @@
 
 <span class="sd">        :return: Empty tensor along the storage-state dimension (shape ``(1,0,3)``).</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span></div>
 </div>
 

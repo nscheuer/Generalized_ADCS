@@ -228,6 +228,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_8_installable.html">0.1.8 Installable from PyPI (2026-08-05)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
@@ -539,8 +540,10 @@
         </div>
         <article role="main" id="furo-main-content">
           <h1>Source code for ADCS.orbits.ephemeris</h1><div class="highlight"><pre>
-<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Ephemeris&quot;</span><span class="p">]</span>
+<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"Ephemeris"</span><span class="p">]</span>
 
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">skyfield.api</span><span class="w"> </span><span class="kn">import</span> <span class="n">load</span><span class="p">,</span> <span class="n">Loader</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span>
@@ -548,7 +551,7 @@
 <div class="viewcode-block" id="Ephemeris">
 <a class="viewcode-back" href="../../../ADCS.orbits.ephemeris.html#ADCS.orbits.ephemeris.Ephemeris">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">Ephemeris</span><span class="p">:</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    High-precision planetary ephemeris interface based on Skyfield.</span>
 
 <span class="sd">    This class provides a unified interface for loading and accessing</span>
@@ -609,10 +612,10 @@
 <span class="sd">        :class:`~ADCS.etc.Ephemeris` timescale object, which should be reused</span>
 <span class="sd">        across all time-dependent orbital computations to ensure consistency.</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filepath</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Initialize the ephemeris loader and planetary body objects.</span>
 
 <span class="sd">        This constructor loads the JPL DE421 ephemeris file either from a</span>
@@ -632,48 +635,100 @@
 <span class="sd">            ``None``</span>
 <span class="sd">        :rtype: None</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">if</span> <span class="n">filepath</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="c1"># User-provided file path</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">planets</span> <span class="o">=</span> <span class="n">load</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">filepath</span><span class="p">))</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="c1"># Default: search or download under project_root/ADCS/environment/de421.bsp</span>
-            <span class="n">default_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_default_ephemeris_path</span><span class="p">()</span>
-            <span class="k">if</span> <span class="n">default_path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">planets</span> <span class="o">=</span> <span class="n">load</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">default_path</span><span class="p">))</span>
-                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;✅ Loaded local ephemeris from </span><span class="si">{</span><span class="n">default_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">existing</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_find_existing_ephemeris</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">existing</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">planets</span> <span class="o">=</span> <span class="n">load</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">existing</span><span class="p">))</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"✅ Loaded local ephemeris from </span><span class="si">{</span><span class="n">existing</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">planets</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_download_ephemeris</span><span class="p">(</span><span class="n">default_path</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">planets</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_download_ephemeris</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_get_default_ephemeris_path</span><span class="p">()</span>
+                <span class="p">)</span>
 
         <span class="c1"># Extract common bodies</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">sun</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">planets</span><span class="p">[</span><span class="s1">&#39;sun&#39;</span><span class="p">]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">earth</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">planets</span><span class="p">[</span><span class="s1">&#39;earth&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sun</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">planets</span><span class="p">[</span><span class="s1">'sun'</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">earth</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">planets</span><span class="p">[</span><span class="s1">'earth'</span><span class="p">]</span>
 
         <span class="c1"># Create a timescale object (shared across all orbital computations)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">ts</span> <span class="o">=</span> <span class="n">load</span><span class="o">.</span><span class="n">timescale</span><span class="p">()</span>
 
     <span class="c1"># ----------------------------------------------------------------------</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">_get_default_ephemeris_path</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Determine the default local path for the DE421 ephemeris file.</span>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_packaged_ephemeris_path</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""Location of an ephemeris shipped alongside the package, if any.</span>
 
-<span class="sd">        This method constructs the expected filesystem location for storing</span>
-<span class="sd">        the ephemeris file relative to the project root. If the parent</span>
-<span class="sd">        directory does not exist, it is created automatically.</span>
+<span class="sd">        Read only. ``de421.bsp`` is 16 MB and is deliberately not shipped in</span>
+<span class="sd">        the wheel, but a source checkout has one here, and so does an</span>
+<span class="sd">        installation where a user or sysadmin placed one deliberately.</span>
 
-<span class="sd">        :return:</span>
-<span class="sd">            Absolute path to ``ADCS/environment/de421.bsp``.</span>
+<span class="sd">        :return: Path to ``ADCS/environment/de421.bsp``.</span>
 <span class="sd">        :rtype: pathlib.Path</span>
+<span class="sd">        """</span>
+        <span class="k">return</span> <span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span><span class="o">.</span><span class="n">parents</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s2">"environment"</span> <span class="o">/</span> <span class="s2">"de421.bsp"</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">project_root</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span><span class="o">.</span><span class="n">parents</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>  <span class="c1"># adjust if needed</span>
-        <span class="n">external_dir</span> <span class="o">=</span> <span class="n">project_root</span> <span class="o">/</span> <span class="s2">&quot;ADCS&quot;</span> <span class="o">/</span> <span class="s2">&quot;environment&quot;</span>
-        <span class="n">external_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">external_dir</span> <span class="o">/</span> <span class="s2">&quot;de421.bsp&quot;</span>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_cache_ephemeris_path</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""Per-user cache location for a downloaded ephemeris.</span>
+
+<span class="sd">        Honours ``ADCS_EPHEMERIS_PATH`` (a full path to a .bsp file) first,</span>
+<span class="sd">        then ``XDG_CACHE_HOME``, then the platform default. Deliberately never</span>
+<span class="sd">        inside ``site-packages``: writing there fails outright on read-only or</span>
+<span class="sd">        system-managed installs, and any file written survives</span>
+<span class="sd">        ``pip uninstall`` as an orphan because it is absent from the wheel's</span>
+<span class="sd">        RECORD.</span>
+
+<span class="sd">        :return: Path the ephemeris would be cached at.</span>
+<span class="sd">        :rtype: pathlib.Path</span>
+<span class="sd">        """</span>
+        <span class="n">override</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"ADCS_EPHEMERIS_PATH"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">override</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">Path</span><span class="p">(</span><span class="n">override</span><span class="p">)</span><span class="o">.</span><span class="n">expanduser</span><span class="p">()</span>
+
+        <span class="n">xdg</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"XDG_CACHE_HOME"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">xdg</span><span class="p">:</span>
+            <span class="n">base</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">xdg</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">sys</span><span class="o">.</span><span class="n">platform</span> <span class="o">==</span> <span class="s2">"darwin"</span><span class="p">:</span>
+            <span class="n">base</span> <span class="o">=</span> <span class="n">Path</span><span class="o">.</span><span class="n">home</span><span class="p">()</span> <span class="o">/</span> <span class="s2">"Library"</span> <span class="o">/</span> <span class="s2">"Caches"</span>
+        <span class="k">elif</span> <span class="n">sys</span><span class="o">.</span><span class="n">platform</span> <span class="o">==</span> <span class="s2">"win32"</span><span class="p">:</span>
+            <span class="n">base</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"LOCALAPPDATA"</span><span class="p">,</span> <span class="n">Path</span><span class="o">.</span><span class="n">home</span><span class="p">()</span> <span class="o">/</span> <span class="s2">"AppData"</span> <span class="o">/</span> <span class="s2">"Local"</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">base</span> <span class="o">=</span> <span class="n">Path</span><span class="o">.</span><span class="n">home</span><span class="p">()</span> <span class="o">/</span> <span class="s2">".cache"</span>
+        <span class="k">return</span> <span class="n">base</span> <span class="o">/</span> <span class="s2">"generalized_adcs"</span> <span class="o">/</span> <span class="s2">"de421.bsp"</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_find_existing_ephemeris</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""First existing ephemeris across the search order, else ``None``.</span>
+
+<span class="sd">        Order: explicit ``ADCS_EPHEMERIS_PATH`` / user cache, then the copy</span>
+<span class="sd">        shipped beside the package.</span>
+
+<span class="sd">        :return: An existing ephemeris path, or ``None``.</span>
+<span class="sd">        :rtype: pathlib.Path | None</span>
+<span class="sd">        """</span>
+        <span class="k">for</span> <span class="n">candidate</span> <span class="ow">in</span> <span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">_cache_ephemeris_path</span><span class="p">(),</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_packaged_ephemeris_path</span><span class="p">()):</span>
+            <span class="k">if</span> <span class="n">candidate</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                <span class="k">return</span> <span class="n">candidate</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_default_ephemeris_path</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""Where a newly downloaded ephemeris should be written.</span>
+
+<span class="sd">        Always the per-user cache, never ``site-packages``.</span>
+
+<span class="sd">        :return: Absolute path to the cache location for ``de421.bsp``.</span>
+<span class="sd">        :rtype: pathlib.Path</span>
+<span class="sd">        """</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache_ephemeris_path</span><span class="p">()</span>
+        <span class="n">path</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">path</span>
 
     <span class="c1"># ----------------------------------------------------------------------</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_download_ephemeris</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">save_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">):</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Download and load the JPL DE421 ephemeris file.</span>
 
 <span class="sd">        This method uses Skyfield’s :class:`~ADCS.etc.Ephemeris` loader</span>
@@ -692,14 +747,14 @@
 <span class="sd">        :raises RuntimeError:</span>
 <span class="sd">            If the ephemeris file cannot be downloaded or initialized.</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">loader</span> <span class="o">=</span> <span class="n">Loader</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">save_path</span><span class="o">.</span><span class="n">parent</span><span class="p">))</span>
-            <span class="n">planets</span> <span class="o">=</span> <span class="n">loader</span><span class="p">(</span><span class="s2">&quot;de421.bsp&quot;</span><span class="p">)</span>  <span class="c1"># downloads if missing</span>
-            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;✅ Ephemeris downloaded to: </span><span class="si">{</span><span class="n">planets</span><span class="o">.</span><span class="n">path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">planets</span> <span class="o">=</span> <span class="n">loader</span><span class="p">(</span><span class="s2">"de421.bsp"</span><span class="p">)</span>  <span class="c1"># downloads if missing</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"✅ Ephemeris downloaded to: </span><span class="si">{</span><span class="n">planets</span><span class="o">.</span><span class="n">path</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
             <span class="k">return</span> <span class="n">planets</span>
         <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;❌ Failed to download DE421 ephemeris: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span></div>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"❌ Failed to download DE421 ephemeris: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span></div>
 
 </pre></div>
         </article>

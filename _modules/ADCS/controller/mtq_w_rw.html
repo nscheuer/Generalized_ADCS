@@ -228,6 +228,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_8_installable.html">0.1.8 Installable from PyPI (2026-08-05)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
@@ -539,7 +540,7 @@
         </div>
         <article role="main" id="furo-main-content">
           <h1>Source code for ADCS.controller.mtq_w_rw</h1><div class="highlight"><pre>
-<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;MTQ_w_RW&quot;</span><span class="p">]</span>
+<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"MTQ_w_RW"</span><span class="p">]</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
@@ -558,7 +559,7 @@
 <div class="viewcode-block" id="MTQ_w_RW">
 <a class="viewcode-back" href="../../../ADCS.controller.mtq_w_rw.html#ADCS.controller.mtq_w_rw.MTQ_w_RW">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">MTQ_w_RW</span><span class="p">(</span><span class="n">Controller</span><span class="p">):</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Hybrid magnetic torquer and reaction wheel attitude controller.</span>
 
 <span class="sd">    This controller implements a three-axis attitude determination and control</span>
@@ -656,9 +657,9 @@
 <span class="sd">       Journal of Guidance, Control, and Dynamics,</span>
 <span class="sd">       Vol. 44, No. 3, 2021.</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">est_sat</span><span class="p">:</span> <span class="n">EstimatedSatellite</span><span class="p">,</span> <span class="n">p_gain</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">d_gain</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">c_gain</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">h_target</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Initialize the hybrid MTQ and reaction wheel controller.</span>
 
 <span class="sd">        This method precomputes pseudo-inverse allocation matrices for</span>
@@ -683,7 +684,7 @@
 <span class="sd">        -------</span>
 <span class="sd">        None</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">p_gain</span> <span class="o">=</span> <span class="n">p_gain</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">d_gain</span> <span class="o">=</span> <span class="n">d_gain</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">c_gain</span> <span class="o">=</span> <span class="n">c_gain</span>
@@ -698,7 +699,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">max_torque</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">find_max_torque</span><span class="p">(</span><span class="n">actuators</span><span class="o">=</span><span class="n">est_sat</span><span class="o">.</span><span class="n">actuators</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rw_max_h</span> <span class="o">&lt;</span> <span class="n">h_target</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Target momentum cannot be higher than reaction wheel maximum momentum!&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Target momentum cannot be higher than reaction wheel maximum momentum!"</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">h_target</span> <span class="o">=</span> <span class="n">h_target</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">n_actuators</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">est_sat</span><span class="o">.</span><span class="n">actuators</span><span class="p">)</span>
@@ -707,7 +708,7 @@
 <div class="viewcode-block" id="MTQ_w_RW.find_u">
 <a class="viewcode-back" href="../../../ADCS.controller.mtq_w_rw.html#ADCS.controller.mtq_w_rw.MTQ_w_RW.find_u">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">find_u</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_hat</span><span class="p">:</span> <span class="n">State</span> <span class="o">|</span> <span class="n">EstimatorState</span><span class="p">,</span> <span class="n">sens</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">est_sat</span><span class="p">:</span> <span class="n">EstimatedSatellite</span><span class="p">,</span> <span class="n">os_hat</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span> <span class="n">goal</span><span class="p">:</span> <span class="n">Goal</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Compute actuator command vector for reaction wheels and magnetic torquers.</span>
 
 <span class="sd">        This method evaluates the estimated spacecraft state, reconstructs</span>
@@ -767,7 +768,7 @@
 <span class="sd">            Full actuator command vector ordered according to</span>
 <span class="sd">            ``est_sat.actuators``.</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">w</span> <span class="o">=</span> <span class="n">x_hat</span><span class="o">.</span><span class="n">w</span>
         <span class="n">q</span> <span class="o">=</span> <span class="n">x_hat</span><span class="o">.</span><span class="n">q</span>
 

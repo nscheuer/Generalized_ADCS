@@ -229,6 +229,7 @@
 </ul>
 </li>
 <li class="toctree-l1 current has-children"><a class="reference internal" href="index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" checked="" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="0_1_8_installable.html">0.1.8 Installable from PyPI (2026-08-05)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2 current current-page"><a class="current reference internal" href="#">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
@@ -554,8 +555,8 @@
 </a>
 <p>See also <a class="reference internal" href="../tutorials/08_remote_execution.html"><span class="doc">Tutorial 8: Remote Execution</span></a> for the full setup walkthrough and <a class="reference internal" href="../ADCS.html"><span class="doc">API documentation</span></a> for the underlying interfaces.</p>
 <p>An abbreviated example from the tutorial is shown below:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">remote_host</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;ADCS_REMOTE_HOST&quot;</span><span class="p">,</span> <span class="s2">&quot;127.0.0.1&quot;</span><span class="p">)</span>
-<span class="n">remote_port</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;ADCS_REMOTE_PORT&quot;</span><span class="p">,</span> <span class="s2">&quot;5000&quot;</span><span class="p">))</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">remote_host</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">"ADCS_REMOTE_HOST"</span><span class="p">,</span> <span class="s2">"127.0.0.1"</span><span class="p">)</span>
+<span class="n">remote_port</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">"ADCS_REMOTE_PORT"</span><span class="p">,</span> <span class="s2">"5000"</span><span class="p">))</span>
 
 <span class="n">results</span> <span class="o">=</span> <span class="n">ADCS</span><span class="o">.</span><span class="n">simulate_remote</span><span class="p">(</span>
     <span class="n">x</span><span class="o">=</span><span class="n">x_0</span><span class="p">,</span>

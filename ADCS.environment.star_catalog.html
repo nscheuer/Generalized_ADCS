@@ -229,6 +229,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="release_notes/0_1_8_installable.html">0.1.8 Installable from PyPI (2026-08-05)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="release_notes/0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
@@ -661,7 +662,7 @@ star tracker simulations.</p>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="ADCS.environment.star_catalog.NavigationStar.s_eci">
-<span class="sig-name descname"><span class="pre">s_eci</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ndarray</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">dtype</span><span class="p"><span class="pre">[</span></span><span class="pre">float64</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#ADCS.environment.star_catalog.NavigationStar.s_eci" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">s_eci</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">NDArray</span><span class="p"><span class="pre">[</span></span><span class="pre">float64</span><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#ADCS.environment.star_catalog.NavigationStar.s_eci" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
@@ -678,7 +679,7 @@ star tracker simulations.</p>
 <li><p><strong>ra_rad</strong> (<em>float</em>)</p></li>
 <li><p><strong>dec_rad</strong> (<em>float</em>)</p></li>
 <li><p><strong>vmag</strong> (<em>float</em>)</p></li>
-<li><p><strong>s_eci</strong> (<em>ndarray</em><em>[</em><em>tuple</em><em>[</em><em>int</em><em>, </em><em>...</em><em>]</em><em>, </em><em>dtype</em><em>[</em><em>float64</em><em>]</em><em>]</em>)</p></li>
+<li><p><strong>s_eci</strong> (<em>NDArray</em><em>[</em><em>float64</em><em>]</em>)</p></li>
 </ul>
 </dd>
 </dl>
@@ -855,11 +856,11 @@ boresight, the star tracker is assumed to be completely blinded and
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>boresight_eci</strong> (<em>ndarray</em><em>[</em><em>tuple</em><em>[</em><em>int</em><em>, </em><em>...</em><em>]</em><em>, </em><em>dtype</em><em>[</em><em>float64</em><em>]</em><em>]</em>)</p></li>
+<li><p><strong>boresight_eci</strong> (<em>NDArray</em><em>[</em><em>float64</em><em>]</em>)</p></li>
 <li><p><strong>fov_rad</strong> (<em>float</em>)</p></li>
-<li><p><strong>r_sat_eci</strong> (<em>ndarray</em><em>[</em><em>tuple</em><em>[</em><em>int</em><em>, </em><em>...</em><em>]</em><em>, </em><em>dtype</em><em>[</em><em>float64</em><em>]</em><em>]</em>)</p></li>
-<li><p><strong>sun_eci</strong> (<em>ndarray</em><em>[</em><em>tuple</em><em>[</em><em>int</em><em>, </em><em>...</em><em>]</em><em>, </em><em>dtype</em><em>[</em><em>float64</em><em>]</em><em>] </em><em>| </em><em>None</em>)</p></li>
-<li><p><strong>moon_eci</strong> (<em>ndarray</em><em>[</em><em>tuple</em><em>[</em><em>int</em><em>, </em><em>...</em><em>]</em><em>, </em><em>dtype</em><em>[</em><em>float64</em><em>]</em><em>] </em><em>| </em><em>None</em>)</p></li>
+<li><p><strong>r_sat_eci</strong> (<em>NDArray</em><em>[</em><em>float64</em><em>]</em>)</p></li>
+<li><p><strong>sun_eci</strong> (<em>NDArray</em><em>[</em><em>float64</em><em>] </em><em>| </em><em>None</em>)</p></li>
+<li><p><strong>moon_eci</strong> (<em>NDArray</em><em>[</em><em>float64</em><em>] </em><em>| </em><em>None</em>)</p></li>
 <li><p><strong>sun_exclusion_rad</strong> (<em>float</em>)</p></li>
 </ul>
 </dd>

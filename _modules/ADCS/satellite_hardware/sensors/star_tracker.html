@@ -228,6 +228,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../../release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_8_installable.html">0.1.8 Installable from PyPI (2026-08-05)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
@@ -539,7 +540,7 @@
         </div>
         <article role="main" id="furo-main-content">
           <h1>Source code for ADCS.satellite_hardware.sensors.star_tracker</h1><div class="highlight"><pre>
-<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;StarTracker&quot;</span><span class="p">]</span>
+<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"StarTracker"</span><span class="p">]</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span>
@@ -555,7 +556,7 @@
 <div class="viewcode-block" id="StarTracker">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.sensors.star_tracker.html#ADCS.satellite_hardware.sensors.star_tracker.StarTracker">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">StarTracker</span><span class="p">(</span><span class="n">Sensor</span><span class="p">):</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Star tracker direction sensor model.</span>
 
 <span class="sd">    This class implements a simplified but estimator-consistent **star tracker**</span>
@@ -642,7 +643,7 @@
 <span class="sd">    :class:`~ADCS.environment.StarCatalog`  </span>
 <span class="sd">    :class:`~ADCS.environment.NavigationStar`  </span>
 <span class="sd">    :class:`~ADCS.satellite_hardware.sensors.sensor.Sensor`</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="n">output_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span>
 
@@ -656,7 +657,7 @@
         <span class="n">sun_exclusion</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="mf">25.0</span><span class="p">),</span>
         <span class="n">star_catalog</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">StarCatalog</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Initialize the star tracker sensor.</span>
 
 <span class="sd">        :param sample_time: Sampling period of the star tracker [s].</span>
@@ -678,13 +679,13 @@
 <span class="sd">        :type star_catalog: :class:`~ADCS.environment.StarCatalog` or None</span>
 <span class="sd">        :return: None</span>
 <span class="sd">        :rtype: None</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         
         <span class="c1"># 1. Geometry Setup</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">boresight</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">boresight</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
         <span class="n">norm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">boresight</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">norm</span> <span class="o">&lt;</span> <span class="mf">1e-6</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Boresight vector cannot be zero.&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Boresight vector cannot be zero."</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">boresight</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">boresight</span> <span class="o">/</span> <span class="n">norm</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">fov</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">fov</span><span class="p">)</span>
@@ -706,12 +707,12 @@
             <span class="n">estimate_bias</span><span class="o">=</span><span class="n">estimate_bias</span>
         <span class="p">)</span>
 
-        <span class="c1"># 4. Align the (copied) noise model to this specific sensor&#39;s body frame</span>
+        <span class="c1"># 4. Align the (copied) noise model to this specific sensor's body frame</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">noise</span><span class="p">,</span> <span class="n">AnisotropicNoise</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">noise</span><span class="o">.</span><span class="n">align_to_body</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_R_noise</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_build_noise_rotation</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">]:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Construct a rotation matrix that aligns the sensor boresight with the</span>
 <span class="sd">        positive body-frame :math:`\hat{z}` axis.</span>
 
@@ -722,7 +723,7 @@
 <span class="sd">            Rotation matrix mapping the nominal sensor frame to the spacecraft</span>
 <span class="sd">            body frame.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">])</span>
 
         <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">boresight</span><span class="p">,</span> <span class="n">z</span><span class="p">):</span>
@@ -742,7 +743,7 @@
         <span class="k">return</span> <span class="n">R</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_get_sun_eci</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">]]:</span>
-        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">os</span><span class="p">,</span> <span class="s1">&#39;S&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">S</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">os</span><span class="p">,</span> <span class="s1">'S'</span><span class="p">)</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">S</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">s</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">S</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="mi">0</span><span class="p">):</span>
                 <span class="k">return</span> <span class="n">s</span>
@@ -750,8 +751,8 @@
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_get_moon_eci</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">]]:</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">os</span><span class="p">,</span> <span class="s1">&#39;ephem&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">ephem</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">moon</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">ephem</span><span class="o">.</span><span class="n">planets</span><span class="p">[</span><span class="s1">&#39;moon&#39;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">os</span><span class="p">,</span> <span class="s1">'ephem'</span><span class="p">)</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">ephem</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">moon</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">ephem</span><span class="o">.</span><span class="n">planets</span><span class="p">[</span><span class="s1">'moon'</span><span class="p">]</span>
                 <span class="n">moon_icrf</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">ephem</span><span class="o">.</span><span class="n">earth</span><span class="o">.</span><span class="n">at</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">sf_pos</span><span class="o">.</span><span class="n">t</span><span class="p">)</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">moon</span><span class="p">)</span><span class="o">.</span><span class="n">apparent</span><span class="p">()</span>
                 <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">moon_icrf</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">km</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
         <span class="k">except</span> <span class="p">(</span><span class="ne">KeyError</span><span class="p">,</span> <span class="ne">AttributeError</span><span class="p">):</span>
@@ -759,7 +760,7 @@
         <span class="k">return</span> <span class="kc">None</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_select_star</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">q</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">],</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">NavigationStar</span><span class="p">]:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Select the brightest visible navigation star.</span>
 
 <span class="sd">        Visibility is determined using the</span>
@@ -777,7 +778,7 @@
 <span class="sd">        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
 <span class="sd">        :return: Brightest visible navigation star, or ``None`` if no valid star is available.</span>
 <span class="sd">        :rtype: :class:`~ADCS.environment.NavigationStar` or None</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
 
         <span class="n">A</span> <span class="o">=</span> <span class="n">rot_mat</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
         <span class="n">boresight_eci</span> <span class="o">=</span> <span class="n">A</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">boresight</span>
@@ -802,7 +803,7 @@
 <div class="viewcode-block" id="StarTracker.clean_reading">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.sensors.star_tracker.html#ADCS.satellite_hardware.sensors.star_tracker.StarTracker.clean_reading">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">clean_reading</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">],</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">]:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Compute the noise-free, bias-free star tracker measurement.</span>
 
 <span class="sd">        The attitude quaternion is extracted from the state vector as</span>
@@ -826,7 +827,7 @@
 <span class="sd">        :return: Unit vector pointing toward the selected navigation star in the</span>
 <span class="sd">                 body frame, or ``NaN`` if no star is visible.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">q</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">q</span>
         <span class="n">star</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_select_star</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">os</span><span class="p">)</span>
         
@@ -842,7 +843,7 @@
 <div class="viewcode-block" id="StarTracker.reading">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.sensors.star_tracker.html#ADCS.satellite_hardware.sensors.star_tracker.StarTracker.reading">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">reading</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">],</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span> <span class="n">dmode</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ErrorMode</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">]:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Compute the full star tracker measurement including bias and noise.</span>
 
 <span class="sd">        Bias and noise are applied using</span>
@@ -858,7 +859,7 @@
 <span class="sd">        :type dmode: :class:`~ADCS.satellite_hardware.errors.ErrorMode` or None</span>
 <span class="sd">        :return: Normalized star direction measurement in the body frame.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="c1"># Sensor.reading() handles clean + bias + noise</span>
         <span class="n">measurement</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">reading</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">os</span><span class="p">,</span> <span class="n">dmode</span><span class="p">)</span>
         
@@ -874,7 +875,7 @@
 <div class="viewcode-block" id="StarTracker.basestate_jac">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.sensors.star_tracker.html#ADCS.satellite_hardware.sensors.star_tracker.StarTracker.basestate_jac">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">basestate_jac</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">],</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">]:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Jacobian of the star tracker measurement with respect to the base state.</span>
 
 <span class="sd">        The measurement depends **only** on the attitude quaternion. Therefore,</span>
@@ -899,7 +900,7 @@
 <span class="sd">        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
 <span class="sd">        :return: Base-state Jacobian stacked as ``[ω; q]``, shape ``(7, 3)``.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_star</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">7</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_length</span><span class="p">))</span>
 
@@ -915,7 +916,7 @@
 <div class="viewcode-block" id="StarTracker.bias_jac">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.sensors.star_tracker.html#ADCS.satellite_hardware.sensors.star_tracker.StarTracker.bias_jac">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">bias_jac</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">],</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">]:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Jacobian of the measurement with respect to bias states.</span>
 
 <span class="sd">        The star tracker bias is not included in the estimator state for this</span>
@@ -927,19 +928,19 @@
 <span class="sd">        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
 <span class="sd">        :return: Empty bias Jacobian of shape ``(0, 3)``.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_length</span><span class="p">))</span></div>
 
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">noise_covariance</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">]:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Measurement noise covariance matrix.</span>
 
 <span class="sd">        :return:</span>
 <span class="sd">            Measurement noise covariance expressed in the spacecraft body frame.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">noise</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">noise</span><span class="o">.</span><span class="n">cov</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span></div>

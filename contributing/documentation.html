@@ -229,6 +229,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../release_notes/0_1_8_installable.html">0.1.8 Installable from PyPI (2026-08-05)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../release_notes/0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
@@ -581,7 +582,7 @@ sphinx-apidoc<span class="w"> </span>-f<span class="w"> </span>-e<span class="w"
 </div>
 <p>All new public functions and classes <strong>must</strong> be included in the module-level
 <code class="docutils literal notranslate"><span class="pre">__all__</span></code> declaration:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;MyClass&quot;</span><span class="p">,</span> <span class="s2">&quot;my_function&quot;</span><span class="p">]</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"MyClass"</span><span class="p">,</span> <span class="s2">"my_function"</span><span class="p">]</span>
 </pre></div>
 </div>
 </section>
@@ -589,7 +590,7 @@ sphinx-apidoc<span class="w"> </span>-f<span class="w"> </span>-e<span class="w"
 <h2>AI-Assisted Documentation<a class="headerlink" href="#ai-assisted-documentation" title="Link to this heading">¶</a></h2>
 <p>You can use the following AI prompt to help generate docstrings for new functions:</p>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>Write a Sphinx+LaTeX documentation for these classes and functions, including:
-- r&quot;&quot;&quot; strings
+- r""" strings
 - Full math explanation with equations
 - When referencing other classes or methods, use the full link :class:`~ADCS.etc`
 - STRICTLY use :param:, :type:, :return:, :rtype:
@@ -604,7 +605,7 @@ Review your results and compare it with the rules above. If one of the rules is 
 <section id="example">
 <h2>Example<a class="headerlink" href="#example" title="Link to this heading">¶</a></h2>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">quat_diff</span><span class="p">(</span><span class="n">q0</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">q1</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Compute the relative quaternion between two attitudes.</span>
 
 <span class="sd">    The quaternion error is defined as</span>
@@ -624,7 +625,7 @@ Review your results and compare it with the rules above. If one of the rules is 
 <span class="sd">    :return: Relative quaternion mapping ``q0`` to ``q1``.</span>
 <span class="sd">    :rtype: numpy.ndarray</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 </pre></div>
 </div>
 </section>

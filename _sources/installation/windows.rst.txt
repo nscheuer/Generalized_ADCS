@@ -35,6 +35,5 @@ Install Python dependencies:
 .. code-block:: powershell
 
    pip install -r requirements.txt
-   pip install git+https://github.com/jcrudy/choldate.git --no-build-isolation
 
 The ``--no-build-isolation`` flag is required for Cython access during build.

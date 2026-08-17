@@ -228,6 +228,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../../release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_8_installable.html">0.1.8 Installable from PyPI (2026-08-05)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
@@ -540,7 +541,7 @@
         <article role="main" id="furo-main-content">
           <h1>Source code for ADCS.satellite_hardware.disturbances.gg_disturbance</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;GG_Disturbance&quot;</span><span class="p">]</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"GG_Disturbance"</span><span class="p">]</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
@@ -556,7 +557,7 @@
 
 <span class="nd">@njit</span><span class="p">(</span><span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">_gg_torque_kernel</span><span class="p">(</span><span class="n">R_B</span><span class="p">,</span> <span class="n">J_0</span><span class="p">,</span> <span class="n">mu_e</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Gravity-gradient torque: 3*mu/r^3 * (n x J*n), where n = -R_B/|R_B|.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Gravity-gradient torque: 3*mu/r^3 * (n x J*n), where n = -R_B/|R_B|."""</span>
     <span class="n">r2</span> <span class="o">=</span> <span class="n">R_B</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">R_B</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">R_B</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span>
     <span class="n">r_norm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">r2</span><span class="p">)</span>
     <span class="n">inv_r</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">r_norm</span>
@@ -583,7 +584,7 @@
 <div class="viewcode-block" id="GG_Disturbance">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.disturbances.gg_disturbance.html#ADCS.satellite_hardware.disturbances.gg_disturbance.GG_Disturbance">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">GG_Disturbance</span><span class="p">(</span><span class="n">Disturbance</span><span class="p">):</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    **Gravity-Gradient Disturbance Torque Model**</span>
 
 <span class="sd">    This class implements the **gravity-gradient (GG) torque** acting on a rigid</span>
@@ -595,7 +596,7 @@
 <span class="sd">    The model assumes:</span>
 <span class="sd">    </span>
 <span class="sd">    - A rigid spacecraft with constant inertia tensor expressed in the body frame</span>
-<span class="sd">    - A central gravitational field characterized by Earth&#39;s gravitational parameter</span>
+<span class="sd">    - A central gravitational field characterized by Earth's gravitational parameter</span>
 <span class="sd">      :math:`\mu_e`</span>
 <span class="sd">    - The spacecraft attitude is represented implicitly through the mapping of</span>
 <span class="sd">      orbital position into the body frame</span>
@@ -627,9 +628,9 @@
 
 <span class="sd">    These derivatives are required for high-order attitude dynamics,</span>
 <span class="sd">    sensitivity analysis, and second-order optimization or estimation methods.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Initialize the gravity-gradient disturbance model.</span>
 
 <span class="sd">        This constructor performs no parameter initialization beyond invoking</span>
@@ -639,13 +640,13 @@
 
 <span class="sd">        :return: None</span>
 <span class="sd">        :rtype: None</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
 <div class="viewcode-block" id="GG_Disturbance.torque">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.disturbances.gg_disturbance.html#ADCS.satellite_hardware.disturbances.gg_disturbance.GG_Disturbance.torque">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">torque</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sat</span><span class="p">:</span> <span class="n">Satellite</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Compute the **gravity-gradient torque** in the body frame.</span>
 
 <span class="sd">        Let :math:`\mathbf{R}_B` be the position vector from the Earth center to the</span>
@@ -688,19 +689,19 @@
 <span class="sd">        :type sat: :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`</span>
 <span class="sd">        :param x: Full spacecraft state containing the attitude quaternion.</span>
 <span class="sd">        :type x: :class:`numpy.ndarray`</span>
-<span class="sd">        :param os: Orbital state provider supplying the body-frame position vector ``&quot;r&quot;``.</span>
+<span class="sd">        :param os: Orbital state provider supplying the body-frame position vector ``"r"``.</span>
 <span class="sd">        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
 <span class="sd">        :return: Gravity-gradient torque vector in the body frame, shape ``(3,)``.</span>
 <span class="sd">        :rtype: :class:`numpy.ndarray`</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">vecs</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">get_state_vector</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">_gg_torque_kernel</span><span class="p">(</span><span class="n">vecs</span><span class="p">[</span><span class="s2">&quot;r&quot;</span><span class="p">],</span> <span class="n">sat</span><span class="o">.</span><span class="n">J_0</span><span class="p">,</span> <span class="n">EarthConstants</span><span class="o">.</span><span class="n">mu_e</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">_gg_torque_kernel</span><span class="p">(</span><span class="n">vecs</span><span class="p">[</span><span class="s2">"r"</span><span class="p">],</span> <span class="n">sat</span><span class="o">.</span><span class="n">J_0</span><span class="p">,</span> <span class="n">EarthConstants</span><span class="o">.</span><span class="n">mu_e</span><span class="p">)</span></div>
 
     
 <div class="viewcode-block" id="GG_Disturbance.torque_qvac">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.disturbances.gg_disturbance.html#ADCS.satellite_hardware.disturbances.gg_disturbance.GG_Disturbance.torque_qvac">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">torque_qvac</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sat</span><span class="p">:</span> <span class="n">Satellite</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Compute the **Jacobian of the gravity-gradient torque with respect to the</span>
 <span class="sd">        attitude quaternion**.</span>
 
@@ -768,22 +769,22 @@
 <span class="sd">        :param x: Full spacecraft state containing the attitude quaternion.</span>
 <span class="sd">        :type x: :class:`numpy.ndarray`</span>
 <span class="sd">        :param os: Orbital state provider supplying position and its quaternion derivatives</span>
-<span class="sd">                   via ``&quot;r&quot;``, ``&quot;dr&quot;``.</span>
+<span class="sd">                   via ``"r"``, ``"dr"``.</span>
 <span class="sd">        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
 <span class="sd">        :return: Quaternion Jacobian of gravity-gradient torque.</span>
 <span class="sd">        :rtype: :class:`numpy.ndarray`</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">vecs</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">get_state_vector</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">)</span>
 
-        <span class="n">R_B</span> <span class="o">=</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">&quot;r&quot;</span><span class="p">]</span>
+        <span class="n">R_B</span> <span class="o">=</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">"r"</span><span class="p">]</span>
         <span class="n">r_body_hat</span> <span class="o">=</span> <span class="n">normalize</span><span class="p">(</span><span class="n">R_B</span><span class="p">)</span>
-        <span class="n">dr_body_hat__dq</span> <span class="o">=</span> <span class="n">normed_vec_jac</span><span class="p">(</span><span class="n">R_B</span><span class="p">,</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">&quot;dr&quot;</span><span class="p">])</span>
+        <span class="n">dr_body_hat__dq</span> <span class="o">=</span> <span class="n">normed_vec_jac</span><span class="p">(</span><span class="n">R_B</span><span class="p">,</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">"dr"</span><span class="p">])</span>
         <span class="n">nadir_vec</span> <span class="o">=</span> <span class="o">-</span><span class="n">r_body_hat</span>
         <span class="n">dnadir_vec__dq</span> <span class="o">=</span> <span class="o">-</span><span class="n">dr_body_hat__dq</span>
 
         <span class="n">const_term</span> <span class="o">=</span> <span class="mf">3.0</span><span class="o">*</span><span class="n">EarthConstants</span><span class="o">.</span><span class="n">mu_e</span><span class="o">/</span><span class="p">(</span><span class="n">norm</span><span class="p">(</span><span class="n">R_B</span><span class="p">)</span><span class="o">**</span><span class="mf">3.0</span><span class="p">)</span>
 
-        <span class="n">dc__dq</span> <span class="o">=</span> <span class="o">-</span><span class="mf">9.0</span><span class="o">*</span><span class="n">EarthConstants</span><span class="o">.</span><span class="n">mu_e</span><span class="o">*</span><span class="n">vec_norm_jac</span><span class="p">(</span><span class="n">R_B</span><span class="p">,</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">&quot;dr&quot;</span><span class="p">])</span><span class="o">/</span><span class="p">(</span><span class="n">norm</span><span class="p">(</span><span class="n">R_B</span><span class="p">)</span><span class="o">**</span><span class="mf">4.0</span><span class="p">)</span>
+        <span class="n">dc__dq</span> <span class="o">=</span> <span class="o">-</span><span class="mf">9.0</span><span class="o">*</span><span class="n">EarthConstants</span><span class="o">.</span><span class="n">mu_e</span><span class="o">*</span><span class="n">vec_norm_jac</span><span class="p">(</span><span class="n">R_B</span><span class="p">,</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">"dr"</span><span class="p">])</span><span class="o">/</span><span class="p">(</span><span class="n">norm</span><span class="p">(</span><span class="n">R_B</span><span class="p">)</span><span class="o">**</span><span class="mf">4.0</span><span class="p">)</span>
         <span class="c1"># dnadir_vec__dq is (4,3) = [quat-index, vector-component]; the term</span>
         <span class="c1"># J_0 @ dnadir must contract J_0 against the vector axis (axis 1), i.e.</span>
         <span class="c1"># row i is J_0 @ dnadir[i]. ``sat.J_0 @ dnadir_vec__dq`` is (3,3)@(4,3)</span>
@@ -801,21 +802,21 @@
 <div class="viewcode-block" id="GG_Disturbance.torque_qjac">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.disturbances.gg_disturbance.html#ADCS.satellite_hardware.disturbances.gg_disturbance.GG_Disturbance.torque_qjac">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">torque_qjac</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sat</span><span class="p">:</span> <span class="n">Satellite</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Alias of :meth:`torque_qvac` so the gravity-gradient disturbance exposes</span>
 <span class="sd">        the same ``torque_qjac`` quaternion-Jacobian entry point as every other</span>
 <span class="sd">        disturbance (estimators/planners iterate ``torque_qjac`` generically).</span>
 
 <span class="sd">        :return: Quaternion Jacobian of the gravity-gradient torque, shape ``(4,3)``.</span>
 <span class="sd">        :rtype: :class:`numpy.ndarray`</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">torque_qvac</span><span class="p">(</span><span class="n">sat</span><span class="o">=</span><span class="n">sat</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">os</span><span class="o">=</span><span class="n">os</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="GG_Disturbance.torque__qqhess">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.disturbances.gg_disturbance.html#ADCS.satellite_hardware.disturbances.gg_disturbance.GG_Disturbance.torque__qqhess">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">torque__qqhess</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sat</span><span class="p">:</span> <span class="n">Satellite</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Compute the **Hessian of the gravity-gradient torque with respect to the</span>
 <span class="sd">        attitude quaternion**.</span>
 
@@ -877,18 +878,18 @@
 <span class="sd">        :param x: Full spacecraft state containing the attitude quaternion.</span>
 <span class="sd">        :type x: :class:`numpy.ndarray`</span>
 <span class="sd">        :param os: Orbital state provider supplying position and its first and second</span>
-<span class="sd">                   quaternion derivatives via ``&quot;r&quot;``, ``&quot;dr&quot;``, ``&quot;ddr&quot;``.</span>
+<span class="sd">                   quaternion derivatives via ``"r"``, ``"dr"``, ``"ddr"``.</span>
 <span class="sd">        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
 <span class="sd">        :return: Quaternion Hessian of gravity-gradient torque,</span>
 <span class="sd">                 shape ``(3, 4, 4)``.</span>
 <span class="sd">        :rtype: :class:`numpy.ndarray`</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">vecs</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">get_state_vector</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">)</span>
 
-        <span class="n">R_B</span> <span class="o">=</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">&quot;r&quot;</span><span class="p">]</span>
+        <span class="n">R_B</span> <span class="o">=</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">"r"</span><span class="p">]</span>
         <span class="n">r_body_hat</span> <span class="o">=</span> <span class="n">normalize</span><span class="p">(</span><span class="n">R_B</span><span class="p">)</span>
-        <span class="n">dr_body_hat__dq</span> <span class="o">=</span> <span class="n">normed_vec_jac</span><span class="p">(</span><span class="n">R_B</span><span class="p">,</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">&quot;dr&quot;</span><span class="p">])</span>
-        <span class="n">ddr_body_hat__dq</span> <span class="o">=</span> <span class="n">normed_vec_hess</span><span class="p">(</span><span class="n">R_B</span><span class="p">,</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">&quot;dr&quot;</span><span class="p">],</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">&quot;ddr&quot;</span><span class="p">])</span>
+        <span class="n">dr_body_hat__dq</span> <span class="o">=</span> <span class="n">normed_vec_jac</span><span class="p">(</span><span class="n">R_B</span><span class="p">,</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">"dr"</span><span class="p">])</span>
+        <span class="n">ddr_body_hat__dq</span> <span class="o">=</span> <span class="n">normed_vec_hess</span><span class="p">(</span><span class="n">R_B</span><span class="p">,</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">"dr"</span><span class="p">],</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">"ddr"</span><span class="p">])</span>
         <span class="n">nadir_vec</span> <span class="o">=</span> <span class="o">-</span><span class="n">r_body_hat</span>
         <span class="n">dnadir_vec__dq</span> <span class="o">=</span> <span class="o">-</span><span class="n">dr_body_hat__dq</span>
         <span class="n">ddnadir_vec__dqdq</span> <span class="o">=</span> <span class="o">-</span><span class="n">ddr_body_hat__dq</span>
@@ -899,12 +900,12 @@
             <span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">sat</span><span class="o">.</span><span class="n">J_0</span> <span class="o">@</span> <span class="n">dnadir_vec__dq</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
         <span class="p">)</span>
 
-        <span class="n">dc__dq</span> <span class="o">=</span> <span class="o">-</span><span class="mf">9.0</span><span class="o">*</span><span class="n">EarthConstants</span><span class="o">.</span><span class="n">mu_e</span><span class="o">*</span><span class="n">vec_norm_jac</span><span class="p">(</span><span class="n">R_B</span><span class="p">,</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">&quot;dr&quot;</span><span class="p">])</span><span class="o">/</span><span class="p">(</span><span class="n">norm</span><span class="p">(</span><span class="n">R_B</span><span class="p">)</span><span class="o">**</span><span class="mf">4.0</span><span class="p">)</span>
+        <span class="n">dc__dq</span> <span class="o">=</span> <span class="o">-</span><span class="mf">9.0</span><span class="o">*</span><span class="n">EarthConstants</span><span class="o">.</span><span class="n">mu_e</span><span class="o">*</span><span class="n">vec_norm_jac</span><span class="p">(</span><span class="n">R_B</span><span class="p">,</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">"dr"</span><span class="p">])</span><span class="o">/</span><span class="p">(</span><span class="n">norm</span><span class="p">(</span><span class="n">R_B</span><span class="p">)</span><span class="o">**</span><span class="mf">4.0</span><span class="p">)</span>
         <span class="n">ddc__dqdq</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="o">-</span><span class="mf">9.0</span><span class="o">*</span><span class="n">EarthConstants</span><span class="o">.</span><span class="n">mu_e</span><span class="o">*</span><span class="n">vec_norm_hess</span><span class="p">(</span><span class="n">R_B</span><span class="p">,</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">&quot;dr&quot;</span><span class="p">],</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">&quot;ddr&quot;</span><span class="p">])</span><span class="o">/</span><span class="p">(</span><span class="n">norm</span><span class="p">(</span><span class="n">R_B</span><span class="p">)</span><span class="o">**</span><span class="mf">4.0</span><span class="p">)</span>
+            <span class="o">-</span><span class="mf">9.0</span><span class="o">*</span><span class="n">EarthConstants</span><span class="o">.</span><span class="n">mu_e</span><span class="o">*</span><span class="n">vec_norm_hess</span><span class="p">(</span><span class="n">R_B</span><span class="p">,</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">"dr"</span><span class="p">],</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">"ddr"</span><span class="p">])</span><span class="o">/</span><span class="p">(</span><span class="n">norm</span><span class="p">(</span><span class="n">R_B</span><span class="p">)</span><span class="o">**</span><span class="mf">4.0</span><span class="p">)</span>
             <span class="o">-</span> <span class="mf">4.0</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span>
-                <span class="n">vec_norm_jac</span><span class="p">(</span><span class="n">R_B</span><span class="p">,</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">&quot;dr&quot;</span><span class="p">]),</span>
-                <span class="n">vec_norm_jac</span><span class="p">(</span><span class="n">R_B</span><span class="p">,</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">&quot;dr&quot;</span><span class="p">]),</span>
+                <span class="n">vec_norm_jac</span><span class="p">(</span><span class="n">R_B</span><span class="p">,</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">"dr"</span><span class="p">]),</span>
+                <span class="n">vec_norm_jac</span><span class="p">(</span><span class="n">R_B</span><span class="p">,</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">"dr"</span><span class="p">]),</span>
             <span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">norm</span><span class="p">(</span><span class="n">R_B</span><span class="p">)</span><span class="o">**</span><span class="mf">5.0</span><span class="p">)</span>
         <span class="p">)</span>
         <span class="n">dv__dq</span> <span class="o">=</span> <span class="p">(</span>

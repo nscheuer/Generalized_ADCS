@@ -228,6 +228,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../../release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_8_installable.html">0.1.8 Installable from PyPI (2026-08-05)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
@@ -540,7 +541,7 @@
         <article role="main" id="furo-main-content">
           <h1>Source code for ADCS.satellite_hardware.disturbances.drag_disturbance</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span> 
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Drag_Disturbance&quot;</span><span class="p">]</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"Drag_Disturbance"</span><span class="p">]</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
@@ -556,7 +557,7 @@
 
 <span class="nd">@njit</span><span class="p">(</span><span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">_drag_torque_kernel</span><span class="p">(</span><span class="n">V_B</span><span class="p">,</span> <span class="n">rho</span><span class="p">,</span> <span class="n">COM</span><span class="p">,</span> <span class="n">normals</span><span class="p">,</span> <span class="n">areas</span><span class="p">,</span> <span class="n">centroids</span><span class="p">,</span> <span class="n">CDs</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Aerodynamic drag torque summed over geometry faces.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Aerodynamic drag torque summed over geometry faces."""</span>
     <span class="n">nf</span> <span class="o">=</span> <span class="n">normals</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">wx</span> <span class="o">=</span> <span class="mf">0.0</span>
     <span class="n">wy</span> <span class="o">=</span> <span class="mf">0.0</span>
@@ -582,7 +583,7 @@
 <div class="viewcode-block" id="Drag_Disturbance">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.disturbances.drag_disturbance.html#ADCS.satellite_hardware.disturbances.drag_disturbance.Drag_Disturbance">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">Drag_Disturbance</span><span class="p">(</span><span class="n">Disturbance</span><span class="p">):</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    **Aerodynamic Drag Disturbance Model**</span>
 
 <span class="sd">    This class models the **aerodynamic drag torque** acting on a satellite in</span>
@@ -682,9 +683,9 @@
 
 <span class="sd">    :param config: Geometry and aerodynamic coefficients for each face.</span>
 <span class="sd">    :type config: :class:`~ADCS.satellite_hardware.disturbances.helpers.geometry_config.GeometryConfig`</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">GeometryConfig</span><span class="p">):</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Initialize the aerodynamic drag disturbance model from a geometry configuration.</span>
 
 <span class="sd">        This constructor reads the per-face parameters from</span>
@@ -702,22 +703,22 @@
 <span class="sd">        :type config: :class:`~ADCS.satellite_hardware.disturbances.helpers.geometry_config.GeometryConfig`</span>
 <span class="sd">        :return: None</span>
 <span class="sd">        :rtype: None</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="n">config</span>
         <span class="n">params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">params</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">numfaces</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">areas</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">p</span><span class="p">[</span><span class="s2">&quot;area&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">params</span><span class="p">])</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">centroids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="n">p</span><span class="p">[</span><span class="s2">&quot;centroid&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">params</span><span class="p">])</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">normals</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="n">normalize</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s2">&quot;normal&quot;</span><span class="p">])</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">params</span><span class="p">])</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">CDs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">p</span><span class="p">[</span><span class="s2">&quot;CD&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">params</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">areas</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">p</span><span class="p">[</span><span class="s2">"area"</span><span class="p">]</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">params</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">centroids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="n">p</span><span class="p">[</span><span class="s2">"centroid"</span><span class="p">]</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">params</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">normals</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="n">normalize</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s2">"normal"</span><span class="p">])</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">params</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CDs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">p</span><span class="p">[</span><span class="s2">"CD"</span><span class="p">]</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">params</span><span class="p">])</span>
         
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
 <div class="viewcode-block" id="Drag_Disturbance.torque">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.disturbances.drag_disturbance.html#ADCS.satellite_hardware.disturbances.drag_disturbance.Drag_Disturbance.torque">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">torque</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sat</span><span class="p">:</span> <span class="n">Satellite</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span> <span class="o">|</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Compute the **aerodynamic drag torque** in the body frame.</span>
 
 <span class="sd">        The orbital state interface is queried as:</span>
@@ -774,16 +775,16 @@
 <span class="sd">        :type sat: :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`</span>
 <span class="sd">        :param x: Full spacecraft state; must contain the attitude quaternion used by the orbital-state mapping.</span>
 <span class="sd">        :type x: :class:`numpy.ndarray`</span>
-<span class="sd">        :param os: Orbital state provider that supplies ``&quot;v&quot;`` (body-frame relative velocity) and ``&quot;rho&quot;`` (density)</span>
+<span class="sd">        :param os: Orbital state provider that supplies ``"v"`` (body-frame relative velocity) and ``"rho"`` (density)</span>
 <span class="sd">                   through ``os.get_state_vector(x=...)``. Some applications may pass a mapping with equivalent keys.</span>
 <span class="sd">        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State` | :class:`dict`\\[:class:`str`, :class:`numpy.ndarray`\\]</span>
 <span class="sd">        :return: Total aerodynamic drag torque in the body frame, shape ``(3,)``.</span>
 <span class="sd">        :rtype: :class:`numpy.ndarray`</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">vecs</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">get_state_vector</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">)</span>
 
-        <span class="n">V_B</span> <span class="o">=</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">&quot;v&quot;</span><span class="p">]</span><span class="o">*</span><span class="mf">1000.0</span> <span class="c1">#m/s</span>
-        <span class="n">rho</span> <span class="o">=</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">&quot;rho&quot;</span><span class="p">]</span>
+        <span class="n">V_B</span> <span class="o">=</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">"v"</span><span class="p">]</span><span class="o">*</span><span class="mf">1000.0</span> <span class="c1">#m/s</span>
+        <span class="n">rho</span> <span class="o">=</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">"rho"</span><span class="p">]</span>
 
         <span class="k">return</span> <span class="n">_drag_torque_kernel</span><span class="p">(</span><span class="n">V_B</span><span class="p">,</span> <span class="n">rho</span><span class="p">,</span> <span class="n">sat</span><span class="o">.</span><span class="n">COM</span><span class="p">,</span>
                                    <span class="bp">self</span><span class="o">.</span><span class="n">normals</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">areas</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">centroids</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">CDs</span><span class="p">)</span></div>
@@ -792,16 +793,16 @@
 <div class="viewcode-block" id="Drag_Disturbance.torque_qjac">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.disturbances.drag_disturbance.html#ADCS.satellite_hardware.disturbances.drag_disturbance.Drag_Disturbance.torque_qjac">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">torque_qjac</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sat</span><span class="p">:</span> <span class="n">Satellite</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Compute the **Jacobian of drag torque with respect to the attitude quaternion**.</span>
 
 <span class="sd">        The drag torque depends on the attitude quaternion :math:`\mathbf{q}` (contained in :math:`x`)</span>
 <span class="sd">        through the body-frame flow :math:`\mathbf{V}_b(\mathbf{q})`. The orbital state provider is</span>
 <span class="sd">        expected to return:</span>
 
-<span class="sd">        - :math:`\mathbf{V}_b` via ``&quot;v&quot;``</span>
-<span class="sd">        - :math:`\rho` via ``&quot;rho&quot;``</span>
-<span class="sd">        - :math:`\dfrac{\partial \mathbf{V}_b}{\partial \mathbf{q}}` via ``&quot;dv&quot;``</span>
+<span class="sd">        - :math:`\mathbf{V}_b` via ``"v"``</span>
+<span class="sd">        - :math:`\rho` via ``"rho"``</span>
+<span class="sd">        - :math:`\dfrac{\partial \mathbf{V}_b}{\partial \mathbf{q}}` via ``"dv"``</span>
 
 <span class="sd">        from:</span>
 
@@ -867,22 +868,22 @@
 <span class="sd">        :type sat: :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`</span>
 <span class="sd">        :param x: Full spacecraft state containing the attitude quaternion.</span>
 <span class="sd">        :type x: :class:`numpy.ndarray`</span>
-<span class="sd">        :param os: Orbital state provider supplying ``&quot;v&quot;``, ``&quot;rho&quot;``, and ``&quot;dv&quot;`` through</span>
+<span class="sd">        :param os: Orbital state provider supplying ``"v"``, ``"rho"``, and ``"dv"`` through</span>
 <span class="sd">                   :meth:`~ADCS.orbits.orbital_state.Orbital_State.get_state_vector`.</span>
 <span class="sd">        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
 <span class="sd">        :return: Quaternion Jacobian :math:`\partial \mathbf{T}_{\mathrm{drag}}/\partial \mathbf{q}`,</span>
 <span class="sd">                 shape ``(3, 4)``.</span>
 <span class="sd">        :rtype: :class:`numpy.ndarray`</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">vecs</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">get_state_vector</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">)</span>
 
-        <span class="c1"># Velocity must be in m/s to match torque() (vecs[&quot;v&quot;]*1000); drag is</span>
+        <span class="c1"># Velocity must be in m/s to match torque() (vecs["v"]*1000); drag is</span>
         <span class="c1"># quadratic in V, so using km/s here made the Jacobian ~1e6 too small.</span>
         <span class="c1"># dV_b/dq must carry the same unit scaling.</span>
-        <span class="n">V_B</span> <span class="o">=</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">&quot;v&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="mf">1000.0</span>          <span class="c1"># m/s</span>
-        <span class="n">rho</span> <span class="o">=</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">&quot;rho&quot;</span><span class="p">]</span>
+        <span class="n">V_B</span> <span class="o">=</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">"v"</span><span class="p">]</span> <span class="o">*</span> <span class="mf">1000.0</span>          <span class="c1"># m/s</span>
+        <span class="n">rho</span> <span class="o">=</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">"rho"</span><span class="p">]</span>
 
-        <span class="n">dv_body__dq</span> <span class="o">=</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">&quot;dv&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="mf">1000.0</span>  <span class="c1"># m/s, consistent with V_B</span>
+        <span class="n">dv_body__dq</span> <span class="o">=</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">"dv"</span><span class="p">]</span> <span class="o">*</span> <span class="mf">1000.0</span>  <span class="c1"># m/s, consistent with V_B</span>
 
         <span class="n">cos_alpha</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">normals</span><span class="p">,</span> <span class="n">V_B</span><span class="p">))</span>
         <span class="n">F</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">CDs</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">areas</span> <span class="o">*</span> <span class="n">cos_alpha</span>
@@ -910,7 +911,7 @@
 <div class="viewcode-block" id="Drag_Disturbance.torque_qqhess">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.disturbances.drag_disturbance.html#ADCS.satellite_hardware.disturbances.drag_disturbance.Drag_Disturbance.torque_qqhess">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">torque_qqhess</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sat</span><span class="p">:</span> <span class="n">Satellite</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Compute the **Hessian of drag torque with respect to the attitude quaternion**.</span>
 
 <span class="sd">        This method returns the second derivative tensor of the drag torque with respect to the</span>
@@ -918,10 +919,10 @@
 <span class="sd">        to return, via</span>
 <span class="sd">        :meth:`~ADCS.orbits.orbital_state.Orbital_State.get_state_vector`:</span>
 
-<span class="sd">        - :math:`\mathbf{V}_b` via ``&quot;v&quot;``</span>
-<span class="sd">        - :math:`\rho` via ``&quot;rho&quot;``</span>
-<span class="sd">        - :math:`\dfrac{\partial \mathbf{V}_b}{\partial \mathbf{q}}` via ``&quot;dv&quot;``</span>
-<span class="sd">        - :math:`\dfrac{\partial^2 \mathbf{V}_b}{\partial \mathbf{q}^2}` via ``&quot;ddv&quot;``</span>
+<span class="sd">        - :math:`\mathbf{V}_b` via ``"v"``</span>
+<span class="sd">        - :math:`\rho` via ``"rho"``</span>
+<span class="sd">        - :math:`\dfrac{\partial \mathbf{V}_b}{\partial \mathbf{q}}` via ``"dv"``</span>
+<span class="sd">        - :math:`\dfrac{\partial^2 \mathbf{V}_b}{\partial \mathbf{q}^2}` via ``"ddv"``</span>
 
 <span class="sd">        **Face factors and their derivatives**</span>
 
@@ -1002,19 +1003,19 @@
 <span class="sd">        :type sat: :class:`~ADCS.satellite_hardware.satellite.satellite.Satellite`</span>
 <span class="sd">        :param x: Full spacecraft state containing the attitude quaternion.</span>
 <span class="sd">        :type x: :class:`numpy.ndarray`</span>
-<span class="sd">        :param os: Orbital state provider supplying ``&quot;v&quot;``, ``&quot;rho&quot;``, ``&quot;dv&quot;``, and ``&quot;ddv&quot;`` through</span>
+<span class="sd">        :param os: Orbital state provider supplying ``"v"``, ``"rho"``, ``"dv"``, and ``"ddv"`` through</span>
 <span class="sd">                   :meth:`~ADCS.orbits.orbital_state.Orbital_State.get_state_vector`.</span>
 <span class="sd">        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
 <span class="sd">        :return: Quaternion Hessian tensor :math:`\partial^2 \mathbf{T}_{\mathrm{drag}}/\partial \mathbf{q}^2`,</span>
 <span class="sd">                 shape ``(3, 4, 4)``.</span>
 <span class="sd">        :rtype: :class:`numpy.ndarray`</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">vecs</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">get_state_vector</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">)</span>
 
-        <span class="n">V_B</span> <span class="o">=</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">&quot;v&quot;</span><span class="p">]</span>
-        <span class="n">rho</span> <span class="o">=</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">&quot;rho&quot;</span><span class="p">]</span>
-        <span class="n">dv_body__dq</span> <span class="o">=</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">&quot;dv&quot;</span><span class="p">]</span>
-        <span class="n">ddv_body__dqdq</span> <span class="o">=</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">&quot;ddv&quot;</span><span class="p">]</span>
+        <span class="n">V_B</span> <span class="o">=</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">"v"</span><span class="p">]</span>
+        <span class="n">rho</span> <span class="o">=</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">"rho"</span><span class="p">]</span>
+        <span class="n">dv_body__dq</span> <span class="o">=</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">"dv"</span><span class="p">]</span>
+        <span class="n">ddv_body__dqdq</span> <span class="o">=</span> <span class="n">vecs</span><span class="p">[</span><span class="s2">"ddv"</span><span class="p">]</span>
 
         <span class="n">cos_alpha</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">normals</span><span class="p">,</span> <span class="n">V_B</span><span class="p">))</span>
         <span class="n">F</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">CDs</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">areas</span> <span class="o">*</span> <span class="n">cos_alpha</span>

@@ -229,6 +229,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../release_notes/0_1_8_installable.html">0.1.8 Installable from PyPI (2026-08-05)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../release_notes/0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
@@ -590,8 +591,8 @@ For the official upstream guide, see:</p>
 <section id="compile-release">
 <h2>Compile (Release)<a class="headerlink" href="#compile-release" title="Link to this heading">¶</a></h2>
 <p>Configure and build the Python-enabled <a class="reference external" href="https://nscheuer.github.io/SALTRO">SALTRO</a> module:</p>
-<div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="nv">$PYTHON_VENV</span> <span class="p">=</span> <span class="s2">&quot;$PWD\venv\Scripts\python.exe&quot;</span>
-<span class="n">cmake</span> <span class="n">-S</span> <span class="p">.</span> <span class="n">-B</span> <span class="n">build</span> <span class="n">-G</span> <span class="s2">&quot;Visual Studio 17 2022&quot;</span> <span class="n">-A</span> <span class="n">x64</span> <span class="n">-DSALTRO_BUILD_PYTHON</span><span class="p">=</span><span class="n">ON</span> <span class="n">-DPython3_EXECUTABLE</span><span class="p">=</span><span class="s2">&quot;$PYTHON_VENV&quot;</span>
+<div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="nv">$PYTHON_VENV</span> <span class="p">=</span> <span class="s2">"$PWD\venv\Scripts\python.exe"</span>
+<span class="n">cmake</span> <span class="n">-S</span> <span class="p">.</span> <span class="n">-B</span> <span class="n">build</span> <span class="n">-G</span> <span class="s2">"Visual Studio 17 2022"</span> <span class="n">-A</span> <span class="n">x64</span> <span class="n">-DSALTRO_BUILD_PYTHON</span><span class="p">=</span><span class="n">ON</span> <span class="n">-DPython3_EXECUTABLE</span><span class="p">=</span><span class="s2">"$PYTHON_VENV"</span>
 <span class="n">cmake</span> <span class="p">-</span><span class="n">-build</span> <span class="n">build</span> <span class="p">-</span><span class="n">-config</span> <span class="n">Release</span>
 </pre></div>
 </div>
@@ -599,8 +600,8 @@ For the official upstream guide, see:</p>
 <section id="compile-debug">
 <h2>Compile (Debug)<a class="headerlink" href="#compile-debug" title="Link to this heading">¶</a></h2>
 <p>Configure and build debug binaries:</p>
-<div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="nv">$PYTHON_VENV</span> <span class="p">=</span> <span class="s2">&quot;$PWD\venv\Scripts\python.exe&quot;</span>
-<span class="n">cmake</span> <span class="n">-S</span> <span class="p">.</span> <span class="n">-B</span> <span class="n">build-debug</span> <span class="n">-G</span> <span class="s2">&quot;Visual Studio 17 2022&quot;</span> <span class="n">-A</span> <span class="n">x64</span> <span class="n">-DSALTRO_BUILD_PYTHON</span><span class="p">=</span><span class="n">ON</span> <span class="n">-DPython3_EXECUTABLE</span><span class="p">=</span><span class="s2">&quot;$PYTHON_VENV&quot;</span>
+<div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="nv">$PYTHON_VENV</span> <span class="p">=</span> <span class="s2">"$PWD\venv\Scripts\python.exe"</span>
+<span class="n">cmake</span> <span class="n">-S</span> <span class="p">.</span> <span class="n">-B</span> <span class="n">build-debug</span> <span class="n">-G</span> <span class="s2">"Visual Studio 17 2022"</span> <span class="n">-A</span> <span class="n">x64</span> <span class="n">-DSALTRO_BUILD_PYTHON</span><span class="p">=</span><span class="n">ON</span> <span class="n">-DPython3_EXECUTABLE</span><span class="p">=</span><span class="s2">"$PYTHON_VENV"</span>
 <span class="n">cmake</span> <span class="p">-</span><span class="n">-build</span> <span class="n">build-debug</span> <span class="p">-</span><span class="n">-config</span> <span class="n">Debug</span>
 </pre></div>
 </div>

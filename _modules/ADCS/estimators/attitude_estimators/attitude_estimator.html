@@ -228,6 +228,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../../release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_8_installable.html">0.1.8 Installable from PyPI (2026-08-05)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
@@ -539,7 +540,7 @@
         </div>
         <article role="main" id="furo-main-content">
           <h1>Source code for ADCS.estimators.attitude_estimators.attitude_estimator</h1><div class="highlight"><pre>
-<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Attitude_Estimator&quot;</span><span class="p">]</span>
+<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"Attitude_Estimator"</span><span class="p">]</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
@@ -552,7 +553,7 @@
 <div class="viewcode-block" id="Attitude_Estimator">
 <a class="viewcode-back" href="../../../../ADCS.estimators.attitude_estimators.attitude_estimator.html#ADCS.estimators.attitude_estimators.attitude_estimator.Attitude_Estimator">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">Attitude_Estimator</span><span class="p">():</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Abstract base class for spacecraft attitude and bias estimators.</span>
 
 <span class="sd">    This base class provides shared bookkeeping and interfaces for estimators</span>
@@ -624,9 +625,9 @@
 <span class="sd">    - Reduced covariance sub-selection is performed with</span>
 <span class="sd">      :func:`~ADCS.helpers.math_helpers.square_mat_sections`.</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">est_sat</span><span class="p">:</span> <span class="n">EstimatedSatellite</span><span class="p">,</span> <span class="n">J2000</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x_hat</span><span class="p">:</span> <span class="n">EstimatorState</span><span class="p">,</span> <span class="n">P_hat</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">Q_hat</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">cross_term</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">quat_as_vec</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    """</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">est_sat</span><span class="p">:</span> <span class="n">EstimatedSatellite</span><span class="p">,</span> <span class="n">J2000</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x_hat</span><span class="p">:</span> <span class="n">EstimatorState</span><span class="p">,</span> <span class="n">P_hat</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">Q_hat</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">cross_term</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">quat_as_vec</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">ephem</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Ephemeris</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Construct an attitude estimator and initialize its internal bookkeeping.</span>
 
 <span class="sd">        This initializer stores the satellite model reference, prepares a</span>
@@ -659,17 +660,25 @@
 <span class="sd">        :param quat_as_vec: If ``True``, store covariance and process noise in the full</span>
 <span class="sd">            quaternion space (no reduction).</span>
 <span class="sd">        :type quat_as_vec: bool</span>
+<span class="sd">        :param ephem: Optional planetary ephemeris. If ``None``, one is constructed,</span>
+<span class="sd">            which may download a 16 MB kernel on first use. Pass an existing</span>
+<span class="sd">            instance to share it between objects or to avoid the download.</span>
+<span class="sd">        :type ephem: ~ADCS.orbits.ephemeris.Ephemeris or None</span>
 <span class="sd">        :return: ``None``.</span>
 <span class="sd">        :rtype: None</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">est_sat</span> <span class="o">=</span> <span class="n">est_sat</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">cross_term</span> <span class="o">=</span> <span class="n">cross_term</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">quat_as_vec</span> <span class="o">=</span> <span class="n">quat_as_vec</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">dt</span> <span class="o">=</span> <span class="n">dt</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">len_before_sens_bias</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">est_sat</span><span class="o">.</span><span class="n">state_len</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">est_sat</span><span class="o">.</span><span class="n">act_bias_len</span>
 
-        <span class="n">ephem</span> <span class="o">=</span> <span class="n">Ephemeris</span><span class="p">()</span>
+        <span class="c1"># Constructing an Ephemeris can download a 16 MB kernel, so allow one</span>
+        <span class="c1"># to be injected -- matching Orbital_State's `ephem=None` convention.</span>
+        <span class="c1"># Without this the caller had no way to share a single ephemeris, nor</span>
+        <span class="c1"># to point at one on a machine that cannot reach the network.</span>
+        <span class="n">ephem</span> <span class="o">=</span> <span class="n">Ephemeris</span><span class="p">()</span> <span class="k">if</span> <span class="n">ephem</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">ephem</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">prev_os</span> <span class="o">=</span> <span class="n">Orbital_State</span><span class="p">(</span><span class="n">ephem</span><span class="o">=</span><span class="n">ephem</span><span class="p">,</span> <span class="n">J2000</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">R</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]),</span> <span class="n">V</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">]))</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">reset</span><span class="p">(</span><span class="n">J2000</span><span class="o">=</span><span class="n">J2000</span><span class="p">,</span> <span class="n">x_hat</span><span class="o">=</span><span class="n">x_hat</span><span class="p">,</span> <span class="n">P_hat</span><span class="o">=</span><span class="n">P_hat</span><span class="p">,</span> <span class="n">Q_hat</span><span class="o">=</span><span class="n">Q_hat</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="n">dt</span><span class="p">,</span> <span class="n">cross_term</span><span class="o">=</span><span class="n">cross_term</span><span class="p">)</span>
@@ -677,7 +686,7 @@
 <div class="viewcode-block" id="Attitude_Estimator.reset">
 <a class="viewcode-back" href="../../../../ADCS.estimators.attitude_estimators.attitude_estimator.html#ADCS.estimators.attitude_estimators.attitude_estimator.Attitude_Estimator.reset">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">J2000</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x_hat</span><span class="p">:</span> <span class="n">EstimatorState</span><span class="p">,</span> <span class="n">P_hat</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">Q_hat</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">cross_term</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Reset the estimator state, covariance, and process noise.</span>
 
 <span class="sd">        This method validates dimensional consistency between the full augmented</span>
@@ -737,24 +746,24 @@
 <span class="sd">        :return: ``None``.</span>
 <span class="sd">        :rtype: None</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x_hat</span><span class="p">,</span> <span class="n">EstimatorState</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;x_hat must be an EstimatorState, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">x_hat</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"x_hat must be an EstimatorState, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">x_hat</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
         <span class="n">expected_x_hat_length</span> <span class="o">=</span> <span class="mi">7</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">est_sat</span><span class="o">.</span><span class="n">number_RW</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">est_sat</span><span class="o">.</span><span class="n">act_bias_len</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">est_sat</span><span class="o">.</span><span class="n">att_sens_bias_len</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">est_sat</span><span class="o">.</span><span class="n">dist_param_len</span>
         <span class="k">if</span> <span class="n">x_hat</span><span class="o">.</span><span class="n">augmented_size</span> <span class="o">!=</span> <span class="n">expected_x_hat_length</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;x_hat length does not match estimate length in EstimatedSatellite&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"x_hat length does not match estimate length in EstimatedSatellite"</span><span class="p">)</span>
         
         <span class="c1"># Verify P_hat matrix. It should be one shorter than x_hat, since x_hat uses quaternions, which are 3 DOF</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">quat_as_vec</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">P_hat</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="p">(</span><span class="n">x_hat</span><span class="o">.</span><span class="n">augmented_size</span><span class="p">,</span> <span class="n">x_hat</span><span class="o">.</span><span class="n">augmented_size</span><span class="p">):</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;P_hat shape does not match MEKF x_hat&quot;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"P_hat shape does not match MEKF x_hat"</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">Q_hat</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="p">(</span><span class="n">x_hat</span><span class="o">.</span><span class="n">augmented_size</span><span class="p">,</span> <span class="n">x_hat</span><span class="o">.</span><span class="n">augmented_size</span><span class="p">):</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Q_hat shape does not match MEKF x_hat&quot;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Q_hat shape does not match MEKF x_hat"</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">P_hat</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="p">(</span><span class="n">x_hat</span><span class="o">.</span><span class="n">augmented_size</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">x_hat</span><span class="o">.</span><span class="n">augmented_size</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;P_hat shape does not match MEKF x_hat&quot;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"P_hat shape does not match MEKF x_hat"</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">Q_hat</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="p">(</span><span class="n">x_hat</span><span class="o">.</span><span class="n">augmented_size</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">x_hat</span><span class="o">.</span><span class="n">augmented_size</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Q_hat shape does not match MEKF x_hat&quot;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Q_hat shape does not match MEKF x_hat"</span><span class="p">)</span>
         
         <span class="bp">self</span><span class="o">.</span><span class="n">x0_hat</span> <span class="o">=</span> <span class="n">EstimatorState</span><span class="o">.</span><span class="n">from_estimator_array</span><span class="p">(</span>
             <span class="n">x_hat</span><span class="o">.</span><span class="n">as_estimator_array</span><span class="p">(),</span>
@@ -805,17 +814,17 @@
         <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span>
         <span class="n">q</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="p">):</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Robust initial attitude and bias estimation.</span>
 
 <span class="sd">        This routine builds an initial attitude quaternion (and optionally a</span>
 <span class="sd">        gyro bias / angular rate guess) from a subset of available sensor</span>
 <span class="sd">        measurements. Any measurement may be omitted by passing ``None``.</span>
 
-<span class="sd">        Attitude initialization via Wahba&#39;s problem</span>
+<span class="sd">        Attitude initialization via Wahba's problem</span>
 <span class="sd">        -------------------------------------------</span>
 <span class="sd">        If an initial quaternion ``q`` is not provided, this method estimates it</span>
-<span class="sd">        by solving Wahba&#39;s problem using all available vector observations.</span>
+<span class="sd">        by solving Wahba's problem using all available vector observations.</span>
 
 <span class="sd">        Given body-frame measurements :math:`\mathbf{v}_{b,i}` and their inertial</span>
 <span class="sd">        references :math:`\mathbf{v}_{I,i}`, we seek the rotation :math:`\mathbf{R}`</span>
@@ -839,7 +848,7 @@
 
 <span class="sd">        where :math:`\sigma_i^2` is the sensor noise variance and</span>
 <span class="sd">        :math:`P_{\text{bias},i}` is the corresponding scalar bias variance</span>
-<span class="sd">        extracted from the current covariance :attr:`x_hat.cov` at the sensor&#39;s</span>
+<span class="sd">        extracted from the current covariance :attr:`x_hat.cov` at the sensor's</span>
 <span class="sd">        bias index.</span>
 
 <span class="sd">        Sensors used (when available) are:</span>
@@ -888,13 +897,13 @@
 <span class="sd">        :type S_ECI: numpy.ndarray or None</span>
 <span class="sd">        :param os: Current orbital state (included for interface consistency).</span>
 <span class="sd">        :type os: :class:`~ADCS.orbits.orbital_state.Orbital_State`</span>
-<span class="sd">        :param q: Optional initial quaternion, shape ``(4,)``. If provided, Wahba&#39;s problem is skipped.</span>
+<span class="sd">        :param q: Optional initial quaternion, shape ``(4,)``. If provided, Wahba's problem is skipped.</span>
 <span class="sd">        :type q: numpy.ndarray or None</span>
 <span class="sd">        :raises RuntimeError: If no valid vector measurements are available for Wahba initialization.</span>
 <span class="sd">        :return: Updated full augmented state vector (same length as :attr:`x_hat.as_estimator_array()`).</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
 
         <span class="c1"># ---- 1. Build lists of available vectors for Wahba ----------------------</span>
 
@@ -938,7 +947,7 @@
 
         <span class="c1"># Must have &gt;= 1 vector to solve Wahba</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">body_vecs</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;No valid vector measurements available at initialization&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">"No valid vector measurements available at initialization"</span><span class="p">)</span>
 
         <span class="c1"># ---- 2. Solve Wahba (if q not provided) ---------------------------------</span>
 
@@ -985,7 +994,7 @@
 <div class="viewcode-block" id="Attitude_Estimator.update">
 <a class="viewcode-back" href="../../../../ADCS.estimators.attitude_estimators.attitude_estimator.html#ADCS.estimators.attitude_estimators.attitude_estimator.Attitude_Estimator.update">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">sensors</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EstimatorState</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        High-level estimator update wrapper.</span>
 
 <span class="sd">        This method delegates the actual filtering step to a subclass-defined</span>
@@ -1064,7 +1073,7 @@
 <span class="sd">        :return: Updated estimator state container.</span>
 <span class="sd">        :rtype: :class:`~ADCS.state.EstimatorState`</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">prev_os</span><span class="o">.</span><span class="n">J2000</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">prev_os</span> <span class="o">=</span> <span class="n">os</span>
 
@@ -1107,7 +1116,7 @@
 <div class="viewcode-block" id="Attitude_Estimator.cov_use">
 <a class="viewcode-back" href="../../../../ADCS.estimators.attitude_estimators.attitude_estimator.html#ADCS.estimators.attitude_estimators.attitude_estimator.Attitude_Estimator.cov_use">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">cov_use</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Return a boolean mask for the reduced covariance state.</span>
 
 <span class="sd">        The attribute :attr:`use` is a boolean mask over the **full** augmented</span>
@@ -1141,7 +1150,7 @@
 <span class="sd">        :return: Boolean mask of length :math:`N-1` compatible with the reduced covariance matrices.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">quat_as_vec</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">use</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">use</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span></div>

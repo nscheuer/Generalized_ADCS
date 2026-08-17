@@ -228,6 +228,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../../release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_8_installable.html">0.1.8 Installable from PyPI (2026-08-05)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
@@ -539,14 +540,22 @@
         </div>
         <article role="main" id="furo-main-content">
           <h1>Source code for ADCS.helpers.plotting.animate_orbit</h1><div class="highlight"><pre>
-<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;animate_orbit&quot;</span><span class="p">]</span>
+<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"animate_orbit"</span><span class="p">]</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">matplotlib.animation</span><span class="w"> </span><span class="kn">import</span> <span class="n">FuncAnimation</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">matplotlib.widgets</span><span class="w"> </span><span class="kn">import</span> <span class="n">Button</span><span class="p">,</span> <span class="n">RadioButtons</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mpl_toolkits.mplot3d</span><span class="w"> </span><span class="kn">import</span> <span class="n">Axes3D</span>  <span class="c1"># noqa: F401  # needed for 3D projection</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="c1"># Anchor the texture to this file, not to the process working directory. The</span>
+<span class="c1"># previous CWD-relative literal meant animate_orbit() raised FileNotFoundError</span>
+<span class="c1"># for every installed user, and from a source checkout too unless the CWD</span>
+<span class="c1"># happened to be ADCS/helpers/.</span>
+<span class="n">THIS_DIR</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span><span class="o">.</span><span class="n">parent</span>
+<span class="n">DEFAULT_TEXTURE_PATH</span> <span class="o">=</span> <span class="n">THIS_DIR</span> <span class="o">/</span> <span class="s2">"textures"</span> <span class="o">/</span> <span class="s2">"2k_earth_daymap.jpg"</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.CONOPS.goals</span><span class="w"> </span><span class="kn">import</span> <span class="n">Goal</span><span class="p">,</span> <span class="n">ECI_Goal</span><span class="p">,</span> <span class="n">Coordinate_Goal</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ADCS.orbits.orbital_state</span><span class="w"> </span><span class="kn">import</span> <span class="n">Orbital_State</span>
@@ -564,8 +573,9 @@
     <span class="n">est_os_hist</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Orbital_State</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">boresight_goal_hist</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">coord_goal</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Coordinate_Goal</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>  <span class="c1"># Expected: Coordinate_Goal instance (has .target_ecef)</span>
+    <span class="n">texture_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Animate a spacecraft orbit, attitude, environment vectors, and mission goals in 3D.</span>
 
 <span class="sd">    This function produces an interactive 3D Matplotlib animation in the</span>
@@ -790,7 +800,7 @@
 <span class="sd">    :rtype:</span>
 <span class="sd">        None</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">time_hist</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">time_hist</span><span class="p">)</span>
     <span class="n">state_hist</span> <span class="o">=</span> <span class="n">State</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">state_hist</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">est_state_hist</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -798,20 +808,28 @@
     <span class="n">N</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">time_hist</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">os_hist</span><span class="p">)</span> <span class="o">!=</span> <span class="n">N</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;os_hist length must match time_hist length.&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"os_hist length must match time_hist length."</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">est_state_hist</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">est_state_hist</span><span class="p">)</span> <span class="o">!=</span> <span class="n">N</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;est_state_hist length must match time_hist length.&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"est_state_hist length must match time_hist length."</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">est_os_hist</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">est_os_hist</span><span class="p">)</span> <span class="o">!=</span> <span class="n">N</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;est_os_hist length must match time_hist length.&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"est_os_hist length must match time_hist length."</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">boresight_goal_hist</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">boresight_goal_hist</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">boresight_goal_hist</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">boresight_goal_hist</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="n">N</span> <span class="ow">or</span> <span class="n">boresight_goal_hist</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">3</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s2">&quot;boresight_goal_hist must have shape (N, 3), where N = len(time_hist).&quot;</span>
+                <span class="s2">"boresight_goal_hist must have shape (N, 3), where N = len(time_hist)."</span>
             <span class="p">)</span>
 
-    <span class="c1"># Earth texture (assumed to exist at this path)</span>
-    <span class="n">earth_img</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="s2">&quot;plotting/textures/2k_earth_daymap.jpg&quot;</span><span class="p">)</span>
+    <span class="c1"># Earth texture. Degrade to an untextured sphere rather than raising, the</span>
+    <span class="c1"># way the PyVista animators do -- a missing decorative texture should not</span>
+    <span class="c1"># take down the whole animation.</span>
+    <span class="n">tex_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">texture_path</span><span class="p">)</span><span class="o">.</span><span class="n">expanduser</span><span class="p">()</span> <span class="k">if</span> <span class="n">texture_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> \
+        <span class="k">else</span> <span class="n">DEFAULT_TEXTURE_PATH</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">earth_img</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="n">tex_path</span><span class="p">)</span>
+    <span class="k">except</span> <span class="p">(</span><span class="ne">FileNotFoundError</span><span class="p">,</span> <span class="ne">OSError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">)</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Earth texture unavailable (</span><span class="si">{</span><span class="n">exc</span><span class="si">}</span><span class="s2">); drawing an untextured globe."</span><span class="p">)</span>
+        <span class="n">earth_img</span> <span class="o">=</span> <span class="kc">None</span>
 
     <span class="c1"># ---- Extract positions in ECI ----</span>
     <span class="n">R_true</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">os</span><span class="o">.</span><span class="n">R</span> <span class="k">for</span> <span class="n">os</span> <span class="ow">in</span> <span class="n">os_hist</span><span class="p">])</span>
@@ -823,7 +841,7 @@
     <span class="c1"># Figure &amp; Axes</span>
     <span class="c1"># -----------------------------</span>
     <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span> <span class="mi">9</span><span class="p">))</span>
-    <span class="n">ax</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="mi">111</span><span class="p">,</span> <span class="n">projection</span><span class="o">=</span><span class="s2">&quot;3d&quot;</span><span class="p">)</span>
+    <span class="n">ax</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="mi">111</span><span class="p">,</span> <span class="n">projection</span><span class="o">=</span><span class="s2">"3d"</span><span class="p">)</span>
 
     <span class="c1"># Scaling from all orbit points</span>
     <span class="n">all_R</span> <span class="o">=</span> <span class="p">[</span><span class="n">R_true</span><span class="p">]</span>
@@ -841,10 +859,10 @@
     <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
         <span class="k">pass</span>
 
-    <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;X [km]&quot;</span><span class="p">)</span>
-    <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;Y [km]&quot;</span><span class="p">)</span>
-    <span class="n">ax</span><span class="o">.</span><span class="n">set_zlabel</span><span class="p">(</span><span class="s2">&quot;Z [km]&quot;</span><span class="p">)</span>
-    <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Orbit Visualization&quot;</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">"X [km]"</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">"Y [km]"</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_zlabel</span><span class="p">(</span><span class="s2">"Z [km]"</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">"Orbit Visualization"</span><span class="p">)</span>
 
     <span class="c1"># ============================================================</span>
     <span class="c1"># EARTH SPHERE (built once in ECEF, rotated each frame to ECI)</span>
@@ -916,8 +934,8 @@
             <span class="n">rstride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
             <span class="n">cstride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
             <span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span>
-            <span class="n">edgecolor</span><span class="o">=</span><span class="s2">&quot;none&quot;</span><span class="p">,</span>
-            <span class="n">color</span><span class="o">=</span><span class="s2">&quot;lightblue&quot;</span><span class="p">,</span>
+            <span class="n">edgecolor</span><span class="o">=</span><span class="s2">"none"</span><span class="p">,</span>
+            <span class="n">color</span><span class="o">=</span><span class="s2">"lightblue"</span><span class="p">,</span>
             <span class="n">zorder</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
         <span class="p">)</span>
 
@@ -927,7 +945,7 @@
     <span class="n">goal_surf</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">X_goal_local</span> <span class="o">=</span> <span class="n">Y_goal_local</span> <span class="o">=</span> <span class="n">Z_goal_local</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">if</span> <span class="n">coord_goal</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="c1"># &quot;Large&quot; sphere relative to Earth radius; tweak as you like</span>
+        <span class="c1"># "Large" sphere relative to Earth radius; tweak as you like</span>
         <span class="n">goal_radius</span> <span class="o">=</span> <span class="mf">0.2</span> <span class="o">*</span> <span class="n">R_e</span>
 
         <span class="n">u</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="mi">30</span><span class="p">)</span>
@@ -947,8 +965,8 @@
         <span class="n">R_true</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span>
         <span class="n">R_true</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">],</span>
         <span class="n">lw</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span>
-        <span class="n">color</span><span class="o">=</span><span class="s2">&quot;tab:red&quot;</span><span class="p">,</span>
-        <span class="n">label</span><span class="o">=</span><span class="s2">&quot;True Orbit&quot;</span><span class="p">,</span>
+        <span class="n">color</span><span class="o">=</span><span class="s2">"tab:red"</span><span class="p">,</span>
+        <span class="n">label</span><span class="o">=</span><span class="s2">"True Orbit"</span><span class="p">,</span>
         <span class="n">zorder</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
     <span class="p">)</span>
 
@@ -959,9 +977,9 @@
             <span class="n">R_est</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span>
             <span class="n">R_est</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">],</span>
             <span class="n">lw</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
-            <span class="n">linestyle</span><span class="o">=</span><span class="s2">&quot;--&quot;</span><span class="p">,</span>
-            <span class="n">color</span><span class="o">=</span><span class="s2">&quot;tab:orange&quot;</span><span class="p">,</span>
-            <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Est Orbit&quot;</span><span class="p">,</span>
+            <span class="n">linestyle</span><span class="o">=</span><span class="s2">"--"</span><span class="p">,</span>
+            <span class="n">color</span><span class="o">=</span><span class="s2">"tab:orange"</span><span class="p">,</span>
+            <span class="n">label</span><span class="o">=</span><span class="s2">"Est Orbit"</span><span class="p">,</span>
             <span class="n">zorder</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
         <span class="p">)</span>
 
@@ -972,9 +990,9 @@
         <span class="p">[],</span>
         <span class="p">[],</span>
         <span class="p">[],</span>
-        <span class="s2">&quot;o&quot;</span><span class="p">,</span>
-        <span class="n">color</span><span class="o">=</span><span class="s2">&quot;blue&quot;</span><span class="p">,</span>
-        <span class="n">label</span><span class="o">=</span><span class="s2">&quot;True Position&quot;</span><span class="p">,</span>
+        <span class="s2">"o"</span><span class="p">,</span>
+        <span class="n">color</span><span class="o">=</span><span class="s2">"blue"</span><span class="p">,</span>
+        <span class="n">label</span><span class="o">=</span><span class="s2">"True Position"</span><span class="p">,</span>
         <span class="n">zorder</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span>
     <span class="p">)</span>
 
@@ -984,9 +1002,9 @@
             <span class="p">[],</span>
             <span class="p">[],</span>
             <span class="p">[],</span>
-            <span class="s2">&quot;o&quot;</span><span class="p">,</span>
-            <span class="n">color</span><span class="o">=</span><span class="s2">&quot;orange&quot;</span><span class="p">,</span>
-            <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Est Position&quot;</span><span class="p">,</span>
+            <span class="s2">"o"</span><span class="p">,</span>
+            <span class="n">color</span><span class="o">=</span><span class="s2">"orange"</span><span class="p">,</span>
+            <span class="n">label</span><span class="o">=</span><span class="s2">"Est Position"</span><span class="p">,</span>
             <span class="n">zorder</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span>
         <span class="p">)</span>
 
@@ -997,7 +1015,7 @@
     <span class="n">axis_scale</span> <span class="o">=</span> <span class="mf">0.1</span> <span class="o">*</span> <span class="n">max_r</span>
 
     <span class="n">true_axes_lines</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="n">colors_true</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="s2">&quot;g&quot;</span><span class="p">,</span> <span class="s2">&quot;b&quot;</span><span class="p">]</span>
+    <span class="n">colors_true</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"r"</span><span class="p">,</span> <span class="s2">"g"</span><span class="p">,</span> <span class="s2">"b"</span><span class="p">]</span>
     <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">):</span>
         <span class="n">ln</span><span class="p">,</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
             <span class="p">[],</span>
@@ -1011,14 +1029,14 @@
 
     <span class="n">est_axes_lines</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">if</span> <span class="n">est_state_hist</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">colors_est</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;salmon&quot;</span><span class="p">,</span> <span class="s2">&quot;lightgreen&quot;</span><span class="p">,</span> <span class="s2">&quot;lightblue&quot;</span><span class="p">]</span>
+        <span class="n">colors_est</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"salmon"</span><span class="p">,</span> <span class="s2">"lightgreen"</span><span class="p">,</span> <span class="s2">"lightblue"</span><span class="p">]</span>
         <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">):</span>
             <span class="n">ln</span><span class="p">,</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
                 <span class="p">[],</span>
                 <span class="p">[],</span>
                 <span class="p">[],</span>
                 <span class="n">lw</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-                <span class="n">linestyle</span><span class="o">=</span><span class="s2">&quot;--&quot;</span><span class="p">,</span>
+                <span class="n">linestyle</span><span class="o">=</span><span class="s2">"--"</span><span class="p">,</span>
                 <span class="n">color</span><span class="o">=</span><span class="n">colors_est</span><span class="p">[</span><span class="n">k</span><span class="p">],</span>
                 <span class="n">zorder</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span>
             <span class="p">)</span>
@@ -1034,10 +1052,10 @@
             <span class="p">[],</span>
             <span class="p">[],</span>
             <span class="n">lw</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
-            <span class="n">linestyle</span><span class="o">=</span><span class="s2">&quot;:&quot;</span><span class="p">,</span>
-            <span class="n">color</span><span class="o">=</span><span class="s2">&quot;cyan&quot;</span><span class="p">,</span>
+            <span class="n">linestyle</span><span class="o">=</span><span class="s2">":"</span><span class="p">,</span>
+            <span class="n">color</span><span class="o">=</span><span class="s2">"cyan"</span><span class="p">,</span>
             <span class="n">zorder</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span>
-            <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Boresight Goal&quot;</span><span class="p">,</span>
+            <span class="n">label</span><span class="o">=</span><span class="s2">"Boresight Goal"</span><span class="p">,</span>
         <span class="p">)</span>
 
     <span class="c1"># ------------------------------------</span>
@@ -1050,7 +1068,7 @@
         <span class="mi">0</span><span class="p">,</span>
         <span class="mi">0</span><span class="p">,</span>
         <span class="mi">0</span><span class="p">,</span>
-        <span class="n">color</span><span class="o">=</span><span class="s2">&quot;magenta&quot;</span><span class="p">,</span>
+        <span class="n">color</span><span class="o">=</span><span class="s2">"magenta"</span><span class="p">,</span>
         <span class="n">zorder</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">S_arrow</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">quiver</span><span class="p">(</span>
@@ -1060,7 +1078,7 @@
         <span class="mi">0</span><span class="p">,</span>
         <span class="mi">0</span><span class="p">,</span>
         <span class="mi">0</span><span class="p">,</span>
-        <span class="n">color</span><span class="o">=</span><span class="s2">&quot;yellow&quot;</span><span class="p">,</span>
+        <span class="n">color</span><span class="o">=</span><span class="s2">"yellow"</span><span class="p">,</span>
         <span class="n">zorder</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span>
     <span class="p">)</span>
 
@@ -1068,42 +1086,42 @@
     <span class="c1"># Legend</span>
     <span class="c1"># ------------------------------------</span>
     <span class="n">legend_handles</span> <span class="o">=</span> <span class="p">[</span><span class="n">true_orbit_line</span><span class="p">,</span> <span class="n">true_pos_marker</span><span class="p">]</span>
-    <span class="n">legend_labels</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;True Orbit&quot;</span><span class="p">,</span> <span class="s2">&quot;True Position&quot;</span><span class="p">]</span>
+    <span class="n">legend_labels</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"True Orbit"</span><span class="p">,</span> <span class="s2">"True Position"</span><span class="p">]</span>
 
     <span class="k">if</span> <span class="n">est_orbit_line</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">legend_handles</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">est_orbit_line</span><span class="p">)</span>
-        <span class="n">legend_labels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;Est Orbit&quot;</span><span class="p">)</span>
+        <span class="n">legend_labels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"Est Orbit"</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">est_pos_marker</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">legend_handles</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">est_pos_marker</span><span class="p">)</span>
-        <span class="n">legend_labels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;Est Position&quot;</span><span class="p">)</span>
+        <span class="n">legend_labels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"Est Position"</span><span class="p">)</span>
 
-    <span class="n">legend_handles</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">plt</span><span class="o">.</span><span class="n">Line2D</span><span class="p">([</span><span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mi">2</span><span class="p">))</span>
-    <span class="n">legend_labels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;True Body Axes&quot;</span><span class="p">)</span>
+    <span class="n">legend_handles</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">plt</span><span class="o">.</span><span class="n">Line2D</span><span class="p">([</span><span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s2">"r"</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mi">2</span><span class="p">))</span>
+    <span class="n">legend_labels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"True Body Axes"</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">est_axes_lines</span><span class="p">:</span>
         <span class="n">legend_handles</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-            <span class="n">plt</span><span class="o">.</span><span class="n">Line2D</span><span class="p">([</span><span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;salmon&quot;</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s2">&quot;--&quot;</span><span class="p">)</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">Line2D</span><span class="p">([</span><span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s2">"salmon"</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s2">"--"</span><span class="p">)</span>
         <span class="p">)</span>
-        <span class="n">legend_labels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;Est Body Axes&quot;</span><span class="p">)</span>
+        <span class="n">legend_labels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"Est Body Axes"</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">boresight_goal_line</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">legend_handles</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">boresight_goal_line</span><span class="p">)</span>
-        <span class="n">legend_labels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;Boresight Goal&quot;</span><span class="p">)</span>
+        <span class="n">legend_labels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"Boresight Goal"</span><span class="p">)</span>
 
-    <span class="n">legend_handles</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">plt</span><span class="o">.</span><span class="n">Line2D</span><span class="p">([</span><span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;magenta&quot;</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mi">2</span><span class="p">))</span>
-    <span class="n">legend_labels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;Magnetic Field&quot;</span><span class="p">)</span>
+    <span class="n">legend_handles</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">plt</span><span class="o">.</span><span class="n">Line2D</span><span class="p">([</span><span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s2">"magenta"</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mi">2</span><span class="p">))</span>
+    <span class="n">legend_labels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"Magnetic Field"</span><span class="p">)</span>
 
-    <span class="n">legend_handles</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">plt</span><span class="o">.</span><span class="n">Line2D</span><span class="p">([</span><span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;yellow&quot;</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mi">2</span><span class="p">))</span>
-    <span class="n">legend_labels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;Sun Vector&quot;</span><span class="p">)</span>
+    <span class="n">legend_handles</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">plt</span><span class="o">.</span><span class="n">Line2D</span><span class="p">([</span><span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s2">"yellow"</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mi">2</span><span class="p">))</span>
+    <span class="n">legend_labels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"Sun Vector"</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">coord_goal</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="c1"># Dummy handle for goal sphere</span>
         <span class="n">legend_handles</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-            <span class="n">plt</span><span class="o">.</span><span class="n">Line2D</span><span class="p">([</span><span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">marker</span><span class="o">=</span><span class="s2">&quot;o&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;lightblue&quot;</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">markersize</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">Line2D</span><span class="p">([</span><span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">marker</span><span class="o">=</span><span class="s2">"o"</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">"lightblue"</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s2">""</span><span class="p">,</span> <span class="n">markersize</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
         <span class="p">)</span>
-        <span class="n">legend_labels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;Coordinate Goal&quot;</span><span class="p">)</span>
+        <span class="n">legend_labels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"Coordinate Goal"</span><span class="p">)</span>
 
-    <span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">legend_handles</span><span class="p">,</span> <span class="n">legend_labels</span><span class="p">,</span> <span class="n">loc</span><span class="o">=</span><span class="s2">&quot;upper right&quot;</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">legend_handles</span><span class="p">,</span> <span class="n">legend_labels</span><span class="p">,</span> <span class="n">loc</span><span class="o">=</span><span class="s2">"upper right"</span><span class="p">)</span>
 
     <span class="c1"># ------------------------------------</span>
     <span class="c1"># Animation State</span>
@@ -1168,8 +1186,8 @@
                 <span class="n">rstride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
                 <span class="n">cstride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
                 <span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span>
-                <span class="n">edgecolor</span><span class="o">=</span><span class="s2">&quot;none&quot;</span><span class="p">,</span>
-                <span class="n">color</span><span class="o">=</span><span class="s2">&quot;lightblue&quot;</span><span class="p">,</span>
+                <span class="n">edgecolor</span><span class="o">=</span><span class="s2">"none"</span><span class="p">,</span>
+                <span class="n">color</span><span class="o">=</span><span class="s2">"lightblue"</span><span class="p">,</span>
                 <span class="n">zorder</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="n">artists</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">earth_surf</span><span class="p">)</span>
@@ -1190,8 +1208,8 @@
                 <span class="n">rstride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
                 <span class="n">cstride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
                 <span class="n">alpha</span><span class="o">=</span><span class="mf">0.6</span><span class="p">,</span>
-                <span class="n">edgecolor</span><span class="o">=</span><span class="s2">&quot;none&quot;</span><span class="p">,</span>
-                <span class="n">color</span><span class="o">=</span><span class="s2">&quot;lightblue&quot;</span><span class="p">,</span>
+                <span class="n">edgecolor</span><span class="o">=</span><span class="s2">"none"</span><span class="p">,</span>
+                <span class="n">color</span><span class="o">=</span><span class="s2">"lightblue"</span><span class="p">,</span>
                 <span class="n">zorder</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="n">artists</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">goal_surf</span><span class="p">)</span>
@@ -1254,7 +1272,7 @@
             <span class="n">artists</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">boresight_goal_line</span><span class="p">)</span>
 
         <span class="c1"># --- Magnetic Field Vector ---</span>
-        <span class="n">B_vec</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">os_i</span><span class="p">,</span> <span class="s2">&quot;B&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">B_vec</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">os_i</span><span class="p">,</span> <span class="s2">"B"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">B_vec</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">B_arrow</span><span class="o">.</span><span class="n">remove</span><span class="p">()</span>
             <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">B_vec</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mf">1e-12</span><span class="p">:</span>
@@ -1266,13 +1284,13 @@
                     <span class="n">Bn</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="mf">0.3</span> <span class="o">*</span> <span class="n">max_r</span><span class="p">,</span>
                     <span class="n">Bn</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="mf">0.3</span> <span class="o">*</span> <span class="n">max_r</span><span class="p">,</span>
                     <span class="n">Bn</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="mf">0.3</span> <span class="o">*</span> <span class="n">max_r</span><span class="p">,</span>
-                    <span class="n">color</span><span class="o">=</span><span class="s2">&quot;magenta&quot;</span><span class="p">,</span>
+                    <span class="n">color</span><span class="o">=</span><span class="s2">"magenta"</span><span class="p">,</span>
                     <span class="n">zorder</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span>
                 <span class="p">)</span>
                 <span class="n">artists</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">B_arrow</span><span class="p">)</span>
 
         <span class="c1"># --- Sun Vector ---</span>
-        <span class="n">S_vec</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">os_i</span><span class="p">,</span> <span class="s2">&quot;S&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">S_vec</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">os_i</span><span class="p">,</span> <span class="s2">"S"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">S_vec</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">S_arrow</span><span class="o">.</span><span class="n">remove</span><span class="p">()</span>
             <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">S_vec</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mf">1e-12</span><span class="p">:</span>
@@ -1284,7 +1302,7 @@
                     <span class="n">Sn</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="mf">0.3</span> <span class="o">*</span> <span class="n">max_r</span><span class="p">,</span>
                     <span class="n">Sn</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="mf">0.3</span> <span class="o">*</span> <span class="n">max_r</span><span class="p">,</span>
                     <span class="n">Sn</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="mf">0.3</span> <span class="o">*</span> <span class="n">max_r</span><span class="p">,</span>
-                    <span class="n">color</span><span class="o">=</span><span class="s2">&quot;yellow&quot;</span><span class="p">,</span>
+                    <span class="n">color</span><span class="o">=</span><span class="s2">"yellow"</span><span class="p">,</span>
                     <span class="n">zorder</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span>
                 <span class="p">)</span>
                 <span class="n">artists</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">S_arrow</span><span class="p">)</span>
@@ -1304,23 +1322,23 @@
     <span class="c1"># UI Controls</span>
     <span class="c1"># ------------------------------------</span>
     <span class="n">ax_pause</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">axes</span><span class="p">([</span><span class="mf">0.75</span><span class="p">,</span> <span class="mf">0.02</span><span class="p">,</span> <span class="mf">0.15</span><span class="p">,</span> <span class="mf">0.05</span><span class="p">])</span>
-    <span class="n">btn_pause</span> <span class="o">=</span> <span class="n">Button</span><span class="p">(</span><span class="n">ax_pause</span><span class="p">,</span> <span class="s2">&quot;Pause / Play&quot;</span><span class="p">)</span>
+    <span class="n">btn_pause</span> <span class="o">=</span> <span class="n">Button</span><span class="p">(</span><span class="n">ax_pause</span><span class="p">,</span> <span class="s2">"Pause / Play"</span><span class="p">)</span>
     <span class="n">btn_pause</span><span class="o">.</span><span class="n">on_clicked</span><span class="p">(</span><span class="k">lambda</span> <span class="n">e</span><span class="p">:</span> <span class="n">play_state</span><span class="o">.</span><span class="fm">__setitem__</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="ow">not</span> <span class="n">play_state</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
 
     <span class="n">ax_speed</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">axes</span><span class="p">([</span><span class="mf">0.02</span><span class="p">,</span> <span class="mf">0.02</span><span class="p">,</span> <span class="mf">0.20</span><span class="p">,</span> <span class="mf">0.15</span><span class="p">])</span>
     <span class="n">speed_buttons</span> <span class="o">=</span> <span class="n">RadioButtons</span><span class="p">(</span>
         <span class="n">ax_speed</span><span class="p">,</span>
-        <span class="p">[</span><span class="s2">&quot;0.25x&quot;</span><span class="p">,</span> <span class="s2">&quot;0.5x&quot;</span><span class="p">,</span> <span class="s2">&quot;1x&quot;</span><span class="p">,</span> <span class="s2">&quot;2x&quot;</span><span class="p">,</span> <span class="s2">&quot;4x&quot;</span><span class="p">],</span>
+        <span class="p">[</span><span class="s2">"0.25x"</span><span class="p">,</span> <span class="s2">"0.5x"</span><span class="p">,</span> <span class="s2">"1x"</span><span class="p">,</span> <span class="s2">"2x"</span><span class="p">,</span> <span class="s2">"4x"</span><span class="p">],</span>
         <span class="n">active</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
     <span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">set_speed</span><span class="p">(</span><span class="n">label</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
         <span class="n">mapping</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s2">&quot;0.25x&quot;</span><span class="p">:</span> <span class="mf">0.25</span><span class="p">,</span>
-            <span class="s2">&quot;0.5x&quot;</span><span class="p">:</span> <span class="mf">0.5</span><span class="p">,</span>
-            <span class="s2">&quot;1x&quot;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span>
-            <span class="s2">&quot;2x&quot;</span><span class="p">:</span> <span class="mf">2.0</span><span class="p">,</span>
-            <span class="s2">&quot;4x&quot;</span><span class="p">:</span> <span class="mf">4.0</span><span class="p">,</span>
+            <span class="s2">"0.25x"</span><span class="p">:</span> <span class="mf">0.25</span><span class="p">,</span>
+            <span class="s2">"0.5x"</span><span class="p">:</span> <span class="mf">0.5</span><span class="p">,</span>
+            <span class="s2">"1x"</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span>
+            <span class="s2">"2x"</span><span class="p">:</span> <span class="mf">2.0</span><span class="p">,</span>
+            <span class="s2">"4x"</span><span class="p">:</span> <span class="mf">4.0</span><span class="p">,</span>
         <span class="p">}</span>
         <span class="n">speed_factor</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">mapping</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
 

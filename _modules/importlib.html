@@ -228,6 +228,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../release_notes/0_1_8_installable.html">0.1.8 Installable from PyPI (2026-08-05)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../release_notes/0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
@@ -539,8 +540,8 @@
         </div>
         <article role="main" id="furo-main-content">
           <h1>Source code for importlib</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;A pure Python implementation of import.&quot;&quot;&quot;</span>
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;__import__&#39;</span><span class="p">,</span> <span class="s1">&#39;import_module&#39;</span><span class="p">,</span> <span class="s1">&#39;invalidate_caches&#39;</span><span class="p">,</span> <span class="s1">&#39;reload&#39;</span><span class="p">]</span>
+<span></span><span class="sd">"""A pure Python implementation of import."""</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">'__import__'</span><span class="p">,</span> <span class="s1">'import_module'</span><span class="p">,</span> <span class="s1">'invalidate_caches'</span><span class="p">,</span> <span class="s1">'reload'</span><span class="p">]</span>
 
 <span class="c1"># Bootstrap help #####################################################</span>
 
@@ -559,17 +560,17 @@
     <span class="kn">from</span><span class="w"> </span><span class="nn">.</span><span class="w"> </span><span class="kn">import</span> <span class="n">_bootstrap</span>
     <span class="n">_bootstrap</span><span class="o">.</span><span class="n">_setup</span><span class="p">(</span><span class="n">sys</span><span class="p">,</span> <span class="n">_imp</span><span class="p">)</span>
 <span class="k">else</span><span class="p">:</span>
-    <span class="c1"># importlib._bootstrap is the built-in import, ensure we don&#39;t create</span>
+    <span class="c1"># importlib._bootstrap is the built-in import, ensure we don't create</span>
     <span class="c1"># a second copy of the module.</span>
-    <span class="n">_bootstrap</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">=</span> <span class="s1">&#39;importlib._bootstrap&#39;</span>
-    <span class="n">_bootstrap</span><span class="o">.</span><span class="n">__package__</span> <span class="o">=</span> <span class="s1">&#39;importlib&#39;</span>
+    <span class="n">_bootstrap</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">=</span> <span class="s1">'importlib._bootstrap'</span>
+    <span class="n">_bootstrap</span><span class="o">.</span><span class="n">__package__</span> <span class="o">=</span> <span class="s1">'importlib'</span>
     <span class="k">try</span><span class="p">:</span>
-        <span class="n">_bootstrap</span><span class="o">.</span><span class="vm">__file__</span> <span class="o">=</span> <span class="vm">__file__</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;__init__.py&#39;</span><span class="p">,</span> <span class="s1">&#39;_bootstrap.py&#39;</span><span class="p">)</span>
+        <span class="n">_bootstrap</span><span class="o">.</span><span class="vm">__file__</span> <span class="o">=</span> <span class="vm">__file__</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">'__init__.py'</span><span class="p">,</span> <span class="s1">'_bootstrap.py'</span><span class="p">)</span>
     <span class="k">except</span> <span class="ne">NameError</span><span class="p">:</span>
         <span class="c1"># __file__ is not guaranteed to be defined, e.g. if this code gets</span>
         <span class="c1"># frozen by a tool like cx_Freeze.</span>
         <span class="k">pass</span>
-    <span class="n">sys</span><span class="o">.</span><span class="n">modules</span><span class="p">[</span><span class="s1">&#39;importlib._bootstrap&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_bootstrap</span>
+    <span class="n">sys</span><span class="o">.</span><span class="n">modules</span><span class="p">[</span><span class="s1">'importlib._bootstrap'</span><span class="p">]</span> <span class="o">=</span> <span class="n">_bootstrap</span>
 
 <span class="k">try</span><span class="p">:</span>
     <span class="kn">import</span><span class="w"> </span><span class="nn">_frozen_importlib_external</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">_bootstrap_external</span>
@@ -578,15 +579,15 @@
     <span class="n">_bootstrap_external</span><span class="o">.</span><span class="n">_set_bootstrap_module</span><span class="p">(</span><span class="n">_bootstrap</span><span class="p">)</span>
     <span class="n">_bootstrap</span><span class="o">.</span><span class="n">_bootstrap_external</span> <span class="o">=</span> <span class="n">_bootstrap_external</span>
 <span class="k">else</span><span class="p">:</span>
-    <span class="n">_bootstrap_external</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">=</span> <span class="s1">&#39;importlib._bootstrap_external&#39;</span>
-    <span class="n">_bootstrap_external</span><span class="o">.</span><span class="n">__package__</span> <span class="o">=</span> <span class="s1">&#39;importlib&#39;</span>
+    <span class="n">_bootstrap_external</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">=</span> <span class="s1">'importlib._bootstrap_external'</span>
+    <span class="n">_bootstrap_external</span><span class="o">.</span><span class="n">__package__</span> <span class="o">=</span> <span class="s1">'importlib'</span>
     <span class="k">try</span><span class="p">:</span>
-        <span class="n">_bootstrap_external</span><span class="o">.</span><span class="vm">__file__</span> <span class="o">=</span> <span class="vm">__file__</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;__init__.py&#39;</span><span class="p">,</span> <span class="s1">&#39;_bootstrap_external.py&#39;</span><span class="p">)</span>
+        <span class="n">_bootstrap_external</span><span class="o">.</span><span class="vm">__file__</span> <span class="o">=</span> <span class="vm">__file__</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">'__init__.py'</span><span class="p">,</span> <span class="s1">'_bootstrap_external.py'</span><span class="p">)</span>
     <span class="k">except</span> <span class="ne">NameError</span><span class="p">:</span>
         <span class="c1"># __file__ is not guaranteed to be defined, e.g. if this code gets</span>
         <span class="c1"># frozen by a tool like cx_Freeze.</span>
         <span class="k">pass</span>
-    <span class="n">sys</span><span class="o">.</span><span class="n">modules</span><span class="p">[</span><span class="s1">&#39;importlib._bootstrap_external&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_bootstrap_external</span>
+    <span class="n">sys</span><span class="o">.</span><span class="n">modules</span><span class="p">[</span><span class="s1">'importlib._bootstrap_external'</span><span class="p">]</span> <span class="o">=</span> <span class="n">_bootstrap_external</span>
 
 <span class="c1"># To simplify imports in test code</span>
 <span class="n">_pack_uint32</span> <span class="o">=</span> <span class="n">_bootstrap_external</span><span class="o">.</span><span class="n">_pack_uint32</span>
@@ -604,30 +605,30 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">invalidate_caches</span><span class="p">():</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Call the invalidate_caches() method on all meta path finders stored in</span>
-<span class="sd">    sys.meta_path (where implemented).&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Call the invalidate_caches() method on all meta path finders stored in</span>
+<span class="sd">    sys.meta_path (where implemented)."""</span>
     <span class="k">for</span> <span class="n">finder</span> <span class="ow">in</span> <span class="n">sys</span><span class="o">.</span><span class="n">meta_path</span><span class="p">:</span>
-        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">finder</span><span class="p">,</span> <span class="s1">&#39;invalidate_caches&#39;</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">finder</span><span class="p">,</span> <span class="s1">'invalidate_caches'</span><span class="p">):</span>
             <span class="n">finder</span><span class="o">.</span><span class="n">invalidate_caches</span><span class="p">()</span>
 
 
 <div class="viewcode-block" id="import_module">
 <a class="viewcode-back" href="../ADCS.controller.helpers.optional_dependencies.html#ADCS.controller.helpers.optional_dependencies.import_module">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">import_module</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">package</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Import a module.</span>
+<span class="w">    </span><span class="sd">"""Import a module.</span>
 
-<span class="sd">    The &#39;package&#39; argument is required when performing a relative import. It</span>
+<span class="sd">    The 'package' argument is required when performing a relative import. It</span>
 <span class="sd">    specifies the package to use as the anchor point from which to resolve the</span>
 <span class="sd">    relative import to an absolute import.</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">level</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="k">if</span> <span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">'.'</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">package</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;the &#39;package&#39; argument is required to perform a &quot;</span>
-                            <span class="sa">f</span><span class="s2">&quot;relative import for </span><span class="si">{</span><span class="n">name</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">"the 'package' argument is required to perform a "</span>
+                            <span class="sa">f</span><span class="s2">"relative import for </span><span class="si">{</span><span class="n">name</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">character</span> <span class="ow">in</span> <span class="n">name</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">character</span> <span class="o">!=</span> <span class="s1">&#39;.&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">character</span> <span class="o">!=</span> <span class="s1">'.'</span><span class="p">:</span>
                 <span class="k">break</span>
             <span class="n">level</span> <span class="o">+=</span> <span class="mi">1</span>
     <span class="k">return</span> <span class="n">_bootstrap</span><span class="o">.</span><span class="n">_gcd_import</span><span class="p">(</span><span class="n">name</span><span class="p">[</span><span class="n">level</span><span class="p">:],</span> <span class="n">package</span><span class="p">,</span> <span class="n">level</span><span class="p">)</span></div>
@@ -638,31 +639,31 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">reload</span><span class="p">(</span><span class="n">module</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Reload the module and return it.</span>
+<span class="w">    </span><span class="sd">"""Reload the module and return it.</span>
 
 <span class="sd">    The module must have been successfully imported before.</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="n">name</span> <span class="o">=</span> <span class="n">module</span><span class="o">.</span><span class="n">__spec__</span><span class="o">.</span><span class="n">name</span>
     <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">name</span> <span class="o">=</span> <span class="n">module</span><span class="o">.</span><span class="vm">__name__</span>
         <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;reload() argument must be a module&quot;</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="kc">None</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">"reload() argument must be a module"</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="kc">None</span>
 
     <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">modules</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">module</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;module </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> not in sys.modules&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"module </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> not in sys.modules"</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">_RELOADING</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">_RELOADING</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
     <span class="n">_RELOADING</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">module</span>
     <span class="k">try</span><span class="p">:</span>
-        <span class="n">parent_name</span> <span class="o">=</span> <span class="n">name</span><span class="o">.</span><span class="n">rpartition</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">parent_name</span> <span class="o">=</span> <span class="n">name</span><span class="o">.</span><span class="n">rpartition</span><span class="p">(</span><span class="s1">'.'</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
         <span class="k">if</span> <span class="n">parent_name</span><span class="p">:</span>
             <span class="k">try</span><span class="p">:</span>
                 <span class="n">parent</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">modules</span><span class="p">[</span><span class="n">parent_name</span><span class="p">]</span>
             <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;parent </span><span class="si">{</span><span class="n">parent_name</span><span class="si">!r}</span><span class="s2"> not in sys.modules&quot;</span><span class="p">,</span>
+                <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"parent </span><span class="si">{</span><span class="n">parent_name</span><span class="si">!r}</span><span class="s2"> not in sys.modules"</span><span class="p">,</span>
                                   <span class="n">name</span><span class="o">=</span><span class="n">parent_name</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="kc">None</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">pkgpath</span> <span class="o">=</span> <span class="n">parent</span><span class="o">.</span><span class="n">__path__</span>
@@ -671,7 +672,7 @@
         <span class="n">target</span> <span class="o">=</span> <span class="n">module</span>
         <span class="n">spec</span> <span class="o">=</span> <span class="n">module</span><span class="o">.</span><span class="n">__spec__</span> <span class="o">=</span> <span class="n">_bootstrap</span><span class="o">.</span><span class="n">_find_spec</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">pkgpath</span><span class="p">,</span> <span class="n">target</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">spec</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ModuleNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;spec not found for the module </span><span class="si">{</span><span class="n">name</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ModuleNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"spec not found for the module </span><span class="si">{</span><span class="n">name</span><span class="si">!r}</span><span class="s2">"</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
         <span class="n">_bootstrap</span><span class="o">.</span><span class="n">_exec</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="n">module</span><span class="p">)</span>
         <span class="c1"># The module may have replaced itself in sys.modules!</span>
         <span class="k">return</span> <span class="n">sys</span><span class="o">.</span><span class="n">modules</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>

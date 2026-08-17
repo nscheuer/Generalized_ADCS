@@ -228,6 +228,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_8_installable.html">0.1.8 Installable from PyPI (2026-08-05)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
@@ -541,7 +542,7 @@
           <h1>Source code for ADCS.controller.plan_and_track_base</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;PlanAndTrackBase&quot;</span><span class="p">]</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"PlanAndTrackBase"</span><span class="p">]</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
@@ -564,7 +565,7 @@
 <div class="viewcode-block" id="PlanAndTrackBase">
 <a class="viewcode-back" href="../../../ADCS.controller.plan_and_track_base.html#ADCS.controller.plan_and_track_base.PlanAndTrackBase">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">PlanAndTrackBase</span><span class="p">(</span><span class="n">Controller</span><span class="p">):</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Base class for Plan-and-Track trajectory controllers.</span>
 
 <span class="sd">    This class factors out the shared machinery needed by all Plan-and-Track</span>
@@ -626,7 +627,7 @@
 <span class="sd">    :func:`~ADCS.controller.helpers.reorder_controls_cpp_to_python` and</span>
 <span class="sd">    :func:`~ADCS.controller.helpers.reorder_gains_cpp_to_python`.</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="n">est_sat</span><span class="p">:</span> <span class="n">EstimatedSatellite</span>
     <span class="n">planner_settings</span><span class="p">:</span> <span class="n">PlannerSettings</span>
@@ -643,7 +644,7 @@
         <span class="n">tracking_lqr_formulation</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">quat_to_3vec_mode</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Initialize the C++ trajectory planner and bind it to the satellite model.</span>
 
 <span class="sd">        This method builds the C++ satellite representation and constructs a C++</span>
@@ -692,7 +693,7 @@
 <span class="sd">        :return: None.</span>
 <span class="sd">        :rtype: None</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">est_sat</span> <span class="o">=</span> <span class="n">est_sat</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">planner_settings</span> <span class="o">=</span> <span class="n">planner_settings</span>
 
@@ -718,7 +719,7 @@
 <div class="viewcode-block" id="PlanAndTrackBase.set_active_trajectory">
 <a class="viewcode-back" href="../../../ADCS.controller.plan_and_track_base.html#ADCS.controller.plan_and_track_base.PlanAndTrackBase.set_active_trajectory">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">set_active_trajectory</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">traj</span><span class="p">:</span> <span class="n">Trajectory</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Set the active trajectory used for tracking.</span>
 
 <span class="sd">        The active trajectory is the nominal plan that the tracking controller</span>
@@ -734,7 +735,7 @@
 <span class="sd">        :return: None.</span>
 <span class="sd">        :rtype: None</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">active_trajectory</span> <span class="o">=</span> <span class="n">traj</span></div>
 
 
@@ -747,7 +748,7 @@
         <span class="n">N</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">goals</span><span class="p">:</span> <span class="n">GoalList</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">],</span> <span class="o">...</span><span class="p">]:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Propagate orbit and environment vectors into the C++ planner input format.</span>
 
 <span class="sd">        This method samples the orbit and associated environment quantities over</span>
@@ -829,7 +830,7 @@
 <span class="sd">            memory layouts expected by the C++ planner.</span>
 <span class="sd">        :rtype: tuple[numpy.typing.NDArray[numpy.float64], ...]</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">buffer_centuries</span> <span class="o">=</span> <span class="mi">10</span> <span class="o">*</span> <span class="n">dt_seconds</span> <span class="o">*</span> <span class="n">TimeConstants</span><span class="o">.</span><span class="n">sec2cent</span>
         <span class="n">t_end_buffered</span> <span class="o">=</span> <span class="n">t_end</span> <span class="o">+</span> <span class="n">buffer_centuries</span>
 
@@ -846,7 +847,7 @@
         <span class="k">if</span> <span class="n">curN</span> <span class="o">&gt;</span> <span class="n">N</span><span class="p">:</span>
             <span class="n">times_arr</span> <span class="o">=</span> <span class="n">times_arr</span><span class="p">[:</span><span class="n">N</span><span class="p">]</span>
         <span class="k">elif</span> <span class="n">curN</span> <span class="o">&lt;</span> <span class="n">N</span><span class="p">:</span>
-            <span class="n">times_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">times_arr</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">N</span> <span class="o">-</span> <span class="n">curN</span><span class="p">),</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;edge&quot;</span><span class="p">)</span>
+            <span class="n">times_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">times_arr</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">N</span> <span class="o">-</span> <span class="n">curN</span><span class="p">),</span> <span class="n">mode</span><span class="o">=</span><span class="s2">"edge"</span><span class="p">)</span>
 
         <span class="c1"># Helper: force (3,N) float64 Fortran-contiguous</span>
         <span class="k">def</span><span class="w"> </span><span class="nf">to_mat3xN</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
@@ -854,7 +855,7 @@
             <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
 
             <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> must be 2D, got ndim=</span><span class="si">{</span><span class="n">x</span><span class="o">.</span><span class="n">ndim</span><span class="si">}</span><span class="s2">, shape=</span><span class="si">{</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> must be 2D, got ndim=</span><span class="si">{</span><span class="n">x</span><span class="o">.</span><span class="n">ndim</span><span class="si">}</span><span class="s2">, shape=</span><span class="si">{</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 
             <span class="c1"># Accept either (3,N) or (N,3)</span>
             <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">N</span><span class="p">):</span>
@@ -862,7 +863,7 @@
             <span class="k">elif</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="mi">3</span><span class="p">):</span>
                 <span class="n">y</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">T</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> has unexpected shape </span><span class="si">{</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">; expected (3,</span><span class="si">{</span><span class="n">N</span><span class="si">}</span><span class="s2">) or (</span><span class="si">{</span><span class="n">N</span><span class="si">}</span><span class="s2">,3)&quot;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> has unexpected shape </span><span class="si">{</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">; expected (3,</span><span class="si">{</span><span class="n">N</span><span class="si">}</span><span class="s2">) or (</span><span class="si">{</span><span class="n">N</span><span class="si">}</span><span class="s2">,3)"</span><span class="p">)</span>
 
             <span class="c1"># Armadillo-friendly memory layout</span>
             <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">asfortranarray</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
@@ -874,7 +875,7 @@
                 <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">N</span><span class="p">:</span>
                 <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="n">x</span><span class="p">[:</span><span class="n">N</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
-            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">N</span> <span class="o">-</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;edge&quot;</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">N</span> <span class="o">-</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">mode</span><span class="o">=</span><span class="s2">"edge"</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
 
         <span class="c1"># -------------------------</span>
         <span class="c1"># Orbit vectors: expect [R,V,B,S,Rho] from get_vecs()</span>
@@ -890,32 +891,32 @@
             <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
                 <span class="c1"># (3,curN)</span>
                 <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">N</span><span class="p">:</span>  <span class="k">return</span> <span class="n">x</span><span class="p">[:,</span> <span class="p">:</span><span class="n">N</span><span class="p">]</span>
-                <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">N</span><span class="p">:</span>  <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">((</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">),(</span><span class="mi">0</span><span class="p">,</span> <span class="n">N</span><span class="o">-</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])),</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;edge&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">N</span><span class="p">:</span>  <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">((</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">),(</span><span class="mi">0</span><span class="p">,</span> <span class="n">N</span><span class="o">-</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])),</span> <span class="n">mode</span><span class="o">=</span><span class="s2">"edge"</span><span class="p">)</span>
                 <span class="k">return</span> <span class="n">x</span>
             <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
                 <span class="c1"># (curN,3)</span>
                 <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">N</span><span class="p">:</span>  <span class="k">return</span> <span class="n">x</span><span class="p">[:</span><span class="n">N</span><span class="p">,</span> <span class="p">:]</span>
-                <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">N</span><span class="p">:</span>  <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="n">N</span><span class="o">-</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">)),</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;edge&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">N</span><span class="p">:</span>  <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="n">N</span><span class="o">-</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">)),</span> <span class="n">mode</span><span class="o">=</span><span class="s2">"edge"</span><span class="p">)</span>
                 <span class="k">return</span> <span class="n">x</span>
             <span class="k">return</span> <span class="n">x</span>
 
-        <span class="n">R</span> <span class="o">=</span> <span class="n">to_mat3xN</span><span class="p">(</span><span class="s2">&quot;R&quot;</span><span class="p">,</span> <span class="n">clip_pad_mat</span><span class="p">(</span><span class="n">R_raw</span><span class="p">))</span>
-        <span class="n">V</span> <span class="o">=</span> <span class="n">to_mat3xN</span><span class="p">(</span><span class="s2">&quot;V&quot;</span><span class="p">,</span> <span class="n">clip_pad_mat</span><span class="p">(</span><span class="n">V_raw</span><span class="p">))</span>
-        <span class="n">B</span> <span class="o">=</span> <span class="n">to_mat3xN</span><span class="p">(</span><span class="s2">&quot;B&quot;</span><span class="p">,</span> <span class="n">clip_pad_mat</span><span class="p">(</span><span class="n">B_raw</span><span class="p">))</span>
-        <span class="n">S</span> <span class="o">=</span> <span class="n">to_mat3xN</span><span class="p">(</span><span class="s2">&quot;S&quot;</span><span class="p">,</span> <span class="n">clip_pad_mat</span><span class="p">(</span><span class="n">S_raw</span><span class="p">))</span>
-        <span class="n">rho</span> <span class="o">=</span> <span class="n">to_vecN</span><span class="p">(</span><span class="s2">&quot;Rho&quot;</span><span class="p">,</span> <span class="n">Rho_raw</span><span class="p">)</span>
+        <span class="n">R</span> <span class="o">=</span> <span class="n">to_mat3xN</span><span class="p">(</span><span class="s2">"R"</span><span class="p">,</span> <span class="n">clip_pad_mat</span><span class="p">(</span><span class="n">R_raw</span><span class="p">))</span>
+        <span class="n">V</span> <span class="o">=</span> <span class="n">to_mat3xN</span><span class="p">(</span><span class="s2">"V"</span><span class="p">,</span> <span class="n">clip_pad_mat</span><span class="p">(</span><span class="n">V_raw</span><span class="p">))</span>
+        <span class="n">B</span> <span class="o">=</span> <span class="n">to_mat3xN</span><span class="p">(</span><span class="s2">"B"</span><span class="p">,</span> <span class="n">clip_pad_mat</span><span class="p">(</span><span class="n">B_raw</span><span class="p">))</span>
+        <span class="n">S</span> <span class="o">=</span> <span class="n">to_mat3xN</span><span class="p">(</span><span class="s2">"S"</span><span class="p">,</span> <span class="n">clip_pad_mat</span><span class="p">(</span><span class="n">S_raw</span><span class="p">))</span>
+        <span class="n">rho</span> <span class="o">=</span> <span class="n">to_vecN</span><span class="p">(</span><span class="s2">"Rho"</span><span class="p">,</span> <span class="n">Rho_raw</span><span class="p">)</span>
 
         <span class="c1"># -------------------------</span>
         <span class="c1"># Goals / attitude vectors</span>
         <span class="c1"># -------------------------</span>
-        <span class="n">goal_vecs_eci</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">4</span><span class="p">,</span> <span class="n">N</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s2">&quot;F&quot;</span><span class="p">)</span>
-        <span class="n">sat_body_vecs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">3</span><span class="p">,</span> <span class="n">N</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s2">&quot;F&quot;</span><span class="p">)</span>
+        <span class="n">goal_vecs_eci</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">4</span><span class="p">,</span> <span class="n">N</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s2">"F"</span><span class="p">)</span>
+        <span class="n">sat_body_vecs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">3</span><span class="p">,</span> <span class="n">N</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s2">"F"</span><span class="p">)</span>
         <span class="n">prop_vals</span>     <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
 
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span><span class="p">):</span>
             <span class="n">t</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">times_arr</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
             <span class="n">os_at_t</span> <span class="o">=</span> <span class="n">sim_orbit</span><span class="o">.</span><span class="n">get_os</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
-            <span class="n">target</span><span class="p">,</span> <span class="n">_w_ref</span> <span class="o">=</span> <span class="n">goals</span><span class="o">.</span><span class="n">to_ref</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">os_at_t</span><span class="p">,</span> <span class="n">time_units</span><span class="o">=</span><span class="s2">&quot;centuries&quot;</span><span class="p">)</span>
+            <span class="n">target</span><span class="p">,</span> <span class="n">_w_ref</span> <span class="o">=</span> <span class="n">goals</span><span class="o">.</span><span class="n">to_ref</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">os_at_t</span><span class="p">,</span> <span class="n">time_units</span><span class="o">=</span><span class="s2">"centuries"</span><span class="p">)</span>
             <span class="n">goal_vecs_eci</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">target</span>
             
             <span class="n">sat_body_vecs</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">est_sat</span><span class="o">.</span><span class="n">get_boresight</span><span class="p">(),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
@@ -931,7 +932,7 @@
         <span class="n">goals</span><span class="p">:</span> <span class="n">GoalList</span><span class="p">,</span>
         <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">],</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">],</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">],</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">],</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">]]:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Compute a nominal trajectory and TVLQR tracking data using the C++ planner.</span>
 
 <span class="sd">        This method implements the shared planning workflow:</span>
@@ -1022,9 +1023,9 @@
 <span class="sd">            auxiliary TVLQR data sequence.</span>
 <span class="sd">        :rtype: tuple[numpy.typing.NDArray[numpy.float64], numpy.typing.NDArray[numpy.float64], numpy.typing.NDArray[numpy.float64], numpy.typing.NDArray[numpy.float64], numpy.typing.NDArray[numpy.float64]]</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Planning traj: Start=</span><span class="si">{</span><span class="n">t_start</span><span class="si">:</span><span class="s2">.5f</span><span class="si">}</span><span class="s2">, Dur=</span><span class="si">{</span><span class="n">duration</span><span class="si">}</span><span class="s2">s&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Planning traj: Start=</span><span class="si">{</span><span class="n">t_start</span><span class="si">:</span><span class="s2">.5f</span><span class="si">}</span><span class="s2">, Dur=</span><span class="si">{</span><span class="n">duration</span><span class="si">}</span><span class="s2">s"</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">planner</span><span class="o">.</span><span class="n">setVerbosity</span><span class="p">(</span><span class="n">verbose</span><span class="p">)</span>
 
@@ -1039,28 +1040,28 @@
         <span class="n">vecsPy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_propagate_environment</span><span class="p">(</span><span class="n">os_0</span><span class="p">,</span> <span class="n">t_start</span><span class="p">,</span> <span class="n">t_end</span><span class="p">,</span> <span class="n">dt_seconds</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">goals</span><span class="p">)</span>
 
         <span class="c1"># SANITIZE x_0: Force Float64, Copy, and C-Order</span>
-        <span class="n">x_0_clean</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">x_0</span><span class="o">.</span><span class="n">as_array</span><span class="p">()</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">),</span> <span class="n">order</span><span class="o">=</span><span class="s1">&#39;C&#39;</span><span class="p">)</span>
+        <span class="n">x_0_clean</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">x_0</span><span class="o">.</span><span class="n">as_array</span><span class="p">()</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">),</span> <span class="n">order</span><span class="o">=</span><span class="s1">'C'</span><span class="p">)</span>
 
         <span class="n">bdotOn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">planner_settings</span><span class="o">.</span><span class="n">bdot_on</span>
         <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;=== PYTHON VECTOR_INFO_FORM DEBUG (before trajOpt) ===&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">"=== PYTHON VECTOR_INFO_FORM DEBUG (before trajOpt) ==="</span><span class="p">)</span>
             <span class="n">labels</span> <span class="o">=</span> <span class="p">[</span>
-                <span class="s2">&quot;t&quot;</span><span class="p">,</span> <span class="s2">&quot;R&quot;</span><span class="p">,</span> <span class="s2">&quot;V&quot;</span><span class="p">,</span> <span class="s2">&quot;B&quot;</span><span class="p">,</span> <span class="s2">&quot;S&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;A (satvec)&quot;</span><span class="p">,</span> <span class="s2">&quot;E (ECIvec)&quot;</span><span class="p">,</span> <span class="s2">&quot;p (prop)&quot;</span><span class="p">,</span> <span class="s2">&quot;rho&quot;</span><span class="p">,</span>
+                <span class="s2">"t"</span><span class="p">,</span> <span class="s2">"R"</span><span class="p">,</span> <span class="s2">"V"</span><span class="p">,</span> <span class="s2">"B"</span><span class="p">,</span> <span class="s2">"S"</span><span class="p">,</span>
+                <span class="s2">"A (satvec)"</span><span class="p">,</span> <span class="s2">"E (ECIvec)"</span><span class="p">,</span> <span class="s2">"p (prop)"</span><span class="p">,</span> <span class="s2">"rho"</span><span class="p">,</span>
             <span class="p">]</span>
             <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">lbl</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="n">vecsPy</span><span class="p">)):</span>
                 <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
                     <span class="nb">print</span><span class="p">(</span>
-                        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">lbl</span><span class="si">:</span><span class="s2">&lt;12</span><span class="si">}</span><span class="s2"> &quot;</span>
-                        <span class="sa">f</span><span class="s2">&quot;ndim=</span><span class="si">{</span><span class="n">x</span><span class="o">.</span><span class="n">ndim</span><span class="si">}</span><span class="s2"> &quot;</span>
-                        <span class="sa">f</span><span class="s2">&quot;shape=</span><span class="si">{</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2"> &quot;</span>
-                        <span class="sa">f</span><span class="s2">&quot;dtype=</span><span class="si">{</span><span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="si">}</span><span class="s2"> &quot;</span>
-                        <span class="sa">f</span><span class="s2">&quot;C=</span><span class="si">{</span><span class="n">x</span><span class="o">.</span><span class="n">flags</span><span class="p">[</span><span class="s1">&#39;C_CONTIGUOUS&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> &quot;</span>
-                        <span class="sa">f</span><span class="s2">&quot;F=</span><span class="si">{</span><span class="n">x</span><span class="o">.</span><span class="n">flags</span><span class="p">[</span><span class="s1">&#39;F_CONTIGUOUS&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
+                        <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">lbl</span><span class="si">:</span><span class="s2">&lt;12</span><span class="si">}</span><span class="s2"> "</span>
+                        <span class="sa">f</span><span class="s2">"ndim=</span><span class="si">{</span><span class="n">x</span><span class="o">.</span><span class="n">ndim</span><span class="si">}</span><span class="s2"> "</span>
+                        <span class="sa">f</span><span class="s2">"shape=</span><span class="si">{</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2"> "</span>
+                        <span class="sa">f</span><span class="s2">"dtype=</span><span class="si">{</span><span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="si">}</span><span class="s2"> "</span>
+                        <span class="sa">f</span><span class="s2">"C=</span><span class="si">{</span><span class="n">x</span><span class="o">.</span><span class="n">flags</span><span class="p">[</span><span class="s1">'C_CONTIGUOUS'</span><span class="p">]</span><span class="si">}</span><span class="s2"> "</span>
+                        <span class="sa">f</span><span class="s2">"F=</span><span class="si">{</span><span class="n">x</span><span class="o">.</span><span class="n">flags</span><span class="p">[</span><span class="s1">'F_CONTIGUOUS'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span>
                     <span class="p">)</span>
                 <span class="k">else</span><span class="p">:</span>
-                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">lbl</span><span class="si">:</span><span class="s2">&lt;12</span><span class="si">}</span><span class="s2"> type=</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;==============================================&quot;</span><span class="p">)</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">lbl</span><span class="si">:</span><span class="s2">&lt;12</span><span class="si">}</span><span class="s2"> type=</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">"=============================================="</span><span class="p">)</span>
 
         <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">lqr_opt</span><span class="p">,</span> <span class="n">_</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">planner</span><span class="o">.</span><span class="n">trajOpt</span><span class="p">(</span><span class="n">vecsPy</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">t_start</span><span class="p">,</span> <span class="n">t_end</span><span class="p">,</span> <span class="n">x_0_clean</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">bdotOn</span><span class="p">))</span>
         <span class="p">(</span><span class="n">Xset</span><span class="p">,</span> <span class="n">Uset_cpp</span><span class="p">,</span> <span class="n">Tset</span><span class="p">,</span> <span class="n">Kset_cpp</span><span class="p">,</span> <span class="n">Sset</span><span class="p">,</span> <span class="n">lqr_times</span><span class="p">)</span> <span class="o">=</span> <span class="n">lqr_opt</span>

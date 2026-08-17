@@ -228,6 +228,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_8_installable.html">0.1.8 Installable from PyPI (2026-08-05)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../release_notes/0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
@@ -540,7 +541,7 @@
         <article role="main" id="furo-main-content">
           <h1>Source code for ADCS.orbits.orbital_state</h1><div class="highlight"><pre>
 <span></span><span class="c1"># orbital_state.py</span>
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Orbital_State&quot;</span><span class="p">]</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"Orbital_State"</span><span class="p">]</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
@@ -564,13 +565,13 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_normalize_zonal_J</span><span class="p">(</span><span class="n">zonal_J</span><span class="p">,</span> <span class="n">max_degree</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Validate and normalize the requested highest zonal harmonic degree.</span>
 
 <span class="sd">    ``zonal_J=0`` disables all zonal harmonics (pure two-body dynamics).</span>
 <span class="sd">    Positive values represent the highest degree included, so ``zonal_J=2``</span>
 <span class="sd">    means J2 only and ``zonal_J=6`` means J2 through J6.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">if</span> <span class="n">max_degree</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">max_degree</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">EarthConstants</span><span class="o">.</span><span class="n">Jcoeffs</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
 
@@ -579,18 +580,18 @@
         <span class="k">return</span> <span class="mi">0</span>
     <span class="k">if</span> <span class="mi">2</span> <span class="o">&lt;=</span> <span class="n">value</span> <span class="o">&lt;=</span> <span class="nb">int</span><span class="p">(</span><span class="n">max_degree</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">value</span>
-    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;zonal_J must be 0 or an integer from 2 through </span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">max_degree</span><span class="p">)</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="n">zonal_J</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"zonal_J must be 0 or an integer from 2 through </span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">max_degree</span><span class="p">)</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="n">zonal_J</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_legendre_p_and_dp</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">max_degree</span><span class="p">):</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Evaluate Legendre polynomials and their first derivatives at ``s``.</span>
 
 <span class="sd">    Uses the standard upward recurrences</span>
 
 <span class="sd">    .. math::</span>
 <span class="sd">        n P_n = (2n-1)\, s\, P_{n-1} - (n-1) P_{n-2}, \qquad</span>
-<span class="sd">        P_n&#39; = n\, P_{n-1} + s\, P_{n-1}&#39;,</span>
+<span class="sd">        P_n' = n\, P_{n-1} + s\, P_{n-1}',</span>
 
 <span class="sd">    which are stable everywhere on :math:`s\in[-1,1]` (no division by</span>
 <span class="sd">    :math:`1-s^2`, so they hold over the poles) and are analytic in ``s``,</span>
@@ -608,7 +609,7 @@
 <span class="sd">    :return:</span>
 <span class="sd">        Tuple ``(P, dP)`` of lists indexed by degree ``0..max_degree``.</span>
 <span class="sd">    :rtype: tuple[list, list]</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">P</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">max_degree</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
     <span class="n">dP</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">max_degree</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
     <span class="n">P</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">+</span> <span class="mf">0.0</span> <span class="o">*</span> <span class="n">s</span>  <span class="c1"># preserve dtype (float or complex) of s</span>
@@ -623,7 +624,7 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_zonal_perturbation_accel</span><span class="p">(</span><span class="n">R</span><span class="p">,</span> <span class="n">mu_e</span><span class="p">,</span> <span class="n">R_e</span><span class="p">,</span> <span class="n">coeffs</span><span class="p">,</span> <span class="n">start_degree</span><span class="p">):</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Perturbing acceleration from zonal gravity harmonics of degree ``&gt;= start_degree``.</span>
 
 <span class="sd">    The acceleration is the gradient of the zonal perturbing potential</span>
@@ -663,10 +664,10 @@
 <span class="sd">    :return:</span>
 <span class="sd">        Perturbing acceleration [km/s^2] with the same dtype as ``R``.</span>
 <span class="sd">    :rtype: numpy.ndarray</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">coeffs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">coeffs</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">coeffs</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">R</span><span class="o">.</span><span class="n">dtype</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">R</span><span class="p">,</span> <span class="s2">&quot;dtype&quot;</span><span class="p">)</span> <span class="k">else</span> <span class="nb">float</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">R</span><span class="o">.</span><span class="n">dtype</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">R</span><span class="p">,</span> <span class="s2">"dtype"</span><span class="p">)</span> <span class="k">else</span> <span class="nb">float</span><span class="p">)</span>
 
     <span class="n">R</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">R</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
     <span class="n">z</span> <span class="o">=</span> <span class="n">R</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
@@ -693,7 +694,7 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_zonal_perturbation_accel_jac</span><span class="p">(</span><span class="n">R</span><span class="p">,</span> <span class="n">mu_e</span><span class="p">,</span> <span class="n">R_e</span><span class="p">,</span> <span class="n">coeffs</span><span class="p">,</span> <span class="n">start_degree</span><span class="p">):</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Jacobian :math:`\partial a/\partial R` of :func:`_zonal_perturbation_accel`.</span>
 
 <span class="sd">    Computed by complex-step differentiation of the (analytic) acceleration,</span>
@@ -722,7 +723,7 @@
 <span class="sd">    :return:</span>
 <span class="sd">        3x3 Jacobian of the perturbing acceleration with respect to position.</span>
 <span class="sd">    :rtype: numpy.ndarray</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">coeffs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">coeffs</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">coeffs</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
@@ -741,7 +742,7 @@
 <div class="viewcode-block" id="Orbital_State">
 <a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">Orbital_State</span><span class="p">:</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Complete dynamical and environmental representation of a spacecraft orbital state.</span>
 
 <span class="sd">    The state is defined by inertial position and velocity in the ECI/ICRF frame at</span>
@@ -796,7 +797,7 @@
 <span class="sd">        computed.</span>
 <span class="sd">    :type fast: bool</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -810,7 +811,7 @@
         <span class="n">density_model</span><span class="p">:</span> <span class="n">DensityModel</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">fast</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Initialize a fully defined orbital state.</span>
 
 <span class="sd">        :param ephem:</span>
@@ -853,7 +854,7 @@
 <span class="sd">            ``None``</span>
 <span class="sd">        :rtype: None</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">_</span> <span class="o">=</span> <span class="n">fast</span>  <span class="c1"># ignored (kept for backward compatibility)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">ephem</span> <span class="o">=</span> <span class="n">Ephemeris</span><span class="p">()</span> <span class="k">if</span> <span class="n">ephem</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">ephem</span>
@@ -955,7 +956,7 @@
 <div class="viewcode-block" id="Orbital_State.copy">
 <a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.copy">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Return a deep copy of the orbital state.</span>
 
 <span class="sd">        This implementation avoids recomputing environment vectors and frame</span>
@@ -965,7 +966,7 @@
 <span class="sd">            Independent copy of the orbital state.</span>
 <span class="sd">        :rtype: Orbital_State</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">out</span> <span class="o">=</span> <span class="n">Orbital_State</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="n">Orbital_State</span><span class="p">)</span>
 
         <span class="n">out</span><span class="o">.</span><span class="n">ephem</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ephem</span>
@@ -995,7 +996,7 @@
         <span class="n">out</span><span class="o">.</span><span class="n">_tvec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tvec</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
         <span class="n">out</span><span class="o">.</span><span class="n">_ecef_to_geo</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_ecef_to_geo</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
-        <span class="n">out</span><span class="o">.</span><span class="n">sf_geo_pos</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;sf_geo_pos&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">sf_geo_pos</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">"sf_geo_pos"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
         <span class="n">out</span><span class="o">.</span><span class="n">LLA</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">LLA</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         <span class="n">out</span><span class="o">.</span><span class="n">ECI2ENUmat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ECI2ENUmat</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
@@ -1008,8 +1009,8 @@
         <span class="n">out</span><span class="o">.</span><span class="n">_last_x</span> <span class="o">=</span> <span class="kc">None</span>
 
         <span class="c1"># Preserve any cached sunlit flag if present</span>
-        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_sunlit&quot;</span><span class="p">):</span>
-            <span class="n">out</span><span class="o">.</span><span class="n">_sunlit</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_sunlit&quot;</span><span class="p">))</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">"_sunlit"</span><span class="p">):</span>
+            <span class="n">out</span><span class="o">.</span><span class="n">_sunlit</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">"_sunlit"</span><span class="p">))</span>
 
         <span class="k">return</span> <span class="n">out</span></div>
 
@@ -1017,7 +1018,7 @@
 <div class="viewcode-block" id="Orbital_State.average">
 <a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.average">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">average</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">orbital_state_2</span><span class="p">,</span> <span class="n">ratio</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">fast</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Linearly interpolate between two orbital states.</span>
 
 <span class="sd">        :param orbital_state_2:</span>
@@ -1036,7 +1037,7 @@
 <span class="sd">            Interpolated orbital state.</span>
 <span class="sd">        :rtype: Orbital_State</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">_</span> <span class="o">=</span> <span class="n">fast</span>  <span class="c1"># ignored</span>
         <span class="n">os2</span> <span class="o">=</span> <span class="n">orbital_state_2</span>
         <span class="n">a</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="nb">float</span><span class="p">(</span><span class="n">ratio</span><span class="p">)</span>
@@ -1078,7 +1079,7 @@
         <span class="n">out</span><span class="o">.</span><span class="n">_tvec</span> <span class="o">=</span> <span class="n">a</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tvec</span> <span class="o">+</span> <span class="n">b</span> <span class="o">*</span> <span class="n">os2</span><span class="o">.</span><span class="n">_tvec</span>
         <span class="n">out</span><span class="o">.</span><span class="n">_ecef_to_geo</span> <span class="o">=</span> <span class="n">a</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ecef_to_geo</span> <span class="o">+</span> <span class="n">b</span> <span class="o">*</span> <span class="n">os2</span><span class="o">.</span><span class="n">_ecef_to_geo</span>
 
-        <span class="n">out</span><span class="o">.</span><span class="n">sf_geo_pos</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;sf_geo_pos&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">sf_geo_pos</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">"sf_geo_pos"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
         <span class="n">out</span><span class="o">.</span><span class="n">LLA</span> <span class="o">=</span> <span class="n">a</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">LLA</span> <span class="o">+</span> <span class="n">b</span> <span class="o">*</span> <span class="n">os2</span><span class="o">.</span><span class="n">LLA</span>
         <span class="n">out</span><span class="o">.</span><span class="n">ECI2ENUmat</span> <span class="o">=</span> <span class="n">a</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">ECI2ENUmat</span> <span class="o">+</span> <span class="n">b</span> <span class="o">*</span> <span class="n">os2</span><span class="o">.</span><span class="n">ECI2ENUmat</span>
 
@@ -1086,16 +1087,16 @@
 
         <span class="n">out</span><span class="o">.</span><span class="n">vecs</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="n">out</span><span class="o">.</span><span class="n">_last_x</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="n">out</span><span class="o">.</span><span class="n">_cached_sunlit</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_cached_sunlit&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">_cached_sunlit</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">'_cached_sunlit'</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
 
         <span class="c1"># Cache sunlit from nearest endpoint to avoid expensive Skyfield ephemeris call</span>
-        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_sunlit&#39;</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">'_sunlit'</span><span class="p">):</span>
             <span class="n">out</span><span class="o">.</span><span class="n">_sunlit</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sunlit</span>
-        <span class="k">elif</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">os2</span><span class="p">,</span> <span class="s1">&#39;_sunlit&#39;</span><span class="p">):</span>
+        <span class="k">elif</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">os2</span><span class="p">,</span> <span class="s1">'_sunlit'</span><span class="p">):</span>
             <span class="n">out</span><span class="o">.</span><span class="n">_sunlit</span> <span class="o">=</span> <span class="n">os2</span><span class="o">.</span><span class="n">_sunlit</span>
 
         <span class="c1"># Propagate Jacobian skip flag</span>
-        <span class="n">out</span><span class="o">.</span><span class="n">_skip_jacobians</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_skip_jacobians&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">_skip_jacobians</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">'_skip_jacobians'</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">out</span></div>
 
@@ -1110,7 +1111,7 @@
         <span class="n">zonal_J</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
         <span class="n">Jcoeffs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Compute raw orbital dynamics.</span>
 
 <span class="sd">        :param R:</span>
@@ -1148,7 +1149,7 @@
 <span class="sd">            Tuple of position and velocity derivatives.</span>
 <span class="sd">        :rtype: tuple[numpy.ndarray, numpy.ndarray]</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">R</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">R</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
         <span class="n">V</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">V</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
         <span class="n">zonal_J</span> <span class="o">=</span> <span class="n">_normalize_zonal_J</span><span class="p">(</span><span class="n">zonal_J</span><span class="p">)</span>
@@ -1184,7 +1185,7 @@
         <span class="n">zonal_J</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
         <span class="n">Jcoeffs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Compute Jacobians of orbital dynamics.</span>
 
 <span class="sd">        :param R:</span>
@@ -1218,7 +1219,7 @@
 <span class="sd">            Partial derivatives of dynamics.</span>
 <span class="sd">        :rtype: tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray, numpy.ndarray]</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">R</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">R</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
         <span class="n">zonal_J</span> <span class="o">=</span> <span class="n">_normalize_zonal_J</span><span class="p">(</span><span class="n">zonal_J</span><span class="p">)</span>
         <span class="n">Jcoeffs</span> <span class="o">=</span> <span class="n">EarthConstants</span><span class="o">.</span><span class="n">Jcoeffs</span> <span class="k">if</span> <span class="n">Jcoeffs</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">Jcoeffs</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
@@ -1255,7 +1256,7 @@
 <div class="viewcode-block" id="Orbital_State.orbit_dynamics">
 <a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.orbit_dynamics">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">orbit_dynamics</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">zonal_J</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Compute translational orbital dynamics at the current state.</span>
 
 <span class="sd">        :param zonal_J:</span>
@@ -1268,7 +1269,7 @@
 <span class="sd">            Time derivatives of position and velocity.</span>
 <span class="sd">        :rtype: tuple[numpy.ndarray, numpy.ndarray]</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orbit_dynamics_raw</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">R</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">V</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span><span class="p">,</span> <span class="n">zonal_J</span><span class="p">,</span>
             <span class="n">Jcoeffs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">Jcoeffs</span><span class="p">,</span>
@@ -1278,7 +1279,7 @@
 <div class="viewcode-block" id="Orbital_State.orbit_dynamics_jacobians">
 <a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.orbit_dynamics_jacobians">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">orbit_dynamics_jacobians</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">zonal_J</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Compute Jacobians of the translational dynamics.</span>
 
 <span class="sd">        :param zonal_J:</span>
@@ -1291,7 +1292,7 @@
 <span class="sd">            Jacobian matrices of the dynamics.</span>
 <span class="sd">        :rtype: tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray, numpy.ndarray]</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orbit_dynamics_jacobians_raw</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">R</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span><span class="p">,</span> <span class="n">zonal_J</span><span class="p">,</span>
             <span class="n">Jcoeffs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">Jcoeffs</span><span class="p">,</span>
@@ -1301,7 +1302,7 @@
 <div class="viewcode-block" id="Orbital_State.propagate_orbit">
 <a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.propagate_orbit">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">propagate_orbit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">fast</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">zonal_J</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">):</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Propagate the orbital state forward using first-order integration.</span>
 
 <span class="sd">        :param dt:</span>
@@ -1322,7 +1323,7 @@
 <span class="sd">            Propagated orbital state.</span>
 <span class="sd">        :rtype: Orbital_State</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">_</span> <span class="o">=</span> <span class="n">fast</span>  <span class="c1"># ignored</span>
         <span class="n">r_ECI</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">R</span>
         <span class="n">v_ECI</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">V</span>
@@ -1341,7 +1342,7 @@
 <div class="viewcode-block" id="Orbital_State.propagate_orbit_rk4">
 <a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.propagate_orbit_rk4">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">propagate_orbit_rk4</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">fast</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">zonal_J</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">):</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Propagate the orbital state using fourth-order Runge–Kutta integration.</span>
 
 <span class="sd">        :param dt:</span>
@@ -1362,7 +1363,7 @@
 <span class="sd">            Propagated orbital state.</span>
 <span class="sd">        :rtype: Orbital_State</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">_</span> <span class="o">=</span> <span class="n">fast</span>  <span class="c1"># ignored</span>
         <span class="n">dt</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span>
 
@@ -1385,7 +1386,7 @@
 <div class="viewcode-block" id="Orbital_State.propagate_jacobians">
 <a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.propagate_jacobians">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">propagate_jacobians</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">zonal_J</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Propagate state transition Jacobians using first-order integration.</span>
 
 <span class="sd">        :param dt:</span>
@@ -1402,7 +1403,7 @@
 <span class="sd">            State transition Jacobian blocks.</span>
 <span class="sd">        :rtype: tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray, numpy.ndarray]</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">dt</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span>
         <span class="n">drd0__dr0</span><span class="p">,</span> <span class="n">drd0__dv0</span><span class="p">,</span> <span class="n">dvd0__dr0</span><span class="p">,</span> <span class="n">dvd0__dv0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orbit_dynamics_jacobians_raw</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">R</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">J2coeff</span><span class="p">,</span> <span class="n">zonal_J</span><span class="p">,</span> <span class="n">Jcoeffs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">Jcoeffs</span>
@@ -1419,7 +1420,7 @@
 <div class="viewcode-block" id="Orbital_State.propagate_jacobians_rk4">
 <a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.propagate_jacobians_rk4">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">propagate_jacobians_rk4</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">zonal_J</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Propagate state transition Jacobians using RK4 integration.</span>
 
 <span class="sd">        :param dt:</span>
@@ -1436,7 +1437,7 @@
 <span class="sd">            State transition Jacobian blocks.</span>
 <span class="sd">        :rtype: tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray, numpy.ndarray]</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">dt</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span>
 
         <span class="n">r0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">R</span>
@@ -1494,7 +1495,7 @@
 <div class="viewcode-block" id="Orbital_State.eci_to_ecef">
 <a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.eci_to_ecef">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">eci_to_ecef</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vec</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Transform a vector from ECI to ECEF coordinates.</span>
 
 <span class="sd">        :param vec:</span>
@@ -1505,14 +1506,14 @@
 <span class="sd">            Vector in ECEF frame.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_R_eci2ecef</span> <span class="o">@</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">vec</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Orbital_State.ecef_to_eci">
 <a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.ecef_to_eci">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">ecef_to_eci</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vec</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Transform a vector from ECEF to ECI coordinates.</span>
 
 <span class="sd">        :param vec:</span>
@@ -1523,14 +1524,14 @@
 <span class="sd">            Vector in ECI frame.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_R_ecef2eci</span> <span class="o">@</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">vec</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Orbital_State.ecef_to_geocentric">
 <a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.ecef_to_geocentric">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">ecef_to_geocentric</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vec</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Transform an ECEF vector to local geocentric coordinates.</span>
 
 <span class="sd">        :param vec:</span>
@@ -1541,7 +1542,7 @@
 <span class="sd">            Vector in geocentric basis.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="c1"># _ecef_to_geo = [n; t; s] (basis vectors as rows). geocentric_to_ecef</span>
         <span class="c1"># is v0*n+v1*t+v2*s = _ecef_to_geo.T @ v, so the inverse (ECEF -&gt;</span>
         <span class="c1"># geocentric) is _ecef_to_geo @ vec, NOT _ecef_to_geo.T @ vec (the</span>
@@ -1552,7 +1553,7 @@
 <div class="viewcode-block" id="Orbital_State.geocentric_to_ecef">
 <a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.geocentric_to_ecef">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">geocentric_to_ecef</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vec</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Transform a geocentric vector to ECEF coordinates.</span>
 
 <span class="sd">        :param vec:</span>
@@ -1563,7 +1564,7 @@
 <span class="sd">            Vector in ECEF frame.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">v</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">vec</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_n_ecef</span> <span class="o">+</span> <span class="n">v</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tvec</span> <span class="o">+</span> <span class="n">v</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_svec</span></div>
 
@@ -1571,7 +1572,7 @@
 <div class="viewcode-block" id="Orbital_State.eci_to_enu">
 <a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.eci_to_enu">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">eci_to_enu</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vec</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Transform a vector from ECI to local ENU frame.</span>
 
 <span class="sd">        :param vec:</span>
@@ -1582,14 +1583,14 @@
 <span class="sd">            Vector in ENU frame.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">vec</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">ECI2ENUmat</span><span class="o">.</span><span class="n">T</span></div>
 
 
 <div class="viewcode-block" id="Orbital_State.enu_to_eci">
 <a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.enu_to_eci">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">enu_to_eci</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vec</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Transform a vector from ENU to ECI frame.</span>
 
 <span class="sd">        :param vec:</span>
@@ -1600,21 +1601,21 @@
 <span class="sd">            Vector in ECI frame.</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">vec</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">ECI2ENUmat</span></div>
 
 
 <div class="viewcode-block" id="Orbital_State.get_b_eci">
 <a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.get_b_eci">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_b_eci</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Compute the geomagnetic field vector in the ECI frame.</span>
 
 <span class="sd">        :return:</span>
 <span class="sd">            Magnetic field vector [Tesla].</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">r</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">geocentric</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
         <span class="n">theta_rad</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">geocentric</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
         <span class="n">phi_rad</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">geocentric</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
@@ -1642,28 +1643,28 @@
 <div class="viewcode-block" id="Orbital_State.j2000_to_tai">
 <a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.j2000_to_tai">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">j2000_to_tai</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Convert J2000 centuries to TAI Julian date.</span>
 
 <span class="sd">        :return:</span>
 <span class="sd">            TAI Julian date.</span>
 <span class="sd">        :rtype: float</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">J2000</span> <span class="o">*</span> <span class="mf">36525.0</span> <span class="o">+</span> <span class="mf">2451545.0</span></div>
 
 
 <div class="viewcode-block" id="Orbital_State.get_sun_eci">
 <a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.get_sun_eci">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_sun_eci</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Compute the Sun position vector in the ECI frame.</span>
 
 <span class="sd">        :return:</span>
 <span class="sd">            Sun vector in ECI coordinates [km].</span>
 <span class="sd">        :rtype: numpy.ndarray</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">t</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ts</span><span class="o">.</span><span class="n">tt_jd</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">TAI</span><span class="p">)</span>  <span class="c1"># TT scale (see __init__ note on self.TAI)</span>
         <span class="n">sun_icrf</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ephem</span><span class="o">.</span><span class="n">earth</span><span class="o">.</span><span class="n">at</span><span class="p">(</span><span class="n">t</span><span class="p">)</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ephem</span><span class="o">.</span><span class="n">sun</span><span class="p">)</span><span class="o">.</span><span class="n">apparent</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">sun_icrf</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">km</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span></div>
@@ -1672,7 +1673,7 @@
 <div class="viewcode-block" id="Orbital_State.update_vecs">
 <a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.update_vecs">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">update_vecs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Update body-frame vectors and their derivatives from a structured state.</span>
 
 <span class="sd">        :param x:</span>
@@ -1683,9 +1684,9 @@
 <span class="sd">            ``None``</span>
 <span class="sd">        :rtype: None</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">State</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;x must be a State, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"x must be a State, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
         <span class="n">q0</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">q</span>
 
         <span class="n">R</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">R</span>
@@ -1702,7 +1703,7 @@
 
         <span class="c1"># Jacobians/Hessians are only needed when an estimator is in the loop.</span>
         <span class="c1"># Skip them when _skip_jacobians is set to avoid ~25% overhead.</span>
-        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_skip_jacobians&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">'_skip_jacobians'</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
             <span class="n">_z3x4</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
             <span class="n">_z3x4x4</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
             <span class="n">dR_B__dq</span> <span class="o">=</span> <span class="n">_z3x4</span>
@@ -1724,19 +1725,19 @@
             <span class="n">ddS_B__dqdq</span> <span class="o">=</span> <span class="n">ddrotmatTvecdqdq</span><span class="p">(</span><span class="n">q0</span><span class="p">,</span> <span class="n">S</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">vecs</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s2">&quot;b&quot;</span><span class="p">:</span> <span class="n">B_B</span><span class="p">,</span>
-            <span class="s2">&quot;r&quot;</span><span class="p">:</span> <span class="n">R_B</span><span class="p">,</span>
-            <span class="s2">&quot;s&quot;</span><span class="p">:</span> <span class="n">S_B</span><span class="p">,</span>
-            <span class="s2">&quot;v&quot;</span><span class="p">:</span> <span class="n">V_B</span><span class="p">,</span>
-            <span class="s2">&quot;rho&quot;</span><span class="p">:</span> <span class="n">rho</span><span class="p">,</span>
-            <span class="s2">&quot;db&quot;</span><span class="p">:</span> <span class="n">dB_B__dq</span><span class="p">,</span>
-            <span class="s2">&quot;ds&quot;</span><span class="p">:</span> <span class="n">dS_B__dq</span><span class="p">,</span>
-            <span class="s2">&quot;dv&quot;</span><span class="p">:</span> <span class="n">dV_B__dq</span><span class="p">,</span>
-            <span class="s2">&quot;dr&quot;</span><span class="p">:</span> <span class="n">dR_B__dq</span><span class="p">,</span>
-            <span class="s2">&quot;ddb&quot;</span><span class="p">:</span> <span class="n">ddB_B__dqdq</span><span class="p">,</span>
-            <span class="s2">&quot;dds&quot;</span><span class="p">:</span> <span class="n">ddS_B__dqdq</span><span class="p">,</span>
-            <span class="s2">&quot;ddv&quot;</span><span class="p">:</span> <span class="n">ddV_B__dqdq</span><span class="p">,</span>
-            <span class="s2">&quot;ddr&quot;</span><span class="p">:</span> <span class="n">ddR_B__dqdq</span><span class="p">,</span>
+            <span class="s2">"b"</span><span class="p">:</span> <span class="n">B_B</span><span class="p">,</span>
+            <span class="s2">"r"</span><span class="p">:</span> <span class="n">R_B</span><span class="p">,</span>
+            <span class="s2">"s"</span><span class="p">:</span> <span class="n">S_B</span><span class="p">,</span>
+            <span class="s2">"v"</span><span class="p">:</span> <span class="n">V_B</span><span class="p">,</span>
+            <span class="s2">"rho"</span><span class="p">:</span> <span class="n">rho</span><span class="p">,</span>
+            <span class="s2">"db"</span><span class="p">:</span> <span class="n">dB_B__dq</span><span class="p">,</span>
+            <span class="s2">"ds"</span><span class="p">:</span> <span class="n">dS_B__dq</span><span class="p">,</span>
+            <span class="s2">"dv"</span><span class="p">:</span> <span class="n">dV_B__dq</span><span class="p">,</span>
+            <span class="s2">"dr"</span><span class="p">:</span> <span class="n">dR_B__dq</span><span class="p">,</span>
+            <span class="s2">"ddb"</span><span class="p">:</span> <span class="n">ddB_B__dqdq</span><span class="p">,</span>
+            <span class="s2">"dds"</span><span class="p">:</span> <span class="n">ddS_B__dqdq</span><span class="p">,</span>
+            <span class="s2">"ddv"</span><span class="p">:</span> <span class="n">ddV_B__dqdq</span><span class="p">,</span>
+            <span class="s2">"ddr"</span><span class="p">:</span> <span class="n">ddR_B__dqdq</span><span class="p">,</span>
         <span class="p">}</span>
         <span class="c1"># Body-frame environment vectors depend only on attitude. Keeping the</span>
         <span class="c1"># quaternion as the cache key avoids allocating a full state vector on</span>
@@ -1747,7 +1748,7 @@
 <div class="viewcode-block" id="Orbital_State.get_state_vector">
 <a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.get_state_vector">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_state_vector</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">State</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Retrieve cached or updated body-frame vectors.</span>
 
 <span class="sd">        :param x:</span>
@@ -1758,13 +1759,13 @@
 <span class="sd">            Dictionary of vectors and derivatives.</span>
 <span class="sd">        :rtype: dict[str, numpy.ndarray]</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">if</span> <span class="n">x</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_last_x</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;x is required before body-frame vectors have been initialized&quot;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"x is required before body-frame vectors have been initialized"</span><span class="p">)</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">vecs</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">State</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;x must be a State, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"x must be a State, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_last_x</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">array_equal</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">q</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_last_x</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">update_vecs</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">vecs</span></div>
@@ -1773,16 +1774,16 @@
 <div class="viewcode-block" id="Orbital_State.is_sunlit">
 <a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.is_sunlit">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">is_sunlit</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Determine whether the spacecraft is illuminated by the Sun.</span>
 
 <span class="sd">        :return:</span>
 <span class="sd">            ``True`` if sunlit, ``False`` otherwise.</span>
 <span class="sd">        :rtype: bool</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_sunlit&quot;</span><span class="p">):</span>
-            <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_sunlit&quot;</span><span class="p">))</span>
+<span class="sd">        """</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">"_sunlit"</span><span class="p">):</span>
+            <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">"_sunlit"</span><span class="p">))</span>
         <span class="n">result</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sf_pos</span><span class="o">.</span><span class="n">is_sunlit</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ephem</span><span class="o">.</span><span class="n">planets</span><span class="p">))</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_sunlit</span> <span class="o">=</span> <span class="n">result</span>
         <span class="k">return</span> <span class="n">result</span></div>
@@ -1791,22 +1792,22 @@
 <div class="viewcode-block" id="Orbital_State.to_dict">
 <a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.to_dict">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Serialize the orbital state to a dictionary.</span>
 
 <span class="sd">        :return:</span>
 <span class="sd">            Dictionary representation of the orbital state.</span>
 <span class="sd">        :rtype: dict</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;J2000&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">J2000</span><span class="p">,</span> <span class="s2">&quot;R&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">R</span><span class="p">,</span> <span class="s2">&quot;V&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">V</span><span class="p">,</span> <span class="s2">&quot;S&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">S</span><span class="p">,</span> <span class="s2">&quot;B&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">B</span><span class="p">,</span> <span class="s2">&quot;rho&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">rho</span><span class="p">}</span></div>
+<span class="sd">        """</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">"J2000"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">J2000</span><span class="p">,</span> <span class="s2">"R"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">R</span><span class="p">,</span> <span class="s2">"V"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">V</span><span class="p">,</span> <span class="s2">"S"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">S</span><span class="p">,</span> <span class="s2">"B"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">B</span><span class="p">,</span> <span class="s2">"rho"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">rho</span><span class="p">}</span></div>
 
 
 <div class="viewcode-block" id="Orbital_State.from_dict">
 <a class="viewcode-back" href="../../../ADCS.orbits.orbital_state.html#ADCS.orbits.orbital_state.Orbital_State.from_dict">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">from_dict</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">d</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">ephem</span><span class="p">:</span> <span class="n">Ephemeris</span><span class="p">,</span> <span class="n">density_model</span><span class="p">:</span> <span class="n">DensityModel</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">fast</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Construct an orbital state from a dictionary.</span>
 
 <span class="sd">        Notes</span>
@@ -1833,16 +1834,16 @@
 <span class="sd">            Reconstructed orbital state.</span>
 <span class="sd">        :rtype: Orbital_State</span>
 
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">_</span> <span class="o">=</span> <span class="n">fast</span>  <span class="c1"># ignored</span>
         <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
             <span class="n">ephem</span><span class="o">=</span><span class="n">ephem</span><span class="p">,</span>
-            <span class="n">J2000</span><span class="o">=</span><span class="n">d</span><span class="p">[</span><span class="s2">&quot;J2000&quot;</span><span class="p">],</span>
-            <span class="n">R</span><span class="o">=</span><span class="n">d</span><span class="p">[</span><span class="s2">&quot;R&quot;</span><span class="p">],</span>
-            <span class="n">V</span><span class="o">=</span><span class="n">d</span><span class="p">[</span><span class="s2">&quot;V&quot;</span><span class="p">],</span>
-            <span class="n">S</span><span class="o">=</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;S&quot;</span><span class="p">),</span>
-            <span class="n">B</span><span class="o">=</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;B&quot;</span><span class="p">),</span>
-            <span class="n">rho</span><span class="o">=</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;rho&quot;</span><span class="p">),</span>
+            <span class="n">J2000</span><span class="o">=</span><span class="n">d</span><span class="p">[</span><span class="s2">"J2000"</span><span class="p">],</span>
+            <span class="n">R</span><span class="o">=</span><span class="n">d</span><span class="p">[</span><span class="s2">"R"</span><span class="p">],</span>
+            <span class="n">V</span><span class="o">=</span><span class="n">d</span><span class="p">[</span><span class="s2">"V"</span><span class="p">],</span>
+            <span class="n">S</span><span class="o">=</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"S"</span><span class="p">),</span>
+            <span class="n">B</span><span class="o">=</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"B"</span><span class="p">),</span>
+            <span class="n">rho</span><span class="o">=</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"rho"</span><span class="p">),</span>
             <span class="n">density_model</span><span class="o">=</span><span class="n">density_model</span><span class="p">,</span>
             <span class="n">fast</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="p">)</span></div>

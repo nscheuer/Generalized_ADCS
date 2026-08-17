@@ -228,6 +228,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../../release_notes/index.html">Release Notes</a><input aria-label="Toggle navigation of Release Notes" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_8_installable.html">0.1.8 Installable from PyPI (2026-08-05)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_7_benchmark.html">0.1.7 Benchmark (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_6_remote_execution.html">0.1.6 Remote Execution (2026-07-17)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release_notes/0_1_5_bugfixes_and_optimizations.html">0.1.5 Bugfixes and Optimizations (2026-05-29)</a></li>
@@ -539,7 +540,7 @@
         </div>
         <article role="main" id="furo-main-content">
           <h1>Source code for ADCS.satellite_hardware.actuators.actuator</h1><div class="highlight"><pre>
-<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Actuator&quot;</span><span class="p">]</span>
+<span></span><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"Actuator"</span><span class="p">]</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
@@ -554,7 +555,7 @@
 <div class="viewcode-block" id="Actuator">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.actuator.html#ADCS.satellite_hardware.actuators.actuator.Actuator">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">Actuator</span><span class="p">:</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">    Abstract base class for all spacecraft actuators in the ADCS framework.</span>
 
 <span class="sd">    This class defines a **common mathematical and software interface** for</span>
@@ -628,9 +629,9 @@
 <span class="sd">    See also:</span>
 <span class="sd">        :class:`~ADCS.satellite_hardware.actuators.magnetotorquer.MTQ`,</span>
 <span class="sd">        :class:`~ADCS.satellite_hardware.actuators.reaction_wheel.RW`</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axis</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">u_max</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">bias</span><span class="p">:</span> <span class="n">Bias</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">noise</span><span class="p">:</span> <span class="n">Noise</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">estimate_bias</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Initialize an actuator model.</span>
 
 <span class="sd">        The actuation axis is normalized internally and the command magnitude</span>
@@ -653,7 +654,7 @@
 
 <span class="sd">        :return: None</span>
 <span class="sd">        :rtype: None</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">axis</span> <span class="o">=</span> <span class="n">normalize</span><span class="p">(</span><span class="n">axis</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">u_max</span> <span class="o">=</span> <span class="n">u_max</span>
         <span class="k">if</span> <span class="n">bias</span><span class="p">:</span>
@@ -666,12 +667,12 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">noise</span> <span class="o">=</span> <span class="n">Noise</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">estimate_bias</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="n">estimate_bias</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">input_len</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">last_bias_time</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s1">&#39;nan&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_bias_time</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s1">'nan'</span><span class="p">)</span>
 
 <div class="viewcode-block" id="Actuator.torque">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.actuator.html#ADCS.satellite_hardware.actuators.actuator.Actuator.torque">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">torque</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">,</span> <span class="n">dmode</span><span class="p">:</span> <span class="n">ErrorMode</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Compute the body-frame torque produced by the actuator.</span>
 
 <span class="sd">        .. math::</span>
@@ -697,14 +698,14 @@
 
 <span class="sd">        :return: Body-frame torque vector.</span>
 <span class="sd">        :rtype: numpy.ndarray of shape ``(3,)``</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span></div>
 
     
 <div class="viewcode-block" id="Actuator.storage_torque">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.actuator.html#ADCS.satellite_hardware.actuators.actuator.Actuator.storage_torque">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">storage_torque</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">j2000</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">dmode</span><span class="p">:</span> <span class="n">ErrorMode</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span><span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Compute the torque contribution associated with momentum storage states.</span>
 
 <span class="sd">        This is relevant for actuators such as reaction wheels that exchange</span>
@@ -723,14 +724,14 @@
 
 <span class="sd">        :return: Storage torque vector.</span>
 <span class="sd">        :rtype: numpy.ndarray of shape ``(0,)``</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">0</span><span class="p">,))</span></div>
 
     
 <div class="viewcode-block" id="Actuator.dtorq__du">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.actuator.html#ADCS.satellite_hardware.actuators.actuator.Actuator.dtorq__du">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">dtorq__du</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        First derivative of torque with respect to input.</span>
 
 <span class="sd">        .. math::</span>
@@ -749,14 +750,14 @@
 
 <span class="sd">        :return: Row-Jacobian of torque w.r.t. input.</span>
 <span class="sd">        :rtype: numpy.ndarray of shape ``(1, 3)``</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span></div>
 
     
 <div class="viewcode-block" id="Actuator.dtorq__dbias">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.actuator.html#ADCS.satellite_hardware.actuators.actuator.Actuator.dtorq__dbias">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">dtorq__dbias</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        First derivative of torque with respect to actuator bias.</span>
 
 <span class="sd">        If a bias model exists, this mirrors</span>
@@ -777,7 +778,7 @@
 
 <span class="sd">        :return: Row-Jacobian of torque w.r.t. bias.</span>
 <span class="sd">        :rtype: numpy.ndarray of shape ``(1, 3)`` or ``(0, 3)``</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bias</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtorq__du</span><span class="p">(</span><span class="n">u</span><span class="o">=</span><span class="n">u</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">os</span><span class="o">=</span><span class="n">os</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
@@ -787,7 +788,7 @@
 <div class="viewcode-block" id="Actuator.dtorq__dbasestate">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.actuator.html#ADCS.satellite_hardware.actuators.actuator.Actuator.dtorq__dbasestate">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">dtorq__dbasestate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        First derivative of torque with respect to the base spacecraft state.</span>
 
 <span class="sd">        .. math::</span>
@@ -810,14 +811,14 @@
 
 <span class="sd">        :return: Row-Jacobian of torque w.r.t. base state.</span>
 <span class="sd">        :rtype: numpy.ndarray of shape ``(7, 3)``</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">7</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span></div>
 
     
 <div class="viewcode-block" id="Actuator.dtorq__dh">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.actuator.html#ADCS.satellite_hardware.actuators.actuator.Actuator.dtorq__dh">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">dtorq__dh</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        First derivative of torque with respect to momentum storage state.</span>
 
 <span class="sd">        Base class has no storage state.</span>
@@ -833,14 +834,14 @@
 
 <span class="sd">        :return: Row-Jacobian of torque w.r.t. storage state.</span>
 <span class="sd">        :rtype: numpy.ndarray of shape ``(0, 3)``</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span><span class="mi">3</span><span class="p">))</span></div>
 
     
 <div class="viewcode-block" id="Actuator.ddtorq__dudu">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.actuator.html#ADCS.satellite_hardware.actuators.actuator.Actuator.ddtorq__dudu">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">ddtorq__dudu</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Second derivative of torque with respect to input.</span>
 
 <span class="sd">        .. math::</span>
@@ -858,14 +859,14 @@
 
 <span class="sd">        :return: Input–input Hessian of torque.</span>
 <span class="sd">        :rtype: numpy.ndarray of shape ``(1, 1, 3)``</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span></div>
 
     
 <div class="viewcode-block" id="Actuator.ddtorq__dudbias">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.actuator.html#ADCS.satellite_hardware.actuators.actuator.Actuator.ddtorq__dudbias">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">ddtorq__dudbias</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Mixed second derivative of torque with respect to input and bias.</span>
 
 <span class="sd">        .. math::</span>
@@ -883,7 +884,7 @@
 
 <span class="sd">        :return: Input–bias Hessian of torque.</span>
 <span class="sd">        :rtype: numpy.ndarray of shape ``(1, 1, 3)`` or ``(1, 0, 3)``</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bias</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ddtorq__dudu</span><span class="p">(</span><span class="n">u</span><span class="o">=</span><span class="n">u</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">os</span><span class="o">=</span><span class="n">os</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
@@ -893,7 +894,7 @@
 <div class="viewcode-block" id="Actuator.ddtorq__dudbasestate">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.actuator.html#ADCS.satellite_hardware.actuators.actuator.Actuator.ddtorq__dudbasestate">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">ddtorq__dudbasestate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Mixed second derivative of torque with respect to input and base state.</span>
 
 <span class="sd">        .. math::</span>
@@ -916,7 +917,7 @@
 
 <span class="sd">        :return: Input–state Hessian of torque.</span>
 <span class="sd">        :rtype: numpy.ndarray of shape ``(1, 7, 3)``</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
 
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span></div>
 
@@ -924,7 +925,7 @@
 <div class="viewcode-block" id="Actuator.ddtorq__dudh">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.actuator.html#ADCS.satellite_hardware.actuators.actuator.Actuator.ddtorq__dudh">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">ddtorq__dudh</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Mixed second derivative of torque with respect to input and storage state.</span>
 
 <span class="sd">        .. math::</span>
@@ -944,14 +945,14 @@
 
 <span class="sd">        :return: Input–storage Hessian of torque.</span>
 <span class="sd">        :rtype: numpy.ndarray of shape ``(1, 0, 3)``</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span></div>
 
     
 <div class="viewcode-block" id="Actuator.ddtorq__dbiasdbias">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.actuator.html#ADCS.satellite_hardware.actuators.actuator.Actuator.ddtorq__dbiasdbias">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">ddtorq__dbiasdbias</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Second derivative of torque with respect to actuator bias.</span>
 
 <span class="sd">        .. math::</span>
@@ -969,7 +970,7 @@
 
 <span class="sd">        :return: Bias–bias Hessian of torque.</span>
 <span class="sd">        :rtype: numpy.ndarray of shape ``(1, 1, 3)`` or ``(0, 0, 3)``</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bias</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ddtorq__dudu</span><span class="p">(</span><span class="n">u</span><span class="o">=</span><span class="n">u</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">os</span><span class="o">=</span><span class="n">os</span><span class="p">)</span>
@@ -980,7 +981,7 @@
 <div class="viewcode-block" id="Actuator.ddtorq__dbiasdbasestate">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.actuator.html#ADCS.satellite_hardware.actuators.actuator.Actuator.ddtorq__dbiasdbasestate">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">ddtorq__dbiasdbasestate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Mixed second derivative of torque with respect to bias and base state.</span>
 
 <span class="sd">        .. math::</span>
@@ -998,7 +999,7 @@
 
 <span class="sd">        :return: Bias–state Hessian of torque.</span>
 <span class="sd">        :rtype: numpy.ndarray of shape ``(1, 7, 3)`` or ``(0, 7, 3)``</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bias</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ddtorq__dudbasestate</span><span class="p">(</span><span class="n">u</span><span class="o">=</span><span class="n">u</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">os</span><span class="o">=</span><span class="n">os</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
@@ -1008,7 +1009,7 @@
 <div class="viewcode-block" id="Actuator.ddtorq__dbiasdh">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.actuator.html#ADCS.satellite_hardware.actuators.actuator.Actuator.ddtorq__dbiasdh">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">ddtorq__dbiasdh</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Mixed second derivative of torque with respect to bias and storage state.</span>
 
 <span class="sd">        .. math::</span>
@@ -1026,7 +1027,7 @@
 
 <span class="sd">        :return: Bias–storage Hessian of torque.</span>
 <span class="sd">        :rtype: numpy.ndarray of shape ``(1, 0, 3)`` or ``(0, 0, 3)``</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bias</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ddtorq__dudh</span><span class="p">(</span><span class="n">u</span><span class="o">=</span><span class="n">u</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">os</span><span class="o">=</span><span class="n">os</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
@@ -1036,7 +1037,7 @@
 <div class="viewcode-block" id="Actuator.ddtorq__dbasestatedbasestate">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.actuator.html#ADCS.satellite_hardware.actuators.actuator.Actuator.ddtorq__dbasestatedbasestate">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">ddtorq__dbasestatedbasestate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">):</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Second derivative of torque with respect to the base spacecraft state.</span>
 
 <span class="sd">        .. math::</span>
@@ -1054,14 +1055,14 @@
 
 <span class="sd">        :return: State–state Hessian of torque.</span>
 <span class="sd">        :rtype: numpy.ndarray of shape ``(7, 7, 3)``</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">7</span><span class="p">,</span><span class="mi">7</span><span class="p">,</span><span class="mi">3</span><span class="p">))</span></div>
 
         
 <div class="viewcode-block" id="Actuator.ddtorq__dbasestatedh">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.actuator.html#ADCS.satellite_hardware.actuators.actuator.Actuator.ddtorq__dbasestatedh">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">ddtorq__dbasestatedh</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Mixed second derivative of torque with respect to base state and storage state.</span>
 
 <span class="sd">        .. math::</span>
@@ -1079,14 +1080,14 @@
 
 <span class="sd">        :return: State–storage Hessian of torque.</span>
 <span class="sd">        :rtype: numpy.ndarray of shape ``(7, 0, 3)``</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">7</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span></div>
 
     
 <div class="viewcode-block" id="Actuator.ddtorq__dhdh">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.actuator.html#ADCS.satellite_hardware.actuators.actuator.Actuator.ddtorq__dhdh">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">ddtorq__dhdh</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Second derivative of torque with respect to storage state.</span>
 
 <span class="sd">        .. math::</span>
@@ -1104,14 +1105,14 @@
 
 <span class="sd">        :return: Storage–storage Hessian of torque.</span>
 <span class="sd">        :rtype: numpy.ndarray of shape ``(0, 0, 3)``</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span></div>
 
     
 <div class="viewcode-block" id="Actuator.dstor_torq__du">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.actuator.html#ADCS.satellite_hardware.actuators.actuator.Actuator.dstor_torq__du">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">dstor_torq__du</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        First derivative of storage torque with respect to input.</span>
 
 <span class="sd">        .. math::</span>
@@ -1129,14 +1130,14 @@
 
 <span class="sd">        :return: Row-Jacobian of storage torque w.r.t. input.</span>
 <span class="sd">        :rtype: numpy.ndarray of shape ``(1, 0)``</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span></div>
 
     
 <div class="viewcode-block" id="Actuator.dstor_torq__dbias">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.actuator.html#ADCS.satellite_hardware.actuators.actuator.Actuator.dstor_torq__dbias">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">dstor_torq__dbias</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        First derivative of storage torque with respect to actuator bias.</span>
 
 <span class="sd">        .. math::</span>
@@ -1154,7 +1155,7 @@
 
 <span class="sd">        :return: Row-Jacobian of storage torque w.r.t. bias.</span>
 <span class="sd">        :rtype: numpy.ndarray of shape ``(1, 0)`` or ``(0, 0)``</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bias</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dstor_torq__du</span><span class="p">(</span><span class="n">u</span><span class="o">=</span><span class="n">u</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">os</span><span class="o">=</span><span class="n">os</span><span class="p">)</span>
@@ -1165,7 +1166,7 @@
 <div class="viewcode-block" id="Actuator.dstor_torq__dbasestate">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.actuator.html#ADCS.satellite_hardware.actuators.actuator.Actuator.dstor_torq__dbasestate">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">dstor_torq__dbasestate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        First derivative of storage torque with respect to the base spacecraft state.</span>
 
 <span class="sd">        .. math::</span>
@@ -1183,14 +1184,14 @@
 
 <span class="sd">        :return: Row-Jacobian of storage torque w.r.t. base state.</span>
 <span class="sd">        :rtype: numpy.ndarray of shape ``(7, 0)``</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">7</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span></div>
 
         
 <div class="viewcode-block" id="Actuator.dstor_torq__dh">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.actuator.html#ADCS.satellite_hardware.actuators.actuator.Actuator.dstor_torq__dh">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">dstor_torq__dh</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        First derivative of storage torque with respect to storage state.</span>
 
 <span class="sd">        .. math::</span>
@@ -1208,14 +1209,14 @@
 
 <span class="sd">        :return: Row-Jacobian of storage torque w.r.t. storage state.</span>
 <span class="sd">        :rtype: numpy.ndarray of shape ``(0, 0)``</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span></div>
 
     
 <div class="viewcode-block" id="Actuator.ddstor_torq__dudu">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.actuator.html#ADCS.satellite_hardware.actuators.actuator.Actuator.ddstor_torq__dudu">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">ddstor_torq__dudu</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Second derivative of storage torque with respect to input.</span>
 
 <span class="sd">        :param u: Actuator command input.</span>
@@ -1229,14 +1230,14 @@
 
 <span class="sd">        :return: Input–input Hessian of storage torque.</span>
 <span class="sd">        :rtype: numpy.ndarray of shape ``(1, 1, 0)``</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span></div>
 
     
 <div class="viewcode-block" id="Actuator.ddstor_torq__dudbias">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.actuator.html#ADCS.satellite_hardware.actuators.actuator.Actuator.ddstor_torq__dudbias">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">ddstor_torq__dudbias</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Mixed second derivative of storage torque with respect to input and bias.</span>
 
 <span class="sd">        .. math::</span>
@@ -1254,7 +1255,7 @@
 
 <span class="sd">        :return: Input–bias Hessian of storage torque.</span>
 <span class="sd">        :rtype: numpy.ndarray of shape ``(1, 1, 0)`` or ``(1, 0, 0)``</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bias</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ddstor_torq__dudu</span><span class="p">(</span><span class="n">u</span><span class="o">=</span><span class="n">u</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">os</span><span class="o">=</span><span class="n">os</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
@@ -1264,7 +1265,7 @@
 <div class="viewcode-block" id="Actuator.ddstor_torq__dudbasestate">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.actuator.html#ADCS.satellite_hardware.actuators.actuator.Actuator.ddstor_torq__dudbasestate">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">ddstor_torq__dudbasestate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Mixed second derivative of storage torque with respect to input and base state.</span>
 
 <span class="sd">        .. math::</span>
@@ -1282,14 +1283,14 @@
 
 <span class="sd">        :return: Input–state Hessian of storage torque.</span>
 <span class="sd">        :rtype: numpy.ndarray of shape ``(1, 7, 0)``</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span></div>
 
     
 <div class="viewcode-block" id="Actuator.ddstor_torq__dudh">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.actuator.html#ADCS.satellite_hardware.actuators.actuator.Actuator.ddstor_torq__dudh">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">ddstor_torq__dudh</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Mixed second derivative of storage torque with respect to input and storage state.</span>
 
 <span class="sd">        .. math::</span>
@@ -1307,14 +1308,14 @@
 
 <span class="sd">        :return: Input–storage Hessian of storage torque.</span>
 <span class="sd">        :rtype: numpy.ndarray of shape ``(1, 0, 0)``</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span></div>
 
     
 <div class="viewcode-block" id="Actuator.ddstor_torq__dbiasdbias">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.actuator.html#ADCS.satellite_hardware.actuators.actuator.Actuator.ddstor_torq__dbiasdbias">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">ddstor_torq__dbiasdbias</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Second derivative of storage torque with respect to actuator bias.</span>
 
 <span class="sd">        .. math::</span>
@@ -1332,7 +1333,7 @@
 
 <span class="sd">        :return: Bias–bias Hessian of storage torque.</span>
 <span class="sd">        :rtype: numpy.ndarray of shape ``(1, 1, 0)`` or ``(0, 0, 0)``</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bias</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ddstor_torq__dudu</span><span class="p">(</span><span class="n">u</span><span class="o">=</span><span class="n">u</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">os</span><span class="o">=</span><span class="n">os</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
@@ -1342,7 +1343,7 @@
 <div class="viewcode-block" id="Actuator.ddstor_torq__dbiasdbasestate">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.actuator.html#ADCS.satellite_hardware.actuators.actuator.Actuator.ddstor_torq__dbiasdbasestate">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">ddstor_torq__dbiasdbasestate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Mixed second derivative of storage torque with respect to bias and base state.</span>
 
 <span class="sd">        .. math::</span>
@@ -1360,7 +1361,7 @@
 
 <span class="sd">        :return: Bias–state Hessian of storage torque.</span>
 <span class="sd">        :rtype: numpy.ndarray of shape ``(1, 7, 0)`` or ``(0, 7, 0)``</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bias</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ddstor_torq__dudbasestate</span><span class="p">(</span><span class="n">u</span><span class="o">=</span><span class="n">u</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">os</span><span class="o">=</span><span class="n">os</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
@@ -1370,7 +1371,7 @@
 <div class="viewcode-block" id="Actuator.ddstor_torq__dbiasdh">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.actuator.html#ADCS.satellite_hardware.actuators.actuator.Actuator.ddstor_torq__dbiasdh">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">ddstor_torq__dbiasdh</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Mixed second derivative of storage torque with respect to bias and storage state.</span>
 
 <span class="sd">        .. math::</span>
@@ -1388,7 +1389,7 @@
 
 <span class="sd">        :return: Bias–storage Hessian of storage torque.</span>
 <span class="sd">        :rtype: numpy.ndarray of shape ``(1, 0, 0)`` or ``(0, 0, 0)``</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bias</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ddstor_torq__dudh</span><span class="p">(</span><span class="n">u</span><span class="o">=</span><span class="n">u</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">os</span><span class="o">=</span><span class="n">os</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
@@ -1398,7 +1399,7 @@
 <div class="viewcode-block" id="Actuator.ddstor_torq__dbasestatedbasestate">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.actuator.html#ADCS.satellite_hardware.actuators.actuator.Actuator.ddstor_torq__dbasestatedbasestate">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">ddstor_torq__dbasestatedbasestate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Second derivative of storage torque with respect to the base spacecraft state.</span>
 
 <span class="sd">        .. math::</span>
@@ -1416,14 +1417,14 @@
 
 <span class="sd">        :return: State–state Hessian of storage torque.</span>
 <span class="sd">        :rtype: numpy.ndarray of shape ``(7, 7, 0)``</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">7</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span></div>
 
     
 <div class="viewcode-block" id="Actuator.ddstor_torq__dbasestatedh">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.actuator.html#ADCS.satellite_hardware.actuators.actuator.Actuator.ddstor_torq__dbasestatedh">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">ddstor_torq__dbasestatedh</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Mixed second derivative of storage torque with respect to base state and storage state.</span>
 
 <span class="sd">        .. math::</span>
@@ -1441,14 +1442,14 @@
 
 <span class="sd">        :return: State–storage Hessian of storage torque.</span>
 <span class="sd">        :rtype: numpy.ndarray of shape ``(7, 0, 0)``</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">7</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span></div>
 
     
 <div class="viewcode-block" id="Actuator.ddstor_torq__dhdh">
 <a class="viewcode-back" href="../../../../ADCS.satellite_hardware.actuators.actuator.html#ADCS.satellite_hardware.actuators.actuator.Actuator.ddstor_torq__dhdh">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">ddstor_torq__dhdh</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">State</span><span class="p">,</span> <span class="n">os</span><span class="p">:</span> <span class="n">Orbital_State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
 <span class="sd">        Second derivative of storage torque with respect to storage state.</span>
 
 <span class="sd">        .. math::</span>
@@ -1466,7 +1467,7 @@
 
 <span class="sd">        :return: Storage–storage Hessian of storage torque.</span>
 <span class="sd">        :rtype: numpy.ndarray of shape ``(0, 0, 0)``</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span></div>
 </div>
 
