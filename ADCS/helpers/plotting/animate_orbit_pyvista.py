@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 from scipy.spatial.transform import Rotation as R_scipy
 from scipy.spatial.transform import Slerp
 from scipy.interpolate import interp1d
-from typing import List, Optional
+from typing import List, Optional, Sequence
 
 from ADCS.CONOPS.goals import Coordinate_Goal
 from ADCS.orbits.orbital_state import Orbital_State
@@ -48,10 +48,10 @@ def get_rotation_from_vectors(vec1, vec2):
 
 def animate_orbit_pyvista(
     time_hist: np.ndarray,
-    state_hist: List[State],
-    os_hist: List[Orbital_State],
-    est_state_hist: Optional[List[State]] = None,
-    est_os_hist: Optional[List[Orbital_State]] = None,
+    state_hist: Sequence[State],
+    os_hist: Sequence[Orbital_State],
+    est_state_hist: Optional[Sequence[State]] = None,
+    est_os_hist: Optional[Sequence[Orbital_State]] = None,
     boresight_goal_hist: Optional[np.ndarray] = None,
     coord_goal: Optional[Coordinate_Goal] = None,
     texture_path: Optional[str | Path] = None,

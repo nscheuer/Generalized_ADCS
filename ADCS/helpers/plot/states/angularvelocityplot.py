@@ -6,6 +6,7 @@ import numpy as np
 
 from ..subplot import Subplot
 from ADCS.state import State
+from typing import Sequence
 
 
 def _normalize_sources(sources: list[str] | None) -> list[str]:
@@ -106,7 +107,7 @@ class AngularVelocityPlot(Subplot):
     def __init__(
         self,
         *,
-        sources: list[str] | None = None,  # ["real","reference","estimated"]
+        sources: Sequence[str] | None = None,  # ["real","reference","estimated"]
         time: str = "time_s",
         title: str = "Angular Rates in Body Frame",
         units: str = "rad/s",
@@ -286,7 +287,7 @@ class AngularVelocityPlotSingle(Subplot):
         self,
         *,
         component: str,  # 'x', 'y', 'z', or 'm'
-        sources: list[str] | None = None,
+        sources: Sequence[str] | None = None,
         time: str = "time_s",
         title: str | None = None,
         units: str = "rad/s",
@@ -434,7 +435,7 @@ class AngularVelocityPlotCombined(Subplot):
     def __init__(
         self,
         *,
-        sources: list[str] | None = None,
+        sources: Sequence[str] | None = None,
         time: str = "time_s",
         title: str = "Angular Rates (Body Frame)",
         units: str = "rad/s",

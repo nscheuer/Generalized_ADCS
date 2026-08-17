@@ -3,7 +3,7 @@ __all__ = ["SunPair"]
 from .sensor import Sensor
 
 import numpy as np
-from typing import Tuple
+from typing import Tuple, Optional
 from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.satellite_hardware.errors import Noise, Bias
 from ADCS.helpers.math_helpers import normalize, normed_vec_jac
@@ -100,8 +100,8 @@ class SunPair(Sensor):
         axis: np.ndarray,
         efficiency: Tuple[float, float],
         sample_time: float = 0.1,
-        bias: Bias = None,
-        noise: Noise = None,
+        bias: Optional[Bias] = None,
+        noise: Optional[Noise] = None,
         estimate_bias: bool = False,
     ):
         r"""

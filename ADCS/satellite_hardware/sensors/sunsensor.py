@@ -11,6 +11,7 @@ from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.satellite_hardware.errors import Noise, Bias
 from ADCS.helpers.math_constants import MathConstants
 from ADCS.helpers.math_helpers import normalize, normed_vec_jac, rot_mat
+from typing import Optional
 
 class SunSensor(Sensor):
     r"""
@@ -93,7 +94,7 @@ class SunSensor(Sensor):
       that step. (It is *not* zero -- a zero would be fed to the filter as a
       real measurement.)
     """
-    def __init__(self, axis: np.ndarray, efficiency: float, sample_time: float = 0.1, bias: Bias = None, noise: Noise = None, estimate_bias: bool = False):
+    def __init__(self, axis: np.ndarray, efficiency: float, sample_time: float = 0.1, bias: Optional[Bias] = None, noise: Optional[Noise] = None, estimate_bias: bool = False):
         r"""
         Initialize a single-axis coarse Sun sensor.
 

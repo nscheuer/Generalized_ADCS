@@ -9,6 +9,7 @@ from ADCS.satellite_hardware.errors.bias import Bias
 from ADCS.satellite_hardware.errors.noise import Noise
 from ADCS.satellite_hardware.errors import ErrorMode
 from ADCS.orbits.orbital_state import Orbital_State
+from typing import Optional
 
 class RW(Actuator):
     r"""
@@ -84,11 +85,15 @@ class RW(Actuator):
         axis: np.ndarray,
         max_torque: float,
         J: float,
-        h: np.ndarray,
-        h_max: np.ndarray,
-        bias: Bias = None,
-        noise: Noise = None,
-        h_meas_noise: Noise = None,
+        # Scalar for a single wheel: every call site in ADCS/, testing/ and
+        # papers/ passes a number (h=5.0, h=0.0, h=h0[i]). The previous
+        # np.ndarray annotation made the README's own example fail type
+        # checking once py.typed was shipped.
+        h: float,
+        h_max: float,
+        bias: Optional[Bias] = None,
+        noise: Optional[Noise] = None,
+        h_meas_noise: Optional[Noise] = None,
         estimate_bias: bool = False,
     ) -> None:
         r"""
@@ -159,7 +164,7 @@ class RW(Actuator):
             self.h_meas_noise = Noise()
         super().__init__(axis=axis, u_max=max_torque, bias=bias, noise=noise, estimate_bias=estimate_bias)
 
-    def torque(self, u: float, x: State, os: Orbital_State, dmode: ErrorMode = None) -> float:
+    def torque(self, u: float, x: State, os: Orbital_State, dmode: Optional[ErrorMode] = None) -> float:
         r"""
         Compute the reaction-wheel torque vector applied to the spacecraft body.
 
@@ -198,7 +203,7 @@ class RW(Actuator):
         u_eff = self._effective_command(u=u, os=os, dmode=dmode)
         return self.axis * u_eff
 
-    def _effective_command(self, u: float, os: Orbital_State, dmode: ErrorMode = None) -> float:
+    def _effective_command(self, u: float, os: Orbital_State, dmode: Optional[ErrorMode] = None) -> float:
         r"""
         Compute the effective scalar motor torque :math:`u_{\mathrm{eff}} = u + b(t) + n(t)`.
 
@@ -275,7 +280,7 @@ class RW(Actuator):
         self._eff_cmd_val = command
         return command
 
-    def storage_torque(self, u: float, x: State, os: Orbital_State, dmode: ErrorMode = None) -> float:
+    def storage_torque(self, u: float, x: State, os: Orbital_State, dmode: Optional[ErrorMode] = None) -> float:
         r"""
         Compute the internal torque acting on the wheel (equal and opposite to the body torque).
 

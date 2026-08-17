@@ -4,7 +4,7 @@ import numpy as np
 
 from ADCS.state import State
 
-from typing import List, Dict, Union, Tuple, Any, Optional
+from typing import List, Dict, Union, Tuple, Any, Optional, Sequence
 from scipy.linalg import block_diag
 
 from .satellite import Satellite
@@ -77,7 +77,7 @@ class EstimatedSatellite(Satellite):
         :meth:`~ADCS.satellite_hardware.satellite.estimated_satellite.EstimatedSatellite.match_estimate`.
     """
 
-    def __init__(self, mass: float = 1.0, COM: np.ndarray = None, J_0: np.ndarray = None, disturbances: List[Disturbance] = [], sensors: List[Sensor] = [], actuators: List[Actuator] = [], boresight: dict[str, np.ndarray] | np.ndarray = None) -> None:
+    def __init__(self, mass: float = 1.0, COM: Optional[np.ndarray] = None, J_0: Optional[np.ndarray] = None, disturbances: Sequence[Disturbance] = [], sensors: Sequence[Sensor] = [], actuators: Sequence[Actuator] = [], boresight: Optional[dict[str, np.ndarray] | np.ndarray] = None) -> None:
         r"""
         Construct an estimator-augmented satellite.
 
@@ -1023,7 +1023,7 @@ class EstimatedSatellite(Satellite):
         blocks = [actuator.noise.srcov() for actuator in self.actuators]
         return np.array(block_diag(*blocks))
 
-    def sensor_cov(self, which_sensors: List[bool]) -> np.ndarray:
+    def sensor_cov(self, which_sensors: Sequence[bool]) -> np.ndarray:
         r"""
         Block-diagonal covariance of attitude sensor noise (and wheel momentum measurement noise).
 
@@ -1059,7 +1059,7 @@ class EstimatedSatellite(Satellite):
 
         return block_diag(*blocks) if blocks else np.zeros((0, 0))
 
-    def sensor_srcov(self, which_sensors: List[bool]) -> np.ndarray:
+    def sensor_srcov(self, which_sensors: Sequence[bool]) -> np.ndarray:
         r"""
         Block-diagonal square-root covariance of attitude sensor noise (and wheel momentum measurement noise).
 

@@ -3,6 +3,7 @@ import matplotlib.gridspec as gridspec
 
 from ..subplot import Subplot
 from ADCS.state import State
+from typing import Sequence
 
 
 def _normalize_sources_q(sources: list[str] | None) -> list[str]:
@@ -97,7 +98,7 @@ class QuaternionPlot(Subplot):
     def __init__(
         self,
         *,
-        sources: list[str] | None = None,  # ["real","estimated"]
+        sources: Sequence[str] | None = None,  # ["real","estimated"]
         time: str = "time_s",
         title: str = "Quaternion Components",
         units: str = "",
@@ -239,7 +240,7 @@ class QuaternionPlotSingle(Subplot):
         self,
         *,
         component: int,  # 0,1,2,3
-        sources: list[str] | None = None,  # ["real","estimated"]
+        sources: Sequence[str] | None = None,  # ["real","estimated"]
         time: str = "time_s",
         title: str | None = None,
         units: str = "",
@@ -370,7 +371,7 @@ class QuaternionPlotCombined(Subplot):
     def __init__(
         self,
         *,
-        sources: list[str] | None = None,  # ["real","estimated"]
+        sources: Sequence[str] | None = None,  # ["real","estimated"]
         time: str = "time_s",
         title: str = "Quaternion Components",
         units: str = "",

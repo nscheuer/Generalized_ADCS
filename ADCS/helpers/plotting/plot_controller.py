@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 from matplotlib.widgets import Button, RadioButtons
 from numpy.linalg import norm
-from typing import Callable, Tuple, List
+from typing import Callable, Tuple, List, Sequence
 from ADCS.helpers.math_helpers import quat_to_euler
 from ADCS.state import State
 
@@ -111,7 +111,7 @@ def plot_control(
 
 def plot_rw_momentum(
     time: np.ndarray,
-    state_hist: List[State],
+    state_hist: Sequence[State],
     title: str = "Reaction Wheel Stored Momentum",
     units: str = "N·m·s"
 ) -> None:
@@ -263,7 +263,7 @@ def _quat_attitude_error_deg(q: np.ndarray, q_ref: np.ndarray) -> float:
 
 
 def plot_target_tracking(
-    state_hist: List[State],
+    state_hist: Sequence[State],
     boresight_hist: np.ndarray,
     body_boresight: np.ndarray,
     time: Optional[np.ndarray] = None,

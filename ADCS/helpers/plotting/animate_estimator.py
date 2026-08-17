@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 from matplotlib.widgets import Button, RadioButtons
-from typing import Optional, List
+from typing import Optional, List, Sequence
 
 from ADCS.helpers.math_helpers import rot_mat
 from ADCS.state import State
@@ -12,8 +12,8 @@ __all__ = ["animate_attitude"]
 
 def animate_attitude(
     time: np.ndarray,
-    state_hist: Optional[List[State]] = None,
-    est_state_hist: Optional[List[State]] = None,
+    state_hist: Optional[Sequence[State]] = None,
+    est_state_hist: Optional[Sequence[State]] = None,
     os_hist: Optional[List] = None,
     boresight_goal_hist: Optional[np.ndarray] = None,
 ) -> None:

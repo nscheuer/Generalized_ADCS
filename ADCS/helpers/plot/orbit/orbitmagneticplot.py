@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.gridspec as gridspec
 
 from ..subplot import Subplot
+from typing import Sequence
 
 
 class OrbitMagneticPlot(Subplot):
@@ -288,7 +289,7 @@ class OrbitMagneticPlotCombined(Subplot):
         units: str = "T",
         colors=("tab:blue", "tab:orange", "tab:green"),
         log_y: bool = False,
-        labels: list[str] | None = None,
+        labels: Sequence[str] | None = None,
     ):
         self.time = time
         self.title = title

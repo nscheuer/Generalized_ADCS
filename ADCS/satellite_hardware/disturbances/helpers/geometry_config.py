@@ -1,7 +1,7 @@
 __all__ = ["GeometryFace", "GeometryConfig"]
 
 import numpy as np
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Sequence
 
 class GeometryFace:
     def __init__(self, area: float, centroid: np.ndarray, normal: np.ndarray, eta_s: float = 0, eta_d: float = 0, eta_a: float = 0, CD: float = 0):
@@ -95,7 +95,7 @@ class GeometryConfig:
         Each entry must include the keys listed above.
     """
 
-    def __init__(self, geometry_faces: List[GeometryFace]) -> None:
+    def __init__(self, geometry_faces: Sequence[GeometryFace]) -> None:
         r"""
         Initialize a :class:`GeometryConfig` instance.
 

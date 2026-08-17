@@ -3,7 +3,7 @@ __all__ = ["Controller"]
 import numpy as np
 
 from ADCS.state import EstimatorState, State
-from typing import List, Tuple, Type, Optional
+from typing import List, Tuple, Type, Optional, Sequence
 
 from ADCS.CONOPS.goals import Goal
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
@@ -128,7 +128,7 @@ class Controller():
         )
 
 
-    def build_sensor_matrix_pinv(self, sensors: List[Sensor], sensor_type: Type[Sensor]) -> Tuple[np.ndarray, List[int]]:
+    def build_sensor_matrix_pinv(self, sensors: Sequence[Sensor], sensor_type: Type[Sensor]) -> Tuple[np.ndarray, List[int]]:
         r"""
         Constructs a sensor reconstruction matrix using a Moore–Penrose
         pseudoinverse.
@@ -201,7 +201,7 @@ class Controller():
         return M_full, active_indices
     
 
-    def build_torque_to_u_matrix_pinv(self, actuators: List[Actuator], actuator_type: Type[Actuator]) -> Tuple[np.ndarray, List[int]]:
+    def build_torque_to_u_matrix_pinv(self, actuators: Sequence[Actuator], actuator_type: Type[Actuator]) -> Tuple[np.ndarray, List[int]]:
         r"""
         Builds an actuator allocation matrix mapping desired body torque to
         actuator command space.
@@ -263,7 +263,7 @@ class Controller():
         return M_act, active_indices
     
 
-    def build_u_to_torque_matrix_pinv(self, actuators: List[Actuator], actuator_type: Type[Actuator]) -> np.ndarray:
+    def build_u_to_torque_matrix_pinv(self, actuators: Sequence[Actuator], actuator_type: Type[Actuator]) -> np.ndarray:
         r"""
         Builds the forward mapping matrix from actuator commands to body-frame
         torque directions.
@@ -317,7 +317,7 @@ class Controller():
         return np.column_stack(cols)
     
 
-    def find_max_torque(self, actuators: List[Actuator], actuator_type: Optional[Type[Actuator]] = None) -> np.ndarray:
+    def find_max_torque(self, actuators: Sequence[Actuator], actuator_type: Optional[Type[Actuator]] = None) -> np.ndarray:
         r"""
         Extracts maximum allowable actuator command magnitudes.
 

@@ -14,7 +14,7 @@ __all__ = [
 from dataclasses import dataclass
 from enum import Enum
 from functools import lru_cache
-from typing import Any
+from typing import Any, Sequence
 from xmlrpc.client import ServerProxy, Transport
 from xmlrpc.server import SimpleXMLRPCServer
 import http.client
@@ -743,7 +743,7 @@ class RemoteAttitudeEstimatorProxy:
         """
         return self._base.ping()
 
-    def update(self, u: np.ndarray, sensors: list[np.ndarray], os: Orbital_State) -> EstimatorState:
+    def update(self, u: np.ndarray, sensors: Sequence[np.ndarray], os: Orbital_State) -> EstimatorState:
         """Execute one remote attitude-estimator update.
 
         :param u:
@@ -816,7 +816,7 @@ class RemoteOrbitEstimatorProxy:
         """
         return self._base.ping()
 
-    def update(self, GPS_measurements: list[np.ndarray], J2000: float) -> EstimatedOrbital_State:
+    def update(self, GPS_measurements: Sequence[np.ndarray], J2000: float) -> EstimatedOrbital_State:
         """Execute one remote orbit-estimator update.
 
         :param GPS_measurements:

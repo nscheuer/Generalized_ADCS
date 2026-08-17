@@ -11,6 +11,7 @@ from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.satellite_hardware.errors import Noise, Bias
 from ADCS.helpers.math_constants import MathConstants
 from ADCS.helpers.math_helpers import normalize, normed_vec_jac, rot_mat
+from typing import Optional
 
 class MTM(Sensor):
     r"""
@@ -86,7 +87,7 @@ class MTM(Sensor):
     * The magnetometer itself is not an attitude sensor, but it provides
       attitude information when combined with an orbital magnetic field model.
     """
-    def __init__(self, axis: np.ndarray,  sample_time: float = 0.1, bias: Bias = None, noise: Noise = None, estimate_bias: bool = False):
+    def __init__(self, axis: np.ndarray,  sample_time: float = 0.1, bias: Optional[Bias] = None, noise: Optional[Noise] = None, estimate_bias: bool = False):
         r"""
         Initialize the magnetometer sensor model.
 

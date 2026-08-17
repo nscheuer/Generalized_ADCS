@@ -1,6 +1,6 @@
 __all__ = ["AttitudePlot"]
 
-from typing import Optional
+from typing import Optional, Sequence
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -120,7 +120,7 @@ class AttitudePlot(Subplot):
     def __init__(
         self,
         *,
-        sources: Optional[list[str]] = None,  # ["real","estimated","reference"]
+        sources: Optional[Sequence[str]] = None,  # ["real","estimated","reference"]
         time: str = "time_s",
         title: str = "Attitude Animation (ECI)",
         reference_attr: str = "target_hist",  # NEW default (Nx4 mixed goals), Nx3 also supported

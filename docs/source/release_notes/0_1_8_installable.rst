@@ -37,6 +37,31 @@ Two deliberate improvements over the package it replaces:
   The SRUAKF has always guarded on ``np.any(np.isnan(...))``; that guard could
   never fire before, and now does.
 
+Typed for downstream users
+--------------------------
+
+The package now ships a ``py.typed`` marker (PEP 561), so type checkers use its
+annotations instead of discarding them.
+
+Making that safe required correcting the public signatures first, because with
+the marker present a wrong annotation becomes a false error in *user* code
+rather than a harmless internal inaccuracy:
+
+* 77 implicit-Optional parameters (``x: np.ndarray = None``) are now
+  ``Optional[...]``. Modern type checkers read the declared type literally, so
+  passing ``None`` was reported as an error.
+* 75 read-only ``List[X]`` parameters are now ``Sequence[X]``. ``list`` is
+  invariant, so ``Satellite(actuators=[MTQ(...), ...])`` — the example in the
+  README — was reported as a type error. Each site was checked for mutation
+  first; ``Sequence`` has no ``append``.
+* ``RW(h=..., h_max=...)`` were annotated ``np.ndarray`` but are scalars for a
+  single wheel, as every call site in the project passes.
+
+None of these change behaviour at runtime; they are widenings that describe
+what the code already accepted. A CI step now type-checks a representative user
+program against the built wheel, so a future signature regression is caught
+before release.
+
 Dependencies are ranges, not pins
 ---------------------------------
 

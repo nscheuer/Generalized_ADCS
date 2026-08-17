@@ -105,8 +105,8 @@ class StarTracker(Sensor):
 
     def __init__(self, 
         sample_time: float = 0.1, 
-        bias: Bias = None, 
-        anisotropic_noise: AnisotropicNoise = None, 
+        bias: Optional[Bias] = None, 
+        anisotropic_noise: Optional[AnisotropicNoise] = None, 
         estimate_bias: bool = False,
         boresight: np.ndarray = np.array([0.0, 0.0, 1.0]),
         fov: float = np.deg2rad(4.0),

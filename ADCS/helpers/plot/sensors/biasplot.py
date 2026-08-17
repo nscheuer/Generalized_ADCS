@@ -5,6 +5,7 @@ import numpy as np
 import matplotlib.gridspec as gridspec
 
 from ..subplot import Subplot
+from typing import Sequence
 
 
 def _normalize_bias_sources(sources):
@@ -172,9 +173,9 @@ class BiasPlot(Subplot):
         time: str = "time_s",
         title: str | None = None,
         units: str = "",
-        labels: list[str] | None = None,
+        labels: Sequence[str] | None = None,
         log_y: bool = False,
-        sources: list[str] | None = None,  # ["real", "estimated"]
+        sources: Sequence[str] | None = None,  # ["real", "estimated"]
     ):
         self.kind = kind
         self.time = time
@@ -352,7 +353,7 @@ class BiasPlotSingle(Subplot):
         label: str | None = None,
         color: str | None = None,
         log_y: bool = False,
-        sources: list[str] | None = None,
+        sources: Sequence[str] | None = None,
     ):
         self.index = index
         self.kind = kind
@@ -520,10 +521,10 @@ class BiasPlotCombined(Subplot):
         time: str = "time_s",
         title: str | None = None,
         units: str = "",
-        labels: list[str] | None = None,
+        labels: Sequence[str] | None = None,
         log_y: bool = False,
-        colors: list[str] | None = None,
-        sources: list[str] | None = None,
+        colors: Sequence[str] | None = None,
+        sources: Sequence[str] | None = None,
     ):
         self.kind = kind
         self.time = time

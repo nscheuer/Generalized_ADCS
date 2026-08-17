@@ -9,6 +9,7 @@ from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.orbits.universal_constants import TimeConstants
 from ADCS.satellite_hardware.errors import ErrorMode
 from ADCS.helpers.math_helpers import normalize
+from typing import Optional
 
 class Actuator:
     r"""
@@ -86,7 +87,7 @@ class Actuator:
         :class:`~ADCS.satellite_hardware.actuators.magnetotorquer.MTQ`,
         :class:`~ADCS.satellite_hardware.actuators.reaction_wheel.RW`
     """
-    def __init__(self, axis: np.ndarray, u_max: float, bias: Bias = None, noise: Noise = None, estimate_bias: bool = False) -> None:
+    def __init__(self, axis: np.ndarray, u_max: float, bias: Optional[Bias] = None, noise: Optional[Noise] = None, estimate_bias: bool = False) -> None:
         r"""
         Initialize an actuator model.
 
@@ -125,7 +126,7 @@ class Actuator:
         self.input_len: int = 1
         self.last_bias_time: float = float('nan')
 
-    def torque(self, u: float, x: State, os: Orbital_State, dmode: ErrorMode = None) -> float:
+    def torque(self, u: float, x: State, os: Orbital_State, dmode: Optional[ErrorMode] = None) -> float:
         r"""
         Compute the body-frame torque produced by the actuator.
 
@@ -155,7 +156,7 @@ class Actuator:
         """
         return np.zeros(3)
     
-    def storage_torque(self, u: float, j2000: float, dmode: ErrorMode = None)-> float:
+    def storage_torque(self, u: float, j2000: float, dmode: Optional[ErrorMode] = None)-> float:
         r"""
         Compute the torque contribution associated with momentum storage states.
 

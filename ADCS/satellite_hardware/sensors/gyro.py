@@ -11,6 +11,7 @@ from ADCS.orbits.orbital_state import Orbital_State
 from ADCS.satellite_hardware.errors import Noise, Bias
 from ADCS.helpers.math_constants import MathConstants
 from ADCS.helpers.math_helpers import normalize
+from typing import Optional
 
 class Gyro(Sensor):
     r"""
@@ -89,7 +90,7 @@ class Gyro(Sensor):
     """
 
 
-    def __init__(self, axis: np.ndarray, sample_time: float = 0.1, bias: Bias = None, noise: Noise = None, estimate_bias: bool = False):
+    def __init__(self, axis: np.ndarray, sample_time: float = 0.1, bias: Optional[Bias] = None, noise: Optional[Noise] = None, estimate_bias: bool = False):
         r"""
         Initialize the single–axis gyroscope sensor.
 

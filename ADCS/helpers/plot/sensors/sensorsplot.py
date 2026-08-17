@@ -5,6 +5,7 @@ import numpy as np
 import matplotlib.gridspec as gridspec
 
 from ..subplot import Subplot
+from typing import Sequence
 
 
 def _normalize_sources(sources):
@@ -83,9 +84,9 @@ class SensorsPlot(Subplot):
         time: str = "time_s",
         title: str = "Sensors",
         units: str = "",
-        labels: list[str] | None = None,
+        labels: Sequence[str] | None = None,
         log_y: bool = False,
-        sources: list[str] | None = None,  # ["real", "clean"]
+        sources: Sequence[str] | None = None,  # ["real", "clean"]
     ):
         self.time = time
         self.title = title
@@ -278,7 +279,7 @@ class SensorsPlotSingle(Subplot):
         label: str | None = None,
         color: str | None = None,
         log_y: bool = False,
-        sources: list[str] | None = None,  # ["real", "clean"]
+        sources: Sequence[str] | None = None,  # ["real", "clean"]
     ):
         self.index = index
         self.time = time
@@ -432,10 +433,10 @@ class SensorsPlotCombined(Subplot):
         time: str = "time_s",
         title: str = "Sensors",
         units: str = "",
-        labels: list[str] | None = None,
+        labels: Sequence[str] | None = None,
         log_y: bool = False,
-        colors: list[str] | None = None,
-        sources: list[str] | None = None,  # ["real", "clean"]
+        colors: Sequence[str] | None = None,
+        sources: Sequence[str] | None = None,  # ["real", "clean"]
     ):
         self.time = time
         self.title = title

@@ -5,6 +5,7 @@ import numpy as np
 import matplotlib.gridspec as gridspec
 
 from ..subplot import Subplot
+from typing import Sequence
 
 
 def _extract_u_max(sim) -> list[float] | None:
@@ -67,7 +68,7 @@ class ControlPlot(Subplot):
         time: str = "time_s",
         title: str = "Control Inputs",
         units: str = "",
-        labels: list[str] | None = None,
+        labels: Sequence[str] | None = None,
         log_y: bool = False,
     ):
         self.time = time
@@ -313,9 +314,9 @@ class ControlPlotCombined(Subplot):
         time: str = "time_s",
         title: str = "Control Inputs",
         units: str = "",
-        labels: list[str] | None = None,
+        labels: Sequence[str] | None = None,
         log_y: bool = False,
-        colors: list[str] | None = None,
+        colors: Sequence[str] | None = None,
     ):
         self.time = time
         self.title = title

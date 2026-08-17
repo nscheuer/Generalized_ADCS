@@ -186,7 +186,7 @@ class MonteCarloRunner:
                  sim_func: Callable[[Dict[str, Any]], Dict[str, Any]], 
                  config_generator: Callable[[int], Dict[str, Any]], 
                  num_runs: int, 
-                 max_workers: int = None):
+                 max_workers: Optional[int] = None):
         self.sim_func = sim_func
         self.config_generator = config_generator
         self.num_runs = num_runs

@@ -131,8 +131,12 @@ include = ["ADCS*"]
 # first use, and a 16 MB payload on every install is a poor trade for a file
 # most users never touch. Pass `Ephemeris(filepath=...)` to point at an
 # existing copy.
+# py.typed marks the package as PEP 561 typed, so downstream type checkers use
+# our annotations instead of discarding them. Only safe now that the public
+# signatures are correct -- see the 0.1.9 release note.
 [tool.setuptools.package-data]
 "*" = ["textures/*.jpg"]
+"ADCS" = ["py.typed"]
 
 [tool.pytest.ini_options]
 addopts = [

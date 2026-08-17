@@ -10,15 +10,15 @@ import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 from matplotlib.widgets import Button, RadioButtons
 from numpy.linalg import norm
-from typing import Callable, Tuple, List, Optional
+from typing import Callable, Tuple, List, Optional, Sequence
 from ADCS.helpers.math_helpers import quat_to_euler
 from ADCS.state import State
 
 
 def plot_state_comparison(
     time: np.ndarray,
-    state_hist: List[State],
-    est_state_hist: Optional[List[State]] = None
+    state_hist: Sequence[State],
+    est_state_hist: Optional[Sequence[State]] = None
 ) -> None:
     r"""
     Plot angular velocity and Euler angle time histories, with optional estimation overlay.
@@ -146,8 +146,8 @@ def plot_state_comparison(
 
 def plot_error_and_sun(
     time: np.ndarray,
-    state_hist: List[State],
-    est_state_hist: List[State],
+    state_hist: Sequence[State],
+    est_state_hist: Sequence[State],
     os_hist: List
 ) -> None:
     r"""

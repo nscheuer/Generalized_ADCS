@@ -1,7 +1,7 @@
 __all__ = ["Orbit_EKF"]
 
 import numpy as np
-from typing import List
+from typing import List, Sequence
 from scipy.linalg import block_diag
 
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
@@ -95,7 +95,7 @@ class Orbit_EKF(Orbit_Estimator):
 
     def update(
         self,
-        GPS_measurements: List[np.ndarray],
+        GPS_measurements: Sequence[np.ndarray],
         J2000: float
     ) -> EstimatedOrbital_State:
         r"""
