@@ -6,8 +6,12 @@ import copy
 from typing import List, Tuple, Optional
 import time
 
-# The external C-library wrapper for fast Cholesky updates
-from choldate import cholupdate, choldowndate
+# Rank-1 Cholesky update/downdate. Formerly the external `choldate` package,
+# which has no PyPI release and had to be installed from git -- which made the
+# whole package impossible to `pip install` cleanly. Now in-tree, matching
+# choldate to ~1e-15 but raising NaN on a non-positive-definite downdate where
+# choldate silently returned a wrong factor (see ADCS/helpers/cholesky_update).
+from ADCS.helpers.cholesky_update import cholupdate, choldowndate
 
 from ADCS.state import EstimatorState
 from ADCS.satellite_hardware.satellite.estimated_satellite import EstimatedSatellite
