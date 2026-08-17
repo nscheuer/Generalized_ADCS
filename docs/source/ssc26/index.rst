@@ -22,7 +22,9 @@ Install
 
 .. code-block:: console
 
-   pip install git+https://github.com/nscheuer/Generalized_ADCS.git
+   pip install generalized-adcs
+
+Same line as the poster. Python 3.10+.
 
 A published magnetic law gets a wheel
 =====================================
