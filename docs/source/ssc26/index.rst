@@ -93,8 +93,10 @@ around it adapts the law to the hardware you actually have.
 Working code
 ------------
 
-Every code block from the poster is executed verbatim by
-``papers/SSC26_poster/verify_snippets.py``, so what is printed is what runs.
+Every code block printed on the poster is executed verbatim by a checked-in
+verification script, so what is printed is what runs. That script ships
+alongside the adapter (see the note below); until then the numbers on this
+page come from the paper's Monte Carlo campaigns.
 
 .. note::
 
